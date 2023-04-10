@@ -45,7 +45,7 @@ class InitCommand(CoreCommand):
                         ),
                         RowDefinition(
                             name=style(
-                                f"$ {ctx.command_path} --name sam-app --package-type image --architecture arm64"
+                                f"$ {ctx.command_path} --name sam-app --package-type Image --architecture arm64"
                             ),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
