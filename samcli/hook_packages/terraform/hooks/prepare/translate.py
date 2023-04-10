@@ -15,6 +15,7 @@ from samcli.hook_packages.terraform.hooks.prepare.enrich import enrich_resources
 from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     REMOTE_DUMMY_VALUE,
     RESOURCE_TRANSLATOR_MAPPING,
+    TF_AWS_API_GATEWAY_REST_API,
     TF_AWS_LAMBDA_FUNCTION,
     TF_AWS_LAMBDA_LAYER_VERSION,
     PropertyBuilderMapping,
@@ -25,6 +26,7 @@ from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     _link_lambda_function_to_layer,
     _resolve_resource_attribute,
 )
+from samcli.hook_packages.terraform.hooks.prepare.resources.apigw import RESTAPITranslationValidator
 from samcli.hook_packages.terraform.hooks.prepare.types import (
     ConstantValue,
     References,
@@ -49,6 +51,8 @@ AWS_PROVIDER_NAME = "registry.terraform.io/hashicorp/aws"
 NULL_RESOURCE_PROVIDER_NAME = "registry.terraform.io/hashicorp/null"
 
 LOG = logging.getLogger(__name__)
+
+TRANSLATION_VALIDATORS = {TF_AWS_API_GATEWAY_REST_API: RESTAPITranslationValidator}
 
 
 def translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_application_dir: str) -> dict:
@@ -226,6 +230,10 @@ def translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_applic
                     tf_code_property,
                     translated_resource,
                 )
+
+            if resource_type in TRANSLATION_VALIDATORS:
+                validator = TRANSLATION_VALIDATORS[resource_type](resource=resource, config_resource=config_resource)
+                validator.validate()
 
     # map s3 object sources to corresponding functions
     LOG.debug("Mapping S3 object sources to corresponding functions")
