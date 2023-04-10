@@ -153,17 +153,7 @@ def translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_applic
 
             # store S3 sources
             if resource_type == "aws_s3_object":
-                s3_bucket = (
-                    resource_values.get("bucket")
-                    if "bucket" in resource_values
-                    else _resolve_resource_attribute(config_resource, "bucket")
-                )
-                s3_key = (
-                    resource_values.get("key")
-                    if "key" in resource_values
-                    else _resolve_resource_attribute(config_resource, "key")
-                )
-                obj_hash = _get_s3_object_hash(s3_bucket, s3_key)
+                obj_hash = _find_s3_object_hash(resource_values, config_resource)
                 code_artifact = resource_values.get("source")
                 config_code_artifact = (
                     code_artifact if code_artifact else _resolve_resource_attribute(config_resource, "source")
@@ -551,3 +541,29 @@ def _get_s3_object_hash(
     md5.update(_calculate_configuration_attribute_value_hash(key).encode())
     # TODO: Hash version if it exists in addition to key and bucket
     return md5.hexdigest()
+
+
+def _find_s3_object_hash(resource_values: Dict, config_resource: TFResource) -> str:
+    """
+
+    Parameters
+    ----------
+    resource_values: Dict
+        The Terraform properties containing the S3 Bucket and Key
+    config_resource: TFResource
+        A Terraform resource
+
+    Returns
+    -------
+    str
+        Hash mapping the S3 Bucket and Key to a given code property
+    """
+    s3_bucket = (
+        resource_values.get("bucket")
+        if "bucket" in resource_values
+        else _resolve_resource_attribute(config_resource, "bucket")
+    )
+    s3_key = (
+        resource_values.get("key") if "key" in resource_values else _resolve_resource_attribute(config_resource, "key")
+    )
+    return _get_s3_object_hash(s3_bucket, s3_key)
