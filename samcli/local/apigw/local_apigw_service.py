@@ -667,9 +667,10 @@ class LocalApigwService(BaseLocalService):
             LOG.error("UnicodeDecodeError while processing HTTP request: %s", error)
             return ServiceErrorResponses.lambda_failure_response()
 
-        lambda_authorizer_exception = None
-        auth_service_error = None
         try:
+            lambda_authorizer_exception = None
+            auth_service_error = None
+
             if lambda_authorizer:
                 self._invoke_parse_lambda_authorizer(lambda_authorizer, auth_lambda_event, route_lambda_event, route)
         except AuthorizerUnauthorizedRequest as ex:
@@ -689,7 +690,7 @@ class LocalApigwService(BaseLocalService):
             )
 
             if lambda_authorizer_exception:
-                LOG.error("Lambda authorizer failed to invoke successfully: %s", exception_name)
+                LOG.error("Lambda authorizer failed to invoke successfully: %s", lambda_authorizer_exception.message)
 
                 return auth_service_error
 

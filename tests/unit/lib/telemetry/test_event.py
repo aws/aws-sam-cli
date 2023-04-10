@@ -65,7 +65,13 @@ class TestEventCreation(TestCase):
 
         self.assertEqual(
             test_event.to_json(),
-            {"event_name": "Testing", "event_value": "value1", "thread_id": threading.get_ident(), "time_stamp": ANY},
+            {
+                "event_name": "Testing",
+                "event_value": "value1",
+                "thread_id": threading.get_ident(),
+                "time_stamp": ANY,
+                "exception_name": None,
+            },
         )
 
 
@@ -144,6 +150,7 @@ class TestEventTracker(TestCase):
                         "event_value": "SomeValue",
                         "thread_id": ANY,
                         "time_stamp": ANY,
+                        "exception_name": ANY,
                     }
                 ]
             },
