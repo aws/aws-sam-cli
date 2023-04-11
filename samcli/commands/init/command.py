@@ -10,6 +10,7 @@ import click
 from samcli.cli.cli_config_file import TomlProvider, configuration_option
 from samcli.cli.main import common_options, pass_context, print_cmdline_args
 from samcli.commands._utils.click_mutex import ClickMutex
+from samcli.commands.init.core.command import InitCommand
 from samcli.commands.init.init_flow_helpers import _get_runtime_from_image, get_architectures, get_sorted_runtimes
 from samcli.lib.build.constants import DEPRECATED_RUNTIMES
 from samcli.lib.telemetry.metric import track_command
@@ -20,47 +21,16 @@ from samcli.local.common.runtime_template import INIT_RUNTIMES, LAMBDA_IMAGES_RU
 
 LOG = logging.getLogger(__name__)
 
-HELP_TEXT = """ \b
-    Initialize a serverless application with a SAM template, folder
-    structure for your Lambda functions, connected to an event source such as APIs,
-    S3 Buckets or DynamoDB Tables. This application includes everything you need to
-    get started with serverless and eventually grow into a production scale application.
-    \b
-    This command can initialize a boilerplate serverless app. If you want to create your own
-    template as well as use a custom location please take a look at our official documentation.
-\b
-Common usage:
-    \b
-    Starts an interactive prompt process to initialize a new project:
-    \b
-    $ sam init
-    \b
-    Initializes a new SAM project using project templates without an interactive workflow:
-    \b
-    $ sam init --name sam-app --runtime nodejs14.x --dependency-manager npm --app-template hello-world
-    \b
-    $ sam init --name sam-app --runtime nodejs14.x --architecture arm64
-    \b
-    $ sam init --name sam-app --package-type image --base-image nodejs14.x-base
-    \b
-    Initializes a new SAM project using custom template in a Git/Mercurial repository
-    \b
-    # gh being expanded to github url
-    $ sam init --location gh:aws-samples/cookiecutter-aws-sam-python
-    \b
-    $ sam init --location git+ssh://git@github.com/aws-samples/cookiecutter-aws-sam-python.git
-    \b
-    $ sam init --location hg+ssh://hg@bitbucket.org/repo/template-name
-    \b
-    Initializes a new SAM project using custom template in a Zipfile
-    \b
-    $ sam init --location /path/to/template.zip
-    \b
-    $ sam init --location https://example.com/path/to/template.zip
-    \b
-    Initializes a new SAM project using custom template in a local path
-    \b
-    $ sam init --location /path/to/template/folder
+HELP_TEXT = "Initialize an AWS SAM application."
+
+DESCRIPTION = """ \b
+  Initialize a serverless application with an AWS SAM template, source code and 
+  structure for serverless abstractions which connect to event source(s) such as APIs,
+  S3 Buckets or DynamoDB Tables. This application includes everything one needs to
+  get started with serverless and eventually grow into a production scale application.
+  \b
+  To explore initializing with your own template and/or using a custom location, 
+  please take a look at our official documentation.
 """
 
 INCOMPATIBLE_PARAMS_HINT = """You can run 'sam init' without any options for an interactive initialization flow, \
@@ -136,16 +106,18 @@ def non_interactive_validation(func):
 
 @click.command(
     "init",
-    help=HELP_TEXT,
-    short_help="Init an AWS SAM application.",
-    context_settings=dict(help_option_names=["-h", "--help"]),
+    short_help=HELP_TEXT,
+    context_settings={"max_content_width": 120},
+    cls=InitCommand,
+    description=DESCRIPTION,
+    requires_credentials=False,
 )
 @configuration_option(provider=TomlProvider(section="parameters"))
 @click.option(
     "--no-interactive",
     is_flag=True,
     default=False,
-    help="Disable interactive prompting for init parameters, and fail if any required values are missing.",
+    help="Disable interactive prompting for init parameters. (fail if any required values are missing)",
     cls=ClickMutex,
     required_param_lists=[
         ["name", "location"],
@@ -159,13 +131,14 @@ def non_interactive_validation(func):
     "-a",
     "--architecture",
     type=click.Choice([ARM64, X86_64]),
-    help="Architectures your Lambda function will run on",
+    replace_help_option="--architecture ARCHITECTURE",
+    help="Architectures for Lambda functions." + click.style(f"\n\nArchitectures: {[ARM64, X86_64]}", bold=True),
     cls=ClickMutex,
 )
 @click.option(
     "-l",
     "--location",
-    help="Template location (git, mercurial, http(s), zip, path)",
+    help="Template location (git, mercurial, http(s), zip, path).",
     cls=ClickMutex,
     incompatible_params=["package_type", "runtime", "base_image", "dependency_manager", "app_template"],
     incompatible_params_hint=INCOMPATIBLE_PARAMS_HINT,
@@ -174,7 +147,9 @@ def non_interactive_validation(func):
     "-r",
     "--runtime",
     type=click.Choice(get_sorted_runtimes(INIT_RUNTIMES)),
-    help="Lambda Runtime of your app",
+    replace_help_option="--runtime RUNTIME",
+    help="Lambda runtime for application."
+    + click.style(f"\n\nRuntimes: {', '.join(get_sorted_runtimes(INIT_RUNTIMES))}", bold=True),
     cls=ClickMutex,
     incompatible_params=["location", "base_image"],
     incompatible_params_hint=INCOMPATIBLE_PARAMS_HINT,
@@ -183,7 +158,8 @@ def non_interactive_validation(func):
     "-p",
     "--package-type",
     type=click.Choice([ZIP, IMAGE]),
-    help="Package type for your app",
+    help="Lambda deployment package type." + click.style(f"\n\nPackage Types: {', '.join([ZIP, IMAGE])}", bold=True),
+    replace_help_option="--package-type PACKAGE_TYPE",
     cls=ClickMutex,
     callback=PackageType.pt_callback,
     incompatible_params=["location"],
@@ -194,7 +170,9 @@ def non_interactive_validation(func):
     "--base-image",
     type=click.Choice(LAMBDA_IMAGES_RUNTIMES),
     default=None,
-    help="Lambda Image of your app",
+    help="Lambda base image for deploying IMAGE based package type."
+    + click.style(f"\n\nBase images: {', '.join(LAMBDA_IMAGES_RUNTIMES)}", bold=True),
+    replace_help_option="--base-image BASE_IMAGE",
     cls=ClickMutex,
     incompatible_params=["location", "runtime"],
     incompatible_params_hint=INCOMPATIBLE_PARAMS_HINT,
@@ -204,18 +182,20 @@ def non_interactive_validation(func):
     "--dependency-manager",
     type=click.Choice(SUPPORTED_DEP_MANAGERS),
     default=None,
-    help="Dependency manager of your Lambda runtime",
+    help="Dependency manager for Lambda runtime."
+    + click.style(f"\n\nDependency managers: {', '.join(SUPPORTED_DEP_MANAGERS)}", bold=True),
     required=False,
     cls=ClickMutex,
+    replace_help_option="--dependency-manager DEPENDENCY_MANAGER",
     incompatible_params=["location"],
     incompatible_params_hint=INCOMPATIBLE_PARAMS_HINT,
 )
-@click.option("-o", "--output-dir", type=click.Path(), help="Where to output the initialized app into", default=".")
-@click.option("-n", "--name", help="Name of your project to be generated as a folder")
+@click.option("-o", "--output-dir", type=click.Path(), help="Directory to initialize AWS SAM application.", default=".")
+@click.option("-n", "--name", help="Name of AWS SAM Application.")
 @click.option(
     "--app-template",
-    help="Identifier of the managed application template you want to use. "
-    "If not sure, call 'sam init' without options for an interactive workflow.",
+    help="Identifier of the managed application template to be used. "
+    "Alternatively, run '$sam init' without options for an interactive workflow.",
     cls=ClickMutex,
     incompatible_params=["location"],
     incompatible_params_hint=INCOMPATIBLE_PARAMS_HINT,
@@ -224,12 +204,12 @@ def non_interactive_validation(func):
     "--no-input",
     is_flag=True,
     default=False,
-    help="Disable Cookiecutter prompting and accept default values defined template config",
+    help="Disable Cookiecutter prompting and accept default values defined in the cookiecutter config.",
 )
 @click.option(
     "--extra-context",
     default=None,
-    help="Override any custom parameters in the template's cookiecutter.json configuration e.g. "
+    help="Override custom parameters in the template's cookiecutter.json configuration e.g. "
     ""
     '{"customParam1": "customValue1", "customParam2":"customValue2"}'
     """ """,
@@ -238,12 +218,12 @@ def non_interactive_validation(func):
 @click.option(
     "--tracing/--no-tracing",
     default=None,
-    help="Enable AWS X-Ray tracing for your lambda functions",
+    help="Enable AWS X-Ray tracing for application.",
 )
 @click.option(
     "--application-insights/--no-application-insights",
     default=None,
-    help="Enable CloudWatch Application Insights monitoring for your application",
+    help="Enable CloudWatch Application Insights monitoring for application.",
 )
 @common_options
 @non_interactive_validation
