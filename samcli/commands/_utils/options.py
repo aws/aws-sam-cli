@@ -310,7 +310,7 @@ def no_progressbar_click_option():
         default=False,
         required=False,
         is_flag=True,
-        help="Does not showcase a progress bar when uploading artifacts to s3 ",
+        help="Does not showcase a progress bar when uploading artifacts to s3 and pushing docker images to ECR",
     )
 
 
