@@ -45,10 +45,8 @@ def _unsupported_reference_field(field: str, resource: Dict, config_resource: TF
         True if the resource contains an field with a reference not parsable by AWS SAM CLI,
         False otherwise
     """
-    if (
+    return (
         not resource.get(field)
         and config_resource.attributes.get(field)
         and isinstance(config_resource.attributes.get(field), References)
-    ):
-        return True
-    return False
+    )
