@@ -159,8 +159,9 @@ def translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_applic
                     else _resolve_resource_attribute(config_resource, "bucket")
                 )
                 s3_key = (
-                    resource_values.get("key") if "key" in resource_values else _resolve_resource_attribute(
-                        config_resource, "key")
+                    resource_values.get("key")
+                    if "key" in resource_values
+                    else _resolve_resource_attribute(config_resource, "key")
                 )
                 obj_hash = _get_s3_object_hash(s3_bucket, s3_key)
                 code_artifact = resource_values.get("source")
