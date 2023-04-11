@@ -137,14 +137,20 @@ class SwaggerParser:
                 )
 
             enable_simple_response = authorizer_object.get(SwaggerParser._AUTHORIZER_SIMPLE_RESPONSES, False)
-            if event_type != Route.HTTP or payload_version != LambdaAuthorizer.PAYLOAD_V2 and enable_simple_response:
+
+            if (
+                event_type != Route.HTTP
+                or payload_version != LambdaAuthorizer.PAYLOAD_V2
+                or not isinstance(enable_simple_response, bool)
+            ):
                 enable_simple_response = False
 
-                LOG.warning(
-                    "Simple responses are only available on HTTP APIs with payload version "
-                    "2.0, ignoring for Lambda authorizer '%s'",
-                    auth_name,
-                )
+                if authorizer_object.get(SwaggerParser._AUTHORIZER_SIMPLE_RESPONSES) is not None:
+                    LOG.warning(
+                        "Simple responses are only available on HTTP APIs with payload version "
+                        "2.0, ignoring for Lambda authorizer '%s'",
+                        auth_name,
+                    )
 
             if not identity_sources:
                 LOG.warning(
