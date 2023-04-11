@@ -153,11 +153,11 @@ class LambdaImage:
         if packagetype == IMAGE:
             base_image = image
         elif packagetype == ZIP:
+            runtime_image_tag = Runtime.get_image_name_tag(runtime, architecture)
             if self.invoke_images:
                 base_image = self.invoke_images.get(function_name, self.invoke_images.get(None))
             if not base_image:
                 # Gets the ECR image format like `python:3.7` or `nodejs:16-x86_64`
-                runtime_image_tag = Runtime.get_image_name_tag(runtime, architecture)
                 runtime_only_number = re.split("[:-]", runtime_image_tag)[1]
                 tag_prefix = f"{runtime_only_number}-"
                 base_image = f"{self._INVOKE_REPO_PREFIX}/{runtime_image_tag}"
