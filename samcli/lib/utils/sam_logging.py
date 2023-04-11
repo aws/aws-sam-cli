@@ -2,6 +2,10 @@
 Configures a logger
 """
 import logging
+import sys
+
+from rich.console import Console
+from rich.logging import RichHandler
 
 SAM_CLI_FORMATTER = logging.Formatter("%(message)s")
 SAM_CLI_FORMATTER_WITH_TIMESTAMP = logging.Formatter("%(asctime)s | %(message)s")
@@ -28,9 +32,12 @@ class SamCliLogger:
         if handlers:
             log_stream_handler = handlers[0]
         else:
-            log_stream_handler = logging.StreamHandler()
+            log_stream_handler = (
+                RichHandler(console=Console(stderr=True), show_time=False, show_path=False, show_level=False)
+                if sys.stderr.isatty()
+                else logging.StreamHandler()
+            )
             logger.addHandler(log_stream_handler)
-
         log_stream_handler.setLevel(logging.DEBUG)
         log_stream_handler.setFormatter(formatter)
 
