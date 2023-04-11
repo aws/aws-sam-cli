@@ -11,7 +11,7 @@ USER_AGENT_ENV_VAR = "AWS_TOOLING_USER_AGENT"
 # AWS_Toolkit-For-VSCode/1.62.0
 # AWS-Toolkit-For-JetBrains/1.60-223
 # AWS-Toolkit-For-JetBrains/1.60.0-223
-ACCEPTED_USER_AGENT_FORMAT = re.compile(r"^[A-Za-z1-9\-_]{1,64}/\d+\.\d+(\.\d+)?(\-[A-Za-z1-9]{0,16})?$")
+ACCEPTED_USER_AGENT_FORMAT = re.compile(r"^[A-Za-z0-9\-_]{1,64}/\d+\.\d+(\.\d+)?(\-[A-Za-z0-9]{0,16})?$")
 
 
 def get_user_agent_string() -> Optional[str]:
