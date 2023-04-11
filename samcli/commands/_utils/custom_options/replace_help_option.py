@@ -10,5 +10,5 @@ class ReplaceHelpSummaryOption(click.Option):
         super(ReplaceHelpSummaryOption, self).__init__(*args, **kwargs)
 
     def get_help_record(self, ctx):
-        _, help_text = super(ReplaceHelpSummaryOption, self).get_help_record(ctx=ctx)
-        return self.replace_help_option, help_text
+        help_record, help_text = super(ReplaceHelpSummaryOption, self).get_help_record(ctx=ctx)
+        return self.replace_help_option if self.replace_help_option else help_record, help_text
