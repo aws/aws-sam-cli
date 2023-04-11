@@ -3,9 +3,10 @@ Terraform translate to CFN implementation
 
 This method contains the logic required to translate the `terraform show` JSON output into a Cloudformation template
 """
+# ruff: noqa: PLR0915
 import hashlib
 import logging
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple, Type, Union
 
 from samcli.hook_packages.terraform.hooks.prepare.constants import (
     CFN_CODE_PROPERTIES,
@@ -31,6 +32,7 @@ from samcli.hook_packages.terraform.hooks.prepare.types import (
     ConstantValue,
     References,
     ResolvedReference,
+    ResourceTranslationValidator,
     SamMetadataResource,
     TFModule,
     TFResource,
@@ -52,7 +54,9 @@ NULL_RESOURCE_PROVIDER_NAME = "registry.terraform.io/hashicorp/null"
 
 LOG = logging.getLogger(__name__)
 
-TRANSLATION_VALIDATORS = {TF_AWS_API_GATEWAY_REST_API: RESTAPITranslationValidator}
+TRANSLATION_VALIDATORS: Dict[str, Type[ResourceTranslationValidator]] = {
+    TF_AWS_API_GATEWAY_REST_API: RESTAPITranslationValidator,
+}
 
 
 def translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_application_dir: str) -> dict:
