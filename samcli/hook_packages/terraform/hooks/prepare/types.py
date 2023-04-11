@@ -77,3 +77,23 @@ class SamMetadataResource:
     current_module_address: Optional[str]
     resource: Dict
     config_resource: TFResource
+
+
+class ResourceTranslationValidator:
+    """
+    Base class for a validation class to be used when translating Terraform resources to a metadata file
+    """
+
+    resource: Dict
+    config_resource: TFResource
+
+    def __init__(self, resource, config_resource):
+        self.resource = resource
+        self.config_resource = config_resource
+
+    def validate(self):
+        """
+        Function to be called for resources of a given type used for validating
+        the AWS SAM CLI transformation logic for the given resource
+        """
+        raise NotImplementedError

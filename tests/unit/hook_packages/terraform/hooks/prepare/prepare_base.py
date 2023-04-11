@@ -8,6 +8,7 @@ from samcli.lib.utils.resources import (
     AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION,
     AWS_LAMBDA_LAYERVERSION,
     AWS_APIGATEWAY_RESOURCE,
+    AWS_APIGATEWAY_RESTAPI,
 )
 
 
@@ -36,6 +37,7 @@ class PrepareHookUnitBase(TestCase):
         self.lambda_layer_name = "lambda_layer"
 
         self.apigw_resource_name = "my_resource"
+        self.apigw_rest_api_name = "my_rest_api"
 
         self.tf_function_common_properties: dict = {
             "function_name": self.zip_function_name,
@@ -306,6 +308,11 @@ class PrepareHookUnitBase(TestCase):
             "provider_name": AWS_PROVIDER_NAME,
         }
 
+        self.tf_apigw_rest_api_common_attributes: dict = {
+            "type": "aws_api_gateway_rest_api",
+            "provider_name": AWS_PROVIDER_NAME,
+        }
+
         self.tf_lambda_function_resource_common_attributes: dict = {
             "type": "aws_lambda_function",
             "provider_name": AWS_PROVIDER_NAME,
@@ -500,6 +507,45 @@ class PrepareHookUnitBase(TestCase):
             "Metadata": {"SamResourceId": f"aws_api_gateway_resource.{self.apigw_resource_name}"},
         }
 
+        self.tf_apigw_rest_api_properties: dict = {
+            "name": self.apigw_rest_api_name,
+            "body": {
+                "openapi": "3.0.1",
+                "info": {
+                    "title": "example",
+                    "version": "1.0",
+                },
+            },
+            "parameters": {"param_a": "value_a"},
+            "binary_media_types": ["utf-8"],
+        }
+
+        self.expected_cfn_apigw_rest_api_properties: dict = {
+            "Name": self.apigw_rest_api_name,
+            "Body": {
+                "openapi": "3.0.1",
+                "info": {
+                    "title": "example",
+                    "version": "1.0",
+                },
+            },
+            "Parameters": {"param_a": "value_a"},
+            "BinaryMediaTypes": ["utf-8"],
+        }
+
+        self.tf_apigw_rest_api_resource: dict = {
+            **self.tf_apigw_rest_api_common_attributes,
+            "values": self.tf_apigw_rest_api_properties,
+            "address": f"aws_api_gateway_rest_api.{self.apigw_rest_api_name}",
+            "name": self.apigw_rest_api_name,
+        }
+
+        self.expected_cfn_apigw_rest_api: dict = {
+            "Type": AWS_APIGATEWAY_RESTAPI,
+            "Properties": self.expected_cfn_apigw_rest_api_properties,
+            "Metadata": {"SamResourceId": f"aws_api_gateway_rest_api.{self.apigw_rest_api_name}"},
+        }
+
         self.tf_json_with_root_module_only: dict = {
             "planned_values": {
                 "root_module": {
@@ -508,6 +554,7 @@ class PrepareHookUnitBase(TestCase):
                         self.tf_lambda_function_resource_zip_2,
                         self.tf_image_package_type_lambda_function_resource,
                         self.tf_apigw_resource_resource,
+                        self.tf_apigw_rest_api_resource,
                     ]
                 }
             }
@@ -519,6 +566,7 @@ class PrepareHookUnitBase(TestCase):
                 f"AwsLambdaFunctionMyfunc2{self.mock_logical_id_hash}": self.expected_cfn_lambda_function_resource_zip_2,
                 f"AwsLambdaFunctionImageFunc{self.mock_logical_id_hash}": self.expected_cfn_image_package_type_lambda_function_resource,
                 f"AwsApiGatewayResourceMyResource{self.mock_logical_id_hash}": self.expected_cfn_apigw_resource,
+                f"AwsApiGatewayRestApiMyRestApi{self.mock_logical_id_hash}": self.expected_cfn_apigw_rest_api,
             },
         }
 
