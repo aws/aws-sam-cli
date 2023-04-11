@@ -193,10 +193,10 @@ class ApiCollector:
         for authorizers in self._authorizers_per_resources.values():
             if len(authorizers):
                 message = f"""{os.linesep}AWS SAM CLI does not guarantee 100% fidelity between authorizers locally 
-vs authorizers deployed on AWS. Any application critical behavior should
+and authorizers deployed on AWS. Any application critical behavior should
 be validated thoroughly before deploying to production.
 
-Testing application behaviour against authorizers deployed to AWS can be done using the sam sync command.{os.linesep}"""
+Testing application behaviour against authorizers deployed on AWS can be done using the sam sync command.{os.linesep}"""
                 LOG.warning(Colored().yellow(message))
 
                 break
