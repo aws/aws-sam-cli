@@ -12,6 +12,8 @@ class TestUserAgent(TestCase):
             ("AWS_Toolkit-For-VSCode/1.62.0",),
             ("AWS-Toolkit-For-JetBrains/1.60-223",),
             ("AWS-Toolkit-For-JetBrains/1.60.0-223",),
+            ("AWS-Toolkit-For-JetBrains0/1.60.0-223",),
+            ("AWS-Toolkit-For-JetBrains/1.60.0-2230",),
         ]
     )
     def test_user_agent(self, agent_value):
