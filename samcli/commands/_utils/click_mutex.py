@@ -5,8 +5,10 @@ from typing import Any, List, Mapping, Tuple, cast
 
 import click
 
+from samcli.commands._utils.custom_options.replace_help_option import ReplaceHelpSummaryOption
 
-class ClickMutex(click.Option):
+
+class ClickMutex(ReplaceHelpSummaryOption):
     """
     Preprocessing checks for mutually exclusive or required parameters as supported by click api.
 

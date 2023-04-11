@@ -6,6 +6,7 @@ from tests.unit.hook_packages.terraform.hooks.prepare.prepare_base import Prepar
 from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING,
     REMOTE_DUMMY_VALUE,
+    AWS_API_GATEWAY_RESOURCE_PROPERTY_BUILDER_MAPPING,
 )
 from samcli.hook_packages.terraform.hooks.prepare.types import (
     SamMetadataResource,
@@ -1035,3 +1036,9 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         self.assertNotEqual(
             _get_s3_object_hash(self.s3_bucket, self.s3_key), _get_s3_object_hash(self.s3_bucket, self.s3_key_2)
         )
+
+    def test_translating_apigw_resource(self):
+        translated_cfn_properties = _translate_properties(
+            self.tf_apigw_resource_properties, AWS_API_GATEWAY_RESOURCE_PROPERTY_BUILDER_MAPPING, Mock()
+        )
+        self.assertEqual(translated_cfn_properties, self.expected_cfn_apigw_resource_properties)
