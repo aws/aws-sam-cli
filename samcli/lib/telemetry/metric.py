@@ -436,9 +436,12 @@ class Metric:
         self._data["sessionId"] = self._session_id
         self._data["executionEnvironment"] = self._get_execution_environment()
         self._data["ci"] = bool(self._cicd_detector.platform())
-        self._data["userAgent"] = get_user_agent_string()
         self._data["pyversion"] = platform.python_version()
         self._data["samcliVersion"] = samcli_version
+
+        user_agent = get_user_agent_string()
+        if user_agent:
+            self._data["userAgent"] = user_agent
 
     @staticmethod
     def _default_session_id() -> Optional[str]:

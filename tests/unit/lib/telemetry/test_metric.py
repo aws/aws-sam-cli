@@ -536,7 +536,8 @@ class TestMetric(TestCase):
         assert metric.get_data()["sessionId"] == session_id
         assert metric.get_data()["executionEnvironment"] == execution_env
         assert metric.get_data()["ci"] == bool(ci)
-        assert metric.get_data()["userAgent"] == user_agent
+        if user_agent:
+            assert metric.get_data()["userAgent"] == user_agent
         assert metric.get_data()["pyversion"] == python_version
         assert metric.get_data()["samcliVersion"] == samcli.__version__
 
