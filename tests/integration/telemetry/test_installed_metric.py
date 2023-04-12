@@ -46,7 +46,6 @@ class TestSendInstalledMetric(IntegBase):
                             "requestId": ANY,
                             "telemetryEnabled": True,
                             "ci": ANY,
-                            "userAgent": ANY,
                         }
                     }
                 ]
