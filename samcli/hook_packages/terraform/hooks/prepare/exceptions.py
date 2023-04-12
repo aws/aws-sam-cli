@@ -53,3 +53,17 @@ class LocalVariablesLinkingLimitationException(UserException):
 
 class InvalidSamMetadataPropertiesException(UserException):
     pass
+
+
+class OpenAPIBodyNotSupportedException(UserException):
+    fmt = (
+        "AWS SAM CLI is unable to process a Terraform project that uses an OpenAPI specification to "
+        "define the API Gateway resource. AWS SAM CLI does not currently support this "
+        "functionality. Affected resource: {api_id}."
+    )
+
+    def __init__(self, api_id):
+        msg = self.fmt.format(
+            api_id=api_id,
+        )
+        UserException.__init__(self, msg)
