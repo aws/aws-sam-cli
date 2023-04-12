@@ -95,14 +95,19 @@ class Event:
         self.exception_name = exception_name
 
     def __eq__(self, other):
-        return self.event_name == other.event_name and self.event_value == other.event_value
+        return (
+            self.event_name == other.event_name
+            and self.event_value == other.event_value
+            and self.exception_name == other.exception_name
+        )
 
     def __repr__(self):
         return (
             f"Event(event_name={self.event_name.value}, "
             f"event_value={self.event_value}, "
             f"thread_id={self.thread_id}, "
-            f"time_stamp={self.time_stamp})"
+            f"time_stamp={self.time_stamp})",
+            f"exception_name={self.exception_name})",
         )
 
     def to_json(self):
