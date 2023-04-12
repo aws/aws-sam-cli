@@ -16,11 +16,13 @@ from werkzeug.serving import WSGIRequestHandler
 from samcli.commands.local.lib.exceptions import UnsupportedInlineCodeError
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
 from samcli.lib.providers.provider import Api, Cors
+from samcli.lib.telemetry.event import EventName, EventTracker, UsedFeature
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.apigw.authorizers.lambda_authorizer import LambdaAuthorizer
 from samcli.local.apigw.event_constructor import construct_v1_event, construct_v2_event_http
 from samcli.local.apigw.exceptions import (
     AuthorizerUnauthorizedRequest,
+    InvalidLambdaAuthorizerResponse,
     InvalidSecurityDefinition,
     LambdaResponseParseException,
     PayloadFormatVersionValidateException,
@@ -91,6 +93,19 @@ class LocalApigwService(BaseLocalService):
         self.static_dir = static_dir
         self._dict_of_routes: Dict[str, Route] = {}
         self.stderr = stderr
+
+        self._click_session_id = None
+
+        try:
+            # save the session ID for telemetry event sending
+            from samcli.cli.context import Context
+
+            ctx = Context.get_current_context()
+
+            if ctx:
+                self._click_session_id = ctx.session_id
+        except RuntimeError:
+            LOG.debug("Not able to get click context in APIGW service")
 
     def create(self):
         """
@@ -653,19 +668,45 @@ class LocalApigwService(BaseLocalService):
             return ServiceErrorResponses.lambda_failure_response()
 
         try:
+            lambda_authorizer_exception = None
+            auth_service_error = None
+
             if lambda_authorizer:
                 self._invoke_parse_lambda_authorizer(lambda_authorizer, auth_lambda_event, route_lambda_event, route)
+        except AuthorizerUnauthorizedRequest as ex:
+            auth_service_error = ServiceErrorResponses.lambda_authorizer_unauthorized()
+            lambda_authorizer_exception = ex
+        except InvalidLambdaAuthorizerResponse as ex:
+            auth_service_error = ServiceErrorResponses.lambda_failure_response()
+            lambda_authorizer_exception = ex
+        finally:
+            exception_name = type(lambda_authorizer_exception).__name__ if lambda_authorizer_exception else None
 
+            EventTracker.track_event(
+                event_name=EventName.USED_FEATURE.value,
+                event_value=UsedFeature.INVOKED_CUSTOM_LAMBDA_AUTHORIZERS.value,
+                session_id=self._click_session_id,
+                exception_name=exception_name,
+            )
+
+            if lambda_authorizer_exception:
+                LOG.error("Lambda authorizer failed to invoke successfully: %s", lambda_authorizer_exception.message)
+
+                return auth_service_error
+
+        endpoint_service_error = None
+        try:
             # invoke the route's Lambda function
             lambda_response = self._invoke_lambda_function(route.function_name, route_lambda_event)
         except FunctionNotFound:
-            return ServiceErrorResponses.lambda_not_found_response()
+            endpoint_service_error = ServiceErrorResponses.lambda_not_found_response()
         except UnsupportedInlineCodeError:
-            return ServiceErrorResponses.not_implemented_locally(
+            endpoint_service_error = ServiceErrorResponses.not_implemented_locally(
                 "Inline code is not supported for sam local commands. Please write your code in a separate file."
             )
-        except AuthorizerUnauthorizedRequest:
-            return ServiceErrorResponses.lambda_authorizer_unauthorized()
+
+        if endpoint_service_error:
+            return endpoint_service_error
 
         try:
             if route.event_type == Route.HTTP and (

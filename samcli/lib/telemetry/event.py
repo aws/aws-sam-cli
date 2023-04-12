@@ -34,6 +34,7 @@ class UsedFeature(Enum):
     CDK = "CDK"
     INIT_WITH_APPLICATION_INSIGHTS = "InitWithApplicationInsights"
     CFNLint = "CFNLint"
+    INVOKED_CUSTOM_LAMBDA_AUTHORIZERS = "InvokedLambdaAuthorizers"
 
 
 class EventType:
@@ -84,22 +85,29 @@ class Event:
     event_value: str  # Validated by EventType.get_accepted_values to never be an arbitrary string
     thread_id = threading.get_ident()  # The thread ID; used to group Events from the same command run
     time_stamp: str
+    exception_name: Optional[str]
 
-    def __init__(self, event_name: str, event_value: str):
+    def __init__(self, event_name: str, event_value: str, exception_name: Optional[str] = None):
         Event._verify_event(event_name, event_value)
         self.event_name = EventName(event_name)
         self.event_value = event_value
         self.time_stamp = str(datetime.utcnow())[:-3]  # format microseconds from 6 -> 3 figures to allow SQL casting
+        self.exception_name = exception_name
 
     def __eq__(self, other):
-        return self.event_name == other.event_name and self.event_value == other.event_value
+        return (
+            self.event_name == other.event_name
+            and self.event_value == other.event_value
+            and self.exception_name == other.exception_name
+        )
 
     def __repr__(self):
         return (
             f"Event(event_name={self.event_name.value}, "
             f"event_value={self.event_value}, "
             f"thread_id={self.thread_id}, "
-            f"time_stamp={self.time_stamp})"
+            f"time_stamp={self.time_stamp})",
+            f"exception_name={self.exception_name})",
         )
 
     def to_json(self):
@@ -108,6 +116,7 @@ class Event:
             "event_value": self.event_value,
             "thread_id": self.thread_id,
             "time_stamp": self.time_stamp,
+            "exception_name": self.exception_name,
         }
 
     @staticmethod
@@ -134,7 +143,9 @@ class EventTracker:
     MAX_EVENTS: int = 50  # Maximum number of events to store before sending
 
     @staticmethod
-    def track_event(event_name: str, event_value: str):
+    def track_event(
+        event_name: str, event_value: str, session_id: Optional[str] = None, exception_name: Optional[str] = None
+    ):
         """Method to track an event where and when it occurs.
 
         Place this method in the codepath of the event that you would
@@ -149,6 +160,10 @@ class EventTracker:
         event_value: str
             The value of the Event. Must be a valid EventType value for the
             passed event_name, or an EventCreationError will be thrown.
+        session_id: Optional[str]
+            The session ID to set to link back to the original command run
+        exception_name: Optional[str]
+            The name of the exception that this event encountered when tracking a feature
 
         Examples
         --------
@@ -161,18 +176,18 @@ class EventTracker:
                 EventTracker.track_event("UsedFeature", "FeatureY")
                 return some_value
         """
+
+        if session_id:
+            EventTracker._session_id = session_id
+
         try:
             should_send: bool = False
             with EventTracker._event_lock:
-                EventTracker._events.append(Event(event_name, event_value))
+                EventTracker._events.append(Event(event_name, event_value, exception_name=exception_name))
+
                 # Get the session ID (needed for multithreading sending)
-                if not EventTracker._session_id:
-                    try:
-                        ctx = Context.get_current_context()
-                        if ctx:
-                            EventTracker._session_id = ctx.session_id
-                    except RuntimeError:
-                        LOG.debug("EventTracker: Unable to obtain session ID")
+                EventTracker._set_session_id()
+
                 if len(EventTracker._events) >= EventTracker.MAX_EVENTS:
                     should_send = True
             if should_send:
@@ -198,6 +213,19 @@ class EventTracker:
         send_thread = threading.Thread(target=EventTracker._send_events_in_thread)
         send_thread.start()
         return send_thread
+
+    @staticmethod
+    def _set_session_id() -> None:
+        """
+        Get the session ID from click and save it locally.
+        """
+        if not EventTracker._session_id:
+            try:
+                ctx = Context.get_current_context()
+                if ctx:
+                    EventTracker._session_id = ctx.session_id
+            except RuntimeError:
+                LOG.debug("EventTracker: Unable to obtain session ID")
 
     @staticmethod
     def _send_events_in_thread():
