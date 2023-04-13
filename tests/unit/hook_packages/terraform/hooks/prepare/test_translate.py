@@ -8,6 +8,7 @@ from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     REMOTE_DUMMY_VALUE,
     AWS_API_GATEWAY_RESOURCE_PROPERTY_BUILDER_MAPPING,
     AWS_API_GATEWAY_REST_API_PROPERTY_BUILDER_MAPPING,
+    AWS_API_GATEWAY_STAGE_PROPERTY_BUILDER_MAPPING,
     TF_AWS_API_GATEWAY_REST_API,
 )
 from samcli.hook_packages.terraform.hooks.prepare.types import (
@@ -1055,6 +1056,12 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
             self.tf_apigw_resource_properties, AWS_API_GATEWAY_RESOURCE_PROPERTY_BUILDER_MAPPING, Mock()
         )
         self.assertEqual(translated_cfn_properties, self.expected_cfn_apigw_resource_properties)
+
+    def test_translating_apigw_stage_resource(self):
+        translated_cfn_properties = _translate_properties(
+            self.tf_apigw_stage_properties, AWS_API_GATEWAY_STAGE_PROPERTY_BUILDER_MAPPING, Mock()
+        )
+        self.assertEqual(translated_cfn_properties, self.expected_cfn_apigw_stage_properties)
 
     def test_translating_apigw_rest_api(self):
         translated_cfn_properties = _translate_properties(
