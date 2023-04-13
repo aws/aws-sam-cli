@@ -94,9 +94,8 @@ class CfnParameterOverridesType(click.ParamType):
 
         value = (value,) if isinstance(value, str) else value
         for val in value:
-            val.strip()
             # Add empty string to start of the string to help match `_pattern2`
-            val = " " + val
+            normalized_val = " " + val.strip()
 
             try:
                 # NOTE(TheSriram): find the first regex that matched.
@@ -105,7 +104,7 @@ class CfnParameterOverridesType(click.ParamType):
                 pattern = next(
                     i
                     for i in filter(
-                        lambda item: re.findall(item, val), self.ordered_pattern_match
+                        lambda item: re.findall(item, normalized_val), self.ordered_pattern_match
                     )  # pylint: disable=cell-var-from-loop
                 )
             except StopIteration:
@@ -117,7 +116,7 @@ class CfnParameterOverridesType(click.ParamType):
                     ctx,
                 )
 
-            groups = re.findall(pattern, val)
+            groups = re.findall(pattern, normalized_val)
 
             # 'groups' variable is a list of tuples ex: [(key1, value1), (key2, value2)]
             for key, param_value in groups:
@@ -320,11 +319,10 @@ class SigningProfilesOptionType(click.ParamType):
 
         value = (value,) if isinstance(value, str) else value
         for val in value:
-            val.strip()
             # Add empty string to start of the string to help match `_pattern2`
-            val = " " + val
+            normalized_val = " " + val.strip()
 
-            signing_profiles = re.findall(self.pattern, val)
+            signing_profiles = re.findall(self.pattern, normalized_val)
 
             # if no signing profiles found by regex, then fail
             if not signing_profiles:

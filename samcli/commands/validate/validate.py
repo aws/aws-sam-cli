@@ -104,8 +104,8 @@ def _read_sam_file(template):
         click.secho("SAM Template Not Found", bg="red")
         raise SamTemplateNotFoundException("Template at {} is not found".format(template))
 
-    with click.open_file(template, "r", encoding="utf-8") as sam_template:
-        sam_template = yaml_parse(sam_template.read())
+    with click.open_file(template, "r", encoding="utf-8") as sam_file:
+        sam_template = yaml_parse(sam_file.read())
 
     return sam_template
 
