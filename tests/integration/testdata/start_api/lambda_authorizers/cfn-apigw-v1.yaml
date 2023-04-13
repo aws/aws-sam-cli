@@ -1,0 +1,130 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  AuthHandler:
+    Type: String
+    Default: app.auth_handler
+
+Globals:
+  Function:
+    Timeout: 3
+    MemorySize: 128
+
+Resources:
+  ##
+  # APIGW
+  #
+  RestApiLambdaAuth:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: restapi
+  ##
+  # hello world lambda function
+  #
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./
+      Handler: app.lambda_handler
+      Runtime: python3.8
+      Architectures:
+        - x86_64
+  HelloWorldFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref HelloWorldFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+  ##
+  # authorizer lambda function
+  #
+  AuthorizerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./
+      Handler: !Ref AuthHandler
+      Runtime: python3.8
+      Architectures:
+        - x86_64
+  AuthorizerPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref AuthorizerFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+  ##
+  # token based authorizer definition
+  #
+  TokenAuthorizer:
+    Type: AWS::ApiGateway::Authorizer
+    Properties:
+      AuthorizerUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AuthorizerFunction.Arn}/invocations
+      Type: TOKEN
+      IdentitySource: method.request.header.header
+      Name: TokenAuthorizer
+      RestApiId: !Ref RestApiLambdaAuth
+  ##
+  # request based authorizer definition
+  #
+  RequestAuthorizer:
+    Type: AWS::ApiGateway::Authorizer
+    Properties:
+      AuthorizerUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AuthorizerFunction.Arn}/invocations
+      Type: REQUEST
+      IdentitySource: "method.request.header.header, method.request.querystring.query"
+      Name: RequestAuthorizer
+      RestApiId: !Ref RestApiLambdaAuth
+  ##
+  # hello world endpoint using token auth
+  #
+  HelloWorldResourceToken:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref RestApiLambdaAuth
+      ParentId: !GetAtt RestApiLambdaAuth.RootResourceId
+      PathPart: requestauthorizertoken
+  HelloWorldMethodToken:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref RestApiLambdaAuth
+      ResourceId: !Ref HelloWorldResourceToken
+      HttpMethod: GET
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref TokenAuthorizer
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${HelloWorldFunction.Arn}/invocations
+  ##
+  # hello world endpoint using request auth
+  #
+  HelloWorldResourceRequest:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref RestApiLambdaAuth
+      ParentId: !GetAtt RestApiLambdaAuth.RootResourceId
+      PathPart: requestauthorizerrequest
+  HelloWorldMethodRequest:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref RestApiLambdaAuth
+      ResourceId: !Ref HelloWorldResourceRequest
+      HttpMethod: GET
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref RequestAuthorizer
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${HelloWorldFunction.Arn}/invocations
+  ##
+  # APIGW deployment
+  #
+  Deployment:
+    DependsOn:
+      - HelloWorldMethodToken
+      - HelloWorldMethodRequest
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId: !Ref RestApiLambdaAuth
+      StageName: prod
