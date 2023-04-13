@@ -116,7 +116,7 @@ class CfnParameterOverridesType(click.ParamType):
                     ctx,
                 )
 
-            groups = re.findall(pattern, val)
+            groups = re.findall(pattern, normalized_val)
 
             # 'groups' variable is a list of tuples ex: [(key1, value1), (key2, value2)]
             for key, param_value in groups:
