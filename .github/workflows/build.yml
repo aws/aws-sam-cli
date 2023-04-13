@@ -56,8 +56,19 @@ jobs:
     - run: make init
     - run: make pr
 
+  get-integration-test-files:
+    name: List test files in integration test folder which can be used by integration-tests job
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v2
+      - id: set-matrix
+        run: echo "::set-output name=matrix::$(find tests/integration -type f -name "*.py" -not -path 'tests/integration/testdata/*' -not -path '*__init__.py' | jq -R -s -c 'split("\n")[:-1]')"
+
   integration-tests:
-    name: Integration Tests / ${{ matrix.os }} / ${{ matrix.python }} / ${{ matrix.tests_folder }}
+    needs: get-integration-test-files
+    name: Integration Tests / ${{ matrix.os }} / ${{ matrix.python }} / ${{ matrix.test_file }}
     if: github.repository_owner == 'aws'
     runs-on: ${{ matrix.os }}
     env:
@@ -78,25 +89,7 @@ jobs:
           - "3.7"
           - "3.8"
           - "3.9"
-        # folders that is commented below requires credentials, no need to spare time to run them
-        tests_folder:
-          - "buildcmd"
-          #- "delete"
-          #- "deploy"
-          - "init"
-          #- "list"
-          - "local"
-          #- "logs"
-          #- "package"
-          - "pipeline"
-          #- "publish"
-          - "root"
-          - "scripts"
-          #- "sync"
-          - "telemetry"
-          #- "traces"
-          #- "validate"
-          - "docs"
+        test_file: ${{ fromJson(needs.get-integration-test-files.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -146,8 +139,8 @@ jobs:
 
       - name: Init samdev
         run: make init
-      - name: Run integration tests for ${{ matrix.tests_folder }}
-        run: pytest -vv tests/integration/${{ matrix.tests_folder }}
+      - name: Run integration tests for ${{ matrix.test_file }}
+        run: pytest -vv tests/integration/${{ matrix.test_file }}
 
   smoke-and-functional-tests:
     name: Functional & Smoke Tests / ${{ matrix.os }} / ${{ matrix.python }}
