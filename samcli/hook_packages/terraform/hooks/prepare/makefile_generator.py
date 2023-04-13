@@ -263,7 +263,7 @@ def _get_parent_modules(module_address: Optional[str]) -> List[str]:
     previous_module = modules[0]
     full_path_modules = [previous_module]
     for module in modules[1:]:
-        module = previous_module + "." + module
-        previous_module = module
-        full_path_modules.append(module)
+        norm_module = previous_module + "." + module
+        previous_module = norm_module
+        full_path_modules.append(norm_module)
     return full_path_modules
