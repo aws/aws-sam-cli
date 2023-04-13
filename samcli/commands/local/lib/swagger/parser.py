@@ -336,10 +336,10 @@ class SwaggerParser:
                     )
                     continue
 
-                if method.lower() == self._ANY_METHOD_EXTENSION_KEY:
+                normalized_method = method
+                if normalized_method.lower() == self._ANY_METHOD_EXTENSION_KEY:
                     # Convert to a more commonly used method notation
-                    method = self._ANY_METHOD
-
+                    normalized_method = self._ANY_METHOD
                 payload_format_version = self._get_payload_format_version(method_config)
 
                 authorizers = method_config.get(SwaggerParser._SWAGGER_SECURITY, None)
@@ -380,7 +380,7 @@ class SwaggerParser:
                 route = Route(
                     function_name,
                     full_path,
-                    methods=[method],
+                    methods=[normalized_method],
                     event_type=event_type,
                     payload_format_version=payload_format_version,
                     operation_name=method_config.get("operationId"),
