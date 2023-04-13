@@ -62,7 +62,7 @@ jobs:
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - id: set-matrix
         run: echo "::set-output name=matrix::$(find tests/integration -type f -name "*.py" -not -path 'tests/integration/testdata/*' -not -path '*__init__.py' | jq -R -s -c 'split("\n")[:-1]')"
 
