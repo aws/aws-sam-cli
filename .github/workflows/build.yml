@@ -60,11 +60,11 @@ jobs:
     name: List test files in integration test folder which can be used by integration-tests job
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      matrix: ${{ steps.list_test_files.outputs.matrix }}
     steps:
       - uses: actions/checkout@v3
-      - id: set-matrix
-        run: echo "::set-output name=matrix::$(find tests/integration -type f -name "*.py" -not -path 'tests/integration/testdata/*' -not -path '*__init__.py' | jq -R -s -c 'split("\n")[:-1]')"
+      - id: list_test_files
+        run: echo "matrix=$(find tests/integration -type f -name "*.py" -not -path 'tests/integration/testdata/*' -not -path '*__init__.py' | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
 
   integration-tests:
     needs: get-integration-test-files
