@@ -64,7 +64,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - id: list_test_folders
-        run: echo "folders=$(find tests/integration/ -type d -not -path 'tests/integration/testdata*' -not -path 'tests/integration/scripts/testdata*' -not -path tests/integration/ | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+        run: echo "folders=$(find tests/integration -type d -maxdepth 1 -not -path tests/integration -not -path tests/integration/testdata | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
 
   integration-tests:
     needs: get-integration-test-folders
@@ -120,9 +120,7 @@ jobs:
           java-version: '11'
        # Install and configure Rust
       - name: Install rustup
-        if: |
-          contains(matrix.test_folder, 'buildcmd') &&
-          ${{ matrix.os == 'ubuntu-latest' }}
+        if: contains(matrix.test_folder, 'buildcmd') && ${{ matrix.os == 'ubuntu-latest' }}
         run: |
           : install rustup if needed
           if ! command -v rustup &> /dev/null ; then
