@@ -102,40 +102,40 @@ jobs:
             3.10
             ${{ matrix.python }}
       - uses: actions/setup-go@v4
+        if: contains(${{ matrix.folder }}, 'buildcmd')
         with:
           go-version: '1.19'
       - uses: ruby/setup-ruby@v1
+        if: contains(${{ matrix.folder }}, 'buildcmd')
         with:
           ruby-version: "2.7"
       - uses: actions/setup-node@v3
+        if: contains(${{ matrix.folder }}, 'buildcmd')
         with:
           node-version: 18
       - uses: actions/setup-java@v3
+        if: contains(${{ matrix.folder }}, 'buildcmd')
         with:
           distribution: 'corretto'
           java-version: '11'
        # Install and configure Rust
       - name: Install rustup
+        if: |
+          contains(${{ matrix.folder }}, 'buildcmd') &&
+          ${{ matrix.os == 'ubuntu-latest' }}
         run: |
           : install rustup if needed
           if ! command -v rustup &> /dev/null ; then
             curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL "https://sh.rustup.rs" | sh -s -- --default-toolchain none -y
             echo "${CARGO_HOME:-$HOME/.cargo}/bin" >> $GITHUB_PATH
           fi
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-      - name: rustup toolchain install stable
-        run: rustup toolchain install stable --profile minimal --no-self-update
-      - run: rustup default stable
-      - run: |
+          rustup toolchain install stable --profile minimal --no-self-update
           : disable incremental compilation
           echo CARGO_INCREMENTAL=0 >> $GITHUB_ENV
-      - run: |
           : enable colors in Cargo output
           echo CARGO_TERM_COLOR=always >> $GITHUB_ENV
-      # Install and configure Cargo Lambda
-      - name: Install Cargo Lambda
-        run: pip install cargo-lambda==$CARGO_LAMBDA_VERSION
-      - run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+          pip install cargo-lambda==$CARGO_LAMBDA_VERSION
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Init samdev
         run: make init
