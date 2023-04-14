@@ -3,7 +3,7 @@ import logging
 import time
 from pathlib import Path
 from typing import List, Optional, Tuple
-from unittest import skipIf
+from pytest.mark import skipif
 
 import boto3
 import pytest
@@ -32,7 +32,7 @@ APIGW_REQUESTS_TO_WARM_UP = 20
 SKIP_LOGS_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 
 
-@skipIf(SKIP_LOGS_TESTS, "Skip logs tests in CI/CD")
+@skipif(SKIP_LOGS_TESTS, "Skip logs tests in CI/CD")
 class LogsIntegTestCases(LogsIntegBase):
     test_template_folder = ""
 
@@ -246,7 +246,7 @@ REGULAR_STACK_SFN_LIST = [
 ]
 
 
-@skipIf(SKIP_LOGS_TESTS, "Skip logs tests in CI/CD")
+@skipif(SKIP_LOGS_TESTS, "Skip logs tests in CI/CD")
 class TestLogsCommandWithRegularStack(LogsIntegTestCases):
     test_template_folder = "python-apigw-sfn"
 
@@ -321,7 +321,7 @@ NESTED_STACK_SFN_LIST = [
 ]
 
 
-@skipIf(SKIP_LOGS_TESTS, "Skip logs tests in CI/CD")
+@skipif(SKIP_LOGS_TESTS, "Skip logs tests in CI/CD")
 class TestLogsCommandWithNestedStack(LogsIntegTestCases):
     test_template_folder = "nested-python-apigw-sfn"
 
