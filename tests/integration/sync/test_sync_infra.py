@@ -3,6 +3,7 @@ import logging
 import os
 import platform
 import uuid
+from pathlib import Path
 from unittest import skipIf
 
 import pytest
@@ -65,7 +66,7 @@ class TestSyncInfra(SyncIntegBase):
     @parameterized.expand([["ruby", False], ["python", False], ["python", True]])
     def test_sync_infra(self, runtime, use_container):
         template_before = f"infra/template-{runtime}-before.yaml"
-        template_path = str(self.test_dir.joinpath(template_before))
+        template_path = str(self.test_data_path.joinpath(template_before))
         stack_name = self._method_to_stack_name(self.id())
         self.stacks.append({"name": stack_name})
 
@@ -105,7 +106,7 @@ class TestSyncInfra(SyncIntegBase):
             self.assertEqual(self._get_sfn_response(state_machine), '"World 1"')
 
         template_after = f"infra/template-{runtime}-after.yaml"
-        template_path = str(self.test_dir.joinpath(template_after))
+        template_path = str(self.test_data_path.joinpath(template_after))
 
         # Run infra sync
         sync_command_list = self.get_sync_command_list(
@@ -143,7 +144,7 @@ class TestSyncInfra(SyncIntegBase):
     @parameterized.expand([["python", False], ["python", True]])
     def test_sync_infra_auto_skip(self, runtime, use_container):
         template_before = f"infra/template-{runtime}-before.yaml"
-        template_path = str(self.test_dir.joinpath(template_before))
+        template_path = str(self.test_data_path.joinpath(template_before))
         stack_name = self._method_to_stack_name(self.id())
         self.stacks.append({"name": stack_name})
 
@@ -162,12 +163,12 @@ class TestSyncInfra(SyncIntegBase):
             use_container=use_container,
         )
 
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_dir)
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
         self.assertIn("Stack creation succeeded. Sync infra completed.", str(sync_process_execute.stderr))
 
         template_after = f"infra/template-{runtime}-auto-skip.yaml"
-        template_path = str(self.test_dir.joinpath(template_after))
+        template_path = str(self.test_data_path.joinpath(template_after))
 
         # Run infra sync
         sync_command_list = self.get_sync_command_list(
@@ -184,7 +185,7 @@ class TestSyncInfra(SyncIntegBase):
             use_container=use_container,
         )
 
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_dir)
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
         self.assertIn(
             "Template haven't been changed since last deployment, skipping infra sync...",
@@ -204,7 +205,7 @@ class TestSyncInfra(SyncIntegBase):
     @parameterized.expand([["python", False], ["python", True]])
     def test_sync_infra_auto_skip_nested(self, runtime, use_container):
         template_before = str(Path("infra", "parent-stack.yaml"))
-        template_path = str(self.test_dir.joinpath(template_before))
+        template_path = str(self.test_data_path.joinpath(template_before))
 
         stack_name = self._method_to_stack_name(self.id())
         self.stacks.append({"name": stack_name})
@@ -224,16 +225,16 @@ class TestSyncInfra(SyncIntegBase):
             use_container=use_container,
         )
 
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_dir)
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
         self.assertIn("Stack creation succeeded. Sync infra completed.", str(sync_process_execute.stderr))
 
         self.update_file(
-            self.test_dir.joinpath("infra", f"template-{runtime}-auto-skip.yaml"),
-            self.test_dir.joinpath("infra", f"template-{runtime}-before.yaml"),
+            self.test_data_path.joinpath("infra", f"template-{runtime}-auto-skip.yaml"),
+            self.test_data_path.joinpath("infra", f"template-{runtime}-before.yaml"),
         )
 
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_dir)
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
         self.assertIn(
             "Template haven't been changed since last deployment, skipping infra sync...",
@@ -251,7 +252,7 @@ class TestSyncInfra(SyncIntegBase):
 
     @parameterized.expand(["infra/template-python-before.yaml"])
     def test_sync_infra_no_confirm(self, template_file):
-        template_path = str(self.test_dir.joinpath(template_file))
+        template_path = str(self.test_data_path.joinpath(template_file))
         stack_name = self._method_to_stack_name(self.id())
 
         # Run infra sync
@@ -274,7 +275,7 @@ class TestSyncInfra(SyncIntegBase):
 
     @parameterized.expand(["infra/template-python-before.yaml"])
     def test_sync_infra_no_stack_name(self, template_file):
-        template_path = str(self.test_dir.joinpath(template_file))
+        template_path = str(self.test_data_path.joinpath(template_file))
 
         # Run infra sync
         sync_command_list = self.get_sync_command_list(
@@ -295,7 +296,7 @@ class TestSyncInfra(SyncIntegBase):
 
     @parameterized.expand(["infra/template-python-before.yaml"])
     def test_sync_infra_no_capabilities(self, template_file):
-        template_path = str(self.test_dir.joinpath(template_file))
+        template_path = str(self.test_data_path.joinpath(template_file))
         stack_name = self._method_to_stack_name(self.id())
         self.stacks.append({"name": stack_name})
 
@@ -324,7 +325,7 @@ Requires capabilities : [CAPABILITY_AUTO_EXPAND]",
 
     @parameterized.expand(["infra/template-python-before.yaml"])
     def test_sync_infra_s3_bucket_option(self, template_file):
-        template_path = str(self.test_dir.joinpath(template_file))
+        template_path = str(self.test_data_path.joinpath(template_file))
         stack_name = self._method_to_stack_name(self.id())
 
         sync_command_list = self.get_sync_command_list(
