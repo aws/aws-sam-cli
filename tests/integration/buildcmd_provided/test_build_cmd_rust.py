@@ -20,7 +20,7 @@ from tests.testing_utils import (
     SKIP_DOCKER_BUILD,
     SKIP_DOCKER_MESSAGE,
 )
-from .build_integ_base import (
+from tests.integration.buildcmd.build_integ_base import (
     BuildIntegRustBase,
 )
 
