@@ -14,6 +14,7 @@ import docker
 import jmespath
 from pathlib import Path
 
+from samcli.commands.build.utils import MountMode
 from samcli.lib.utils import osutils
 from samcli.lib.utils.architecture import X86_64, has_runtime_multi_arch_image
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
@@ -81,6 +82,7 @@ class BuildIntegBase(TestCase):
         hook_name=None,
         beta_features=None,
         build_in_source=None,
+        mount_with=None,
     ):
         command_list = [self.cmd, "build"]
 
@@ -124,6 +126,9 @@ class BuildIntegBase(TestCase):
 
         if build_image:
             command_list += ["--build-image", build_image]
+
+        if mount_with:
+            command_list += ["--mount-with", mount_with.value]
 
         if exclude:
             for f in exclude:
@@ -371,10 +376,15 @@ class BuildIntegEsbuildBase(BuildIntegBase):
         self._verify_esbuild_properties(self.default_build_dir, self.FUNCTION_LOGICAL_ID, overrides["Handler"])
 
     def _verify_esbuild_properties(self, build_dir, function_logical_id, handler):
-        filename = handler.split(".")[0]
+        filename = self._extract_filename_from_handler(handler)
         resource_artifact_dir = build_dir.joinpath(function_logical_id)
         self._verify_sourcemap_created(filename, resource_artifact_dir)
         self._verify_function_minified(filename, resource_artifact_dir)
+
+    @staticmethod
+    def _extract_filename_from_handler(handler):
+        # Takes a handler in the form /a/b/c/file.function and returns file
+        return str(Path(handler).stem)
 
     def _verify_function_minified(self, filename, resource_artifact_dir):
         with open(Path(resource_artifact_dir, f"{filename}.js"), "r") as handler_file:
@@ -688,9 +698,9 @@ class BuildIntegPythonBase(BuildIntegBase):
                 self._make_parameter_override_arg(overrides) if do_override else None,
                 expected,
             )
-        if use_container:
-            self.verify_docker_container_cleanedup(runtime)
-            self.verify_pulled_image(runtime, architecture)
+            if use_container:
+                self.verify_docker_container_cleanedup(runtime)
+                self.verify_pulled_image(runtime, architecture)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
         self.assertTrue(build_dir.exists(), "Build directory should be created")

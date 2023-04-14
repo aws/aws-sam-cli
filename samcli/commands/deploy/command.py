@@ -33,6 +33,7 @@ from samcli.commands._utils.options import (
     template_click_option,
     use_json_option,
 )
+from samcli.commands.deploy.core.command import DeployCommand
 from samcli.commands.deploy.utils import sanitize_parameter_overrides
 from samcli.lib.bootstrap.bootstrap import manage_stack
 from samcli.lib.bootstrap.companion_stack.companion_stack_manager import sync_ecr_stack
@@ -44,16 +45,16 @@ from samcli.lib.utils.version_checker import check_newer_version
 SHORT_HELP = "Deploy an AWS SAM application."
 
 
-HELP_TEXT = """The sam deploy command creates a Cloudformation Stack and deploys your resources.
+HELP_TEXT = """The sam deploy command creates a Cloudformation Stack and deploys your resources."""
 
-\b
-Set SAM_CLI_POLL_DELAY Environment Variable with a value of seconds in your shell to configure 
-how often SAM CLI checks the Stack state, which is useful when seeing throttling from CloudFormation.
-
-\b
-e.g. sam deploy --template-file packaged.yaml --stack-name sam-app --capabilities CAPABILITY_IAM
-
-\b
+DESCRIPTION = """
+  To turn on the guided interactive mode, specify the --guided option. This mode shows you the parameters 
+  required for deployment, provides default options, and optionally saves these options in a configuration 
+  file in your project directory. When you perform subsequent deployments of your application using sam deploy, 
+  the AWS SAM CLI retrieves the required parameters from the configuration file.
+  
+  Set SAM_CLI_POLL_DELAY Environment Variable with a value of seconds in your shell to configure 
+  how often SAM CLI checks the Stack state, which is useful when seeing throttling from CloudFormation.
 """
 
 CONFIG_SECTION = "parameters"
@@ -63,8 +64,16 @@ LOG = logging.getLogger(__name__)
 @click.command(
     "deploy",
     short_help=SHORT_HELP,
-    context_settings={"ignore_unknown_options": False, "allow_interspersed_args": True, "allow_extra_args": True},
+    context_settings={
+        "ignore_unknown_options": False,
+        "allow_interspersed_args": True,
+        "allow_extra_args": True,
+        "max_content_width": 120,
+    },
+    cls=DeployCommand,
     help=HELP_TEXT,
+    description=DESCRIPTION,
+    requires_credentials=True,
 )
 @configuration_option(provider=TomlProvider(section=CONFIG_SECTION))
 @click.option(
@@ -81,20 +90,15 @@ LOG = logging.getLogger(__name__)
     required=False,
     is_flag=True,
     help="Indicates whether to execute the change set. "
-    "Specify this flag if you want to view your stack changes "
-    "before executing the change set. The command creates an AWS CloudFormation "
-    "change set and then exits without executing the change set. if "
-    "the changeset looks satisfactory, the stack changes can be made by "
-    "running the same command without specifying `--no-execute-changeset`",
+    "Specify this flag to view stack changes before executing the change set.",
 )
 @click.option(
     "--fail-on-empty-changeset/--no-fail-on-empty-changeset",
     default=True,
     required=False,
     is_flag=True,
-    help="Specify  if  the CLI should return a non-zero exit code if there are no "
-    "changes to be made to the stack. The default behavior is to return a "
-    "non-zero exit code.",
+    help="Specify whether AWS SAM CLI should return a non-zero exit code if there are no "
+    "changes to be made to the stack. Defaults to a non-zero exit code.",
 )
 @click.option(
     "--confirm-changeset/--no-confirm-changeset",
@@ -271,6 +275,8 @@ def do_cli(
             s3_bucket=s3_bucket,
             image_repository=image_repository,
             image_repositories=image_repositories,
+            resolve_s3=resolve_s3,
+            resolve_image_repos=resolve_image_repos,
             s3_prefix=s3_prefix,
             region=region,
             profile=profile,
@@ -320,8 +326,8 @@ def do_cli(
         ) as package_context:
             package_context.run()
 
-        # 500ms of sleep time between stack checks and describe stack events.
-        DEFAULT_POLL_DELAY = 0.5
+        # 5s of sleep time between stack checks and describe stack events.
+        DEFAULT_POLL_DELAY = 5
         try:
             poll_delay = float(os.getenv("SAM_CLI_POLL_DELAY", str(DEFAULT_POLL_DELAY)))
         except ValueError:

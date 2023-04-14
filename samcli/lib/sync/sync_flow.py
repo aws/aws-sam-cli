@@ -9,10 +9,12 @@ from typing import TYPE_CHECKING, Any, Dict, List, NamedTuple, Optional, Set, ca
 
 from boto3.session import Session
 
+from samcli.lib.build.app_builder import ApplicationBuildResult
 from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_resource_by_id
 from samcli.lib.sync.exceptions import MissingLockException, MissingPhysicalResourceError
 from samcli.lib.utils.boto_utils import get_boto_client_provider_from_session_with_config
 from samcli.lib.utils.lock_distributor import LockChain, LockDistributor
+from samcli.lib.utils.resources import RESOURCES_WITH_LOCAL_PATHS
 
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.build.build_context import BuildContext
@@ -62,6 +64,7 @@ class SyncFlow(ABC):
     # Local hash represents the state of a particular sync flow
     # We store the hash value in sync state toml file as value
     _local_sha: Optional[str]
+    _application_build_result: Optional[ApplicationBuildResult]
 
     def __init__(
         self,
@@ -71,6 +74,7 @@ class SyncFlow(ABC):
         physical_id_mapping: Dict[str, str],
         log_name: str,
         stacks: Optional[List[Stack]] = None,
+        application_build_result: Optional[ApplicationBuildResult] = None,
     ):
         """
         Parameters
@@ -87,6 +91,8 @@ class SyncFlow(ABC):
             Name to be used for logging purposes
         stacks : List[Stack], optional
             List of stacks containing a root stack and optional nested stacks
+         application_build_result: Optional[ApplicationBuildResult]
+            Pre-build ApplicationBuildResult which can be re-used during SyncFlows
         """
         self._build_context = build_context
         self._deploy_context = deploy_context
@@ -97,6 +103,7 @@ class SyncFlow(ABC):
         self._physical_id_mapping = physical_id_mapping
         self._locks = None
         self._local_sha = None
+        self._application_build_result = application_build_result
 
     def set_up(self) -> None:
         """Clients and other expensives setups should be handled here instead of constructor"""
@@ -155,9 +162,9 @@ class SyncFlow(ABC):
             Return False otherwise.
         """
         stored_sha = self._sync_context.get_resource_latest_sync_hash(self.sync_state_identifier)
+        LOG.debug("%sLocal SHA: %s Stored SHA: %s", self.log_prefix, self._local_sha, stored_sha)
         if self._local_sha and stored_sha and self._local_sha == stored_sha:
-            pass
-            # return True
+            return True
         return False
 
     @abstractmethod
@@ -382,6 +389,8 @@ class SyncFlow(ABC):
             self._update_local_hash()
             LOG.debug("%sGathering Dependencies", self.log_prefix)
             dependencies = self.gather_dependencies()
+        else:
+            LOG.info("%sSkipping resource update as the content didn't change", self.log_prefix)
         LOG.debug("%sFinished", self.log_prefix)
         return dependencies
 
@@ -411,8 +420,15 @@ def get_definition_path(
     Optional[Path]
         A resolved absolute path for the definition file
     """
+    definition_field_names = RESOURCES_WITH_LOCAL_PATHS.get(resource.get("Type", ""))
+    if not definition_field_names:
+        LOG.error("Couldn't find definition field name for resource {}", identifier)
+        return None
+    definition_field_name = definition_field_names[0]
+    LOG.debug("Found definition field name as {}", definition_field_name)
+
     properties = resource.get("Properties", {})
-    definition_file = properties.get("DefinitionUri")
+    definition_file = properties.get(definition_field_name)
     definition_path = None
     if definition_file:
         definition_path = Path(base_dir).joinpath(definition_file)

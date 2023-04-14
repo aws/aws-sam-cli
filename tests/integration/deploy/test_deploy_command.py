@@ -1303,7 +1303,7 @@ to create a managed default bucket, or run sam deploy --guided",
             bytes(
                 f"Error: Failed to create/update the stack: {stack_name}, Waiter StackCreateComplete failed: "
                 f'Waiter encountered a terminal failure state: For expression "Stacks[].StackStatus" '
-                f'we matched expected path: "CREATE_FAILED" at least once',
+                f'we matched expected path: "ROLLBACK_COMPLETE" at least once',
                 encoding="utf-8",
             ),
             stderr,
@@ -1363,7 +1363,7 @@ to create a managed default bucket, or run sam deploy --guided",
             bytes(
                 f"Error: Failed to create/update the stack: {stack_name}, Waiter StackUpdateComplete failed: "
                 f'Waiter encountered a terminal failure state: For expression "Stacks[].StackStatus" '
-                f'we matched expected path: "UPDATE_FAILED" at least once',
+                f'we matched expected path: "UPDATE_ROLLBACK_COMPLETE" at least once',
                 encoding="utf-8",
             ),
             stderr,
@@ -1577,5 +1577,41 @@ to create a managed default bucket, or run sam deploy --guided",
         deploy_command_list = self.get_deploy_command_list(
             template_file=template, stack_name=stack_name, s3_prefix=self.s3_prefix, capabilities="CAPABILITY_IAM"
         )
+        deploy_process_execute = self.run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
+
+    @parameterized.expand([("aws-serverless-function.yaml", "samconfig-capabilities-list.toml")])
+    def test_deploy_with_valid_config_capabilities_list(self, template_file, config_file):
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+        template_path = self.test_data_path.joinpath(template_file)
+        config_path = self.test_data_path.joinpath(config_file)
+
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            config_file=config_path,
+            s3_prefix=self.s3_prefix,
+            s3_bucket=self.s3_bucket.name,
+        )
+
+        deploy_process_execute = self.run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
+
+    @parameterized.expand([("aws-serverless-function.yaml", "samconfig-capabilities-string.toml")])
+    def test_deploy_with_valid_config_capabilities_string(self, template_file, config_file):
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+        template_path = self.test_data_path.joinpath(template_file)
+        config_path = self.test_data_path.joinpath(config_file)
+
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            config_file=config_path,
+            s3_prefix=self.s3_prefix,
+            s3_bucket=self.s3_bucket.name,
+        )
+
         deploy_process_execute = self.run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 0)

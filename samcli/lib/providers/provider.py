@@ -7,7 +7,7 @@ import logging
 import os
 import posixpath
 from collections import namedtuple
-from typing import TYPE_CHECKING, Any, Dict, Iterator, List, NamedTuple, Optional, Set, Tuple, Union, cast
+from typing import TYPE_CHECKING, Any, Dict, Iterator, List, NamedTuple, Optional, Set, Union, cast
 
 from samcli.commands.local.cli_common.user_exceptions import (
     InvalidFunctionPropertyType,
@@ -24,7 +24,7 @@ from samcli.lib.utils.architecture import X86_64
 
 if TYPE_CHECKING:  # pragma: no cover
     # avoid circular import, https://docs.python.org/3/library/typing.html#typing.TYPE_CHECKING
-    from samcli.local.apigw.local_apigw_service import Route
+    from samcli.local.apigw.route import Route
 
 LOG = logging.getLogger(__name__)
 
@@ -840,8 +840,8 @@ def get_all_resource_ids(stacks: List[Stack]) -> List[ResourceIdentifier]:
 
 def get_unique_resource_ids(
     stacks: List[Stack],
-    resource_ids: Optional[Union[List[str], Tuple[str]]],
-    resource_types: Optional[Union[List[str], Tuple[str]]],
+    resource_ids: Optional[Union[List[str]]],
+    resource_types: Optional[Union[List[str]]],
 ) -> Set[ResourceIdentifier]:
     """Get unique resource IDs for resource_ids and resource_types
 
@@ -849,9 +849,9 @@ def get_unique_resource_ids(
     ----------
     stacks : List[Stack]
         Stacks
-    resource_ids : Optional[Union[List[str], Tuple[str]]]
+    resource_ids : Optional[Union[List[str]]]
         Resource ID strings
-    resource_types : Optional[Union[List[str], Tuple[str]]]
+    resource_types : Optional[Union[List[str]]]
         Resource types
 
     Returns

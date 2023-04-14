@@ -15,9 +15,12 @@ from uuid import uuid4
 
 import psutil
 
+RUNNING_ON_APPVEYOR = os.environ.get("APPVEYOR", False)
 IS_WINDOWS = platform.system().lower() == "windows"
-RUNNING_ON_CI = os.environ.get("APPVEYOR", False) or os.environ.get("CI", False)
-RUNNING_TEST_FOR_MASTER_ON_CI = os.environ.get("APPVEYOR_REPO_BRANCH", "master") != "master"
+RUNNING_ON_CI = RUNNING_ON_APPVEYOR or os.environ.get("CI", False)
+RUNNING_TEST_FOR_MASTER_ON_CI = (
+    os.environ.get("APPVEYOR_REPO_BRANCH", os.environ.get("GITHUB_REF_NAME", "master")) != "master"
+)
 CI_OVERRIDE = os.environ.get("APPVEYOR_CI_OVERRIDE", False) or os.environ.get("CI_OVERRIDE", False)
 RUN_BY_CANARY = os.environ.get("BY_CANARY", False)
 
@@ -53,6 +56,9 @@ def method_to_stack_name(method_name):
 
 def run_command(command_list, cwd=None, env=None, timeout=TIMEOUT) -> CommandResult:
     LOG.info("Running command: %s", " ".join(command_list))
+    LOG.info("cwd:             %s", cwd)
+    LOG.info("env:             %s", env)
+    LOG.info("timeout:         %s", timeout)
     process_execute = Popen(command_list, cwd=cwd, env=env, stdout=PIPE, stderr=PIPE)
     try:
         stdout_data, stderr_data = process_execute.communicate(timeout=timeout)

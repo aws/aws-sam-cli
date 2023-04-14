@@ -4,8 +4,9 @@ import signal
 
 from click.testing import CliRunner
 
+from samcli.cli.global_config import GlobalConfig
 from samcli.commands.init import cli as init_cmd
-from unittest import TestCase
+from unittest import TestCase, skipIf
 
 from parameterized import parameterized
 from subprocess import Popen, TimeoutExpired, PIPE
@@ -13,13 +14,14 @@ import os
 import shutil
 import tempfile
 
+from samcli.commands.init.init_templates import APP_TEMPLATES_REPO_NAME_WINDOWS, APP_TEMPLATES_REPO_NAME
 from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 
 from pathlib import Path
 
 from tests.integration.init.test_init_base import InitIntegBase
-from tests.testing_utils import get_sam_command
+from tests.testing_utils import get_sam_command, IS_WINDOWS, RUNNING_ON_APPVEYOR, run_command
 
 TIMEOUT = 300
 
@@ -185,6 +187,38 @@ class TestBasicInitCommand(TestCase):
             self.assertTrue(Path(temp, "sam-app-gradle").is_dir())
             self.assertNotIn(COMMIT_ERROR, stderr)
 
+    def test_init_command_go_provided_image(self):
+        with tempfile.TemporaryDirectory() as temp:
+            process = Popen(
+                [
+                    get_sam_command(),
+                    "init",
+                    "--app-template",
+                    "hello-world-lambda-image",
+                    "--name",
+                    "sam-app-go-image",
+                    "--package-type",
+                    "Image",
+                    "--base-image",
+                    "amazon/go-provided.al2-base",
+                    "--no-interactive",
+                    "-o",
+                    temp,
+                ],
+                stdout=PIPE,
+                stderr=PIPE,
+            )
+            try:
+                stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
+                stderr = stderr_data.decode("utf-8")
+            except TimeoutExpired:
+                process.kill()
+                raise
+
+            self.assertEqual(process.returncode, 0)
+            self.assertTrue(Path(temp, "sam-app-go-image").is_dir())
+            self.assertNotIn(COMMIT_ERROR, stderr)
+
     def test_init_command_with_extra_context_parameter(self):
         with tempfile.TemporaryDirectory() as temp:
             process = Popen(
@@ -348,6 +382,7 @@ class TestBasicInitCommand(TestCase):
 
             self.assertEqual(process.returncode, 0)
             self.assertTrue(Path(temp, "sam-app").is_dir())
+            self._assert_template_with_cfn_lint(Path(temp, "sam-app"))
 
     def test_init_command_passes_with_disabled_tracing(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -377,6 +412,7 @@ class TestBasicInitCommand(TestCase):
 
             self.assertEqual(process.returncode, 0)
             self.assertTrue(Path(temp, "sam-app").is_dir())
+            self._assert_template_with_cfn_lint(Path(temp, "sam-app"))
 
     def test_init_command_passes_with_enabled_application_insights(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -406,6 +442,7 @@ class TestBasicInitCommand(TestCase):
 
             self.assertEqual(process.returncode, 0)
             self.assertTrue(Path(temp, "sam-app").is_dir())
+            self._assert_template_with_cfn_lint(Path(temp, "sam-app"))
 
     def test_init_command_passes_with_disabled_application_insights(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -435,6 +472,17 @@ class TestBasicInitCommand(TestCase):
 
             self.assertEqual(process.returncode, 0)
             self.assertTrue(Path(temp, "sam-app").is_dir())
+            self._assert_template_with_cfn_lint(Path(temp, "sam-app"))
+
+    def _assert_template_with_cfn_lint(self, cwd):
+        """Assert if the generated project passes cfn-lint"""
+        cmd_list = [
+            get_sam_command(),
+            "validate",
+            "--lint",
+        ]
+        result = run_command(cmd_list, cwd=cwd)
+        self.assertEqual(result.process.returncode, 0)
 
 
 MISSING_REQUIRED_PARAM_MESSAGE = """Error: Missing required parameters, with --no-interactive set.
@@ -838,6 +886,67 @@ sam-interactive-init-app-default-runtime
             self.assertTrue(Path(expected_output_folder, "hello_world", "app.py").is_file())
 
 
+class TestSubsequentInitCaching(TestCase):
+    def test_subsequent_init_skips_cloning(self):
+        from platform import system
+
+        os_name = system().lower()
+        cloned_folder_name = APP_TEMPLATES_REPO_NAME_WINDOWS if os_name == "windows" else APP_TEMPLATES_REPO_NAME
+
+        with tempfile.TemporaryDirectory() as temp:
+            project_directory = Path(temp, "sam-app")
+            cache_dir = GlobalConfig().config_dir / cloned_folder_name
+
+            # Run the first time, get cache last modification time
+            self._run_init(temp)
+            first_modification_time = self._last_modification_time(cache_dir)
+            self.assertTrue(project_directory.is_dir())
+            shutil.rmtree(project_directory)
+
+            # Run init again, get the second modification time
+            self._run_init(temp)
+            second_modification_time = self._last_modification_time(cache_dir)
+            self.assertTrue(project_directory.is_dir())
+
+            self.assertEqual(first_modification_time, second_modification_time)
+
+    def _run_init(self, cwd):
+        process = Popen(
+            [
+                get_sam_command(),
+                "init",
+                "--runtime",
+                "nodejs14.x",
+                "--dependency-manager",
+                "npm",
+                "--architecture",
+                "arm64",
+                "--app-template",
+                "hello-world",
+                "--name",
+                "sam-app",
+                "--no-interactive",
+                "-o",
+                cwd,
+            ],
+            stdout=PIPE,
+            stderr=PIPE,
+        )
+        try:
+            stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
+            stderr = stderr_data.decode("utf-8")
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        self.assertEqual(process.returncode, 0)
+        self.assertNotIn(COMMIT_ERROR, stderr)
+
+    @staticmethod
+    def _last_modification_time(file):
+        return os.path.getmtime(file)
+
+
 class TestInitProducesSamconfigFile(TestCase):
     def test_zip_template_config(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -947,6 +1056,10 @@ class TestInitProducesSamconfigFile(TestCase):
         return text
 
 
+@skipIf(
+    IS_WINDOWS and RUNNING_ON_APPVEYOR,
+    "Killing process in Windows in Appveyor gets stuck, skipping this test since it is already run in GHA",
+)
 class TestInitCommand(InitIntegBase):
     def test_graceful_exit(self):
         # Run the Base Command
@@ -958,7 +1071,7 @@ class TestInitCommand(InitIntegBase):
 
         # Send SIGINT signal
         process_execute.send_signal(signal.CTRL_C_EVENT if platform.system().lower() == "windows" else signal.SIGINT)
-        process_execute.wait()
+        (_, stderr) = process_execute.communicate(timeout=10)
         # Process should exit gracefully with an exit code of 1.
         self.assertEqual(process_execute.returncode, 1)
-        self.assertIn("Aborted!", process_execute.stderr.read().decode("utf-8"))
+        self.assertIn("Aborted!", stderr.decode("utf-8"))

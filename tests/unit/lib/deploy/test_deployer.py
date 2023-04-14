@@ -380,6 +380,25 @@ class TestDeployer(CustomTestCase):
         with self.assertRaises(ChangeSetError):
             self.deployer.wait_for_changeset("test-id", "test-stack")
 
+    def test_wait_for_changeset_exception_NonChangeSetError(self):
+        self.deployer._client.get_waiter = MagicMock(
+            return_value=MockChangesetWaiter(
+                ex=WaiterError(
+                    name="wait_for_changeset",
+                    reason="unit-test",
+                    last_response={
+                        "Error": {
+                            "Type": "Sender",
+                            "Code": "AccessDenied",
+                            "Message": "not authorized to perform: cloudformation:DescribeChangeSet",
+                        }
+                    },
+                )
+            )
+        )
+        with self.assertRaises(WaiterError):
+            self.deployer.wait_for_changeset("test-id", "test-stack")
+
     def test_execute_changeset(self):
         self.deployer.execute_changeset("id", "test", True)
         self.deployer._client.execute_change_set.assert_called_with(

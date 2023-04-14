@@ -1,8 +1,11 @@
 from unittest.case import TestCase
-from unittest.mock import MagicMock, patch, ANY
+from unittest.mock import MagicMock, patch, ANY, call
+from samcli.lib.providers.provider import ResourceIdentifier
+from samcli.lib.sync.infra_sync_executor import InfraSyncResult
 from samcli.lib.sync.watch_manager import WatchManager
 from samcli.lib.providers.exceptions import MissingCodeUri, MissingLocalDefinition, InvalidTemplateFile
 from samcli.lib.sync.exceptions import MissingPhysicalResourceError, SyncFlowException
+from parameterized import parameterized
 
 
 class TestWatchManager(TestCase):
@@ -64,8 +67,9 @@ class TestWatchManager(TestCase):
         sync_flow_factory_mock.return_value.load_physical_id_mapping.assert_called_once_with()
         trigger_factory_mock.assert_called_once_with(stacks, path_mock.return_value)
 
+    @patch("samcli.lib.sync.watch_manager.LOG")
     @patch("samcli.lib.sync.watch_manager.get_all_resource_ids")
-    def test_add_code_triggers(self, get_all_resource_ids_mock):
+    def test_add_code_triggers(self, get_all_resource_ids_mock, patched_log):
         resource_ids = [MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock()]
         get_all_resource_ids_mock.return_value = resource_ids
 
@@ -158,12 +162,18 @@ class TestWatchManager(TestCase):
 
         self.assertEqual(1, self.path_observer.schedule_handlers.call_count)
 
-    def test_execute_infra_sync(self):
-        self.watch_manager._execute_infra_context()
-        self.build_context.set_up.assert_called_once_with()
-        self.build_context.run.assert_called_once_with()
-        self.package_context.run.assert_called_once_with()
-        self.deploy_context.run.assert_called_once_with()
+    @parameterized.expand([(True,), (False,)])
+    @patch("samcli.lib.sync.watch_manager.InfraSyncExecutor")
+    def test_execute_infra_sync(self, first_sync, patch_infra_sync_executor):
+        infra_sync_executor_mock = MagicMock()
+        patch_infra_sync_executor.return_value = infra_sync_executor_mock
+
+        self.watch_manager._execute_infra_context(first_sync)
+
+        patch_infra_sync_executor.assert_called_once_with(
+            self.build_context, self.package_context, self.deploy_context, self.sync_context
+        )
+        infra_sync_executor_mock.execute_infra_sync.assert_called_once_with(first_sync)
 
     @patch("samcli.lib.sync.watch_manager.threading.Thread")
     def test_start_code_sync(self, thread_mock):
@@ -199,17 +209,19 @@ class TestWatchManager(TestCase):
         self.path_observer.stop.assert_called_once_with()
         stop_code_sync_mock.assert_called_once_with()
 
+    @parameterized.expand([(True, {ResourceIdentifier("Function")}), (False, set())])
     @patch("samcli.lib.sync.watch_manager.time.sleep")
-    def test__start(self, sleep_mock):
-        sleep_mock.side_effect = KeyboardInterrupt()
-
+    def test__start(self, executed, code_sync_resources, sleep_mock):
         stop_code_sync_mock = MagicMock()
         execute_infra_sync_mock = MagicMock()
+        execute_infra_sync_mock.return_value = InfraSyncResult(executed)
 
         update_stacks_mock = MagicMock()
         add_template_trigger_mock = MagicMock()
         add_code_trigger_mock = MagicMock()
         start_code_sync_mock = MagicMock()
+        queue_call_code_syncs = MagicMock()
+        infra_sync_executor_mock = MagicMock()
 
         self.watch_manager._stop_code_sync = stop_code_sync_mock
         self.watch_manager._execute_infra_context = execute_infra_sync_mock
@@ -217,6 +229,10 @@ class TestWatchManager(TestCase):
         self.watch_manager._add_template_triggers = add_template_trigger_mock
         self.watch_manager._add_code_triggers = add_code_trigger_mock
         self.watch_manager._start_code_sync = start_code_sync_mock
+        self.watch_manager._queue_up_code_syncs = queue_call_code_syncs
+        self.watch_manager._infra_sync_executor = infra_sync_executor_mock
+
+        sleep_mock.side_effect = [None, KeyboardInterrupt()]
 
         self.watch_manager._waiting_infra_sync = True
         with self.assertRaises(KeyboardInterrupt):
@@ -225,12 +241,17 @@ class TestWatchManager(TestCase):
         self.path_observer.start.assert_called_once_with()
         self.assertFalse(self.watch_manager._waiting_infra_sync)
 
-        stop_code_sync_mock.assert_called_once_with()
-        execute_infra_sync_mock.assert_called_once_with()
-        update_stacks_mock.assert_called_once_with()
-        add_template_trigger_mock.assert_called_once_with()
-        add_code_trigger_mock.assert_called_once_with()
-        start_code_sync_mock.assert_called_once_with()
+        execute_infra_sync_mock.assert_called_once_with(True)
+        stop_code_sync_mock.assert_called_with()
+        update_stacks_mock.assert_called_with()
+        add_template_trigger_mock.assert_called_with()
+        add_code_trigger_mock.assert_called_with()
+        start_code_sync_mock.assert_called_with()
+
+        if not executed:
+            queue_call_code_syncs.assert_called_once()
+        else:
+            queue_call_code_syncs.assert_not_called()
 
         self.path_observer.unschedule_all.assert_called_once_with()
 
@@ -255,7 +276,7 @@ class TestWatchManager(TestCase):
         self.watch_manager._add_code_triggers = add_code_trigger_mock
         self.watch_manager._start_code_sync = start_code_sync_mock
 
-        self.watch_manager._skip_infra_syncs = True
+        self.watch_manager._disable_infra_syncs = True
         with self.assertRaises(KeyboardInterrupt):
             self.watch_manager._start()
 
@@ -274,7 +295,7 @@ class TestWatchManager(TestCase):
         self.path_observer.start.assert_called_once_with()
 
     def test_start_code_only_infra_sync_not_set(self):
-        self.watch_manager._skip_infra_syncs = True
+        self.watch_manager._disable_infra_syncs = True
         self.watch_manager.queue_infra_sync()
         self.assertFalse(self.watch_manager._waiting_infra_sync)
 
@@ -306,7 +327,7 @@ class TestWatchManager(TestCase):
         self.assertFalse(self.watch_manager._waiting_infra_sync)
 
         stop_code_sync_mock.assert_called_once_with()
-        execute_infra_sync_mock.assert_called_once_with()
+        execute_infra_sync_mock.assert_called_once_with(True)
         add_template_trigger_mock.assert_called_once_with()
 
         update_stacks_mock.assert_not_called()

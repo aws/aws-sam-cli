@@ -1,8 +1,13 @@
+import os
+
 from typing import List
 
+from samcli.cli.global_config import GlobalConfig
 from tests.end_to_end.test_stages import EndToEndBaseStage
 from tests.integration.delete.delete_integ_base import DeleteIntegBase
 from tests.integration.init.test_init_base import InitIntegBase
+from tests.integration.package.package_integ_base import PackageIntegBase
+from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase
 from tests.integration.sync.sync_integ_base import SyncIntegBase
 from tests.integration.list.stack_outputs.stack_outputs_integ_base import StackOutputsIntegBase
 import logging
@@ -20,6 +25,13 @@ class EndToEndBase(InitIntegBase, StackOutputsIntegBase, DeleteIntegBase, SyncIn
     def setUp(self):
         super().setUp()
         self.stacks = []
+        self.config_file_dir = GlobalConfig().config_dir
+        self._create_config_dir()
+
+    def _create_config_dir(self):
+        # Init tests will lock the config dir, ensure it exists before obtaining a lock
+        if not self.config_file_dir.is_dir():
+            os.mkdir(self.config_file_dir)
 
     @staticmethod
     def _run_tests(stages: List[EndToEndBaseStage]):
@@ -49,6 +61,17 @@ class EndToEndBase(InitIntegBase, StackOutputsIntegBase, DeleteIntegBase, SyncIn
             force_upload=True,
             s3_bucket=self.s3_bucket.name,
         )
+
+    def _get_package_command(self, s3_prefix, use_json=False, output_template_file=None):
+        return PackageIntegBase.get_command_list(
+            s3_bucket=self.s3_bucket.name,
+            s3_prefix=s3_prefix,
+            use_json=use_json,
+            output_template_file=output_template_file,
+        )
+
+    def _get_local_command(self, function_name):
+        return InvokeIntegBase.get_command_list(function_to_invoke=function_name)
 
     def _get_delete_command(self, stack_name):
         return self.get_delete_command_list(stack_name=stack_name, region=self.region_name, no_prompts=True)

@@ -26,6 +26,7 @@ from samcli.commands._utils.constants import (
 )
 from samcli.commands._utils.custom_options.hook_name_option import HookNameOption
 from samcli.commands._utils.custom_options.option_nargs import OptionNargs
+from samcli.commands._utils.custom_options.replace_help_option import ReplaceHelpSummaryOption
 from samcli.commands._utils.parameterized_option import parameterized_option
 from samcli.commands._utils.template import TemplateNotFoundException, get_template_artifacts_format, get_template_data
 from samcli.lib.hook.hook_wrapper import get_available_hook_packages_ids
@@ -250,6 +251,8 @@ def template_click_option(include_build=True):
         "-t",
         default=_TEMPLATE_OPTION_DEFAULT_VALUE,
         type=click.Path(),
+        cls=ReplaceHelpSummaryOption,
+        replace_help_option="-t,--template,--template-file",
         envvar="SAM_TEMPLATE_FILE",
         callback=partial(get_or_default_template_file_name, include_build=include_build),
         show_default=True,
@@ -272,16 +275,17 @@ def docker_click_options():
         click.option(
             "--skip-pull-image",
             is_flag=True,
-            help="Specify whether CLI should skip pulling down the latest Docker image for Lambda runtime.",
+            help="Skip pulling down the latest Docker image for Lambda runtime.",
             envvar="SAM_SKIP_PULL_IMAGE",
             default=False,
         ),
         click.option(
             "--docker-network",
             envvar="SAM_DOCKER_NETWORK",
-            help="Specifies the name or id of an existing docker network to lambda docker "
-            "containers should connect to, along with the default bridge network. If not specified, "
-            "the Lambda containers will only connect to the default bridge docker network.",
+            help="Name or ID of an existing docker network for AWS Lambda docker containers"
+            " to connect to, along with the default bridge network. "
+            "If not specified, the Lambda containers will only connect to the default"
+            " bridge docker network.",
         ),
     ]
 
@@ -292,9 +296,7 @@ def parameter_override_click_option():
         cls=OptionNargs,
         type=CfnParameterOverridesType(),
         default={},
-        help="Optional. A string that contains AWS CloudFormation parameter overrides encoded as key=value pairs."
-        "For example, 'ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,"
-        "ParameterValue=t1.micro' or KeyPairName=MyKey InstanceType=t1.micro",
+        help="String that contains AWS CloudFormation parameter overrides encoded as key=value pairs.",
     )
 
 
@@ -308,7 +310,7 @@ def no_progressbar_click_option():
         default=False,
         required=False,
         is_flag=True,
-        help="Does not showcase a progress bar when uploading artifacts to s3 ",
+        help="Does not showcase a progress bar when uploading artifacts to s3 and pushing docker images to ECR",
     )
 
 
@@ -322,7 +324,7 @@ def signing_profiles_click_option():
         cls=OptionNargs,
         type=SigningProfilesOptionType(),
         default={},
-        help="Optional. A string that contains Code Sign configuration parameters as "
+        help="A string that contains Code Sign configuration parameters as "
         "FunctionOrLayerNameToSign=SigningProfileName:SigningProfileOwner "
         "Since signing profile owner is optional, it could also be written as "
         "FunctionOrLayerNameToSign=SigningProfileName",
@@ -379,7 +381,7 @@ def metadata_click_option():
     return click.option(
         "--metadata",
         type=CfnMetadataType(),
-        help="Optional. A map of metadata to attach to ALL the artifacts that are referenced in your template.",
+        help="Map of metadata to attach to ALL the artifacts that are referenced in the template.",
     )
 
 
@@ -394,16 +396,10 @@ def capabilities_click_option(default):
         required=False,
         default=default,
         type=FuncParamType(func=_space_separated_list_func_type),
-        help="A list of capabilities that you must specify "
-        "before AWS Cloudformation can create certain stacks. Some stack templates "
-        "might include resources that can affect permissions in your AWS "
-        "account, for example, by creating new AWS Identity and Access Management "
-        "(IAM) users. For those stacks, you must explicitly acknowledge "
-        "their capabilities by specifying this parameter. The only valid values"
-        "are CAPABILITY_IAM and CAPABILITY_NAMED_IAM. If you have IAM resources, "
-        "you can specify either capability. If you have IAM resources with custom "
-        "names, you must specify CAPABILITY_NAMED_IAM. If you don't specify "
-        "this parameter, this action returns an InsufficientCapabilities error.",
+        help="List of capabilities that one must specify "
+        "before AWS Cloudformation can create certain stacks."
+        "\n\nAccepted Values: CAPABILITY_IAM, CAPABILITY_NAMED_IAM, CAPABILITY_RESOURCE_POLICY, CAPABILITY_AUTO_EXPAND."
+        "\n\nLearn more at: https://docs.aws.amazon.com/serverlessrepo/latest/devguide/acknowledging-application-capabilities.html",  # noqa
     )
 
 
@@ -414,13 +410,7 @@ def capabilities_option(f, default=None):
 
 def tags_click_option():
     return click.option(
-        "--tags",
-        cls=OptionNargs,
-        type=CfnTags(),
-        required=False,
-        help="A list of tags to associate with the stack that is created or updated."
-        "AWS CloudFormation also propagates these tags to resources "
-        "in the stack if the resource supports it.",
+        "--tags", cls=OptionNargs, type=CfnTags(), required=False, help="List of tags to associate with the stack."
     )
 
 
@@ -434,9 +424,7 @@ def notification_arns_click_option():
         cls=OptionNargs,
         type=FuncParamType(func=_space_separated_list_func_type),
         required=False,
-        help="Amazon  Simple  Notification  Service  topic"
-        "Amazon  Resource  Names  (ARNs) that AWS CloudFormation associates with"
-        "the stack.",
+        help="ARNs of SNS topics that AWS Cloudformation associates with the stack.",
     )
 
 
@@ -446,12 +434,7 @@ def notification_arns_option(f):
 
 def stack_name_click_option(required, callback):
     return click.option(
-        "--stack-name",
-        required=required,
-        callback=callback,
-        help="The name of the AWS CloudFormation stack you're deploying to. "
-        "If you specify an existing stack, the command updates the stack. "
-        "If you specify a new stack, the command creates it.",
+        "--stack-name", required=required, callback=callback, help="Name of the AWS CloudFormation stack."
     )
 
 
@@ -466,7 +449,7 @@ def s3_bucket_click_option(disable_callback):
     return click.option(
         "--s3-bucket",
         required=False,
-        help="The name of the S3 bucket where this command uploads the artifacts that are referenced in your template.",
+        help="AWS S3 bucket where artifacts referenced in the template are uploaded.",
         callback=callback,
     )
 
@@ -482,8 +465,8 @@ def build_dir_click_option():
         "-b",
         default=DEFAULT_BUILD_DIR,
         type=click.Path(file_okay=False, dir_okay=True, writable=True),  # Must be a directory
-        help="Path to a folder where the built artifacts will be stored. "
-        "This directory will be first removed before starting a build.",
+        help="Directory to store build artifacts."
+        "Note: This directory will be first removed before starting a build.",
     )
 
 
@@ -497,8 +480,7 @@ def cache_dir_click_option():
         "-cd",
         default=DEFAULT_CACHE_DIR,
         type=click.Path(file_okay=False, dir_okay=True, writable=True),  # Must be a directory
-        help="The folder where the cache artifacts will be stored when --cached is specified. "
-        "The default cache directory is .aws-sam/cache",
+        help="Directory to store cached artifacts. The default cache directory is .aws-sam/cache",
     )
 
 
@@ -512,9 +494,9 @@ def base_dir_click_option():
         "-s",
         default=None,
         type=click.Path(dir_okay=True, file_okay=False),  # Must be a directory
-        help="Resolve relative paths to function's source code with respect to this folder. Use this if "
-        "SAM template and your source code are not in same enclosing folder. By default, relative paths "
-        "are resolved with respect to the SAM template's location",
+        help="Resolve relative paths to function's source code with respect to this directory. Use this if "
+        "SAM template and source code are not in same enclosing folder. By default, relative paths "
+        "are resolved with respect to the SAM template's location.",
     )
 
 
@@ -528,7 +510,7 @@ def manifest_click_option():
         "-m",
         default=None,
         type=click.Path(),
-        help="Path to a custom dependency manifest (e.g., package.json) to use instead of the default one",
+        help="Path to a custom dependency manifest. Example: custom-package.json",
     )
 
 
@@ -543,13 +525,14 @@ def cached_click_option():
         default=False,
         required=False,
         is_flag=True,
-        help="Enable cached builds. Use this flag to reuse build artifacts that have not changed from previous builds. "
-        "AWS SAM evaluates whether you have made any changes to files in your project directory. \n\n"
-        "Note: AWS SAM does not evaluate whether changes have been made to third party modules "
-        "that your project depends on, where you have not provided a specific version. "
-        "For example, if your Python function includes a requirements.txt file with the following entry "
+        help="Enable cached builds."
+        "Reuse build artifacts that have not changed from previous builds. "
+        "\n\nAWS SAM CLI evaluates if files in your project directory have changed. \n\n"
+        "Note: AWS SAM CLI does not evaluate changes made to third party modules "
+        "that the project depends on."
+        "Example: Python function includes a requirements.txt file with the following entry "
         "requests=1.x and the latest request module version changes from 1.1 to 1.2, "
-        "SAM will not pull the latest version until you run a non-cached build.",
+        "AWS SAM CLI will not pull the latest version until a non-cached build is run.",
     )
 
 
@@ -563,7 +546,7 @@ def image_repository_click_option():
         callback=partial(artifact_callback, artifact=IMAGE),
         type=ImageRepositoryType(),
         required=False,
-        help="ECR repo uri where this command uploads the image artifacts that are referenced in your template.",
+        help="AWS ECR repository URI where artifacts referenced in the template are uploaded.",
     )
 
 
@@ -578,8 +561,9 @@ def image_repositories_click_option():
         callback=image_repositories_callback,
         type=ImageRepositoriesType(),
         required=False,
-        help="Specify mapping of Function Logical ID to ECR Repo uri, of the form Function_Logical_ID=ECR_Repo_Uri."
-        "This option can be specified multiple times.",
+        help="Mapping of Function Logical ID to AWS ECR Repository URI."
+        "\n\nExample: Function_Logical_ID=ECR_Repo_Uri"
+        "\nThis option can be specified multiple times.",
     )
 
 
@@ -591,9 +575,7 @@ def s3_prefix_click_option():
     return click.option(
         "--s3-prefix",
         required=False,
-        help="A prefix name that the command adds to the artifacts "
-        "name when it uploads them to the S3 bucket. The prefix name is a "
-        "path name (folder name) for the S3 bucket.",
+        help="Prefix name that is added to the artifact's name when it is uploaded to the AWS S3 bucket.",
     )
 
 
@@ -605,7 +587,7 @@ def kms_key_id_click_option():
     return click.option(
         "--kms-key-id",
         required=False,
-        help="The ID of an AWS KMS key that the command uses to encrypt artifacts that are at rest in the S3 bucket.",
+        help="The ID of an AWS KMS key that is used to encrypt artifacts that are at rest in the AWS S3 bucket.",
     )
 
 
@@ -678,9 +660,10 @@ def hook_name_click_option(force_prepare=True, invalid_coexist_options=None):
             default=None,
             type=click.STRING,
             required=False,
-            help=f"The id of the hook package to be used to extend the SAM CLI commands functionality. As an example, "
-            f"you can use `terraform` to extend SAM CLI commands functionality to support terraform applications. "
-            f"Available Hook Names {get_available_hook_packages_ids()}",
+            help=f"Hook package id to extend AWS SAM CLI commands functionality. "
+            f"\n\n Example: `terraform` to extend AWS SAM CLI commands "
+            f"functionality to support terraform applications. "
+            f"\n\n Available Hook Names: {get_available_hook_packages_ids()}",
         )(f)
 
     def hook_name_processer_wrapper(f):
@@ -722,8 +705,8 @@ def skip_prepare_infra_click_option():
         is_flag=True,
         required=False,
         callback=skip_prepare_infra_callback,
-        help="Use this option to skip the preparation stage if there have not been any infrastructure changes. "
-        "The --hook-name option should also be specified when skipping infrastructure preparation.",
+        help="Skip preparation stage when there are no infrastructure changes. "
+        "Only used in conjunction with --hook-name.",
     )
 
 
@@ -740,9 +723,7 @@ def role_arn_click_option():
     return click.option(
         "--role-arn",
         required=False,
-        help="The Amazon Resource Name (ARN) of an AWS Identity "
-        "and Access Management (IAM) role that AWS CloudFormation assumes when "
-        "executing the change set.",
+        help="ARN of an IAM role that AWS Cloudformation assumes when executing a deployment change set.",
     )
 
 
@@ -770,8 +751,7 @@ def use_container_build_click_option():
         "--use-container",
         "-u",
         is_flag=True,
-        help="If your functions depend on packages that have natively compiled dependencies, use this flag "
-        "to build your function inside an AWS Lambda-like Docker container",
+        help="Build functions within an AWS Lambda-like container.",
     )
 
 

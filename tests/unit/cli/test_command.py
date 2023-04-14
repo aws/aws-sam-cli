@@ -49,7 +49,7 @@ class MockFormatter:
         finally:
             pass
 
-    def write_rd(self, rows):
+    def write_rd(self, rows, col_max=None):
         self.data[list(self.data.keys())[-1]] = [(row.name, "" if self.scrub_text else row.text) for row in rows]
 
 
@@ -169,6 +169,7 @@ class TestBaseCommand(TestCase):
         cmd = BaseCommand()
         expected_output = {
             "Commands": [],
+            "Learn": [("docs", "docs command output")],
             "Create an App": [("init", "init command output")],
             "Develop your App": [
                 ("build", "build command output"),
@@ -201,6 +202,7 @@ class TestBaseCommand(TestCase):
                 "delete": "delete command output",
                 "pipeline": "pipeline command output",
                 "publish": "publish command output",
+                "docs": "docs command output",
             },
         ):
             cmd.format_commands(ctx, formatter)

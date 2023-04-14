@@ -12,10 +12,6 @@ class UnsupportedBuilderLibraryVersionError(Exception):
         Exception.__init__(self, msg.format(container_name=container_name, error_msg=error_msg))
 
 
-class ContainerBuildNotSupported(Exception):
-    pass
-
-
 class BuildError(Exception):
     def __init__(self, wrapped_from: str, msg: str) -> None:
         self.wrapped_from = wrapped_from

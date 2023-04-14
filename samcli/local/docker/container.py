@@ -3,10 +3,13 @@ Representation of a generic Docker container
 """
 import logging
 import os
+import pathlib
+import shutil
 import socket
 import tempfile
 import threading
 import time
+from typing import Optional
 
 import docker
 import requests
@@ -14,6 +17,7 @@ from docker.errors import NotFound as DockerNetworkNotFound
 
 from samcli.lib.utils.retry import retry
 from samcli.lib.utils.tar import extract_tarfile
+from samcli.local.docker.effective_user import ROOT_USER_ID, EffectiveUser
 
 from .exceptions import ContainerNotStartableException
 from .utils import NoFreePortsError, find_free_port, to_posix_path
@@ -68,6 +72,8 @@ class Container:
         additional_volumes=None,
         container_host="localhost",
         container_host_interface="127.0.0.1",
+        mount_with_write: bool = False,
+        host_tmp_dir: Optional[str] = None,
     ):
         """
         Initializes the class with given configuration. This does not automatically create or run the container.
@@ -86,6 +92,9 @@ class Container:
         :param additional_volumes: Optional list of additional volumes
         :param string container_host: Optional. Host of locally emulated Lambda container
         :param string container_host_interface: Optional. Interface that Docker host binds ports to
+        :param bool mount_with_write: Optional. Mount source code directory with write permissions when
+            building on container
+        :param string host_tmp_dir: Optional. Temporary directory on the host when mounting with write permissions.
         """
 
         self._image = image
@@ -114,6 +123,8 @@ class Container:
 
         self._container_host = container_host
         self._container_host_interface = container_host_interface
+        self._mount_with_write = mount_with_write
+        self._host_tmp_dir = host_tmp_dir
 
         try:
             self.rapid_port_host = find_free_port(start=self._start_port_range, end=self._end_port_range)
@@ -135,15 +146,15 @@ class Container:
         _volumes = {}
 
         if self._host_dir:
-            LOG.info("Mounting %s as %s:ro,delegated inside runtime container", self._host_dir, self._working_dir)
+            mount_mode = "rw,delegated" if self._mount_with_write else "ro,delegated"
+            LOG.info("Mounting %s as %s:%s, inside runtime container", self._host_dir, self._working_dir, mount_mode)
 
             _volumes = {
                 self._host_dir: {
-                    # Mount the host directory as "read only" directory inside container at working_dir
+                    # Mount the host directory inside container at working_dir
                     # https://docs.docker.com/storage/bind-mounts
-                    # Mount the host directory as "read only" inside container
                     "bind": self._working_dir,
-                    "mode": "ro,delegated",
+                    "mode": mount_mode,
                 }
             }
 
@@ -156,6 +167,15 @@ class Container:
             # Set proxy configuration from global Docker config file
             "use_config_proxy": True,
         }
+
+        # Get effective user when building lambda and mounting with write permissions
+        # Pass effective user to docker run CLI as "--user" option in the format of uid[:gid]
+        # to run docker as current user instead of root
+        # Skip if current user is root on posix systems or non-posix systems
+        effective_user = EffectiveUser.get_current_effective_user().to_effective_user_str()
+        if self._mount_with_write and effective_user and effective_user != ROOT_USER_ID:
+            LOG.debug("Detect non-root user, will pass argument '--user %s' to container", effective_user)
+            kwargs["user"] = effective_user
 
         if self._container_opts:
             kwargs.update(self._container_opts)
@@ -256,6 +276,13 @@ class Container:
             if not removal_in_progress:
                 raise ex
             LOG.debug("Container removal is in progress, skipping exception: %s", msg)
+        finally:
+            # Remove tmp dir on the host
+            if self._host_tmp_dir:
+                host_tmp_dir_path = pathlib.Path(self._host_tmp_dir)
+                if host_tmp_dir_path.exists():
+                    shutil.rmtree(self._host_tmp_dir)
+                    LOG.debug("Successfully removed temporary directory %s on the host.", self._host_tmp_dir)
 
         self.id = None
 
@@ -276,6 +303,11 @@ class Container:
 
         if not self.is_created():
             raise RuntimeError("Container does not exist. Cannot start this container")
+
+        # Make tmp dir on the host
+        if self._mount_with_write and self._host_tmp_dir and not os.path.exists(self._host_tmp_dir):
+            os.makedirs(self._host_tmp_dir)
+            LOG.debug("Successfully created temporary directory %s on the host.", self._host_tmp_dir)
 
         # Get the underlying container instance from Docker API
         real_container = self.docker_client.containers.get(self.id)

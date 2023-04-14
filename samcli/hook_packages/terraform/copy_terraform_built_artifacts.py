@@ -51,6 +51,8 @@ import subprocess
 import sys
 import zipfile
 
+from zip import unzip  # type: ignore
+
 LOG = logging.getLogger(__name__)
 
 TF_BACKEND_OVERRIDE_FILENAME = "z_samcli_backend_override"
@@ -252,8 +254,7 @@ def find_and_copy_assets(directory_path, expression, data_object):
 
     try:
         if zipfile.is_zipfile(abs_attribute_path):
-            with zipfile.ZipFile(abs_attribute_path, "r") as z:
-                z.extractall(directory_path)
+            unzip(abs_attribute_path, directory_path)
         else:
             copytree(abs_attribute_path, directory_path)
     except OSError as ex:

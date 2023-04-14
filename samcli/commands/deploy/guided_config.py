@@ -56,10 +56,11 @@ class GuidedConfig:
         cmd_names = get_cmd_names(ctx.info_name, ctx)
 
         for key, value in kwargs.items():
-            if isinstance(value, (list, tuple)):
-                value = " ".join(val for val in value)
-            if value:
-                samconfig.put(cmd_names, self.section, key, value, env=config_env)
+            v = value
+            if isinstance(v, (list, tuple)):
+                v = " ".join(val for val in v)
+            if v:
+                samconfig.put(cmd_names, self.section, key, v, env=config_env)
 
         self._save_parameter_overrides(cmd_names, config_env, parameter_overrides, samconfig)
         self._save_image_repositories(cmd_names, config_env, samconfig, image_repositories)

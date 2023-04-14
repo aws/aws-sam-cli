@@ -2,16 +2,25 @@ import itertools
 import os
 from unittest import TestCase
 from unittest.mock import ANY, MagicMock, Mock, patch
+
+from click.testing import CliRunner
 from parameterized import parameterized
 
-from samcli.commands.sync.command import do_cli, execute_code_sync, execute_watch, check_enable_dependency_layer
+from samcli.commands.sync.command import (
+    do_cli,
+    cli as sync_cli,
+    execute_code_sync,
+    execute_watch,
+    check_enable_dependency_layer,
+    execute_infra_contexts,
+)
 from samcli.lib.providers.provider import ResourceIdentifier
 from samcli.commands._utils.constants import (
     DEFAULT_BUILD_DIR,
     DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER,
     DEFAULT_CACHE_DIR,
 )
-from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
+from samcli.lib.sync.infra_sync_executor import InfraSyncResult
 from tests.unit.commands.buildcmd.test_build_context import DummyStack
 
 
@@ -52,10 +61,11 @@ class TestDoCli(TestCase):
 
     @parameterized.expand(
         [
-            (False, False, True, False),
-            (False, False, False, False),
-            (False, False, True, True),
-            (False, False, False, True),
+            (False, False, True, True, False, InfraSyncResult(False, {ResourceIdentifier("Function")})),
+            (False, False, True, True, False, InfraSyncResult(True)),
+            (False, False, False, False, False, InfraSyncResult(True)),
+            (False, False, True, True, True, InfraSyncResult(True)),
+            (False, False, False, False, True, InfraSyncResult(True)),
         ]
     )
     @patch("os.environ", {**os.environ, "SAM_CLI_POLL_DELAY": 10})
@@ -70,14 +80,18 @@ class TestDoCli(TestCase):
     @patch("samcli.commands.build.command.os")
     @patch("samcli.commands.sync.command.manage_stack")
     @patch("samcli.commands.sync.command.SyncContext")
+    @patch("samcli.commands.sync.command.execute_infra_contexts")
     @patch("samcli.commands.sync.command.check_enable_dependency_layer")
     def test_infra_must_succeed_sync(
         self,
         code,
         watch,
         auto_dependency_layer,
+        skip_deploy_sync,
         use_container,
+        infra_sync_result,
         check_enable_adl_mock,
+        execute_infra_mock,
         SyncContextMock,
         manage_stack_mock,
         os_mock,
@@ -100,6 +114,7 @@ class TestDoCli(TestCase):
         SyncContextMock.return_value.__enter__.return_value = sync_context_mock
 
         check_enable_adl_mock.return_value = auto_dependency_layer
+        execute_infra_mock.return_value = infra_sync_result
 
         do_cli(
             self.template_file,
@@ -108,6 +123,7 @@ class TestDoCli(TestCase):
             self.resource_id,
             self.resource,
             auto_dependency_layer,
+            skip_deploy_sync,
             self.stack_name,
             self.region,
             self.profile,
@@ -195,12 +211,28 @@ class TestDoCli(TestCase):
             poll_delay=10,
             on_failure=None,
         )
-        build_context_mock.run.assert_called_once_with()
-        package_context_mock.run.assert_called_once_with()
-        deploy_context_mock.run.assert_called_once_with()
-        execute_code_sync_mock.assert_not_called()
 
-    @parameterized.expand([(False, True, False, False), (False, True, False, True)])
+        execute_infra_mock.assert_called_with(
+            build_context_mock, package_context_mock, deploy_context_mock, sync_context_mock
+        )
+
+        if not infra_sync_result.infra_sync_executed:
+            execute_code_sync_mock.assert_called_with(
+                template=self.template_file,
+                build_context=build_context_mock,
+                deploy_context=deploy_context_mock,
+                sync_context=sync_context_mock,
+                resource_ids=["Function"],
+                resource_types=None,
+                auto_dependency_layer=auto_dependency_layer,
+                use_built_resources=True,
+            )
+        else:
+            execute_code_sync_mock.assert_not_called()
+
+    @parameterized.expand(
+        [(False, True, False, True, False), (False, True, False, False, True), (False, False, False, False, True)]
+    )
     @patch("samcli.commands.sync.command.click")
     @patch("samcli.commands.sync.command.execute_watch")
     @patch("samcli.commands.build.command.click")
@@ -217,6 +249,7 @@ class TestDoCli(TestCase):
         code,
         watch,
         auto_dependency_layer,
+        skip_deploy_sync,
         use_container,
         SyncContextMock,
         manage_stack_mock,
@@ -230,7 +263,7 @@ class TestDoCli(TestCase):
         execute_watch_mock,
         click_mock,
     ):
-        skip_infra_syncs = watch and code
+        disable_infra_syncs = watch and code
         build_context_mock = Mock()
         BuildContextMock.return_value.__enter__.return_value = build_context_mock
         package_context_mock = Mock()
@@ -247,6 +280,7 @@ class TestDoCli(TestCase):
             self.resource_id,
             self.resource,
             auto_dependency_layer,
+            skip_deploy_sync,
             self.stack_name,
             self.region,
             self.profile,
@@ -331,16 +365,16 @@ class TestDoCli(TestCase):
             on_failure=None,
         )
         execute_watch_mock.assert_called_once_with(
-            self.template_file,
-            build_context_mock,
-            package_context_mock,
-            deploy_context_mock,
-            sync_context_mock,
-            auto_dependency_layer,
-            skip_infra_syncs,
+            template=self.template_file,
+            build_context=build_context_mock,
+            package_context=package_context_mock,
+            deploy_context=deploy_context_mock,
+            sync_context=sync_context_mock,
+            auto_dependency_layer=auto_dependency_layer,
+            disable_infra_syncs=disable_infra_syncs,
         )
 
-    @parameterized.expand([(True, False, True, False), (True, False, False, True)])
+    @parameterized.expand([(True, False, True, True, False), (True, False, False, False, True)])
     @patch("samcli.commands.sync.command.click")
     @patch("samcli.commands.sync.command.execute_code_sync")
     @patch("samcli.commands.build.command.click")
@@ -358,6 +392,7 @@ class TestDoCli(TestCase):
         code,
         watch,
         auto_dependency_layer,
+        skip_deploy_sync,
         use_container,
         check_enable_adl_mock,
         SyncContextMock,
@@ -390,6 +425,7 @@ class TestDoCli(TestCase):
             self.resource_id,
             self.resource,
             auto_dependency_layer,
+            skip_deploy_sync,
             self.stack_name,
             self.region,
             self.profile,
@@ -412,13 +448,13 @@ class TestDoCli(TestCase):
             build_in_source=None,
         )
         execute_code_sync_mock.assert_called_once_with(
-            self.template_file,
-            build_context_mock,
-            deploy_context_mock,
-            sync_context_mock,
-            self.resource_id,
-            self.resource,
-            auto_dependency_layer,
+            template=self.template_file,
+            build_context=build_context_mock,
+            deploy_context=deploy_context_mock,
+            sync_context=sync_context_mock,
+            resource_ids=self.resource_id,
+            resource_types=self.resource,
+            auto_dependency_layer=auto_dependency_layer,
         )
 
 
@@ -429,6 +465,7 @@ class TestSyncCode(TestCase):
         self.deploy_context = MagicMock()
         self.sync_context = MagicMock()
 
+    @parameterized.expand([(True,), (False,)])
     @patch("samcli.commands.sync.command.click")
     @patch("samcli.commands.sync.command.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.sync.command.SyncFlowFactory")
@@ -436,6 +473,7 @@ class TestSyncCode(TestCase):
     @patch("samcli.commands.sync.command.get_unique_resource_ids")
     def test_execute_code_sync_single_resource(
         self,
+        use_built_resources,
         get_unique_resource_ids_mock,
         sync_flow_executor_mock,
         sync_flow_factory_mock,
@@ -450,6 +488,8 @@ class TestSyncCode(TestCase):
             ResourceIdentifier("Function1"),
         }
 
+        built_result = self.build_context.build_result if use_built_resources else None
+
         execute_code_sync(
             self.template_file,
             self.build_context,
@@ -458,15 +498,19 @@ class TestSyncCode(TestCase):
             resource_identifier_strings,
             resource_types,
             True,
+            use_built_resources,
         )
 
-        sync_flow_factory_mock.return_value.create_sync_flow.assert_called_once_with(ResourceIdentifier("Function1"))
+        sync_flow_factory_mock.return_value.create_sync_flow.assert_called_once_with(
+            ResourceIdentifier("Function1"), built_result
+        )
         sync_flow_executor_mock.return_value.add_sync_flow.assert_called_once_with(sync_flows[0])
 
         get_unique_resource_ids_mock.assert_called_once_with(
             get_stacks_mock.return_value[0], resource_identifier_strings, []
         )
 
+    @parameterized.expand([(True,), (False,)])
     @patch("samcli.commands.sync.command.click")
     @patch("samcli.commands.sync.command.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.sync.command.SyncFlowFactory")
@@ -474,6 +518,7 @@ class TestSyncCode(TestCase):
     @patch("samcli.commands.sync.command.get_unique_resource_ids")
     def test_execute_code_sync_multiple_resource(
         self,
+        use_built_resources,
         get_unique_resource_ids_mock,
         sync_flow_executor_mock,
         sync_flow_factory_mock,
@@ -488,6 +533,7 @@ class TestSyncCode(TestCase):
             ResourceIdentifier("Function1"),
             ResourceIdentifier("Function2"),
         }
+        built_result = self.build_context.build_result if use_built_resources else None
 
         execute_code_sync(
             self.template_file,
@@ -497,12 +543,17 @@ class TestSyncCode(TestCase):
             resource_identifier_strings,
             resource_types,
             True,
+            use_built_resources,
         )
 
-        sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(ResourceIdentifier("Function1"))
+        sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(
+            ResourceIdentifier("Function1"), built_result
+        )
         sync_flow_executor_mock.return_value.add_sync_flow.assert_any_call(sync_flows[0])
 
-        sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(ResourceIdentifier("Function2"))
+        sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(
+            ResourceIdentifier("Function2"), built_result
+        )
         sync_flow_executor_mock.return_value.add_sync_flow.assert_any_call(sync_flows[1])
 
         self.assertEqual(sync_flow_factory_mock.return_value.create_sync_flow.call_count, 2)
@@ -512,6 +563,7 @@ class TestSyncCode(TestCase):
             get_stacks_mock.return_value[0], resource_identifier_strings, []
         )
 
+    @parameterized.expand([(True,), (False,)])
     @patch("samcli.commands.sync.command.click")
     @patch("samcli.commands.sync.command.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.sync.command.SyncFlowFactory")
@@ -519,6 +571,7 @@ class TestSyncCode(TestCase):
     @patch("samcli.commands.sync.command.get_unique_resource_ids")
     def test_execute_code_sync_single_type_resource(
         self,
+        use_built_resources,
         get_unique_resource_ids_mock,
         sync_flow_executor_mock,
         sync_flow_factory_mock,
@@ -535,6 +588,8 @@ class TestSyncCode(TestCase):
             ResourceIdentifier("Function3"),
         }
 
+        built_result = self.build_context.build_result if use_built_resources else None
+
         execute_code_sync(
             self.template_file,
             self.build_context,
@@ -543,15 +598,22 @@ class TestSyncCode(TestCase):
             resource_identifier_strings,
             resource_types,
             True,
+            use_built_resources,
         )
 
-        sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(ResourceIdentifier("Function1"))
+        sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(
+            ResourceIdentifier("Function1"), built_result
+        )
         sync_flow_executor_mock.return_value.add_sync_flow.assert_any_call(sync_flows[0])
 
-        sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(ResourceIdentifier("Function2"))
+        sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(
+            ResourceIdentifier("Function2"), built_result
+        )
         sync_flow_executor_mock.return_value.add_sync_flow.assert_any_call(sync_flows[1])
 
-        sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(ResourceIdentifier("Function3"))
+        sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(
+            ResourceIdentifier("Function3"), built_result
+        )
         sync_flow_executor_mock.return_value.add_sync_flow.assert_any_call(sync_flows[2])
 
         self.assertEqual(sync_flow_factory_mock.return_value.create_sync_flow.call_count, 3)
@@ -561,6 +623,7 @@ class TestSyncCode(TestCase):
             get_stacks_mock.return_value[0], resource_identifier_strings, ["AWS::Serverless::Function"]
         )
 
+    @parameterized.expand([(True,), (False,)])
     @patch("samcli.commands.sync.command.click")
     @patch("samcli.commands.sync.command.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.sync.command.SyncFlowFactory")
@@ -568,6 +631,7 @@ class TestSyncCode(TestCase):
     @patch("samcli.commands.sync.command.get_unique_resource_ids")
     def test_execute_code_sync_multiple_type_resource(
         self,
+        use_built_resources,
         get_unique_resource_ids_mock,
         sync_flow_executor_mock,
         sync_flow_factory_mock,
@@ -585,6 +649,8 @@ class TestSyncCode(TestCase):
             ResourceIdentifier("Function4"),
         }
 
+        built_result = self.build_context.build_result if use_built_resources else None
+
         execute_code_sync(
             self.template_file,
             self.build_context,
@@ -593,18 +659,27 @@ class TestSyncCode(TestCase):
             resource_identifier_strings,
             resource_types,
             True,
+            use_built_resources,
         )
 
-        sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(ResourceIdentifier("Function1"))
+        sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(
+            ResourceIdentifier("Function1"), built_result
+        )
         sync_flow_executor_mock.return_value.add_sync_flow.assert_any_call(sync_flows[0])
 
-        sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(ResourceIdentifier("Function2"))
+        sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(
+            ResourceIdentifier("Function2"), built_result
+        )
         sync_flow_executor_mock.return_value.add_sync_flow.assert_any_call(sync_flows[1])
 
-        sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(ResourceIdentifier("Function3"))
+        sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(
+            ResourceIdentifier("Function3"), built_result
+        )
         sync_flow_executor_mock.return_value.add_sync_flow.assert_any_call(sync_flows[2])
 
-        sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(ResourceIdentifier("Function4"))
+        sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(
+            ResourceIdentifier("Function4"), built_result
+        )
         sync_flow_executor_mock.return_value.add_sync_flow.assert_any_call(sync_flows[3])
 
         self.assertEqual(sync_flow_factory_mock.return_value.create_sync_flow.call_count, 4)
@@ -616,6 +691,7 @@ class TestSyncCode(TestCase):
             ["AWS::Serverless::Function", "AWS::Serverless::LayerVersion"],
         )
 
+    @parameterized.expand([(True,), (False,)])
     @patch("samcli.commands.sync.command.click")
     @patch("samcli.commands.sync.command.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.sync.command.SyncFlowFactory")
@@ -623,6 +699,7 @@ class TestSyncCode(TestCase):
     @patch("samcli.commands.sync.command.get_all_resource_ids")
     def test_execute_code_sync_default_all_resources(
         self,
+        use_built_resources,
         get_all_resource_ids_mock,
         sync_flow_executor_mock,
         sync_flow_factory_mock,
@@ -638,18 +715,37 @@ class TestSyncCode(TestCase):
             ResourceIdentifier("Function4"),
         ]
 
-        execute_code_sync(self.template_file, self.build_context, self.deploy_context, self.sync_context, "", [], True)
+        execute_code_sync(
+            self.template_file,
+            self.build_context,
+            self.deploy_context,
+            self.sync_context,
+            {},
+            {},
+            True,
+            use_built_resources,
+        )
 
-        sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(ResourceIdentifier("Function1"))
+        built_result = self.build_context.build_result if use_built_resources else None
+
+        sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(
+            ResourceIdentifier("Function1"), built_result
+        )
         sync_flow_executor_mock.return_value.add_sync_flow.assert_any_call(sync_flows[0])
 
-        sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(ResourceIdentifier("Function2"))
+        sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(
+            ResourceIdentifier("Function2"), built_result
+        )
         sync_flow_executor_mock.return_value.add_sync_flow.assert_any_call(sync_flows[1])
 
-        sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(ResourceIdentifier("Function3"))
+        sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(
+            ResourceIdentifier("Function3"), built_result
+        )
         sync_flow_executor_mock.return_value.add_sync_flow.assert_any_call(sync_flows[2])
 
-        sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(ResourceIdentifier("Function4"))
+        sync_flow_factory_mock.return_value.create_sync_flow.assert_any_call(
+            ResourceIdentifier("Function4"), built_result
+        )
         sync_flow_executor_mock.return_value.add_sync_flow.assert_any_call(sync_flows[3])
 
         self.assertEqual(sync_flow_factory_mock.return_value.create_sync_flow.call_count, 4)
@@ -676,7 +772,7 @@ class TestWatch(TestCase):
         watch_manager_mock,
         click_mock,
     ):
-        skip_infra_syncs = code
+        disable_infra_syncs = code
         execute_watch(
             self.template_file,
             self.build_context,
@@ -684,7 +780,7 @@ class TestWatch(TestCase):
             self.deploy_context,
             self.sync_context,
             auto_dependency_layer,
-            skip_infra_syncs,
+            disable_infra_syncs,
         )
 
         watch_manager_mock.assert_called_once_with(
@@ -694,7 +790,7 @@ class TestWatch(TestCase):
             self.deploy_context,
             self.sync_context,
             auto_dependency_layer,
-            skip_infra_syncs,
+            disable_infra_syncs,
         )
         watch_manager_mock.return_value.start.assert_called_once_with()
 
@@ -737,3 +833,29 @@ class TestDisableADL(TestCase):
             "",
         )
         self.assertEqual(check_enable_dependency_layer("/template/file"), expected)
+
+    @patch("samcli.commands.sync.command.InfraSyncExecutor")
+    def test_execute_infra_contexts(self, patch_infra_sync_executor):
+        build_context_mock = Mock()
+        package_context_mock = Mock()
+        deploy_context_mock = Mock()
+        sync_context_mock = Mock()
+
+        infra_sync_executor_mock = Mock()
+        patch_infra_sync_executor.return_value = infra_sync_executor_mock
+
+        execute_infra_contexts(build_context_mock, package_context_mock, deploy_context_mock, sync_context_mock)
+
+        patch_infra_sync_executor.assert_called_once_with(
+            build_context_mock, package_context_mock, deploy_context_mock, sync_context_mock
+        )
+        infra_sync_executor_mock.execute_infra_sync.assert_called_once()
+
+    def test_invalid_resource_type(self):
+        cli_runner = CliRunner()
+        invoke_result = cli_runner.invoke(sync_cli, ["--resource", "AWS::Serverless::InvalidResource"])
+        self.assertEqual(invoke_result.exit_code, 2)
+        self.assertIn(
+            "Error: Invalid value for '--resource': 'AWS::Serverless::InvalidResource' is not one of",
+            invoke_result.output,
+        )
