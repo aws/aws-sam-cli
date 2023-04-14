@@ -57,10 +57,10 @@ jobs:
     - run: make pr
 
   get-integration-test-folders:
-    name: List test files in integration test folder which can be used by integration-tests job
+    name: List test folders in tests/integration folder which can be used by integration-tests job
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.list_test_folders.outputs.folders }}
+      folders: ${{ steps.list_test_folders.outputs.folders }}
     steps:
       - uses: actions/checkout@v3
       - id: list_test_folders
