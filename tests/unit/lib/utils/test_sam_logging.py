@@ -25,6 +25,25 @@ class TestSamCliLogger(TestCase):
         stream_handler_mock.setFormatter.assert_called_once_with(formatter_mock)
 
     @patch("samcli.lib.utils.sam_logging.logging")
+    @patch("samcli.lib.utils.sam_logging.sys")
+    @patch("samcli.lib.utils.sam_logging.RichHandler")
+    def test_configure_samcli_logger_mock_terminal(self, mock_rich_handler, mock_sys, logging_patch):
+        mock_sys.stderr.isatty = Mock(return_value=True)
+        formatter_mock = Mock()
+        logger_mock = Mock()
+        logger_mock.handlers = []
+        logging_patch.DEBUG = 2
+
+        SamCliLogger.configure_logger(logger_mock, formatter_mock, level=1)
+
+        self.assertFalse(logger_mock.propagate)
+
+        logger_mock.setLevel.assert_called_once_with(1)
+        logger_mock.addHandler.assert_called_once_with(mock_rich_handler())
+        mock_rich_handler().setLevel.assert_called_once_with(2)
+        mock_rich_handler().setFormatter.assert_called_once_with(formatter_mock)
+
+    @patch("samcli.lib.utils.sam_logging.logging")
     def test_configure_samcli_logger_null_logger(self, logging_patch):
         logger_mock = Mock()
 
