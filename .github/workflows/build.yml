@@ -64,7 +64,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - id: list_test_folders
-        run: echo "folders=$(find tests/integration/ -type d -not -path 'tests/integration/testdata/*' -not -path tests/integration/ | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+        run: echo "folders=$(find tests/integration/ -type d -not -path 'tests/integration/testdata*' -not -path 'tests/integration/scripts/testdata*' -not -path tests/integration/ | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
 
   integration-tests:
     needs: get-integration-test-folders
