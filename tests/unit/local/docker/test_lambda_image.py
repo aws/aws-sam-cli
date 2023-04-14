@@ -5,7 +5,7 @@ from unittest import TestCase
 from unittest.mock import patch, Mock, mock_open, ANY, call
 from parameterized import parameterized
 
-from docker.errors import ImageNotFound, BuildError, APIError
+from docker.errors import ImageNotFound, BuildError, APIError, NotFound
 from parameterized import parameterized
 
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
@@ -737,3 +737,14 @@ class TestLambdaImage(TestCase):
         lambda_image._check_base_image_is_current("image_name")
         self.assertEqual(lambda_image.skip_pull_image, expected_skip_pull_image)
         self.assertEqual(lambda_image.force_image_build, expected_force_image_build)
+
+    def test_check_base_image_is_current_404_error_from_daemon(self):
+        # Verify that we skip pulling the image when we get a 404 from the Docker daemon's API.
+        # This happens when a Docker engine clone, such as podman hasn't implemented the
+        # necessary APIs.
+        # See issue #5019
+        lambda_image = LambdaImage("layer_downloader", False, False, docker_client=Mock())
+        lambda_image.is_base_image_current = Mock(side_effect=NotFound("404"))
+        lambda_image._check_base_image_is_current("image_name")
+        self.assertEqual(lambda_image.skip_pull_image, True)
+        self.assertEqual(lambda_image.force_image_build, False)

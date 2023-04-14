@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Optional
 
 import docker
+from docker.errors import NotFound as DockerNotFound
 
 from samcli.commands.local.cli_common.user_exceptions import ImageBuildException
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
@@ -447,7 +448,23 @@ class LambdaImage:
         if self.skip_pull_image or self.force_image_build:
             return
 
-        if self.is_base_image_current(image_name):
+        # if we can't check to see if the image is up-to-date, warn but don't crash.
+        try:
+            base_image_is_current = self.is_base_image_current(image_name)
+        except DockerNotFound as e:
+            # Assume the base image is the latest because we got a 404 on the API from
+            # the Docker daemon (This is different than the image is missing)
+            # https://github.com/containers/podman/issues/17726
+            LOG.warning(
+                "Cannot check if base image is current because a 404 error was returned from "
+                "the Docker daemon. This might be due to an incompatible Docker engine clone. "
+                "Proceeding with possibly stale image."
+            )
+            LOG.debug("Error 404 response from Docker Engine", exc_info=e)
+            self.skip_pull_image = True
+            return
+
+        if base_image_is_current:
             self.skip_pull_image = True
             LOG.info("Local image is up-to-date")
         else:
