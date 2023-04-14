@@ -120,7 +120,7 @@ jobs:
           java-version: '11'
        # Install and configure Rust
       - name: Install rustup
-        if: contains(matrix.test_folder, 'buildcmd') && ${{ matrix.os == 'ubuntu-latest' }}
+        if: ${{ contains(matrix.test_folder, 'buildcmd') && matrix.os == 'ubuntu-latest' }}
         run: |
           : install rustup if needed
           if ! command -v rustup &> /dev/null ; then
