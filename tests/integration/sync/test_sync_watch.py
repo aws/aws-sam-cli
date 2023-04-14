@@ -591,6 +591,14 @@ class TestSyncWatchCodeOnly(TestSyncWatchBase):
     [{"runtime": "python", "dependency_layer": True}, {"runtime": "python", "dependency_layer": False}]
 )
 class TestSyncWatchAutoSkipInfra(SyncIntegBase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.parameter_overrides = {
+            "HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
+        }
+        super().setUpClass()
+
     def setUp(self):
         self.runtime = "python"
         self.dependency_layer = True
