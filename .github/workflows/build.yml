@@ -56,19 +56,19 @@ jobs:
     - run: make init
     - run: make pr
 
-  get-integration-test-files:
+  get-integration-test-folders:
     name: List test files in integration test folder which can be used by integration-tests job
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.list_test_files.outputs.matrix }}
+      matrix: ${{ steps.list_test_folders.outputs.folders }}
     steps:
       - uses: actions/checkout@v3
-      - id: list_test_files
-        run: echo "matrix=$(find tests/integration -type f -name "*.py" -not -path 'tests/integration/testdata/*' -not -path '*__init__.py' | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+      - id: list_test_folders
+        run: echo "folders=$(find tests/integration/ -type d -not -path 'tests/integration/testdata/*' -not -path tests/integration/ | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
 
   integration-tests:
-    needs: get-integration-test-files
-    name: Integration Tests / ${{ matrix.os }} / ${{ matrix.python }} / ${{ matrix.test_file }}
+    needs: get-integration-test-folders
+    name: Integration Tests / ${{ matrix.os }} / ${{ matrix.python }} / ${{ matrix.test_folder }}
     if: github.repository_owner == 'aws'
     runs-on: ${{ matrix.os }}
     env:
@@ -89,7 +89,7 @@ jobs:
           - "3.7"
           - "3.8"
           - "3.9"
-        test_file: ${{ fromJson(needs.get-integration-test-files.outputs.matrix) }}
+        test_folder: ${{ fromJson(needs.get-integration-test-folders.outputs.folders) }}
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -139,8 +139,8 @@ jobs:
 
       - name: Init samdev
         run: make init
-      - name: Run integration tests for ${{ matrix.test_file }}
-        run: pytest -vv tests/integration/${{ matrix.test_file }}
+      - name: Run integration tests for ${{ matrix.test_folder }}
+        run: pytest -vv ${{ matrix.test_folder }}
 
   smoke-and-functional-tests:
     name: Functional & Smoke Tests / ${{ matrix.os }} / ${{ matrix.python }}
