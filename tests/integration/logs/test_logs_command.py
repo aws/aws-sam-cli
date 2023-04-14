@@ -32,6 +32,7 @@ APIGW_REQUESTS_TO_WARM_UP = 20
 SKIP_LOGS_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 
 
+@skipIf(SKIP_LOGS_TESTS, "Skip logs tests in CI/CD")
 class LogsIntegTestCases(LogsIntegBase):
     test_template_folder = ""
 
