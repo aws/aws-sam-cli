@@ -2,6 +2,8 @@ import json
 import logging
 import os
 import platform
+import shutil
+import tempfile
 import uuid
 from pathlib import Path
 from unittest import skipIf
@@ -35,10 +37,14 @@ LOG = logging.getLogger(__name__)
 class TestSyncInfra(SyncIntegBase):
     parameter_overrides = {}
 
-    @classmethod
-    def setUpClass(cls) -> None:
-        super().setUpClass()
-        cls.parameter_overrides = {
+    def setUp(self):
+        super().setUp()
+
+        original_test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "sync")
+        self.test_data_path = Path(tempfile.mkdtemp())
+        shutil.copytree(original_test_data_path, self.test_data_path, dirs_exist_ok=True)
+
+        self.parameter_overrides = {
             "HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
         }
 
