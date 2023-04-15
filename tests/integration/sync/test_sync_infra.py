@@ -161,7 +161,6 @@ class TestSyncInfra(SyncIntegBase):
             watch=False,
             dependency_layer=self.dependency_layer,
             stack_name=stack_name,
-            parameter_overrides=self.parameter_overrides,
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
