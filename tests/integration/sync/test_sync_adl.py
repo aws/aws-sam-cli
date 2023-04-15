@@ -2,7 +2,6 @@ import json
 import os.path
 from unittest import skipIf
 
-from samcli.commands._utils.experimental import set_experimental, ExperimentalFlag
 from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION, AWS_LAMBDA_LAYERVERSION
 from tests.integration.sync.sync_integ_base import SyncIntegBase
 from tests.integration.sync.test_sync_code import TestSyncCodeBase, SKIP_SYNC_TESTS, TestSyncCode

@@ -35,7 +35,6 @@ LOG = logging.getLogger(__name__)
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
 @parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
 class TestSyncInfra(SyncIntegBase):
-    parameter_overrides = {}
 
     def setUp(self):
         super().setUp()
@@ -43,10 +42,6 @@ class TestSyncInfra(SyncIntegBase):
         original_test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "sync")
         self.test_data_path = Path(tempfile.mkdtemp())
         shutil.copytree(original_test_data_path, self.test_data_path, dirs_exist_ok=True)
-
-        self.parameter_overrides = {
-            "HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
-        }
 
     def _verify_infra_changes(self, resources):
         # Lambda
@@ -83,7 +78,6 @@ class TestSyncInfra(SyncIntegBase):
             watch=False,
             dependency_layer=self.dependency_layer,
             stack_name=stack_name,
-            parameter_overrides=self.parameter_overrides,
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
@@ -121,7 +115,6 @@ class TestSyncInfra(SyncIntegBase):
             watch=False,
             dependency_layer=self.dependency_layer,
             stack_name=stack_name,
-            parameter_overrides=self.parameter_overrides,
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
@@ -221,7 +214,6 @@ class TestSyncInfra(SyncIntegBase):
             watch=False,
             dependency_layer=self.dependency_layer,
             stack_name=stack_name,
-            parameter_overrides=self.parameter_overrides,
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
@@ -266,7 +258,6 @@ class TestSyncInfra(SyncIntegBase):
             watch=False,
             dependency_layer=self.dependency_layer,
             stack_name=stack_name,
-            parameter_overrides=self.parameter_overrides,
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
@@ -287,7 +278,6 @@ class TestSyncInfra(SyncIntegBase):
             code=False,
             watch=False,
             dependency_layer=self.dependency_layer,
-            parameter_overrides=self.parameter_overrides,
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
@@ -311,7 +301,6 @@ class TestSyncInfra(SyncIntegBase):
             watch=False,
             dependency_layer=self.dependency_layer,
             stack_name=stack_name,
-            parameter_overrides=self.parameter_overrides,
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
@@ -338,7 +327,6 @@ Requires capabilities : [CAPABILITY_AUTO_EXPAND]",
             watch=False,
             dependency_layer=self.dependency_layer,
             stack_name=stack_name,
-            parameter_overrides=self.parameter_overrides,
             image_repository=self.ecr_repo_name,
             s3_bucket=self.bucket_name,
             s3_prefix=self.s3_prefix,
@@ -495,13 +483,6 @@ class TestSyncInfraWithJava(SyncIntegBase):
     ecr_repo_name = None
     kms_key = None
 
-    @classmethod
-    def setUpClass(cls) -> None:
-        super().setUpClass()
-        cls.parameter_overrides = {
-            "HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
-        }
-
     @parameterized.expand(["infra/template-java.yaml"])
     def test_sync_infra_with_java(self, template_file):
         """This will test a case where user will flip ADL flag between sync sessions"""
@@ -523,7 +504,6 @@ class TestSyncInfraWithJava(SyncIntegBase):
             watch=False,
             dependency_layer=dependency_layer,
             stack_name=stack_name,
-            parameter_overrides=self.parameter_overrides,
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,

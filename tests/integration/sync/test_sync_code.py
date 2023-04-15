@@ -41,7 +41,6 @@ class TestSyncCodeBase(SyncIntegBase):
     template_path = ""
     template = ""
     folder = ""
-    parameter_overrides = {}
 
     @pytest.fixture(scope="class")
     def execute_infra_sync(self):
@@ -55,7 +54,6 @@ class TestSyncCodeBase(SyncIntegBase):
             watch=False,
             dependency_layer=self.dependency_layer,
             stack_name=TestSyncCodeBase.stack_name,
-            parameter_overrides=self.parameter_overrides,
             image_repository=self.ecr_repo_name,
             s3_prefix=uuid.uuid4().hex,
             kms_key_id=self.kms_key,
@@ -94,11 +92,6 @@ class TestSyncCodeBase(SyncIntegBase):
 class TestSyncCode(TestSyncCodeBase):
     template = "template-python.yaml"
     folder = "code"
-
-    @classmethod
-    def setUpClass(cls) -> None:
-        super().setUpClass()
-        cls.parameter_overrides["HelloWorldLayerName"] =  f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
 
     def test_sync_code_function(self):
         shutil.rmtree(self.test_data_path.joinpath(self.folder, "before", "function"))
@@ -372,14 +365,6 @@ class TestSyncCodeNested(TestSyncCodeBase):
     template = "template.yaml"
     folder = "nested"
 
-    @classmethod
-    def setUpClass(cls) -> None:
-        super().setUpClass()
-        cls.parameter_overrides = {
-            "HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140],
-            "ChildStackHelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
-        }
-
     def test_sync_code_nested_function(self):
         shutil.rmtree(self.test_data_path.joinpath(self.folder, "before", "child_stack", "child_functions"))
         shutil.copytree(
@@ -550,13 +535,6 @@ class TestSyncCodeNestedWithIntrinsics(TestSyncCodeBase):
     template = "template.yaml"
     folder = "nested_intrinsics"
 
-    @classmethod
-    def setUpClass(cls) -> None:
-        super().setUpClass()
-        cls.parameter_overrides = {
-            "ChildStackHelloWorldLayerName": f"ChildStackHelloWorldLayerName-{uuid.uuid4().hex}"[:140]
-        }
-
     def test_sync_code_nested_getattr_layer(self):
         shutil.rmtree(
             self.test_data_path.joinpath(self.folder, "before", "child_stack", "child_layer", "layer"),
@@ -647,16 +625,6 @@ class TestSyncCodeEsbuildFunctionTemplate(TestSyncCodeBase):
 class TestSyncLayerCode(TestSyncCodeBase):
     template = "template-python-code-only-layer.yaml"
     folder = "code"
-
-    @classmethod
-    def setUpClass(cls) -> None:
-        super().setUpClass()
-        cls.parameter_overrides = {
-            "HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140],
-            "HelloWorldLayerWithoutBuildMethodName": f"HelloWorldLayerWithoutBuildMethod-{uuid.uuid4().hex}"[:140],
-            "HelloWorldPreBuiltZipLayerName": f"HelloWorldPreBuiltZipLayer-{uuid.uuid4().hex}"[:140]
-        }
-
 
     @parameterized.expand(
         [
