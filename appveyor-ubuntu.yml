@@ -4,6 +4,12 @@ image:
 
 configuration:
   - BuildIntegTesting
+  - BuildDotnetIntegTesting
+  - BuildGoLangIntegTesting
+  - BuildInterpretedIntegTesting
+  - BuildJavaIntegTesting
+  - BuildProvidedIntegTesting
+  - BuildRustIntegTesting
   - LocalZipTerraformBuildIntegTesting
   - LocalZipTerraformBuildInContainerIntegTesting
   - S3ZipTerraformBuildIntegTesting
@@ -191,6 +197,66 @@ for:
       - sh: "JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64"
       - sh: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java11_in_process --json-report --json-report-file=TEST_REPORT-integration-buildcmd-java11.json"
 
+  - matrix:
+      only:
+        - configuration: BuildDotnetIntegTesting
+
+    test_script:
+      # Pre-dev Tests
+      - "pip install -e \".[pre-dev]\""
+      - "pip install -e \".[dev]\""
+      - sh: "pytest -vv tests/integration/buildcmd_dotnet --json-report --json-report-file=TEST_REPORT-integration-buildcmd_dotnet.json"
+
+  - matrix:
+      only:
+        - configuration: BuildGoLangIntegTesting
+
+    test_script:
+      # Pre-dev Tests
+      - "pip install -e \".[pre-dev]\""
+      - "pip install -e \".[dev]\""
+      - sh: "pytest -vv tests/integration/buildcmd_golang --json-report --json-report-file=TEST_REPORT-integration-buildcmd_golang.json"
+
+  - matrix:
+      only:
+        - configuration: BuildInterpretedIntegTesting
+
+    test_script:
+      # Pre-dev Tests
+      - "pip install -e \".[pre-dev]\""
+      - "pip install -e \".[dev]\""
+      - sh: "pytest -vv tests/integration/buildcmd_interpreted --json-report --json-report-file=TEST_REPORT-integration-buildcmd_interpreted.json"
+
+  - matrix:
+      only:
+        - configuration: BuildJavaIntegTesting
+
+    test_script:
+      # Pre-dev Tests
+      - "pip install -e \".[pre-dev]\""
+      - "pip install -e \".[dev]\""
+      - sh: "pytest -vv tests/integration/buildcmd_java --json-report --json-report-file=TEST_REPORT-integration-buildcmd_java.json"
+
+  - matrix:
+      only:
+        - configuration: BuildProvidedIntegTesting
+
+    test_script:
+      # Pre-dev Tests
+      - "pip install -e \".[pre-dev]\""
+      - "pip install -e \".[dev]\""
+      - sh: "pytest -vv tests/integration/buildcmd_provided --json-report --json-report-file=TEST_REPORT-integration-buildcmd_provided.json"
+
+  - matrix:
+      only:
+        - configuration: BuildRustIntegTesting
+
+    test_script:
+      # Pre-dev Tests
+      - "pip install -e \".[pre-dev]\""
+      - "pip install -e \".[dev]\""
+      - sh: "pytest -vv tests/integration/buildcmd_rust --json-report --json-report-file=TEST_REPORT-integration-buildcmd_rust.json"
+
   # Local ZIP  Terraform Build integ testing
   -
     matrix:
@@ -338,7 +404,7 @@ for:
       - "mypy setup.py samcli tests"
       - "pytest -n 4 tests/functional --json-report --json-report-file=TEST_REPORT-functional.json"
       
-      - sh: "pytest tests/integration --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-others.json"
+      - sh: "pytest tests/integration --ignore=tests/integration/buildcmd --ignore=tests/integration/buildcmd_dotnet --ignore=tests/integration/buildcmd_golang --ignore=tests/integration/buildcmd_interpreted --ignore=tests/integration/buildcmd_java --ignore=tests/integration/buildcmd_provided --ignore=tests/integration/buildcmd_rust --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-others.json"
       - sh: "pytest -vv tests/regression --json-report --json-report-file=TEST_REPORT-regression.json"
       - sh: "black --check setup.py tests samcli"
       - sh: "pytest -n 4 -vv tests/smoke --json-report --json-report-file=TEST_REPORT-smoke.json"
