@@ -2,12 +2,13 @@
 Reads CLI arguments and performs necessary preparation to be able to run the function
 """
 import errno
+import io
 import json
 import logging
 import os
 from enum import Enum
 from pathlib import Path
-from typing import IO, Any, Dict, List, Optional, Tuple, Type, cast
+from typing import IO, Any, Dict, List, Optional, Tuple, Type, Union, cast
 
 from samcli.commands._utils.template import TemplateFailedParsingException, TemplateNotFoundException
 from samcli.commands.exceptions import ContainersInitializationException
@@ -419,8 +420,49 @@ class InvokeContext:
         samcli.lib.utils.stream_writer.StreamWriter
             Stream writer for stderr
         """
+
+        class StreamCombo:
+            def __init__(self, write_stream: Union[IO, io.BytesIO], readable_stream: io.BytesIO):
+                """
+                Instatiates new StreamCombo
+                ----------
+                write_stream Union[IO, io.BytesIO]
+                    Writable stream
+                readable_stream io.BytesIO
+                    Readable stream
+                """
+                self._write_stream = write_stream
+                self._readable_stream = readable_stream
+
+            def write(self, value: bytes) -> None:
+                """
+                Writes specified text to streams
+                Parameters
+                ----------
+                value bytes-like object
+                Bytes to write
+                """
+                self._write_stream.write(value)
+                self._readable_stream.write(value)
+
+            def getvalue(self) -> bytes:
+                """
+                Gets value from readable stream
+                Returns
+                ----------
+                bytes-like object
+                """
+                return self._readable_stream.getvalue()
+
+            def flush(self) -> None:
+                """
+                Flush writable and readable streams
+                """
+                self._write_stream.flush()
+                self._readable_stream.flush()
+
         stream = self._log_file_handle if self._log_file_handle else osutils.stderr()
-        return StreamWriter(stream, auto_flush=True)
+        return StreamWriter(StreamCombo(stream, io.BytesIO()), auto_flush=True)
 
     @property
     def stacks(self) -> List[Stack]:

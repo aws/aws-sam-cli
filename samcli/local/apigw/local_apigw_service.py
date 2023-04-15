@@ -720,6 +720,10 @@ class LocalApigwService(BaseLocalService):
                     lambda_response, self.api.binary_media_types, request, route.event_type
                 )
         except LambdaResponseParseException as ex:
+             # Retry request if container already reserved instead of throwing a 502.
+            if "[ERROR] (rapid) Failed to reserve: AlreadyReserved" in self.stderr.stream.getvalue().decode():
+                return self._request_handler(**kwargs)
+                
             LOG.error("Invalid lambda response received: %s", ex)
             return ServiceErrorResponses.lambda_failure_response()
 
