@@ -44,7 +44,7 @@ class InvokeLambdaCommand(CoreCommand):
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
                     ]
-                ),
+                )
             with formatter.indented_section(name="Using AWS CLI", extra_indents=1):
                 formatter.write_rd(
                     [
@@ -62,7 +62,7 @@ class InvokeLambdaCommand(CoreCommand):
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
                     ]
-                ),
+                )
             with formatter.indented_section(name="Using AWS SDK", extra_indents=1):
                 formatter.write_rd(
                     [
@@ -77,7 +77,7 @@ class InvokeLambdaCommand(CoreCommand):
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
                     ]
-                ),
+                )
 
     def format_options(self, ctx: Context, formatter: InvokeStartLambdaCommandHelpTextFormatter) -> None:  # type:ignore
         # NOTE(sriram-mv): `ignore` is put in place here for mypy even though it is the correct behavior,

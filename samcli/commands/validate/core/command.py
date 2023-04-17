@@ -30,7 +30,7 @@ class ValidateCommand(CoreCommand):
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
                     ]
-                ),
+                )
 
     def format_options(self, ctx: Context, formatter: ValidateCommandHelpTextFormatter) -> None:  # type:ignore
         # NOTE(sriram-mv): `ignore` is put in place here for mypy even though it is the correct behavior,

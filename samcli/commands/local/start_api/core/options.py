@@ -17,19 +17,19 @@ TEMPLATE_OPTIONS: List[str] = [
 ]
 
 CONTAINER_OPTION_NAMES: List[str] = [
-    "event",
     "host",
     "port",
     "env_vars",
+    "container_env_vars",
     "debug_port",
     "debugger_path",
+    "debug_args",
     "debug_function",
     "docker_volume_basedir",
     "skip_pull_image",
     "docker_network",
     "force_image_build",
     "warm_containers",
-    "debug_function",
     "shutdown",
     "container_host",
     "container_host_interface",
@@ -44,7 +44,7 @@ ARTIFACT_LOCATION_OPTIONS: List[str] = [
     "static_dir",
 ]
 
-OTHER_OPTIONS: List[str] = ["debug", "help"]
+OTHER_OPTIONS: List[str] = ["debug"]
 
 ALL_OPTIONS: List[str] = (
     REQUIRED_OPTIONS

@@ -18,7 +18,7 @@ LINT_OPTION_NAMES: List[str] = [
 
 CONFIGURATION_OPTION_NAMES: List[str] = ["config_env", "config_file"]
 
-OTHER_OPTIONS: List[str] = ["debug", "help"]
+OTHER_OPTIONS: List[str] = ["debug"]
 
 ALL_OPTIONS: List[str] = (
     REQUIRED_OPTIONS + LINT_OPTION_NAMES + AWS_CREDENTIAL_OPTION_NAMES + CONFIGURATION_OPTION_NAMES + OTHER_OPTIONS

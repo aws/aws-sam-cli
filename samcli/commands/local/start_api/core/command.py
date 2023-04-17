@@ -29,7 +29,7 @@ class InvokeAPICommand(CoreCommand):
                         extra_row_modifiers=[ShowcaseRowModifier()],
                     ),
                 ]
-            ),
+            )
 
     def format_options(self, ctx: Context, formatter: InvokeStartAPICommandHelpTextFormatter) -> None:  # type:ignore
         # NOTE(sriram-mv): `ignore` is put in place here for mypy even though it is the correct behavior,

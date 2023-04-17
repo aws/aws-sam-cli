@@ -17,41 +17,46 @@ TEMPLATE_OPTIONS: List[str] = [
 ]
 
 CONTAINER_OPTION_NAMES: List[str] = [
-    "event",
     "host",
     "port",
     "env_vars",
+    "warm_containers",
+    "container_env_vars",
+    "debug_function",
     "debug_port",
     "debugger_path",
-    "debug_function",
+    "debug_args",
     "docker_volume_basedir",
     "skip_pull_image",
     "docker_network",
     "force_image_build",
-    "warm_containers",
-    "debug_function",
     "shutdown",
     "container_host",
     "container_host_interface",
     "invoke_image",
 ]
 
-CONFIGURATION_OPTION_NAMES: List[str] = ["config_env", "config_file"]
+BETA_OPTION_NAMES: List[str] = ["beta_features"]
 
 ARTIFACT_LOCATION_OPTIONS: List[str] = [
     "log_file",
     "layer_cache_basedir",
-    "static_dir",
 ]
 
-OTHER_OPTIONS: List[str] = ["debug", "help"]
+EXTENSION_OPTIONS: List[str] = ["hook_name", "skip_prepare_infra"]
+
+CONFIGURATION_OPTION_NAMES: List[str] = ["config_env", "config_file"]
+
+OTHER_OPTIONS: List[str] = ["debug"]
 
 ALL_OPTIONS: List[str] = (
     REQUIRED_OPTIONS
     + TEMPLATE_OPTIONS
     + AWS_CREDENTIAL_OPTION_NAMES
     + CONTAINER_OPTION_NAMES
+    + BETA_OPTION_NAMES
     + ARTIFACT_LOCATION_OPTIONS
+    + EXTENSION_OPTIONS
     + CONFIGURATION_OPTION_NAMES
     + OTHER_OPTIONS
 )
@@ -63,9 +68,11 @@ OPTIONS_INFO: Dict[str, Dict] = {
         "option_names": {opt: {"rank": idx} for idx, opt in enumerate(AWS_CREDENTIAL_OPTION_NAMES)}
     },
     "Container Options": {"option_names": {opt: {"rank": idx} for idx, opt in enumerate(CONTAINER_OPTION_NAMES)}},
+    "Beta Options": {"option_names": {opt: {"rank": idx} for idx, opt in enumerate(BETA_OPTION_NAMES)}},
     "Artifact Location Options": {
         "option_names": {opt: {"rank": idx} for idx, opt in enumerate(ARTIFACT_LOCATION_OPTIONS)}
     },
+    "Extension Options": {"option_names": {opt: {"rank": idx} for idx, opt in enumerate(EXTENSION_OPTIONS)}},
     "Configuration Options": {
         "option_names": {opt: {"rank": idx} for idx, opt in enumerate(CONFIGURATION_OPTION_NAMES)},
         "extras": [
