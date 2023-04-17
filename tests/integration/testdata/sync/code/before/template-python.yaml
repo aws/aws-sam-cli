@@ -9,7 +9,10 @@ Parameters:
   RootStackName:
     Description: Used to generate unique LayerName
     Type: String
-    Default: !Ref "AWS::StackName"
+    Default: "DefaultStackName"
+
+Conditions:
+  UseCurrentStackName: !Equals [!Ref RootStackName, "DefaultStackName"]
 
 Resources:
   HelloWorldFunction:
@@ -37,7 +40,11 @@ Resources:
   HelloWorldLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      LayerName: !Sub 'HelloWorldLayer-${RootStackName}'
+      # Use current stack name if RootStackName is not provided
+      LayerName: !If
+        - UseCurrentStackName,
+        - "HelloWorldLayer-${AWS::StackName}"
+        - "HelloWorldLayer-Child-${RootStackName}"
       Description: Hello World Layer
       ContentUri: layer/
       CompatibleRuntimes:
