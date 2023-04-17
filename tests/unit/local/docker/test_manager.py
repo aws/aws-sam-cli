@@ -221,7 +221,7 @@ class TestContainerManager_pull_image(TestCase):
         stream = io.StringIO()
         pull_result = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]
         self.mock_docker_client.api.pull.return_value = pull_result
-        expected_stream_output = "\nFetching {} Docker container image...{}\n".format(
+        expected_stream_output = "\nFetching {}:latest Docker container image...{}\n".format(
             self.image_name, "." * len(pull_result)  # Progress bar will print one dot per response from pull API
         )
 
