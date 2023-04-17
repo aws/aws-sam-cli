@@ -3,13 +3,15 @@ import tempfile
 from collections import OrderedDict
 from unittest import TestCase
 
-from unittest.mock import patch, Mock
+from unittest.mock import ANY, patch, Mock
 from parameterized import parameterized
 
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.lib.providers.api_provider import ApiProvider
 from samcli.lib.providers.provider import Cors, Stack
-from samcli.local.apigw.local_apigw_service import Route
+from samcli.lib.providers.sam_api_provider import SamApiProvider
+from samcli.local.apigw.route import Route
+from samcli.local.apigw.authorizers.lambda_authorizer import LambdaAuthorizer
 
 
 def make_mock_stacks_from_template(template):
@@ -745,6 +747,7 @@ class TestSamStageValues(TestCase):
                     "Properties": {
                         "StageName": "dev",
                         "DefinitionBody": {
+                            "swagger": "2.0",
                             "paths": {
                                 "/path": {
                                     "get": {
@@ -759,7 +762,7 @@ class TestSamStageValues(TestCase):
                                         }
                                     }
                                 }
-                            }
+                            },
                         },
                     },
                 }
@@ -781,6 +784,7 @@ class TestSamStageValues(TestCase):
                         "StageName": "dev",
                         "Variables": {"vis": "data", "random": "test", "foo": "bar"},
                         "DefinitionBody": {
+                            "swagger": "2.0",
                             "paths": {
                                 "/path": {
                                     "get": {
@@ -795,7 +799,7 @@ class TestSamStageValues(TestCase):
                                         }
                                     }
                                 }
-                            }
+                            },
                         },
                     },
                 }
@@ -816,6 +820,7 @@ class TestSamStageValues(TestCase):
                 "StageName": "dev",
                 "Variables": {"vis": "data", "random": "test", "foo": "bar"},
                 "DefinitionBody": {
+                    "swagger": "2.0",
                     "paths": {
                         "/path2": {
                             "get": {
@@ -830,7 +835,7 @@ class TestSamStageValues(TestCase):
                                 }
                             }
                         }
-                    }
+                    },
                 },
             },
         }
@@ -841,6 +846,7 @@ class TestSamStageValues(TestCase):
                 "StageName": "Production",
                 "Variables": {"vis": "prod data", "random": "test", "foo": "bar"},
                 "DefinitionBody": {
+                    "swagger": "2.0",
                     "paths": {
                         "/path": {
                             "get": {
@@ -868,7 +874,7 @@ class TestSamStageValues(TestCase):
                                 }
                             }
                         },
-                    }
+                    },
                 },
             },
         }
@@ -900,6 +906,7 @@ class TestSamCors(TestCase):
                         "StageName": "Prod",
                         "Cors": {"AllowOrigin": {"Fn:Sub": "Some string to sub"}},
                         "DefinitionBody": {
+                            "swagger": "2.0",
                             "paths": {
                                 "/path2": {
                                     "post": {
@@ -925,7 +932,7 @@ class TestSamCors(TestCase):
                                         }
                                     }
                                 },
-                            }
+                            },
                         },
                     },
                 }
@@ -956,6 +963,7 @@ class TestSamCors(TestCase):
                         "StageName": "Prod",
                         "Cors": "'*'",
                         "DefinitionBody": {
+                            "swagger": "2.0",
                             "paths": {
                                 "/path2": {
                                     "post": {
@@ -981,7 +989,7 @@ class TestSamCors(TestCase):
                                         }
                                     }
                                 },
-                            }
+                            },
                         },
                     },
                 }
@@ -1017,6 +1025,7 @@ class TestSamCors(TestCase):
                             "MaxAge": "'600'",
                         },
                         "DefinitionBody": {
+                            "swagger": "2.0",
                             "paths": {
                                 "/path2": {
                                     "post": {
@@ -1042,7 +1051,7 @@ class TestSamCors(TestCase):
                                         }
                                     }
                                 },
-                            }
+                            },
                         },
                     },
                 }
@@ -1080,6 +1089,7 @@ class TestSamCors(TestCase):
                             "MaxAge": "'600'",
                         },
                         "DefinitionBody": {
+                            "swagger": "2.0",
                             "paths": {
                                 "/path2": {
                                     "post": {
@@ -1105,7 +1115,7 @@ class TestSamCors(TestCase):
                                         }
                                     }
                                 },
-                            }
+                            },
                         },
                     },
                 }
@@ -1283,6 +1293,7 @@ class TestSamCors(TestCase):
                         "StageName": "Prod",
                         "Cors": {"AllowOrigin": "'www.domain.com'"},
                         "DefinitionBody": {
+                            "swagger": "2.0",
                             "paths": {
                                 "/path2": {
                                     "get": {
@@ -1297,7 +1308,7 @@ class TestSamCors(TestCase):
                                         }
                                     }
                                 }
-                            }
+                            },
                         },
                     },
                 }
@@ -1331,6 +1342,7 @@ class TestSamCors(TestCase):
                     "Properties": {
                         "StageName": "Prod",
                         "DefinitionBody": {
+                            "swagger": "2.0",
                             "paths": {
                                 "/path2": {
                                     "get": {
@@ -1356,7 +1368,7 @@ class TestSamCors(TestCase):
                                         }
                                     }
                                 },
-                            }
+                            },
                         },
                     },
                 }
@@ -1391,6 +1403,7 @@ class TestSamHttpApiCors(TestCase):
                         "StageName": "Prod",
                         "CorsConfiguration": {"AllowOrigins": {"Fn:Sub": "Some string to sub"}},
                         "DefinitionBody": {
+                            "openapi": "3.0",
                             "paths": {
                                 "/path2": {
                                     "post": {
@@ -1416,7 +1429,7 @@ class TestSamHttpApiCors(TestCase):
                                         }
                                     }
                                 },
-                            }
+                            },
                         },
                     },
                 }
@@ -1447,6 +1460,7 @@ class TestSamHttpApiCors(TestCase):
                         "StageName": "Prod",
                         "CorsConfiguration": True,
                         "DefinitionBody": {
+                            "openapi": "3.0",
                             "paths": {
                                 "/path2": {
                                     "post": {
@@ -1472,7 +1486,7 @@ class TestSamHttpApiCors(TestCase):
                                         }
                                     }
                                 },
-                            }
+                            },
                         },
                     },
                 }
@@ -1503,6 +1517,7 @@ class TestSamHttpApiCors(TestCase):
                         "StageName": "Prod",
                         "CorsConfiguration": False,
                         "DefinitionBody": {
+                            "openapi": "3.0",
                             "paths": {
                                 "/path2": {
                                     "post": {
@@ -1528,7 +1543,7 @@ class TestSamHttpApiCors(TestCase):
                                         }
                                     }
                                 },
-                            }
+                            },
                         },
                     },
                 }
@@ -1561,6 +1576,7 @@ class TestSamHttpApiCors(TestCase):
                             "MaxAge": 600,
                         },
                         "DefinitionBody": {
+                            "openapi": "3.0",
                             "paths": {
                                 "/path2": {
                                     "post": {
@@ -1586,7 +1602,7 @@ class TestSamHttpApiCors(TestCase):
                                         }
                                     }
                                 },
-                            }
+                            },
                         },
                     },
                 }
@@ -1624,6 +1640,7 @@ class TestSamHttpApiCors(TestCase):
                             "MaxAge": 600,
                         },
                         "DefinitionBody": {
+                            "openapi": "3.0",
                             "paths": {
                                 "/path2": {
                                     "post": {
@@ -1649,7 +1666,7 @@ class TestSamHttpApiCors(TestCase):
                                         }
                                     }
                                 },
-                            }
+                            },
                         },
                     },
                 }
@@ -1732,6 +1749,7 @@ class TestSamHttpApiCors(TestCase):
                         "StageName": "Prod",
                         "CorsConfiguration": {"AllowOrigins": ["www.domain.com"]},
                         "DefinitionBody": {
+                            "openapi": "3.0",
                             "paths": {
                                 "/path2": {
                                     "get": {
@@ -1746,7 +1764,7 @@ class TestSamHttpApiCors(TestCase):
                                         }
                                     }
                                 }
-                            }
+                            },
                         },
                     },
                 }
@@ -1780,6 +1798,7 @@ class TestSamHttpApiCors(TestCase):
                     "Properties": {
                         "StageName": "Prod",
                         "DefinitionBody": {
+                            "openapi": "3.0",
                             "paths": {
                                 "/path2": {
                                     "get": {
@@ -1805,7 +1824,7 @@ class TestSamHttpApiCors(TestCase):
                                         }
                                     }
                                 },
-                            }
+                            },
                         },
                     },
                 }
@@ -1830,6 +1849,288 @@ class TestSamHttpApiCors(TestCase):
         self.assertEqual(provider.api.cors, cors)
 
 
+class TestSamApiUsingAuthorizers(TestCase):
+    @parameterized.expand(
+        [(SamApiProvider()._extract_from_serverless_api,), (SamApiProvider()._extract_from_serverless_http,)]
+    )
+    @patch("samcli.lib.providers.cfn_base_api_provider.CfnBaseApiProvider.extract_swagger_route")
+    @patch("samcli.lib.providers.sam_api_provider.SamApiProvider._extract_authorizers_from_props")
+    def test_extract_serverless_api_extracts_default_authorizer(
+        self, extraction_method, extract_authorizers_mock, extract_swagger_route_mock
+    ):
+        authorizer_name = "myauth"
+
+        properties = {
+            "Properties": {"DefinitionBody": {"something": "here"}, "Auth": {"DefaultAuthorizer": authorizer_name}}
+        }
+
+        logical_id_mock = Mock()
+        api_collector_mock = Mock()
+        api_collector_mock.set_default_authorizer = Mock()
+
+        extraction_method(Mock(), logical_id_mock, properties, api_collector_mock, Mock())
+
+        api_collector_mock.set_default_authorizer.assert_called_with(logical_id_mock, authorizer_name)
+
+    @parameterized.expand(
+        [
+            (  # test token + swagger 2.0
+                {
+                    "Authorizers": {
+                        "mycoolauthorizer": {
+                            "FunctionPayloadType": "TOKEN",
+                            "Identity": {
+                                "Header": "myheader",
+                            },
+                            "FunctionArn": "will_be_mocked",
+                        }
+                    }
+                },
+                {
+                    "mycoolauthorizer": LambdaAuthorizer(
+                        payload_version="1.0",
+                        authorizer_name="mycoolauthorizer",
+                        type="token",
+                        lambda_name=ANY,
+                        identity_sources=["method.request.header.myheader"],
+                    )
+                },
+                Route.API,
+            ),
+            (  # test no identity header + token + swagger 2.0
+                {
+                    "Authorizers": {
+                        "mycoolauthorizer": {
+                            "FunctionPayloadType": "TOKEN",
+                            "FunctionArn": "will_be_mocked",
+                        }
+                    }
+                },
+                {
+                    "mycoolauthorizer": LambdaAuthorizer(
+                        payload_version="1.0",
+                        authorizer_name="mycoolauthorizer",
+                        type="token",
+                        lambda_name=ANY,
+                        identity_sources=["method.request.header.Authorization"],
+                    )
+                },
+                Route.API,
+            ),
+            (  # test request + swagger 2.0
+                {
+                    "Authorizers": {
+                        "mycoolauthorizer": {
+                            "FunctionPayloadType": "REQUEST",
+                            "Identity": {
+                                "QueryStrings": ["query1", "query2"],
+                                "Headers": ["header1", "header2"],
+                                "Context": ["context1", "context2"],
+                                "StageVariables": ["stage1", "stage2"],
+                            },
+                            "FunctionArn": "will_be_mocked",
+                            "AuthorizerPayloadFormatVersion": "1.0",
+                        }
+                    }
+                },
+                {
+                    "mycoolauthorizer": LambdaAuthorizer(
+                        payload_version="1.0",
+                        authorizer_name="mycoolauthorizer",
+                        type="request",
+                        lambda_name=ANY,
+                        identity_sources=[
+                            "method.request.header.header1",
+                            "method.request.header.header2",
+                            "method.request.querystring.query1",
+                            "method.request.querystring.query2",
+                            "context.context1",
+                            "context.context2",
+                            "stageVariables.stage1",
+                            "stageVariables.stage2",
+                        ],
+                    )
+                },
+                Route.API,
+            ),
+            (  # test openapi3 (http api event)
+                {
+                    "Authorizers": {
+                        "mycoolauthorizer": {
+                            "Identity": {
+                                "QueryStrings": ["query1", "query2"],
+                                "Headers": ["header1", "header2"],
+                                "Context": ["context1", "context2"],
+                                "StageVariables": ["stage1", "stage2"],
+                            },
+                            "AuthorizerPayloadFormatVersion": "2.0",
+                            "EnableSimpleResponses": True,
+                            "FunctionArn": "will_be_mocked",
+                        }
+                    }
+                },
+                {
+                    "mycoolauthorizer": LambdaAuthorizer(
+                        payload_version="2.0",
+                        authorizer_name="mycoolauthorizer",
+                        type="request",
+                        lambda_name=ANY,
+                        use_simple_response=True,
+                        identity_sources=[
+                            "$request.header.header1",
+                            "$request.header.header2",
+                            "$request.querystring.query1",
+                            "$request.querystring.query2",
+                            "$context.context1",
+                            "$context.context2",
+                            "$stageVariables.stage1",
+                            "$stageVariables.stage2",
+                        ],
+                    )
+                },
+                Route.HTTP,
+            ),
+        ]
+    )
+    @patch("samcli.commands.local.lib.swagger.integration_uri.LambdaUri.get_function_name")
+    def test_extract_lambda_authorizers_from_properties(
+        self, properties, expected_authorizers, event_type, function_name_mock
+    ):
+        logical_id = Mock()
+
+        function_name_mock.return_value = Mock()
+
+        collector_mock = Mock()
+        collector_mock.add_authorizers = Mock()
+
+        SamApiProvider._extract_authorizers_from_props(logical_id, properties, collector_mock, event_type)
+
+        collector_mock.add_authorizers.assert_called_with(logical_id, expected_authorizers)
+
+    @parameterized.expand(
+        [
+            (  # missing function arn
+                {
+                    "Authorizers": {
+                        "mycoolauthorizer": {
+                            "FunctionPayloadType": "TOKEN",
+                            "Identity": {
+                                "Header": "myheader",
+                            },
+                        }
+                    }
+                },
+            ),
+            (  # invalid (blank) function arn
+                {
+                    "Authorizers": {
+                        "mycoolauthorizer": {
+                            "FunctionPayloadType": "TOKEN",
+                            "Identity": {
+                                "Header": "myheader",
+                            },
+                            "FunctionArn": "",
+                        }
+                    }
+                },
+            ),
+            (  # not a token or request authorizer
+                {
+                    "Authorizers": {
+                        "mycoolauthorizer": {
+                            "FunctionPayloadType": "TOKEN",
+                            "Identity": {
+                                "Header": "myheader",
+                            },
+                            "FunctionArn": "function",
+                            "FunctionPayloadType": "hello world",
+                        }
+                    }
+                },
+            ),
+        ]
+    )
+    @patch("samcli.commands.local.lib.swagger.integration_uri.LambdaUri.get_function_name")
+    def test_extract_invalid_authorizers_from_properties(self, properties, function_name_mock):
+        logical_id = Mock()
+
+        function_name_mock.return_value = Mock()
+
+        collector_mock = Mock()
+        collector_mock.add_authorizers = Mock()
+
+        SamApiProvider._extract_authorizers_from_props(logical_id, properties, collector_mock, Route.API)
+
+        collector_mock.add_authorizers.assert_called_with(logical_id, {})
+
+    @parameterized.expand(
+        [
+            (  # wrong payload type
+                {
+                    "FunctionPayloadType": "REQUEST",
+                    "Identity": {
+                        "Header": "myheader",
+                    },
+                    "AuthorizerPayloadFormatVersion": True,
+                },
+                "'AuthorizerPayloadFormatVersion' must be of type string for Lambda Authorizer 'auth'.",
+            ),
+            (  # missing payload format version
+                {
+                    "FunctionPayloadType": "REQUEST",
+                    "Identity": {
+                        "Header": "myheader",
+                    },
+                },
+                "Lambda Authorizer 'auth' must contain a valid 'AuthorizerPayloadFormatVersion' for HTTP APIs.",
+            ),
+            (  # invalid payload format version
+                {
+                    "FunctionPayloadType": "REQUEST",
+                    "Identity": {
+                        "Header": "myheader",
+                    },
+                    "AuthorizerPayloadFormatVersion": "invalid",
+                },
+                "Lambda Authorizer 'auth' must contain a valid 'AuthorizerPayloadFormatVersion' for HTTP APIs.",
+            ),
+            (  # simple responses using wrong format version
+                {
+                    "FunctionPayloadType": "REQUEST",
+                    "Identity": {
+                        "Header": "myheader",
+                    },
+                    "AuthorizerPayloadFormatVersion": "1.0",
+                    "EnableSimpleResponses": True,
+                },
+                "EnableSimpleResponses must be used with the 2.0 payload format version in Lambda Authorizer 'auth'.",
+            ),
+        ]
+    )
+    def test_extract_invalid_http_authorizer_throws_exception(self, properties, expected_ex):
+        with self.assertRaisesRegex(InvalidSamDocumentException, expected_ex):
+            SamApiProvider._extract_request_lambda_authorizer("auth", "lambda", Mock(), properties, Route.HTTP)
+
+    @parameterized.expand(
+        [
+            ({"Auth": {"Authorizer": "myauth"}}, "myauth", True),  # defined auth
+            ({"Auth": {"Authorizer": "NONE"}}, None, False),  # explict no authorizers
+            ({}, None, True),  # default auth
+        ]
+    )
+    def test_add_authorizer_in_serverless_function(self, authorizer_obj, expected_auth_name, use_default):
+        properties = {"Path": "path", "Method": "method", "RestApiId": "id"}
+
+        if authorizer_obj:
+            properties.update(authorizer_obj)
+
+        _, route = SamApiProvider._convert_event_route(Mock(), Mock(), properties, Route.API)
+
+        self.assertEqual(
+            route, Route(ANY, ANY, ["method"], ANY, ANY, ANY, ANY, ANY, expected_auth_name, ANY, use_default)
+        )
+
+
 def make_swagger(routes, binary_media_types=None):
     """
     Given a list of API configurations named tuples, returns a Swagger document
@@ -1845,7 +2146,7 @@ def make_swagger(routes, binary_media_types=None):
         Swagger document
 
     """
-    swagger = {"paths": {}}
+    swagger = {"paths": {}, "swagger": "2.0"}
 
     for api in routes:
         swagger["paths"].setdefault(api.path, {})

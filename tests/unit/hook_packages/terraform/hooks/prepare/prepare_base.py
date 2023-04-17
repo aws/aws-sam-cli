@@ -7,6 +7,9 @@ from samcli.hook_packages.terraform.hooks.prepare.translate import AWS_PROVIDER_
 from samcli.lib.utils.resources import (
     AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION,
     AWS_LAMBDA_LAYERVERSION,
+    AWS_APIGATEWAY_RESOURCE,
+    AWS_APIGATEWAY_RESTAPI,
+    AWS_APIGATEWAY_STAGE,
 )
 
 
@@ -33,6 +36,10 @@ class PrepareHookUnitBase(TestCase):
         self.s3_function_name_2 = "myfuncS3_2"
         self.image_function_name = "image_func"
         self.lambda_layer_name = "lambda_layer"
+
+        self.apigw_resource_name = "my_resource"
+        self.apigw_stage_name = "my_stage"
+        self.apigw_rest_api_name = "my_rest_api"
 
         self.tf_function_common_properties: dict = {
             "function_name": self.zip_function_name,
@@ -298,6 +305,21 @@ class PrepareHookUnitBase(TestCase):
             "FunctionName": self.zip_function_name_4,
         }
 
+        self.tf_apigw_resource_common_attributes: dict = {
+            "type": "aws_api_gateway_resource",
+            "provider_name": AWS_PROVIDER_NAME,
+        }
+
+        self.tf_apigw_stage_common_attributes: dict = {
+            "type": "aws_api_gateway_stage",
+            "provider_name": AWS_PROVIDER_NAME,
+        }
+
+        self.tf_apigw_rest_api_common_attributes: dict = {
+            "type": "aws_api_gateway_rest_api",
+            "provider_name": AWS_PROVIDER_NAME,
+        }
+
         self.tf_lambda_function_resource_common_attributes: dict = {
             "type": "aws_lambda_function",
             "provider_name": AWS_PROVIDER_NAME,
@@ -467,6 +489,95 @@ class PrepareHookUnitBase(TestCase):
             "name": "s3_lambda_code_2",
         }
 
+        self.tf_apigw_resource_properties: dict = {
+            "rest_api_id": "aws_api_gateway_rest_api.MyDemoAPI.id",
+            "parent_id": "aws_api_gateway_rest_api.MyDemoAPI.root_resource_id",
+            "path_part": "mydemoresource",
+        }
+
+        self.expected_cfn_apigw_resource_properties: dict = {
+            "RestApiId": "aws_api_gateway_rest_api.MyDemoAPI.id",
+            "ParentId": "aws_api_gateway_rest_api.MyDemoAPI.root_resource_id",
+            "PathPart": "mydemoresource",
+        }
+
+        self.tf_apigw_resource_resource: dict = {
+            **self.tf_apigw_resource_common_attributes,
+            "values": self.tf_apigw_resource_properties,
+            "address": f"aws_api_gateway_resource.{self.apigw_resource_name}",
+            "name": self.apigw_resource_name,
+        }
+
+        self.expected_cfn_apigw_resource: dict = {
+            "Type": AWS_APIGATEWAY_RESOURCE,
+            "Properties": self.expected_cfn_apigw_resource_properties,
+            "Metadata": {"SamResourceId": f"aws_api_gateway_resource.{self.apigw_resource_name}"},
+        }
+
+        self.tf_apigw_stage_properties: dict = {
+            "rest_api_id": "aws_api_gateway_rest_api.MyDemoAPI.id",
+            "stage_name": "test",
+            "variables": {"key1": "value1"},
+        }
+
+        self.expected_cfn_apigw_stage_properties: dict = {
+            "RestApiId": "aws_api_gateway_rest_api.MyDemoAPI.id",
+            "StageName": "test",
+            "Variables": {"key1": "value1"},
+        }
+
+        self.tf_apigw_stage_resource: dict = {
+            **self.tf_apigw_stage_common_attributes,
+            "values": self.tf_apigw_stage_properties,
+            "address": f"aws_api_gateway_stage.{self.apigw_stage_name}",
+            "name": self.apigw_stage_name,
+        }
+
+        self.expected_cfn_apigw_stage_resource: dict = {
+            "Type": AWS_APIGATEWAY_STAGE,
+            "Properties": self.expected_cfn_apigw_stage_properties,
+            "Metadata": {"SamResourceId": f"aws_api_gateway_stage.{self.apigw_stage_name}"},
+        }
+
+        self.tf_apigw_rest_api_properties: dict = {
+            "name": self.apigw_rest_api_name,
+            "body": {
+                "openapi": "3.0.1",
+                "info": {
+                    "title": "example",
+                    "version": "1.0",
+                },
+            },
+            "parameters": {"param_a": "value_a"},
+            "binary_media_types": ["utf-8"],
+        }
+
+        self.expected_cfn_apigw_rest_api_properties: dict = {
+            "Name": self.apigw_rest_api_name,
+            "Body": {
+                "openapi": "3.0.1",
+                "info": {
+                    "title": "example",
+                    "version": "1.0",
+                },
+            },
+            "Parameters": {"param_a": "value_a"},
+            "BinaryMediaTypes": ["utf-8"],
+        }
+
+        self.tf_apigw_rest_api_resource: dict = {
+            **self.tf_apigw_rest_api_common_attributes,
+            "values": self.tf_apigw_rest_api_properties,
+            "address": f"aws_api_gateway_rest_api.{self.apigw_rest_api_name}",
+            "name": self.apigw_rest_api_name,
+        }
+
+        self.expected_cfn_apigw_rest_api: dict = {
+            "Type": AWS_APIGATEWAY_RESTAPI,
+            "Properties": self.expected_cfn_apigw_rest_api_properties,
+            "Metadata": {"SamResourceId": f"aws_api_gateway_rest_api.{self.apigw_rest_api_name}"},
+        }
+
         self.tf_json_with_root_module_only: dict = {
             "planned_values": {
                 "root_module": {
@@ -474,6 +585,9 @@ class PrepareHookUnitBase(TestCase):
                         self.tf_lambda_function_resource_zip,
                         self.tf_lambda_function_resource_zip_2,
                         self.tf_image_package_type_lambda_function_resource,
+                        self.tf_apigw_resource_resource,
+                        self.tf_apigw_rest_api_resource,
+                        self.tf_apigw_stage_resource,
                     ]
                 }
             }
@@ -484,6 +598,9 @@ class PrepareHookUnitBase(TestCase):
                 f"AwsLambdaFunctionMyfunc{self.mock_logical_id_hash}": self.expected_cfn_lambda_function_resource_zip,
                 f"AwsLambdaFunctionMyfunc2{self.mock_logical_id_hash}": self.expected_cfn_lambda_function_resource_zip_2,
                 f"AwsLambdaFunctionImageFunc{self.mock_logical_id_hash}": self.expected_cfn_image_package_type_lambda_function_resource,
+                f"AwsApiGatewayResourceMyResource{self.mock_logical_id_hash}": self.expected_cfn_apigw_resource,
+                f"AwsApiGatewayRestApiMyRestApi{self.mock_logical_id_hash}": self.expected_cfn_apigw_rest_api,
+                f"AwsApiGatewayStageMyStage{self.mock_logical_id_hash}": self.expected_cfn_apigw_stage_resource,
             },
         }
 

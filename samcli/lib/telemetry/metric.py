@@ -27,6 +27,7 @@ from samcli.lib.telemetry.cicd import CICDDetector, CICDPlatform
 from samcli.lib.telemetry.event import EventTracker
 from samcli.lib.telemetry.project_metadata import get_git_remote_origin_url, get_initial_commit_hash, get_project_name
 from samcli.lib.telemetry.telemetry import Telemetry
+from samcli.lib.telemetry.user_agent import get_user_agent_string
 from samcli.lib.warnings.sam_cli_warning import TemplateWarningsChecker
 
 LOG = logging.getLogger(__name__)
@@ -437,6 +438,10 @@ class Metric:
         self._data["ci"] = bool(self._cicd_detector.platform())
         self._data["pyversion"] = platform.python_version()
         self._data["samcliVersion"] = samcli_version
+
+        user_agent = get_user_agent_string()
+        if user_agent:
+            self._data["userAgent"] = user_agent
 
     @staticmethod
     def _default_session_id() -> Optional[str]:

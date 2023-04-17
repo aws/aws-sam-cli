@@ -12,12 +12,19 @@ from samcli.hook_packages.terraform.hooks.prepare.types import (
 )
 from samcli.lib.hook.exceptions import PrepareHookException
 from samcli.lib.utils.packagetype import IMAGE, ZIP
+from samcli.lib.utils.resources import AWS_APIGATEWAY_RESOURCE as CFN_AWS_APIGATEWAY_RESOURCE
+from samcli.lib.utils.resources import AWS_APIGATEWAY_RESTAPI as CFN_AWS_APIGATEWAY_RESTAPI
+from samcli.lib.utils.resources import AWS_APIGATEWAY_STAGE as CFN_AWS_APIGATEWAY_STAGE
 from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION
 from samcli.lib.utils.resources import AWS_LAMBDA_LAYERVERSION as CFN_AWS_LAMBDA_LAYER_VERSION
 
 REMOTE_DUMMY_VALUE = "<<REMOTE DUMMY VALUE - RAISE ERROR IF IT IS STILL THERE>>"
 TF_AWS_LAMBDA_FUNCTION = "aws_lambda_function"
 TF_AWS_LAMBDA_LAYER_VERSION = "aws_lambda_layer_version"
+
+TF_AWS_API_GATEWAY_RESOURCE = "aws_api_gateway_resource"
+TF_AWS_API_GATEWAY_REST_API = "aws_api_gateway_rest_api"
+TF_AWS_API_GATEWAY_STAGE = "aws_api_gateway_stage"
 
 
 def _build_code_property(tf_properties: dict, resource: TFResource) -> Any:
@@ -215,9 +222,37 @@ AWS_LAMBDA_LAYER_VERSION_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
     "Content": _build_code_property,
 }
 
+AWS_API_GATEWAY_REST_API_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
+    "Name": _get_property_extractor("name"),
+    "Body": _get_property_extractor("body"),
+    "Parameters": _get_property_extractor("parameters"),
+    "BinaryMediaTypes": _get_property_extractor("binary_media_types"),
+}
+
+AWS_API_GATEWAY_STAGE_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
+    "RestApiId": _get_property_extractor("rest_api_id"),
+    "StageName": _get_property_extractor("stage_name"),
+    "Variables": _get_property_extractor("variables"),
+}
+
+AWS_API_GATEWAY_RESOURCE_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
+    "RestApiId": _get_property_extractor("rest_api_id"),
+    "ParentId": _get_property_extractor("parent_id"),
+    "PathPart": _get_property_extractor("path_part"),
+}
+
 RESOURCE_TRANSLATOR_MAPPING: Dict[str, ResourceTranslator] = {
     TF_AWS_LAMBDA_FUNCTION: ResourceTranslator(CFN_AWS_LAMBDA_FUNCTION, AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING),
     TF_AWS_LAMBDA_LAYER_VERSION: ResourceTranslator(
         CFN_AWS_LAMBDA_LAYER_VERSION, AWS_LAMBDA_LAYER_VERSION_PROPERTY_BUILDER_MAPPING
+    ),
+    TF_AWS_API_GATEWAY_REST_API: ResourceTranslator(
+        CFN_AWS_APIGATEWAY_RESTAPI, AWS_API_GATEWAY_REST_API_PROPERTY_BUILDER_MAPPING
+    ),
+    TF_AWS_API_GATEWAY_STAGE: ResourceTranslator(
+        CFN_AWS_APIGATEWAY_STAGE, AWS_API_GATEWAY_STAGE_PROPERTY_BUILDER_MAPPING
+    ),
+    TF_AWS_API_GATEWAY_RESOURCE: ResourceTranslator(
+        CFN_AWS_APIGATEWAY_RESOURCE, AWS_API_GATEWAY_RESOURCE_PROPERTY_BUILDER_MAPPING
     ),
 }

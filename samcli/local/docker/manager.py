@@ -142,7 +142,12 @@ class ContainerManager:
             If the Docker image was not available in the server
         """
         if tag is None:
-            tag = image_name.split(":")[1] if ":" in image_name else "latest"
+            _image_name_split = image_name.split(":")
+            # Separate the image_name from the tag so less forgiving docker clones
+            # (podman) get the image name as the URL they expect. Official docker seems
+            # to clean this up internally.
+            tag = _image_name_split[1] if len(_image_name_split) > 1 else "latest"
+            image_name = _image_name_split[0]
         # use a global lock to get the image lock
         with self._lock:
             image_lock = self._lock_per_image.get(image_name)
@@ -162,7 +167,7 @@ class ContainerManager:
                 raise DockerImagePullFailedException(str(ex)) from ex
 
             # io streams, especially StringIO, work only with unicode strings
-            stream_writer.write("\nFetching {} Docker container image...".format(image_name))
+            stream_writer.write("\nFetching {}:{} Docker container image...".format(image_name, tag))
 
             # Each line contains information on progress of the pull. Each line is a JSON string
             for _ in result_itr:
