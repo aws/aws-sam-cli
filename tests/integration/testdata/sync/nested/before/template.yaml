@@ -33,4 +33,3 @@ Resources:
       Location: child_stack/template.yaml
       Parameters:
         ParentLayer: !Ref HelloWorldLayer
-        RootStackName: !Ref "AWS::StackName"

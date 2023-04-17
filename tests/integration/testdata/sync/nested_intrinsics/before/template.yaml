@@ -10,5 +10,3 @@ Resources:
     Type: AWS::Serverless::Application
     Properties:
       Location: child_stack/template.yaml
-      Parameters:
-        RootStackName: !Ref "AWS::StackName"
