@@ -10,5 +10,3 @@ Resources:
     Type: AWS::Serverless::Application
     Properties:
       Location: ./template-python.yaml
-      Parameters:
-        RootStackName: !Ref "AWS::StackName"
