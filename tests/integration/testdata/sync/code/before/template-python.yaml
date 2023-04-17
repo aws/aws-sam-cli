@@ -5,6 +5,12 @@ Globals:
   Function:
     Timeout: 10
 
+Parameters:
+  RootStackName:
+    Description: Used to generate unique LayerName
+    Type: String
+    Default: !Ref "AWS::StackName"
+
 Resources:
   HelloWorldFunction:
     Type: AWS::Serverless::Function
@@ -31,7 +37,7 @@ Resources:
   HelloWorldLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      LayerName: !Sub 'HelloWorldLayer-${AWS::StackName}'
+      LayerName: !Sub 'HelloWorldLayer-${RootStackName}'
       Description: Hello World Layer
       ContentUri: layer/
       CompatibleRuntimes:
