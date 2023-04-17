@@ -9,6 +9,9 @@ Parameters:
   ParentLayer:
     Description: The name of the layer
     Type: String
+  RootStackName:
+    Description: Used to generate unique LayerName
+    Type: String
 
 
 Resources:
@@ -29,7 +32,7 @@ Resources:
   HelloWorldLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      LayerName: !Sub 'HelloWorldLayer-${AWS::StackName}'
+      LayerName: !Sub 'HelloWorldLayer-ChildStack-${RootStackName}'
       Description: Hello World Layer
       # Currently if a base_dir option is provided, the nested stack code URIs
       # Needs to be relative to the base_dir instead of the child templates

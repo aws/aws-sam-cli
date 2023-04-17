@@ -1,11 +1,16 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 
+Parameters:
+  RootStackName:
+    Description: Used to generate unique LayerName
+    Type: String
+
 Resources:
   HelloWorldLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      LayerName: !Sub 'HelloWorldLayer-${AWS::StackName}'
+      LayerName: !Sub 'HelloWorldLayer-ChildLayer-${RootStackName}'
       Description: Hello World Layer
       ContentUri: layer/
       CompatibleRuntimes:
