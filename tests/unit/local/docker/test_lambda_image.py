@@ -30,6 +30,7 @@ class TestRuntime(TestCase):
             ("java8", "java:8"),
             ("java8.al2", "java:8.al2-x86_64"),
             ("java11", "java:11-x86_64"),
+            ("java17", "java:17-x86_64"),
             ("go1.x", "go:1"),
             ("dotnet6", "dotnet:6-x86_64"),
             ("dotnetcore3.1", "dotnet:core3.1-x86_64"),

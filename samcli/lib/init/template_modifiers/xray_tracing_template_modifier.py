@@ -14,7 +14,6 @@ LOG = logging.getLogger(__name__)
 
 
 class XRayTracingTemplateModifier(TemplateModifier):
-
     FIELD_NAME_FUNCTION_TRACING = "Tracing"
     FIELD_NAME_API_TRACING = "TracingEnabled"
     GLOBALS = "Globals"
