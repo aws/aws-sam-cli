@@ -108,13 +108,13 @@ class ApiCollector:
                     continue
 
                 if not authorizer_object and authorizer_name_lookup:
-                    route.authorizer_name = None
-
                     LOG.info(
                         "Linking authorizer skipped for route '%s', authorizer '%s' is unsupported or not found",
                         route.path,
                         route.authorizer_name,
                     )
+                    
+                    route.authorizer_name = None
 
     def add_routes(self, logical_id: str, routes: List[Route]) -> None:
         """
