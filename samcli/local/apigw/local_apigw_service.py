@@ -687,7 +687,15 @@ class LocalApigwService(BaseLocalService):
                 "this Function exists locally if it is not a remote resource."
             )
         except Exception as ex:
-            lambda_authorizer_exception = ex
+            EventTracker.track_event(
+                event_name=EventName.USED_FEATURE.value,
+                event_value=UsedFeature.INVOKED_CUSTOM_LAMBDA_AUTHORIZERS.value,
+                session_id=self._click_session_id,
+                exception_name=ex.__name__,
+            )
+
+            # re-raise the catch all exception after we track it in our telemetry
+            raise ex
         finally:
             exception_name = type(lambda_authorizer_exception).__name__ if lambda_authorizer_exception else None
 

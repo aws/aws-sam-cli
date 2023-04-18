@@ -113,7 +113,7 @@ class ApiCollector:
                         route.path,
                         route.authorizer_name,
                     )
-                    
+
                     route.authorizer_name = None
 
     def add_routes(self, logical_id: str, routes: List[Route]) -> None:
