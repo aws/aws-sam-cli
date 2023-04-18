@@ -4,4 +4,4 @@ But deployment of them would probably fail until their GA date
 """
 from typing import Set
 
-PREVIEW_RUNTIMES: Set[str] = { "java17" }
+PREVIEW_RUNTIMES: Set[str] = {"java17"}
