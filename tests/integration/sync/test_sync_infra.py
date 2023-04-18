@@ -6,6 +6,7 @@ import shutil
 import tempfile
 import uuid
 from pathlib import Path
+from typing import Dict
 from unittest import skipIf
 
 import pytest
@@ -35,7 +36,7 @@ LOG = logging.getLogger(__name__)
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
 @parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
 class TestSyncInfra(SyncIntegBase):
-    parameter_overrides = {}
+    parameter_overrides: Dict[str, str] = {}
 
     def setUp(self):
         super().setUp()
@@ -44,9 +45,7 @@ class TestSyncInfra(SyncIntegBase):
         self.test_data_path = Path(tempfile.mkdtemp())
         shutil.copytree(original_test_data_path, self.test_data_path, dirs_exist_ok=True)
 
-        self.parameter_overrides = {
-            "HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
-        }
+        self.parameter_overrides = {"HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]}
 
     def _verify_infra_changes(self, resources):
         # Lambda
@@ -496,13 +495,12 @@ class TestSyncInfraCDKTemplates(SyncIntegBase):
 class TestSyncInfraWithJava(SyncIntegBase):
     ecr_repo_name = None
     kms_key = None
+    parameter_overrides: Dict[str, str] = {}
 
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
-        cls.parameter_overrides = {
-            "HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
-        }
+        cls.parameter_overrides = {"HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]}
 
     @parameterized.expand(["infra/template-java.yaml"])
     def test_sync_infra_with_java(self, template_file):

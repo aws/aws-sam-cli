@@ -7,6 +7,7 @@ import uuid
 import logging
 import json
 from pathlib import Path
+from typing import Dict
 from unittest import skipIf
 
 import pytest
@@ -53,7 +54,7 @@ LOG.addHandler(handler)
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
 class TestSyncWatchBase(SyncIntegBase):
     template_before = ""
-    parameter_overrides = {}
+    parameter_overrides: Dict[str, str] = {}
 
     def setUp(self):
         self.s3_prefix = uuid.uuid4().hex
@@ -172,9 +173,7 @@ class TestSyncWatchInfra(TestSyncWatchBase):
     @classmethod
     def setUpClass(cls):
         cls.template_before = f"infra/template-{cls.runtime}-before.yaml"
-        cls.parameter_overrides = {
-            "HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
-        }
+        cls.parameter_overrides = {"HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]}
         super(TestSyncWatchInfra, cls).setUpClass()
 
     def test_sync_watch_infra(self):
@@ -196,9 +195,7 @@ class TestSyncWatchCode(TestSyncWatchBase):
 
     @classmethod
     def setUpClass(cls):
-        cls.parameter_overrides = {
-            "HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
-        }
+        cls.parameter_overrides = {"HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]}
         super().setUpClass()
 
     def test_sync_watch_code(self):
@@ -279,9 +276,7 @@ class TestSyncInfraNestedStacks(TestSyncWatchBase):
 
     @classmethod
     def setUpClass(cls):
-        cls.parameter_overrides = {
-            "HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
-        }
+        cls.parameter_overrides = {"HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]}
         super().setUpClass()
 
     def test_sync_watch_infra_nested_stack(self):
@@ -303,9 +298,7 @@ class TestSyncCodeWatchNestedStacks(TestSyncWatchBase):
 
     @classmethod
     def setUpClass(cls):
-        cls.parameter_overrides = {
-            "HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
-        }
+        cls.parameter_overrides = {"HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]}
         super().setUpClass()
 
     def test_sync_watch_code_nested_stack(self):
@@ -435,9 +428,7 @@ class TestSyncWatchInfraUseContainer(TestSyncWatchUseContainer):
 
     @classmethod
     def setUpClass(cls):
-        cls.parameter_overrides = {
-            "HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
-        }
+        cls.parameter_overrides = {"HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]}
         super().setUpClass()
 
     def test_sync_watch_infra(self):
@@ -458,9 +449,7 @@ class TestSyncWatchCodeUseContainer(TestSyncWatchUseContainer):
 
     @classmethod
     def setUpClass(cls):
-        cls.parameter_overrides = {
-            "HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
-        }
+        cls.parameter_overrides = {"HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]}
         super().setUpClass()
 
     def test_sync_watch_code(self):
@@ -490,9 +479,7 @@ class TestSyncWatchCodeOnly(TestSyncWatchBase):
 
     @classmethod
     def setUpClass(cls):
-        cls.parameter_overrides = {
-            "HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
-        }
+        cls.parameter_overrides = {"HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]}
         super().setUpClass()
 
     def run_initial_infra_validation(self) -> None:
@@ -591,12 +578,9 @@ class TestSyncWatchCodeOnly(TestSyncWatchBase):
     [{"runtime": "python", "dependency_layer": True}, {"runtime": "python", "dependency_layer": False}]
 )
 class TestSyncWatchAutoSkipInfra(SyncIntegBase):
-
     @classmethod
     def setUpClass(cls):
-        cls.parameter_overrides = {
-            "HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
-        }
+        cls.parameter_overrides = {"HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]}
         super().setUpClass()
 
     def setUp(self):

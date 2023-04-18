@@ -8,6 +8,7 @@ import tempfile
 import time
 import uuid
 from pathlib import Path
+from typing import Dict
 from unittest import skipIf
 
 import pytest
@@ -41,7 +42,7 @@ class TestSyncCodeBase(SyncIntegBase):
     template_path = ""
     template = ""
     folder = ""
-    parameter_overrides = {}
+    parameter_overrides: Dict[str, str] = {}
 
     @pytest.fixture(scope="class")
     def execute_infra_sync(self):
@@ -98,7 +99,7 @@ class TestSyncCode(TestSyncCodeBase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
-        cls.parameter_overrides["HelloWorldLayerName"] =  f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
+        cls.parameter_overrides["HelloWorldLayerName"] = f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
 
     def test_sync_code_function(self):
         shutil.rmtree(self.test_data_path.joinpath(self.folder, "before", "function"))
@@ -377,7 +378,7 @@ class TestSyncCodeNested(TestSyncCodeBase):
         super().setUpClass()
         cls.parameter_overrides = {
             "HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140],
-            "ChildStackHelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
+            "ChildStackHelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140],
         }
 
     def test_sync_code_nested_function(self):
@@ -654,9 +655,8 @@ class TestSyncLayerCode(TestSyncCodeBase):
         cls.parameter_overrides = {
             "HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140],
             "HelloWorldLayerWithoutBuildMethodName": f"HelloWorldLayerWithoutBuildMethod-{uuid.uuid4().hex}"[:140],
-            "HelloWorldPreBuiltZipLayerName": f"HelloWorldPreBuiltZipLayer-{uuid.uuid4().hex}"[:140]
+            "HelloWorldPreBuiltZipLayerName": f"HelloWorldPreBuiltZipLayer-{uuid.uuid4().hex}"[:140],
         }
-
 
     @parameterized.expand(
         [
