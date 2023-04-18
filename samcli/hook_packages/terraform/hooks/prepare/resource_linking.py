@@ -4,6 +4,8 @@ e.g. linking layers to functions
 """
 import logging
 import re
+from dataclasses import dataclass
+from enum import Enum
 from typing import Dict, List, Optional, Union
 
 from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
@@ -27,6 +29,72 @@ DATA_RESOURCE_ADDRESS_PREFIX = "data."
 
 LOG = logging.getLogger(__name__)
 COMPILED_REGULAR_EXPRESSION = re.compile(r"\[[^\[\]]*\]")
+
+
+class LinkerIntrinsics(Enum):
+    Ref = "Ref"
+    GetAtt = "GetAtt"
+
+
+@dataclass
+class ResourceLinkingPair:
+    source_resource_cfn_resource: Dict[str, List]
+    source_resource_tf_config: Dict[str, TFResource]
+    destination_resource_tf: Dict[str, Dict]
+    intrinsic_type: LinkerIntrinsics
+    cfn_intrinsic_attribute: Optional[str]
+    source_link_field_name: str
+    terraform_resource_type_prefix: str
+
+
+class ResourceLinker:
+    _resource_pairs: List[ResourceLinkingPair]
+
+    def link_resources(self):
+        """
+        Iterate through all of the ResourceLinkingPair items and link the
+        corresponding source resource to destination resource
+        """
+
+    def _update_mapped_parent_resource_with_resolved_child_resources(self, destination_resources: List):
+        """
+        Set the resolved destination resource list to the mapped source resources.
+
+        Parameters
+        ----------
+        destination_resources: List
+            The resolved destination resource values that will be used as a value for the mapped CFN resource attribute.
+        """
+
+    def _process_reference_resource_value(self, resolved_destination_resource: ResolvedReference):
+        """
+        Process the a reference destination resource value of type ResolvedReference.
+
+        Parameters
+        ----------
+        resolved_destination_resource: ResolvedReference
+            The resolved destination resource reference.
+
+        Returns
+        -------
+        List[Dict[str, str]]
+            The resolved values that will be used as a value for the mapped CFN resource attribute.
+        """
+
+    def _process_resolved_resources(self, resolved_destination_resource: List[Union[ConstantValue, ResolvedReference]]):
+        """
+        Process the resolved destination resources.
+
+        Parameters
+        ----------
+        resolved_destination_resource: List[Union[ConstantValue, ResolvedReference]]
+            The resolved destination resources to be processed for the input source resource.
+
+        Returns
+        --------
+        List[Dict[str, str]]:
+            The list of destination resources after processing
+        """
 
 
 def _build_module(
