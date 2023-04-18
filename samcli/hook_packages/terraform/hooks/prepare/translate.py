@@ -3,9 +3,10 @@ Terraform translate to CFN implementation
 
 This method contains the logic required to translate the `terraform show` JSON output into a Cloudformation template
 """
+# ruff: noqa: PLR0915
 import hashlib
 import logging
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple, Type, Union
 
 from samcli.hook_packages.terraform.hooks.prepare.constants import (
     CFN_CODE_PROPERTIES,
@@ -15,6 +16,7 @@ from samcli.hook_packages.terraform.hooks.prepare.enrich import enrich_resources
 from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     REMOTE_DUMMY_VALUE,
     RESOURCE_TRANSLATOR_MAPPING,
+    TF_AWS_API_GATEWAY_REST_API,
     TF_AWS_LAMBDA_FUNCTION,
     TF_AWS_LAMBDA_LAYER_VERSION,
     PropertyBuilderMapping,
@@ -25,10 +27,12 @@ from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     _link_lambda_function_to_layer,
     _resolve_resource_attribute,
 )
+from samcli.hook_packages.terraform.hooks.prepare.resources.apigw import RESTAPITranslationValidator
 from samcli.hook_packages.terraform.hooks.prepare.types import (
     ConstantValue,
     References,
     ResolvedReference,
+    ResourceTranslationValidator,
     SamMetadataResource,
     TFModule,
     TFResource,
@@ -49,6 +53,10 @@ AWS_PROVIDER_NAME = "registry.terraform.io/hashicorp/aws"
 NULL_RESOURCE_PROVIDER_NAME = "registry.terraform.io/hashicorp/null"
 
 LOG = logging.getLogger(__name__)
+
+TRANSLATION_VALIDATORS: Dict[str, Type[ResourceTranslationValidator]] = {
+    TF_AWS_API_GATEWAY_REST_API: RESTAPITranslationValidator,
+}
 
 
 def translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_application_dir: str) -> dict:
@@ -176,11 +184,15 @@ def translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_applic
             translated_properties = _translate_properties(
                 resource_values, resource_translator.property_builder_mapping, config_resource
             )
-            translated_resource = {
+            translated_resource: Dict = {
                 "Type": resource_translator.cfn_name,
                 "Properties": translated_properties,
-                "Metadata": {"SamResourceId": resource_full_address, "SkipBuild": True},
+                "Metadata": {"SamResourceId": resource_full_address},
             }
+
+            # Only set the SkipBuild metadata if it's a resource that can be built
+            if resource_translator.cfn_name in CFN_CODE_PROPERTIES:
+                translated_resource["Metadata"]["SkipBuild"] = True
 
             # build CFN logical ID from resource address
             logical_id = build_cfn_logical_id(resource_full_address)
@@ -226,6 +238,10 @@ def translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_applic
                     tf_code_property,
                     translated_resource,
                 )
+
+            if resource_type in TRANSLATION_VALIDATORS:
+                validator = TRANSLATION_VALIDATORS[resource_type](resource=resource, config_resource=config_resource)
+                validator.validate()
 
     # map s3 object sources to corresponding functions
     LOG.debug("Mapping S3 object sources to corresponding functions")

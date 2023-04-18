@@ -6,6 +6,10 @@ from tests.unit.hook_packages.terraform.hooks.prepare.prepare_base import Prepar
 from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING,
     REMOTE_DUMMY_VALUE,
+    AWS_API_GATEWAY_RESOURCE_PROPERTY_BUILDER_MAPPING,
+    AWS_API_GATEWAY_REST_API_PROPERTY_BUILDER_MAPPING,
+    AWS_API_GATEWAY_STAGE_PROPERTY_BUILDER_MAPPING,
+    TF_AWS_API_GATEWAY_REST_API,
 )
 from samcli.hook_packages.terraform.hooks.prepare.types import (
     SamMetadataResource,
@@ -87,9 +91,16 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         config_resource = Mock()
         resources_mock.__getitem__.return_value = config_resource
         resources_mock.__contains__.return_value = True
+        mock_validator = Mock()
         mock_build_module.return_value = root_module
         checksum_mock.return_value = self.mock_logical_id_hash
-        translated_cfn_dict = translate_to_cfn(self.tf_json_with_root_module_only, self.output_dir, self.project_root)
+        with patch(
+            "samcli.hook_packages.terraform.hooks.prepare.translate.TRANSLATION_VALIDATORS",
+            {TF_AWS_API_GATEWAY_REST_API: mock_validator},
+        ):
+            translated_cfn_dict = translate_to_cfn(
+                self.tf_json_with_root_module_only, self.output_dir, self.project_root
+            )
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_root_module_only)
         mock_enrich_resources_and_generate_makefile.assert_not_called()
         lambda_functions = dict(
@@ -105,6 +116,10 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         ]
         mock_link_lambda_functions_to_layers.assert_called_once_with(*expected_arguments_in_call)
         mock_get_configuration_address.assert_called()
+        mock_validator.assert_called_once_with(
+            resource=self.tf_apigw_rest_api_resource, config_resource=config_resource
+        )
+        mock_validator.return_value.validate.assert_called_once()
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._resolve_resource_attribute")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._check_dummy_remote_values")
@@ -1035,3 +1050,21 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         self.assertNotEqual(
             _get_s3_object_hash(self.s3_bucket, self.s3_key), _get_s3_object_hash(self.s3_bucket, self.s3_key_2)
         )
+
+    def test_translating_apigw_resource(self):
+        translated_cfn_properties = _translate_properties(
+            self.tf_apigw_resource_properties, AWS_API_GATEWAY_RESOURCE_PROPERTY_BUILDER_MAPPING, Mock()
+        )
+        self.assertEqual(translated_cfn_properties, self.expected_cfn_apigw_resource_properties)
+
+    def test_translating_apigw_stage_resource(self):
+        translated_cfn_properties = _translate_properties(
+            self.tf_apigw_stage_properties, AWS_API_GATEWAY_STAGE_PROPERTY_BUILDER_MAPPING, Mock()
+        )
+        self.assertEqual(translated_cfn_properties, self.expected_cfn_apigw_stage_properties)
+
+    def test_translating_apigw_rest_api(self):
+        translated_cfn_properties = _translate_properties(
+            self.tf_apigw_rest_api_properties, AWS_API_GATEWAY_REST_API_PROPERTY_BUILDER_MAPPING, Mock()
+        )
+        self.assertEqual(translated_cfn_properties, self.expected_cfn_apigw_rest_api_properties)

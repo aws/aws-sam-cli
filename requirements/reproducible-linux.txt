@@ -15,13 +15,13 @@ attrs==22.2.0 \
     #   jschema-to-python
     #   jsonschema
     #   sarif-om
-aws-lambda-builders==1.28.0 \
-    --hash=sha256:6ea2fb607057436f03e2a8a857b5c5cbd18f7b2b907c53c2b461e65f843a4f38 \
-    --hash=sha256:bd6566772e7c5d887d05f32cf7e61a57293658388eef4fe8301f65bef432fe39
+aws-lambda-builders==1.30.0 \
+    --hash=sha256:861d3e6099590562fcb9f6fc5d014a26f5b5fc8aebb1d18529cd4179514f2a48 \
+    --hash=sha256:ab22ffe47995bbbaff531af453746f3365fe01947c1ea8d98a7ae3ab52b46426
     # via aws-sam-cli (setup.py)
-aws-sam-translator==1.63.0 \
-    --hash=sha256:723683828d38e8769e4db0b0566ce56e923570b2cfdb88b965ce796a4554200f \
-    --hash=sha256:bf3cca23b0e08e483956649302e53ae15e2021ef74a8fa1f9ecb2c53d8ce324c
+aws-sam-translator==1.64.0 \
+    --hash=sha256:0cc5b07dd6ef1de3525d887a3b9557168e04cb44327706a43661653bad30687f \
+    --hash=sha256:c44725f12b05d4881e3bc077f70e23ebce56ea78c729acf0ca9f51302b27d304
     # via
     #   aws-sam-cli (setup.py)
     #   cfn-lint
@@ -54,9 +54,9 @@ boto3==1.26.99 \
     #   aws-sam-cli (setup.py)
     #   aws-sam-translator
     #   serverlessrepo
-botocore==1.29.99 \
-    --hash=sha256:15c205e4578253da1e8cc247b9d4755042f5f873f68ac6e5fed48f4bd6f008c6 \
-    --hash=sha256:d1770b4fe5531870af7a81e9897b2092d2f89e4ba8cb7abbbaf3ab952f6b8a6f
+botocore==1.29.109 \
+    --hash=sha256:2e449525f0ccedb31fdb962a77caac48b4c486c23515b84c5989a39a1823a024 \
+    --hash=sha256:cf43dddb7e2ba5425fe19fad68b10043307b61d9103d06566f1ab6034e38b8db
     # via
     #   boto3
     #   s3transfer

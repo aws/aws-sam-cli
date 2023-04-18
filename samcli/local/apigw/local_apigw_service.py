@@ -1,23 +1,36 @@
 """API Gateway Local Service"""
+
 import base64
-import io
 import json
 import logging
 from datetime import datetime
+from io import BytesIO
 from time import time
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
-from flask import Flask, request
+from flask import Flask, Request, request
 from werkzeug.datastructures import Headers
 from werkzeug.routing import BaseConverter
 from werkzeug.serving import WSGIRequestHandler
 
 from samcli.commands.local.lib.exceptions import UnsupportedInlineCodeError
-from samcli.lib.providers.provider import Cors
+from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
+from samcli.lib.providers.provider import Api, Cors
+from samcli.lib.telemetry.event import EventName, EventTracker, UsedFeature
 from samcli.lib.utils.stream_writer import StreamWriter
+from samcli.local.apigw.authorizers.lambda_authorizer import LambdaAuthorizer
+from samcli.local.apigw.event_constructor import construct_v1_event, construct_v2_event_http
+from samcli.local.apigw.exceptions import (
+    AuthorizerUnauthorizedRequest,
+    InvalidLambdaAuthorizerResponse,
+    InvalidSecurityDefinition,
+    LambdaResponseParseException,
+    PayloadFormatVersionValidateException,
+)
+from samcli.local.apigw.path_converter import PathConverter
+from samcli.local.apigw.route import Route
+from samcli.local.apigw.service_error_responses import ServiceErrorResponses
 from samcli.local.events.api_event import (
-    ApiGatewayLambdaEvent,
-    ApiGatewayV2LambdaEvent,
     ContextHTTP,
     ContextIdentity,
     RequestContext,
@@ -26,89 +39,7 @@ from samcli.local.events.api_event import (
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.local.services.base_local_service import BaseLocalService, LambdaOutputParser
 
-from .path_converter import PathConverter
-from .service_error_responses import ServiceErrorResponses
-
 LOG = logging.getLogger(__name__)
-
-
-class LambdaResponseParseException(Exception):
-    """
-    An exception raised when we fail to parse the response for Lambda
-    """
-
-
-class PayloadFormatVersionValidateException(Exception):
-    """
-    An exception raised when validation of payload format version fails
-    """
-
-
-class Route:
-    API = "Api"
-    HTTP = "HttpApi"
-    ANY_HTTP_METHODS = ["GET", "DELETE", "PUT", "POST", "HEAD", "OPTIONS", "PATCH"]
-
-    def __init__(
-        self,
-        function_name: Optional[str],
-        path: str,
-        methods: List[str],
-        event_type: str = API,
-        payload_format_version: Optional[str] = None,
-        is_default_route: bool = False,
-        operation_name=None,
-        stack_path: str = "",
-    ):
-        """
-        Creates an ApiGatewayRoute
-
-        :param list(str) methods: http method
-        :param function_name: Name of the Lambda function this API is connected to
-        :param str path: Path off the base url
-        :param str event_type: Type of the event. "Api" or "HttpApi"
-        :param str payload_format_version: version of payload format
-        :param bool is_default_route: determines if the default route or not
-        :param string operation_name: Swagger operationId for the route
-        :param str stack_path: path of the stack the route is located
-        """
-        self.methods = self.normalize_method(methods)
-        self.function_name = function_name
-        self.path = path
-        self.event_type = event_type
-        self.payload_format_version = payload_format_version
-        self.is_default_route = is_default_route
-        self.operation_name = operation_name
-        self.stack_path = stack_path
-
-    def __eq__(self, other):
-        return (
-            isinstance(other, Route)
-            and sorted(self.methods) == sorted(other.methods)
-            and self.function_name == other.function_name
-            and self.path == other.path
-            and self.operation_name == other.operation_name
-            and self.stack_path == other.stack_path
-        )
-
-    def __hash__(self):
-        route_hash = hash(f"{self.stack_path}-{self.function_name}-{self.path}")
-        for method in sorted(self.methods):
-            route_hash *= hash(method)
-        return route_hash
-
-    def normalize_method(self, methods):
-        """
-        Normalizes Http Methods. Api Gateway allows a Http Methods of ANY. This is a special verb to denote all
-        supported Http Methods on Api Gateway.
-
-        :param list methods: Http methods
-        :return list: Either the input http_method or one of the _ANY_HTTP_METHODS (normalized Http Methods)
-        """
-        methods = [method.upper() for method in methods]
-        if "ANY" in methods:
-            return self.ANY_HTTP_METHODS
-        return methods
 
 
 class CatchAllPathConverter(BaseConverter):
@@ -127,7 +58,15 @@ class LocalApigwService(BaseLocalService):
     _DEFAULT_PORT = 3000
     _DEFAULT_HOST = "127.0.0.1"
 
-    def __init__(self, api, lambda_runner, static_dir=None, port=None, host=None, stderr=None):
+    def __init__(
+        self,
+        api: Api,
+        lambda_runner: LocalLambdaRunner,
+        static_dir: Optional[str] = None,
+        port: Optional[int] = None,
+        host: Optional[str] = None,
+        stderr: Optional[StreamWriter] = None,
+    ):
         """
         Creates an ApiGatewayService
 
@@ -152,8 +91,21 @@ class LocalApigwService(BaseLocalService):
         self.api = api
         self.lambda_runner = lambda_runner
         self.static_dir = static_dir
-        self._dict_of_routes = {}
+        self._dict_of_routes: Dict[str, Route] = {}
         self.stderr = stderr
+
+        self._click_session_id = None
+
+        try:
+            # save the session ID for telemetry event sending
+            from samcli.cli.context import Context
+
+            ctx = Context.get_current_context()
+
+            if ctx:
+                self._click_session_id = ctx.session_id
+        except RuntimeError:
+            LOG.debug("Not able to get click context in APIGW service")
 
     def create(self):
         """
@@ -209,7 +161,7 @@ class LocalApigwService(BaseLocalService):
 
         self._construct_error_handling()
 
-    def _add_catch_all_path(self, methods, path, route):
+    def _add_catch_all_path(self, methods: List[str], path: str, route: Route):
         """
         Add the catch all route to the _app and the dictionary of routes.
 
@@ -234,6 +186,9 @@ class LocalApigwService(BaseLocalService):
                 payload_format_version=route.payload_format_version,
                 is_default_route=True,
                 stack_path=route.stack_path,
+                authorizer_name=route.authorizer_name,
+                authorizer_object=route.authorizer_object,
+                use_default_authorizer=route.use_default_authorizer,
             )
 
     def _generate_route_keys(self, methods, path):
@@ -277,6 +232,386 @@ class LocalApigwService(BaseLocalService):
         # Something went wrong
         self._app.register_error_handler(500, ServiceErrorResponses.lambda_failure_response)
 
+    def _create_method_arn(self, flask_request: Request, event_type: str) -> str:
+        """
+        Creates a method ARN with fake AWS values
+
+        Parameters
+        ----------
+        flask_request: Request
+            Flask request object to get method and endpoint
+        event_type: str
+            Type of event (API or HTTP)
+
+        Returns
+        -------
+        str
+            A built method ARN with fake values
+        """
+        context = RequestContext() if event_type == Route.API else RequestContextV2()
+        method, endpoint = self.get_request_methods_endpoints(flask_request)
+
+        return (
+            f"arn:aws:execute-api:us-east-1:{context.account_id}:"  # type: ignore
+            f"{context.api_id}/{self.api.stage_name}/{method}{endpoint}"
+        )
+
+    def _generate_lambda_token_authorizer_event(
+        self, flask_request: Request, route: Route, lambda_authorizer: LambdaAuthorizer
+    ) -> dict:
+        """
+        Creates a Lambda authorizer token event
+
+        Parameters
+        ----------
+        flask_request: Request
+            Flask request object to get method and endpoint
+        route: Route
+            Route object representing the endpoint to be invoked later
+        lambda_authorizer: LambdaAuthorizer
+            The Lambda authorizer the route is using
+
+        Returns
+        -------
+        dict
+            Basic dictionary containing a type and authorizationToken
+        """
+        method_arn = self._create_method_arn(flask_request, route.event_type)
+
+        headers = {"headers": flask_request.headers}
+
+        # V1 token based authorizers should always have a single identity source
+        if len(lambda_authorizer.identity_sources) != 1:
+            raise InvalidSecurityDefinition(
+                "An invalid token based Lambda Authorizer was found, there should be one header identity source"
+            )
+
+        identity_source = lambda_authorizer.identity_sources[0]
+        authorization_token = identity_source.find_identity_value(**headers)
+
+        return {
+            "type": LambdaAuthorizer.TOKEN.upper(),
+            "authorizationToken": str(authorization_token),
+            "methodArn": method_arn,
+        }
+
+    def _generate_lambda_request_authorizer_event_http(
+        self, lambda_authorizer_payload: str, identity_values: list, method_arn: str
+    ) -> dict:
+        """
+        Helper method to generate part of the event required for different payload versions
+        for API Gateway V2
+
+        Parameters
+        ----------
+        lambda_authorizer_payload: str
+            The payload version of the Lambda authorizer
+        identity_values: list
+            A list of string identity values
+        method_arn: str
+            The method ARN for the endpoint
+
+        Returns
+        -------
+        dict
+            Dictionary containing partial Lambda authorizer event
+        """
+        if lambda_authorizer_payload == LambdaAuthorizer.PAYLOAD_V2:
+            # payload 2.0 expects a list of strings
+            return {"identitySource": identity_values, "routeArn": method_arn}
+        else:
+            # payload 1.0 expects a comma deliminated string that is the same
+            # for both identitySource and authorizationToken
+            all_identity_values_string = ",".join(identity_values)
+
+            return {
+                "identitySource": all_identity_values_string,
+                "authorizationToken": all_identity_values_string,
+                "methodArn": method_arn,
+            }
+
+    def _generate_lambda_request_authorizer_event(
+        self, flask_request: Request, route: Route, lambda_authorizer: LambdaAuthorizer
+    ) -> dict:
+        """
+        Creates a Lambda authorizer request event
+
+        Parameters
+        ----------
+        flask_request: Request
+            Flask request object to get method and endpoint
+        route: Route
+            Route object representing the endpoint to be invoked later
+        lambda_authorizer: LambdaAuthorizer
+            The Lambda authorizer the route is using
+
+        Returns
+        -------
+        dict
+            A Lambda authorizer event
+        """
+        method_arn = self._create_method_arn(flask_request, route.event_type)
+        method, endpoint = self.get_request_methods_endpoints(flask_request)
+
+        # generate base lambda event and load it into a dict
+        lambda_event = self._generate_lambda_event(flask_request, route, method, endpoint)
+        lambda_event.update({"type": LambdaAuthorizer.REQUEST.upper()})
+
+        # build context to form identity values
+        context = (
+            self._build_v1_context(route)
+            if lambda_authorizer.payload_version == LambdaAuthorizer.PAYLOAD_V1
+            else self._build_v2_context(route)
+        )
+
+        if route.event_type == Route.API:
+            # v1 requests only add method ARN
+            lambda_event.update({"methodArn": method_arn})
+        else:
+            # kwargs to pass into identity value finder
+            kwargs = {
+                "headers": flask_request.headers,
+                "querystring": flask_request.query_string.decode("utf-8"),
+                "context": context,
+                "stageVariables": self.api.stage_variables,
+            }
+
+            # find and build all identity sources
+            all_identity_values = []
+            for identity_source in lambda_authorizer.identity_sources:
+                value = identity_source.find_identity_value(**kwargs)
+
+                if value:
+                    # all identity values must be a string
+                    all_identity_values.append(str(value))
+
+            lambda_event.update(
+                self._generate_lambda_request_authorizer_event_http(
+                    lambda_authorizer.payload_version, all_identity_values, method_arn
+                )
+            )
+
+        return lambda_event
+
+    def _generate_lambda_authorizer_event(
+        self, flask_request: Request, route: Route, lambda_authorizer: LambdaAuthorizer
+    ) -> dict:
+        """
+        Generate a Lambda authorizer event
+
+        Parameters
+        ----------
+        flask_request: Request
+            Flask request object to get method and endpoint
+        route: Route
+            Route object representing the endpoint to be invoked later
+        lambda_authorizer: LambdaAuthorizer
+            The Lambda authorizer the route is using
+
+        Returns
+        -------
+        str
+            A JSON string containing event properties
+        """
+        authorizer_events = {
+            LambdaAuthorizer.TOKEN: self._generate_lambda_token_authorizer_event,
+            LambdaAuthorizer.REQUEST: self._generate_lambda_request_authorizer_event,
+        }
+
+        kwargs: Dict[str, Any] = {
+            "flask_request": flask_request,
+            "route": route,
+            "lambda_authorizer": lambda_authorizer,
+        }
+
+        return authorizer_events[lambda_authorizer.type](**kwargs)
+
+    def _generate_lambda_event(self, flask_request: Request, route: Route, method: str, endpoint: str) -> dict:
+        """
+        Helper function to generate the correct Lambda event
+
+        Parameters
+        ----------
+        flask_request: Request
+            The global Flask Request object
+        route: Route
+            The Route that was called
+        method: str
+            The method of the request (eg. GET, POST) from the Flask request
+        endpoint: str
+            The endpoint of the request from the Flask request
+
+        Returns
+        -------
+        str
+            JSON string of event properties
+        """
+        # TODO: Rewrite the logic below to use version 2.0 when an invalid value is provided
+        # the Lambda Event 2.0 is only used for the HTTP API gateway with defined payload format version equal 2.0
+        # or none, as the default value to be used is 2.0
+        # https://docs.aws.amazon.com/apigatewayv2/latest/api-reference/apis-apiid-integrations.html#apis-apiid-integrations-prop-createintegrationinput-payloadformatversion
+        if route.event_type == Route.HTTP and route.payload_format_version in [None, "2.0"]:
+            apigw_endpoint = PathConverter.convert_path_to_api_gateway(endpoint)
+            route_key = self._v2_route_key(method, apigw_endpoint, route.is_default_route)
+
+            return construct_v2_event_http(
+                flask_request=flask_request,
+                port=self.port,
+                binary_types=self.api.binary_media_types,
+                stage_name=self.api.stage_name,
+                stage_variables=self.api.stage_variables,
+                route_key=route_key,
+            )
+
+        # For Http Apis with payload version 1.0, API Gateway never sends the OperationName.
+        route_key = route.operation_name if route.event_type == Route.API else None
+
+        return construct_v1_event(
+            flask_request=flask_request,
+            port=self.port,
+            binary_types=self.api.binary_media_types,
+            stage_name=self.api.stage_name,
+            stage_variables=self.api.stage_variables,
+            operation_name=route_key,
+        )
+
+    def _build_v1_context(self, route: Route) -> Dict[str, Any]:
+        """
+        Helper function to a 1.0 request context
+
+        Parameters
+        ----------
+        route: Route
+            The Route object that was invoked
+
+        Returns
+        -------
+        dict
+            JSON object containing context variables
+        """
+        identity = ContextIdentity(source_ip=request.remote_addr)
+
+        protocol = request.environ.get("SERVER_PROTOCOL", "HTTP/1.1")
+        host = request.host
+
+        operation_name = route.operation_name if route.event_type == Route.API else None
+
+        endpoint = PathConverter.convert_path_to_api_gateway(request.endpoint)
+        method = request.method
+
+        context = RequestContext(
+            resource_path=endpoint,
+            http_method=method,
+            stage=self.api.stage_name,
+            identity=identity,
+            path=endpoint,
+            protocol=protocol,
+            domain_name=host,
+            operation_name=operation_name,
+        )
+
+        return context.to_dict()
+
+    def _build_v2_context(self, route: Route) -> Dict[str, Any]:
+        """
+        Helper function to a 2.0 request context
+
+        Parameters
+        ----------
+        route: Route
+            The Route object that was invoked
+
+        Returns
+        -------
+        dict
+            JSON object containing context variables
+        """
+        endpoint = PathConverter.convert_path_to_api_gateway(request.endpoint)
+        method = request.method
+
+        apigw_endpoint = PathConverter.convert_path_to_api_gateway(endpoint)
+        route_key = self._v2_route_key(method, apigw_endpoint, route.is_default_route)
+
+        request_time_epoch = int(time())
+        request_time = datetime.utcnow().strftime("%d/%b/%Y:%H:%M:%S +0000")
+
+        context_http = ContextHTTP(method=method, path=request.path, source_ip=request.remote_addr)
+        context = RequestContextV2(
+            http=context_http,
+            route_key=route_key,
+            stage=self.api.stage_name,
+            request_time_epoch=request_time_epoch,
+            request_time=request_time,
+        )
+
+        return context.to_dict()
+
+    def _valid_identity_sources(self, route: Route) -> bool:
+        """
+        Validates if the route contains all the valid identity sources defined in the route's Lambda Authorizer
+
+        Parameters
+        ----------
+        route: Route
+            the Route object that contains the Lambda Authorizer definition
+
+        Returns
+        -------
+        bool
+            true if all the identity sources are present and valid
+        """
+        lambda_auth = route.authorizer_object
+
+        if not isinstance(lambda_auth, LambdaAuthorizer):
+            return False
+
+        identity_sources = lambda_auth.identity_sources
+
+        context = (
+            self._build_v1_context(route)
+            if lambda_auth.payload_version == LambdaAuthorizer.PAYLOAD_V1
+            else self._build_v2_context(route)
+        )
+
+        kwargs = {
+            "headers": request.headers,
+            "querystring": request.query_string.decode("utf-8"),
+            "context": context,
+            "stageVariables": self.api.stage_variables,
+            "validation_expression": lambda_auth.validation_string,
+        }
+
+        for validator in identity_sources:
+            if not validator.is_valid(**kwargs):
+                return False
+
+        return True
+
+    def _invoke_lambda_function(self, lambda_function_name: str, event: dict) -> str:
+        """
+        Helper method to invoke a function and setup stdout+stderr
+
+        Parameters
+        ----------
+        lambda_function_name: str
+            The name of the Lambda function to invoke
+        event: dict
+            The event object to pass into the Lambda function
+
+        Returns
+        -------
+        str
+            A string containing the output from the Lambda function
+        """
+        with BytesIO() as stdout:
+            event_str = json.dumps(event, sort_keys=True)
+            stdout_writer = StreamWriter(stdout, auto_flush=True)
+
+            self.lambda_runner.invoke(lambda_function_name, event_str, stdout=stdout_writer, stderr=self.stderr)
+            lambda_response, _ = LambdaOutputParser.get_lambda_output(stdout)
+
+        return lambda_response
+
     def _request_handler(self, **kwargs):
         """
         We handle all requests to the host:port. The general flow of handling a request is as follows
@@ -301,8 +636,9 @@ class LocalApigwService(BaseLocalService):
         Response object
         """
 
-        route = self._get_current_route(request)
+        route: Route = self._get_current_route(request)
         cors_headers = Cors.cors_to_headers(self.api.cors)
+        lambda_authorizer = route.authorizer_object
 
         # payloadFormatVersion can only support 2 values: "1.0" and "2.0"
         # so we want to do strict validation to make sure it has proper value if provided
@@ -317,59 +653,60 @@ class LocalApigwService(BaseLocalService):
             headers = Headers(cors_headers)
             return self.service_response("", headers, 200)
 
+        # check for LambdaAuthorizer since that is the only authorizer we currently support
+        if isinstance(lambda_authorizer, LambdaAuthorizer) and not self._valid_identity_sources(route):
+            return ServiceErrorResponses.missing_lambda_auth_identity_sources()
+
         try:
-            # TODO: Rewrite the logic below to use version 2.0 when an invalid value is provided
-            # the Lambda Event 2.0 is only used for the HTTP API gateway with defined payload format version equal 2.0
-            # or none, as the default value to be used is 2.0
-            # https://docs.aws.amazon.com/apigatewayv2/latest/api-reference/apis-apiid-integrations.html#apis-apiid-integrations-prop-createintegrationinput-payloadformatversion
-            if route.event_type == Route.HTTP and route.payload_format_version in [None, "2.0"]:
-                apigw_endpoint = PathConverter.convert_path_to_api_gateway(endpoint)
-                route_key = self._v2_route_key(method, apigw_endpoint, route.is_default_route)
-                event = self._construct_v_2_0_event_http(
-                    request,
-                    self.port,
-                    self.api.binary_media_types,
-                    self.api.stage_name,
-                    self.api.stage_variables,
-                    route_key,
-                )
-            elif route.event_type == Route.API:
-                # The OperationName is only sent to the Lambda Function from API Gateway V1(Rest API).
-                event = self._construct_v_1_0_event(
-                    request,
-                    self.port,
-                    self.api.binary_media_types,
-                    self.api.stage_name,
-                    self.api.stage_variables,
-                    route.operation_name,
-                )
-            else:
-                # For Http Apis with payload version 1.0, API Gateway never sends the OperationName.
-                event = self._construct_v_1_0_event(
-                    request,
-                    self.port,
-                    self.api.binary_media_types,
-                    self.api.stage_name,
-                    self.api.stage_variables,
-                    None,
-                )
+            route_lambda_event = self._generate_lambda_event(request, route, method, endpoint)
+            auth_lambda_event = None
+
+            if lambda_authorizer:
+                auth_lambda_event = self._generate_lambda_authorizer_event(request, route, lambda_authorizer)
         except UnicodeDecodeError as error:
             LOG.error("UnicodeDecodeError while processing HTTP request: %s", error)
             return ServiceErrorResponses.lambda_failure_response()
 
-        stdout_stream = io.BytesIO()
-        stdout_stream_writer = StreamWriter(stdout_stream, auto_flush=True)
-
         try:
-            self.lambda_runner.invoke(route.function_name, event, stdout=stdout_stream_writer, stderr=self.stderr)
+            lambda_authorizer_exception = None
+            auth_service_error = None
+
+            if lambda_authorizer:
+                self._invoke_parse_lambda_authorizer(lambda_authorizer, auth_lambda_event, route_lambda_event, route)
+        except AuthorizerUnauthorizedRequest as ex:
+            auth_service_error = ServiceErrorResponses.lambda_authorizer_unauthorized()
+            lambda_authorizer_exception = ex
+        except InvalidLambdaAuthorizerResponse as ex:
+            auth_service_error = ServiceErrorResponses.lambda_failure_response()
+            lambda_authorizer_exception = ex
+        finally:
+            exception_name = type(lambda_authorizer_exception).__name__ if lambda_authorizer_exception else None
+
+            EventTracker.track_event(
+                event_name=EventName.USED_FEATURE.value,
+                event_value=UsedFeature.INVOKED_CUSTOM_LAMBDA_AUTHORIZERS.value,
+                session_id=self._click_session_id,
+                exception_name=exception_name,
+            )
+
+            if lambda_authorizer_exception:
+                LOG.error("Lambda authorizer failed to invoke successfully: %s", lambda_authorizer_exception.message)
+
+                return auth_service_error
+
+        endpoint_service_error = None
+        try:
+            # invoke the route's Lambda function
+            lambda_response = self._invoke_lambda_function(route.function_name, route_lambda_event)
         except FunctionNotFound:
-            return ServiceErrorResponses.lambda_not_found_response()
+            endpoint_service_error = ServiceErrorResponses.lambda_not_found_response()
         except UnsupportedInlineCodeError:
-            return ServiceErrorResponses.not_implemented_locally(
+            endpoint_service_error = ServiceErrorResponses.not_implemented_locally(
                 "Inline code is not supported for sam local commands. Please write your code in a separate file."
             )
 
-        lambda_response, _ = LambdaOutputParser.get_lambda_output(stdout_stream)
+        if endpoint_service_error:
+            return endpoint_service_error
 
         try:
             if route.event_type == Route.HTTP and (
@@ -387,6 +724,42 @@ class LocalApigwService(BaseLocalService):
             return ServiceErrorResponses.lambda_failure_response()
 
         return self.service_response(body, headers, status_code)
+
+    def _invoke_parse_lambda_authorizer(
+        self, lambda_authorizer: LambdaAuthorizer, auth_lambda_event: dict, route_lambda_event: dict, route: Route
+    ) -> None:
+        """
+        Helper method to invoke and parse the output of a Lambda authorizer
+
+        Parameters
+        ----------
+        lambda_authorizer: LambdaAuthorizer
+            The route's Lambda authorizer
+        auth_lambda_event: dict
+            The event to pass to the Lambda authorizer
+        route_lambda_event: dict
+            The event to pass into the route
+        route: Route
+            The route that is being called
+        """
+        lambda_auth_response = self._invoke_lambda_function(lambda_authorizer.lambda_name, auth_lambda_event)
+        method_arn = self._create_method_arn(request, route.event_type)
+
+        if not lambda_authorizer.is_valid_response(lambda_auth_response, method_arn):
+            raise AuthorizerUnauthorizedRequest(f"Request is not authorized for {method_arn}")
+
+        # update route context to include any context that may have been passed from authorizer
+        original_context = route_lambda_event.get("requestContext", {})
+
+        context = lambda_authorizer.get_context(lambda_auth_response)
+
+        # payload V2 responses have the passed context under the "lambda" key
+        if route.event_type == Route.HTTP and route.payload_format_version in [None, "2.0"]:
+            original_context.update({"authorizer": {"lambda": context}})
+        else:
+            original_context.update({"authorizer": context})
+
+        route_lambda_event.update({"requestContext": original_context})
 
     def _get_current_route(self, flask_request):
         """
@@ -671,311 +1044,3 @@ class LocalApigwService(BaseLocalService):
             processed_headers.add(header, headers[header])
 
         return processed_headers
-
-    @staticmethod
-    def _construct_v_1_0_event(
-        flask_request, port, binary_types, stage_name=None, stage_variables=None, operation_name=None
-    ):
-        """
-        Helper method that constructs the Event to be passed to Lambda
-
-        :param request flask_request: Flask Request
-        :param port: the port number
-        :param binary_types: list of binary types
-        :param stage_name: Optional, the stage name string
-        :param stage_variables: Optional, API Gateway Stage Variables
-        :return: String representing the event
-        """
-        # pylint: disable-msg=too-many-locals
-
-        identity = ContextIdentity(source_ip=flask_request.remote_addr)
-
-        endpoint = PathConverter.convert_path_to_api_gateway(flask_request.endpoint)
-        method = flask_request.method
-        protocol = flask_request.environ.get("SERVER_PROTOCOL", "HTTP/1.1")
-        host = flask_request.host
-
-        request_data = flask_request.get_data()
-
-        request_mimetype = flask_request.mimetype
-
-        is_base_64 = LocalApigwService._should_base64_encode(binary_types, request_mimetype)
-
-        if is_base_64:
-            LOG.debug("Incoming Request seems to be binary. Base64 encoding the request data before sending to Lambda.")
-            request_data = base64.b64encode(request_data)
-
-        if request_data:
-            # Flask does not parse/decode the request data. We should do it ourselves
-            # Note(xinhol): here we change request_data's type from bytes to str and confused mypy
-            # We might want to consider to use a new variable here.
-            request_data = request_data.decode("utf-8")
-
-        query_string_dict, multi_value_query_string_dict = LocalApigwService._query_string_params(flask_request)
-
-        context = RequestContext(
-            resource_path=endpoint,
-            http_method=method,
-            stage=stage_name,
-            identity=identity,
-            path=endpoint,
-            protocol=protocol,
-            domain_name=host,
-            operation_name=operation_name,
-        )
-
-        headers_dict, multi_value_headers_dict = LocalApigwService._event_headers(flask_request, port)
-
-        event = ApiGatewayLambdaEvent(
-            http_method=method,
-            body=request_data,
-            resource=endpoint,
-            request_context=context,
-            query_string_params=query_string_dict,
-            multi_value_query_string_params=multi_value_query_string_dict,
-            headers=headers_dict,
-            multi_value_headers=multi_value_headers_dict,
-            path_parameters=flask_request.view_args,
-            path=flask_request.path,
-            is_base_64_encoded=is_base_64,
-            stage_variables=stage_variables,
-        )
-
-        event_str = json.dumps(event.to_dict(), sort_keys=True)
-        LOG.debug("Constructed String representation of Event to invoke Lambda. Event: %s", event_str)
-        return event_str
-
-    @staticmethod
-    def _construct_v_2_0_event_http(
-        flask_request,
-        port,
-        binary_types,
-        stage_name=None,
-        stage_variables=None,
-        route_key=None,
-        request_time_epoch=int(time()),
-        request_time=datetime.utcnow().strftime("%d/%b/%Y:%H:%M:%S +0000"),
-    ):
-        """
-        Helper method that constructs the Event 2.0 to be passed to Lambda
-
-        https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-integrations-lambda.html
-
-        :param request flask_request: Flask Request
-        :param port: the port number
-        :param binary_types: list of binary types
-        :param stage_name: Optional, the stage name string
-        :param stage_variables: Optional, API Gateway Stage Variables
-        :param route_key: Optional, the route key for the route
-        :return: String representing the event
-        """
-        # pylint: disable-msg=too-many-locals
-        method = flask_request.method
-
-        request_data = flask_request.get_data()
-
-        request_mimetype = flask_request.mimetype
-
-        is_base_64 = LocalApigwService._should_base64_encode(binary_types, request_mimetype)
-
-        if is_base_64:
-            LOG.debug("Incoming Request seems to be binary. Base64 encoding the request data before sending to Lambda.")
-            request_data = base64.b64encode(request_data)
-
-        if request_data is not None:
-            # Flask does not parse/decode the request data. We should do it ourselves
-            request_data = request_data.decode("utf-8")
-
-        query_string_dict = LocalApigwService._query_string_params_v_2_0(flask_request)
-
-        cookies = LocalApigwService._event_http_cookies(flask_request)
-        headers = LocalApigwService._event_http_headers(flask_request, port)
-        context_http = ContextHTTP(method=method, path=flask_request.path, source_ip=flask_request.remote_addr)
-        context = RequestContextV2(
-            http=context_http,
-            route_key=route_key,
-            stage=stage_name,
-            request_time_epoch=request_time_epoch,
-            request_time=request_time,
-        )
-
-        event = ApiGatewayV2LambdaEvent(
-            route_key=route_key,
-            raw_path=flask_request.path,
-            raw_query_string=flask_request.query_string.decode("utf-8"),
-            cookies=cookies,
-            headers=headers,
-            query_string_params=query_string_dict,
-            request_context=context,
-            body=request_data,
-            path_parameters=flask_request.view_args,
-            is_base_64_encoded=is_base_64,
-            stage_variables=stage_variables,
-        )
-
-        event_str = json.dumps(event.to_dict())
-        LOG.debug("Constructed String representation of Event Version 2.0 to invoke Lambda. Event: %s", event_str)
-        return event_str
-
-    @staticmethod
-    def _query_string_params(flask_request):
-        """
-        Constructs an APIGW equivalent query string dictionary
-
-        Parameters
-        ----------
-        flask_request request
-            Request from Flask
-
-        Returns dict (str: str), dict (str: list of str)
-        -------
-            Empty dict if no query params where in the request otherwise returns a dictionary of key to value
-
-        """
-        query_string_dict = {}
-        multi_value_query_string_dict = {}
-
-        # Flask returns an ImmutableMultiDict so convert to a dictionary that becomes
-        # a dict(str: list) then iterate over
-        for query_string_key, query_string_list in flask_request.args.lists():
-            query_string_value_length = len(query_string_list)
-
-            # if the list is empty, default to empty string
-            if not query_string_value_length:
-                query_string_dict[query_string_key] = ""
-                multi_value_query_string_dict[query_string_key] = [""]
-            else:
-                query_string_dict[query_string_key] = query_string_list[-1]
-                multi_value_query_string_dict[query_string_key] = query_string_list
-
-        return query_string_dict, multi_value_query_string_dict
-
-    @staticmethod
-    def _query_string_params_v_2_0(flask_request):
-        """
-        Constructs an APIGW equivalent query string dictionary using the 2.0 format
-        https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-integrations-lambda.html#2.0
-
-        Parameters
-        ----------
-        flask_request request
-            Request from Flask
-
-        Returns dict (str: str)
-        -------
-            Empty dict if no query params where in the request otherwise returns a dictionary of key to value
-
-        """
-        query_string_dict = {}
-
-        # Flask returns an ImmutableMultiDict so convert to a dictionary that becomes
-        # a dict(str: list) then iterate over
-        query_string_dict = {
-            query_string_key: ",".join(query_string_list)
-            for query_string_key, query_string_list in flask_request.args.lists()
-        }
-
-        return query_string_dict
-
-    @staticmethod
-    def _event_headers(flask_request, port):
-        """
-        Constructs an APIGW equivalent headers dictionary
-
-        Parameters
-        ----------
-        flask_request request
-            Request from Flask
-        int port
-            Forwarded Port
-        cors_headers dict
-            Dict of the Cors properties
-
-        Returns dict (str: str), dict (str: list of str)
-        -------
-            Returns a dictionary of key to list of strings
-
-        """
-        headers_dict = {}
-        multi_value_headers_dict = {}
-
-        # Multi-value request headers is not really supported by Flask.
-        # See https://github.com/pallets/flask/issues/850
-        for header_key in flask_request.headers.keys():
-            headers_dict[header_key] = flask_request.headers.get(header_key)
-            multi_value_headers_dict[header_key] = flask_request.headers.getlist(header_key)
-
-        headers_dict["X-Forwarded-Proto"] = flask_request.scheme
-        multi_value_headers_dict["X-Forwarded-Proto"] = [flask_request.scheme]
-
-        headers_dict["X-Forwarded-Port"] = str(port)
-        multi_value_headers_dict["X-Forwarded-Port"] = [str(port)]
-        return headers_dict, multi_value_headers_dict
-
-    @staticmethod
-    def _event_http_cookies(flask_request):
-        """
-        All cookie headers in the request are combined with commas.
-
-        https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-integrations-lambda.html
-
-        Parameters
-        ----------
-        flask_request request
-            Request from Flask
-
-        Returns list
-        -------
-            Returns a list of cookies
-
-        """
-        cookies = []
-        for cookie_key in flask_request.cookies.keys():
-            cookies.append("{}={}".format(cookie_key, flask_request.cookies.get(cookie_key)))
-        return cookies
-
-    @staticmethod
-    def _event_http_headers(flask_request, port):
-        """
-        Duplicate headers are combined with commas.
-
-        https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-integrations-lambda.html
-
-        Parameters
-        ----------
-        flask_request request
-            Request from Flask
-
-        Returns list
-        -------
-            Returns a list of cookies
-
-        """
-        headers = {}
-        # Multi-value request headers is not really supported by Flask.
-        # See https://github.com/pallets/flask/issues/850
-        for header_key in flask_request.headers.keys():
-            headers[header_key] = flask_request.headers.get(header_key)
-
-        headers["X-Forwarded-Proto"] = flask_request.scheme
-        headers["X-Forwarded-Port"] = str(port)
-        return headers
-
-    @staticmethod
-    def _should_base64_encode(binary_types, request_mimetype):
-        """
-        Whether or not to encode the data from the request to Base64
-
-        Parameters
-        ----------
-        binary_types list(basestring)
-            Corresponds to self.binary_types (aka. what is parsed from SAM Template
-        request_mimetype str
-            Mimetype for the request
-
-        Returns
-        -------
-            True if the data should be encoded to Base64 otherwise False
-
-        """
-        return request_mimetype in binary_types or "*/*" in binary_types
