@@ -687,14 +687,8 @@ class LocalApigwService(BaseLocalService):
                 "this Function exists locally if it is not a remote resource."
             )
         except Exception as ex:
-            EventTracker.track_event(
-                event_name=EventName.USED_FEATURE.value,
-                event_value=UsedFeature.INVOKED_CUSTOM_LAMBDA_AUTHORIZERS.value,
-                session_id=self._click_session_id,
-                exception_name=ex.__name__,
-            )
-
             # re-raise the catch all exception after we track it in our telemetry
+            lambda_authorizer_exception = ex
             raise ex
         finally:
             exception_name = type(lambda_authorizer_exception).__name__ if lambda_authorizer_exception else None
@@ -760,6 +754,7 @@ class LocalApigwService(BaseLocalService):
         route: Route
             The route that is being called
         """
+        raise ValueError()
         lambda_auth_response = self._invoke_lambda_function(lambda_authorizer.lambda_name, auth_lambda_event)
         method_arn = self._create_method_arn(request, route.event_type)
 
