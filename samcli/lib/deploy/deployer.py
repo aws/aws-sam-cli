@@ -125,7 +125,7 @@ class Deployer:
                 LOG.debug("Stack with id %s does not exist", stack_name)
                 return False
 
-            LOG.debug("Unknown ClientError recieved: %s. Cannont determine if stack exists.", str(e))
+            LOG.debug("Unknown ClientError recieved: %s. Cannot determine if stack exists.", str(e))
             raise DeployFailedError(stack_name=stack_name, msg=str(e)) from e
         except botocore.exceptions.BotoCoreError as e:
             # If there are credentials, environment errors,
