@@ -36,7 +36,9 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
 
         original_test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "sync")
         cls.test_data_path = Path(tempfile.mkdtemp())
-        shutil.copytree(original_test_data_path, cls.test_data_path, dirs_exist_ok=True)
+        # since dirs_exist_ok=True only supported after py3.7, first delete the parent folder nad run copytree after
+        shutil.rmtree(cls.test_data_path)
+        shutil.copytree(original_test_data_path, cls.test_data_path)
 
     @classmethod
     def tearDownClass(cls) -> None:
