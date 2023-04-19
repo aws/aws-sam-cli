@@ -754,7 +754,6 @@ class LocalApigwService(BaseLocalService):
         route: Route
             The route that is being called
         """
-        raise ValueError()
         lambda_auth_response = self._invoke_lambda_function(lambda_authorizer.lambda_name, auth_lambda_event)
         method_arn = self._create_method_arn(request, route.event_type)
 
