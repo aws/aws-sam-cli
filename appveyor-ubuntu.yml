@@ -62,7 +62,7 @@ install:
   - sh: "gvm use go1.19"
   - sh: "echo $PATH"
   - sh: "ls /usr/"
-  - sh: "JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64"
+  - sh: "JAVA_HOME=/usr/lib/jvm/java-18-openjdk-amd64"
   - sh: "PATH=$JAVA_HOME/bin:$PATH"
   - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
   - sh: "rvm use 2.7.2"
@@ -73,9 +73,9 @@ install:
 
   # Install latest gradle
   - sh: "sudo apt-get -y remove gradle"
-  - sh: "wget https://services.gradle.org/distributions/gradle-5.5-bin.zip -P /tmp"
+  - sh: "wget https://services.gradle.org/distributions/gradle-7.3.1-bin.zip -P /tmp"
   - sh: "sudo unzip -d /opt/gradle /tmp/gradle-*.zip"
-  - sh: "PATH=/opt/gradle/gradle-5.5/bin:$PATH"
+  - sh: "PATH=/opt/gradle/gradle-7.3.1/bin:$PATH"
 
   # Install AWS CLI
   - sh: "virtualenv aws_cli"

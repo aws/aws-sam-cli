@@ -1603,8 +1603,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         LOG.info("Running Command: {}".format(cmdlist))
 
         command_result = run_command(cmdlist, cwd=self.working_dir)
-        self.assertEqual(command_result.process.returncode, 0)
-
+        self.assertEqual(command_result.process.returncode, 1)
         self.assertFalse(self.default_build_dir.joinpath(layer_identifier).exists())
 
     @parameterized.expand([("python3.7", False), ("python3.7", "use_container")])
@@ -1945,12 +1944,12 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
                 "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
                 "dotnet6",
             ),
-            (False, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
+            (False, "Java/gradlew/8", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
             (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.7"),
             # container
-            (True, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
+            (True, "Java/gradlew/8", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
             (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.7"),
@@ -2227,16 +2226,16 @@ class TestRepeatedBuildHitsCache(BuildIntegBase):
         )
 
         LOG.info("Running Command (cache should be invalid): %s", cmdlist)
-        command_result = run_command(cmdlist, cwd=self.working_dir).stderr.decode("utf-8")
+        command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command_result.process.returncode, 0)
-        self.assertTrue(cache_invalid_output in command_result)
-        self.assertFalse(cache_valid_output in command_result)
+        self.assertTrue(cache_invalid_output in command_result.stderr.decode("utf-8"))
+        self.assertFalse(cache_valid_output in command_result.stderr.decode("utf-8"))
 
         LOG.info("Re-Running Command (valid cache should exist): %s", cmdlist)
-        command_result = run_command(cmdlist, cwd=self.working_dir).stderr.decode("utf-8")
+        command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command_result.process.returncode, 0)
-        self.assertFalse(cache_invalid_output in command_result)
-        self.assertTrue(cache_valid_output in command_result)
+        self.assertFalse(cache_invalid_output in command_result.stderr.decode("utf-8"))
+        self.assertTrue(cache_valid_output in command_result.stderr.decode("utf-8"))
 
 
 @skipIf(
@@ -2266,12 +2265,12 @@ class TestParallelBuilds(DedupBuildIntegBase):
                 "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
                 "dotnet6",
             ),
-            (False, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
+            (False, "Java/gradlew/8", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
             (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.7"),
             # container
-            (True, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
+            (True, "Java/gradlew/8", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
             (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.7"),
