@@ -820,7 +820,8 @@ class DedupBuildIntegBase(BuildIntegBase):
             expected = f"Hello {expected_message}"
             function_id = f"Hello{expected_message}Function"
             self._verify_build_artifact(self.default_build_dir, function_id)
-            self._verify_invoke_built_function(self.built_template, function_id, overrides, expected)
+            if not SKIP_DOCKER_TESTS:
+                self._verify_invoke_built_function(self.built_template, function_id, overrides, expected)
 
     def _verify_build_artifact(self, build_dir, function_logical_id):
         self.assertTrue(build_dir.exists(), "Build directory should be created")
