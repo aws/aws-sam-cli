@@ -43,7 +43,9 @@ class TestSyncInfra(SyncIntegBase):
 
         original_test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "sync")
         self.test_data_path = Path(tempfile.mkdtemp())
-        shutil.copytree(original_test_data_path, self.test_data_path, dirs_exist_ok=True)
+        # since dirs_exist_ok=True only supported after py3.7, first delete the parent folder nad run copytree after
+        shutil.rmtree(self.test_data_path)
+        shutil.copytree(original_test_data_path, self.test_data_path)
 
         self.parameter_overrides = {"HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]}
 
