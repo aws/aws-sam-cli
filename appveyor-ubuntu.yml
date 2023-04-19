@@ -62,7 +62,7 @@ install:
   - sh: "gvm use go1.19"
   - sh: "echo $PATH"
   - sh: "ls /usr/"
-  - sh: "JAVA_HOME=/usr/lib/jvm/java-18-openjdk-amd64"
+  - sh: "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64"
   - sh: "PATH=$JAVA_HOME/bin:$PATH"
   - sh: "javac -version"
   - sh: "java -version"
