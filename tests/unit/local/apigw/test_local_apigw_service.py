@@ -961,6 +961,57 @@ class TestApiGatewayService(TestCase):
         self.api_service._invoke_parse_lambda_authorizer(auth, {}, route_event, self.api_gateway_route)
         self.assertEqual(route_event, {"requestContext": {"authorizer": mock_get_context}})
 
+    @patch.object(LocalApigwService, "get_request_methods_endpoints")
+    @patch.object(LocalApigwService, "_valid_identity_sources")
+    @patch.object(LocalApigwService, "_generate_lambda_authorizer_event")
+    @patch.object(LocalApigwService, "_invoke_parse_lambda_authorizer")
+    @patch("samcli.local.apigw.local_apigw_service.construct_v1_event")
+    @patch("samcli.local.apigw.local_apigw_service.construct_v2_event_http")
+    def test_authorizer_function_not_found_invokes_endpoint(
+        self,
+        v2_event_mock,
+        v1_event_mock,
+        invoke_lambda_auth_mock,
+        lambda_auth_event_mock,
+        id_source_mock,
+        request_mock,
+    ):
+        make_response_mock = Mock()
+
+        # mock lambda auth invoke method to raise FunctionNotFound
+        invoke_lambda_auth_mock.side_effect = [FunctionNotFound()]
+
+        # mock the route with fake lambda authorizer
+        self.api_service.service_response = make_response_mock
+        self.api_service._get_current_route = MagicMock()
+
+        self.api_gateway_route.authorizer_object = Mock()
+
+        self.api_service._get_current_route.return_value = self.api_gateway_route
+        self.api_service._get_current_route.methods = []
+        self.api_service._get_current_route.return_value.payload_format_version = "2.0"
+        v1_event_mock.return_value = {}
+
+        # mock the route response parser
+        parse_output_mock = Mock()
+        parse_output_mock.return_value = ("status_code", Headers({"headers": "headers"}), "body")
+        self.api_service._parse_v1_payload_format_lambda_output = parse_output_mock
+
+        # mock the response creator
+        service_response_mock = Mock()
+        service_response_mock.return_value = make_response_mock
+        self.api_service.service_response = service_response_mock
+
+        request_mock.return_value = ("test", "test")
+
+        result = self.api_service._request_handler()
+
+        # validate route lambda still invoked after Lambda auth function not found
+        self.assertEqual(result, make_response_mock)
+        self.lambda_runner.invoke.assert_called_with(
+            self.api_gateway_route.function_name, ANY, stdout=ANY, stderr=self.stderr
+        )
+
 
 class TestApiGatewayModel(TestCase):
     def setUp(self):
