@@ -6,7 +6,7 @@ import logging
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, List, Optional, Union, Type
+from typing import Dict, List, Optional, Type, Union
 
 from samcli.commands.exceptions import UserException
 from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
