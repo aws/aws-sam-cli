@@ -72,7 +72,6 @@ install:
   - sh: "javac -version"
   - sh: "java -version"
   - sh: "mvn --version"
-  - sh: "mvn dependency:get -Dartifact=com.amazonaws:aws-lambda-java-core:1.1.0"
 
   - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
   - sh: "rvm use 2.7.2"
