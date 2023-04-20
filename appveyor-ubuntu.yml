@@ -66,6 +66,7 @@ install:
   - sh: "PATH=$JAVA_HOME/bin:$PATH"
   - sh: "javac -version"
   - sh: "java -version"
+  - sh: "mvn --version"
   - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
   - sh: "rvm use 2.7.2"
   - sh: "docker --version"
