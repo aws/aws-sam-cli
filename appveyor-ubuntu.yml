@@ -4,19 +4,19 @@ image:
 
 configuration:
   - BuildIntegTesting
-#  - LocalZipTerraformBuildIntegTesting
-#  - LocalZipTerraformBuildInContainerIntegTesting
-#  - S3ZipTerraformBuildIntegTesting
-#  - S3ZipTerraformBuildInContainerIntegTesting
-#  - OtherTerraformBuildIntegTesting
-#  - DeployIntegTesting
-#  - PackageIntegTesting
-#  - DeleteIntegTesting
-#  - SyncIntegTesting
-#  - LocalIntegTesting
-#  - EndToEndTesting
-#  # other Integration testing, Dev, regression and smoke testing
-#  - OtherTesting
+  - LocalZipTerraformBuildIntegTesting
+  - LocalZipTerraformBuildInContainerIntegTesting
+  - S3ZipTerraformBuildIntegTesting
+  - S3ZipTerraformBuildInContainerIntegTesting
+  - OtherTerraformBuildIntegTesting
+  - DeployIntegTesting
+  - PackageIntegTesting
+  - DeleteIntegTesting
+  - SyncIntegTesting
+  - LocalIntegTesting
+  - EndToEndTesting
+  # other Integration testing, Dev, regression and smoke testing
+  - OtherTesting
 
 environment:
   AWS_DEFAULT_REGION: us-east-1
