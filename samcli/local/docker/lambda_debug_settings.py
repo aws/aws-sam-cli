@@ -83,6 +83,16 @@ class LambdaDebugSettings:
                     **_container_env_vars,
                 },
             ),
+            Runtime.java17.value: lambda: DebugSettings(
+                entry,
+                container_env_vars={
+                    "_JAVA_OPTIONS": "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,"
+                    f"address=*:{debug_port} -XX:MaxHeapSize=2834432k -XX:+UseSerialGC "
+                    "-XX:+TieredCompilation -XX:TieredStopAtLevel=1 "
+                    "-Djava.net.preferIPv4Stack=true" + " ".join(debug_args_list),
+                    **_container_env_vars,
+                },
+            ),
             Runtime.dotnetcore31.value: lambda: DebugSettings(
                 entry + ["/var/runtime/bootstrap"] + debug_args_list,
                 container_env_vars={"_AWS_LAMBDA_DOTNET_DEBUGGING": "1", **_container_env_vars},
