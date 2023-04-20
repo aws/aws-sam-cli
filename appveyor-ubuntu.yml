@@ -67,7 +67,7 @@ install:
   - sh: "wget https://dlcdn.apache.org/maven/maven-3/3.8.8/binaries/apache-maven-3.8.8-bin.zip -P /tmp"
   - sh: "sudo unzip -d /opt/mvn /tmp/apache-maven-*.zip"
   - sh: "PATH=/opt/mvn/apache-maven-3.8.8/bin:$PATH"
-  - sh: "JAVA_HOME=/usr/lib/jvm/java-18-openjdk-amd64"
+  - sh: "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64"
   - sh: "PATH=$JAVA_HOME/bin:$PATH"
   - sh: "javac -version"
   - sh: "java -version"
