@@ -185,7 +185,6 @@ Resources:
         "samcli.lib.init.template_modifiers.xray_tracing_template_modifier.XRayTracingTemplateModifier._get_template"
     )
     def test_must_add_new_tracing_field_to_template(self, get_template_patch):
-
         get_template_patch.return_value = YAML().load(
             """
         Globals:

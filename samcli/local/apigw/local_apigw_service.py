@@ -679,6 +679,17 @@ class LocalApigwService(BaseLocalService):
         except InvalidLambdaAuthorizerResponse as ex:
             auth_service_error = ServiceErrorResponses.lambda_failure_response()
             lambda_authorizer_exception = ex
+        except FunctionNotFound as ex:
+            lambda_authorizer_exception = ex
+
+            LOG.warning(
+                "Failed to find a Function to invoke a Lambda authorizer, verify that "
+                "this Function exists locally if it is not a remote resource."
+            )
+        except Exception as ex:
+            # re-raise the catch all exception after we track it in our telemetry
+            lambda_authorizer_exception = ex
+            raise ex
         finally:
             exception_name = type(lambda_authorizer_exception).__name__ if lambda_authorizer_exception else None
 
@@ -690,8 +701,9 @@ class LocalApigwService(BaseLocalService):
             )
 
             if lambda_authorizer_exception:
-                LOG.error("Lambda authorizer failed to invoke successfully: %s", lambda_authorizer_exception.message)
+                LOG.error("Lambda authorizer failed to invoke successfully: %s", exception_name)
 
+            if auth_service_error:
                 return auth_service_error
 
         endpoint_service_error = None
