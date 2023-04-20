@@ -50,6 +50,7 @@ class ResourceLinkingPair:
     cfn_intrinsic_attribute: Optional[str]
     source_link_field_name: str
     terraform_resource_type_prefix: str
+    linking_exceptions: ResourcePairLinkingExceptions
 ```
 
 - `source_resource_cfn_resource` this the CFN representation of the resource to which the linked resource will be added
@@ -59,6 +60,15 @@ class ResourceLinkingPair:
 - `cfn_intrinsic_attribute` in the case of `GetAtt`, the resource attribute to link to (should be None for `Ref`)
 - `source_link_field_name` the name in the source CFN resource to add the linked resource to
 - `terraform_resource_type_prefix` the Terraform resource type prefix used for finding all resource of that type
+- `linking_exceptions` these are exceptions that need to be created with messages specific to the resource linking pair to be used
+by the `ResourceLinker`. With specific exception types, metric data can be collected specific to the resources being linked.
+
+```python
+class ResourcePairLinkingExceptions:
+    multiple_resource_linking_exception: Type[UserException]
+    local_variable_linking_exception: Type[UserException]
+```
+
 
 Only the first three fields are computed, and need to be collected the same way they are today, when parsing the Terraform modules.
 E.g. collecting the Lambda function `source_resource_cfn_resource` and `source_resource_tf_config` looks like this:

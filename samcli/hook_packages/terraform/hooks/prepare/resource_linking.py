@@ -6,8 +6,9 @@ import logging
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Type
 
+from samcli.commands.exceptions import UserException
 from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     InvalidResourceLinkingException,
     LocalVariablesLinkingLimitationException,
@@ -36,6 +37,11 @@ class LinkerIntrinsics(Enum):
     GetAtt = "GetAtt"
 
 
+class ResourcePairLinkingExceptions:
+    multiple_resource_linking_exception: Type[UserException]
+    local_variable_linking_exception: Type[UserException]
+
+
 @dataclass
 class ResourceLinkingPair:
     source_resource_cfn_resource: Dict[str, List]
@@ -45,6 +51,7 @@ class ResourceLinkingPair:
     cfn_intrinsic_attribute: Optional[str]
     source_link_field_name: str
     terraform_resource_type_prefix: str
+    linking_exceptions: ResourcePairLinkingExceptions
 
 
 class ResourceLinker:
