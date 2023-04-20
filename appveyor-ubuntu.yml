@@ -62,7 +62,11 @@ install:
   - sh: "gvm use go1.19"
   - sh: "echo $PATH"
   - sh: "ls /usr/"
-  - sh: "sudo apt-get install maven -y"
+  # install latest maven which is compatible with jdk17
+  - sh: "wget https://dlcdn.apache.org/maven/maven-3/3.9.1/binaries/apache-maven-3.9.1-bin.zip -P /tmp"
+  - sh: "sudo unzip -d /opt/mvn /tmp/apache-maven-*.zip"
+  - sh: "M2_HOME=/opt/mvn/apache-maven-3.9.1"
+  - sh: "PATH=$M2_HOME/bin:$PATH"
   - sh: "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64"
   - sh: "PATH=$JAVA_HOME/bin:$PATH"
   - sh: "javac -version"
