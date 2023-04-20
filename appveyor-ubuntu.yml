@@ -64,8 +64,6 @@ install:
   - sh: "ls /usr/"
   # install latest maven which is compatible with jdk17
   - sh: "sudo apt-get -y remove maven"
-  - sh: "ls -ltra /usr/lib/jvm/"
-  - sh: "rm -rf ~/.m2/"
   - sh: "wget https://dlcdn.apache.org/maven/maven-3/3.8.8/binaries/apache-maven-3.8.8-bin.zip -P /tmp"
   - sh: "sudo unzip -d /opt/mvn /tmp/apache-maven-*.zip"
   - sh: "PATH=/opt/mvn/apache-maven-3.8.8/bin:$PATH"
@@ -74,6 +72,8 @@ install:
   - sh: "javac -version"
   - sh: "java -version"
   - sh: "mvn --version"
+  - sh: "mvn dependency:get -Dartifact=com.amazonaws:aws-lambda-java-core:1.1.0"
+
   - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
   - sh: "rvm use 2.7.2"
   - sh: "docker --version"
