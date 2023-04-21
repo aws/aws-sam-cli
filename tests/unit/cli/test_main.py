@@ -21,6 +21,7 @@ class TestCliBase(TestCase):
             self.assertEqual(result.exit_code, 0)
             self.assertTrue("--help" in result.output, "Help text must be printed")
             self.assertTrue("--debug" in result.output, "--debug option must be present in help text")
+            self.assertTrue("--beta-features" in result.output, "--beta-features option must be present in help text")
 
     def test_cli_some_command(self):
         mock_cfg = Mock()

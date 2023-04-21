@@ -9,7 +9,7 @@ import click
 from samcli.cli.cli_config_file import TomlProvider, configuration_option
 from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
 from samcli.cli.main import common_options as cli_framework_options
-from samcli.commands._utils.experimental import ExperimentalFlag, experimental, is_experimental_enabled
+from samcli.commands._utils.experimental import ExperimentalFlag, is_experimental_enabled
 from samcli.commands._utils.option_value_processor import process_image_options
 from samcli.commands._utils.options import (
     generate_next_command_recommendation,
@@ -73,7 +73,6 @@ Here is a Python example:
 @skip_prepare_infra_option
 @service_common_options(3001)
 @invoke_common_options
-@experimental
 @warm_containers_common_options
 @local_common_options
 @cli_framework_options

@@ -12,6 +12,7 @@ from samcli.cli.command import BaseCommand
 from samcli.cli.context import Context
 from samcli.cli.global_config import GlobalConfig
 from samcli.cli.options import debug_option, profile_option, region_option
+from samcli.commands._utils.experimental import experimental
 from samcli.lib.utils.sam_logging import (
     LAMBDA_BULDERS_LOGGER_NAME,
     SAM_CLI_FORMATTER,
@@ -34,6 +35,7 @@ def common_options(f):
     :return: Callback function
     """
     f = debug_option(f)
+    f = experimental(f)
     return f
 
 
