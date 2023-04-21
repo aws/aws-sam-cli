@@ -5,6 +5,11 @@ Globals:
   Function:
     Timeout: 30
 
+Parameters:
+  HelloWorldLayerName:
+    Type: String
+    Description: Name of the HelloWorldLayer which will be used with current deployment
+
 Resources:
   HelloWorldRubyFunction:
     Type: AWS::Serverless::Function
@@ -21,6 +26,7 @@ Resources:
   HelloWorldRubyLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
+      LayerName: !Ref HelloWorldLayerName
       Description: Hello World Ruby Layer
       ContentUri: after/Ruby/layer/
       CompatibleRuntimes:

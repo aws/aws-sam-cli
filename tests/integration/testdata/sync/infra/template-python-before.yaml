@@ -5,6 +5,11 @@ Globals:
   Function:
     Timeout: 10
 
+Parameters:
+  HelloWorldLayerName:
+    Type: String
+    Description: Name of the HelloWorldLayer which will be used with current deployment
+
 Resources:
   HelloWorldFunction:
     Type: AWS::Serverless::Function
@@ -31,6 +36,7 @@ Resources:
   HelloWorldLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
+      LayerName: !Ref HelloWorldLayerName
       Description: Hello World Layer
       ContentUri: before/Python/layer/
       CompatibleRuntimes:
