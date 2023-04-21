@@ -46,6 +46,8 @@ ADDITIONAL_OPTIONS: List[str] = [
     "use_json",
 ]
 
+BETA_OPTIONS: List[str] = ["beta_features"]
+
 OTHER_OPTIONS: List[str] = ["debug"]
 
 ALL_OPTIONS: List[str] = (
@@ -56,6 +58,7 @@ ALL_OPTIONS: List[str] = (
     + DEPLOYMENT_OPTIONS
     + CONFIGURATION_OPTION_NAMES
     + ADDITIONAL_OPTIONS
+    + BETA_OPTIONS
     + OTHER_OPTIONS
 )
 
@@ -85,5 +88,6 @@ OPTIONS_INFO: Dict[str, Dict] = {
         ],
     },
     "Additional Options": {"option_names": {opt: {"rank": idx} for idx, opt in enumerate(ADDITIONAL_OPTIONS)}},
+    "Beta Options": {"option_names": {opt: {"rank": idx} for idx, opt in enumerate(BETA_OPTIONS)}},
     "Other Options": {"option_names": {opt: {"rank": idx} for idx, opt in enumerate(OTHER_OPTIONS)}},
 }

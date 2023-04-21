@@ -31,6 +31,7 @@ class TestDeployCommand(unittest.TestCase):
             MockParams(rv=("--stack-name", ""), name="stack_name"),
             MockParams(rv=("--no-execute-changeset", ""), name="no_execute_changeset"),
             MockParams(rv=("--guided", ""), name="guided"),
+            MockParams(rv=("--beta-features", ""), name="beta_features"),
         ]
 
         cmd = DeployCommand(name="deploy", requires_credentials=False, description=DESCRIPTION)
@@ -39,6 +40,7 @@ class TestDeployCommand(unittest.TestCase):
             "Additional Options": [("", ""), ("--signing-profiles", ""), ("", "")],
             "Deployment Options": [("", ""), ("--no-execute-changeset", ""), ("", "")],
             "Configuration Options": [("", ""), ("--config-file", ""), ("", "")],
+            "Beta Options": [("", ""), ("--beta-features", ""), ("", "")],
             "Other Options": [("", ""), ("--debug", ""), ("", "")],
             "Required Options": [("", ""), ("--stack-name", ""), ("", "")],
             "Infrastructure Options": [("", ""), ("--s3-bucket", ""), ("", "")],
