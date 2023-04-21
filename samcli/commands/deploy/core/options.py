@@ -3,6 +3,7 @@ Deploy Command Options related Datastructures for formatting.
 """
 from typing import Dict, List
 
+from samcli.cli.core.options import ALL_COMMON_OPTIONS, add_common_options_info
 from samcli.cli.row_modifiers import RowDefinition
 
 # The ordering of the option lists matter, they are the order in which options will be displayed.
@@ -46,10 +47,6 @@ ADDITIONAL_OPTIONS: List[str] = [
     "use_json",
 ]
 
-BETA_OPTIONS: List[str] = ["beta_features"]
-
-OTHER_OPTIONS: List[str] = ["debug"]
-
 ALL_OPTIONS: List[str] = (
     REQUIRED_OPTIONS
     + INTERACTIVE_OPTIONS
@@ -58,8 +55,7 @@ ALL_OPTIONS: List[str] = (
     + DEPLOYMENT_OPTIONS
     + CONFIGURATION_OPTION_NAMES
     + ADDITIONAL_OPTIONS
-    + BETA_OPTIONS
-    + OTHER_OPTIONS
+    + ALL_COMMON_OPTIONS
 )
 
 OPTIONS_INFO: Dict[str, Dict] = {
@@ -88,6 +84,5 @@ OPTIONS_INFO: Dict[str, Dict] = {
         ],
     },
     "Additional Options": {"option_names": {opt: {"rank": idx} for idx, opt in enumerate(ADDITIONAL_OPTIONS)}},
-    "Beta Options": {"option_names": {opt: {"rank": idx} for idx, opt in enumerate(BETA_OPTIONS)}},
-    "Other Options": {"option_names": {opt: {"rank": idx} for idx, opt in enumerate(OTHER_OPTIONS)}},
 }
+add_common_options_info(OPTIONS_INFO)
