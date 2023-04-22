@@ -28,7 +28,7 @@ class TestSyncAdlCasesWithCodeParameter(TestSyncCodeBase):
         # update app.py with updated response
         self.update_file(
             self.test_data_path.joinpath("code", "after", "python_function_no_deps", "app_without_numpy.py"),
-            TestSyncCode.temp_dir.joinpath("python_function_no_deps", "app.py"),
+            self.test_data_path.joinpath("code", "before", "python_function_no_deps", "app.py"),
         )
         # Run code sync
         sync_command_list = self.get_sync_command_list(
@@ -38,13 +38,12 @@ class TestSyncAdlCasesWithCodeParameter(TestSyncCodeBase):
             resource_id_list=["HelloWorldFunction"],
             dependency_layer=True,
             stack_name=TestSyncCode.stack_name,
-            parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
         )
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
 
         # Confirm lambda returns updated response
@@ -55,7 +54,7 @@ class TestSyncAdlCasesWithCodeParameter(TestSyncCodeBase):
         # update app.py with some dependency which is missing in requirements.txt
         self.update_file(
             self.test_data_path.joinpath("code", "after", "python_function_no_deps", "app_with_numpy.py"),
-            TestSyncCode.temp_dir.joinpath("python_function_no_deps", "app.py"),
+            self.test_data_path.joinpath("code", "before", "python_function_no_deps", "app.py"),
         )
         # Run code sync
         sync_command_list = self.get_sync_command_list(
@@ -65,13 +64,12 @@ class TestSyncAdlCasesWithCodeParameter(TestSyncCodeBase):
             resource_id_list=["HelloWorldFunction"],
             dependency_layer=True,
             stack_name=TestSyncCode.stack_name,
-            parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
         )
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
 
         # confirm that lambda execution will fail
@@ -81,7 +79,7 @@ class TestSyncAdlCasesWithCodeParameter(TestSyncCodeBase):
         # finally, update requirements.txt with missing dependency
         self.update_file(
             self.test_data_path.joinpath("code", "after", "python_function_no_deps", "requirements.txt"),
-            TestSyncCode.temp_dir.joinpath("python_function_no_deps", "requirements.txt"),
+            self.test_data_path.joinpath("code", "before", "python_function_no_deps", "requirements.txt"),
         )
         # Run code sync
         sync_command_list = self.get_sync_command_list(
@@ -91,13 +89,12 @@ class TestSyncAdlCasesWithCodeParameter(TestSyncCodeBase):
             resource_id_list=["HelloWorldFunction"],
             dependency_layer=True,
             stack_name=TestSyncCode.stack_name,
-            parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
         )
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
         lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
 
@@ -109,11 +106,9 @@ class TestSyncAdlCasesWithCodeParameter(TestSyncCodeBase):
 
 @skipIf(SKIP_SYNC_TESTS or IS_WINDOWS, "Skip sync tests in CI/CD only")
 class TestSyncAdlWithWatchStartWithNoDependencies(TestSyncWatchBase):
-    @classmethod
-    def setUpClass(cls):
-        cls.template_before = os.path.join("code", "before", "template-python-no-dependencies.yaml")
-        cls.dependency_layer = True
-        super().setUpClass()
+    template_before = os.path.join("code", "before", "template-python-no-dependencies.yaml")
+    folder = "code"
+    dependency_layer = True
 
     def run_initial_infra_validation(self):
         self.stack_resources = self._get_stacks(self.stack_name)
@@ -128,8 +123,8 @@ class TestSyncAdlWithWatchStartWithNoDependencies(TestSyncWatchBase):
 
         # change lambda with another output
         self.update_file(
-            self.test_dir.joinpath("code", "after", "python_function_no_deps", "app_without_numpy.py"),
-            self.test_dir.joinpath("code", "before", "python_function_no_deps", "app.py"),
+            self.test_data_path.joinpath("code", "after", "python_function_no_deps", "app_without_numpy.py"),
+            self.test_data_path.joinpath("code", "before", "python_function_no_deps", "app.py"),
         )
         read_until_string(
             self.watch_process,
@@ -142,8 +137,8 @@ class TestSyncAdlWithWatchStartWithNoDependencies(TestSyncWatchBase):
 
         # change lambda with import with missing dependency
         self.update_file(
-            self.test_dir.joinpath("code", "after", "python_function_no_deps", "app_with_numpy.py"),
-            self.test_dir.joinpath("code", "before", "python_function_no_deps", "app.py"),
+            self.test_data_path.joinpath("code", "after", "python_function_no_deps", "app_with_numpy.py"),
+            self.test_data_path.joinpath("code", "before", "python_function_no_deps", "app.py"),
         )
         read_until_string(
             self.watch_process,
@@ -154,8 +149,8 @@ class TestSyncAdlWithWatchStartWithNoDependencies(TestSyncWatchBase):
 
         # add dependency and confirm it executes as expected
         self.update_file(
-            self.test_dir.joinpath("code", "after", "python_function_no_deps", "requirements.txt"),
-            self.test_dir.joinpath("code", "before", "python_function_no_deps", "requirements.txt"),
+            self.test_data_path.joinpath("code", "after", "python_function_no_deps", "requirements.txt"),
+            self.test_data_path.joinpath("code", "before", "python_function_no_deps", "requirements.txt"),
         )
         read_until_string(
             self.watch_process,
@@ -186,14 +181,13 @@ class TestDisableAdlForEsbuildFunctions(SyncIntegBase):
             watch=False,
             dependency_layer=self.dependency_layer,
             stack_name=stack_name,
-            parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
             capabilities_list=["CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND"],
             tags="integ=true clarity=yes foo_bar=baz",
         )
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
         self.assertIn("Sync infra completed.", str(sync_process_execute.stderr))
 

@@ -19,7 +19,7 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # 8: Infrastructure event management - Use case
-        # 3: Java Runtime (java11)
+        # 4: Java Runtime (java11)
         # 2: Maven
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
@@ -32,7 +32,7 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
         user_input = """
 1
 8
-3
+4
 2
 2
 N
@@ -60,7 +60,7 @@ Y
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # 8: Infrastructure event management - Use case
-        # 3: Java Runtime
+        # 4: Java Runtime
         # 2: Maven
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
@@ -72,7 +72,7 @@ Y
         user_input = """
 1
 8
-3
+4
 2
 2
 N
@@ -110,7 +110,7 @@ Y
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # 8: Infrastructure event management - Use case
-        # 3: Java Runtime
+        # 4: Java Runtime
         # 2: Maven
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
@@ -124,7 +124,7 @@ Y
         user_input = """
 1
 8
-3
+4
 2
 2
 N
@@ -153,7 +153,7 @@ P
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # 8: Infrastructure event management - Use case
-        # 3: Java Runtime
+        # 4: Java Runtime
         # 2: Maven
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
@@ -165,7 +165,7 @@ P
         user_input = """
 1
 8
-3
+4
 2
 2
 N
@@ -203,7 +203,7 @@ Y
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # 8: Infrastructure event management - Use case
-        # 6: Python 3.8
+        # 7: Python 3.9
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
         # eb-app-python38: response to name
@@ -214,7 +214,7 @@ Y
         user_input = """
 1
 8
-6
+7
 2
 N
 N
@@ -273,7 +273,7 @@ Y
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # 8: Infrastructure event management - Use case
-        # 6: Python 3.8
+        # 7: Python 3.9
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
         # eb-app-python38: response to name
@@ -286,7 +286,7 @@ Y
         user_input = """
 1
 8
-6
+7
 2
 N
 N
@@ -313,7 +313,7 @@ us-east-1
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # 8: Infrastructure event management - Use case
-        # 6: Python 3.8
+        # 7: Python 3.9
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
         # eb-app-python38: response to name
@@ -324,7 +324,7 @@ us-east-1
         user_input = """
 1
 8
-6
+7
 2
 N
 N

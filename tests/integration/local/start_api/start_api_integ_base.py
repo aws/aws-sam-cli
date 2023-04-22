@@ -31,6 +31,8 @@ class StartApiIntegBaseClass(TestCase):
     build_before_invoke = False
     build_overrides: Optional[Dict[str, str]] = None
 
+    do_collect_cmd_init_output: bool = False
+
     @classmethod
     def setUpClass(cls):
         # This is the directory for tests/integration which will be used to file the testdata
@@ -97,9 +99,10 @@ class StartApiIntegBaseClass(TestCase):
             for image in cls.invoke_image:
                 command_list += ["--invoke-image", image]
 
-        cls.start_api_process = Popen(command_list, stderr=PIPE)
-
-        wait_for_local_process(cls.start_api_process, cls.port)
+        cls.start_api_process = Popen(command_list, stderr=PIPE, stdout=PIPE)
+        cls.start_api_process_output = wait_for_local_process(
+            cls.start_api_process, cls.port, collect_output=cls.do_collect_cmd_init_output
+        )
 
         cls.stop_reading_thread = False
 
@@ -129,11 +132,15 @@ class StartApiIntegBaseClass(TestCase):
             return fp.read()
 
 
-class WatchWarmContainersIntegBaseClass(StartApiIntegBaseClass):
+class WritableStartApiIntegBaseClass(StartApiIntegBaseClass):
     temp_path: Optional[str] = None
     template_path: Optional[str] = None
     code_path: Optional[str] = None
     docker_file_path: Optional[str] = None
+
+    template_content: Optional[str] = None
+    code_content: Optional[str] = None
+    docker_file_content: Optional[str] = None
 
     @classmethod
     def setUpClass(cls):

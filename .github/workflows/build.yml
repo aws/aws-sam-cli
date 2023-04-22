@@ -117,7 +117,7 @@ jobs:
         if: contains(matrix.test_folder, 'buildcmd')
         with:
           distribution: 'corretto'
-          java-version: '11'
+          java-version: '17'
        # Install and configure Rust
       - name: Install rustup
         if: ${{ contains(matrix.test_folder, 'buildcmd') && matrix.os == 'ubuntu-latest' }}
