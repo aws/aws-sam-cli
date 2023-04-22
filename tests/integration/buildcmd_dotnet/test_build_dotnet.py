@@ -67,7 +67,8 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         if mode:
             newenv["SAM_BUILD_MODE"] = mode
 
-        run_command(cmdlist, cwd=self.working_dir, env=newenv)
+        command_result = run_command(cmdlist, cwd=self.working_dir, env=newenv)
+        self.assertEqual(command_result.process.returncode, 0)
 
         self._verify_built_artifact(
             self.default_build_dir,
@@ -141,7 +142,8 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         if mode:
             newenv["SAM_BUILD_MODE"] = mode
 
-        run_command(cmdlist, cwd=self.working_dir, env=newenv)
+        command_result = run_command(cmdlist, cwd=self.working_dir, env=newenv)
+        self.assertEqual(command_result.process.returncode, 0)
 
         self._verify_built_artifact(
             self.default_build_dir,
@@ -218,7 +220,8 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
 
         # mock user input to mount with write
         user_click_confirm_input = "y"
-        run_command_with_input(cmdlist, user_click_confirm_input.encode(), cwd=self.working_dir)
+        command_result = run_command_with_input(cmdlist, user_click_confirm_input.encode(), cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
 
         self._verify_built_artifact(
             self.default_build_dir,

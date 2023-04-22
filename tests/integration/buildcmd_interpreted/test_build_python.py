@@ -255,7 +255,8 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
 
         LOG.info("Running Command: ")
         LOG.info(cmdlist)
-        run_command(cmdlist, cwd=self.working_dir)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
 
         self._verify_image_build_artifact(
             self.built_template,
@@ -283,7 +284,8 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
 
         LOG.info("Running Command: ")
         LOG.info(cmdlist)
-        run_command(cmdlist, cwd=self.working_dir)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
 
         self._verify_image_build_artifact(
             self.built_template,
@@ -312,7 +314,8 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
         LOG.info(cmdlist)
 
         _num_of_containers_before_build = self.get_number_of_created_containers()
-        run_command(cmdlist, cwd=self.working_dir)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
         _num_of_containers_after_build = self.get_number_of_created_containers()
 
         self._verify_image_build_artifact(
@@ -363,7 +366,8 @@ class TestBuildCommand_PythonFunctions_ImagesWithSharedCode(BuildIntegBase):
 
         LOG.info("Running Command: ")
         LOG.info(cmdlist)
-        run_command(cmdlist, cwd=self.working_dir)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
 
         self._verify_image_build_artifact(
             self.built_template,
@@ -397,7 +401,8 @@ class TestBuildCommand_PythonFunctions_ImagesWithSharedCode(BuildIntegBase):
         LOG.info(cmdlist)
 
         _num_of_containers_before_build = self.get_number_of_created_containers()
-        run_command(cmdlist, cwd=self.working_dir)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
         _num_of_containers_after_build = self.get_number_of_created_containers()
 
         self._verify_image_build_artifact(

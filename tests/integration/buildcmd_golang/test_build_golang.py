@@ -103,7 +103,6 @@ class TestBuildCommand_Go_Modules_With_Specified_Architecture(BuildIntegGoBase):
         self._test_with_go(runtime, code_uri, mode, self.test_data_path, architecture)
 
     @parameterized.expand([("go1.x", "Go", "unknown_architecture")])
-    @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
     @pytest.mark.flaky(reruns=3)
     def test_go_must_fail_with_unknown_architecture(self, runtime, code_uri, architecture):
         overrides = {"Runtime": runtime, "CodeUri": code_uri, "Handler": "hello-world", "Architectures": architecture}
