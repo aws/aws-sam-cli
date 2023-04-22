@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import posixpath
 import shutil
@@ -21,6 +22,8 @@ from tests.testing_utils import (
     SKIP_DOCKER_TESTS,
     get_sam_command,
 )
+
+LOG = logging.getLogger(__name__)
 
 
 class BuildIntegBase(TestCase):
