@@ -60,6 +60,9 @@ install:
   - "choco install make"
   # setup Java, Maven and Gradle
   - "choco install gradle -y --force"
+  - 'set JAVA_HOME=C:\Program Files\Java\jdk17'
+  - 'set PATH=%JAVA_HOME%\bin;%PATH%'
+  - "javac -version"
   - "java -version"
   - "gradle -v"
   - "mvn --version"
@@ -254,7 +257,7 @@ for:
       - "git --version"
       - "venv\\Scripts\\activate"
       - "docker system prune -a -f"
-      - ps: "pytest -vv tests/integration/deploy -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-deploy.json"
+      - ps: "pytest -vv tests/integration/deploy -n 4 --reruns 4 --dist=loadgroup --json-report --json-report-file=TEST_REPORT-integration-deploy.json"
 
   # Integ testing package
   - matrix:
@@ -290,7 +293,7 @@ for:
       - "git --version"
       - "venv\\Scripts\\activate"
       - "docker system prune -a -f"
-      - ps: "pytest -vv tests/integration/sync --json-report --json-report-file=TEST_REPORT-integration-sync.json"
+      - ps: "pytest -vv tests/integration/sync -n 3 --reruns 3 --dist loadscope --json-report --json-report-file=TEST_REPORT-integration-sync.json"
 
   #Integ testing local
   - matrix:

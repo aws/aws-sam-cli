@@ -1,0 +1,68 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+  Function:
+    Timeout: 3
+    MemorySize: 128
+
+Parameters:
+  AuthOverride:
+    Default: Token
+    Type: String
+  AuthHandler:
+    Default: app.auth_handler
+    Type: String
+
+Resources:
+  TestServerlessRestApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: api
+      Auth:
+        DefaultAuthorizer: Token
+        Authorizers:
+          Token:
+            FunctionPayloadType: TOKEN
+            FunctionArn: !GetAtt AuthorizerFunction.Arn
+            Identity:
+              Header: header
+          Request:
+            FunctionPayloadType: REQUEST
+            FunctionArn: !GetAtt AuthorizerFunction.Arn
+            Identity:
+              Headers:
+                - header
+              QueryStrings: 
+                - query
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./
+      Handler: app.lambda_handler
+      Runtime: python3.8
+      Architectures:
+        - x86_64
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Auth:
+              Authorizer: !Ref AuthOverride
+            Path: /requestauthorizer
+            Method: get
+            RestApiId: !Ref TestServerlessRestApi
+  AuthorizerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./
+      Handler: !Ref AuthHandler
+      Runtime: python3.8
+      Architectures:
+        - x86_64
+  AuthorizerPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref AuthorizerFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com

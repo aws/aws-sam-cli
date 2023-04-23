@@ -158,7 +158,7 @@ def _get_runtime_from_image(image: str) -> Optional[str]:
     if match is None:
         return None
     runtime, base = match.groups()
-    if base != "":
+    if base:
         return f"{runtime} ({base})"
     return runtime
 

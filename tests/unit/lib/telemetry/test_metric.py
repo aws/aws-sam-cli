@@ -496,20 +496,38 @@ class TestMetric(TestCase):
     def tearDown(self):
         pass
 
-    @parameterized.expand([(CICDPlatform.Appveyor, "Appveyor", "ci"), (None, "CLI", False)])
+    @parameterized.expand(
+        [
+            (CICDPlatform.Appveyor, "Appveyor", "ci", None),
+            (None, "CLI", False, None),
+            (None, "CLI", False, "AWS-Toolkit-For-VSCode/1.62.0"),
+        ]
+    )
     @patch("samcli.lib.telemetry.metric.CICDDetector.platform")
+    @patch("samcli.lib.telemetry.metric.get_user_agent_string")
     @patch("samcli.lib.telemetry.metric.platform")
     @patch("samcli.lib.telemetry.metric.Context")
     @patch("samcli.lib.telemetry.metric.GlobalConfig")
     @patch("samcli.lib.telemetry.metric.uuid")
     def test_must_add_common_attributes(
-        self, cicd_platform, execution_env, ci, uuid_mock, gc_mock, context_mock, platform_mock, cicd_platform_mock
+        self,
+        cicd_platform,
+        execution_env,
+        ci,
+        user_agent,
+        uuid_mock,
+        gc_mock,
+        context_mock,
+        platform_mock,
+        get_user_agent_mock,
+        cicd_platform_mock,
     ):
         request_id = uuid_mock.uuid4.return_value = "fake requestId"
         installation_id = gc_mock.return_value.installation_id = "fake installation id"
         session_id = context_mock.get_current_context.return_value.session_id = "fake installation id"
         python_version = platform_mock.python_version.return_value = "8.8.0"
         cicd_platform_mock.return_value = cicd_platform
+        get_user_agent_mock.return_value = user_agent
 
         metric = Metric("metric_name")
 
@@ -518,6 +536,8 @@ class TestMetric(TestCase):
         assert metric.get_data()["sessionId"] == session_id
         assert metric.get_data()["executionEnvironment"] == execution_env
         assert metric.get_data()["ci"] == bool(ci)
+        if user_agent:
+            assert metric.get_data()["userAgent"] == user_agent
         assert metric.get_data()["pyversion"] == python_version
         assert metric.get_data()["samcliVersion"] == samcli.__version__
 

@@ -4,12 +4,14 @@ on:
   pull_request:
     branches:
       - develop
-      - "feat*"
+      - "feat/*"
+      - "feat-*"
   merge_group:
     types: [ checks_requested ]
     branches:
       - develop
-      - "feat*"
+      - "feat/*"
+      - "feat-*"
 
 jobs:
   run-workflow:
@@ -118,7 +120,7 @@ jobs:
       - uses: actions/setup-java@v3
         with:
           distribution: 'corretto'
-          java-version: '11'
+          java-version: '17'
        # Install and configure Rust
       - name: Install rustup
         run: |
