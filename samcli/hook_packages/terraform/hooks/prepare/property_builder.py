@@ -12,6 +12,7 @@ from samcli.hook_packages.terraform.hooks.prepare.types import (
 )
 from samcli.lib.hook.exceptions import PrepareHookException
 from samcli.lib.utils.packagetype import IMAGE, ZIP
+from samcli.lib.utils.resources import AWS_APIGATEWAY_METHOD as CFN_AWS_APIGATEWAY_METHOD
 from samcli.lib.utils.resources import AWS_APIGATEWAY_RESOURCE as CFN_AWS_APIGATEWAY_RESOURCE
 from samcli.lib.utils.resources import AWS_APIGATEWAY_RESTAPI as CFN_AWS_APIGATEWAY_RESTAPI
 from samcli.lib.utils.resources import AWS_APIGATEWAY_STAGE as CFN_AWS_APIGATEWAY_STAGE
@@ -25,6 +26,7 @@ TF_AWS_LAMBDA_LAYER_VERSION = "aws_lambda_layer_version"
 TF_AWS_API_GATEWAY_RESOURCE = "aws_api_gateway_resource"
 TF_AWS_API_GATEWAY_REST_API = "aws_api_gateway_rest_api"
 TF_AWS_API_GATEWAY_STAGE = "aws_api_gateway_stage"
+TF_AWS_API_GATEWAY_METHOD = "aws_api_gateway_method"
 
 
 def _build_code_property(tf_properties: dict, resource: TFResource) -> Any:
@@ -241,6 +243,13 @@ AWS_API_GATEWAY_RESOURCE_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
     "PathPart": _get_property_extractor("path_part"),
 }
 
+AWS_API_GATEWAY_METHOD_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
+    "RestApiId": _get_property_extractor("rest_api_id"),
+    "ResourceId": _get_property_extractor("resource_id"),
+    "HttpMethod": _get_property_extractor("http_method"),
+    "OperationName": _get_property_extractor("operation_name"),
+}
+
 RESOURCE_TRANSLATOR_MAPPING: Dict[str, ResourceTranslator] = {
     TF_AWS_LAMBDA_FUNCTION: ResourceTranslator(CFN_AWS_LAMBDA_FUNCTION, AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING),
     TF_AWS_LAMBDA_LAYER_VERSION: ResourceTranslator(
@@ -254,5 +263,8 @@ RESOURCE_TRANSLATOR_MAPPING: Dict[str, ResourceTranslator] = {
     ),
     TF_AWS_API_GATEWAY_RESOURCE: ResourceTranslator(
         CFN_AWS_APIGATEWAY_RESOURCE, AWS_API_GATEWAY_RESOURCE_PROPERTY_BUILDER_MAPPING
+    ),
+    TF_AWS_API_GATEWAY_METHOD: ResourceTranslator(
+        CFN_AWS_APIGATEWAY_METHOD, AWS_API_GATEWAY_METHOD_PROPERTY_BUILDER_MAPPING
     ),
 }
