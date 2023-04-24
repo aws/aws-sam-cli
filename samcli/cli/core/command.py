@@ -42,7 +42,7 @@ class CoreCommand(Command):
         formatting_options: Dict[str, Dict],
         write_rd_overrides: Optional[Dict[str, Any]] = None,
     ):
-        write_rd_overrides = write_rd_overrides if write_rd_overrides else {}
+        write_rd_overrides = write_rd_overrides or {}
         for option_heading, options in formatting_options.items():
             opts: List[RowDefinition] = sorted(
                 [
