@@ -28,11 +28,22 @@ LOG = logging.getLogger(__name__)
 
 
 class SyncIntegBase(BuildIntegBase, PackageIntegBase):
+    test_data_path = None
+
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         PackageIntegBase.setUpClass()
 
-        cls.test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "sync")
+        original_test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "sync")
+        cls.test_data_path = Path(tempfile.mkdtemp())
+        # since dirs_exist_ok=True only supported after py3.7, first delete the parent folder and run copytree after
+        shutil.rmtree(cls.test_data_path)
+        shutil.copytree(original_test_data_path, cls.test_data_path)
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        if cls.test_data_path:
+            shutil.rmtree(cls.test_data_path, ignore_errors=True)
 
     def setUp(self):
         self.cfn_client = boto3.client("cloudformation")
@@ -258,7 +269,10 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
         if profile:
             command_list += ["--profile", str(profile)]
         if parameter_overrides:
-            command_list += ["--parameter-overrides", str(parameter_overrides)]
+            arg_value = " ".join(
+                ["ParameterKey={},ParameterValue={}".format(key, value) for key, value in parameter_overrides.items()]
+            )
+            command_list = command_list + ["--parameter-overrides", arg_value]
         if base_dir:
             command_list += ["-s", str(base_dir)]
         if image_repository:

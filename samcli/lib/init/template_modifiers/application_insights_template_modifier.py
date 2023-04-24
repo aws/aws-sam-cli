@@ -15,7 +15,6 @@ LOG = logging.getLogger(__name__)
 
 
 class ApplicationInsightsTemplateModifier(TemplateModifier):
-
     TYPE_KEY = "Type"
     RESOURCES_KEY = "Resources"
     PROPERTIES_KEY = "Properties"
