@@ -5,6 +5,17 @@ Globals:
   Function:
     Timeout: 10
 
+Parameters:
+  HelloWorldLayerName:
+    Type: String
+    Description: Name of the HelloWorldLayer which will be used with current deployment
+  HelloWorldLayerWithoutBuildMethodName:
+    Type: String
+    Description: Name of the HelloWorldLayerWithoutBuildMethodName which will be used with current deployment
+  HelloWorldPreBuiltZipLayerName:
+    Type: String
+    Description: Name of the HelloWorldPreBuiltZipLayer which will be used with current deployment
+
 Resources:
   HelloWorldFunction:
     Type: AWS::Serverless::Function
@@ -39,7 +50,7 @@ Resources:
   HelloWorldLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      LayerName: HelloWorldLayer
+      LayerName: !Ref HelloWorldLayerName
       Description: Hello World Layer
       ContentUri: layer/
       CompatibleRuntimes:
@@ -50,7 +61,7 @@ Resources:
   HelloWorldLayerWithoutBuildMethod:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      LayerName: HelloWorldLayerWithoutBuild
+      LayerName: !Ref HelloWorldLayerWithoutBuildMethodName
       Description: Hello World Layer without BuildMethod
       ContentUri: layer_without_build_method/
       CompatibleRuntimes:
@@ -59,7 +70,7 @@ Resources:
   HelloWorldPreBuiltZipLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      LayerName: HelloWorldPreBuiltZipLayer
+      LayerName: !Ref HelloWorldPreBuiltZipLayerName
       Description: Hello World Layer which is pre-built as ZIP file
       ContentUri: layer_zip/layer.zip
       CompatibleRuntimes:
