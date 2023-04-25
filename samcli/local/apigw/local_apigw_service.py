@@ -553,7 +553,7 @@ class LocalApigwService(BaseLocalService):
         Parameters
         ----------
         request: Request
-            Flask request object to get method and endpoint
+            Flask request object containing incoming request variables
         route: Route
             the Route object that contains the Lambda Authorizer definition
 
