@@ -1996,9 +1996,9 @@ class TestSamApiUsingAuthorizers(TestCase):
     def test_extract_lambda_authorizers_from_properties(
         self, properties, expected_authorizers, event_type, function_name_mock
     ):
-        logical_id = Mock()
+        logical_id = "mycoolauthorizer"
 
-        function_name_mock.return_value = Mock()
+        function_name_mock.return_value = logical_id
 
         collector_mock = Mock()
         collector_mock.add_authorizers = Mock()

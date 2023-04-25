@@ -5,8 +5,15 @@ Globals:
   Function:
     Timeout: 10
 
+Parameters:
+  HelloWorldLayerName:
+    Type: String
+    Description: Name of the HelloWorldLayer which will be used with current deployment
+
 Resources:
   LocalNestedChildStack:
     Type: AWS::Serverless::Application
     Properties:
       Location: ./template-python.yaml
+      Parameters:
+        HelloWorldLayerName: !Ref HelloWorldLayerName

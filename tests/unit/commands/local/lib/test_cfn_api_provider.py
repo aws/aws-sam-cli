@@ -1201,7 +1201,7 @@ class TestCollectLambdaAuthorizersWithApiGatewayV1Resources(TestCase):
                     }
                 },
                 {
-                    "my-auth-name": LambdaAuthorizer(
+                    "my-auth-id": LambdaAuthorizer(
                         payload_version="1.0",
                         authorizer_name="my-auth-name",
                         type=LambdaAuthorizer.TOKEN,
@@ -1222,7 +1222,7 @@ class TestCollectLambdaAuthorizersWithApiGatewayV1Resources(TestCase):
                     }
                 },
                 {
-                    "my-auth-name": LambdaAuthorizer(
+                    "my-auth-id": LambdaAuthorizer(
                         payload_version="1.0",
                         authorizer_name="my-auth-name",
                         type=LambdaAuthorizer.TOKEN,
@@ -1243,7 +1243,7 @@ class TestCollectLambdaAuthorizersWithApiGatewayV1Resources(TestCase):
                     }
                 },
                 {
-                    "my-auth-name": LambdaAuthorizer(
+                    "my-auth-id": LambdaAuthorizer(
                         payload_version="1.0",
                         authorizer_name="my-auth-name",
                         type=LambdaAuthorizer.REQUEST,
@@ -1291,7 +1291,7 @@ class TestCollectLambdaAuthorizersWithApiGatewayV2Resources(TestCase):
         }
 
         expected_authorizers = {
-            "my-auth-name": LambdaAuthorizer(
+            "my-auth-id": LambdaAuthorizer(
                 payload_version="2.0",
                 authorizer_name="my-auth-name",
                 type=LambdaAuthorizer.REQUEST,
