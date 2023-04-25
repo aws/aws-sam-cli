@@ -133,15 +133,14 @@ def configuration_callback(cmd_name, option_name, saved_callback, provider, ctx,
     config_dir = getattr(ctx, "samconfig_dir", None) or os.getcwd()
     # If --config-file is an absolute path, use it, if not, start from config_dir
     config_file_path = config_file if os.path.isabs(config_file) else os.path.join(config_dir, config_file)
-    if config_file != DEFAULT_CONFIG_FILE_NAME:
-        try:
-            fd = os.open(config_file_path, os.O_RDONLY | os.O_NONBLOCK)
-        except Exception as exc:
-            error_msg = f"Config file {config_file} does not exist or could not be read!"
-            LOG.debug(error_msg)
-            raise ConfigException(error_msg) from exc
-        else:
-            os.close(fd)
+    if (
+        config_file
+        and config_file != DEFAULT_CONFIG_FILE_NAME
+        and not (Path(config_file_path).absolute().is_file() or Path(config_file_path).absolute().is_fifo())
+    ):
+        error_msg = f"Config file {config_file} does not exist or could not be read!"
+        LOG.debug(error_msg)
+        raise ConfigException(error_msg)
 
     config = get_ctx_defaults(
         cmd_name,
