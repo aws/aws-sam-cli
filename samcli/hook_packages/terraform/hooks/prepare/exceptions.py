@@ -17,7 +17,7 @@ class InvalidResourceLinkingException(UserException):
         UserException.__init__(self, msg)
 
 
-class OneLambdaLayerLinkingLimitationException(UserException):
+class OneResourceLimitationException(UserException):
     fmt = (
         "AWS SAM CLI could not process a Terraform project that contains Lambda functions that are linked to more "
         "than one lambda layer. Layer(s) defined by {layers_list} could not be linked to lambda function {function_id}."

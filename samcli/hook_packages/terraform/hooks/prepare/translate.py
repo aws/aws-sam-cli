@@ -13,6 +13,10 @@ from samcli.hook_packages.terraform.hooks.prepare.constants import (
     SAM_METADATA_RESOURCE_NAME_ATTRIBUTE,
 )
 from samcli.hook_packages.terraform.hooks.prepare.enrich import enrich_resources_and_generate_makefile
+from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
+    LocalVariablesLinkingLimitationException,
+    OneResourceLimitationException,
+)
 from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     REMOTE_DUMMY_VALUE,
     RESOURCE_TRANSLATOR_MAPPING,
@@ -22,9 +26,13 @@ from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     PropertyBuilderMapping,
 )
 from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
+    LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX,
+    LinkerIntrinsics,
+    ResourceLinker,
+    ResourceLinkingPair,
+    ResourcePairExceptions,
     _build_module,
     _get_configuration_address,
-    _link_lambda_function_to_layer,
     _resolve_resource_attribute,
 )
 from samcli.hook_packages.terraform.hooks.prepare.resources.apigw import RESTAPITranslationValidator
@@ -417,18 +425,23 @@ def _link_lambda_functions_to_layers(
     lambda_layers_terraform_resources: Dict[str, Dict]
         Dictionary of all actual terraform layers resources (not configuration resources). The dictionary's key is the
         calculated logical id for each resource
-
-    Returns
-    -------
-    dict
-        The CloudFormation resulting from translating tf_json
     """
-    for config_address, resource in lambda_config_funcs_conf_cfn_resources.items():
-        if config_address in lambda_funcs_conf_cfn_resources:
-            LOG.debug("Linking layers for Lambda function %s", resource.full_address)
-            _link_lambda_function_to_layer(
-                resource, lambda_funcs_conf_cfn_resources[config_address], lambda_layers_terraform_resources
-            )
+    exceptions = ResourcePairExceptions(
+        multiple_resource_linking_exception=OneResourceLimitationException,
+        local_variable_linking_exception=LocalVariablesLinkingLimitationException,
+    )
+    resource_linking_pair = ResourceLinkingPair(
+        source_resource_cfn_resource=lambda_funcs_conf_cfn_resources,
+        source_resource_tf_config=lambda_config_funcs_conf_cfn_resources,
+        destination_resource_tf=lambda_layers_terraform_resources,
+        intrinsic_type=LinkerIntrinsics.Ref,
+        cfn_intrinsic_attribute=None,
+        source_link_field_name="Layers",
+        terraform_link_field_name="layers",
+        terraform_resource_type_prefix=LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX,
+        linking_exceptions=exceptions,
+    )
+    ResourceLinker(resource_linking_pair).link_resources()
 
 
 def _map_s3_sources_to_functions(
