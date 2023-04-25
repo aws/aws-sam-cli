@@ -14,8 +14,8 @@ from samcli.hook_packages.terraform.hooks.prepare.constants import (
 )
 from samcli.hook_packages.terraform.hooks.prepare.enrich import enrich_resources_and_generate_makefile
 from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
-    LocalVariablesLinkingLimitationException,
-    OneResourceLimitationException,
+    FunctionLayerLocalVariablesLinkingLimitationException,
+    OneLambdaLayerLinkingLimitationException,
 )
 from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     REMOTE_DUMMY_VALUE,
@@ -427,8 +427,8 @@ def _link_lambda_functions_to_layers(
         calculated logical id for each resource
     """
     exceptions = ResourcePairExceptions(
-        multiple_resource_linking_exception=OneResourceLimitationException,
-        local_variable_linking_exception=LocalVariablesLinkingLimitationException,
+        multiple_resource_linking_exception=OneLambdaLayerLinkingLimitationException,
+        local_variable_linking_exception=FunctionLayerLocalVariablesLinkingLimitationException,
     )
     resource_linking_pair = ResourceLinkingPair(
         source_resource_cfn_resource=lambda_funcs_conf_cfn_resources,

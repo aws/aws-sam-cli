@@ -7,10 +7,11 @@ from uuid import uuid4
 from parameterized import parameterized
 from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     InvalidResourceLinkingException,
-    OneResourceLimitationException,
     LocalVariablesLinkingLimitationException,
     ONE_LAMBDA_LAYER_LINKING_ISSUE_LINK,
     LOCAL_VARIABLES_SUPPORT_ISSUE_LINK,
+    OneLambdaLayerLinkingLimitationException,
+    FunctionLayerLocalVariablesLinkingLimitationException,
 )
 
 from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
@@ -1062,8 +1063,8 @@ class TestResourceLinking(TestCase):
 class TestResourceLinker(TestCase):
     def setUp(self) -> None:
         self.linker_exceptions = ResourcePairExceptions(
-            multiple_resource_linking_exception=OneResourceLimitationException,
-            local_variable_linking_exception=LocalVariablesLinkingLimitationException,
+            multiple_resource_linking_exception=OneLambdaLayerLinkingLimitationException,
+            local_variable_linking_exception=FunctionLayerLocalVariablesLinkingLimitationException,
         )
         self.sample_resource_linking_pair = ResourceLinkingPair(
             source_resource_cfn_resource=Mock(),
@@ -1119,11 +1120,12 @@ class TestResourceLinker(TestCase):
         resource = Mock()
         resource.full_address = "func_full_address"
         expected_exception = (
-            "AWS SAM CLI could not process a Terraform project that contains Lambda functions that are linked to more than "
-            f"one lambda layer. Layer(s) defined by {dest_resources} could not be linked to lambda function func_full_address."
+            "AWS SAM CLI could not process a Terraform project that contains a source resource that is linked to more than "
+            f"one destination resource. Destination resource(s) defined by {dest_resources} "
+            f"could not be linked to source resource func_full_address."
             f"{os.linesep}Related issue: {ONE_LAMBDA_LAYER_LINKING_ISSUE_LINK}."
         )
-        with self.assertRaises(OneResourceLimitationException) as exc:
+        with self.assertRaises(OneLambdaLayerLinkingLimitationException) as exc:
             resource_linker._handle_linking(resource, source_resources)
         self.assertEqual(exc.exception.args[0], expected_exception)
 
@@ -1169,11 +1171,12 @@ class TestResourceLinker(TestCase):
         resolved_resources = [reference_resolved_resource, constant_value_resolved_resource]
         resource_linker._process_reference_resource_value.return_value = [{"Ref": "Layer1LogicalId"}]
         expected_exception = (
-            "AWS SAM CLI could not process a Terraform project that contains Lambda functions that are linked to more "
-            f"than one lambda layer. Layer(s) defined by {resolved_resources} could not be linked to lambda function "
-            f"func_full_address.{os.linesep}Related issue: {ONE_LAMBDA_LAYER_LINKING_ISSUE_LINK}."
+            "AWS SAM CLI could not process a Terraform project that contains a source resource that is linked to more than "
+            f"one destination resource. Destination resource(s) defined by {resolved_resources} "
+            f"could not be linked to source resource func_full_address."
+            f"{os.linesep}Related issue: {ONE_LAMBDA_LAYER_LINKING_ISSUE_LINK}."
         )
-        with self.assertRaises(OneResourceLimitationException) as exc:
+        with self.assertRaises(OneLambdaLayerLinkingLimitationException) as exc:
             resource_linker._process_resolved_resources(resource, resolved_resources)
         self.assertEqual(exc.exception.args[0], expected_exception)
         resource_linker._process_reference_resource_value.assert_called_with(resource, reference_resolved_resource)
@@ -1191,11 +1194,12 @@ class TestResourceLinker(TestCase):
         resource_linker._process_reference_resource_value.side_effect = [[{"Ref": "Layer1LogicalId"}], []]
 
         expected_exception = (
-            "AWS SAM CLI could not process a Terraform project that contains Lambda functions that are linked to more "
-            f"than one lambda layer. Layer(s) defined by {resolved_resources} could not be linked to lambda function "
-            f"func_full_address.{os.linesep}Related issue: {ONE_LAMBDA_LAYER_LINKING_ISSUE_LINK}."
+            "AWS SAM CLI could not process a Terraform project that contains a source resource "
+            "that is linked to more than one destination resource. Destination resource(s) defined "
+            f"by {resolved_resources} could not be linked to source resource func_full_address."
+            f"{os.linesep}Related issue: {ONE_LAMBDA_LAYER_LINKING_ISSUE_LINK}."
         )
-        with self.assertRaises(OneResourceLimitationException) as exc:
+        with self.assertRaises(OneLambdaLayerLinkingLimitationException) as exc:
             resource_linker._process_resolved_resources(resource, resolved_resources)
         self.assertEqual(exc.exception.args[0], expected_exception)
         resource_linker._process_reference_resource_value.assert_has_calls(
@@ -1218,9 +1222,9 @@ class TestResourceLinker(TestCase):
         resource.full_address = "func_full_address"
         resource_linker = ResourceLinker(self.sample_resource_linking_pair)
         expected_exception = (
-            "AWS SAM CLI could not process a Terraform project that uses local variables to define the Lambda functions "
-            "layers. Layer(s) defined by local.layer_arn could not be linked to lambda function func_full_address."
-            f"{os.linesep}Related issue: {LOCAL_VARIABLES_SUPPORT_ISSUE_LINK}."
+            "AWS SAM CLI could not process a Terraform project that uses local variables to define linked resources. "
+            "Destination resource(s) defined by local.layer_arn could not be linked to destination resource "
+            f"func_full_address.{os.linesep}Related issue: {LOCAL_VARIABLES_SUPPORT_ISSUE_LINK}."
         )
         with self.assertRaises(LocalVariablesLinkingLimitationException) as exc:
             resource_linker._process_reference_resource_value(resource, reference_resolved_resources)

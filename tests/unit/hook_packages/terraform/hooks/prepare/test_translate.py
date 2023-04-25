@@ -3,8 +3,8 @@ import copy
 from unittest.mock import Mock, call, patch, MagicMock
 
 from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
-    OneResourceLimitationException,
-    LocalVariablesLinkingLimitationException,
+    OneLambdaLayerLinkingLimitationException,
+    FunctionLayerLocalVariablesLinkingLimitationException,
 )
 from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     LinkerIntrinsics,
@@ -770,8 +770,8 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         }
         _link_lambda_functions_to_layers(resources, lambda_funcs_config_resources, terraform_layers_resources)
         mock_resource_linking_exceptions.assert_called_once_with(
-            multiple_resource_linking_exception=OneResourceLimitationException,
-            local_variable_linking_exception=LocalVariablesLinkingLimitationException,
+            multiple_resource_linking_exception=OneLambdaLayerLinkingLimitationException,
+            local_variable_linking_exception=FunctionLayerLocalVariablesLinkingLimitationException,
         )
         mock_resource_linking_pair.assert_called_once_with(
             source_resource_cfn_resource=lambda_funcs_config_resources,

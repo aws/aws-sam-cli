@@ -11,7 +11,7 @@ from typing import Dict, List, Optional, Type, Union
 from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     InvalidResourceLinkingException,
     LocalVariablesLinkingLimitationException,
-    OneResourceLimitationException,
+    OneResourceLinkingLimitationException,
 )
 from samcli.hook_packages.terraform.hooks.prepare.types import (
     ConstantValue,
@@ -38,7 +38,7 @@ class LinkerIntrinsics(Enum):
 
 @dataclass
 class ResourcePairExceptions:
-    multiple_resource_linking_exception: Type[OneResourceLimitationException]
+    multiple_resource_linking_exception: Type[OneResourceLinkingLimitationException]
     local_variable_linking_exception: Type[LocalVariablesLinkingLimitationException]
 
 
