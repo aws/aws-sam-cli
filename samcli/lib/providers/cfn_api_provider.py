@@ -145,7 +145,7 @@ class CfnApiProvider(CfnBaseApiProvider):
             validation_string=validation_expression,
         )
 
-        collector.add_authorizers(rest_api_id, {name: lambda_authorizer})
+        collector.add_authorizers(rest_api_id, {logical_id: lambda_authorizer})
 
     @staticmethod
     def _extract_cfn_gateway_v2_authorizer(logical_id: str, resource: dict, collector: ApiCollector) -> None:
@@ -185,7 +185,7 @@ class CfnApiProvider(CfnBaseApiProvider):
             use_simple_response=simple_responses,
         )
 
-        collector.add_authorizers(api_id, {name: lambda_authorizer})
+        collector.add_authorizers(api_id, {logical_id: lambda_authorizer})
 
     @staticmethod
     def _extract_cloud_formation_route(
