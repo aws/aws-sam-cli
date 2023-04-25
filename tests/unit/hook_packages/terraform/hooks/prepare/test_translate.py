@@ -2,6 +2,14 @@
 import copy
 from unittest.mock import Mock, call, patch, MagicMock
 
+from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
+    OneResourceLimitationException,
+    LocalVariablesLinkingLimitationException,
+)
+from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
+    LinkerIntrinsics,
+    LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX,
+)
 from tests.unit.hook_packages.terraform.hooks.prepare.prepare_base import PrepareHookUnitBase
 from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING,
@@ -694,9 +702,12 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         )
         self.assertEqual(translated_cfn_properties, self.expected_cfn_function_properties_with_missing_or_none)
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_lambda_function_to_layer")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._get_configuration_address")
-    def test_link_lambda_functions_to_layers(self, mock_get_configuration_address, mock_link_lambda_function_to_layer):
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.ResourceLinker")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.ResourceLinkingPair")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.ResourcePairExceptions")
+    def test_link_lambda_functions_to_layers(
+        self, mock_resource_linking_exceptions, mock_resource_linking_pair, mock_resource_linker
+    ):
         lambda_funcs_config_resources = {
             "aws_lambda_function.remote_lambda_code": [
                 {
@@ -757,20 +768,22 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
             "aws_lambda_function.root_lambda": TFResource("aws_lambda_function.root_lambda", "", None, {}),
         }
         _link_lambda_functions_to_layers(resources, lambda_funcs_config_resources, terraform_layers_resources)
-        mock_link_lambda_function_to_layer.assert_has_calls(
-            [
-                call(
-                    resources["aws_lambda_function.remote_lambda_code"],
-                    lambda_funcs_config_resources.get("aws_lambda_function.remote_lambda_code"),
-                    terraform_layers_resources,
-                ),
-                call(
-                    resources["aws_lambda_function.root_lambda"],
-                    lambda_funcs_config_resources.get("aws_lambda_function.root_lambda"),
-                    terraform_layers_resources,
-                ),
-            ]
+        mock_resource_linking_exceptions.assert_called_once_with(
+            multiple_resource_linking_exception=OneResourceLimitationException,
+            local_variable_linking_exception=LocalVariablesLinkingLimitationException,
         )
+        mock_resource_linking_pair.assert_called_once_with(
+            source_resource_cfn_resource=lambda_funcs_config_resources,
+            source_resource_tf_config=resources,
+            destination_resource_tf=terraform_layers_resources,
+            intrinsic_type=LinkerIntrinsics.Ref,
+            cfn_intrinsic_attribute=None,
+            source_link_field_name="Layers",
+            terraform_link_field_name="layers",
+            terraform_resource_type_prefix=LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX,
+            linking_exceptions=mock_resource_linking_exceptions(),
+        )
+        mock_resource_linker.assert_called_once_with(mock_resource_linking_pair())
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._calculate_configuration_attribute_value_hash")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._get_s3_object_hash")

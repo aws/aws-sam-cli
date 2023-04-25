@@ -8,9 +8,9 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, List, Optional, Type, Union
 
-from samcli.commands.exceptions import UserException
 from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     InvalidResourceLinkingException,
+    LocalVariablesLinkingLimitationException,
     OneResourceLimitationException,
 )
 from samcli.hook_packages.terraform.hooks.prepare.types import (
@@ -39,7 +39,7 @@ class LinkerIntrinsics(Enum):
 @dataclass
 class ResourcePairExceptions:
     multiple_resource_linking_exception: Type[OneResourceLimitationException]
-    local_variable_linking_exception: Type[UserException]
+    local_variable_linking_exception: Type[LocalVariablesLinkingLimitationException]
 
 
 @dataclass
@@ -131,6 +131,8 @@ class ResourceLinker:
 
         Parameters
         ----------
+        source_tf_resource: TFResource
+            The source Terraform resource.
         resolved_destination_resource: List[Union[ConstantValue, ResolvedReference]]
             The resolved destination resources to be processed for the input source resource.
 
@@ -181,6 +183,8 @@ class ResourceLinker:
 
         Parameters
         ----------
+        cfn_source_resources: TFResource
+            The source CloudFormation resource to be updated.
         destination_resources: List
             The resolved destination resource values that will be used as a value for the mapped CFN resource attribute.
         """
@@ -261,6 +265,8 @@ class ResourceLinker:
 
         Parameters
         ----------
+        source_tf_resource: TFResource
+            The source Terraform resource.
         resolved_destination_resource: ResolvedReference
             The resolved destination resource reference.
 
