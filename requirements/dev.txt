@@ -12,7 +12,7 @@ boto3-stubs[apigateway,cloudformation,ecr,iam,lambda,s3,schemas,secretsmanager,s
 types-pywin32==306.0.0.0
 types-PyYAML==6.0.12
 types-chevron==0.14.2
-types-psutil==5.9.5.1
+types-psutil==5.9.5.12
 types-setuptools==65.4.0.0
 
 # Test requirements
