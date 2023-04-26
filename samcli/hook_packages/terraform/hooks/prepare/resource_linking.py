@@ -215,9 +215,7 @@ class ResourceLinker:
                     cfn_source_resource,
                 )
                 dest_arn = (
-                    self._resource_pair.destination_resource_tf[dest_resource["Ref"]]
-                    .get("values", {})
-                    .get("arn")
+                    self._resource_pair.destination_resource_tf[dest_resource["Ref"]].get("values", {}).get("arn")
                 )
 
                 # The resolved dest resource is a reference to a dest resource
