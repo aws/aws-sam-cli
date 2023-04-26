@@ -215,7 +215,7 @@ class ResourceLinker:
                     cfn_source_resource,
                 )
                 dest_arn = (
-                    self._resource_pair.destination_resource_tf[dest_resource[self._resource_pair.intrinsic_type.value]]
+                    self._resource_pair.destination_resource_tf[dest_resource["Ref"]]
                     .get("values", {})
                     .get("arn")
                 )
@@ -316,7 +316,7 @@ class ResourceLinker:
                 )
             else:
                 tf_dest_resource_full_address = (
-                    f"{self._resource_pair.terraform_resource_type_prefix}" f"{tf_dest_res_name}"
+                    f"{self._resource_pair.terraform_resource_type_prefix}{tf_dest_res_name}"
                 )
             cfn_dest_resource_logical_id = build_cfn_logical_id(tf_dest_resource_full_address)
             LOG.debug(
@@ -333,7 +333,7 @@ class ResourceLinker:
                     "The resource referred by %s can be found in the mapped destination resources",
                     resolved_destination_resource.value,
                 )
-                dest_resources.append({self._resource_pair.intrinsic_type.value: cfn_dest_resource_logical_id})
+                dest_resources.append({"Ref": cfn_dest_resource_logical_id})
             return dest_resources
         # it means the source resource is referring to a wrong destination resource type
         LOG.debug(
