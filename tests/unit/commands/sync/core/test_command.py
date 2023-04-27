@@ -28,6 +28,7 @@ class TestSyncCommand(unittest.TestCase):
             MockParams(rv=("--stack-name", ""), name="stack_name"),
             MockParams(rv=("--resource", ""), name="resource"),
             MockParams(rv=("--s3-bucket", ""), name="s3_bucket"),
+            MockParams(rv=("--beta-features", ""), name="beta_features"),
         ]
 
         cmd = SyncCommand(name="sync", requires_credentials=True, description=DESCRIPTION)
@@ -35,6 +36,7 @@ class TestSyncCommand(unittest.TestCase):
             "AWS Credential Options": [("", ""), ("--region", ""), ("", "")],
             "Acronyms": [("IAM", ""), ("ARN", ""), ("S3", ""), ("SNS", ""), ("ECR", ""), ("KMS", "")],
             "Additional Options": [("", ""), ("--resource", ""), ("", "")],
+            "Beta Options": [("", ""), ("--beta-features", ""), ("", "")],
             "Configuration Options": [("", ""), ("--config-file", ""), ("", "")],
             "Description": [(cmd.description + cmd.description_addendum, "")],
             "Examples": [
