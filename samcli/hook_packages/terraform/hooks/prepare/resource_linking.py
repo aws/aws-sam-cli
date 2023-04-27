@@ -215,7 +215,7 @@ class ResourceLinker:
                     cfn_source_resource,
                 )
                 dest_arn = (
-                    self._resource_pair.destination_resource_tf.get(dest_resource.get("Ref"))
+                    self._resource_pair.destination_resource_tf.get(dest_resource.get("Ref"), {})
                     .get("values", {})
                     .get("arn")
                 )
