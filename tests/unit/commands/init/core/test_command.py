@@ -34,6 +34,7 @@ class TestInitCommand(unittest.TestCase):
         expected_output = {
             "Additional Options": [("", ""), ("--tracing", ""), ("", "")],
             "Application Options": [("", ""), ("--name", ""), ("", "")],
+            "Beta Options": [("", "")],
             "Configuration Options": [("", ""), ("--config-file", ""), ("", "")],
             "Customized Interactive Mode": [
                 ("", ""),
