@@ -1,8 +1,10 @@
+import tempfile
 from unittest import TestCase
 
 from parameterized import parameterized
 
 from samcli.lib.package import utils
+from samcli.lib.package.utils import zip_folder, make_zip
 
 
 class TestPackageUtils(TestCase):
@@ -46,3 +48,16 @@ class TestPackageUtils(TestCase):
     )
     def test_is_not_s3_url(self, url):
         self.assertFalse(utils.is_s3_url(url))
+
+    def test_zip_folder_uses_different_path_for_same_file_in_different_run(self):
+        all_zip_files = set()
+        previous_md5_hash = None
+        for i in range(5):
+            tmp_folder = tempfile.mkdtemp()
+            with zip_folder(tmp_folder, make_zip) as (zip_file, md5_hash):
+                self.assertNotIn(zip_file, all_zip_files, "Each zip file should be unique!")
+                all_zip_files.add(zip_file)
+                if not previous_md5_hash:
+                    previous_md5_hash = md5_hash
+                else:
+                    self.assertEqual(previous_md5_hash, md5_hash)

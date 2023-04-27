@@ -10,6 +10,7 @@ from samcli.lib.utils.resources import (
     AWS_APIGATEWAY_RESOURCE,
     AWS_APIGATEWAY_RESTAPI,
     AWS_APIGATEWAY_STAGE,
+    AWS_APIGATEWAY_METHOD,
 )
 
 
@@ -40,6 +41,7 @@ class PrepareHookUnitBase(TestCase):
         self.apigw_resource_name = "my_resource"
         self.apigw_stage_name = "my_stage"
         self.apigw_rest_api_name = "my_rest_api"
+        self.apigw_method_name = "my_method"
 
         self.tf_function_common_properties: dict = {
             "function_name": self.zip_function_name,
@@ -320,6 +322,11 @@ class PrepareHookUnitBase(TestCase):
             "provider_name": AWS_PROVIDER_NAME,
         }
 
+        self.tf_apigw_method_common_attributes: dict = {
+            "type": "aws_api_gateway_method",
+            "provider_name": AWS_PROVIDER_NAME,
+        }
+
         self.tf_lambda_function_resource_common_attributes: dict = {
             "type": "aws_lambda_function",
             "provider_name": AWS_PROVIDER_NAME,
@@ -514,6 +521,33 @@ class PrepareHookUnitBase(TestCase):
             "Metadata": {"SamResourceId": f"aws_api_gateway_resource.{self.apigw_resource_name}"},
         }
 
+        self.tf_apigw_method_properties: dict = {
+            "rest_api_id": "aws_api_gateway_rest_api.MyDemoAPI.id",
+            "resource_id": "aws_api_gateway_resource.MyDemoResource.id",
+            "http_method": "ANY",
+            "operation_name": "AnyOperation",
+        }
+
+        self.expected_cfn_apigw_method_properties: dict = {
+            "RestApiId": "aws_api_gateway_rest_api.MyDemoAPI.id",
+            "ResourceId": "aws_api_gateway_resource.MyDemoResource.id",
+            "HttpMethod": "ANY",
+            "OperationName": "AnyOperation",
+        }
+
+        self.tf_apigw_method_resource: dict = {
+            **self.tf_apigw_method_common_attributes,
+            "values": self.tf_apigw_method_properties,
+            "address": f"aws_api_gateway_method.{self.apigw_method_name}",
+            "name": self.apigw_method_name,
+        }
+
+        self.expected_cfn_apigw_method: dict = {
+            "Type": AWS_APIGATEWAY_METHOD,
+            "Properties": self.expected_cfn_apigw_method_properties,
+            "Metadata": {"SamResourceId": f"aws_api_gateway_method.{self.apigw_method_name}"},
+        }
+
         self.tf_apigw_stage_properties: dict = {
             "rest_api_id": "aws_api_gateway_rest_api.MyDemoAPI.id",
             "stage_name": "test",
@@ -588,6 +622,7 @@ class PrepareHookUnitBase(TestCase):
                         self.tf_apigw_resource_resource,
                         self.tf_apigw_rest_api_resource,
                         self.tf_apigw_stage_resource,
+                        self.tf_apigw_method_resource,
                     ]
                 }
             }
@@ -601,6 +636,7 @@ class PrepareHookUnitBase(TestCase):
                 f"AwsApiGatewayResourceMyResource{self.mock_logical_id_hash}": self.expected_cfn_apigw_resource,
                 f"AwsApiGatewayRestApiMyRestApi{self.mock_logical_id_hash}": self.expected_cfn_apigw_rest_api,
                 f"AwsApiGatewayStageMyStage{self.mock_logical_id_hash}": self.expected_cfn_apigw_stage_resource,
+                f"AwsApiGatewayMethodMyMethod{self.mock_logical_id_hash}": self.expected_cfn_apigw_method,
             },
         }
 
