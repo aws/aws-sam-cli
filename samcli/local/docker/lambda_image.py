@@ -12,9 +12,11 @@ from pathlib import Path
 from typing import Optional
 
 import docker
-from docker.errors import NotFound as DockerNotFound
 
-from samcli.commands.local.cli_common.user_exceptions import ImageBuildException
+from samcli.commands.local.cli_common.user_exceptions import (
+    DockerDistributionAPIError,
+    ImageBuildException,
+)
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
 from samcli.lib.utils.architecture import has_runtime_multi_arch_image
 from samcli.lib.utils.packagetype import IMAGE, ZIP
@@ -192,6 +194,20 @@ class LambdaImage:
         except docker.errors.ImageNotFound:
             LOG.info("Local image was not found.")
             image_not_found = True
+        except docker.errors.APIError as e:
+            if e.__class__ is docker.errors.NotFound:
+                # A generic "NotFound" is raised when we aren't able to check the image version
+                # for example when the docker daemon's api doesn't support this action.
+                #
+                # See Also: https://github.com/containers/podman/issues/17726
+                LOG.warning(
+                    "Cannot check if base image is current because an unknown 404 error was returned. "
+                    "This might be due to an incompatible Docker engine clone. Consider rerunning "
+                    "with the --skip-pull-image argument to improve speed but may cause you running outdated containers locally."
+                )
+                image_not_found = True
+            else:
+                raise DockerDistributionAPIError("Unknown API error received from docker") from e
 
         # If building a new rapid image, delete older rapid images
         if image_not_found and rapid_image == f"{image_repo}:{tag_prefix}{RAPID_IMAGE_TAG_PREFIX}-{architecture}":
@@ -448,23 +464,7 @@ class LambdaImage:
         if self.skip_pull_image or self.force_image_build:
             return
 
-        # if we can't check to see if the image is up-to-date, warn but don't crash.
-        try:
-            base_image_is_current = self.is_base_image_current(image_name)
-        except DockerNotFound as e:
-            # Assume the base image is the latest because we got a 404 on the API from
-            # the Docker daemon (This is different than the image is missing)
-            # https://github.com/containers/podman/issues/17726
-            LOG.warning(
-                "Cannot check if base image is current because a 404 error was returned from "
-                "the Docker daemon. This might be due to an incompatible Docker engine clone. "
-                "Proceeding with possibly stale image."
-            )
-            LOG.debug("Error 404 response from Docker Engine", exc_info=e)
-            self.skip_pull_image = True
-            return
-
-        if base_image_is_current:
+        if self.is_base_image_current(image_name):
             self.skip_pull_image = True
             LOG.info("Local image is up-to-date")
         else:
