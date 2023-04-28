@@ -1,7 +1,8 @@
 """ Contains the data types used in the TF prepare hook"""
+from abc import ABC
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 
 @dataclass
@@ -96,4 +97,33 @@ class ResourceTranslationValidator:
         Function to be called for resources of a given type used for validating
         the AWS SAM CLI transformation logic for the given resource
         """
+        raise NotImplementedError
+
+
+@dataclass
+class ResourceTranslationProperties:
+    resource: Dict
+    translated_resource: Dict
+    config_resource: TFResource
+    logical_id: str
+    resource_full_address: str
+
+
+class ResourceProperties(ABC):
+    def __init__(self):
+        self.terraform_resources: Dict[str, Dict] = {}
+        self.terraform_config: Dict[str, TFResource] = {}
+        self.cfn_resources: Dict[str, List] = {}
+
+    def collect(self, properties: ResourceTranslationProperties):
+        raise NotImplementedError
+
+
+class CodeResourceProperties(ResourceProperties, ABC):
+    def add_lambda_resources_to_code_map(
+        self,
+        properties: ResourceTranslationProperties,
+        translated_properties: Dict,
+        lambda_resources_to_code_map: Dict[str, List[Tuple[Dict, str]]],
+    ):
         raise NotImplementedError
