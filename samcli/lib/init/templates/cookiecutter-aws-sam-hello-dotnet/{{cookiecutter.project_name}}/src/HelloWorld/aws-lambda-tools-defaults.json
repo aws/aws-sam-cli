@@ -11,9 +11,6 @@
   "profile":"",
   "region" : "",
   "configuration": "Release",
-  {%- if cookiecutter.runtime == 'dotnetcore3.1' %}
-  "framework" : "netcoreapp3.1",
-  {%- endif %}
   "function-runtime":"{{ cookiecutter.runtime }}",
   "function-memory-size" : 256,
   "function-timeout" : 30,

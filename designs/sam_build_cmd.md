@@ -494,7 +494,7 @@ build actions. This section will look like:
     "build": {
         "actions": {
             "java8": "gradle build",
-            "dotnetcore2.1": "./build.sh"
+            "dotnet6": "./build.sh"
         }
     }
 }

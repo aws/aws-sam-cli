@@ -1,5 +1,5 @@
 {
-    "dotnetcore3.1": [
+    "dotnet6": [
         {
             "directory": "template/cookiecutter-aws-sam-hello-dotnet",
             "displayName": "Hello World Example",

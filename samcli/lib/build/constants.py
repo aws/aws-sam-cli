@@ -10,6 +10,7 @@ DEPRECATED_RUNTIMES: Set[str] = {
     "nodejs10.x",
     "dotnetcore2.0",
     "dotnetcore2.1",
+    "dotnetcore3.1",
     "python2.7",
     "python3.6",
     "ruby2.5",

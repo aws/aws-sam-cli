@@ -412,12 +412,6 @@ coverage.xml
 
 # Temporary scratch directory used by the tests
 tests/integration/buildcmd/scratch
-tests/integration/testdata/buildcmd/Dotnetcore2.0/bin
-tests/integration/testdata/buildcmd/Dotnetcore2.0/obj
-tests/integration/testdata/buildcmd/Dotnetcore2.1/bin
-tests/integration/testdata/buildcmd/Dotnetcore2.1/obj
-tests/integration/testdata/buildcmd/Dotnetcore3.1/bin
-tests/integration/testdata/buildcmd/Dotnetcore3.1/obj
 tests/integration/testdata/buildcmd/Dotnet6/bin
 tests/integration/testdata/buildcmd/Dotnet6/obj
 tests/integration/testdata/buildcmd/Dotnet7/bin

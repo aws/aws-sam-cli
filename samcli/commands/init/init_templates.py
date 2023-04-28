@@ -211,17 +211,17 @@ class InitTemplates:
         """
         This method get the manifest cloned from the git repo and preprocessed it.
         Below is the link to manifest:
-        https://github.com/aws/aws-sam-cli-app-templates/blob/master/manifest.json
+        https://github.com/aws/aws-sam-cli-app-templates/blob/master/manifest-v2.json
         The structure of the manifest is shown below:
         {
-            "dotnetcore3.1": [
+            "dotnet6": [
                 {
-                    "directory": "dotnetcore3.1/cookiecutter-aws-sam-hello-dotnet",
+                    "directory": "dotnet6/hello",
                     "displayName": "Hello World Example",
                     "dependencyManager": "cli-package",
                     "appTemplate": "hello-world",
                     "packageType": "Zip",
-                    "useCaseName": "Serverless API"
+                    "useCaseName": "Hello World Example"
                 },
             ]
         }

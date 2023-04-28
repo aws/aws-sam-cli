@@ -64,7 +64,7 @@ class Test_get_workflow_config(TestCase):
         self.assertIn(Event("BuildWorkflowUsed", "dotnet-cli-package"), EventTracker.get_tracked_events())
         self.assertTrue(result.must_mount_with_write_in_container)
 
-    @parameterized.expand([("dotnetcore3.1",), ("dotnet6",), ("provided.al2", "dotnet7")])
+    @parameterized.expand([("dotnet6",), ("provided.al2", "dotnet7")])
     def test_must_mount_with_write_for_dotnet_in_container(self, runtime, specified_workflow=None):
         result = get_workflow_config(runtime, self.code_dir, self.project_dir, specified_workflow)
         self.assertTrue(result.must_mount_with_write_in_container)

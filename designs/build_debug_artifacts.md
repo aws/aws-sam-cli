@@ -16,7 +16,7 @@ We will introduce a way in `sam build` to produce these debuggable artifacts for
 Success criteria for the change
 -------------------------------
 
-1. Artifacts generated will be debuggable for runtimes DotNetCore 2.0 and above. 
+1. Artifacts generated will be debuggable for runtimes DotNet 6.0 and above. 
 
 Out-of-Scope
 ------------

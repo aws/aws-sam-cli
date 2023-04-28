@@ -13,7 +13,7 @@ Resources:
     Properties:
       CodeUri: dotnet/STS
       Handler: STS::STS.Function::FunctionHandler
-      Runtime: dotnetcore3.1
+      Runtime: dotnet6
   GoStsExample:
     Type: AWS::Serverless::Function
     Properties:
