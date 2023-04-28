@@ -98,7 +98,6 @@ SUPPORTED_DEP_MANAGERS: List[str] = list(
 INIT_RUNTIMES = [
     # dotnetcore runtimes in descending order
     "dotnet6",
-    "dotnet5.0",
     "dotnetcore3.1",
     "go1.x",
     # java runtimes in descending order
@@ -126,7 +125,6 @@ INIT_RUNTIMES = [
 
 LAMBDA_IMAGES_RUNTIMES_MAP = {
     "dotnet6": "amazon/dotnet6-base",
-    "dotnet5.0": "amazon/dotnet5.0-base",
     "dotnetcore3.1": "amazon/dotnetcore3.1-base",
     "go1.x": "amazon/go1.x-base",
     "go (provided.al2)": "amazon/go-provided.al2-base",
