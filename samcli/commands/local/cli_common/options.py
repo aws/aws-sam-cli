@@ -46,8 +46,7 @@ def local_common_options(f):
             "--shutdown",
             is_flag=True,
             default=False,
-            help="Emulate a shutdown event after invoke completes, "
-            "in order to test extension handling of shutdown behavior.",
+            help="Emulate a shutdown event after invoke completes, " "to test extension handling of shutdown behavior.",
         ),
         click.option(
             "--container-host",
@@ -174,7 +173,7 @@ def invoke_common_options(f):
                 "-v",
                 envvar="SAM_DOCKER_VOLUME_BASEDIR",
                 help="Specify the location basedir where the SAM template exists. If Docker is running on "
-                "a remote machine, Path of the SAM template must be mounted on the docker machine "
+                "a remote machine, Path of the SAM template must be mounted on the Docker machine "
                 "and modified to match the remote machine.",
             ),
             click.option("--log-file", "-l", help="File to capture output logs."),

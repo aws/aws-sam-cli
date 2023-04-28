@@ -72,7 +72,10 @@ class CoreGenerateEventCommand(CoreCommand, GenerateEventCommand):
             formatter.write_rd([RowDefinition(text="\n")])
             formatter.write_rd([RowDefinition(name=command) for command in self.all_cmds.keys()])
 
-    def format_options(self, ctx: Context, formatter) -> None:
+    def format_options(self, ctx: Context, formatter: RootCommandHelpTextFormatter) -> None:  # type: ignore
+        # NOTE(sriram-mv): `ignore` is put in place here for mypy even though it is the correct behavior,
+        # as the `formatter_class` can be set in subclass of Command. If ignore is not set,
+        # mypy raises argument needs to be HelpFormatter as super class defines it.
         self.format_description(formatter)
         CoreGenerateEventCommand.format_examples(ctx, formatter)
         self.format_commands(ctx, formatter)

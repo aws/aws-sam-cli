@@ -3,6 +3,7 @@ Invoke Command Options related Datastructures for formatting.
 """
 from typing import Dict, List
 
+from samcli.cli.core.options import ALL_COMMON_OPTIONS, add_common_options_info
 from samcli.cli.row_modifiers import RowDefinition
 
 # NOTE(sriram-mv): The ordering of the option lists matter, they are the order
@@ -34,8 +35,6 @@ CONTAINER_OPTION_NAMES: List[str] = [
     "invoke_image",
 ]
 
-BETA_OPTION_NAMES: List[str] = ["beta_features"]
-
 CONFIGURATION_OPTION_NAMES: List[str] = ["config_env", "config_file"]
 
 EXTENSION_OPTIONS: List[str] = ["hook_name", "skip_prepare_infra"]
@@ -52,11 +51,10 @@ ALL_OPTIONS: List[str] = (
     + TEMPLATE_OPTIONS
     + AWS_CREDENTIAL_OPTION_NAMES
     + CONTAINER_OPTION_NAMES
-    + BETA_OPTION_NAMES
     + ARTIFACT_LOCATION_OPTIONS
     + EXTENSION_OPTIONS
     + CONFIGURATION_OPTION_NAMES
-    + OTHER_OPTIONS
+    + ALL_COMMON_OPTIONS
 )
 
 OPTIONS_INFO: Dict[str, Dict] = {
@@ -66,7 +64,6 @@ OPTIONS_INFO: Dict[str, Dict] = {
         "option_names": {opt: {"rank": idx} for idx, opt in enumerate(AWS_CREDENTIAL_OPTION_NAMES)}
     },
     "Container Options": {"option_names": {opt: {"rank": idx} for idx, opt in enumerate(CONTAINER_OPTION_NAMES)}},
-    "Beta Options": {"option_names": {opt: {"rank": idx} for idx, opt in enumerate(BETA_OPTION_NAMES)}},
     "Artifact Location Options": {
         "option_names": {opt: {"rank": idx} for idx, opt in enumerate(ARTIFACT_LOCATION_OPTIONS)}
     },
@@ -81,5 +78,6 @@ OPTIONS_INFO: Dict[str, Dict] = {
             ),
         ],
     },
-    "Other Options": {"option_names": {opt: {"rank": idx} for idx, opt in enumerate(OTHER_OPTIONS)}},
 }
+
+add_common_options_info(OPTIONS_INFO)

@@ -3,6 +3,7 @@ Invoke Start API Command Options related Datastructures for formatting.
 """
 from typing import Dict, List
 
+from samcli.cli.core.options import ALL_COMMON_OPTIONS, add_common_options_info
 from samcli.cli.row_modifiers import RowDefinition
 
 # NOTE(sriram-mv): The ordering of the option lists matter, they are the order
@@ -44,8 +45,6 @@ ARTIFACT_LOCATION_OPTIONS: List[str] = [
     "static_dir",
 ]
 
-OTHER_OPTIONS: List[str] = ["debug"]
-
 ALL_OPTIONS: List[str] = (
     REQUIRED_OPTIONS
     + TEMPLATE_OPTIONS
@@ -53,7 +52,7 @@ ALL_OPTIONS: List[str] = (
     + CONTAINER_OPTION_NAMES
     + ARTIFACT_LOCATION_OPTIONS
     + CONFIGURATION_OPTION_NAMES
-    + OTHER_OPTIONS
+    + ALL_COMMON_OPTIONS
 )
 
 OPTIONS_INFO: Dict[str, Dict] = {
@@ -76,5 +75,6 @@ OPTIONS_INFO: Dict[str, Dict] = {
             ),
         ],
     },
-    "Other Options": {"option_names": {opt: {"rank": idx} for idx, opt in enumerate(OTHER_OPTIONS)}},
 }
+
+add_common_options_info(OPTIONS_INFO)

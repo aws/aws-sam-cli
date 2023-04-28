@@ -3,6 +3,7 @@ Validate Command Options related Datastructures for formatting.
 """
 from typing import Dict, List
 
+from samcli.cli.core.options import ALL_COMMON_OPTIONS, add_common_options_info
 from samcli.cli.row_modifiers import RowDefinition
 
 # NOTE(sriram-mv): The ordering of the option lists matter, they are the order
@@ -18,10 +19,8 @@ LINT_OPTION_NAMES: List[str] = [
 
 CONFIGURATION_OPTION_NAMES: List[str] = ["config_env", "config_file"]
 
-OTHER_OPTIONS: List[str] = ["debug"]
-
 ALL_OPTIONS: List[str] = (
-    REQUIRED_OPTIONS + LINT_OPTION_NAMES + AWS_CREDENTIAL_OPTION_NAMES + CONFIGURATION_OPTION_NAMES + OTHER_OPTIONS
+    REQUIRED_OPTIONS + LINT_OPTION_NAMES + AWS_CREDENTIAL_OPTION_NAMES + CONFIGURATION_OPTION_NAMES + ALL_COMMON_OPTIONS
 )
 
 OPTIONS_INFO: Dict[str, Dict] = {
@@ -40,5 +39,6 @@ OPTIONS_INFO: Dict[str, Dict] = {
             ),
         ],
     },
-    "Other Options": {"option_names": {opt: {"rank": idx} for idx, opt in enumerate(OTHER_OPTIONS)}},
 }
+
+add_common_options_info(OPTIONS_INFO)
