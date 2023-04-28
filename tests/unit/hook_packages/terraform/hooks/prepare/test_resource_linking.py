@@ -7,14 +7,14 @@ from uuid import uuid4
 from parameterized import parameterized
 from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     InvalidResourceLinkingException,
-    OneLambdaLayerLinkingLimitationException,
     LocalVariablesLinkingLimitationException,
     ONE_LAMBDA_LAYER_LINKING_ISSUE_LINK,
     LOCAL_VARIABLES_SUPPORT_ISSUE_LINK,
+    OneLambdaLayerLinkingLimitationException,
+    FunctionLayerLocalVariablesLinkingLimitationException,
 )
 
 from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
-    ResolvedReference,
     _clean_references_list,
     _get_configuration_address,
     _resolve_module_output,
@@ -27,10 +27,11 @@ from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     _build_module_resources_from_configuration,
     _build_module_variables_from_configuration,
     _resolve_resource_attribute,
-    _link_lambda_function_to_layer,
-    _process_resolved_layers,
-    _process_reference_layer_value,
-    _update_mapped_lambda_function_with_resolved_layers,
+    ResourceLinkingPair,
+    ResourcePairExceptions,
+    LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX,
+    LinkerIntrinsics,
+    ResourceLinker,
 )
 from samcli.hook_packages.terraform.hooks.prepare.types import (
     ConstantValue,
@@ -1058,217 +1059,240 @@ class TestResourceLinking(TestCase):
         results = _resolve_resource_attribute(resource, "Layers")
         self.assertEqual(len(results), 0)
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._resolve_resource_attribute")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._process_resolved_layers")
-    @patch(
-        "samcli.hook_packages.terraform.hooks.prepare.resource_linking."
-        "_update_mapped_lambda_function_with_resolved_layers"
-    )
-    def test_link_lambda_function_to_layer_valid_scenario(
-        self,
-        update_mapped_lambda_function_with_resolved_layers_mock,
-        process_resolved_layers_mock,
-        resolve_resource_attribute_mock,
-    ):
-        cfn_functions = Mock()
-        tf_layers = Mock()
-        layers = [Mock()]
-        process_resolved_layers_mock.return_value = layers
-        resolved_layers = Mock()
-        resolve_resource_attribute_mock.return_value = resolved_layers
 
+class TestResourceLinker(TestCase):
+    def setUp(self) -> None:
+        self.linker_exceptions = ResourcePairExceptions(
+            multiple_resource_linking_exception=OneLambdaLayerLinkingLimitationException,
+            local_variable_linking_exception=FunctionLayerLocalVariablesLinkingLimitationException,
+        )
+        self.sample_resource_linking_pair = ResourceLinkingPair(
+            source_resource_cfn_resource=Mock(),
+            source_resource_tf_config=Mock(),
+            destination_resource_tf=Mock(),
+            intrinsic_type=LinkerIntrinsics.Ref,
+            cfn_intrinsic_attribute=None,
+            source_link_field_name="Layers",
+            terraform_link_field_name="layers",
+            terraform_resource_type_prefix=LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX,
+            linking_exceptions=self.linker_exceptions,
+        )
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._resolve_resource_attribute")
+    def test_handle_linking_valid_scenario(self, resolve_resource_attribute_mock):
+        source_resources = Mock()
+        dest_resources = [Mock()]
         resource = Mock()
-        _link_lambda_function_to_layer(resource, cfn_functions, tf_layers)
+
+        resource_linker = ResourceLinker(self.sample_resource_linking_pair)
+
+        resolved_dest_resources = Mock()
+        resolve_resource_attribute_mock.return_value = resolved_dest_resources
+
+        resource_linker._process_resolved_resources = Mock()
+        resource_linker._process_resolved_resources.return_value = dest_resources
+
+        resource_linker._update_mapped_parent_resource_with_resolved_child_resources = Mock()
+
+        resource_linker._handle_linking(resource, source_resources)
+
+        resource_linker._process_resolved_resources.assert_called_with(resource, resolved_dest_resources)
+        resource_linker._update_mapped_parent_resource_with_resolved_child_resources.assert_called_with(
+            source_resources, dest_resources
+        )
         resolve_resource_attribute_mock.assert_called_with(resource, "layers")
-        process_resolved_layers_mock.assert_called_with(resource, resolved_layers, tf_layers)
-        update_mapped_lambda_function_with_resolved_layers_mock.assert_called_with(cfn_functions, layers, tf_layers)
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._resolve_resource_attribute")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._process_resolved_layers")
-    @patch(
-        "samcli.hook_packages.terraform.hooks.prepare.resource_linking."
-        "_update_mapped_lambda_function_with_resolved_layers"
-    )
-    def test_link_lambda_function_to_layer_more_than_one_layer_limitation(
-        self,
-        update_mapped_lambda_function_with_resolved_layers_mock,
-        process_resolved_layers_mock,
-        resolve_resource_attribute_mock,
-    ):
-        cfn_functions = Mock()
-        tf_layers = Mock()
-        layers = ["layer2.arn", {"Ref": "layer1_logical_id"}]
-        process_resolved_layers_mock.return_value = layers
-        resolved_layers = [ResolvedReference("aws_lambda_layer_version.layer1.arn", "module.layer1")]
-        resolve_resource_attribute_mock.return_value = resolved_layers
+    def test_handle_linking_multiple_destinations_exception(self, resolve_resource_attribute_mock):
+        source_resources = Mock()
+        dest_resources = ["layer2.arn", {"Ref": "layer1_logical_id"}]
+
+        resource_linker = ResourceLinker(self.sample_resource_linking_pair)
+
+        resource_linker._process_resolved_resources = Mock()
+        resource_linker._process_resolved_resources.return_value = dest_resources
+
+        resource_linker._update_mapped_parent_resource_with_resolved_child_resources = Mock()
+
+        resolved_destination_resources = [ResolvedReference("aws_lambda_layer_version.layer1.arn", "module.layer1")]
+        resolve_resource_attribute_mock.return_value = resolved_destination_resources
+
         resource = Mock()
         resource.full_address = "func_full_address"
         expected_exception = (
-            "AWS SAM CLI could not process a Terraform project that contains Lambda functions that are linked to more than "
-            f"one lambda layer. Layer(s) defined by {layers} could not be linked to lambda function func_full_address."
+            "AWS SAM CLI could not process a Terraform project that contains a source resource that is linked to more than "
+            f"one destination resource. Destination resource(s) defined by {dest_resources} "
+            f"could not be linked to source resource func_full_address."
             f"{os.linesep}Related issue: {ONE_LAMBDA_LAYER_LINKING_ISSUE_LINK}."
         )
         with self.assertRaises(OneLambdaLayerLinkingLimitationException) as exc:
-            _link_lambda_function_to_layer(resource, cfn_functions, tf_layers)
+            resource_linker._handle_linking(resource, source_resources)
         self.assertEqual(exc.exception.args[0], expected_exception)
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._process_reference_layer_value")
-    def test_process_resolved_layers_constant_only(
-        self,
-        process_reference_layer_value_mock,
-    ):
-        tf_layers = Mock()
+    def test_process_resolved_resources_constant_only(self):
         resource = Mock()
-        constant_value_resolved_layer = ConstantValue("layer1.arn")
-        resolved_layers = [constant_value_resolved_layer]
-        layers = _process_resolved_layers(resource, resolved_layers, tf_layers)
-        self.assertEqual(layers, [])
-        process_reference_layer_value_mock.assert_not_called()
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._process_reference_layer_value")
-    def test_process_resolved_layers_references_only(
-        self,
-        process_reference_layer_value_mock,
-    ):
-        tf_layers = Mock()
+        resource_linker = ResourceLinker(self.sample_resource_linking_pair)
+        resource_linker._process_reference_resource_value = Mock()
+
+        constant_value_resolved_resource = ConstantValue("layer1.arn")
+        resolved_resources = [constant_value_resolved_resource]
+
+        destination_resources = resource_linker._process_resolved_resources(resource, resolved_resources)
+
+        self.assertEqual(destination_resources, [])
+        resource_linker._process_reference_resource_value.assert_not_called()
+
+    def test_process_resolved_resources_references_only(self):
         resource = Mock()
+
+        resource_linker = ResourceLinker(self.sample_resource_linking_pair)
+        resource_linker._process_reference_resource_value = Mock()
+
         reference_resolved_layer = ResolvedReference("aws_lambda_layer_version.layer1.arn", "module.layer1")
-        resolved_layers = [reference_resolved_layer]
-        process_reference_layer_value_mock.return_value = [{"Ref": "Layer1LogicalId"}]
-        layers = _process_resolved_layers(resource, resolved_layers, tf_layers)
-        self.assertEqual(layers, [{"Ref": "Layer1LogicalId"}])
-        process_reference_layer_value_mock.assert_called_with(resource, reference_resolved_layer, tf_layers)
+        resolved_resources = [reference_resolved_layer]
+        resource_linker._process_reference_resource_value = Mock()
+        resource_linker._process_reference_resource_value.return_value = [{"Ref": "Layer1LogicalId"}]
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._process_reference_layer_value")
-    def test_process_resolved_layers_mixed_constant_and_references(
-        self,
-        process_reference_layer_value_mock,
-    ):
-        tf_layers = Mock()
+        destination_resources = resource_linker._process_resolved_resources(resource, resolved_resources)
+
+        self.assertEqual(destination_resources, [{"Ref": "Layer1LogicalId"}])
+        resource_linker._process_reference_resource_value.assert_called_with(resource, reference_resolved_layer)
+
+    def test_process_resolved_resources_mixed_constant_and_references(self):
         resource = Mock()
         resource.full_address = "func_full_address"
-        constant_value_resolved_layer = ConstantValue("layer1.arn")
-        reference_resolved_layer = ResolvedReference("aws_lambda_layer_version.layer1.arn", "module.layer1")
-        resolved_layers = [reference_resolved_layer, constant_value_resolved_layer]
-        process_reference_layer_value_mock.return_value = [{"Ref": "Layer1LogicalId"}]
+
+        resource_linker = ResourceLinker(self.sample_resource_linking_pair)
+        resource_linker._process_reference_resource_value = Mock()
+
+        constant_value_resolved_resource = ConstantValue("layer1.arn")
+        reference_resolved_resource = ResolvedReference("aws_lambda_layer_version.layer1.arn", "module.layer1")
+        resolved_resources = [reference_resolved_resource, constant_value_resolved_resource]
+        resource_linker._process_reference_resource_value.return_value = [{"Ref": "Layer1LogicalId"}]
         expected_exception = (
-            "AWS SAM CLI could not process a Terraform project that contains Lambda functions that are linked to more "
-            f"than one lambda layer. Layer(s) defined by {resolved_layers} could not be linked to lambda function "
-            f"func_full_address.{os.linesep}Related issue: {ONE_LAMBDA_LAYER_LINKING_ISSUE_LINK}."
+            "AWS SAM CLI could not process a Terraform project that contains a source resource that is linked to more than "
+            f"one destination resource. Destination resource(s) defined by {resolved_resources} "
+            f"could not be linked to source resource func_full_address."
+            f"{os.linesep}Related issue: {ONE_LAMBDA_LAYER_LINKING_ISSUE_LINK}."
         )
         with self.assertRaises(OneLambdaLayerLinkingLimitationException) as exc:
-            _process_resolved_layers(resource, resolved_layers, tf_layers)
+            resource_linker._process_resolved_resources(resource, resolved_resources)
         self.assertEqual(exc.exception.args[0], expected_exception)
-        process_reference_layer_value_mock.assert_called_with(resource, reference_resolved_layer, tf_layers)
+        resource_linker._process_reference_resource_value.assert_called_with(resource, reference_resolved_resource)
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._process_reference_layer_value")
-    def test_process_resolved_layers_mixed_data_sources_and_references(
-        self,
-        process_reference_layer_value_mock,
-    ):
-        tf_layers = Mock()
+    def test_process_resolved_resources_mixed_data_sources_and_references(self):
         resource = Mock()
         resource.full_address = "func_full_address"
-        data_resources_resolved_layer = ResolvedReference("data.aws_region.current.name", "module.layer1")
-        reference_resolved_layer = ResolvedReference("aws_lambda_layer_version.layer1.arn", "module.layer1")
-        resolved_layers = [reference_resolved_layer, data_resources_resolved_layer]
-        process_reference_layer_value_mock.side_effect = [[{"Ref": "Layer1LogicalId"}], []]
+
+        resource_linker = ResourceLinker(self.sample_resource_linking_pair)
+        resource_linker._process_reference_resource_value = Mock()
+
+        data_resources_resolved_resources = ResolvedReference("data.aws_region.current.name", "module.layer1")
+        reference_resolved_resources = ResolvedReference("aws_lambda_layer_version.layer1.arn", "module.layer1")
+        resolved_resources = [reference_resolved_resources, data_resources_resolved_resources]
+        resource_linker._process_reference_resource_value.side_effect = [[{"Ref": "Layer1LogicalId"}], []]
+
         expected_exception = (
-            "AWS SAM CLI could not process a Terraform project that contains Lambda functions that are linked to more "
-            f"than one lambda layer. Layer(s) defined by {resolved_layers} could not be linked to lambda function "
-            f"func_full_address.{os.linesep}Related issue: {ONE_LAMBDA_LAYER_LINKING_ISSUE_LINK}."
+            "AWS SAM CLI could not process a Terraform project that contains a source resource "
+            "that is linked to more than one destination resource. Destination resource(s) defined "
+            f"by {resolved_resources} could not be linked to source resource func_full_address."
+            f"{os.linesep}Related issue: {ONE_LAMBDA_LAYER_LINKING_ISSUE_LINK}."
         )
         with self.assertRaises(OneLambdaLayerLinkingLimitationException) as exc:
-            _process_resolved_layers(resource, resolved_layers, tf_layers)
+            resource_linker._process_resolved_resources(resource, resolved_resources)
         self.assertEqual(exc.exception.args[0], expected_exception)
-        process_reference_layer_value_mock.assert_has_calls(
+        resource_linker._process_reference_resource_value.assert_has_calls(
             [
-                call(resource, reference_resolved_layer, tf_layers),
-                call(resource, data_resources_resolved_layer, tf_layers),
+                call(resource, reference_resolved_resources),
+                call(resource, data_resources_resolved_resources),
             ]
         )
 
-    def test_process_reference_layer_value_data_resource_reference(self):
-        reference_resolved_layer = ResolvedReference("data.aws_lambda_layer_version.layer1", "module.layer1")
+    def test_process_reference_resource_value_data_resource_reference(self):
+        reference_resolved_resource = ResolvedReference("data.aws_lambda_layer_version.layer1", "module.layer1")
         resource = Mock()
-        tf_layers = Mock()
-        layers = _process_reference_layer_value(resource, reference_resolved_layer, tf_layers)
+        resource_linker = ResourceLinker(self.sample_resource_linking_pair)
+        layers = resource_linker._process_reference_resource_value(resource, reference_resolved_resource)
         self.assertEqual(len(layers), 0)
 
-    def test_process_reference_layer_value_reference_to_local_variables(self):
-        reference_resolved_layer = ResolvedReference("local.layer_arn", "module.layer1")
+    def test_process_reference_resource_value_reference_to_local_variables(self):
+        reference_resolved_resources = ResolvedReference("local.layer_arn", "module.layer1")
         resource = Mock()
         resource.full_address = "func_full_address"
-        tf_layers = Mock()
+        resource_linker = ResourceLinker(self.sample_resource_linking_pair)
         expected_exception = (
-            "AWS SAM CLI could not process a Terraform project that uses local variables to define the Lambda functions "
-            "layers. Layer(s) defined by local.layer_arn could not be linked to lambda function func_full_address."
-            f"{os.linesep}Related issue: {LOCAL_VARIABLES_SUPPORT_ISSUE_LINK}."
+            "AWS SAM CLI could not process a Terraform project that uses local variables to define linked resources. "
+            "Destination resource(s) defined by local.layer_arn could not be linked to destination resource "
+            f"func_full_address.{os.linesep}Related issue: {LOCAL_VARIABLES_SUPPORT_ISSUE_LINK}."
         )
         with self.assertRaises(LocalVariablesLinkingLimitationException) as exc:
-            _process_reference_layer_value(resource, reference_resolved_layer, tf_layers)
+            resource_linker._process_reference_resource_value(resource, reference_resolved_resources)
         self.assertEqual(exc.exception.args[0], expected_exception)
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.build_cfn_logical_id")
-    def test_process_reference_layer_value_reference_to_an_exist_layer_resource(self, build_cfn_logical_id_mock):
+    def test_process_reference_resource_value_reference_to_an_existing_layer_resource(self, build_cfn_logical_id_mock):
         build_cfn_logical_id_mock.return_value = "layer1LogicalId"
         reference_resolved_layer = ResolvedReference("aws_lambda_layer_version.layer.arn", "module.layer1")
         resource = Mock()
-        tf_layers = {"layer1LogicalId": Mock()}
+        resource_linker = ResourceLinker(self.sample_resource_linking_pair)
+        resource_linker._resource_pair.destination_resource_tf = {"layer1LogicalId": Mock()}
 
-        layers = _process_reference_layer_value(resource, reference_resolved_layer, tf_layers)
-        self.assertEqual(len(layers), 1)
-        self.assertEqual(layers[0], {"Ref": "layer1LogicalId"})
+        resources = resource_linker._process_reference_resource_value(resource, reference_resolved_layer)
+        self.assertEqual(len(resources), 1)
+        self.assertEqual(resources[0], {"Ref": "layer1LogicalId"})
         build_cfn_logical_id_mock.assert_called_with("module.layer1.aws_lambda_layer_version.layer")
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.build_cfn_logical_id")
-    def test_process_reference_layer_value_reference_to_non_exist_layer_resource(self, build_cfn_logical_id_mock):
+    def test_process_reference_resource_value_reference_to_non_exist_layer_resource(self, build_cfn_logical_id_mock):
         build_cfn_logical_id_mock.return_value = "layer1LogicalId"
-        reference_resolved_layer = ResolvedReference("aws_lambda_layer_version.layer.arn", None)
+        reference_resolved_resources = ResolvedReference("aws_lambda_layer_version.layer.arn", None)
         resource = Mock()
-        tf_layers = {"layer2LogicalId": Mock()}
+        resource_linker = ResourceLinker(self.sample_resource_linking_pair)
+        resource_linker._resource_pair.destination_resource_tf = {"layer2LogicalId": Mock()}
 
-        layers = _process_reference_layer_value(resource, reference_resolved_layer, tf_layers)
-        self.assertEqual(len(layers), 0)
+        resources = resource_linker._process_reference_resource_value(resource, reference_resolved_resources)
+        self.assertEqual(len(resources), 0)
         build_cfn_logical_id_mock.assert_called_with("aws_lambda_layer_version.layer")
 
     def test_process_reference_layer_value_reference_to_not_layer_resource_arn_property(self):
-        reference_resolved_layer = ResolvedReference("aws_lambda_layer_version.layer.name", None)
+        reference_resolved_resource = ResolvedReference("aws_lambda_layer_version.layer.name", None)
         resource = Mock()
         resource.full_address = "func_full_address"
-        tf_layers = Mock()
         expected_exception = (
             f"An error occurred when attempting to link two resources: Could not use the value "
-            f"aws_lambda_layer_version.layer.name as a Layer for lambda function func_full_address. Lambda Function "
-            f"Layer value should refer to valid lambda layer ARN property"
+            f"aws_lambda_layer_version.layer.name as a destination resource for the source "
+            f"resource func_full_address. The source resource value should refer to valid destination "
+            f"resource ARN property."
         )
+        resource_linker = ResourceLinker(self.sample_resource_linking_pair)
         with self.assertRaises(InvalidResourceLinkingException) as exc:
-            _process_reference_layer_value(resource, reference_resolved_layer, tf_layers)
+            resource_linker._process_reference_resource_value(resource, reference_resolved_resource)
         self.assertEqual(exc.exception.args[0], expected_exception)
 
-    def test_process_reference_layer_value_reference_to_not_layer_resource(self):
-        reference_resolved_layer = ResolvedReference("aws_lambda_layer_version2.layer.arn", None)
+    def test_process_reference_resource_value_reference_to_invalid_destination_resource(self):
+        reference_resolved_resource = ResolvedReference("aws_lambda_layer_version2.layer.arn", None)
         resource = Mock()
         resource.full_address = "func_full_address"
-        tf_layers = Mock()
         expected_exception = (
             f"An error occurred when attempting to link two resources: Could not use the value "
-            f"aws_lambda_layer_version2.layer.arn as a Layer for lambda function func_full_address. Lambda Function "
-            f"Layer value should refer to valid lambda layer ARN property"
+            f"aws_lambda_layer_version2.layer.arn as a destination for the source resource func_full_address. "
+            f"The source resource value should refer to valid destination ARN property."
         )
+        resource_linker = ResourceLinker(self.sample_resource_linking_pair)
         with self.assertRaises(InvalidResourceLinkingException) as exc:
-            _process_reference_layer_value(resource, reference_resolved_layer, tf_layers)
+            resource_linker._process_reference_resource_value(resource, reference_resolved_resource)
         self.assertEqual(exc.exception.args[0], expected_exception)
 
     def test_update_mapped_lambda_function_with_resolved_layers(self):
-        cfn_functions = [
+        cfn_source_resources = [
             {"Type": "AWS::Lambda::Function", "Properties": {"Code": "/path/code1", "Runtime": "Python3.8"}},
             {
                 "Type": "AWS::Lambda::Function",
                 "Properties": {"Code": "/path/code2", "Runtime": "Python3.8", "Layers": ["layer3.arn", "layer1.arn"]},
             },
         ]
-        tf_layers = {
+        tf_destination_resources = {
             "layer1_logical_id": {
                 "address": "aws_lambda_layer_version.layer1",
                 "type": "aws_lambda_layer_version",
@@ -1304,10 +1328,71 @@ class TestResourceLinking(TestCase):
                 },
             },
         }
-        layers = [{"Ref": "layer1_logical_id"}, {"Ref": "layer3_logical_id"}]
-        _update_mapped_lambda_function_with_resolved_layers(cfn_functions, layers, tf_layers)
-        self.assertEqual(cfn_functions[0]["Properties"]["Layers"], layers)
+        destination_resources = [{"Ref": "layer1_logical_id"}, {"Ref": "layer3_logical_id"}]
+        resource_linker = ResourceLinker(self.sample_resource_linking_pair)
+        resource_linker._resource_pair.destination_resource_tf = tf_destination_resources
+        resource_linker._update_mapped_parent_resource_with_resolved_child_resources(
+            cfn_source_resources, destination_resources
+        )
+        self.assertEqual(cfn_source_resources[0]["Properties"]["Layers"], destination_resources)
         self.assertEqual(
-            cfn_functions[1]["Properties"]["Layers"],
+            cfn_source_resources[1]["Properties"]["Layers"],
             ["layer3.arn", {"Ref": "layer1_logical_id"}, {"Ref": "layer3_logical_id"}],
+        )
+
+    def test_link_resources(self):
+        source_config_resources = {
+            "aws_lambda_function.remote_lambda_code": [
+                {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {
+                        "FunctionName": "s3_remote_lambda_function",
+                        "Code": {"S3Bucket": "lambda_code_bucket", "S3Key": "remote_lambda_code_key"},
+                        "Handler": "app.lambda_handler",
+                        "PackageType": "Zip",
+                        "Runtime": "python3.8",
+                        "Timeout": 3,
+                    },
+                    "Metadata": {"SamResourceId": "aws_lambda_function.remote_lambda_code", "SkipBuild": True},
+                }
+            ],
+            "aws_lambda_function.root_lambda": [
+                {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {
+                        "FunctionName": "root_lambda",
+                        "Code": "HelloWorldFunction.zip",
+                        "Handler": "app.lambda_handler",
+                        "PackageType": "Zip",
+                        "Runtime": "python3.8",
+                        "Timeout": 3,
+                    },
+                    "Metadata": {"SamResourceId": "aws_lambda_function.root_lambda", "SkipBuild": True},
+                }
+            ],
+        }
+        resources = {
+            "aws_lambda_function.remote_lambda_code": TFResource(
+                "aws_lambda_function.remote_lambda_code", "", None, {}
+            ),
+            "aws_lambda_function.root_lambda": TFResource("aws_lambda_function.root_lambda", "", None, {}),
+        }
+        resource_linker = ResourceLinker(self.sample_resource_linking_pair)
+        resource_linker._resource_pair.source_resource_cfn_resource = source_config_resources
+        resource_linker._resource_pair.source_resource_tf_config = resources
+        resource_linker._handle_linking = Mock()
+
+        resource_linker.link_resources()
+
+        resource_linker._handle_linking.assert_has_calls(
+            [
+                call(
+                    resources["aws_lambda_function.remote_lambda_code"],
+                    source_config_resources.get("aws_lambda_function.remote_lambda_code"),
+                ),
+                call(
+                    resources["aws_lambda_function.root_lambda"],
+                    source_config_resources.get("aws_lambda_function.root_lambda"),
+                ),
+            ]
         )
