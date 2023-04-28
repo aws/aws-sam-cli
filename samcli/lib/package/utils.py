@@ -225,7 +225,7 @@ def zip_folder(folder_path, zip_method):
         The md5 hash of the directory
     """
     md5hash = dir_checksum(folder_path, followlinks=True)
-    filename = os.path.join(tempfile.gettempdir(), "data-" + md5hash)
+    filename = os.path.join(tempfile.mkdtemp(), "data-" + md5hash)
 
     zipfile_name = zip_method(filename, folder_path)
     try:

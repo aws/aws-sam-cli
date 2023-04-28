@@ -8,11 +8,10 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, List, Optional, Type, Union
 
-from samcli.commands.exceptions import UserException
 from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     InvalidResourceLinkingException,
     LocalVariablesLinkingLimitationException,
-    OneLambdaLayerLinkingLimitationException,
+    OneResourceLinkingLimitationException,
 )
 from samcli.hook_packages.terraform.hooks.prepare.types import (
     ConstantValue,
@@ -37,9 +36,10 @@ class LinkerIntrinsics(Enum):
     GetAtt = "GetAtt"
 
 
-class ResourcePairLinkingExceptions:
-    multiple_resource_linking_exception: Type[UserException]
-    local_variable_linking_exception: Type[UserException]
+@dataclass
+class ResourcePairExceptions:
+    multiple_resource_linking_exception: Type[OneResourceLinkingLimitationException]
+    local_variable_linking_exception: Type[LocalVariablesLinkingLimitationException]
 
 
 @dataclass
@@ -50,50 +50,89 @@ class ResourceLinkingPair:
     intrinsic_type: LinkerIntrinsics
     cfn_intrinsic_attribute: Optional[str]
     source_link_field_name: str
+    terraform_link_field_name: str
     terraform_resource_type_prefix: str
-    linking_exceptions: ResourcePairLinkingExceptions
+    linking_exceptions: ResourcePairExceptions
 
 
 class ResourceLinker:
-    _resource_pairs: List[ResourceLinkingPair]
+    _resource_pair: ResourceLinkingPair
+
+    def __init__(self, resource_pair):
+        self._resource_pair = resource_pair
 
     def link_resources(self):
         """
-        Iterate through all of the ResourceLinkingPair items and link the
-        corresponding source resource to destination resource
+        Validate the ResourceLinkingPair object and link the corresponding source resource to destination resource
         """
+        for config_address, resource in self._resource_pair.source_resource_tf_config.items():
+            if config_address in self._resource_pair.source_resource_cfn_resource:
+                LOG.debug("Linking destination resource for source resource: %s", resource.full_address)
+                self._handle_linking(
+                    resource,
+                    self._resource_pair.source_resource_cfn_resource[config_address],
+                )
 
-    def _update_mapped_parent_resource_with_resolved_child_resources(self, destination_resources: List):
+    def _handle_linking(self, source_tf_resource: TFResource, cfn_source_resources: List[Dict]) -> None:
         """
-        Set the resolved destination resource list to the mapped source resources.
+        Resolve the destinations resource for the input source configuration resource,
+        and then update the equivalent cfn source resource list.
+        The source resource configuration resource in Terraform can match
+        multiple actual resources in case if it was defined using count or for_each pattern.
 
         Parameters
         ----------
-        destination_resources: List
-            The resolved destination resource values that will be used as a value for the mapped CFN resource attribute.
+        source_tf_resource: TFResource
+            The source resource Terraform configuration resource
+
+        cfn_source_resources: List[Dict]
+            A list of mapped source resources that are equivalent to the input terraform configuration source resource
         """
 
-    def _process_reference_resource_value(self, resolved_destination_resource: ResolvedReference):
-        """
-        Process the a reference destination resource value of type ResolvedReference.
+        LOG.debug(
+            "Link resource configuration %s that has these instances %s.",
+            source_tf_resource.full_address,
+            cfn_source_resources,
+        )
+        resolved_dest_resources = _resolve_resource_attribute(
+            source_tf_resource, self._resource_pair.terraform_link_field_name
+        )
+        LOG.debug(
+            "The resolved destination resources for source resource %s are %s",
+            source_tf_resource.full_address,
+            resolved_dest_resources,
+        )
+        dest_resources = self._process_resolved_resources(source_tf_resource, resolved_dest_resources)
 
-        Parameters
-        ----------
-        resolved_destination_resource: ResolvedReference
-            The resolved destination resource reference.
+        # The agreed limitation to support only 1 destination resource.
+        if len(dest_resources) > 1:
+            LOG.debug(
+                "AWS SAM CLI does not support mapping the source resources %s to more than one destination resource.",
+                source_tf_resource.full_address,
+            )
+            raise self._resource_pair.linking_exceptions.multiple_resource_linking_exception(
+                dest_resources, source_tf_resource.full_address
+            )
+        if not dest_resources:
+            LOG.debug(
+                "There are destination resources defined for for the source resource %s",
+                source_tf_resource.full_address,
+            )
+        else:
+            self._update_mapped_parent_resource_with_resolved_child_resources(cfn_source_resources, dest_resources)
 
-        Returns
-        -------
-        List[Dict[str, str]]
-            The resolved values that will be used as a value for the mapped CFN resource attribute.
-        """
-
-    def _process_resolved_resources(self, resolved_destination_resource: List[Union[ConstantValue, ResolvedReference]]):
+    def _process_resolved_resources(
+        self,
+        source_tf_resource: TFResource,
+        resolved_destination_resource: List[Union[ConstantValue, ResolvedReference]],
+    ):
         """
         Process the resolved destination resources.
 
         Parameters
         ----------
+        source_tf_resource: TFResource
+            The source Terraform resource.
         resolved_destination_resource: List[Union[ConstantValue, ResolvedReference]]
             The resolved destination resources to be processed for the input source resource.
 
@@ -102,6 +141,209 @@ class ResourceLinker:
         List[Dict[str, str]]:
             The list of destination resources after processing
         """
+        LOG.debug(
+            "Map the resolved destination resources %s to configuration source resource %s.",
+            resolved_destination_resource,
+            source_tf_resource.full_address,
+        )
+        destination_resources = []
+        does_refer_to_constant_values = False
+        does_refer_to_data_sources = False
+        for resolved_dest_resource in resolved_destination_resource:
+            # Skip ConstantValue destination reference, as it will be already handled by terraform plan command.
+            if isinstance(resolved_dest_resource, ConstantValue):
+                does_refer_to_constant_values = True
+            elif isinstance(resolved_dest_resource, ResolvedReference):
+                processed_dest_resources = self._process_reference_resource_value(
+                    source_tf_resource, resolved_dest_resource
+                )
+                if not processed_dest_resources:
+                    does_refer_to_data_sources = True
+                destination_resources += processed_dest_resources
+
+        if (does_refer_to_constant_values or does_refer_to_data_sources) and len(destination_resources) > 0:
+            LOG.debug(
+                "Source resource %s to is referring to destination resource using an "
+                "expression mixing between constant value or data "
+                "sources and other resources references. AWS SAM CLI "
+                "could not determine this source resources destination.",
+                source_tf_resource.full_address,
+            )
+            raise self._resource_pair.linking_exceptions.multiple_resource_linking_exception(
+                resolved_destination_resource, source_tf_resource.full_address
+            )
+
+        return destination_resources
+
+    def _update_mapped_parent_resource_with_resolved_child_resources(
+        self, cfn_source_resources: List[Dict], destination_resources: List
+    ):
+        """
+        Set the resolved destination resource list to the mapped source resources.
+
+        Parameters
+        ----------
+        cfn_source_resources: TFResource
+            The source CloudFormation resource to be updated.
+        destination_resources: List
+            The resolved destination resource values that will be used as a value for the mapped CFN resource attribute.
+        """
+        LOG.debug(
+            "Set the resolved destination resources %s to the cfn source resources %s",
+            destination_resources,
+            cfn_source_resources,
+        )
+        for cfn_source_resource in cfn_source_resources:
+            LOG.debug("Process the source resource %s", cfn_source_resource)
+            # Add the resolved dest resource list as it is to the mapped
+            # source resource that does not have any dest resources defined
+            if not cfn_source_resource["Properties"].get(self._resource_pair.source_link_field_name):
+                LOG.debug("The source %s does not have any destination resources defined.", cfn_source_resource)
+                cfn_source_resource["Properties"][self._resource_pair.source_link_field_name] = destination_resources
+                continue
+
+            # Check if the the mapped destination resource list contains any
+            # arn value for one of the resolved destination resource to replace it.
+            for dest_resource in destination_resources:
+                # resolve the destination arn string to check if it is already there
+                # in the CFN source resource destination property logical id will be always in terraform values, as we
+                # do not consider the references to destination resources that do not exist in the
+                # terraform planned values list as it means that this destination resource will not be created.
+                LOG.debug(
+                    "Check if the destination resource %s is already defined in source resource % property.",
+                    dest_resource,
+                    cfn_source_resource,
+                )
+                dest_arn = (
+                    self._resource_pair.destination_resource_tf.get(dest_resource.get("Ref"), {})
+                    .get("values", {})
+                    .get("arn")
+                )
+
+                # The resolved dest resource is a reference to a dest resource
+                # which has not yet been applied, so there is no ARN value yet.
+                if not dest_arn:
+                    LOG.debug(
+                        "The destination resource %s is not applied yet, and does not have ARN property.", dest_resource
+                    )
+                    cfn_source_resource["Properties"][self._resource_pair.source_link_field_name].append(dest_resource)
+                    continue
+
+                # try to find a destination resource arn that equals the resolved
+                # destination resource arn so we can replace it with Ref value.
+                try:
+                    dest_resource_index = (
+                        cfn_source_resource["Properties"]
+                        .get(self._resource_pair.source_link_field_name, [])
+                        .index(dest_arn)
+                    )
+                    LOG.debug(
+                        "The destination resource %s has the arn value %s that exists in source resource %s property.",
+                        dest_resource,
+                        dest_arn,
+                        cfn_source_resource,
+                    )
+                    cfn_source_resource["Properties"][self._resource_pair.source_link_field_name][
+                        dest_resource_index
+                    ] = dest_resource
+                except ValueError:
+                    # there is no matching destination resource ARN.
+                    LOG.debug(
+                        "The destination resource %s has the arn value %s that "
+                        "does not exist in source resource %s property.",
+                        dest_resource,
+                        dest_arn,
+                        cfn_source_resource,
+                    )
+                    cfn_source_resource["Properties"][self._resource_pair.source_link_field_name].append(dest_resource)
+
+    def _process_reference_resource_value(
+        self, source_tf_resource: TFResource, resolved_destination_resource: ResolvedReference
+    ):
+        """
+        Process the a reference destination resource value of type ResolvedReference.
+
+        Parameters
+        ----------
+        source_tf_resource: TFResource
+            The source Terraform resource.
+        resolved_destination_resource: ResolvedReference
+            The resolved destination resource reference.
+
+        Returns
+        -------
+        List[Dict[str, str]]
+            The resolved values that will be used as a value for the mapped CFN resource attribute.
+        """
+        LOG.debug("Process the reference destination resources %s.", resolved_destination_resource.value)
+        # skip processing the data source block, as it should be mapped while executing the terraform plan command.
+        if resolved_destination_resource.value.startswith(DATA_RESOURCE_ADDRESS_PREFIX):
+            LOG.debug(
+                "Skip processing the reference destination resource %s, as it is referring to a data resource",
+                resolved_destination_resource.value,
+            )
+            return []
+
+        # resolved reference is a local variable
+        if resolved_destination_resource.value.startswith(TERRAFORM_LOCAL_VARIABLES_ADDRESS_PREFIX):
+            LOG.debug("AWS SAM CLI could not process the Local variables %s", resolved_destination_resource.value)
+            raise self._resource_pair.linking_exceptions.local_variable_linking_exception(
+                resolved_destination_resource.value, source_tf_resource.full_address
+            )
+
+        # Valid destination resource
+        if resolved_destination_resource.value.startswith(self._resource_pair.terraform_resource_type_prefix):
+            LOG.debug("Process the destination resource %s", resolved_destination_resource.value)
+            if not resolved_destination_resource.value.endswith("arn"):
+                LOG.debug(
+                    "The used property in reference %s is not an ARN property", resolved_destination_resource.value
+                )
+                raise InvalidResourceLinkingException(
+                    f"Could not use the value {resolved_destination_resource.value} as a "
+                    f"destination resource for the source resource "
+                    f"{source_tf_resource.full_address}. The source resource "
+                    f"value should refer to valid destination resource ARN property."
+                )
+
+            tf_dest_res_name = resolved_destination_resource.value[
+                len(self._resource_pair.terraform_resource_type_prefix) : -len(".arn")
+            ]
+            if resolved_destination_resource.module_address:
+                tf_dest_resource_full_address = (
+                    f"{resolved_destination_resource.module_address}."
+                    f"{self._resource_pair.terraform_resource_type_prefix}"
+                    f"{tf_dest_res_name}"
+                )
+            else:
+                tf_dest_resource_full_address = (
+                    f"{self._resource_pair.terraform_resource_type_prefix}{tf_dest_res_name}"
+                )
+            cfn_dest_resource_logical_id = build_cfn_logical_id(tf_dest_resource_full_address)
+            LOG.debug(
+                "The logical id of the resource referred by %s is %s",
+                resolved_destination_resource.value,
+                cfn_dest_resource_logical_id,
+            )
+
+            # validate that the found dest resource is in mapped dest resources, which means that it is created.
+            # The resource can be defined in the TF plan configuration, but will not be created.
+            dest_resources = []
+            if cfn_dest_resource_logical_id in self._resource_pair.destination_resource_tf:
+                LOG.debug(
+                    "The resource referred by %s can be found in the mapped destination resources",
+                    resolved_destination_resource.value,
+                )
+                dest_resources.append({"Ref": cfn_dest_resource_logical_id})
+            return dest_resources
+        # it means the source resource is referring to a wrong destination resource type
+        LOG.debug(
+            "The used reference %s is not the correct destination resource type.", resolved_destination_resource.value
+        )
+        raise InvalidResourceLinkingException(
+            f"Could not use the value {resolved_destination_resource.value} as a destination for the source resource "
+            f"{source_tf_resource.full_address}. The source resource value should refer to valid destination ARN "
+            f"property."
+        )
 
 
 def _build_module(
@@ -639,234 +881,3 @@ def _resolve_resource_attribute(
         else:
             results.append(ResolvedReference(reference, resource.module.full_address))
     return results
-
-
-def _link_lambda_function_to_layer(
-    function_tf_resource: TFResource, cfn_functions: List[Dict], tf_layers: Dict[str, Dict]
-) -> None:
-    """
-    Resolve the lambda layer for the input lambda function configuration resource, and then update the equivalent cfn
-    lambda functions list.
-    The Lambda configuration resource in Terraform can match multiple actual resources in case if it was defined using
-    count or for_each pattern.
-
-    Parameters
-    ----------
-    function_tf_resource: TFResource
-        The input lambda function terraform configuration resource
-
-    cfn_functions: List[Dict]
-        A list of mapped lambda functions that are equivalent to the input terraform configuration lambda function
-
-    tf_layers: Dict[str, Dict]
-        Dictionary of all actual terraform layers resources (not configuration resources). The dictionary's key is the
-        calculated logical id for each resource
-    """
-
-    LOG.debug(
-        "Link function configuration %s layer that has these instances %s.",
-        function_tf_resource.full_address,
-        cfn_functions,
-    )
-    resolved_layers = _resolve_resource_attribute(function_tf_resource, "layers")
-    LOG.debug("The resolved layers for function %s are %s", function_tf_resource.full_address, resolved_layers)
-    layers = _process_resolved_layers(function_tf_resource, resolved_layers, tf_layers)
-
-    # The agreed limitation to support only 1 lambda layer reference.
-    if len(layers) > 1:
-        LOG.debug(
-            "AWS SAM CLI does not support mapping the lambda function %s to more than one layer.",
-            function_tf_resource.full_address,
-        )
-        raise OneLambdaLayerLinkingLimitationException(layers, function_tf_resource.full_address)
-    if not layers:
-        LOG.debug("There are no layers defined for lambda function %s", function_tf_resource.full_address)
-    else:
-        _update_mapped_lambda_function_with_resolved_layers(cfn_functions, layers, tf_layers)
-
-
-def _process_resolved_layers(
-    function_tf_resource: TFResource,
-    resolved_layers: List[Union[ConstantValue, ResolvedReference]],
-    tf_layers: Dict[str, Dict],
-) -> List[Dict[str, str]]:
-    """
-    Process the resolved layers.
-
-    Parameters
-    ----------
-    function_tf_resource: TFResource
-        The input lambda function terraform configuration resource
-
-    resolved_layers: List[Union[ConstantValue, ResolvedReference]]
-        The resolved layers to be processed for the input lambda function.
-
-    tf_layers: Dict[str, Dict]
-        Dictionary of all actual terraform layers resources (not configuration resources). The dictionary's key is the
-        calculated logical id for each resource
-
-    Returns
-    --------
-    List[Dict[str, str]]:
-        The list of layers after processing
-
-    """
-    LOG.debug(
-        "Map the resolved layers %s to configuration function %s.", resolved_layers, function_tf_resource.full_address
-    )
-    layers = []
-    does_refer_to_constant_values = False
-    does_refer_to_data_sources = False
-    for resolved_layer in resolved_layers:
-        # Skip ConstantValue layers reference, as it will be already handled by terraform plan command.
-        if isinstance(resolved_layer, ConstantValue):
-            does_refer_to_constant_values = True
-        elif isinstance(resolved_layer, ResolvedReference):
-            processed_layers = _process_reference_layer_value(function_tf_resource, resolved_layer, tf_layers)
-            if not processed_layers:
-                does_refer_to_data_sources = True
-            layers += processed_layers
-
-    if (does_refer_to_constant_values or does_refer_to_data_sources) and len(layers) > 0:
-        LOG.debug(
-            "Lambda function %s to is referring to layers using an expression mixing between constant value or data "
-            "sources and other resources references. AWS SAM CLI could not determine this lambda functions layers.",
-            function_tf_resource.full_address,
-        )
-        raise OneLambdaLayerLinkingLimitationException(resolved_layers, function_tf_resource.full_address)
-
-    return layers
-
-
-def _process_reference_layer_value(
-    function_tf_resource: TFResource, resolved_layer: ResolvedReference, tf_layers: Dict[str, Dict]
-) -> List[Dict[str, str]]:
-    """
-    Process the layer value of type ResolvedReference.
-
-    Parameters
-    ----------
-    function_tf_resource: TFResource
-        The input lambda function terraform configuration resource
-
-    resolved_layer: ResolvedReference
-        The layer reference.
-
-    tf_layers: Dict[str, Dict]
-        Dictionary of all actual terraform layers resources (not configuration resources). The dictionary's key is the
-        calculated logical id for each resource
-
-    Returns
-    -------
-    List[Dict[str, str]]
-        The resolved layers values that will be used as a value for the mapped CFN function Layers attribute.
-
-    """
-    LOG.debug("Process the reference layer %s.", resolved_layer.value)
-    # skip processing the data source block, as it should be mapped while executing the terraform plan command.
-    if resolved_layer.value.startswith(DATA_RESOURCE_ADDRESS_PREFIX):
-        LOG.debug("Skip processing the reference layer %s, as it is referring to a data resource", resolved_layer.value)
-        return []
-
-    # resolved reference is a local variable
-    if resolved_layer.value.startswith(TERRAFORM_LOCAL_VARIABLES_ADDRESS_PREFIX):
-        LOG.debug("AWS SAM CLI could not process the Local variables %s", resolved_layer.value)
-        raise LocalVariablesLinkingLimitationException(resolved_layer.value, function_tf_resource.full_address)
-
-    # Valid Layer resource
-    if resolved_layer.value.startswith(LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX):
-        LOG.debug("Process the Layer version resource %s", resolved_layer.value)
-        if not resolved_layer.value.endswith("arn"):
-            LOG.debug("The used property in reference %s is not an ARN property", resolved_layer.value)
-            raise InvalidResourceLinkingException(
-                f"Could not use the value {resolved_layer.value} as a Layer for lambda function "
-                f"{function_tf_resource.full_address}. Lambda Function Layer value should refer to valid "
-                f"lambda layer ARN property"
-            )
-
-        tf_layer_res_name = resolved_layer.value[len(LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX) : -len(".arn")]
-        if resolved_layer.module_address:
-            tf_layer_full_address = (
-                f"{resolved_layer.module_address}.{LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX}" f"{tf_layer_res_name}"
-            )
-        else:
-            tf_layer_full_address = f"{LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX}{tf_layer_res_name}"
-        cfn_layer_logical_id = build_cfn_logical_id(tf_layer_full_address)
-        LOG.debug("The logical id of the resource referred by %s is %s", resolved_layer.value, cfn_layer_logical_id)
-
-        # validate that the found layer is in mapped layers resources, which means that it is created.
-        # The resource can be defined in the TF plan configuration, but will not be created.
-        layers = []
-        if cfn_layer_logical_id in tf_layers:
-            LOG.debug("The resource referred by %s can be found in the mapped layers resources", resolved_layer.value)
-            layers.append({"Ref": cfn_layer_logical_id})
-        return layers
-    # it means the Lambda function is referring to a wrong layer resource type
-    LOG.debug("The used reference %s is not a Layer Version resource.", resolved_layer.value)
-    raise InvalidResourceLinkingException(
-        f"Could not use the value {resolved_layer.value} as a Layer for lambda function "
-        f"{function_tf_resource.full_address}. Lambda Function Layer value should refer to valid lambda layer ARN "
-        f"property"
-    )
-
-
-def _update_mapped_lambda_function_with_resolved_layers(
-    cfn_functions: List[Dict],
-    layers: List[Dict[str, str]],
-    tf_layers: Dict[str, Dict],
-) -> None:
-    """
-    Set The resolved layers list to the mapped lambda functions.
-
-    Parameters
-    ----------
-    cfn_functions: List[Dict]
-        A list of mapped lambda functions that are equivalent to the input terraform configuration lambda function
-
-    layers: List
-        The resolved layers values that will be used as a value for the mapped CFN function Layers attribute.
-
-    tf_layers: Dict[str, Dict]
-        Dictionary of all actual terraform layers resources (not configuration resources). The dictionary's key is the
-        calculated logical id for each resource
-    """
-    LOG.debug("Set the resolved layers %s to the cfn functions %s", layers, cfn_functions)
-    for cfn_func in cfn_functions:
-        LOG.debug("Process the Lambda function %s", cfn_func)
-        # Add the resolved layers list as it is to the mapped function that does not have any layers defined
-        if not cfn_func["Properties"].get("Layers"):
-            LOG.debug("The Lambda function %s does not have any layers defined.", cfn_func)
-            cfn_func["Properties"]["Layers"] = layers
-            continue
-
-        # Check if the the mapped function layers list contains any arn value for one of the resolved layers to replace
-        # it.
-        for layer in layers:
-            # resolve the layer arn string to check if it is already there in the CFN func layer property
-            # layer logical id will be always in tf_layers, as we do not consider the references to layers that does not
-            # exist in the tf_layers list as it means that this layer will not be created.
-            LOG.debug("Check if the layer %s is already defined in function % layers.", layer, cfn_func)
-            layer_arn = tf_layers[layer["Ref"]].get("values", {}).get("arn")
-
-            # The resolved layer is a reference to a layers which is not applied yet, so there is no ARN value yet.
-            if not layer_arn:
-                LOG.debug("The layer %s is not applied yet, and does not have ARN property.", layer)
-                cfn_func["Properties"]["Layers"].append(layer)
-                continue
-
-            # try to find a layer arn that equals the resolved layer arn so we can replace it with Ref value.
-            try:
-                layer_index = cfn_func["Properties"].get("Layers", []).index(layer_arn)
-                LOG.debug(
-                    "The layer %s has the arn value %s that exists in function %s layers.", layer, layer_arn, cfn_func
-                )
-                cfn_func["Properties"]["Layers"][layer_index] = layer
-            except ValueError:
-                # there is no matching layer ARN.
-                LOG.debug(
-                    "The layer %s has the arn value %s that does not exist in function %s layers.",
-                    layer,
-                    layer_arn,
-                    cfn_func,
-                )
-                cfn_func["Properties"]["Layers"].append(layer)

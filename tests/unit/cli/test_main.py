@@ -21,6 +21,7 @@ class TestCliBase(TestCase):
             self.assertEqual(result.exit_code, 0)
             self.assertTrue("--help" in result.output, "Help text must be printed")
             self.assertTrue("--debug" in result.output, "--debug option must be present in help text")
+            self.assertTrue("--beta-features" in result.output, "--beta-features option must be present in help text")
 
     def test_cli_some_command(self):
         mock_cfg = Mock()
@@ -93,9 +94,11 @@ class TestCliBase(TestCase):
 class TestPrintSamCliInfo(TestCase):
     @patch("samcli.cli.main.gather_system_info")
     @patch("samcli.cli.main.gather_additional_dependencies_info")
-    def test_print_info(self, deps_info_mock, system_info_mock):
+    @patch("samcli.cli.main.get_all_experimental_env_vars")
+    def test_print_info(self, beta_feat_env_vars_mock, deps_info_mock, system_info_mock):
         system_info_mock.return_value = {"Python": "1.2.3"}
         deps_info_mock.return_value = {"dep1": "1.2.3", "dep2": "1.2.3"}
+        beta_feat_env_vars_mock.return_value = ["FEATURE_FLAG_ENV_VAR"]
         expected = {
             "version": __version__,
             "system": {
@@ -105,6 +108,7 @@ class TestPrintSamCliInfo(TestCase):
                 "dep1": "1.2.3",
                 "dep2": "1.2.3",
             },
+            "available_beta_feature_env_vars": ["FEATURE_FLAG_ENV_VAR"],
         }
 
         mock_cfg = Mock()

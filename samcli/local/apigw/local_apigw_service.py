@@ -546,12 +546,14 @@ class LocalApigwService(BaseLocalService):
 
         return context.to_dict()
 
-    def _valid_identity_sources(self, route: Route) -> bool:
+    def _valid_identity_sources(self, request: Request, route: Route) -> bool:
         """
         Validates if the route contains all the valid identity sources defined in the route's Lambda Authorizer
 
         Parameters
         ----------
+        request: Request
+            Flask request object containing incoming request variables
         route: Route
             the Route object that contains the Lambda Authorizer definition
 
@@ -654,7 +656,7 @@ class LocalApigwService(BaseLocalService):
             return self.service_response("", headers, 200)
 
         # check for LambdaAuthorizer since that is the only authorizer we currently support
-        if isinstance(lambda_authorizer, LambdaAuthorizer) and not self._valid_identity_sources(route):
+        if isinstance(lambda_authorizer, LambdaAuthorizer) and not self._valid_identity_sources(request, route):
             return ServiceErrorResponses.missing_lambda_auth_identity_sources()
 
         try:

@@ -12,6 +12,7 @@ from samcli.cli.command import BaseCommand
 from samcli.cli.context import Context
 from samcli.cli.global_config import GlobalConfig
 from samcli.cli.options import debug_option, profile_option, region_option
+from samcli.commands._utils.experimental import experimental, get_all_experimental_env_vars
 from samcli.lib.utils.sam_logging import (
     LAMBDA_BULDERS_LOGGER_NAME,
     SAM_CLI_FORMATTER,
@@ -34,6 +35,7 @@ def common_options(f):
     :return: Callback function
     """
     f = debug_option(f)
+    f = experimental(f)
     return f
 
 
@@ -54,6 +56,7 @@ def print_info(ctx, param, value):
         "version": __version__,
         "system": gather_system_info(),
         "additional_dependencies": gather_additional_dependencies_info(),
+        "available_beta_feature_env_vars": get_all_experimental_env_vars(),
     }
     click.echo(json.dumps(info, indent=2))
 
