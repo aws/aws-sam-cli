@@ -201,9 +201,9 @@ class LambdaImage:
                 #
                 # See Also: https://github.com/containers/podman/issues/17726
                 LOG.warning(
-                    "Cannot check if base image is current because an unknown 404 error was returned. "
-                    "This might be due to an incompatible Docker engine clone. Consider rerunning "
-                    "with the --skip-pull-image argument to improve speed but may cause you running outdated containers locally."
+                    "Unknown 404 - Unable to check if base image is current.\n\nPossible incompatible "
+                    "Docker engine clone employed. Consider `--skip-pull-image` for improved speed, the "
+                    "tradeoff being not running the latest image."
                 )
                 image_not_found = True
             else:
