@@ -111,10 +111,10 @@ class TestBuildTerraformApplicationsWithInvalidOptions(BuildTerraformApplication
         self.assertRegex(stderr.strip().decode("utf-8"), "Terraform Support beta feature is not enabled.")
 
 
-# @skipIf(
-#     (not RUN_BY_CANARY and not CI_OVERRIDE),
-#     "Skip Terraform test cases unless running in CI",
-# )
+@skipIf(
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
+    "Skip Terraform test cases unless running in CI",
+)
 class TestInvalidTerraformApplicationThatReferToS3BucketNotCreatedYet(BuildTerraformApplicationIntegBase):
     terraform_application = Path("terraform/invalid_no_local_code_project")
 
@@ -138,10 +138,10 @@ class TestInvalidTerraformApplicationThatReferToS3BucketNotCreatedYet(BuildTerra
         self.assertNotEqual(return_code, 0)
 
 
-# @skipIf(
-#     (not RUN_BY_CANARY and not CI_OVERRIDE),
-#     "Skip Terraform test cases unless running in CI",
-# )
+@skipIf(
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
+    "Skip Terraform test cases unless running in CI",
+)
 class TestInvalidBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3BackendNoS3Config(
     BuildTerraformApplicationIntegBase
 ):
@@ -164,10 +164,10 @@ class TestInvalidBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backen
         self.assertNotEqual(return_code, 0)
 
 
-# @skipIf(
-#     (not RUN_BY_CANARY and not CI_OVERRIDE),
-#     "Skip Terraform test cases unless running in CI",
-# )
+@skipIf(
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
+    "Skip Terraform test cases unless running in CI",
+)
 class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndLocalBackend(BuildTerraformApplicationIntegBase):
     terraform_application = Path("terraform/image_based_lambda_functions_local_backend")
     functions = [
@@ -203,11 +203,11 @@ class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndLocalBackend(
             },
         )
 
-#
-# @skipIf(
-#     (not RUN_BY_CANARY and not CI_OVERRIDE),
-#     "Skip Terraform test cases unless running in CI",
-# )
+
+@skipIf(
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
+    "Skip Terraform test cases unless running in CI",
+)
 class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndS3Backend(
     BuildTerraformApplicationS3BackendIntegBase
 ):
@@ -246,10 +246,10 @@ class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndS3Backend(
         )
 
 
-# @skipIf(
-#     (not RUN_BY_CANARY and not CI_OVERRIDE),
-#     "Skip Terraform test cases unless running in CI",
-# )
+@skipIf(
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
+    "Skip Terraform test cases unless running in CI",
+)
 class TestUnsupportedCases(BuildTerraformApplicationIntegBase):
     terraform_application = Path("terraform/unsupported")
 
@@ -296,10 +296,10 @@ class TestUnsupportedCases(BuildTerraformApplicationIntegBase):
         self.assertRegex(stderr.decode("utf-8"), expected_error_message)
 
 
-# @skipIf(
-#     (not RUN_BY_CANARY and not CI_OVERRIDE),
-#     "Skip Terraform test cases unless running in CI",
-# )
+@skipIf(
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
+    "Skip Terraform test cases unless running in CI",
+)
 class TestBuildGoFunctionAndKeepPermissions(BuildTerraformApplicationIntegBase):
     terraform_application = Path("terraform/go_lambda_function_check_keep_permissions")
 
