@@ -373,13 +373,19 @@ class LambdaAuthorizer(Authorizer):
         all_statements = policy_document.get(_RESPONSE_IAM_STATEMENT, [])
 
         for statement in all_statements:
-            if (
-                statement.get(_RESPONSE_IAM_ACTION) != _IAM_INVOKE_ACTION
-                or statement.get(_RESPONSE_IAM_EFFECT) != _RESPONSE_IAM_EFFECT_ALLOW
-            ):
+            if statement.get(_RESPONSE_IAM_EFFECT) != _RESPONSE_IAM_EFFECT_ALLOW:
                 continue
 
-            for resource_arn in statement.get(_RESPONSE_IAM_RESOURCE, []):
+            action = statement.get(_RESPONSE_IAM_ACTION, [])
+            action_list = action if isinstance(action, list) else [action]
+
+            if _IAM_INVOKE_ACTION not in action_list:
+                continue
+
+            resource = statement.get(_RESPONSE_IAM_RESOURCE, [])
+            resource_list = resource if isinstance(resource, list) else [resource]
+
+            for resource_arn in resource_list:
                 # form a regular expression from the possible wildcard resource ARN
                 regex_method_arn = resource_arn.replace("*", ".+").replace("?", ".")
                 regex_method_arn += "$"
@@ -452,7 +458,7 @@ class LambdaAuthorizer(Authorizer):
 @dataclass
 class LambdaAuthorizerIAMPolicyPropertyValidator:
     property_key: str
-    property_type: Type
+    property_types: List[Type]
 
     def is_valid(self, response: dict) -> bool:
         """
@@ -470,7 +476,14 @@ class LambdaAuthorizerIAMPolicyPropertyValidator:
         """
         value = response.get(self.property_key)
 
-        return value is not None and isinstance(value, self.property_type)
+        if value is None:
+            return False
+
+        for property_type in self.property_types:
+            if isinstance(value, property_type):
+                return True
+
+        return False
 
 
 class LambdaAuthorizerIAMPolicyValidator:
@@ -487,8 +500,8 @@ class LambdaAuthorizerIAMPolicyValidator:
             The response output from the Lambda authorizer (should be in IAM format)
         """
         validators = {
-            _RESPONSE_PRINCIPAL_ID: LambdaAuthorizerIAMPolicyPropertyValidator(_RESPONSE_PRINCIPAL_ID, str),
-            _RESPONSE_POLICY_DOCUMENT: LambdaAuthorizerIAMPolicyPropertyValidator(_RESPONSE_POLICY_DOCUMENT, dict),
+            _RESPONSE_PRINCIPAL_ID: LambdaAuthorizerIAMPolicyPropertyValidator(_RESPONSE_PRINCIPAL_ID, [str]),
+            _RESPONSE_POLICY_DOCUMENT: LambdaAuthorizerIAMPolicyPropertyValidator(_RESPONSE_POLICY_DOCUMENT, [dict]),
         }
 
         for prop_name, validator in validators.items():
@@ -518,9 +531,9 @@ class LambdaAuthorizerIAMPolicyValidator:
             )
 
         validators = {
-            _RESPONSE_IAM_ACTION: LambdaAuthorizerIAMPolicyPropertyValidator(_RESPONSE_IAM_ACTION, str),
-            _RESPONSE_IAM_EFFECT: LambdaAuthorizerIAMPolicyPropertyValidator(_RESPONSE_IAM_EFFECT, str),
-            _RESPONSE_IAM_RESOURCE: LambdaAuthorizerIAMPolicyPropertyValidator(_RESPONSE_IAM_RESOURCE, list),
+            _RESPONSE_IAM_ACTION: LambdaAuthorizerIAMPolicyPropertyValidator(_RESPONSE_IAM_ACTION, [str, list]),
+            _RESPONSE_IAM_EFFECT: LambdaAuthorizerIAMPolicyPropertyValidator(_RESPONSE_IAM_EFFECT, [str]),
+            _RESPONSE_IAM_RESOURCE: LambdaAuthorizerIAMPolicyPropertyValidator(_RESPONSE_IAM_RESOURCE, [str, list]),
         }
 
         for statement in all_statements:
