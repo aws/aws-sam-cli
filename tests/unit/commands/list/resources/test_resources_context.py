@@ -606,9 +606,7 @@ class TestGetResourcesInfo(TestCase):
         mock_cfn_client = Mock()
         paginator_mock = Mock()
         mock_cfn_client.get_paginator.return_value = paginator_mock
-        paginator_mock.paginate.return_value = [{
-            "StackResourceSummaries": [{"StackName": "sam-app-hello"}]
-        }]
+        paginator_mock.paginate.return_value = [{"StackResourceSummaries": [{"StackName": "sam-app-hello"}]}]
         mock_get_translated_dict.return_value = TRANSLATED_DICT_RETURN
 
         mock_sam_file_reader.return_value = SAM_FILE_READER_RETURN
