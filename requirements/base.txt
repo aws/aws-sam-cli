@@ -16,6 +16,7 @@ serverlessrepo==0.1.10
 aws_lambda_builders==1.30.0
 tomlkit==0.11.7
 watchdog==2.1.2
+rich~=13.3.3
 pyopenssl==23.0.0
 
 # Needed for supporting Protocol in Python 3.7, Protocol class became public with python3.8
