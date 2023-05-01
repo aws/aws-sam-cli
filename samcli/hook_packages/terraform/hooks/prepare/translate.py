@@ -35,8 +35,7 @@ from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     _resolve_resource_attribute,
 )
 from samcli.hook_packages.terraform.hooks.prepare.resources.apigw import RESTAPITranslationValidator
-from samcli.hook_packages.terraform.hooks.prepare.resources.lambda_function import LambdaFunctionProperties
-from samcli.hook_packages.terraform.hooks.prepare.resources.lambda_layers import LambdaLayerVersionProperties
+from samcli.hook_packages.terraform.hooks.prepare.resources.resource_properties import get_resource_property_mapping
 from samcli.hook_packages.terraform.hooks.prepare.types import (
     CodeResourceProperties,
     ConstantValue,
@@ -67,13 +66,6 @@ LOG = logging.getLogger(__name__)
 
 TRANSLATION_VALIDATORS: Dict[str, Type[ResourceTranslationValidator]] = {
     TF_AWS_API_GATEWAY_REST_API: RESTAPITranslationValidator,
-}
-
-lambda_functions_properties = LambdaFunctionProperties()
-lambda_layers_properties = LambdaLayerVersionProperties()
-RESOURCE_PROPERTY_COLLECTORS: Dict[str, ResourceProperties] = {
-    TF_AWS_LAMBDA_LAYER_VERSION: lambda_layers_properties,
-    TF_AWS_LAMBDA_FUNCTION: lambda_functions_properties,
 }
 
 
@@ -119,6 +111,8 @@ def translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_applic
     lambda_resources_to_code_map: Dict[str, List[Tuple[Dict, str]]] = {}
 
     sam_metadata_resources: List[SamMetadataResource] = []
+
+    resource_property_mapping: Dict[str, ResourceProperties] = get_resource_property_mapping()
 
     # create and iterate over queue of modules to handle child modules
     module_queue = [(root_module, root_tf_module)]
@@ -221,8 +215,8 @@ def translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_applic
                 logical_id=logical_id,
                 resource_full_address=resource_full_address,
             )
-            if resource_type in RESOURCE_PROPERTY_COLLECTORS:
-                resource_properties: ResourceProperties = RESOURCE_PROPERTY_COLLECTORS[resource_type]
+            if resource_type in resource_property_mapping:
+                resource_properties: ResourceProperties = resource_property_mapping[resource_type]
                 resource_properties.collect(resource_translation_properties)
                 if isinstance(resource_properties, CodeResourceProperties):
                     resource_properties.add_lambda_resources_to_code_map(
@@ -238,9 +232,9 @@ def translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_applic
     _map_s3_sources_to_functions(s3_hash_to_source, cfn_dict.get("Resources", {}), lambda_resources_to_code_map)
 
     _link_lambda_functions_to_layers(
-        lambda_functions_properties.terraform_config,
-        lambda_functions_properties.cfn_resources,
-        lambda_layers_properties.terraform_resources,
+        resource_property_mapping[TF_AWS_LAMBDA_FUNCTION].terraform_config,
+        resource_property_mapping[TF_AWS_LAMBDA_FUNCTION].cfn_resources,
+        resource_property_mapping[TF_AWS_LAMBDA_LAYER_VERSION].terraform_resources,
     )
 
     if sam_metadata_resources:
