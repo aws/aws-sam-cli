@@ -586,7 +586,7 @@ class TestApiGatewayService(TestCase):
         route = self.api_gateway_route
         route.authorizer_object = None
 
-        self.assertFalse(self.api_service._valid_identity_sources(route))
+        self.assertFalse(self.api_service._valid_identity_sources(Mock(), route))
 
     @parameterized.expand(
         [
@@ -597,8 +597,10 @@ class TestApiGatewayService(TestCase):
     @patch("samcli.local.apigw.authorizers.lambda_authorizer.LambdaAuthorizer._parse_identity_sources")
     @patch("samcli.local.apigw.authorizers.lambda_authorizer.LambdaAuthorizer.identity_sources")
     @patch("samcli.local.apigw.path_converter.PathConverter.convert_path_to_api_gateway")
+    @patch("samcli.local.apigw.local_apigw_service.LocalApigwService._build_v2_context")
+    @patch("samcli.local.apigw.local_apigw_service.LocalApigwService._build_v1_context")
     def test_valid_identity_sources_id_source(
-        self, is_valid, path_convert_mock, id_source_prop_mock, lambda_auth_parse_mock
+        self, is_valid, v1_mock, v2_mock, path_convert_mock, id_source_prop_mock, lambda_auth_parse_mock
     ):
         route = self.api_gateway_route
         route.authorizer_object = LambdaAuthorizer("", "", "", [], "")
@@ -607,11 +609,7 @@ class TestApiGatewayService(TestCase):
         mocked_id_source_obj.is_valid = Mock(return_value=is_valid)
         route.authorizer_object.identity_sources = [mocked_id_source_obj]
 
-        # create a dummy Flask app to populate the request object with testing data
-        # using Flask's dummy values for request is fine in this context since
-        # the variables are being passed and not validated
-        with flask.Flask(__name__).test_request_context():
-            self.assertEqual(self.api_service._valid_identity_sources(route), is_valid)
+        self.assertEqual(self.api_service._valid_identity_sources(Mock(), route), is_valid)
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     def test_create_method_arn(self, method_endpoint_mock):

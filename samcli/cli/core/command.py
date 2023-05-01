@@ -4,7 +4,7 @@ to be specific for AWS SAM CLI.
 
 Should be used by all commands for a consistent UI experience
 """
-from typing import Dict, List
+from typing import Any, Dict, List, Optional
 
 from click import Command, Context, Parameter, style
 
@@ -40,7 +40,9 @@ class CoreCommand(Command):
         params: List[Parameter],
         formatter: RootCommandHelpTextFormatter,
         formatting_options: Dict[str, Dict],
+        write_rd_overrides: Optional[Dict[str, Any]] = None,
     ):
+        write_rd_overrides = write_rd_overrides or {}
         for option_heading, options in formatting_options.items():
             opts: List[RowDefinition] = sorted(
                 [
@@ -53,14 +55,15 @@ class CoreCommand(Command):
                 key=lambda row_def: row_def.rank,
             )
             with formatter.indented_section(name=option_heading, extra_indents=1):
-                formatter.write_rd(options.get("extras", [RowDefinition()]))
+                formatter.write_rd(options.get("extras", [RowDefinition()]), **write_rd_overrides)
                 formatter.write_rd(
                     [RowDefinition(name="", text="\n")]
                     + [
                         opt
                         for options in zip(opts, [RowDefinition(name="", text="\n")] * (len(opts)))
                         for opt in options
-                    ]
+                    ],
+                    **write_rd_overrides,
                 )
 
     @staticmethod

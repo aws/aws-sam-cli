@@ -69,3 +69,12 @@ class InvalidFunctionPropertyType(UserException):
     """
     Function property given in the template is Invalid
     """
+
+
+class DockerDistributionAPIError(UserException):
+    """
+    There was an unknown error from the docker daemon.
+
+    This could be either an error from the Docker client (SAM) to the daemon's internal
+    API or it could be an error from the Docker registry.
+    """

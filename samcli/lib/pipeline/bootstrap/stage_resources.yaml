@@ -231,6 +231,9 @@ Resources:
     DeletionPolicy: "Retain"
     Properties:
       AccessControl: "LogDeliveryWrite"
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership:  ObjectWriter
       Tags:
         - Key: ManagedStackSource
           Value: AwsSamCli

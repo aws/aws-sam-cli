@@ -17,38 +17,50 @@ class InvalidResourceLinkingException(UserException):
         UserException.__init__(self, msg)
 
 
-class OneLambdaLayerLinkingLimitationException(UserException):
+class OneResourceLinkingLimitationException(UserException):
     fmt = (
-        "AWS SAM CLI could not process a Terraform project that contains Lambda functions that are linked to more "
-        "than one lambda layer. Layer(s) defined by {layers_list} could not be linked to lambda function {function_id}."
-        "{line_sep}Related issue: {issue_link}."
+        "AWS SAM CLI could not process a Terraform project that contains a source resource that is linked to more "
+        "than one destination resource. Destination resource(s) defined by {dest_resource_list} could not be linked to "
+        "source resource {source_resource_id}.{line_sep}Related issue: {issue_link}."
     )
 
-    def __init__(self, layers_list, function_id):
+    def __init__(self, dest_resource_list, source_resource_id):
         msg = self.fmt.format(
-            layers_list=layers_list,
-            function_id=function_id,
+            dest_resource_list=dest_resource_list,
+            source_resource_id=source_resource_id,
             issue_link=ONE_LAMBDA_LAYER_LINKING_ISSUE_LINK,
             line_sep=os.linesep,
         )
         UserException.__init__(self, msg)
 
 
+class OneLambdaLayerLinkingLimitationException(OneResourceLinkingLimitationException):
+    """
+    Exception specific for Lambda function linking to more than one layer
+    """
+
+
 class LocalVariablesLinkingLimitationException(UserException):
     fmt = (
-        "AWS SAM CLI could not process a Terraform project that uses local variables to define the Lambda functions "
-        "layers. Layer(s) defined by {local_variable_reference} could not be linked to lambda function {function_id}."
-        "{line_sep}Related issue: {issue_link}."
+        "AWS SAM CLI could not process a Terraform project that uses local variables to define linked resources. "
+        "Destination resource(s) defined by {local_variable_reference} could not be linked to destination "
+        "resource {dest_resource_list}.{line_sep}Related issue: {issue_link}."
     )
 
-    def __init__(self, local_variable_reference, function_id):
+    def __init__(self, local_variable_reference, dest_resource_list):
         msg = self.fmt.format(
             local_variable_reference=local_variable_reference,
-            function_id=function_id,
+            dest_resource_list=dest_resource_list,
             issue_link=LOCAL_VARIABLES_SUPPORT_ISSUE_LINK,
             line_sep=os.linesep,
         )
         UserException.__init__(self, msg)
+
+
+class FunctionLayerLocalVariablesLinkingLimitationException(LocalVariablesLinkingLimitationException):
+    """
+    Exception specific for Lambda function linking to a layer defined as a local
+    """
 
 
 class InvalidSamMetadataPropertiesException(UserException):
