@@ -5,14 +5,14 @@ from unittest import TestCase
 from unittest.mock import patch, Mock, mock_open, ANY, call
 from parameterized import parameterized
 
-from docker.errors import ImageNotFound, BuildError, APIError
+from docker.errors import ImageNotFound, BuildError, APIError, NotFound
 from parameterized import parameterized
 
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.lib.utils.architecture import ARM64, X86_64
 from samcli.local.docker.lambda_image import LambdaImage, RAPID_IMAGE_TAG_PREFIX, Runtime
-from samcli.commands.local.cli_common.user_exceptions import ImageBuildException
+from samcli.commands.local.cli_common.user_exceptions import DockerDistributionAPIError, ImageBuildException
 from samcli import __version__ as version
 
 
@@ -290,6 +290,72 @@ class TestLambdaImage(TestCase):
             X86_64,
             stream=stream,
         )
+
+    @parameterized.expand(
+        [
+            ("python3.7", "python:3.7", "public.ecr.aws/lambda/python:3.7"),
+            ("python3.8", "python:3.8-x86_64", "public.ecr.aws/lambda/python:3.8-x86_64"),
+        ]
+    )
+    @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
+    @patch("samcli.local.docker.lambda_image.LambdaImage._generate_docker_image_version")
+    def test_force_building_image_on_daemon_404(
+        self, runtime, image_suffix, image_name, generate_docker_image_version_patch, build_image_patch
+    ):
+        layer_downloader_mock = Mock()
+        layer_downloader_mock.download_all.return_value = ["layers1"]
+
+        generate_docker_image_version_patch.return_value = "runtime:image-version"
+
+        docker_client_mock = Mock()
+        docker_client_mock.images.get.side_effect = NotFound("image not found")
+        docker_client_mock.images.list.return_value = []
+
+        stream = io.StringIO()
+
+        lambda_image = LambdaImage(layer_downloader_mock, False, True, docker_client=docker_client_mock)
+        actual_image_id = lambda_image.build(
+            runtime, ZIP, None, ["layers1"], X86_64, stream=stream, function_name="function"
+        )
+
+        self.assertEqual(actual_image_id, "samcli/lambda-runtime:image-version")
+
+        layer_downloader_mock.download_all.assert_called_once_with(["layers1"], True)
+        generate_docker_image_version_patch.assert_called_once_with(["layers1"], f"{image_suffix}")
+        docker_client_mock.images.get.assert_called_once_with("samcli/lambda-runtime:image-version")
+        build_image_patch.assert_called_once_with(
+            image_name,
+            "samcli/lambda-runtime:image-version",
+            ["layers1"],
+            X86_64,
+            stream=stream,
+        )
+
+    @parameterized.expand(
+        [
+            ("python3.7", "python:3.7", "public.ecr.aws/lambda/python:3.7"),
+            ("python3.8", "python:3.8-x86_64", "public.ecr.aws/lambda/python:3.8-x86_64"),
+        ]
+    )
+    @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
+    @patch("samcli.local.docker.lambda_image.LambdaImage._generate_docker_image_version")
+    def test_docker_distribution_api_error_on_daemon_api_error(
+        self, runtime, image_suffix, image_name, generate_docker_image_version_patch, build_image_patch
+    ):
+        layer_downloader_mock = Mock()
+        layer_downloader_mock.download_all.return_value = ["layers1"]
+
+        generate_docker_image_version_patch.return_value = "runtime:image-version"
+
+        docker_client_mock = Mock()
+        docker_client_mock.images.get.side_effect = APIError("error from docker daemon")
+        docker_client_mock.images.list.return_value = []
+
+        stream = io.StringIO()
+
+        lambda_image = LambdaImage(layer_downloader_mock, False, True, docker_client=docker_client_mock)
+        with self.assertRaises(DockerDistributionAPIError):
+            lambda_image.build(runtime, ZIP, None, ["layers1"], X86_64, stream=stream, function_name="function")
 
     @parameterized.expand(
         [
