@@ -28,6 +28,7 @@ class TestValidateCommand(unittest.TestCase):
             MockParams(rv=("--config-file", ""), name="config_file"),
             MockParams(rv=("--lint", ""), name="lint"),
             MockParams(rv=("--debug", ""), name="debug"),
+            MockParams(rv=("--beta-features", ""), name="beta_features"),
         ]
 
         cmd = ValidateCommand(name="validate", requires_credentials=False, description=DESCRIPTION)
@@ -37,6 +38,7 @@ class TestValidateCommand(unittest.TestCase):
             "Other Options": [("", ""), ("--debug", ""), ("", "")],
             "Required Options": [("", ""), ("--template-file", ""), ("", "")],
             "Lint Options": [("", ""), ("--lint", ""), ("", "")],
+            "Beta Options": [("", ""), ("--beta-features", ""), ("", "")],
             "Description": [(cmd.description + cmd.description_addendum, "")],
             "Examples": [],
             "Validate and Lint": [("", ""), ("$sam validate --lint\x1b[0m", "")],

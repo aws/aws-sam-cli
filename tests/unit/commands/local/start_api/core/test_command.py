@@ -28,7 +28,7 @@ class TestLocalStartAPICommand(unittest.TestCase):
             MockParams(rv=("--parameter-overrides", ""), name="parameter_overrides"),
             MockParams(rv=("--host", ""), name="host"),
             MockParams(rv=("--config-file", ""), name="config_file"),
-            MockParams(rv=("--hook_name", ""), name="hook_name"),
+            MockParams(rv=("--beta-features", ""), name="beta_features"),
             MockParams(rv=("--log-file", ""), name="log_file"),
             MockParams(rv=("--debug", ""), name="debug"),
         ]
@@ -42,6 +42,7 @@ class TestLocalStartAPICommand(unittest.TestCase):
             "Description": [(cmd.description + cmd.description_addendum, "")],
             "Examples": [("", ""), ("$sam local start-api\x1b[0m", "")],
             "Other Options": [("", ""), ("--debug", ""), ("", "")],
+            "Beta Options": [("", ""), ("--beta-features", ""), ("", "")],
             "Required Options": [("", ""), ("--template-file", ""), ("", "")],
             "Template Options": [("", ""), ("--parameter-overrides", ""), ("", "")],
         }
