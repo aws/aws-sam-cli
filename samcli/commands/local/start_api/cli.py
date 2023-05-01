@@ -18,6 +18,7 @@ from samcli.commands.local.cli_common.options import (
     warm_containers_common_options,
 )
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
+from samcli.commands.local.start_api.core.command import InvokeAPICommand
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.local.docker.exceptions import ContainerNotStartableException
@@ -25,23 +26,32 @@ from samcli.local.docker.exceptions import ContainerNotStartableException
 LOG = logging.getLogger(__name__)
 
 HELP_TEXT = """
-Allows you to run your Serverless application locally for quick development & testing.
- When run in a directory that contains your Serverless functions and your AWS SAM template, it will create a local HTTP
- server hosting all of your functions. When accessed (via browser, cli etc), it will launch a Docker container locally
- to invoke the function. It will read the CodeUri property of AWS::Serverless::Function resource to find the path in
- your file system containing the Lambda Function code. This could be the project's root directory for interpreted
- languages like Node & Python, or a build directory that stores your compiled artifacts or a JAR file. If you are using
- a interpreted language, local changes will be available immediately in Docker container on every invoke. For more
- compiled languages or projects requiring complex packing support, we recommended you run your own building solution
-and point SAM to the directory or file containing build artifacts.
+Run & test AWS serverless functions locally as a HTTP API.
+"""
+
+DESCRIPTION = """
+  Allows one to run their Serverless application locally for quick development & testing.
+  When run in a directory that contains Serverless functions and an AWS SAM template, it will create a local HTTP
+  server hosting all of template's functions. When accessed (via browser, cli etc), it will launch a Docker container
+  locally to invoke the function. 
+  
+  It will read the CodeUri property of AWS::Serverless::Function resource to find the path in the file system 
+  containing the Lambda Function code. This could be the project's root directory for interpreted
+  languages like Node & Python, or a build directory that stores your compiled artifacts or a JAR file. If one uses
+  a interpreted language, local changes will be available immediately in Docker container on every invoke. For more
+  compiled languages or projects requiring complex packing support, it is recommended to run custom building solution
+  and point AWS SAM CLI to the directory or file containing build artifacts.
 """
 
 
 @click.command(
     "start-api",
+    cls=InvokeAPICommand,
     help=HELP_TEXT,
-    short_help="Sets up a local endpoint you can use to test your API. Supports hot-reloading "
-    "so you don't need to restart this service when you make changes to your function.",
+    short_help=HELP_TEXT,
+    description=DESCRIPTION,
+    requires_credentials=False,
+    context_settings={"max_content_width": 120},
 )
 @configuration_option(provider=TomlProvider(section="parameters"))
 @service_common_options(3000)

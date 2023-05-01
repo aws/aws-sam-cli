@@ -13,7 +13,10 @@ from typing import Optional
 
 import docker
 
-from samcli.commands.local.cli_common.user_exceptions import ImageBuildException
+from samcli.commands.local.cli_common.user_exceptions import (
+    DockerDistributionAPIError,
+    ImageBuildException,
+)
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
 from samcli.lib.utils.architecture import has_runtime_multi_arch_image
 from samcli.lib.utils.packagetype import IMAGE, ZIP
@@ -192,6 +195,20 @@ class LambdaImage:
         except docker.errors.ImageNotFound:
             LOG.info("Local image was not found.")
             image_not_found = True
+        except docker.errors.APIError as e:
+            if e.__class__ is docker.errors.NotFound:
+                # A generic "NotFound" is raised when we aren't able to check the image version
+                # for example when the docker daemon's api doesn't support this action.
+                #
+                # See Also: https://github.com/containers/podman/issues/17726
+                LOG.warning(
+                    "Unknown 404 - Unable to check if base image is current.\n\nPossible incompatible "
+                    "Docker engine clone employed. Consider `--skip-pull-image` for improved speed, the "
+                    "tradeoff being not running the latest image."
+                )
+                image_not_found = True
+            else:
+                raise DockerDistributionAPIError("Unknown API error received from docker") from e
 
         # If building a new rapid image, delete older rapid images
         if image_not_found and rapid_image == f"{image_repo}:{tag_prefix}{RAPID_IMAGE_TAG_PREFIX}-{architecture}":
