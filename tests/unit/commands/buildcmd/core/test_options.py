@@ -1,9 +1,8 @@
 from unittest import TestCase
 
 from click import Option
-
-from samcli.commands.deploy.command import cli
-from samcli.commands.deploy.core.options import ALL_OPTIONS
+from samcli.commands.build.command import cli
+from samcli.commands.build.core.options import ALL_OPTIONS
 
 
 class TestOptions(TestCase):
