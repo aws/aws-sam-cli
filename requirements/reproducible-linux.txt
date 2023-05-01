@@ -330,6 +330,10 @@ junit-xml==1.9 \
     --hash=sha256:de16a051990d4e25a3982b2dd9e89d671067548718866416faec14d9de56db9f \
     --hash=sha256:ec5ca1a55aefdd76d28fcc0b135251d156c7106fa979686a4b48d62b761b4732
     # via cfn-lint
+markdown-it-py==2.2.0 \
+    --hash=sha256:5a35f8d1870171d9acc47b99612dc146129b631baf04970128b568f190d0cc30 \
+    --hash=sha256:7c9a5e412688bc771c67432cbfebcdd686c93ce6484913dccf06cb5a0bea35a1
+    # via rich
 markupsafe==2.1.2 \
     --hash=sha256:0576fe974b40a400449768941d5d0858cc624e3249dfd1e0c33674e5c7ca7aed \
     --hash=sha256:085fd3201e7b12809f9e6e9bc1e5c96a368c8523fad5afb02afe3c051ae4afcc \
@@ -384,6 +388,10 @@ markupsafe==2.1.2 \
     # via
     #   jinja2
     #   werkzeug
+mdurl==0.1.2 \
+    --hash=sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8 \
+    --hash=sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba
+    # via markdown-it-py
 networkx==2.6.3 \
     --hash=sha256:80b6b89c77d1dfb64a4c7854981b60aeea6360ac02c6d4e4913319e0a313abef \
     --hash=sha256:c0946ed31d71f1b732b5aaa6da5a0388a345019af232ce2f49c766e2d6795c51
@@ -440,6 +448,10 @@ pydantic==1.10.7 \
     --hash=sha256:ecbbc51391248116c0a055899e6c3e7ffbb11fb5e2a4cd6f2d0b93272118a209 \
     --hash=sha256:f4a2b50e2b03d5776e7f21af73e2070e1b5c0d0df255a827e7c632962f8315af
     # via aws-sam-translator
+pygments==2.15.0 \
+    --hash=sha256:77a3299119af881904cd5ecd1ac6a66214b6e9bed1f2db16993b54adede64094 \
+    --hash=sha256:f7e36cffc4c517fbc252861b9a6e4644ca0e5abadf9a113c72d1358ad09b9500
+    # via rich
 pyopenssl==23.0.0 \
     --hash=sha256:c1cc5f86bcacefc84dada7d31175cae1b1518d5f60d3d0bb595a67822a868a6f \
     --hash=sha256:df5fc28af899e74e19fccb5510df423581047e10ab6f1f4ba1763ff5fde844c0
@@ -622,6 +634,10 @@ requests==2.28.2 \
     #   aws-sam-cli (setup.py)
     #   cookiecutter
     #   docker
+rich==13.3.3 \
+    --hash=sha256:540c7d6d26a1178e8e8b37e9ba44573a3cd1464ff6348b99ee7061b95d1c6333 \
+    --hash=sha256:dc84400a9d842b3a9c5ff74addd8eb798d155f36c1c91303888e0a66850d2a15
+    # via aws-sam-cli (setup.py)
 ruamel-yaml==0.17.21 \
     --hash=sha256:742b35d3d665023981bd6d16b3d24248ce5df75fdb4e2924e93a05c1f8b61ca7 \
     --hash=sha256:8b7ce697a2f212752a35c1ac414471dc16c424c9573be4926b56ff3f5d23b7af
@@ -701,7 +717,9 @@ typing-extensions==4.4.0 \
     #   aws-sam-translator
     #   importlib-metadata
     #   jsonschema
+    #   markdown-it-py
     #   pydantic
+    #   rich
 tzlocal==3.0 \
     --hash=sha256:c736f2540713deb5938d789ca7c3fc25391e9a20803f05b60ec64987cf086559 \
     --hash=sha256:f4e6e36db50499e0d92f79b67361041f048e2609d166e93456b50746dc4aef12
