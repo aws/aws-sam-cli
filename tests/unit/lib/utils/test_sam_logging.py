@@ -26,9 +26,11 @@ class TestSamCliLogger(TestCase):
 
     @patch("samcli.lib.utils.sam_logging.logging")
     @patch("samcli.lib.utils.sam_logging.sys")
+    @patch("samcli.lib.utils.sam_logging.os")
     @patch("samcli.lib.utils.sam_logging.RichHandler")
-    def test_configure_samcli_logger_mock_terminal(self, mock_rich_handler, mock_sys, logging_patch):
+    def test_configure_samcli_logger_mock_terminal(self, mock_rich_handler, mock_os, mock_sys, logging_patch):
         mock_sys.stderr.isatty = Mock(return_value=True)
+        mock_os.getenv = Mock(return_value=None)
         formatter_mock = Mock()
         logger_mock = Mock()
         logger_mock.handlers = []

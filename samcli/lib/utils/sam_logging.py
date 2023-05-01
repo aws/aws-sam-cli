@@ -15,6 +15,9 @@ SAM_CLI_LOGGER_NAME = "samcli"
 LAMBDA_BULDERS_LOGGER_NAME = "aws_lambda_builders"
 
 LOGGING_COLOR_ENV_VAR = "NO_COLOR"
+SAM_LOGGING_COLOR_ENV_VAR = "SAM_CLI_NO_COLOR"
+TERMINAL_ENV_VAR = "TERM"
+DUMB_TERMINAL = "dumb"
 
 
 class SamCliLogger:
@@ -37,7 +40,14 @@ class SamCliLogger:
         else:
             log_stream_handler = (
                 RichHandler(console=Console(stderr=True), show_time=False, show_path=False, show_level=False)
-                if sys.stderr.isatty() and os.getenv(LOGGING_COLOR_ENV_VAR) != "1"
+                if sys.stderr.isatty()
+                and not any(
+                    [
+                        os.getenv(LOGGING_COLOR_ENV_VAR),
+                        os.getenv(SAM_LOGGING_COLOR_ENV_VAR),
+                        os.getenv(TERMINAL_ENV_VAR) == DUMB_TERMINAL,
+                    ]
+                )
                 else logging.StreamHandler()
             )
             logger.addHandler(log_stream_handler)
