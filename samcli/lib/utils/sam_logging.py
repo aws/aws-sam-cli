@@ -14,8 +14,8 @@ SAM_CLI_FORMATTER_WITH_TIMESTAMP = logging.Formatter("%(asctime)s | %(message)s"
 SAM_CLI_LOGGER_NAME = "samcli"
 LAMBDA_BULDERS_LOGGER_NAME = "aws_lambda_builders"
 
-LOGGING_COLOR_ENV_VAR = "NO_COLOR"
-SAM_LOGGING_COLOR_ENV_VAR = "SAM_CLI_NO_COLOR"
+NO_LOGGING_COLOR_ENV_VAR = "NO_COLOR"
+SAM_NO_LOGGING_COLOR_ENV_VAR = "SAM_CLI_NO_COLOR"
 TERMINAL_ENV_VAR = "TERM"
 DUMB_TERMINAL = "dumb"
 
@@ -43,8 +43,8 @@ class SamCliLogger:
                 if sys.stderr.isatty()
                 and not any(
                     [
-                        os.getenv(LOGGING_COLOR_ENV_VAR),
-                        os.getenv(SAM_LOGGING_COLOR_ENV_VAR),
+                        os.getenv(NO_LOGGING_COLOR_ENV_VAR),
+                        os.getenv(SAM_NO_LOGGING_COLOR_ENV_VAR),
                         os.getenv(TERMINAL_ENV_VAR) == DUMB_TERMINAL,
                     ]
                 )
