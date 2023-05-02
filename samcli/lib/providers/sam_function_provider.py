@@ -163,7 +163,7 @@ class SamFunctionProvider(SamBaseProvider):
                 "runtime. For more information please check AWS Lambda Runtime Support Policy: "
                 "https://docs.aws.amazon.com/lambda/latest/dg/runtime-support-policy.html"
             )
-            LOG.warning(self._colored.yellow(message))
+            LOG.warning(self._colored.color_log(message, "yellow"), extra=dict(markup=True))
 
     def get_all(self) -> Iterator[Function]:
         """

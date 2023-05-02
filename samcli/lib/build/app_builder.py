@@ -641,7 +641,7 @@ class ApplicationBuilder:
                     f"update to a newer supported runtime. For more information please check AWS Lambda Runtime "
                     f"Support Policy: https://docs.aws.amazon.com/lambda/latest/dg/runtime-support-policy.html"
                 )
-                LOG.warning(self._colored.yellow(message))
+                LOG.warning(self._colored.color_log(message, "yellow"), extra=dict(markup=True))
                 raise UnsupportedRuntimeException(f"Building functions with {runtime} is no longer supported")
 
             # Create the arguments to pass to the builder
