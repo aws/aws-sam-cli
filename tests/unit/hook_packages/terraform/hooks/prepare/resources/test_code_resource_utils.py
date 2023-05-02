@@ -26,9 +26,7 @@ class TestCodeResourceUtils(TestCase):
             lambda_resources_to_code_map, {"aws_lambda_function_some-hash": [({"my": "resource"}, "my_logical_id")]}
         )
 
-    @patch(
-        "samcli.hook_packages.terraform.hooks.prepare.resources.code_resource_utils._resolve_resource_attribute"
-    )
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resources.code_resource_utils._resolve_resource_attribute")
     def test_add_lambda_resource_code_path_to_code_map_resolve_code_value(self, mock_resolve_resource_attribute):
         tf_resource_mock = Mock()
         _add_lambda_resource_code_path_to_code_map(
