@@ -126,6 +126,14 @@ class ResourceProperties(ABC):
         self.cfn_resources: Dict[str, List] = {}
 
     def collect(self, properties: ResourceTranslationProperties):
+        """
+        Collect any properties required for future resource processing after traversing the Terraform modules.
+
+        Parameters
+        ----------
+        properties: ResourceTranslationProperties
+            Properties acquired specific to an AWS resource when iterating through a Terraform module
+        """
         raise NotImplementedError
 
 
@@ -142,4 +150,17 @@ class CodeResourceProperties(ResourceProperties, ABC):
         translated_properties: Dict,
         lambda_resources_to_code_map: Dict[str, List[Tuple[Dict, str]]],
     ):
+        """
+        Resolves the relevant code properties for an CFN resource from a Terraform resource
+        and then stores that property in the lambda_resources_to_code_map.
+
+        Parameters
+        ----------
+        properties: ResourceTranslationProperties
+            Properties acquired specific to the resource being translated when iterating through a Terraform module
+        translated_properties: Dict
+            A dictionary of CloudFormation properties that were translated by the hook from the Terraform plan file
+        lambda_resources_to_code_map: Dict[str, List[Tuple[Dict, str]]]
+            A map storing all the Lambda code properties
+        """
         raise NotImplementedError
