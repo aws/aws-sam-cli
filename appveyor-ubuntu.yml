@@ -25,35 +25,21 @@ environment:
   AWS_S3: 'AWS_S3_TESTING'
   AWS_ECR: 'AWS_ECR_TESTING'
   CARGO_LAMBDA_VERSION: "v0.17.1"
- 
+  PYTHON_ARCH: '64'
+  NOSE_PARAMETERIZED_NO_WARN: 1
+  APPVEYOR_CONSOLE_DISABLE_PTY: false
+  APPVEYOR_DETAILED_SHELL_LOGGING: true
+
   matrix:
 
     - PYTHON_HOME: "$HOME/venv3.7/bin"
       PYTHON_VERSION: '3.7'
-      PYTHON_ARCH: '64'
-      NOSE_PARAMETERIZED_NO_WARN: 1
-      INSTALL_PY_38_PIP: 1
-      INSTALL_PY_39_PIP: 1
-      INSTALL_PY_310_PIP: 1
-      APPVEYOR_CONSOLE_DISABLE_PTY: true
 
     - PYTHON_HOME: "$HOME/venv3.8/bin"
       PYTHON_VERSION: '3.8'
-      PYTHON_ARCH: '64'
-      NOSE_PARAMETERIZED_NO_WARN: 1
-      INSTALL_PY_37_PIP: 1
-      INSTALL_PY_39_PIP: 1
-      INSTALL_PY_310_PIP: 1
-      APPVEYOR_CONSOLE_DISABLE_PTY: true
 
     - PYTHON_HOME: "$HOME/venv3.9/bin"
       PYTHON_VERSION: '3.9'
-      PYTHON_ARCH: '64'
-      NOSE_PARAMETERIZED_NO_WARN: 1
-      INSTALL_PY_37_PIP: 1
-      INSTALL_PY_38_PIP: 1
-      INSTALL_PY_310_PIP: 1
-      APPVEYOR_CONSOLE_DISABLE_PTY: true
 
 install:
   # AppVeyor's apt-get cache might be outdated, and the package could potentially be 404.
