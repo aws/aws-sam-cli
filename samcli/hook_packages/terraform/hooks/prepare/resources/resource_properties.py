@@ -1,3 +1,4 @@
+"""Module for getting the resource property mappings for various resource types"""
 from typing import Dict
 
 from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
@@ -10,6 +11,16 @@ from samcli.hook_packages.terraform.hooks.prepare.types import ResourcePropertie
 
 
 def get_resource_property_mapping() -> Dict[str, ResourceProperties]:
+    """
+    Get a map containing the class for handling resource
+    property translations for a specific resource type
+
+    Returns
+    -------
+    Dict[str, ResourceProperties]
+        A mapping between the Terraform resource type and the
+        ResourceProperties handling class for that resource type
+    """
     return {
         TF_AWS_LAMBDA_LAYER_VERSION: LambdaLayerVersionProperties(),
         TF_AWS_LAMBDA_FUNCTION: LambdaFunctionProperties(),

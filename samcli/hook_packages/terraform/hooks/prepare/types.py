@@ -102,6 +102,10 @@ class ResourceTranslationValidator:
 
 @dataclass
 class ResourceTranslationProperties:
+    """
+    These are a collection of properties useful for defining a
+    translation from Terraform to CFN for a given resource
+    """
     resource: Dict
     translated_resource: Dict
     config_resource: TFResource
@@ -110,6 +114,10 @@ class ResourceTranslationProperties:
 
 
 class ResourceProperties(ABC):
+    """
+    Interface definition for a resource type to handle collecting and storing properties specific to it's type.
+    These properties are then used for handling specific resource-based logic, such as linking to other resources.
+    """
     def __init__(self):
         self.terraform_resources: Dict[str, Dict] = {}
         self.terraform_config: Dict[str, TFResource] = {}
@@ -120,6 +128,11 @@ class ResourceProperties(ABC):
 
 
 class CodeResourceProperties(ResourceProperties, ABC):
+    """
+    This interface extends ResourceProperties. In addition to resource properties, `CodeResourceProperties`
+    expects the implementing class to define a `add_lambda_resources_to_code_map` used for resolving
+    the code-specific properties of that resource type.
+    """
     def add_lambda_resources_to_code_map(
         self,
         properties: ResourceTranslationProperties,
