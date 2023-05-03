@@ -2,7 +2,7 @@ name: Close issues on release cut
 
 on:
   release:
-    types: [published]
+    types: [released]
 
 jobs:
   run-workflow:
