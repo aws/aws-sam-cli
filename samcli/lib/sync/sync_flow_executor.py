@@ -231,7 +231,7 @@ class SyncFlowExecutor:
                 if sync_flow_future:
                     self._running_futures.add(sync_flow_future)
                     LOG.info(
-                        self._color.color_log(f"Syncing {sync_flow_future.sync_flow.log_name}...", "cyan"),
+                        self._color.color_log(msg=f"Syncing {sync_flow_future.sync_flow.log_name}...", color="cyan"),
                         extra=dict(markup=True),
                     )
                 else:
@@ -310,7 +310,7 @@ class SyncFlowExecutor:
             for dependent_sync_flow in sync_flow_result.dependent_sync_flows:
                 self.add_sync_flow(dependent_sync_flow)
             LOG.info(
-                self._color.color_log(f"Finished syncing {sync_flow_result.sync_flow.log_name}.", "green"),
+                self._color.color_log(msg=f"Finished syncing {sync_flow_result.sync_flow.log_name}.", color="green"),
                 extra=dict(markup=True),
             )
         return True

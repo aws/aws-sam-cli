@@ -11,7 +11,8 @@ from rich.logging import RichHandler
 from rich.style import Style
 from rich.text import Text
 
-LOG = logging.getLogger(__name__)
+from samcli.lib.utils.sam_logging import SAM_CLI_LOGGER_NAME
+
 # Enables ANSI escape codes on Windows
 if platform.system().lower() == "windows":
     try:
@@ -47,7 +48,9 @@ class Colored:
         colorize : bool
             Optional. Set this to True to turn on coloring. False will turn off coloring
         """
-        self.rich_logging = any(isinstance(handler, RichHandler) for handler in logging.getLogger("samcli").handlers)
+        self.rich_logging = any(
+            isinstance(handler, RichHandler) for handler in logging.getLogger(SAM_CLI_LOGGER_NAME).handlers
+        )
         self.colorize = colorize
 
     def red(self, msg):
@@ -75,7 +78,7 @@ class Colored:
         return click.style(msg, underline=True) if self.colorize else msg
 
     def underline_log(self, msg):
-        """Underline the input such that underlying Rich Logger understands it"""
+        """Underline the input such that underlying Rich Logger understands it (if configured)."""
         if self.rich_logging:
             _color_msg = Text(msg, style=Style(underline=True))
             return _color_msg.markup if self.colorize else msg
@@ -91,10 +94,11 @@ class Colored:
         kwargs = {"fg": color}
         return click.style(msg, **kwargs) if self.colorize else msg
 
+    def _color_log(self, msg, color):
+        """Marked up text with color used for logging with a logger"""
+        _color_msg = Text(msg, style=Style(color=color))
+        return _color_msg.markup if self.colorize else msg
+
     def color_log(self, msg, color):
-        """Internal helper method to add colors such that underlying Rich Logger understands it."""
-        if self.rich_logging:
-            _color_msg = Text(msg, style=Style(color=color))
-            return _color_msg.markup if self.colorize else msg
-        else:
-            self._color(msg=msg, color=color)
+        """Internal helper method to add colors such that underlying Rich Logger understands it (if configured)."""
+        return self._color_log(msg=msg, color=color) if self.rich_logging else self._color(msg=msg, color=color)

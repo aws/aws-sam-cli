@@ -510,7 +510,7 @@ class Deployer:
             if disable_rollback and on_failure is not FailureMode.DELETE:
                 # This will only display the message if disable rollback is set or if DO_NOTHING is specified
                 msg = self._gen_deploy_failed_with_rollback_disabled_msg(stack_name)
-                LOG.info(self._colored.color_log(msg, "red"), extra=dict(markup=True))
+                LOG.info(self._colored.color_log(msg=msg, color="red"), extra=dict(markup=True))
 
             raise deploy_exceptions.DeployFailedError(stack_name=stack_name, msg=str(ex))
 
@@ -637,7 +637,7 @@ class Deployer:
                 self.wait_for_execute(stack_name, "CREATE", disable_rollback, on_failure=on_failure)
                 msg = "\nStack creation succeeded. Sync infra completed.\n"
 
-            LOG.info(self._colored.color_log(msg, "green"), extra=dict(markup=True))
+            LOG.info(self._colored.color_log(msg=msg, color="green"), extra=dict(markup=True))
 
             return result
         except botocore.exceptions.ClientError as ex:
