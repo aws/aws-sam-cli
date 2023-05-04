@@ -2118,7 +2118,7 @@ test-project
 
     def test_must_return_runtime_from_base_image_name(self):
         base_images = [
-            "amazon/dotnet5.0-base",
+            "amazon/dotnet6-base",
             "amazon/dotnetcore3.1-base",
             "amazon/go1.x-base",
             "amazon/java11-base",
@@ -2129,7 +2129,7 @@ test-project
         ]
 
         expected_runtime = [
-            "dotnet5.0",
+            "dotnet6",
             "dotnetcore3.1",
             "go1.x",
             "java11",
