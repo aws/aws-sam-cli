@@ -24,7 +24,7 @@ class RemoteInvokeExecutorFactory:
         Parameters
         ----------
         cfn_resource_summary : CloudFormationResourceSummary
-            Information about the resource, which TestExecutor will be created for
+            Information about the resource, which RemoteInvokeExecutor will be created for
 
         Returns:
         -------
