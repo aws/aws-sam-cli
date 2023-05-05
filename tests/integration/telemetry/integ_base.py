@@ -5,6 +5,7 @@ import logging
 import subprocess
 import time
 import re
+import pytest
 
 from flask import Flask, request, Response
 from threading import Thread
@@ -26,6 +27,7 @@ TELEMETRY_ENDPOINT_URL = "http://{}:{}".format(TELEMETRY_ENDPOINT_HOST, TELEMETR
 EXPECTED_TELEMETRY_PROMPT = re.sub(r"\n", os.linesep, TELEMETRY_PROMPT)
 
 
+@pytest.mark.xdist_group(name="sam_telemetry")
 class IntegBase(TestCase):
     @classmethod
     def setUpClass(cls):
