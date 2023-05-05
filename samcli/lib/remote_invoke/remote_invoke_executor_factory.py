@@ -32,12 +32,12 @@ class RemoteInvokeExecutorFactory:
             RemoteInvoker instance for the given CFN resource, None if the resource is not supported yet
 
         """
-        test_executor = RemoteInvokeExecutorFactory.REMOTE_INVOKE_EXECUTOR_MAPPING.get(
+        remote_invoke_executor = RemoteInvokeExecutorFactory.REMOTE_INVOKE_EXECUTOR_MAPPING.get(
             cfn_resource_summary.resource_type
         )
 
-        if test_executor:
-            return test_executor(self, cfn_resource_summary)
+        if remote_invoke_executor:
+            return remote_invoke_executor(self, cfn_resource_summary)
 
         LOG.error(
             "Can't find test executor instance for resource %s for type %s",

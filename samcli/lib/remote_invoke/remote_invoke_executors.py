@@ -64,6 +64,9 @@ class RemoteInvokeRequestResponseMapper(ABC):
 
 
 class ResponseObjectToJsonStringMapper(RemoteInvokeRequestResponseMapper):
+    """
+    Maps response object inside RemoteInvokeExecutionInfo into formatted JSON string with multiple lines
+    """
     def map(self, remote_invoke_input: RemoteInvokeExecutionInfo) -> RemoteInvokeExecutionInfo:
         LOG.debug("Converting response object into JSON")
         remote_invoke_input.response = json.dumps(remote_invoke_input.response, indent=2)
@@ -171,6 +174,11 @@ class RemoteInvokeExecutor:
         self._boto_action_executor = boto_action_executor
 
     def execute(self, remote_invoke_input: RemoteInvokeExecutionInfo) -> RemoteInvokeExecutionInfo:
+        """
+        First runs all mappers for request object to get the final version of it.
+        Then invokes the BotoActionExecutor to get the result
+        And finally, runs all mappers for the response object to get the final form of it.
+        """
         remote_invoke_input = self._map_input(remote_invoke_input)
         remote_invoke_output = self._boto_action_executor.execute(remote_invoke_input)
 
