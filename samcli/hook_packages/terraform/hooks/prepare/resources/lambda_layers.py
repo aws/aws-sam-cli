@@ -12,6 +12,9 @@ from samcli.hook_packages.terraform.hooks.prepare.types import (
 
 
 class LambdaLayerVersionProperties(CodeResourceProperties):
+
+    CFN_CODE_FIELD = "Content"
+
     def __init__(self):
         super(LambdaLayerVersionProperties, self).__init__()
 
@@ -50,7 +53,7 @@ class LambdaLayerVersionProperties(CodeResourceProperties):
         lambda_resources_to_code_map: Dict[str, List[Tuple[Dict, str]]]
             A map storing all the Lambda code properties
         """
-        planned_value_layer_code_path = translated_properties.get("Content")
+        planned_value_layer_code_path = translated_properties.get(self.CFN_CODE_FIELD)
         _add_lambda_resource_code_path_to_code_map(
             properties.config_resource,
             "layer",

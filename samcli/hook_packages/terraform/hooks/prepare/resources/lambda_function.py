@@ -13,6 +13,11 @@ from samcli.lib.utils.packagetype import IMAGE, ZIP
 
 
 class LambdaFunctionProperties(CodeResourceProperties):
+
+    RESOURCE_TYPE_FIELD = "PackageType"
+    CFN_CODE_FIELD = "Code"
+    CFN_IMAGE_FIELD = "ImageUri"
+
     def __init__(self):
         super(LambdaFunctionProperties, self).__init__()
 
@@ -53,12 +58,12 @@ class LambdaFunctionProperties(CodeResourceProperties):
         lambda_resources_to_code_map: Dict[str, List[Tuple[Dict, str]]]
             A map storing all the Lambda code properties
         """
-        resource_type = translated_properties.get("PackageType", ZIP)
+        resource_type = translated_properties.get(self.RESOURCE_TYPE_FIELD, ZIP)
         resource_type_constants = {ZIP: ("zip", "filename"), IMAGE: ("image", "image_uri")}
         planned_value_function_code_path = (
-            translated_properties.get("Code")
+            translated_properties.get(self.CFN_CODE_FIELD)
             if resource_type == ZIP
-            else translated_properties.get("Code", {}).get("ImageUri")
+            else translated_properties.get(self.CFN_CODE_FIELD, {}).get(self.CFN_IMAGE_FIELD)
         )
         func_type, tf_code_property = resource_type_constants[resource_type]
 
