@@ -1,104 +1,79 @@
-<p align="center">
-</p>
+AWS SAM CLI
 
-# AWS SAM CLI
+स्थापना | ब्लॉग | वीडियो | एडब्ल्यूएस डॉक्स | रोडमैप | कोशिश करो | हमें सुस्त
 
-![Apache 2.0 License](https://img.shields.io/github/license/aws/aws-sam-cli)
-![SAM CLI Version](https://img.shields.io/github/release/aws/aws-sam-cli.svg?label=CLI%20Version)
-![Install](https://img.shields.io/badge/brew-aws--sam--cli-orange)
-![pip](https://img.shields.io/badge/pip-aws--sam--cli-9cf)
-
-[Installation](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html) | [Blogs](https://serverlessland.com/blog?tag=AWS%20SAM) | [Videos](https://serverlessland.com/video?tag=AWS%20SAM) | [AWS Docs](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html) | [Roadmap](https://github.com/aws/aws-sam-cli/wiki/SAM-CLI-Roadmap) | [Try It Out](https://s12d.com/jKo46elk) | [Slack Us](https://join.slack.com/t/awsdevelopers/shared_invite/zt-yryddays-C9fkWrmguDv0h2EEDzCqvw)
-
-The AWS Serverless Application Model (SAM) CLI is an open-source CLI tool that helps you develop serverless applications containing [Lambda functions](https://aws.amazon.com/lambda/), [Step Functions](https://aws.amazon.com/step-functions/), [API Gateway](https://aws.amazon.com/api-gateway/), [EventBridge](https://aws.amazon.com/eventbridge/), [SQS](https://aws.amazon.com/sqs/), [SNS](https://aws.amazon.com/sns/) and more. Some of the features it provides are:
-- **Initialize serverless applications** in minutes with AWS-provided infrastructure templates with `sam init`
-- **Compile, build, and package** Lambda functions with provided runtimes and with custom Makefile workflows, for zip and image types of Lambda functions with `sam build`
-- **Locally test** a Lambda function and API Gateway easily in a Docker container with `sam local` commands on SAM and CDK applications
-- **Sync and test your changes in the cloud** with `sam sync` in your developer environments
-- **Deploy** your SAM and CloudFormation templates using `sam deploy`
-- Quickly **create pipelines** with prebuilt templates with popular CI/CD systems using `sam pipeline init`
-- **Tail CloudWatch logs and X-Ray traces** with `sam logs` and `sam traces`
+AWS सर्वरलेस एप्लिकेशन मॉडल (एसएएम) सीएलआई एक ओपन-सोर्स सीएलआई टूल है जो आपको लैम्ब्डा फ़ंक्शंस, स्टेप फ़ंक्शंस, एपीआई गेटवे, इवेंटब्रिज, एसक्यूएस, एसएनएस और अधिक वाले सर्वर रहित एप्लिकेशन विकसित करने में मदद करता है। इसके द्वारा प्रदान की जाने वाली कुछ विशेषताएं हैं:
 
 
-## Recent blogposts and workshops
+AWS द्वारा प्रदान किए गए इंफ्रास्ट्रक्चर टेम्प्लेट के साथ मिनटों में सर्वर रहित एप्लिकेशन को आरंभ करें sam init.
 
-* **Speeding up incremental changes with AWS SAM Accelerate and Nested Stacks** - [Read blogpost here](https://s12d.com/wt1ajjwB).
+लैम्ब्डा फ़ंक्शंस के ज़िप और छवि प्रकारों के लिए प्रदान किए गए रनटाइम के साथ और कस्टम मेकफ़ाइल वर्कफ़्लोज़ के साथ लैम्ब्डा फ़ंक्शंस को संकलित, निर्माण और पैकेज करें sam build
 
-* **Develop Node projects with SAM CLI using esbuild** - and use SAM Accelerate on Typescript projects. [Read blogpost here](https://s12d.com/5Aa6u0o7).
+डॉकर कंटेनर में आसानी से लैम्ब्डा फ़ंक्शन और एपीआई गेटवे का स्थानीय रूप से परीक्षण करें sam local एसएएम और सीडीके अनुप्रयोगों पर आदेश
 
-* **Speed up development with SAM Accelerate** - quickly test your changes in the cloud. [Read docs here](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/accelerate.html).
+के साथ क्लाउड में अपने बदलावों को सिंक और टेस्ट करें sam sync आपके डेवलपर वातावरण में
 
-* **The Complete SAM Workshop**- [This workshop](https://s12d.com/jKo46elk) is a great way to experience the power of SAM and SAM CLI.
+का उपयोग करके अपने SAM और CloudFormation टेम्प्लेट को परिनियोजित करें sam deploy
 
-* **Getting started with CI/CD? SAM pipelines can help you get started** - [This workshop](https://s12d.com/_JQ48d5T) walks you through the basics.
+लोकप्रिय सीआई/सीडी सिस्टम के उपयोग से पूर्वनिर्मित टेम्पलेट्स के साथ त्वरित रूप से पाइपलाइन बनाएं sam pipeline init
 
-* **Get started with Serverless Application development using SAM CLI** - [This workshop](https://s12d.com/Tq9ZE-Br) walks you through the basics.
-
-
-## Get Started
-
-To get started with building SAM-based applications, use the SAM CLI. SAM CLI provides a Lambda-like execution 
-environment that lets you locally build, test, debug, and deploy [AWS serverless](https://aws.amazon.com/serverless/) applications.
-
-* [Install SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
-* [Build & Deploy a "Hello World" Web App](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-quick-start.html)
-* [Install AWS Toolkit](https://aws.amazon.com/getting-started/tools-sdks/#IDE_and_IDE_Toolkits) to use SAM with your favorite IDEs
-* [Tutorials and Workshops](https://serverlessland.com/learn)
-* [Lambda Powertools](https://aws.amazon.com/blogs/opensource/simplifying-serverless-best-practices-with-lambda-powertools/) Utilities for building Lambda functions in [Python](https://awslabs.github.io/aws-lambda-powertools-python/latest/), [Java](https://github.com/awslabs/aws-lambda-powertools-java), and [TypeScript](https://github.com/awslabs/aws-lambda-powertools-typescript)
+टेल क्लाउडवॉच लॉग और एक्स-रे ट्रेस के साथ sam logs और sam traces.
 
 
-**Next Steps:** Learn to build a more complex serverless application.
-* [Extract text from images and store it in a database](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-example-s3.html) using Amazon S3 and Amazon Rekognition services.
-* [Detect when records are added to a database](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-example-ddb.html) using Amazon DynamoDB database and asynchronous stream processing.
-* [Explore popular patterns](https://serverlessland.com/patterns)
+हाल के ब्लॉगपोस्ट और कार्यशालाएं
+AWS SAM Accelerate और Nested Stacks के साथ वृद्धिशील परिवर्तनों को गति देना - ब्लॉगपोस्ट यहाँ पढ़ें।
 
+esbuild का उपयोग करके SAM CLI के साथ नोड प्रोजेक्ट विकसित करें - और टाइपस्क्रिप्ट प्रोजेक्ट पर SAM Accelerate का उपयोग करें। ब्लॉगपोस्ट यहाँ पढ़ें।
 
-## What is this Github repository? 💻
+SAM Accelerate के साथ विकास को गति दें - क्लाउड में अपने परिवर्तनों का त्वरित परीक्षण करें। दस्तावेज़ यहाँ पढ़ें।
 
-This Github repository contains source code for SAM CLI. Here is the development team talking about this code:
+संपूर्ण सैम वर्कशॉप- यह वर्कशॉप सैम और सैम सीएलआई की शक्ति का अनुभव करने का एक शानदार तरीका है।
 
-> SAM CLI code is written in Python. Source code is well documented, very modular, with 95% unit test coverage. 
-It uses this awesome Python library called Click to manage the command line interaction and uses Docker to run Lambda functions locally.
-We think you'll like the code base. Clone it and run `make pr` or `./Make -pr` on Windows!
+सीआई/सीडी के साथ आरंभ करना? एसएएम पाइपलाइन आपको आरंभ करने में मदद कर सकती हैं - यह कार्यशाला आपको मूल बातें बताती है।
 
+एसएएम सीएलआई का उपयोग करके सर्वर रहित अनुप्रयोग विकास के साथ आरंभ करें - यह कार्यशाला आपको मूल बातें बताती है।
 
-## Related Repositories and Resources
+शुरू हो जाओ
+एसएएम-आधारित अनुप्रयोगों के निर्माण के साथ आरंभ करने के लिए, एसएएम सीएलआई का उपयोग करें। एसएएम सीएलआई एक लैम्ब्डा जैसा निष्पादन वातावरण प्रदान करता है जो आपको स्थानीय रूप से एडब्ल्यूएस सर्वर रहित अनुप्रयोगों का निर्माण, परीक्षण, डिबग और तैनात करने देता है।
 
-+ **SAM Transform** [Open source template specification](https://github.com/aws/serverless-application-model/) that provides shorthand syntax for CloudFormation
-+ **SAM CLI application templates** Get started quickly with [predefined application templates](https://github.com/aws/aws-sam-cli-app-templates/blob/master/README.md) for all supported runtimes and languages, used by `sam init`
-+ **Lambda Builders** [Lambda builder tools](https://github.com/aws/aws-lambda-builders) for supported runtimes and custom build workflows, used by `sam build`
-+ **Build and local emulation images for CI/CD tools** [Build container images](https://gallery.ecr.aws/sam/) to use with CI/CD tasks 
+सैम सीएलआई स्थापित करें
+एक "हैलो वर्ल्ड" वेब ऐप बनाएं और तैनात करें
+अपने पसंदीदा आईडीई के साथ एसएएम का उपयोग करने के लिए एडब्ल्यूएस टूलकिट स्थापित करें
+ट्यूटोरियल और कार्यशालाएं
+पायथन, जावा और टाइपस्क्रिप्ट में लैम्ब्डा कार्यों के निर्माण के लिए लैम्ब्डा पॉवरटूल्स यूटिलिटीज
+अगले चरण: अधिक जटिल सर्वर रहित एप्लिकेशन बनाना सीखें।
 
+छवियों से पाठ निकालें और इसे Amazon S3 और Amazon Recognition सेवाओं का उपयोग करके डेटाबेस में संग्रहीत करें।
+पता लगाएं कि Amazon DynamoDB डेटाबेस और एसिंक्रोनस स्ट्रीम प्रोसेसिंग का उपयोग करके डेटाबेस में रिकॉर्ड कब जोड़े जाते हैं।
+लोकप्रिय पैटर्न का अन्वेषण करें
 
-## Contribute to SAM
+यह जीथब रिपॉजिटरी क्या है? 💻
 
-We love our contributors ❤️ We have over 100 contributors who have built various parts of the product. 
-Read this [testimonial from @ndobryanskyy](https://www.lohika.com/aws-sam-my-exciting-first-open-source-experience/) to learn
-more about what it was like contributing to SAM. 
+इस Github रिपॉजिटरी में SAM CLI के लिए सोर्स कोड है। यहाँ विकास दल इस कोड के बारे में बात कर रहा है:
 
-Depending on your interest and skill, you can help build the different parts of the SAM project;
+सैम सीएलआई कोड पायथन में लिखा गया है। 95% यूनिट परीक्षण कवरेज के साथ स्रोत कोड अच्छी तरह से प्रलेखित है, बहुत मॉड्यूलर है। यह कमांड लाइन इंटरैक्शन को प्रबंधित करने के लिए क्लिक नामक इस भयानक पायथन लाइब्रेरी का उपयोग करता है और लैम्ब्डा कार्यों को स्थानीय रूप से चलाने के लिए डॉकर का उपयोग करता है। हमें लगता है कि आपको कोड बेस पसंद आएगा। इसे क्लोन करें और विंडोज़ पर पीआर या ./मेक -पीआर चलाएं!
 
-**Enhance the SAM Specification**
+संबंधित भंडार और संसाधन
+एसएएम ट्रांसफॉर्म ओपन सोर्स टेम्प्लेट विनिर्देश जो क्लाउडफ़ॉर्मेशन के लिए शॉर्टहैंड सिंटैक्स प्रदान करता है
+SAM CLI एप्लिकेशन टेम्प्लेट सभी समर्थित रनटाइम और भाषाओं के लिए पूर्वनिर्धारित एप्लिकेशन टेम्प्लेट के साथ जल्दी से आरंभ करें, जिसका उपयोग सैम इनिट द्वारा किया जाता है
+लैम्ब्डा बिल्डर्स समर्थित रनटाइम और कस्टम बिल्ड वर्कफ्लो के लिए लैम्ब्डा बिल्डर टूल, सैम बिल्ड द्वारा उपयोग किया जाता है
+CI/CD टूल्स के लिए बिल्ड और स्थानीय इम्यूलेशन इमेज CI/CD कार्यों के साथ उपयोग करने के लिए कंटेनर इमेज बनाएं
+एसएएम में योगदान करें
+हम अपने योगदानकर्ताओं से प्यार करते हैं ❤️ हमारे पास 100 से अधिक योगदानकर्ता हैं जिन्होंने उत्पाद के विभिन्न भागों का निर्माण किया है। एसएएम में योगदान देने के बारे में अधिक जानने के लिए @ndobryanskyy से इस प्रशंसापत्र को पढ़ें।
 
-Make pull requests, report bugs, and share ideas to improve the full SAM template specification.
-Source code is located on Github at [aws/serverless-application-model](https://github.com/aws/serverless-application-model).
-Read the [SAM Specification Contributing Guide](https://github.com/aws/serverless-application-model/blob/master/CONTRIBUTING.md)
-to get started.
-    
-**Strengthen SAM CLI**
+आपकी रुचि और कौशल के आधार पर, आप एसएएम परियोजना के विभिन्न हिस्सों को बनाने में मदद कर सकते हैं;
 
-Add new commands, enhance existing ones, report bugs, or request new features for the SAM CLI.
-Source code is located on Github at [aws/aws-sam-cli](https://github.com/aws/aws-sam-cli). Read the [SAM CLI Contributing Guide](https://github.com/aws/aws-sam-cli/blob/develop/CONTRIBUTING.md) to
-get started. 
+एसएएम विशिष्टता बढ़ाएँ
 
-**Update SAM Developer Guide**
+पूर्ण SAM टेम्पलेट विनिर्देशन को बेहतर बनाने के लिए पुल अनुरोध करें, बग की रिपोर्ट करें और विचार साझा करें। स्रोत कोड Github पर aws/serverless-application-model पर स्थित है। आरंभ करने के लिए SAM विशिष्टता योगदान मार्गदर्शिका पढ़ें।
 
-[SAM Developer Guide](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/index.html) provides a comprehensive getting started guide and reference documentation.
-Source code is located on Github at [awsdocs/aws-sam-developer-guide](https://github.com/awsdocs/aws-sam-developer-guide).
-Read the [SAM Documentation Contribution Guide](https://github.com/awsdocs/aws-sam-developer-guide/blob/master/CONTRIBUTING.md) to get
-started. 
+सैम सीएलआई को मजबूत करें
 
+SAM CLI के लिए नए कमांड जोड़ें, मौजूदा को बेहतर बनाएं, बग की रिपोर्ट करें या नई सुविधाओं का अनुरोध करें। स्रोत कोड Github पर aws/aws-sam-cli पर स्थित है। आरंभ करने के लिए SAM CLI योगदान मार्गदर्शिका पढ़ें।
 
-### Join the SAM Community on Slack
+सैम डेवलपर गाइड अपडेट करें
 
-[Join the SAM developers channel (#samdev)](https://join.slack.com/t/awsdevelopers/shared_invite/zt-yryddays-C9fkWrmguDv0h2EEDzCqvw) on Slack to collaborate with fellow community members and the AWS SAM team.
+SAM डेवलपर गाइड आरंभ करने के लिए व्यापक गाइड और संदर्भ दस्तावेज़ उपलब्ध कराता है। स्रोत कोड Github पर awsdocs/aws-sam-developer-guide पर स्थित है। आरंभ करने के लिए SAM दस्तावेज़ीकरण योगदान मार्गदर्शिका पढ़ें।
+
+स्लैक पर एसएएम समुदाय में शामिल हों
+साथी समुदाय के सदस्यों और AWS SAM टीम के साथ सहयोग करने के लिए Slack पर SAM Developers चैनल (#samdev) से जुड़ें.
