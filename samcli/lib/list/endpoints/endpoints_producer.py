@@ -9,6 +9,7 @@ from typing import Any, Dict, List
 
 from botocore.exceptions import BotoCoreError, ClientError
 
+# from botocore.client import Cloudformation
 from samcli.commands._utils.template import get_template_data
 from samcli.commands.list.exceptions import (
     SamListLocalResourcesNotFoundError,
@@ -68,6 +69,7 @@ class EndpointsProducer(ResourceMappingProducer, Producer):
         apigatewayv2_client,
         mapper,
         consumer,
+        parameter_overrides={},
     ):
         """
         Parameters
@@ -94,9 +96,19 @@ class EndpointsProducer(ResourceMappingProducer, Producer):
             The mapper used to map data to the format needed for the consumer provided
         consumer: ListInfoPullerConsumer
             The consumer used to output the data
+        parameter_overrides: dict
+            Dictionary of parameters to override in the template
         """
         super().__init__(
-            stack_name, region, profile, template_file, cloudformation_client, iam_client, mapper, consumer
+            stack_name,
+            region,
+            profile,
+            template_file,
+            cloudformation_client,
+            iam_client,
+            mapper,
+            consumer,
+            parameter_overrides,
         )
         self.stack_name = stack_name
         self.region = region
