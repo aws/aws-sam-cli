@@ -1,6 +1,6 @@
 """Test Terraform prepare translate"""
 import copy
-from unittest.mock import Mock, call, patch, MagicMock
+from unittest.mock import Mock, call, patch, MagicMock, ANY
 
 from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     OneLambdaLayerLinkingLimitationException,
@@ -19,6 +19,8 @@ from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     AWS_API_GATEWAY_STAGE_PROPERTY_BUILDER_MAPPING,
     TF_AWS_API_GATEWAY_REST_API,
     AWS_API_GATEWAY_METHOD_PROPERTY_BUILDER_MAPPING,
+    TF_AWS_LAMBDA_FUNCTION,
+    TF_AWS_LAMBDA_LAYER_VERSION,
 )
 from samcli.hook_packages.terraform.hooks.prepare.types import (
     SamMetadataResource,
@@ -112,19 +114,67 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
             )
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_root_module_only)
         mock_enrich_resources_and_generate_makefile.assert_not_called()
-        lambda_functions = dict(
-            filter(
-                lambda resource: resource[1].get("Type") == "AWS::Lambda::Function",
-                translated_cfn_dict.get("Resources").items(),
-            )
-        )
         expected_arguments_in_call = [
-            {mock_get_configuration_address(): config_resource},
-            {mock_get_configuration_address(): [val for _, val in lambda_functions.items()]},
+            ANY,
+            {
+                "aws_lambda_function.myfunc": [
+                    {
+                        "Type": "AWS::Lambda::Function",
+                        "Properties": {
+                            "FunctionName": "myfunc",
+                            "Architectures": ["x86_64"],
+                            "Environment": {"Variables": {"foo": "bar", "hello": "world"}},
+                            "Code": "file.zip",
+                            "Handler": "index.handler",
+                            "PackageType": "Zip",
+                            "Runtime": "python3.7",
+                            "Layers": ["layer_arn1", "layer_arn2"],
+                            "Timeout": 3,
+                            "MemorySize": 128,
+                        },
+                        "Metadata": {"SamResourceId": "aws_lambda_function.myfunc", "SkipBuild": True},
+                    }
+                ],
+                "aws_lambda_function.myfunc2": [
+                    {
+                        "Type": "AWS::Lambda::Function",
+                        "Properties": {
+                            "FunctionName": "myfunc2",
+                            "Architectures": ["x86_64"],
+                            "Environment": {"Variables": {"hi": "there"}},
+                            "Code": "file2.zip",
+                            "Handler": "index.handler2",
+                            "PackageType": "Zip",
+                            "Runtime": "python3.8",
+                            "Layers": ["layer_arn"],
+                        },
+                        "Metadata": {"SamResourceId": "aws_lambda_function.myfunc2", "SkipBuild": True},
+                    }
+                ],
+                "aws_lambda_function.image_func": [
+                    {
+                        "Type": "AWS::Lambda::Function",
+                        "Properties": {
+                            "FunctionName": "image_func",
+                            "Architectures": ["x86_64"],
+                            "Environment": {"Variables": {"foo": "bar", "hello": "world"}},
+                            "Code": {"ImageUri": "image/uri:tag"},
+                            "PackageType": "Image",
+                            "Timeout": 3,
+                            "MemorySize": 128,
+                            "ImageConfig": {
+                                "Command": ["cmd1", "cmd2"],
+                                "EntryPoint": ["entry1", "entry2"],
+                                "WorkingDirectory": "/working/dir/path",
+                            },
+                        },
+                        "Metadata": {"SamResourceId": "aws_lambda_function.image_func", "SkipBuild": True},
+                    }
+                ],
+            },
             {},
         ]
         mock_link_lambda_functions_to_layers.assert_called_once_with(*expected_arguments_in_call)
-        mock_get_configuration_address.assert_called()
         mock_validator.assert_called_once_with(
             resource=self.tf_apigw_rest_api_resource, config_resource=config_resource
         )
@@ -183,7 +233,6 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._check_dummy_remote_values")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._build_module")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.enrich_resources_and_generate_makefile")
     @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
@@ -192,7 +241,6 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         checksum_mock,
         mock_enrich_resources_and_generate_makefile,
         mock_link_lambda_functions_to_layers,
-        mock_get_configuration_address,
         mock_build_module,
         mock_check_dummy_remote_values,
     ):
@@ -213,23 +261,99 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         translated_cfn_dict = translate_to_cfn(self.tf_json_with_child_modules, self.output_dir, self.project_root)
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_child_modules)
         mock_enrich_resources_and_generate_makefile.assert_not_called()
-        lambda_functions = dict(
-            filter(
-                lambda resource: resource[1].get("Type") == "AWS::Lambda::Function",
-                translated_cfn_dict.get("Resources").items(),
-            )
-        )
         expected_arguments_in_call = [
-            {mock_get_configuration_address(): conf_resource},
-            {mock_get_configuration_address(): [val for _, val in lambda_functions.items()]},
+            {
+                "aws_lambda_function.myfunc": conf_resource,
+                "module.mymodule1.aws_lambda_function.myfunc2": conf_resource,
+                "module.mymodule1.module.mymodule2.aws_lambda_function.myfunc3": conf_resource,
+                "module.mymodule1.module.mymodule2.aws_lambda_function.myfunc4": conf_resource,
+            },
+            {
+                "aws_lambda_function.myfunc": [
+                    {
+                        "Type": "AWS::Lambda::Function",
+                        "Properties": {
+                            "FunctionName": "myfunc",
+                            "Architectures": ["x86_64"],
+                            "Environment": {"Variables": {"foo": "bar", "hello": "world"}},
+                            "Code": "file.zip",
+                            "Handler": "index.handler",
+                            "PackageType": "Zip",
+                            "Runtime": "python3.7",
+                            "Layers": ["layer_arn1", "layer_arn2"],
+                            "Timeout": 3,
+                            "MemorySize": 128,
+                        },
+                        "Metadata": {"SamResourceId": "aws_lambda_function.myfunc", "SkipBuild": True},
+                    }
+                ],
+                "module.mymodule1.aws_lambda_function.myfunc2": [
+                    {
+                        "Type": "AWS::Lambda::Function",
+                        "Properties": {
+                            "FunctionName": "myfunc2",
+                            "Architectures": ["x86_64"],
+                            "Environment": {"Variables": {"hi": "there"}},
+                            "Code": "file2.zip",
+                            "Handler": "index.handler2",
+                            "PackageType": "Zip",
+                            "Runtime": "python3.8",
+                            "Layers": ["layer_arn"],
+                        },
+                        "Metadata": {
+                            "SamResourceId": "module.mymodule1.aws_lambda_function.myfunc2",
+                            "SkipBuild": True,
+                        },
+                    }
+                ],
+                "module.mymodule1.module.mymodule2.aws_lambda_function.myfunc3": [
+                    {
+                        "Type": "AWS::Lambda::Function",
+                        "Properties": {
+                            "FunctionName": "myfunc3",
+                            "Architectures": ["x86_64"],
+                            "Environment": {"Variables": {"hi": "there"}},
+                            "Code": "file2.zip",
+                            "Handler": "index.handler2",
+                            "PackageType": "Zip",
+                            "Runtime": "python3.8",
+                            "Layers": ["layer_arn"],
+                        },
+                        "Metadata": {
+                            "SamResourceId": "module.mymodule1.module.mymodule2.aws_lambda_function.myfunc3",
+                            "SkipBuild": True,
+                        },
+                    }
+                ],
+                "module.mymodule1.module.mymodule2.aws_lambda_function.myfunc4": [
+                    {
+                        "Type": "AWS::Lambda::Function",
+                        "Properties": {
+                            "FunctionName": "myfunc4",
+                            "Architectures": ["x86_64"],
+                            "Environment": {"Variables": {"hi": "there"}},
+                            "Code": "file2.zip",
+                            "Handler": "index.handler2",
+                            "PackageType": "Zip",
+                            "Runtime": "python3.8",
+                            "Layers": ["layer_arn"],
+                        },
+                        "Metadata": {
+                            "SamResourceId": "module.mymodule1.module.mymodule2.aws_lambda_function.myfunc4",
+                            "SkipBuild": True,
+                        },
+                    }
+                ],
+            },
             {},
         ]
         mock_link_lambda_functions_to_layers.assert_called_once_with(*expected_arguments_in_call)
-        mock_get_configuration_address.assert_called()
         mock_check_dummy_remote_values.assert_called_once_with(translated_cfn_dict.get("Resources"))
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.get_resource_property_mapping")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.isinstance")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.ResourceTranslationProperties")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.build_cfn_logical_id")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._add_lambda_resource_code_path_to_code_map")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._check_dummy_remote_values")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._build_module")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._get_configuration_address")
@@ -244,8 +368,10 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         mock_get_configuration_address,
         mock_build_module,
         mock_check_dummy_remote_values,
-        mock_add_lambda_resource_code_path_to_code_map,
         mock_build_cfn_logical_id,
+        mock_resource_translation_properties,
+        mock_isinstance,
+        mock_resource_property_mapping,
     ):
         root_module = MagicMock()
         root_module.get.return_value = "module.m1"
@@ -262,6 +388,15 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         mock_build_module.return_value = root_module
         checksum_mock.return_value = self.mock_logical_id_hash
         mock_build_cfn_logical_id.side_effect = ["logical_id1", "logical_id2", "logical_id3"]
+
+        mock_isinstance.return_value = True
+        lambda_properties_mock = Mock()
+        lambda_layer_properties_mock = Mock()
+        mock_resource_property_mapping.return_value = {
+            TF_AWS_LAMBDA_FUNCTION: lambda_properties_mock,
+            TF_AWS_LAMBDA_LAYER_VERSION: lambda_layer_properties_mock,
+        }
+
         translated_cfn_dict = translate_to_cfn(
             self.tf_json_with_root_module_with_sam_metadata_resources, self.output_dir, self.project_root
         )
@@ -291,39 +426,61 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         )
 
         mock_enrich_resources_and_generate_makefile.assert_called_once_with(*expected_arguments_in_call)
-        mock_add_lambda_resource_code_path_to_code_map.assert_has_calls(
+        self.assertEqual(len(lambda_properties_mock.method_calls), 6)
+        lambda_properties_mock.add_lambda_resources_to_code_map.assert_has_calls(
             [
                 call(
-                    resource_mock,
-                    "zip",
+                    ANY,
+                    {
+                        "FunctionName": "myfunc",
+                        "Architectures": ["x86_64"],
+                        "Environment": {"Variables": {"foo": "bar", "hello": "world"}},
+                        "Code": "file.zip",
+                        "Handler": "index.handler",
+                        "PackageType": "Zip",
+                        "Runtime": "python3.7",
+                        "Layers": ["layer_arn1", "layer_arn2"],
+                        "Timeout": 3,
+                        "MemorySize": 128,
+                    },
                     {},
-                    "logical_id1",
-                    "file.zip",
-                    "filename",
-                    translated_cfn_dict["Resources"]["logical_id1"],
                 ),
                 call(
-                    resource_mock,
-                    "zip",
+                    ANY,
+                    {
+                        "FunctionName": "myfunc2",
+                        "Architectures": ["x86_64"],
+                        "Environment": {"Variables": {"hi": "there"}},
+                        "Code": "file2.zip",
+                        "Handler": "index.handler2",
+                        "PackageType": "Zip",
+                        "Runtime": "python3.8",
+                        "Layers": ["layer_arn"],
+                    },
                     {},
-                    "logical_id2",
-                    "file2.zip",
-                    "filename",
-                    translated_cfn_dict["Resources"]["logical_id2"],
                 ),
                 call(
-                    resource_mock,
-                    "image",
+                    ANY,
+                    {
+                        "FunctionName": "image_func",
+                        "Architectures": ["x86_64"],
+                        "Environment": {"Variables": {"foo": "bar", "hello": "world"}},
+                        "Code": {"ImageUri": "image/uri:tag"},
+                        "PackageType": "Image",
+                        "Timeout": 3,
+                        "MemorySize": 128,
+                        "ImageConfig": {
+                            "Command": ["cmd1", "cmd2"],
+                            "EntryPoint": ["entry1", "entry2"],
+                            "WorkingDirectory": "/working/dir/path",
+                        },
+                    },
                     {},
-                    "logical_id3",
-                    "image/uri:tag",
-                    "image_uri",
-                    translated_cfn_dict["Resources"]["logical_id3"],
                 ),
             ]
         )
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._add_lambda_resource_code_path_to_code_map")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.get_resource_property_mapping")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._check_dummy_remote_values")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._build_module")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._get_configuration_address")
@@ -338,7 +495,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         mock_get_configuration_address,
         mock_build_module,
         mock_check_dummy_remote_values,
-        mock_add_lambda_resource_code_path_to_code_map,
+        mock_resource_property_collector,
     ):
         root_module = MagicMock()
         root_module.get.return_value = "module.m1"
@@ -398,6 +555,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
 
         mock_enrich_resources_and_generate_makefile.assert_called_once_with(*expected_arguments_in_call)
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.get_resource_property_mapping")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._check_dummy_remote_values")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._build_module")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._get_configuration_address")
@@ -412,6 +570,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         mock_get_configuration_address,
         mock_build_module,
         mock_check_dummy_remote_values,
+        mock_get_resource_property_mapping,
     ):
         root_module = MagicMock()
         root_module.get.return_value = "module.m1"
@@ -432,6 +591,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_unsupported_provider)
         mock_enrich_resources_and_generate_makefile.assert_not_called()
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.get_resource_property_mapping")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._check_dummy_remote_values")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._build_module")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._get_configuration_address")
@@ -446,6 +606,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         mock_get_configuration_address,
         mock_build_module,
         mock_check_dummy_remote_values,
+        mock_get_resource_property_mapping,
     ):
         root_module = MagicMock()
         root_module.get.return_value = "module.m1"
@@ -466,7 +627,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_unsupported_resource_type)
         mock_enrich_resources_and_generate_makefile.assert_not_called()
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._add_lambda_resource_code_path_to_code_map")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.get_resource_property_mapping")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._check_dummy_remote_values")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._build_module")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._get_configuration_address")
@@ -481,7 +642,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         mock_get_configuration_address,
         mock_build_module,
         mock_check_dummy_remote_values,
-        mock_add_lambda_resource_code_path_to_code_map,
+        mock_resource_property_collector,
     ):
         root_module = MagicMock()
         root_module.get.return_value = "module.m1"
