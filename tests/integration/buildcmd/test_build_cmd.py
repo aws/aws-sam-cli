@@ -3,6 +3,7 @@ import os
 import random
 import shutil
 import sys
+import uuid
 from pathlib import Path
 from typing import Set
 from unittest import skipIf
@@ -63,7 +64,7 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
     @parameterized.expand([("3.7", False), ("3.8", False), ("3.9", False)])
     @pytest.mark.flaky(reruns=3)
     def test_with_default_requirements(self, runtime, use_container):
-        _tag = f"{random.randint(1,100)}"
+        _tag = uuid.uuid4().hex 
         overrides = {
             "Runtime": runtime,
             "Handler": "main.handler",
@@ -92,7 +93,7 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
     @parameterized.expand([("3.7", False), ("3.8", False), ("3.9", False)])
     @pytest.mark.flaky(reruns=3)
     def test_with_dockerfile_extension(self, runtime, use_container):
-        _tag = f"{random.randint(1,100)}"
+        _tag = uuid.uuid4().hex 
         overrides = {
             "Runtime": runtime,
             "Handler": "main.handler",
@@ -120,7 +121,7 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_intermediate_container_deleted(self):
-        _tag = f"{random.randint(1, 100)}"
+        _tag = uuid.uuid4().hex 
         overrides = {
             "Runtime": "3.9",
             "Handler": "main.handler",
@@ -174,7 +175,7 @@ class TestBuildCommand_PythonFunctions_ImagesWithSharedCode(BuildIntegBase):
     )
     @pytest.mark.flaky(reruns=3)
     def test_with_default_requirements(self, runtime, dockerfile, expected):
-        _tag = f"{random.randint(1, 100)}"
+        _tag = uuid.uuid4().hex 
         overrides = {
             "Runtime": runtime,
             "Handler": "main.handler",
@@ -207,7 +208,7 @@ class TestBuildCommand_PythonFunctions_ImagesWithSharedCode(BuildIntegBase):
     )
     @pytest.mark.flaky(reruns=3)
     def test_intermediate_container_deleted(self, dockerfile, expected):
-        _tag = f"{random.randint(1, 100)}"
+        _tag = uuid.uuid4().hex 
         overrides = {
             "Runtime": "3.9",
             "Handler": "main.handler",
@@ -260,7 +261,7 @@ class TestSkipBuildingFunctionsWithLocalImageUri(BuildIntegBase):
     @parameterized.expand(["3.7", "3.8", "3.9"])
     @pytest.mark.flaky(reruns=3)
     def test_with_default_requirements(self, runtime):
-        _tag = f"{random.randint(1,100)}"
+        _tag = uuid.uuid4().hex 
         image_uri = f"func:{_tag}"
         docker_client = docker.from_env()
         docker_client.images.build(

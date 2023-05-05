@@ -46,9 +46,9 @@ class BuildIntegBase(TestCase):
         # location that is shared in Docker. Most temp directories are not shared. Therefore we are
         # using a scratch space within the test folder that is .gitignored. Contents of this folder
         # is also deleted after every test run
-        self.scratch_dir = str(Path(__file__).resolve().parent.joinpath(str(uuid.uuid4()).replace("-", "")[:10]))
+        self.scratch_dir = str(Path(__file__).resolve().parent.joinpath(".tmp", str(uuid.uuid4()).replace("-", "")[:10]))
         shutil.rmtree(self.scratch_dir, ignore_errors=True)
-        os.mkdir(self.scratch_dir)
+        os.makedirs(self.scratch_dir)
 
         self.working_dir = tempfile.mkdtemp(dir=self.scratch_dir)
         self.custom_build_dir = tempfile.mkdtemp(dir=self.scratch_dir)
@@ -161,7 +161,7 @@ class BuildIntegBase(TestCase):
         if IS_WINDOWS:
             time.sleep(1)
         docker_client = docker.from_env()
-        containers = docker_client.containers.list(all=True)
+        containers = docker_client.containers.list(all=True, filters={"status": "exited"})
         return len(containers)
 
     def verify_pulled_image(self, runtime, architecture=X86_64):
