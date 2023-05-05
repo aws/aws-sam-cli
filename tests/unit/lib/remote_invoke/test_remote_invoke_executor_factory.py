@@ -9,7 +9,9 @@ class TestTestExecutorFactory(TestCase):
         self.boto_client_provider_mock = Mock()
         self.test_executor_factory = RemoteInvokeExecutorFactory(self.boto_client_provider_mock)
 
-    @patch("samcli.lib.remote_invoke.remote_invoke_executor_factory.RemoteInvokeExecutorFactory.REMOTE_INVOKE_EXECUTOR_MAPPING")
+    @patch(
+        "samcli.lib.remote_invoke.remote_invoke_executor_factory.RemoteInvokeExecutorFactory.REMOTE_INVOKE_EXECUTOR_MAPPING"
+    )
     def test_create_test_executor(self, patched_executor_mapping):
         given_executor_creator_method = Mock()
         patched_executor_mapping.get.return_value = given_executor_creator_method

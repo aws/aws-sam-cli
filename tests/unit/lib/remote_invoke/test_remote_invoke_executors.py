@@ -8,7 +8,8 @@ from samcli.lib.remote_invoke.remote_invoke_executors import (
     RemoteInvokeExecutionInfo,
     BotoActionExecutor,
     RemoteInvokeExecutor,
-    ResponseObjectToJsonStringMapper, RemoteInvokeRequestResponseMapper,
+    ResponseObjectToJsonStringMapper,
+    RemoteInvokeRequestResponseMapper,
 )
 
 
@@ -117,12 +118,12 @@ class TestTestExecutor(TestCase):
         self.mock_request_mappers: List[RemoteInvokeRequestResponseMapper] = [
             Mock(spec=RemoteInvokeRequestResponseMapper),
             Mock(spec=RemoteInvokeRequestResponseMapper),
-            Mock(spec=RemoteInvokeRequestResponseMapper)
+            Mock(spec=RemoteInvokeRequestResponseMapper),
         ]
         self.mock_response_mappers: List[RemoteInvokeRequestResponseMapper] = [
             Mock(spec=RemoteInvokeRequestResponseMapper),
             Mock(spec=RemoteInvokeRequestResponseMapper),
-            Mock(spec=RemoteInvokeRequestResponseMapper)
+            Mock(spec=RemoteInvokeRequestResponseMapper),
         ]
 
         self.test_executor = RemoteInvokeExecutor(
