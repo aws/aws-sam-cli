@@ -333,7 +333,7 @@ for:
       - "mypy setup.py samcli tests"
       - "pytest -n 4 tests/functional --json-report --json-report-file=TEST_REPORT-functional.json"
       
-      - sh: "pytest tests/integration --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-others.json"
+      - sh: "pytest -vv -n 4 --reruns 4 --dist loadgroup tests/integration --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-others.json"
       - sh: "pytest -vv tests/regression --json-report --json-report-file=TEST_REPORT-regression.json"
       - sh: "black --check setup.py tests samcli"
       - sh: "pytest -n 4 -vv tests/smoke --json-report --json-report-file=TEST_REPORT-smoke.json"
