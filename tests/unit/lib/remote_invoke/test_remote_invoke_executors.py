@@ -112,7 +112,7 @@ class TestBotoActionExecutor(TestCase):
             self.assertEqual(given_exception, result.exception)
 
 
-class TestTestExecutor(TestCase):
+class TestRemoteInvokeExecutor(TestCase):
     def setUp(self) -> None:
         self.mock_boto_action_executor = Mock()
         self.mock_request_mappers: List[RemoteInvokeRequestResponseMapper] = [
