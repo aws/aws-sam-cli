@@ -4,7 +4,7 @@ from unittest.mock import patch, Mock
 from samcli.lib.remote_invoke.remote_invoke_executor_factory import RemoteInvokeExecutorFactory
 
 
-class TestTestExecutorFactory(TestCase):
+class TestRemoteInvokeExecutorFactory(TestCase):
     def setUp(self) -> None:
         self.boto_client_provider_mock = Mock()
         self.test_executor_factory = RemoteInvokeExecutorFactory(self.boto_client_provider_mock)
