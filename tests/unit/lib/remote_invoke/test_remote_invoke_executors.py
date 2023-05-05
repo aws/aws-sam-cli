@@ -13,7 +13,7 @@ from samcli.lib.remote_invoke.remote_invoke_executors import (
 )
 
 
-class TestTestExecutionInfo(TestCase):
+class TestRemoteInvokeExecutionInfo(TestCase):
     def test_execution_info_payload(self):
         given_payload = Mock()
 
