@@ -25,7 +25,7 @@ class TestNonInteractiveMode(TestCase):
     @patch("samcli.commands.init.command.click.get_current_context")
     def test_non_interactive_mode_with_non_java_image(self, mocked_ctx):
         mocked_ctx.return_value = Mock(
-            params={"no_interactive": True, "package_type": IMAGE, "base_image": "amazon/dotnet5.0"}
+            params={"no_interactive": True, "package_type": IMAGE, "base_image": "amazon/dotnet6-base"}
         )
 
         mocked_func = Mock()
