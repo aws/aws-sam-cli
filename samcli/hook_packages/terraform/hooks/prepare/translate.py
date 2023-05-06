@@ -33,6 +33,7 @@ from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     _build_module,
     _get_configuration_address,
     _resolve_resource_attribute,
+    LogicalIdReference,
 )
 from samcli.hook_packages.terraform.hooks.prepare.resources.apigw import RESTAPITranslationValidator
 from samcli.hook_packages.terraform.hooks.prepare.resources.resource_properties import get_resource_property_mapping
@@ -369,14 +370,20 @@ def _link_lambda_functions_to_layers(
         source_resource_cfn_resource=lambda_funcs_conf_cfn_resources,
         source_resource_tf_config=lambda_config_funcs_conf_cfn_resources,
         destination_resource_tf=lambda_layers_terraform_resources,
-        intrinsic_type=LinkerIntrinsics.Ref,
-        cfn_intrinsic_attribute=None,
-        source_link_field_name="Layers",
+        tf_destination_attribute_name="arn",
         terraform_link_field_name="layers",
         terraform_resource_type_prefix=LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX,
         linking_exceptions=exceptions,
     )
-    ResourceLinker(resource_linking_pair).link_resources()
+    logical_id_mappings = ResourceLinker(resource_linking_pair).link_resources()
+    for config_address, logical_ids in logical_id_mappings.items():
+        ref_list = [
+            {"Ref": logical_id.value} if isinstance(logical_id, LogicalIdReference) else logical_id.value
+            for logical_id in logical_ids
+        ]
+        cfn_resources = lambda_funcs_conf_cfn_resources[config_address]
+        for cfn_resource in cfn_resources:
+            cfn_resource["Properties"]["Layers"] = ref_list
 
 
 def _map_s3_sources_to_functions(
