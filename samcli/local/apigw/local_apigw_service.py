@@ -641,6 +641,7 @@ class LocalApigwService(BaseLocalService):
         route: Route = self._get_current_route(request)
         cors_headers = Cors.cors_to_headers(self.api.cors)
         cors_headers = self._response_cors_headers(request, cors_headers)
+        lambda_authorizer = route.authorizer_object
 
         # payloadFormatVersion can only support 2 values: "1.0" and "2.0"
         # so we want to do strict validation to make sure it has proper value if provided
