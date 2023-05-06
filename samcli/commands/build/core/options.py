@@ -4,6 +4,7 @@ Build Command Options related Datastructures for formatting.
 from typing import Dict, List
 
 from samcli.cli.row_modifiers import RowDefinition
+from samcli.cli.core.options import ALL_COMMON_OPTIONS, add_common_options_info
 
 # NOTE(sriram-mv): The ordering of the option lists matter, they are the order
 # in which options will be displayed.
@@ -36,11 +37,6 @@ ARTIFACT_LOCATION_OPTIONS: List[str] = [
 
 TEMPLATE_OPTIONS: List[str] = ["parameter_overrides"]
 
-BETA_OPTIONS: List[str] = ["beta_features"]
-
-
-OTHER_OPTIONS: List[str] = ["debug", "help"]
-
 ALL_OPTIONS: List[str] = (
     REQUIRED_OPTIONS
     + TEMPLATE_OPTIONS
@@ -50,8 +46,7 @@ ALL_OPTIONS: List[str] = (
     + ARTIFACT_LOCATION_OPTIONS
     + EXTENSION_OPTIONS
     + CONFIGURATION_OPTION_NAMES
-    + BETA_OPTIONS
-    + OTHER_OPTIONS
+    + ALL_COMMON_OPTIONS
 )
 
 OPTIONS_INFO: Dict[str, Dict] = {
@@ -76,6 +71,5 @@ OPTIONS_INFO: Dict[str, Dict] = {
             ),
         ],
     },
-    "Beta Options": {"option_names": {opt: {"rank": idx} for idx, opt in enumerate(BETA_OPTIONS)}},
-    "Other Options": {"option_names": {opt: {"rank": idx} for idx, opt in enumerate(OTHER_OPTIONS)}},
 }
+add_common_options_info(OPTIONS_INFO)

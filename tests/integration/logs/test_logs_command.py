@@ -239,6 +239,7 @@ REGULAR_STACK_SFN_LIST = [
 ]
 
 
+@pytest.mark.xdist_group(name="sam_logs_regular")
 class TestLogsCommandWithRegularStack(LogsIntegTestCases):
     test_template_folder = "python-apigw-sfn"
 
@@ -313,6 +314,7 @@ NESTED_STACK_SFN_LIST = [
 ]
 
 
+@pytest.mark.xdist_group(name="sam_logs_nested")
 class TestLogsCommandWithNestedStack(LogsIntegTestCases):
     test_template_folder = "nested-python-apigw-sfn"
 

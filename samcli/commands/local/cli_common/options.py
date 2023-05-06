@@ -46,17 +46,16 @@ def local_common_options(f):
             "--shutdown",
             is_flag=True,
             default=False,
-            help="If set, will emulate a shutdown event after the invoke completes, "
-            "in order to test extension handling of shutdown behavior.",
+            help="Emulate a shutdown event after invoke completes, " "to test extension handling of shutdown behavior.",
         ),
         click.option(
             "--container-host",
             default="localhost",
             show_default=True,
             help="Host of locally emulated Lambda container. "
-            "This option is useful when the container runs on a different host than SAM CLI. "
-            "For example, if you want to run SAM CLI in a Docker container on macOS, "
-            "use this option with host.docker.internal",
+            "This option is useful when the container runs on a different host than AWS SAM CLI. "
+            "For example, if one wants to run AWS SAM CLI in a Docker container on macOS, "
+            "this option could specify `host.docker.internal`",
         ),
         click.option(
             "--container-host-interface",
@@ -72,11 +71,11 @@ def local_common_options(f):
             required=False,
             multiple=True,
             help="Container image URIs for invoking functions or starting api and function. "
-            "You can specify the image URI used for the local function invocation "
+            "One can specify the image URI used for the local function invocation "
             "(--invoke-image public.ecr.aws/sam/build-nodejs14.x:latest). "
-            "You can specify for each individual function with "
+            "One can also specify for each individual function with "
             "(--invoke-image Function1=public.ecr.aws/sam/build-nodejs14.x:latest). "
-            "If a function does not have invoke image specified, the default SAM CLI "
+            "If a function does not have invoke image specified, the default AWS SAM CLI "
             "emulation image will be used.",
         ),
     ]
@@ -173,16 +172,16 @@ def invoke_common_options(f):
                 "--docker-volume-basedir",
                 "-v",
                 envvar="SAM_DOCKER_VOLUME_BASEDIR",
-                help="Specifies the location basedir where the SAM file exists. If the Docker is running on "
-                "a remote machine, you must mount the path where the SAM file exists on the docker machine "
-                "and modify this value to match the remote machine.",
+                help="Specify the location basedir where the SAM template exists. If Docker is running on "
+                "a remote machine, Path of the SAM template must be mounted on the Docker machine "
+                "and modified to match the remote machine.",
             ),
-            click.option("--log-file", "-l", help="logfile to send runtime logs to."),
+            click.option("--log-file", "-l", help="File to capture output logs."),
             click.option(
                 "--layer-cache-basedir",
                 type=click.Path(exists=False, file_okay=False),
                 envvar="SAM_LAYER_CACHE_BASEDIR",
-                help="Specifies the location basedir where the Layers your template uses will be downloaded to.",
+                help="Specify the location basedir where the lambda layers used by the template will be downloaded to.",
                 default=get_default_layer_cache_dir(),
             ),
         ]
@@ -191,7 +190,7 @@ def invoke_common_options(f):
             click.option(
                 "--force-image-build",
                 is_flag=True,
-                help="Specify whether CLI should rebuild the image used for invoking functions with layers.",
+                help="Force rebuilding the image used for invoking functions with layers.",
                 envvar="SAM_FORCE_IMAGE_BUILD",
                 default=False,
             )
