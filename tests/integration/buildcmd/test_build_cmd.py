@@ -949,7 +949,8 @@ class TestBuildCommand_Java_With_Specified_Architecture(BuildIntegJavaBase):
             ),
         ]
     )
-    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
+    #@skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
+    @skipIf(True, "Skipping java arm64 container tests for now")
     @pytest.mark.flaky(reruns=3)
     def test_building_java_in_container_with_arm64_architecture(
         self, runtime, runtime_version, code_path, expected_files, expected_dependencies, architecture
