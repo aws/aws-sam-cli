@@ -26,14 +26,14 @@ from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
 )
 from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX,
-    LinkerIntrinsics,
+    LogicalIdReference,
+    ReferenceType,
     ResourceLinker,
     ResourceLinkingPair,
     ResourcePairExceptions,
     _build_module,
     _get_configuration_address,
     _resolve_resource_attribute,
-    LogicalIdReference,
 )
 from samcli.hook_packages.terraform.hooks.prepare.resources.apigw import RESTAPITranslationValidator
 from samcli.hook_packages.terraform.hooks.prepare.resources.resource_properties import get_resource_property_mapping
@@ -344,13 +344,36 @@ def _translate_properties(
     return cfn_properties
 
 
+def _link_lambda_functions_to_layers_call_back(
+    function_cfn_resource: Dict, referenced_layers_logical_ids: List[ReferenceType]
+) -> None:
+    """
+    Callback function that used by the linking algorith to update a Lambda Function CFN Resource with
+    the list of layers ids. Layers ids can be reference to other Layers resources define in the customer project,
+    or ARN values to layers exist in customer's account.
+
+    Parameters
+    ----------
+    function_cfn_resource: Dict
+        Lambda Function CFN resource
+    referenced_layers_logical_ids: List[ReferenceType]
+        List of referenced layers either as the logical ids of layers resources defined in the customer project, or
+        ARN values for actual layers defined in customer's account.
+    """
+    ref_list = [
+        {"Ref": logical_id.value} if isinstance(logical_id, LogicalIdReference) else logical_id.value
+        for logical_id in referenced_layers_logical_ids
+    ]
+    function_cfn_resource["Properties"]["Layers"] = ref_list
+
+
 def _link_lambda_functions_to_layers(
     lambda_config_funcs_conf_cfn_resources: Dict[str, TFResource],
     lambda_funcs_conf_cfn_resources: Dict[str, List],
     lambda_layers_terraform_resources: Dict[str, Dict],
 ):
     """
-    Iterate through all of the resources and link the corresponding Lambda Layers to each Lambda Function
+    Iterate through all the resources and link the corresponding Lambda Layers to each Lambda Function
 
     Parameters
     ----------
@@ -372,18 +395,12 @@ def _link_lambda_functions_to_layers(
         destination_resource_tf=lambda_layers_terraform_resources,
         tf_destination_attribute_name="arn",
         terraform_link_field_name="layers",
+        cfn_link_field_name="Layers",
         terraform_resource_type_prefix=LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX,
+        cfn_resource_update_call_back_function=_link_lambda_functions_to_layers_call_back,
         linking_exceptions=exceptions,
     )
-    logical_id_mappings = ResourceLinker(resource_linking_pair).link_resources()
-    for config_address, logical_ids in logical_id_mappings.items():
-        ref_list = [
-            {"Ref": logical_id.value} if isinstance(logical_id, LogicalIdReference) else logical_id.value
-            for logical_id in logical_ids
-        ]
-        cfn_resources = lambda_funcs_conf_cfn_resources[config_address]
-        for cfn_resource in cfn_resources:
-            cfn_resource["Properties"]["Layers"] = ref_list
+    ResourceLinker(resource_linking_pair).link_resources()
 
 
 def _map_s3_sources_to_functions(
