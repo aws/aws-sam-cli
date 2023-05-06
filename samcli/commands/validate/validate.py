@@ -16,12 +16,25 @@ from samcli.commands._utils.cdk_support_decorators import unsupported_command_cd
 from samcli.commands._utils.command_exception_handler import command_exception_handler
 from samcli.commands._utils.options import template_option_without_build
 from samcli.commands.exceptions import LinterRuleMatchedException
+from samcli.commands.validate.core.command import ValidateCommand
 from samcli.lib.telemetry.event import EventTracker
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.version_checker import check_newer_version
 
+DESCRIPTION = """
+  Verify and Lint an AWS SAM Template being valid.
+"""
 
-@click.command("validate", short_help="Validate an AWS SAM template.")
+
+@click.command(
+    "validate",
+    cls=ValidateCommand,
+    help="Validate an AWS SAM Template.",
+    short_help="Validate an AWS SAM Template.",
+    description=DESCRIPTION,
+    requires_credentials=False,
+    context_settings={"max_content_width": 120},
+)
 @configuration_option(provider=TomlProvider(section="parameters"))
 @template_option_without_build
 @aws_creds_options
@@ -104,8 +117,8 @@ def _read_sam_file(template):
         click.secho("SAM Template Not Found", bg="red")
         raise SamTemplateNotFoundException("Template at {} is not found".format(template))
 
-    with click.open_file(template, "r", encoding="utf-8") as sam_template:
-        sam_template = yaml_parse(sam_template.read())
+    with click.open_file(template, "r", encoding="utf-8") as sam_file:
+        sam_template = yaml_parse(sam_file.read())
 
     return sam_template
 

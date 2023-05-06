@@ -94,17 +94,19 @@ class EnvironmentVariables:
 
         # Default value for the variable gets lowest priority
         for name, value in self.variables.items():
+            override_value = value
+
             # Shell environment values, second priority
             if name in self.shell_env_values:
-                value = self.shell_env_values[name]
+                override_value = self.shell_env_values[name]
 
             # Overridden values, highest priority
             if name in self.override_values:
-                value = self.override_values[name]
+                override_value = self.override_values[name]
 
             # Any value must be a string when passed to Lambda runtime.
             # Runtime expects a Map<String, String> for environment variables
-            result[name] = self._stringify_value(value)
+            result[name] = self._stringify_value(override_value)
 
         return result
 

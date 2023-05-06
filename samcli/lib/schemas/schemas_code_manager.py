@@ -56,8 +56,8 @@ def do_extract_and_merge_schemas_code(download_location, output_dir, project_nam
     """
     click.echo("Merging code bindings...")
     cookiecutter_json_path = os.path.join(template_location, "cookiecutter.json")
-    with open(cookiecutter_json_path, "r") as cookiecutter_json:
-        cookiecutter_json_data = cookiecutter_json.read()
+    with open(cookiecutter_json_path, "r") as cookiecutter_file:
+        cookiecutter_json_data = cookiecutter_file.read()
         cookiecutter_json = json.loads(cookiecutter_json_data)
         function_name = cookiecutter_json["function_name"]
         copy_location = os.path.join(output_dir, project_name, function_name)

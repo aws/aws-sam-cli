@@ -8,6 +8,7 @@ import tempfile
 import time
 import uuid
 from pathlib import Path
+from typing import Dict
 from unittest import skipIf
 
 import pytest
@@ -37,48 +38,43 @@ LOG = logging.getLogger(__name__)
 
 
 class TestSyncCodeBase(SyncIntegBase):
-    temp_dir = ""
     stack_name = ""
     template_path = ""
     template = ""
     folder = ""
+    parameter_overrides: Dict[str, str] = {}
 
     @pytest.fixture(scope="class")
     def execute_infra_sync(self):
-        with tempfile.TemporaryDirectory() as temp:
-            TestSyncCodeBase.temp_dir = Path(temp).joinpath(self.folder)
-            shutil.copytree(self.test_data_path.joinpath(self.folder).joinpath("before"), TestSyncCodeBase.temp_dir)
+        TestSyncCodeBase.template_path = self.test_data_path.joinpath(self.folder, "before", self.template)
+        TestSyncCodeBase.stack_name = self._method_to_stack_name(self.id())
 
-            TestSyncCodeBase.template_path = TestSyncCodeBase.temp_dir.joinpath(self.template)
-            TestSyncCodeBase.stack_name = self._method_to_stack_name(self.id())
+        # Run infra sync
+        sync_command_list = self.get_sync_command_list(
+            template_file=TestSyncCodeBase.template_path,
+            code=False,
+            watch=False,
+            dependency_layer=self.dependency_layer,
+            stack_name=TestSyncCodeBase.stack_name,
+            parameter_overrides=self.parameter_overrides,
+            image_repository=self.ecr_repo_name,
+            s3_prefix=uuid.uuid4().hex,
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+        )
 
-            # Run infra sync
-            sync_command_list = self.get_sync_command_list(
-                template_file=TestSyncCodeBase.template_path,
-                code=False,
-                watch=False,
-                dependency_layer=self.dependency_layer,
-                stack_name=TestSyncCodeBase.stack_name,
-                parameter_overrides="Parameter=Clarity",
-                image_repository=self.ecr_repo_name,
-                s3_prefix=uuid.uuid4().hex,
-                kms_key_id=self.kms_key,
-                tags="integ=true clarity=yes foo_bar=baz",
-            )
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
 
-            sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        yield sync_process_execute
 
-            yield sync_process_execute
+        cfn_client = boto3.client("cloudformation")
+        ecr_client = boto3.client("ecr")
+        self._delete_companion_stack(
+            cfn_client, ecr_client, self._stack_name_to_companion_stack(TestSyncCodeBase.stack_name)
+        )
 
-            shutil.rmtree(os.path.join(os.getcwd(), ".aws-sam", "build"), ignore_errors=True)
-            cfn_client = boto3.client("cloudformation")
-            ecr_client = boto3.client("ecr")
-            self._delete_companion_stack(
-                cfn_client, ecr_client, self._stack_name_to_companion_stack(TestSyncCodeBase.stack_name)
-            )
-
-            cfn_client = boto3.client("cloudformation")
-            cfn_client.delete_stack(StackName=TestSyncCodeBase.stack_name)
+        cfn_client = boto3.client("cloudformation")
+        cfn_client.delete_stack(StackName=TestSyncCodeBase.stack_name)
 
     @pytest.fixture(autouse=True, scope="class")
     def sync_code_base(self, execute_infra_sync):
@@ -100,11 +96,16 @@ class TestSyncCode(TestSyncCodeBase):
     template = "template-python.yaml"
     folder = "code"
 
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        cls.parameter_overrides["HelloWorldLayerName"] = f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]
+
     def test_sync_code_function(self):
-        shutil.rmtree(TestSyncCodeBase.temp_dir.joinpath("function"), ignore_errors=True)
+        shutil.rmtree(self.test_data_path.joinpath(self.folder, "before", "function"))
         shutil.copytree(
-            self.test_data_path.joinpath(self.folder).joinpath("after").joinpath("function"),
-            TestSyncCodeBase.temp_dir.joinpath("function"),
+            self.test_data_path.joinpath(self.folder, "after", "function"),
+            self.test_data_path.joinpath(self.folder, "before", "function"),
         )
 
         self.stack_resources = self._get_stacks(TestSyncCodeBase.stack_name)
@@ -121,14 +122,13 @@ class TestSyncCode(TestSyncCodeBase):
             resource_list=["AWS::Serverless::Function"],
             dependency_layer=self.dependency_layer,
             stack_name=TestSyncCodeBase.stack_name,
-            parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
             use_container=self.use_container,
         )
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
 
         # CFN Api call here to collect all the stack resources
@@ -146,10 +146,10 @@ class TestSyncCode(TestSyncCodeBase):
             self.assertIn("requests", layer_contents)
 
     def test_sync_code_layer(self):
-        shutil.rmtree(TestSyncCodeBase.temp_dir.joinpath("layer"), ignore_errors=True)
+        shutil.rmtree(self.test_data_path.joinpath(self.folder, "before", "layer"))
         shutil.copytree(
-            self.test_data_path.joinpath(self.folder).joinpath("after").joinpath("layer"),
-            TestSyncCodeBase.temp_dir.joinpath("layer"),
+            self.test_data_path.joinpath(self.folder, "after", "layer"),
+            self.test_data_path.joinpath(self.folder, "before", "layer"),
         )
         # Run code sync
         sync_command_list = self.get_sync_command_list(
@@ -159,14 +159,13 @@ class TestSyncCode(TestSyncCodeBase):
             resource_list=["AWS::Serverless::LayerVersion"],
             dependency_layer=self.dependency_layer,
             stack_name=TestSyncCodeBase.stack_name,
-            parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
             use_container=self.use_container,
         )
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
 
         # CFN Api call here to collect all the stack resources
@@ -181,15 +180,15 @@ class TestSyncCode(TestSyncCodeBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_sync_function_layer_race_condition(self):
-        shutil.rmtree(TestSyncCodeBase.temp_dir.joinpath("function"), ignore_errors=True)
+        shutil.rmtree(self.test_data_path.joinpath(self.folder, "before", "function"))
         shutil.copytree(
-            self.test_data_path.joinpath(self.folder).joinpath("before").joinpath("function"),
-            TestSyncCodeBase.temp_dir.joinpath("function"),
+            self.test_data_path.joinpath(self.folder, "after", "function"),
+            self.test_data_path.joinpath(self.folder, "before", "function"),
         )
-        shutil.rmtree(TestSyncCodeBase.temp_dir.joinpath("layer"), ignore_errors=True)
+        shutil.rmtree(self.test_data_path.joinpath(self.folder, "before", "layer"))
         shutil.copytree(
-            self.test_data_path.joinpath(self.folder).joinpath("before").joinpath("layer"),
-            TestSyncCodeBase.temp_dir.joinpath("layer"),
+            self.test_data_path.joinpath(self.folder, "after", "layer"),
+            self.test_data_path.joinpath(self.folder, "before", "layer"),
         )
         # Run code sync
         sync_command_list = self.get_sync_command_list(
@@ -199,13 +198,12 @@ class TestSyncCode(TestSyncCodeBase):
             dependency_layer=self.dependency_layer,
             resource_list=["AWS::Serverless::LayerVersion", "AWS::Serverless::Function"],
             stack_name=TestSyncCodeBase.stack_name,
-            parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
         )
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
 
         # CFN Api call here to collect all the stack resources
@@ -219,10 +217,10 @@ class TestSyncCode(TestSyncCodeBase):
                 self.assertEqual(lambda_response.get("message"), "7")
 
     def test_sync_code_rest_api(self):
-        shutil.rmtree(TestSyncCodeBase.temp_dir.joinpath("apigateway"), ignore_errors=True)
+        shutil.rmtree(self.test_data_path.joinpath(self.folder, "before", "apigateway"))
         shutil.copytree(
-            self.test_data_path.joinpath(self.folder).joinpath("after").joinpath("apigateway"),
-            TestSyncCodeBase.temp_dir.joinpath("apigateway"),
+            self.test_data_path.joinpath(self.folder, "after", "apigateway"),
+            self.test_data_path.joinpath(self.folder, "before", "apigateway"),
         )
         # Run code sync
         sync_command_list = self.get_sync_command_list(
@@ -231,13 +229,12 @@ class TestSyncCode(TestSyncCodeBase):
             watch=False,
             resource_list=["AWS::Serverless::Api"],
             stack_name=TestSyncCodeBase.stack_name,
-            parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
         )
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
 
         time.sleep(API_SLEEP)
@@ -248,10 +245,10 @@ class TestSyncCode(TestSyncCodeBase):
         self.assertEqual(self._get_api_message(rest_api), '{"message": "hello 2"}')
 
     def test_sync_code_state_machine(self):
-        shutil.rmtree(TestSyncCodeBase.temp_dir.joinpath("statemachine"), ignore_errors=True)
+        shutil.rmtree(self.test_data_path.joinpath(self.folder, "before", "statemachine"))
         shutil.copytree(
-            self.test_data_path.joinpath("code").joinpath("after").joinpath("statemachine"),
-            TestSyncCodeBase.temp_dir.joinpath("statemachine"),
+            self.test_data_path.joinpath(self.folder, "after", "statemachine"),
+            self.test_data_path.joinpath(self.folder, "before", "statemachine"),
         )
         # Run code sync
         sync_command_list = self.get_sync_command_list(
@@ -260,13 +257,12 @@ class TestSyncCode(TestSyncCodeBase):
             watch=False,
             resource_list=["AWS::Serverless::StateMachine"],
             stack_name=TestSyncCodeBase.stack_name,
-            parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
         )
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
 
         # CFN Api call here to collect all the stack resources
@@ -284,10 +280,10 @@ class TestSyncCodeDotnetFunctionTemplate(TestSyncCodeBase):
     folder = "code"
 
     def test_sync_code_shared_codeuri(self):
-        shutil.rmtree(Path(TestSyncCodeBase.temp_dir).joinpath("dotnet_function"), ignore_errors=True)
+        shutil.rmtree(self.test_data_path.joinpath(self.folder, "before", "dotnet_function"))
         shutil.copytree(
-            self.test_data_path.joinpath(self.folder).joinpath("after").joinpath("dotnet_function"),
-            Path(TestSyncCodeBase.temp_dir).joinpath("dotnet_function"),
+            self.test_data_path.joinpath(self.folder, "after", "dotnet_function"),
+            self.test_data_path.joinpath(self.folder, "before", "dotnet_function"),
         )
 
         # Run code sync
@@ -298,13 +294,12 @@ class TestSyncCodeDotnetFunctionTemplate(TestSyncCodeBase):
             resource_list=["AWS::Serverless::Function"],
             dependency_layer=True,
             stack_name=TestSyncCodeBase.stack_name,
-            parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
         )
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
 
         # CFN Api call here to collect all the stack resources
@@ -325,10 +320,10 @@ class TestSyncCodeNodejsFunctionTemplate(TestSyncCodeBase):
     folder = "code"
 
     def test_sync_code_nodejs_function(self):
-        shutil.rmtree(Path(TestSyncCodeBase.temp_dir).joinpath("nodejs_function"), ignore_errors=True)
+        shutil.rmtree(self.test_data_path.joinpath(self.folder, "before", "nodejs_function"))
         shutil.copytree(
-            self.test_data_path.joinpath("code").joinpath("after").joinpath("nodejs_function"),
-            Path(TestSyncCodeBase.temp_dir).joinpath("nodejs_function"),
+            self.test_data_path.joinpath(self.folder, "after", "nodejs_function"),
+            self.test_data_path.joinpath(self.folder, "before", "nodejs_function"),
         )
 
         self.stack_resources = self._get_stacks(TestSyncCodeBase.stack_name)
@@ -347,13 +342,12 @@ class TestSyncCodeNodejsFunctionTemplate(TestSyncCodeBase):
             resource_list=["AWS::Serverless::Function"],
             dependency_layer=self.dependency_layer,
             stack_name=TestSyncCodeBase.stack_name,
-            parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
         )
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
 
         # CFN Api call here to collect all the stack resources
@@ -379,14 +373,19 @@ class TestSyncCodeNested(TestSyncCodeBase):
     template = "template.yaml"
     folder = "nested"
 
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        cls.parameter_overrides = {
+            "HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140],
+            "ChildStackHelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140],
+        }
+
     def test_sync_code_nested_function(self):
-        shutil.rmtree(TestSyncCodeBase.temp_dir.joinpath("child_stack").joinpath("child_functions"), ignore_errors=True)
+        shutil.rmtree(self.test_data_path.joinpath(self.folder, "before", "child_stack", "child_functions"))
         shutil.copytree(
-            self.test_data_path.joinpath(self.folder)
-            .joinpath("after")
-            .joinpath("child_stack")
-            .joinpath("child_functions"),
-            TestSyncCodeBase.temp_dir.joinpath("child_stack").joinpath("child_functions"),
+            self.test_data_path.joinpath(self.folder, "after", "child_stack", "child_functions"),
+            self.test_data_path.joinpath(self.folder, "before", "child_stack", "child_functions"),
         )
         # Run code sync
         sync_command_list = self.get_sync_command_list(
@@ -396,13 +395,12 @@ class TestSyncCodeNested(TestSyncCodeBase):
             resource_list=["AWS::Serverless::Function"],
             dependency_layer=self.dependency_layer,
             stack_name=TestSyncCodeBase.stack_name,
-            parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
         )
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
 
         # CFN Api call here to collect all the stack resources
@@ -416,10 +414,10 @@ class TestSyncCodeNested(TestSyncCodeBase):
                 self.assertEqual(lambda_response.get("message"), "11")
 
     def test_sync_code_nested_layer(self):
-        shutil.rmtree(TestSyncCodeBase.temp_dir.joinpath("root_layer"), ignore_errors=True)
+        shutil.rmtree(self.test_data_path.joinpath(self.folder, "before", "root_layer"))
         shutil.copytree(
-            self.test_data_path.joinpath(self.folder).joinpath("after").joinpath("root_layer"),
-            TestSyncCodeBase.temp_dir.joinpath("root_layer"),
+            self.test_data_path.joinpath(self.folder, "after", "root_layer"),
+            self.test_data_path.joinpath(self.folder, "before", "root_layer"),
         )
         # Run code sync
         sync_command_list = self.get_sync_command_list(
@@ -429,13 +427,12 @@ class TestSyncCodeNested(TestSyncCodeBase):
             resource_list=["AWS::Serverless::LayerVersion"],
             dependency_layer=self.dependency_layer,
             stack_name=TestSyncCodeBase.stack_name,
-            parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
         )
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
 
         # CFN Api call here to collect all the stack resources
@@ -450,18 +447,15 @@ class TestSyncCodeNested(TestSyncCodeBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_sync_nested_function_layer_race_condition(self):
-        shutil.rmtree(TestSyncCodeBase.temp_dir.joinpath("child_stack").joinpath("child_functions"), ignore_errors=True)
+        shutil.rmtree(self.test_data_path.joinpath(self.folder, "before", "child_stack", "child_functions"))
         shutil.copytree(
-            self.test_data_path.joinpath(self.folder)
-            .joinpath("before")
-            .joinpath("child_stack")
-            .joinpath("child_functions"),
-            TestSyncCodeBase.temp_dir.joinpath("child_stack").joinpath("child_functions"),
+            self.test_data_path.joinpath(self.folder, "after", "child_stack", "child_functions"),
+            self.test_data_path.joinpath(self.folder, "before", "child_stack", "child_functions"),
         )
-        shutil.rmtree(TestSyncCodeBase.temp_dir.joinpath("root_layer"), ignore_errors=True)
+        shutil.rmtree(self.test_data_path.joinpath(self.folder, "before", "root_layer"))
         shutil.copytree(
-            self.test_data_path.joinpath(self.folder).joinpath("before").joinpath("root_layer"),
-            TestSyncCodeBase.temp_dir.joinpath("root_layer"),
+            self.test_data_path.joinpath(self.folder, "after", "root_layer"),
+            self.test_data_path.joinpath(self.folder, "before", "root_layer"),
         )
         # Run code sync
         sync_command_list = self.get_sync_command_list(
@@ -471,13 +465,12 @@ class TestSyncCodeNested(TestSyncCodeBase):
             dependency_layer=self.dependency_layer,
             stack_name=TestSyncCodeBase.stack_name,
             resource_list=["AWS::Serverless::LayerVersion", "AWS::Serverless::Function"],
-            parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
         )
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
 
         # CFN Api call here to collect all the stack resources
@@ -492,16 +485,11 @@ class TestSyncCodeNested(TestSyncCodeBase):
 
     def test_sync_code_nested_rest_api(self):
         shutil.rmtree(
-            TestSyncCodeBase.temp_dir.joinpath("child_stack").joinpath("child_child_stack").joinpath("apigateway"),
-            ignore_errors=True,
+            self.test_data_path.joinpath(self.folder, "before", "child_stack", "child_child_stack", "apigateway")
         )
         shutil.copytree(
-            self.test_data_path.joinpath(self.folder)
-            .joinpath("after")
-            .joinpath("child_stack")
-            .joinpath("child_child_stack")
-            .joinpath("apigateway"),
-            TestSyncCodeBase.temp_dir.joinpath("child_stack").joinpath("child_child_stack").joinpath("apigateway"),
+            self.test_data_path.joinpath(self.folder, "after", "child_stack", "child_child_stack", "apigateway"),
+            self.test_data_path.joinpath(self.folder, "before", "child_stack", "child_child_stack", "apigateway"),
         )
         # Run code sync
         sync_command_list = self.get_sync_command_list(
@@ -511,13 +499,12 @@ class TestSyncCodeNested(TestSyncCodeBase):
             dependency_layer=self.dependency_layer,
             resource_list=["AWS::Serverless::Api"],
             stack_name=TestSyncCodeBase.stack_name,
-            parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
         )
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
 
         time.sleep(API_SLEEP)
@@ -529,16 +516,11 @@ class TestSyncCodeNested(TestSyncCodeBase):
 
     def test_sync_code_nested_state_machine(self):
         shutil.rmtree(
-            TestSyncCodeBase.temp_dir.joinpath("child_stack").joinpath("child_child_stack").joinpath("statemachine"),
-            ignore_errors=True,
+            self.test_data_path.joinpath(self.folder, "before", "child_stack", "child_child_stack", "statemachine"),
         )
         shutil.copytree(
-            self.test_data_path.joinpath(self.folder)
-            .joinpath("after")
-            .joinpath("child_stack")
-            .joinpath("child_child_stack")
-            .joinpath("statemachine"),
-            TestSyncCodeBase.temp_dir.joinpath("child_stack").joinpath("child_child_stack").joinpath("statemachine"),
+            self.test_data_path.joinpath(self.folder, "after", "child_stack", "child_child_stack", "statemachine"),
+            self.test_data_path.joinpath(self.folder, "before", "child_stack", "child_child_stack", "statemachine"),
         )
         # Run code sync
         sync_command_list = self.get_sync_command_list(
@@ -547,13 +529,12 @@ class TestSyncCodeNested(TestSyncCodeBase):
             watch=False,
             resource_list=["AWS::Serverless::StateMachine"],
             stack_name=TestSyncCodeBase.stack_name,
-            parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
         )
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
 
         # CFN Api call here to collect all the stack resources
@@ -570,18 +551,20 @@ class TestSyncCodeNestedWithIntrinsics(TestSyncCodeBase):
     template = "template.yaml"
     folder = "nested_intrinsics"
 
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        cls.parameter_overrides = {
+            "ChildStackHelloWorldLayerName": f"ChildStackHelloWorldLayerName-{uuid.uuid4().hex}"[:140]
+        }
+
     def test_sync_code_nested_getattr_layer(self):
         shutil.rmtree(
-            TestSyncCodeBase.temp_dir.joinpath("child_stack").joinpath("child_layer").joinpath("layer"),
-            ignore_errors=True,
+            self.test_data_path.joinpath(self.folder, "before", "child_stack", "child_layer", "layer"),
         )
         shutil.copytree(
-            self.test_data_path.joinpath(self.folder)
-            .joinpath("after")
-            .joinpath("child_stack")
-            .joinpath("child_layer")
-            .joinpath("layer"),
-            TestSyncCodeBase.temp_dir.joinpath("child_stack").joinpath("child_layer").joinpath("layer"),
+            self.test_data_path.joinpath(self.folder, "after", "child_stack", "child_layer", "layer"),
+            self.test_data_path.joinpath(self.folder, "before", "child_stack", "child_layer", "layer"),
         )
         # Run code sync
         sync_command_list = self.get_sync_command_list(
@@ -591,13 +574,12 @@ class TestSyncCodeNestedWithIntrinsics(TestSyncCodeBase):
             resource_list=["AWS::Serverless::LayerVersion"],
             dependency_layer=self.dependency_layer,
             stack_name=TestSyncCodeBase.stack_name,
-            parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
         )
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
 
         # CFN Api call here to collect all the stack resources
@@ -618,10 +600,10 @@ class TestSyncCodeEsbuildFunctionTemplate(TestSyncCodeBase):
     dependency_layer = False
 
     def test_sync_code_esbuild_function(self):
-        shutil.rmtree(Path(TestSyncCodeBase.temp_dir).joinpath("esbuild_function"), ignore_errors=True)
+        shutil.rmtree(self.test_data_path.joinpath(self.folder, "before", "esbuild_function"))
         shutil.copytree(
-            self.test_data_path.joinpath("code").joinpath("after").joinpath("esbuild_function"),
-            Path(TestSyncCodeBase.temp_dir).joinpath("esbuild_function"),
+            self.test_data_path.joinpath(self.folder, "after", "esbuild_function"),
+            self.test_data_path.joinpath(self.folder, "before", "esbuild_function"),
         )
 
         self.stack_resources = self._get_stacks(TestSyncCodeBase.stack_name)
@@ -634,13 +616,12 @@ class TestSyncCodeEsbuildFunctionTemplate(TestSyncCodeBase):
             resource_list=["AWS::Serverless::Function"],
             dependency_layer=self.dependency_layer,
             stack_name=TestSyncCodeBase.stack_name,
-            parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
         )
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
 
         self.assertEqual(sync_process_execute.process.returncode, 0)
 
@@ -668,6 +649,15 @@ class TestSyncLayerCode(TestSyncCodeBase):
     template = "template-python-code-only-layer.yaml"
     folder = "code"
 
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        cls.parameter_overrides = {
+            "HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140],
+            "HelloWorldLayerWithoutBuildMethodName": f"HelloWorldLayerWithoutBuildMethod-{uuid.uuid4().hex}"[:140],
+            "HelloWorldPreBuiltZipLayerName": f"HelloWorldPreBuiltZipLayer-{uuid.uuid4().hex}"[:140],
+        }
+
     @parameterized.expand(
         [
             ("layer", "HelloWorldLayer", "HelloWorldFunction", "7"),
@@ -681,10 +671,10 @@ class TestSyncLayerCode(TestSyncCodeBase):
         ]
     )
     def test_sync_code_layer(self, layer_path, layer_logical_id, function_logical_id, expected_value):
-        shutil.rmtree(TestSyncCodeBase.temp_dir.joinpath(layer_path), ignore_errors=True)
+        shutil.rmtree(self.test_data_path.joinpath(self.folder, "before", layer_path))
         shutil.copytree(
-            self.test_data_path.joinpath(self.folder).joinpath("after").joinpath(layer_path),
-            TestSyncCodeBase.temp_dir.joinpath(layer_path),
+            self.test_data_path.joinpath(self.folder, "after", layer_path),
+            self.test_data_path.joinpath(self.folder, "before", layer_path),
         )
         # Run code sync
         sync_command_list = self.get_sync_command_list(
@@ -694,14 +684,13 @@ class TestSyncLayerCode(TestSyncCodeBase):
             resource_id_list=[layer_logical_id],
             dependency_layer=self.dependency_layer,
             stack_name=TestSyncCodeBase.stack_name,
-            parameter_overrides="Parameter=Clarity",
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
             use_container=self.use_container,
         )
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
 
         # CFN Api call here to collect all the stack resources

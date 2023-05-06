@@ -2118,7 +2118,7 @@ test-project
 
     def test_must_return_runtime_from_base_image_name(self):
         base_images = [
-            "amazon/dotnet5.0-base",
+            "amazon/dotnet6-base",
             "amazon/dotnetcore3.1-base",
             "amazon/go1.x-base",
             "amazon/java11-base",
@@ -2129,7 +2129,7 @@ test-project
         ]
 
         expected_runtime = [
-            "dotnet5.0",
+            "dotnet6",
             "dotnetcore3.1",
             "go1.x",
             "java11",
@@ -2253,8 +2253,11 @@ test-project
         }
         self.assertEqual(preprocess_manifest, expected_result)
 
+    @patch(
+        "samcli.commands.init.init_templates.InitTemplates._check_upsert_templates",
+    )
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
-    def test_init_fails_unsupported_dep_mgr_for_runtime(self, git_repo_clone_mock):
+    def test_init_fails_unsupported_dep_mgr_for_runtime(self, git_repo_clone_mock, check_upsert_templates_mock):
         # WHEN the wrong dependency_manager is passed for a runtime
         # THEN an exception should be raised
         with self.assertRaises(InvalidInitTemplateError) as ex:

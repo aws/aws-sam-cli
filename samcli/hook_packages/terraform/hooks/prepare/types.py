@@ -1,7 +1,8 @@
 """ Contains the data types used in the TF prepare hook"""
+from abc import ABC
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 
 @dataclass
@@ -77,3 +78,89 @@ class SamMetadataResource:
     current_module_address: Optional[str]
     resource: Dict
     config_resource: TFResource
+
+
+class ResourceTranslationValidator:
+    """
+    Base class for a validation class to be used when translating Terraform resources to a metadata file
+    """
+
+    resource: Dict
+    config_resource: TFResource
+
+    def __init__(self, resource, config_resource):
+        self.resource = resource
+        self.config_resource = config_resource
+
+    def validate(self):
+        """
+        Function to be called for resources of a given type used for validating
+        the AWS SAM CLI transformation logic for the given resource
+        """
+        raise NotImplementedError
+
+
+@dataclass
+class ResourceTranslationProperties:
+    """
+    These are a collection of properties useful for defining a
+    translation from Terraform to CFN for a given resource
+    """
+
+    resource: Dict
+    translated_resource: Dict
+    config_resource: TFResource
+    logical_id: str
+    resource_full_address: str
+
+
+class ResourceProperties(ABC):
+    """
+    Interface definition for a resource type to handle collecting and storing properties specific to it's type.
+    These properties are then used for handling specific resource-based logic, such as linking to other resources.
+    """
+
+    def __init__(self):
+        self.terraform_resources: Dict[str, Dict] = {}
+        self.terraform_config: Dict[str, TFResource] = {}
+        self.cfn_resources: Dict[str, List] = {}
+
+    def collect(self, properties: ResourceTranslationProperties):
+        """
+        Collect any properties required for future resource processing after traversing the Terraform modules.
+
+        Parameters
+        ----------
+        properties: ResourceTranslationProperties
+            Properties acquired specific to an AWS resource when iterating through a Terraform module
+        """
+        raise NotImplementedError
+
+
+class CodeResourceProperties(ResourceProperties, ABC):
+    """
+    This interface extends ResourceProperties. In addition to resource properties, `CodeResourceProperties`
+    expects the implementing class to define a `add_lambda_resources_to_code_map` used for resolving
+    the code-specific properties of that resource type.
+    """
+
+    def add_lambda_resources_to_code_map(
+        self,
+        properties: ResourceTranslationProperties,
+        translated_properties: Dict,
+        lambda_resources_to_code_map: Dict[str, List[Tuple[Dict, str]]],
+    ):
+        """
+        Resolves the relevant code properties for an CFN resource from a Terraform resource
+        and then stores that property in the lambda_resources_to_code_map.
+
+        Parameters
+        ----------
+        properties: ResourceTranslationProperties
+            Properties acquired specific to the resource being translated when iterating through a Terraform module
+        translated_properties: Dict
+            A dictionary of CloudFormation properties that were translated by the hook from the Terraform plan file
+        lambda_resources_to_code_map: Dict[str, List[Tuple[Dict, str]]]
+            A map storing all the Lambda code properties
+        """
+        raise NotImplementedError

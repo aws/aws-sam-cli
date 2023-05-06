@@ -7,6 +7,7 @@ import threading
 from typing import List, Tuple
 from unittest import TestCase
 from unittest.mock import ANY, Mock, patch
+from samcli.cli.context import Context
 
 from samcli.lib.telemetry.event import Event, EventCreationError, EventTracker, track_long_event
 
@@ -64,7 +65,13 @@ class TestEventCreation(TestCase):
 
         self.assertEqual(
             test_event.to_json(),
-            {"event_name": "Testing", "event_value": "value1", "thread_id": threading.get_ident(), "time_stamp": ANY},
+            {
+                "event_name": "Testing",
+                "event_value": "value1",
+                "thread_id": threading.get_ident(),
+                "time_stamp": ANY,
+                "exception_name": None,
+            },
         )
 
 
@@ -143,6 +150,7 @@ class TestEventTracker(TestCase):
                         "event_value": "SomeValue",
                         "thread_id": ANY,
                         "time_stamp": ANY,
+                        "exception_name": ANY,
                     }
                 ]
             },
@@ -176,6 +184,17 @@ class TestEventTracker(TestCase):
         EventTracker.track_event("TheStrawThat", "BreaksTheCamel'sBack")
 
         send_mock.assert_called()
+
+    @patch("samcli.cli.context.Context.get_current_context")
+    def test_session_id_set(self, context_mock):
+        mock = Mock()
+        mock.session_id = "123"
+        context_mock.return_value = mock
+
+        EventTracker._session_id = None
+        EventTracker._set_session_id()
+
+        self.assertEqual(EventTracker._session_id, "123")
 
 
 class TestTrackLongEvent(TestCase):

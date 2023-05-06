@@ -100,6 +100,7 @@ def get_layer_subfolder(build_workflow: str) -> str:
         "java8": "java",
         "java11": "java",
         "java8.al2": "java",
+        "java17": "java",
         "dotnet6": "dotnet",
         # User is responsible for creating subfolder in these workflows
         "makefile": "",
@@ -180,6 +181,14 @@ def get_workflow_config(
             ]
         ),
         "java8.al2": ManifestWorkflowSelector(
+            [
+                # Gradle builder needs custom executable paths to find `gradlew` binary
+                JAVA_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
+                JAVA_KOTLIN_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
+                JAVA_MAVEN_CONFIG,
+            ]
+        ),
+        "java17": ManifestWorkflowSelector(
             [
                 # Gradle builder needs custom executable paths to find `gradlew` binary
                 JAVA_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),

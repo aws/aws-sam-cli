@@ -14,8 +14,8 @@ import pytest
 from parameterized import parameterized_class
 
 from samcli.commands.local.cli_common.invoke_context import ContainersInitializationMode
-from samcli.local.apigw.local_apigw_service import Route
-from .start_api_integ_base import StartApiIntegBaseClass, WatchWarmContainersIntegBaseClass
+from samcli.local.apigw.route import Route
+from .start_api_integ_base import StartApiIntegBaseClass, WritableStartApiIntegBaseClass
 from ..invoke.layer_utils import LayerUtils
 
 
@@ -2225,7 +2225,7 @@ class TestImagePackageTypeWithEagerLazyContainersMode(StartApiIntegBaseClass):
         self.assertEqual(response.json(), {"hello": "world"})
 
 
-class TestWatchingZipWarmContainers(WatchWarmContainersIntegBaseClass):
+class TestWatchingZipWarmContainers(WritableStartApiIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
 Resources:
@@ -2274,7 +2274,7 @@ def handler(event, context):
         self.assertEqual(response.json(), {"hello": "world2"})
 
 
-class TestWatchingTemplateChangesLambdaFunctionHandlerChanged(WatchWarmContainersIntegBaseClass):
+class TestWatchingTemplateChangesLambdaFunctionHandlerChanged(WritableStartApiIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
 Resources:
@@ -2340,7 +2340,7 @@ def handler2(event, context):
         self.assertEqual(response.json(), {"hello": "world2"})
 
 
-class TestWatchingTemplateChangesLambdaFunctionCodeUriChanged(WatchWarmContainersIntegBaseClass):
+class TestWatchingTemplateChangesLambdaFunctionCodeUriChanged(WritableStartApiIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
 Resources:
@@ -2409,7 +2409,7 @@ def handler(event, context):
         self.assertEqual(response.json(), {"hello": "world2"})
 
 
-class TestWatchingImageWarmContainers(WatchWarmContainersIntegBaseClass):
+class TestWatchingImageWarmContainers(WritableStartApiIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
 Parameters:
@@ -2473,7 +2473,7 @@ COPY main.py ./"""
         self.assertEqual(response.json(), {"hello": "world2"})
 
 
-class TestWatchingTemplateChangesImageDockerFileChangedLocation(WatchWarmContainersIntegBaseClass):
+class TestWatchingTemplateChangesImageDockerFileChangedLocation(WritableStartApiIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
 Parameters:
@@ -2567,7 +2567,7 @@ COPY main.py ./"""
         self.assertEqual(response.json(), {"hello": "world2"})
 
 
-class TestWatchingZipLazyContainers(WatchWarmContainersIntegBaseClass):
+class TestWatchingZipLazyContainers(WritableStartApiIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
 Resources:
@@ -2616,7 +2616,7 @@ def handler(event, context):
         self.assertEqual(response.json(), {"hello": "world2"})
 
 
-class TestWatchingImageLazyContainers(WatchWarmContainersIntegBaseClass):
+class TestWatchingImageLazyContainers(WritableStartApiIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
 Parameters:
@@ -2680,7 +2680,7 @@ COPY main.py ./"""
         self.assertEqual(response.json(), {"hello": "world2"})
 
 
-class TestWatchingTemplateChangesLambdaFunctionHandlerChangedLazyContainer(WatchWarmContainersIntegBaseClass):
+class TestWatchingTemplateChangesLambdaFunctionHandlerChangedLazyContainer(WritableStartApiIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
 Resources:
@@ -2746,7 +2746,7 @@ def handler2(event, context):
         self.assertEqual(response.json(), {"hello": "world2"})
 
 
-class TestWatchingTemplateChangesLambdaFunctionCodeUriChangedLazyContainers(WatchWarmContainersIntegBaseClass):
+class TestWatchingTemplateChangesLambdaFunctionCodeUriChangedLazyContainers(WritableStartApiIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
 Resources:
@@ -2815,7 +2815,7 @@ def handler(event, context):
         self.assertEqual(response.json(), {"hello": "world2"})
 
 
-class TestWatchingTemplateChangesImageDockerFileChangedLocationLazyContainers(WatchWarmContainersIntegBaseClass):
+class TestWatchingTemplateChangesImageDockerFileChangedLocationLazyContainers(WritableStartApiIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
 Parameters:
