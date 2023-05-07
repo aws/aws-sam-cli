@@ -7,7 +7,7 @@ from samcli.lib.utils.packagetype import ZIP
 
 
 class TestLambdaLayerVersionProperties(TestCase):
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resources.lambda_function._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resources.lambda_function.get_configuration_address")
     def test_collect(self, mock_get_configuration_address):
         module_mock = Mock()
         mock_get_configuration_address.side_effect = ["address_a", "address_a", "address_b"]

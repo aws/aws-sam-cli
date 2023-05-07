@@ -1,7 +1,6 @@
 """Module containing logic specific to Lambda function resource handling during the prepare hook execution"""
 from typing import Dict, List, Tuple
 
-from samcli.hook_packages.terraform.hooks.prepare.resource_linking import _get_configuration_address
 from samcli.hook_packages.terraform.hooks.prepare.resources.code_resource_utils import (
     _add_lambda_resource_code_path_to_code_map,
 )
@@ -9,6 +8,7 @@ from samcli.hook_packages.terraform.hooks.prepare.types import (
     CodeResourceProperties,
     ResourceTranslationProperties,
 )
+from samcli.hook_packages.terraform.hooks.prepare.utilities import get_configuration_address
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 
 
@@ -33,7 +33,7 @@ class LambdaFunctionProperties(CodeResourceProperties):
         properties: ResourceTranslationProperties
             Properties acquired specific to an aws_lambda_function resource when iterating through a Terraform module
         """
-        resolved_config_address = _get_configuration_address(properties.resource_full_address)
+        resolved_config_address = get_configuration_address(properties.resource_full_address)
         matched_lambdas = self.cfn_resources.get(resolved_config_address, [])
         matched_lambdas.append(properties.translated_resource)
         self.cfn_resources[resolved_config_address] = matched_lambdas

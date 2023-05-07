@@ -4,6 +4,8 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
+from samcli.hook_packages.terraform.hooks.prepare.utilities import get_configuration_address
+
 
 @dataclass
 class ConstantValue:
@@ -129,12 +131,19 @@ class ResourceProperties(ABC):
         """
         Collect any properties required for future resource processing after traversing the Terraform modules.
 
+        In parent class we collect all the required properties. This logic can be customized in the children classes.
+
         Parameters
         ----------
         properties: ResourceTranslationProperties
             Properties acquired specific to an AWS resource when iterating through a Terraform module
         """
-        raise NotImplementedError
+        resolved_config_address = get_configuration_address(properties.resource_full_address)
+        matched_gateway_methods = self.cfn_resources.get(resolved_config_address, [])
+        matched_gateway_methods.append(properties.translated_resource)
+        self.cfn_resources[resolved_config_address] = matched_gateway_methods
+        self.terraform_config[resolved_config_address] = properties.config_resource
+        self.terraform_resources[properties.logical_id] = properties.resource
 
 
 class CodeResourceProperties(ResourceProperties, ABC):

@@ -14,17 +14,22 @@ from samcli.hook_packages.terraform.hooks.prepare.constants import (
 from samcli.hook_packages.terraform.hooks.prepare.enrich import enrich_resources_and_generate_makefile
 from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     FunctionLayerLocalVariablesLinkingLimitationException,
+    InvalidResourceLinkingException,
     OneLambdaLayerLinkingLimitationException,
+    OneRestApiToApiGatewayMethodLinkingLimitationException,
+    RestApiToApiGatewayMethodLocalVariablesLinkingLimitationException,
 )
 from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     REMOTE_DUMMY_VALUE,
     RESOURCE_TRANSLATOR_MAPPING,
+    TF_AWS_API_GATEWAY_METHOD,
     TF_AWS_API_GATEWAY_REST_API,
     TF_AWS_LAMBDA_FUNCTION,
     TF_AWS_LAMBDA_LAYER_VERSION,
     PropertyBuilderMapping,
 )
 from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
+    API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
     LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX,
     LogicalIdReference,
     ReferenceType,
@@ -32,7 +37,6 @@ from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     ResourceLinkingPair,
     ResourcePairExceptions,
     _build_module,
-    _get_configuration_address,
     _resolve_resource_attribute,
 )
 from samcli.hook_packages.terraform.hooks.prepare.resources.apigw import RESTAPITranslationValidator
@@ -49,6 +53,7 @@ from samcli.hook_packages.terraform.hooks.prepare.types import (
     TFModule,
     TFResource,
 )
+from samcli.hook_packages.terraform.hooks.prepare.utilities import get_configuration_address
 from samcli.hook_packages.terraform.lib.utils import (
     _calculate_configuration_attribute_value_hash,
     build_cfn_logical_id,
@@ -139,7 +144,7 @@ def translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_applic
                 if resource_mode == "data"
                 else f"{resource_type}.{resource_name}"
             )
-            config_resource_address = _get_configuration_address(resource_address)
+            config_resource_address = get_configuration_address(resource_address)
             if config_resource_address not in curr_tf_module.resources:
                 raise PrepareHookException(
                     f"There is no configuration resource for resource address {resource_full_address} and "
@@ -238,6 +243,12 @@ def translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_applic
         resource_property_mapping[TF_AWS_LAMBDA_LAYER_VERSION].terraform_resources,
     )
 
+    _link_gateway_methods_to_gateway_rest_apis(
+        resource_property_mapping[TF_AWS_API_GATEWAY_METHOD].terraform_config,
+        resource_property_mapping[TF_AWS_API_GATEWAY_METHOD].cfn_resources,
+        resource_property_mapping[TF_AWS_API_GATEWAY_REST_API].terraform_resources,
+    )
+
     if sam_metadata_resources:
         LOG.debug("Enrich the mapped resources with the sam metadata information and generate Makefile")
         enrich_resources_and_generate_makefile(
@@ -274,7 +285,7 @@ def _add_child_modules_to_queue(curr_module: Dict, curr_module_configuration: TF
     if child_modules:
         for child_module in child_modules:
             config_child_module_address = (
-                _get_configuration_address(child_module["address"]) if "address" in child_module else None
+                get_configuration_address(child_module["address"]) if "address" in child_module else None
             )
             module_name = (
                 config_child_module_address[config_child_module_address.rfind(".") + 1 :]
@@ -398,6 +409,70 @@ def _link_lambda_functions_to_layers(
         cfn_link_field_name="Layers",
         terraform_resource_type_prefix=LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX,
         cfn_resource_update_call_back_function=_link_lambda_functions_to_layers_call_back,
+        linking_exceptions=exceptions,
+    )
+    ResourceLinker(resource_linking_pair).link_resources()
+
+
+def _link_gateway_methods_to_gateway_rest_apis_call_back(
+    gateway_method_cfn_resource: Dict, referenced_rest_apis_logical_ids: List[ReferenceType]
+) -> None:
+    """
+    Callback function that used by the linking algorithm to update an Api Gateway Method CFN Resource with
+    a reference to the Rest Api resource.
+
+    Parameters
+    ----------
+    gateway_method_cfn_resource: Dict
+        API Gateway Method CFN resource
+    referenced_rest_apis_logical_ids: List[ReferenceType]
+        List of referenced REST API either as the logical id of REST API resource defined in the customer project, or
+        ARN values for actual REST API resource defined in customer's account. This list should always contain one
+        element only.
+    """
+    # if the destination rest api list contains more than one element, so we have an issue in our linking logic
+    if len(referenced_rest_apis_logical_ids) > 1:
+        raise InvalidResourceLinkingException("Could not link multiple Rest APIs to one Gateway method resource")
+
+    ref_list = [
+        {"Ref": logical_id.value} if isinstance(logical_id, LogicalIdReference) else logical_id.value
+        for logical_id in referenced_rest_apis_logical_ids
+    ]
+    gateway_method_cfn_resource["Properties"]["RestApiId"] = ref_list[0]
+
+
+def _link_gateway_methods_to_gateway_rest_apis(
+    gateway_methods_config_resources: Dict[str, TFResource],
+    gateway_methods_config_address_cfn_resources_map: Dict[str, List],
+    rest_apis_terraform_resources: Dict[str, Dict],
+):
+    """
+    Iterate through all the resources and link the corresponding Rest API resource to each Gateway Method resource.
+
+    Parameters
+    ----------
+    gateway_methods_config_resources: Dict[str, TFResource]
+        Dictionary of configuration Gateway Methods
+    gateway_methods_config_address_cfn_resources_map: Dict[str, List]
+        Dictionary containing resolved configuration addresses matched up to the cfn Gateway Method
+    rest_apis_terraform_resources: Dict[str, Dict]
+        Dictionary of all actual terraform Rest API resources (not configuration resources). The dictionary's key is the
+        calculated logical id for each resource.
+    """
+
+    exceptions = ResourcePairExceptions(
+        multiple_resource_linking_exception=OneRestApiToApiGatewayMethodLinkingLimitationException,
+        local_variable_linking_exception=RestApiToApiGatewayMethodLocalVariablesLinkingLimitationException,
+    )
+    resource_linking_pair = ResourceLinkingPair(
+        source_resource_cfn_resource=gateway_methods_config_address_cfn_resources_map,
+        source_resource_tf_config=gateway_methods_config_resources,
+        destination_resource_tf=rest_apis_terraform_resources,
+        tf_destination_attribute_name="id",
+        terraform_link_field_name="rest_api_id",
+        cfn_link_field_name="RestApiId",
+        terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+        cfn_resource_update_call_back_function=_link_gateway_methods_to_gateway_rest_apis_call_back,
         linking_exceptions=exceptions,
     )
     ResourceLinker(resource_linking_pair).link_resources()

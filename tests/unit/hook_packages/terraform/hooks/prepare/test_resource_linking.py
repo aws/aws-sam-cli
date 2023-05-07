@@ -16,7 +16,6 @@ from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
 
 from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     _clean_references_list,
-    _get_configuration_address,
     _resolve_module_output,
     _resolve_module_variable,
     _build_module,
@@ -34,6 +33,7 @@ from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     LogicalIdReference,
     ExistingResourceReference,
 )
+from samcli.hook_packages.terraform.hooks.prepare.utilities import get_configuration_address
 from samcli.hook_packages.terraform.hooks.prepare.types import (
     ConstantValue,
     References,
@@ -126,7 +126,7 @@ class TestResourceLinking(TestCase):
         ]
     )
     def test_get_configation_address(self, input_addr, expected_addr):
-        cleaned_addr = _get_configuration_address(input_addr)
+        cleaned_addr = get_configuration_address(input_addr)
 
         self.assertEqual(cleaned_addr, expected_addr)
 
@@ -183,7 +183,7 @@ class TestResourceLinking(TestCase):
         self.assertEqual(resource.full_address, "resource_address")
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._resolve_module_variable")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
     def test_resolve_module_output_with_var(self, clean_ref_mock, config_mock, resolve_var_mock):
         constant_val = ConstantValue("mycoolvar")
@@ -212,7 +212,7 @@ class TestResourceLinking(TestCase):
         self.assertEqual(results[0].value, "mycoolvar")
         self.assertIsInstance(results[0], ConstantValue)
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
     def test_resolve_module_output_with_module(self, clean_ref_mock, config_mock):
         module = TFModule(None, None, {}, [], {}, {"mycooloutput": References(["module.mycoolmod.mycooloutput2"])})
@@ -227,7 +227,7 @@ class TestResourceLinking(TestCase):
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0].value, "mycoolconst")
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
     def test_resolve_module_output_already_resolved_constant(self, clean_ref_mock, config_mock):
         module = TFModule(None, None, {}, [], {}, {"mycooloutput": ConstantValue("mycoolconst")})
@@ -247,7 +247,7 @@ class TestResourceLinking(TestCase):
             (TFModule(None, None, {}, {}, {}, {"mycooloutput": References(["local.mycoolconst"])}), None),
         ]
     )
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
     def test_resolve_module_output_already_resolved_reference(self, module, expected_addr, clean_ref_mock, config_mock):
         clean_ref_mock.return_value = ["local.mycoolconst"]
@@ -259,7 +259,7 @@ class TestResourceLinking(TestCase):
         self.assertEqual(results[0].module_address, expected_addr)
         self.assertIsInstance(results[0], ResolvedReference)
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
     def test_resolve_module_output_raises_exception_empty_output(self, clean_ref_mock, get_config_mock):
         module = TFModule("module.mymod", None, {}, [], {}, {})
@@ -272,7 +272,7 @@ class TestResourceLinking(TestCase):
             "An error occurred when attempting to link two resources: Output empty was not found in module module.mymod",
         )
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
     def test_resolve_module_output_raises_exception_empty_children(self, clean_ref_mock, get_config_mock):
         module = TFModule("module.mymod", None, {}, [], {}, {"search": References(["module.nonexist.output"])})
@@ -288,7 +288,7 @@ class TestResourceLinking(TestCase):
             "An error occurred when attempting to link two resources: Module module.mymod does not have child modules defined",
         )
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
     def test_resolve_module_output_raises_exception_non_exist_child(self, clean_ref_mock, get_config_mock):
         module = TFModule(
@@ -314,7 +314,7 @@ class TestResourceLinking(TestCase):
             "module.name.output.again",
         ]
     )
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
     def test_resolve_module_output_invalid_module_name(self, invalid_reference, clean_ref_mock, get_config_mock):
         module = TFModule("module.name", None, {}, [], {}, {"output1": References([invalid_reference])})
@@ -342,7 +342,7 @@ class TestResourceLinking(TestCase):
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0].value, "layer.arn")
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
     def test_resolve_module_variable_nested_variables(self, mock_clean_references, mock_get_configuration_address):
         references = ["var.layer_name"]
@@ -370,7 +370,7 @@ class TestResourceLinking(TestCase):
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0].value, "layer.arn")
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
     def test_resolve_module_variable_local_variable(self, mock_clean_references, mock_get_configuration_address):
         references = ["local.layer_arn"]
@@ -398,7 +398,7 @@ class TestResourceLinking(TestCase):
         self.assertEqual(results[0].value, "local.layer_arn")
         self.assertEqual(results[0].module_address, "full/address")
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._resolve_module_output")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
     def test_resolve_module_variable_nested_modules(
@@ -431,7 +431,7 @@ class TestResourceLinking(TestCase):
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0].value, "layer_arn")
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._resolve_module_output")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
     def test_resolve_module_variable_combined_nested_modules(
@@ -496,7 +496,7 @@ class TestResourceLinking(TestCase):
             "layer could not be found in module root module.",
         )
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
     def test_resolve_module_variable_enters_invalid_state(self, mock_clean_references, mock_get_configuration_address):
         references = ["local.layer_arn"]
@@ -520,7 +520,7 @@ class TestResourceLinking(TestCase):
             "An error occurred when attempting to link two resources: Resource linking entered an invalid state.",
         )
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
     def test_resolve_module_variable_invalid_module_reference(
         self, mock_clean_references, mock_get_configuration_address
@@ -785,7 +785,7 @@ class TestResourceLinking(TestCase):
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._resolve_module_variable")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.get_configuration_address")
     def test_resolve_resource_attribute_variable_reference(
         self, get_configuration_address_mock, clean_references_mock, resolve_module_variable_mock
     ):
@@ -825,7 +825,7 @@ class TestResourceLinking(TestCase):
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._resolve_module_output")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.get_configuration_address")
     def test_resolve_resource_attribute_module_reference(
         self, get_configuration_address_mock, clean_references_mock, resolve_module_output_mock
     ):
@@ -901,7 +901,7 @@ class TestResourceLinking(TestCase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._resolve_module_variable")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._resolve_module_output")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.get_configuration_address")
     def test_resolve_resource_attribute_module_and_variable_references(
         self,
         get_configuration_address_mock,

@@ -20,14 +20,15 @@ from samcli.hook_packages.terraform.hooks.prepare.types import (
     TFModule,
     TFResource,
 )
+from samcli.hook_packages.terraform.hooks.prepare.utilities import get_configuration_address
 from samcli.hook_packages.terraform.lib.utils import build_cfn_logical_id
 
 LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX = "aws_lambda_layer_version."
+API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX = "aws_api_gateway_rest_api."
 TERRAFORM_LOCAL_VARIABLES_ADDRESS_PREFIX = "local."
 DATA_RESOURCE_ADDRESS_PREFIX = "data."
 
 LOG = logging.getLogger(__name__)
-COMPILED_REGULAR_EXPRESSION = re.compile(r"\[[^\[\]]*\]")
 
 
 @dataclass
@@ -662,23 +663,6 @@ def _clean_references_list(references: List[str]) -> List[str]:
     return cleaned_references
 
 
-def _get_configuration_address(address: str) -> str:
-    """
-    Cleans all addresses of indices and returns a clean address
-
-    Parameters
-    ----------
-    address : str
-        The address to clean
-
-    Returns
-    -------
-    str
-        The address clean of indices
-    """
-    return COMPILED_REGULAR_EXPRESSION.sub("", address)
-
-
 def _resolve_module_output(module: TFModule, output_name: str) -> List[Union[ConstantValue, ResolvedReference]]:
     """
     Resolves any references in the output section of the module
@@ -729,7 +713,7 @@ def _resolve_module_output(module: TFModule, output_name: str) -> List[Union[Con
                     output_name,
                 )
 
-                stripped_reference = _get_configuration_address(reference[reference.find(".") + 1 :])
+                stripped_reference = get_configuration_address(reference[reference.find(".") + 1 :])
                 results += _resolve_module_variable(module, stripped_reference)
             elif reference.startswith("module."):
                 LOG.debug(
@@ -750,7 +734,7 @@ def _resolve_module_output(module: TFModule, output_name: str) -> List[Union[Con
                 # module.bbb.ccc => ccc
                 output_name = reference[reference.rfind(".") + 1 :]
 
-                stripped_reference = _get_configuration_address(module_name)
+                stripped_reference = get_configuration_address(module_name)
 
                 if not module.child_modules:
                     raise InvalidResourceLinkingException(
@@ -805,13 +789,13 @@ def _resolve_module_variable(module: TFModule, variable_name: str) -> List[Union
             LOG.debug("Resolving reference: %s", reference)
             # refer to a variable passed to this module from its parent module
             if reference.startswith("var."):
-                config_var_name = _get_configuration_address(reference[len("var.") :])
+                config_var_name = get_configuration_address(reference[len("var.") :])
                 if module.parent_module:
                     results += _resolve_module_variable(module.parent_module, config_var_name)
             # refer to another module output. This module will be defined in the same level as this module
             elif reference.startswith("module."):
                 module_name = reference[reference.find(".") + 1 : reference.rfind(".")]
-                config_module_name = _get_configuration_address(module_name)
+                config_module_name = get_configuration_address(module_name)
                 output_name = reference[reference.rfind(".") + 1 :]
                 if (
                     module.parent_module
@@ -891,7 +875,7 @@ def _resolve_resource_attribute(
     for reference in cleaned_references:
         # refer to a variable passed to this resource module from its parent module
         if reference.startswith("var."):
-            config_var_name = _get_configuration_address(reference[len("var.") :])
+            config_var_name = get_configuration_address(reference[len("var.") :])
             LOG.debug("Traversing a variable reference: %s to variable named %s", reference, config_var_name)
             results += _resolve_module_variable(resource.module, config_var_name)
 
@@ -906,7 +890,7 @@ def _resolve_resource_attribute(
                 )
 
             module_name = reference[reference.find(".") + 1 : reference.rfind(".")]
-            config_module_name = _get_configuration_address(module_name)
+            config_module_name = get_configuration_address(module_name)
             output_name = reference[reference.rfind(".") + 1 :]
             LOG.debug(
                 "Traversing the module output reference: %s to the output named %s in module %s",
