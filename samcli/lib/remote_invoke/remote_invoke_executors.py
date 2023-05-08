@@ -67,6 +67,7 @@ class ResponseObjectToJsonStringMapper(RemoteInvokeRequestResponseMapper):
     """
     Maps response object inside RemoteInvokeExecutionInfo into formatted JSON string with multiple lines
     """
+
     def map(self, remote_invoke_input: RemoteInvokeExecutionInfo) -> RemoteInvokeExecutionInfo:
         LOG.debug("Converting response object into JSON")
         remote_invoke_input.response = json.dumps(remote_invoke_input.response, indent=2)
