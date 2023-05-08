@@ -15,7 +15,7 @@ on:
 
 # to automatically cancel the running workflow for same PR.
 concurrency:
-  group: ${{ github.head_ref }}
+  group: ${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
