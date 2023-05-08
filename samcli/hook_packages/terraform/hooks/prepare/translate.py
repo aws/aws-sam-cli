@@ -26,7 +26,8 @@ from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
 )
 from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX,
-    LinkerIntrinsics,
+    LogicalIdReference,
+    ReferenceType,
     ResourceLinker,
     ResourceLinkingPair,
     ResourcePairExceptions,
@@ -343,13 +344,36 @@ def _translate_properties(
     return cfn_properties
 
 
+def _link_lambda_functions_to_layers_call_back(
+    function_cfn_resource: Dict, referenced_resource_values: List[ReferenceType]
+) -> None:
+    """
+    Callback function that used by the linking algorith to update a Lambda Function CFN Resource with
+    the list of layers ids. Layers ids can be reference to other Layers resources define in the customer project,
+    or ARN values to layers exist in customer's account.
+
+    Parameters
+    ----------
+    function_cfn_resource: Dict
+        Lambda Function CFN resource
+    referenced_resource_values: List[ReferenceType]
+        List of referenced layers either as the logical ids of layers resources defined in the customer project, or
+        ARN values for actual layers defined in customer's account.
+    """
+    ref_list = [
+        {"Ref": logical_id.value} if isinstance(logical_id, LogicalIdReference) else logical_id.value
+        for logical_id in referenced_resource_values
+    ]
+    function_cfn_resource["Properties"]["Layers"] = ref_list
+
+
 def _link_lambda_functions_to_layers(
     lambda_config_funcs_conf_cfn_resources: Dict[str, TFResource],
     lambda_funcs_conf_cfn_resources: Dict[str, List],
     lambda_layers_terraform_resources: Dict[str, Dict],
 ):
     """
-    Iterate through all of the resources and link the corresponding Lambda Layers to each Lambda Function
+    Iterate through all the resources and link the corresponding Lambda Layers to each Lambda Function
 
     Parameters
     ----------
@@ -369,11 +393,11 @@ def _link_lambda_functions_to_layers(
         source_resource_cfn_resource=lambda_funcs_conf_cfn_resources,
         source_resource_tf_config=lambda_config_funcs_conf_cfn_resources,
         destination_resource_tf=lambda_layers_terraform_resources,
-        intrinsic_type=LinkerIntrinsics.Ref,
-        cfn_intrinsic_attribute=None,
-        source_link_field_name="Layers",
+        tf_destination_attribute_name="arn",
         terraform_link_field_name="layers",
+        cfn_link_field_name="Layers",
         terraform_resource_type_prefix=LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX,
+        cfn_resource_update_call_back_function=_link_lambda_functions_to_layers_call_back,
         linking_exceptions=exceptions,
     )
     ResourceLinker(resource_linking_pair).link_resources()
