@@ -152,22 +152,15 @@ class ResourceLinker:
             else:
                 applied_cfn_resources.append(cfn_resource)
 
-        if applied_cfn_resources:
-            LOG.debug(
-                "Link resource configuration %s that has these applied instances %s using linking fields approach.",
-                source_tf_resource.full_address,
-                applied_cfn_resources,
-            )
-            for applied_cfn_resource in applied_cfn_resources:
-                self._link_using_linking_fields(applied_cfn_resource)
+        LOG.debug(
+            "Link resource configuration %s that has these applied instances %s using linking fields approach.",
+            source_tf_resource.full_address,
+            applied_cfn_resources,
+        )
+        for applied_cfn_resource in applied_cfn_resources:
+            self._link_using_linking_fields(applied_cfn_resource)
 
-        if non_applied_cfn_resources:
-            LOG.debug(
-                "Link resource configuration %s that has these applied instances %s using terraform config approach.",
-                source_tf_resource.full_address,
-                non_applied_cfn_resources,
-            )
-            self._link_using_terraform_config(source_tf_resource, non_applied_cfn_resources)
+        self._link_using_terraform_config(source_tf_resource, non_applied_cfn_resources)
 
     def _link_using_terraform_config(self, source_tf_resource: TFResource, cfn_resources: List[Dict]):
         """
@@ -182,6 +175,16 @@ class ResourceLinker:
         cfn_source_resources: List[Dict]
             A list of mapped source resources that are equivalent to the input terraform configuration source resource
         """
+
+        if not cfn_resources:
+            LOG.debug("No matching CFN resources for configuration %s", source_tf_resource.full_address)
+            return
+
+        LOG.debug(
+            "Link resource configuration %s that has these applied instances %s using linking fields approach.",
+            source_tf_resource.full_address,
+            cfn_resources,
+        )
         resolved_dest_resources = _resolve_resource_attribute(
             source_tf_resource, self._resource_pair.terraform_link_field_name
         )
