@@ -123,6 +123,7 @@ export class CDKSupportDemoRootStack extends cdk.Stack {
     cfnLayerVersionNodeJsRuntime.addMetadata('BuildMethod', 'nodejs14.x');
 
     const nodejsFunction = new NodejsFunction(this, 'NodejsFunction', {
+      runtime: lambda.Runtime.NODEJS_14_X,
       entry: path.join(__dirname, '../../../src/nodejs/NodeJsFunctionConstruct/app.ts'),
       depsLockFilePath: path.join(__dirname, '../../../src/nodejs/NodeJsFunctionConstruct/package-lock.json'),
       bundling: {
