@@ -35,6 +35,7 @@ class ReferenceType:
     """
     This class is used to pass the linking attributes values to the callback functions.
     """
+
     value: str
 
 
@@ -44,6 +45,7 @@ class ExistingResourceReference(ReferenceType):
     This class is used to pass the linking attributes values to the callback functions when the values are static values
     which means they are for an existing resources in AWS, and there is no matching resource in the customer TF Project.
     """
+
     value: str
 
 
@@ -53,6 +55,7 @@ class LogicalIdReference(ReferenceType):
     This class is used to pass the linking attributes values to the callback functions when the values are Logical Ids
     for the destination resources defined in the customer TF project.
     """
+
     value: str
 
 
