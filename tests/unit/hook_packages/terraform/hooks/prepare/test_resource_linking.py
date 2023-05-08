@@ -1140,7 +1140,7 @@ class TestResourceLinker(TestCase):
         resource_linker._link_using_linking_fields = Mock()
 
         resource_linker._handle_linking(source_tf_resource, cfn_resources)
-        resource_linker._link_using_terraform_config.assert_not_called()
+        resource_linker._link_using_terraform_config.assert_called_with(source_tf_resource, [])
         resource_linker._link_using_linking_fields.assert_has_calls(
             [
                 call(cfn_resource1_depend_on_applied_resources),

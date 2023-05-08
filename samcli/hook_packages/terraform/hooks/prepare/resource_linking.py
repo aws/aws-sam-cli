@@ -33,16 +33,30 @@ LOG = logging.getLogger(__name__)
 
 @dataclass
 class ReferenceType:
+    """
+    This class is used to pass the linking attributes values to the callback functions.
+    """
+
     value: str
 
 
 @dataclass
 class ExistingResourceReference(ReferenceType):
+    """
+    This class is used to pass the linking attributes values to the callback functions when the values are static values
+    which means they are for an existing resources in AWS, and there is no matching resource in the customer TF Project.
+    """
+
     value: str
 
 
 @dataclass
 class LogicalIdReference(ReferenceType):
+    """
+    This class is used to pass the linking attributes values to the callback functions when the values are Logical Ids
+    for the destination resources defined in the customer TF project.
+    """
+
     value: str
 
 
@@ -61,7 +75,7 @@ class ResourceLinkingPair:
     terraform_link_field_name: str
     cfn_link_field_name: str
     terraform_resource_type_prefix: str
-    cfn_resource_update_call_back_function: Callable
+    cfn_resource_update_call_back_function: Callable[[Dict, List[ReferenceType]], None]
     linking_exceptions: ResourcePairExceptions
 
 
@@ -139,22 +153,15 @@ class ResourceLinker:
             else:
                 applied_cfn_resources.append(cfn_resource)
 
-        if applied_cfn_resources:
-            LOG.debug(
-                "Link resource configuration %s that has these applied instances %s using linking fields approach.",
-                source_tf_resource.full_address,
-                applied_cfn_resources,
-            )
-            for applied_cfn_resource in applied_cfn_resources:
-                self._link_using_linking_fields(applied_cfn_resource)
+        LOG.debug(
+            "Link resource configuration %s that has these applied instances %s using linking fields approach.",
+            source_tf_resource.full_address,
+            applied_cfn_resources,
+        )
+        for applied_cfn_resource in applied_cfn_resources:
+            self._link_using_linking_fields(applied_cfn_resource)
 
-        if non_applied_cfn_resources:
-            LOG.debug(
-                "Link resource configuration %s that has these applied instances %s using linking fields approach.",
-                source_tf_resource.full_address,
-                non_applied_cfn_resources,
-            )
-            self._link_using_terraform_config(source_tf_resource, non_applied_cfn_resources)
+        self._link_using_terraform_config(source_tf_resource, non_applied_cfn_resources)
 
     def _link_using_terraform_config(self, source_tf_resource: TFResource, cfn_resources: List[Dict]):
         """
@@ -169,6 +176,16 @@ class ResourceLinker:
         cfn_source_resources: List[Dict]
             A list of mapped source resources that are equivalent to the input terraform configuration source resource
         """
+
+        if not cfn_resources:
+            LOG.debug("No matching CFN resources for configuration %s", source_tf_resource.full_address)
+            return
+
+        LOG.debug(
+            "Link resource configuration %s that has these applied instances %s using linking fields approach.",
+            source_tf_resource.full_address,
+            cfn_resources,
+        )
         resolved_dest_resources = _resolve_resource_attribute(
             source_tf_resource, self._resource_pair.terraform_link_field_name
         )
@@ -193,7 +210,7 @@ class ResourceLinker:
                 source_tf_resource.full_address,
             )
         for cfn_resource in cfn_resources:
-            self._resource_pair.cfn_resource_update_call_back_function(cfn_resource, dest_resources)
+            self._resource_pair.cfn_resource_update_call_back_function(cfn_resource, dest_resources)  # type: ignore
 
     def _link_using_linking_fields(self, cfn_resource: Dict) -> None:
         """
@@ -222,15 +239,13 @@ class ResourceLinker:
             values = [values]
 
         # build map between the destination linking field property values, and resources' logical ids
-        child_resources_linking_attributes_logical_id_mapping = {
-            self._resource_pair.destination_resource_tf.get(logical_id, {})
-            .get("values", {})
-            .get(self._resource_pair.tf_destination_attribute_name): logical_id
-            for logical_id in self._resource_pair.destination_resource_tf.keys()
-            if self._resource_pair.destination_resource_tf.get(logical_id, {})
-            .get("values", {})
-            .get(self._resource_pair.tf_destination_attribute_name)
-        }
+        child_resources_linking_attributes_logical_id_mapping = {}
+        for logical_id, destination_resource in self._resource_pair.destination_resource_tf.items():
+            linking_attribute_value = destination_resource.get("values", {}).get(
+                self._resource_pair.tf_destination_attribute_name
+            )
+            if linking_attribute_value:
+                child_resources_linking_attributes_logical_id_mapping[linking_attribute_value] = logical_id
 
         LOG.debug(
             "The map between destination resources linking field %s, and resources logical ids is %s",
@@ -245,7 +260,7 @@ class ResourceLinker:
             for value in values
         ]
         LOG.debug("The value of the source resource linking field after mapping $s", dest_resources)
-        self._resource_pair.cfn_resource_update_call_back_function(cfn_resource, dest_resources)
+        self._resource_pair.cfn_resource_update_call_back_function(cfn_resource, dest_resources)  # type: ignore
 
     def _process_resolved_resources(
         self,
@@ -349,6 +364,10 @@ class ResourceLinker:
                     f"value should refer to valid destination resource ARN property."
                 )
 
+            # we need to the resource name by removing the attribute part from the reference value
+            # as an example the reference will be look like aws_layer_version.layer1.arn
+            # and the attribute name is `arn`, we need to remove the last 4 characters `.arn`
+            # which is the length of the linking attribute `arn` in our example adding one for the `.` character
             tf_dest_res_name = resolved_destination_resource.value[
                 len(self._resource_pair.terraform_resource_type_prefix) : -len(
                     self._resource_pair.tf_destination_attribute_name
