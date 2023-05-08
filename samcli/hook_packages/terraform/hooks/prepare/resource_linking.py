@@ -163,7 +163,7 @@ class ResourceLinker:
 
         if non_applied_cfn_resources:
             LOG.debug(
-                "Link resource configuration %s that has these applied instances %s using linking fields approach.",
+                "Link resource configuration %s that has these applied instances %s using terraform config approach.",
                 source_tf_resource.full_address,
                 non_applied_cfn_resources,
             )
@@ -360,8 +360,12 @@ class ResourceLinker:
                     f"value should refer to valid destination resource ARN property."
                 )
 
+            # we need to the resource name by removing the attribute part from the reference value
+            # as an example the reference will be look like aws_layer_version.layer1.arn
+            # and the attribute name is `arn`, we need to remove the last 4 characters `.arn`
+            # which is the length of the linking attribute `arn` in our example adding one for the `.` character
             tf_dest_res_name = resolved_destination_resource.value[
-                len(self._resource_pair.terraform_resource_type_prefix) : -len(
+                len(self._resource_pair.terraform_resource_type_prefix): -len(
                     self._resource_pair.tf_destination_attribute_name
                 )
                 - 1
