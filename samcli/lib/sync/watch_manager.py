@@ -134,7 +134,8 @@ class WatchManager:
             except (MissingCodeUri, MissingLocalDefinition):
                 LOG.warning(
                     self._color.color_log(
-                        msg="CodeTrigger not created as CodeUri or DefinitionUri is missing for %s.", color=Colors.WARNING
+                        msg="CodeTrigger not created as CodeUri or DefinitionUri is missing for %s.",
+                        color=Colors.WARNING,
                     ),
                     str(resource_id),
                     extra=dict(markup=True),
@@ -202,10 +203,14 @@ class WatchManager:
             self.queue_infra_sync()
             if self._disable_infra_syncs:
                 self._start_sync()
-                LOG.info(self._color.color_log(msg="Sync watch started.", color=Colors.SUCCESS), extra=dict(markup=True))
+                LOG.info(
+                    self._color.color_log(msg="Sync watch started.", color=Colors.SUCCESS), extra=dict(markup=True)
+                )
             self._start()
         except KeyboardInterrupt:
-            LOG.info(self._color.color_log(msg="Shutting down sync watch...", color=Colors.PROGRESS), extra=dict(markup=True))
+            LOG.info(
+                self._color.color_log(msg="Shutting down sync watch...", color=Colors.PROGRESS), extra=dict(markup=True)
+            )
             self._observer.stop()
             self._stop_code_sync()
             LOG.info(self._color.color_log(msg="Sync watch stopped.", color=Colors.SUCCESS), extra=dict(markup=True))
@@ -265,14 +270,16 @@ class WatchManager:
                 LOG.info(
                     self._color.color_log(
                         msg="Skipped infra sync as the local template is in sync with the cloud template.",
-                        color=Colors.SUCCESS
+                        color=Colors.SUCCESS,
                     ),
                     extra=dict(markup=True),
                 )
                 if len(infra_sync_result.code_sync_resources) != 0:
                     LOG.info("Required code syncs are queued up.")
             else:
-                LOG.info(self._color.color_log(msg="Infra sync completed.", color=Colors.SUCCESS), extra=dict(markup=True))
+                LOG.info(
+                    self._color.color_log(msg="Infra sync completed.", color=Colors.SUCCESS), extra=dict(markup=True)
+                )
 
     def _queue_up_code_syncs(self, resource_ids_with_code_sync: Set[ResourceIdentifier]) -> None:
         """
@@ -323,8 +330,9 @@ class WatchManager:
         exception = sync_flow_exception.exception
         if isinstance(exception, MissingPhysicalResourceError):
             LOG.warning(
-                self._color.color_log(msg="Missing physical resource. Infra sync will be started.",
-                                      color=Colors.WARNING),
+                self._color.color_log(
+                    msg="Missing physical resource. Infra sync will be started.", color=Colors.WARNING
+                ),
                 extra=dict(markup=True),
             )
             self.queue_infra_sync()
