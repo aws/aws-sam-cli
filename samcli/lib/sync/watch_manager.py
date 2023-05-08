@@ -15,7 +15,7 @@ from samcli.lib.sync.exceptions import InfraSyncRequiredError, MissingPhysicalRe
 from samcli.lib.sync.infra_sync_executor import InfraSyncExecutor, InfraSyncResult
 from samcli.lib.sync.sync_flow_factory import SyncFlowFactory
 from samcli.lib.utils.code_trigger_factory import CodeTriggerFactory
-from samcli.lib.utils.colors import Colored
+from samcli.lib.utils.colors import Colored, Colors
 from samcli.lib.utils.path_observer import HandlerObserver
 from samcli.lib.utils.resource_trigger import OnChangeCallback, TemplateTrigger
 
@@ -99,7 +99,7 @@ class WatchManager:
                 self._color.color_log(
                     msg="You have enabled the --code flag, which limits sam sync updates to code changes only. To do a "
                     "complete infrastructure and code sync, remove the --code flag.",
-                    color="yellow",
+                    color=Colors.WARNING,
                 ),
                 extra=dict(markup=True),
             )
@@ -134,7 +134,7 @@ class WatchManager:
             except (MissingCodeUri, MissingLocalDefinition):
                 LOG.warning(
                     self._color.color_log(
-                        msg="CodeTrigger not created as CodeUri or DefinitionUri is missing for %s.", color="yellow"
+                        msg="CodeTrigger not created as CodeUri or DefinitionUri is missing for %s.", color=Colors.WARNING
                     ),
                     str(resource_id),
                     extra=dict(markup=True),
@@ -155,7 +155,7 @@ class WatchManager:
                 template_trigger.validate_template()
             except InvalidTemplateFile:
                 LOG.warning(
-                    self._color.color_log(msg="Template validation failed for %s in %s", color="yellow"),
+                    self._color.color_log(msg="Template validation failed for %s in %s", color=Colors.WARNING),
                     template,
                     stack.name,
                     extra=dict(markup=True),
@@ -202,13 +202,13 @@ class WatchManager:
             self.queue_infra_sync()
             if self._disable_infra_syncs:
                 self._start_sync()
-                LOG.info(self._color.color_log(msg="Sync watch started.", color="green"), extra=dict(markup=True))
+                LOG.info(self._color.color_log(msg="Sync watch started.", color=Colors.SUCCESS), extra=dict(markup=True))
             self._start()
         except KeyboardInterrupt:
-            LOG.info(self._color.color_log(msg="Shutting down sync watch...", color="cyan"), extra=dict(markup=True))
+            LOG.info(self._color.color_log(msg="Shutting down sync watch...", color=Colors.PROGRESS), extra=dict(markup=True))
             self._observer.stop()
             self._stop_code_sync()
-            LOG.info(self._color.color_log(msg="Sync watch stopped.", color="green"), extra=dict(markup=True))
+            LOG.info(self._color.color_log(msg="Sync watch stopped.", color=Colors.SUCCESS), extra=dict(markup=True))
 
     def _start(self) -> None:
         """Start WatchManager and watch for changes to the template and its code resources."""
@@ -232,19 +232,19 @@ class WatchManager:
         """Logic to execute infra sync."""
         LOG.info(
             self._color.color_log(
-                msg="Queued infra sync. Waiting for in progress code syncs to complete...", color="cyan"
+                msg="Queued infra sync. Waiting for in progress code syncs to complete...", color=Colors.PROGRESS
             ),
             extra=dict(markup=True),
         )
         self._waiting_infra_sync = False
         self._stop_code_sync()
         try:
-            LOG.info(self._color.color_log(msg="Starting infra sync.", color="cyan"), extra=dict(markup=True))
+            LOG.info(self._color.color_log(msg="Starting infra sync.", color=Colors.PROGRESS), extra=dict(markup=True))
             infra_sync_result = self._execute_infra_context(first_sync)
         except Exception as e:
             LOG.error(
                 self._color.color_log(
-                    msg="Failed to sync infra. Code sync is paused until template/stack is fixed.", color="red"
+                    msg="Failed to sync infra. Code sync is paused until template/stack is fixed.", color=Colors.FAILURE
                 ),
                 exc_info=e,
                 extra=dict(markup=True),
@@ -265,14 +265,14 @@ class WatchManager:
                 LOG.info(
                     self._color.color_log(
                         msg="Skipped infra sync as the local template is in sync with the cloud template.",
-                        color="green",
+                        color=Colors.SUCCESS
                     ),
                     extra=dict(markup=True),
                 )
                 if len(infra_sync_result.code_sync_resources) != 0:
                     LOG.info("Required code syncs are queued up.")
             else:
-                LOG.info(self._color.color_log(msg="Infra sync completed.", color="green"), extra=dict(markup=True))
+                LOG.info(self._color.color_log(msg="Infra sync completed.", color=Colors.SUCCESS), extra=dict(markup=True))
 
     def _queue_up_code_syncs(self, resource_ids_with_code_sync: Set[ResourceIdentifier]) -> None:
         """
@@ -323,7 +323,8 @@ class WatchManager:
         exception = sync_flow_exception.exception
         if isinstance(exception, MissingPhysicalResourceError):
             LOG.warning(
-                self._color.color_log(msg="Missing physical resource. Infra sync will be started.", color="yellow"),
+                self._color.color_log(msg="Missing physical resource. Infra sync will be started.",
+                                      color=Colors.WARNING),
                 extra=dict(markup=True),
             )
             self.queue_infra_sync()
@@ -338,7 +339,7 @@ class WatchManager:
             self.queue_infra_sync()
         else:
             LOG.error(
-                self._color.color_log(msg="Code sync encountered an error.", color="red"),
+                self._color.color_log(msg="Code sync encountered an error.", color=Colors.FAILURE),
                 exc_info=exception,
                 extra=dict(markup=True),
             )

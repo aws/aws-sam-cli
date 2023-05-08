@@ -9,7 +9,7 @@ from samtranslator.policy_template_processor.exceptions import TemplateNotFoundE
 from samcli.commands._utils.template import TemplateFailedParsingException
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
 from samcli.lib.providers.exceptions import InvalidLayerReference
-from samcli.lib.utils.colors import Colored
+from samcli.lib.utils.colors import Colored, Colors
 from samcli.lib.utils.file_observer import FileObserver
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.resources import (
@@ -163,7 +163,7 @@ class SamFunctionProvider(SamBaseProvider):
                 "runtime. For more information please check AWS Lambda Runtime Support Policy: "
                 "https://docs.aws.amazon.com/lambda/latest/dg/runtime-support-policy.html"
             )
-            LOG.warning(self._colored.color_log(msg=message, color="yellow"), extra=dict(markup=True))
+            LOG.warning(self._colored.color_log(msg=message, color=Colors.WARNING), extra=dict(markup=True))
 
     def get_all(self) -> Iterator[Function]:
         """

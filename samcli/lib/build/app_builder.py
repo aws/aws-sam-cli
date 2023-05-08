@@ -35,7 +35,7 @@ from samcli.lib.utils.resources import (
 from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
 from samcli.lib.docker.log_streamer import LogStreamer, LogStreamError
 from samcli.lib.providers.provider import ResourcesToBuildCollector, get_full_path, Stack
-from samcli.lib.utils.colors import Colored
+from samcli.lib.utils.colors import Colored, Colors
 from samcli.lib.utils import osutils
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.stream_writer import StreamWriter
@@ -641,7 +641,7 @@ class ApplicationBuilder:
                     f"update to a newer supported runtime. For more information please check AWS Lambda Runtime "
                     f"Support Policy: https://docs.aws.amazon.com/lambda/latest/dg/runtime-support-policy.html"
                 )
-                LOG.warning(self._colored.color_log(msg=message, color="yellow"), extra=dict(markup=True))
+                LOG.warning(self._colored.color_log(msg=message, color=Colors.WARNING), extra=dict(markup=True))
                 raise UnsupportedRuntimeException(f"Building functions with {runtime} is no longer supported")
 
             # Create the arguments to pass to the builder

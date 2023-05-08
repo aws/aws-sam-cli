@@ -5,6 +5,7 @@ Wrapper to generated colored messages for printing in Terminal
 import logging
 import os
 import platform
+from enum import Enum
 
 import click
 from rich.logging import RichHandler
@@ -19,6 +20,14 @@ if platform.system().lower() == "windows":
         os.system("color")
     except Exception:
         pass
+
+
+# Python 3.11 has StrEnum
+class Colors(str, Enum):
+    SUCCESS = "green"
+    FAILURE = "red"
+    WARNING = "yellow"
+    PROGRESS = "cyan"
 
 
 class Colored:
