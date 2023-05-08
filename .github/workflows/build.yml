@@ -13,6 +13,11 @@ on:
       - "feat/*"
       - "feat-*"
 
+# to automatically cancel the running workflow for same PR.
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   run-workflow:
     name: PR Workflow
