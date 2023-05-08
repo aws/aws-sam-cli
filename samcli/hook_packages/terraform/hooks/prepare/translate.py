@@ -345,7 +345,7 @@ def _translate_properties(
 
 
 def _link_lambda_functions_to_layers_call_back(
-    function_cfn_resource: Dict, referenced_layers_logical_ids: List[ReferenceType]
+    function_cfn_resource: Dict, referenced_resource_values: List[ReferenceType]
 ) -> None:
     """
     Callback function that used by the linking algorith to update a Lambda Function CFN Resource with
@@ -356,13 +356,13 @@ def _link_lambda_functions_to_layers_call_back(
     ----------
     function_cfn_resource: Dict
         Lambda Function CFN resource
-    referenced_layers_logical_ids: List[ReferenceType]
+    referenced_resource_values: List[ReferenceType]
         List of referenced layers either as the logical ids of layers resources defined in the customer project, or
         ARN values for actual layers defined in customer's account.
     """
     ref_list = [
         {"Ref": logical_id.value} if isinstance(logical_id, LogicalIdReference) else logical_id.value
-        for logical_id in referenced_layers_logical_ids
+        for logical_id in referenced_resource_values
     ]
     function_cfn_resource["Properties"]["Layers"] = ref_list
 

@@ -32,16 +32,27 @@ COMPILED_REGULAR_EXPRESSION = re.compile(r"\[[^\[\]]*\]")
 
 @dataclass
 class ReferenceType:
+    """
+    This class is used to pass the linking attributes values to the callback functions.
+    """
     value: str
 
 
 @dataclass
 class ExistingResourceReference(ReferenceType):
+    """
+    This class is used to pass the linking attributes values to the callback functions when the values are static values
+    which means they are for an existing resources in AWS, and there is no matching resource in the customer TF Project.
+    """
     value: str
 
 
 @dataclass
 class LogicalIdReference(ReferenceType):
+    """
+    This class is used to pass the linking attributes values to the callback functions when the values are Logical Ids
+    for the destination resources defined in the customer TF project.
+    """
     value: str
 
 
@@ -60,7 +71,7 @@ class ResourceLinkingPair:
     terraform_link_field_name: str
     cfn_link_field_name: str
     terraform_resource_type_prefix: str
-    cfn_resource_update_call_back_function: Callable
+    cfn_resource_update_call_back_function: Callable[[Dict, List[ReferenceType]], None]
     linking_exceptions: ResourcePairExceptions
 
 
@@ -192,7 +203,7 @@ class ResourceLinker:
                 source_tf_resource.full_address,
             )
         for cfn_resource in cfn_resources:
-            self._resource_pair.cfn_resource_update_call_back_function(cfn_resource, dest_resources)
+            self._resource_pair.cfn_resource_update_call_back_function(cfn_resource, dest_resources)  # type: ignore
 
     def _link_using_linking_fields(self, cfn_resource: Dict) -> None:
         """
@@ -221,15 +232,13 @@ class ResourceLinker:
             values = [values]
 
         # build map between the destination linking field property values, and resources' logical ids
-        child_resources_linking_attributes_logical_id_mapping = {
-            self._resource_pair.destination_resource_tf.get(logical_id, {})
-            .get("values", {})
-            .get(self._resource_pair.tf_destination_attribute_name): logical_id
-            for logical_id in self._resource_pair.destination_resource_tf.keys()
-            if self._resource_pair.destination_resource_tf.get(logical_id, {})
-            .get("values", {})
-            .get(self._resource_pair.tf_destination_attribute_name)
-        }
+        child_resources_linking_attributes_logical_id_mapping = {}
+        for logical_id, destination_resource in self._resource_pair.destination_resource_tf.items():
+            linking_attribute_value = destination_resource.get("values", {}).get(
+                self._resource_pair.tf_destination_attribute_name
+            )
+            if linking_attribute_value:
+                child_resources_linking_attributes_logical_id_mapping[linking_attribute_value] = logical_id
 
         LOG.debug(
             "The map between destination resources linking field %s, and resources logical ids is %s",
@@ -244,7 +253,7 @@ class ResourceLinker:
             for value in values
         ]
         LOG.debug("The value of the source resource linking field after mapping $s", dest_resources)
-        self._resource_pair.cfn_resource_update_call_back_function(cfn_resource, dest_resources)
+        self._resource_pair.cfn_resource_update_call_back_function(cfn_resource, dest_resources)  # type: ignore
 
     def _process_resolved_resources(
         self,
