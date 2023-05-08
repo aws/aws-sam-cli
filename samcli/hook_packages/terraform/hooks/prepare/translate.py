@@ -434,11 +434,10 @@ def _link_gateway_methods_to_gateway_rest_apis_call_back(
     if len(referenced_rest_apis_values) > 1:
         raise InvalidResourceLinkingException("Could not link multiple Rest APIs to one Gateway method resource")
 
-    ref_list = [
+    logical_id = referenced_rest_apis_values[0]
+    gateway_method_cfn_resource["Properties"]["RestApiId"] = (
         {"Ref": logical_id.value} if isinstance(logical_id, LogicalIdReference) else logical_id.value
-        for logical_id in referenced_rest_apis_values
-    ]
-    gateway_method_cfn_resource["Properties"]["RestApiId"] = ref_list[0]
+    )
 
 
 def _link_gateway_methods_to_gateway_rest_apis(

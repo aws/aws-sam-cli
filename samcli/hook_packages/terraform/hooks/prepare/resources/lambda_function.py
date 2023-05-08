@@ -8,7 +8,6 @@ from samcli.hook_packages.terraform.hooks.prepare.types import (
     CodeResourceProperties,
     ResourceTranslationProperties,
 )
-from samcli.hook_packages.terraform.hooks.prepare.utilities import get_configuration_address
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 
 
@@ -20,24 +19,6 @@ class LambdaFunctionProperties(CodeResourceProperties):
 
     def __init__(self):
         super(LambdaFunctionProperties, self).__init__()
-
-    def collect(self, properties: ResourceTranslationProperties):
-        """
-        Collect any properties required for handling resource linking for Lambda functions.
-
-        This method collects the transformed CloudFormation AWS::Lambda::Function resources,
-        as well as the aws_lambda_function Terraform configuration resources
-
-        Parameters
-        ----------
-        properties: ResourceTranslationProperties
-            Properties acquired specific to an aws_lambda_function resource when iterating through a Terraform module
-        """
-        resolved_config_address = get_configuration_address(properties.resource_full_address)
-        matched_lambdas = self.cfn_resources.get(resolved_config_address, [])
-        matched_lambdas.append(properties.translated_resource)
-        self.cfn_resources[resolved_config_address] = matched_lambdas
-        self.terraform_config[resolved_config_address] = properties.config_resource
 
     def add_lambda_resources_to_code_map(
         self,
