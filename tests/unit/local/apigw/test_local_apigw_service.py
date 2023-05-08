@@ -611,13 +611,14 @@ class TestApiGatewayService(TestCase):
 
         self.assertEqual(self.api_service._valid_identity_sources(Mock(), route), is_valid)
 
-    @patch.object(LocalApigwService, "get_request_methods_endpoints")
-    def test_create_method_arn(self, method_endpoint_mock):
-        method_endpoint_mock.return_value = ("method", "/endpoint")
+    def test_create_method_arn(self):
+        flask_request = Mock()
+        flask_request.method = "GET"
+        flask_request.path = "/endpoint"
 
-        expected_method_arn = "arn:aws:execute-api:us-east-1:123456789012:1234567890/None/method/endpoint"
+        expected_method_arn = "arn:aws:execute-api:us-east-1:123456789012:1234567890/None/GET/endpoint"
 
-        self.assertEqual(self.api_service._create_method_arn(Mock(), Route.API), expected_method_arn)
+        self.assertEqual(self.api_service._create_method_arn(flask_request, Route.API), expected_method_arn)
 
     @patch.object(LocalApigwService, "_create_method_arn")
     def test_generate_lambda_token_authorizer_event_invalid_identity_source(self, method_arn_mock):
@@ -879,7 +880,6 @@ class TestApiGatewayService(TestCase):
             exception_name=AuthorizerUnauthorizedRequest.__name__,
         )
 
-    @patch.object(LocalApigwService, "get_request_methods_endpoints")
     @patch.object(LocalApigwService, "_generate_lambda_authorizer_event")
     @patch.object(LocalApigwService, "_valid_identity_sources")
     @patch.object(LocalApigwService, "_invoke_lambda_function")
@@ -894,7 +894,6 @@ class TestApiGatewayService(TestCase):
         invoke_mock,
         validate_id_mock,
         gen_auth_event_mock,
-        request_mock,
     ):
         make_response_mock = Mock()
         validate_id_mock.return_value = True
@@ -918,15 +917,20 @@ class TestApiGatewayService(TestCase):
         service_response_mock = Mock(return_value=make_response_mock)
         self.api_service.service_response = service_response_mock
 
-        request_mock.return_value = ("test", "test")
-
         mock_context = {"key": "value"}
         invoke_mock.side_effect = [{"context": mock_context}, Mock()]
 
         unauth_mock = Mock()
         service_err_mock.lambda_authorizer_unauthorized.return_value = unauth_mock
 
-        result = self.api_service._request_handler()
+        flask_app = flask.Flask("test_flask_app")
+
+        with flask_app.test_request_context() as context:
+            context.request.method = "test"
+            context.request.path = "/test"
+
+            result = self.api_service._request_handler()
+
         self.assertEqual(result, unauth_mock)
 
     @patch.object(LocalApigwService, "_invoke_lambda_function")
