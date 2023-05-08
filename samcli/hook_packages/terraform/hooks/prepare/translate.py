@@ -415,7 +415,7 @@ def _link_lambda_functions_to_layers(
 
 
 def _link_gateway_methods_to_gateway_rest_apis_call_back(
-    gateway_method_cfn_resource: Dict, referenced_rest_apis_logical_ids: List[ReferenceType]
+    gateway_method_cfn_resource: Dict, referenced_rest_apis_values: List[ReferenceType]
 ) -> None:
     """
     Callback function that used by the linking algorithm to update an Api Gateway Method CFN Resource with
@@ -425,18 +425,18 @@ def _link_gateway_methods_to_gateway_rest_apis_call_back(
     ----------
     gateway_method_cfn_resource: Dict
         API Gateway Method CFN resource
-    referenced_rest_apis_logical_ids: List[ReferenceType]
+    referenced_rest_apis_values: List[ReferenceType]
         List of referenced REST API either as the logical id of REST API resource defined in the customer project, or
         ARN values for actual REST API resource defined in customer's account. This list should always contain one
         element only.
     """
     # if the destination rest api list contains more than one element, so we have an issue in our linking logic
-    if len(referenced_rest_apis_logical_ids) > 1:
+    if len(referenced_rest_apis_values) > 1:
         raise InvalidResourceLinkingException("Could not link multiple Rest APIs to one Gateway method resource")
 
     ref_list = [
         {"Ref": logical_id.value} if isinstance(logical_id, LogicalIdReference) else logical_id.value
-        for logical_id in referenced_rest_apis_logical_ids
+        for logical_id in referenced_rest_apis_values
     ]
     gateway_method_cfn_resource["Properties"]["RestApiId"] = ref_list[0]
 
