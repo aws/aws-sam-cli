@@ -44,7 +44,7 @@ from samcli.hook_packages.terraform.hooks.prepare.translate import (
     _get_s3_object_hash,
     _link_lambda_functions_to_layers_call_back,
     _link_gateway_methods_to_gateway_rest_apis,
-    _link_gateway_methods_to_gateway_rest_apis_call_back,
+    _link_gateway_resource_to_gateway_rest_apis_call_back,
 )
 from samcli.hook_packages.terraform.hooks.prepare.translate import AWS_PROVIDER_NAME
 from samcli.hook_packages.terraform.hooks.prepare.types import TFModule, TFResource, ConstantValue, ResolvedReference
@@ -1037,7 +1037,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         self.assertEqual(lambda_function, input_function)
 
     @patch(
-        "samcli.hook_packages.terraform.hooks.prepare.translate._link_gateway_methods_to_gateway_rest_apis_call_back"
+        "samcli.hook_packages.terraform.hooks.prepare.translate._link_gateway_resource_to_gateway_rest_apis_call_back"
     )
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.ResourceLinker")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.ResourceLinkingPair")
@@ -1104,7 +1104,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         self, input_gateway_method, logical_ids, expected_rest_api
     ):
         gateway_method = input_gateway_method.copy()
-        _link_gateway_methods_to_gateway_rest_apis_call_back(gateway_method, logical_ids)
+        _link_gateway_resource_to_gateway_rest_apis_call_back(gateway_method, logical_ids)
         input_gateway_method["Properties"]["RestApiId"] = expected_rest_api
         self.assertEqual(gateway_method, input_gateway_method)
 
@@ -1115,7 +1115,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
             InvalidResourceLinkingException,
             msg="Could not link multiple Rest APIs to one Gateway method resource",
         ):
-            _link_gateway_methods_to_gateway_rest_apis_call_back(gateway_method, logical_ids)
+            _link_gateway_resource_to_gateway_rest_apis_call_back(gateway_method, logical_ids)
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._calculate_configuration_attribute_value_hash")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._get_s3_object_hash")

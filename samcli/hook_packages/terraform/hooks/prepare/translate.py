@@ -414,8 +414,8 @@ def _link_lambda_functions_to_layers(
     ResourceLinker(resource_linking_pair).link_resources()
 
 
-def _link_gateway_methods_to_gateway_rest_apis_call_back(
-    gateway_method_cfn_resource: Dict, referenced_rest_apis_values: List[ReferenceType]
+def _link_gateway_resource_to_gateway_rest_apis_call_back(
+    gateway_cfn_resource: Dict, referenced_rest_apis_values: List[ReferenceType]
 ) -> None:
     """
     Callback function that used by the linking algorithm to update an Api Gateway Method CFN Resource with
@@ -423,7 +423,7 @@ def _link_gateway_methods_to_gateway_rest_apis_call_back(
 
     Parameters
     ----------
-    gateway_method_cfn_resource: Dict
+    gateway_cfn_resource: Dict
         API Gateway Method CFN resource
     referenced_rest_apis_values: List[ReferenceType]
         List of referenced REST API either as the logical id of REST API resource defined in the customer project, or
@@ -435,7 +435,7 @@ def _link_gateway_methods_to_gateway_rest_apis_call_back(
         raise InvalidResourceLinkingException("Could not link multiple Rest APIs to one Gateway method resource")
 
     logical_id = referenced_rest_apis_values[0]
-    gateway_method_cfn_resource["Properties"]["RestApiId"] = (
+    gateway_cfn_resource["Properties"]["RestApiId"] = (
         {"Ref": logical_id.value} if isinstance(logical_id, LogicalIdReference) else logical_id.value
     )
 
@@ -471,7 +471,7 @@ def _link_gateway_methods_to_gateway_rest_apis(
         terraform_link_field_name="rest_api_id",
         cfn_link_field_name="RestApiId",
         terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
-        cfn_resource_update_call_back_function=_link_gateway_methods_to_gateway_rest_apis_call_back,
+        cfn_resource_update_call_back_function=_link_gateway_resource_to_gateway_rest_apis_call_back,
         linking_exceptions=exceptions,
     )
     ResourceLinker(resource_linking_pair).link_resources()
