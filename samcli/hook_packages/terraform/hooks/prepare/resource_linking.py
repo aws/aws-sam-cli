@@ -368,7 +368,7 @@ class ResourceLinker:
             # and the attribute name is `arn`, we need to remove the last 4 characters `.arn`
             # which is the length of the linking attribute `arn` in our example adding one for the `.` character
             tf_dest_res_name = resolved_destination_resource.value[
-                len(self._resource_pair.terraform_resource_type_prefix): -len(
+                len(self._resource_pair.terraform_resource_type_prefix) : -len(
                     self._resource_pair.tf_destination_attribute_name
                 )
                 - 1
