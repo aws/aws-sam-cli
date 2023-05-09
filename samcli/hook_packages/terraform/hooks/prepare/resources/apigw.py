@@ -73,3 +73,12 @@ def _unsupported_reference_field(field: str, resource: Dict, config_resource: TF
         and config_resource.attributes.get(field)
         and isinstance(config_resource.attributes.get(field), References)
     )
+
+
+class ApiGatewayResourceProperties(ResourceProperties):
+    """
+    contains the collection logic of the required properties for linking the aws_api_gateway_resource resources.
+    """
+
+    def __init__(self):
+        super(ApiGatewayResourceProperties, self).__init__()
