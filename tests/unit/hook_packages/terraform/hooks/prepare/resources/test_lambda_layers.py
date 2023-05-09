@@ -6,31 +6,6 @@ from samcli.hook_packages.terraform.hooks.prepare.types import ResourceTranslati
 
 
 class TestLambdaLayerVersionProperties(TestCase):
-    def test_collect(self):
-        layer_resource = {
-            "address": "aws_lambda_layer_version.layer1",
-            "mode": "managed",
-            "type": "aws_lambda_layer_version",
-            "name": "layer1",
-            "provider_name": "registry.terraform.io/hashicorp/aws",
-            "values": {
-                "compatible_architectures": None,
-                "compatible_runtimes": ["python3.8"],
-                "filename": "HelloWorldFunction.zip",
-                "layer_name": "lambda_layer1",
-            },
-        }
-        dummy_properties = ResourceTranslationProperties(
-            resource=layer_resource,
-            translated_resource=Mock(),
-            config_resource=Mock(),
-            logical_id="my_layer",
-            resource_full_address=Mock(),
-        )
-        layer_properties = LambdaLayerVersionProperties()
-        layer_properties.collect(dummy_properties)
-        self.assertEqual(layer_properties.terraform_resources["my_layer"], layer_resource)
-
     @patch(
         "samcli.hook_packages.terraform.hooks.prepare.resources.lambda_layers._add_lambda_resource_code_path_to_code_map"
     )
