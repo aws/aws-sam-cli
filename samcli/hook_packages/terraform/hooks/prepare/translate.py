@@ -14,7 +14,9 @@ from samcli.hook_packages.terraform.hooks.prepare.constants import (
 from samcli.hook_packages.terraform.hooks.prepare.enrich import enrich_resources_and_generate_makefile
 from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     FunctionLayerLocalVariablesLinkingLimitationException,
+    OneGatewayResourceToRestApiLinkingLimitationException,
     OneLambdaLayerLinkingLimitationException,
+    GatewayResourceToGatewayRestApiLocalVariablesLinkingLimitationException, InvalidResourceLinkingException,
 )
 from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     REMOTE_DUMMY_VALUE,
@@ -33,7 +35,7 @@ from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     ResourcePairExceptions,
     _build_module,
     _get_configuration_address,
-    _resolve_resource_attribute,
+    _resolve_resource_attribute, API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
 )
 from samcli.hook_packages.terraform.hooks.prepare.resources.apigw import RESTAPITranslationValidator
 from samcli.hook_packages.terraform.hooks.prepare.resources.resource_properties import get_resource_property_mapping
@@ -365,6 +367,57 @@ def _link_lambda_functions_to_layers_call_back(
         for logical_id in referenced_resource_values
     ]
     function_cfn_resource["Properties"]["Layers"] = ref_list
+
+
+def _link_gateway_resources_to_gateway_rest_apis_callback(
+        gateway_resource_cfn_resource: Dict, referenced_rest_apis_values: List[ReferenceType]
+) -> None:
+    """
+    Callback function that used by the linking algorithm to update an Api Gateway Resource CFN Resource with
+    a reference to the Rest Api resource.
+
+    Parameters
+    ----------
+    gateway_resource_cfn_resource: Dict
+        API Gateway resource CFN resource
+    referenced_rest_apis_values: List[ReferenceType]
+        List of referenced REST API either as the logical id of REST API resource defined in the customer project, or
+        ARN values for actual REST API resource defined in customer's account. This list should always contain one
+        element only.
+    """
+    if len(referenced_rest_apis_values) > 1:
+        # If the destination rest api list contains more than one element then there's the linking logic
+        raise InvalidResourceLinkingException(
+            "Could not link multiple API Gateway REST APIs to a single API Gateway Resource"
+        )
+
+    logical_id = referenced_rest_apis_values[0]
+    gateway_resource_cfn_resource["Properties"]["RestApiId"] = (
+        {"Ref": logical_id.value} if isinstance(logical_id, LogicalIdReference) else logical_id.value
+    )
+
+
+def _link_gateway_resources_to_gateway_rest_apis(
+    gateway_resources_tf_configs: Dict[str, TFResource],
+    gateway_resources_cfn_resources: Dict[str, List],
+    rest_apis_terraform_resources: Dict[str, Dict],
+):
+    exceptions = ResourcePairExceptions(
+        multiple_resource_linking_exception=OneGatewayResourceToRestApiLinkingLimitationException,
+        local_variable_linking_exception=GatewayResourceToGatewayRestApiLocalVariablesLinkingLimitationException,
+    )
+    resource_linking_pair = ResourceLinkingPair(
+        source_resource_cfn_resource=gateway_resources_cfn_resources,
+        source_resource_tf_config=gateway_resources_tf_configs,
+        destination_resource_tf=rest_apis_terraform_resources,
+        tf_destination_attribute_name="id",
+        terraform_link_field_name="rest_api_id",
+        cfn_link_field_name="RestApiId",
+        terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+        cfn_resource_update_call_back_function=_link_gateway_resources_to_gateway_rest_apis_callback,
+        linking_exceptions=exceptions,
+    )
+    ResourceLinker(resource_linking_pair).link_resources()
 
 
 def _link_lambda_functions_to_layers(

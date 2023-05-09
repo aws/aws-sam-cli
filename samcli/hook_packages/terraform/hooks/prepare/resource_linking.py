@@ -23,6 +23,7 @@ from samcli.hook_packages.terraform.hooks.prepare.types import (
 from samcli.hook_packages.terraform.lib.utils import build_cfn_logical_id
 
 LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX = "aws_lambda_layer_version."
+API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX = "aws_api_gateway_rest_api."
 TERRAFORM_LOCAL_VARIABLES_ADDRESS_PREFIX = "local."
 DATA_RESOURCE_ADDRESS_PREFIX = "data."
 
