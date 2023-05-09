@@ -44,7 +44,7 @@ class WatchManager:
     _waiting_infra_sync: bool
     _color: Colored
     _auto_dependency_layer: bool
-    _skip_infra_syncs: bool
+    _disable_infra_syncs: bool
 
     def __init__(
         self,
@@ -54,7 +54,7 @@ class WatchManager:
         deploy_context: "DeployContext",
         sync_context: "SyncContext",
         auto_dependency_layer: bool,
-        skip_infra_syncs: bool,
+        disable_infra_syncs: bool,
     ):
         """Manager for sync watch execution logic.
         This manager will observe template and its code resources.
@@ -78,7 +78,7 @@ class WatchManager:
         self._deploy_context = deploy_context
         self._sync_context = sync_context
         self._auto_dependency_layer = auto_dependency_layer
-        self._skip_infra_syncs = skip_infra_syncs
+        self._disable_infra_syncs = disable_infra_syncs
 
         self._sync_flow_factory = None
         self._sync_flow_executor = ContinuousSyncFlowExecutor()
@@ -94,7 +94,7 @@ class WatchManager:
         """Queue up an infra structure sync.
         A simple bool flag is suffice
         """
-        if self._skip_infra_syncs:
+        if self._disable_infra_syncs:
             LOG.info(
                 self._color.yellow(
                     "You have enabled the --code flag, which limits sam sync updates to code changes only. To do a "
@@ -190,7 +190,7 @@ class WatchManager:
         # This is a wrapper for gracefully handling Ctrl+C or other termination cases.
         try:
             self.queue_infra_sync()
-            if self._skip_infra_syncs:
+            if self._disable_infra_syncs:
                 self._start_sync()
                 LOG.info(self._color.green("Sync watch started."))
             self._start()
@@ -220,7 +220,7 @@ class WatchManager:
 
     def _execute_infra_sync(self, first_sync: bool = False) -> None:
         """Logic to execute infra sync."""
-        LOG.info(self._color.cyan("Queued infra sync. Wating for in progress code syncs to complete..."))
+        LOG.info(self._color.cyan("Queued infra sync. Waiting for in progress code syncs to complete..."))
         self._waiting_infra_sync = False
         self._stop_code_sync()
         try:
@@ -244,7 +244,11 @@ class WatchManager:
                 # This is for initiating code sync for all resources
                 # To improve: only initiate code syncs for ones with template changes
                 self._queue_up_code_syncs(infra_sync_result.code_sync_resources)
-                LOG.info(self._color.green("Skipped infra sync and queued up required code syncs."))
+                LOG.info(
+                    self._color.green("Skipped infra sync as the local template is in sync with the cloud template.")
+                )
+                if len(infra_sync_result.code_sync_resources) != 0:
+                    LOG.info("Required code syncs are queued up.")
             else:
                 LOG.info(self._color.green("Infra sync completed."))
 
@@ -260,7 +264,7 @@ class WatchManager:
         if not self._sync_flow_factory:
             return
         for resource_id in resource_ids_with_code_sync:
-            sync_flow = self._sync_flow_factory.create_sync_flow(resource_id)
+            sync_flow = self._sync_flow_factory.create_sync_flow(resource_id, self._build_context.build_result)
             if sync_flow:
                 self._sync_flow_executor.add_delayed_sync_flow(sync_flow)
 

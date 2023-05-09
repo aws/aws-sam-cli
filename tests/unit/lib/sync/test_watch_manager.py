@@ -276,7 +276,7 @@ class TestWatchManager(TestCase):
         self.watch_manager._add_code_triggers = add_code_trigger_mock
         self.watch_manager._start_code_sync = start_code_sync_mock
 
-        self.watch_manager._skip_infra_syncs = True
+        self.watch_manager._disable_infra_syncs = True
         with self.assertRaises(KeyboardInterrupt):
             self.watch_manager._start()
 
@@ -295,7 +295,7 @@ class TestWatchManager(TestCase):
         self.path_observer.start.assert_called_once_with()
 
     def test_start_code_only_infra_sync_not_set(self):
-        self.watch_manager._skip_infra_syncs = True
+        self.watch_manager._disable_infra_syncs = True
         self.watch_manager.queue_infra_sync()
         self.assertFalse(self.watch_manager._waiting_infra_sync)
 

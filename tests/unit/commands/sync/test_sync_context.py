@@ -199,14 +199,17 @@ class TestSyncStateToTomlSerde(TestCase):
         self.assertIsNone(_toml_document_to_sync_state(tomlkit.document()))
 
 
-@parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
+@parameterized_class(
+    [{"dependency_layer": True, "skip_deploy_sync": True}, {"dependency_layer": False, "skip_deploy_sync": False}]
+)
 class TestSyncContext(TestCase):
     dependency_layer: bool
+    skip_deploy_sync: bool
 
     def setUp(self) -> None:
         self.build_dir = "build_dir"
         self.cache_dir = "cache_dir"
-        self.sync_context = SyncContext(self.dependency_layer, self.build_dir, self.cache_dir)
+        self.sync_context = SyncContext(self.dependency_layer, self.build_dir, self.cache_dir, self.skip_deploy_sync)
 
     @parameterized.expand([(True,), (False,)])
     @patch("samcli.commands.sync.sync_context.rmtree_if_exists")

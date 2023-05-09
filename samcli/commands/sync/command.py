@@ -1,7 +1,7 @@
 """CLI command for "sync" command."""
 import logging
 import os
-from typing import TYPE_CHECKING, List, Optional, Set, Tuple
+from typing import TYPE_CHECKING, List, Optional, Set
 
 import click
 
@@ -17,6 +17,7 @@ from samcli.commands._utils.constants import (
     DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER,
     DEFAULT_CACHE_DIR,
 )
+from samcli.commands._utils.custom_options.replace_help_option import ReplaceHelpSummaryOption
 from samcli.commands._utils.options import (
     base_dir_option,
     capabilities_option,
@@ -35,6 +36,7 @@ from samcli.commands._utils.options import (
     use_container_build_option,
 )
 from samcli.commands.build.command import _get_mode_value_from_envvar
+from samcli.commands.sync.core.command import SyncCommand
 from samcli.commands.sync.sync_context import SyncContext
 from samcli.lib.bootstrap.bootstrap import manage_stack
 from samcli.lib.build.bundler import EsbuildBundlerManager
@@ -63,21 +65,22 @@ if TYPE_CHECKING:  # pragma: no cover
 LOG = logging.getLogger(__name__)
 
 HELP_TEXT = """
-Update/Sync local artifacts to AWS
-
-By default, the sync command runs a full stack update. You can specify --code or --watch to switch modes.
-\b
-Sync also supports nested stacks and nested stack resources. For example
-
-$ sam sync --code --stack-name {stack} --resource-id \\
-{ChildStack}/{ResourceId}
-
-Running --watch with --code option will provide a way to run code synchronization only, that will speed up start time
-and will skip any template change. Please remember to update your deployed stack by running without --code option.
-
-$ sam sync --code --watch --stack-name {stack} 
+  NEW! Sync an AWS SAM Project to AWS.
 
 """
+
+DESCRIPTION = """
+  By default, `$sam sync` runs a full AWS Cloudformation stack update.
+
+  Running `sam sync --watch` with `--code` will provide a way to run just code
+  synchronization, speeding up start time skipping template changes.
+
+  Remember to update the deployed stack by running
+  without --code for infrastructure changes.
+
+  `$sam sync` also supports nested stacks and nested stack resources.
+"""
+
 
 SYNC_INFO_TEXT = """
 The SAM CLI will use the AWS Lambda, Amazon API Gateway, and AWS StepFunctions APIs to upload your code without 
@@ -92,25 +95,34 @@ Enter Y to proceed with the command, or enter N to cancel:
 """
 
 
-SHORT_HELP = "Sync a project to AWS"
+SHORT_HELP = "Sync an AWS SAM project to AWS."
 
 DEFAULT_TEMPLATE_NAME = "template.yaml"
 DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 
 
-@click.command("sync", help=HELP_TEXT, short_help=SHORT_HELP)
+# TODO(sriram-mv): Move context settings to be global such as width.
+@click.command(
+    "sync",
+    cls=SyncCommand,
+    help=HELP_TEXT,
+    short_help=SHORT_HELP,
+    description=DESCRIPTION,
+    requires_credentials=True,
+    context_settings={"max_content_width": 120},
+)
 @configuration_option(provider=TomlProvider(section="parameters"))
 @template_option_without_build
 @click.option(
     "--code",
     is_flag=True,
-    help="Sync code resources. This includes Lambda Functions, API Gateway, and Step Functions.",
+    help="Sync ONLY code resources. This includes Lambda Functions, API Gateway, and Step Functions.",
     cls=ClickMutex,
 )
 @click.option(
-    "--watch",
+    "--watch/--no-watch",
     is_flag=True,
-    help="Watch local files and automatically sync with remote.",
+    help="Watch local files and automatically sync with cloud.",
     cls=ClickMutex,
 )
 @click.option(
@@ -122,15 +134,23 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 @click.option(
     "--resource",
     multiple=True,
+    cls=ReplaceHelpSummaryOption,
     type=click.Choice(SyncCodeResources.values(), case_sensitive=True),
+    replace_help_option="--resource RESOURCE",
     help=f"Sync code for all resources of the given resource type. Accepted values are {SyncCodeResources.values()}",
 )
 @click.option(
     "--dependency-layer/--no-dependency-layer",
     default=True,
     is_flag=True,
-    help="This option separates the dependencies of individual function into another layer, for speeding up the sync."
-    "process",
+    help="Separate dependencies of individual function into a Lambda layer for improved performance.",
+)
+@click.option(
+    "--skip-deploy-sync/--no-skip-deploy-sync",
+    default=True,
+    is_flag=True,
+    help="This option will skip the initial infrastructure deployment if it is not required"
+    " by comparing the local template with the template deployed in cloud.",
 )
 @stack_name_option(required=True)  # pylint: disable=E1120
 @base_dir_option
@@ -162,14 +182,15 @@ def cli(
     template_file: str,
     code: bool,
     watch: bool,
-    resource_id: Optional[Tuple[str]],
-    resource: Optional[Tuple[str]],
+    resource_id: Optional[List[str]],
+    resource: Optional[List[str]],
     dependency_layer: bool,
+    skip_deploy_sync: bool,
     stack_name: str,
     base_dir: Optional[str],
     parameter_overrides: dict,
     image_repository: str,
-    image_repositories: Optional[Tuple[str]],
+    image_repositories: Optional[List[str]],
     s3_bucket: str,
     s3_prefix: str,
     kms_key_id: str,
@@ -195,6 +216,7 @@ def cli(
         resource_id,
         resource,
         dependency_layer,
+        skip_deploy_sync,
         stack_name,
         ctx.region,
         ctx.profile,
@@ -222,9 +244,10 @@ def do_cli(
     template_file: str,
     code: bool,
     watch: bool,
-    resource_id: Optional[Tuple[str]],
-    resource: Optional[Tuple[str]],
+    resource_id: Optional[List[str]],
+    resource: Optional[List[str]],
     dependency_layer: bool,
+    skip_deploy_sync: bool,
     stack_name: str,
     region: str,
     profile: str,
@@ -232,7 +255,7 @@ def do_cli(
     parameter_overrides: dict,
     mode: Optional[str],
     image_repository: str,
-    image_repositories: Optional[Tuple[str]],
+    image_repositories: Optional[List[str]],
     s3_bucket: str,
     s3_prefix: str,
     kms_key_id: str,
@@ -352,27 +375,27 @@ def do_cli(
                     on_failure=None,
                 ) as deploy_context:
                     with SyncContext(
-                        dependency_layer, build_context.build_dir, build_context.cache_dir
+                        dependency_layer, build_context.build_dir, build_context.cache_dir, skip_deploy_sync
                     ) as sync_context:
                         if watch:
                             execute_watch(
-                                template_file,
-                                build_context,
-                                package_context,
-                                deploy_context,
-                                sync_context,
-                                dependency_layer,
-                                code,
+                                template=template_file,
+                                build_context=build_context,
+                                package_context=package_context,
+                                deploy_context=deploy_context,
+                                sync_context=sync_context,
+                                auto_dependency_layer=dependency_layer,
+                                disable_infra_syncs=code,
                             )
                         elif code:
                             execute_code_sync(
-                                template_file,
-                                build_context,
-                                deploy_context,
-                                sync_context,
-                                resource_id,
-                                resource,
-                                dependency_layer,
+                                template=template_file,
+                                build_context=build_context,
+                                deploy_context=deploy_context,
+                                sync_context=sync_context,
+                                resource_ids=resource_id,
+                                resource_types=resource,
+                                auto_dependency_layer=dependency_layer,
                             )
                         else:
                             infra_sync_result = execute_infra_contexts(
@@ -380,19 +403,20 @@ def do_cli(
                             )
                             code_sync_resources = infra_sync_result.code_sync_resources
 
-                            if code_sync_resources:
+                            if not infra_sync_result.infra_sync_executed and code_sync_resources:
                                 resource_ids = [str(resource) for resource in code_sync_resources]
 
                                 LOG.info("Queuing up code sync for the resources that require an update")
                                 LOG.debug("The following resources will be code synced for an update: %s", resource_ids)
                                 execute_code_sync(
-                                    template_file,
-                                    build_context,
-                                    deploy_context,
-                                    sync_context,
-                                    tuple(resource_ids),  # type: ignore
-                                    None,
-                                    dependency_layer,
+                                    template=template_file,
+                                    build_context=build_context,
+                                    deploy_context=deploy_context,
+                                    sync_context=sync_context,
+                                    resource_ids=resource_ids,
+                                    resource_types=None,
+                                    auto_dependency_layer=dependency_layer,
+                                    use_built_resources=True,
                                 )
 
 
@@ -425,9 +449,10 @@ def execute_code_sync(
     build_context: "BuildContext",
     deploy_context: "DeployContext",
     sync_context: "SyncContext",
-    resource_ids: Optional[Tuple[str]],
-    resource_types: Optional[Tuple[str]],
+    resource_ids: Optional[List[str]],
+    resource_types: Optional[List[str]],
     auto_dependency_layer: bool,
+    use_built_resources: bool = False,
 ) -> None:
     """Executes the sync flow for code.
 
@@ -447,6 +472,8 @@ def execute_code_sync(
         List of resource types to be synced.
     auto_dependency_layer: bool
         Boolean flag to whether enable certain sync flows for auto dependency layer feature
+    use_built_resources: bool
+        Boolean flag to whether to use pre-build resources from BuildContext or build resources from scratch
     """
     stacks = SamLocalStackProvider.get_stacks(template)[0]
     factory = SyncFlowFactory(build_context, deploy_context, sync_context, stacks, auto_dependency_layer)
@@ -460,7 +487,8 @@ def execute_code_sync(
     )
 
     for resource_id in sync_flow_resource_ids:
-        sync_flow = factory.create_sync_flow(resource_id)
+        built_result = build_context.build_result if use_built_resources else None
+        sync_flow = factory.create_sync_flow(resource_id, built_result)
         if sync_flow:
             executor.add_sync_flow(sync_flow)
         else:
@@ -475,7 +503,7 @@ def execute_watch(
     deploy_context: "DeployContext",
     sync_context: "SyncContext",
     auto_dependency_layer: bool,
-    skip_infra_syncs: bool,
+    disable_infra_syncs: bool,
 ):
     """Start sync watch execution
 
@@ -493,11 +521,20 @@ def execute_watch(
         SyncContext object that obtains sync information.
     auto_dependency_layer: bool
         Boolean flag to whether enable certain sync flows for auto dependency layer feature.
-    skip_infra_syncs: bool
-        Boolean flag to determine if only ececute code syncs.
+    disable_infra_syncs: bool
+        Boolean flag to determine if sam sync only executes code syncs.
     """
+    # Note: disable_infra_syncs  is different from skip_deploy_sync,
+    # disable_infra_syncs completely disables infra syncs and
+    # skip_deploy_sync skips the initial infra sync if it's not required.
     watch_manager = WatchManager(
-        template, build_context, package_context, deploy_context, sync_context, auto_dependency_layer, skip_infra_syncs
+        template,
+        build_context,
+        package_context,
+        deploy_context,
+        sync_context,
+        auto_dependency_layer,
+        disable_infra_syncs,
     )
     watch_manager.start()
 

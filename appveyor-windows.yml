@@ -1,5 +1,5 @@
 version: 1.0.{build}
-image: Visual Studio 2019
+image: Visual Studio 2022
 build: off
 
 clone_folder: C:\source
@@ -29,10 +29,10 @@ environment:
   TMPDIR: "%TEMP%"
   TMP: "%TEMP%"
 
-  # MSI Installers only use Py3.7.6. It is sufficient to test with this version here.
-  PYTHON_HOME: "C:\\Python37-x64"
-  PYTHON_SCRIPTS: "C:\\Python37-x64\\Scripts"
-  PYTHON_EXE: "C:\\Python37-x64\\python.exe"
+  # MSI Installers only use Py3.8. It is sufficient to test with this version here.
+  PYTHON_HOME: "C:\\Python38-x64"
+  PYTHON_SCRIPTS: "C:\\Python38-x64\\Scripts"
+  PYTHON_EXE: "C:\\Python38-x64\\python.exe"
   PYTHON_ARCH: "64"
   HOME: 'C:\Users\appveyor'
   HOMEDRIVE: "C:"
@@ -58,10 +58,15 @@ cache:
 install:
   # setup make
   - "choco install make"
+  # setup Java, Maven and Gradle
+  - "choco install gradle -y --force"
+  - "java -version"
+  - "gradle -v"
+  - "mvn --version"
 
   # Make sure the temp directory exists for Python to use.
   - ps: "mkdir -Force C:\\tmp"
-  - "SET PATH=%PYTHON_HOME%;C:\\Ruby27-x64\\bin;%PATH%"
+  - 'set PATH=%PYTHON_HOME%;C:\Ruby27-x64\bin;%PATH%;C:\Python37-x64;C:\Python39-x64;C:\Python310-x64'
   - "echo %PYTHON_HOME%"
   - "echo %PATH%"
   - "python --version"
@@ -73,6 +78,10 @@ install:
 
   # Upgrade setuptools, wheel and virtualenv
   - "python -m pip install --upgrade setuptools wheel virtualenv"
+  # Install pip for the python versions which is used by the tests
+  - "C:\\Python37-x64\\python.exe -m pip install --upgrade pip"
+  - "C:\\Python39-x64\\python.exe -m pip install --upgrade pip"
+  - "C:\\Python310-x64\\python.exe -m pip install --upgrade pip"
 
   # Install AWS CLI Globally via pip3
   - "pip install awscli"

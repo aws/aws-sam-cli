@@ -271,6 +271,8 @@ def do_cli(
             s3_bucket=s3_bucket,
             image_repository=image_repository,
             image_repositories=image_repositories,
+            resolve_s3=resolve_s3,
+            resolve_image_repos=resolve_image_repos,
             s3_prefix=s3_prefix,
             region=region,
             profile=profile,
@@ -320,8 +322,8 @@ def do_cli(
         ) as package_context:
             package_context.run()
 
-        # 500ms of sleep time between stack checks and describe stack events.
-        DEFAULT_POLL_DELAY = 0.5
+        # 5s of sleep time between stack checks and describe stack events.
+        DEFAULT_POLL_DELAY = 5
         try:
             poll_delay = float(os.getenv("SAM_CLI_POLL_DELAY", str(DEFAULT_POLL_DELAY)))
         except ValueError:
