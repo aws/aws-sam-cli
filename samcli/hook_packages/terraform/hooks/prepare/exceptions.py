@@ -63,6 +63,18 @@ class FunctionLayerLocalVariablesLinkingLimitationException(LocalVariablesLinkin
     """
 
 
+class OneRestApiToApiGatewayMethodLinkingLimitationException(OneResourceLinkingLimitationException):
+    """
+    Exception specific for Gateway Method linking to more than Rest API
+    """
+
+
+class RestApiToApiGatewayMethodLocalVariablesLinkingLimitationException(LocalVariablesLinkingLimitationException):
+    """
+    Exception specific for Gateway Method linking to Rest API using locals.
+    """
+
+
 class InvalidSamMetadataPropertiesException(UserException):
     pass
 
