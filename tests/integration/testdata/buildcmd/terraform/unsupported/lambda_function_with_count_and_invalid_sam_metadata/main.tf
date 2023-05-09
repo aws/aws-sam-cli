@@ -1,8 +1,14 @@
 provider "aws" {
 }
 
+resource "random_uuid" "role" {
+    keepers = {
+        my_key = "my_key"
+    }
+}
+
 resource "aws_iam_role" "iam_for_lambda" {
-    name = "dummy_iam_role"
+    name = "dummy_iam_role_${random_uuid.role.result}"
 
     assume_role_policy = <<EOF
 {
@@ -38,13 +44,16 @@ resource "random_uuid" "s3_bucket" {
 }
 
 resource "aws_s3_bucket" "lambda_code_bucket" {
-    bucket = "lambda_code_bucket-${random_uuid.s3_bucket.result}"
+    bucket = "lambda-code-bucket-${random_uuid.s3_bucket.result}"
 }
 
 resource "aws_s3_object" "lambda_function_code" {
     bucket = aws_s3_bucket.lambda_code_bucket.bucket
     key = "function"
     source = "${local.building_path}/${local.function_artifact_filename}"
+    depends_on = [
+        null_resource.sam_metadata_aws_lambda_function1
+    ]
 }
 
 resource "null_resource" "build_function" {
