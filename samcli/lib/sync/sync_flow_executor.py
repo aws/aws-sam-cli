@@ -230,7 +230,10 @@ class SyncFlowExecutor:
                 # Put it into deferred_tasks and add all of them at the end to avoid endless loop
                 if sync_flow_future:
                     self._running_futures.add(sync_flow_future)
-                    LOG.info(self._color.cyan(f"Syncing {sync_flow_future.sync_flow.log_name}..."))
+                    LOG.info(
+                        self._color.color_log(msg=f"Syncing {sync_flow_future.sync_flow.log_name}...", color="cyan"),
+                        extra=dict(markup=True),
+                    )
                 else:
                     deferred_tasks.append(sync_flow_task)
 
@@ -306,7 +309,10 @@ class SyncFlowExecutor:
             sync_flow_result: SyncFlowResult = future.result()
             for dependent_sync_flow in sync_flow_result.dependent_sync_flows:
                 self.add_sync_flow(dependent_sync_flow)
-            LOG.info(self._color.green(f"Finished syncing {sync_flow_result.sync_flow.log_name}."))
+            LOG.info(
+                self._color.color_log(msg=f"Finished syncing {sync_flow_result.sync_flow.log_name}.", color="green"),
+                extra=dict(markup=True),
+            )
         return True
 
     @staticmethod
