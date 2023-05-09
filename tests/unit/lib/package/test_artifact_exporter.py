@@ -3,6 +3,7 @@ import json
 import platform
 import tempfile
 import os
+import shutil
 import string
 import random
 import zipfile
