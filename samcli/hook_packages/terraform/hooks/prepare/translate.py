@@ -25,6 +25,7 @@ from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     REMOTE_DUMMY_VALUE,
     RESOURCE_TRANSLATOR_MAPPING,
     TF_AWS_API_GATEWAY_METHOD,
+    TF_AWS_API_GATEWAY_RESOURCE,
     TF_AWS_API_GATEWAY_REST_API,
     TF_AWS_LAMBDA_FUNCTION,
     TF_AWS_LAMBDA_LAYER_VERSION,
@@ -251,6 +252,12 @@ def translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_applic
         resource_property_mapping[TF_AWS_API_GATEWAY_REST_API].terraform_resources,
     )
 
+    _link_gateway_resources_to_gateway_rest_apis(
+        resource_property_mapping[TF_AWS_API_GATEWAY_RESOURCE].terraform_config,
+        resource_property_mapping[TF_AWS_API_GATEWAY_RESOURCE].cfn_resources,
+        resource_property_mapping[TF_AWS_API_GATEWAY_REST_API].terraform_resources,
+    )
+
     if sam_metadata_resources:
         LOG.debug("Enrich the mapped resources with the sam metadata information and generate Makefile")
         enrich_resources_and_generate_makefile(
@@ -380,34 +387,6 @@ def _link_lambda_functions_to_layers_call_back(
     function_cfn_resource["Properties"]["Layers"] = ref_list
 
 
-def _link_gateway_resources_to_gateway_rest_apis_callback(
-    gateway_resource_cfn_resource: Dict, referenced_rest_apis_values: List[ReferenceType]
-) -> None:
-    """
-    Callback function that used by the linking algorithm to update an Api Gateway Resource CFN Resource with
-    a reference to the Rest Api resource.
-
-    Parameters
-    ----------
-    gateway_resource_cfn_resource: Dict
-        API Gateway resource CFN resource
-    referenced_rest_apis_values: List[ReferenceType]
-        List of referenced REST API either as the logical id of REST API resource defined in the customer project, or
-        ARN values for actual REST API resource defined in customer's account. This list should always contain one
-        element only.
-    """
-    if len(referenced_rest_apis_values) > 1:
-        # If the destination rest api list contains more than one element then there's the linking logic
-        raise InvalidResourceLinkingException(
-            "Could not link multiple API Gateway REST APIs to a single API Gateway Resource"
-        )
-
-    logical_id = referenced_rest_apis_values[0]
-    gateway_resource_cfn_resource["Properties"]["RestApiId"] = (
-        {"Ref": logical_id.value} if isinstance(logical_id, LogicalIdReference) else logical_id.value
-    )
-
-
 def _link_gateway_resources_to_gateway_rest_apis(
     gateway_resources_tf_configs: Dict[str, TFResource],
     gateway_resources_cfn_resources: Dict[str, List],
@@ -425,7 +404,7 @@ def _link_gateway_resources_to_gateway_rest_apis(
         terraform_link_field_name="rest_api_id",
         cfn_link_field_name="RestApiId",
         terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
-        cfn_resource_update_call_back_function=_link_gateway_resources_to_gateway_rest_apis_callback,
+        cfn_resource_update_call_back_function=_link_gateway_resource_to_gateway_rest_apis_call_back,
         linking_exceptions=exceptions,
     )
     ResourceLinker(resource_linking_pair).link_resources()
