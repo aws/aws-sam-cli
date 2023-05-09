@@ -284,7 +284,7 @@ def do_cli(
             return
         global_config.set_accelerate_opt_in_stack(template_file, stack_name)
     else:
-        LOG.info(Colored().yellow(SYNC_INFO_TEXT))
+        LOG.info(Colored().color_log(msg=SYNC_INFO_TEXT, color="yellow"), extra=dict(markup=True))
 
     s3_bucket_name = s3_bucket or manage_stack(profile=profile, region=region)
 
