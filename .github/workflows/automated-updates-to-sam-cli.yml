@@ -6,7 +6,7 @@ on:
   workflow_dispatch: {}
 
 jobs:
-  updateCommitHash:
+  updateInitAppTemplatesCommitHash:
     permissions:
       pull-requests: write
       contents: write
