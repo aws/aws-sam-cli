@@ -465,16 +465,17 @@ class TestGetResourcesInfo(TestCase):
     @patch("samcli.commands.list.json_consumer.click.get_current_context")
     @patch("samcli.lib.list.resources.resource_mapping_producer.get_template_data")
     @patch("samcli.lib.list.resources.resource_mapping_producer.ResourceMappingProducer.get_translated_dict")
-    @patch("samcli.commands.list.cli_common.list_common_context.get_boto_client_provider_with_config")
     def test_clienterror_stack_does_not_exist_in_region(
         self,
-        mock_client_provider,
         mock_get_translated_dict,
         mock_sam_file_reader,
         patched_click_get_current_context,
         patched_click_echo,
     ):
-        mock_client_provider.return_value.return_value.describe_stack_resources.side_effect = ClientError(
+        mock_cfn_client = Mock()
+        paginator_mock = Mock()
+        mock_cfn_client.get_paginator.return_value = paginator_mock
+        paginator_mock.paginate.side_effect = ClientError(
             {"Error": {"Code": "ValidationError", "Message": "Stack with id test does not exist"}}, "DescribeStacks"
         )
         mock_get_translated_dict.return_value = TRANSLATED_DICT_RETURN
@@ -486,7 +487,7 @@ class TestGetResourcesInfo(TestCase):
                 region="us-east-1",
                 profile=None,
                 template_file=None,
-                cloudformation_client=mock_client_provider.return_value.return_value,
+                cloudformation_client=mock_cfn_client,
                 iam_client=None,
                 mapper=None,
                 consumer=None,
@@ -497,16 +498,17 @@ class TestGetResourcesInfo(TestCase):
     @patch("samcli.commands.list.json_consumer.click.get_current_context")
     @patch("samcli.lib.list.resources.resource_mapping_producer.get_template_data")
     @patch("samcli.lib.list.resources.resource_mapping_producer.ResourceMappingProducer.get_translated_dict")
-    @patch("samcli.commands.list.cli_common.list_common_context.get_boto_client_provider_with_config")
     def test_botocoreerror_invalid_region(
         self,
-        mock_client_provider,
         mock_get_translated_dict,
         mock_sam_file_reader,
         patched_click_get_current_context,
         patched_click_echo,
     ):
-        mock_client_provider.return_value.return_value.describe_stack_resources.side_effect = EndpointConnectionError(
+        mock_cfn_client = Mock()
+        paginator_mock = Mock()
+        mock_cfn_client.get_paginator.return_value = paginator_mock
+        paginator_mock.paginate.side_effect = EndpointConnectionError(
             endpoint_url="https://cloudformation.test.amazonaws.com/"
         )
         mock_get_translated_dict.return_value = TRANSLATED_DICT_RETURN
@@ -518,7 +520,7 @@ class TestGetResourcesInfo(TestCase):
                 region="us-east-1",
                 profile=None,
                 template_file=None,
-                cloudformation_client=mock_client_provider.return_value.return_value,
+                cloudformation_client=mock_cfn_client,
                 iam_client=None,
                 mapper=None,
                 consumer=None,
@@ -529,16 +531,17 @@ class TestGetResourcesInfo(TestCase):
     @patch("samcli.commands.list.json_consumer.click.get_current_context")
     @patch("samcli.lib.list.resources.resource_mapping_producer.get_template_data")
     @patch("samcli.lib.list.resources.resource_mapping_producer.ResourceMappingProducer.get_translated_dict")
-    @patch("samcli.commands.list.cli_common.list_common_context.get_boto_client_provider_with_config")
     def test_clienterror_token_error(
         self,
-        mock_client_provider,
         mock_get_translated_dict,
         mock_sam_file_reader,
         patched_click_get_current_context,
         patched_click_echo,
     ):
-        mock_client_provider.return_value.return_value.describe_stack_resources.side_effect = ClientError(
+        mock_cfn_client = Mock()
+        paginator_mock = Mock()
+        mock_cfn_client.get_paginator.return_value = paginator_mock
+        paginator_mock.paginate.side_effect = ClientError(
             {"Error": {"Code": "ExpiredToken", "Message": "The security token included in the request is expired"}},
             "DescribeStacks",
         )
@@ -551,7 +554,7 @@ class TestGetResourcesInfo(TestCase):
                 region="us-east-1",
                 profile=None,
                 template_file=None,
-                cloudformation_client=mock_client_provider.return_value.return_value,
+                cloudformation_client=mock_cfn_client,
                 iam_client=None,
                 mapper=None,
                 consumer=None,
@@ -562,16 +565,17 @@ class TestGetResourcesInfo(TestCase):
     @patch("samcli.commands.list.json_consumer.click.get_current_context")
     @patch("samcli.lib.list.resources.resource_mapping_producer.get_template_data")
     @patch("samcli.lib.list.resources.resource_mapping_producer.ResourceMappingProducer.get_translated_dict")
-    @patch("samcli.commands.list.cli_common.list_common_context.get_boto_client_provider_with_config")
     def test_stack_resource_not_in_response(
         self,
-        mock_client_provider,
         mock_get_translated_dict,
         mock_sam_file_reader,
         patched_click_get_current_context,
         patched_click_echo,
     ):
-        mock_client_provider.return_value.return_value.describe_stack_resources.return_value = {}
+        mock_cfn_client = Mock()
+        paginator_mock = Mock()
+        mock_cfn_client.get_paginator.return_value = paginator_mock
+        paginator_mock.paginate.return_value = {}
         mock_get_translated_dict.return_value = TRANSLATED_DICT_RETURN
 
         mock_sam_file_reader.return_value = SAM_FILE_READER_RETURN
@@ -580,7 +584,7 @@ class TestGetResourcesInfo(TestCase):
             region="us-east-1",
             profile=None,
             template_file=None,
-            cloudformation_client=mock_client_provider.return_value.return_value,
+            cloudformation_client=mock_cfn_client,
             iam_client=None,
             mapper=None,
             consumer=None,
@@ -592,18 +596,17 @@ class TestGetResourcesInfo(TestCase):
     @patch("samcli.commands.list.json_consumer.click.get_current_context")
     @patch("samcli.lib.list.resources.resource_mapping_producer.get_template_data")
     @patch("samcli.lib.list.resources.resource_mapping_producer.ResourceMappingProducer.get_translated_dict")
-    @patch("samcli.commands.list.cli_common.list_common_context.get_boto_client_provider_with_config")
     def test_stack_resource_in_response(
         self,
-        mock_client_provider,
         mock_get_translated_dict,
         mock_sam_file_reader,
         patched_click_get_current_context,
         patched_click_echo,
     ):
-        mock_client_provider.return_value.return_value.describe_stack_resources.return_value = {
-            "StackResources": [{"StackName": "sam-app-hello"}]
-        }
+        mock_cfn_client = Mock()
+        paginator_mock = Mock()
+        mock_cfn_client.get_paginator.return_value = paginator_mock
+        paginator_mock.paginate.return_value = [{"StackResourceSummaries": [{"StackName": "sam-app-hello"}]}]
         mock_get_translated_dict.return_value = TRANSLATED_DICT_RETURN
 
         mock_sam_file_reader.return_value = SAM_FILE_READER_RETURN
@@ -612,7 +615,7 @@ class TestGetResourcesInfo(TestCase):
             region="us-east-1",
             profile=None,
             template_file=None,
-            cloudformation_client=mock_client_provider.return_value.return_value,
+            cloudformation_client=mock_cfn_client,
             iam_client=None,
             mapper=None,
             consumer=None,
