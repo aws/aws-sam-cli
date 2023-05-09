@@ -392,6 +392,19 @@ def _link_gateway_resources_to_gateway_rest_apis(
     gateway_resources_cfn_resources: Dict[str, List],
     rest_apis_terraform_resources: Dict[str, Dict],
 ):
+    """
+    Iterate through all the resources and link the corresponding Rest API resource to each Gateway Resource resource.
+
+    Parameters
+    ----------
+    gateway_resources_tf_configs: Dict[str, TFResource]
+        Dictionary of configuration Gateway Resource resources
+    gateway_resources_cfn_resources: Dict[str, List]
+        Dictionary containing resolved configuration addresses matched up to the cfn Gateway Resource
+    rest_apis_terraform_resources: Dict[str, Dict]
+        Dictionary of all actual terraform Rest API resources (not configuration resources). The dictionary's key is the
+        calculated logical id for each resource.
+    """
     exceptions = ResourcePairExceptions(
         multiple_resource_linking_exception=OneGatewayResourceToRestApiLinkingLimitationException,
         local_variable_linking_exception=GatewayResourceToGatewayRestApiLocalVariablesLinkingLimitationException,
