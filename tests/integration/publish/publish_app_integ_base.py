@@ -27,7 +27,7 @@ class PublishAppIntegBase(TestCase):
         cls.test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "publish")
         cls.sar_client = boto3.client("serverlessrepo", region_name=cls.region_name)
 
-        # Intialize S3 client
+        # Initialize S3 client
         s3 = boto3.resource("s3")
         # Use a pre-created S3 Bucket if present else create a new one
         cls.s3_bucket = s3.Bucket(cls.bucket_name)

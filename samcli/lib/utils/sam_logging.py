@@ -2,12 +2,22 @@
 Configures a logger
 """
 import logging
+import os
+import sys
+
+from rich.console import Console
+from rich.logging import RichHandler
 
 SAM_CLI_FORMATTER = logging.Formatter("%(message)s")
 SAM_CLI_FORMATTER_WITH_TIMESTAMP = logging.Formatter("%(asctime)s | %(message)s")
 
 SAM_CLI_LOGGER_NAME = "samcli"
 LAMBDA_BULDERS_LOGGER_NAME = "aws_lambda_builders"
+
+NO_LOGGING_COLOR_ENV_VAR = "NO_COLOR"
+SAM_NO_LOGGING_COLOR_ENV_VAR = "SAM_CLI_NO_COLOR"
+TERMINAL_ENV_VAR = "TERM"
+DUMB_TERMINAL = "dumb"
 
 
 class SamCliLogger:
@@ -28,9 +38,19 @@ class SamCliLogger:
         if handlers:
             log_stream_handler = handlers[0]
         else:
-            log_stream_handler = logging.StreamHandler()
+            log_stream_handler = (
+                RichHandler(console=Console(stderr=True), show_time=False, show_path=False, show_level=False)
+                if sys.stderr.isatty()
+                and not any(
+                    [
+                        os.getenv(NO_LOGGING_COLOR_ENV_VAR),
+                        os.getenv(SAM_NO_LOGGING_COLOR_ENV_VAR),
+                        os.getenv(TERMINAL_ENV_VAR) == DUMB_TERMINAL,
+                    ]
+                )
+                else logging.StreamHandler()
+            )
             logger.addHandler(log_stream_handler)
-
         log_stream_handler.setLevel(logging.DEBUG)
         log_stream_handler.setFormatter(formatter)
 
