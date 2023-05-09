@@ -5,8 +5,7 @@ e.g. linking layers to functions
 import logging
 import re
 from dataclasses import dataclass
-from enum import Enum
-from typing import Dict, List, Optional, Type, Union
+from typing import Callable, Dict, List, Optional, Type, Union
 
 from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     InvalidResourceLinkingException,
@@ -31,9 +30,33 @@ LOG = logging.getLogger(__name__)
 COMPILED_REGULAR_EXPRESSION = re.compile(r"\[[^\[\]]*\]")
 
 
-class LinkerIntrinsics(Enum):
-    Ref = "Ref"
-    GetAtt = "GetAtt"
+@dataclass
+class ReferenceType:
+    """
+    This class is used to pass the linking attributes values to the callback functions.
+    """
+
+    value: str
+
+
+@dataclass
+class ExistingResourceReference(ReferenceType):
+    """
+    This class is used to pass the linking attributes values to the callback functions when the values are static values
+    which means they are for an existing resources in AWS, and there is no matching resource in the customer TF Project.
+    """
+
+    value: str
+
+
+@dataclass
+class LogicalIdReference(ReferenceType):
+    """
+    This class is used to pass the linking attributes values to the callback functions when the values are Logical Ids
+    for the destination resources defined in the customer TF project.
+    """
+
+    value: str
 
 
 @dataclass
@@ -47,11 +70,11 @@ class ResourceLinkingPair:
     source_resource_cfn_resource: Dict[str, List]
     source_resource_tf_config: Dict[str, TFResource]
     destination_resource_tf: Dict[str, Dict]
-    intrinsic_type: LinkerIntrinsics
-    cfn_intrinsic_attribute: Optional[str]
-    source_link_field_name: str
+    tf_destination_attribute_name: str  # arn or id
     terraform_link_field_name: str
+    cfn_link_field_name: str
     terraform_resource_type_prefix: str
+    cfn_resource_update_call_back_function: Callable[[Dict, List[ReferenceType]], None]
     linking_exceptions: ResourcePairExceptions
 
 
@@ -61,7 +84,7 @@ class ResourceLinker:
     def __init__(self, resource_pair):
         self._resource_pair = resource_pair
 
-    def link_resources(self):
+    def link_resources(self) -> None:
         """
         Validate the ResourceLinkingPair object and link the corresponding source resource to destination resource
         """
@@ -80,6 +103,9 @@ class ResourceLinker:
         The source resource configuration resource in Terraform can match
         multiple actual resources in case if it was defined using count or for_each pattern.
 
+        This method determines first which resources can be linked using the terraform config approach, and the linking
+        fields approach based on if the resource's dependencies are applied or not.
+
         Parameters
         ----------
         source_tf_resource: TFResource
@@ -94,6 +120,71 @@ class ResourceLinker:
             source_tf_resource.full_address,
             cfn_source_resources,
         )
+
+        # the config TF resource can map to different CFN resources like in case of using Count to define multiple
+        # resources. This means after apply, each resource can have a different mapped child resources.
+        # see the below example
+        # resource "aws_lambda_function" "function1" {
+        #   count = 2
+        #   layers = ${count.index} == 0 ? [aws_lambda_layer_version.layer1.arn]: [aws_lambda_layer_version.layer2.arn]
+        # }
+        # resource "aws_lambda_layer_version" "layer1" { ... }
+        # resource "aws_lambda_layer_version" "layer2" { ... }
+
+        # It also means that it can happen that some of these resources depends on already applied children resources,
+        # and other resources can depend on some unknown resource like if the customer update the HCL configuration
+        # after applying it, and change one of the source resources to refer to a new child resource.
+
+        # we need to filter out the applied resources and handle them using the actual linking fields mapping approach,
+        # and the non-applied resources, we should use the linking algorithm based on the Config definition of the
+        # resource
+
+        # Filter out the applied and non-applied resources
+        applied_cfn_resources = []
+        non_applied_cfn_resources = []
+        for cfn_resource in cfn_source_resources:
+            linking_field_value = cfn_resource.get("Properties", {}).get(self._resource_pair.cfn_link_field_name)
+
+            # if customer uses any non-applied resources to define the source resource property, Terraform will set
+            # the property value to unknown in the Terraform plan.
+            if linking_field_value is None:
+                non_applied_cfn_resources.append(cfn_resource)
+            else:
+                applied_cfn_resources.append(cfn_resource)
+
+        LOG.debug(
+            "Link resource configuration %s that has these applied instances %s using linking fields approach.",
+            source_tf_resource.full_address,
+            applied_cfn_resources,
+        )
+        for applied_cfn_resource in applied_cfn_resources:
+            self._link_using_linking_fields(applied_cfn_resource)
+
+        self._link_using_terraform_config(source_tf_resource, non_applied_cfn_resources)
+
+    def _link_using_terraform_config(self, source_tf_resource: TFResource, cfn_resources: List[Dict]):
+        """
+        Uses the Terraform Configuration to resolve the destination resources linked to the input terraform resource,
+        then updates the cnf resources that match the input terraform resource.
+
+        Parameters
+        ----------
+        source_tf_resource: TFResource
+            The source resource Terraform configuration resource
+
+        cfn_source_resources: List[Dict]
+            A list of mapped source resources that are equivalent to the input terraform configuration source resource
+        """
+
+        if not cfn_resources:
+            LOG.debug("No matching CFN resources for configuration %s", source_tf_resource.full_address)
+            return
+
+        LOG.debug(
+            "Link resource configuration %s that has these applied instances %s using linking fields approach.",
+            source_tf_resource.full_address,
+            cfn_resources,
+        )
         resolved_dest_resources = _resolve_resource_attribute(
             source_tf_resource, self._resource_pair.terraform_link_field_name
         )
@@ -103,7 +194,6 @@ class ResourceLinker:
             resolved_dest_resources,
         )
         dest_resources = self._process_resolved_resources(source_tf_resource, resolved_dest_resources)
-
         # The agreed limitation to support only 1 destination resource.
         if len(dest_resources) > 1:
             LOG.debug(
@@ -118,14 +208,64 @@ class ResourceLinker:
                 "There are destination resources defined for for the source resource %s",
                 source_tf_resource.full_address,
             )
-        else:
-            self._update_mapped_parent_resource_with_resolved_child_resources(cfn_source_resources, dest_resources)
+        for cfn_resource in cfn_resources:
+            self._resource_pair.cfn_resource_update_call_back_function(cfn_resource, dest_resources)  # type: ignore
+
+    def _link_using_linking_fields(self, cfn_resource: Dict) -> None:
+        """
+        Depends on that all the child resources of the source resource are applied, and so we do not need to traverse
+        the terraform configuration to define the destination resource. We will depend on the actual values of the
+        linking fields, and find the destination resource that has the same value.
+
+        Parameters
+        ----------
+        cfn_source_resource: Dict
+            A mapped CFN source resource
+        """
+        # get the constant values of the linking field from the cfn_resource
+        values = cfn_resource.get("Properties", {}).get(self._resource_pair.cfn_link_field_name)
+
+        LOG.debug(
+            "Link the source resource %s using linking property %s that has the value %s",
+            cfn_resource,
+            self._resource_pair.cfn_link_field_name,
+            values,
+        )
+
+        # some resources can be linked to only one child resource like rest apis.
+        # make the resource values as a list to make processing easier.
+        if not isinstance(values, List):
+            values = [values]
+
+        # build map between the destination linking field property values, and resources' logical ids
+        child_resources_linking_attributes_logical_id_mapping = {}
+        for logical_id, destination_resource in self._resource_pair.destination_resource_tf.items():
+            linking_attribute_value = destination_resource.get("values", {}).get(
+                self._resource_pair.tf_destination_attribute_name
+            )
+            if linking_attribute_value:
+                child_resources_linking_attributes_logical_id_mapping[linking_attribute_value] = logical_id
+
+        LOG.debug(
+            "The map between destination resources linking field %s, and resources logical ids is %s",
+            self._resource_pair.tf_destination_attribute_name,
+            child_resources_linking_attributes_logical_id_mapping,
+        )
+
+        dest_resources = [
+            LogicalIdReference(child_resources_linking_attributes_logical_id_mapping[value])
+            if value in child_resources_linking_attributes_logical_id_mapping
+            else ExistingResourceReference(value)
+            for value in values
+        ]
+        LOG.debug("The value of the source resource linking field after mapping $s", dest_resources)
+        self._resource_pair.cfn_resource_update_call_back_function(cfn_resource, dest_resources)  # type: ignore
 
     def _process_resolved_resources(
         self,
         source_tf_resource: TFResource,
         resolved_destination_resource: List[Union[ConstantValue, ResolvedReference]],
-    ):
+    ) -> List[ReferenceType]:
         """
         Process the resolved destination resources.
 
@@ -175,93 +315,11 @@ class ResourceLinker:
 
         return destination_resources
 
-    def _update_mapped_parent_resource_with_resolved_child_resources(
-        self, cfn_source_resources: List[Dict], destination_resources: List
-    ):
-        """
-        Set the resolved destination resource list to the mapped source resources.
-
-        Parameters
-        ----------
-        cfn_source_resources: TFResource
-            The source CloudFormation resource to be updated.
-        destination_resources: List
-            The resolved destination resource values that will be used as a value for the mapped CFN resource attribute.
-        """
-        LOG.debug(
-            "Set the resolved destination resources %s to the cfn source resources %s",
-            destination_resources,
-            cfn_source_resources,
-        )
-        for cfn_source_resource in cfn_source_resources:
-            LOG.debug("Process the source resource %s", cfn_source_resource)
-            # Add the resolved dest resource list as it is to the mapped
-            # source resource that does not have any dest resources defined
-            if not cfn_source_resource["Properties"].get(self._resource_pair.source_link_field_name):
-                LOG.debug("The source %s does not have any destination resources defined.", cfn_source_resource)
-                cfn_source_resource["Properties"][self._resource_pair.source_link_field_name] = destination_resources
-                continue
-
-            # Check if the the mapped destination resource list contains any
-            # arn value for one of the resolved destination resource to replace it.
-            for dest_resource in destination_resources:
-                # resolve the destination arn string to check if it is already there
-                # in the CFN source resource destination property logical id will be always in terraform values, as we
-                # do not consider the references to destination resources that do not exist in the
-                # terraform planned values list as it means that this destination resource will not be created.
-                LOG.debug(
-                    "Check if the destination resource %s is already defined in source resource % property.",
-                    dest_resource,
-                    cfn_source_resource,
-                )
-                dest_arn = (
-                    self._resource_pair.destination_resource_tf.get(dest_resource.get("Ref"), {})
-                    .get("values", {})
-                    .get("arn")
-                )
-
-                # The resolved dest resource is a reference to a dest resource
-                # which has not yet been applied, so there is no ARN value yet.
-                if not dest_arn:
-                    LOG.debug(
-                        "The destination resource %s is not applied yet, and does not have ARN property.", dest_resource
-                    )
-                    cfn_source_resource["Properties"][self._resource_pair.source_link_field_name].append(dest_resource)
-                    continue
-
-                # try to find a destination resource arn that equals the resolved
-                # destination resource arn so we can replace it with Ref value.
-                try:
-                    dest_resource_index = (
-                        cfn_source_resource["Properties"]
-                        .get(self._resource_pair.source_link_field_name, [])
-                        .index(dest_arn)
-                    )
-                    LOG.debug(
-                        "The destination resource %s has the arn value %s that exists in source resource %s property.",
-                        dest_resource,
-                        dest_arn,
-                        cfn_source_resource,
-                    )
-                    cfn_source_resource["Properties"][self._resource_pair.source_link_field_name][
-                        dest_resource_index
-                    ] = dest_resource
-                except ValueError:
-                    # there is no matching destination resource ARN.
-                    LOG.debug(
-                        "The destination resource %s has the arn value %s that "
-                        "does not exist in source resource %s property.",
-                        dest_resource,
-                        dest_arn,
-                        cfn_source_resource,
-                    )
-                    cfn_source_resource["Properties"][self._resource_pair.source_link_field_name].append(dest_resource)
-
     def _process_reference_resource_value(
         self, source_tf_resource: TFResource, resolved_destination_resource: ResolvedReference
-    ):
+    ) -> List[ReferenceType]:
         """
-        Process the a reference destination resource value of type ResolvedReference.
+        Process the reference destination resource value of type ResolvedReference.
 
         Parameters
         ----------
@@ -294,7 +352,7 @@ class ResourceLinker:
         # Valid destination resource
         if resolved_destination_resource.value.startswith(self._resource_pair.terraform_resource_type_prefix):
             LOG.debug("Process the destination resource %s", resolved_destination_resource.value)
-            if not resolved_destination_resource.value.endswith("arn"):
+            if not resolved_destination_resource.value.endswith(self._resource_pair.tf_destination_attribute_name):
                 LOG.debug(
                     "The used property in reference %s is not an ARN property", resolved_destination_resource.value
                 )
@@ -305,8 +363,15 @@ class ResourceLinker:
                     f"value should refer to valid destination resource ARN property."
                 )
 
+            # we need to the resource name by removing the attribute part from the reference value
+            # as an example the reference will be look like aws_layer_version.layer1.arn
+            # and the attribute name is `arn`, we need to remove the last 4 characters `.arn`
+            # which is the length of the linking attribute `arn` in our example adding one for the `.` character
             tf_dest_res_name = resolved_destination_resource.value[
-                len(self._resource_pair.terraform_resource_type_prefix) : -len(".arn")
+                len(self._resource_pair.terraform_resource_type_prefix) : -len(
+                    self._resource_pair.tf_destination_attribute_name
+                )
+                - 1
             ]
             if resolved_destination_resource.module_address:
                 tf_dest_resource_full_address = (
@@ -327,13 +392,13 @@ class ResourceLinker:
 
             # validate that the found dest resource is in mapped dest resources, which means that it is created.
             # The resource can be defined in the TF plan configuration, but will not be created.
-            dest_resources = []
+            dest_resources: List[ReferenceType] = []
             if cfn_dest_resource_logical_id in self._resource_pair.destination_resource_tf:
                 LOG.debug(
                     "The resource referred by %s can be found in the mapped destination resources",
                     resolved_destination_resource.value,
                 )
-                dest_resources.append({"Ref": cfn_dest_resource_logical_id})
+                dest_resources.append(LogicalIdReference(cfn_dest_resource_logical_id))
             return dest_resources
         # it means the source resource is referring to a wrong destination resource type
         LOG.debug(

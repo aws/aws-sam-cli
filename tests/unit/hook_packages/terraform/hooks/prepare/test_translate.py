@@ -2,13 +2,16 @@
 import copy
 from unittest.mock import Mock, call, patch, MagicMock, ANY
 
+from parameterized import parameterized
+
 from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     OneLambdaLayerLinkingLimitationException,
     FunctionLayerLocalVariablesLinkingLimitationException,
 )
 from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
-    LinkerIntrinsics,
     LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX,
+    ExistingResourceReference,
+    LogicalIdReference,
 )
 from tests.unit.hook_packages.terraform.hooks.prepare.prepare_base import PrepareHookUnitBase
 from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
@@ -34,6 +37,7 @@ from samcli.hook_packages.terraform.hooks.prepare.translate import (
     _map_s3_sources_to_functions,
     _check_dummy_remote_values,
     _get_s3_object_hash,
+    _link_lambda_functions_to_layers_call_back,
 )
 from samcli.hook_packages.terraform.hooks.prepare.translate import AWS_PROVIDER_NAME
 from samcli.hook_packages.terraform.hooks.prepare.types import TFModule, TFResource, ConstantValue, ResolvedReference
@@ -864,11 +868,16 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         )
         self.assertEqual(translated_cfn_properties, self.expected_cfn_function_properties_with_missing_or_none)
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_lambda_functions_to_layers_call_back")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.ResourceLinker")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.ResourceLinkingPair")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.ResourcePairExceptions")
     def test_link_lambda_functions_to_layers(
-        self, mock_resource_linking_exceptions, mock_resource_linking_pair, mock_resource_linker
+        self,
+        mock_resource_linking_exceptions,
+        mock_resource_linking_pair,
+        mock_resource_linker,
+        mock_link_lambda_functions_to_layers_call_back,
     ):
         lambda_funcs_config_resources = {
             "aws_lambda_function.remote_lambda_code": [
@@ -938,14 +947,53 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
             source_resource_cfn_resource=lambda_funcs_config_resources,
             source_resource_tf_config=resources,
             destination_resource_tf=terraform_layers_resources,
-            intrinsic_type=LinkerIntrinsics.Ref,
-            cfn_intrinsic_attribute=None,
-            source_link_field_name="Layers",
+            tf_destination_attribute_name="arn",
             terraform_link_field_name="layers",
+            cfn_link_field_name="Layers",
             terraform_resource_type_prefix=LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX,
+            cfn_resource_update_call_back_function=mock_link_lambda_functions_to_layers_call_back,
             linking_exceptions=mock_resource_linking_exceptions(),
         )
         mock_resource_linker.assert_called_once_with(mock_resource_linking_pair())
+
+    @parameterized.expand(
+        [
+            (
+                {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {"FunctionName": "func", "Layers": ["existing_layer1.arn", "applied_layer1.arn"]},
+                    "Metadata": {"SamResourceId": "aws_lambda_function.remote_lambda_code", "SkipBuild": True},
+                },
+                [ExistingResourceReference("existing_layer1.arn"), LogicalIdReference("Layer1LogicaId")],
+                ["existing_layer1.arn", {"Ref": "Layer1LogicaId"}],
+            ),
+            (
+                {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {"FunctionName": "func", "Layers": ["existing_layer1.arn", "existing_layer2.arn"]},
+                    "Metadata": {"SamResourceId": "aws_lambda_function.remote_lambda_code", "SkipBuild": True},
+                },
+                [ExistingResourceReference("existing_layer1.arn"), ExistingResourceReference("existing_layer2.arn")],
+                ["existing_layer1.arn", "existing_layer2.arn"],
+            ),
+            (
+                {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {
+                        "FunctionName": "func",
+                    },
+                    "Metadata": {"SamResourceId": "aws_lambda_function.remote_lambda_code", "SkipBuild": True},
+                },
+                [LogicalIdReference("Layer1LogicaId")],
+                [{"Ref": "Layer1LogicaId"}],
+            ),
+        ]
+    )
+    def test_link_lambda_functions_to_layers_call_back(self, input_function, logical_ids, expected_layers):
+        lambda_function = input_function.copy()
+        _link_lambda_functions_to_layers_call_back(lambda_function, logical_ids)
+        input_function["Properties"]["Layers"] = expected_layers
+        self.assertEqual(lambda_function, input_function)
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._calculate_configuration_attribute_value_hash")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._get_s3_object_hash")
