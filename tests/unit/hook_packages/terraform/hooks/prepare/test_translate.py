@@ -1100,7 +1100,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.ResourceLinker")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.ResourceLinkingPair")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.ResourcePairExceptions")
-    def test_link_gateway_methods_to_gateway_rest_apis(
+    def test_link_gateway_resources_to_gateway_rest_apis(
         self,
         mock_resource_linking_exceptions,
         mock_resource_linking_pair,
