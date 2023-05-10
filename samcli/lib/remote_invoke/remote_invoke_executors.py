@@ -36,15 +36,15 @@ class RemoteInvokeExecutionInfo:
         self.response = None
         self.exception = None
 
-    def is_file_provided(self):
-        return self.payload_file
+    def is_file_provided(self) -> bool:
+        return bool(self.payload_file)
 
     @property
     def payload_file_path(self) -> Optional[TextIOWrapper]:
         return self.payload_file if self.is_file_provided() else None
 
-    def is_succeeded(self):
-        return self.response
+    def is_succeeded(self) -> bool:
+        return bool(self.response)
 
 
 class RemoteInvokeRequestResponseMapper(ABC):
