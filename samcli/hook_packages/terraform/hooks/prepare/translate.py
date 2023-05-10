@@ -564,11 +564,11 @@ def _link_gateway_resource_to_gateway_rest_apis_parent_id_call_back(
     """
     # if the destination rest api list contains more than one element, so we have an issue in our linking logic
     if len(referenced_rest_apis_values) > 1:
-        raise InvalidResourceLinkingException("Could not link multiple Rest APIs to one Gateway method resource")
+        raise InvalidResourceLinkingException("Could not link multiple Rest APIs to one Gateway resource")
 
     logical_id = referenced_rest_apis_values[0]
     gateway_cfn_resource["Properties"]["ParentId"] = (
-        {"Fn:GetAtt": [logical_id.value, "RootResourceId"]}
+        {"Fn::GetAtt": [logical_id.value, "RootResourceId"]}
         if isinstance(logical_id, LogicalIdReference)
         else logical_id.value
     )

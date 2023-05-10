@@ -55,6 +55,7 @@ from samcli.hook_packages.terraform.hooks.prepare.translate import (
     _link_gateway_methods_to_gateway_rest_apis,
     _link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back,
     _link_gateway_resources_to_gateway_rest_apis,
+    _link_gateway_resource_to_gateway_rest_apis_parent_id_call_back,
     _link_gateway_stage_to_rest_api,
     _link_gateway_method_to_gateway_resource,
     _link_gateway_method_to_gateway_resource_call_back,
@@ -1363,6 +1364,51 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
             msg="Could not link multiple Gateway Resources to one Gateway method resource",
         ):
             _link_gateway_method_to_gateway_resource_call_back(gateway_method, logical_ids)
+
+    @parameterized.expand(
+        [
+            (
+                {
+                    "Type": "AWS::ApiGateway::Resource",
+                    "Properties": {"ParentId": "restapi.parent_id"},
+                },
+                [LogicalIdReference("RestApi")],
+                {"Fn::GetAtt": ["RestApi", "RootResourceId"]},
+            ),
+            (
+                {
+                    "Type": "AWS::ApiGateway::Resource",
+                    "Properties": {"ParentId": "restapi.parent_id"},
+                },
+                [ExistingResourceReference("restapi.parent_id")],
+                "restapi.parent_id",
+            ),
+            (
+                {
+                    "Type": "AWS::ApiGateway::Resource",
+                    "Properties": {},
+                },
+                [LogicalIdReference("RestApi")],
+                {"Fn:GetAtt": ["RestApi", "RootResourceId"]},
+            ),
+        ]
+    )
+    def test_link_gateway_resource_to_gateway_rest_api_parent_id_call_back(
+        self, input_gateway_resource, logical_ids, expected_rest_api
+    ):
+        gateway_resource = input_gateway_resource.copy()
+        _link_gateway_resource_to_gateway_rest_apis_parent_id_call_back(gateway_resource, logical_ids)
+        input_gateway_resource["Properties"]["ParentId"] = expected_rest_api
+        self.assertEqual(gateway_resource, input_gateway_resource)
+
+    def test_link_gateway_resource_to_gateway_rest_apis_call_back_multiple_destinations(self):
+        gateway_resource = Mock()
+        logical_ids = [Mock(), Mock()]
+        with self.assertRaises(
+            InvalidResourceLinkingException,
+            msg="Could not link multiple Rest APIs to one Gateway resource",
+        ):
+            _link_gateway_resource_to_gateway_rest_apis_parent_id_call_back(gateway_resource, logical_ids)
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._calculate_configuration_attribute_value_hash")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._get_s3_object_hash")
