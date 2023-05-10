@@ -12,26 +12,10 @@ from samcli.hook_packages.terraform.hooks.prepare.types import (
 
 
 class LambdaLayerVersionProperties(CodeResourceProperties):
-
     CFN_CODE_FIELD = "Content"
 
     def __init__(self):
         super(LambdaLayerVersionProperties, self).__init__()
-
-    def collect(self, properties: ResourceTranslationProperties):
-        """
-        Collect any properties required for handling resource linking for Lambda layers.
-
-        This method collects the aws_lambda_layer_version Terraform
-        planned values object for a given Lambda layers resource.
-
-        Parameters
-        ----------
-        properties: ResourceTranslationProperties
-            Properties acquired specific to an aws_lambda_layer_version
-            resource when iterating through a Terraform module
-        """
-        self.terraform_resources[properties.logical_id] = properties.resource
 
     def add_lambda_resources_to_code_map(
         self,
