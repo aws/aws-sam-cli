@@ -5,7 +5,7 @@ This method contains the logic required to translate the `terraform show` JSON o
 """
 import hashlib
 import logging
-from typing import Any, Callable, Dict, List, Tuple, Type, Union
+from typing import Any, Dict, List, Tuple, Type, Union
 
 from samcli.hook_packages.terraform.hooks.prepare.constants import (
     CFN_CODE_PROPERTIES,
@@ -14,15 +14,15 @@ from samcli.hook_packages.terraform.hooks.prepare.constants import (
 from samcli.hook_packages.terraform.hooks.prepare.enrich import enrich_resources_and_generate_makefile
 from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     FunctionLayerLocalVariablesLinkingLimitationException,
+    GatewayResourceToApiGatewayMethodLocalVariablesLinkingLimitationException,
     GatewayResourceToGatewayRestApiLocalVariablesLinkingLimitationException,
     InvalidResourceLinkingException,
+    OneGatewayResourceToApiGatewayMethodLinkingLimitationException,
     OneGatewayResourceToRestApiLinkingLimitationException,
     OneLambdaLayerLinkingLimitationException,
     OneRestApiToApiGatewayMethodLinkingLimitationException,
-    RestApiToApiGatewayMethodLocalVariablesLinkingLimitationException,
     OneRestApiToApiGatewayStageLinkingLimitationException,
-    GatewayResourceToApiGatewayMethodLocalVariablesLinkingLimitationException,
-    OneGatewayResourceToApiGatewayMethodLinkingLimitationException,
+    RestApiToApiGatewayMethodLocalVariablesLinkingLimitationException,
     RestApiToApiGatewayStageLocalVariablesLinkingLimitationException,
 )
 from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
@@ -37,6 +37,7 @@ from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     PropertyBuilderMapping,
 )
 from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
+    API_GATEWAY_RESOURCE_RESOURCE_ADDRESS_PREFIX,
     API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
     LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX,
     LogicalIdReference,
@@ -45,7 +46,7 @@ from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     ResourceLinkingPair,
     ResourcePairExceptions,
     _build_module,
-    _resolve_resource_attribute, API_GATEWAY_RESOURCE_RESOURCE_ADDRESS_PREFIX,
+    _resolve_resource_attribute,
 )
 from samcli.hook_packages.terraform.hooks.prepare.resources.apigw import RESTAPITranslationValidator
 from samcli.hook_packages.terraform.hooks.prepare.resources.resource_properties import get_resource_property_mapping
@@ -81,8 +82,6 @@ LOG = logging.getLogger(__name__)
 TRANSLATION_VALIDATORS: Dict[str, Type[ResourceTranslationValidator]] = {
     TF_AWS_API_GATEWAY_REST_API: RESTAPITranslationValidator,
 }
-
-RESOURCE_LINKING_DEFINITIONS: List[Callable[[Dict[str, TFResource], Dict[str, List], Dict[str, Dict]], None]] = []
 
 
 def translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_application_dir: str) -> dict:
@@ -505,7 +504,7 @@ def _link_gateway_resource_to_gateway_rest_apis_call_back(
 
 
 def _link_gateway_method_to_gateway_resource_call_back(
-        gateway_method_cfn_resource: Dict, referenced_gateway_resource_values: List[ReferenceType]
+    gateway_method_cfn_resource: Dict, referenced_gateway_resource_values: List[ReferenceType]
 ) -> None:
     """
     Callback function that is used by the linking algorithm to update an Api Gateway Method CFN Resource with
