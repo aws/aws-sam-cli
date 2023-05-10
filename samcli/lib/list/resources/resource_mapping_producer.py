@@ -42,7 +42,7 @@ class ResourceMappingProducer(Producer):
         iam_client,
         mapper,
         consumer,
-        parameter_overrides={},
+        parameter_overrides=None,
     ):
         self.parameter_overrides = parameter_overrides
         self.stack_name = stack_name

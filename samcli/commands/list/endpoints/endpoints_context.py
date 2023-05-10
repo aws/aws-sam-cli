@@ -24,7 +24,7 @@ class EndpointsContext(ListContext):
         region: Optional[str],
         profile: Optional[str],
         template_file: Optional[str],
-        parameter_overrides: dict = {},
+        parameter_overrides: Optional[dict] = None,
     ):
         """
         Parameters
@@ -39,7 +39,7 @@ class EndpointsContext(ListContext):
             Optional profile to be used
         template_file: Optional[str]
             The location of the template file. If one is not specified, the default will be "template.yaml" in the CWD
-        parameter_overrides: dict
+        parameter_overrides: Optional[dict]
             Dictionary of parameters to override in the template
         """
         super().__init__()

@@ -26,7 +26,7 @@ class SamTemplateValidator:
         managed_policy_loader: ManagedPolicyLoader,
         profile: Optional[str] = None,
         region: Optional[str] = None,
-        parameter_overrides: dict = {},
+        parameter_overrides: Optional[dict] = None,
     ):
         """
         Construct a SamTemplateValidator
@@ -51,14 +51,14 @@ class SamTemplateValidator:
             Optional name of boto profile
         region: Optional[str]
             Optional AWS region name
-        parameter_overrides: dict
+        parameter_overrides: Optional[dict]
             Template parameter overrides
         """
         self.sam_template = sam_template
         self.managed_policy_loader = managed_policy_loader
         self.sam_parser = parser.Parser()
         self.boto3_session = Session(profile_name=profile, region_name=region)
-        self.parameter_overrides = parameter_overrides
+        self.parameter_overrides = parameter_overrides or {}
 
     def get_translated_template_if_valid(self):
         """

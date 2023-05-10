@@ -69,7 +69,7 @@ class EndpointsProducer(ResourceMappingProducer, Producer):
         apigatewayv2_client,
         mapper,
         consumer,
-        parameter_overrides={},
+        parameter_overrides=None,
     ):
         """
         Parameters
@@ -96,7 +96,7 @@ class EndpointsProducer(ResourceMappingProducer, Producer):
             The mapper used to map data to the format needed for the consumer provided
         consumer: ListInfoPullerConsumer
             The consumer used to output the data
-        parameter_overrides: dict
+        parameter_overrides: Optional[dict]
             Dictionary of parameters to override in the template
         """
         super().__init__(

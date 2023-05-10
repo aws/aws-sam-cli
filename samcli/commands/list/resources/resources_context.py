@@ -20,7 +20,7 @@ class ResourcesContext(ListContext):
         region: Optional[str],
         profile: Optional[str],
         template_file: Optional[str],
-        parameter_overrides: dict = {},
+        parameter_overrides: Optional[dict] = None,
     ):
         super().__init__()
         self.stack_name = stack_name
