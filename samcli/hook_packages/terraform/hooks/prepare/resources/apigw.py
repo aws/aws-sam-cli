@@ -28,24 +28,6 @@ class RESTAPITranslationValidator(ResourceTranslationValidator):
             raise OpenAPIBodyNotSupportedException(self.config_resource.full_address)
 
 
-class ApiGatewayMethodProperties(ResourceProperties):
-    """
-    contains the collection logic of the required properties for linking the aws_api_gateway_method resources.
-    """
-
-    def __init__(self):
-        super(ApiGatewayMethodProperties, self).__init__()
-
-
-class ApiGatewayRestApiProperties(ResourceProperties):
-    """
-    contains the collection logic of the required properties for linking the aws_api_gateway_rest_api resources.
-    """
-
-    def __init__(self):
-        super(ApiGatewayRestApiProperties, self).__init__()
-
-
 def _unsupported_reference_field(field: str, resource: Dict, config_resource: TFResource) -> bool:
     """
     Check if a field in a resource is a reference to a computed value that is unknown until
@@ -82,3 +64,30 @@ class ApiGatewayResourceProperties(ResourceProperties):
 
     def __init__(self):
         super(ApiGatewayResourceProperties, self).__init__()
+
+
+class ApiGatewayMethodProperties(ResourceProperties):
+    """
+    contains the collection logic of the required properties for linking the aws_api_gateway_method resources.
+    """
+
+    def __init__(self):
+        super(ApiGatewayMethodProperties, self).__init__()
+
+
+class ApiGatewayRestApiProperties(ResourceProperties):
+    """
+    contains the collection logic of the required properties for linking the aws_api_gateway_rest_api resources.
+    """
+
+    def __init__(self):
+        super(ApiGatewayRestApiProperties, self).__init__()
+
+
+class ApiGatewayStageProperties(ResourceProperties):
+    """
+    Contains the collection logic of the required properties for linking the aws_api_gateway_stage resources.
+    """
+
+    def __init__(self):
+        super(ApiGatewayStageProperties, self).__init__()
