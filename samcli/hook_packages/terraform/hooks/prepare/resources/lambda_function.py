@@ -1,7 +1,6 @@
 """Module containing logic specific to Lambda function resource handling during the prepare hook execution"""
 from typing import Dict, List, Tuple
 
-from samcli.hook_packages.terraform.hooks.prepare.resource_linking import _get_configuration_address
 from samcli.hook_packages.terraform.hooks.prepare.resources.code_resource_utils import (
     _add_lambda_resource_code_path_to_code_map,
 )
@@ -13,31 +12,12 @@ from samcli.lib.utils.packagetype import IMAGE, ZIP
 
 
 class LambdaFunctionProperties(CodeResourceProperties):
-
     RESOURCE_TYPE_FIELD = "PackageType"
     CFN_CODE_FIELD = "Code"
     CFN_IMAGE_FIELD = "ImageUri"
 
     def __init__(self):
         super(LambdaFunctionProperties, self).__init__()
-
-    def collect(self, properties: ResourceTranslationProperties):
-        """
-        Collect any properties required for handling resource linking for Lambda functions.
-
-        This method collects the transformed CloudFormation AWS::Lambda::Function resources,
-        as well as the aws_lambda_function Terraform configuration resources
-
-        Parameters
-        ----------
-        properties: ResourceTranslationProperties
-            Properties acquired specific to an aws_lambda_function resource when iterating through a Terraform module
-        """
-        resolved_config_address = _get_configuration_address(properties.resource_full_address)
-        matched_lambdas = self.cfn_resources.get(resolved_config_address, [])
-        matched_lambdas.append(properties.translated_resource)
-        self.cfn_resources[resolved_config_address] = matched_lambdas
-        self.terraform_config[resolved_config_address] = properties.config_resource
 
     def add_lambda_resources_to_code_map(
         self,

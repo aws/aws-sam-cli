@@ -16,7 +16,6 @@ from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
 
 from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     _clean_references_list,
-    _get_configuration_address,
     _resolve_module_output,
     _resolve_module_variable,
     _build_module,
@@ -30,9 +29,11 @@ from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     ResourceLinkingPair,
     ResourcePairExceptions,
     LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX,
-    LinkerIntrinsics,
     ResourceLinker,
+    LogicalIdReference,
+    ExistingResourceReference,
 )
+from samcli.hook_packages.terraform.hooks.prepare.utilities import get_configuration_address
 from samcli.hook_packages.terraform.hooks.prepare.types import (
     ConstantValue,
     References,
@@ -125,7 +126,7 @@ class TestResourceLinking(TestCase):
         ]
     )
     def test_get_configation_address(self, input_addr, expected_addr):
-        cleaned_addr = _get_configuration_address(input_addr)
+        cleaned_addr = get_configuration_address(input_addr)
 
         self.assertEqual(cleaned_addr, expected_addr)
 
@@ -182,7 +183,7 @@ class TestResourceLinking(TestCase):
         self.assertEqual(resource.full_address, "resource_address")
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._resolve_module_variable")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
     def test_resolve_module_output_with_var(self, clean_ref_mock, config_mock, resolve_var_mock):
         constant_val = ConstantValue("mycoolvar")
@@ -211,7 +212,7 @@ class TestResourceLinking(TestCase):
         self.assertEqual(results[0].value, "mycoolvar")
         self.assertIsInstance(results[0], ConstantValue)
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
     def test_resolve_module_output_with_module(self, clean_ref_mock, config_mock):
         module = TFModule(None, None, {}, [], {}, {"mycooloutput": References(["module.mycoolmod.mycooloutput2"])})
@@ -226,7 +227,7 @@ class TestResourceLinking(TestCase):
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0].value, "mycoolconst")
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
     def test_resolve_module_output_already_resolved_constant(self, clean_ref_mock, config_mock):
         module = TFModule(None, None, {}, [], {}, {"mycooloutput": ConstantValue("mycoolconst")})
@@ -246,7 +247,7 @@ class TestResourceLinking(TestCase):
             (TFModule(None, None, {}, {}, {}, {"mycooloutput": References(["local.mycoolconst"])}), None),
         ]
     )
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
     def test_resolve_module_output_already_resolved_reference(self, module, expected_addr, clean_ref_mock, config_mock):
         clean_ref_mock.return_value = ["local.mycoolconst"]
@@ -258,7 +259,7 @@ class TestResourceLinking(TestCase):
         self.assertEqual(results[0].module_address, expected_addr)
         self.assertIsInstance(results[0], ResolvedReference)
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
     def test_resolve_module_output_raises_exception_empty_output(self, clean_ref_mock, get_config_mock):
         module = TFModule("module.mymod", None, {}, [], {}, {})
@@ -271,7 +272,7 @@ class TestResourceLinking(TestCase):
             "An error occurred when attempting to link two resources: Output empty was not found in module module.mymod",
         )
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
     def test_resolve_module_output_raises_exception_empty_children(self, clean_ref_mock, get_config_mock):
         module = TFModule("module.mymod", None, {}, [], {}, {"search": References(["module.nonexist.output"])})
@@ -287,7 +288,7 @@ class TestResourceLinking(TestCase):
             "An error occurred when attempting to link two resources: Module module.mymod does not have child modules defined",
         )
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
     def test_resolve_module_output_raises_exception_non_exist_child(self, clean_ref_mock, get_config_mock):
         module = TFModule(
@@ -313,7 +314,7 @@ class TestResourceLinking(TestCase):
             "module.name.output.again",
         ]
     )
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
     def test_resolve_module_output_invalid_module_name(self, invalid_reference, clean_ref_mock, get_config_mock):
         module = TFModule("module.name", None, {}, [], {}, {"output1": References([invalid_reference])})
@@ -341,7 +342,7 @@ class TestResourceLinking(TestCase):
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0].value, "layer.arn")
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
     def test_resolve_module_variable_nested_variables(self, mock_clean_references, mock_get_configuration_address):
         references = ["var.layer_name"]
@@ -369,7 +370,7 @@ class TestResourceLinking(TestCase):
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0].value, "layer.arn")
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
     def test_resolve_module_variable_local_variable(self, mock_clean_references, mock_get_configuration_address):
         references = ["local.layer_arn"]
@@ -397,7 +398,7 @@ class TestResourceLinking(TestCase):
         self.assertEqual(results[0].value, "local.layer_arn")
         self.assertEqual(results[0].module_address, "full/address")
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._resolve_module_output")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
     def test_resolve_module_variable_nested_modules(
@@ -430,7 +431,7 @@ class TestResourceLinking(TestCase):
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0].value, "layer_arn")
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._resolve_module_output")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
     def test_resolve_module_variable_combined_nested_modules(
@@ -495,7 +496,7 @@ class TestResourceLinking(TestCase):
             "layer could not be found in module root module.",
         )
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
     def test_resolve_module_variable_enters_invalid_state(self, mock_clean_references, mock_get_configuration_address):
         references = ["local.layer_arn"]
@@ -519,7 +520,7 @@ class TestResourceLinking(TestCase):
             "An error occurred when attempting to link two resources: Resource linking entered an invalid state.",
         )
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
     def test_resolve_module_variable_invalid_module_reference(
         self, mock_clean_references, mock_get_configuration_address
@@ -784,7 +785,7 @@ class TestResourceLinking(TestCase):
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._resolve_module_variable")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.get_configuration_address")
     def test_resolve_resource_attribute_variable_reference(
         self, get_configuration_address_mock, clean_references_mock, resolve_module_variable_mock
     ):
@@ -824,7 +825,7 @@ class TestResourceLinking(TestCase):
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._resolve_module_output")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.get_configuration_address")
     def test_resolve_resource_attribute_module_reference(
         self, get_configuration_address_mock, clean_references_mock, resolve_module_output_mock
     ):
@@ -900,7 +901,7 @@ class TestResourceLinking(TestCase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._resolve_module_variable")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._resolve_module_output")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._clean_references_list")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.get_configuration_address")
     def test_resolve_resource_attribute_module_and_variable_references(
         self,
         get_configuration_address_mock,
@@ -1069,18 +1070,110 @@ class TestResourceLinker(TestCase):
         self.sample_resource_linking_pair = ResourceLinkingPair(
             source_resource_cfn_resource=Mock(),
             source_resource_tf_config=Mock(),
-            destination_resource_tf=Mock(),
-            intrinsic_type=LinkerIntrinsics.Ref,
-            cfn_intrinsic_attribute=None,
-            source_link_field_name="Layers",
+            destination_resource_tf={
+                "applied_layer1_logical_id": {"values": {"arn": "applied_layer1.arn", "filename": "/some/path"}},
+                "applied_layer2_logical_id": {"values": {"arn": "applied_layer2.arn", "filename": "/some/path"}},
+                "noo_applied_layer3_logical_id": {"values": {"filename": "/some/path"}},
+            },
+            tf_destination_attribute_name="arn",
             terraform_link_field_name="layers",
+            cfn_link_field_name="Layers",
             terraform_resource_type_prefix=LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX,
+            cfn_resource_update_call_back_function=Mock(),
             linking_exceptions=self.linker_exceptions,
         )
 
+    def test_handle_linking_mix_of_applied_and_non_applied_resources(self):
+        cfn_resource_depend_on_applied_resources = {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "FunctionName": "func1",
+                "Runtime": "Python3.7",
+                "Layers": ["applied_layer1.arn", "existing_layer1.arn"],
+            },
+        }
+        cfn_resource_depend_on_at_least_one_non_applied_resource = {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {"FunctionName": "func2", "Runtime": "Python3.7"},
+        }
+        cfn_resources = [
+            cfn_resource_depend_on_applied_resources,
+            cfn_resource_depend_on_at_least_one_non_applied_resource,
+        ]
+        source_tf_resource = Mock()
+        resource_linker = ResourceLinker(self.sample_resource_linking_pair)
+
+        resource_linker._link_using_terraform_config = Mock()
+        resource_linker._link_using_linking_fields = Mock()
+
+        resource_linker._handle_linking(source_tf_resource, cfn_resources)
+        resource_linker._link_using_terraform_config.assert_called_with(
+            source_tf_resource, [cfn_resource_depend_on_at_least_one_non_applied_resource]
+        )
+        resource_linker._link_using_linking_fields.assert_called_with(cfn_resource_depend_on_applied_resources)
+
+    def test_handle_linking_only_applied_resources(self):
+        cfn_resource1_depend_on_applied_resources = {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "FunctionName": "func1",
+                "Runtime": "Python3.7",
+                "Layers": ["applied_layer1.arn", "existing_layer1.arn"],
+            },
+        }
+        cfn_resource2_depend_on_applied_resources = {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "FunctionName": "func2",
+                "Runtime": "Python3.7",
+                "Layers": ["applied_layer2.arn", "existing_layer2.arn"],
+            },
+        }
+        cfn_resources = [
+            cfn_resource1_depend_on_applied_resources,
+            cfn_resource2_depend_on_applied_resources,
+        ]
+        source_tf_resource = Mock()
+        resource_linker = ResourceLinker(self.sample_resource_linking_pair)
+
+        resource_linker._link_using_terraform_config = Mock()
+        resource_linker._link_using_linking_fields = Mock()
+
+        resource_linker._handle_linking(source_tf_resource, cfn_resources)
+        resource_linker._link_using_terraform_config.assert_called_with(source_tf_resource, [])
+        resource_linker._link_using_linking_fields.assert_has_calls(
+            [
+                call(cfn_resource1_depend_on_applied_resources),
+                call(cfn_resource2_depend_on_applied_resources),
+            ]
+        )
+
+    def test_handle_linking_only_non_applied_resources(self):
+        cfn_resource1_depend_on_at_least_one_non_applied_resource = {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {"FunctionName": "func2", "Runtime": "Python3.7"},
+        }
+        cfn_resource2_depend_on_at_least_one_non_applied_resource = {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {"FunctionName": "func3", "Runtime": "Python3.7"},
+        }
+        cfn_resources = [
+            cfn_resource1_depend_on_at_least_one_non_applied_resource,
+            cfn_resource2_depend_on_at_least_one_non_applied_resource,
+        ]
+        source_tf_resource = Mock()
+        resource_linker = ResourceLinker(self.sample_resource_linking_pair)
+
+        resource_linker._link_using_terraform_config = Mock()
+        resource_linker._link_using_linking_fields = Mock()
+
+        resource_linker._handle_linking(source_tf_resource, cfn_resources)
+        resource_linker._link_using_terraform_config.assert_called_once_with(source_tf_resource, cfn_resources)
+        resource_linker._link_using_linking_fields.assert_not_called()
+
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._resolve_resource_attribute")
-    def test_handle_linking_valid_scenario(self, resolve_resource_attribute_mock):
-        source_resources = Mock()
+    def test_link_using_terraform_config_valid_scenario(self, resolve_resource_attribute_mock):
+        source_resources = [Mock()]
         dest_resources = [Mock()]
         resource = Mock()
 
@@ -1094,17 +1187,17 @@ class TestResourceLinker(TestCase):
 
         resource_linker._update_mapped_parent_resource_with_resolved_child_resources = Mock()
 
-        resource_linker._handle_linking(resource, source_resources)
+        resource_linker._link_using_terraform_config(resource, source_resources)
 
         resource_linker._process_resolved_resources.assert_called_with(resource, resolved_dest_resources)
-        resource_linker._update_mapped_parent_resource_with_resolved_child_resources.assert_called_with(
-            source_resources, dest_resources
+        self.sample_resource_linking_pair.cfn_resource_update_call_back_function.assert_called_with(
+            source_resources[0], dest_resources
         )
         resolve_resource_attribute_mock.assert_called_with(resource, "layers")
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._resolve_resource_attribute")
-    def test_handle_linking_multiple_destinations_exception(self, resolve_resource_attribute_mock):
-        source_resources = Mock()
+    def test_link_using_terraform_config_multiple_destinations_exception(self, resolve_resource_attribute_mock):
+        source_resources = [Mock()]
         dest_resources = ["layer2.arn", {"Ref": "layer1_logical_id"}]
 
         resource_linker = ResourceLinker(self.sample_resource_linking_pair)
@@ -1126,8 +1219,23 @@ class TestResourceLinker(TestCase):
             f"{os.linesep}Related issue: {ONE_LAMBDA_LAYER_LINKING_ISSUE_LINK}."
         )
         with self.assertRaises(OneLambdaLayerLinkingLimitationException) as exc:
-            resource_linker._handle_linking(resource, source_resources)
+            resource_linker._link_using_terraform_config(resource, source_resources)
         self.assertEqual(exc.exception.args[0], expected_exception)
+
+    def test_link_using_linking_fields_mix_existing_and_applied_resources(self):
+        cfn_resource = {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {"Layers": ["applied_layer1.arn", "existing_layer1.arn"]},
+        }
+        resource_linker = ResourceLinker(self.sample_resource_linking_pair)
+        resource_linker._link_using_linking_fields(cfn_resource)
+        dest_resources = [
+            LogicalIdReference("applied_layer1_logical_id"),
+            ExistingResourceReference("existing_layer1.arn"),
+        ]
+        self.sample_resource_linking_pair.cfn_resource_update_call_back_function.assert_called_with(
+            cfn_resource, dest_resources
+        )
 
     def test_process_resolved_resources_constant_only(self):
         resource = Mock()
@@ -1240,7 +1348,7 @@ class TestResourceLinker(TestCase):
 
         resources = resource_linker._process_reference_resource_value(resource, reference_resolved_layer)
         self.assertEqual(len(resources), 1)
-        self.assertEqual(resources[0], {"Ref": "layer1LogicalId"})
+        self.assertEqual(resources[0], LogicalIdReference("layer1LogicalId"))
         build_cfn_logical_id_mock.assert_called_with("module.layer1.aws_lambda_layer_version.layer")
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.build_cfn_logical_id")
@@ -1283,62 +1391,6 @@ class TestResourceLinker(TestCase):
         with self.assertRaises(InvalidResourceLinkingException) as exc:
             resource_linker._process_reference_resource_value(resource, reference_resolved_resource)
         self.assertEqual(exc.exception.args[0], expected_exception)
-
-    def test_update_mapped_lambda_function_with_resolved_layers(self):
-        cfn_source_resources = [
-            {"Type": "AWS::Lambda::Function", "Properties": {"Code": "/path/code1", "Runtime": "Python3.8"}},
-            {
-                "Type": "AWS::Lambda::Function",
-                "Properties": {"Code": "/path/code2", "Runtime": "Python3.8", "Layers": ["layer3.arn", "layer1.arn"]},
-            },
-        ]
-        tf_destination_resources = {
-            "layer1_logical_id": {
-                "address": "aws_lambda_layer_version.layer1",
-                "type": "aws_lambda_layer_version",
-                "name": "layer1",
-                "provider_name": "registry.terraform.io/hashicorp/aws",
-                "values": {
-                    "compatible_runtimes": ["python3.8"],
-                    "filename": "/path/layer1_code",
-                    "layer_name": "layer1",
-                    "arn": "layer1.arn",
-                },
-            },
-            "layer2_logical_id": {
-                "address": "aws_lambda_layer_version.layer2",
-                "type": "aws_lambda_layer_version",
-                "name": "layer2",
-                "provider_name": "registry.terraform.io/hashicorp/aws",
-                "values": {
-                    "compatible_runtimes": ["python3.8"],
-                    "filename": "/path/layer2_code",
-                    "layer_name": "layer2",
-                },
-            },
-            "layer3_logical_id": {
-                "address": "aws_lambda_layer_version.layer3",
-                "type": "aws_lambda_layer_version",
-                "name": "layer3",
-                "provider_name": "registry.terraform.io/hashicorp/aws",
-                "values": {
-                    "compatible_runtimes": ["python3.8"],
-                    "filename": "/path/layer2_code",
-                    "layer_name": "layer3",
-                },
-            },
-        }
-        destination_resources = [{"Ref": "layer1_logical_id"}, {"Ref": "layer3_logical_id"}]
-        resource_linker = ResourceLinker(self.sample_resource_linking_pair)
-        resource_linker._resource_pair.destination_resource_tf = tf_destination_resources
-        resource_linker._update_mapped_parent_resource_with_resolved_child_resources(
-            cfn_source_resources, destination_resources
-        )
-        self.assertEqual(cfn_source_resources[0]["Properties"]["Layers"], destination_resources)
-        self.assertEqual(
-            cfn_source_resources[1]["Properties"]["Layers"],
-            ["layer3.arn", {"Ref": "layer1_logical_id"}, {"Ref": "layer3_logical_id"}],
-        )
 
     def test_link_resources(self):
         source_config_resources = {
