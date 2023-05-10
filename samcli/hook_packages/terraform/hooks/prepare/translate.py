@@ -519,9 +519,10 @@ def _link_gateway_method_to_gateway_resource_call_back(
         defined in the customer project, or ARN values for actual Gateway Resources resource defined
         in customer's account. This list should always contain one element only.
     """
-    # if the destination rest api list contains more than one element, so we have an issue in our linking logic
     if len(referenced_gateway_resource_values) > 1:
-        raise InvalidResourceLinkingException("Could not link multiple Rest APIs to one Gateway method resource")
+        raise InvalidResourceLinkingException(
+            "Could not link multiple Gateway Resources to one Gateway method resource"
+        )
 
     logical_id = referenced_gateway_resource_values[0]
     gateway_method_cfn_resource["Properties"]["ResourceId"] = (
