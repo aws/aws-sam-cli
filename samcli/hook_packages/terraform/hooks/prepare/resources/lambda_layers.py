@@ -12,7 +12,6 @@ from samcli.hook_packages.terraform.hooks.prepare.types import (
 
 
 class LambdaLayerVersionProperties(CodeResourceProperties):
-
     CFN_CODE_FIELD = "Content"
 
     def __init__(self):

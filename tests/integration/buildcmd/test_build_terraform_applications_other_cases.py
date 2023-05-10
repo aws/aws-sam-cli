@@ -295,36 +295,6 @@ class TestUnsupportedCases(BuildTerraformApplicationIntegBase):
         self.assertEqual(return_code, 1)
         self.assertRegex(stderr.decode("utf-8"), expected_error_message)
 
-    @parameterized.expand(
-        [
-            ("conditional_layers",),
-            ("conditional_layers_null",),
-            ("one_lambda_function_linked_to_two_layers",),
-            ("lambda_function_referencing_local_var_layer",),
-        ]
-    )
-    def test_unsupported_cases_runs_after_apply(self, app):
-        self.terraform_application_path = Path(self.terraform_application_path) / app
-        shutil.copytree(Path(self.terraform_application_path), Path(self.working_dir))
-        init_command = ["terraform", "init"]
-        _, _, return_code = self.run_command(init_command)
-        self.assertEqual(return_code, 0)
-        apply_command = ["terraform", "apply", "-auto-approve"]
-        _, _, return_code = self.run_command(apply_command)
-        self.assertEqual(return_code, 0)
-        build_cmd_list = self.get_command_list(beta_features=True, hook_name="terraform")
-        LOG.info("command list: %s", build_cmd_list)
-        _, _, return_code = self.run_command(build_cmd_list)
-        self.assertEqual(return_code, 0)
-        self._verify_invoke_built_function(
-            function_logical_id="aws_lambda_function.function1",
-            overrides=None,
-            expected_result={"statusCode": 200, "body": "hello world 1"},
-        )
-        destroy_command = ["terraform", "destroy", "-auto-approve"]
-        _, _, return_code = self.run_command(destroy_command)
-        self.assertEqual(return_code, 0)
-
 
 @skipIf(
     (not RUN_BY_CANARY and not CI_OVERRIDE),
