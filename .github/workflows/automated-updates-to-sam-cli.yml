@@ -61,8 +61,8 @@ jobs:
       - name: Checkout SAM
         uses: actions/checkout@v3
         with:
-          repository: aws/serverless-applicaiton-model
-          path: serverless-applicaiton-model
+          repository: aws/serverless-application-model
+          path: serverless-application-model
           ref: main
       
       - name: Checkout SAM CLI
@@ -79,7 +79,7 @@ jobs:
         run: |
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
-          cd serverless-applicaiton-model
+          cd serverless-application-model
           SAM_T_CUR_VERSION=$(git describe --tags --abbrev=0 | sed 's/v//')
           cd ../aws-sam-cli
           git checkout -b update_sam_transform_version
