@@ -24,6 +24,7 @@ from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
     API_GATEWAY_RESOURCE_RESOURCE_ADDRESS_PREFIX,
 )
+from samcli.hook_packages.terraform.hooks.prepare.resources.internal import INTERNAL_PREFIX
 from tests.unit.hook_packages.terraform.hooks.prepare.prepare_base import PrepareHookUnitBase
 from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING,
@@ -38,6 +39,8 @@ from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     TF_AWS_API_GATEWAY_METHOD,
     TF_AWS_API_GATEWAY_RESOURCE,
     TF_AWS_API_GATEWAY_STAGE,
+    TF_AWS_API_GATEWAY_INTEGRATION,
+    AWS_API_GATEWAY_INTEGRATION_PROPERTY_BUILDER_MAPPING,
 )
 from samcli.hook_packages.terraform.hooks.prepare.types import (
     SamMetadataResource,
@@ -489,6 +492,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         gateway_method_properties_mock = Mock()
         gateway_resource_properties_mock = Mock()
         gateway_stage_properties_mock = Mock()
+        internal_gateway_integration_properties_mock = Mock()
         mock_resource_property_mapping.return_value = {
             TF_AWS_LAMBDA_FUNCTION: lambda_properties_mock,
             TF_AWS_LAMBDA_LAYER_VERSION: lambda_layer_properties_mock,
@@ -496,6 +500,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
             TF_AWS_API_GATEWAY_METHOD: gateway_method_properties_mock,
             TF_AWS_API_GATEWAY_RESOURCE: gateway_resource_properties_mock,
             TF_AWS_API_GATEWAY_STAGE: gateway_stage_properties_mock,
+            TF_AWS_API_GATEWAY_INTEGRATION: internal_gateway_integration_properties_mock,
         }
 
         translated_cfn_dict = translate_to_cfn(
@@ -1712,3 +1717,9 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
             self.tf_apigw_method_properties, AWS_API_GATEWAY_METHOD_PROPERTY_BUILDER_MAPPING, Mock()
         )
         self.assertEqual(translated_cfn_properties, self.expected_cfn_apigw_method_properties)
+
+    def test_translating_apigw_integration_method(self):
+        translated_cfn_properties = _translate_properties(
+            self.tf_apigw_integration_properties, AWS_API_GATEWAY_INTEGRATION_PROPERTY_BUILDER_MAPPING, Mock()
+        )
+        self.assertEqual(translated_cfn_properties, self.expected_internal_apigw_integration_properties)
