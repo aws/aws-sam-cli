@@ -61,9 +61,10 @@ jobs:
       - name: Checkout SAM
         uses: actions/checkout@v3
         with:
-          repository: aws/serverless-applicaiton-model
-          path: serverless-applicaiton-model
+          repository: aws/serverless-application-model
+          path: serverless-application-model
           ref: main
+          fetch-depth: 0
       
       - name: Checkout SAM CLI
         uses: actions/checkout@v3
@@ -79,13 +80,15 @@ jobs:
         run: |
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
-          cd serverless-applicaiton-model
+          cd serverless-application-model
           SAM_T_CUR_VERSION=$(git describe --tags --abbrev=0 | sed 's/v//')
+          echo "SAM-T cur version is $SAM_T_CUR_VERSION"
           cd ../aws-sam-cli
           git checkout -b update_sam_transform_version
           SAM_T_PRE_VERSION=$(grep "aws-sam-translator=" requirements/base.txt)
+          echo "SAM-T pre version is $SAM_T_PRE_VERSION"
           git reset --hard develop
-          sed -i "s/aws-sam-translator=$SAM_T_CUR_VERSION/$SAM_T_PRE_VERSION/g" requirements/base.txt; make update-reproducible-reqs
+          sed -i "s/$SAM_T_PRE_VERSION/aws-sam-translator==$SAM_T_CUR_VERSION/g" requirements/base.txt; make update-reproducible-reqs
           cp -r ../serverless-application-model/tests/translator/input ./tests/functional/commands/validate/lib/models
           git status
           git diff --quiet && exit 0 # exit if there is no change

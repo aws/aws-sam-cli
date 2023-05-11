@@ -1,7 +1,7 @@
 from unittest import TestCase
 from unittest.mock import patch, MagicMock
 
-from samcli.commands.exceptions import UserException, CredentialsError
+from samcli.commands.exceptions import UserException, AWSServiceClientError
 from samcli.lib.bootstrap.bootstrap import manage_stack, StackOutput, get_current_account_id
 
 
@@ -41,5 +41,5 @@ class TestBootstrapManagedStack(TestCase):
         sts_mock = MagicMock()
         sts_mock.get_caller_identity.return_value = {}
         session_mock.client.return_value = sts_mock
-        with self.assertRaises(CredentialsError):
+        with self.assertRaises(AWSServiceClientError):
             get_current_account_id()
