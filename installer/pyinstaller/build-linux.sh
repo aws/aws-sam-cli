@@ -1,9 +1,9 @@
 #!/bin/sh
 binary_zip_filename=$1
 python_library_zip_filename=$2
-python_version=$3
-build_binary_name=$4
-build_folder=$5
+build_binary_name=$3
+build_folder=$4
+python_version=$5
 
 if [ "$python_library_zip_filename" = "" ]; then
     python_library_zip_filename="python-libraries.zip";
