@@ -50,8 +50,9 @@ def clean_redundant_folders(base_dir: str, uuids: Set[str]) -> None:
     if not base_dir_path.exists():
         return
 
-    for full_dir_path in pathlib.Path(base_dir).iterdir():
-        if full_dir_path.name not in uuids:
+    for full_dir_path in base_dir_path.iterdir():
+        if full_dir_path.name not in uuids and full_dir_path.is_dir():
+            LOG.debug("Cleaning up redundant folder %s, which is not related to any function or layer", full_dir_path)
             shutil.rmtree(pathlib.Path(base_dir, full_dir_path.name))
 
 
