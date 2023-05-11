@@ -461,14 +461,9 @@ class TestGetTranslatedDict(TestCase):
             "Resources": {
                 "Gateway": {
                     "Type": "AWS::Serverless::HttpApi",
-                    "Properties": {
-                        "Domain": {
-                            "DomainName": {"Ref": "DomainName"},
-                            "CertificateArn": "arn here"
-                        }
-                    },
+                    "Properties": {"Domain": {"DomainName": {"Ref": "DomainName"}, "CertificateArn": "arn here"}},
                 }
-            }
+            },
         }
 
         expected_domain_name = "example.com"
@@ -483,7 +478,7 @@ class TestGetTranslatedDict(TestCase):
             iam_client=None,
             mapper=DataToJsonMapper(),
             consumer=StringConsumerJsonOutput(),
-            parameter_overrides={"DomainName": expected_domain_name}
+            parameter_overrides={"DomainName": expected_domain_name},
         )
         output = resource_producer.get_translated_dict(mock_sam_file_reader.return_value)
 
@@ -491,8 +486,11 @@ class TestGetTranslatedDict(TestCase):
         self.assertIn(expected_logical_id, output.get("Resources", {}))
 
         # check we have the domain name populated
-        output_domain_name = output.get("Resources", {}).get(expected_logical_id, {}).get("Properties", {}).get("DomainName")
+        output_domain_name = (
+            output.get("Resources", {}).get(expected_logical_id, {}).get("Properties", {}).get("DomainName")
+        )
         self.assertEqual(expected_domain_name, output_domain_name)
+
 
 class TestResourcesInitClients(TestCase):
     @patch("samcli.commands.list.json_consumer.click.echo")
