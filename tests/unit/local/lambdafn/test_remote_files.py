@@ -1,8 +1,6 @@
 from unittest.case import TestCase
 from unittest.mock import patch, Mock
 
-from pathlib import Path
-
 from samcli.local.lambdafn.remote_files import unzip_from_uri
 
 
@@ -13,7 +11,9 @@ class TestUnzipFromUri(TestCase):
     @patch("samcli.local.lambdafn.remote_files.requests")
     @patch("samcli.local.lambdafn.remote_files.os")
     @patch("samcli.local.lambdafn.remote_files.open")
-    def test_successfully_unzip_from_uri(self, open_mock, os_patch, requests_patch, progressbar_patch, path_patch, unzip_patch):
+    def test_successfully_unzip_from_uri(
+        self, open_mock, os_patch, requests_patch, progressbar_patch, path_patch, unzip_patch
+    ):
         get_request_mock = Mock()
         get_request_mock.headers = {"Content-length": "200"}
         get_request_mock.iter_content.return_value = [b"data1"]
