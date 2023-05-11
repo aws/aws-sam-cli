@@ -9,7 +9,6 @@ from typing import Any, Dict, List
 
 from botocore.exceptions import BotoCoreError, ClientError
 
-# from botocore.client import Cloudformation
 from samcli.commands._utils.template import get_template_data
 from samcli.commands.list.exceptions import (
     SamListLocalResourcesNotFoundError,
