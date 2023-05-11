@@ -428,22 +428,38 @@ def _link_gateway_resources_to_gateway_rest_apis(
         Dictionary of all actual terraform Rest API resources (not configuration resources). The dictionary's key is the
         calculated logical id for each resource.
     """
-    exceptions = ResourcePairExceptions(
-        multiple_resource_linking_exception=OneGatewayResourceToRestApiLinkingLimitationException,
-        local_variable_linking_exception=GatewayResourceToGatewayRestApiLocalVariablesLinkingLimitationException,
-    )
-    resource_linking_pair = ResourceLinkingPair(
-        source_resource_cfn_resource=gateway_resources_cfn_resources,
-        source_resource_tf_config=gateway_resources_tf_configs,
-        destination_resource_tf=rest_apis_terraform_resources,
-        tf_destination_attribute_name="id",
-        terraform_link_field_name="rest_api_id",
-        cfn_link_field_name="RestApiId",
-        terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
-        cfn_resource_update_call_back_function=_link_gateway_resource_to_gateway_rest_apis_call_back,
-        linking_exceptions=exceptions,
-    )
-    ResourceLinker(resource_linking_pair).link_resources()
+    resource_linking_pairs = [
+        ResourceLinkingPair(
+            source_resource_cfn_resource=gateway_resources_cfn_resources,
+            source_resource_tf_config=gateway_resources_tf_configs,
+            destination_resource_tf=rest_apis_terraform_resources,
+            tf_destination_attribute_name="id",
+            terraform_link_field_name="rest_api_id",
+            cfn_link_field_name="RestApiId",
+            terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+            cfn_resource_update_call_back_function=_link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back,
+            linking_exceptions=ResourcePairExceptions(
+                multiple_resource_linking_exception=OneGatewayResourceToRestApiLinkingLimitationException,
+                local_variable_linking_exception=GatewayResourceToGatewayRestApiLocalVariablesLinkingLimitationException,
+            ),
+        ),
+        ResourceLinkingPair(
+            source_resource_cfn_resource=gateway_resources_cfn_resources,
+            source_resource_tf_config=gateway_resources_tf_configs,
+            destination_resource_tf=rest_apis_terraform_resources,
+            tf_destination_attribute_name="root_resource_id",
+            terraform_link_field_name="parent_id",
+            cfn_link_field_name="ResourceId",
+            terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+            cfn_resource_update_call_back_function=_link_gateway_resource_to_gateway_rest_apis_parent_id_call_back,
+            linking_exceptions=ResourcePairExceptions(
+                multiple_resource_linking_exception=OneGatewayResourceToRestApiLinkingLimitationException,
+                local_variable_linking_exception=GatewayResourceToGatewayRestApiLocalVariablesLinkingLimitationException,
+            ),
+        ),
+    ]
+    for resource_linking_pair in resource_linking_pairs:
+        ResourceLinker(resource_linking_pair).link_resources()
 
 
 def _link_lambda_functions_to_layers(
@@ -482,7 +498,7 @@ def _link_lambda_functions_to_layers(
     ResourceLinker(resource_linking_pair).link_resources()
 
 
-def _link_gateway_resource_to_gateway_rest_apis_call_back(
+def _link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back(
     gateway_cfn_resource: Dict, referenced_rest_apis_values: List[ReferenceType]
 ) -> None:
     """
@@ -535,6 +551,34 @@ def _link_gateway_method_to_gateway_resource_call_back(
     )
 
 
+def _link_gateway_resource_to_gateway_rest_apis_parent_id_call_back(
+    gateway_cfn_resource: Dict, referenced_rest_apis_values: List[ReferenceType]
+) -> None:
+    """
+    Callback function that used by the linking algorithm to update an Api Gateway Resource CFN Resource with
+    a reference to the Rest Api resource.
+
+    Parameters
+    ----------
+    gateway_cfn_resource: Dict
+        API Gateway Method CFN resource
+    referenced_rest_apis_values: List[ReferenceType]
+        List of referenced REST API either as the logical id of REST API resource defined in the customer project, or
+        ARN values for actual REST API resource defined in customer's account. This list should always contain one
+        element only.
+    """
+    # if the destination rest api list contains more than one element, so we have an issue in our linking logic
+    if len(referenced_rest_apis_values) > 1:
+        raise InvalidResourceLinkingException("Could not link multiple Rest APIs to one Gateway resource")
+
+    logical_id = referenced_rest_apis_values[0]
+    gateway_cfn_resource["Properties"]["ParentId"] = (
+        {"Fn::GetAtt": [logical_id.value, "RootResourceId"]}
+        if isinstance(logical_id, LogicalIdReference)
+        else logical_id.value
+    )
+
+
 def _link_gateway_methods_to_gateway_rest_apis(
     gateway_methods_config_resources: Dict[str, TFResource],
     gateway_methods_config_address_cfn_resources_map: Dict[str, List],
@@ -566,7 +610,7 @@ def _link_gateway_methods_to_gateway_rest_apis(
         terraform_link_field_name="rest_api_id",
         cfn_link_field_name="RestApiId",
         terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
-        cfn_resource_update_call_back_function=_link_gateway_resource_to_gateway_rest_apis_call_back,
+        cfn_resource_update_call_back_function=_link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back,
         linking_exceptions=exceptions,
     )
     ResourceLinker(resource_linking_pair).link_resources()
@@ -602,7 +646,7 @@ def _link_gateway_stage_to_rest_api(
         terraform_link_field_name="rest_api_id",
         cfn_link_field_name="RestApiId",
         terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
-        cfn_resource_update_call_back_function=_link_gateway_resource_to_gateway_rest_apis_call_back,
+        cfn_resource_update_call_back_function=_link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back,
         linking_exceptions=exceptions,
     )
     ResourceLinker(resource_linking_pair).link_resources()
