@@ -10,5 +10,6 @@ class InternalApiGatewayIntegrationProperties(ResourceProperties):
     Collect resource properties for translating and linking an aws_api_gateway_integration
     to the AWS::ApiGateway::Method resource
     """
+
     def __init__(self):
         super(InternalApiGatewayIntegrationProperties, self).__init__()
