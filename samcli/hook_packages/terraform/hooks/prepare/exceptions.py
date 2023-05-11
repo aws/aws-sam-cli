@@ -87,6 +87,32 @@ class RestApiToApiGatewayMethodLocalVariablesLinkingLimitationException(LocalVar
     """
 
 
+class OneGatewayResourceToApiGatewayMethodLinkingLimitationException(OneResourceLinkingLimitationException):
+    """
+    Exception specific for Gateway Method linking to more than API Gateway Resource
+    """
+
+
+class GatewayResourceToApiGatewayMethodLocalVariablesLinkingLimitationException(
+    LocalVariablesLinkingLimitationException
+):
+    """
+    Exception specific for Gateway Method linking to Gateway Resource using locals.
+    """
+
+
+class OneRestApiToApiGatewayStageLinkingLimitationException(OneResourceLinkingLimitationException):
+    """
+    Exception specific for Gateway Stage linking to more than Rest API
+    """
+
+
+class RestApiToApiGatewayStageLocalVariablesLinkingLimitationException(LocalVariablesLinkingLimitationException):
+    """
+    Exception specific for Gateway Stage linking to Rest API using locals.
+    """
+
+
 class InvalidSamMetadataPropertiesException(UserException):
     pass
 

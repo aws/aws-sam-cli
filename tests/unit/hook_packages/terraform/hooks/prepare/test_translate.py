@@ -12,12 +12,17 @@ from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     InvalidResourceLinkingException,
     OneGatewayResourceToRestApiLinkingLimitationException,
     GatewayResourceToGatewayRestApiLocalVariablesLinkingLimitationException,
+    OneRestApiToApiGatewayStageLinkingLimitationException,
+    RestApiToApiGatewayStageLocalVariablesLinkingLimitationException,
+    OneGatewayResourceToApiGatewayMethodLinkingLimitationException,
+    GatewayResourceToApiGatewayMethodLocalVariablesLinkingLimitationException,
 )
 from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX,
     ExistingResourceReference,
     LogicalIdReference,
     API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+    API_GATEWAY_RESOURCE_RESOURCE_ADDRESS_PREFIX,
 )
 from tests.unit.hook_packages.terraform.hooks.prepare.prepare_base import PrepareHookUnitBase
 from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
@@ -32,6 +37,7 @@ from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     TF_AWS_LAMBDA_LAYER_VERSION,
     TF_AWS_API_GATEWAY_METHOD,
     TF_AWS_API_GATEWAY_RESOURCE,
+    TF_AWS_API_GATEWAY_STAGE,
 )
 from samcli.hook_packages.terraform.hooks.prepare.types import (
     SamMetadataResource,
@@ -47,8 +53,12 @@ from samcli.hook_packages.terraform.hooks.prepare.translate import (
     _get_s3_object_hash,
     _link_lambda_functions_to_layers_call_back,
     _link_gateway_methods_to_gateway_rest_apis,
-    _link_gateway_resource_to_gateway_rest_apis_call_back,
+    _link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back,
     _link_gateway_resources_to_gateway_rest_apis,
+    _link_gateway_resource_to_gateway_rest_apis_parent_id_call_back,
+    _link_gateway_stage_to_rest_api,
+    _link_gateway_method_to_gateway_resource,
+    _link_gateway_method_to_gateway_resource_call_back,
 )
 from samcli.hook_packages.terraform.hooks.prepare.translate import AWS_PROVIDER_NAME
 from samcli.hook_packages.terraform.hooks.prepare.types import TFModule, TFResource, ConstantValue, ResolvedReference
@@ -95,6 +105,8 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._check_dummy_remote_values")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._build_module")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.get_configuration_address")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_gateway_stage_to_rest_api")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_gateway_method_to_gateway_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_gateway_resources_to_gateway_rest_apis")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_gateway_methods_to_gateway_rest_apis")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_lambda_functions_to_layers")
@@ -107,6 +119,8 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         mock_link_lambda_functions_to_layers,
         mock_link_gateway_methods_to_gateway_rest_apis,
         mock_link_gateway_resources_to_gateway_rest_apis,
+        mock_link_gateway_method_to_gateway_resource,
+        mock_link_gateway_stage_to_rest_api,
         mock_get_configuration_address,
         mock_build_module,
         mock_check_dummy_remote_values,
@@ -218,6 +232,28 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
             },
         ]
         mock_link_gateway_resources_to_gateway_rest_apis.assert_called_once_with(*expected_arguments_in_call)
+
+        expected_arguments_in_call = [
+            ANY,
+            {
+                f"aws_api_gateway_stage.my_stage": [self.expected_cfn_apigw_stage_resource],
+            },
+            {
+                f"AwsApiGatewayRestApiMyRestApi{self.mock_logical_id_hash}": self.tf_apigw_rest_api_resource,
+            },
+        ]
+        mock_link_gateway_stage_to_rest_api.assert_called_once_with(*expected_arguments_in_call)
+
+        expected_arguments_in_call = [
+            ANY,
+            {
+                f"aws_api_gateway_method.my_method": [self.expected_cfn_apigw_method],
+            },
+            {
+                f"AwsApiGatewayResourceMyResource{self.mock_logical_id_hash}": self.tf_apigw_resource_resource,
+            },
+        ]
+        mock_link_gateway_method_to_gateway_resource.assert_called_once_with(*expected_arguments_in_call)
 
         mock_validator.assert_called_once_with(
             resource=self.tf_apigw_rest_api_resource, config_resource=config_resource
@@ -409,12 +445,16 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_gateway_methods_to_gateway_rest_apis")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_gateway_resources_to_gateway_rest_apis")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_gateway_stage_to_rest_api")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_gateway_method_to_gateway_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.enrich_resources_and_generate_makefile")
     @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
     def test_translate_to_cfn_with_root_module_with_sam_metadata_resource(
         self,
         checksum_mock,
         mock_enrich_resources_and_generate_makefile,
+        mock_link_gateway_method_to_gateway_resource,
+        mock_link_gateway_stage_to_rest_api,
         mock_link_gateway_resources_to_gateway_rest_apis,
         mock_link_gateway_methods_to_gateway_rest_apis,
         mock_link_lambda_functions_to_layers,
@@ -448,12 +488,14 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         rest_api_properties_mock = Mock()
         gateway_method_properties_mock = Mock()
         gateway_resource_properties_mock = Mock()
+        gateway_stage_properties_mock = Mock()
         mock_resource_property_mapping.return_value = {
             TF_AWS_LAMBDA_FUNCTION: lambda_properties_mock,
             TF_AWS_LAMBDA_LAYER_VERSION: lambda_layer_properties_mock,
             TF_AWS_API_GATEWAY_REST_API: rest_api_properties_mock,
             TF_AWS_API_GATEWAY_METHOD: gateway_method_properties_mock,
             TF_AWS_API_GATEWAY_RESOURCE: gateway_resource_properties_mock,
+            TF_AWS_API_GATEWAY_STAGE: gateway_stage_properties_mock,
         }
 
         translated_cfn_dict = translate_to_cfn(
@@ -1059,7 +1101,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         self.assertEqual(lambda_function, input_function)
 
     @patch(
-        "samcli.hook_packages.terraform.hooks.prepare.translate._link_gateway_resource_to_gateway_rest_apis_call_back"
+        "samcli.hook_packages.terraform.hooks.prepare.translate._link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back"
     )
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.ResourceLinker")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.ResourceLinkingPair")
@@ -1095,7 +1137,10 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         mock_resource_linker.assert_called_once_with(mock_resource_linking_pair())
 
     @patch(
-        "samcli.hook_packages.terraform.hooks.prepare.translate._link_gateway_resource_to_gateway_rest_apis_call_back"
+        "samcli.hook_packages.terraform.hooks.prepare.translate._link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back"
+    )
+    @patch(
+        "samcli.hook_packages.terraform.hooks.prepare.translate._link_gateway_resource_to_gateway_rest_apis_parent_id_call_back"
     )
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.ResourceLinker")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.ResourceLinkingPair")
@@ -1105,7 +1150,8 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         mock_resource_linking_exceptions,
         mock_resource_linking_pair,
         mock_resource_linker,
-        mock_link_gateway_methods_to_gateway_rest_apis_call_back,
+        mock_link_gateway_methods_to_gateway_rest_apis_parent_id_call_back,
+        mock_link_gateway_methods_to_gateway_rest_apis_rest_api_id_call_back,
     ):
         gateway_resource_config_resources = Mock()
         terraform_rest_apis_resources = Mock()
@@ -1113,19 +1159,118 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         _link_gateway_resources_to_gateway_rest_apis(
             resources, gateway_resource_config_resources, terraform_rest_apis_resources
         )
+        mock_resource_linking_exceptions.assert_has_calls(
+            [
+                call(
+                    multiple_resource_linking_exception=OneGatewayResourceToRestApiLinkingLimitationException,
+                    local_variable_linking_exception=GatewayResourceToGatewayRestApiLocalVariablesLinkingLimitationException,
+                ),
+                call(
+                    multiple_resource_linking_exception=OneGatewayResourceToRestApiLinkingLimitationException,
+                    local_variable_linking_exception=GatewayResourceToGatewayRestApiLocalVariablesLinkingLimitationException,
+                ),
+            ]
+        )
+
+        mock_resource_linking_pair.assert_has_calls(
+            [
+                call(
+                    source_resource_cfn_resource=gateway_resource_config_resources,
+                    source_resource_tf_config=resources,
+                    destination_resource_tf=terraform_rest_apis_resources,
+                    tf_destination_attribute_name="id",
+                    terraform_link_field_name="rest_api_id",
+                    cfn_link_field_name="RestApiId",
+                    terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+                    cfn_resource_update_call_back_function=mock_link_gateway_methods_to_gateway_rest_apis_rest_api_id_call_back,
+                    linking_exceptions=mock_resource_linking_exceptions(),
+                ),
+                call(
+                    source_resource_cfn_resource=gateway_resource_config_resources,
+                    source_resource_tf_config=resources,
+                    destination_resource_tf=terraform_rest_apis_resources,
+                    tf_destination_attribute_name="root_resource_id",
+                    terraform_link_field_name="parent_id",
+                    cfn_link_field_name="ResourceId",
+                    terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+                    cfn_resource_update_call_back_function=mock_link_gateway_methods_to_gateway_rest_apis_parent_id_call_back,
+                    linking_exceptions=mock_resource_linking_exceptions(),
+                ),
+            ]
+        )
+        mock_resource_linker.assert_has_calls(
+            [
+                call(mock_resource_linking_pair()),
+                call().link_resources(),
+                call(mock_resource_linking_pair()),
+                call().link_resources(),
+            ]
+        )
+
+    @patch(
+        "samcli.hook_packages.terraform.hooks.prepare.translate._link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back"
+    )
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.ResourceLinker")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.ResourceLinkingPair")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.ResourcePairExceptions")
+    def test_link_gateway_stage_to_gateway_rest_apis(
+        self,
+        mock_resource_linking_exceptions,
+        mock_resource_linking_pair,
+        mock_resource_linker,
+        mock_link_gateway_resource_to_gateway_rest_apis_call_back,
+    ):
+        gateway_stage_config_resources = Mock()
+        terraform_rest_apis_resources = Mock()
+        resources = Mock()
+        _link_gateway_stage_to_rest_api(resources, gateway_stage_config_resources, terraform_rest_apis_resources)
         mock_resource_linking_exceptions.assert_called_once_with(
-            multiple_resource_linking_exception=OneGatewayResourceToRestApiLinkingLimitationException,
-            local_variable_linking_exception=GatewayResourceToGatewayRestApiLocalVariablesLinkingLimitationException,
+            multiple_resource_linking_exception=OneRestApiToApiGatewayStageLinkingLimitationException,
+            local_variable_linking_exception=RestApiToApiGatewayStageLocalVariablesLinkingLimitationException,
         )
         mock_resource_linking_pair.assert_called_once_with(
-            source_resource_cfn_resource=gateway_resource_config_resources,
+            source_resource_cfn_resource=gateway_stage_config_resources,
             source_resource_tf_config=resources,
             destination_resource_tf=terraform_rest_apis_resources,
             tf_destination_attribute_name="id",
             terraform_link_field_name="rest_api_id",
             cfn_link_field_name="RestApiId",
             terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
-            cfn_resource_update_call_back_function=mock_link_gateway_methods_to_gateway_rest_apis_call_back,
+            cfn_resource_update_call_back_function=mock_link_gateway_resource_to_gateway_rest_apis_call_back,
+            linking_exceptions=mock_resource_linking_exceptions(),
+        )
+        mock_resource_linker.assert_called_once_with(mock_resource_linking_pair())
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_gateway_method_to_gateway_resource_call_back")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.ResourceLinker")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.ResourceLinkingPair")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.ResourcePairExceptions")
+    def test_link_gateway_methods_to_gateway_resources(
+        self,
+        mock_resource_linking_exceptions,
+        mock_resource_linking_pair,
+        mock_resource_linker,
+        mock_link_gateway_method_to_gateway_resource_call_back,
+    ):
+        gateway_method_config_resources = Mock()
+        terraform_resources_resources = Mock()
+        resources = Mock()
+        _link_gateway_method_to_gateway_resource(
+            resources, gateway_method_config_resources, terraform_resources_resources
+        )
+        mock_resource_linking_exceptions.assert_called_once_with(
+            multiple_resource_linking_exception=OneGatewayResourceToApiGatewayMethodLinkingLimitationException,
+            local_variable_linking_exception=GatewayResourceToApiGatewayMethodLocalVariablesLinkingLimitationException,
+        )
+        mock_resource_linking_pair.assert_called_once_with(
+            source_resource_cfn_resource=gateway_method_config_resources,
+            source_resource_tf_config=resources,
+            destination_resource_tf=terraform_resources_resources,
+            tf_destination_attribute_name="id",
+            terraform_link_field_name="resource_id",
+            cfn_link_field_name="ResourceId",
+            terraform_resource_type_prefix=API_GATEWAY_RESOURCE_RESOURCE_ADDRESS_PREFIX,
+            cfn_resource_update_call_back_function=mock_link_gateway_method_to_gateway_resource_call_back,
             linking_exceptions=mock_resource_linking_exceptions(),
         )
         mock_resource_linker.assert_called_once_with(mock_resource_linking_pair())
@@ -1162,7 +1307,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         self, input_gateway_method, logical_ids, expected_rest_api
     ):
         gateway_method = input_gateway_method.copy()
-        _link_gateway_resource_to_gateway_rest_apis_call_back(gateway_method, logical_ids)
+        _link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back(gateway_method, logical_ids)
         input_gateway_method["Properties"]["RestApiId"] = expected_rest_api
         self.assertEqual(gateway_method, input_gateway_method)
 
@@ -1173,7 +1318,97 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
             InvalidResourceLinkingException,
             msg="Could not link multiple Rest APIs to one Gateway method resource",
         ):
-            _link_gateway_resource_to_gateway_rest_apis_call_back(gateway_method, logical_ids)
+            _link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back(gateway_method, logical_ids)
+
+    @parameterized.expand(
+        [
+            (
+                {
+                    "Type": "AWS::ApiGateway::Method",
+                    "Properties": {"HttpMethod": "post", "ResourceId": "resource.id"},
+                },
+                [LogicalIdReference("Resource1")],
+                {"Ref": "Resource1"},
+            ),
+            (
+                {
+                    "Type": "AWS::ApiGateway::Method",
+                    "Properties": {"HttpMethod": "post", "ResourceId": "resource.id"},
+                },
+                [ExistingResourceReference("resource.id")],
+                "resource.id",
+            ),
+            (
+                {
+                    "Type": "AWS::ApiGateway::Method",
+                    "Properties": {"HttpMethod": "post"},
+                },
+                [LogicalIdReference("Resource1")],
+                {"Ref": "Resource1"},
+            ),
+        ]
+    )
+    def test_link_gateway_method_to_gateway_resource_call_back(
+        self, input_gateway_method, logical_ids, expected_resource
+    ):
+        gateway_method = input_gateway_method.copy()
+        _link_gateway_method_to_gateway_resource_call_back(gateway_method, logical_ids)
+        input_gateway_method["Properties"]["ResourceId"] = expected_resource
+        self.assertEqual(gateway_method, input_gateway_method)
+
+    def test_link_gateway_method_to_gateway_resource_call_back_multiple_destinations(self):
+        gateway_method = Mock()
+        logical_ids = [Mock(), Mock()]
+        with self.assertRaises(
+            InvalidResourceLinkingException,
+            msg="Could not link multiple Gateway Resources to one Gateway method resource",
+        ):
+            _link_gateway_method_to_gateway_resource_call_back(gateway_method, logical_ids)
+
+    @parameterized.expand(
+        [
+            (
+                {
+                    "Type": "AWS::ApiGateway::Resource",
+                    "Properties": {"ParentId": "restapi.parent_id"},
+                },
+                [LogicalIdReference("RestApi")],
+                {"Fn::GetAtt": ["RestApi", "RootResourceId"]},
+            ),
+            (
+                {
+                    "Type": "AWS::ApiGateway::Resource",
+                    "Properties": {"ParentId": "restapi.parent_id"},
+                },
+                [ExistingResourceReference("restapi.parent_id")],
+                "restapi.parent_id",
+            ),
+            (
+                {
+                    "Type": "AWS::ApiGateway::Resource",
+                    "Properties": {},
+                },
+                [LogicalIdReference("RestApi")],
+                {"Fn:GetAtt": ["RestApi", "RootResourceId"]},
+            ),
+        ]
+    )
+    def test_link_gateway_resource_to_gateway_rest_api_parent_id_call_back(
+        self, input_gateway_resource, logical_ids, expected_rest_api
+    ):
+        gateway_resource = input_gateway_resource.copy()
+        _link_gateway_resource_to_gateway_rest_apis_parent_id_call_back(gateway_resource, logical_ids)
+        input_gateway_resource["Properties"]["ParentId"] = expected_rest_api
+        self.assertEqual(gateway_resource, input_gateway_resource)
+
+    def test_link_gateway_resource_to_gateway_rest_apis_call_back_multiple_destinations(self):
+        gateway_resource = Mock()
+        logical_ids = [Mock(), Mock()]
+        with self.assertRaises(
+            InvalidResourceLinkingException,
+            msg="Could not link multiple Rest APIs to one Gateway resource",
+        ):
+            _link_gateway_resource_to_gateway_rest_apis_parent_id_call_back(gateway_resource, logical_ids)
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._calculate_configuration_attribute_value_hash")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._get_s3_object_hash")
