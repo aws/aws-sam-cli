@@ -9,7 +9,7 @@ import boto3
 from botocore.config import Config
 from botocore.exceptions import ClientError, NoCredentialsError, NoRegionError
 
-from samcli.commands.exceptions import CredentialsError, RegionError
+from samcli.commands.exceptions import AWSServiceClientError, RegionError
 from samcli.lib.bootstrap.companion_stack.companion_stack_builder import CompanionStackBuilder
 from samcli.lib.bootstrap.companion_stack.data_types import CompanionStack, ECRRepo
 from samcli.lib.package.artifact_exporter import mktempfile
@@ -58,7 +58,7 @@ class CompanionStackManager:
             self._account_id = boto3.client("sts").get_caller_identity().get("Account")
             self._region_name = self._cfn_client.meta.region_name
         except NoCredentialsError as ex:
-            raise CredentialsError(
+            raise AWSServiceClientError(
                 "Error Setting Up Managed Stack Client: Unable to resolve "
                 "credentials for the AWS SDK for Python client. "
                 "Please see their documentation for options to pass in credentials: "
