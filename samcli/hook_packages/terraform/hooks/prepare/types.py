@@ -2,7 +2,7 @@
 from abc import ABC
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, NamedTuple, Optional, Tuple, Union
 
 from samcli.hook_packages.terraform.hooks.prepare.utilities import get_configuration_address
 
@@ -82,8 +82,7 @@ class SamMetadataResource:
     config_resource: TFResource
 
 
-@dataclass
-class LinkingPairCaller:
+class LinkingPairCaller(NamedTuple):
     source: str
     dest: str
     linking_func: Callable[[Dict[str, TFResource], Dict[str, List], Dict[str, Dict]], None]
