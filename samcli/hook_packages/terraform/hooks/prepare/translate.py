@@ -23,6 +23,7 @@ from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     _resolve_resource_attribute,
 )
 from samcli.hook_packages.terraform.hooks.prepare.resources.apigw import RESTAPITranslationValidator
+from samcli.hook_packages.terraform.hooks.prepare.resources.internal import INTERNAL_PREFIX
 from samcli.hook_packages.terraform.hooks.prepare.resources.resource_links import RESOURCE_LINKS
 from samcli.hook_packages.terraform.hooks.prepare.resources.resource_properties import get_resource_property_mapping
 from samcli.hook_packages.terraform.hooks.prepare.types import (
@@ -196,7 +197,11 @@ def translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_applic
             logical_id = build_cfn_logical_id(resource_full_address)
 
             # Add resource to cfn dict
-            cfn_dict["Resources"][logical_id] = translated_resource
+            if not translated_resource.get("Type", "").startswith(INTERNAL_PREFIX):
+                # Internal resources are ones used for the purpose of translation, they are not real CFN resources.
+                # These are usually resources that exist in other IaCs that don't map 1:1 with CFN resources, but their
+                # properties need to be mapped to other, existing CFN resources.
+                cfn_dict["Resources"][logical_id] = translated_resource
 
             resource_translation_properties = ResourceTranslationProperties(
                 resource=resource,
