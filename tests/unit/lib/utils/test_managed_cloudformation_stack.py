@@ -7,7 +7,7 @@ from botocore.exceptions import NoCredentialsError, NoRegionError, ProfileNotFou
 from botocore.stub import Stubber
 from parameterized import parameterized
 
-from samcli.commands.exceptions import UserException, CredentialsError, RegionError
+from samcli.commands.exceptions import UserException, AWSServiceClientError, RegionError
 from samcli.lib.bootstrap.bootstrap import _get_stack_template, SAM_CLI_STACK_NAME
 from samcli.lib.utils.managed_cloudformation_stack import (
     manage_stack,
@@ -35,7 +35,7 @@ class TestManagedCloudFormationStack(TestCase):
     @patch("boto3.Session")
     def test_session_missing_profile(self, boto_mock):
         boto_mock.side_effect = ProfileNotFound(profile="test-profile")
-        with self.assertRaises(CredentialsError):
+        with self.assertRaises(AWSServiceClientError):
             manage_stack(
                 profile="test-profile",
                 region="fake-region",
@@ -46,7 +46,7 @@ class TestManagedCloudFormationStack(TestCase):
     @patch("boto3.Session")
     def test_session_missing_profile_update(self, boto_mock):
         boto_mock.side_effect = ProfileNotFound(profile="test-profile")
-        with self.assertRaises(CredentialsError):
+        with self.assertRaises(AWSServiceClientError):
             update_stack(
                 profile="test-profile",
                 region="fake-region",
@@ -57,7 +57,7 @@ class TestManagedCloudFormationStack(TestCase):
     @patch("boto3.client")
     def test_client_missing_credentials(self, boto_mock):
         boto_mock.side_effect = NoCredentialsError()
-        with self.assertRaises(CredentialsError):
+        with self.assertRaises(AWSServiceClientError):
             manage_stack(
                 profile=None, region="fake-region", stack_name=SAM_CLI_STACK_NAME, template_body=_get_stack_template()
             )
@@ -65,7 +65,7 @@ class TestManagedCloudFormationStack(TestCase):
     @patch("boto3.client")
     def test_client_missing_credentials_update(self, boto_mock):
         boto_mock.side_effect = NoCredentialsError()
-        with self.assertRaises(CredentialsError):
+        with self.assertRaises(AWSServiceClientError):
             update_stack(
                 profile=None, region="fake-region", stack_name=SAM_CLI_STACK_NAME, template_body=_get_stack_template()
             )
