@@ -82,6 +82,13 @@ class SamMetadataResource:
     config_resource: TFResource
 
 
+@dataclass
+class LinkingPairCaller:
+    source: str
+    dest: str
+    linking_func: Callable[[Dict[str, TFResource], Dict[str, List], Dict[str, Dict]], None]
+
+
 class ResourceTranslationValidator:
     """
     Base class for a validation class to be used when translating Terraform resources to a metadata file

@@ -2,28 +2,6 @@
 import copy
 from unittest.mock import Mock, call, patch, MagicMock, ANY
 
-from parameterized import parameterized
-
-from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
-    OneLambdaLayerLinkingLimitationException,
-    FunctionLayerLocalVariablesLinkingLimitationException,
-    OneRestApiToApiGatewayMethodLinkingLimitationException,
-    RestApiToApiGatewayMethodLocalVariablesLinkingLimitationException,
-    InvalidResourceLinkingException,
-    OneGatewayResourceToRestApiLinkingLimitationException,
-    GatewayResourceToGatewayRestApiLocalVariablesLinkingLimitationException,
-    OneRestApiToApiGatewayStageLinkingLimitationException,
-    RestApiToApiGatewayStageLocalVariablesLinkingLimitationException,
-    OneGatewayResourceToApiGatewayMethodLinkingLimitationException,
-    GatewayResourceToApiGatewayMethodLocalVariablesLinkingLimitationException,
-)
-from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
-    LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX,
-    ExistingResourceReference,
-    LogicalIdReference,
-    API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
-    API_GATEWAY_RESOURCE_RESOURCE_ADDRESS_PREFIX,
-)
 from tests.unit.hook_packages.terraform.hooks.prepare.prepare_base import PrepareHookUnitBase
 from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING,
@@ -41,24 +19,18 @@ from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
 )
 from samcli.hook_packages.terraform.hooks.prepare.types import (
     SamMetadataResource,
+    LinkingPairCaller,
+    ResourceProperties,
 )
 from samcli.hook_packages.terraform.hooks.prepare.translate import (
     translate_to_cfn,
     _add_child_modules_to_queue,
     _add_metadata_resource_to_metadata_list,
     _translate_properties,
-    _link_lambda_functions_to_layers,
     _map_s3_sources_to_functions,
     _check_dummy_remote_values,
     _get_s3_object_hash,
-    _link_lambda_functions_to_layers_call_back,
-    _link_gateway_methods_to_gateway_rest_apis,
-    _link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back,
-    _link_gateway_resources_to_gateway_rest_apis,
-    _link_gateway_resource_to_gateway_rest_apis_parent_id_call_back,
-    _link_gateway_stage_to_rest_api,
-    _link_gateway_method_to_gateway_resource,
-    _link_gateway_method_to_gateway_resource_call_back,
+    _handle_linking,
 )
 from samcli.hook_packages.terraform.hooks.prepare.translate import AWS_PROVIDER_NAME
 from samcli.hook_packages.terraform.hooks.prepare.types import TFModule, TFResource, ConstantValue, ResolvedReference
@@ -72,14 +44,10 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._build_module")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.get_configuration_address")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_gateway_methods_to_gateway_rest_apis")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.enrich_resources_and_generate_makefile")
     def test_translate_to_cfn_empty(
         self,
         mock_enrich_resources_and_generate_makefile,
-        mock_link_lambda_functions_to_layers,
-        mock_link_gateway_methods_to_gateway_rest_apis,
         mock_get_configuration_address,
         mock_build_module,
     ):
@@ -102,28 +70,20 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
             self.assertEqual(translated_cfn_dict, expected_empty_cfn_dict)
             mock_enrich_resources_and_generate_makefile.assert_not_called()
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._handle_linking")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._check_dummy_remote_values")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._build_module")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.get_configuration_address")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_gateway_stage_to_rest_api")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_gateway_method_to_gateway_resource")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_gateway_resources_to_gateway_rest_apis")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_gateway_methods_to_gateway_rest_apis")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.enrich_resources_and_generate_makefile")
     @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
     def test_translate_to_cfn_with_root_module_only(
         self,
         checksum_mock,
         mock_enrich_resources_and_generate_makefile,
-        mock_link_lambda_functions_to_layers,
-        mock_link_gateway_methods_to_gateway_rest_apis,
-        mock_link_gateway_resources_to_gateway_rest_apis,
-        mock_link_gateway_method_to_gateway_resource,
-        mock_link_gateway_stage_to_rest_api,
         mock_get_configuration_address,
         mock_build_module,
         mock_check_dummy_remote_values,
+        mock_handle_linking,
     ):
         root_module = MagicMock()
         root_module.get.return_value = "module.m1"
@@ -149,112 +109,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
             )
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_root_module_only)
         mock_enrich_resources_and_generate_makefile.assert_not_called()
-        expected_arguments_in_call = [
-            ANY,
-            {
-                "aws_lambda_function.myfunc": [
-                    {
-                        "Type": "AWS::Lambda::Function",
-                        "Properties": {
-                            "FunctionName": "myfunc",
-                            "Architectures": ["x86_64"],
-                            "Environment": {"Variables": {"foo": "bar", "hello": "world"}},
-                            "Code": "file.zip",
-                            "Handler": "index.handler",
-                            "PackageType": "Zip",
-                            "Runtime": "python3.7",
-                            "Layers": ["layer_arn1", "layer_arn2"],
-                            "Timeout": 3,
-                            "MemorySize": 128,
-                        },
-                        "Metadata": {"SamResourceId": "aws_lambda_function.myfunc", "SkipBuild": True},
-                    }
-                ],
-                "aws_lambda_function.myfunc2": [
-                    {
-                        "Type": "AWS::Lambda::Function",
-                        "Properties": {
-                            "FunctionName": "myfunc2",
-                            "Architectures": ["x86_64"],
-                            "Environment": {"Variables": {"hi": "there"}},
-                            "Code": "file2.zip",
-                            "Handler": "index.handler2",
-                            "PackageType": "Zip",
-                            "Runtime": "python3.8",
-                            "Layers": ["layer_arn"],
-                        },
-                        "Metadata": {"SamResourceId": "aws_lambda_function.myfunc2", "SkipBuild": True},
-                    }
-                ],
-                "aws_lambda_function.image_func": [
-                    {
-                        "Type": "AWS::Lambda::Function",
-                        "Properties": {
-                            "FunctionName": "image_func",
-                            "Architectures": ["x86_64"],
-                            "Environment": {"Variables": {"foo": "bar", "hello": "world"}},
-                            "Code": {"ImageUri": "image/uri:tag"},
-                            "PackageType": "Image",
-                            "Timeout": 3,
-                            "MemorySize": 128,
-                            "ImageConfig": {
-                                "Command": ["cmd1", "cmd2"],
-                                "EntryPoint": ["entry1", "entry2"],
-                                "WorkingDirectory": "/working/dir/path",
-                            },
-                        },
-                        "Metadata": {"SamResourceId": "aws_lambda_function.image_func", "SkipBuild": True},
-                    }
-                ],
-            },
-            {},
-        ]
-        mock_link_lambda_functions_to_layers.assert_called_once_with(*expected_arguments_in_call)
-
-        expected_arguments_in_call = [
-            ANY,
-            {
-                f"aws_api_gateway_method.my_method": [self.expected_cfn_apigw_method],
-            },
-            {
-                f"AwsApiGatewayRestApiMyRestApi{self.mock_logical_id_hash}": self.tf_apigw_rest_api_resource,
-            },
-        ]
-        mock_link_gateway_methods_to_gateway_rest_apis.assert_called_once_with(*expected_arguments_in_call)
-
-        expected_arguments_in_call = [
-            ANY,
-            {
-                f"aws_api_gateway_resource.my_resource": [self.expected_cfn_apigw_resource],
-            },
-            {
-                f"AwsApiGatewayRestApiMyRestApi{self.mock_logical_id_hash}": self.tf_apigw_rest_api_resource,
-            },
-        ]
-        mock_link_gateway_resources_to_gateway_rest_apis.assert_called_once_with(*expected_arguments_in_call)
-
-        expected_arguments_in_call = [
-            ANY,
-            {
-                f"aws_api_gateway_stage.my_stage": [self.expected_cfn_apigw_stage_resource],
-            },
-            {
-                f"AwsApiGatewayRestApiMyRestApi{self.mock_logical_id_hash}": self.tf_apigw_rest_api_resource,
-            },
-        ]
-        mock_link_gateway_stage_to_rest_api.assert_called_once_with(*expected_arguments_in_call)
-
-        expected_arguments_in_call = [
-            ANY,
-            {
-                f"aws_api_gateway_method.my_method": [self.expected_cfn_apigw_method],
-            },
-            {
-                f"AwsApiGatewayResourceMyResource{self.mock_logical_id_hash}": self.tf_apigw_resource_resource,
-            },
-        ]
-        mock_link_gateway_method_to_gateway_resource.assert_called_once_with(*expected_arguments_in_call)
-
+        mock_handle_linking.assert_called_once()
         mock_validator.assert_called_once_with(
             resource=self.tf_apigw_rest_api_resource, config_resource=config_resource
         )
@@ -264,16 +119,12 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._check_dummy_remote_values")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._build_module")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.get_configuration_address")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_gateway_methods_to_gateway_rest_apis")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.enrich_resources_and_generate_makefile")
     @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
     def test_translate_to_cfn_with_s3_object_which_linked_to_uncreated_bucket(
         self,
         checksum_mock,
         mock_enrich_resources_and_generate_makefile,
-        mock_link_lambda_functions_to_layers,
-        mock_link_gateway_methods_to_gateway_rest_apis,
         mock_get_configuration_address,
         mock_build_module,
         mock_check_dummy_remote_values,
@@ -313,20 +164,18 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         translate_to_cfn(tf_json_with_root_module_contains_s3_object, self.output_dir, self.project_root)
         mock_resolve_resource_attribute.assert_has_calls([call(resource_mock, "bucket"), call(resource_mock, "key")])
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._handle_linking")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._check_dummy_remote_values")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._build_module")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_gateway_methods_to_gateway_rest_apis")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.enrich_resources_and_generate_makefile")
     @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
     def test_translate_to_cfn_with_child_modules(
         self,
         checksum_mock,
         mock_enrich_resources_and_generate_makefile,
-        mock_link_lambda_functions_to_layers,
-        mock_link_gateway_methods_to_gateway_rest_apis,
         mock_build_module,
         mock_check_dummy_remote_values,
+        mock_handle_linking,
     ):
         root_module = MagicMock()
         root_module.get.return_value = "module.m1"
@@ -345,96 +194,10 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         translated_cfn_dict = translate_to_cfn(self.tf_json_with_child_modules, self.output_dir, self.project_root)
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_child_modules)
         mock_enrich_resources_and_generate_makefile.assert_not_called()
-        expected_arguments_in_call = [
-            {
-                "aws_lambda_function.myfunc": conf_resource,
-                "module.mymodule1.aws_lambda_function.myfunc2": conf_resource,
-                "module.mymodule1.module.mymodule2.aws_lambda_function.myfunc3": conf_resource,
-                "module.mymodule1.module.mymodule2.aws_lambda_function.myfunc4": conf_resource,
-            },
-            {
-                "aws_lambda_function.myfunc": [
-                    {
-                        "Type": "AWS::Lambda::Function",
-                        "Properties": {
-                            "FunctionName": "myfunc",
-                            "Architectures": ["x86_64"],
-                            "Environment": {"Variables": {"foo": "bar", "hello": "world"}},
-                            "Code": "file.zip",
-                            "Handler": "index.handler",
-                            "PackageType": "Zip",
-                            "Runtime": "python3.7",
-                            "Layers": ["layer_arn1", "layer_arn2"],
-                            "Timeout": 3,
-                            "MemorySize": 128,
-                        },
-                        "Metadata": {"SamResourceId": "aws_lambda_function.myfunc", "SkipBuild": True},
-                    }
-                ],
-                "module.mymodule1.aws_lambda_function.myfunc2": [
-                    {
-                        "Type": "AWS::Lambda::Function",
-                        "Properties": {
-                            "FunctionName": "myfunc2",
-                            "Architectures": ["x86_64"],
-                            "Environment": {"Variables": {"hi": "there"}},
-                            "Code": "file2.zip",
-                            "Handler": "index.handler2",
-                            "PackageType": "Zip",
-                            "Runtime": "python3.8",
-                            "Layers": ["layer_arn"],
-                        },
-                        "Metadata": {
-                            "SamResourceId": "module.mymodule1.aws_lambda_function.myfunc2",
-                            "SkipBuild": True,
-                        },
-                    }
-                ],
-                "module.mymodule1.module.mymodule2.aws_lambda_function.myfunc3": [
-                    {
-                        "Type": "AWS::Lambda::Function",
-                        "Properties": {
-                            "FunctionName": "myfunc3",
-                            "Architectures": ["x86_64"],
-                            "Environment": {"Variables": {"hi": "there"}},
-                            "Code": "file2.zip",
-                            "Handler": "index.handler2",
-                            "PackageType": "Zip",
-                            "Runtime": "python3.8",
-                            "Layers": ["layer_arn"],
-                        },
-                        "Metadata": {
-                            "SamResourceId": "module.mymodule1.module.mymodule2.aws_lambda_function.myfunc3",
-                            "SkipBuild": True,
-                        },
-                    }
-                ],
-                "module.mymodule1.module.mymodule2.aws_lambda_function.myfunc4": [
-                    {
-                        "Type": "AWS::Lambda::Function",
-                        "Properties": {
-                            "FunctionName": "myfunc4",
-                            "Architectures": ["x86_64"],
-                            "Environment": {"Variables": {"hi": "there"}},
-                            "Code": "file2.zip",
-                            "Handler": "index.handler2",
-                            "PackageType": "Zip",
-                            "Runtime": "python3.8",
-                            "Layers": ["layer_arn"],
-                        },
-                        "Metadata": {
-                            "SamResourceId": "module.mymodule1.module.mymodule2.aws_lambda_function.myfunc4",
-                            "SkipBuild": True,
-                        },
-                    }
-                ],
-            },
-            {},
-        ]
-        mock_link_lambda_functions_to_layers.assert_called_once_with(*expected_arguments_in_call)
-        mock_link_gateway_methods_to_gateway_rest_apis.assert_called_once_with({}, {}, {})
+        mock_handle_linking.assert_called_once()
         mock_check_dummy_remote_values.assert_called_once_with(translated_cfn_dict.get("Resources"))
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._handle_linking")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.get_resource_property_mapping")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.isinstance")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.ResourceTranslationProperties")
@@ -442,22 +205,12 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._check_dummy_remote_values")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._build_module")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.get_configuration_address")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_lambda_functions_to_layers")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_gateway_methods_to_gateway_rest_apis")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_gateway_resources_to_gateway_rest_apis")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_gateway_stage_to_rest_api")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_gateway_method_to_gateway_resource")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.enrich_resources_and_generate_makefile")
     @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
     def test_translate_to_cfn_with_root_module_with_sam_metadata_resource(
         self,
         checksum_mock,
         mock_enrich_resources_and_generate_makefile,
-        mock_link_gateway_method_to_gateway_resource,
-        mock_link_gateway_stage_to_rest_api,
-        mock_link_gateway_resources_to_gateway_rest_apis,
-        mock_link_gateway_methods_to_gateway_rest_apis,
-        mock_link_lambda_functions_to_layers,
         mock_get_configuration_address,
         mock_build_module,
         mock_check_dummy_remote_values,
@@ -465,6 +218,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         mock_resource_translation_properties,
         mock_isinstance,
         mock_resource_property_mapping,
+        mock_handle_linking,
     ):
         root_module = MagicMock()
         root_module.get.return_value = "module.m1"
@@ -585,16 +339,12 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._check_dummy_remote_values")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._build_module")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.get_configuration_address")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_gateway_methods_to_gateway_rest_apis")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.enrich_resources_and_generate_makefile")
     @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
     def test_translate_to_cfn_with_child_modules_with_sam_metadata_resource(
         self,
         checksum_mock,
         mock_enrich_resources_and_generate_makefile,
-        mock_link_lambda_functions_to_layers,
-        mock_link_gateway_methods_to_gateway_rest_apis,
         mock_get_configuration_address,
         mock_build_module,
         mock_check_dummy_remote_values,
@@ -662,16 +412,12 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._check_dummy_remote_values")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._build_module")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.get_configuration_address")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_gateway_methods_to_gateway_rest_apis")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.enrich_resources_and_generate_makefile")
     @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
     def test_translate_to_cfn_with_unsupported_provider(
         self,
         checksum_mock,
         mock_enrich_resources_and_generate_makefile,
-        mock_link_lambda_functions_to_layers,
-        mock_link_gateway_methods_to_gateway_rest_apis,
         mock_get_configuration_address,
         mock_build_module,
         mock_check_dummy_remote_values,
@@ -700,16 +446,12 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._check_dummy_remote_values")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._build_module")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.get_configuration_address")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_gateway_methods_to_gateway_rest_apis")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.enrich_resources_and_generate_makefile")
     @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
     def test_translate_to_cfn_with_unsupported_resource_type(
         self,
         checksum_mock,
         mock_enrich_resources_and_generate_makefile,
-        mock_link_lambda_functions_to_layers,
-        mock_link_gateway_methods_to_gateway_rest_apis,
         mock_get_configuration_address,
         mock_build_module,
         mock_check_dummy_remote_values,
@@ -738,16 +480,12 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._check_dummy_remote_values")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._build_module")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.get_configuration_address")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_gateway_methods_to_gateway_rest_apis")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_lambda_functions_to_layers")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.enrich_resources_and_generate_makefile")
     @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
     def test_translate_to_cfn_with_mapping_s3_source_to_function(
         self,
         checksum_mock,
         mock_enrich_resources_and_generate_makefile,
-        mock_link_lambda_functions_to_layers,
-        mock_link_gateway_methods_to_gateway_rest_apis,
         mock_get_configuration_address,
         mock_build_module,
         mock_check_dummy_remote_values,
@@ -973,443 +711,6 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         )
         self.assertEqual(translated_cfn_properties, self.expected_cfn_function_properties_with_missing_or_none)
 
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_lambda_functions_to_layers_call_back")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.ResourceLinker")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.ResourceLinkingPair")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.ResourcePairExceptions")
-    def test_link_lambda_functions_to_layers(
-        self,
-        mock_resource_linking_exceptions,
-        mock_resource_linking_pair,
-        mock_resource_linker,
-        mock_link_lambda_functions_to_layers_call_back,
-    ):
-        lambda_funcs_config_resources = {
-            "aws_lambda_function.remote_lambda_code": [
-                {
-                    "Type": "AWS::Lambda::Function",
-                    "Properties": {
-                        "FunctionName": "s3_remote_lambda_function",
-                        "Code": {"S3Bucket": "lambda_code_bucket", "S3Key": "remote_lambda_code_key"},
-                        "Handler": "app.lambda_handler",
-                        "PackageType": "Zip",
-                        "Runtime": "python3.8",
-                        "Timeout": 3,
-                    },
-                    "Metadata": {"SamResourceId": "aws_lambda_function.remote_lambda_code", "SkipBuild": True},
-                }
-            ],
-            "aws_lambda_function.root_lambda": [
-                {
-                    "Type": "AWS::Lambda::Function",
-                    "Properties": {
-                        "FunctionName": "root_lambda",
-                        "Code": "HelloWorldFunction.zip",
-                        "Handler": "app.lambda_handler",
-                        "PackageType": "Zip",
-                        "Runtime": "python3.8",
-                        "Timeout": 3,
-                    },
-                    "Metadata": {"SamResourceId": "aws_lambda_function.root_lambda", "SkipBuild": True},
-                }
-            ],
-        }
-        terraform_layers_resources = {
-            "AwsLambdaLayerVersionLambdaLayer556B22D0": {
-                "address": "aws_lambda_layer_version.lambda_layer",
-                "mode": "managed",
-                "type": "aws_lambda_layer_version",
-                "name": "lambda_layer",
-                "provider_name": "registry.terraform.io/hashicorp/aws",
-                "schema_version": 0,
-                "values": {
-                    "compatible_architectures": ["arm64"],
-                    "compatible_runtimes": ["nodejs14.x", "nodejs16.x"],
-                    "description": None,
-                    "filename": None,
-                    "layer_name": "lambda_layer_name",
-                    "license_info": None,
-                    "s3_bucket": "layer_code_bucket",
-                    "s3_key": "s3_lambda_layer_code_key",
-                    "s3_object_version": "1",
-                    "skip_destroy": False,
-                },
-                "sensitive_values": {"compatible_architectures": [False], "compatible_runtimes": [False, False]},
-            }
-        }
-        resources = {
-            "aws_lambda_function.remote_lambda_code": TFResource(
-                "aws_lambda_function.remote_lambda_code", "", None, {}
-            ),
-            "aws_lambda_function.root_lambda": TFResource("aws_lambda_function.root_lambda", "", None, {}),
-        }
-        _link_lambda_functions_to_layers(resources, lambda_funcs_config_resources, terraform_layers_resources)
-        mock_resource_linking_exceptions.assert_called_once_with(
-            multiple_resource_linking_exception=OneLambdaLayerLinkingLimitationException,
-            local_variable_linking_exception=FunctionLayerLocalVariablesLinkingLimitationException,
-        )
-        mock_resource_linking_pair.assert_called_once_with(
-            source_resource_cfn_resource=lambda_funcs_config_resources,
-            source_resource_tf_config=resources,
-            destination_resource_tf=terraform_layers_resources,
-            tf_destination_attribute_name="arn",
-            terraform_link_field_name="layers",
-            cfn_link_field_name="Layers",
-            terraform_resource_type_prefix=LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX,
-            cfn_resource_update_call_back_function=mock_link_lambda_functions_to_layers_call_back,
-            linking_exceptions=mock_resource_linking_exceptions(),
-        )
-        mock_resource_linker.assert_called_once_with(mock_resource_linking_pair())
-
-    @parameterized.expand(
-        [
-            (
-                {
-                    "Type": "AWS::Lambda::Function",
-                    "Properties": {"FunctionName": "func", "Layers": ["existing_layer1.arn", "applied_layer1.arn"]},
-                    "Metadata": {"SamResourceId": "aws_lambda_function.remote_lambda_code", "SkipBuild": True},
-                },
-                [ExistingResourceReference("existing_layer1.arn"), LogicalIdReference("Layer1LogicaId")],
-                ["existing_layer1.arn", {"Ref": "Layer1LogicaId"}],
-            ),
-            (
-                {
-                    "Type": "AWS::Lambda::Function",
-                    "Properties": {"FunctionName": "func", "Layers": ["existing_layer1.arn", "existing_layer2.arn"]},
-                    "Metadata": {"SamResourceId": "aws_lambda_function.remote_lambda_code", "SkipBuild": True},
-                },
-                [ExistingResourceReference("existing_layer1.arn"), ExistingResourceReference("existing_layer2.arn")],
-                ["existing_layer1.arn", "existing_layer2.arn"],
-            ),
-            (
-                {
-                    "Type": "AWS::Lambda::Function",
-                    "Properties": {
-                        "FunctionName": "func",
-                    },
-                    "Metadata": {"SamResourceId": "aws_lambda_function.remote_lambda_code", "SkipBuild": True},
-                },
-                [LogicalIdReference("Layer1LogicaId")],
-                [{"Ref": "Layer1LogicaId"}],
-            ),
-        ]
-    )
-    def test_link_lambda_functions_to_layers_call_back(self, input_function, logical_ids, expected_layers):
-        lambda_function = input_function.copy()
-        _link_lambda_functions_to_layers_call_back(lambda_function, logical_ids)
-        input_function["Properties"]["Layers"] = expected_layers
-        self.assertEqual(lambda_function, input_function)
-
-    @patch(
-        "samcli.hook_packages.terraform.hooks.prepare.translate._link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back"
-    )
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.ResourceLinker")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.ResourceLinkingPair")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.ResourcePairExceptions")
-    def test_link_gateway_methods_to_gateway_rest_apis(
-        self,
-        mock_resource_linking_exceptions,
-        mock_resource_linking_pair,
-        mock_resource_linker,
-        mock_link_gateway_methods_to_gateway_rest_apis_call_back,
-    ):
-        gateway_method_config_resources = Mock()
-        terraform_rest_apis_resources = Mock()
-        resources = Mock()
-        _link_gateway_methods_to_gateway_rest_apis(
-            resources, gateway_method_config_resources, terraform_rest_apis_resources
-        )
-        mock_resource_linking_exceptions.assert_called_once_with(
-            multiple_resource_linking_exception=OneRestApiToApiGatewayMethodLinkingLimitationException,
-            local_variable_linking_exception=RestApiToApiGatewayMethodLocalVariablesLinkingLimitationException,
-        )
-        mock_resource_linking_pair.assert_called_once_with(
-            source_resource_cfn_resource=gateway_method_config_resources,
-            source_resource_tf_config=resources,
-            destination_resource_tf=terraform_rest_apis_resources,
-            tf_destination_attribute_name="id",
-            terraform_link_field_name="rest_api_id",
-            cfn_link_field_name="RestApiId",
-            terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
-            cfn_resource_update_call_back_function=mock_link_gateway_methods_to_gateway_rest_apis_call_back,
-            linking_exceptions=mock_resource_linking_exceptions(),
-        )
-        mock_resource_linker.assert_called_once_with(mock_resource_linking_pair())
-
-    @patch(
-        "samcli.hook_packages.terraform.hooks.prepare.translate._link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back"
-    )
-    @patch(
-        "samcli.hook_packages.terraform.hooks.prepare.translate._link_gateway_resource_to_gateway_rest_apis_parent_id_call_back"
-    )
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.ResourceLinker")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.ResourceLinkingPair")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.ResourcePairExceptions")
-    def test_link_gateway_resources_to_gateway_rest_apis(
-        self,
-        mock_resource_linking_exceptions,
-        mock_resource_linking_pair,
-        mock_resource_linker,
-        mock_link_gateway_methods_to_gateway_rest_apis_parent_id_call_back,
-        mock_link_gateway_methods_to_gateway_rest_apis_rest_api_id_call_back,
-    ):
-        gateway_resource_config_resources = Mock()
-        terraform_rest_apis_resources = Mock()
-        resources = Mock()
-        _link_gateway_resources_to_gateway_rest_apis(
-            resources, gateway_resource_config_resources, terraform_rest_apis_resources
-        )
-        mock_resource_linking_exceptions.assert_has_calls(
-            [
-                call(
-                    multiple_resource_linking_exception=OneGatewayResourceToRestApiLinkingLimitationException,
-                    local_variable_linking_exception=GatewayResourceToGatewayRestApiLocalVariablesLinkingLimitationException,
-                ),
-                call(
-                    multiple_resource_linking_exception=OneGatewayResourceToRestApiLinkingLimitationException,
-                    local_variable_linking_exception=GatewayResourceToGatewayRestApiLocalVariablesLinkingLimitationException,
-                ),
-            ]
-        )
-
-        mock_resource_linking_pair.assert_has_calls(
-            [
-                call(
-                    source_resource_cfn_resource=gateway_resource_config_resources,
-                    source_resource_tf_config=resources,
-                    destination_resource_tf=terraform_rest_apis_resources,
-                    tf_destination_attribute_name="id",
-                    terraform_link_field_name="rest_api_id",
-                    cfn_link_field_name="RestApiId",
-                    terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
-                    cfn_resource_update_call_back_function=mock_link_gateway_methods_to_gateway_rest_apis_rest_api_id_call_back,
-                    linking_exceptions=mock_resource_linking_exceptions(),
-                ),
-                call(
-                    source_resource_cfn_resource=gateway_resource_config_resources,
-                    source_resource_tf_config=resources,
-                    destination_resource_tf=terraform_rest_apis_resources,
-                    tf_destination_attribute_name="root_resource_id",
-                    terraform_link_field_name="parent_id",
-                    cfn_link_field_name="ResourceId",
-                    terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
-                    cfn_resource_update_call_back_function=mock_link_gateway_methods_to_gateway_rest_apis_parent_id_call_back,
-                    linking_exceptions=mock_resource_linking_exceptions(),
-                ),
-            ]
-        )
-        mock_resource_linker.assert_has_calls(
-            [
-                call(mock_resource_linking_pair()),
-                call().link_resources(),
-                call(mock_resource_linking_pair()),
-                call().link_resources(),
-            ]
-        )
-
-    @patch(
-        "samcli.hook_packages.terraform.hooks.prepare.translate._link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back"
-    )
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.ResourceLinker")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.ResourceLinkingPair")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.ResourcePairExceptions")
-    def test_link_gateway_stage_to_gateway_rest_apis(
-        self,
-        mock_resource_linking_exceptions,
-        mock_resource_linking_pair,
-        mock_resource_linker,
-        mock_link_gateway_resource_to_gateway_rest_apis_call_back,
-    ):
-        gateway_stage_config_resources = Mock()
-        terraform_rest_apis_resources = Mock()
-        resources = Mock()
-        _link_gateway_stage_to_rest_api(resources, gateway_stage_config_resources, terraform_rest_apis_resources)
-        mock_resource_linking_exceptions.assert_called_once_with(
-            multiple_resource_linking_exception=OneRestApiToApiGatewayStageLinkingLimitationException,
-            local_variable_linking_exception=RestApiToApiGatewayStageLocalVariablesLinkingLimitationException,
-        )
-        mock_resource_linking_pair.assert_called_once_with(
-            source_resource_cfn_resource=gateway_stage_config_resources,
-            source_resource_tf_config=resources,
-            destination_resource_tf=terraform_rest_apis_resources,
-            tf_destination_attribute_name="id",
-            terraform_link_field_name="rest_api_id",
-            cfn_link_field_name="RestApiId",
-            terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
-            cfn_resource_update_call_back_function=mock_link_gateway_resource_to_gateway_rest_apis_call_back,
-            linking_exceptions=mock_resource_linking_exceptions(),
-        )
-        mock_resource_linker.assert_called_once_with(mock_resource_linking_pair())
-
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._link_gateway_method_to_gateway_resource_call_back")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.ResourceLinker")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.ResourceLinkingPair")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.ResourcePairExceptions")
-    def test_link_gateway_methods_to_gateway_resources(
-        self,
-        mock_resource_linking_exceptions,
-        mock_resource_linking_pair,
-        mock_resource_linker,
-        mock_link_gateway_method_to_gateway_resource_call_back,
-    ):
-        gateway_method_config_resources = Mock()
-        terraform_resources_resources = Mock()
-        resources = Mock()
-        _link_gateway_method_to_gateway_resource(
-            resources, gateway_method_config_resources, terraform_resources_resources
-        )
-        mock_resource_linking_exceptions.assert_called_once_with(
-            multiple_resource_linking_exception=OneGatewayResourceToApiGatewayMethodLinkingLimitationException,
-            local_variable_linking_exception=GatewayResourceToApiGatewayMethodLocalVariablesLinkingLimitationException,
-        )
-        mock_resource_linking_pair.assert_called_once_with(
-            source_resource_cfn_resource=gateway_method_config_resources,
-            source_resource_tf_config=resources,
-            destination_resource_tf=terraform_resources_resources,
-            tf_destination_attribute_name="id",
-            terraform_link_field_name="resource_id",
-            cfn_link_field_name="ResourceId",
-            terraform_resource_type_prefix=API_GATEWAY_RESOURCE_RESOURCE_ADDRESS_PREFIX,
-            cfn_resource_update_call_back_function=mock_link_gateway_method_to_gateway_resource_call_back,
-            linking_exceptions=mock_resource_linking_exceptions(),
-        )
-        mock_resource_linker.assert_called_once_with(mock_resource_linking_pair())
-
-    @parameterized.expand(
-        [
-            (
-                {
-                    "Type": "AWS::ApiGateway::Method",
-                    "Properties": {"HttpMethod": "post", "RestApiId": "restapi.id"},
-                },
-                [LogicalIdReference("RestApi1")],
-                {"Ref": "RestApi1"},
-            ),
-            (
-                {
-                    "Type": "AWS::ApiGateway::Method",
-                    "Properties": {"HttpMethod": "post", "RestApiId": "restapi.id"},
-                },
-                [ExistingResourceReference("restapi.id")],
-                "restapi.id",
-            ),
-            (
-                {
-                    "Type": "AWS::ApiGateway::Method",
-                    "Properties": {"HttpMethod": "post"},
-                },
-                [LogicalIdReference("RestApi1")],
-                {"Ref": "RestApi1"},
-            ),
-        ]
-    )
-    def test_link_gateway_methods_to_gateway_rest_apis_call_back(
-        self, input_gateway_method, logical_ids, expected_rest_api
-    ):
-        gateway_method = input_gateway_method.copy()
-        _link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back(gateway_method, logical_ids)
-        input_gateway_method["Properties"]["RestApiId"] = expected_rest_api
-        self.assertEqual(gateway_method, input_gateway_method)
-
-    def test_link_gateway_methods_to_gateway_rest_apis_call_back_multiple_destinations(self):
-        gateway_method = Mock()
-        logical_ids = [Mock(), Mock()]
-        with self.assertRaises(
-            InvalidResourceLinkingException,
-            msg="Could not link multiple Rest APIs to one Gateway method resource",
-        ):
-            _link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back(gateway_method, logical_ids)
-
-    @parameterized.expand(
-        [
-            (
-                {
-                    "Type": "AWS::ApiGateway::Method",
-                    "Properties": {"HttpMethod": "post", "ResourceId": "resource.id"},
-                },
-                [LogicalIdReference("Resource1")],
-                {"Ref": "Resource1"},
-            ),
-            (
-                {
-                    "Type": "AWS::ApiGateway::Method",
-                    "Properties": {"HttpMethod": "post", "ResourceId": "resource.id"},
-                },
-                [ExistingResourceReference("resource.id")],
-                "resource.id",
-            ),
-            (
-                {
-                    "Type": "AWS::ApiGateway::Method",
-                    "Properties": {"HttpMethod": "post"},
-                },
-                [LogicalIdReference("Resource1")],
-                {"Ref": "Resource1"},
-            ),
-        ]
-    )
-    def test_link_gateway_method_to_gateway_resource_call_back(
-        self, input_gateway_method, logical_ids, expected_resource
-    ):
-        gateway_method = input_gateway_method.copy()
-        _link_gateway_method_to_gateway_resource_call_back(gateway_method, logical_ids)
-        input_gateway_method["Properties"]["ResourceId"] = expected_resource
-        self.assertEqual(gateway_method, input_gateway_method)
-
-    def test_link_gateway_method_to_gateway_resource_call_back_multiple_destinations(self):
-        gateway_method = Mock()
-        logical_ids = [Mock(), Mock()]
-        with self.assertRaises(
-            InvalidResourceLinkingException,
-            msg="Could not link multiple Gateway Resources to one Gateway method resource",
-        ):
-            _link_gateway_method_to_gateway_resource_call_back(gateway_method, logical_ids)
-
-    @parameterized.expand(
-        [
-            (
-                {
-                    "Type": "AWS::ApiGateway::Resource",
-                    "Properties": {"ParentId": "restapi.parent_id"},
-                },
-                [LogicalIdReference("RestApi")],
-                {"Fn::GetAtt": ["RestApi", "RootResourceId"]},
-            ),
-            (
-                {
-                    "Type": "AWS::ApiGateway::Resource",
-                    "Properties": {"ParentId": "restapi.parent_id"},
-                },
-                [ExistingResourceReference("restapi.parent_id")],
-                "restapi.parent_id",
-            ),
-            (
-                {
-                    "Type": "AWS::ApiGateway::Resource",
-                    "Properties": {},
-                },
-                [LogicalIdReference("RestApi")],
-                {"Fn:GetAtt": ["RestApi", "RootResourceId"]},
-            ),
-        ]
-    )
-    def test_link_gateway_resource_to_gateway_rest_api_parent_id_call_back(
-        self, input_gateway_resource, logical_ids, expected_rest_api
-    ):
-        gateway_resource = input_gateway_resource.copy()
-        _link_gateway_resource_to_gateway_rest_apis_parent_id_call_back(gateway_resource, logical_ids)
-        input_gateway_resource["Properties"]["ParentId"] = expected_rest_api
-        self.assertEqual(gateway_resource, input_gateway_resource)
-
-    def test_link_gateway_resource_to_gateway_rest_apis_call_back_multiple_destinations(self):
-        gateway_resource = Mock()
-        logical_ids = [Mock(), Mock()]
-        with self.assertRaises(
-            InvalidResourceLinkingException,
-            msg="Could not link multiple Rest APIs to one Gateway resource",
-        ):
-            _link_gateway_resource_to_gateway_rest_apis_parent_id_call_back(gateway_resource, logical_ids)
-
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._calculate_configuration_attribute_value_hash")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._get_s3_object_hash")
     def test_map_s3_sources_to_functions(
@@ -1624,6 +925,39 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
                     },
                 }
             )
+
+    def test_handle_linking(self):
+        linking_mock_function_a = Mock()
+        linking_mock_function_b = Mock()
+        mock_resource_links = [
+            LinkingPairCaller("resource_a", "resource_b", linking_mock_function_a),
+            LinkingPairCaller("resource_b", "resource_a", linking_mock_function_b),
+        ]
+
+        resource_a = ResourceProperties()
+        resource_a.cfn_resources = Mock()
+        resource_a.terraform_resources = Mock()
+        resource_a.terraform_config = Mock()
+
+        resource_b = ResourceProperties()
+        resource_b.cfn_resources = Mock()
+        resource_b.terraform_resources = Mock()
+        resource_b.terraform_config = Mock()
+
+        resource_property_mapping = {
+            "resource_a": resource_a,
+            "resource_b": resource_b,
+        }
+
+        with patch("samcli.hook_packages.terraform.hooks.prepare.translate.RESOURCE_LINKS", mock_resource_links):
+            _handle_linking(resource_property_mapping)
+
+        linking_mock_function_a.assert_called_once_with(
+            resource_a.terraform_config, resource_a.cfn_resources, resource_b.terraform_resources
+        )
+        linking_mock_function_b.assert_called_once_with(
+            resource_b.terraform_config, resource_b.cfn_resources, resource_a.terraform_resources
+        )
 
     def test_get_s3_object_hash(self):
         self.assertEqual(
