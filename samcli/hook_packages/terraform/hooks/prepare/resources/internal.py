@@ -5,6 +5,7 @@ INTERNAL_PREFIX = "Internal::"
 INTERNAL_API_GATEWAY_INTEGRATION = f"{INTERNAL_PREFIX}ApiGateway::Method::Integration"
 
 
+# TODO(mladan): Add a mechanism for gating internal resources from being added to the metadata file
 class InternalApiGatewayIntegrationProperties(ResourceProperties):
     """
     Collect resource properties for translating and linking an aws_api_gateway_integration
