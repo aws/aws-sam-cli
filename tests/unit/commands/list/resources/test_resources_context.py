@@ -471,7 +471,7 @@ class TestGetTranslatedDict(TestCase):
 
         resource_producer = ResourceMappingProducer(
             stack_name=None,
-            region=None,
+            region="us-east-1",
             profile=None,
             template_file=None,
             cloudformation_client=None,
