@@ -12,7 +12,9 @@ from samcli.hook_packages.terraform.hooks.prepare.types import (
     TFResource,
 )
 
-INVOKE_ARN_FORMAT = "arn:aws:apigateway:${{AWS::Region}}:lambda:path/2015-03-31/functions/${{{function_logical_id}.Arn}}/invocations"
+INVOKE_ARN_FORMAT = (
+    "arn:aws:apigateway:${{AWS::Region}}:lambda:path/2015-03-31/functions/${{{function_logical_id}.Arn}}/invocations"
+)
 
 
 class RESTAPITranslationValidator(ResourceTranslationValidator):

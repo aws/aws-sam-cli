@@ -1349,9 +1349,7 @@ def _link_gateway_integration_to_function_call_back(
 
     logical_id = referenced_gateway_resource_values[0]
     gateway_method_cfn_resource["Properties"]["Uri"] = (
-        {
-            "Fn::Sub": INVOKE_ARN_FORMAT.format(function_logical_id=logical_id.value)
-        }
+        {"Fn::Sub": INVOKE_ARN_FORMAT.format(function_logical_id=logical_id.value)}
         if isinstance(logical_id, LogicalIdReference)
         else logical_id.value
     )
