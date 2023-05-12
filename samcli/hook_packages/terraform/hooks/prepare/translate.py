@@ -5,7 +5,7 @@ This method contains the logic required to translate the `terraform show` JSON o
 """
 import hashlib
 import logging
-from typing import Any, Dict, List, Tuple, Type, Union
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 from samcli.hook_packages.terraform.hooks.prepare.constants import (
     CFN_CODE_PROPERTIES,
@@ -15,6 +15,7 @@ from samcli.hook_packages.terraform.hooks.prepare.enrich import enrich_resources
 from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     REMOTE_DUMMY_VALUE,
     RESOURCE_TRANSLATOR_MAPPING,
+    TF_AWS_API_GATEWAY_INTEGRATION,
     TF_AWS_API_GATEWAY_REST_API,
     PropertyBuilderMapping,
 )
@@ -23,7 +24,9 @@ from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     _resolve_resource_attribute,
 )
 from samcli.hook_packages.terraform.hooks.prepare.resources.apigw import RESTAPITranslationValidator
-from samcli.hook_packages.terraform.hooks.prepare.resources.internal import INTERNAL_PREFIX
+from samcli.hook_packages.terraform.hooks.prepare.resources.internal import (
+    INTERNAL_PREFIX,
+)
 from samcli.hook_packages.terraform.hooks.prepare.resources.resource_links import RESOURCE_LINKS
 from samcli.hook_packages.terraform.hooks.prepare.resources.resource_properties import get_resource_property_mapping
 from samcli.hook_packages.terraform.hooks.prepare.types import (
@@ -45,6 +48,7 @@ from samcli.hook_packages.terraform.lib.utils import (
     get_sam_metadata_planned_resource_value_attribute,
 )
 from samcli.lib.hook.exceptions import PrepareHookException
+from samcli.lib.utils.resources import AWS_APIGATEWAY_METHOD
 from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION
 
 SAM_METADATA_RESOURCE_TYPE = "null_resource"
@@ -228,6 +232,10 @@ def translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_applic
 
     _handle_linking(resource_property_mapping)
 
+    _hydrate_gateway_method_resources(
+        cfn_dict, resource_property_mapping.get(TF_AWS_API_GATEWAY_INTEGRATION).cfn_resources
+    )
+
     if sam_metadata_resources:
         LOG.debug("Enrich the mapped resources with the sam metadata information and generate Makefile")
         enrich_resources_and_generate_makefile(
@@ -255,7 +263,46 @@ def _handle_linking(resource_property_mapping: Dict[str, ResourceProperties]) ->
         )
 
 
-# def _hydrate_gateway_method_resources():
+def _hydrate_gateway_method_resources(cfn_dict: dict, gateway_integrations_cfn: Dict[str, List]):
+    for logical_id, resource in cfn_dict.get("Resources").items():
+        if resource.get("Type", "") == AWS_APIGATEWAY_METHOD:
+            resource_properties = resource.get("Properties", {})
+            search_key = _gateway_method_integration_identifier(resource_properties)
+            integration_properties = _find_gateway_integration(search_key, gateway_integrations_cfn)
+            if not integration_properties:
+                LOG.debug("A corresponding gateway integration for the gateway method %s was not found", logical_id)
+                continue
+            _create_gateway_method_integration(resource, integration_properties)
+
+
+def _find_gateway_integration(search_key: set, gateway_integrations_cfn: Dict[str, List]) -> Optional[dict]:
+    for _, gateway_integrations in gateway_integrations_cfn.items():
+        for resource in gateway_integrations:
+            resource_properties = resource.get("Properties", {})
+            integration_key = _gateway_method_integration_identifier(resource_properties)
+            if integration_key == search_key:
+                return resource_properties
+    return None
+
+
+def _gateway_method_integration_identifier(resource_properties: dict) -> set:
+    return {
+        resource_properties.get("RestApiId", {}).get("Ref", ""),
+        resource_properties.get("ResourceId", {}).get("Ref", ""),
+        resource_properties.get("HttpMethod", ""),
+    }
+
+
+def _create_gateway_method_integration(method_resource: dict, integration_resource_properties: dict):
+    method_resource["Properties"]["Integration"] = {}
+    method_resource["Properties"]["Integration"]["Uri"] = integration_resource_properties.get("Uri", "")
+    method_resource["Properties"]["Integration"]["Type"] = integration_resource_properties.get("Type", "")
+    method_resource["Properties"]["Integration"]["ContentHandling"] = integration_resource_properties.get(
+        "ContentHandling", ""
+    )
+    method_resource["Properties"]["Integration"]["ConnectionType"] = integration_resource_properties.get(
+        "ConnectionType", ""
+    )
 
 
 def _add_child_modules_to_queue(curr_module: Dict, curr_module_configuration: TFModule, modules_queue: List) -> None:

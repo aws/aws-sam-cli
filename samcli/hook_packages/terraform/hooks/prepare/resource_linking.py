@@ -26,6 +26,7 @@ from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     RestApiToApiGatewayMethodLocalVariablesLinkingLimitationException,
     RestApiToApiGatewayStageLocalVariablesLinkingLimitationException,
 )
+from samcli.hook_packages.terraform.hooks.prepare.resources.apigw import INVOKE_ARN_FORMAT
 from samcli.hook_packages.terraform.hooks.prepare.types import (
     ConstantValue,
     Expression,
@@ -37,6 +38,7 @@ from samcli.hook_packages.terraform.hooks.prepare.types import (
 from samcli.hook_packages.terraform.hooks.prepare.utilities import get_configuration_address
 from samcli.hook_packages.terraform.lib.utils import build_cfn_logical_id
 
+LAMBDA_FUNCTION_RESOURCE_ADDRESS_PREFIX = "aws_lambda_function."
 LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX = "aws_lambda_layer_version."
 API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX = "aws_api_gateway_rest_api."
 API_GATEWAY_RESOURCE_RESOURCE_ADDRESS_PREFIX = "aws_api_gateway_resource."
@@ -1319,6 +1321,75 @@ def _link_gateway_integrations_to_gateway_resource(
         cfn_link_field_name="ResourceId",
         terraform_resource_type_prefix=API_GATEWAY_RESOURCE_RESOURCE_ADDRESS_PREFIX,
         cfn_resource_update_call_back_function=_link_gateway_resource_to_gateway_resource_call_back,
+        linking_exceptions=exceptions,
+    )
+    ResourceLinker(resource_linking_pair).link_resources()
+
+
+def _link_gateway_integration_to_function_call_back(
+    gateway_method_cfn_resource: Dict, referenced_gateway_resource_values: List[ReferenceType]
+) -> None:
+    """
+    Callback function that is used by the linking algorithm to update an Api Gateway resource CFN Resource with
+    a reference to the Gateway Resource resource.
+
+    Parameters
+    ----------
+    gateway_method_cfn_resource: Dict
+        API Gateway resource CFN resource
+    referenced_gateway_resource_values: List[ReferenceType]
+        List of referenced Gateway Resources either as the logical id of Gateway Resource resource
+        defined in the customer project, or ARN values for actual Gateway Resources resource defined
+        in customer's account. This list should always contain one element only.
+    """
+    if len(referenced_gateway_resource_values) > 1:
+        raise InvalidResourceLinkingException(
+            "Could not link multiple Gateway Resources to one Gateway method resource"
+        )
+
+    logical_id = referenced_gateway_resource_values[0]
+    gateway_method_cfn_resource["Properties"]["Uri"] = (
+        {
+            "Fn::Sub": INVOKE_ARN_FORMAT.format(function_logical_id=logical_id.value)
+        }
+        if isinstance(logical_id, LogicalIdReference)
+        else logical_id.value
+    )
+
+
+def _link_gateway_integrations_to_function_resource(
+    gateway_integrations_config_resources: Dict[str, TFResource],
+    gateway_integrations_config_address_cfn_resources_map: Dict[str, List],
+    gateway_resources_terraform_resources: Dict[str, Dict],
+):
+    """
+    Iterate through all the resources and link the corresponding
+    Gateway Resource resource to each Gateway Integration resource.
+
+    Parameters
+    ----------
+    gateway_integrations_config_resources: Dict[str, TFResource]
+        Dictionary of configuration Gateway Integrations
+    gateway_integrations_config_address_cfn_resources_map: Dict[str, List]
+        Dictionary containing resolved configuration addresses matched up to the cfn Gateway Integration
+    gateway_resources_terraform_resources: Dict[str, Dict]
+        Dictionary of all actual terraform Rest API resources (not configuration resources). The dictionary's key is the
+        calculated logical id for each resource.
+    """
+
+    exceptions = ResourcePairExceptions(
+        multiple_resource_linking_exception=OneGatewayResourceToApiGatewayIntegrationLinkingLimitationException,
+        local_variable_linking_exception=GatewayResourceToApiGatewayIntegrationLocalVariablesLinkingLimitationException,
+    )
+    resource_linking_pair = ResourceLinkingPair(
+        source_resource_cfn_resource=gateway_integrations_config_address_cfn_resources_map,
+        source_resource_tf_config=gateway_integrations_config_resources,
+        destination_resource_tf=gateway_resources_terraform_resources,
+        tf_destination_attribute_name="invoke_arn",
+        terraform_link_field_name="uri",
+        cfn_link_field_name="Uri",
+        terraform_resource_type_prefix=LAMBDA_FUNCTION_RESOURCE_ADDRESS_PREFIX,
+        cfn_resource_update_call_back_function=_link_gateway_integration_to_function_call_back,
         linking_exceptions=exceptions,
     )
     ResourceLinker(resource_linking_pair).link_resources()
