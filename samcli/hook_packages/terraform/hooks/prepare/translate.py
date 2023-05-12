@@ -255,6 +255,9 @@ def _handle_linking(resource_property_mapping: Dict[str, ResourceProperties]) ->
         )
 
 
+# def _hydrate_gateway_method_resources():
+
+
 def _add_child_modules_to_queue(curr_module: Dict, curr_module_configuration: TFModule, modules_queue: List) -> None:
     """
     Iterate over the children modules of current module and add each module with its related child module configuration
