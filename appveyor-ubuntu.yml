@@ -32,14 +32,11 @@ environment:
 
   matrix:
 
-    - PYTHON_HOME: "$HOME/venv3.7/bin"
-      PYTHON_VERSION: '3.7'
+    - PYTHON_VERSION: '3.7'
 
-    - PYTHON_HOME: "$HOME/venv3.8/bin"
-      PYTHON_VERSION: '3.8'
+    - PYTHON_VERSION: '3.8'
 
-    - PYTHON_HOME: "$HOME/venv3.9/bin"
-      PYTHON_VERSION: '3.9'
+    - PYTHON_VERSION: '3.9'
 
 install:
   # AppVeyor's apt-get cache might be outdated, and the package could potentially be 404.
@@ -180,7 +177,7 @@ for:
       - "pip install -e \".[pre-dev]\""
 
       - "pip install -e \".[dev]\""
-      - ps: "pytest -vv -n 4 --reruns 4 tests/integration/buildcmd --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+      - ps: "pytest -vv -n auto --reruns 4 tests/integration/buildcmd --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
       # Set JAVA_HOME to java11
       - sh: "JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64"
