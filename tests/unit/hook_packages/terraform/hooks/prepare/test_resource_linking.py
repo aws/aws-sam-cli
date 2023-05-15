@@ -41,7 +41,7 @@ from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     LogicalIdReference,
     ExistingResourceReference,
     _link_gateway_resource_to_gateway_rest_apis_parent_id_call_back,
-    _link_gateway_method_to_gateway_resource_call_back,
+    _link_gateway_resource_to_gateway_resource_call_back,
     _link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back,
     _link_gateway_method_to_gateway_resource,
     API_GATEWAY_RESOURCE_RESOURCE_ADDRESS_PREFIX,
@@ -1737,7 +1737,7 @@ class TestResourceLinker(TestCase):
         mock_resource_linker.assert_called_once_with(mock_resource_linking_pair())
 
     @patch(
-        "samcli.hook_packages.terraform.hooks.prepare.resource_linking._link_gateway_method_to_gateway_resource_call_back"
+        "samcli.hook_packages.terraform.hooks.prepare.resource_linking._link_gateway_resource_to_gateway_resource_call_back"
     )
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.ResourceLinker")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.ResourceLinkingPair")
@@ -1849,7 +1849,7 @@ class TestResourceLinker(TestCase):
         self, input_gateway_method, logical_ids, expected_resource
     ):
         gateway_method = input_gateway_method.copy()
-        _link_gateway_method_to_gateway_resource_call_back(gateway_method, logical_ids)
+        _link_gateway_resource_to_gateway_resource_call_back(gateway_method, logical_ids)
         input_gateway_method["Properties"]["ResourceId"] = expected_resource
         self.assertEqual(gateway_method, input_gateway_method)
 
@@ -1860,7 +1860,7 @@ class TestResourceLinker(TestCase):
             InvalidResourceLinkingException,
             msg="Could not link multiple Gateway Resources to one Gateway method resource",
         ):
-            _link_gateway_method_to_gateway_resource_call_back(gateway_method, logical_ids)
+            _link_gateway_resource_to_gateway_resource_call_back(gateway_method, logical_ids)
 
     @parameterized.expand(
         [

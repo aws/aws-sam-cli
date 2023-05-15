@@ -27,9 +27,7 @@ from samcli.hook_packages.terraform.hooks.prepare.resources.apigw import (
     RESTAPITranslationValidator,
     add_integrations_to_methods,
 )
-from samcli.hook_packages.terraform.hooks.prepare.resources.internal import (
-    INTERNAL_PREFIX,
-)
+from samcli.hook_packages.terraform.hooks.prepare.resources.internal import INTERNAL_PREFIX
 from samcli.hook_packages.terraform.hooks.prepare.resources.resource_links import RESOURCE_LINKS
 from samcli.hook_packages.terraform.hooks.prepare.resources.resource_properties import get_resource_property_mapping
 from samcli.hook_packages.terraform.hooks.prepare.types import (
