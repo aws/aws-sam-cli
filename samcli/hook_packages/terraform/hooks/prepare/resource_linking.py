@@ -13,10 +13,12 @@ from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     GatewayResourceToApiGatewayMethodLocalVariablesLinkingLimitationException,
     GatewayResourceToGatewayRestApiLocalVariablesLinkingLimitationException,
     InvalidResourceLinkingException,
+    LambdaFunctionToApiGatewayIntegrationLocalVariablesLinkingLimitationException,
     LocalVariablesLinkingLimitationException,
     OneGatewayResourceToApiGatewayIntegrationLinkingLimitationException,
     OneGatewayResourceToApiGatewayMethodLinkingLimitationException,
     OneGatewayResourceToRestApiLinkingLimitationException,
+    OneLambdaFunctionResourceToApiGatewayIntegrationLinkingLimitationException,
     OneLambdaLayerLinkingLimitationException,
     OneResourceLinkingLimitationException,
     OneRestApiToApiGatewayIntegrationLinkingLimitationException,
@@ -1327,16 +1329,16 @@ def _link_gateway_integrations_to_gateway_resource(
 
 
 def _link_gateway_integration_to_function_call_back(
-    gateway_method_cfn_resource: Dict, referenced_gateway_resource_values: List[ReferenceType]
+    gateway_integration_cfn_resource: Dict, referenced_gateway_resource_values: List[ReferenceType]
 ) -> None:
     """
-    Callback function that is used by the linking algorithm to update an Api Gateway resource CFN Resource with
-    a reference to the Gateway Resource resource.
+    Callback function that is used by the linking algorithm to update an Api Gateway integration CFN Resource with
+    a reference to the Lambda function resource through the AWS_PROXY integration.
 
     Parameters
     ----------
-    gateway_method_cfn_resource: Dict
-        API Gateway resource CFN resource
+    gateway_integration_cfn_resource: Dict
+        API Gateway integration CFN resource
     referenced_gateway_resource_values: List[ReferenceType]
         List of referenced Gateway Resources either as the logical id of Gateway Resource resource
         defined in the customer project, or ARN values for actual Gateway Resources resource defined
@@ -1344,11 +1346,11 @@ def _link_gateway_integration_to_function_call_back(
     """
     if len(referenced_gateway_resource_values) > 1:
         raise InvalidResourceLinkingException(
-            "Could not link multiple Gateway Resources to one Gateway method resource"
+            "Could not link multiple Lambda functions to one Gateway integration resource"
         )
 
     logical_id = referenced_gateway_resource_values[0]
-    gateway_method_cfn_resource["Properties"]["Uri"] = (
+    gateway_integration_cfn_resource["Properties"]["Uri"] = (
         {"Fn::Sub": INVOKE_ARN_FORMAT.format(function_logical_id=logical_id.value)}
         if isinstance(logical_id, LogicalIdReference)
         else logical_id.value
@@ -1358,11 +1360,11 @@ def _link_gateway_integration_to_function_call_back(
 def _link_gateway_integrations_to_function_resource(
     gateway_integrations_config_resources: Dict[str, TFResource],
     gateway_integrations_config_address_cfn_resources_map: Dict[str, List],
-    gateway_resources_terraform_resources: Dict[str, Dict],
+    lambda_function_terraform_resources: Dict[str, Dict],
 ):
     """
     Iterate through all the resources and link the corresponding
-    Gateway Resource resource to each Gateway Integration resource.
+    Lambda function resource to each Gateway Integration resource.
 
     Parameters
     ----------
@@ -1370,19 +1372,19 @@ def _link_gateway_integrations_to_function_resource(
         Dictionary of configuration Gateway Integrations
     gateway_integrations_config_address_cfn_resources_map: Dict[str, List]
         Dictionary containing resolved configuration addresses matched up to the cfn Gateway Integration
-    gateway_resources_terraform_resources: Dict[str, Dict]
-        Dictionary of all actual terraform Rest API resources (not configuration resources). The dictionary's key is the
-        calculated logical id for each resource.
+    lambda_function_terraform_resources: Dict[str, Dict]
+        Dictionary of all actual terraform Lambda function resources (not configuration resources).
+        The dictionary's key is the calculated logical id for each resource.
     """
 
     exceptions = ResourcePairExceptions(
-        multiple_resource_linking_exception=OneGatewayResourceToApiGatewayIntegrationLinkingLimitationException,
-        local_variable_linking_exception=GatewayResourceToApiGatewayIntegrationLocalVariablesLinkingLimitationException,
+        multiple_resource_linking_exception=OneLambdaFunctionResourceToApiGatewayIntegrationLinkingLimitationException,
+        local_variable_linking_exception=LambdaFunctionToApiGatewayIntegrationLocalVariablesLinkingLimitationException,
     )
     resource_linking_pair = ResourceLinkingPair(
         source_resource_cfn_resource=gateway_integrations_config_address_cfn_resources_map,
         source_resource_tf_config=gateway_integrations_config_resources,
-        destination_resource_tf=gateway_resources_terraform_resources,
+        destination_resource_tf=lambda_function_terraform_resources,
         tf_destination_attribute_name="invoke_arn",
         terraform_link_field_name="uri",
         cfn_link_field_name="Uri",
