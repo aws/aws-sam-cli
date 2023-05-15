@@ -40,3 +40,8 @@ class TestRESTAPITranslationValidator(TestCase):
     def test_unsupported_reference_field(self, resource, config_resource, expected):
         result = _unsupported_reference_field("field", resource, config_resource)
         self.assertEqual(result, expected)
+
+
+class TestMethodToIntegrationLinking(TestCase):
+    def test_gateway_method_integration_identifier(self):
+        pass
