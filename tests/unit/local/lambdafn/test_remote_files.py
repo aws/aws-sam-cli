@@ -10,7 +10,10 @@ class TestUnzipFromUri(TestCase):
     @patch("samcli.local.lambdafn.remote_files.progressbar")
     @patch("samcli.local.lambdafn.remote_files.requests")
     @patch("samcli.local.lambdafn.remote_files.os")
-    def test_successfully_unzip_from_uri(self, os_patch, requests_patch, progressbar_patch, path_patch, unzip_patch):
+    @patch("samcli.local.lambdafn.remote_files.open")
+    def test_successfully_unzip_from_uri(
+        self, open_mock, os_patch, requests_patch, progressbar_patch, path_patch, unzip_patch
+    ):
         get_request_mock = Mock()
         get_request_mock.headers = {"Content-length": "200"}
         get_request_mock.iter_content.return_value = [b"data1"]
@@ -40,8 +43,9 @@ class TestUnzipFromUri(TestCase):
     @patch("samcli.local.lambdafn.remote_files.progressbar")
     @patch("samcli.local.lambdafn.remote_files.requests")
     @patch("samcli.local.lambdafn.remote_files.os")
+    @patch("samcli.local.lambdafn.remote_files.open")
     def test_not_unlink_file_when_file_doesnt_exist(
-        self, os_patch, requests_patch, progressbar_patch, path_patch, unzip_patch
+        self, open_mock, os_patch, requests_patch, progressbar_patch, path_patch, unzip_patch
     ):
         get_request_mock = Mock()
         get_request_mock.headers = {"Content-length": "200"}
@@ -72,8 +76,9 @@ class TestUnzipFromUri(TestCase):
     @patch("samcli.local.lambdafn.remote_files.progressbar")
     @patch("samcli.local.lambdafn.remote_files.requests")
     @patch("samcli.local.lambdafn.remote_files.os")
+    @patch("samcli.local.lambdafn.remote_files.open")
     def test_unzip_from_uri_reads_AWS_CA_BUNDLE_env_var(
-        self, os_patch, requests_patch, progressbar_patch, path_patch, unzip_patch
+        self, open_mock, os_patch, requests_patch, progressbar_patch, path_patch, unzip_patch
     ):
         get_request_mock = Mock()
         get_request_mock.headers = {"Content-length": "200"}

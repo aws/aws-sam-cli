@@ -12,6 +12,14 @@ from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     LOCAL_VARIABLES_SUPPORT_ISSUE_LINK,
     OneLambdaLayerLinkingLimitationException,
     FunctionLayerLocalVariablesLinkingLimitationException,
+    OneGatewayResourceToApiGatewayMethodLinkingLimitationException,
+    GatewayResourceToApiGatewayMethodLocalVariablesLinkingLimitationException,
+    RestApiToApiGatewayStageLocalVariablesLinkingLimitationException,
+    OneRestApiToApiGatewayStageLinkingLimitationException,
+    OneGatewayResourceToRestApiLinkingLimitationException,
+    GatewayResourceToGatewayRestApiLocalVariablesLinkingLimitationException,
+    OneRestApiToApiGatewayMethodLinkingLimitationException,
+    RestApiToApiGatewayMethodLocalVariablesLinkingLimitationException,
 )
 
 from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
@@ -32,6 +40,17 @@ from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     ResourceLinker,
     LogicalIdReference,
     ExistingResourceReference,
+    _link_gateway_resource_to_gateway_rest_apis_parent_id_call_back,
+    _link_gateway_method_to_gateway_resource_call_back,
+    _link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back,
+    _link_gateway_method_to_gateway_resource,
+    API_GATEWAY_RESOURCE_RESOURCE_ADDRESS_PREFIX,
+    API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+    _link_gateway_stage_to_rest_api,
+    _link_gateway_resources_to_gateway_rest_apis,
+    _link_gateway_methods_to_gateway_rest_apis,
+    _link_lambda_functions_to_layers_call_back,
+    _link_lambda_functions_to_layers,
 )
 from samcli.hook_packages.terraform.hooks.prepare.utilities import get_configuration_address
 from samcli.hook_packages.terraform.hooks.prepare.types import (
@@ -1448,3 +1467,442 @@ class TestResourceLinker(TestCase):
                 ),
             ]
         )
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._link_lambda_functions_to_layers_call_back")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.ResourceLinker")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.ResourceLinkingPair")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.ResourcePairExceptions")
+    def test_link_lambda_functions_to_layers(
+        self,
+        mock_resource_linking_exceptions,
+        mock_resource_linking_pair,
+        mock_resource_linker,
+        mock_link_lambda_functions_to_layers_call_back,
+    ):
+        lambda_funcs_config_resources = {
+            "aws_lambda_function.remote_lambda_code": [
+                {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {
+                        "FunctionName": "s3_remote_lambda_function",
+                        "Code": {"S3Bucket": "lambda_code_bucket", "S3Key": "remote_lambda_code_key"},
+                        "Handler": "app.lambda_handler",
+                        "PackageType": "Zip",
+                        "Runtime": "python3.8",
+                        "Timeout": 3,
+                    },
+                    "Metadata": {"SamResourceId": "aws_lambda_function.remote_lambda_code", "SkipBuild": True},
+                }
+            ],
+            "aws_lambda_function.root_lambda": [
+                {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {
+                        "FunctionName": "root_lambda",
+                        "Code": "HelloWorldFunction.zip",
+                        "Handler": "app.lambda_handler",
+                        "PackageType": "Zip",
+                        "Runtime": "python3.8",
+                        "Timeout": 3,
+                    },
+                    "Metadata": {"SamResourceId": "aws_lambda_function.root_lambda", "SkipBuild": True},
+                }
+            ],
+        }
+        terraform_layers_resources = {
+            "AwsLambdaLayerVersionLambdaLayer556B22D0": {
+                "address": "aws_lambda_layer_version.lambda_layer",
+                "mode": "managed",
+                "type": "aws_lambda_layer_version",
+                "name": "lambda_layer",
+                "provider_name": "registry.terraform.io/hashicorp/aws",
+                "schema_version": 0,
+                "values": {
+                    "compatible_architectures": ["arm64"],
+                    "compatible_runtimes": ["nodejs14.x", "nodejs16.x"],
+                    "description": None,
+                    "filename": None,
+                    "layer_name": "lambda_layer_name",
+                    "license_info": None,
+                    "s3_bucket": "layer_code_bucket",
+                    "s3_key": "s3_lambda_layer_code_key",
+                    "s3_object_version": "1",
+                    "skip_destroy": False,
+                },
+                "sensitive_values": {"compatible_architectures": [False], "compatible_runtimes": [False, False]},
+            }
+        }
+        resources = {
+            "aws_lambda_function.remote_lambda_code": TFResource(
+                "aws_lambda_function.remote_lambda_code", "", None, {}
+            ),
+            "aws_lambda_function.root_lambda": TFResource("aws_lambda_function.root_lambda", "", None, {}),
+        }
+        _link_lambda_functions_to_layers(resources, lambda_funcs_config_resources, terraform_layers_resources)
+        mock_resource_linking_exceptions.assert_called_once_with(
+            multiple_resource_linking_exception=OneLambdaLayerLinkingLimitationException,
+            local_variable_linking_exception=FunctionLayerLocalVariablesLinkingLimitationException,
+        )
+        mock_resource_linking_pair.assert_called_once_with(
+            source_resource_cfn_resource=lambda_funcs_config_resources,
+            source_resource_tf_config=resources,
+            destination_resource_tf=terraform_layers_resources,
+            tf_destination_attribute_name="arn",
+            terraform_link_field_name="layers",
+            cfn_link_field_name="Layers",
+            terraform_resource_type_prefix=LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX,
+            cfn_resource_update_call_back_function=mock_link_lambda_functions_to_layers_call_back,
+            linking_exceptions=mock_resource_linking_exceptions(),
+        )
+        mock_resource_linker.assert_called_once_with(mock_resource_linking_pair())
+
+    @parameterized.expand(
+        [
+            (
+                {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {"FunctionName": "func", "Layers": ["existing_layer1.arn", "applied_layer1.arn"]},
+                    "Metadata": {"SamResourceId": "aws_lambda_function.remote_lambda_code", "SkipBuild": True},
+                },
+                [ExistingResourceReference("existing_layer1.arn"), LogicalIdReference("Layer1LogicaId")],
+                ["existing_layer1.arn", {"Ref": "Layer1LogicaId"}],
+            ),
+            (
+                {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {"FunctionName": "func", "Layers": ["existing_layer1.arn", "existing_layer2.arn"]},
+                    "Metadata": {"SamResourceId": "aws_lambda_function.remote_lambda_code", "SkipBuild": True},
+                },
+                [ExistingResourceReference("existing_layer1.arn"), ExistingResourceReference("existing_layer2.arn")],
+                ["existing_layer1.arn", "existing_layer2.arn"],
+            ),
+            (
+                {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {
+                        "FunctionName": "func",
+                    },
+                    "Metadata": {"SamResourceId": "aws_lambda_function.remote_lambda_code", "SkipBuild": True},
+                },
+                [LogicalIdReference("Layer1LogicaId")],
+                [{"Ref": "Layer1LogicaId"}],
+            ),
+        ]
+    )
+    def test_link_lambda_functions_to_layers_call_back(self, input_function, logical_ids, expected_layers):
+        lambda_function = input_function.copy()
+        _link_lambda_functions_to_layers_call_back(lambda_function, logical_ids)
+        input_function["Properties"]["Layers"] = expected_layers
+        self.assertEqual(lambda_function, input_function)
+
+    @patch(
+        "samcli.hook_packages.terraform.hooks.prepare.resource_linking._link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back"
+    )
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.ResourceLinker")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.ResourceLinkingPair")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.ResourcePairExceptions")
+    def test_link_gateway_methods_to_gateway_rest_apis(
+        self,
+        mock_resource_linking_exceptions,
+        mock_resource_linking_pair,
+        mock_resource_linker,
+        mock_link_gateway_methods_to_gateway_rest_apis_call_back,
+    ):
+        gateway_method_config_resources = Mock()
+        terraform_rest_apis_resources = Mock()
+        resources = Mock()
+        _link_gateway_methods_to_gateway_rest_apis(
+            resources, gateway_method_config_resources, terraform_rest_apis_resources
+        )
+        mock_resource_linking_exceptions.assert_called_once_with(
+            multiple_resource_linking_exception=OneRestApiToApiGatewayMethodLinkingLimitationException,
+            local_variable_linking_exception=RestApiToApiGatewayMethodLocalVariablesLinkingLimitationException,
+        )
+        mock_resource_linking_pair.assert_called_once_with(
+            source_resource_cfn_resource=gateway_method_config_resources,
+            source_resource_tf_config=resources,
+            destination_resource_tf=terraform_rest_apis_resources,
+            tf_destination_attribute_name="id",
+            terraform_link_field_name="rest_api_id",
+            cfn_link_field_name="RestApiId",
+            terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+            cfn_resource_update_call_back_function=mock_link_gateway_methods_to_gateway_rest_apis_call_back,
+            linking_exceptions=mock_resource_linking_exceptions(),
+        )
+        mock_resource_linker.assert_called_once_with(mock_resource_linking_pair())
+
+    @patch(
+        "samcli.hook_packages.terraform.hooks.prepare.resource_linking._link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back"
+    )
+    @patch(
+        "samcli.hook_packages.terraform.hooks.prepare.resource_linking._link_gateway_resource_to_gateway_rest_apis_parent_id_call_back"
+    )
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.ResourceLinker")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.ResourceLinkingPair")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.ResourcePairExceptions")
+    def test_link_gateway_resources_to_gateway_rest_apis(
+        self,
+        mock_resource_linking_exceptions,
+        mock_resource_linking_pair,
+        mock_resource_linker,
+        mock_link_gateway_methods_to_gateway_rest_apis_parent_id_call_back,
+        mock_link_gateway_methods_to_gateway_rest_apis_rest_api_id_call_back,
+    ):
+        gateway_resource_config_resources = Mock()
+        terraform_rest_apis_resources = Mock()
+        resources = Mock()
+        _link_gateway_resources_to_gateway_rest_apis(
+            resources, gateway_resource_config_resources, terraform_rest_apis_resources
+        )
+        mock_resource_linking_exceptions.assert_has_calls(
+            [
+                call(
+                    multiple_resource_linking_exception=OneGatewayResourceToRestApiLinkingLimitationException,
+                    local_variable_linking_exception=GatewayResourceToGatewayRestApiLocalVariablesLinkingLimitationException,
+                ),
+                call(
+                    multiple_resource_linking_exception=OneGatewayResourceToRestApiLinkingLimitationException,
+                    local_variable_linking_exception=GatewayResourceToGatewayRestApiLocalVariablesLinkingLimitationException,
+                ),
+            ]
+        )
+
+        mock_resource_linking_pair.assert_has_calls(
+            [
+                call(
+                    source_resource_cfn_resource=gateway_resource_config_resources,
+                    source_resource_tf_config=resources,
+                    destination_resource_tf=terraform_rest_apis_resources,
+                    tf_destination_attribute_name="id",
+                    terraform_link_field_name="rest_api_id",
+                    cfn_link_field_name="RestApiId",
+                    terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+                    cfn_resource_update_call_back_function=mock_link_gateway_methods_to_gateway_rest_apis_rest_api_id_call_back,
+                    linking_exceptions=mock_resource_linking_exceptions(),
+                ),
+                call(
+                    source_resource_cfn_resource=gateway_resource_config_resources,
+                    source_resource_tf_config=resources,
+                    destination_resource_tf=terraform_rest_apis_resources,
+                    tf_destination_attribute_name="root_resource_id",
+                    terraform_link_field_name="parent_id",
+                    cfn_link_field_name="ResourceId",
+                    terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+                    cfn_resource_update_call_back_function=mock_link_gateway_methods_to_gateway_rest_apis_parent_id_call_back,
+                    linking_exceptions=mock_resource_linking_exceptions(),
+                ),
+            ]
+        )
+        mock_resource_linker.assert_has_calls(
+            [
+                call(mock_resource_linking_pair()),
+                call().link_resources(),
+                call(mock_resource_linking_pair()),
+                call().link_resources(),
+            ]
+        )
+
+    @patch(
+        "samcli.hook_packages.terraform.hooks.prepare.resource_linking._link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back"
+    )
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.ResourceLinker")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.ResourceLinkingPair")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.ResourcePairExceptions")
+    def test_link_gateway_stage_to_gateway_rest_apis(
+        self,
+        mock_resource_linking_exceptions,
+        mock_resource_linking_pair,
+        mock_resource_linker,
+        mock_link_gateway_resource_to_gateway_rest_apis_call_back,
+    ):
+        gateway_stage_config_resources = Mock()
+        terraform_rest_apis_resources = Mock()
+        resources = Mock()
+        _link_gateway_stage_to_rest_api(resources, gateway_stage_config_resources, terraform_rest_apis_resources)
+        mock_resource_linking_exceptions.assert_called_once_with(
+            multiple_resource_linking_exception=OneRestApiToApiGatewayStageLinkingLimitationException,
+            local_variable_linking_exception=RestApiToApiGatewayStageLocalVariablesLinkingLimitationException,
+        )
+        mock_resource_linking_pair.assert_called_once_with(
+            source_resource_cfn_resource=gateway_stage_config_resources,
+            source_resource_tf_config=resources,
+            destination_resource_tf=terraform_rest_apis_resources,
+            tf_destination_attribute_name="id",
+            terraform_link_field_name="rest_api_id",
+            cfn_link_field_name="RestApiId",
+            terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+            cfn_resource_update_call_back_function=mock_link_gateway_resource_to_gateway_rest_apis_call_back,
+            linking_exceptions=mock_resource_linking_exceptions(),
+        )
+        mock_resource_linker.assert_called_once_with(mock_resource_linking_pair())
+
+    @patch(
+        "samcli.hook_packages.terraform.hooks.prepare.resource_linking._link_gateway_method_to_gateway_resource_call_back"
+    )
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.ResourceLinker")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.ResourceLinkingPair")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.ResourcePairExceptions")
+    def test_link_gateway_methods_to_gateway_resources(
+        self,
+        mock_resource_linking_exceptions,
+        mock_resource_linking_pair,
+        mock_resource_linker,
+        mock_link_gateway_method_to_gateway_resource_call_back,
+    ):
+        gateway_method_config_resources = Mock()
+        terraform_resources_resources = Mock()
+        resources = Mock()
+        _link_gateway_method_to_gateway_resource(
+            resources, gateway_method_config_resources, terraform_resources_resources
+        )
+        mock_resource_linking_exceptions.assert_called_once_with(
+            multiple_resource_linking_exception=OneGatewayResourceToApiGatewayMethodLinkingLimitationException,
+            local_variable_linking_exception=GatewayResourceToApiGatewayMethodLocalVariablesLinkingLimitationException,
+        )
+        mock_resource_linking_pair.assert_called_once_with(
+            source_resource_cfn_resource=gateway_method_config_resources,
+            source_resource_tf_config=resources,
+            destination_resource_tf=terraform_resources_resources,
+            tf_destination_attribute_name="id",
+            terraform_link_field_name="resource_id",
+            cfn_link_field_name="ResourceId",
+            terraform_resource_type_prefix=API_GATEWAY_RESOURCE_RESOURCE_ADDRESS_PREFIX,
+            cfn_resource_update_call_back_function=mock_link_gateway_method_to_gateway_resource_call_back,
+            linking_exceptions=mock_resource_linking_exceptions(),
+        )
+        mock_resource_linker.assert_called_once_with(mock_resource_linking_pair())
+
+    @parameterized.expand(
+        [
+            (
+                {
+                    "Type": "AWS::ApiGateway::Method",
+                    "Properties": {"HttpMethod": "post", "RestApiId": "restapi.id"},
+                },
+                [LogicalIdReference("RestApi1")],
+                {"Ref": "RestApi1"},
+            ),
+            (
+                {
+                    "Type": "AWS::ApiGateway::Method",
+                    "Properties": {"HttpMethod": "post", "RestApiId": "restapi.id"},
+                },
+                [ExistingResourceReference("restapi.id")],
+                "restapi.id",
+            ),
+            (
+                {
+                    "Type": "AWS::ApiGateway::Method",
+                    "Properties": {"HttpMethod": "post"},
+                },
+                [LogicalIdReference("RestApi1")],
+                {"Ref": "RestApi1"},
+            ),
+        ]
+    )
+    def test_link_gateway_methods_to_gateway_rest_apis_call_back(
+        self, input_gateway_method, logical_ids, expected_rest_api
+    ):
+        gateway_method = input_gateway_method.copy()
+        _link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back(gateway_method, logical_ids)
+        input_gateway_method["Properties"]["RestApiId"] = expected_rest_api
+        self.assertEqual(gateway_method, input_gateway_method)
+
+    def test_link_gateway_methods_to_gateway_rest_apis_call_back_multiple_destinations(self):
+        gateway_method = Mock()
+        logical_ids = [Mock(), Mock()]
+        with self.assertRaises(
+            InvalidResourceLinkingException,
+            msg="Could not link multiple Rest APIs to one Gateway method resource",
+        ):
+            _link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back(gateway_method, logical_ids)
+
+    @parameterized.expand(
+        [
+            (
+                {
+                    "Type": "AWS::ApiGateway::Method",
+                    "Properties": {"HttpMethod": "post", "ResourceId": "resource.id"},
+                },
+                [LogicalIdReference("Resource1")],
+                {"Ref": "Resource1"},
+            ),
+            (
+                {
+                    "Type": "AWS::ApiGateway::Method",
+                    "Properties": {"HttpMethod": "post", "ResourceId": "resource.id"},
+                },
+                [ExistingResourceReference("resource.id")],
+                "resource.id",
+            ),
+            (
+                {
+                    "Type": "AWS::ApiGateway::Method",
+                    "Properties": {"HttpMethod": "post"},
+                },
+                [LogicalIdReference("Resource1")],
+                {"Ref": "Resource1"},
+            ),
+        ]
+    )
+    def test_link_gateway_method_to_gateway_resource_call_back(
+        self, input_gateway_method, logical_ids, expected_resource
+    ):
+        gateway_method = input_gateway_method.copy()
+        _link_gateway_method_to_gateway_resource_call_back(gateway_method, logical_ids)
+        input_gateway_method["Properties"]["ResourceId"] = expected_resource
+        self.assertEqual(gateway_method, input_gateway_method)
+
+    def test_link_gateway_method_to_gateway_resource_call_back_multiple_destinations(self):
+        gateway_method = Mock()
+        logical_ids = [Mock(), Mock()]
+        with self.assertRaises(
+            InvalidResourceLinkingException,
+            msg="Could not link multiple Gateway Resources to one Gateway method resource",
+        ):
+            _link_gateway_method_to_gateway_resource_call_back(gateway_method, logical_ids)
+
+    @parameterized.expand(
+        [
+            (
+                {
+                    "Type": "AWS::ApiGateway::Resource",
+                    "Properties": {"ParentId": "restapi.parent_id"},
+                },
+                [LogicalIdReference("RestApi")],
+                {"Fn::GetAtt": ["RestApi", "RootResourceId"]},
+            ),
+            (
+                {
+                    "Type": "AWS::ApiGateway::Resource",
+                    "Properties": {"ParentId": "restapi.parent_id"},
+                },
+                [ExistingResourceReference("restapi.parent_id")],
+                "restapi.parent_id",
+            ),
+            (
+                {
+                    "Type": "AWS::ApiGateway::Resource",
+                    "Properties": {},
+                },
+                [LogicalIdReference("RestApi")],
+                {"Fn:GetAtt": ["RestApi", "RootResourceId"]},
+            ),
+        ]
+    )
+    def test_link_gateway_resource_to_gateway_rest_api_parent_id_call_back(
+        self, input_gateway_resource, logical_ids, expected_rest_api
+    ):
+        gateway_resource = input_gateway_resource.copy()
+        _link_gateway_resource_to_gateway_rest_apis_parent_id_call_back(gateway_resource, logical_ids)
+        input_gateway_resource["Properties"]["ParentId"] = expected_rest_api
+        self.assertEqual(gateway_resource, input_gateway_resource)
+
+    def test_link_gateway_resource_to_gateway_rest_apis_call_back_multiple_destinations(self):
+        gateway_resource = Mock()
+        logical_ids = [Mock(), Mock()]
+        with self.assertRaises(
+            InvalidResourceLinkingException,
+            msg="Could not link multiple Rest APIs to one Gateway resource",
+        ):
+            _link_gateway_resource_to_gateway_rest_apis_parent_id_call_back(gateway_resource, logical_ids)
