@@ -16,10 +16,10 @@ from samcli.lib.utils.resources import AWS_APIGATEWAY_METHOD
 
 LOG = logging.getLogger(__name__)
 
-
 INVOKE_ARN_FORMAT = (
     "arn:aws:apigateway:${{AWS::Region}}:lambda:path/2015-03-31/functions/${{{function_logical_id}.Arn}}/invocations"
 )
+
 INTEGRATION_PROPERTIES = [
     "Uri",
     "Type",
