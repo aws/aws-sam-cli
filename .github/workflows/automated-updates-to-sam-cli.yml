@@ -74,7 +74,9 @@ jobs:
       
       - uses: actions/setup-python@v4 # used for make update-reproducible-reqs below
         with:
-          python-version: "3.7"
+          python-version: |
+            3.7
+            3.11
 
       - name: Update aws-sam-translator & commit
         run: |
