@@ -280,9 +280,6 @@ class BuildContext:
 
             self._handle_build_post_processing(builder, self._build_result)
 
-            for f in self.get_resources_to_build().functions:
-                EventTracker.track_event("BuildFunctionRuntime", f.runtime)
-
             click.secho("\nBuild Succeeded", fg="green")
 
             # try to use relpath so the command is easier to understand, however,

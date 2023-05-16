@@ -3,7 +3,6 @@ import time
 
 from unittest import TestCase
 from unittest.mock import patch, Mock, ANY, call
-from samcli.lib.telemetry.event import EventTracker
 
 import pytest
 import click
@@ -394,18 +393,6 @@ class TestSendCommandMetrics(TestCase):
         self.assertEqual(metrics.get("exitCode"), expected_code)
 
         send_events_mock.assert_called()
-
-    @patch("samcli.lib.telemetry.event.EventTracker.send_events", return_value=None)
-    @patch("samcli.lib.telemetry.metric.Context")
-    def test_must_send_events(self, ContextMock, send_mock):
-        ContextMock.get_current_context.return_value = self.context_mock
-
-        def real_fn():
-            pass
-
-        track_command(real_fn)()
-
-        send_mock.assert_called()
 
 
 class TestParameterCapture(TestCase):
