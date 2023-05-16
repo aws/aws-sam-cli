@@ -1059,6 +1059,12 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         )
         self.assertEqual(translated_cfn_properties, self.expected_cfn_apigw_method_properties)
 
+    def test_translating_apigw_rest_method_with_auth(self):
+        translated_cfn_properties = _translate_properties(
+            self.tf_apigw_method_with_auth_properties, AWS_API_GATEWAY_METHOD_PROPERTY_BUILDER_MAPPING, Mock()
+        )
+        self.assertEqual(translated_cfn_properties, self.expected_cfn_apigw_method_with_auth_properties)
+
     def test_translating_apigw_integration_method(self):
         translated_cfn_properties = _translate_properties(
             self.tf_apigw_integration_properties, AWS_API_GATEWAY_INTEGRATION_PROPERTY_BUILDER_MAPPING, Mock()

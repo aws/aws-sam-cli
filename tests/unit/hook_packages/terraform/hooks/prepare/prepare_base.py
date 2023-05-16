@@ -47,6 +47,7 @@ class PrepareHookUnitBase(TestCase):
         self.apigw_stage_name = "my_stage"
         self.apigw_rest_api_name = "my_rest_api"
         self.apigw_method_name = "my_method"
+        self.apigw_method_with_auth_name = "my_method_auth"
         self.apigw_integration_name = "my_integration"
         self.apigw_authorizer_name = "my_authorizer"
         self.apigw_integration_response_name = "my_integration_response"
@@ -669,6 +670,33 @@ class PrepareHookUnitBase(TestCase):
             "Metadata": {"SamResourceId": f"aws_api_gateway_method.{self.apigw_method_name}"},
         }
 
+        self.tf_apigw_method_with_auth_properties: dict = {
+            "rest_api_id": "aws_api_gateway_rest_api.MyDemoAPI.id",
+            "resource_id": "aws_api_gateway_resource.MyDemoResource.id",
+            "http_method": "ANY",
+            "operation_name": "AnyOperation",
+        }
+
+        self.expected_cfn_apigw_method_with_auth_properties: dict = {
+            "RestApiId": "aws_api_gateway_rest_api.MyDemoAPI.id",
+            "ResourceId": "aws_api_gateway_resource.MyDemoResource.id",
+            "HttpMethod": "ANY",
+            "OperationName": "AnyOperation",
+        }
+
+        self.tf_apigw_method_with_auth_resource: dict = {
+            **self.tf_apigw_method_common_attributes,
+            "values": self.tf_apigw_method_with_auth_properties,
+            "address": f"aws_api_gateway_method.{self.apigw_method_with_auth_name}",
+            "name": self.apigw_method_with_auth_name,
+        }
+
+        self.expected_cfn_apigw_method_with_auth: dict = {
+            "Type": AWS_APIGATEWAY_METHOD,
+            "Properties": self.expected_cfn_apigw_method_with_auth_properties,
+            "Metadata": {"SamResourceId": f"aws_api_gateway_method.{self.apigw_method_with_auth_name}"},
+        }
+
         self.tf_apigw_stage_properties: dict = {
             "rest_api_id": "aws_api_gateway_rest_api.MyDemoAPI.id",
             "stage_name": "test",
@@ -744,6 +772,7 @@ class PrepareHookUnitBase(TestCase):
                         self.tf_apigw_rest_api_resource,
                         self.tf_apigw_stage_resource,
                         self.tf_apigw_method_resource,
+                        self.tf_apigw_method_with_auth_resource,
                         self.tf_apigw_integration_resource,
                         self.tf_apigw_authorizer_resource,
                         self.tf_apigw_integration_response_resource,
@@ -761,6 +790,7 @@ class PrepareHookUnitBase(TestCase):
                 f"AwsApiGatewayRestApiMyRestApi{self.mock_logical_id_hash}": self.expected_cfn_apigw_rest_api,
                 f"AwsApiGatewayStageMyStage{self.mock_logical_id_hash}": self.expected_cfn_apigw_stage_resource,
                 f"AwsApiGatewayMethodMyMethod{self.mock_logical_id_hash}": self.expected_cfn_apigw_method,
+                f"AwsApiGatewayMethodMyMethodAuth{self.mock_logical_id_hash}": self.expected_cfn_apigw_method_with_auth,
                 f"AwsApiGatewayAuthorizerMyAuthorizer{self.mock_logical_id_hash}": self.expected_cfn_apigw_authorizer,
             },
         }
