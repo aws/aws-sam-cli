@@ -17,7 +17,8 @@ from samcli.lib.utils.resources import AWS_APIGATEWAY_METHOD
 LOG = logging.getLogger(__name__)
 
 INVOKE_ARN_FORMAT = (
-    "arn:aws:apigateway:${{AWS::Region}}:lambda:path/2015-03-31/functions/${{{function_logical_id}.Arn}}/invocations"
+    "arn:${{AWS::Partition}}:apigateway:${{AWS::Region}}:"
+    "lambda:path/2015-03-31/functions/${{{function_logical_id}.Arn}}/invocations"
 )
 
 INTEGRATION_PROPERTIES = [
@@ -108,7 +109,9 @@ class ApiGatewayStageProperties(ResourceProperties):
         super(ApiGatewayStageProperties, self).__init__()
 
 
-def add_integrations_to_methods(cfn_dict: dict, gateway_integrations_cfn: Dict[str, List]) -> None:
+def add_integrations_to_methods(
+    gateway_methods_cfn: Dict[str, List], gateway_integrations_cfn: Dict[str, List]
+) -> None:
     """
     Iterate through all the API Gateway methods in the translated CFN dict. For each API Gateway method,
     search the internal integration resources using the integrations' unique identifier to find the
@@ -126,20 +129,23 @@ def add_integrations_to_methods(cfn_dict: dict, gateway_integrations_cfn: Dict[s
 
     Parameters
     ----------
-    cfn_dict: dict
-        Resultant CFN dict that will be mutated to append integrations to each API Gateway method
+    gateway_methods_cfn: Dict[str, List]
+        Dict containing API Gateway Methods to be mutated with addition integration properties
     gateway_integrations_cfn: Dict[str, List]
         Dict containing Internal API Gateway integrations to be appended to the CFN dict
     """
-    for logical_id, resource in cfn_dict.get("Resources").items():
-        if resource.get("Type", "") == AWS_APIGATEWAY_METHOD:
-            resource_properties = resource.get("Properties", {})
-            search_key = _gateway_method_integration_identifier(resource_properties)
-            integration_properties = _find_gateway_integration(search_key, gateway_integrations_cfn)
-            if not integration_properties:
-                LOG.debug("A corresponding gateway integration for the gateway method %s was not found", logical_id)
-                continue
-            _create_gateway_method_integration(resource, integration_properties)
+    for config_address, cfn_dicts in gateway_methods_cfn.items():
+        for resource in cfn_dicts:
+            if resource.get("Type", "") == AWS_APIGATEWAY_METHOD:
+                resource_properties = resource.get("Properties", {})
+                search_key = _gateway_method_integration_identifier(resource_properties)
+                integration_properties = _find_gateway_integration(search_key, gateway_integrations_cfn)
+                if not integration_properties:
+                    LOG.debug(
+                        "A corresponding gateway integration for the gateway method %s was not found", config_address
+                    )
+                    continue
+                _create_gateway_method_integration(resource, integration_properties)
 
 
 def _find_gateway_integration(search_key: set, gateway_integrations_cfn: Dict[str, List]) -> Optional[dict]:
@@ -164,7 +170,7 @@ def _find_gateway_integration(search_key: set, gateway_integrations_cfn: Dict[st
             resource_properties = resource.get("Properties", {})
             integration_key = _gateway_method_integration_identifier(resource_properties)
             if integration_key == search_key:
-                return resource_properties
+                return dict(resource_properties)
     return None
 
 
@@ -184,11 +190,36 @@ def _gateway_method_integration_identifier(resource_properties: dict) -> set:
         Returns a set comprised of unique identifiers of an API Gateway integration
 
     """
+    rest_api_id = _get_reference_from_string_or_intrinsic(resource_properties, "RestApiId")
+    resource_id = _get_reference_from_string_or_intrinsic(resource_properties, "ResourceId")
     return {
-        resource_properties.get("RestApiId", {}).get("Ref", ""),
-        resource_properties.get("ResourceId", {}).get("Ref", ""),
+        rest_api_id,
+        resource_id,
         resource_properties.get("HttpMethod", ""),
     }
+
+
+def _get_reference_from_string_or_intrinsic(resource_properties: dict, property_key: str) -> str:
+    """
+    Check if a reference value is a constant string ARN or if it is a reference to a logical ID.
+    Return either the ARN or the logical ID
+
+    Parameters
+    ----------
+    resource_properties: dict
+        Resource properties to search through
+    property_key: str
+        Property to find
+
+    Returns
+    -------
+        A string corresponding to the reference of the given field
+    """
+    return str(
+        resource_properties.get(property_key, {}).get("Ref", "")
+        if isinstance(resource_properties.get(property_key), dict)
+        else resource_properties.get(property_key, "")
+    )
 
 
 def _create_gateway_method_integration(method_resource: dict, integration_resource_properties: dict) -> None:

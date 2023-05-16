@@ -16,6 +16,7 @@ from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     REMOTE_DUMMY_VALUE,
     RESOURCE_TRANSLATOR_MAPPING,
     TF_AWS_API_GATEWAY_INTEGRATION,
+    TF_AWS_API_GATEWAY_METHOD,
     TF_AWS_API_GATEWAY_REST_API,
     PropertyBuilderMapping,
 )
@@ -232,7 +233,10 @@ def translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_applic
 
     _handle_linking(resource_property_mapping)
 
-    add_integrations_to_methods(cfn_dict, resource_property_mapping.get(TF_AWS_API_GATEWAY_INTEGRATION).cfn_resources)
+    add_integrations_to_methods(
+        resource_property_mapping.get(TF_AWS_API_GATEWAY_METHOD, ResourceProperties()).cfn_resources,
+        resource_property_mapping.get(TF_AWS_API_GATEWAY_INTEGRATION, ResourceProperties()).cfn_resources,
+    )
 
     if sam_metadata_resources:
         LOG.debug("Enrich the mapped resources with the sam metadata information and generate Makefile")

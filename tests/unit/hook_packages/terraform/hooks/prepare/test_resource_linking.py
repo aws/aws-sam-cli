@@ -2035,7 +2035,7 @@ class TestResourceLinker(TestCase):
                 },
                 [LogicalIdReference("FunctionA")],
                 {
-                    "Fn::Sub": "arn:aws:apigateway:${{AWS::Region}}:lambda:path/2015-03-31/functions/${{FunctionA.Arn}}/invocations"
+                    "Fn::Sub": "arn:${{AWS::Partition}}:apigateway:${{AWS::Region}}:lambda:path/2015-03-31/functions/${{FunctionA.Arn}}/invocations"
                 },
             ),
             (
@@ -2053,7 +2053,7 @@ class TestResourceLinker(TestCase):
                 },
                 [LogicalIdReference("RestApi")],
                 {
-                    "Fn::Sub": "arn:aws:apigateway:${{AWS::Region}}:lambda:path/2015-03-31/functions/${{FunctionA.Arn}}/invocations"
+                    "Fn::Sub": "arn:${{AWS::Partition}}:apigateway:${{AWS::Region}}:lambda:path/2015-03-31/functions/${{FunctionA.Arn}}/invocations"
                 },
             ),
         ]

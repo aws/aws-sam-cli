@@ -1376,14 +1376,19 @@ def _link_gateway_integrations_to_function_resource(
         Dictionary of all actual terraform Lambda function resources (not configuration resources).
         The dictionary's key is the calculated logical id for each resource.
     """
-
+    # Filter out integrations that are not of type AWS_PROXY since we only care about those currently.
+    aws_proxy_integrations_config_resources = {
+        config_address: tf_resource
+        for config_address, tf_resource in gateway_integrations_config_resources.items()
+        if tf_resource.attributes.get("type", ConstantValue("")).value == "AWS_PROXY"
+    }
     exceptions = ResourcePairExceptions(
         multiple_resource_linking_exception=OneLambdaFunctionResourceToApiGatewayIntegrationLinkingLimitationException,
         local_variable_linking_exception=LambdaFunctionToApiGatewayIntegrationLocalVariablesLinkingLimitationException,
     )
     resource_linking_pair = ResourceLinkingPair(
         source_resource_cfn_resource=gateway_integrations_config_address_cfn_resources_map,
-        source_resource_tf_config=gateway_integrations_config_resources,
+        source_resource_tf_config=aws_proxy_integrations_config_resources,
         destination_resource_tf=lambda_function_terraform_resources,
         tf_destination_attribute_name="invoke_arn",
         terraform_link_field_name="uri",
