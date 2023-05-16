@@ -8,11 +8,11 @@ import os
 from json import JSONDecodeError
 from pathlib import Path
 from textwrap import dedent
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import click
-from samcli.cli.global_config import GlobalConfig
 
+from samcli.cli.global_config import GlobalConfig
 from samcli.commands.exceptions import (
     AppPipelineTemplateMetadataException,
     PipelineTemplateCloneException,
@@ -24,14 +24,15 @@ from samcli.lib.cookiecutter.question import Choice
 from samcli.lib.cookiecutter.template import Template
 from samcli.lib.utils import osutils
 from samcli.lib.utils.colors import Colored
-from samcli.lib.utils.git_repo import GitRepo, CloneRepoException
-from .pipeline_templates_manifest import Provider, PipelineTemplateMetadata, PipelineTemplatesManifest
+from samcli.lib.utils.git_repo import CloneRepoException, GitRepo
+
 from ..bootstrap.cli import (
-    do_cli as do_bootstrap,
     PIPELINE_CONFIG_DIR,
     PIPELINE_CONFIG_FILENAME,
     _get_bootstrap_command_names,
 )
+from ..bootstrap.cli import do_cli as do_bootstrap
+from .pipeline_templates_manifest import PipelineTemplateMetadata, PipelineTemplatesManifest, Provider
 
 LOG = logging.getLogger(__name__)
 shared_path: Path = GlobalConfig().config_dir
@@ -102,7 +103,9 @@ class InteractiveInitFlow:
         selected_pipeline_template_dir: Path = pipeline_templates_local_dir.joinpath(
             selected_pipeline_template_metadata.location
         )
-        return self._generate_from_pipeline_template(selected_pipeline_template_dir)
+        return self._generate_from_pipeline_template(
+            selected_pipeline_template_dir, selected_pipeline_template_metadata.provider
+        )
 
     def _generate_from_custom_location(
         self,
@@ -114,13 +117,20 @@ class InteractiveInitFlow:
         pipeline_template_git_location: str = click.prompt("Template Git location")
         if os.path.exists(pipeline_template_git_location):
             pipeline_template_local_dir = Path(pipeline_template_git_location)
-        else:
-            with osutils.mkdir_temp(ignore_errors=True) as tempdir:
-                tempdir_path = Path(tempdir)
-                pipeline_template_local_dir = _clone_pipeline_templates(
-                    pipeline_template_git_location, tempdir_path, CUSTOM_PIPELINE_TEMPLATE_REPO_LOCAL_NAME
-                )
+            return self._select_and_generate_from_pipeline_template(pipeline_template_local_dir)
+        with osutils.mkdir_temp(ignore_errors=True) as tempdir:
+            tempdir_path = Path(tempdir)
+            pipeline_template_local_dir = _clone_pipeline_templates(
+                pipeline_template_git_location, tempdir_path, CUSTOM_PIPELINE_TEMPLATE_REPO_LOCAL_NAME
+            )
+            return self._select_and_generate_from_pipeline_template(pipeline_template_local_dir)
 
+    def _select_and_generate_from_pipeline_template(self, pipeline_template_local_dir: Path) -> List[str]:
+        """
+        Determine if the specified custom pipeline template directory contains
+        more than one template, prompt the user to choose one if it does, and
+        then generate the template and return the list of files.
+        """
         if os.path.exists(pipeline_template_local_dir.joinpath("manifest.yaml")):
             pipeline_templates_manifest: PipelineTemplatesManifest = _read_app_pipeline_templates_manifest(
                 pipeline_template_local_dir
@@ -139,7 +149,7 @@ class InteractiveInitFlow:
         return self._generate_from_pipeline_template(selected_pipeline_template_dir)
 
     def _prompt_run_bootstrap_within_pipeline_init(
-        self, stage_configuration_names: List[str], number_of_stages: int
+        self, stage_configuration_names: List[str], number_of_stages: int, cicd_provider: Optional[str] = None
     ) -> bool:
         """
         Prompt bootstrap if `--bootstrap` flag is provided. Return True if bootstrap process is executed.
@@ -150,7 +160,8 @@ class InteractiveInitFlow:
             click.echo(
                 Colored().yellow(
                     f"Only {len(stage_configuration_names)} stage(s) were detected, "
-                    f"fewer than what the template requires: {number_of_stages}."
+                    f"fewer than what the template requires: {number_of_stages}. If "
+                    f"these are incorrect, delete .aws-sam/pipeline/pipelineconfig.toml and rerun"
                 )
             )
         click.echo()
@@ -158,7 +169,8 @@ class InteractiveInitFlow:
         if self.allow_bootstrap:
             if click.confirm(
                 "Do you want to go through stage setup process now? If you choose no, "
-                "you can still reference other bootstrapped resources."
+                "you can still reference other bootstrapped resources.",
+                default=True,
             ):
                 click.secho(
                     dedent(
@@ -191,6 +203,17 @@ class InteractiveInitFlow:
                     config_file=None,
                     config_env=None,
                     standalone=False,
+                    permissions_provider=None,
+                    oidc_client_id=None,
+                    oidc_provider_url=None,
+                    github_org=None,
+                    github_repo=None,
+                    deployment_branch=None,
+                    oidc_provider=None,
+                    cicd_provider=cicd_provider,
+                    gitlab_group=None,
+                    gitlab_project=None,
+                    bitbucket_repo_uuid=None,
                 )
                 return True
         else:
@@ -208,7 +231,9 @@ class InteractiveInitFlow:
             )
         return False
 
-    def _generate_from_pipeline_template(self, pipeline_template_dir: Path) -> List[str]:
+    def _generate_from_pipeline_template(
+        self, pipeline_template_dir: Path, cicd_provider: Optional[str] = None
+    ) -> List[str]:
         """
         Generates a pipeline config file from a given pipeline template local location
         and return the list of generated files.
@@ -224,13 +249,18 @@ class InteractiveInitFlow:
             click.echo("Checking for existing stages...\n")
             stage_configuration_names, bootstrap_context = _load_pipeline_bootstrap_resources()
             if len(stage_configuration_names) < number_of_stages and self._prompt_run_bootstrap_within_pipeline_init(
-                stage_configuration_names, number_of_stages
+                stage_configuration_names, number_of_stages, cicd_provider
             ):
                 # the customers just went through the bootstrap process,
                 # refresh the pipeline bootstrap resources and see whether bootstrap is still needed
                 continue
+            click.echo(
+                Colored().yellow(
+                    "2 stage(s) were detected, matching the template requirements. "
+                    "If these are incorrect, delete .aws-sam/pipeline/pipelineconfig.toml and rerun"
+                )
+            )
             break
-
         context: Dict = pipeline_template.run_interactive_flows(bootstrap_context)
         with osutils.mkdir_temp() as generate_dir:
             LOG.debug("Generating pipeline files into %s", generate_dir)
@@ -262,6 +292,8 @@ def _load_pipeline_bootstrap_resources() -> Tuple[List[str], Dict[str, str]]:
             # create an index alias for each stage name
             # so that if customers type "1," it is equivalent to the first stage name
             context[str([str(index + 1), key])] = value
+    for key, value in config.get_all(_get_bootstrap_command_names(), section, "default").items():
+        context[str(["default", key])] = value
 
     # pre-load the list of stage names detected from pipelineconfig.toml
     stage_names_message = (

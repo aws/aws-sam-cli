@@ -9,6 +9,8 @@ from unittest import TestCase
 import boto3
 from pathlib import Path
 
+from tests.testing_utils import get_sam_command
+
 S3_SLEEP = 3
 
 
@@ -25,7 +27,7 @@ class PublishAppIntegBase(TestCase):
         cls.test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "publish")
         cls.sar_client = boto3.client("serverlessrepo", region_name=cls.region_name)
 
-        # Intialize S3 client
+        # Initialize S3 client
         s3 = boto3.resource("s3")
         # Use a pre-created S3 Bucket if present else create a new one
         cls.s3_bucket = s3.Bucket(cls.bucket_name)
@@ -78,15 +80,8 @@ class PublishAppIntegBase(TestCase):
         for key, value in app_metadata.items():
             self.assertIn('"{}":{}'.format(key, json.dumps(value)), stripped_std_output)
 
-    def base_command(self):
-        command = "sam"
-        if os.getenv("SAM_CLI_DEV"):
-            command = "samdev"
-
-        return command
-
     def get_command_list(self, template_path=None, region=None, profile=None, semantic_version=None):
-        command_list = [self.base_command(), "publish"]
+        command_list = [get_sam_command(), "publish"]
 
         if template_path:
             command_list = command_list + ["-t", str(template_path)]

@@ -7,7 +7,7 @@ import click
 
 from samcli.cli.context import get_cmd_names
 from samcli.commands.deploy.exceptions import GuidedDeployFailedError
-from samcli.lib.config.samconfig import SamConfig, DEFAULT_ENV, DEFAULT_CONFIG_FILE_NAME
+from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME, DEFAULT_ENV, SamConfig
 
 
 class GuidedConfig:
@@ -51,16 +51,16 @@ class GuidedConfig:
         image_repositories=None,
         **kwargs,
     ):
-
         ctx, samconfig = self.get_config_ctx(config_file)
 
         cmd_names = get_cmd_names(ctx.info_name, ctx)
 
         for key, value in kwargs.items():
-            if isinstance(value, (list, tuple)):
-                value = " ".join(val for val in value)
-            if value:
-                samconfig.put(cmd_names, self.section, key, value, env=config_env)
+            v = value
+            if isinstance(v, (list, tuple)):
+                v = " ".join(val for val in v)
+            if v:
+                samconfig.put(cmd_names, self.section, key, v, env=config_env)
 
         self._save_parameter_overrides(cmd_names, config_env, parameter_overrides, samconfig)
         self._save_image_repositories(cmd_names, config_env, samconfig, image_repositories)

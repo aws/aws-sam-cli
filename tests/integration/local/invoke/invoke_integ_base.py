@@ -4,7 +4,7 @@ from unittest import TestCase, skipIf
 from pathlib import Path
 from subprocess import Popen, PIPE, TimeoutExpired
 
-from tests.testing_utils import SKIP_DOCKER_MESSAGE, SKIP_DOCKER_TESTS
+from tests.testing_utils import SKIP_DOCKER_MESSAGE, SKIP_DOCKER_TESTS, get_sam_command
 
 TIMEOUT = 300
 
@@ -15,9 +15,10 @@ class InvokeIntegBase(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.cmd = cls.base_command()
+        cls.cmd = get_sam_command()
         cls.test_data_path = cls.get_integ_dir().joinpath("testdata")
-        cls.template_path = str(cls.test_data_path.joinpath("invoke", cls.template))
+        if cls.template:
+            cls.template_path = str(cls.test_data_path.joinpath("invoke", cls.template))
         cls.event_path = str(cls.test_data_path.joinpath("invoke", "event.json"))
         cls.event_utf8_path = str(cls.test_data_path.joinpath("invoke", "event_utf8.json"))
         cls.env_var_path = str(cls.test_data_path.joinpath("invoke", "vars.json"))
@@ -26,16 +27,8 @@ class InvokeIntegBase(TestCase):
     def get_integ_dir():
         return Path(__file__).resolve().parents[2]
 
-    @classmethod
-    def base_command(cls):
-        command = "sam"
-        if os.getenv("SAM_CLI_DEV"):
-            command = "samdev"
-
-        return command
-
+    @staticmethod
     def get_command_list(
-        self,
         function_to_invoke,
         template_path=None,
         event_path=None,
@@ -47,8 +40,10 @@ class InvokeIntegBase(TestCase):
         layer_cache=None,
         docker_network=None,
         invoke_image=None,
+        hook_name=None,
+        beta_features=None,
     ):
-        command_list = [self.cmd, "local", "invoke", function_to_invoke]
+        command_list = [get_sam_command(), "local", "invoke", function_to_invoke]
 
         if template_path:
             command_list = command_list + ["-t", template_path]
@@ -82,6 +77,12 @@ class InvokeIntegBase(TestCase):
 
         if invoke_image:
             command_list = command_list + ["--invoke-image", invoke_image]
+
+        if hook_name:
+            command_list = command_list + ["--hook-name", hook_name]
+
+        if beta_features is not None:
+            command_list = command_list + ["--beta-features" if beta_features else "--no-beta-features"]
 
         return command_list
 

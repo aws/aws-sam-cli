@@ -15,7 +15,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.6
+      Runtime: python3.9
       FunctionName: customname
       CodeUri: ..
       Timeout: 600

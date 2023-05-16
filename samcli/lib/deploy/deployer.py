@@ -15,30 +15,30 @@ Cloudformation deploy class which also streams events and changeset information
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
-import sys
-import math
-from collections import OrderedDict, deque
 import logging
+import math
+import sys
 import time
+from collections import OrderedDict, deque
 from datetime import datetime
 from typing import Dict, List, Optional
 
 import botocore
 
-from samcli.lib.deploy.utils import DeployColor, FailureMode
+from samcli.commands._utils.table_print import MIN_OFFSET, newline_per_item, pprint_column_names, pprint_columns
+from samcli.commands.deploy import exceptions as deploy_exceptions
 from samcli.commands.deploy.exceptions import (
-    DeployFailedError,
     ChangeSetError,
-    DeployStackOutPutFailedError,
     DeployBucketInDifferentRegionError,
+    DeployFailedError,
+    DeployStackOutPutFailedError,
     DeployStackStatusMissingError,
 )
-from samcli.commands._utils.table_print import pprint_column_names, pprint_columns, newline_per_item, MIN_OFFSET
-from samcli.commands.deploy import exceptions as deploy_exceptions
-from samcli.lib.package.local_files_utils import mktempfile, get_uploaded_s3_object_name
+from samcli.lib.deploy.utils import DeployColor, FailureMode
+from samcli.lib.package.local_files_utils import get_uploaded_s3_object_name, mktempfile
 from samcli.lib.package.s3_uploader import S3Uploader
+from samcli.lib.utils.colors import Colored, Colors
 from samcli.lib.utils.time import utc_to_timestamp
-from samcli.lib.utils.colors import Colored
 
 LOG = logging.getLogger(__name__)
 
@@ -124,7 +124,9 @@ class Deployer:
             if "Stack with id {0} does not exist".format(stack_name) in str(e):
                 LOG.debug("Stack with id %s does not exist", stack_name)
                 return False
-            return None
+
+            LOG.debug("Unknown ClientError recieved: %s. Cannot determine if stack exists.", str(e))
+            raise DeployFailedError(stack_name=stack_name, msg=str(e)) from e
         except botocore.exceptions.BotoCoreError as e:
             # If there are credentials, environment errors,
             # catch that and throw a deploy failed error.
@@ -302,20 +304,25 @@ class Deployer:
         :param changeset_id: ID or name of the changeset
         :param stack_name:   Stack name
         """
-        sys.stdout.write("\nWaiting for changeset to be created..\n")
+        sys.stdout.write("\n\nWaiting for changeset to be created..\n\n")
         sys.stdout.flush()
 
         # Wait for changeset to be created
         waiter = self._client.get_waiter("change_set_create_complete")
-        # Poll every 5 seconds. Changeset creation should be fast
-        waiter_config = {"Delay": 5}
+        # Use default client_sleep to set the delay between polling
+        # To override use SAM_CLI_POLL_DELAY environment variable
+        waiter_config = {"Delay": self.client_sleep}
         try:
             waiter.wait(ChangeSetName=changeset_id, StackName=stack_name, WaiterConfig=waiter_config)
         except botocore.exceptions.WaiterError as ex:
-
             resp = ex.last_response
-            status = resp["Status"]
-            reason = resp["StatusReason"]
+            status = resp.get("Status")
+            reason = resp.get("StatusReason")
+
+            if not status or not reason:
+                # not a CFN DescribeChangeSet response, re-raising
+                LOG.debug("Failed while waiting for changeset: %s", ex)
+                raise ex
 
             if (
                 status == "FAILED"
@@ -324,9 +331,7 @@ class Deployer:
             ):
                 raise deploy_exceptions.ChangeEmptyError(stack_name=stack_name)
 
-            raise ChangeSetError(
-                stack_name=stack_name, msg="ex: {0} Status: {1}. Reason: {2}".format(ex, status, reason)
-            ) from ex
+            raise ChangeSetError(stack_name=stack_name, msg=f"ex: {ex} Status: {status}. Reason: {reason}") from ex
 
     def execute_changeset(self, changeset_id, stack_name, disable_rollback):
         """
@@ -505,7 +510,7 @@ class Deployer:
             if disable_rollback and on_failure is not FailureMode.DELETE:
                 # This will only display the message if disable rollback is set or if DO_NOTHING is specified
                 msg = self._gen_deploy_failed_with_rollback_disabled_msg(stack_name)
-                LOG.info(self._colored.red(msg))
+                LOG.info(self._colored.color_log(msg=msg, color=Colors.FAILURE), extra=dict(markup=True))
 
             raise deploy_exceptions.DeployFailedError(stack_name=stack_name, msg=str(ex))
 
@@ -632,7 +637,7 @@ class Deployer:
                 self.wait_for_execute(stack_name, "CREATE", disable_rollback, on_failure=on_failure)
                 msg = "\nStack creation succeeded. Sync infra completed.\n"
 
-            LOG.info(self._colored.green(msg))
+            LOG.info(self._colored.color_log(msg=msg, color=Colors.SUCCESS), extra=dict(markup=True))
 
             return result
         except botocore.exceptions.ClientError as ex:
@@ -656,7 +661,7 @@ class Deployer:
                     format_string=OUTPUTS_FORMAT_STRING,
                     format_args=kwargs["format_args"],
                     columns_dict=OUTPUTS_DEFAULTS_ARGS.copy(),
-                    color="green",
+                    color=Colors.SUCCESS,
                     replace_whitespace=False,
                     break_long_words=False,
                     drop_whitespace=False,
@@ -691,7 +696,6 @@ class Deployer:
         kwargs = {
             "StackName": stack_name,
         }
-
         current_state = self._get_stack_status(stack_name)
 
         try:
@@ -704,7 +708,7 @@ class Deployer:
 
                 current_state = self._get_stack_status(stack_name)
 
-            failed_states = ["CREATE_FAILED", "UPDATE_FAILED", "ROLLBACK_COMPLETE", "ROLLBACK_FAILED"]
+            failed_states = ["CREATE_FAILED", "ROLLBACK_COMPLETE", "ROLLBACK_FAILED"]
 
             if current_state in failed_states:
                 LOG.info("Stack %s failed to create/update correctly, deleting stack", stack_name)

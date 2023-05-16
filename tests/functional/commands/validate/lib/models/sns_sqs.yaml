@@ -13,11 +13,12 @@ Resources:
             SqsSubscription: true
             FilterPolicy:
               store:
-                - example_corp
+              - example_corp
               price_usd:
-                - numeric:
-                    - ">="
-                    - 100
+              - numeric:
+                - '>='
+                - 100
+            FilterPolicyScope: MessageAttributes
 
   Notifications:
     Type: AWS::SNS::Topic

@@ -11,17 +11,18 @@ from botocore.credentials import Credentials
 
 from samcli.commands.local.lib.debug_context import DebugContext
 from samcli.commands.local.lib.exceptions import (
-    OverridesNotWellDefinedError,
-    NoPrivilegeException,
     InvalidIntermediateImageError,
+    NoPrivilegeException,
+    OverridesNotWellDefinedError,
+    UnsupportedInlineCodeError,
 )
 from samcli.lib.providers.provider import Function
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.utils.architecture import validate_architecture_runtime
 from samcli.lib.utils.codeuri import resolve_code_path
-from samcli.lib.utils.packagetype import ZIP, IMAGE
+from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.stream_writer import StreamWriter
-from samcli.local.docker.container import ContainerResponseException, ContainerConnectionTimeoutException
+from samcli.local.docker.container import ContainerConnectionTimeoutException, ContainerResponseException
 from samcli.local.lambdafn.config import FunctionConfig
 from samcli.local.lambdafn.env_vars import EnvironmentVariables
 from samcli.local.lambdafn.exceptions import FunctionNotFound
@@ -37,6 +38,7 @@ class LocalLambdaRunner:
     """
 
     MAX_DEBUG_TIMEOUT = 36000  # 10 hours in seconds
+    WIN_ERROR_CODE = 1314
 
     def __init__(
         self,
@@ -120,6 +122,11 @@ class LocalLambdaRunner:
 
         LOG.debug("Found one Lambda function with name '%s'", function_identifier)
         if function.packagetype == ZIP:
+            if function.inlinecode:
+                raise UnsupportedInlineCodeError(
+                    "Inline code is not supported for sam local commands."
+                    f" Please write your code in a separate file for the function {function.function_id}."
+                )
             LOG.info("Invoking %s (%s)", function.handler, function.runtime)
         elif function.packagetype == IMAGE:
             if not function.imageuri:
@@ -152,8 +159,7 @@ class LocalLambdaRunner:
             # trying to connect to the socket for Docker it would throw ContainerResponseException but now it's this.
             LOG.info(str(e))
         except OSError as os_error:
-            # pylint: disable=no-member
-            if hasattr(os_error, "winerror") and os_error.winerror == 1314:  # type: ignore
+            if getattr(os_error, "winerror", None) == self.WIN_ERROR_CODE:
                 raise NoPrivilegeException(
                     "Administrator, Windows Developer Mode, "
                     "or SeCreateSymbolicLinkPrivilege is required to create symbolic link for files: {}, {}".format(
@@ -211,10 +217,15 @@ class LocalLambdaRunner:
             memory=function.memory,
             timeout=function_timeout,
             env_vars=env_vars,
+            runtime_management_config=function.runtime_management_config,
         )
 
     def _make_env_vars(self, function: Function) -> EnvironmentVariables:
         """Returns the environment variables configuration for this function
+
+        Priority order for environment variables (high to low):
+        1. Function specific env vars from json file
+        2. Global env vars from json file
 
         Parameters
         ----------
@@ -234,42 +245,48 @@ class LocalLambdaRunner:
         """
 
         function_id = function.function_id
-        name = function.name
+        logical_id = function.name
+        function_name = function.functionname
         full_path = function.full_path
 
         variables = None
         if isinstance(function.environment, dict) and "Variables" in function.environment:
             variables = function.environment["Variables"]
         else:
-            LOG.debug("No environment variables found for function '%s'", name)
+            LOG.debug("No environment variables found for function '%s'", logical_id)
 
-        # This could either be in standard format, or a CloudFormation parameter file format.
+        # This could either be in standard format, or a CloudFormation parameter file format, or mix of both.
         #
         # Standard format is {FunctionName: {key:value}, FunctionName: {key:value}}
         # CloudFormation parameter file is {"Parameters": {key:value}}
+        # Mixed format is {FunctionName: {key:value}, "Parameters": {key:value}}
 
         for env_var_value in self.env_vars_values.values():
             if not isinstance(env_var_value, dict):
-                reason = """
-                            Environment variables must be in either CloudFormation parameter file
-                            format or in {FunctionName: {key:value}} JSON pairs
-                            """
+                reason = "Environment variables {} in incorrect format".format(env_var_value)
                 LOG.debug(reason)
                 raise OverridesNotWellDefinedError(reason)
 
+        overrides = {}
+        # environment variables for specific resources take precedence over
+        # the single environment variable for all resources
         if "Parameters" in self.env_vars_values:
-            LOG.debug("Environment variables overrides data is in CloudFormation parameter file format")
+            LOG.debug("Environment variables data found in the CloudFormation parameter file format")
             # CloudFormation parameter file format
-            overrides = self.env_vars_values["Parameters"]
-        else:
+            parameter_result = self.env_vars_values.get("Parameters", {})
+            overrides.update(parameter_result)
+
+        # Precedence: logical_id -> function_id -> function name -> full_path, customer can use any of them
+        fn_file_env_vars = (
+            self.env_vars_values.get(logical_id, None)
+            or self.env_vars_values.get(function_id, None)
+            or self.env_vars_values.get(function_name, None)
+            or self.env_vars_values.get(full_path, None)
+        )
+        if fn_file_env_vars:
             # Standard format
-            LOG.debug("Environment variables overrides data is standard format")
-            # Precedence: logical_id -> function_id -> full_path, customer can use any of them
-            overrides = (
-                self.env_vars_values.get(name, None)
-                or self.env_vars_values.get(function_id, None)
-                or self.env_vars_values.get(full_path, None)
-            )
+            LOG.debug("Environment variables data found for specific function in standard format")
+            overrides.update(fn_file_env_vars)
 
         shell_env = os.environ
         aws_creds = self.get_aws_creds()

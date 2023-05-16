@@ -6,8 +6,8 @@ import logging
 import os
 
 from samcli.commands.local.lib.exceptions import NoApisDefined
-from samcli.local.apigw.local_apigw_service import LocalApigwService
 from samcli.lib.providers.api_provider import ApiProvider
+from samcli.local.apigw.local_apigw_service import LocalApigwService
 
 LOG = logging.getLogger(__name__)
 
@@ -72,8 +72,9 @@ class LocalApiService:
         LOG.info(
             "You can now browse to the above endpoints to invoke your functions. "
             "You do not need to restart/reload SAM CLI while working on your functions, "
-            "changes will be reflected instantly/automatically. You only need to restart "
-            "SAM CLI if you update your AWS SAM template"
+            "changes will be reflected instantly/automatically. If you used sam build before "
+            "running local commands, you will need to re-run sam build for the changes "
+            "to be picked up. You only need to restart SAM CLI if you update your AWS SAM template"
         )
 
         service.run()

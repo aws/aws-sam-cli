@@ -33,3 +33,15 @@ class UnsupportedRuntimeArchitectureError(UserException):
     """
     Raised when runtime does not support architecture
     """
+
+
+class UnsupportedInlineCodeError(UserException):
+    """
+    Raised when inline code is used for sam local commands
+    """
+
+
+class InvalidHandlerPathError(UserException):
+    """
+    Raises when the handler is in an unexpected format and can't be parsed
+    """

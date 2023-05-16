@@ -163,6 +163,11 @@ typings/
 # Output of 'npm pack'
 *.tgz
 
+# Except test file
+!tests/functional/testdata/lib/utils/test.tgz
+!tests/functional/testdata/lib/utils/path_reversal_uxix.tgz
+!tests/functional/testdata/lib/utils/path_reversal_win.tgz
+
 # Yarn Integrity file
 .yarn-integrity
 
@@ -292,12 +297,18 @@ docs/_build/
 # pyenv
 .python-version
 
+# pyright
+pyrightconfig.json
+
 # celery beat schedule file
 celerybeat-schedule.*
 
 # SageMath parsed files
 *.sage.py
 
+# AWS SAM
+build.toml
+build_dir/
 # Environments
 .venv
 env/
@@ -324,6 +335,12 @@ venv.*/
 
 # mypy
 .mypy_cache/
+
+# ruff
+.ruff_cache/
+
+# SAM default build folder
+.aws-sam/
 
 ### SublimeText ###
 # cache files for sublime text
@@ -403,6 +420,8 @@ tests/integration/testdata/buildcmd/Dotnetcore3.1/bin
 tests/integration/testdata/buildcmd/Dotnetcore3.1/obj
 tests/integration/testdata/buildcmd/Dotnet6/bin
 tests/integration/testdata/buildcmd/Dotnet6/obj
+tests/integration/testdata/buildcmd/Dotnet7/bin
+tests/integration/testdata/buildcmd/Dotnet7/obj
 tests/integration/testdata/invoke/credential_tests/inprocess/dotnet/STS/obj
 
 # End of https://www.gitignore.io/api/osx,node,macos,linux,python,windows,pycharm,intellij,sublimetext,visualstudiocode

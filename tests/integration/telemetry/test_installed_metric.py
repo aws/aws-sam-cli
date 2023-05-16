@@ -84,7 +84,6 @@ class TestSendInstalledMetric(IntegBase):
         self.unset_config()
 
         with TelemetryServer() as server:
-
             # First Run
             process1 = self.run_cmd()
             _, stderrdata = process1.communicate()
@@ -108,7 +107,6 @@ class TestSendInstalledMetric(IntegBase):
 
 
 def filter_installed_metric_requests(all_requests):
-
     result = []
     for r in all_requests:
         data = r["data"]

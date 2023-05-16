@@ -83,6 +83,7 @@ param (
 )
 
 function Init {
+    pip install -e '.[pre-dev]'
     pip install -e '.[dev]'
 }
 
@@ -91,7 +92,7 @@ function Test {
 }
 
 function Lint {
-    pylint --rcfile .pylintrc samcli
+    ruff samcli
     mypy setup.py samcli tests
 }
 

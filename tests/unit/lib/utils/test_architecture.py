@@ -58,8 +58,6 @@ class TestArchitecture(TestCase):
 
     @parameterized.expand(
         [
-            ("nodejs10.x", ARM64),
-            ("python3.6", ARM64),
             ("python3.7", ARM64),
             ("java8", ARM64),
             ("go1.x", ARM64),
@@ -76,6 +74,6 @@ class TestArchitecture(TestCase):
 
         self.assertEqual(str(ex.exception), f"Runtime {runtime} is not supported on '{arch}' architecture")
 
-    @parameterized.expand([("python3.6", False), ("python3.8", True)])
+    @parameterized.expand([("python3.8", True), ("python3.9", True)])
     def test_multi_arch_image(self, runtime, result):
         self.assertEqual(has_runtime_multi_arch_image(runtime), result)

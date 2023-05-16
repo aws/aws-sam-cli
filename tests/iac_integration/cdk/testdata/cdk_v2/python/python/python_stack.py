@@ -150,6 +150,7 @@ class PythonStack(Stack):
         nodejs_function = NodejsFunction(
             self,
             "NodejsFunction",
+            runtime=lambda1.Runtime.NODEJS_14_X,
             entry=os.path.join(
                 Path(__file__).resolve().parents[0], "../../../src/nodejs/NodeJsFunctionConstruct/app.ts"
             ),
@@ -217,7 +218,7 @@ class PythonStack(Stack):
             self,
             "DockerImageFunction",
             code=lambda1.DockerImageCode.from_image_asset(
-                "../../src/docker/DockerImageFunctionConstruct",
+                directory="../../src/docker/DockerImageFunctionConstruct",
                 file="Dockerfile",
             ),
             tracing=lambda1.Tracing.ACTIVE,
@@ -228,8 +229,32 @@ class PythonStack(Stack):
             self,
             "FunctionImageAsset",
             code=lambda1.Code.from_asset_image(
-                "../../src/docker/FunctionConstructWithImageAssetCode",
+                directory="../../src/docker/FunctionConstructWithImageAssetCode",
                 file="Dockerfile",
+            ),
+            handler=lambda1.Handler.FROM_IMAGE,
+            runtime=lambda1.Runtime.FROM_IMAGE,
+            tracing=lambda1.Tracing.ACTIVE,
+        )
+
+        # both ways work when 'file' is a path via subfolders to the Dockerfile
+        # this is useful when multiple docker images share some common code
+        docker_image_function_with_shared_code = lambda1.DockerImageFunction(
+            self,
+            "DockerImageFunctionWithSharedCode",
+            code=lambda1.DockerImageCode.from_image_asset(
+                directory="../../src/docker/ImagesWithSharedCode",
+                file="DockerImageFunctionWithSharedCode/Dockerfile",
+            ),
+            tracing=lambda1.Tracing.ACTIVE,
+        )
+
+        function_image_asset_with_shared_code = lambda1.Function(
+            self,
+            "FunctionImageAssetWithSharedCode",
+            code=lambda1.Code.from_asset_image(
+                directory="../../src/docker/ImagesWithSharedCode",
+                file="FunctionImageAssetWithSharedCode/Dockerfile",
             ),
             handler=lambda1.Handler.FROM_IMAGE,
             runtime=lambda1.Runtime.FROM_IMAGE,
@@ -286,6 +311,12 @@ class PythonStack(Stack):
         )
         normal_root_resource.add_resource("functionImageAsset").add_method(
             "GET", LambdaIntegration(function_image_asset)
+        )
+        normal_root_resource.add_resource("dockerImageFunctionWithSharedCode").add_method(
+            "GET", LambdaIntegration(docker_image_function_with_shared_code)
+        )
+        normal_root_resource.add_resource("functionImageAssetWithSharedCode").add_method(
+            "GET", LambdaIntegration(function_image_asset_with_shared_code)
         )
 
         # Nested Stack

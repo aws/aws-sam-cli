@@ -13,12 +13,15 @@ from queue import Queue
 import shutil
 from uuid import uuid4
 
-import psutil  # type: ignore
+import psutil
 
+RUNNING_ON_APPVEYOR = os.environ.get("APPVEYOR", False)
 IS_WINDOWS = platform.system().lower() == "windows"
-RUNNING_ON_CI = os.environ.get("APPVEYOR", False)
-RUNNING_TEST_FOR_MASTER_ON_CI = os.environ.get("APPVEYOR_REPO_BRANCH", "master") != "master"
-CI_OVERRIDE = os.environ.get("APPVEYOR_CI_OVERRIDE", False)
+RUNNING_ON_CI = RUNNING_ON_APPVEYOR or os.environ.get("CI", False)
+RUNNING_TEST_FOR_MASTER_ON_CI = (
+    os.environ.get("APPVEYOR_REPO_BRANCH", os.environ.get("GITHUB_REF_NAME", "master")) != "master"
+)
+CI_OVERRIDE = os.environ.get("APPVEYOR_CI_OVERRIDE", False) or os.environ.get("CI_OVERRIDE", False)
 RUN_BY_CANARY = os.environ.get("BY_CANARY", False)
 
 # Tests require docker suffers from Docker Hub request limit
@@ -66,10 +69,10 @@ def run_command(command_list, cwd=None, env=None, timeout=TIMEOUT) -> CommandRes
         raise
 
 
-def run_command_with_input(command_list, stdin_input, timeout=TIMEOUT) -> CommandResult:
+def run_command_with_input(command_list, stdin_input, timeout=TIMEOUT, cwd=None) -> CommandResult:
     LOG.info("Running command: %s", " ".join(command_list))
     LOG.info("With input: %s", stdin_input)
-    process_execute = Popen(command_list, stdout=PIPE, stderr=PIPE, stdin=PIPE)
+    process_execute = Popen(command_list, cwd=cwd, stdout=PIPE, stderr=PIPE, stdin=PIPE)
     try:
         stdout_data, stderr_data = process_execute.communicate(stdin_input, timeout=timeout)
         LOG.info(f"Stdout: {stdout_data.decode('utf-8')}")
@@ -110,9 +113,9 @@ def kill_process(process: Popen) -> None:
     root_process = psutil.Process(process.pid)
     all_processes = root_process.children(recursive=True)
     all_processes.append(root_process)
-    for process in all_processes:
+    for process_to_kill in all_processes:
         try:
-            process.kill()
+            process_to_kill.kill()
         except psutil.NoSuchProcess:
             pass
     _, alive = psutil.wait_procs(all_processes, timeout=10)
@@ -120,13 +123,13 @@ def kill_process(process: Popen) -> None:
         raise ValueError(f"Processes: {alive} are still alive.")
 
 
-def read_until_string(process: Popen, expected_output: str, timeout: int = 5) -> None:
+def read_until_string(process: Popen, expected_output: str, timeout: int = 30) -> None:
     """Read output from process until a line equals to expected_output has shown up or reaching timeout.
     Throws TimeoutError if times out
     """
 
     def _compare_output(output, _: List[str]) -> bool:
-        return bool(output == expected_output)
+        return bool(expected_output in output)
 
     try:
         read_until(process, _compare_output, timeout)

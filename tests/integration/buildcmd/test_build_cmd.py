@@ -12,6 +12,7 @@ import docker
 import pytest
 from parameterized import parameterized, parameterized_class
 
+from samcli.commands.build.utils import MountMode
 from samcli.lib.utils import osutils
 from samcli.yamlhelper import yaml_parse
 from tests.testing_utils import (
@@ -24,6 +25,7 @@ from tests.testing_utils import (
     SKIP_DOCKER_TESTS,
     SKIP_DOCKER_BUILD,
     SKIP_DOCKER_MESSAGE,
+    run_command_with_input,
 )
 from .build_integ_base import (
     BuildIntegBase,
@@ -48,7 +50,7 @@ SKIP_SAR_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_
 
 @skipIf(
     # Hits public ECR pull limitation, move it to canary tests
-    ((not RUN_BY_CANARY) or (IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
 class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
@@ -58,7 +60,7 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
 
     FUNCTION_LOGICAL_ID_IMAGE = "ImageFunction"
 
-    @parameterized.expand([("3.6", False), ("3.7", False), ("3.8", False), ("3.9", False)])
+    @parameterized.expand([("3.7", False), ("3.8", False), ("3.9", False)])
     @pytest.mark.flaky(reruns=3)
     def test_with_default_requirements(self, runtime, use_container):
         _tag = f"{random.randint(1,100)}"
@@ -72,7 +74,37 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
 
         LOG.info("Running Command: ")
         LOG.info(cmdlist)
-        run_command(cmdlist, cwd=self.working_dir)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
+
+        self._verify_image_build_artifact(
+            self.built_template,
+            self.FUNCTION_LOGICAL_ID_IMAGE,
+            "ImageUri",
+            f"{self.FUNCTION_LOGICAL_ID_IMAGE.lower()}:{_tag}",
+        )
+
+        expected = {"pi": "3.14"}
+        self._verify_invoke_built_function(
+            self.built_template, self.FUNCTION_LOGICAL_ID_IMAGE, self._make_parameter_override_arg(overrides), expected
+        )
+
+    @parameterized.expand([("3.7", False), ("3.8", False), ("3.9", False)])
+    @pytest.mark.flaky(reruns=3)
+    def test_with_dockerfile_extension(self, runtime, use_container):
+        _tag = f"{random.randint(1,100)}"
+        overrides = {
+            "Runtime": runtime,
+            "Handler": "main.handler",
+            "DockerFile": "Dockerfile.production",
+            "Tag": _tag,
+        }
+        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
+
+        LOG.info("Running Command: ")
+        LOG.info(cmdlist)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
 
         self._verify_image_build_artifact(
             self.built_template,
@@ -101,7 +133,8 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
         LOG.info(cmdlist)
 
         _num_of_containers_before_build = self.get_number_of_created_containers()
-        run_command(cmdlist, cwd=self.working_dir)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
         _num_of_containers_after_build = self.get_number_of_created_containers()
 
         self._verify_image_build_artifact(
@@ -112,6 +145,92 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
         )
 
         expected = {"pi": "3.14"}
+        self._verify_invoke_built_function(
+            self.built_template, self.FUNCTION_LOGICAL_ID_IMAGE, self._make_parameter_override_arg(overrides), expected
+        )
+
+        self.assertEqual(
+            _num_of_containers_before_build, _num_of_containers_after_build, "Intermediate containers are not removed"
+        )
+
+
+@skipIf(
+    # Hits public ECR pull limitation, move it to canary tests
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+class TestBuildCommand_PythonFunctions_ImagesWithSharedCode(BuildIntegBase):
+    template = "template_images_with_shared_code.yaml"
+
+    EXPECTED_FILES_PROJECT_MANIFEST: Set[str] = set()
+
+    FUNCTION_LOGICAL_ID_IMAGE = "ImageFunction"
+
+    @parameterized.expand(
+        [
+            *[(runtime, "feature_phi/Dockerfile", {"phi": "1.62"}) for runtime in ["3.7", "3.8", "3.9"]],
+            *[(runtime, "feature_pi/Dockerfile", {"pi": "3.14"}) for runtime in ["3.7", "3.8", "3.9"]],
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_with_default_requirements(self, runtime, dockerfile, expected):
+        _tag = f"{random.randint(1, 100)}"
+        overrides = {
+            "Runtime": runtime,
+            "Handler": "main.handler",
+            "DockerFile": dockerfile,
+            "Tag": _tag,
+        }
+        cmdlist = self.get_command_list(use_container=False, parameter_overrides=overrides)
+
+        LOG.info("Running Command: ")
+        LOG.info(cmdlist)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
+
+        self._verify_image_build_artifact(
+            self.built_template,
+            self.FUNCTION_LOGICAL_ID_IMAGE,
+            "ImageUri",
+            f"{self.FUNCTION_LOGICAL_ID_IMAGE.lower()}:{_tag}",
+        )
+
+        self._verify_invoke_built_function(
+            self.built_template, self.FUNCTION_LOGICAL_ID_IMAGE, self._make_parameter_override_arg(overrides), expected
+        )
+
+    @parameterized.expand(
+        [
+            ("feature_phi/Dockerfile", {"phi": "1.62"}),
+            ("feature_pi/Dockerfile", {"pi": "3.14"}),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_intermediate_container_deleted(self, dockerfile, expected):
+        _tag = f"{random.randint(1, 100)}"
+        overrides = {
+            "Runtime": "3.9",
+            "Handler": "main.handler",
+            "DockerFile": dockerfile,
+            "Tag": _tag,
+        }
+        cmdlist = self.get_command_list(use_container=False, parameter_overrides=overrides)
+
+        LOG.info("Running Command: ")
+        LOG.info(cmdlist)
+
+        _num_of_containers_before_build = self.get_number_of_created_containers()
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
+        _num_of_containers_after_build = self.get_number_of_created_containers()
+
+        self._verify_image_build_artifact(
+            self.built_template,
+            self.FUNCTION_LOGICAL_ID_IMAGE,
+            "ImageUri",
+            f"{self.FUNCTION_LOGICAL_ID_IMAGE.lower()}:{_tag}",
+        )
+
         self._verify_invoke_built_function(
             self.built_template, self.FUNCTION_LOGICAL_ID_IMAGE, self._make_parameter_override_arg(overrides), expected
         )
@@ -138,7 +257,7 @@ class TestSkipBuildingFunctionsWithLocalImageUri(BuildIntegBase):
 
     FUNCTION_LOGICAL_ID_IMAGE = "ImageFunction"
 
-    @parameterized.expand(["3.6", "3.7", "3.8", "3.9"])
+    @parameterized.expand(["3.7", "3.8", "3.9"])
     @pytest.mark.flaky(reruns=3)
     def test_with_default_requirements(self, runtime):
         _tag = f"{random.randint(1,100)}"
@@ -158,7 +277,8 @@ class TestSkipBuildingFunctionsWithLocalImageUri(BuildIntegBase):
 
         LOG.info("Running Command: ")
         LOG.info(cmdlist)
-        run_command(cmdlist, cwd=self.working_dir)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
 
         self._verify_image_build_artifact(
             self.built_template,
@@ -234,11 +354,11 @@ class TestSkipBuildingFlaggedFunctions(BuildIntegPythonBase):
     def _validate_skipped_built_function(
         self, build_dir, skipped_function_logical_id, relative_path, src_code_path, src_code_prop, metadata_key
     ):
-
         cmdlist = self.get_command_list()
 
         LOG.info("Running Command: {}".format(cmdlist))
-        run_command(cmdlist, cwd=self.working_dir)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
 
         self.assertTrue(build_dir.exists(), "Build directory should be created")
 
@@ -270,9 +390,55 @@ class TestSkipBuildingFlaggedFunctions(BuildIntegPythonBase):
             )
 
 
+@parameterized_class(
+    (
+        "template",
+        "FUNCTION_LOGICAL_ID",
+        "overrides",
+        "runtime",
+        "codeuri",
+        "use_container",
+        "check_function_only",
+        "prop",
+    ),
+    [
+        ("template.yaml", "Function", True, "python3.7", "Python", False, False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.8", "Python", False, False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.9", "Python", False, False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.10", "Python", False, False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.7", "PythonPEP600", False, False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.8", "PythonPEP600", False, False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.7", "Python", "use_container", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.8", "Python", "use_container", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.9", "Python", "use_container", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.10", "Python", "use_container", False, "CodeUri"),
+    ],
+)
+class TestBuildCommand_PythonFunctions(BuildIntegPythonBase):
+    overrides = True
+    runtime = "python3.9"
+    codeuri = "Python"
+    use_container = False
+    check_function_only = False
+
+    @pytest.mark.flaky(reruns=3)
+    def test_with_default_requirements(self):
+        if self.use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+        self._test_with_default_requirements(
+            self.runtime,
+            self.codeuri,
+            self.use_container,
+            self.test_data_path,
+            do_override=self.overrides,
+            check_function_only=self.check_function_only,
+        )
+
+
 @skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
-    "Skip build tests on windows when running in CI unless overridden",
+    # Hits public ECR pull limitation, move it to canary tests
+    SKIP_DOCKER_TESTS,
+    "Skip build tests that requires Docker in CI environment",
 )
 @parameterized_class(
     (
@@ -286,16 +452,6 @@ class TestSkipBuildingFlaggedFunctions(BuildIntegPythonBase):
         "prop",
     ),
     [
-        ("template.yaml", "Function", True, "python3.6", "Python", False, False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.7", "Python", False, False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.8", "Python", False, False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.9", "Python", False, False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.7", "PythonPEP600", False, False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.8", "PythonPEP600", False, False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.6", "Python", "use_container", False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.7", "Python", "use_container", False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.8", "Python", "use_container", False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.9", "Python", "use_container", False, "CodeUri"),
         (
             "cdk_v1_synthesized_template_zip_image_functions.json",
             "RandomCitiesFunction5C47A2B8",
@@ -308,15 +464,9 @@ class TestSkipBuildingFlaggedFunctions(BuildIntegPythonBase):
         ),
     ],
 )
-class TestBuildCommand_PythonFunctions(BuildIntegPythonBase):
-    overrides = True
-    runtime = "python3.9"
-    codeuri = "Python"
-    use_container = False
-    check_function_only = False
-
+class TestBuildCommand_PythonFunctions_CDK(TestBuildCommand_PythonFunctions):
     @pytest.mark.flaky(reruns=3)
-    def test_with_default_requirements(self):
+    def test_cdk_app_with_default_requirements(self):
         self._test_with_default_requirements(
             self.runtime,
             self.codeuri,
@@ -327,22 +477,16 @@ class TestBuildCommand_PythonFunctions(BuildIntegPythonBase):
         )
 
 
-@skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
-    "Skip build tests on windows when running in CI unless overridden",
-)
 class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPythonBase):
     template = "template_with_architecture.yaml"
 
     @parameterized.expand(
         [
-            ("python3.6", "Python", False, "x86_64"),
             ("python3.7", "Python", False, "x86_64"),
             ("python3.8", "Python", False, "x86_64"),
             # numpy 1.20.3 (in PythonPEP600/requirements.txt) only support python 3.7+
             ("python3.7", "PythonPEP600", False, "x86_64"),
             ("python3.8", "PythonPEP600", False, "x86_64"),
-            ("python3.6", "Python", "use_container", "x86_64"),
             ("python3.7", "Python", "use_container", "x86_64"),
             ("python3.8", "Python", "use_container", "x86_64"),
             ("python3.8", "Python", False, "arm64"),
@@ -352,15 +496,13 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPyt
     )
     @pytest.mark.flaky(reruns=3)
     def test_with_default_requirements(self, runtime, codeuri, use_container, architecture):
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
+            self.skipTest(SKIP_DOCKER_MESSAGE)
         self._test_with_default_requirements(
             runtime, codeuri, use_container, self.test_data_path, architecture=architecture
         )
 
 
-@skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
-    "Skip build tests on windows when running in CI unless overridden",
-)
 class TestBuildCommand_ErrorCases(BuildIntegBase):
     @pytest.mark.flaky(reruns=3)
     def test_unsupported_runtime(self):
@@ -375,19 +517,17 @@ class TestBuildCommand_ErrorCases(BuildIntegBase):
         self.assertIn("Build Failed", str(process_execute.stdout))
 
 
-@skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
-    "Skip build tests on windows when running in CI unless overridden",
-)
 class TestBuildCommand_NodeFunctions(BuildIntegNodeBase):
     @parameterized.expand(
         [
             ("nodejs12.x", False),
             ("nodejs14.x", False),
             ("nodejs16.x", False),
+            ("nodejs18.x", False),
             ("nodejs12.x", "use_container"),
             ("nodejs14.x", "use_container"),
             ("nodejs16.x", "use_container"),
+            ("nodejs18.x", "use_container"),
         ]
     )
     @pytest.mark.flaky(reruns=3)
@@ -397,12 +537,8 @@ class TestBuildCommand_NodeFunctions(BuildIntegNodeBase):
         self._test_with_default_package_json(runtime, use_container, self.test_data_path)
 
 
-@skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
-    "Skip build tests on windows when running in CI unless overridden",
-)
 class TestBuildCommand_EsbuildFunctions(BuildIntegEsbuildBase):
-    template = "template_with_metadata.yaml"
+    template = "template_with_metadata_esbuild.yaml"
 
     @parameterized.expand(
         [
@@ -439,6 +575,37 @@ class TestBuildCommand_EsbuildFunctions(BuildIntegEsbuildBase):
         self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, architecture)
 
 
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+@parameterized_class(
+    ("template",),
+    [
+        ("esbuild_templates/template_with_metadata_node_options.yaml",),
+        ("esbuild_templates/template_with_metadata_global_node_options.yaml",),
+    ],
+)
+class TestBuildCommand_EsbuildFunctionProperties(BuildIntegEsbuildBase):
+    @parameterized.expand(
+        [
+            ("nodejs16.x", "../Esbuild/TypeScript", "app.lambdaHandler", "x86_64"),
+            ("nodejs18.x", "../Esbuild/TypeScript", "app.lambdaHandler", "x86_64"),
+            ("nodejs16.x", "../Esbuild/TypeScript", "nested/function/app.lambdaHandler", "x86_64"),
+            ("nodejs18.x", "../Esbuild/TypeScript", "nested/function/app.lambdaHandler", "x86_64"),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_environment_generates_sourcemap(self, runtime, code_uri, handler, architecture):
+        overrides = {
+            "runtime": runtime,
+            "code_uri": code_uri,
+            "handler": handler,
+            "architecture": architecture,
+        }
+        self._test_with_various_properties(overrides)
+
+
 class TestBuildCommand_NodeFunctions_With_Specified_Architecture(BuildIntegNodeBase):
     template = "template_with_architecture.yaml"
 
@@ -447,15 +614,19 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture(BuildIntegNodeB
             ("nodejs12.x", False, "x86_64"),
             ("nodejs14.x", False, "x86_64"),
             ("nodejs16.x", False, "x86_64"),
+            ("nodejs18.x", False, "x86_64"),
             ("nodejs12.x", "use_container", "x86_64"),
             ("nodejs14.x", "use_container", "x86_64"),
             ("nodejs16.x", "use_container", "x86_64"),
+            ("nodejs18.x", "use_container", "x86_64"),
             ("nodejs12.x", False, "arm64"),
             ("nodejs14.x", False, "arm64"),
             ("nodejs16.x", False, "arm64"),
+            ("nodejs18.x", False, "arm64"),
             ("nodejs12.x", "use_container", "arm64"),
             ("nodejs14.x", "use_container", "arm64"),
             ("nodejs16.x", "use_container", "arm64"),
+            ("nodejs18.x", "use_container", "arm64"),
         ]
     )
     @pytest.mark.flaky(reruns=3)
@@ -465,10 +636,6 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture(BuildIntegNodeB
         self._test_with_default_package_json(runtime, use_container, self.test_data_path, architecture)
 
 
-@skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
-    "Skip build tests on windows when running in CI unless overridden",
-)
 class TestBuildCommand_RubyFunctions(BuildIntegRubyBase):
     @parameterized.expand(["ruby2.7"])
     @pytest.mark.flaky(reruns=3)
@@ -482,10 +649,6 @@ class TestBuildCommand_RubyFunctions(BuildIntegRubyBase):
         self._test_with_default_gemfile(runtime, False, "Ruby", self.test_data_path)
 
 
-@skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
-    "Skip build tests on windows when running in CI unless overridden",
-)
 class TestBuildCommand_RubyFunctions_With_Architecture(BuildIntegRubyBase):
     template = "template_with_architecture.yaml"
 
@@ -501,10 +664,6 @@ class TestBuildCommand_RubyFunctions_With_Architecture(BuildIntegRubyBase):
         self._test_with_default_gemfile(runtime, False, "Ruby", self.test_data_path, architecture)
 
 
-@skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
-    "Skip build tests on windows when running in CI unless overridden",
-)
 class TestBuildCommand_RubyFunctionsWithGemfileInTheRoot(BuildIntegRubyBase):
     """
     Tests use case where Gemfile will present in the root of the project folder.
@@ -538,10 +697,6 @@ class TestBuildCommand_RubyFunctionsWithGemfileInTheRoot(BuildIntegRubyBase):
         self.template_path = str(Path(self.working_dir).joinpath("template.yaml"))
 
 
-@skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
-    "Skip build tests on windows when running in CI unless overridden",
-)
 class TestBuildCommand_Java(BuildIntegJavaBase):
     EXPECTED_FILES_PROJECT_MANIFEST_GRADLE = {"aws", "lib", "META-INF"}
     EXPECTED_FILES_PROJECT_MANIFEST_MAVEN = {"aws", "lib"}
@@ -559,33 +714,66 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
 
     @parameterized.expand(
         [
-            ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
-            ("java8", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
-            ("java8", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
-            ("java8", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES),
-            ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
-            ("java8.al2", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
-            ("java8.al2", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java8", "8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java8", "8", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
             (
-                "java8.al2",
+                "java8",
+                "8",
                 USING_GRADLE_KOTLIN_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 EXPECTED_GRADLE_DEPENDENCIES,
             ),
-            ("java8.al2", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES),
-            ("java8.al2", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
-            ("java11", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
-            ("java11", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
-            ("java11", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
-            ("java11", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES),
-            ("java11", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java8", "8", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES),
+            ("java8.al2", "8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            (
+                "java8.al2",
+                "8",
+                USING_GRADLEW_PATH,
+                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java8.al2",
+                "8",
+                USING_GRADLE_KOTLIN_PATH,
+                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            ("java8.al2", "8", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES),
+            ("java11", "11", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java11", "11", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            (
+                "java11",
+                "11",
+                USING_GRADLE_KOTLIN_PATH,
+                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            ("java11", "11", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES),
+            ("java17", "17", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java17", "17", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            (
+                "java17",
+                "17",
+                USING_GRADLE_KOTLIN_PATH,
+                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            ("java17", "17", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES),
         ]
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     @pytest.mark.flaky(reruns=3)
-    def test_building_java_in_container(self, runtime, code_path, expected_files, expected_dependencies):
+    def test_building_java_in_container(
+        self, runtime, runtime_version, code_path, expected_files, expected_dependencies
+    ):
         self._test_with_building_java(
-            runtime, code_path, expected_files, expected_dependencies, "use_container", self.test_data_path
+            runtime,
+            os.path.join(code_path, runtime_version),
+            expected_files,
+            expected_dependencies,
+            "use_container",
+            self.test_data_path,
         )
 
     @parameterized.expand(
@@ -594,7 +782,6 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
             ("java8", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
             ("java8", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
             ("java8", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES),
-            ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
             ("java8.al2", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
             ("java8.al2", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
             (
@@ -604,13 +791,12 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
                 EXPECTED_GRADLE_DEPENDENCIES,
             ),
             ("java8.al2", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES),
-            ("java8.al2", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
         ]
     )
     @pytest.mark.flaky(reruns=3)
     def test_building_java8_in_process(self, runtime, code_path, expected_files, expected_dependencies):
         self._test_with_building_java(
-            runtime, code_path, expected_files, expected_dependencies, False, self.test_data_path
+            runtime, os.path.join(code_path, "8"), expected_files, expected_dependencies, False, self.test_data_path
         )
 
     @parameterized.expand(
@@ -619,18 +805,31 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
             ("java11", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
             ("java11", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
             ("java11", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES),
-            ("java11", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
         ]
     )
     @pytest.mark.flaky(reruns=3)
     def test_building_java11_in_process(self, runtime, code_path, expected_files, expected_dependencies):
         self._test_with_building_java(
-            runtime, code_path, expected_files, expected_dependencies, False, self.test_data_path
+            runtime, os.path.join(code_path, "11"), expected_files, expected_dependencies, False, self.test_data_path
+        )
+
+    @parameterized.expand(
+        [
+            ("java17", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java17", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java17", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            ("java17", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_building_java17_in_process(self, runtime, code_path, expected_files, expected_dependencies):
+        self._test_with_building_java(
+            runtime, os.path.join(code_path, "17"), expected_files, expected_dependencies, False, self.test_data_path
         )
 
 
 @skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    (IS_WINDOWS and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
 class TestBuildCommand_Java_With_Specified_Architecture(BuildIntegJavaBase):
@@ -653,6 +852,7 @@ class TestBuildCommand_Java_With_Specified_Architecture(BuildIntegJavaBase):
         [
             (
                 "java8.al2",
+                "8",
                 USING_GRADLE_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 EXPECTED_GRADLE_DEPENDENCIES,
@@ -660,6 +860,7 @@ class TestBuildCommand_Java_With_Specified_Architecture(BuildIntegJavaBase):
             ),
             (
                 "java8.al2",
+                "8",
                 USING_GRADLEW_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 EXPECTED_GRADLE_DEPENDENCIES,
@@ -667,6 +868,7 @@ class TestBuildCommand_Java_With_Specified_Architecture(BuildIntegJavaBase):
             ),
             (
                 "java8.al2",
+                "8",
                 USING_GRADLE_KOTLIN_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 EXPECTED_GRADLE_DEPENDENCIES,
@@ -674,6 +876,7 @@ class TestBuildCommand_Java_With_Specified_Architecture(BuildIntegJavaBase):
             ),
             (
                 "java8.al2",
+                "8",
                 USING_MAVEN_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
                 EXPECTED_MAVEN_DEPENDENCIES,
@@ -681,6 +884,7 @@ class TestBuildCommand_Java_With_Specified_Architecture(BuildIntegJavaBase):
             ),
             (
                 "java11",
+                "11",
                 USING_GRADLE_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 EXPECTED_GRADLE_DEPENDENCIES,
@@ -688,6 +892,7 @@ class TestBuildCommand_Java_With_Specified_Architecture(BuildIntegJavaBase):
             ),
             (
                 "java11",
+                "11",
                 USING_GRADLEW_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 EXPECTED_GRADLE_DEPENDENCIES,
@@ -695,22 +900,62 @@ class TestBuildCommand_Java_With_Specified_Architecture(BuildIntegJavaBase):
             ),
             (
                 "java11",
+                "11",
                 USING_GRADLE_KOTLIN_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 EXPECTED_GRADLE_DEPENDENCIES,
                 "arm64",
             ),
-            ("java11", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES, "arm64"),
+            (
+                "java11",
+                "11",
+                USING_MAVEN_PATH,
+                EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                EXPECTED_MAVEN_DEPENDENCIES,
+                "arm64",
+            ),
+            (
+                "java17",
+                "17",
+                USING_GRADLE_PATH,
+                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                EXPECTED_GRADLE_DEPENDENCIES,
+                "arm64",
+            ),
+            (
+                "java17",
+                "17",
+                USING_GRADLEW_PATH,
+                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                EXPECTED_GRADLE_DEPENDENCIES,
+                "arm64",
+            ),
+            (
+                "java17",
+                "17",
+                USING_GRADLE_KOTLIN_PATH,
+                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                EXPECTED_GRADLE_DEPENDENCIES,
+                "arm64",
+            ),
+            (
+                "java17",
+                "17",
+                USING_MAVEN_PATH,
+                EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                EXPECTED_MAVEN_DEPENDENCIES,
+                "arm64",
+            ),
         ]
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     @pytest.mark.flaky(reruns=3)
     def test_building_java_in_container_with_arm64_architecture(
-        self, runtime, code_path, expected_files, expected_dependencies, architecture
+        self, runtime, runtime_version, code_path, expected_files, expected_dependencies, architecture
     ):
         self._test_with_building_java(
             runtime,
-            code_path,
+            os.path.join(code_path, runtime_version),
             expected_files,
             expected_dependencies,
             "use_container",
@@ -748,13 +993,6 @@ class TestBuildCommand_Java_With_Specified_Architecture(BuildIntegJavaBase):
                 EXPECTED_MAVEN_DEPENDENCIES,
                 "arm64",
             ),
-            (
-                "java8.al2",
-                USING_GRADLE_PATH,
-                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                EXPECTED_GRADLE_DEPENDENCIES,
-                "arm64",
-            ),
         ]
     )
     @pytest.mark.flaky(reruns=3)
@@ -762,7 +1000,13 @@ class TestBuildCommand_Java_With_Specified_Architecture(BuildIntegJavaBase):
         self, runtime, code_path, expected_files, expected_dependencies, architecture
     ):
         self._test_with_building_java(
-            runtime, code_path, expected_files, expected_dependencies, False, self.test_data_path, architecture
+            runtime,
+            os.path.join(code_path, "8"),
+            expected_files,
+            expected_dependencies,
+            False,
+            self.test_data_path,
+            architecture,
         )
 
     @parameterized.expand(
@@ -789,13 +1033,6 @@ class TestBuildCommand_Java_With_Specified_Architecture(BuildIntegJavaBase):
                 "arm64",
             ),
             ("java11", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES, "arm64"),
-            (
-                "java11",
-                USING_GRADLE_PATH,
-                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                EXPECTED_GRADLE_DEPENDENCIES,
-                "arm64",
-            ),
         ]
     )
     @pytest.mark.flaky(reruns=3)
@@ -803,19 +1040,60 @@ class TestBuildCommand_Java_With_Specified_Architecture(BuildIntegJavaBase):
         self, runtime, code_path, expected_files, expected_dependencies, architecture
     ):
         self._test_with_building_java(
-            runtime, code_path, expected_files, expected_dependencies, False, self.test_data_path, architecture
+            runtime,
+            os.path.join(code_path, "11"),
+            expected_files,
+            expected_dependencies,
+            False,
+            self.test_data_path,
+            architecture,
+        )
+
+    @parameterized.expand(
+        [
+            (
+                "java17",
+                USING_GRADLE_PATH,
+                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                EXPECTED_GRADLE_DEPENDENCIES,
+                "arm64",
+            ),
+            (
+                "java17",
+                USING_GRADLEW_PATH,
+                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                EXPECTED_GRADLE_DEPENDENCIES,
+                "arm64",
+            ),
+            (
+                "java17",
+                USING_GRADLE_KOTLIN_PATH,
+                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                EXPECTED_GRADLE_DEPENDENCIES,
+                "arm64",
+            ),
+            ("java17", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES, "arm64"),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_building_java17_in_process_with_arm_architecture(
+        self, runtime, code_path, expected_files, expected_dependencies, architecture
+    ):
+        self._test_with_building_java(
+            runtime,
+            os.path.join(code_path, "17"),
+            expected_files,
+            expected_dependencies,
+            False,
+            self.test_data_path,
+            architecture,
         )
 
 
-@skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
-    "Skip build tests on windows when running in CI unless overridden",
-)
 class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
     EXPECTED_FILES_PROJECT_MANIFEST = {
         "Amazon.Lambda.APIGatewayEvents.dll",
-        "HelloWorld.pdb",
         "Amazon.Lambda.Core.dll",
         "HelloWorld.runtimeconfig.json",
         "Amazon.Lambda.Serialization.Json.dll",
@@ -824,22 +1102,34 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         "HelloWorld.dll",
     }
 
+    EXPECTED_FILES_PROJECT_MANIFEST_PROVIDED = {
+        "bootstrap",
+    }
+
     @parameterized.expand(
         [
             ("dotnetcore3.1", "Dotnetcore3.1", None),
             ("dotnet6", "Dotnet6", None),
             ("dotnetcore3.1", "Dotnetcore3.1", "debug"),
             ("dotnet6", "Dotnet6", "debug"),
+            ("provided.al2", "Dotnet7", None),
         ]
     )
     @pytest.mark.flaky(reruns=3)
-    def test_with_dotnetcore(self, runtime, code_uri, mode, architecture="x86_64"):
+    def test_dotnetcore_in_process(self, runtime, code_uri, mode, architecture="x86_64"):
+        # dotnet7 requires docker to build the function
+        if code_uri == "Dotnet7" and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
+            self.skipTest(SKIP_DOCKER_MESSAGE)
         overrides = {
             "Runtime": runtime,
             "CodeUri": code_uri,
             "Handler": "HelloWorld::HelloWorld.Function::FunctionHandler",
             "Architectures": architecture,
         }
+
+        if runtime == "provided.al2":
+            self.template_path = self.template_path.replace("template.yaml", "template_build_method_dotnet_7.yaml")
+
         cmdlist = self.get_command_list(use_container=False, parameter_overrides=overrides)
 
         LOG.info("Running Command: {}".format(cmdlist))
@@ -849,10 +1139,15 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         if mode:
             newenv["SAM_BUILD_MODE"] = mode
 
-        run_command(cmdlist, cwd=self.working_dir, env=newenv)
+        command_result = run_command(cmdlist, cwd=self.working_dir, env=newenv)
+        self.assertEqual(command_result.process.returncode, 0)
 
         self._verify_built_artifact(
-            self.default_build_dir, self.FUNCTION_LOGICAL_ID, self.EXPECTED_FILES_PROJECT_MANIFEST
+            self.default_build_dir,
+            self.FUNCTION_LOGICAL_ID,
+            self.EXPECTED_FILES_PROJECT_MANIFEST
+            if runtime != "provided.al2"
+            else self.EXPECTED_FILES_PROJECT_MANIFEST_PROVIDED,
         )
 
         self._verify_resource_property(
@@ -880,12 +1175,164 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
             self._verify_invoke_built_function(
                 self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
             )
+            self.verify_docker_container_cleanedup(runtime)
+
+    @parameterized.expand(
+        [
+            ("dotnetcore3.1", "Dotnetcore3.1", None),
+            ("dotnet6", "Dotnet6", None),
+            ("dotnetcore3.1", "Dotnetcore3.1", "debug"),
+            ("dotnet6", "Dotnet6", "debug"),
+            # force to run tests on arm64 machines may cause dotnet7 test failing
+            # because Native AOT Lambda functions require the host and lambda architectures to match
+            ("provided.al2", "Dotnet7", None),
+        ]
+    )
+    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
+    @pytest.mark.flaky(reruns=3)
+    def test_dotnetcore_in_container_mount_with_write_explicit(self, runtime, code_uri, mode, architecture="x86_64"):
+        overrides = {
+            "Runtime": runtime,
+            "CodeUri": code_uri,
+            "Handler": "HelloWorld::HelloWorld.Function::FunctionHandler",
+            "Architectures": architecture,
+        }
+
+        if runtime == "provided.al2":
+            self.template_path = self.template_path.replace("template.yaml", "template_build_method_dotnet_7.yaml")
+
+        # test with explicit mount_with_write flag
+        cmdlist = self.get_command_list(use_container=True, parameter_overrides=overrides, mount_with=MountMode.WRITE)
+        # env vars needed for testing unless set by dotnet images on public.ecr.aws
+        cmdlist += ["--container-env-var", "DOTNET_CLI_HOME=/tmp/dotnet"]
+        cmdlist += ["--container-env-var", "XDG_DATA_HOME=/tmp/xdg"]
+
+        LOG.info("Running Command: {}".format(cmdlist))
+        LOG.info("Running with SAM_BUILD_MODE={}".format(mode))
+
+        newenv = os.environ.copy()
+        if mode:
+            newenv["SAM_BUILD_MODE"] = mode
+
+        command_result = run_command(cmdlist, cwd=self.working_dir, env=newenv)
+        self.assertEqual(command_result.process.returncode, 0)
+
+        self._verify_built_artifact(
+            self.default_build_dir,
+            self.FUNCTION_LOGICAL_ID,
+            self.EXPECTED_FILES_PROJECT_MANIFEST
+            if runtime != "provided.al2"
+            else self.EXPECTED_FILES_PROJECT_MANIFEST_PROVIDED,
+        )
+
+        self._verify_resource_property(
+            str(self.built_template),
+            "OtherRelativePathResource",
+            "BodyS3Location",
+            os.path.relpath(
+                os.path.normpath(os.path.join(str(self.test_data_path), "SomeRelativePath")),
+                str(self.default_build_dir),
+            ),
+        )
+
+        self._verify_resource_property(
+            str(self.built_template),
+            "GlueResource",
+            "Command.ScriptLocation",
+            os.path.relpath(
+                os.path.normpath(os.path.join(str(self.test_data_path), "SomeRelativePath")),
+                str(self.default_build_dir),
+            ),
+        )
+
+        expected = "{'message': 'Hello World'}"
+        self._verify_invoke_built_function(
+            self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
+        )
+        self.verify_docker_container_cleanedup(runtime)
+
+    @parameterized.expand(
+        [
+            ("dotnetcore3.1", "Dotnetcore3.1", None),
+            ("dotnet6", "Dotnet6", None),
+            ("dotnetcore3.1", "Dotnetcore3.1", "debug"),
+            ("dotnet6", "Dotnet6", "debug"),
+            # force to run tests on arm64 machines may cause dotnet7 test failing
+            # because Native AOT Lambda functions require the host and lambda architectures to match
+            ("provided.al2", "Dotnet7", None),
+        ]
+    )
+    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
+    @pytest.mark.flaky(reruns=3)
+    def test_dotnetcore_in_container_mount_with_write_interactive(
+        self,
+        runtime,
+        code_uri,
+        mode,
+        architecture="x86_64",
+    ):
+        overrides = {
+            "Runtime": runtime,
+            "CodeUri": code_uri,
+            "Handler": "HelloWorld::HelloWorld.Function::FunctionHandler",
+            "Architectures": architecture,
+        }
+
+        if runtime == "provided.al2":
+            self.template_path = self.template_path.replace("template.yaml", "template_build_method_dotnet_7.yaml")
+
+        # test without explicit mount_with_write flag
+        cmdlist = self.get_command_list(use_container=True, parameter_overrides=overrides)
+        # env vars needed for testing unless set by dotnet images on public.ecr.aws
+        cmdlist += ["--container-env-var", "DOTNET_CLI_HOME=/tmp/dotnet"]
+        cmdlist += ["--container-env-var", "XDG_DATA_HOME=/tmp/xdg"]
+
+        LOG.info("Running Command: {}".format(cmdlist))
+        LOG.info("Running with SAM_BUILD_MODE={}".format(mode))
+
+        # mock user input to mount with write
+        user_click_confirm_input = "y"
+        command_result = run_command_with_input(cmdlist, user_click_confirm_input.encode(), cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
+
+        self._verify_built_artifact(
+            self.default_build_dir,
+            self.FUNCTION_LOGICAL_ID,
+            self.EXPECTED_FILES_PROJECT_MANIFEST
+            if runtime != "provided.al2"
+            else self.EXPECTED_FILES_PROJECT_MANIFEST_PROVIDED,
+        )
+
+        self._verify_resource_property(
+            str(self.built_template),
+            "OtherRelativePathResource",
+            "BodyS3Location",
+            os.path.relpath(
+                os.path.normpath(os.path.join(str(self.test_data_path), "SomeRelativePath")),
+                str(self.default_build_dir),
+            ),
+        )
+
+        self._verify_resource_property(
+            str(self.built_template),
+            "GlueResource",
+            "Command.ScriptLocation",
+            os.path.relpath(
+                os.path.normpath(os.path.join(str(self.test_data_path), "SomeRelativePath")),
+                str(self.default_build_dir),
+            ),
+        )
+
+        expected = "{'message': 'Hello World'}"
+        self._verify_invoke_built_function(
+            self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
+        )
         self.verify_docker_container_cleanedup(runtime)
 
     @parameterized.expand([("dotnetcore3.1", "Dotnetcore3.1"), ("dotnet6", "Dotnet6")])
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     @pytest.mark.flaky(reruns=3)
-    def test_must_fail_with_container(self, runtime, code_uri):
+    def test_must_fail_on_container_mount_without_write_interactive(self, runtime, code_uri):
         use_container = True
         overrides = {
             "Runtime": runtime,
@@ -895,13 +1342,14 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
         LOG.info("Running Command: {}".format(cmdlist))
-        process_execute = run_command(cmdlist, cwd=self.working_dir)
+        # mock user input to not allow mounting with write
+        user_click_confirm_input = "N"
+        process_execute = run_command_with_input(cmdlist, user_click_confirm_input.encode())
 
-        # Must error out, because container builds are not supported
+        # Must error out, because mounting with write is not allowed
         self.assertEqual(process_execute.process.returncode, 1)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
-
         self.assertTrue(build_dir.exists(), "Build directory should be created")
 
         build_dir_files = os.listdir(str(build_dir))
@@ -919,10 +1367,6 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         self.assertEqual(actual_files, expected_files)
 
 
-@skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
-    "Skip build tests on windows when running in CI unless overridden",
-)
 class TestBuildCommand_Go_Modules(BuildIntegGoBase):
     @parameterized.expand([("go1.x", "Go", None, False), ("go1.x", "Go", "debug", True)])
     @pytest.mark.flaky(reruns=3)
@@ -933,10 +1377,6 @@ class TestBuildCommand_Go_Modules(BuildIntegGoBase):
         self._test_with_go(runtime, code_uri, mode, self.test_data_path, use_container=use_container)
 
 
-@skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
-    "Skip build tests on windows when running in CI unless overridden",
-)
 class TestBuildCommand_Go_Modules_With_Specified_Architecture(BuildIntegGoBase):
     template = "template_with_architecture.yaml"
 
@@ -953,7 +1393,6 @@ class TestBuildCommand_Go_Modules_With_Specified_Architecture(BuildIntegGoBase):
         self._test_with_go(runtime, code_uri, mode, self.test_data_path, architecture)
 
     @parameterized.expand([("go1.x", "Go", "unknown_architecture")])
-    @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
     @pytest.mark.flaky(reruns=3)
     def test_go_must_fail_with_unknown_architecture(self, runtime, code_uri, architecture):
         overrides = {"Runtime": runtime, "CodeUri": code_uri, "Handler": "hello-world", "Architectures": architecture}
@@ -966,10 +1405,6 @@ class TestBuildCommand_Go_Modules_With_Specified_Architecture(BuildIntegGoBase):
         self.assertEqual(process_execute.process.returncode, 1)
 
 
-@skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
-    "Skip build tests on windows when running in CI unless overridden",
-)
 class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
     template = "many-functions-template.yaml"
 
@@ -1010,7 +1445,8 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
         )
 
         LOG.info("Running Command: {}".format(cmdlist))
-        run_command(cmdlist, cwd=self.working_dir)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
 
         self._verify_built_artifact(self.default_build_dir, function_identifier, self.EXPECTED_FILES_PROJECT_MANIFEST)
 
@@ -1070,7 +1506,8 @@ class TestBuildCommand_ExcludeResources(BuildIntegBase):
         )
 
         LOG.info("Running Command: {}".format(cmdlist))
-        run_command(cmdlist, cwd=self.working_dir)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
 
         self._verify_resources_excluded(self.default_build_dir, excluded_resources, function_identifier)
 
@@ -1115,7 +1552,8 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
 
         LOG.info("Running Command: {}".format(cmdlist))
 
-        run_command(cmdlist, cwd=self.working_dir)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
 
         LOG.info("Default build dir: %s", self.default_build_dir)
         self._verify_built_artifact(
@@ -1140,7 +1578,8 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
 
         LOG.info("Running Command: {}".format(cmdlist))
 
-        run_command(cmdlist, cwd=self.working_dir)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
 
         LOG.info("Default build dir: %s", self.default_build_dir)
         self._verify_built_artifact(
@@ -1163,8 +1602,8 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
 
         LOG.info("Running Command: {}".format(cmdlist))
 
-        run_command(cmdlist, cwd=self.working_dir)
-
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 1)
         self.assertFalse(self.default_build_dir.joinpath(layer_identifier).exists())
 
     @parameterized.expand([("python3.7", False), ("python3.7", "use_container")])
@@ -1184,7 +1623,8 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
 
         LOG.info("Running Command: {}".format(cmdlist))
 
-        run_command(cmdlist, cwd=self.working_dir)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
 
         LOG.info("Default build dir: %s", self.default_build_dir)
         self._verify_built_artifact(
@@ -1221,7 +1661,8 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
 
         LOG.info("Running Command: {}".format(cmdlist))
 
-        run_command(cmdlist, cwd=self.working_dir)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
 
         LOG.info("Default build dir: %s", self.default_build_dir)
         self._verify_built_artifact(
@@ -1283,6 +1724,8 @@ class TestBuildCommand_ProvidedFunctions(BuildIntegProvidedBase):
     )
     @pytest.mark.flaky(reruns=3)
     def test_building_Makefile(self, runtime, use_container, manifest):
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
+            self.skipTest(SKIP_DOCKER_MESSAGE)
         self._test_with_Makefile(runtime, use_container, manifest)
 
 
@@ -1310,7 +1753,37 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture(BuildIntegP
     )
     @pytest.mark.flaky(reruns=3)
     def test_building_Makefile(self, runtime, use_container, manifest, architecture):
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
+            self.skipTest(SKIP_DOCKER_MESSAGE)
         self._test_with_Makefile(runtime, use_container, manifest, architecture)
+
+
+@parameterized_class(
+    ("template", "code_uri", "is_nested_parent"),
+    [
+        ("custom_build_with_custom_root_project_path.yaml", "empty_src_code", False),
+        ("custom_build_with_custom_make_file_path.yaml", "provided_src_code_without_makefile", False),
+        ("custom_build_with_custom_working_dir.yaml", "custom_working_dir_src_code", False),
+        ("custom_build_with_custom_root_project_path_and_custom_makefile_path.yaml", "empty_src_code", False),
+        (
+            "custom_build_with_custom_root_project_path_custom_makefile_path_and_custom_working_dir.yaml",
+            "empty_src_code",
+            False,
+        ),
+    ],
+)
+class TestBuildCommand_ProvidedFunctionsWithCustomMetadata(BuildIntegProvidedBase):
+    # Test Suite for runtime: provided and where selection of the build workflow is implicitly makefile builder
+    # if the makefile is present.
+    @parameterized.expand(
+        [
+            ("provided", False, None),
+            ("provided.al2", False, None),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_building_Makefile(self, runtime, use_container, manifest):
+        self._test_with_Makefile(runtime, use_container, manifest)
 
 
 @skipIf(
@@ -1345,7 +1818,8 @@ class TestBuildWithBuildMethod(BuildIntegBase):
 
         LOG.info("Running Command: {}".format(cmdlist))
         # Built using Makefile for a python project.
-        run_command(cmdlist, cwd=self.working_dir)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
 
         self._verify_built_artifact(
             self.default_build_dir, self.FUNCTION_LOGICAL_ID, self.EXPECTED_FILES_PROJECT_MANIFEST
@@ -1382,7 +1856,8 @@ class TestBuildWithBuildMethod(BuildIntegBase):
 
         LOG.info("Running Command: {}".format(cmdlist))
         # Built using `native` python-pip builder for a python project.
-        run_command(cmdlist, cwd=self.working_dir)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
 
         self._verify_built_artifact(
             self.default_build_dir, self.FUNCTION_LOGICAL_ID, self.EXPECTED_FILES_PROJECT_MANIFEST
@@ -1422,7 +1897,6 @@ class TestBuildWithBuildMethod(BuildIntegBase):
         self.assertEqual(command.stdout.strip(), b"Build Failed")
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
-
         self.assertTrue(build_dir.exists(), "Build directory should be created")
 
         build_dir_files = os.listdir(str(build_dir))
@@ -1470,12 +1944,12 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
                 "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
                 "dotnet6",
             ),
-            (False, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
+            (False, "Java/gradlew/8", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
             (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.7"),
             # container
-            (True, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
+            (True, "Java/gradlew/8", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
             (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.7"),
@@ -1505,25 +1979,20 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
 
         expected_messages = ["World", "Mars"]
 
-        if not SKIP_DOCKER_TESTS:
-            self._verify_build_and_invoke_functions(
-                expected_messages, command_result, self._make_parameter_override_arg(overrides)
-            )
+        self._verify_build_and_invoke_functions(
+            expected_messages, command_result, self._make_parameter_override_arg(overrides)
+        )
 
 
 @skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD),
     "Skip build tests on windows when running in CI unless overridden",
 )
 class TestBuildWithDedupImageBuilds(DedupBuildIntegBase):
     template = "dedup-functions-image-template.yaml"
 
-    @parameterized.expand([(True,), (False,)])
     @pytest.mark.flaky(reruns=3)
-    def test_dedup_build(self, use_container):
-        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
-            self.skipTest(SKIP_DOCKER_MESSAGE)
-
+    def test_dedup_build(self):
         """
         Build template above and verify that each function call returns as expected
         """
@@ -1534,10 +2003,11 @@ class TestBuildWithDedupImageBuilds(DedupBuildIntegBase):
             "DockerFile": "Dockerfile",
             "Tag": f"{random.randint(1,100)}",
         }
-        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
+        cmdlist = self.get_command_list(parameter_overrides=overrides)
 
         LOG.info("Running Command: {}".format(cmdlist))
-        run_command(cmdlist, cwd=self.working_dir)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
 
         if not SKIP_DOCKER_TESTS:
             self._verify_invoke_built_function(
@@ -1570,9 +2040,7 @@ class TestBuildWithDedupBuildsMakefile(DedupBuildIntegBase):
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
         expected_messages = ["World", "Mars"]
-
-        if not SKIP_DOCKER_TESTS:
-            self._verify_build_and_invoke_functions(expected_messages, command_result, "")
+        self._verify_build_and_invoke_functions(expected_messages, command_result, "")
 
     def _verify_process_code_and_output(self, command_result):
         """
@@ -1608,12 +2076,12 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
                 "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
                 "dotnet6",
             ),
-            (False, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
+            (False, "Java/gradlew/8", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
             (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.7"),
             # container
-            (True, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
+            (True, "Java/gradlew/8", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
             (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.7"),
@@ -1642,11 +2110,9 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
         expected_messages = ["World", "Mars"]
-
-        if not SKIP_DOCKER_TESTS:
-            self._verify_build_and_invoke_functions(
-                expected_messages, command_result, self._make_parameter_override_arg(overrides)
-            )
+        self._verify_build_and_invoke_functions(
+            expected_messages, command_result, self._make_parameter_override_arg(overrides)
+        )
 
     def test_no_cached_override_build(self):
         overrides = {
@@ -1658,6 +2124,7 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
         config_file = str(Path(self.test_data_path).joinpath("samconfig_no_cached.toml"))
         cmdlist = self.get_command_list(parameter_overrides=overrides, cached=True)
         command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
         self.assertTrue(
             "Running PythonPipBuilder:ResolveDependencies" in str(command_result.stderr)
             and "Running PythonPipBuilder:CopySource" in str(command_result.stderr),
@@ -1666,6 +2133,7 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
         cmdlist = self.get_command_list(parameter_overrides=overrides)
         cmdlist.extend(["--config-file", config_file])
         command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
         self.assertRegex(
             str(command_result.stderr),
             "Manifest is not changed for .* running incremental build",
@@ -1673,6 +2141,7 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
         )
         cmdlist.extend(["--no-cached"])
         command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
         self.assertTrue(
             "Running PythonPipBuilder:ResolveDependencies" in str(command_result.stderr)
             and "Running PythonPipBuilder:CopySource" in str(command_result.stderr),
@@ -1696,6 +2165,7 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
 
         LOG.info("Running Command (cache should be invalid): %s", cmdlist)
         command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
         self.assertTrue(
             "Cache is invalid, running build and copying resources for following functions"
             in command_result.stderr.decode("utf-8")
@@ -1703,6 +2173,7 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
 
         LOG.info("Re-Running Command (valid cache should exist): %s", cmdlist)
         command_result_with_cache = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result_with_cache.process.returncode, 0)
 
         self.assertTrue(
             "Valid cache found, copying previously built resources for following functions"
@@ -1719,11 +2190,12 @@ class TestRepeatedBuildHitsCache(BuildIntegBase):
     template = "layers-functions-template.yaml"
 
     @parameterized.expand([(True,), (False,)])
-    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_repeated_cached_build_hits_cache(self, use_container):
         """
         Build 2 times to verify that second time hits the cached build
         """
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
+            self.skipTest(SKIP_DOCKER_MESSAGE)
 
         parameter_overrides = {
             "LayerContentUri": "PyLayer",
@@ -1754,14 +2226,16 @@ class TestRepeatedBuildHitsCache(BuildIntegBase):
         )
 
         LOG.info("Running Command (cache should be invalid): %s", cmdlist)
-        command_result = run_command(cmdlist, cwd=self.working_dir).stderr.decode("utf-8")
-        self.assertTrue(cache_invalid_output in command_result)
-        self.assertFalse(cache_valid_output in command_result)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
+        self.assertTrue(cache_invalid_output in command_result.stderr.decode("utf-8"))
+        self.assertFalse(cache_valid_output in command_result.stderr.decode("utf-8"))
 
         LOG.info("Re-Running Command (valid cache should exist): %s", cmdlist)
-        command_result = run_command(cmdlist, cwd=self.working_dir).stderr.decode("utf-8")
-        self.assertFalse(cache_invalid_output in command_result)
-        self.assertTrue(cache_valid_output in command_result)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
+        self.assertFalse(cache_invalid_output in command_result.stderr.decode("utf-8"))
+        self.assertTrue(cache_valid_output in command_result.stderr.decode("utf-8"))
 
 
 @skipIf(
@@ -1791,12 +2265,12 @@ class TestParallelBuilds(DedupBuildIntegBase):
                 "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
                 "dotnet6",
             ),
-            (False, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
+            (False, "Java/gradlew/8", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
             (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.7"),
             # container
-            (True, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
+            (True, "Java/gradlew/8", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
             (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.7"),
@@ -1825,11 +2299,9 @@ class TestParallelBuilds(DedupBuildIntegBase):
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
         expected_messages = ["World", "Mars"]
-
-        if not SKIP_DOCKER_TESTS:
-            self._verify_build_and_invoke_functions(
-                expected_messages, command_result, self._make_parameter_override_arg(overrides)
-            )
+        self._verify_build_and_invoke_functions(
+            expected_messages, command_result, self._make_parameter_override_arg(overrides)
+        )
 
 
 @skipIf(
@@ -1885,7 +2357,8 @@ class TestBuildWithInlineCode(BuildIntegBase):
         cmdlist = self.get_command_list(use_container=use_container)
 
         LOG.info("Running Command: {}".format(cmdlist))
-        run_command(cmdlist, cwd=self.working_dir)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
 
         self._verify_built_artifact(self.default_build_dir)
 
@@ -1935,7 +2408,8 @@ class TestBuildWithJsonContainerEnvVars(BuildIntegBase):
         )
 
         LOG.info("Running Command: {}".format(cmdlist))
-        run_command(cmdlist, cwd=self.working_dir)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
 
         self._verify_built_env_var(self.default_build_dir)
 
@@ -1984,7 +2458,8 @@ class TestBuildWithInlineContainerEnvVars(BuildIntegBase):
         cmdlist = self.get_command_list(use_container=use_container, container_env_var=inline_env_var)
 
         LOG.info("Running Command: {}".format(cmdlist))
-        run_command(cmdlist, cwd=self.working_dir)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
 
         self._verify_built_env_var(self.default_build_dir)
 
@@ -2059,13 +2534,14 @@ class TestBuildWithNestedStacks(NestedBuildIntegBase):
 
         function_full_paths = ["Function", "Function2", "LocalNestedStack/Function1", "LocalNestedStack/Function2"]
         stack_paths = ["", "LocalNestedStack"]
-        if not SKIP_DOCKER_TESTS:
-            self._verify_build(
-                function_full_paths,
-                stack_paths,
-                command_result,
-            )
 
+        self._verify_build(
+            function_full_paths,
+            stack_paths,
+            command_result,
+        )
+
+        if not SKIP_DOCKER_TESTS:
             overrides = self._make_parameter_override_arg(overrides)
             self._verify_invoke_built_functions(
                 self.built_template,
@@ -2136,13 +2612,14 @@ class TestBuildWithNestedStacks3Level(NestedBuildIntegBase):
             "ChildStackX",
             "ChildStackX/ChildStackY",
         ]
-        if not SKIP_DOCKER_TESTS:
-            self._verify_build(
-                function_full_paths,
-                stack_paths,
-                command_result,
-            )
 
+        self._verify_build(
+            function_full_paths,
+            stack_paths,
+            command_result,
+        )
+
+        if not SKIP_DOCKER_TESTS:
             self._verify_invoke_built_functions(
                 self.built_template,
                 "",
@@ -2200,13 +2677,14 @@ class TestBuildWithNestedStacks3LevelWithSymlink(NestedBuildIntegBase):
             "ChildStackXViaSymlink",
             "ChildStackXViaSymlink/ChildStackY",
         ]
-        if not SKIP_DOCKER_TESTS:
-            self._verify_build(
-                function_full_paths,
-                stack_paths,
-                command_result,
-            )
 
+        self._verify_build(
+            function_full_paths,
+            stack_paths,
+            command_result,
+        )
+
+        if not SKIP_DOCKER_TESTS:
             self._verify_invoke_built_functions(
                 self.built_template,
                 "",
@@ -2221,6 +2699,7 @@ class TestBuildWithNestedStacks3LevelWithSymlink(NestedBuildIntegBase):
             )
 
 
+@skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
 @parameterized_class(
     ("template", "use_base_dir"),
     [
@@ -2229,7 +2708,6 @@ class TestBuildWithNestedStacks3LevelWithSymlink(NestedBuildIntegBase):
     ],
 )
 class TestBuildWithNestedStacksImage(NestedBuildIntegBase):
-
     EXPECTED_FILES_PROJECT_MANIFEST = {
         "__init__.py",
         "main.py",
@@ -2259,9 +2737,6 @@ class TestBuildWithNestedStacksImage(NestedBuildIntegBase):
     )
     @pytest.mark.flaky(reruns=3)
     def test_nested_build(self, use_container, cached, parallel):
-        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
-            self.skipTest(SKIP_DOCKER_MESSAGE)
-
         """
         Build template above and verify that each function call returns as expected
         """
@@ -2285,13 +2760,13 @@ class TestBuildWithNestedStacksImage(NestedBuildIntegBase):
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
         stack_paths = ["", "LocalNestedStack"]
-        if not SKIP_DOCKER_TESTS:
-            self._verify_build(
-                [],  # there is no function artifact dirs to check
-                stack_paths,
-                command_result,
-            )
+        self._verify_build(
+            [],  # there is no function artifact dirs to check
+            stack_paths,
+            command_result,
+        )
 
+        if not SKIP_DOCKER_TESTS:
             overrides = self._make_parameter_override_arg(overrides)
             self._verify_invoke_built_functions(
                 self.built_template,
@@ -2332,6 +2807,7 @@ class TestBuildWithCustomBuildImage(BuildIntegBase):
         cmdlist = self.get_command_list(use_container=use_container, build_image=build_image)
 
         command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
         stderr = command_result.stderr
         process_stderr = stderr.strip()
 
@@ -2398,14 +2874,14 @@ class TestBuildPassingLayerAcrossStacks(IntrinsicIntegBase):
 
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
-        if not SKIP_DOCKER_TESTS:
-            self._verify_build(
-                self.function_full_paths,
-                self.layer_full_path,
-                self.stack_paths,
-                command_result,
-            )
+        self._verify_build(
+            self.function_full_paths,
+            self.layer_full_path,
+            self.stack_paths,
+            command_result,
+        )
 
+        if not SKIP_DOCKER_TESTS:
             self._verify_invoke_built_functions(
                 self.built_template, self.function_full_paths, self.invoke_error_message
             )
@@ -2438,18 +2914,17 @@ class TestBuildWithS3FunctionsOrLayers(NestedBuildIntegBase):
 
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
-        if not SKIP_DOCKER_TESTS:
-            self._verify_build(
-                ["ServerlessFunction", "LambdaFunction"],
-                [""],  # there is only one stack
-                command_result,
-            )
-            # these two functions are buildable and `sam build` would build it.
-            # but since the two functions both depends on layers with s3 uri,
-            # sam-cli does support local invoking it but the local invoke is likely
-            # to fail due to missing layers. We don't want to introduce breaking
-            # change so only a warning is added when `local invoke` is used on such functions.
-            # skip the invoke test here because the invoke result is not meaningful.
+        self._verify_build(
+            ["ServerlessFunction", "LambdaFunction"],
+            [""],  # there is only one stack
+            command_result,
+        )
+        # these two functions are buildable and `sam build` would build it.
+        # but since the two functions both depends on layers with s3 uri,
+        # sam-cli does support local invoking it but the local invoke is likely
+        # to fail due to missing layers. We don't want to introduce breaking
+        # change so only a warning is added when `local invoke` is used on such functions.
+        # skip the invoke test here because the invoke result is not meaningful.
 
 
 class TestBuildWithZipFunctionsOrLayers(NestedBuildIntegBase):
@@ -2471,15 +2946,13 @@ class TestBuildWithZipFunctionsOrLayers(NestedBuildIntegBase):
         LOG.info(self.working_dir)
 
         command_result = run_command(cmdlist, cwd=self.working_dir)
-
-        if not SKIP_DOCKER_TESTS:
-            # no functions/layers should be built since they all have zip code/content
-            # which are
-            self._verify_build(
-                [],
-                [""],  # there is only one stack
-                command_result,
-            )
+        # no functions/layers should be built since they all have zip code/content
+        # which are
+        self._verify_build(
+            [],
+            [""],  # there is only one stack
+            command_result,
+        )
 
 
 @skipIf(SKIP_SAR_TESTS, "Skip SAR tests")
@@ -2513,3 +2986,19 @@ class TestBuildSAR(BuildIntegBase):
             # will fail the build as there is no mapping
             self.assertEqual(process_execute.process.returncode, 1)
             self.assertIn("Property \\'ApplicationId\\' cannot be resolved.", str(process_execute.stderr))
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+class TestBuildWithLanguageExtensions(BuildIntegBase):
+    template = "language-extensions.yaml"
+
+    def test_validation_does_not_error_out(self):
+        cmdlist = self.get_command_list()
+        LOG.info("Running Command: %s", cmdlist)
+        LOG.info(self.working_dir)
+        process_execute = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(process_execute.process.returncode, 0)
+        self.assertIn("template.yaml", os.listdir(self.default_build_dir))

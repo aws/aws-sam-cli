@@ -18,14 +18,16 @@ RUNTIMES_WITH_BOOTSTRAP_ENTRYPOINT = [
     Runtime.nodejs12x.value,
     Runtime.nodejs14x.value,
     Runtime.nodejs16x.value,
+    Runtime.nodejs18x.value,
     Runtime.python37.value,
     Runtime.python38.value,
-    Runtime.python36.value,
     Runtime.python39.value,
+    Runtime.python310.value,
     Runtime.dotnet6.value,
 ]
 
 RUNTIMES_WITH_DEBUG_ENV_VARS_ONLY = [
+    Runtime.java17.value,
     Runtime.java11.value,
     Runtime.java8.value,
     Runtime.java8al2.value,
@@ -67,7 +69,6 @@ class TestLambdaContainer_init(TestCase):
         get_exposed_ports_mock,
         get_image_mock,
     ):
-
         image = IMAGE
         ports = {"a": "b"}
         addtl_options = {}
@@ -394,10 +395,10 @@ class TestLambdaContainer_init(TestCase):
             code_dir=self.code_dir,
             layers=[],
             lambda_image=image_builder_mock,
+            architecture="x86_64",
             env_vars=self.env_var,
             memory_mb=self.memory_mb,
             debug_options=self.debug_options,
-            architecture="x86_64",
             function_full_path=self.function_name,
         )
 
@@ -422,7 +423,6 @@ class TestLambdaContainer_init(TestCase):
         get_additional_volumes_mock.assert_called_with(self.runtime, self.debug_options)
 
     def test_must_fail_for_unsupported_runtime(self):
-
         runtime = "foo"
 
         image_builder_mock = Mock()
@@ -445,7 +445,6 @@ class TestLambdaContainer_init(TestCase):
 
 class TestLambdaContainer_get_exposed_ports(TestCase):
     def test_must_map_same_port_on_host_and_container(self):
-
         debug_options = DebugContext(debug_ports=[12345])
         expected = {port: port for port in debug_options.debug_ports}
         result = LambdaContainer._get_exposed_ports(debug_options)
@@ -453,7 +452,6 @@ class TestLambdaContainer_get_exposed_ports(TestCase):
         self.assertEqual(expected, result)
 
     def test_must_map_multiple_ports_on_host_and_container(self):
-
         debug_options = DebugContext(debug_ports=[12345, 67890])
         expected = {port: port for port in debug_options.debug_ports}
         result = LambdaContainer._get_exposed_ports(debug_options)
@@ -461,27 +459,24 @@ class TestLambdaContainer_get_exposed_ports(TestCase):
         self.assertEqual(expected, result)
 
     def test_empty_ports_list(self):
-
         debug_options = DebugContext(debug_ports=[])
         result = LambdaContainer._get_exposed_ports(debug_options)
 
         self.assertEqual(None, result)
 
     def test_none_ports_specified(self):
-
         debug_options = DebugContext(debug_ports=None)
         result = LambdaContainer._get_exposed_ports(debug_options)
 
         self.assertEqual(None, result)
 
     def test_must_skip_if_port_is_not_given(self):
-
         self.assertIsNone(LambdaContainer._get_exposed_ports(None), "No ports should be exposed")
 
 
 class TestLambdaContainer_get_image(TestCase):
     def test_must_return_build_image(self):
-        expected = f"public.ecr.aws/sam/emulation-foo:{RAPID_IMAGE_TAG_PREFIX}-x.y.z"
+        expected = f"public.ecr.aws/lambda/foo:1.0-{RAPID_IMAGE_TAG_PREFIX}-x.y.z"
 
         image_builder = Mock()
         image_builder.build.return_value = expected
@@ -489,22 +484,21 @@ class TestLambdaContainer_get_image(TestCase):
         self.assertEqual(
             LambdaContainer._get_image(
                 lambda_image=image_builder,
-                runtime="foo",
+                runtime="foo1.0",
                 packagetype=ZIP,
                 image=None,
                 layers=[],
-                architecture="arm64",
                 function_name=None,
+                architecture="x86_64",
             ),
             expected,
         )
 
-        image_builder.build.assert_called_with("foo", ZIP, None, [], "arm64", function_name=None)
+        image_builder.build.assert_called_with("foo1.0", ZIP, None, [], "x86_64", function_name=None)
 
 
 class TestLambdaContainer_get_debug_settings(TestCase):
     def setUp(self):
-
         self.debug_ports = [1235]
         self.debug_args = "a=b c=d e=f"
         self.debug_options = DebugContext(debug_ports=[1235], debug_args="a=b c=d e=f")

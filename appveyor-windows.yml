@@ -1,28 +1,38 @@
 version: 1.0.{build}
-image: Visual Studio 2019
+image: Visual Studio 2022
 build: off
 
 clone_folder: C:\source
 
 configuration:
   - BuildIntegTesting
+  - LocalZipTerraformBuildIntegTesting
+  - LocalZipTerraformBuildInContainerIntegTesting
+  - S3ZipTerraformBuildIntegTesting
+  - S3ZipTerraformBuildInContainerIntegTesting
+  - OtherTerraformBuildIntegTesting
   - DeployIntegTesting
+  - PackageIntegTesting
+  - DeleteIntegTesting
+  - SyncIntegTesting
   - LocalIntegTesting
+  - EndToEndTesting
   # other Integration testing, Dev, regression and smoke testing
   - OtherTesting
 
 environment:
   AWS_DEFAULT_REGION: us-east-1
   SAM_CLI_DEV: 1
+  CARGO_LAMBDA_VERSION: "v0.17.1"
 
   # Python uses $TMPDIR envvar to find root of tempdir
   TMPDIR: "%TEMP%"
   TMP: "%TEMP%"
 
-  # MSI Installers only use Py3.7.6. It is sufficient to test with this version here.
-  PYTHON_HOME: "C:\\Python37-x64"
-  PYTHON_SCRIPTS: "C:\\Python37-x64\\Scripts"
-  PYTHON_EXE: "C:\\Python37-x64\\python.exe"
+  # MSI Installers only use Py3.8. It is sufficient to test with this version here.
+  PYTHON_HOME: "C:\\Python38-x64"
+  PYTHON_SCRIPTS: "C:\\Python38-x64\\Scripts"
+  PYTHON_EXE: "C:\\Python38-x64\\python.exe"
   PYTHON_ARCH: "64"
   HOME: 'C:\Users\appveyor'
   HOMEDRIVE: "C:"
@@ -48,17 +58,33 @@ cache:
 install:
   # setup make
   - "choco install make"
+  # setup Java, Maven and Gradle
+  - "choco install gradle -y --force"
+  - 'set JAVA_HOME=C:\Program Files\Java\jdk17'
+  - 'set PATH=%JAVA_HOME%\bin;%PATH%'
+  - "javac -version"
+  - "java -version"
+  - "gradle -v"
+  - "mvn --version"
 
   # Make sure the temp directory exists for Python to use.
   - ps: "mkdir -Force C:\\tmp"
-  - "SET PATH=%PYTHON_HOME%;C:\\Ruby27-x64\\bin;%PATH%"
+  - 'set PATH=%PYTHON_HOME%;C:\Ruby27-x64\bin;%PATH%;C:\Python37-x64;C:\Python39-x64;C:\Python310-x64'
   - "echo %PYTHON_HOME%"
   - "echo %PATH%"
   - "python --version"
   - "docker info"
 
+  # install Terraform CLI
+  - "choco install terraform"
+  - "terraform -version"
+
   # Upgrade setuptools, wheel and virtualenv
   - "python -m pip install --upgrade setuptools wheel virtualenv"
+  # Install pip for the python versions which is used by the tests
+  - "C:\\Python37-x64\\python.exe -m pip install --upgrade pip"
+  - "C:\\Python39-x64\\python.exe -m pip install --upgrade pip"
+  - "C:\\Python310-x64\\python.exe -m pip install --upgrade pip"
 
   # Install AWS CLI Globally via pip3
   - "pip install awscli"
@@ -107,13 +133,21 @@ install:
   # Echo final Path
   - "echo %PATH%"
 
-  - ps: "
-      If (Test-Path env:BY_CANARY){
-      echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
-      }"
+  - "IF DEFINED BY_CANARY ECHO Logging in Public ECR && aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws"
 
 # Final clean up no matter success or failure
 on_finish:
+  # Upload test reports as artifacts
+  - ps: Get-ChildItem .\TEST_REPORT-*.json | % { Push-AppveyorArtifact $_.FullName -FileName $_.Name }
+  - ps: '
+  If (Test-Path env:BY_CANARY){
+    $env:AWS_ACCESS_KEY_ID = $env:TEST_REPORT_S3_BUCKET_ACCESS_KEY_ID;
+    $env:AWS_SECRET_ACCESS_KEY = $env:TEST_REPORT_S3_BUCKET_SECRET_ACCESS_KEY;
+    $env:AWS_SESSION_TOKEN = $env:TEST_REPORT_S3_BUCKET_SESSION_TOKEN;
+    aws s3 cp ".\" "s3://$env:TEST_REPORT_S3_BUCKET_NAME/appveyor/$env:APPVEYOR_PROJECT_SLUG/$env:APPVEYOR_BUILD_ID/$env:APPVEYOR_JOB_ID/" --recursive --exclude "*" --include "TEST_REPORT-*.json" --region us-west-2
+  }'
+
+  # notify success
   - ps: "
   If (Test-Path env:BY_CANARY){
     $env:AWS_ACCESS_KEY_ID = $env:CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID;
@@ -129,12 +163,89 @@ for:
       only:
         - configuration: BuildIntegTesting
 
+    build_script:
+      # install Rust in build_script to not override the default "install" actions
+      - appveyor-retry appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
+      - rustup-init.exe -y --default-host x86_64-pc-windows-msvc --default-toolchain stable
+      - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
+      - set RUST_BACKTRACE=1
+      - rustup toolchain install stable --profile minimal --no-self-update
+      - rustup default stable
+      - rustup target add x86_64-unknown-linux-gnu --toolchain stable
+      - rustup target add aarch64-unknown-linux-gnu --toolchain stable
+      - ps: "choco install zig"
+      - ps: Invoke-WebRequest -Uri https://github.com/cargo-lambda/cargo-lambda/releases/download/$env:CARGO_LAMBDA_VERSION/cargo-lambda-$env:CARGO_LAMBDA_VERSION.windows-x64.zip -OutFile C:\Users\appveyor\cargo-lambda.zip
+      - ps: Expand-Archive -DestinationPath C:\Users\appveyor\.cargo\bin C:\Users\appveyor\cargo-lambda.zip
+      - rustc -V
+      - cargo -V
+      - cargo lambda -V
+
     test_script:
       # Reactivate virtualenv before running tests
       - "git --version"
       - "venv\\Scripts\\activate"
       - "docker system prune -a -f"
-      - ps: "pytest -vv tests/integration/buildcmd"
+      - ps: "pytest -vv tests/integration/buildcmd --ignore tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+
+  # Local ZIP  Terraform Build integ testing
+  - matrix:
+      only:
+        - configuration: LocalZipTerraformBuildIntegTesting
+
+    test_script:
+      # Reactivate virtualenv before running tests
+      - "git --version"
+      - "venv\\Scripts\\activate"
+      - "docker system prune -a -f"
+      - ps: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend_0 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+
+  # Local ZIP  Terraform Build In Container  integ testing
+  - matrix:
+      only:
+        - configuration: LocalZipTerraformBuildInContainerIntegTesting
+
+    test_script:
+      # Reactivate virtualenv before running tests
+      - "git --version"
+      - "venv\\Scripts\\activate"
+      - "docker system prune -a -f"
+      - ps: "pytest -vv tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend_1 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+
+  # S3 ZIP  Terraform Build integ testing
+  - matrix:
+      only:
+        - configuration: S3ZipTerraformBuildIntegTesting
+
+    test_script:
+      # Reactivate virtualenv before running tests
+      - "git --version"
+      - "venv\\Scripts\\activate"
+      - "docker system prune -a -f"
+      - ps: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend_0 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+
+  # S3 ZIP  Terraform Build In Container integ testing
+  - matrix:
+      only:
+        - configuration: S3ZipTerraformBuildInContainerIntegTesting
+
+    test_script:
+      # Reactivate virtualenv before running tests
+      - "git --version"
+      - "venv\\Scripts\\activate"
+      - "docker system prune -a -f"
+      - ps: "pytest -vv tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend_1 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+
+  # Other Terraform Build integ testing
+  - matrix:
+      only:
+        - configuration: OtherTerraformBuildIntegTesting
+
+    test_script:
+      # Reactivate virtualenv before running tests
+      - "git --version"
+      - "venv\\Scripts\\activate"
+      - "docker system prune -a -f"
+      - ps: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
   #Integ testing deploy
   - matrix:
@@ -146,7 +257,43 @@ for:
       - "git --version"
       - "venv\\Scripts\\activate"
       - "docker system prune -a -f"
-      - ps: "pytest -vv tests/integration/delete tests/integration/deploy tests/integration/package tests/integration/sync"
+      - ps: "pytest -vv tests/integration/deploy -n 4 --reruns 4 --dist=loadgroup --json-report --json-report-file=TEST_REPORT-integration-deploy.json"
+
+  # Integ testing package
+  - matrix:
+      only:
+        - configuration: PackageIntegTesting
+
+    test_script:
+      # Reactivate virtualenv before running tests
+      - "git --version"
+      - "venv\\Scripts\\activate"
+      - "docker system prune -a -f"
+      - ps: "pytest -vv tests/integration/package -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-package.json"
+
+  # Integ testing delete
+  - matrix:
+      only:
+        - configuration: DeleteIntegTesting
+
+    test_script:
+      # Reactivate virtualenv before running tests
+      - "git --version"
+      - "venv\\Scripts\\activate"
+      - "docker system prune -a -f"
+      - ps: "pytest -vv tests/integration/delete -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-delete.json"
+
+  # Integ testing sync
+  - matrix:
+      only:
+        - configuration: SyncIntegTesting
+
+    test_script:
+      # Reactivate virtualenv before running tests
+      - "git --version"
+      - "venv\\Scripts\\activate"
+      - "docker system prune -a -f"
+      - ps: "pytest -vv tests/integration/sync -n 3 --reruns 3 --dist loadscope --json-report --json-report-file=TEST_REPORT-integration-sync.json"
 
   #Integ testing local
   - matrix:
@@ -158,7 +305,19 @@ for:
       - "git --version"
       - "venv\\Scripts\\activate"
       - "docker system prune -a -f"
-      - ps: "pytest -vv tests/integration/local"
+      - ps: "pytest -vv tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-local.json"
+
+  # End-to-end testing
+  - matrix:
+      only:
+        - configuration: EndToEndTesting
+
+    test_script:
+      # Reactivate virtualenv before running tests
+      - "git --version"
+      - "venv\\Scripts\\activate"
+      - "docker system prune -a -f"
+      - ps: "pytest -vv -n 4 --reruns 5 --dist loadscope tests/end_to_end --json-report --json-report-file=TEST_REPORT-end-to-end.json"
 
   #Other testing
   - matrix:
@@ -170,11 +329,12 @@ for:
       - "git --version"
       - "venv\\Scripts\\activate"
       - "docker system prune -a -f"
-      - ps: "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit"
+      - ps: "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit --json-report --json-report-file=TEST_REPORT-unit.json"
       - "mypy setup.py samcli tests"
-      - ps: "pytest -n 4 tests/functional"
-      - ps: "pytest -vv tests/integration --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local"
-      - ps: "pytest -vv tests/regression"
+      - ps: "pytest -n 4 tests/functional --json-report --json-report-file=TEST_REPORT-functional.json"
+      - ps: "pytest -vv -n 4 --reruns 4 --dist loadgroup tests/integration --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-others.json"
+      - ps: "pytest -vv tests/regression --json-report --json-report-file=TEST_REPORT-regression.json"
 # Uncomment for RDP
 # on_finish:
 #   - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+  

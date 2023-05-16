@@ -106,6 +106,18 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                 },
                 "Metadata": {"DockerTag": "tag", "DockerContext": "./image", "Dockerfile": "Dockerfile"},
             },
+            "SamFuncWithRuntimeManagementConfig": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {
+                    "CodeUri": "/usr/foo/bar",
+                    "Runtime": "python3.9",
+                    "Handler": "index.handler",
+                    "RuntimeManagementConfig": {
+                        "UpdateRuntimeOn": "Manual",
+                        "RuntimeVersionArn": "arn:aws:lambda:us-east-1::runtime:python3.9::0af1966588ced06e3143ae720245c9b7aeaae213c6921c12c742a166679cc505",
+                    },
+                },
+            },
             "LambdaFunc1": {
                 "Type": "AWS::Lambda::Function",
                 "Properties": {
@@ -464,6 +476,36 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     architectures=None,
                     function_url_config=None,
                     stack_path="",
+                ),
+            ),
+            (
+                "SamFuncWithRuntimeManagementConfig",
+                Function(
+                    function_id="SamFuncWithRuntimeManagementConfig",
+                    name="SamFuncWithRuntimeManagementConfig",
+                    functionname="SamFuncWithRuntimeManagementConfig",
+                    runtime="python3.9",
+                    handler="index.handler",
+                    codeuri="/usr/foo/bar",
+                    memory=None,
+                    timeout=None,
+                    environment=None,
+                    rolearn=None,
+                    layers=[],
+                    events=None,
+                    metadata={"SamResourceId": "SamFuncWithRuntimeManagementConfig"},
+                    inlinecode=None,
+                    imageuri=None,
+                    imageconfig=None,
+                    packagetype=ZIP,
+                    codesign_config_arn=None,
+                    architectures=None,
+                    function_url_config=None,
+                    stack_path="",
+                    runtime_management_config={
+                        "UpdateRuntimeOn": "Manual",
+                        "RuntimeVersionArn": "arn:aws:lambda:us-east-1::runtime:python3.9::0af1966588ced06e3143ae720245c9b7aeaae213c6921c12c742a166679cc505",
+                    },
                 ),
             ),
             ("LambdaFunc1", None),  # codeuri is a s3 location, ignored
@@ -969,12 +1011,10 @@ class TestSamFunctionProviderEndToEnd(TestCase):
         ]
     )
     def test_get_must_return_each_function(self, name, expected_output):
-
         actual = self.provider.get(name)
         self.assertEqual(actual, expected_output)
 
     def test_get_all_must_return_all_functions(self):
-
         result = {f.full_path for f in self.provider.get_all()}
         expected = {
             "SamFunctions",
@@ -983,6 +1023,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             "SamFuncWithImage4",
             "SamFuncWithInlineCode",
             "SamFuncWithFunctionNameOverride",
+            "SamFuncWithRuntimeManagementConfig",
             "LambdaFuncWithImage1",
             "LambdaFuncWithImage2",
             "LambdaFuncWithImage4",
@@ -999,6 +1040,34 @@ class TestSamFunctionProviderEndToEnd(TestCase):
         }
 
         self.assertEqual(expected, result)
+
+    def test_update_function_provider(self):
+        updated_template = {
+            "Resources": {
+                "SamFunctions": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {
+                        "FunctionName": "SamFunc1",
+                        "CodeUri": "/usr/foo/bar",
+                        "Runtime": "nodejs4.3",
+                        "Handler": "index.handler",
+                    },
+                },
+                "SamFuncWithInlineCode": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {
+                        "FunctionName": "SamFuncWithInlineCode",
+                        "InlineCode": "testcode",
+                        "Runtime": "nodejs4.3",
+                        "Handler": "index.handler",
+                    },
+                },
+            }
+        }
+        updated_stack = Stack("", "", "template.yaml", self.parameter_overrides, updated_template)
+        self.provider.update([updated_stack])
+        functions = list(self.provider.get_all())
+        self.assertEqual(len(functions), 2)
 
 
 class TestSamFunctionProvider_init(TestCase):
@@ -1349,7 +1418,6 @@ class TestSamFunctionProvider_get_function_id(TestCase):
 
 class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
     def test_must_convert_zip(self):
-
         name = "myname"
         properties = {
             "CodeUri": "/usr/local",
@@ -1392,7 +1460,6 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
         self.assertEqual(expected, result)
 
     def test_must_convert_image(self):
-
         name = "myname"
         properties = {
             "ImageUri": "helloworld:v1",
@@ -1435,7 +1502,6 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
         self.assertEqual(expected, result)
 
     def test_must_skip_non_existent_properties(self):
-
         name = "myname"
         properties = {"CodeUri": "/usr/local"}
 
@@ -1468,7 +1534,6 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
         self.assertEqual(expected, result)
 
     def test_must_default_missing_code_uri(self):
-
         name = "myname"
         properties = {"Runtime": "myruntime"}
 
@@ -1476,7 +1541,6 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
         self.assertEqual(result.codeuri, ".")  # Default value
 
     def test_must_use_inlinecode(self):
-
         name = "myname"
         properties = {
             "InlineCode": "testcode",
@@ -1516,7 +1580,6 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
         self.assertEqual(expected, result)
 
     def test_must_prioritize_inlinecode(self):
-
         name = "myname"
         properties = {
             "CodeUri": "/usr/local",
@@ -1557,7 +1620,6 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
         self.assertEqual(expected, result)
 
     def test_must_handle_code_dict(self):
-
         name = "myname"
         properties = {
             "CodeUri": {
@@ -1572,7 +1634,6 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
 
 class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
     def test_must_convert(self):
-
         name = "myname"
         properties = {
             "Code": {"Bucket": "bucket"},
@@ -1614,7 +1675,6 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
         self.assertEqual(expected, result)
 
     def test_must_use_inlinecode(self):
-
         name = "myname"
         properties = {
             "Code": {"ZipFile": "testcode"},
@@ -1655,7 +1715,6 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
         self.assertEqual(expected, result)
 
     def test_must_skip_non_existent_properties(self):
-
         name = "myname"
         properties = {"Code": {"Bucket": "bucket"}}
 
@@ -1722,7 +1781,7 @@ class TestSamFunctionProvider_parse_layer_info(TestCase):
             Mock(stack_path=STACK_PATH, location="template.yaml", resources=resources), list_of_layers
         )
 
-        for (actual_layer, expected_layer) in zip(
+        for actual_layer, expected_layer in zip(
             actual, [LayerVersion("arn:aws:lambda:region:account-id:layer:layer-name:1", None, stack_path=STACK_PATH)]
         ):
             self.assertEqual(actual_layer, expected_layer)
@@ -1743,7 +1802,7 @@ class TestSamFunctionProvider_parse_layer_info(TestCase):
             Mock(stack_path=STACK_PATH, location="template.yaml", resources=resources), list_of_layers
         )
 
-        for (actual_layer, expected_layer) in zip(
+        for actual_layer, expected_layer in zip(
             actual,
             [
                 LayerVersion("Layer", "/somepath", stack_path=STACK_PATH),
@@ -2409,6 +2468,21 @@ class TestSamFunctionProvider_search_layer(TestCase):
             child_function_stack, [root_stack, child_layer_stack, child_function_stack], {"Ref": "Layer"}
         )
         locate_layer_ref_mock.assert_called_with(child_layer_stack, {"Ref": "SamLayer"}, False, False)
+
+    @patch.object(SamFunctionProvider, "_locate_layer_from_ref")
+    def test_search_layer_with_sub(self, locate_layer_ref_mock):
+        root_stack = Stack("", "root", "template.yaml", None, self.root_stack_template)
+        SamFunctionProvider._locate_layer_from_nested(
+            root_stack,
+            [root_stack],
+            {"Fn::Sub": "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:18"},
+        )
+        locate_layer_ref_mock.assert_called_with(
+            root_stack,
+            {"Fn::Sub": "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:18"},
+            False,
+            False,
+        )
 
     def test_validate_layer_get_attr_format(self):
         valid_layer = {"Fn::GetAtt": ["LayerStackName", "Outputs.LayerName"]}

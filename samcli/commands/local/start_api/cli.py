@@ -3,42 +3,55 @@ CLI command for "local start-api" command
 """
 
 import logging
+
 import click
 
-from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
+from samcli.cli.cli_config_file import TomlProvider, configuration_option
+from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
+from samcli.cli.main import common_options as cli_framework_options
+from samcli.commands._utils.option_value_processor import process_image_options
+from samcli.commands._utils.options import generate_next_command_recommendation
 from samcli.commands.local.cli_common.options import (
     invoke_common_options,
+    local_common_options,
     service_common_options,
     warm_containers_common_options,
-    local_common_options,
 )
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
+from samcli.commands.local.start_api.core.command import InvokeAPICommand
 from samcli.lib.telemetry.metric import track_command
-from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.local.docker.exceptions import ContainerNotStartableException
-from samcli.commands._utils.option_value_processor import process_image_options
 
 LOG = logging.getLogger(__name__)
 
 HELP_TEXT = """
-Allows you to run your Serverless application locally for quick development & testing.
- When run in a directory that contains your Serverless functions and your AWS SAM template, it will create a local HTTP
- server hosting all of your functions. When accessed (via browser, cli etc), it will launch a Docker container locally
- to invoke the function. It will read the CodeUri property of AWS::Serverless::Function resource to find the path in
- your file system containing the Lambda Function code. This could be the project's root directory for interpreted
- languages like Node & Python, or a build directory that stores your compiled artifacts or a JAR file. If you are using
- a interpreted language, local changes will be available immediately in Docker container on every invoke. For more
- compiled languages or projects requiring complex packing support, we recommended you run your own building solution
-and point SAM to the directory or file containing build artifacts.
+Run & test AWS serverless functions locally as a HTTP API.
+"""
+
+DESCRIPTION = """
+  Allows one to run their Serverless application locally for quick development & testing.
+  When run in a directory that contains Serverless functions and an AWS SAM template, it will create a local HTTP
+  server hosting all of template's functions. When accessed (via browser, cli etc), it will launch a Docker container
+  locally to invoke the function. 
+  
+  It will read the CodeUri property of AWS::Serverless::Function resource to find the path in the file system 
+  containing the Lambda Function code. This could be the project's root directory for interpreted
+  languages like Node & Python, or a build directory that stores your compiled artifacts or a JAR file. If one uses
+  a interpreted language, local changes will be available immediately in Docker container on every invoke. For more
+  compiled languages or projects requiring complex packing support, it is recommended to run custom building solution
+  and point AWS SAM CLI to the directory or file containing build artifacts.
 """
 
 
 @click.command(
     "start-api",
+    cls=InvokeAPICommand,
     help=HELP_TEXT,
-    short_help="Sets up a local endpoint you can use to test your API. Supports hot-reloading "
-    "so you don't need to restart this service when you make changes to your function.",
+    short_help=HELP_TEXT,
+    description=DESCRIPTION,
+    requires_credentials=False,
+    context_settings={"max_content_width": 120},
 )
 @configuration_option(provider=TomlProvider(section="parameters"))
 @service_common_options(3000)
@@ -147,13 +160,12 @@ def do_cli(  # pylint: disable=R0914
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
 
-    from samcli.commands.local.cli_common.invoke_context import InvokeContext
-    from samcli.commands.local.lib.exceptions import NoApisDefined
-    from samcli.lib.providers.exceptions import InvalidLayerReference
     from samcli.commands.exceptions import UserException
+    from samcli.commands.local.cli_common.invoke_context import InvokeContext
+    from samcli.commands.local.lib.exceptions import NoApisDefined, OverridesNotWellDefinedError
     from samcli.commands.local.lib.local_api_service import LocalApiService
     from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
-    from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
+    from samcli.lib.providers.exceptions import InvalidLayerReference
     from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported
 
     LOG.debug("local start-api command is called")
@@ -188,9 +200,16 @@ def do_cli(  # pylint: disable=R0914
             container_host_interface=container_host_interface,
             invoke_images=processed_invoke_images,
         ) as invoke_context:
-
             service = LocalApiService(lambda_invoke_context=invoke_context, port=port, host=host, static_dir=static_dir)
             service.start()
+            command_suggestions = generate_next_command_recommendation(
+                [
+                    ("Validate SAM template", "sam validate"),
+                    ("Test Function in the Cloud", "sam sync --stack-name {{stack-name}} --watch"),
+                    ("Deploy", "sam deploy --guided"),
+                ]
+            )
+            click.secho(command_suggestions, fg="yellow")
 
     except NoApisDefined as ex:
         raise UserException(

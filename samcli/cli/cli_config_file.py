@@ -6,16 +6,16 @@ CLI configuration decorator to use TOML configuration files for click commands.
 # [click_config_file](https://github.com/phha/click_config_file/blob/master/click_config_file.py)
 # SPDX-License-Identifier: MIT
 
-import os
 import functools
 import logging
-
+import os
 from pathlib import Path
+
 import click
 
-from samcli.commands.exceptions import ConfigException
 from samcli.cli.context import get_cmd_names
-from samcli.lib.config.samconfig import SamConfig, DEFAULT_ENV, DEFAULT_CONFIG_FILE_NAME
+from samcli.commands.exceptions import ConfigException
+from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME, DEFAULT_ENV, SamConfig
 
 __all__ = ("TomlProvider", "configuration_option", "get_ctx_defaults")
 
@@ -130,20 +130,24 @@ def configuration_callback(cmd_name, option_name, saved_callback, provider, ctx,
     config_env_name = ctx.params.get("config_env") or DEFAULT_ENV
 
     config_file = ctx.params.get("config_file") or DEFAULT_CONFIG_FILE_NAME
-    if config_file and config_file != DEFAULT_CONFIG_FILE_NAME and not Path(config_file).is_file():
-        error_msg = f"Config file {config_file} does not exist or could not be read"
+    config_dir = getattr(ctx, "samconfig_dir", None) or os.getcwd()
+    # If --config-file is an absolute path, use it, if not, start from config_dir
+    config_file_path = config_file if os.path.isabs(config_file) else os.path.join(config_dir, config_file)
+    if (
+        config_file
+        and config_file != DEFAULT_CONFIG_FILE_NAME
+        and not (Path(config_file_path).absolute().is_file() or Path(config_file_path).absolute().is_fifo())
+    ):
+        error_msg = f"Config file {config_file} does not exist or could not be read!"
         LOG.debug(error_msg)
         raise ConfigException(error_msg)
 
-    config_dir = getattr(ctx, "samconfig_dir", None) or os.getcwd()
-    # If --config-file is an absolute path, use it, if not, start from config_dir
-    config_file_name = config_file if os.path.isabs(config_file) else os.path.join(config_dir, config_file)
     config = get_ctx_defaults(
         cmd_name,
         provider,
         ctx,
         config_env_name=config_env_name,
-        config_file=config_file_name,
+        config_file=config_file_path,
     )
     ctx.default_map.update(config)
 
@@ -245,13 +249,9 @@ def decorator_customize_config_file(f):
     """
     config_file_attrs = {}
     config_file_param_decls = ("--config-file",)
-    config_file_attrs["help"] = (
-        "The path and file name of the configuration file containing default parameter values to use. "
-        "Its default value is 'samconfig.toml' in project directory. For more information about configuration files, "
-        "see: "
-        "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html."
-    )
+    config_file_attrs["help"] = "Configuration file containing default parameter values."
     config_file_attrs["default"] = "samconfig.toml"
+    config_file_attrs["show_default"] = True
     config_file_attrs["is_eager"] = True
     config_file_attrs["required"] = False
     config_file_attrs["type"] = click.STRING
@@ -267,12 +267,9 @@ def decorator_customize_config_env(f):
     """
     config_env_attrs = {}
     config_env_param_decls = ("--config-env",)
-    config_env_attrs["help"] = (
-        "The environment name specifying the default parameter values in the configuration file to use. "
-        "Its default value is 'default'. For more information about configuration files, see: "
-        "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html."
-    )
+    config_env_attrs["help"] = "Environment name specifying default parameter values in the configuration file."
     config_env_attrs["default"] = "default"
+    config_env_attrs["show_default"] = True
     config_env_attrs["is_eager"] = True
     config_env_attrs["required"] = False
     config_env_attrs["type"] = click.STRING

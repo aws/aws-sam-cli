@@ -1,23 +1,22 @@
 """Experimental flag"""
-import sys
 import logging
-
+import sys
 from dataclasses import dataclass
 from functools import wraps
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
 
 import click
 
 from samcli.cli.context import Context
-
 from samcli.cli.global_config import ConfigEntry, GlobalConfig
-from samcli.commands._utils.options import parameterized_option
+from samcli.commands._utils.parameterized_option import parameterized_option
 from samcli.lib.utils.colors import Colored
 
 LOG = logging.getLogger(__name__)
 
 EXPERIMENTAL_PROMPT = """
-This feature is currently in beta. Visit the docs page to learn more about the AWS Beta terms https://aws.amazon.com/service-terms/.
+This feature is currently in beta.
+Visit the docs page to learn more about the AWS Beta terms https://aws.amazon.com/service-terms/.
 Enter Y to proceed with the command, or enter N to cancel:
 """
 
@@ -43,10 +42,15 @@ class ExperimentalFlag:
     """Class for storing all experimental related ConfigEntries"""
 
     All = ExperimentalEntry("experimentalAll", EXPERIMENTAL_ENV_VAR_PREFIX + "FEATURES")
-    Esbuild = ExperimentalEntry("experimentalEsbuild", EXPERIMENTAL_ENV_VAR_PREFIX + "ESBUILD")
     BuildPerformance = ExperimentalEntry(
         "experimentalBuildPerformance", EXPERIMENTAL_ENV_VAR_PREFIX + "BUILD_PERFORMANCE"
     )
+    IaCsSupport = {
+        "terraform": ExperimentalEntry(
+            "experimentalTerraformSupport", EXPERIMENTAL_ENV_VAR_PREFIX + "TERRAFORM_SUPPORT"
+        )
+    }
+    RustCargoLambda = ExperimentalEntry("experimentalCargoLambda", EXPERIMENTAL_ENV_VAR_PREFIX + "RUST_CARGO_LAMBDA")
 
 
 def is_experimental_enabled(config_entry: ExperimentalEntry) -> bool:
@@ -91,7 +95,27 @@ def get_all_experimental() -> List[ExperimentalEntry]:
     List[ExperimentalEntry]
         List all experimental flags in the ExperimentalFlag class.
     """
-    return [getattr(ExperimentalFlag, name) for name in dir(ExperimentalFlag) if not name.startswith("__")]
+    all_experimental_flags = []
+    for name in dir(ExperimentalFlag):
+        if name.startswith("__"):
+            continue
+        value = getattr(ExperimentalFlag, name)
+        if isinstance(value, ExperimentalEntry):
+            all_experimental_flags.append(value)
+        elif isinstance(value, dict):
+            all_experimental_flags += value.values()
+    return all_experimental_flags
+
+
+def get_all_experimental_env_vars() -> List[str]:
+    """
+    Returns
+    -------
+    List[str]
+        List all env var names of experimental flags
+    """
+    flags = get_all_experimental()
+    return [flag.env_var_key for flag in flags]
 
 
 def get_all_experimental_statues() -> Dict[str, bool]:
@@ -167,7 +191,7 @@ def experimental_click_option(default: Optional[bool]):
         is_flag=True,
         expose_value=False,
         callback=_experimental_option_callback,
-        help="Should beta features be enabled.",
+        help="Enable/Disable beta features.",
     )
 
 

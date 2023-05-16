@@ -1,20 +1,30 @@
-from samcli.lib.providers.provider import ResourceIdentifier
 from unittest import TestCase
-from unittest.mock import ANY, MagicMock, call, patch
+from unittest.mock import ANY, MagicMock, patch, Mock
 
-from samcli.lib.sync.sync_flow import SyncFlow, ResourceAPICall
+from parameterized import parameterized_class
+
 from samcli.lib.sync.flows.function_sync_flow import FunctionSyncFlow
-from samcli.lib.utils.lock_distributor import LockChain
 
 
+@parameterized_class(
+    ("build_artifacts"),
+    [
+        (None,),
+        (Mock(),),
+    ],
+)
 class TestFunctionSyncFlow(TestCase):
+    build_artifacts = None
+
     def create_function_sync_flow(self):
         sync_flow = FunctionSyncFlow(
             "Function1",
             build_context=MagicMock(),
             deploy_context=MagicMock(),
+            sync_context=MagicMock(),
             physical_id_mapping={},
             stacks=[MagicMock()],
+            application_build_result=self.build_artifacts,
         )
         sync_flow.gather_resources = MagicMock()
         sync_flow.compare_remote = MagicMock()

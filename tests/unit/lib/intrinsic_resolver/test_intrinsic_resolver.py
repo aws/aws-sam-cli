@@ -948,7 +948,7 @@ class TestIntrinsicAttribteResolution(TestCase):
             "ReferenceLambdaLayerVersionLambdaFunction": {
                 "Properties": {
                     "Handler": "layer-main.custom_layer_handler",
-                    "Runtime": "python3.6",
+                    "Runtime": "python3.9",
                     "CodeUri": ".",
                     "Layers": [{"Ref": "MyCustomLambdaLayer"}],
                 },
@@ -984,7 +984,7 @@ class TestIntrinsicAttribteResolution(TestCase):
             "ReferenceLambdaLayerVersionLambdaFunction": {
                 "Properties": {
                     "Handler": "layer-main.custom_layer_handler",
-                    "Runtime": "python3.6",
+                    "Runtime": "python3.9",
                     "CodeUri": ".",
                     "Layers": [{"Ref": "MyCustomLambdaLayer"}],
                 },

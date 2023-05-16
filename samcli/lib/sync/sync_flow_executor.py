@@ -1,30 +1,28 @@
 """Executor for SyncFlows"""
 import logging
 import time
-
-from queue import Queue
-from typing import Callable, List, Optional, Set
+from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass
-
+from queue import Queue
 from threading import RLock
-from concurrent.futures import ThreadPoolExecutor, Future
+from typing import Callable, List, Optional, Set
 
 from botocore.exceptions import ClientError
 from samcli.lib.telemetry.event import EventName, EventTracker, EventType
 
-from samcli.lib.utils.colors import Colored
 from samcli.lib.providers.exceptions import MissingLocalDefinition
 from samcli.lib.sync.exceptions import (
     InfraSyncRequiredError,
+    InvalidRuntimeDefinitionForFunction,
+    MissingFunctionBuildDefinition,
     MissingPhysicalResourceError,
     NoLayerVersionsFoundError,
     SyncFlowException,
-    MissingFunctionBuildDefinition,
-    InvalidRuntimeDefinitionForFunction,
 )
-
-from samcli.lib.utils.lock_distributor import LockDistributor, LockDistributorType
 from samcli.lib.sync.sync_flow import SyncFlow
+from samcli.lib.telemetry.event import EventName, EventTracker, EventType
+from samcli.lib.utils.colors import Colored
+from samcli.lib.utils.lock_distributor import LockDistributor, LockDistributorType
 
 LOG = logging.getLogger(__name__)
 
@@ -192,7 +190,6 @@ class SyncFlowExecutor:
         with ThreadPoolExecutor() as executor:
             self._running_futures.clear()
             while True:
-
                 self._execute_step(executor, exception_handler)
 
                 # Exit execution if there are no running and pending sync flows
@@ -234,7 +231,10 @@ class SyncFlowExecutor:
                 # Put it into deferred_tasks and add all of them at the end to avoid endless loop
                 if sync_flow_future:
                     self._running_futures.add(sync_flow_future)
-                    LOG.info(self._color.cyan(f"Syncing {sync_flow_future.sync_flow.log_name}..."))
+                    LOG.info(
+                        self._color.color_log(msg=f"Syncing {sync_flow_future.sync_flow.log_name}...", color="cyan"),
+                        extra=dict(markup=True),
+                    )
                 else:
                     deferred_tasks.append(sync_flow_task)
 
@@ -310,7 +310,10 @@ class SyncFlowExecutor:
             sync_flow_result: SyncFlowResult = future.result()
             for dependent_sync_flow in sync_flow_result.dependent_sync_flows:
                 self.add_sync_flow(dependent_sync_flow)
-            LOG.info(self._color.green(f"Finished syncing {sync_flow_result.sync_flow.log_name}."))
+            LOG.info(
+                self._color.color_log(msg=f"Finished syncing {sync_flow_result.sync_flow.log_name}.", color="green"),
+                extra=dict(markup=True),
+            )
         return True
 
     @staticmethod

@@ -17,29 +17,30 @@ Logic for uploading to s3 based on supplied template file and s3 bucket
 import json
 import logging
 import os
-from typing import Optional
+from typing import List, Optional
 
 import boto3
 import click
 import docker
 
-from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.commands.package.exceptions import PackageFailedError
+from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.package.artifact_exporter import Template
-from samcli.lib.package.ecr_uploader import ECRUploader
 from samcli.lib.package.code_signer import CodeSigner
+from samcli.lib.package.ecr_uploader import ECRUploader
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.uploaders import Uploaders
-from samcli.lib.providers.provider import get_resource_full_path_by_id, ResourceIdentifier
+from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_resource_full_path_by_id
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.boto_utils import get_boto_config_with_user_agent
+from samcli.lib.utils.preview_runtimes import PREVIEW_RUNTIMES
+from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION, AWS_SERVERLESS_FUNCTION
 from samcli.yamlhelper import yaml_dump
 
 LOG = logging.getLogger(__name__)
 
 
 class PackageContext:
-
     MSG_PACKAGED_TEMPLATE_WRITTEN = (
         "\nSuccessfully packaged artifacts and wrote output template "
         "to file {output_file_name}."
@@ -103,6 +104,7 @@ class PackageContext:
             self.template_file,
             global_parameter_overrides=self._global_parameter_overrides,
         )
+        self._warn_preview_runtime(stacks)
         self.image_repositories = self.image_repositories if self.image_repositories is not None else {}
         updated_repo = {}
         for image_repo_func_id, image_repo_uri in self.image_repositories.items():
@@ -165,6 +167,22 @@ class PackageContext:
             exported_str = yaml_dump(exported_template)
 
         return exported_str
+
+    @staticmethod
+    def _warn_preview_runtime(stacks: List[Stack]) -> None:
+        for stack in stacks:
+            for _, resource_dict in stack.resources.items():
+                if resource_dict.get("Type") not in [AWS_SERVERLESS_FUNCTION, AWS_LAMBDA_FUNCTION]:
+                    continue
+                if resource_dict.get("Properties", {}).get("Runtime", "") in PREVIEW_RUNTIMES:
+                    click.secho(
+                        "Warning: This stack contains one or more Lambda functions using a runtime which is not "
+                        "yet generally available. This runtime should not be used for production applications. "
+                        "For more information on supported runtimes, see "
+                        "https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html.",
+                        fg="yellow",
+                    )
+                return
 
     @staticmethod
     def write_output(output_file_name: Optional[str], data: str) -> None:

@@ -2,7 +2,7 @@
 Parsing utilities commonly used to process information for commands
 """
 import logging
-from typing import Optional, Dict, Tuple
+from typing import Dict, Optional, Tuple
 
 from samcli.commands.exceptions import InvalidImageException
 

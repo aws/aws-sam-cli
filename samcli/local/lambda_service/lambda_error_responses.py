@@ -7,7 +7,6 @@ from samcli.local.services.base_local_service import BaseLocalService
 
 
 class LambdaErrorResponses:
-
     # The content type of the Invoke request body is not JSON.
     UnsupportedMediaTypeException = ("UnsupportedMediaType", 415)
 

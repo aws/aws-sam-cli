@@ -1,13 +1,13 @@
 """ Isolates code download and merge logic for dynamic Schemas template """
 
-import os
 import json
-import click
+import os
 
+import click
 from botocore.exceptions import ClientError
 
-from samcli.local.lambdafn.zip import unzip
 from samcli.local.common.runtime_template import SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING
+from samcli.local.lambdafn.zip import unzip
 
 
 def do_download_source_code_binding(runtime, schema_template_details, schemas_api_caller, download_location):
@@ -56,8 +56,8 @@ def do_extract_and_merge_schemas_code(download_location, output_dir, project_nam
     """
     click.echo("Merging code bindings...")
     cookiecutter_json_path = os.path.join(template_location, "cookiecutter.json")
-    with open(cookiecutter_json_path, "r") as cookiecutter_json:
-        cookiecutter_json_data = cookiecutter_json.read()
+    with open(cookiecutter_json_path, "r") as cookiecutter_file:
+        cookiecutter_json_data = cookiecutter_file.read()
         cookiecutter_json = json.loads(cookiecutter_json_data)
         function_name = cookiecutter_json["function_name"]
         copy_location = os.path.join(output_dir, project_name, function_name)

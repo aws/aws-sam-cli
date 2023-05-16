@@ -31,10 +31,10 @@ TIMEOUT = 300
         (Path("nested-templates/template-parent.yaml"),),
     ],
 )
-class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
+class TestSamPython37HelloWorldIntegration(InvokeIntegBase):
     @pytest.mark.flaky(reruns=3)
     def test_invoke_returncode_is_zero(self):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "HelloWorldServerlessFunction", template_path=self.template_path, event_path=self.event_path
         )
 
@@ -50,7 +50,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
     # https://github.com/aws/aws-sam-cli/issues/2494
     @pytest.mark.flaky(reruns=3)
     def test_invoke_with_utf8_event(self):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "HelloWorldServerlessFunction", template_path=self.template_path, event_path=self.event_utf8_path
         )
 
@@ -65,7 +65,9 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_function_with_metadata(self):
-        command_list = self.get_command_list("FunctionWithMetadata", template_path=self.template_path, no_event=True)
+        command_list = InvokeIntegBase.get_command_list(
+            "FunctionWithMetadata", template_path=self.template_path, no_event=True
+        )
 
         process = Popen(command_list, stdout=PIPE)
         try:
@@ -87,7 +89,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
     )
     @pytest.mark.flaky(reruns=3)
     def test_invoke_returns_execpted_results(self, function_name):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             function_name, template_path=self.template_path, event_path=self.event_path
         )
 
@@ -103,7 +105,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_of_lambda_function(self):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "HelloWorldLambdaFunction", template_path=self.template_path, event_path=self.event_path
         )
 
@@ -119,7 +121,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_of_lambda_function_with_function_name_override(self):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "func-name-override", template_path=self.template_path, event_path=self.event_path
         )
 
@@ -138,7 +140,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
     )
     @pytest.mark.flaky(reruns=3)
     def test_invoke_with_timeout_set(self, function_name):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             function_name, template_path=self.template_path, event_path=self.event_path
         )
 
@@ -169,7 +171,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_with_env_vars(self):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "EchoCustomEnvVarFunction",
             template_path=self.template_path,
             event_path=self.event_path,
@@ -188,7 +190,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
     @parameterized.expand([("EchoCustomEnvVarWithFunctionNameDefinedFunction"), ("customname")])
     @pytest.mark.flaky(reruns=3)
     def test_invoke_with_env_vars_with_functionname_defined(self, function_name):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             function_name, template_path=self.template_path, event_path=self.event_path, env_var_path=self.env_var_path
         )
 
@@ -201,13 +203,29 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         process_stdout = stdout.strip()
         self.assertEqual(process_stdout.decode("utf-8"), '"MyVar"')
 
+    @parameterized.expand([("EchoGlobalCustomEnvVarFunction")])
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_with_global_env_vars_function(self, function_name):
+        command_list = InvokeIntegBase.get_command_list(
+            function_name, template_path=self.template_path, event_path=self.event_path, env_var_path=self.env_var_path
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+        process_stdout = stdout.strip()
+        self.assertEqual(process_stdout.decode("utf-8"), '"GlobalVar"')
+
     @pytest.mark.flaky(reruns=3)
     def test_invoke_with_invoke_image_provided(self):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "HelloWorldServerlessFunction",
             template_path=self.template_path,
             event_path=self.event_path,
-            invoke_image="amazon/aws-sam-cli-emulation-image-python3.6",
+            invoke_image="amazon/aws-sam-cli-emulation-image-python3.7",
         )
 
         process = Popen(command_list, stdout=PIPE)
@@ -222,7 +240,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_when_function_writes_stdout(self):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "WriteToStdoutFunction", template_path=self.template_path, event_path=self.event_path
         )
 
@@ -241,24 +259,26 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_when_function_writes_stderr(self):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "WriteToStderrFunction", template_path=self.template_path, event_path=self.event_path
         )
 
-        process = Popen(command_list, stderr=PIPE)
+        process = Popen(command_list, stderr=PIPE, stdout=PIPE)
         try:
-            _, stderr = process.communicate(timeout=TIMEOUT)
+            stdout, stderr = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
             process.kill()
             raise
 
         process_stderr = stderr.strip()
+        process_stdout = stdout.strip()
 
         self.assertIn("Docker Lambda is writing to stderr", process_stderr.decode("utf-8"))
+        self.assertIn("wrote to stderr", process_stdout.decode("utf-8"))
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_returns_expected_result_when_no_event_given(self):
-        command_list = self.get_command_list("EchoEventFunction", template_path=self.template_path)
+        command_list = InvokeIntegBase.get_command_list("EchoEventFunction", template_path=self.template_path)
         process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
@@ -273,7 +293,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_with_env_using_parameters(self):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "EchoEnvWithParameters",
             template_path=self.template_path,
             event_path=self.event_path,
@@ -308,7 +328,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
     def test_invoke_with_env_using_parameters_with_custom_region(self):
         custom_region = "my-custom-region"
 
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "EchoEnvWithParameters", template_path=self.template_path, event_path=self.event_path, region=custom_region
         )
 
@@ -331,7 +351,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         secret = "secret"
         session = "session"
 
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "EchoEnvWithParameters", template_path=self.template_path, event_path=self.event_path
         )
 
@@ -360,7 +380,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_with_docker_network_of_host(self):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "HelloWorldServerlessFunction",
             template_path=self.template_path,
             event_path=self.event_path,
@@ -379,7 +399,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
     @pytest.mark.flaky(reruns=3)
     @skipIf(IS_WINDOWS, "The test hangs on Windows due to trying to attach to a non-existing network")
     def test_invoke_with_docker_network_of_host_in_env_var(self):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "HelloWorldServerlessFunction", template_path=self.template_path, event_path=self.event_path
         )
 
@@ -399,7 +419,9 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_sam_template_file_env_var_set(self):
-        command_list = self.get_command_list("HelloWorldFunctionInNonDefaultTemplate", event_path=self.event_path)
+        command_list = InvokeIntegBase.get_command_list(
+            "HelloWorldFunctionInNonDefaultTemplate", event_path=self.event_path
+        )
 
         self.test_data_path.joinpath("invoke", "sam-template.yaml")
         env = os.environ.copy()
@@ -419,9 +441,9 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=TIMEOUT, method="thread")
     def test_skip_pull_image_in_env_var(self):
-        docker.from_env().api.pull("lambci/lambda:python3.6")
+        docker.from_env().api.pull("lambci/lambda:python3.7")
 
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "HelloWorldLambdaFunction", template_path=self.template_path, event_path=self.event_path
         )
 
@@ -442,7 +464,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
     @skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
     @pytest.mark.flaky(reruns=3)
     def test_invoke_returns_expected_results_from_git_function(self):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "GitLayerFunction", template_path=self.template_path, event_path=self.event_path
         )
 
@@ -460,7 +482,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
     @skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
     @pytest.mark.flaky(reruns=3)
     def test_invoke_returns_expected_results_from_git_function_with_parameters(self):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "GitLayerFunctionParameters",
             template_path=self.template_path,
             event_path=self.event_path,
@@ -483,7 +505,7 @@ class TestSamInstrinsicsAndPlugins(InvokeIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_resolve_instrincs_which_runs_plugins(self):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "HelloWorldServerlessFunction", template_path=self.template_path, event_path=self.event_path
         )
 
@@ -514,7 +536,7 @@ class TestUsingConfigFiles(InvokeIntegBase):
         custom_config = self._create_config_file(profile)
         custom_cred = self._create_cred_file(profile)
 
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "EchoEnvWithParameters", template_path=self.template_path, event_path=self.event_path
         )
 
@@ -554,7 +576,7 @@ class TestUsingConfigFiles(InvokeIntegBase):
         custom_config = self._create_config_file(profile)
         custom_cred = self._create_cred_file(profile)
 
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "EchoEnvWithParameters", template_path=self.template_path, event_path=self.event_path
         )
 
@@ -590,7 +612,7 @@ class TestUsingConfigFiles(InvokeIntegBase):
         custom_config = self._create_config_file("custom")
         custom_cred = self._create_cred_file("custom")
 
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "EchoEnvWithParameters", template_path=self.template_path, event_path=self.event_path, profile="custom"
         )
 
@@ -630,7 +652,7 @@ class TestUsingConfigFiles(InvokeIntegBase):
 
         custom_cred = self._create_cred_file("custom")
 
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "EchoEnvWithParameters", template_path=self.template_path, event_path=self.event_path
         )
 
@@ -696,7 +718,7 @@ class TestLayerVersionBase(InvokeIntegBase):
         for image in samcli_images:
             docker_client.images.remove(image.id)
 
-        shutil.rmtree(str(self.layer_cache))
+        shutil.rmtree(str(self.layer_cache), ignore_errors=True)
 
     @classmethod
     def setUpClass(cls):
@@ -739,7 +761,7 @@ class TestLayerVersion(TestLayerVersionBase):
         ]
     )
     def test_reference_of_layer_version(self, function_logical_id):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             function_logical_id,
             template_path=self.template_path,
             no_event=True,
@@ -761,9 +783,27 @@ class TestLayerVersion(TestLayerVersionBase):
 
         self.assertEqual(process_stdout.decode("utf-8"), expected_output)
 
+    def test_invoke_with_invoke_image_provided(self):
+        command_list = InvokeIntegBase.get_command_list(
+            "ReferenceLambdaLayerVersionServerlessFunction",
+            template_path=self.template_path,
+            event_path=self.event_path,
+            invoke_image="amazon/aws-sam-cli-emulation-image-python3.9",
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stdout = stdout.strip()
+        self.assertEqual(process_stdout.decode("utf-8"), '"This is a Layer Ping from simple_python"')
+
     @parameterized.expand([("OneLayerVersionServerlessFunction"), ("OneLayerVersionLambdaFunction")])
     def test_download_one_layer(self, function_logical_id):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             function_logical_id,
             template_path=self.template_path,
             no_event=True,
@@ -789,7 +829,7 @@ class TestLayerVersion(TestLayerVersionBase):
         layer_name = self.layer_utils.generate_layer_name()
         self.layer_utils.upsert_layer(layer_name=layer_name, ref_layer_name="ChangedLayerArn", layer_zip="layer1.zip")
 
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             function_logical_id,
             template_path=self.template_path,
             no_event=True,
@@ -814,7 +854,7 @@ class TestLayerVersion(TestLayerVersionBase):
             layer_name=layer_name, ref_layer_name="ChangedLayerArn", layer_zip="changedlayer1.zip"
         )
 
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             function_logical_id,
             template_path=self.template_path,
             no_event=True,
@@ -838,8 +878,7 @@ class TestLayerVersion(TestLayerVersionBase):
     @parameterized.expand([("TwoLayerVersionServerlessFunction"), ("TwoLayerVersionLambdaFunction")])
     @pytest.mark.flaky(reruns=3)
     def test_download_two_layers(self, function_logical_id):
-
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             function_logical_id,
             template_path=self.template_path,
             no_event=True,
@@ -863,8 +902,7 @@ class TestLayerVersion(TestLayerVersionBase):
         self.assertEqual(process_stdout, expected_output)
 
     def test_caching_two_layers(self):
-
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "TwoLayerVersionServerlessFunction",
             template_path=self.template_path,
             no_event=True,
@@ -883,8 +921,7 @@ class TestLayerVersion(TestLayerVersionBase):
         self.assertEqual(2, len(os.listdir(str(self.layer_cache))))
 
     def test_caching_two_layers_with_layer_cache_env_set(self):
-
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "TwoLayerVersionServerlessFunction",
             template_path=self.template_path,
             no_event=True,
@@ -912,7 +949,7 @@ class TestLocalZipLayerVersion(InvokeIntegBase):
     def test_local_zip_layers(
         self,
     ):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "OneLayerVersionServerlessFunction",
             template_path=self.template_path,
             no_event=True,
@@ -944,7 +981,7 @@ class TestLayerVersionThatDoNotCreateCache(InvokeIntegBase):
             self.layer_utils.layers_meta[0].layer_name, "non_existent_layer"
         )
 
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "LayerVersionDoesNotExistFunction",
             template_path=self.template_path,
             no_event=True,
@@ -968,7 +1005,7 @@ class TestLayerVersionThatDoNotCreateCache(InvokeIntegBase):
         self.layer_utils.delete_layers()
 
     def test_account_does_not_exist_for_layer(self):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "LayerVersionAccountDoesNotExistFunction",
             template_path=self.template_path,
             no_event=True,
@@ -999,7 +1036,7 @@ class TestBadLayerVersion(InvokeIntegBase):
     region = "us-west-2"
 
     def test_unresolved_layer_due_to_bad_instrinsic(self):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "LayerBadInstrinsic",
             template_path=self.template_path,
             no_event=True,
@@ -1035,7 +1072,7 @@ class TestInvokeWithFunctionFullPathToAvoidAmbiguity(InvokeIntegBase):
     )
     @pytest.mark.flaky(reruns=3)
     def test_invoke_with_function_name_will_call_functions_in_top_level_stacks(self, function_identifier, expected):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             function_identifier, template_path=self.template_path, event_path=self.event_path
         )
 
@@ -1053,7 +1090,7 @@ class TestInvokeWithFunctionFullPathToAvoidAmbiguity(InvokeIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_with_function_full_path_will_call_functions_in_specified_stack(self):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "SubApp/SubSubApp/FunctionA", template_path=self.template_path, event_path=self.event_path
         )
 
@@ -1071,7 +1108,7 @@ class TestInvokeWithFunctionFullPathToAvoidAmbiguity(InvokeIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_with_non_existent_function_full_path(self):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "SubApp/SubSubApp/Function404", template_path=self.template_path, event_path=self.event_path
         )
 
@@ -1086,3 +1123,37 @@ class TestInvokeWithFunctionFullPathToAvoidAmbiguity(InvokeIntegBase):
 
         self.assertEqual(process.returncode, 1)
         self.assertIn("not found in template", process_stderr.decode("utf-8"))
+
+
+class TestInvokeFunctionWithInlineCode(InvokeIntegBase):
+    template = Path("template-inlinecode.yaml")
+
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_returncode_is_zero(self):
+        command_list = InvokeIntegBase.get_command_list(
+            "NoInlineCodeServerlessFunction", template_path=self.template_path, event_path=self.event_path
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        self.assertEqual(process.returncode, 0)
+
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_inline_code_function(self):
+        command_list = InvokeIntegBase.get_command_list(
+            "InlineCodeServerlessFunction", template_path=self.template_path, event_path=self.event_path
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        self.assertEqual(process.returncode, 1)

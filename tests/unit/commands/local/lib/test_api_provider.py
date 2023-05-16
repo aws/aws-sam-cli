@@ -5,7 +5,7 @@ from unittest.mock import patch, Mock
 
 from parameterized import parameterized
 
-from samcli.lib.providers.provider import Api
+from samcli.lib.providers.provider import Api, Stack
 from samcli.lib.providers.api_provider import ApiProvider
 from samcli.lib.providers.sam_api_provider import SamApiProvider
 from samcli.lib.providers.cfn_api_provider import CfnApiProvider
@@ -242,21 +242,45 @@ class TestApiProvider_merge_routes(TestCase):
 
 
 class TestApiProvider_check_implicit_api_resource_ids(TestCase):
+    @patch("samcli.lib.providers.sam_base_provider.SamBaseProvider.get_template")
     @patch("samcli.lib.providers.sam_api_provider.LOG.warning")
-    def test_check_implicit_api_resource_ids_false(self, warning_mock):
-        SamApiProvider.check_implicit_api_resource_ids([Mock(resources={"Api1": {"Properties": Mock()}})])
+    def test_check_implicit_api_resource_ids_false(self, warning_mock, get_template_mock):
+        SamApiProvider.check_implicit_api_resource_ids(
+            [Stack("", "stack", "location", None, {"Resources": {"Api1": {"Properties": Mock()}}})]
+        )
         warning_mock.assert_not_called()
+        get_template_mock.assert_not_called()
 
+    @patch("samcli.lib.providers.sam_base_provider.SamBaseProvider.get_template")
     @patch("samcli.lib.providers.sam_api_provider.LOG.warning")
-    def test_check_implicit_api_resource_ids_rest_api(self, warning_mock):
+    def test_check_implicit_api_resource_ids_rest_api(self, warning_mock, get_template_mock):
         SamApiProvider.check_implicit_api_resource_ids(
-            [Mock(resources={"Api1": {"Properties": Mock()}, "ServerlessRestApi": {"Properties": Mock()}})]
+            [
+                Stack(
+                    "",
+                    "stack",
+                    "location",
+                    None,
+                    {"Resources": {"Api1": {"Properties": Mock()}, "ServerlessRestApi": {"Properties": Mock()}}},
+                )
+            ]
         )
         warning_mock.assert_called_once()
+        get_template_mock.assert_not_called()
 
+    @patch("samcli.lib.providers.sam_base_provider.SamBaseProvider.get_template")
     @patch("samcli.lib.providers.sam_api_provider.LOG.warning")
-    def test_check_implicit_api_resource_ids_http_api(self, warning_mock):
+    def test_check_implicit_api_resource_ids_http_api(self, warning_mock, get_template_mock):
         SamApiProvider.check_implicit_api_resource_ids(
-            [Mock(resources={"Api1": {"Properties": Mock()}, "ServerlessHttpApi": {"Properties": Mock()}})]
+            [
+                Stack(
+                    "",
+                    "stack",
+                    "location",
+                    None,
+                    {"Resources": {"Api1": {"Properties": Mock()}, "ServerlessHttpApi": {"Properties": Mock()}}},
+                )
+            ]
         )
         warning_mock.assert_called_once()
+        get_template_mock.assert_not_called()

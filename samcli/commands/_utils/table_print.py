@@ -1,9 +1,10 @@
 """
 Utilities for table pretty printing using click
 """
-from itertools import count, zip_longest
+import shutil
 import textwrap
 from functools import wraps
+from itertools import count, zip_longest
 from typing import Sized
 
 import click
@@ -30,7 +31,7 @@ def pprint_column_names(
 
     def pprint_wrap(func):
         # Calculate terminal width, number of columns in the table
-        width, _ = click.get_terminal_size()
+        width, _ = shutil.get_terminal_size()
         # For UX purposes, set a minimum width for the table to be usable
         # and usable_width keeps margins in mind.
         width = max(width, min_width)
@@ -62,7 +63,9 @@ def pprint_column_names(
         def wrap(*args, **kwargs):
             # The table is setup with the column names, format_string contains the column names.
             if table_header:
-                click.secho("\n" + table_header.format(args[0].client_sleep) if display_sleep else table_header)
+                click.secho(
+                    "\n" + table_header.format(args[0].client_sleep) if display_sleep else table_header, bold=True
+                )
             click.secho("-" * usable_width, fg=color)
             click.secho(format_string.format(*format_args, **format_kwargs), fg=color)
             click.secho("-" * usable_width, fg=color)
@@ -73,7 +76,7 @@ def pprint_column_names(
             kwargs["margin"] = margin if margin else min_margin
             result = func(*args, **kwargs)
             # Complete the table
-            click.secho("-" * usable_width, fg=color)
+            click.secho("-" * usable_width + "\n", fg=color)
             return result
 
         return wrap

@@ -6,13 +6,13 @@ import threading
 from subprocess import Popen, PIPE
 import os
 import logging
-import random
 from pathlib import Path
 
 import docker
 from docker.errors import APIError
 
-from tests.testing_utils import kill_process
+from tests.integration.local.common_utils import InvalidAddressException, random_port, wait_for_local_process
+from tests.testing_utils import kill_process, get_sam_command
 from tests.testing_utils import SKIP_DOCKER_MESSAGE, SKIP_DOCKER_TESTS, run_command
 
 LOG = logging.getLogger(__name__)
@@ -31,6 +31,8 @@ class StartApiIntegBaseClass(TestCase):
     build_before_invoke = False
     build_overrides: Optional[Dict[str, str]] = None
 
+    do_collect_cmd_init_output: bool = False
+
     @classmethod
     def setUpClass(cls):
         # This is the directory for tests/integration which will be used to file the testdata
@@ -43,21 +45,17 @@ class StartApiIntegBaseClass(TestCase):
         if cls.build_before_invoke:
             cls.build()
 
-        cls.port = str(StartApiIntegBaseClass.random_port())
-
         cls.docker_client = docker.from_env()
         for container in cls.docker_client.api.containers():
             try:
                 cls.docker_client.api.remove_container(container, force=True)
             except APIError as ex:
                 LOG.error("Failed to remove container %s", container, exc_info=ex)
-        cls.start_api()
+        cls.start_api_with_retry()
 
     @classmethod
     def build(cls):
-        command = "sam"
-        if os.getenv("SAM_CLI_DEV"):
-            command = "samdev"
+        command = get_sam_command()
         command_list = [command, "build"]
         if cls.build_overrides:
             overrides_arg = " ".join(
@@ -68,10 +66,23 @@ class StartApiIntegBaseClass(TestCase):
         run_command(command_list, cwd=working_dir)
 
     @classmethod
+    def start_api_with_retry(cls, retries=3):
+        retry_count = 0
+        while retry_count < retries:
+            cls.port = str(random_port())
+            try:
+                cls.start_api()
+            except InvalidAddressException:
+                retry_count += 1
+                continue
+            break
+
+        if retry_count == retries:
+            raise ValueError("Ran out of retries attempting to start api")
+
+    @classmethod
     def start_api(cls):
-        command = "sam"
-        if os.getenv("SAM_CLI_DEV"):
-            command = "samdev"
+        command = get_sam_command()
 
         command_list = [command, "local", "start-api", "-t", cls.template, "-p", cls.port]
 
@@ -88,15 +99,10 @@ class StartApiIntegBaseClass(TestCase):
             for image in cls.invoke_image:
                 command_list += ["--invoke-image", image]
 
-        cls.start_api_process = Popen(command_list, stderr=PIPE)
-
-        while True:
-            line = cls.start_api_process.stderr.readline()
-            line_as_str = str(line.decode("utf-8")).strip()
-            if line_as_str:
-                LOG.info(f"{line_as_str}")
-            if "(Press CTRL+C to quit)" in line_as_str:
-                break
+        cls.start_api_process = Popen(command_list, stderr=PIPE, stdout=PIPE)
+        cls.start_api_process_output = wait_for_local_process(
+            cls.start_api_process, cls.port, collect_output=cls.do_collect_cmd_init_output
+        )
 
         cls.stop_reading_thread = False
 
@@ -118,10 +124,6 @@ class StartApiIntegBaseClass(TestCase):
         kill_process(cls.start_api_process)
 
     @staticmethod
-    def random_port():
-        return random.randint(30000, 40000)
-
-    @staticmethod
     def get_binary_data(filename):
         if not filename:
             return None
@@ -130,11 +132,15 @@ class StartApiIntegBaseClass(TestCase):
             return fp.read()
 
 
-class WatchWarmContainersIntegBaseClass(StartApiIntegBaseClass):
+class WritableStartApiIntegBaseClass(StartApiIntegBaseClass):
     temp_path: Optional[str] = None
     template_path: Optional[str] = None
     code_path: Optional[str] = None
     docker_file_path: Optional[str] = None
+
+    template_content: Optional[str] = None
+    code_content: Optional[str] = None
+    docker_file_content: Optional[str] = None
 
     @classmethod
     def setUpClass(cls):

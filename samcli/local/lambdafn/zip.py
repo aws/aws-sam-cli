@@ -3,15 +3,9 @@ Helper methods to unzip an archive preserving the file permissions. Python's zip
 this feature natively (https://bugs.python.org/issue15795).
 """
 
-import os
 import logging
+import os
 import zipfile
-from pathlib import Path
-
-import requests
-
-from samcli.lib.utils.progressbar import progressbar
-
 
 LOG = logging.getLogger(__name__)
 
@@ -34,7 +28,7 @@ def _is_symlink(file_info):
         A response regarding whether the ZipInfo defines a symlink or not.
     """
 
-    return (file_info.external_attr >> 28) == 0xA
+    return (file_info.external_attr >> 28) == 0xA  # noqa: PLR2004
 
 
 def _extract(file_info, output_dir, zip_ref):
@@ -93,7 +87,6 @@ def unzip(zip_file_path, output_dir, permission=None):
     """
 
     with zipfile.ZipFile(zip_file_path, "r") as zip_ref:
-
         # For each item in the zip file, extract the file and set permissions if available
         for file_info in zip_ref.infolist():
             extracted_path = _extract(file_info, output_dir, zip_ref)
@@ -146,42 +139,3 @@ def _set_permissions(zip_file_info, extracted_path):
         return
 
     os.chmod(extracted_path, permission)
-
-
-def unzip_from_uri(uri, layer_zip_path, unzip_output_dir, progressbar_label):
-    """
-    Download the LayerVersion Zip to the Layer Pkg Cache
-
-    Parameters
-    ----------
-    uri str
-        Uri to download from
-    layer_zip_path str
-        Path to where the content from the uri should be downloaded to
-    unzip_output_dir str
-        Path to unzip the zip to
-    progressbar_label str
-        Label to use in the Progressbar
-    """
-    try:
-        get_request = requests.get(uri, stream=True, verify=os.environ.get("AWS_CA_BUNDLE", True))
-
-        with open(layer_zip_path, "wb") as local_layer_file:
-            file_length = int(get_request.headers["Content-length"])
-
-            with progressbar(file_length, progressbar_label) as p_bar:
-                # Set the chunk size to None. Since we are streaming the request, None will allow the data to be
-                # read as it arrives in whatever size the chunks are received.
-                for data in get_request.iter_content(chunk_size=None):
-                    local_layer_file.write(data)
-                    p_bar.update(len(data))
-
-        # Forcefully set the permissions to 700 on files and directories. This is to ensure the owner
-        # of the files is the only one that can read, write, or execute the files.
-        unzip(layer_zip_path, unzip_output_dir, permission=0o700)
-
-    finally:
-        # Remove the downloaded zip file
-        path_to_layer = Path(layer_zip_path)
-        if path_to_layer.exists():
-            path_to_layer.unlink()

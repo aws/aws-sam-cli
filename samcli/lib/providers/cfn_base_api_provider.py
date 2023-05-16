@@ -1,22 +1,21 @@
 """Class that parses the CloudFormation Api Template"""
 import logging
-from typing import Type, Dict, Union, List, Optional, Any
+from typing import Any, Dict, List, Optional, Type, Union
 
 from samcli.commands.local.lib.swagger.parser import SwaggerParser
 from samcli.commands.local.lib.swagger.reader import SwaggerReader
+from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.lib.providers.api_collector import ApiCollector
-
 from samcli.lib.providers.provider import (
+    CORS_CREDENTIALS_HEADER,
+    CORS_HEADERS_HEADER,
+    CORS_MAX_AGE_HEADER,
+    CORS_METHODS_HEADER,
+    CORS_ORIGIN_HEADER,
     Cors,
     Stack,
-    CORS_ORIGIN_HEADER,
-    CORS_HEADERS_HEADER,
-    CORS_METHODS_HEADER,
-    CORS_CREDENTIALS_HEADER,
-    CORS_MAX_AGE_HEADER,
 )
-from samcli.local.apigw.local_apigw_service import Route
-from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
+from samcli.local.apigw.route import Route
 
 LOG = logging.getLogger(__name__)
 
@@ -63,7 +62,6 @@ class CfnBaseApiProvider:
         ----------
         stack_path : str
             Path of the stack the resource is located
-
         logical_id : str
             Logical ID of the resource
         body : dict
@@ -82,10 +80,20 @@ class CfnBaseApiProvider:
         reader = SwaggerReader(definition_body=body, definition_uri=uri, working_dir=cwd)
         swagger = reader.read()
         parser = SwaggerParser(stack_path, swagger)
+
+        authorizers = parser.get_authorizers(event_type)
+        default_authorizer = parser.get_default_authorizer(event_type)
+
         routes = parser.get_routes(event_type)
+
         LOG.debug("Found '%s' APIs in resource '%s'", len(routes), logical_id)
+        LOG.debug("Found '%s' authorizers in resource '%s'", len(authorizers), logical_id)
 
         collector.add_routes(logical_id, routes)
+        collector.add_authorizers(logical_id, authorizers)
+
+        if default_authorizer:
+            collector.set_default_authorizer(logical_id, default_authorizer)
 
         collector.add_binary_media_types(logical_id, parser.get_binary_media_types())  # Binary media from swagger
         collector.add_binary_media_types(logical_id, binary_media)  # Binary media specified on resource in template

@@ -3,20 +3,20 @@ import shutil
 import tempfile
 import logging
 import subprocess
-import timeit
 import time
-import requests
 import re
+import pytest
 
 from flask import Flask, request, Response
 from threading import Thread
 from collections import deque
 from unittest import TestCase
 from pathlib import Path
+from werkzeug.serving import make_server
 
 from samcli.cli.global_config import GlobalConfig
 from samcli.cli.main import TELEMETRY_PROMPT
-
+from tests.testing_utils import get_sam_command
 
 LOG = logging.getLogger(__name__)
 TELEMETRY_ENDPOINT_PORT = "18298"
@@ -27,10 +27,11 @@ TELEMETRY_ENDPOINT_URL = "http://{}:{}".format(TELEMETRY_ENDPOINT_HOST, TELEMETR
 EXPECTED_TELEMETRY_PROMPT = re.sub(r"\n", os.linesep, TELEMETRY_PROMPT)
 
 
+@pytest.mark.xdist_group(name="sam_telemetry")
 class IntegBase(TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.cmd = cls.base_command()
+        cls.cmd = get_sam_command()
 
     def setUp(self):
         self.maxDiff = None  # Show full JSON Diff
@@ -41,14 +42,6 @@ class IntegBase(TestCase):
 
     def tearDown(self):
         self.config_dir and shutil.rmtree(self.config_dir)
-
-    @classmethod
-    def base_command(cls):
-        command = "sam"
-        if os.getenv("SAM_CLI_DEV"):
-            command = "samdev"
-
-        return command
 
     def run_cmd(self, cmd_list=None, stdin_data="", optout_envvar_value=None):
         # Any command will work for this test suite
@@ -82,7 +75,7 @@ class IntegBase(TestCase):
         return self._gc
 
 
-class TelemetryServer(Thread):
+class TelemetryServer:
     """
     HTTP Server that can receive and store Telemetry requests. Caller can later retrieve the responses for
     assertion
@@ -115,33 +108,24 @@ class TelemetryServer(Thread):
             provide_automatic_options=False,
         )
 
-        self.flask_app.add_url_rule(
-            "/_shutdown", endpoint="/_shutdown", view_func=self._shutdown_flask, methods=["GET"]
-        )
-
         # Thread-safe data structure to record requests sent to the server
         self._requests = deque()
 
-    def run(self):
-        """
-        Method that runs when thread starts. This starts up Flask server as well
-        """
-        # os.environ['WERKZEUG_RUN_MAIN'] = 'true'
-        self.flask_app.run(port=TELEMETRY_ENDPOINT_PORT, host=TELEMETRY_ENDPOINT_HOST, threaded=True)
-
     def __enter__(self):
-        self.daemon = True  # When test completes, this thread will die automatically
-        self.start()  # Start the thread
+        self.server = make_server(TELEMETRY_ENDPOINT_HOST, TELEMETRY_ENDPOINT_PORT, self.flask_app)
+        self.thread = Thread(target=self.server.serve_forever)
+        self.thread.daemon = True  # When test completes, this thread will die automatically
+        self.thread.start()  # Start the thread
 
         return self
 
     def __exit__(self, *args, **kwargs):
-        shutdown_endpoint = "{}/_shutdown".format(TELEMETRY_ENDPOINT_URL)
-        requests.get(shutdown_endpoint)
-
         # Flask will start shutting down only *after* the above request completes.
         # Just give the server a little bit of time to teardown finish
         time.sleep(2)
+
+        self.server.shutdown()
+        self.thread.join()
 
     def get_request(self, index):
         return self._requests[index]
@@ -165,9 +149,3 @@ class TelemetryServer(Thread):
         self._requests.append(request_data)
 
         return Response(response={}, status=200)
-
-    def _shutdown_flask(self):
-        # Based on http://flask.pocoo.org/snippets/67/
-        request.environ.get("werkzeug.server.shutdown")()
-        print("Server shutting down...")
-        return ""

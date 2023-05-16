@@ -7,6 +7,7 @@ from functools import wraps
 
 import click
 from requests import get
+
 from samcli import __version__ as installed_version
 from samcli.cli.global_config import GlobalConfig
 

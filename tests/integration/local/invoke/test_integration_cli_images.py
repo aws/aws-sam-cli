@@ -46,13 +46,13 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
     def tearDownClass(cls):
         try:
             cls.client.api.remove_image(cls.docker_tag)
-            cls.client.api.remove_image(f"{cls.image_name}:{RAPID_IMAGE_TAG_PREFIX}-{version}")
+            cls.client.api.remove_image(f"{cls.image_name}:{RAPID_IMAGE_TAG_PREFIX}-{X86_64}")
         except APIError:
             pass
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_returncode_is_zero(self):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "HelloWorldServerlessFunction", template_path=self.template_path, event_path=self.event_path
         )
 
@@ -74,7 +74,7 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
     )
     @pytest.mark.flaky(reruns=3)
     def test_invoke_returns_execpted_results(self, function_name):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             function_name, template_path=self.template_path, event_path=self.event_path
         )
 
@@ -90,7 +90,7 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_of_lambda_function(self):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "HelloWorldLambdaFunction", template_path=self.template_path, event_path=self.event_path
         )
 
@@ -106,7 +106,7 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_of_lambda_function_with_function_name_override(self):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "func-name-override", template_path=self.template_path, event_path=self.event_path
         )
 
@@ -125,7 +125,7 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
     )
     @pytest.mark.flaky(reruns=3)
     def test_invoke_with_timeout_set(self, function_name):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             function_name, template_path=self.template_path, event_path=self.event_path
         )
 
@@ -156,7 +156,7 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_with_env_vars(self):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "EchoCustomEnvVarFunction",
             template_path=self.template_path,
             event_path=self.event_path,
@@ -175,7 +175,7 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
     @parameterized.expand([("EchoCustomEnvVarWithFunctionNameDefinedFunction"), ("customname")])
     @pytest.mark.flaky(reruns=3)
     def test_invoke_with_env_vars_with_functionname_defined(self, function_name):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             function_name, template_path=self.template_path, event_path=self.event_path, env_var_path=self.env_var_path
         )
 
@@ -188,9 +188,25 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
         process_stdout = stdout.strip()
         self.assertEqual(process_stdout.decode("utf-8"), '"MyVar"')
 
+    @parameterized.expand([("EchoGlobalCustomEnvVarFunction")])
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_with_global_env_vars_function(self, function_name):
+        command_list = InvokeIntegBase.get_command_list(
+            function_name, template_path=self.template_path, event_path=self.event_path, env_var_path=self.env_var_path
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+        process_stdout = stdout.strip()
+        self.assertEqual(process_stdout.decode("utf-8"), '"GlobalVar"')
+
     @pytest.mark.flaky(reruns=3)
     def test_invoke_when_function_writes_stdout(self):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "WriteToStdoutFunction", template_path=self.template_path, event_path=self.event_path
         )
 
@@ -209,7 +225,7 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_when_function_writes_stderr(self):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "WriteToStderrFunction", template_path=self.template_path, event_path=self.event_path
         )
 
@@ -226,7 +242,7 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_returns_expected_result_when_no_event_given(self):
-        command_list = self.get_command_list("EchoEventFunction", template_path=self.template_path)
+        command_list = InvokeIntegBase.get_command_list("EchoEventFunction", template_path=self.template_path)
         process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
@@ -241,7 +257,7 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_with_env_using_parameters(self):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "EchoEnvWithParameters",
             template_path=self.template_path,
             event_path=self.event_path,
@@ -275,7 +291,7 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
     def test_invoke_with_env_using_parameters_with_custom_region(self):
         custom_region = "my-custom-region"
 
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "EchoEnvWithParameters", template_path=self.template_path, event_path=self.event_path, region=custom_region
         )
 
@@ -298,7 +314,7 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
         secret = "secret"
         session = "session"
 
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "EchoEnvWithParameters", template_path=self.template_path, event_path=self.event_path
         )
 
@@ -327,7 +343,7 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_with_docker_network_of_host(self):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "HelloWorldServerlessFunction",
             template_path=self.template_path,
             event_path=self.event_path,
@@ -346,7 +362,7 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
     @pytest.mark.flaky(reruns=3)
     @skipIf(IS_WINDOWS, "The test hangs on Windows due to trying to attach to a non-existing network")
     def test_invoke_with_docker_network_of_host_in_env_var(self):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "HelloWorldServerlessFunction", template_path=self.template_path, event_path=self.event_path
         )
 
@@ -366,7 +382,9 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_sam_template_file_env_var_set(self):
-        command_list = self.get_command_list("HelloWorldFunctionInNonDefaultTemplate", event_path=self.event_path)
+        command_list = InvokeIntegBase.get_command_list(
+            "HelloWorldFunctionInNonDefaultTemplate", event_path=self.event_path
+        )
 
         self.test_data_path.joinpath("invoke", "sam-template-image.yaml")
         env = os.environ.copy()
@@ -384,7 +402,7 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
         self.assertEqual(process_stdout.decode("utf-8"), '"Hello world"')
 
     def test_invoke_with_error_during_image_build(self):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "ImageDoesntExistFunction", template_path=self.template_path, event_path=self.event_path
         )
 
@@ -438,7 +456,7 @@ class TestDeleteOldRapidImages(InvokeIntegBase):
                 path=self.test_data_invoke_path, dockerfile="Dockerfile", tag=tag, decode=True, nocache=True
             ):
                 print(log)
-        self.new_rapid_image_tag = f"{self.repo}:{RAPID_IMAGE_TAG_PREFIX}-{version}-{X86_64}"
+        self.new_rapid_image_tag = f"{self.repo}:{RAPID_IMAGE_TAG_PREFIX}-{X86_64}"
 
     def tearDown(self):
         for tag in self.old_rapid_image_tags + [self.new_rapid_image_tag] + self.other_repo_tags:
@@ -449,7 +467,7 @@ class TestDeleteOldRapidImages(InvokeIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_building_new_rapid_image_removes_old_rapid_images(self):
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "HelloWorldServerlessFunction", template_path=self.template_path, event_path=self.event_path
         )
 
@@ -476,7 +494,7 @@ class TestDeleteOldRapidImages(InvokeIntegBase):
         ):
             print(log)
 
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "HelloWorldServerlessFunction", template_path=self.template_path, event_path=self.event_path
         )
 
@@ -500,7 +518,7 @@ class TestDeleteOldRapidImages(InvokeIntegBase):
             ):
                 print(log)
 
-        command_list = self.get_command_list(
+        command_list = InvokeIntegBase.get_command_list(
             "HelloWorldServerlessFunction", template_path=self.template_path, event_path=self.event_path
         )
 

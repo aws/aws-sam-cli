@@ -124,6 +124,7 @@ export class CDKSupportDemoRootStack extends cdk.Stack {
     cfnLayerVersionNodeJsRuntime.addMetadata('BuildMethod', 'nodejs14.x');
 
     const nodejsFunction = new NodejsFunction(this, 'NodejsFunction', {
+      runtime: lambda.Runtime.NODEJS_14_X,
       entry: path.join(__dirname, '../../../src/nodejs/NodeJsFunctionConstruct/app.ts'),
       depsLockFilePath: path.join(__dirname, '../../../src/nodejs/NodeJsFunctionConstruct/package-lock.json'),
       bundling: {
@@ -191,6 +192,25 @@ export class CDKSupportDemoRootStack extends cdk.Stack {
       tracing: lambda.Tracing.ACTIVE,
     });
 
+    // both ways work when 'file' is a path via subfolders to the Dockerfile
+    // this is useful when multiple docker images share some common code
+    const dockerImageFunctionWithSharedCode = new lambda.DockerImageFunction(this, "DockerImageFunctionWithSharedCode", {
+      code: lambda.DockerImageCode.fromImageAsset("../../src/docker/ImagesWithSharedCode", {
+        file: "DockerImageFunctionWithSharedCode/Dockerfile",
+      }),
+      tracing: lambda.Tracing.ACTIVE,
+    });
+
+    // another way
+    const functionImageAssetWithSharedCode = new lambda.Function(this, "FunctionImageAssetWithSharedCode", {
+      code: lambda.Code.fromAssetImage("../../src/docker/ImagesWithSharedCode", {
+        file: "FunctionImageAssetWithSharedCode/Dockerfile",
+      }),
+      handler: lambda.Handler.FROM_IMAGE,
+      runtime: lambda.Runtime.FROM_IMAGE,
+      tracing: lambda.Tracing.ACTIVE,
+    });
+
 
     //Rest APIs
 
@@ -246,6 +266,12 @@ export class CDKSupportDemoRootStack extends cdk.Stack {
 
     normalRootResource.addResource('functionImageAsset')
       .addMethod('GET', new LambdaIntegration(functionImageAsset));
+
+    normalRootResource.addResource('dockerImageFunctionWithSharedCode')
+      .addMethod('GET', new LambdaIntegration(dockerImageFunctionWithSharedCode));
+
+    normalRootResource.addResource('functionImageAssetWithSharedCode')
+      .addMethod('GET', new LambdaIntegration(functionImageAssetWithSharedCode));
     
     // Nested Stack
     new NestedStack1(this, 'NestedStack' ,{});

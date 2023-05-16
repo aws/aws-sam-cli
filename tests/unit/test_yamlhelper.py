@@ -10,6 +10,8 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
+import json
+
 from botocore.compat import OrderedDict
 
 from unittest import TestCase
@@ -17,7 +19,6 @@ from samcli.yamlhelper import yaml_parse, yaml_dump
 
 
 class TestYaml(TestCase):
-
     yaml_with_tags = """
     Resource:
         Key1: !Ref Something
@@ -161,3 +162,24 @@ class TestYaml(TestCase):
         )
         actual = yaml_dump(template)
         self.assertEqual(actual, expected)
+
+    def test_unquoted_template_format_version_to_json(self):
+        input_template = (
+            "AWSTemplateFormatVersion: 2010-09-09\n"
+            "Transform: AWS::Serverless-2016-10-31\n"
+            "Resources:\n"
+            "  HelloWorldFunction:\n"
+            "    Type: AWS::Serverless::Function\n"
+            "    Properties:\n"
+            "      Handler: main.handler\n"
+            "      Runtime: python3.7\n"
+            "      CodeUri: .\n"
+            "      Timeout: 600\n"
+        )
+
+        output = yaml_parse(input_template)
+        self.assertIsInstance(output["AWSTemplateFormatVersion"], str)
+        self.assertEqual(output["AWSTemplateFormatVersion"], "2010-09-09")
+        # Raises a `TypeError` if an unquoted `AWSTemplateFormatVersion` value has been parsed to a
+        # `datetime` object and not a string by `yaml_parse` when using `--use-json` argument.
+        json.dumps(output)

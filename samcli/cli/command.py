@@ -1,12 +1,15 @@
 """
 Base classes that implement the CLI framework
 """
-
-import logging
 import importlib
+import logging
 from collections import OrderedDict
 
 import click
+
+from samcli.cli.formatters import RootCommandHelpTextFormatter
+from samcli.cli.root.command_list import SAM_CLI_COMMANDS
+from samcli.cli.row_modifiers import HighlightNewRowNameModifier, RowDefinition, ShowcaseRowModifier
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +28,8 @@ _SAM_CLI_COMMAND_PACKAGES = [
     "samcli.commands.traces",
     "samcli.commands.sync",
     "samcli.commands.pipeline.pipeline",
+    "samcli.commands.list.list",
+    "samcli.commands.docs",
     # We intentionally do not expose the `bootstrap` command for now. We might open it up later
     # "samcli.commands.bootstrap",
 ]
@@ -50,6 +55,11 @@ class BaseCommand(click.MultiCommand):
     By convention, the name of last module in the package's name is the command's name. ie. A package of "foo.bar.baz"
     will produce a command name "baz".
     """
+
+    class CustomFormatterContext(click.Context):
+        formatter_class = RootCommandHelpTextFormatter
+
+    context_class = CustomFormatterContext
 
     def __init__(self, *args, cmd_packages=None, **kwargs):
         """
@@ -87,6 +97,135 @@ class BaseCommand(click.MultiCommand):
 
         return commands
 
+    def format_options(self, ctx: click.Context, formatter: RootCommandHelpTextFormatter):  # type: ignore
+        # NOTE(sriram-mv): `ignore` is put in place here for mypy even though it is the correct behavior,
+        # as the `formatter_class` can be set in subclass of Command. If ignore is not set,
+        # mypy raises argument needs to be HelpFormatter as super class defines it.
+        # NOTE(sriram-mv): Re-order options so that they come after the commands.
+        self.format_commands(ctx, formatter)
+        opts = [RowDefinition(name="", text="\n")]
+        for param in self.get_params(ctx):
+            row = param.get_help_record(ctx)
+            if row is not None:
+                term, help_text = row
+                opts.append(RowDefinition(name=term, text=help_text))
+
+        if opts:
+            with formatter.indented_section(name="Options", extra_indents=1):
+                formatter.write_rd(opts)
+
+        with formatter.indented_section(name="Examples", extra_indents=1):
+            formatter.write_rd(
+                [
+                    RowDefinition(
+                        name="",
+                        text="\n",
+                    ),
+                    RowDefinition(
+                        name="Get Started:",
+                        text=click.style(f"${ctx.command_path} init"),
+                        extra_row_modifiers=[ShowcaseRowModifier()],
+                    ),
+                ],
+            )
+
+    def format_commands(self, ctx: click.Context, formatter: RootCommandHelpTextFormatter):  # type: ignore
+        # NOTE(sriram-mv): `ignore` is put in place here for mypy even though it is the correct behavior,
+        # as the `formatter_class` can be set in subclass of Command. If ignore is not set,
+        # mypy raises argument needs to be HelpFormatter as super class defines it.
+        with formatter.section("Commands"):
+            with formatter.section("Learn"):
+                formatter.write_rd(
+                    [
+                        RowDefinition(
+                            name="docs",
+                            text=SAM_CLI_COMMANDS.get("docs", ""),
+                            extra_row_modifiers=[HighlightNewRowNameModifier()],
+                        )
+                    ]
+                )
+
+            with formatter.section("Create an App"):
+                formatter.write_rd(
+                    [
+                        RowDefinition(name="init", text=SAM_CLI_COMMANDS.get("init", "")),
+                    ],
+                )
+
+            with formatter.section("Develop your App"):
+                formatter.write_rd(
+                    [
+                        RowDefinition(
+                            name="build",
+                            text=SAM_CLI_COMMANDS.get("build", ""),
+                        ),
+                        RowDefinition(
+                            name="local",
+                            text=SAM_CLI_COMMANDS.get("local", ""),
+                        ),
+                        RowDefinition(
+                            name="validate",
+                            text=SAM_CLI_COMMANDS.get("validate", ""),
+                        ),
+                        RowDefinition(
+                            name="sync",
+                            text=SAM_CLI_COMMANDS.get("sync", ""),
+                            extra_row_modifiers=[HighlightNewRowNameModifier()],
+                        ),
+                    ],
+                )
+
+            with formatter.section("Deploy your App"):
+                formatter.write_rd(
+                    [
+                        RowDefinition(
+                            name="package",
+                            text=SAM_CLI_COMMANDS.get("package", ""),
+                        ),
+                        RowDefinition(
+                            name="deploy",
+                            text=SAM_CLI_COMMANDS.get("deploy", ""),
+                        ),
+                    ]
+                )
+
+            with formatter.section("Monitor your App"):
+                formatter.write_rd(
+                    [
+                        RowDefinition(
+                            name="logs",
+                            text=SAM_CLI_COMMANDS.get("logs", ""),
+                        ),
+                        RowDefinition(
+                            name="traces",
+                            text=SAM_CLI_COMMANDS.get("traces", ""),
+                        ),
+                    ],
+                )
+
+            with formatter.section("And More"):
+                formatter.write_rd(
+                    [
+                        RowDefinition(
+                            name="list",
+                            text=SAM_CLI_COMMANDS.get("list", ""),
+                            extra_row_modifiers=[HighlightNewRowNameModifier()],
+                        ),
+                        RowDefinition(
+                            name="delete",
+                            text=SAM_CLI_COMMANDS.get("delete", ""),
+                        ),
+                        RowDefinition(
+                            name="pipeline",
+                            text=SAM_CLI_COMMANDS.get("pipeline", ""),
+                        ),
+                        RowDefinition(
+                            name="publish",
+                            text=SAM_CLI_COMMANDS.get("publish", ""),
+                        ),
+                    ],
+                )
+
     def list_commands(self, ctx):
         """
         Overrides a method from Click that returns a list of commands available in the CLI.
@@ -110,14 +249,21 @@ class BaseCommand(click.MultiCommand):
 
         pkg_name = self._commands[cmd_name]
 
+        mod = None
         try:
-            mod = importlib.import_module(pkg_name)
+            if ctx.obj:
+                # NOTE(sriram-mv): Only attempt to import if a relevant `aws sam cli` context has been set.
+                # `aws sam cli` context is only set after the `samcli.cli.main:cli` has been executed.
+                mod = importlib.import_module(pkg_name)
         except ImportError:
             logger.exception("Command '%s' is not configured correctly. Unable to import '%s'", cmd_name, pkg_name)
             return None
 
-        if not hasattr(mod, "cli"):
-            logger.error("Command %s is not configured correctly. It must expose an function called 'cli'", cmd_name)
-            return None
+        if mod is not None:
+            if not hasattr(mod, "cli"):
+                logger.error(
+                    "Command %s is not configured correctly. It must expose an function called 'cli'", cmd_name
+                )
+                return None
 
-        return mod.cli
+        return mod.cli if mod else click.Command(name=cmd_name, short_help=SAM_CLI_COMMANDS.get(cmd_name, ""))

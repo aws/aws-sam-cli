@@ -2,11 +2,11 @@
 Methods to expose the event types and generate the event jsons for use in SAM CLI generate-event
 """
 
-import os
-import json
 import base64
+import json
+import os
 import warnings
-from typing import Dict, cast
+from typing import Dict
 from urllib.parse import quote as url_quote
 
 with warnings.catch_warnings():
@@ -180,6 +180,5 @@ class Events:
 
         data = json.dumps(data, indent=2)
 
-        # return the substituted file
-        # According to chevron's code, it returns a str (A string containing the rendered template.)
-        return cast("str", renderer.render(data, values_to_sub))
+        # return the substituted file (A string containing the rendered template.)
+        return renderer.render(data, values_to_sub)

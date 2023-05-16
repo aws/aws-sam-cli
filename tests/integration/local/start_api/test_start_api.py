@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Dict
 
 import requests
+from http.client import HTTPConnection
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from time import time, sleep
 
@@ -13,9 +14,138 @@ import pytest
 from parameterized import parameterized_class
 
 from samcli.commands.local.cli_common.invoke_context import ContainersInitializationMode
-from samcli.local.apigw.local_apigw_service import Route
-from .start_api_integ_base import StartApiIntegBaseClass, WatchWarmContainersIntegBaseClass
+from samcli.local.apigw.route import Route
+from .start_api_integ_base import StartApiIntegBaseClass, WritableStartApiIntegBaseClass
 from ..invoke.layer_utils import LayerUtils
+
+
+@parameterized_class(
+    ("template_path",),
+    [
+        ("/testdata/start_api/template.yaml",),
+        ("/testdata/start_api/nested-templates/template-parent.yaml",),
+        ("/testdata/start_api/cdk/template_cdk.yaml",),
+    ],
+)
+class TestServiceHTTP10(StartApiIntegBaseClass):
+    """
+    Testing general requirements around the Service that powers `sam local start-api`
+    """
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+        self.current_svn_str = HTTPConnection._http_vsn_str
+        HTTPConnection._http_vsn_str = "HTTP/1.0"
+
+    def tearDown(self) -> None:
+        HTTPConnection._http_vsn_str = self.current_svn_str  # type: ignore
+
+    def test_static_directory(self):
+        pass
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_calling_proxy_endpoint_http10(self):
+        response = requests.get(self.url + "/proxypath/this/is/some/path", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+        self.assertEqual(response.raw.version, 11)  # Checks if the response is HTTP/1.1 version
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_get_call_with_path_setup_with_any_implicit_api_http10(self):
+        """
+        Get Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
+        """
+        response = requests.get(self.url + "/anyandall", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+        self.assertEqual(response.raw.version, 11)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_post_call_with_path_setup_with_any_implicit_api_http10(self):
+        """
+        Post Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
+        """
+        response = requests.post(self.url + "/anyandall", json={}, timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+        self.assertEqual(response.raw.version, 11)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_put_call_with_path_setup_with_any_implicit_api_http10(self):
+        """
+        Put Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
+        """
+        response = requests.put(self.url + "/anyandall", json={}, timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+        self.assertEqual(response.raw.version, 11)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_head_call_with_path_setup_with_any_implicit_api_http10(self):
+        """
+        Head Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
+        """
+        response = requests.head(self.url + "/anyandall", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.raw.version, 11)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_delete_call_with_path_setup_with_any_implicit_api_http10(self):
+        """
+        Delete Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
+        """
+        response = requests.delete(self.url + "/anyandall", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+        self.assertEqual(response.raw.version, 11)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_options_call_with_path_setup_with_any_implicit_api_http10(self):
+        """
+        Options Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
+        """
+        response = requests.options(self.url + "/anyandall", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.raw.version, 11)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_patch_call_with_path_setup_with_any_implicit_api_http10(self):
+        """
+        Patch Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
+        """
+        response = requests.patch(self.url + "/anyandall", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+        self.assertEqual(response.raw.version, 11)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_large_input_request_http10(self):
+        # not exact 6 mega, as local start-api sends extra data with the input data
+        around_six_mega = 6 * 1024 * 1024 - 2 * 1024
+        data = "a" * around_six_mega
+        response = requests.post(self.url + "/echoeventbody", data=data, timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        response_data = response.json()
+        self.assertEqual(response_data.get("body"), data)
+        self.assertEqual(response.raw.version, 11)
 
 
 @parameterized_class(
@@ -32,6 +162,7 @@ class TestParallelRequests(StartApiIntegBaseClass):
 
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
+        HTTPConnection._http_vsn_str = "HTTP/1.1"
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -57,6 +188,7 @@ class TestParallelRequests(StartApiIntegBaseClass):
             for result in results:
                 self.assertEqual(result.status_code, 200)
                 self.assertEqual(result.json(), {"message": "HelloWorld! I just slept and waking up."})
+                self.assertEqual(result.raw.version, 11)  # Checks if the response is HTTP/1.1 version
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -86,6 +218,7 @@ class TestParallelRequests(StartApiIntegBaseClass):
             for result in results:
                 self.assertEqual(result.status_code, 200)
                 self.assertEqual(result.json(), {"message": "HelloWorld! I just slept and waking up."})
+                self.assertEqual(result.raw.version, 11)
 
 
 @parameterized_class(
@@ -110,6 +243,7 @@ class TestServiceErrorResponses(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response.json(), {"message": "Missing Authentication Token"})
+        self.assertEqual(response.raw.version, 11)  # Checks if the response is HTTP/1.1 version
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -118,6 +252,7 @@ class TestServiceErrorResponses(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 502)
         self.assertEqual(response.json(), {"message": "Internal server error"})
+        self.assertEqual(response.raw.version, 11)
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -126,11 +261,41 @@ class TestServiceErrorResponses(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 502)
         self.assertEqual(response.json(), {"message": "Internal server error"})
+        self.assertEqual(response.raw.version, 11)
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_request_timeout(self):
         pass
+
+
+class TestServiceFunctionWithInlineCode(StartApiIntegBaseClass):
+    template_path = "/testdata/start_api/template-inlinecode.yaml"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_function_without_inline_code_endpoint(self):
+        response = requests.get(self.url + "/no_inlinecode", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_function_with_inline_code_endpoint(self):
+        response = requests.get(self.url + "/inlinecode", timeout=300)
+
+        self.assertEqual(response.status_code, 501)
+        self.assertEqual(
+            response.json(),
+            {
+                "message": "Inline code is not supported for sam local commands."
+                " Please write your code in a separate file."
+            },
+        )
 
 
 @parameterized_class(
@@ -159,6 +324,7 @@ class TestService(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
+        self.assertEqual(response.raw.version, 11)  # Checks if the response is HTTP/1.1 version
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -170,6 +336,7 @@ class TestService(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
+        self.assertEqual(response.raw.version, 11)
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -181,6 +348,7 @@ class TestService(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
+        self.assertEqual(response.raw.version, 11)
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -192,6 +360,7 @@ class TestService(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
+        self.assertEqual(response.raw.version, 11)
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -202,6 +371,7 @@ class TestService(StartApiIntegBaseClass):
         response = requests.head(self.url + "/anyandall", timeout=300)
 
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.raw.version, 11)
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -213,6 +383,7 @@ class TestService(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
+        self.assertEqual(response.raw.version, 11)
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -223,6 +394,7 @@ class TestService(StartApiIntegBaseClass):
         response = requests.options(self.url + "/anyandall", timeout=300)
 
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.raw.version, 11)
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -234,6 +406,7 @@ class TestService(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
+        self.assertEqual(response.raw.version, 11)
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -246,6 +419,7 @@ class TestService(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         response_data = response.json()
         self.assertEqual(response_data.get("body"), data)
+        self.assertEqual(response.raw.version, 11)
 
 
 @parameterized_class(
@@ -273,6 +447,7 @@ class TestServiceWithHttpApi(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
+        self.assertEqual(response.raw.version, 11)
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -284,6 +459,7 @@ class TestServiceWithHttpApi(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
+        self.assertEqual(response.raw.version, 11)
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -295,6 +471,7 @@ class TestServiceWithHttpApi(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
+        self.assertEqual(response.raw.version, 11)
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -306,6 +483,7 @@ class TestServiceWithHttpApi(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
+        self.assertEqual(response.raw.version, 11)
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -316,6 +494,7 @@ class TestServiceWithHttpApi(StartApiIntegBaseClass):
         response = requests.head(self.url + "/anyandall", timeout=300)
 
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.raw.version, 11)
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -327,6 +506,7 @@ class TestServiceWithHttpApi(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
+        self.assertEqual(response.raw.version, 11)
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -337,6 +517,7 @@ class TestServiceWithHttpApi(StartApiIntegBaseClass):
         response = requests.options(self.url + "/anyandall", timeout=300)
 
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.raw.version, 11)
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -348,6 +529,7 @@ class TestServiceWithHttpApi(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
+        self.assertEqual(response.raw.version, 11)
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -359,6 +541,7 @@ class TestServiceWithHttpApi(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"foo": "bar"})
+        self.assertEqual(response.raw.version, 11)
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -370,6 +553,7 @@ class TestServiceWithHttpApi(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 502)
         self.assertEqual(response.json(), {"message": "Internal server error"})
+        self.assertEqual(response.raw.version, 11)
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -381,6 +565,7 @@ class TestServiceWithHttpApi(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.text, "This is invalid")
+        self.assertEqual(response.raw.version, 11)
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -392,6 +577,7 @@ class TestServiceWithHttpApi(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.text, "2")
+        self.assertEqual(response.raw.version, 11)
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -403,6 +589,7 @@ class TestServiceWithHttpApi(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
+        self.assertEqual(response.raw.version, 11)
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -414,6 +601,7 @@ class TestServiceWithHttpApi(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 502)
         self.assertEqual(response.json(), {"message": "Internal server error"})
+        self.assertEqual(response.raw.version, 11)
 
 
 class TestStartApiWithSwaggerApis(StartApiIntegBaseClass):
@@ -2041,7 +2229,7 @@ class TestImagePackageTypeWithEagerLazyContainersMode(StartApiIntegBaseClass):
         self.assertEqual(response.json(), {"hello": "world"})
 
 
-class TestWatchingZipWarmContainers(WatchWarmContainersIntegBaseClass):
+class TestWatchingZipWarmContainers(WritableStartApiIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
 Resources:
@@ -2049,7 +2237,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
       Events:
@@ -2090,7 +2278,7 @@ def handler(event, context):
         self.assertEqual(response.json(), {"hello": "world2"})
 
 
-class TestWatchingTemplateChangesLambdaFunctionHandlerChanged(WatchWarmContainersIntegBaseClass):
+class TestWatchingTemplateChangesLambdaFunctionHandlerChanged(WritableStartApiIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
 Resources:
@@ -2098,7 +2286,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
       Events:
@@ -2116,7 +2304,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler2
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
       Events:
@@ -2156,7 +2344,7 @@ def handler2(event, context):
         self.assertEqual(response.json(), {"hello": "world2"})
 
 
-class TestWatchingTemplateChangesLambdaFunctionCodeUriChanged(WatchWarmContainersIntegBaseClass):
+class TestWatchingTemplateChangesLambdaFunctionCodeUriChanged(WritableStartApiIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
 Resources:
@@ -2225,10 +2413,10 @@ def handler(event, context):
         self.assertEqual(response.json(), {"hello": "world2"})
 
 
-class TestWatchingImageWarmContainers(WatchWarmContainersIntegBaseClass):
+class TestWatchingImageWarmContainers(WritableStartApiIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
-Parameteres:
+Parameters:
   Tag:
     Type: String
   ImageUri:
@@ -2289,10 +2477,10 @@ COPY main.py ./"""
         self.assertEqual(response.json(), {"hello": "world2"})
 
 
-class TestWatchingTemplateChangesImageDockerFileChangedLocation(WatchWarmContainersIntegBaseClass):
+class TestWatchingTemplateChangesImageDockerFileChangedLocation(WritableStartApiIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
-Parameteres:
+Parameters:
   Tag:
     Type: String
   ImageUri:
@@ -2320,7 +2508,7 @@ Resources:
         """
     template_content_2 = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
-Parameteres:
+Parameters:
   Tag:
     Type: String
   ImageUri:
@@ -2383,7 +2571,7 @@ COPY main.py ./"""
         self.assertEqual(response.json(), {"hello": "world2"})
 
 
-class TestWatchingZipLazyContainers(WatchWarmContainersIntegBaseClass):
+class TestWatchingZipLazyContainers(WritableStartApiIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
 Resources:
@@ -2391,7 +2579,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
       Events:
@@ -2432,10 +2620,10 @@ def handler(event, context):
         self.assertEqual(response.json(), {"hello": "world2"})
 
 
-class TestWatchingImageLazyContainers(WatchWarmContainersIntegBaseClass):
+class TestWatchingImageLazyContainers(WritableStartApiIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
-Parameteres:
+Parameters:
   Tag:
     Type: String
   ImageUri:
@@ -2496,7 +2684,7 @@ COPY main.py ./"""
         self.assertEqual(response.json(), {"hello": "world2"})
 
 
-class TestWatchingTemplateChangesLambdaFunctionHandlerChangedLazyContainer(WatchWarmContainersIntegBaseClass):
+class TestWatchingTemplateChangesLambdaFunctionHandlerChangedLazyContainer(WritableStartApiIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
 Resources:
@@ -2504,7 +2692,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
       Events:
@@ -2522,7 +2710,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler2
-      Runtime: python3.6
+      Runtime: python3.9
       CodeUri: .
       Timeout: 600
       Events:
@@ -2562,7 +2750,7 @@ def handler2(event, context):
         self.assertEqual(response.json(), {"hello": "world2"})
 
 
-class TestWatchingTemplateChangesLambdaFunctionCodeUriChangedLazyContainers(WatchWarmContainersIntegBaseClass):
+class TestWatchingTemplateChangesLambdaFunctionCodeUriChangedLazyContainers(WritableStartApiIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
 Resources:
@@ -2631,10 +2819,10 @@ def handler(event, context):
         self.assertEqual(response.json(), {"hello": "world2"})
 
 
-class TestWatchingTemplateChangesImageDockerFileChangedLocationLazyContainers(WatchWarmContainersIntegBaseClass):
+class TestWatchingTemplateChangesImageDockerFileChangedLocationLazyContainers(WritableStartApiIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
-Parameteres:
+Parameters:
   Tag:
     Type: String
   ImageUri:
@@ -2662,7 +2850,7 @@ Resources:
         """
     template_content_2 = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
-Parameteres:
+Parameters:
   Tag:
     Type: String
   ImageUri:
@@ -2793,8 +2981,8 @@ class TestServiceWithCustomInvokeImages(StartApiIntegBaseClass):
     """
 
     invoke_image = [
-        "amazon/aws-sam-cli-emulation-image-python3.6",
-        "HelloWorldFunction=public.ecr.aws/sam/emulation-python3.6",
+        "amazon/aws-sam-cli-emulation-image-python3.9",
+        "HelloWorldFunction=public.ecr.aws/sam/emulation-python3.9",
     ]
 
     def setUp(self):

@@ -50,8 +50,9 @@ def clean_redundant_folders(base_dir: str, uuids: Set[str]) -> None:
     if not base_dir_path.exists():
         return
 
-    for full_dir_path in pathlib.Path(base_dir).iterdir():
-        if full_dir_path.name not in uuids:
+    for full_dir_path in base_dir_path.iterdir():
+        if full_dir_path.name not in uuids and full_dir_path.is_dir():
+            LOG.debug("Cleaning up redundant folder %s, which is not related to any function or layer", full_dir_path)
             shutil.rmtree(pathlib.Path(base_dir, full_dir_path.name))
 
 
@@ -126,7 +127,7 @@ class DefaultBuildStrategy(BuildStrategy):
         build_graph: BuildGraph,
         build_dir: str,
         build_function: Callable[[str, str, str, str, str, Optional[str], str, dict, dict, Optional[str], bool], str],
-        build_layer: Callable[[str, str, str, List[str], str, str, dict, Optional[str], bool], str],
+        build_layer: Callable[[str, str, str, List[str], str, str, dict, Optional[str], bool, Optional[Dict]], str],
         cached: bool = False,
     ) -> None:
         super().__init__(build_graph)
@@ -227,6 +228,7 @@ class DefaultBuildStrategy(BuildStrategy):
                 layer_definition.env_vars,
                 layer_definition.dependencies_dir if self._cached else None,
                 layer_definition.download_dependencies,
+                layer.metadata,
             )
         }
 

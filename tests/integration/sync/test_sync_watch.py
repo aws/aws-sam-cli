@@ -1,18 +1,19 @@
 import os
 import shutil
+import tempfile
 import time
 import uuid
 
 import logging
 import json
-import tempfile
 from pathlib import Path
+from typing import Dict
 from unittest import skipIf
 
+import pytest
 import boto3
 from botocore.config import Config
 from parameterized import parameterized_class
-from samcli.commands._utils.experimental import ExperimentalFlag, set_experimental
 
 from samcli.lib.bootstrap.bootstrap import SAM_CLI_STACK_NAME
 from samcli.lib.utils.resources import (
@@ -21,7 +22,6 @@ from samcli.lib.utils.resources import (
     AWS_STEPFUNCTIONS_STATEMACHINE,
 )
 from tests.integration.sync.sync_integ_base import SyncIntegBase
-from tests.integration.package.package_integ_base import PackageIntegBase
 from tests.integration.sync.test_sync_code import API_SLEEP, SFN_SLEEP
 
 from tests.testing_utils import (
@@ -31,6 +31,7 @@ from tests.testing_utils import (
     kill_process,
     read_until_string,
     start_persistent_process,
+    run_command_with_input,
 )
 
 # Deploy tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
@@ -52,32 +53,17 @@ LOG.addHandler(handler)
 
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
 class TestSyncWatchBase(SyncIntegBase):
-    @classmethod
-    def setUpClass(cls):
-        PackageIntegBase.setUpClass()
-        cls.test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "sync")
+    template_before = ""
+    parameter_overrides: Dict[str, str] = {}
 
     def setUp(self):
-        self.cfn_client = boto3.client("cloudformation")
-        self.ecr_client = boto3.client("ecr")
-        self.lambda_client = boto3.client("lambda")
-        self.api_client = boto3.client("apigateway")
-        self.sfn_client = boto3.client("stepfunctions")
-        self.stacks = []
         self.s3_prefix = uuid.uuid4().hex
-        self.test_dir = Path(tempfile.mkdtemp())
-        self.template_before = "" if not self.template_before else self.template_before
         self.stack_name = self._method_to_stack_name(self.id())
-        # Remove temp dir so that shutil.copytree will not throw an error
-        # Needed for python 3.6 and 3.7 as these versions don't have dirs_exist_ok
-        shutil.rmtree(self.test_dir)
-        shutil.copytree(self.test_data_path, self.test_dir)
         super().setUp()
         self._setup_verify_infra()
 
     def tearDown(self):
         kill_process(self.watch_process)
-        shutil.rmtree(self.test_dir)
         for stack in self.stacks:
             # because of the termination protection, do not delete aws-sam-cli-managed-default stack
             stack_name = stack["name"]
@@ -105,7 +91,7 @@ class TestSyncWatchBase(SyncIntegBase):
         self.assertEqual(self._get_sfn_response(state_machine), '"World 1"')
 
     def _setup_verify_infra(self):
-        template_path = self.test_dir.joinpath(self.template_before)
+        template_path = self.test_data_path.joinpath(self.template_before)
         self.stacks.append({"name": self.stack_name})
 
         # Start watch
@@ -115,13 +101,13 @@ class TestSyncWatchBase(SyncIntegBase):
             watch=True,
             dependency_layer=self.dependency_layer,
             stack_name=self.stack_name,
-            parameter_overrides="Parameter=Clarity",
+            parameter_overrides=self.parameter_overrides,
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
         )
-        self.watch_process = start_persistent_process(sync_command_list, cwd=self.test_dir)
+        self.watch_process = start_persistent_process(sync_command_list, cwd=self.test_data_path)
         read_until_string(self.watch_process, "Enter Y to proceed with the command, or enter N to cancel:\n")
 
         self.watch_process.stdin.write("y\n")
@@ -149,18 +135,8 @@ class TestSyncWatchBase(SyncIntegBase):
 
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
 class TestSyncWatchEsbuildBase(TestSyncWatchBase):
-    @classmethod
-    def setUpClass(cls):
-        PackageIntegBase.setUpClass()
-        cls.test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "sync")
-
-    def setUp(self):
-        super().setUp()
-
     def _setup_verify_infra(self):
-        set_experimental(ExperimentalFlag.Esbuild)
-
-        template_path = self.test_dir.joinpath(self.template_before)
+        template_path = self.test_data_path.joinpath(self.template_before)
         self.stacks.append({"name": self.stack_name})
 
         # Start watch
@@ -170,13 +146,13 @@ class TestSyncWatchEsbuildBase(TestSyncWatchBase):
             watch=True,
             dependency_layer=self.dependency_layer,
             stack_name=self.stack_name,
-            parameter_overrides="Parameter=Clarity",
+            parameter_overrides=self.parameter_overrides,
             image_repository=self.ecr_repo_name,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
         )
-        self.watch_process = start_persistent_process(sync_command_list, cwd=self.test_dir)
+        self.watch_process = start_persistent_process(sync_command_list, cwd=self.test_data_path)
 
         read_until_string(self.watch_process, "Enter Y to proceed with the command, or enter N to cancel:\n")
         self.watch_process.stdin.write("y\n")
@@ -193,17 +169,17 @@ class TestSyncWatchEsbuildBase(TestSyncWatchBase):
 @parameterized_class(
     [{"runtime": "python", "dependency_layer": True}, {"runtime": "python", "dependency_layer": False}]
 )
-class TestSyncCodeInfra(TestSyncWatchBase):
+class TestSyncWatchInfra(TestSyncWatchBase):
     @classmethod
     def setUpClass(cls):
         cls.template_before = f"infra/template-{cls.runtime}-before.yaml"
-        super(TestSyncCodeInfra, cls).setUpClass()
+        cls.parameter_overrides = {"HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]}
+        super(TestSyncWatchInfra, cls).setUpClass()
 
     def test_sync_watch_infra(self):
-
         self.update_file(
-            self.test_dir.joinpath(f"infra/template-{self.runtime}-after.yaml"),
-            self.test_dir.joinpath(f"infra/template-{self.runtime}-before.yaml"),
+            self.test_data_path.joinpath(f"infra/template-{self.runtime}-after.yaml"),
+            self.test_data_path.joinpath(f"infra/template-{self.runtime}-before.yaml"),
         )
 
         read_until_string(self.watch_process, "\x1b[32mInfra sync completed.\x1b[0m\n", timeout=600)
@@ -217,6 +193,11 @@ class TestSyncCodeInfra(TestSyncWatchBase):
 class TestSyncWatchCode(TestSyncWatchBase):
     template_before = str(Path("code", "before", "template-python.yaml"))
 
+    @classmethod
+    def setUpClass(cls):
+        cls.parameter_overrides = {"HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]}
+        super().setUpClass()
+
     def test_sync_watch_code(self):
         self.stack_resources = self._get_stacks(self.stack_name)
 
@@ -225,8 +206,8 @@ class TestSyncWatchCode(TestSyncWatchBase):
             layer_contents = self.get_dependency_layer_contents_from_arn(self.stack_resources, "python", 1)
             self.assertNotIn("requests", layer_contents)
             self.update_file(
-                self.test_dir.joinpath("code", "after", "function", "requirements.txt"),
-                self.test_dir.joinpath("code", "before", "function", "requirements.txt"),
+                self.test_data_path.joinpath("code", "after", "function", "requirements.txt"),
+                self.test_data_path.joinpath("code", "before", "function", "requirements.txt"),
             )
             read_until_string(
                 self.watch_process,
@@ -238,8 +219,8 @@ class TestSyncWatchCode(TestSyncWatchBase):
 
         # Test Lambda Function
         self.update_file(
-            self.test_dir.joinpath("code", "after", "function", "app.py"),
-            self.test_dir.joinpath("code", "before", "function", "app.py"),
+            self.test_data_path.joinpath("code", "after", "function", "app.py"),
+            self.test_data_path.joinpath("code", "before", "function", "app.py"),
         )
         read_until_string(
             self.watch_process, "\x1b[32mFinished syncing Lambda Function HelloWorldFunction.\x1b[0m\n", timeout=30
@@ -252,8 +233,8 @@ class TestSyncWatchCode(TestSyncWatchBase):
 
         # Test Lambda Layer
         self.update_file(
-            self.test_dir.joinpath("code", "after", "layer", "layer_method.py"),
-            self.test_dir.joinpath("code", "before", "layer", "layer_method.py"),
+            self.test_data_path.joinpath("code", "after", "layer", "layer_method.py"),
+            self.test_data_path.joinpath("code", "before", "layer", "layer_method.py"),
         )
         read_until_string(
             self.watch_process,
@@ -268,8 +249,8 @@ class TestSyncWatchCode(TestSyncWatchBase):
 
         # Test APIGW
         self.update_file(
-            self.test_dir.joinpath("code", "after", "apigateway", "definition.json"),
-            self.test_dir.joinpath("code", "before", "apigateway", "definition.json"),
+            self.test_data_path.joinpath("code", "after", "apigateway", "definition.json"),
+            self.test_data_path.joinpath("code", "before", "apigateway", "definition.json"),
         )
         read_until_string(self.watch_process, "\x1b[32mFinished syncing RestApi HelloWorldApi.\x1b[0m\n", timeout=20)
         time.sleep(API_SLEEP)
@@ -278,8 +259,8 @@ class TestSyncWatchCode(TestSyncWatchBase):
 
         # Test SFN
         self.update_file(
-            self.test_dir.joinpath("code", "after", "statemachine", "function.asl.json"),
-            self.test_dir.joinpath("code", "before", "statemachine", "function.asl.json"),
+            self.test_data_path.joinpath("code", "after", "statemachine", "function.asl.json"),
+            self.test_data_path.joinpath("code", "before", "statemachine", "function.asl.json"),
         )
         read_until_string(
             self.watch_process, "\x1b[32mFinished syncing StepFunctions HelloStepFunction.\x1b[0m\n", timeout=20
@@ -293,10 +274,15 @@ class TestSyncWatchCode(TestSyncWatchBase):
 class TestSyncInfraNestedStacks(TestSyncWatchBase):
     template_before = str(Path("infra", "parent-stack.yaml"))
 
+    @classmethod
+    def setUpClass(cls):
+        cls.parameter_overrides = {"HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]}
+        super().setUpClass()
+
     def test_sync_watch_infra_nested_stack(self):
         self.update_file(
-            self.test_dir.joinpath("infra", "template-python-after.yaml"),
-            self.test_dir.joinpath("infra", "template-python-before.yaml"),
+            self.test_data_path.joinpath("infra", "template-python-after.yaml"),
+            self.test_data_path.joinpath("infra", "template-python-before.yaml"),
         )
 
         read_until_string(self.watch_process, "\x1b[32mInfra sync completed.\x1b[0m\n", timeout=600)
@@ -310,6 +296,11 @@ class TestSyncInfraNestedStacks(TestSyncWatchBase):
 class TestSyncCodeWatchNestedStacks(TestSyncWatchBase):
     template_before = str(Path("code", "before", "parent-stack.yaml"))
 
+    @classmethod
+    def setUpClass(cls):
+        cls.parameter_overrides = {"HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]}
+        super().setUpClass()
+
     def test_sync_watch_code_nested_stack(self):
         self.stack_resources = self._get_stacks(self.stack_name)
 
@@ -318,8 +309,8 @@ class TestSyncCodeWatchNestedStacks(TestSyncWatchBase):
             layer_contents = self.get_dependency_layer_contents_from_arn(self.stack_resources, "python", 1)
             self.assertNotIn("requests", layer_contents)
             self.update_file(
-                self.test_dir.joinpath("code", "after", "function", "requirements.txt"),
-                self.test_dir.joinpath("code", "before", "function", "requirements.txt"),
+                self.test_data_path.joinpath("code", "after", "function", "requirements.txt"),
+                self.test_data_path.joinpath("code", "before", "function", "requirements.txt"),
             )
             read_until_string(
                 self.watch_process,
@@ -332,8 +323,8 @@ class TestSyncCodeWatchNestedStacks(TestSyncWatchBase):
 
         # Test Lambda Function
         self.update_file(
-            self.test_dir.joinpath("code", "after", "function", "app.py"),
-            self.test_dir.joinpath("code", "before", "function", "app.py"),
+            self.test_data_path.joinpath("code", "after", "function", "app.py"),
+            self.test_data_path.joinpath("code", "before", "function", "app.py"),
         )
         read_until_string(
             self.watch_process,
@@ -348,8 +339,8 @@ class TestSyncCodeWatchNestedStacks(TestSyncWatchBase):
 
         # Test Lambda Layer
         self.update_file(
-            self.test_dir.joinpath("code", "after", "layer", "layer_method.py"),
-            self.test_dir.joinpath("code", "before", "layer", "layer_method.py"),
+            self.test_data_path.joinpath("code", "after", "layer", "layer_method.py"),
+            self.test_data_path.joinpath("code", "before", "layer", "layer_method.py"),
         )
         read_until_string(
             self.watch_process,
@@ -364,8 +355,8 @@ class TestSyncCodeWatchNestedStacks(TestSyncWatchBase):
 
         # Test APIGW
         self.update_file(
-            self.test_dir.joinpath("code", "after", "apigateway", "definition.json"),
-            self.test_dir.joinpath("code", "before", "apigateway", "definition.json"),
+            self.test_data_path.joinpath("code", "after", "apigateway", "definition.json"),
+            self.test_data_path.joinpath("code", "before", "apigateway", "definition.json"),
         )
         read_until_string(
             self.watch_process,
@@ -378,8 +369,8 @@ class TestSyncCodeWatchNestedStacks(TestSyncWatchBase):
 
         # Test SFN
         self.update_file(
-            self.test_dir.joinpath("code", "after", "statemachine", "function.asl.json"),
-            self.test_dir.joinpath("code", "before", "statemachine", "function.asl.json"),
+            self.test_data_path.joinpath("code", "after", "statemachine", "function.asl.json"),
+            self.test_data_path.joinpath("code", "before", "statemachine", "function.asl.json"),
         )
         read_until_string(
             self.watch_process,
@@ -391,30 +382,12 @@ class TestSyncCodeWatchNestedStacks(TestSyncWatchBase):
         self.assertEqual(self._get_sfn_response(state_machine), '"World 2"')
 
 
-@parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
 class TestSyncWatchCodeEsbuild(TestSyncWatchEsbuildBase):
+    dependency_layer = False
     template_before = str(Path("code", "before", "template-esbuild.yaml"))
 
     def test_sync_watch_code(self):
         self.stack_resources = self._get_stacks(self.stack_name)
-
-        if self.dependency_layer:
-            dep_dir = str(Path("nodejs", "node_modules"))
-
-            # Test update manifest
-            layer_contents = self.get_dependency_layer_contents_from_arn(self.stack_resources, dep_dir, 1)
-            self.assertNotIn("@faker-js", layer_contents)
-            self.update_file(
-                self.test_dir.joinpath("code", "after", "esbuild_function", "package.json"),
-                self.test_dir.joinpath("code", "before", "esbuild_function", "package.json"),
-            )
-            read_until_string(
-                self.watch_process,
-                "\x1b[32mFinished syncing Function Layer Reference Sync HelloWorldFunction.\x1b[0m\n",
-                timeout=45,
-            )
-            layer_contents = self.get_dependency_layer_contents_from_arn(self.stack_resources, dep_dir, 2)
-            self.assertIn("@faker-js", layer_contents)
 
         # Test Lambda Function
         lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
@@ -424,8 +397,8 @@ class TestSyncWatchCodeEsbuild(TestSyncWatchEsbuildBase):
             self.assertEqual(lambda_response.get("message"), "hello world")
 
         self.update_file(
-            self.test_dir.joinpath("code", "after", "esbuild_function", "app.ts"),
-            self.test_dir.joinpath("code", "before", "esbuild_function", "app.ts"),
+            self.test_data_path.joinpath("code", "after", "esbuild_function", "app.ts"),
+            self.test_data_path.joinpath("code", "before", "esbuild_function", "app.ts"),
         )
         read_until_string(
             self.watch_process, "\x1b[32mFinished syncing Lambda Function HelloWorldFunction.\x1b[0m\n", timeout=30
@@ -435,3 +408,371 @@ class TestSyncWatchCodeEsbuild(TestSyncWatchEsbuildBase):
             lambda_response = json.loads(self._get_lambda_response(lambda_function))
             self.assertIn("extra_message", lambda_response)
             self.assertEqual(lambda_response.get("message"), "Hello world!")
+
+
+class TestSyncWatchUseContainer(TestSyncWatchBase):
+    use_container = True
+    dependency_layer = False
+
+    def _verify_infra_changes(self, resources):
+        # Lambda
+        lambda_functions = resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            lambda_response = json.loads(self._get_lambda_response(lambda_function))
+            self.assertIn("extra_message", lambda_response)
+            self.assertEqual(lambda_response.get("message"), "9")
+
+
+class TestSyncWatchInfraUseContainer(TestSyncWatchUseContainer):
+    template_before = f"infra/template-python-before.yaml"
+
+    @classmethod
+    def setUpClass(cls):
+        cls.parameter_overrides = {"HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]}
+        super().setUpClass()
+
+    def test_sync_watch_infra(self):
+        self.update_file(
+            self.test_data_path.joinpath(f"infra/template-python-after.yaml"),
+            self.test_data_path.joinpath(f"infra/template-python-before.yaml"),
+        )
+
+        read_until_string(self.watch_process, "\x1b[32mInfra sync completed.\x1b[0m\n", timeout=600)
+
+        # Updated Infra Validation
+        self.stack_resources = self._get_stacks(self.stack_name)
+        self._verify_infra_changes(self.stack_resources)
+
+
+class TestSyncWatchCodeUseContainer(TestSyncWatchUseContainer):
+    template_before = str(Path("code", "before", "template-python.yaml"))
+
+    @classmethod
+    def setUpClass(cls):
+        cls.parameter_overrides = {"HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]}
+        super().setUpClass()
+
+    def test_sync_watch_code(self):
+        self.stack_resources = self._get_stacks(self.stack_name)
+
+        # Test Lambda Function
+        self.update_file(
+            self.test_data_path.joinpath("code", "after", "function", "requirements.txt"),
+            self.test_data_path.joinpath("code", "before", "function", "requirements.txt"),
+        )
+        read_until_string(
+            self.watch_process, "\x1b[32mFinished syncing Lambda Function HelloWorldFunction.\x1b[0m\n", timeout=45
+        )
+
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            lambda_response = json.loads(self._get_lambda_response(lambda_function))
+            self.assertIn("extra_message", lambda_response)
+            self.assertEqual(lambda_response.get("message"), "7")
+
+
+@parameterized_class(
+    [{"runtime": "python", "dependency_layer": True}, {"runtime": "python", "dependency_layer": False}]
+)
+class TestSyncWatchCodeOnly(TestSyncWatchBase):
+    template_before = str(Path("code", "before", "template-python-code-only.yaml"))
+
+    @classmethod
+    def setUpClass(cls):
+        cls.parameter_overrides = {"HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]}
+        super().setUpClass()
+
+    def run_initial_infra_validation(self) -> None:
+        """Runs initial infra validation after deployment is completed"""
+        self.stack_resources = self._get_stacks(self.stack_name)
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            lambda_response = json.loads(self._get_lambda_response(lambda_function))
+            self.assertIn("extra_message", lambda_response)
+            self.assertEqual(lambda_response.get("message"), "7")
+
+    def test_sync_watch_code(self):
+        # first kill previously started sync process
+        kill_process(self.watch_process)
+        # start new one with code only
+        template_path = self.test_data_path.joinpath(self.template_before)
+        sync_command_list = self.get_sync_command_list(
+            template_file=str(template_path),
+            code=True,
+            watch=True,
+            dependency_layer=self.dependency_layer,
+            stack_name=self.stack_name,
+            parameter_overrides=self.parameter_overrides,
+            image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+        )
+        self.watch_process = start_persistent_process(sync_command_list, cwd=self.test_data_path)
+        read_until_string(self.watch_process, "\x1b[32mSync watch started.\x1b[0m\n", timeout=30)
+
+        self.stack_resources = self._get_stacks(self.stack_name)
+
+        if self.dependency_layer:
+            # Test update manifest
+            layer_contents = self.get_dependency_layer_contents_from_arn(self.stack_resources, "python", 1)
+            self.assertNotIn("requests", layer_contents)
+            self.update_file(
+                self.test_data_path.joinpath("code", "after", "function", "requirements.txt"),
+                self.test_data_path.joinpath("code", "before", "function", "requirements.txt"),
+            )
+            read_until_string(
+                self.watch_process,
+                "\x1b[32mFinished syncing Function Layer Reference Sync HelloWorldFunction.\x1b[0m\n",
+                timeout=45,
+            )
+            layer_contents = self.get_dependency_layer_contents_from_arn(self.stack_resources, "python", 2)
+            self.assertIn("requests", layer_contents)
+
+        # Test Lambda Function
+        self.update_file(
+            self.test_data_path.joinpath("code", "after", "function", "app.py"),
+            self.test_data_path.joinpath("code", "before", "function", "app.py"),
+        )
+        read_until_string(
+            self.watch_process, "\x1b[32mFinished syncing Lambda Function HelloWorldFunction.\x1b[0m\n", timeout=30
+        )
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            lambda_response = json.loads(self._get_lambda_response(lambda_function))
+            self.assertIn("extra_message", lambda_response)
+            self.assertEqual(lambda_response.get("message"), "8")
+
+        # Test Lambda Layer
+        self.update_file(
+            self.test_data_path.joinpath("code", "after", "layer", "layer_method.py"),
+            self.test_data_path.joinpath("code", "before", "layer", "layer_method.py"),
+        )
+        read_until_string(
+            self.watch_process,
+            "\x1b[32mFinished syncing Function Layer Reference Sync HelloWorldFunction.\x1b[0m\n",
+            timeout=30,
+        )
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            lambda_response = json.loads(self._get_lambda_response(lambda_function))
+            self.assertIn("extra_message", lambda_response)
+            self.assertEqual(lambda_response.get("message"), "9")
+
+        # updating infra should not trigger an infra sync
+        self.update_file(
+            self.test_data_path.joinpath(f"infra/template-{self.runtime}-after.yaml"),
+            self.test_data_path.joinpath(f"code/before/template-{self.runtime}-code-only.yaml"),
+        )
+
+        read_until_string(
+            self.watch_process,
+            "\x1b[33mYou have enabled the --code flag, which limits sam sync updates to code changes only. To do a "
+            "complete infrastructure and code sync, remove the --code flag.\x1b[0m\n",
+            timeout=30,
+        )
+
+
+@skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
+@parameterized_class(
+    [{"runtime": "python", "dependency_layer": True}, {"runtime": "python", "dependency_layer": False}]
+)
+class TestSyncWatchAutoSkipInfra(SyncIntegBase):
+    @classmethod
+    def setUpClass(cls):
+        cls.parameter_overrides = {"HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]}
+        super().setUpClass()
+
+    def setUp(self):
+        self.runtime = "python"
+        self.dependency_layer = True
+        super().setUp()
+        self.test_dir = Path(tempfile.mkdtemp())
+        shutil.rmtree(self.test_dir)
+        shutil.copytree(self.test_data_path, self.test_dir)
+
+    def tearDown(self):
+        kill_process(self.watch_process)
+        shutil.rmtree(self.test_dir)
+        super().tearDown()
+
+    @pytest.mark.flaky(reruns=3)
+    def test_sync_watch_auto_skip_infra(self):
+        template_before = f"code/before/template-{self.runtime}.yaml"
+        template_path = str(self.test_dir.joinpath(template_before))
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+
+        # Run infra sync
+        sync_command_list = self.get_sync_command_list(
+            template_file=str(template_path),
+            code=False,
+            watch=False,
+            dependency_layer=self.dependency_layer,
+            stack_name=stack_name,
+            parameter_overrides=self.parameter_overrides,
+            image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+            use_container=False,
+        )
+
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_dir)
+        self.assertEqual(sync_process_execute.process.returncode, 0)
+        self.assertIn("Stack creation succeeded. Sync infra completed.", str(sync_process_execute.stderr))
+
+        # Start watch
+        sync_command_list = self.get_sync_command_list(
+            template_file=template_path,
+            code=False,
+            watch=True,
+            dependency_layer=self.dependency_layer,
+            stack_name=stack_name,
+            parameter_overrides=self.parameter_overrides,
+            image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+        )
+        self.watch_process = start_persistent_process(sync_command_list, cwd=self.test_dir)
+
+        read_until_string(
+            self.watch_process,
+            "Template haven't been changed since last deployment, skipping infra sync...\n",
+            timeout=100,
+        )
+
+        kill_process(self.watch_process)
+
+        # Test Lambda Function
+        self.update_file(
+            self.test_dir.joinpath("code", "after", "function", "app.py"),
+            self.test_dir.joinpath("code", "before", "function", "app.py"),
+        )
+
+        # Start watch
+        sync_command_list = self.get_sync_command_list(
+            template_file=template_path,
+            code=False,
+            watch=True,
+            dependency_layer=self.dependency_layer,
+            stack_name=stack_name,
+            parameter_overrides=self.parameter_overrides,
+            image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+        )
+        self.watch_process = start_persistent_process(sync_command_list, cwd=self.test_dir)
+
+        read_until_string(
+            self.watch_process, "\x1b[32mFinished syncing Lambda Function HelloWorldFunction.\x1b[0m\n", timeout=100
+        )
+
+        kill_process(self.watch_process)
+
+        self.stack_resources = self._get_stacks(stack_name)
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            lambda_response = json.loads(self._get_lambda_response(lambda_function))
+            self.assertIn("extra_message", lambda_response)
+            self.assertEqual(lambda_response.get("message"), "8")
+
+        # Test Lambda Layer
+        self.update_file(
+            self.test_dir.joinpath("code", "after", "layer", "layer_method.py"),
+            self.test_dir.joinpath("code", "before", "layer", "layer_method.py"),
+        )
+
+        # Start watch
+        sync_command_list = self.get_sync_command_list(
+            template_file=template_path,
+            code=False,
+            watch=True,
+            dependency_layer=self.dependency_layer,
+            stack_name=stack_name,
+            parameter_overrides=self.parameter_overrides,
+            image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+        )
+        self.watch_process = start_persistent_process(sync_command_list, cwd=self.test_dir)
+
+        read_until_string(
+            self.watch_process,
+            "\x1b[32mFinished syncing Function Layer Reference Sync HelloWorldFunction.\x1b[0m\n",
+            timeout=100,
+        )
+
+        kill_process(self.watch_process)
+
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            lambda_response = json.loads(self._get_lambda_response(lambda_function))
+            self.assertIn("extra_message", lambda_response)
+            self.assertEqual(lambda_response.get("message"), "9")
+
+        # Test APIGW
+        self.update_file(
+            self.test_dir.joinpath("code", "after", "apigateway", "definition.json"),
+            self.test_dir.joinpath("code", "before", "apigateway", "definition.json"),
+        )
+
+        # Start watch
+        sync_command_list = self.get_sync_command_list(
+            template_file=template_path,
+            code=False,
+            watch=True,
+            dependency_layer=self.dependency_layer,
+            stack_name=stack_name,
+            parameter_overrides=self.parameter_overrides,
+            image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+        )
+        self.watch_process = start_persistent_process(sync_command_list, cwd=self.test_dir)
+
+        read_until_string(
+            self.watch_process,
+            "\x1b[32mFinished syncing RestApi HelloWorldApi.\x1b[0m\n",
+            timeout=100,
+        )
+        time.sleep(API_SLEEP)
+        kill_process(self.watch_process)
+
+        rest_api = self.stack_resources.get(AWS_APIGATEWAY_RESTAPI)[0]
+        self.assertEqual(self._get_api_message(rest_api), '{"message": "hello 2"}')
+
+        # Test SFN
+        self.update_file(
+            self.test_dir.joinpath("code", "after", "statemachine", "function.asl.json"),
+            self.test_dir.joinpath("code", "before", "statemachine", "function.asl.json"),
+        )
+
+        # Start watch
+        sync_command_list = self.get_sync_command_list(
+            template_file=template_path,
+            code=False,
+            watch=True,
+            dependency_layer=self.dependency_layer,
+            stack_name=stack_name,
+            parameter_overrides=self.parameter_overrides,
+            image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+        )
+        self.watch_process = start_persistent_process(sync_command_list, cwd=self.test_dir)
+
+        read_until_string(
+            self.watch_process,
+            "\x1b[32mFinished syncing StepFunctions HelloStepFunction.\x1b[0m\n",
+            timeout=100,
+        )
+        time.sleep(SFN_SLEEP)
+
+        state_machine = self.stack_resources.get(AWS_STEPFUNCTIONS_STATEMACHINE)[0]
+        self.assertEqual(self._get_sfn_response(state_machine), '"World 2"')

@@ -1,5 +1,6 @@
 import os
 import tempfile
+import pytest
 from pathlib import Path
 from unittest import skipIf
 
@@ -14,12 +15,13 @@ SKIP_SCHEMA_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_
 
 
 @skipIf(SKIP_SCHEMA_TESTS, "Skip schema test")
+@pytest.mark.xdist_group(name="sam_init")
 class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
     def test_init_interactive_with_event_bridge_app_aws_registry(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 7: Infrastructure event management - Use case
-        # 2: Java Runtime (java11)
+        # 8: Infrastructure event management - Use case
+        # 4: Java Runtime (java11)
         # 2: Maven
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
@@ -31,10 +33,11 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
 
         user_input = """
 1
-7
+8
+4
 2
 2
-2
+N
 N
 eb-app-maven
 Y
@@ -58,8 +61,8 @@ Y
         # setup schema data
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 7: Infrastructure event management - Use case
-        # 2: Java Runtime
+        # 8: Infrastructure event management - Use case
+        # 4: Java Runtime
         # 2: Maven
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
@@ -70,10 +73,11 @@ Y
 
         user_input = """
 1
-7
+8
+4
 2
 2
-2
+N
 N
 eb-app-maven
 Y
@@ -107,8 +111,8 @@ Y
     def test_init_interactive_with_event_bridge_app_pagination(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 7: Infrastructure event management - Use case
-        # 2: Java Runtime
+        # 8: Infrastructure event management - Use case
+        # 4: Java Runtime
         # 2: Maven
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
@@ -121,10 +125,11 @@ Y
 
         user_input = """
 1
-7
+8
+4
 2
 2
-2
+N
 N
 eb-app-maven
 Y
@@ -149,8 +154,8 @@ P
     def test_init_interactive_with_event_bridge_app_customer_registry(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 7: Infrastructure event management - Use case
-        # 2: Java Runtime
+        # 8: Infrastructure event management - Use case
+        # 4: Java Runtime
         # 2: Maven
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
@@ -161,10 +166,11 @@ P
 
         user_input = """
 1
-7
+8
+4
 2
 2
-2
+N
 N
 eb-app-maven
 Y
@@ -198,8 +204,8 @@ Y
     def test_init_interactive_with_event_bridge_app_aws_schemas_python(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 7: Infrastructure event management - Use case
-        # 6: Python 3.8
+        # 8: Infrastructure event management - Use case
+        # 7: Python 3.9
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
         # eb-app-python38: response to name
@@ -209,9 +215,10 @@ Y
 
         user_input = """
 1
+8
 7
-6
 2
+N
 N
 eb-app-python38
 Y
@@ -232,7 +239,7 @@ Y
     def test_init_interactive_with_event_bridge_app_aws_schemas_go(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 7: Infrastructure event management - Use case
+        # 8: Infrastructure event management - Use case
         # 1: Go 1.x
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
@@ -243,9 +250,10 @@ Y
 
         user_input = """
 1
-7
+8
 1
 2
+N
 N
 eb-app-go
 Y
@@ -266,8 +274,8 @@ Y
         self._init_custom_config("mynewprofile", "us-west-2")
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 3: Infrastructure event management - Use case
-        # 6: Python 3.8
+        # 8: Infrastructure event management - Use case
+        # 7: Python 3.9
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
         # eb-app-python38: response to name
@@ -279,9 +287,10 @@ Y
 
         user_input = """
 1
+8
 7
-6
 2
+N
 N
 eb-app-python38
 3
@@ -301,14 +310,12 @@ us-east-1
             self.assertTrue(expected_output_folder.is_dir())
             self.assertTrue(Path(expected_output_folder, "hello_world_function", "schema").is_dir())
 
-            self._tear_down_custom_config()
-
     def test_init_interactive_with_event_bridge_app_non_supported_schemas_region(self):
         self._init_custom_config("default", "cn-north-1")
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 7: Infrastructure event management - Use case
-        # 6: Python 3.8
+        # 8: Infrastructure event management - Use case
+        # 7: Python 3.9
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
         # eb-app-python38: response to name
@@ -318,9 +325,10 @@ us-east-1
 
         user_input = """
 1
+8
 7
-6
 2
+N
 N
 eb-app-python38
 Y
@@ -331,4 +339,3 @@ Y
             runner = CliRunner()
             result = runner.invoke(init_cmd, ["--output-dir", temp], input=user_input)
             self.assertTrue(result.exception)
-            self._tear_down_custom_config()

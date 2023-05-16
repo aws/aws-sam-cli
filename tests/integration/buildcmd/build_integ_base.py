@@ -7,30 +7,39 @@ import tempfile
 import time
 import logging
 import json
+from typing import Optional
 from unittest import TestCase
 
 import docker
 import jmespath
 from pathlib import Path
 
+from samcli.commands.build.utils import MountMode
 from samcli.lib.utils import osutils
 from samcli.lib.utils.architecture import X86_64, has_runtime_multi_arch_image
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from samcli.yamlhelper import yaml_parse
-from tests.testing_utils import IS_WINDOWS, run_command, SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE, SKIP_DOCKER_BUILD
+from tests.testing_utils import (
+    IS_WINDOWS,
+    run_command,
+    SKIP_DOCKER_TESTS,
+    SKIP_DOCKER_MESSAGE,
+    SKIP_DOCKER_BUILD,
+    get_sam_command,
+)
 
 LOG = logging.getLogger(__name__)
 
 
 class BuildIntegBase(TestCase):
-    template = "template.yaml"
+    template: Optional[str] = "template.yaml"
 
     @classmethod
     def setUpClass(cls):
-        cls.cmd = cls.base_command()
+        cls.cmd = get_sam_command()
         integration_dir = Path(__file__).resolve().parents[1]
         cls.test_data_path = str(Path(integration_dir, "testdata", "buildcmd"))
-        cls.template_path = str(Path(cls.test_data_path, cls.template))
+        cls.template_path = str(Path(cls.test_data_path, cls.template)) if cls.template else None
 
     def setUp(self):
         # To invoke a function created by the build command, we need the built artifacts to be in a
@@ -52,14 +61,6 @@ class BuildIntegBase(TestCase):
         self.working_dir and shutil.rmtree(self.working_dir, ignore_errors=True)
         self.scratch_dir and shutil.rmtree(self.scratch_dir, ignore_errors=True)
 
-    @classmethod
-    def base_command(cls):
-        command = "sam"
-        if os.getenv("SAM_CLI_DEV"):
-            command = "samdev"
-
-        return command
-
     def get_command_list(
         self,
         build_dir=None,
@@ -78,15 +79,17 @@ class BuildIntegBase(TestCase):
         build_image=None,
         exclude=None,
         region=None,
-        beta_features=False,
+        hook_name=None,
+        beta_features=None,
+        build_in_source=None,
+        mount_with=None,
     ):
-
         command_list = [self.cmd, "build"]
 
         if function_identifier:
             command_list += [function_identifier]
 
-        command_list += ["-t", self.template_path]
+        command_list += ["-t", self.template_path] if self.template_path else []
 
         if parameter_overrides:
             command_list += ["--parameter-overrides", self._make_parameter_override_arg(parameter_overrides)]
@@ -124,6 +127,9 @@ class BuildIntegBase(TestCase):
         if build_image:
             command_list += ["--build-image", build_image]
 
+        if mount_with:
+            command_list += ["--mount-with", mount_with.value]
+
         if exclude:
             for f in exclude:
                 command_list += ["--exclude", f]
@@ -131,8 +137,14 @@ class BuildIntegBase(TestCase):
         if region:
             command_list += ["--region", region]
 
-        if beta_features:
-            command_list += ["--beta-features"]
+        if beta_features is not None:
+            command_list += ["--beta-features"] if beta_features else ["--no-beta-features"]
+
+        if hook_name:
+            command_list += ["--hook-name", hook_name]
+
+        if build_in_source is not None:
+            command_list += ["--build-in-source"] if build_in_source else ["--no-build-in-source"]
 
         return command_list
 
@@ -166,7 +178,7 @@ class BuildIntegBase(TestCase):
         self.assertIn(
             len(images),
             [1, 2],
-            f"Other version of the build image {image_name} was pulled. Currently pulled images: {images}",
+            f"Other version of the build image {image_name} was pulled. Currently pulled images: {images}, architecture: {architecture}, tag: {tag_name}",
         )
         image_tag = f"{image_name}:{tag_name}"
         for t in [tag for image in images for tag in image.tags]:
@@ -314,14 +326,16 @@ class BuildIntegRubyBase(BuildIntegBase):
 
 class BuildIntegEsbuildBase(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
+    # Everything should be minifed to one line and a second line for the sourcemap mapping
+    MAX_MINIFIED_LINE_COUNT = 2
 
     def _test_with_default_package_json(
-        self, runtime, use_container, code_uri, expected_files, handler, architecture=None
+        self, runtime, use_container, code_uri, expected_files, handler, architecture=None, build_in_source=None
     ):
         overrides = self.get_override(runtime, code_uri, architecture, handler)
-        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
-
-        cmdlist.append("--beta-features")
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, build_in_source=build_in_source
+        )
 
         LOG.info("Running Command: {}".format(cmdlist))
         run_command(cmdlist, cwd=self.working_dir)
@@ -339,9 +353,47 @@ class BuildIntegEsbuildBase(BuildIntegBase):
                 self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
             )
 
+        self._verify_esbuild_properties(self.default_build_dir, self.FUNCTION_LOGICAL_ID, handler)
+
         if use_container:
             self.verify_docker_container_cleanedup(runtime)
             self.verify_pulled_image(runtime, architecture)
+
+    def _test_with_various_properties(self, overrides):
+        overrides = self.get_override(**overrides)
+        cmdlist = self.get_command_list(parameter_overrides=overrides)
+
+        LOG.info("Running Command: {}".format(cmdlist))
+        run_command(cmdlist, cwd=self.working_dir)
+
+        expected = {"body": '{"message":"hello world!"}', "statusCode": 200}
+        if not SKIP_DOCKER_TESTS and overrides["Architectures"] == X86_64:
+            # ARM64 is not supported yet for invoking
+            self._verify_invoke_built_function(
+                self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
+            )
+
+        self._verify_esbuild_properties(self.default_build_dir, self.FUNCTION_LOGICAL_ID, overrides["Handler"])
+
+    def _verify_esbuild_properties(self, build_dir, function_logical_id, handler):
+        filename = self._extract_filename_from_handler(handler)
+        resource_artifact_dir = build_dir.joinpath(function_logical_id)
+        self._verify_sourcemap_created(filename, resource_artifact_dir)
+        self._verify_function_minified(filename, resource_artifact_dir)
+
+    @staticmethod
+    def _extract_filename_from_handler(handler):
+        # Takes a handler in the form /a/b/c/file.function and returns file
+        return str(Path(handler).stem)
+
+    def _verify_function_minified(self, filename, resource_artifact_dir):
+        with open(Path(resource_artifact_dir, f"{filename}.js"), "r") as handler_file:
+            x = len(handler_file.readlines())
+        self.assertLessEqual(x, self.MAX_MINIFIED_LINE_COUNT)
+
+    def _verify_sourcemap_created(self, filename, resource_artifact_dir):
+        all_artifacts = set(os.listdir(str(resource_artifact_dir)))
+        self.assertIn(f"{filename}.js.map", all_artifacts)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
         self.assertTrue(build_dir.exists(), "Build directory should be created")
@@ -493,7 +545,6 @@ class BuildIntegGoBase(BuildIntegBase):
 
 
 class BuildIntegJavaBase(BuildIntegBase):
-
     FUNCTION_LOGICAL_ID = "Function"
 
     def _test_with_building_java(
@@ -557,7 +608,6 @@ class BuildIntegJavaBase(BuildIntegBase):
             self.verify_pulled_image(runtime, architecture)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files, expected_modules):
-
         self.assertTrue(build_dir.exists(), "Build directory should be created")
 
         build_dir_files = os.listdir(str(build_dir))
@@ -648,9 +698,9 @@ class BuildIntegPythonBase(BuildIntegBase):
                 self._make_parameter_override_arg(overrides) if do_override else None,
                 expected,
             )
-        if use_container:
-            self.verify_docker_container_cleanedup(runtime)
-            self.verify_pulled_image(runtime, architecture)
+            if use_container:
+                self.verify_docker_container_cleanedup(runtime)
+                self.verify_pulled_image(runtime, architecture)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
         self.assertTrue(build_dir.exists(), "Build directory should be created")
@@ -678,17 +728,22 @@ class BuildIntegProvidedBase(BuildIntegBase):
 
     FUNCTION_LOGICAL_ID = "Function"
 
-    def _test_with_Makefile(self, runtime, use_container, manifest, architecture=None):
+    def _test_with_Makefile(
+        self, runtime, use_container, manifest, architecture=None, code_uri="Provided", build_in_source=None
+    ):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
-        overrides = self.get_override(runtime, "Provided", architecture, "main.handler")
+        overrides = self.get_override(runtime, code_uri, architecture, "main.handler")
         manifest_path = None
         if manifest:
             manifest_path = os.path.join(self.test_data_path, "Provided", manifest)
 
         cmdlist = self.get_command_list(
-            use_container=use_container, parameter_overrides=overrides, manifest_path=manifest_path
+            use_container=use_container,
+            parameter_overrides=overrides,
+            manifest_path=manifest_path,
+            build_in_source=build_in_source,
         )
 
         LOG.info("Running Command: {}".format(cmdlist))
@@ -716,7 +771,6 @@ class BuildIntegProvidedBase(BuildIntegBase):
             self.verify_pulled_image(runtime, architecture)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
-
         self.assertTrue(build_dir.exists(), "Build directory should be created")
 
         build_dir_files = os.listdir(str(build_dir))
@@ -734,7 +788,6 @@ class BuildIntegProvidedBase(BuildIntegBase):
         self.assertEqual(actual_files, expected_files)
 
     def _verify_built_artifact_in_subapp(self, build_dir, subapp_path, function_logical_id, expected_files):
-
         self.assertTrue(build_dir.exists(), "Build directory should be created")
         subapp_build_dir = Path(build_dir, subapp_path)
         self.assertTrue(subapp_build_dir.exists(), f"Build directory for sub app {subapp_path} should be created")
@@ -767,7 +820,8 @@ class DedupBuildIntegBase(BuildIntegBase):
             expected = f"Hello {expected_message}"
             function_id = f"Hello{expected_message}Function"
             self._verify_build_artifact(self.default_build_dir, function_id)
-            self._verify_invoke_built_function(self.built_template, function_id, overrides, expected)
+            if not SKIP_DOCKER_TESTS:
+                self._verify_invoke_built_function(self.built_template, function_id, overrides, expected)
 
     def _verify_build_artifact(self, build_dir, function_logical_id):
         self.assertTrue(build_dir.exists(), "Build directory should be created")
@@ -912,3 +966,64 @@ class IntrinsicIntegBase(BuildIntegBase):
                 self.assertIn(error_message, process_stderr)
             else:
                 self.assertEqual(0, process_execute.process.returncode)
+
+
+class BuildIntegRustBase(BuildIntegBase):
+    FUNCTION_LOGICAL_ID = "Function"
+    EXPECTED_FILES_PROJECT_MANIFEST = {"bootstrap"}
+
+    def _test_with_rust_cargo_lambda(
+        self,
+        runtime,
+        code_uri,
+        handler="bootstap",
+        binary=None,
+        build_mode=None,
+        architecture=None,
+        use_container=False,
+        expected_invoke_result=None,
+    ):
+        overrides = self.get_override(runtime, code_uri, architecture, handler)
+        if binary:
+            overrides["Binary"] = binary
+        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides, beta_features=True)
+
+        newenv = os.environ.copy()
+        if build_mode:
+            newenv["SAM_BUILD_MODE"] = build_mode
+
+        run_command(cmdlist, cwd=self.working_dir, env=newenv)
+
+        self._verify_built_artifact(
+            self.default_build_dir, self.FUNCTION_LOGICAL_ID, self.EXPECTED_FILES_PROJECT_MANIFEST
+        )
+
+        if expected_invoke_result and not SKIP_DOCKER_TESTS and architecture == X86_64:
+            # ARM64 is not supported yet for local invoke
+            self._verify_invoke_built_function(
+                self.built_template,
+                self.FUNCTION_LOGICAL_ID,
+                self._make_parameter_override_arg(overrides),
+                expected_invoke_result,
+            )
+
+        if use_container:
+            self.verify_docker_container_cleanedup(runtime)
+            self.verify_pulled_image(runtime, architecture)
+
+    def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
+        self.assertTrue(build_dir.exists(), "Build directory should be created")
+
+        build_dir_files = os.listdir(str(build_dir))
+        self.assertIn("template.yaml", build_dir_files)
+        self.assertIn(function_logical_id, build_dir_files)
+
+        template_path = build_dir.joinpath("template.yaml")
+        resource_artifact_dir = build_dir.joinpath(function_logical_id)
+
+        # Make sure the template has correct CodeUri for resource
+        self._verify_resource_property(str(template_path), function_logical_id, "CodeUri", function_logical_id)
+
+        all_artifacts = set(os.listdir(str(resource_artifact_dir)))
+        actual_files = all_artifacts.intersection(expected_files)
+        self.assertEqual(actual_files, expected_files)

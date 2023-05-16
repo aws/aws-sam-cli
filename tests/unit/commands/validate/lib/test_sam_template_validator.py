@@ -1,17 +1,19 @@
 from unittest import TestCase
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, ANY
+
+from samtranslator.model import InvalidResourceException
 
 from samcli.lib.utils.packagetype import IMAGE
 from samtranslator.public.exceptions import InvalidDocumentException
 
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
-from samcli.commands.validate.lib.sam_template_validator import SamTemplateValidator
+from samcli.lib.translate.sam_template_validator import SamTemplateValidator
 
 
 class TestSamTemplateValidator(TestCase):
-    @patch("samcli.commands.validate.lib.sam_template_validator.Session")
-    @patch("samcli.commands.validate.lib.sam_template_validator.Translator")
-    @patch("samcli.commands.validate.lib.sam_template_validator.parser")
+    @patch("samcli.lib.translate.sam_template_validator.Session")
+    @patch("samcli.lib.translate.sam_template_validator.Translator")
+    @patch("samcli.lib.translate.sam_template_validator.parser")
     def test_is_valid_returns_true(self, sam_parser, sam_translator, boto_session_patch):
         managed_policy_mock = Mock()
         managed_policy_mock.load.return_value = {"policy": "SomePolicy"}
@@ -30,18 +32,20 @@ class TestSamTemplateValidator(TestCase):
         validator = SamTemplateValidator(template, managed_policy_mock, profile="profile", region="region")
 
         # Should not throw an Exception
-        validator.is_valid()
+        validator.get_translated_template_if_valid()
 
         boto_session_patch.assert_called_once_with(profile_name="profile", region_name="region")
         sam_translator.assert_called_once_with(
-            managed_policy_map={"policy": "SomePolicy"}, sam_parser=parser, plugins=[], boto_session=boto_session_mock
+            managed_policy_map=None, sam_parser=parser, plugins=[], boto_session=boto_session_mock
         )
-        translate_mock.translate.assert_called_once_with(sam_template=template, parameter_values={})
+        translate_mock.translate.assert_called_once_with(
+            sam_template=template, parameter_values={}, get_managed_policy_map=ANY
+        )
         sam_parser.Parser.assert_called_once()
 
-    @patch("samcli.commands.validate.lib.sam_template_validator.Session")
-    @patch("samcli.commands.validate.lib.sam_template_validator.Translator")
-    @patch("samcli.commands.validate.lib.sam_template_validator.parser")
+    @patch("samcli.lib.translate.sam_template_validator.Session")
+    @patch("samcli.lib.translate.sam_template_validator.Translator")
+    @patch("samcli.lib.translate.sam_template_validator.parser")
     def test_is_valid_raises_exception(self, sam_parser, sam_translator, boto_session_patch):
         managed_policy_mock = Mock()
         managed_policy_mock.load.return_value = {"policy": "SomePolicy"}
@@ -54,20 +58,24 @@ class TestSamTemplateValidator(TestCase):
         boto_session_patch.return_value = boto_session_mock
 
         translate_mock = Mock()
-        translate_mock.translate.side_effect = InvalidDocumentException([Exception("message")])
+        translate_mock.translate.side_effect = InvalidDocumentException(
+            [InvalidResourceException("function", "this is the message")]
+        )
         sam_translator.return_value = translate_mock
 
         validator = SamTemplateValidator(template, managed_policy_mock)
 
         with self.assertRaises(InvalidSamDocumentException):
-            validator.is_valid()
+            validator.get_translated_template_if_valid()
 
         sam_translator.assert_called_once_with(
-            managed_policy_map={"policy": "SomePolicy"}, sam_parser=parser, plugins=[], boto_session=boto_session_mock
+            managed_policy_map=None, sam_parser=parser, plugins=[], boto_session=boto_session_mock
         )
 
         boto_session_patch.assert_called_once_with(profile_name=None, region_name=None)
-        translate_mock.translate.assert_called_once_with(sam_template=template, parameter_values={})
+        translate_mock.translate.assert_called_once_with(
+            sam_template=template, parameter_values={}, get_managed_policy_map=ANY
+        )
         sam_parser.Parser.assert_called_once()
 
     def test_init(self):
@@ -291,7 +299,6 @@ class TestSamTemplateValidator(TestCase):
         self.assertIn("DefinitionBody", tempalte_resources.get("ServerlessApi").get("Properties"))
 
     def test_replace_local_codeuri_with_no_resources(self):
-
         template = {
             "AWSTemplateFormatVersion": "2010-09-09",
             "Transform": "AWS::Serverless-2016-10-31",

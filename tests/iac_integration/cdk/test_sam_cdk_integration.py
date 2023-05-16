@@ -71,7 +71,7 @@ class TestSamCdkIntegration(TestCase):
 
         while True:
             line = cls.start_api_process.stderr.readline()
-            if "(Press CTRL+C to quit)" in str(line):
+            if "Press CTRL+C to quit" in str(line):
                 break
 
         cls.stop_api_reading_thread = False
@@ -111,6 +111,16 @@ class TestSamCdkIntegration(TestCase):
             ("/restapis/normal/functionGoRuntime", "Hello World from function construct with go runtime"),
             ("/restapis/normal/dockerImageFunction", "Hello World from docker image function construct"),
             ("/restapis/normal/functionImageAsset", "Hello World from function construct with image asset"),
+            (
+                "/restapis/normal/dockerImageFunctionWithSharedCode",
+                "Hello World from docker image function construct "
+                "with a Dockerfile that shares code with another Dockerfile",
+            ),
+            (
+                "/restapis/normal/functionImageAssetWithSharedCode",
+                "Hello World from function construct with image asset "
+                "with a Dockerfile that shares code with another Dockerfile",
+            ),
         ]
     )
     @pytest.mark.flaky(reruns=3)
