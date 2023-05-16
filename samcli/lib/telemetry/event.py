@@ -88,7 +88,9 @@ class Event:
     time_stamp: str
     exception_name: Optional[str]
 
-    def __init__(self, event_name: str, event_value: str, thread_id: Optional[UUID] = None, exception_name: Optional[str] = None):
+    def __init__(
+        self, event_name: str, event_value: str, thread_id: Optional[UUID] = None, exception_name: Optional[str] = None
+    ):
         Event._verify_event(event_name, event_value)
         self.event_name = EventName(event_name)
         self.event_value = event_value
@@ -148,7 +150,11 @@ class EventTracker:
 
     @staticmethod
     def track_event(
-        event_name: str, event_value: str, session_id: Optional[str] = None, thread_id: Optional[UUID] = None, exception_name: Optional[str] = None
+        event_name: str,
+        event_value: str,
+        session_id: Optional[str] = None,
+        thread_id: Optional[UUID] = None,
+        exception_name: Optional[str] = None,
     ):
         """Method to track an event where and when it occurs.
 
@@ -192,7 +198,9 @@ class EventTracker:
             if not thread_id:  # Passed value is not a UUID or None
                 thread_id = uuid4()
             with EventTracker._event_lock:
-                EventTracker._events.append(Event(event_name, event_value, thread_id=thread_id, exception_name=exception_name))
+                EventTracker._events.append(
+                    Event(event_name, event_value, thread_id=thread_id, exception_name=exception_name)
+                )
 
                 # Get the session ID (needed for multithreading sending)
                 EventTracker._set_session_id()

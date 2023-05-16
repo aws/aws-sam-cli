@@ -6,11 +6,9 @@ from dataclasses import dataclass
 from queue import Queue
 from threading import RLock
 from typing import Callable, List, Optional, Set
-from concurrent.futures import ThreadPoolExecutor, Future
 from uuid import uuid4
 
 from botocore.exceptions import ClientError
-from samcli.lib.telemetry.event import EventName, EventTracker, EventType
 
 from samcli.lib.providers.exceptions import MissingLocalDefinition
 from samcli.lib.sync.exceptions import (
