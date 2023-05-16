@@ -4,7 +4,10 @@ Terraform prepare property builder
 from typing import Any, Dict, Optional
 
 from samcli.hook_packages.terraform.hooks.prepare.resource_linking import _resolve_resource_attribute
-from samcli.hook_packages.terraform.hooks.prepare.resources.internal import INTERNAL_API_GATEWAY_INTEGRATION
+from samcli.hook_packages.terraform.hooks.prepare.resources.internal import (
+    INTERNAL_API_GATEWAY_INTEGRATION,
+    INTERNAL_API_GATEWAY_INTEGRATION_RESPONSE,
+)
 from samcli.hook_packages.terraform.hooks.prepare.types import (
     PropertyBuilder,
     PropertyBuilderMapping,
@@ -29,6 +32,7 @@ TF_AWS_API_GATEWAY_REST_API = "aws_api_gateway_rest_api"
 TF_AWS_API_GATEWAY_STAGE = "aws_api_gateway_stage"
 TF_AWS_API_GATEWAY_METHOD = "aws_api_gateway_method"
 TF_AWS_API_GATEWAY_INTEGRATION = "aws_api_gateway_integration"
+TF_AWS_API_GATEWAY_INTEGRATION_RESPONSE = "aws_api_gateway_method_response"
 
 
 def _build_code_property(tf_properties: dict, resource: TFResource) -> Any:
@@ -262,6 +266,13 @@ AWS_API_GATEWAY_INTEGRATION_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
     "ConnectionType": _get_property_extractor("connection_type"),
 }
 
+AWS_API_GATEWAY_INTEGRATION_RESPONSE_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
+    "RestApiId": _get_property_extractor("rest_api_id"),
+    "ResourceId": _get_property_extractor("resource_id"),
+    "HttpMethod": _get_property_extractor("http_method"),
+    "ResponseParameters": _get_property_extractor("response_parameters"),
+}
+
 RESOURCE_TRANSLATOR_MAPPING: Dict[str, ResourceTranslator] = {
     TF_AWS_LAMBDA_FUNCTION: ResourceTranslator(CFN_AWS_LAMBDA_FUNCTION, AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING),
     TF_AWS_LAMBDA_LAYER_VERSION: ResourceTranslator(
@@ -281,5 +292,8 @@ RESOURCE_TRANSLATOR_MAPPING: Dict[str, ResourceTranslator] = {
     ),
     TF_AWS_API_GATEWAY_INTEGRATION: ResourceTranslator(
         INTERNAL_API_GATEWAY_INTEGRATION, AWS_API_GATEWAY_INTEGRATION_PROPERTY_BUILDER_MAPPING
+    ),
+    TF_AWS_API_GATEWAY_INTEGRATION_RESPONSE: ResourceTranslator(
+        INTERNAL_API_GATEWAY_INTEGRATION_RESPONSE, AWS_API_GATEWAY_INTEGRATION_RESPONSE_PROPERTY_BUILDER_MAPPING
     ),
 }
