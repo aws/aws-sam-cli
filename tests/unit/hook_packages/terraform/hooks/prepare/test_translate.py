@@ -18,6 +18,8 @@ from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     TF_AWS_API_GATEWAY_STAGE,
     TF_AWS_API_GATEWAY_INTEGRATION,
     AWS_API_GATEWAY_INTEGRATION_PROPERTY_BUILDER_MAPPING,
+    TF_AWS_API_GATEWAY_AUTHORIZER,
+    AWS_API_GATEWAY_AUTHORIZER_PROPERTY_BUILDER_MAPPING,
 )
 from samcli.hook_packages.terraform.hooks.prepare.types import (
     SamMetadataResource,
@@ -1056,3 +1058,9 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
             self.tf_apigw_integration_properties, AWS_API_GATEWAY_INTEGRATION_PROPERTY_BUILDER_MAPPING, Mock()
         )
         self.assertEqual(translated_cfn_properties, self.expected_internal_apigw_integration_properties)
+
+    def test_translating_apigw_lambda_authorizer(self):
+        translated_cfn_properties = _translate_properties(
+            self.tf_apigw_lambda_authorizer_properties, AWS_API_GATEWAY_AUTHORIZER_PROPERTY_BUILDER_MAPPING, Mock()
+        )
+        self.assertEqual(translated_cfn_properties, self.expected_cfn_apigw_lambda_authorizer_properties)
