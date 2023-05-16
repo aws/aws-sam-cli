@@ -8,9 +8,19 @@ from dataclasses import dataclass
 from typing import Callable, Dict, List, Optional, Type, Union
 
 from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
+    FunctionLayerLocalVariablesLinkingLimitationException,
+    GatewayResourceToApiGatewayMethodLocalVariablesLinkingLimitationException,
+    GatewayResourceToGatewayRestApiLocalVariablesLinkingLimitationException,
     InvalidResourceLinkingException,
     LocalVariablesLinkingLimitationException,
+    OneGatewayResourceToApiGatewayMethodLinkingLimitationException,
+    OneGatewayResourceToRestApiLinkingLimitationException,
+    OneLambdaLayerLinkingLimitationException,
     OneResourceLinkingLimitationException,
+    OneRestApiToApiGatewayMethodLinkingLimitationException,
+    OneRestApiToApiGatewayStageLinkingLimitationException,
+    RestApiToApiGatewayMethodLocalVariablesLinkingLimitationException,
+    RestApiToApiGatewayStageLocalVariablesLinkingLimitationException,
 )
 from samcli.hook_packages.terraform.hooks.prepare.types import (
     ConstantValue,
@@ -25,6 +35,7 @@ from samcli.hook_packages.terraform.lib.utils import build_cfn_logical_id
 
 LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX = "aws_lambda_layer_version."
 API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX = "aws_api_gateway_rest_api."
+API_GATEWAY_RESOURCE_RESOURCE_ADDRESS_PREFIX = "aws_api_gateway_resource."
 TERRAFORM_LOCAL_VARIABLES_ADDRESS_PREFIX = "local."
 DATA_RESOURCE_ADDRESS_PREFIX = "data."
 
@@ -930,3 +941,305 @@ def _resolve_resource_attribute(
         else:
             results.append(ResolvedReference(reference, resource.module.full_address))
     return results
+
+
+def _link_lambda_functions_to_layers_call_back(
+    function_cfn_resource: Dict, referenced_resource_values: List[ReferenceType]
+) -> None:
+    """
+    Callback function that used by the linking algorith to update a Lambda Function CFN Resource with
+    the list of layers ids. Layers ids can be reference to other Layers resources define in the customer project,
+    or ARN values to layers exist in customer's account.
+
+    Parameters
+    ----------
+    function_cfn_resource: Dict
+        Lambda Function CFN resource
+    referenced_resource_values: List[ReferenceType]
+        List of referenced layers either as the logical ids of layers resources defined in the customer project, or
+        ARN values for actual layers defined in customer's account.
+    """
+    ref_list = [
+        {"Ref": logical_id.value} if isinstance(logical_id, LogicalIdReference) else logical_id.value
+        for logical_id in referenced_resource_values
+    ]
+    function_cfn_resource["Properties"]["Layers"] = ref_list
+
+
+def _link_gateway_resources_to_gateway_rest_apis(
+    gateway_resources_tf_configs: Dict[str, TFResource],
+    gateway_resources_cfn_resources: Dict[str, List],
+    rest_apis_terraform_resources: Dict[str, Dict],
+):
+    """
+    Iterate through all the resources and link the corresponding Rest API resource to each Gateway Resource resource.
+
+    Parameters
+    ----------
+    gateway_resources_tf_configs: Dict[str, TFResource]
+        Dictionary of configuration Gateway Resource resources
+    gateway_resources_cfn_resources: Dict[str, List]
+        Dictionary containing resolved configuration addresses matched up to the cfn Gateway Resource
+    rest_apis_terraform_resources: Dict[str, Dict]
+        Dictionary of all actual terraform Rest API resources (not configuration resources). The dictionary's key is the
+        calculated logical id for each resource.
+    """
+    resource_linking_pairs = [
+        ResourceLinkingPair(
+            source_resource_cfn_resource=gateway_resources_cfn_resources,
+            source_resource_tf_config=gateway_resources_tf_configs,
+            destination_resource_tf=rest_apis_terraform_resources,
+            tf_destination_attribute_name="id",
+            terraform_link_field_name="rest_api_id",
+            cfn_link_field_name="RestApiId",
+            terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+            cfn_resource_update_call_back_function=_link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back,
+            linking_exceptions=ResourcePairExceptions(
+                multiple_resource_linking_exception=OneGatewayResourceToRestApiLinkingLimitationException,
+                local_variable_linking_exception=GatewayResourceToGatewayRestApiLocalVariablesLinkingLimitationException,
+            ),
+        ),
+        ResourceLinkingPair(
+            source_resource_cfn_resource=gateway_resources_cfn_resources,
+            source_resource_tf_config=gateway_resources_tf_configs,
+            destination_resource_tf=rest_apis_terraform_resources,
+            tf_destination_attribute_name="root_resource_id",
+            terraform_link_field_name="parent_id",
+            cfn_link_field_name="ResourceId",
+            terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+            cfn_resource_update_call_back_function=_link_gateway_resource_to_gateway_rest_apis_parent_id_call_back,
+            linking_exceptions=ResourcePairExceptions(
+                multiple_resource_linking_exception=OneGatewayResourceToRestApiLinkingLimitationException,
+                local_variable_linking_exception=GatewayResourceToGatewayRestApiLocalVariablesLinkingLimitationException,
+            ),
+        ),
+    ]
+    for resource_linking_pair in resource_linking_pairs:
+        ResourceLinker(resource_linking_pair).link_resources()
+
+
+def _link_lambda_functions_to_layers(
+    lambda_config_funcs_conf_cfn_resources: Dict[str, TFResource],
+    lambda_funcs_conf_cfn_resources: Dict[str, List],
+    lambda_layers_terraform_resources: Dict[str, Dict],
+):
+    """
+    Iterate through all the resources and link the corresponding Lambda Layers to each Lambda Function
+
+    Parameters
+    ----------
+    lambda_config_funcs_conf_cfn_resources: Dict[str, TFResource]
+        Dictionary of configuration lambda resources
+    lambda_funcs_conf_cfn_resources: Dict[str, List]
+        Dictionary containing resolved configuration addresses matched up to the cfn Lambda functions
+    lambda_layers_terraform_resources: Dict[str, Dict]
+        Dictionary of all actual terraform layers resources (not configuration resources). The dictionary's key is the
+        calculated logical id for each resource
+    """
+    exceptions = ResourcePairExceptions(
+        multiple_resource_linking_exception=OneLambdaLayerLinkingLimitationException,
+        local_variable_linking_exception=FunctionLayerLocalVariablesLinkingLimitationException,
+    )
+    resource_linking_pair = ResourceLinkingPair(
+        source_resource_cfn_resource=lambda_funcs_conf_cfn_resources,
+        source_resource_tf_config=lambda_config_funcs_conf_cfn_resources,
+        destination_resource_tf=lambda_layers_terraform_resources,
+        tf_destination_attribute_name="arn",
+        terraform_link_field_name="layers",
+        cfn_link_field_name="Layers",
+        terraform_resource_type_prefix=LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX,
+        cfn_resource_update_call_back_function=_link_lambda_functions_to_layers_call_back,
+        linking_exceptions=exceptions,
+    )
+    ResourceLinker(resource_linking_pair).link_resources()
+
+
+def _link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back(
+    gateway_cfn_resource: Dict, referenced_rest_apis_values: List[ReferenceType]
+) -> None:
+    """
+    Callback function that used by the linking algorithm to update an Api Gateway Method CFN Resource with
+    a reference to the Rest Api resource.
+
+    Parameters
+    ----------
+    gateway_cfn_resource: Dict
+        API Gateway Method CFN resource
+    referenced_rest_apis_values: List[ReferenceType]
+        List of referenced REST API either as the logical id of REST API resource defined in the customer project, or
+        ARN values for actual REST API resource defined in customer's account. This list should always contain one
+        element only.
+    """
+    # if the destination rest api list contains more than one element, so we have an issue in our linking logic
+    if len(referenced_rest_apis_values) > 1:
+        raise InvalidResourceLinkingException("Could not link multiple Rest APIs to one Gateway method resource")
+
+    logical_id = referenced_rest_apis_values[0]
+    gateway_cfn_resource["Properties"]["RestApiId"] = (
+        {"Ref": logical_id.value} if isinstance(logical_id, LogicalIdReference) else logical_id.value
+    )
+
+
+def _link_gateway_method_to_gateway_resource_call_back(
+    gateway_method_cfn_resource: Dict, referenced_gateway_resource_values: List[ReferenceType]
+) -> None:
+    """
+    Callback function that is used by the linking algorithm to update an Api Gateway Method CFN Resource with
+    a reference to the Gateway Resource resource.
+
+    Parameters
+    ----------
+    gateway_method_cfn_resource: Dict
+        API Gateway Method CFN resource
+    referenced_gateway_resource_values: List[ReferenceType]
+        List of referenced Gateway Resources either as the logical id of Gateway Resource resource
+        defined in the customer project, or ARN values for actual Gateway Resources resource defined
+        in customer's account. This list should always contain one element only.
+    """
+    if len(referenced_gateway_resource_values) > 1:
+        raise InvalidResourceLinkingException(
+            "Could not link multiple Gateway Resources to one Gateway method resource"
+        )
+
+    logical_id = referenced_gateway_resource_values[0]
+    gateway_method_cfn_resource["Properties"]["ResourceId"] = (
+        {"Ref": logical_id.value} if isinstance(logical_id, LogicalIdReference) else logical_id.value
+    )
+
+
+def _link_gateway_resource_to_gateway_rest_apis_parent_id_call_back(
+    gateway_cfn_resource: Dict, referenced_rest_apis_values: List[ReferenceType]
+) -> None:
+    """
+    Callback function that used by the linking algorithm to update an Api Gateway Resource CFN Resource with
+    a reference to the Rest Api resource.
+
+    Parameters
+    ----------
+    gateway_cfn_resource: Dict
+        API Gateway Method CFN resource
+    referenced_rest_apis_values: List[ReferenceType]
+        List of referenced REST API either as the logical id of REST API resource defined in the customer project, or
+        ARN values for actual REST API resource defined in customer's account. This list should always contain one
+        element only.
+    """
+    # if the destination rest api list contains more than one element, so we have an issue in our linking logic
+    if len(referenced_rest_apis_values) > 1:
+        raise InvalidResourceLinkingException("Could not link multiple Rest APIs to one Gateway resource")
+
+    logical_id = referenced_rest_apis_values[0]
+    gateway_cfn_resource["Properties"]["ParentId"] = (
+        {"Fn::GetAtt": [logical_id.value, "RootResourceId"]}
+        if isinstance(logical_id, LogicalIdReference)
+        else logical_id.value
+    )
+
+
+def _link_gateway_methods_to_gateway_rest_apis(
+    gateway_methods_config_resources: Dict[str, TFResource],
+    gateway_methods_config_address_cfn_resources_map: Dict[str, List],
+    rest_apis_terraform_resources: Dict[str, Dict],
+):
+    """
+    Iterate through all the resources and link the corresponding Rest API resource to each Gateway Method resource.
+
+    Parameters
+    ----------
+    gateway_methods_config_resources: Dict[str, TFResource]
+        Dictionary of configuration Gateway Methods
+    gateway_methods_config_address_cfn_resources_map: Dict[str, List]
+        Dictionary containing resolved configuration addresses matched up to the cfn Gateway Method
+    rest_apis_terraform_resources: Dict[str, Dict]
+        Dictionary of all actual terraform Rest API resources (not configuration resources). The dictionary's key is the
+        calculated logical id for each resource.
+    """
+
+    exceptions = ResourcePairExceptions(
+        multiple_resource_linking_exception=OneRestApiToApiGatewayMethodLinkingLimitationException,
+        local_variable_linking_exception=RestApiToApiGatewayMethodLocalVariablesLinkingLimitationException,
+    )
+    resource_linking_pair = ResourceLinkingPair(
+        source_resource_cfn_resource=gateway_methods_config_address_cfn_resources_map,
+        source_resource_tf_config=gateway_methods_config_resources,
+        destination_resource_tf=rest_apis_terraform_resources,
+        tf_destination_attribute_name="id",
+        terraform_link_field_name="rest_api_id",
+        cfn_link_field_name="RestApiId",
+        terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+        cfn_resource_update_call_back_function=_link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back,
+        linking_exceptions=exceptions,
+    )
+    ResourceLinker(resource_linking_pair).link_resources()
+
+
+def _link_gateway_stage_to_rest_api(
+    gateway_stages_config_resources: Dict[str, TFResource],
+    gateway_stages_config_address_cfn_resources_map: Dict[str, List],
+    rest_apis_terraform_resources: Dict[str, Dict],
+):
+    """
+    Iterate through all the resources and link the corresponding Gateway Stage to each Gateway Rest API resource.
+
+    Parameters
+    ----------
+    gateway_stages_config_resources: Dict[str, TFResource]
+        Dictionary of configuration Gateway Stages
+    gateway_stages_config_address_cfn_resources_map: Dict[str, List]
+        Dictionary containing resolved configuration addresses matched up to the cfn Gateway Stage
+    rest_apis_terraform_resources: Dict[str, Dict]
+        Dictionary of all actual terraform Rest API resources (not configuration resources).
+        The dictionary's key is the calculated logical id for each resource.
+    """
+    exceptions = ResourcePairExceptions(
+        multiple_resource_linking_exception=OneRestApiToApiGatewayStageLinkingLimitationException,
+        local_variable_linking_exception=RestApiToApiGatewayStageLocalVariablesLinkingLimitationException,
+    )
+    resource_linking_pair = ResourceLinkingPair(
+        source_resource_cfn_resource=gateway_stages_config_address_cfn_resources_map,
+        source_resource_tf_config=gateway_stages_config_resources,
+        destination_resource_tf=rest_apis_terraform_resources,
+        tf_destination_attribute_name="id",
+        terraform_link_field_name="rest_api_id",
+        cfn_link_field_name="RestApiId",
+        terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+        cfn_resource_update_call_back_function=_link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back,
+        linking_exceptions=exceptions,
+    )
+    ResourceLinker(resource_linking_pair).link_resources()
+
+
+def _link_gateway_method_to_gateway_resource(
+    gateway_method_config_resources: Dict[str, TFResource],
+    gateway_method_config_address_cfn_resources_map: Dict[str, List],
+    gateway_resources_terraform_resources: Dict[str, Dict],
+):
+    """
+    Iterate through all the resources and link the corresponding
+    Gateway Method resources to each Gateway Resource resources.
+
+    Parameters
+    ----------
+    gateway_method_config_resources: Dict[str, TFResource]
+        Dictionary of configuration Gateway Methods
+    gateway_method_config_address_cfn_resources_map: Dict[str, List]
+        Dictionary containing resolved configuration addresses matched up to the cfn Gateway Stage
+    gateway_resources_terraform_resources: Dict[str, Dict]
+        Dictionary of all actual terraform Rest API resources (not configuration resources).
+        The dictionary's key is the calculated logical id for each resource.
+    """
+    exceptions = ResourcePairExceptions(
+        multiple_resource_linking_exception=OneGatewayResourceToApiGatewayMethodLinkingLimitationException,
+        local_variable_linking_exception=GatewayResourceToApiGatewayMethodLocalVariablesLinkingLimitationException,
+    )
+    resource_linking_pair = ResourceLinkingPair(
+        source_resource_cfn_resource=gateway_method_config_address_cfn_resources_map,
+        source_resource_tf_config=gateway_method_config_resources,
+        destination_resource_tf=gateway_resources_terraform_resources,
+        tf_destination_attribute_name="id",
+        terraform_link_field_name="resource_id",
+        cfn_link_field_name="ResourceId",
+        terraform_resource_type_prefix=API_GATEWAY_RESOURCE_RESOURCE_ADDRESS_PREFIX,
+        cfn_resource_update_call_back_function=_link_gateway_method_to_gateway_resource_call_back,
+        linking_exceptions=exceptions,
+    )
+    ResourceLinker(resource_linking_pair).link_resources()

@@ -12,7 +12,6 @@ from samcli.lib.utils.packagetype import IMAGE, ZIP
 
 
 class LambdaFunctionProperties(CodeResourceProperties):
-
     RESOURCE_TYPE_FIELD = "PackageType"
     CFN_CODE_FIELD = "Code"
     CFN_IMAGE_FIELD = "ImageUri"

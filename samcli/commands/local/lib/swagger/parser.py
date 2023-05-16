@@ -263,7 +263,9 @@ class SwaggerParser:
 
         if not document_version.startswith(SwaggerParser._3_X_VERSION) or not event_type == Route.HTTP:
             raise IncorrectOasWithDefaultAuthorizerException(
-                "Root level definition of default authorizers are only supported for OpenApi 3.0"
+                "Root level definition of default authorizers are only supported for "
+                "AWS::Serverless::HttpApi and AWS::ApiGatewayV2::Api resources using "
+                "an OpenApi 3.x body"
             )
 
         if len(authorizers) > 1:

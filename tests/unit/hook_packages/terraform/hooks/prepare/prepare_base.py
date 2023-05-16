@@ -12,6 +12,7 @@ from samcli.lib.utils.resources import (
     AWS_APIGATEWAY_STAGE,
     AWS_APIGATEWAY_METHOD,
 )
+from samcli.hook_packages.terraform.hooks.prepare.resources.internal import INTERNAL_API_GATEWAY_INTEGRATION
 
 
 class PrepareHookUnitBase(TestCase):
@@ -42,6 +43,7 @@ class PrepareHookUnitBase(TestCase):
         self.apigw_stage_name = "my_stage"
         self.apigw_rest_api_name = "my_rest_api"
         self.apigw_method_name = "my_method"
+        self.apigw_integration_name = "my_integration"
 
         self.tf_function_common_properties: dict = {
             "function_name": self.zip_function_name,
@@ -322,6 +324,11 @@ class PrepareHookUnitBase(TestCase):
             "provider_name": AWS_PROVIDER_NAME,
         }
 
+        self.tf_apigw_integration_common_attributes: dict = {
+            "type": "aws_api_gateway_integration",
+            "provider_name": AWS_PROVIDER_NAME,
+        }
+
         self.tf_apigw_method_common_attributes: dict = {
             "type": "aws_api_gateway_method",
             "provider_name": AWS_PROVIDER_NAME,
@@ -521,6 +528,39 @@ class PrepareHookUnitBase(TestCase):
             "Metadata": {"SamResourceId": f"aws_api_gateway_resource.{self.apigw_resource_name}"},
         }
 
+        self.tf_apigw_integration_properties: dict = {
+            "rest_api_id": "aws_api_gateway_rest_api.MyDemoAPI.id",
+            "resource_id": "aws_api_gateway_resource.MyResource.id",
+            "http_method": "POST",
+            "type": "AWS_PROXY",
+            "uri": "https://www.google.com",
+            "content_handling": "CONVERT_TO_TEXT",
+            "connection_type": "INTERNET",
+        }
+
+        self.expected_internal_apigw_integration_properties: dict = {
+            "RestApiId": "aws_api_gateway_rest_api.MyDemoAPI.id",
+            "ResourceId": "aws_api_gateway_resource.MyResource.id",
+            "HttpMethod": "POST",
+            "Type": "AWS_PROXY",
+            "Uri": "https://www.google.com",
+            "ContentHandling": "CONVERT_TO_TEXT",
+            "ConnectionType": "INTERNET",
+        }
+
+        self.tf_apigw_integration_resource: dict = {
+            **self.tf_apigw_integration_common_attributes,
+            "values": self.tf_apigw_integration_properties,
+            "address": f"aws_api_gateway_integration.{self.apigw_integration_name}",
+            "name": self.apigw_integration_name,
+        }
+
+        self.expected_internal_apigw_integration: dict = {
+            "Type": INTERNAL_API_GATEWAY_INTEGRATION,
+            "Properties": self.expected_internal_apigw_integration_properties,
+            "Metadata": {"SamResourceId": f"aws_api_gateway_integration.{self.apigw_integration_name}"},
+        }
+
         self.tf_apigw_method_properties: dict = {
             "rest_api_id": "aws_api_gateway_rest_api.MyDemoAPI.id",
             "resource_id": "aws_api_gateway_resource.MyDemoResource.id",
@@ -623,6 +663,7 @@ class PrepareHookUnitBase(TestCase):
                         self.tf_apigw_rest_api_resource,
                         self.tf_apigw_stage_resource,
                         self.tf_apigw_method_resource,
+                        self.tf_apigw_integration_resource,
                     ]
                 }
             }
