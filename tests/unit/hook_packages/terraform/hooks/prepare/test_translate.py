@@ -74,6 +74,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
             self.assertEqual(translated_cfn_dict, expected_empty_cfn_dict)
             mock_enrich_resources_and_generate_makefile.assert_not_called()
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.add_integrations_to_methods")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._handle_linking")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._check_dummy_remote_values")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._build_module")
@@ -88,6 +89,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         mock_build_module,
         mock_check_dummy_remote_values,
         mock_handle_linking,
+        mock_add_integrations_to_methods,
     ):
         root_module = MagicMock()
         root_module.get.return_value = "module.m1"
@@ -118,6 +120,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
             resource=self.tf_apigw_rest_api_resource, config_resource=config_resource
         )
         mock_validator.return_value.validate.assert_called_once()
+        mock_add_integrations_to_methods.assert_called_once()
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._resolve_resource_attribute")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._check_dummy_remote_values")
@@ -201,6 +204,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         mock_handle_linking.assert_called_once()
         mock_check_dummy_remote_values.assert_called_once_with(translated_cfn_dict.get("Resources"))
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.add_integrations_to_methods")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._handle_linking")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.get_resource_property_mapping")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.isinstance")
@@ -223,6 +227,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         mock_isinstance,
         mock_resource_property_mapping,
         mock_handle_linking,
+        mock_add_integrations_to_methods,
     ):
         root_module = MagicMock()
         root_module.get.return_value = "module.m1"
