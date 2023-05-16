@@ -202,6 +202,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         mock_handle_linking.assert_called_once()
         mock_check_dummy_remote_values.assert_called_once_with(translated_cfn_dict.get("Resources"))
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.add_integrations_to_methods")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._handle_linking")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.get_resource_property_mapping")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.isinstance")
@@ -224,6 +225,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         mock_isinstance,
         mock_resource_property_mapping,
         mock_handle_linking,
+        mock_add_integrations_to_methods,
     ):
         root_module = MagicMock()
         root_module.get.return_value = "module.m1"

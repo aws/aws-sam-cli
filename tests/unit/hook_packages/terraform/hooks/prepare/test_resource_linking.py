@@ -1870,7 +1870,12 @@ class TestResourceLinker(TestCase):
     ):
         gateway_integrations_config_resources = Mock()
         terraform_resources_resources = Mock()
-        resources = Mock()
+        proxy_resource = TFResource("resource_address", "type", Mock(), {"type": ConstantValue("AWS_PROXY")})
+        resources = {
+            "ResourceA": proxy_resource,
+            "ResourceB": TFResource("resource_address", "type", Mock(), {"type": ConstantValue("MOCK")})
+        }
+        expected_aws_proxy_integrations = {"ResourceA": proxy_resource}
         _link_gateway_integrations_to_function_resource(
             resources, gateway_integrations_config_resources, terraform_resources_resources
         )
@@ -1880,7 +1885,7 @@ class TestResourceLinker(TestCase):
         )
         mock_resource_linking_pair.assert_called_once_with(
             source_resource_cfn_resource=gateway_integrations_config_resources,
-            source_resource_tf_config=resources,
+            source_resource_tf_config=expected_aws_proxy_integrations,
             destination_resource_tf=terraform_resources_resources,
             tf_destination_attribute_name="invoke_arn",
             terraform_link_field_name="uri",
