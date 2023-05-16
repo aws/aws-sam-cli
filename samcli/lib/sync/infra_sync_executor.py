@@ -188,7 +188,7 @@ class InfraSyncExecutor:
                     # If higher than the threshold, we perform infra sync to improve performance
                     if len(self.code_sync_resources) < SYNC_FLOW_THRESHOLD:
                         LOG.info("Template haven't been changed since last deployment, skipping infra sync...")
-                        EventTracker.track_event("SyncFlowEnd", "SkipInfraSyncExecute")
+                        EventTracker.track_event("SyncFlowEnd", "SkipInfraSyncExecute", thread_id=thread_id)
                         return InfraSyncResult(False, self.code_sync_resources)
                     else:
                         LOG.info(
