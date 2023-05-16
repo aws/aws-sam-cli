@@ -1873,7 +1873,7 @@ class TestResourceLinker(TestCase):
         proxy_resource = TFResource("resource_address", "type", Mock(), {"type": ConstantValue("AWS_PROXY")})
         resources = {
             "ResourceA": proxy_resource,
-            "ResourceB": TFResource("resource_address", "type", Mock(), {"type": ConstantValue("MOCK")})
+            "ResourceB": TFResource("resource_address", "type", Mock(), {"type": ConstantValue("MOCK")}),
         }
         expected_aws_proxy_integrations = {"ResourceA": proxy_resource}
         _link_gateway_integrations_to_function_resource(

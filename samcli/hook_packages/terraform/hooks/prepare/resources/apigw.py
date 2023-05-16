@@ -12,7 +12,6 @@ from samcli.hook_packages.terraform.hooks.prepare.types import (
     ResourceTranslationValidator,
     TFResource,
 )
-from samcli.lib.utils.resources import AWS_APIGATEWAY_METHOD
 
 LOG = logging.getLogger(__name__)
 
@@ -135,17 +134,14 @@ def add_integrations_to_methods(
         Dict containing Internal API Gateway integrations to be appended to the CFN dict
     """
     for config_address, cfn_dicts in gateway_methods_cfn.items():
-        for resource in cfn_dicts:
-            if resource.get("Type", "") == AWS_APIGATEWAY_METHOD:
-                resource_properties = resource.get("Properties", {})
-                search_key = _gateway_method_integration_identifier(resource_properties)
-                integration_properties = _find_gateway_integration(search_key, gateway_integrations_cfn)
-                if not integration_properties:
-                    LOG.debug(
-                        "A corresponding gateway integration for the gateway method %s was not found", config_address
-                    )
-                    continue
-                _create_gateway_method_integration(resource, integration_properties)
+        for method_resource in cfn_dicts:
+            resource_properties = method_resource.get("Properties", {})
+            search_key = _gateway_method_integration_identifier(resource_properties)
+            integration_properties = _find_gateway_integration(search_key, gateway_integrations_cfn)
+            if not integration_properties:
+                LOG.debug("A corresponding gateway integration for the gateway method %s was not found", config_address)
+                continue
+            _create_gateway_method_integration(method_resource, integration_properties)
 
 
 def _find_gateway_integration(search_key: set, gateway_integrations_cfn: Dict[str, List]) -> Optional[dict]:
