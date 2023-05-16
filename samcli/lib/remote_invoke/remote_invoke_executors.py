@@ -8,6 +8,8 @@ from io import TextIOWrapper
 from pathlib import Path
 from typing import Any, Callable, List, Optional, Union, cast
 
+from samcli.lib.remote_invoke.exceptions import InvalidResourceBotoParameterException
+
 LOG = logging.getLogger(__name__)
 
 
@@ -25,15 +27,27 @@ class RemoteInvokeExecutionInfo:
     # Request related properties
     payload: Optional[Union[str, List, dict]]
     payload_file: Optional[TextIOWrapper]
+    parameters: dict
+    output_format: str
 
     # Response related properties
     response: Optional[Union[dict, str]]
+    stderr_str: Optional[str]
     exception: Optional[Exception]
 
-    def __init__(self, payload: Optional[Union[str, List, dict]], payload_file: Optional[TextIOWrapper]):
+    def __init__(
+        self,
+        payload: Optional[Union[str, List, dict]],
+        payload_file: Optional[TextIOWrapper],
+        parameters: dict,
+        output_format: str,
+    ):
         self.payload = payload
         self.payload_file = payload_file
+        self.parameters = parameters
+        self.output_format = output_format
         self.response = None
+        self.stderr_str = None
         self.exception = None
 
     def is_file_provided(self) -> bool:
@@ -94,6 +108,15 @@ class BotoActionExecutor(ABC):
         -------
             Response dictionary from the API call
 
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def validate_action_parameters(self, parameters: dict):
+        """
+        Validates the input boto3 parameters before calling the API
+
+        :param parameters: Boto parameters passed as input
         """
         raise NotImplementedError()
 
@@ -177,11 +200,17 @@ class RemoteInvokeExecutor:
     def execute(self, remote_invoke_input: RemoteInvokeExecutionInfo) -> RemoteInvokeExecutionInfo:
         """
         First runs all mappers for request object to get the final version of it.
-        Then invokes the BotoActionExecutor to get the result
+        Then validates all the input boto parameters and invokes the BotoActionExecutor to get the result
         And finally, runs all mappers for the response object to get the final form of it.
         """
         remote_invoke_input = self._map_input(remote_invoke_input)
-        remote_invoke_output = self._boto_action_executor.execute(remote_invoke_input)
+        remote_invoke_output = None
+        try:
+            self._boto_action_executor.validate_action_parameters(remote_invoke_input.parameters)
+            remote_invoke_output = self._boto_action_executor.execute(remote_invoke_input)
+        except InvalidResourceBotoParameterException as invalid_parameter_ex:
+            remote_invoke_output = remote_invoke_input
+            remote_invoke_output.exception = invalid_parameter_ex
 
         # call output mappers if the action is succeeded
         if remote_invoke_output.is_succeeded():
