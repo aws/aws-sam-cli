@@ -15,6 +15,8 @@ from samcli.hook_packages.terraform.hooks.prepare.enrich import enrich_resources
 from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     REMOTE_DUMMY_VALUE,
     RESOURCE_TRANSLATOR_MAPPING,
+    TF_AWS_API_GATEWAY_INTEGRATION,
+    TF_AWS_API_GATEWAY_METHOD,
     TF_AWS_API_GATEWAY_REST_API,
     PropertyBuilderMapping,
 )
@@ -22,7 +24,10 @@ from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     _build_module,
     _resolve_resource_attribute,
 )
-from samcli.hook_packages.terraform.hooks.prepare.resources.apigw import RESTAPITranslationValidator
+from samcli.hook_packages.terraform.hooks.prepare.resources.apigw import (
+    RESTAPITranslationValidator,
+    add_integrations_to_methods,
+)
 from samcli.hook_packages.terraform.hooks.prepare.resources.internal import INTERNAL_PREFIX
 from samcli.hook_packages.terraform.hooks.prepare.resources.resource_links import RESOURCE_LINKS
 from samcli.hook_packages.terraform.hooks.prepare.resources.resource_properties import get_resource_property_mapping
@@ -227,6 +232,11 @@ def translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_applic
     _map_s3_sources_to_functions(s3_hash_to_source, cfn_dict.get("Resources", {}), lambda_resources_to_code_map)
 
     _handle_linking(resource_property_mapping)
+
+    add_integrations_to_methods(
+        resource_property_mapping.get(TF_AWS_API_GATEWAY_METHOD, ResourceProperties()).cfn_resources,
+        resource_property_mapping.get(TF_AWS_API_GATEWAY_INTEGRATION, ResourceProperties()).cfn_resources,
+    )
 
     if sam_metadata_resources:
         LOG.debug("Enrich the mapped resources with the sam metadata information and generate Makefile")
