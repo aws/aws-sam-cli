@@ -7,6 +7,7 @@ import threading
 from datetime import datetime
 from enum import Enum
 from typing import List, Optional
+from uuid import UUID, uuid4
 
 from samcli.cli.context import Context
 from samcli.lib.build.workflows import ALL_CONFIGS
@@ -83,14 +84,19 @@ class Event:
 
     event_name: EventName
     event_value: str  # Validated by EventType.get_accepted_values to never be an arbitrary string
-    thread_id = threading.get_ident()  # The thread ID; used to group Events from the same command run
+    thread_id: Optional[UUID]  # The thread ID; used to group Events from the same command run
     time_stamp: str
     exception_name: Optional[str]
 
-    def __init__(self, event_name: str, event_value: str, exception_name: Optional[str] = None):
+    def __init__(
+        self, event_name: str, event_value: str, thread_id: Optional[UUID] = None, exception_name: Optional[str] = None
+    ):
         Event._verify_event(event_name, event_value)
         self.event_name = EventName(event_name)
         self.event_value = event_value
+        if not thread_id:
+            thread_id = uuid4()
+        self.thread_id = thread_id
         self.time_stamp = str(datetime.utcnow())[:-3]  # format microseconds from 6 -> 3 figures to allow SQL casting
         self.exception_name = exception_name
 
@@ -105,7 +111,7 @@ class Event:
         return (
             f"Event(event_name={self.event_name.value}, "
             f"event_value={self.event_value}, "
-            f"thread_id={self.thread_id}, "
+            f"thread_id={self.thread_id.hex}, "
             f"time_stamp={self.time_stamp})",
             f"exception_name={self.exception_name})",
         )
@@ -114,7 +120,7 @@ class Event:
         return {
             "event_name": self.event_name.value,
             "event_value": self.event_value,
-            "thread_id": self.thread_id,
+            "thread_id": self.thread_id.hex,
             "time_stamp": self.time_stamp,
             "exception_name": self.exception_name,
         }
@@ -144,7 +150,11 @@ class EventTracker:
 
     @staticmethod
     def track_event(
-        event_name: str, event_value: str, session_id: Optional[str] = None, exception_name: Optional[str] = None
+        event_name: str,
+        event_value: str,
+        session_id: Optional[str] = None,
+        thread_id: Optional[UUID] = None,
+        exception_name: Optional[str] = None,
     ):
         """Method to track an event where and when it occurs.
 
@@ -162,6 +172,8 @@ class EventTracker:
             passed event_name, or an EventCreationError will be thrown.
         session_id: Optional[str]
             The session ID to set to link back to the original command run
+        thread_id: Optional[UUID]
+            The thread ID of the Event to track, as a UUID.
         exception_name: Optional[str]
             The name of the exception that this event encountered when tracking a feature
 
@@ -182,8 +194,13 @@ class EventTracker:
 
         try:
             should_send: bool = False
+            # Validate the thread ID
+            if not thread_id:  # Passed value is not a UUID or None
+                thread_id = uuid4()
             with EventTracker._event_lock:
-                EventTracker._events.append(Event(event_name, event_value, exception_name=exception_name))
+                EventTracker._events.append(
+                    Event(event_name, event_value, thread_id=thread_id, exception_name=exception_name)
+                )
 
                 # Get the session ID (needed for multithreading sending)
                 EventTracker._set_session_id()
@@ -248,7 +265,13 @@ class EventTracker:
         telemetry.emit(metric)
 
 
-def track_long_event(start_event_name: str, start_event_value: str, end_event_name: str, end_event_value: str):
+def track_long_event(
+    start_event_name: str,
+    start_event_value: str,
+    end_event_name: str,
+    end_event_value: str,
+    thread_id: Optional[UUID] = None,
+):
     """Decorator for tracking events that occur at start and end of a function.
 
     The decorator tracks two Events total, where the first Event occurs
@@ -281,6 +304,8 @@ def track_long_event(start_event_name: str, start_event_value: str, end_event_na
         decorated function's execution. Must be a valid EventType
         value for the passed `end_event_name` or the decorator
         will not run.
+    thread_id: Optional[UUID]
+        The thread ID of the Events to track, as a UUID.
 
     Examples
     --------
@@ -297,6 +322,9 @@ def track_long_event(start_event_name: str, start_event_value: str, end_event_na
         # Check that passed values are valid Events
         Event(start_event_name, start_event_value)
         Event(end_event_name, end_event_value)
+        # Validate the thread ID
+        if not thread_id:  # Passed value is not a UUID or None
+            thread_id = uuid4()
     except EventCreationError as e:
         LOG.debug("Error occurred while trying to track an event: %s\nDecorator not run.", e)
         should_track = False
@@ -307,7 +335,7 @@ def track_long_event(start_event_name: str, start_event_value: str, end_event_na
         def wrapped(*args, **kwargs):
             # Track starting event
             if should_track:
-                EventTracker.track_event(start_event_name, start_event_value)
+                EventTracker.track_event(start_event_name, start_event_value, thread_id=thread_id)
             exception = None
             # Run the function
             try:
@@ -316,7 +344,7 @@ def track_long_event(start_event_name: str, start_event_value: str, end_event_na
                 exception = e
             # Track ending event
             if should_track:
-                EventTracker.track_event(end_event_name, end_event_value)
+                EventTracker.track_event(end_event_name, end_event_value, thread_id=thread_id)
                 EventTracker.send_events()  # Ensure Events are sent at the end of execution
             if exception:
                 raise exception
