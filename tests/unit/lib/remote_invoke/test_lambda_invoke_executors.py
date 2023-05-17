@@ -1,5 +1,5 @@
 from unittest import TestCase
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 from parameterized import parameterized, parameterized_class
 
 from samcli.lib.remote_invoke.lambda_invoke_executors import (
@@ -8,6 +8,9 @@ from samcli.lib.remote_invoke.lambda_invoke_executors import (
     LambdaResponseConverter,
     LambdaResponseOutputFormatter,
     InvalidResourceBotoParameterException,
+    RemoteInvokeOutputFormat,
+    ClientError,
+    ParamValidationError
 )
 from samcli.lib.remote_invoke.remote_invoke_executors import RemoteInvokeExecutionInfo
 
@@ -29,6 +32,21 @@ class TestLambdaInvokeExecutor(TestCase):
         self.lambda_client.invoke.assert_called_with(
             FunctionName=self.function_name, Payload=given_payload, InvocationType="RequestResponse", LogType="Tail"
         )
+
+    def test_execute_action_invalid_parameter_value_throws_validation_exception(self):
+        given_payload = Mock()
+        error = ClientError(
+            error_response={"Error": {"Code": "ValidationException"}}, operation_name="invoke")
+        self.lambda_client.invoke.side_effect = error
+        with self.assertRaises(InvalidResourceBotoParameterException):
+            self.lambda_invoke_executor._execute_action(given_payload)
+    
+    def test_execute_action_invalid_parameter_key_throws_parameter_validation_exception(self):
+        given_payload = Mock()
+        error = ParamValidationError(report='Invalid parameters')
+        self.lambda_client.invoke.side_effect = error
+        with self.assertRaises(InvalidResourceBotoParameterException):
+            self.lambda_invoke_executor._execute_action(given_payload)
 
     @parameterized.expand(
         [
@@ -52,36 +70,26 @@ class TestLambdaInvokeExecutor(TestCase):
         self.lambda_invoke_executor.validate_action_parameters(parameters)
         self.assertEqual(self.lambda_invoke_executor.request_parameters, expected_boto_parameters)
 
-    @parameterized.expand(
-        [
-            ({"InvalidParameter": "RequestResponse", "Log": "Tail"},),
-            ({"InvocationType": "Async"},),
-            ({"LogType": "WrongValue", "Qualifier": "TestQualifier"},),
-        ]
-    )
-    def test_invalid_boto_parameters(self, parameters):
-        print(parameters)
-        with self.assertRaises(InvalidResourceBotoParameterException):
-            self.lambda_invoke_executor.validate_action_parameters(parameters)
-
 
 class TestDefaultConvertToJSON(TestCase):
     def setUp(self) -> None:
         self.lambda_convert_to_default_json = DefaultConvertToJSON()
+        self.output_format = RemoteInvokeOutputFormat.DEFAULT
 
-    def test_conversion(self):
-        given_string = "Hello World"
-        remote_invoke_execution_info = RemoteInvokeExecutionInfo(given_string, None, {}, "default")
-
-        expected_string = '"Hello World"'
-
+    @parameterized.expand(
+        [
+            ("Hello World", '"Hello World"'),
+            ('{"message": "hello world"}', '{"message": "hello world"}'),
+        ]
+    )
+    def test_conversion(self, given_string, expected_string):
+        remote_invoke_execution_info = RemoteInvokeExecutionInfo(given_string, None, {}, self.output_format)
         result = self.lambda_convert_to_default_json.map(remote_invoke_execution_info)
-
         self.assertEqual(result.payload, expected_string)
 
     def test_skip_conversion_if_file_provided(self):
         given_payload_path = "foo/bar/event.json"
-        remote_invoke_execution_info = RemoteInvokeExecutionInfo(None, given_payload_path, {}, "default")
+        remote_invoke_execution_info = RemoteInvokeExecutionInfo(None, given_payload_path, {}, self.output_format)
 
         self.assertTrue(remote_invoke_execution_info.is_file_provided())
         result = self.lambda_convert_to_default_json.map(remote_invoke_execution_info)
@@ -94,11 +102,12 @@ class TestLambdaResponseConverter(TestCase):
         self.lambda_response_converter = LambdaResponseConverter()
 
     def test_lambda_streaming_body_response_conversion(self):
+        output_format = RemoteInvokeOutputFormat.DEFAULT
         given_streaming_body = Mock()
         given_decoded_string = "decoded string"
         given_streaming_body.read().decode.return_value = given_decoded_string
         given_test_result = {"Payload": given_streaming_body}
-        remote_invoke_execution_info = RemoteInvokeExecutionInfo(None, None, {}, "default")
+        remote_invoke_execution_info = RemoteInvokeExecutionInfo(None, None, {}, output_format)
         remote_invoke_execution_info.response = given_test_result
 
         expected_result = {"Payload": given_decoded_string}
@@ -114,7 +123,7 @@ class TestLambdaResponseOutputFormatter(TestCase):
 
     def test_lambda_response_original_boto_output_formatter(self):
         given_response = {"Payload": {"StatusCode": 200, "message": "hello world"}}
-        output_format = "original-boto-response"
+        output_format = RemoteInvokeOutputFormat.ORIGINAL_BOTO_RESPONSE
 
         remote_invoke_execution_info = RemoteInvokeExecutionInfo(None, None, {}, output_format)
         remote_invoke_execution_info.response = given_response
@@ -128,7 +137,7 @@ class TestLambdaResponseOutputFormatter(TestCase):
         log_str_mock = Mock()
         base64_mock.b64decode().decode.return_value = decoded_log_str
         given_response = {"Payload": {"StatusCode": 200, "message": "hello world"}, "LogResult": log_str_mock}
-        output_format = "default"
+        output_format = RemoteInvokeOutputFormat.DEFAULT
 
         remote_invoke_execution_info = RemoteInvokeExecutionInfo(None, None, {}, output_format)
         remote_invoke_execution_info.response = given_response
@@ -147,7 +156,7 @@ class TestLambdaResponseOutputFormatter(TestCase):
     )
     def test_non_default_invocation_type_output_formatter(self, parameters):
         given_response = {"StatusCode": 200, "Payload": {"StatusCode": 200, "message": "hello world"}}
-        output_format = "default"
+        output_format = RemoteInvokeOutputFormat.DEFAULT
 
         remote_invoke_execution_info = RemoteInvokeExecutionInfo(None, None, parameters, output_format)
         remote_invoke_execution_info.response = given_response

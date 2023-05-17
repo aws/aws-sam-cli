@@ -1,9 +1,10 @@
 """
 Exceptions used by remote invoke executors
 """
+from samcli.commands.exceptions import UserException
 
 
-class InvalidResourceBotoParameterException(Exception):
+class InvalidResourceBotoParameterException(UserException):
     msg: str
 
     def __init__(self, msg: str) -> None:

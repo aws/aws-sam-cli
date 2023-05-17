@@ -10,27 +10,30 @@ from samcli.lib.remote_invoke.remote_invoke_executors import (
     RemoteInvokeExecutor,
     ResponseObjectToJsonStringMapper,
     RemoteInvokeRequestResponseMapper,
+    RemoteInvokeOutputFormat
 )
 
 
 class TestRemoteInvokeExecutionInfo(TestCase):
+    def setUp(self) -> None:
+        self.output_format = RemoteInvokeOutputFormat.DEFAULT
     def test_execution_info_payload(self):
         given_payload = Mock()
         given_parameters = {"ExampleParameter": "ExampleValue"}
-        given_output_format = "default"
 
-        test_execution_info = RemoteInvokeExecutionInfo(given_payload, None, given_parameters, given_output_format)
+        test_execution_info = RemoteInvokeExecutionInfo(
+            given_payload, None, given_parameters, self.output_format
+        )
 
         self.assertEqual(given_payload, test_execution_info.payload)
         self.assertEqual(given_parameters, test_execution_info.parameters)
-        self.assertEqual(given_output_format, test_execution_info.output_format)
+        self.assertEqual(self.output_format, test_execution_info.output_format)
         self.assertFalse(test_execution_info.is_file_provided())
         self.assertIsNone(test_execution_info.payload_file_path)
 
     def test_execution_info_payload_file(self):
         given_payload_file = Mock()
-
-        test_execution_info = RemoteInvokeExecutionInfo(None, given_payload_file, {}, "default")
+        test_execution_info = RemoteInvokeExecutionInfo(None, given_payload_file, {}, self.output_format)
 
         self.assertIsNone(test_execution_info.payload)
         self.assertTrue(test_execution_info.is_file_provided())
@@ -42,7 +45,7 @@ class TestRemoteInvokeExecutionInfo(TestCase):
     def test_execution_success(self):
         given_response = Mock()
 
-        test_execution_info = RemoteInvokeExecutionInfo(None, None, {}, "default")
+        test_execution_info = RemoteInvokeExecutionInfo(None, None, {}, self.output_format)
         test_execution_info.response = given_response
 
         self.assertTrue(test_execution_info.is_succeeded())
@@ -51,7 +54,7 @@ class TestRemoteInvokeExecutionInfo(TestCase):
     def test_execution_failed(self):
         given_exception = Mock()
 
-        test_execution_info = RemoteInvokeExecutionInfo(None, None, {}, "default")
+        test_execution_info = RemoteInvokeExecutionInfo(None, None, {}, self.output_format)
         test_execution_info.exception = given_exception
 
         self.assertFalse(test_execution_info.is_succeeded())
@@ -190,8 +193,9 @@ class TestRemoteInvokeExecutor(TestCase):
 
 class TestResponseObjectToJsonStringMapper(TestCase):
     def test_mapper(self):
+        output_format = RemoteInvokeOutputFormat.DEFAULT
         given_object = [{"key": "value", "key2": 123}]
-        test_execution_info = RemoteInvokeExecutionInfo(None, None, {}, "default")
+        test_execution_info = RemoteInvokeExecutionInfo(None, None, {}, output_format)
         test_execution_info.response = given_object
 
         mapper = ResponseObjectToJsonStringMapper()

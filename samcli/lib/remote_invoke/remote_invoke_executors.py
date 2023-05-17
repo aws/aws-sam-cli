@@ -4,13 +4,21 @@ Abstract class definitions and generic implementations for remote invoke
 import json
 import logging
 from abc import ABC, abstractmethod
+from enum import Enum
 from io import TextIOWrapper
 from pathlib import Path
 from typing import Any, Callable, List, Optional, Union, cast
 
-from samcli.lib.remote_invoke.exceptions import InvalidResourceBotoParameterException
-
 LOG = logging.getLogger(__name__)
+
+
+class RemoteInvokeOutputFormat(Enum):
+    """
+    Types of output formats used to by remote invoke
+    """
+
+    DEFAULT = "default"
+    ORIGINAL_BOTO_RESPONSE = "original-boto-response"
 
 
 class RemoteInvokeExecutionInfo:
@@ -28,7 +36,7 @@ class RemoteInvokeExecutionInfo:
     payload: Optional[Union[str, List, dict]]
     payload_file: Optional[TextIOWrapper]
     parameters: dict
-    output_format: str
+    output_format: RemoteInvokeOutputFormat
 
     # Response related properties
     response: Optional[Union[dict, str]]
@@ -40,7 +48,7 @@ class RemoteInvokeExecutionInfo:
         payload: Optional[Union[str, List, dict]],
         payload_file: Optional[TextIOWrapper],
         parameters: dict,
-        output_format: str,
+        output_format: RemoteInvokeOutputFormat,
     ):
         self.payload = payload
         self.payload_file = payload_file
@@ -168,7 +176,6 @@ class BotoActionExecutor(ABC):
             action_response = action_executor(payload)
             remote_invoke_input.response = action_response
         except Exception as e:
-            LOG.error("Failed while executing boto action", exc_info=e)
             remote_invoke_input.exception = e
 
         return remote_invoke_input
@@ -205,12 +212,8 @@ class RemoteInvokeExecutor:
         """
         remote_invoke_input = self._map_input(remote_invoke_input)
         remote_invoke_output = None
-        try:
-            self._boto_action_executor.validate_action_parameters(remote_invoke_input.parameters)
-            remote_invoke_output = self._boto_action_executor.execute(remote_invoke_input)
-        except InvalidResourceBotoParameterException as invalid_parameter_ex:
-            remote_invoke_output = remote_invoke_input
-            remote_invoke_output.exception = invalid_parameter_ex
+        self._boto_action_executor.validate_action_parameters(remote_invoke_input.parameters)
+        remote_invoke_output = self._boto_action_executor.execute(remote_invoke_input)
 
         # call output mappers if the action is succeeded
         if remote_invoke_output.is_succeeded():
