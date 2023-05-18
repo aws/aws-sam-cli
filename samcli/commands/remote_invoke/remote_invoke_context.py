@@ -87,7 +87,7 @@ class RemoteInvokeContext:
         """
         LOG.debug(
             "Trying to get single resource with %s type in % stack since no resource id is provided",
-            AWS_LAMBDA_FUNCTION,
+            SUPPORTED_SERVICES.values(),
             self._stack_name,
         )
         resource_summaries = get_resource_summaries(
