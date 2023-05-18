@@ -76,6 +76,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
             self.assertEqual(translated_cfn_dict, expected_empty_cfn_dict)
             mock_enrich_resources_and_generate_makefile.assert_not_called()
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.add_integration_responses_to_methods")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.add_integrations_to_methods")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._handle_linking")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._check_dummy_remote_values")
@@ -92,6 +93,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         mock_check_dummy_remote_values,
         mock_handle_linking,
         mock_add_integrations_to_methods,
+        mock_add_integration_responses_to_methods,
     ):
         root_module = MagicMock()
         root_module.get.return_value = "module.m1"
@@ -123,6 +125,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         )
         mock_validator.return_value.validate.assert_called_once()
         mock_add_integrations_to_methods.assert_called_once()
+        mock_add_integration_responses_to_methods.assert_called_once()
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._resolve_resource_attribute")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._check_dummy_remote_values")
@@ -206,6 +209,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         mock_handle_linking.assert_called_once()
         mock_check_dummy_remote_values.assert_called_once_with(translated_cfn_dict.get("Resources"))
 
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.add_integration_responses_to_methods")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.add_integrations_to_methods")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._handle_linking")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.get_resource_property_mapping")
@@ -230,6 +234,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         mock_resource_property_mapping,
         mock_handle_linking,
         mock_add_integrations_to_methods,
+        mock_add_integration_responses_to_methods,
     ):
         root_module = MagicMock()
         root_module.get.return_value = "module.m1"
