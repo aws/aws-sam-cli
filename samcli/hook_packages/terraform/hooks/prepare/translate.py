@@ -76,14 +76,14 @@ def _get_modules(root_module: dict, root_tf_module: TFModule) -> Tuple[dict, TFM
     Parameters
     ----------
     root_module: dict
-        a
+        The root level planned values dictionary
     root_tf_module: TFModule
-        a
+        The TFModule class representation of the configuration values
 
-    Returns
-    -------
+    Yields
+    ------
     Tuple[dict, TFModule]
-        a
+        A tuple of the current module's planned values and TFModule representation of configuration values
     """
     queue = [(root_module, root_tf_module)]
 
@@ -103,9 +103,9 @@ def _check_unresolvable_values(root_module: dict, root_tf_module: TFModule) -> N
     Parameters
     ----------
     root_module: dict
-        a
+        The root level planned values dictionary
     root_tf_module: TFModule
-        a
+        The TFModule class representation of the configuration values
     """
 
     for curr_module, curr_tf_module in _get_modules(root_module, root_tf_module):
@@ -131,7 +131,7 @@ def _check_unresolvable_values(root_module: dict, root_tf_module: TFModule) -> N
                 if config_values and not planned_values:
                     LOG.warning(
                         Colored().yellow(
-                            f"\nFailed to map to the Cloudformation property '{key}' for "
+                            f"\nUnable to map to the Cloudformation property '{key}' for "
                             f"'{resource_full_address}'.\n{APPLY_WORK_AROUND_MESSAGE}\n"
                         )
                     )
