@@ -144,10 +144,50 @@ def add_integrations_to_methods(
             _create_gateway_method_integration(method_resource, integration_properties)
 
 
+def add_integration_responses_to_methods(
+    gateway_methods_cfn: Dict[str, List], gateway_integration_responses_cfn: Dict[str, List]
+) -> None:
+    """
+    Iterate through all the API Gateway methods in the translated CFN dict. For each API Gateway method,
+    search the internal integration response resources using the responses' unique identifier to find the
+    one that corresponds with that API Gateway method. Once found, update the matched Method resource to update its
+    integration property to append the properties of the internal integration response resource to its
+    IntegrationResponses list.
+    E.g.
+    AwsApiGatewayMethod:
+      Type: AWS::ApiGateway::Method
+      Properties:
+        Integration:
+          Uri: Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${function.Arn}/invocations
+          IntegrationResponses:
+            - ResponseParameters:
+                - "method.response.header.X-Some-Header": "integration.response.header.X-Some-Other-Header"
+    Parameters
+    ----------
+    gateway_methods_cfn: Dict[str, List]
+        Dict containing API Gateway Methods to be mutated with addition integration properties
+    gateway_integration_responses_cfn: Dict[str, List]
+        Dict containing Internal API Gateway integration responses to be appended to the CFN dict
+    """
+    for config_address, cfn_dicts in gateway_methods_cfn.items():
+        for method_resource in cfn_dicts:
+            method_resource_properties = method_resource.get("Properties", {})
+            search_key = _gateway_method_integration_identifier(method_resource_properties)
+            integration_response_properties = _find_gateway_integration(search_key, gateway_integration_responses_cfn)
+            if not integration_response_properties:
+                LOG.debug(
+                    "A corresponding gateway integration response for the gateway method %s was not found",
+                    config_address,
+                )
+                continue
+
+            _create_gateway_method_integration_response(method_resource, integration_response_properties)
+
+
 def _find_gateway_integration(search_key: set, gateway_integrations_cfn: Dict[str, List]) -> Optional[dict]:
     """
-    Iterate through all internal API Gateway integrations and search of an
-    integration whose unique identifier matches the given search key.
+    Iterate through all internal API Gateway integration or integration response and search of an
+    integration / integration  response whose unique identifier matches the given search key.
 
     Parameters
     ----------
@@ -158,7 +198,7 @@ def _find_gateway_integration(search_key: set, gateway_integrations_cfn: Dict[st
 
     Returns
     -------
-        Properties of the internal API Gateway integration if found, otherwise returns None
+        Properties of the internal API Gateway integration / integration response if found, otherwise returns None
 
     """
     for _, gateway_integrations in gateway_integrations_cfn.items():
@@ -235,3 +275,26 @@ def _create_gateway_method_integration(method_resource: dict, integration_resour
         property_value = integration_resource_properties.get(integration_property, "")
         if property_value:
             method_resource["Properties"]["Integration"][integration_property] = property_value
+
+
+def _create_gateway_method_integration_response(
+    method_resource: dict, integration_response_resource_properties: dict
+) -> None:
+    """
+    Set the relevant resource properties defined in the integration response internal resource on the API Gateway
+    method resource Integration field
+
+    Parameters
+    ----------
+    method_resource: dict
+        Dict containing the AWS CFN resource for the API Gateway method resource
+    integration_response_resource_properties: dict
+        Dict containing the resource properties from the Internal Gateway Integration Response CFN resource
+    """
+    integration_resource = method_resource["Properties"].get("Integration", {})
+    integration_responses_list = integration_resource.get("IntegrationResponses", [])
+    integration_responses_list.append(
+        {"ResponseParameters": integration_response_resource_properties.get("ResponseParameters", {})}
+    )
+    integration_resource["IntegrationResponses"] = integration_responses_list
+    method_resource["Properties"]["Integration"] = integration_resource
