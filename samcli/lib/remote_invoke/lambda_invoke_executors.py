@@ -10,7 +10,7 @@ from typing import Any, Dict, cast
 from botocore.exceptions import ClientError, ParamValidationError
 from botocore.response import StreamingBody
 
-from samcli.lib.remote_invoke.exceptions import InvalidResourceBotoParameterException
+from samcli.lib.remote_invoke.exceptions import InvalideBotoResponseException, InvalidResourceBotoParameterException
 from samcli.lib.remote_invoke.remote_invoke_executors import (
     BotoActionExecutor,
     RemoteInvokeExecutionInfo,
@@ -20,6 +20,8 @@ from samcli.lib.remote_invoke.remote_invoke_executors import (
 from samcli.lib.utils import boto_utils
 
 LOG = logging.getLogger(__name__)
+FUNCTION_NAME = "FunctionName"
+PAYLOAD = "Payload"
 
 
 class LambdaInvokeExecutor(BotoActionExecutor):
@@ -43,9 +45,9 @@ class LambdaInvokeExecutor(BotoActionExecutor):
         :param parameters: Boto parameters provided as input
         """
         for parameter_key, parameter_value in parameters.items():
-            if parameter_key == "FunctionName":
+            if parameter_key == FUNCTION_NAME:
                 LOG.warning("FunctionName is defined using the value provided for --resource-id option.")
-            elif parameter_key == "Payload":
+            elif parameter_key == PAYLOAD:
                 LOG.warning(
                     "Payload is defined using the value provided for either --payload or --payload-file options."
                 )
@@ -53,8 +55,8 @@ class LambdaInvokeExecutor(BotoActionExecutor):
                 self.request_parameters[parameter_key] = parameter_value
 
     def _execute_action(self, payload: str):
-        self.request_parameters["FunctionName"] = self._function_name
-        self.request_parameters["Payload"] = payload
+        self.request_parameters[FUNCTION_NAME] = self._function_name
+        self.request_parameters[PAYLOAD] = payload
         LOG.debug(
             "Calling lambda_client.invoke with FunctionName:%s, Payload:%s, parameters:%s",
             self._function_name,
@@ -66,13 +68,12 @@ class LambdaInvokeExecutor(BotoActionExecutor):
         except ParamValidationError as param_val_ex:
             raise InvalidResourceBotoParameterException(
                 f"Invalid parameter key provided."
-                f" {str(param_val_ex).replace('FunctionName, ', '').replace('Payload, ', '')}"
+                f" {str(param_val_ex).replace('{FUNCTION_NAME}, ', '').replace('{PAYLOAD}, ', '')}"
             ) from param_val_ex
         except ClientError as client_ex:
-            validation_err_str = "ValidationException"
-            if boto_utils.get_client_error_code(client_ex) == validation_err_str:
+            if boto_utils.get_client_error_code(client_ex) == "ValidationException":
                 raise InvalidResourceBotoParameterException(
-                    f"Invalid parameter value provided. {str(client_ex).replace(f'({validation_err_str}) ', '')}"
+                    f"Invalid parameter value provided. {str(client_ex).replace('(ValidationException) ', '')}"
                 ) from client_ex
             raise client_ex
         return response
@@ -107,12 +108,14 @@ class LambdaResponseConverter(RemoteInvokeRequestResponseMapper):
     """
 
     def map(self, remote_invoke_input: RemoteInvokeExecutionInfo) -> RemoteInvokeExecutionInfo:
-        assert isinstance(remote_invoke_input.response, dict), "Invalid response type received, expecting dict"
-        payload_field = remote_invoke_input.response.get("Payload")
-        if payload_field:
-            remote_invoke_input.response["Payload"] = cast(StreamingBody, payload_field).read().decode("utf-8")
+        if not isinstance(remote_invoke_input.response, dict):
+            raise InvalideBotoResponseException("Invalid response type received from Lambda service, expecting dict")
+        else:
+            payload_field = remote_invoke_input.response.get(PAYLOAD)
+            if payload_field:
+                remote_invoke_input.response[PAYLOAD] = cast(StreamingBody, payload_field).read().decode("utf-8")
 
-        return remote_invoke_input
+            return remote_invoke_input
 
 
 class LambdaResponseOutputFormatter(RemoteInvokeRequestResponseMapper):
@@ -133,12 +136,12 @@ class LambdaResponseOutputFormatter(RemoteInvokeRequestResponseMapper):
             log_field = boto_response.get("LogResult")
             if log_field:
                 log_result = base64.b64decode(log_field).decode("utf-8")
-                remote_invoke_input.stderr_str = log_result
+                remote_invoke_input.log_output = log_result
 
             invocation_type_parameter = remote_invoke_input.parameters.get("InvocationType")
             if invocation_type_parameter and invocation_type_parameter != "RequestResponse":
                 remote_invoke_input.response = {"StatusCode": boto_response["StatusCode"]}
             else:
-                remote_invoke_input.response = boto_response.get("Payload")
+                remote_invoke_input.response = boto_response.get(PAYLOAD)
 
         return remote_invoke_input

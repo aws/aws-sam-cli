@@ -10,20 +10,19 @@ from samcli.lib.remote_invoke.remote_invoke_executors import (
     RemoteInvokeExecutor,
     ResponseObjectToJsonStringMapper,
     RemoteInvokeRequestResponseMapper,
-    RemoteInvokeOutputFormat
+    RemoteInvokeOutputFormat,
 )
 
 
 class TestRemoteInvokeExecutionInfo(TestCase):
     def setUp(self) -> None:
         self.output_format = RemoteInvokeOutputFormat.DEFAULT
+
     def test_execution_info_payload(self):
         given_payload = Mock()
         given_parameters = {"ExampleParameter": "ExampleValue"}
 
-        test_execution_info = RemoteInvokeExecutionInfo(
-            given_payload, None, given_parameters, self.output_format
-        )
+        test_execution_info = RemoteInvokeExecutionInfo(given_payload, None, given_parameters, self.output_format)
 
         self.assertEqual(given_payload, test_execution_info.payload)
         self.assertEqual(given_parameters, test_execution_info.parameters)

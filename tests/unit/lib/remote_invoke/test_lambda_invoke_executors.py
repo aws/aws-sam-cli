@@ -1,6 +1,6 @@
 from unittest import TestCase
-from unittest.mock import MagicMock, Mock, patch
-from parameterized import parameterized, parameterized_class
+from unittest.mock import Mock, patch
+from parameterized import parameterized
 
 from samcli.lib.remote_invoke.lambda_invoke_executors import (
     LambdaInvokeExecutor,
@@ -8,9 +8,10 @@ from samcli.lib.remote_invoke.lambda_invoke_executors import (
     LambdaResponseConverter,
     LambdaResponseOutputFormatter,
     InvalidResourceBotoParameterException,
+    InvalideBotoResponseException,
     RemoteInvokeOutputFormat,
     ClientError,
-    ParamValidationError
+    ParamValidationError,
 )
 from samcli.lib.remote_invoke.remote_invoke_executors import RemoteInvokeExecutionInfo
 
@@ -35,17 +36,23 @@ class TestLambdaInvokeExecutor(TestCase):
 
     def test_execute_action_invalid_parameter_value_throws_validation_exception(self):
         given_payload = Mock()
-        error = ClientError(
-            error_response={"Error": {"Code": "ValidationException"}}, operation_name="invoke")
+        error = ClientError(error_response={"Error": {"Code": "ValidationException"}}, operation_name="invoke")
         self.lambda_client.invoke.side_effect = error
         with self.assertRaises(InvalidResourceBotoParameterException):
             self.lambda_invoke_executor._execute_action(given_payload)
-    
+
     def test_execute_action_invalid_parameter_key_throws_parameter_validation_exception(self):
         given_payload = Mock()
-        error = ParamValidationError(report='Invalid parameters')
+        error = ParamValidationError(report="Invalid parameters")
         self.lambda_client.invoke.side_effect = error
         with self.assertRaises(InvalidResourceBotoParameterException):
+            self.lambda_invoke_executor._execute_action(given_payload)
+
+    def test_execute_action_throws_client_error_exception(self):
+        given_payload = Mock()
+        error = ClientError(error_response={"Error": {"Code": "MockException"}}, operation_name="invoke")
+        self.lambda_client.invoke.side_effect = error
+        with self.assertRaises(ClientError):
             self.lambda_invoke_executor._execute_action(given_payload)
 
     @parameterized.expand(
@@ -116,6 +123,18 @@ class TestLambdaResponseConverter(TestCase):
 
         self.assertEqual(result.response, expected_result)
 
+    def test_lambda_streaming_body_invalid_response_exception(self):
+        output_format = RemoteInvokeOutputFormat.DEFAULT
+        given_streaming_body = Mock()
+        given_decoded_string = "decoded string"
+        given_streaming_body.read().decode.return_value = given_decoded_string
+        given_test_result = [given_streaming_body]
+        remote_invoke_execution_info = RemoteInvokeExecutionInfo(None, None, {}, output_format)
+        remote_invoke_execution_info.response = given_test_result
+
+        with self.assertRaises(InvalideBotoResponseException):
+            self.lambda_response_converter.map(remote_invoke_execution_info)
+
 
 class TestLambdaResponseOutputFormatter(TestCase):
     def setUp(self) -> None:
@@ -146,7 +165,7 @@ class TestLambdaResponseOutputFormatter(TestCase):
         result = self.lambda_response_converter.map(remote_invoke_execution_info)
 
         self.assertEqual(result.response, expected_result)
-        self.assertEqual(result.stderr_str, decoded_log_str)
+        self.assertEqual(result.log_output, decoded_log_str)
 
     @parameterized.expand(
         [

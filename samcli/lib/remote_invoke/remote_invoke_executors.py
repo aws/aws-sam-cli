@@ -40,7 +40,7 @@ class RemoteInvokeExecutionInfo:
 
     # Response related properties
     response: Optional[Union[dict, str]]
-    stderr_str: Optional[str]
+    log_output: Optional[str]
     exception: Optional[Exception]
 
     def __init__(
@@ -55,7 +55,7 @@ class RemoteInvokeExecutionInfo:
         self.parameters = parameters
         self.output_format = output_format
         self.response = None
-        self.stderr_str = None
+        self.log_output = None
         self.exception = None
 
     def is_file_provided(self) -> bool:
@@ -211,7 +211,6 @@ class RemoteInvokeExecutor:
         And finally, runs all mappers for the response object to get the final form of it.
         """
         remote_invoke_input = self._map_input(remote_invoke_input)
-        remote_invoke_output = None
         self._boto_action_executor.validate_action_parameters(remote_invoke_input.parameters)
         remote_invoke_output = self._boto_action_executor.execute(remote_invoke_input)
 
