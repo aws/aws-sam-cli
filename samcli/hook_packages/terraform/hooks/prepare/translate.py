@@ -12,6 +12,7 @@ from samcli.hook_packages.terraform.hooks.prepare.constants import (
     SAM_METADATA_RESOURCE_NAME_ATTRIBUTE,
 )
 from samcli.hook_packages.terraform.hooks.prepare.enrich import enrich_resources_and_generate_makefile
+from samcli.hook_packages.terraform.hooks.prepare.exceptions import APPLY_WORK_AROUND_MESSAGE
 from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     REMOTE_DUMMY_VALUE,
     RESOURCE_TRANSLATOR_MAPPING,
@@ -45,6 +46,7 @@ from samcli.hook_packages.terraform.lib.utils import (
     get_sam_metadata_planned_resource_value_attribute,
 )
 from samcli.lib.hook.exceptions import PrepareHookException
+from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION
 
 SAM_METADATA_RESOURCE_TYPE = "null_resource"
@@ -58,6 +60,76 @@ LOG = logging.getLogger(__name__)
 TRANSLATION_VALIDATORS: Dict[str, Type[ResourceTranslationValidator]] = {
     TF_AWS_API_GATEWAY_REST_API: RESTAPITranslationValidator,
 }
+
+
+def _get_modules(root_module: dict, root_tf_module: TFModule) -> Tuple[dict, TFModule]:
+    """
+    Iterator helper method to find any child modules for processing.
+
+    Parameters
+    ----------
+    root_module: dict
+        a
+    root_tf_module: TFModule
+        a
+
+    Returns
+    -------
+    Tuple[dict, TFModule]
+        a
+    """
+    queue = [(root_module, root_tf_module)]
+
+    while queue:
+        modules = queue.pop(0)
+
+        yield modules
+
+        _add_child_modules_to_queue(modules[0], modules[1], queue)
+
+
+def _check_unresolvable_values(root_module: dict, root_tf_module: TFModule) -> None:
+    """
+    Checks the planned values and configuration values if there are any properties
+    that are unresolved, or unknown, until the Terraform project is applied.
+
+    Parameters
+    ----------
+    root_module: dict
+        a
+    root_tf_module: TFModule
+        a
+    """
+
+    for curr_module, curr_tf_module in _get_modules(root_module, root_tf_module):
+        # iterate over resources for current module
+        for resource in curr_module.get("resources", {}):
+            resource_type = resource.get("type")
+
+            if resource_type not in RESOURCE_TRANSLATOR_MAPPING:
+                continue
+
+            resource_values = resource.get("values")
+            resource_full_address = resource.get("address")
+
+            config_resource_address = get_configuration_address(resource_full_address)
+            config_resource = curr_tf_module.resources[config_resource_address]
+
+            resource_mapper = RESOURCE_TRANSLATOR_MAPPING.get(resource_type)
+
+            for key, prop_builder in resource_mapper.property_builder_mapping.items():
+                planned_values = prop_builder(resource_values, config_resource)
+                config_values = prop_builder(config_resource.attributes, config_resource)
+
+                if config_values and not planned_values:
+                    LOG.warning(
+                        Colored().yellow(
+                            f"\nFailed to map to the Cloudformation property '{key}' for "
+                            f"'{resource_full_address}'.\n{APPLY_WORK_AROUND_MESSAGE}\n"
+                        )
+                    )
+
+                    break
 
 
 def translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_application_dir: str) -> dict:
@@ -105,14 +177,11 @@ def translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_applic
 
     resource_property_mapping: Dict[str, ResourceProperties] = get_resource_property_mapping()
 
-    # create and iterate over queue of modules to handle child modules
-    module_queue = [(root_module, root_tf_module)]
-    while module_queue:
-        modules_pair = module_queue.pop(0)
-        curr_module, curr_tf_module = modules_pair
-        curr_module_address = curr_module.get("address")
+    _check_unresolvable_values(root_module, root_tf_module)
 
-        _add_child_modules_to_queue(curr_module, curr_tf_module, module_queue)
+    # create and iterate over queue of modules to handle child modules
+    for curr_module, curr_tf_module in _get_modules(root_module, root_tf_module):
+        curr_module_address = curr_module.get("address")
 
         # iterate over resources for current module
         resources = curr_module.get("resources", {})
