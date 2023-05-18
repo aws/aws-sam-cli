@@ -153,6 +153,36 @@ class LambdaFunctionToApiGatewayIntegrationLocalVariablesLinkingLimitationExcept
     """
 
 
+class OneRestApiToApiGatewayIntegrationResponseLinkingLimitationException(OneResourceLinkingLimitationException):
+    """
+    Exception specific for Gateway Integration Response linking to more than one Rest API
+    """
+
+
+class RestApiToApiGatewayIntegrationResponseLocalVariablesLinkingLimitationException(
+    LocalVariablesLinkingLimitationException
+):
+    """
+    Exception specific for Gateway Integration Response linking to Rest API using locals.
+    """
+
+
+class OneGatewayResourceToApiGatewayIntegrationResponseLinkingLimitationException(
+    OneResourceLinkingLimitationException
+):
+    """
+    Exception specific for Gateway Integration Response linking to more than one Gateway resource
+    """
+
+
+class GatewayResourceToApiGatewayIntegrationResponseLocalVariablesLinkingLimitationException(
+    LocalVariablesLinkingLimitationException
+):
+    """
+    Exception specific for Gateway Integration Response linking to Gateway Resource using locals.
+    """
+
+
 class InvalidSamMetadataPropertiesException(UserException):
     pass
 
