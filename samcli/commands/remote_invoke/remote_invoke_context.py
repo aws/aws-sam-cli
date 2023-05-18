@@ -33,7 +33,7 @@ class RemoteInvokeContext:
     _resource_id: Optional[str]
     _resource_summary: Optional[CloudFormationResourceSummary]
 
-    def __int__(
+    def __init__(
         self,
         boto_client_provider: BotoProviderType,
         boto_resource_provider: BotoProviderType,
@@ -93,8 +93,9 @@ class RemoteInvokeContext:
         )
 
     def _get_from_physical_resource_id(self) -> CloudFormationResourceSummary:
+        resource_id = cast(str, self._resource_id)
         try:
-            resource_arn = ARNParts(self._resource_id)
+            resource_arn = ARNParts(resource_id)
             service_from_arn = resource_arn.service
 
             if service_from_arn not in SUPPORTED_SERVICES:
@@ -104,15 +105,15 @@ class RemoteInvokeContext:
                 )
 
             return CloudFormationResourceSummary(
-                SUPPORTED_SERVICES.get(service_from_arn),
-                self._resource_id,
-                self._resource_id
+                cast(str, SUPPORTED_SERVICES.get(service_from_arn)),
+                resource_id,
+                resource_id,
             )
         except ValueError:
             LOG.debug(
                 "Given %s is not an ARN, trying to get resource information from CloudFormation", self._resource_id
             )
-            resource_summary = get_resource_summary_from_physical_id(self._boto_client_provider, self._resource_id)
+            resource_summary = get_resource_summary_from_physical_id(self._boto_client_provider, resource_id)
             if not resource_summary:
                 raise AmbiguousResourceForRemoteInvoke(
                     f"Can't find exact resource information with given {self._resource_id}. "
