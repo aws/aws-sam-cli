@@ -10,7 +10,7 @@ from samcli.commands.remote_invoke.exceptions import (
     NoResourceFoundForRemoteInvoke,
     UnsupportedServiceForRemoteInvoke,
 )
-from samcli.lib.pipeline.bootstrap.resource import ARNParts
+from samcli.lib.utils.arn_utils import ARNParts, InvalidArnValue
 from samcli.lib.utils.boto_utils import BotoProviderType
 from samcli.lib.utils.cloudformation import (
     CloudFormationResourceSummary,
@@ -137,7 +137,7 @@ class RemoteInvokeContext:
                 resource_id,
                 resource_id,
             )
-        except ValueError:
+        except InvalidArnValue:
             LOG.debug(
                 "Given %s is not an ARN, trying to get resource information from CloudFormation", self._resource_id
             )
