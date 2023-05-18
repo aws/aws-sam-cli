@@ -9,6 +9,9 @@ Parameters:
   ParentLayer:
     Description: The name of the layer
     Type: String
+  HelloWorldLayerName:
+    Type: String
+    Description: Name of the HelloWorldLayer which will be used with current deployment
 
 
 Resources:
@@ -29,6 +32,7 @@ Resources:
   HelloWorldLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
+      LayerName: !Ref HelloWorldLayerName
       Description: Hello World Layer
       # Currently if a base_dir option is provided, the nested stack code URIs
       # Needs to be relative to the base_dir instead of the child templates

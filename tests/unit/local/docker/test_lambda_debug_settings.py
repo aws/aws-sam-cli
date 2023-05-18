@@ -9,6 +9,7 @@ _DEBUG_RUNTIMES = [
     Runtime.java8,
     Runtime.java8al2,
     Runtime.java11,
+    Runtime.java17,
     Runtime.dotnetcore31,
     Runtime.dotnet6,
     Runtime.go1x,

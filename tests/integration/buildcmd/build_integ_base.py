@@ -178,7 +178,7 @@ class BuildIntegBase(TestCase):
         self.assertIn(
             len(images),
             [1, 2],
-            f"Other version of the build image {image_name} was pulled. Currently pulled images: {images}",
+            f"Other version of the build image {image_name} was pulled. Currently pulled images: {images}, architecture: {architecture}, tag: {tag_name}",
         )
         image_tag = f"{image_name}:{tag_name}"
         for t in [tag for image in images for tag in image.tags]:
@@ -376,10 +376,15 @@ class BuildIntegEsbuildBase(BuildIntegBase):
         self._verify_esbuild_properties(self.default_build_dir, self.FUNCTION_LOGICAL_ID, overrides["Handler"])
 
     def _verify_esbuild_properties(self, build_dir, function_logical_id, handler):
-        filename = handler.split(".")[0]
+        filename = self._extract_filename_from_handler(handler)
         resource_artifact_dir = build_dir.joinpath(function_logical_id)
         self._verify_sourcemap_created(filename, resource_artifact_dir)
         self._verify_function_minified(filename, resource_artifact_dir)
+
+    @staticmethod
+    def _extract_filename_from_handler(handler):
+        # Takes a handler in the form /a/b/c/file.function and returns file
+        return str(Path(handler).stem)
 
     def _verify_function_minified(self, filename, resource_artifact_dir):
         with open(Path(resource_artifact_dir, f"{filename}.js"), "r") as handler_file:
@@ -815,7 +820,8 @@ class DedupBuildIntegBase(BuildIntegBase):
             expected = f"Hello {expected_message}"
             function_id = f"Hello{expected_message}Function"
             self._verify_build_artifact(self.default_build_dir, function_id)
-            self._verify_invoke_built_function(self.built_template, function_id, overrides, expected)
+            if not SKIP_DOCKER_TESTS:
+                self._verify_invoke_built_function(self.built_template, function_id, overrides, expected)
 
     def _verify_build_artifact(self, build_dir, function_logical_id):
         self.assertTrue(build_dir.exists(), "Build directory should be created")

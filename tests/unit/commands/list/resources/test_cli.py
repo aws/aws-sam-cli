@@ -23,6 +23,7 @@ class TestCli(TestCase):
             region=self.region,
             profile=self.profile,
             template_file=self.template_file,
+            parameter_overrides={},
         )
 
         mock_resources_context.assert_called_with(
@@ -31,6 +32,7 @@ class TestCli(TestCase):
             region=self.region,
             profile=self.profile,
             template_file=self.template_file,
+            parameter_overrides={},
         )
 
         context_mock.run.assert_called_with()
@@ -49,5 +51,6 @@ class TestCli(TestCase):
             region=self.region,
             profile=self.profile,
             template_file=self.template_file,
+            parameter_overrides={},
         )
         mock_stack_name_not_provided.assert_called_once()

@@ -9,10 +9,11 @@ import click
 from samcli.cli.cli_config_file import TomlProvider, configuration_option
 from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
 from samcli.cli.main import common_options as cli_framework_options
-from samcli.commands._utils.experimental import ExperimentalFlag, experimental, is_experimental_enabled
+from samcli.commands._utils.experimental import ExperimentalFlag, is_experimental_enabled
 from samcli.commands._utils.option_value_processor import process_image_options
 from samcli.commands._utils.options import hook_name_click_option, skip_prepare_infra_option
 from samcli.commands.local.cli_common.options import invoke_common_options, local_common_options
+from samcli.commands.local.invoke.core.command import InvokeCommand
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.version_checker import check_newer_version
@@ -21,23 +22,27 @@ from samcli.local.docker.exceptions import ContainerNotStartableException
 LOG = logging.getLogger(__name__)
 
 HELP_TEXT = """
-You can use this command to execute your function in a Lambda-like environment locally.
-You can pass in an event body using the -e (--event) parameter.
-Logs from the Lambda function will be written to stdout.\n
-\b
-Invoking a Lambda function without an input event
-$ sam local invoke "HelloWorldFunction"\n
-\b
-Invoking a Lambda function using an event file
-$ sam local invoke "HelloWorldFunction" -e event.json\n
-\b
-Invoking a Lambda function using input from stdin
-$ echo '{"message": "Hey, are you there?" }' | sam local invoke "HelloWorldFunction" --event - \n
+    Invoke AWS serverless functions locally.
 """
+
+DESCRIPTION = """
+  Invoke lambda functions in a Lambda-like environment locally.
+  An event body can be passed using the -e (--event) parameter.
+  Logs from the Lambda function will be written to stdout.
+"""
+
 STDIN_FILE_NAME = "-"
 
 
-@click.command("invoke", help=HELP_TEXT, short_help="Invokes a local Lambda function once.")
+@click.command(
+    "invoke",
+    cls=InvokeCommand,
+    help=HELP_TEXT,
+    description=DESCRIPTION,
+    requires_credentials=False,
+    short_help=HELP_TEXT,
+    context_settings={"max_content_width": 120},
+)
 @configuration_option(provider=TomlProvider(section="parameters"))
 @hook_name_click_option(
     force_prepare=False, invalid_coexist_options=["t", "template-file", "template", "parameter-overrides"]
@@ -52,7 +57,6 @@ STDIN_FILE_NAME = "-"
 )
 @click.option("--no-event", is_flag=True, default=True, help="DEPRECATED: By default no event is assumed.", hidden=True)
 @invoke_common_options
-@experimental
 @local_common_options
 @cli_framework_options
 @aws_creds_options
@@ -167,7 +171,7 @@ def do_cli(  # pylint: disable=R0914
     LOG.debug("local invoke command is called")
 
     if event:
-        event_data = _get_event(event)
+        event_data = _get_event(event, exception_class=UserException)
     else:
         event_data = "{}"
 
@@ -222,7 +226,7 @@ def do_cli(  # pylint: disable=R0914
         raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
 
 
-def _get_event(event_file_name):
+def _get_event(event_file_name, exception_class):
     """
     Read the event JSON data from the given file. If no file is provided, read the event from stdin.
 
@@ -236,5 +240,8 @@ def _get_event(event_file_name):
 
     # click.open_file knows to open stdin when filename is '-'. This is safer than manually opening streams, and
     # accidentally closing a standard stream
-    with click.open_file(event_file_name, "r", encoding="utf-8") as fp:
-        return fp.read()
+    try:
+        with click.open_file(event_file_name, "r", encoding="utf-8") as fp:
+            return fp.read()
+    except FileNotFoundError as ex:
+        raise exception_class(str(ex), wrapped_from=ex.__class__.__name__) from ex

@@ -9,7 +9,7 @@ import click
 from samcli.cli.cli_config_file import TomlProvider, configuration_option
 from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
 from samcli.cli.main import common_options as cli_framework_options
-from samcli.commands._utils.experimental import ExperimentalFlag, experimental, is_experimental_enabled
+from samcli.commands._utils.experimental import ExperimentalFlag, is_experimental_enabled
 from samcli.commands._utils.option_value_processor import process_image_options
 from samcli.commands._utils.options import (
     generate_next_command_recommendation,
@@ -23,48 +23,34 @@ from samcli.commands.local.cli_common.options import (
     warm_containers_common_options,
 )
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
+from samcli.commands.local.start_lambda.core.command import InvokeLambdaCommand
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.local.docker.exceptions import ContainerNotStartableException
 
 LOG = logging.getLogger(__name__)
 
+
 HELP_TEXT = """
-You can use this command to programmatically invoke your Lambda function locally using the AWS CLI or SDKs.
-This command starts a local endpoint that emulates the AWS Lambda service, and you can run your automated
-tests against this local Lambda endpoint. When you send an invoke to this endpoint using the AWS CLI or
-SDK, it will locally execute the Lambda function specified in the request.\n
-\b
-SETUP
-------
-Start the local Lambda endpoint by running this command in the directory that contains your AWS SAM template.
-$ sam local start-lambda\n
-\b
-USING AWS CLI
--------------
-Then, you can invoke your Lambda function locally using the AWS CLI
-$ aws lambda invoke --function-name "HelloWorldFunction" --endpoint-url "http://127.0.0.1:3001" --no-verify-ssl out.txt
-\n
-\b
-USING AWS SDK
--------------
-You can also use the AWS SDK in your automated tests to invoke your functions programatically.
-Here is a Python example:
-    self.lambda_client = boto3.client('lambda',
-                                  endpoint_url="http://127.0.0.1:3001",
-                                  use_ssl=False,
-                                  verify=False,
-                                  config=Config(signature_version=UNSIGNED,
-                                                read_timeout=0,
-                                                retries={'max_attempts': 0}))
-    self.lambda_client.invoke(FunctionName="HelloWorldFunction")
+Emulate AWS serverless functions locally.
+"""
+
+DESCRIPTION = """
+  Programmatically invoke your Lambda function locally using the AWS CLI or SDKs.
+  Start a local endpoint that emulates the AWS Lambda service, and one can run their automated
+  tests against this local Lambda endpoint. Invokes to this endpoint can be sent using the AWS CLI or
+  SDK and they will in turn locally execute the Lambda function specified in the request.\n
 """
 
 
 @click.command(
     "start-lambda",
+    cls=InvokeLambdaCommand,
     help=HELP_TEXT,
-    short_help="Starts a local endpoint you can use to invoke your local Lambda functions.",
+    short_help=HELP_TEXT,
+    description=DESCRIPTION,
+    requires_credentials=False,
+    context_settings={"max_content_width": 120},
 )
 @configuration_option(provider=TomlProvider(section="parameters"))
 @hook_name_click_option(
@@ -73,7 +59,6 @@ Here is a Python example:
 @skip_prepare_infra_option
 @service_common_options(3001)
 @invoke_common_options
-@experimental
 @warm_containers_common_options
 @local_common_options
 @cli_framework_options

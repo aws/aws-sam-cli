@@ -10,7 +10,7 @@ import click
 from botocore.config import Config
 from botocore.exceptions import BotoCoreError, ClientError, NoCredentialsError, NoRegionError, ProfileNotFound
 
-from samcli.commands.exceptions import CredentialsError, RegionError, UserException
+from samcli.commands.exceptions import AWSServiceClientError, RegionError, UserException
 
 LOG = logging.getLogger(__name__)
 
@@ -70,13 +70,13 @@ def update_stack(
                 "cloudformation", config=Config(region_name=region if region else None)
             )
     except ProfileNotFound as ex:
-        raise CredentialsError(
+        raise AWSServiceClientError(
             f"Error Setting Up Managed Stack Client: the provided AWS name profile '{profile}' is not found. "
             "please check the documentation for setting up a named profile: "
             "https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html"
         ) from ex
     except NoCredentialsError as ex:
-        raise CredentialsError(
+        raise AWSServiceClientError(
             "Error Setting Up Managed Stack Client: Unable to resolve credentials for the AWS SDK for Python client. "
             "Please see their documentation for options to pass in credentials: "
             "https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html"
@@ -126,13 +126,13 @@ def manage_stack(
                 "cloudformation", config=Config(region_name=region if region else None)
             )
     except ProfileNotFound as ex:
-        raise CredentialsError(
+        raise AWSServiceClientError(
             f"Error Setting Up Managed Stack Client: the provided AWS name profile '{profile}' is not found. "
             "please check the documentation for setting up a named profile: "
             "https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html"
         ) from ex
     except NoCredentialsError as ex:
-        raise CredentialsError(
+        raise AWSServiceClientError(
             "Error Setting Up Managed Stack Client: Unable to resolve credentials for the AWS SDK for Python client. "
             "Please see their documentation for options to pass in credentials: "
             "https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html"
@@ -300,8 +300,9 @@ def _generate_stack_parameters(
     parameters = []
     if parameter_overrides:
         for key, value in parameter_overrides.items():
-            if isinstance(value, Collection) and not isinstance(value, str):
+            norm_value = value
+            if isinstance(norm_value, Collection) and not isinstance(norm_value, str):
                 # Assumption: values don't include commas or spaces. Need to refactor to handle such a case if needed.
-                value = ",".join(value)
-            parameters.append({"ParameterKey": key, "ParameterValue": value})
+                norm_value = ",".join(norm_value)
+            parameters.append({"ParameterKey": key, "ParameterValue": norm_value})
     return parameters

@@ -4,7 +4,7 @@ import shutil
 from pathlib import Path
 from unittest import skipIf
 
-from parameterized import parameterized
+from parameterized import parameterized, parameterized_class
 
 from tests.integration.buildcmd.test_build_terraform_applications import (
     BuildTerraformApplicationIntegBase,
@@ -261,11 +261,13 @@ class TestUnsupportedCases(BuildTerraformApplicationIntegBase):
         [
             (
                 "conditional_layers",
-                r"AWS SAM CLI could not process a Terraform project that contains Lambda functions that are linked to more than one lambda layer",
+                r"AWS SAM CLI could not process a Terraform project that contains a source "
+                r"resource that is linked to more than one destination resource",
             ),
             (
                 "conditional_layers_null",
-                r"AWS SAM CLI could not process a Terraform project that contains Lambda functions that are linked to more than one lambda layer",
+                r"AWS SAM CLI could not process a Terraform project that contains a source "
+                r"resource that is linked to more than one destination resource",
             ),
             (
                 "lambda_function_with_count_and_invalid_sam_metadata",
@@ -273,11 +275,13 @@ class TestUnsupportedCases(BuildTerraformApplicationIntegBase):
             ),
             (
                 "one_lambda_function_linked_to_two_layers",
-                r"AWS SAM CLI could not process a Terraform project that contains Lambda functions that are linked to more than one lambda layer",
+                r"AWS SAM CLI could not process a Terraform project that contains a source "
+                r"resource that is linked to more than one destination resource",
             ),
             (
                 "lambda_function_referencing_local_var_layer",
-                r"AWS SAM CLI could not process a Terraform project that uses local variables to define the Lambda functions layers",
+                r"AWS SAM CLI could not process a Terraform project that uses local "
+                r"variables to define linked resources",
             ),
         ]
     )
@@ -290,3 +294,87 @@ class TestUnsupportedCases(BuildTerraformApplicationIntegBase):
         LOG.info(stderr)
         self.assertEqual(return_code, 1)
         self.assertRegex(stderr.decode("utf-8"), expected_error_message)
+
+
+@skipIf(
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
+    "Skip Terraform test cases unless running in CI",
+)
+@parameterized_class(
+    [
+        {"app": "conditional_layers"},
+        {"app": "conditional_layers_null"},
+        {"app": "one_lambda_function_linked_to_two_layers"},
+        {"app": "lambda_function_referencing_local_var_layer"},
+    ]
+)
+class TestUnsupportedCasesAfterApply(BuildTerraformApplicationIntegBase):
+    terraform_application = Path("terraform/unsupported")
+
+    def setUp(self):
+        super().setUp()
+        shutil.rmtree(Path(self.working_dir))
+        self.terraform_application_path = Path(self.terraform_application_path) / self.app
+
+        shutil.copytree(Path(self.terraform_application_path), Path(self.working_dir))
+        init_command = ["terraform", "init"]
+        LOG.info("init tf project command: %s", init_command)
+        stdout, stderr, return_code = self.run_command(init_command)
+        if return_code != 0:
+            LOG.info(stdout)
+            LOG.info(stderr)
+        self.assertEqual(return_code, 0)
+        apply_command = ["terraform", "apply", "-auto-approve"]
+        LOG.info("apply tf project command: %s", apply_command)
+        stdout, stderr, return_code = self.run_command(apply_command)
+        if return_code != 0:
+            LOG.info(stdout)
+            LOG.info(stderr)
+        self.assertEqual(return_code, 0)
+
+    def tearDown(self):
+        destroy_command = ["terraform", "destroy", "-auto-approve"]
+        LOG.info("destroy tf project command: %s", destroy_command)
+        stdout, stderr, return_code = self.run_command(destroy_command)
+        if return_code != 0:
+            LOG.info(stdout)
+            LOG.info(stderr)
+        self.assertEqual(return_code, 0)
+
+    def test_unsupported_cases_runs_after_apply(self):
+        build_cmd_list = self.get_command_list(beta_features=True, hook_name="terraform")
+        LOG.info("command list: %s", build_cmd_list)
+        _, _, return_code = self.run_command(build_cmd_list)
+        self.assertEqual(return_code, 0)
+        self._verify_invoke_built_function(
+            function_logical_id="aws_lambda_function.function1",
+            overrides=None,
+            expected_result={"statusCode": 200, "body": "hello world 1"},
+        )
+
+
+@skipIf(
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
+    "Skip Terraform test cases unless running in CI",
+)
+class TestBuildGoFunctionAndKeepPermissions(BuildTerraformApplicationIntegBase):
+    terraform_application = Path("terraform/go_lambda_function_check_keep_permissions")
+
+    def test_invoke_function(self):
+        function_identifier = "hello-world-function"
+        build_cmd_list = self.get_command_list(
+            beta_features=True, hook_name="terraform", function_identifier=function_identifier
+        )
+
+        LOG.info("command list: %s", build_cmd_list)
+        environment_variables = os.environ.copy()
+
+        _, stderr, return_code = self.run_command(build_cmd_list, env=environment_variables)
+        LOG.info(stderr)
+        self.assertEqual(return_code, 0)
+
+        self._verify_invoke_built_function(
+            function_logical_id=function_identifier,
+            overrides=None,
+            expected_result="{'message': 'Hello World'}",
+        )

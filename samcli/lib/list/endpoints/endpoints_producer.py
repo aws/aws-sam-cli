@@ -23,13 +23,13 @@ from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.boto_utils import get_client_error_code
 from samcli.lib.utils.resources import (
     AWS_APIGATEWAY_BASE_PATH_MAPPING,
+    AWS_APIGATEWAY_DOMAIN_NAME,
     AWS_APIGATEWAY_RESTAPI,
     AWS_APIGATEWAY_V2_API,
+    AWS_APIGATEWAY_V2_BASE_PATH_MAPPING,
     AWS_APIGATEWAY_V2_DOMAIN_NAME,
-    AWS_APIGATWAY_DOMAIN_NAME,
     AWS_LAMBDA_FUNCTION,
     AWS_LAMBDA_FUNCTION_URL,
-    AWS_APIGATEWAY_v2_BASE_PATH_MAPPING,
 )
 
 ENDPOINT_RESOURCE_TYPES = {AWS_LAMBDA_FUNCTION, AWS_APIGATEWAY_RESTAPI, AWS_APIGATEWAY_V2_API}
@@ -68,6 +68,7 @@ class EndpointsProducer(ResourceMappingProducer, Producer):
         apigatewayv2_client,
         mapper,
         consumer,
+        parameter_overrides=None,
     ):
         """
         Parameters
@@ -94,9 +95,19 @@ class EndpointsProducer(ResourceMappingProducer, Producer):
             The mapper used to map data to the format needed for the consumer provided
         consumer: ListInfoPullerConsumer
             The consumer used to output the data
+        parameter_overrides: Optional[dict]
+            Dictionary of parameters to override in the template
         """
         super().__init__(
-            stack_name, region, profile, template_file, cloudformation_client, iam_client, mapper, consumer
+            stack_name,
+            region,
+            profile,
+            template_file,
+            cloudformation_client,
+            iam_client,
+            mapper,
+            consumer,
+            parameter_overrides,
         )
         self.stack_name = stack_name
         self.region = region
@@ -425,7 +436,7 @@ def get_custom_domain_substitute_list(
                     custom_domain_substitute_dict[rest_api_id].append(response_domain_dict.get(domain_id, None))
 
         # Collect custom domain data for APIGW V2 resources
-        elif resource.get(RESOURCE_TYPE, "") == AWS_APIGATEWAY_v2_BASE_PATH_MAPPING:
+        elif resource.get(RESOURCE_TYPE, "") == AWS_APIGATEWAY_V2_BASE_PATH_MAPPING:
             local_mapping = local_stack_resources.get(resource.get(LOGICAL_RESOURCE_ID, ""), {}).get(PROPERTIES, {})
             rest_api_id = local_mapping.get(API_ID, "")
             domain_id = local_mapping.get(DOMAIN_NAME, "")
@@ -454,7 +465,7 @@ def get_response_domain_dict(response: Dict[Any, Any]) -> Dict[str, str]:
     response_domain_dict = {}
     for resource in response.get(STACK_RESOURCES, {}):
         if (
-            resource.get(RESOURCE_TYPE, "") == AWS_APIGATWAY_DOMAIN_NAME
+            resource.get(RESOURCE_TYPE, "") == AWS_APIGATEWAY_DOMAIN_NAME
             or resource.get(RESOURCE_TYPE, "") == AWS_APIGATEWAY_V2_DOMAIN_NAME
         ):
             response_domain_dict[

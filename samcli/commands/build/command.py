@@ -8,7 +8,7 @@ from typing import List, Optional, Dict, Tuple
 import click
 
 from samcli.cli.context import Context
-from samcli.commands._utils.experimental import experimental, ExperimentalFlag, is_experimental_enabled
+from samcli.commands._utils.experimental import ExperimentalFlag, is_experimental_enabled
 from samcli.commands._utils.options import (
     skip_prepare_infra_option,
     template_option_without_build,
@@ -53,7 +53,7 @@ DESCRIPTION = """
   1. Python 3.7, 3.8, 3.9, 3.10 using PIP\n
   2. Nodejs 18.x, 16.x, 14.x, 12.x using NPM\n
   3. Ruby 2.7 using Bundler\n
-  4. Java 8, Java 11 using Gradle and Maven\n
+  4. Java 8, Java 11, Java 17 using Gradle and Maven\n
   5. Dotnetcore 3.1, Dotnet6 using Dotnet CLI (without --use-container)\n
   6. Go 1.x using Go Modules (without --use-container)\n
 """
@@ -137,7 +137,6 @@ DESCRIPTION = """
 @template_option_without_build
 @parameter_override_option
 @docker_common_options
-@experimental
 @cli_framework_options
 @aws_creds_options
 @click.argument("resource_logical_id", required=False)

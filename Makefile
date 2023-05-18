@@ -53,8 +53,21 @@ format: black
 # Verifications to run before sending a pull request
 pr: init dev black-check
 
-update-reproducible-reqs:
-	python3.7 -m venv venv-update-reproducible-requirements
-	venv-update-reproducible-requirements/bin/pip install --upgrade pip-tools pip
-	venv-update-reproducible-requirements/bin/pip install -r requirements/base.txt
-	venv-update-reproducible-requirements/bin/pip-compile --generate-hashes --allow-unsafe -o requirements/reproducible-linux.txt
+# (jfuss) We updated to have two requirement files, one for mac and one for linux. This
+# is meant to be a short term fix when upgrading the Linux installer to be python3.11 from 
+# python3.7. Having different requirements is not ideal but this allows us to isolate changes
+# giving us the ability to roll out upgrade to Linux first. When we update the MacOS installer
+# we can move to a single file again.
+update-reproducible-linux-reqs:
+	python3.11 -m venv venv-update-reproducible-linux
+	venv-update-reproducible-linux/bin/pip install --upgrade pip-tools pip
+	venv-update-reproducible-linux/bin/pip install -r requirements/base.txt
+	venv-update-reproducible-linux/bin/pip-compile --generate-hashes --allow-unsafe -o requirements/reproducible-linux.txt
+
+update-reproducible-mac-reqs:
+	python3.7 -m venv venv-update-reproducible-mac
+	venv-update-reproducible-mac/bin/pip install --upgrade pip-tools pip
+	venv-update-reproducible-mac/bin/pip install -r requirements/base.txt
+	venv-update-reproducible-mac/bin/pip-compile --generate-hashes --allow-unsafe -o requirements/reproducible-mac.txt
+
+update-reproducible-reqs: update-reproducible-linux-reqs update-reproducible-mac-reqs

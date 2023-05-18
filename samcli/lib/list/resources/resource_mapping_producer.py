@@ -42,7 +42,9 @@ class ResourceMappingProducer(Producer):
         iam_client,
         mapper,
         consumer,
+        parameter_overrides=None,
     ):
+        self.parameter_overrides = parameter_overrides
         self.stack_name = stack_name
         self.region = region
         self.profile = profile
@@ -62,10 +64,15 @@ class ResourceMappingProducer(Producer):
         """
 
         try:
-            response = self.cloudformation_client.describe_stack_resources(StackName=self.stack_name)
-            if "StackResources" not in response:
-                return {"StackResources": []}
-            return response
+            all_resources = []
+            cfn_paginator = self.cloudformation_client.get_paginator("list_stack_resources")
+            for response in cfn_paginator.paginate(StackName=self.stack_name):
+                if "StackResourceSummaries" not in response:
+                    continue
+
+                all_resources.extend(response.get("StackResourceSummaries", []))
+
+            return {"StackResources": all_resources}
         except ClientError as e:
             if get_client_error_code(e) == "ValidationError":
                 LOG.debug("Stack with id %s does not exist", self.stack_name)
@@ -94,7 +101,11 @@ class ResourceMappingProducer(Producer):
         try:
             # Note to check if IAM can be mocked to get around doing a translate without it
             validator = SamTemplateValidator(
-                template_file_dict, ManagedPolicyLoader(self.iam_client), profile=self.profile, region=self.region
+                template_file_dict,
+                ManagedPolicyLoader(self.iam_client),
+                profile=self.profile,
+                region=self.region,
+                parameter_overrides=self.parameter_overrides,
             )
             translated_dict = yaml_parse(validator.get_translated_template_if_valid())
             return translated_dict

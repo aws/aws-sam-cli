@@ -2,6 +2,7 @@
 import uuid
 from datetime import datetime
 from time import time
+from typing import Any, Dict
 
 
 class ContextIdentity:
@@ -120,7 +121,7 @@ class RequestContext:
         self.request_time = request_time
         self.operation_name = operation_name
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         """
         Constructs an dictionary representation of the RequestContext Object to be used in serializing to JSON
 
@@ -218,11 +219,14 @@ class ApiGatewayLambdaEvent:
         self.path = path
         self.is_base_64_encoded = is_base_64_encoded
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         """
         Constructs an dictionary representation of the ApiGatewayLambdaEvent Object to be used in serializing to JSON
 
-        :return: dict representing the object
+        Returns
+        -------
+        Dict[str, Any]
+            Dict representing the object
         """
         request_context_dict = {}
         if self.request_context:
@@ -326,7 +330,7 @@ class RequestContextV2:
         self.domain_name = domain_name
         self.domain_prefix = domain_prefix
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         """
         Constructs an dictionary representation of the RequestContext Version 2
         Object to be used in serializing to JSON
@@ -427,12 +431,15 @@ class ApiGatewayV2LambdaEvent:
         self.is_base_64_encoded = is_base_64_encoded
         self.stage_variables = stage_variables
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         """
         Constructs an dictionary representation of the ApiGatewayLambdaEvent
         Version 2 Object to be used in serializing to JSON
 
-        :return: dict representing the object
+        Returns
+        -------
+        Dict[str, Any]
+            Dict representing the object
         """
         request_context_dict = {}
         if self.request_context:

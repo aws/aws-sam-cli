@@ -1,6 +1,7 @@
 import platform
 import time
 import signal
+import pytest
 
 from click.testing import CliRunner
 
@@ -21,13 +22,14 @@ from samcli.lib.utils.packagetype import IMAGE, ZIP
 from pathlib import Path
 
 from tests.integration.init.test_init_base import InitIntegBase
-from tests.testing_utils import get_sam_command, IS_WINDOWS, RUNNING_ON_APPVEYOR
+from tests.testing_utils import get_sam_command, IS_WINDOWS, RUNNING_ON_APPVEYOR, run_command
 
 TIMEOUT = 300
 
 COMMIT_ERROR = "WARN: Commit not exist:"
 
 
+@pytest.mark.xdist_group(name="sam_init")
 class TestBasicInitCommand(TestCase):
     def test_init_command_passes_and_dir_created(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -382,6 +384,7 @@ class TestBasicInitCommand(TestCase):
 
             self.assertEqual(process.returncode, 0)
             self.assertTrue(Path(temp, "sam-app").is_dir())
+            self._assert_template_with_cfn_lint(Path(temp, "sam-app"))
 
     def test_init_command_passes_with_disabled_tracing(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -411,6 +414,7 @@ class TestBasicInitCommand(TestCase):
 
             self.assertEqual(process.returncode, 0)
             self.assertTrue(Path(temp, "sam-app").is_dir())
+            self._assert_template_with_cfn_lint(Path(temp, "sam-app"))
 
     def test_init_command_passes_with_enabled_application_insights(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -440,6 +444,7 @@ class TestBasicInitCommand(TestCase):
 
             self.assertEqual(process.returncode, 0)
             self.assertTrue(Path(temp, "sam-app").is_dir())
+            self._assert_template_with_cfn_lint(Path(temp, "sam-app"))
 
     def test_init_command_passes_with_disabled_application_insights(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -469,6 +474,17 @@ class TestBasicInitCommand(TestCase):
 
             self.assertEqual(process.returncode, 0)
             self.assertTrue(Path(temp, "sam-app").is_dir())
+            self._assert_template_with_cfn_lint(Path(temp, "sam-app"))
+
+    def _assert_template_with_cfn_lint(self, cwd):
+        """Assert if the generated project passes cfn-lint"""
+        cmd_list = [
+            get_sam_command(),
+            "validate",
+            "--lint",
+        ]
+        result = run_command(cmd_list, cwd=cwd)
+        self.assertEqual(result.process.returncode, 0)
 
 
 MISSING_REQUIRED_PARAM_MESSAGE = """Error: Missing required parameters, with --no-interactive set.
@@ -487,6 +503,7 @@ You can run 'sam init' without any options for an interactive initialization flo
 """
 
 
+@pytest.mark.xdist_group(name="sam_init")
 class TestInitForParametersCompatibility(TestCase):
     def test_init_command_no_interactive_missing_name(self):
         stderr = None
@@ -737,6 +754,7 @@ Error: Invalid value for '-p' / '--package-type': 'WrongPT' is not one of 'Zip',
             self.assertIn(errmsg.strip(), "\n".join(stderr.strip().splitlines()))
 
 
+@pytest.mark.xdist_group(name="sam_init")
 class TestInitWithArbitraryProject(TestCase):
     def setUp(self):
         self.tempdir = tempfile.mkdtemp()
@@ -819,12 +837,13 @@ class TestInitWithArbitraryProject(TestCase):
             self._validate_expected_files_exist(Path(tmp, project_name))
 
 
+@pytest.mark.xdist_group(name="sam_init")
 class TestInteractiveInit(TestCase):
     def test_interactive_init(self):
         # 1: AWS Quick Start Templates
         # 1: Hello World Example
         # N: Use the most popular runtime and package type? (Python and zip) [y/N]
-        # 12: nodejs16.x
+        # 14: nodejs16.x
         # 1: Zip
         # 1: Hello World Example
         # N: Would you like to enable X-Ray tracing on the function(s) in your application?  [y/N]
@@ -833,7 +852,7 @@ class TestInteractiveInit(TestCase):
 1
 1
 N
-13
+14
 1
 1
 N
@@ -872,6 +891,7 @@ sam-interactive-init-app-default-runtime
             self.assertTrue(Path(expected_output_folder, "hello_world", "app.py").is_file())
 
 
+@pytest.mark.xdist_group(name="sam_init")
 class TestSubsequentInitCaching(TestCase):
     def test_subsequent_init_skips_cloning(self):
         from platform import system
@@ -933,6 +953,7 @@ class TestSubsequentInitCaching(TestCase):
         return os.path.getmtime(file)
 
 
+@pytest.mark.xdist_group(name="sam_init")
 class TestInitProducesSamconfigFile(TestCase):
     def test_zip_template_config(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -1046,6 +1067,7 @@ class TestInitProducesSamconfigFile(TestCase):
     IS_WINDOWS and RUNNING_ON_APPVEYOR,
     "Killing process in Windows in Appveyor gets stuck, skipping this test since it is already run in GHA",
 )
+@pytest.mark.xdist_group(name="sam_init")
 class TestInitCommand(InitIntegBase):
     def test_graceful_exit(self):
         # Run the Base Command

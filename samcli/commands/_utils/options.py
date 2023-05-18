@@ -296,9 +296,7 @@ def parameter_override_click_option():
         cls=OptionNargs,
         type=CfnParameterOverridesType(),
         default={},
-        help="String that contains AWS CloudFormation parameter overrides encoded as key=value pairs."
-        "\n\nExample: 'ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,"
-        "ParameterValue=t1.micro' or KeyPairName=MyKey InstanceType=t1.micro",
+        help="String that contains AWS CloudFormation parameter overrides encoded as key=value pairs.",
     )
 
 
@@ -312,7 +310,7 @@ def no_progressbar_click_option():
         default=False,
         required=False,
         is_flag=True,
-        help="Does not showcase a progress bar when uploading artifacts to s3 ",
+        help="Does not showcase a progress bar when uploading artifacts to s3 and pushing docker images to ECR",
     )
 
 
@@ -326,7 +324,7 @@ def signing_profiles_click_option():
         cls=OptionNargs,
         type=SigningProfilesOptionType(),
         default={},
-        help="Optional. A string that contains Code Sign configuration parameters as "
+        help="A string that contains Code Sign configuration parameters as "
         "FunctionOrLayerNameToSign=SigningProfileName:SigningProfileOwner "
         "Since signing profile owner is optional, it could also be written as "
         "FunctionOrLayerNameToSign=SigningProfileName",

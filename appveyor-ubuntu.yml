@@ -25,35 +25,21 @@ environment:
   AWS_S3: 'AWS_S3_TESTING'
   AWS_ECR: 'AWS_ECR_TESTING'
   CARGO_LAMBDA_VERSION: "v0.17.1"
- 
+  PYTHON_ARCH: '64'
+  NOSE_PARAMETERIZED_NO_WARN: 1
+  APPVEYOR_CONSOLE_DISABLE_PTY: false
+  APPVEYOR_DETAILED_SHELL_LOGGING: true
+
   matrix:
 
     - PYTHON_HOME: "$HOME/venv3.7/bin"
       PYTHON_VERSION: '3.7'
-      PYTHON_ARCH: '64'
-      NOSE_PARAMETERIZED_NO_WARN: 1
-      INSTALL_PY_38_PIP: 1
-      INSTALL_PY_39_PIP: 1
-      INSTALL_PY_310_PIP: 1
-      APPVEYOR_CONSOLE_DISABLE_PTY: true
 
     - PYTHON_HOME: "$HOME/venv3.8/bin"
       PYTHON_VERSION: '3.8'
-      PYTHON_ARCH: '64'
-      NOSE_PARAMETERIZED_NO_WARN: 1
-      INSTALL_PY_37_PIP: 1
-      INSTALL_PY_39_PIP: 1
-      INSTALL_PY_310_PIP: 1
-      APPVEYOR_CONSOLE_DISABLE_PTY: true
 
     - PYTHON_HOME: "$HOME/venv3.9/bin"
       PYTHON_VERSION: '3.9'
-      PYTHON_ARCH: '64'
-      NOSE_PARAMETERIZED_NO_WARN: 1
-      INSTALL_PY_37_PIP: 1
-      INSTALL_PY_38_PIP: 1
-      INSTALL_PY_310_PIP: 1
-      APPVEYOR_CONSOLE_DISABLE_PTY: true
 
 install:
   # AppVeyor's apt-get cache might be outdated, and the package could potentially be 404.
@@ -62,8 +48,17 @@ install:
   - sh: "gvm use go1.19"
   - sh: "echo $PATH"
   - sh: "ls /usr/"
-  - sh: "JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64"
+  # install latest maven which is compatible with jdk17
+  - sh: "sudo apt-get -y remove maven"
+  - sh: "wget https://dlcdn.apache.org/maven/maven-3/3.8.8/binaries/apache-maven-3.8.8-bin.zip -P /tmp"
+  - sh: "sudo unzip -d /opt/mvn /tmp/apache-maven-*.zip"
+  - sh: "PATH=/opt/mvn/apache-maven-3.8.8/bin:$PATH"
+  - sh: "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64"
   - sh: "PATH=$JAVA_HOME/bin:$PATH"
+  - sh: "javac -version"
+  - sh: "java -version"
+  - sh: "mvn --version"
+
   - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
   - sh: "rvm use 2.7.2"
   - sh: "docker --version"
@@ -73,9 +68,9 @@ install:
 
   # Install latest gradle
   - sh: "sudo apt-get -y remove gradle"
-  - sh: "wget https://services.gradle.org/distributions/gradle-5.5-bin.zip -P /tmp"
+  - sh: "wget https://services.gradle.org/distributions/gradle-7.3.1-bin.zip -P /tmp"
   - sh: "sudo unzip -d /opt/gradle /tmp/gradle-*.zip"
-  - sh: "PATH=/opt/gradle/gradle-5.5/bin:$PATH"
+  - sh: "PATH=/opt/gradle/gradle-7.3.1/bin:$PATH"
 
   # Install AWS CLI
   - sh: "virtualenv aws_cli"
@@ -99,7 +94,7 @@ install:
   - sh: "terraform -version"
 
   # install Rust
-  - sh: "curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL https://sh.rustup.rs | sh -s -- --default-toolchain none -y"
+  - sh: "curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL https://sh.rustup.rs | sh -s -- --default-toolchain none -y > /dev/null 2>&1"
   - sh: "source $HOME/.cargo/env"
   - sh: "rustup toolchain install stable --profile minimal --no-self-update"
   - sh: "rustup default stable"
@@ -264,7 +259,7 @@ for:
 
     test_script:
       - "pip install -e \".[dev]\""
-      - sh: "pytest -vv tests/integration/deploy -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-deploy.json"
+      - sh: "pytest -vv tests/integration/deploy -n 4 --reruns 4 --dist=loadgroup --json-report --json-report-file=TEST_REPORT-integration-deploy.json"
 
   # Integ testing package
   -
@@ -294,7 +289,7 @@ for:
 
     test_script:
       - "pip install -e \".[dev]\""
-      - sh: "pytest -vv tests/integration/sync --json-report --json-report-file=TEST_REPORT-integration-sync.json"
+      - sh: "pytest -vv tests/integration/sync -n 3 --reruns 3 --dist loadscope --json-report --json-report-file=TEST_REPORT-integration-sync.json"
 
   # Integ testing local
   -
@@ -338,7 +333,7 @@ for:
       - "mypy setup.py samcli tests"
       - "pytest -n 4 tests/functional --json-report --json-report-file=TEST_REPORT-functional.json"
       
-      - sh: "pytest tests/integration --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-others.json"
+      - sh: "pytest -vv -n 4 --reruns 4 --dist loadgroup tests/integration --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-others.json"
       - sh: "pytest -vv tests/regression --json-report --json-report-file=TEST_REPORT-regression.json"
       - sh: "black --check setup.py tests samcli"
       - sh: "pytest -n 4 -vv tests/smoke --json-report --json-report-file=TEST_REPORT-smoke.json"
