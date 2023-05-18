@@ -1,6 +1,7 @@
 import platform
 import time
 import signal
+import pytest
 
 from click.testing import CliRunner
 
@@ -28,6 +29,7 @@ TIMEOUT = 300
 COMMIT_ERROR = "WARN: Commit not exist:"
 
 
+@pytest.mark.xdist_group(name="sam_init")
 class TestBasicInitCommand(TestCase):
     def test_init_command_passes_and_dir_created(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -501,6 +503,7 @@ You can run 'sam init' without any options for an interactive initialization flo
 """
 
 
+@pytest.mark.xdist_group(name="sam_init")
 class TestInitForParametersCompatibility(TestCase):
     def test_init_command_no_interactive_missing_name(self):
         stderr = None
@@ -751,6 +754,7 @@ Error: Invalid value for '-p' / '--package-type': 'WrongPT' is not one of 'Zip',
             self.assertIn(errmsg.strip(), "\n".join(stderr.strip().splitlines()))
 
 
+@pytest.mark.xdist_group(name="sam_init")
 class TestInitWithArbitraryProject(TestCase):
     def setUp(self):
         self.tempdir = tempfile.mkdtemp()
@@ -833,6 +837,7 @@ class TestInitWithArbitraryProject(TestCase):
             self._validate_expected_files_exist(Path(tmp, project_name))
 
 
+@pytest.mark.xdist_group(name="sam_init")
 class TestInteractiveInit(TestCase):
     def test_interactive_init(self):
         # 1: AWS Quick Start Templates
@@ -886,6 +891,7 @@ sam-interactive-init-app-default-runtime
             self.assertTrue(Path(expected_output_folder, "hello_world", "app.py").is_file())
 
 
+@pytest.mark.xdist_group(name="sam_init")
 class TestSubsequentInitCaching(TestCase):
     def test_subsequent_init_skips_cloning(self):
         from platform import system
@@ -947,6 +953,7 @@ class TestSubsequentInitCaching(TestCase):
         return os.path.getmtime(file)
 
 
+@pytest.mark.xdist_group(name="sam_init")
 class TestInitProducesSamconfigFile(TestCase):
     def test_zip_template_config(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -1060,6 +1067,7 @@ class TestInitProducesSamconfigFile(TestCase):
     IS_WINDOWS and RUNNING_ON_APPVEYOR,
     "Killing process in Windows in Appveyor gets stuck, skipping this test since it is already run in GHA",
 )
+@pytest.mark.xdist_group(name="sam_init")
 class TestInitCommand(InitIntegBase):
     def test_graceful_exit(self):
         # Run the Base Command

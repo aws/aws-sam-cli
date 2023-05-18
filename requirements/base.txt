@@ -1,13 +1,13 @@
 chevron~=0.12
 click~=8.0
-Flask<2.1
+Flask<2.3
 #Need to add Schemas latest SDK.
 boto3>=1.19.5,==1.*
 jmespath~=0.10.0
 ruamel_yaml==0.17.21
 PyYAML>=5.4.1,==5.*
 cookiecutter~=2.1.1
-aws-sam-translator==1.66.0
+aws-sam-translator==1.67.0
 #docker minor version updates can include breaking changes. Auto update micro version only.
 docker~=4.2.0
 dateparser~=1.1

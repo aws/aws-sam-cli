@@ -171,7 +171,7 @@ def do_cli(  # pylint: disable=R0914
     LOG.debug("local invoke command is called")
 
     if event:
-        event_data = _get_event(event)
+        event_data = _get_event(event, exception_class=UserException)
     else:
         event_data = "{}"
 
@@ -226,7 +226,7 @@ def do_cli(  # pylint: disable=R0914
         raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
 
 
-def _get_event(event_file_name):
+def _get_event(event_file_name, exception_class):
     """
     Read the event JSON data from the given file. If no file is provided, read the event from stdin.
 
@@ -240,5 +240,8 @@ def _get_event(event_file_name):
 
     # click.open_file knows to open stdin when filename is '-'. This is safer than manually opening streams, and
     # accidentally closing a standard stream
-    with click.open_file(event_file_name, "r", encoding="utf-8") as fp:
-        return fp.read()
+    try:
+        with click.open_file(event_file_name, "r", encoding="utf-8") as fp:
+            return fp.read()
+    except FileNotFoundError as ex:
+        raise exception_class(str(ex), wrapped_from=ex.__class__.__name__) from ex
