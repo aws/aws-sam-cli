@@ -123,6 +123,76 @@ class RestApiToApiGatewayStageLocalVariablesLinkingLimitationException(LocalVari
     """
 
 
+class OneRestApiToApiGatewayIntegrationLinkingLimitationException(OneResourceLinkingLimitationException):
+    """
+    Exception specific for Gateway Integration linking to more than one Rest API
+    """
+
+
+class RestApiToApiGatewayIntegrationLocalVariablesLinkingLimitationException(LocalVariablesLinkingLimitationException):
+    """
+    Exception specific for Gateway Integration linking to Rest API using locals.
+    """
+
+
+class OneGatewayResourceToApiGatewayIntegrationLinkingLimitationException(OneResourceLinkingLimitationException):
+    """
+    Exception specific for Gateway Integration linking to more than one Gateway resource
+    """
+
+
+class GatewayResourceToApiGatewayIntegrationLocalVariablesLinkingLimitationException(
+    LocalVariablesLinkingLimitationException
+):
+    """
+    Exception specific for Gateway Integration linking to Gateway Resource using locals.
+    """
+
+
+class OneLambdaFunctionResourceToApiGatewayIntegrationLinkingLimitationException(OneResourceLinkingLimitationException):
+    """
+    Exception specific for Gateway Integration linking to more than one Lambda function resource
+    """
+
+
+class LambdaFunctionToApiGatewayIntegrationLocalVariablesLinkingLimitationException(
+    LocalVariablesLinkingLimitationException
+):
+    """
+    Exception specific for Gateway Integration linking to a Lambda function resource using locals.
+    """
+
+
+class OneRestApiToApiGatewayIntegrationResponseLinkingLimitationException(OneResourceLinkingLimitationException):
+    """
+    Exception specific for Gateway Integration Response linking to more than one Rest API
+    """
+
+
+class RestApiToApiGatewayIntegrationResponseLocalVariablesLinkingLimitationException(
+    LocalVariablesLinkingLimitationException
+):
+    """
+    Exception specific for Gateway Integration Response linking to Rest API using locals.
+    """
+
+
+class OneGatewayResourceToApiGatewayIntegrationResponseLinkingLimitationException(
+    OneResourceLinkingLimitationException
+):
+    """
+    Exception specific for Gateway Integration Response linking to more than one Gateway resource
+    """
+
+
+class GatewayResourceToApiGatewayIntegrationResponseLocalVariablesLinkingLimitationException(
+    LocalVariablesLinkingLimitationException
+):
+    """
+    Exception specific for Gateway Integration Response linking to Gateway Resource using locals.
+    """
+
+
 class InvalidSamMetadataPropertiesException(UserException):
     pass
 

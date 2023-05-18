@@ -11,6 +11,7 @@ from samcli.lib.utils.resources import (
     AWS_APIGATEWAY_RESTAPI,
     AWS_APIGATEWAY_STAGE,
     AWS_APIGATEWAY_METHOD,
+    AWS_APIGATEWAY_AUTHORIZER,
 )
 from samcli.hook_packages.terraform.hooks.prepare.resources.internal import (
     INTERNAL_API_GATEWAY_INTEGRATION,
@@ -46,7 +47,9 @@ class PrepareHookUnitBase(TestCase):
         self.apigw_stage_name = "my_stage"
         self.apigw_rest_api_name = "my_rest_api"
         self.apigw_method_name = "my_method"
+        self.apigw_method_with_auth_name = "my_method_auth"
         self.apigw_integration_name = "my_integration"
+        self.apigw_authorizer_name = "my_authorizer"
         self.apigw_integration_response_name = "my_integration_response"
 
         self.tf_function_common_properties: dict = {
@@ -570,6 +573,42 @@ class PrepareHookUnitBase(TestCase):
             "Metadata": {"SamResourceId": f"aws_api_gateway_integration.{self.apigw_integration_name}"},
         }
 
+        self.tf_apigw_authorizer_common_attributes: dict = {
+            "type": "aws_api_gateway_authorizer",
+            "provider_name": AWS_PROVIDER_NAME,
+        }
+
+        self.tf_apigw_authorizer_properties: dict = {
+            "name": self.apigw_authorizer_name,
+            "rest_api_id": "aws_api_gateway_rest_api.demo.id",
+            "authorizer_uri": "aws_lambda_function.authorizer.invoke_arn",
+            "identity_source": "method.request.header.Authorization",
+            "type": "TOKEN",
+            "identity_validation_expression": "^123$",
+        }
+
+        self.expected_cfn_apigw_authorizer_properties: dict = {
+            "Name": self.apigw_authorizer_name,
+            "RestApiId": "aws_api_gateway_rest_api.demo.id",
+            "AuthorizerUri": "aws_lambda_function.authorizer.invoke_arn",
+            "IdentitySource": "method.request.header.Authorization",
+            "Type": "TOKEN",
+            "IdentityValidationExpression": "^123$",
+        }
+
+        self.tf_apigw_authorizer_resource: dict = {
+            **self.tf_apigw_authorizer_common_attributes,
+            "values": self.tf_apigw_authorizer_properties,
+            "address": f"aws_api_gateway_authorizer.{self.apigw_authorizer_name}",
+            "name": self.apigw_authorizer_name,
+        }
+
+        self.expected_cfn_apigw_authorizer: dict = {
+            "Type": AWS_APIGATEWAY_AUTHORIZER,
+            "Properties": self.expected_cfn_apigw_authorizer_properties,
+            "Metadata": {"SamResourceId": f"aws_api_gateway_authorizer.{self.apigw_authorizer_name}"},
+        }
+
         self.tf_apigw_integration_response_properties: dict = {
             "rest_api_id": "aws_api_gateway_rest_api.MyDemoAPI.id",
             "resource_id": "aws_api_gateway_resource.MyResource.id",
@@ -629,6 +668,33 @@ class PrepareHookUnitBase(TestCase):
             "Type": AWS_APIGATEWAY_METHOD,
             "Properties": self.expected_cfn_apigw_method_properties,
             "Metadata": {"SamResourceId": f"aws_api_gateway_method.{self.apigw_method_name}"},
+        }
+
+        self.tf_apigw_method_with_auth_properties: dict = {
+            "rest_api_id": "aws_api_gateway_rest_api.MyDemoAPI.id",
+            "resource_id": "aws_api_gateway_resource.MyDemoResource.id",
+            "http_method": "ANY",
+            "operation_name": "AnyOperation",
+        }
+
+        self.expected_cfn_apigw_method_with_auth_properties: dict = {
+            "RestApiId": "aws_api_gateway_rest_api.MyDemoAPI.id",
+            "ResourceId": "aws_api_gateway_resource.MyDemoResource.id",
+            "HttpMethod": "ANY",
+            "OperationName": "AnyOperation",
+        }
+
+        self.tf_apigw_method_with_auth_resource: dict = {
+            **self.tf_apigw_method_common_attributes,
+            "values": self.tf_apigw_method_with_auth_properties,
+            "address": f"aws_api_gateway_method.{self.apigw_method_with_auth_name}",
+            "name": self.apigw_method_with_auth_name,
+        }
+
+        self.expected_cfn_apigw_method_with_auth: dict = {
+            "Type": AWS_APIGATEWAY_METHOD,
+            "Properties": self.expected_cfn_apigw_method_with_auth_properties,
+            "Metadata": {"SamResourceId": f"aws_api_gateway_method.{self.apigw_method_with_auth_name}"},
         }
 
         self.tf_apigw_stage_properties: dict = {
@@ -706,7 +772,9 @@ class PrepareHookUnitBase(TestCase):
                         self.tf_apigw_rest_api_resource,
                         self.tf_apigw_stage_resource,
                         self.tf_apigw_method_resource,
+                        self.tf_apigw_method_with_auth_resource,
                         self.tf_apigw_integration_resource,
+                        self.tf_apigw_authorizer_resource,
                         self.tf_apigw_integration_response_resource,
                     ]
                 }
@@ -722,6 +790,8 @@ class PrepareHookUnitBase(TestCase):
                 f"AwsApiGatewayRestApiMyRestApi{self.mock_logical_id_hash}": self.expected_cfn_apigw_rest_api,
                 f"AwsApiGatewayStageMyStage{self.mock_logical_id_hash}": self.expected_cfn_apigw_stage_resource,
                 f"AwsApiGatewayMethodMyMethod{self.mock_logical_id_hash}": self.expected_cfn_apigw_method,
+                f"AwsApiGatewayMethodMyMethodAuth{self.mock_logical_id_hash}": self.expected_cfn_apigw_method_with_auth,
+                f"AwsApiGatewayAuthorizerMyAuthorizer{self.mock_logical_id_hash}": self.expected_cfn_apigw_authorizer,
             },
         }
 
