@@ -91,19 +91,24 @@ class RemoteInvokeContext:
             self._stack_name,
         )
         resource_summaries = get_resource_summaries(
-            self._boto_resource_provider, self._boto_client_provider, cast(str, self._stack_name), {AWS_LAMBDA_FUNCTION}
+            self._boto_resource_provider,
+            self._boto_client_provider,
+            cast(str, self._stack_name),
+            set(SUPPORTED_SERVICES.values()),
         )
 
         if len(resource_summaries) == 1:
-            for logical_id, resource_summary in resource_summaries.items():
-                LOG.debug("Using %s resource for remote invocation (%s)", logical_id, resource_summary)
-                return resource_summary
-        elif len(resource_summaries) > 1:
+            ((logical_id, resource_summary),) = resource_summaries.items()
+            LOG.debug("Using %s resource for remote invocation (%s)", logical_id, resource_summary)
+            return resource_summary
+
+        if len(resource_summaries) > 1:
             raise AmbiguousResourceForRemoteInvoke(
                 f"{self._stack_name} contains more than one resource that could be used with remote invoke, "
                 f"please provide --resource-id to resolve ambiguity."
             )
 
+        # fail if no resource summary found with given types
         raise NoResourceFoundForRemoteInvoke(
             f"{self._stack_name} stack has no resources that can be used with remote invoke."
         )
