@@ -57,6 +57,17 @@ class RemoteInvokeContext:
         pass
 
     def _populate_resource_summary(self) -> None:
+        """
+        Populates self._resource_summary field from self._stack_name and/or self._resource_id
+
+        Either self._stack_name or self._resource_id should be defined, it fails otherwise.
+
+        If only self._stack_name is defined, it tries to find single resource in that stack,
+        see _get_single_resource_from_stack for details.
+
+        If only self._resource_id is defined, it tries to parse its ARN or validate it as physical id,
+        see _get_from_physical_resource_id for details.
+        """
         if not self._stack_name and not self._resource_id:
             raise InvalidRemoteInvokeParameters("Either --stack-name or --resource-id parameter should be provided")
 
@@ -74,6 +85,11 @@ class RemoteInvokeContext:
         Queries all resources from stack with its type,
         and returns its information if stack has only one resource from that type (including nested stacks)
         """
+        LOG.debug(
+            "Trying to get single resource with %s type in % stack since no resource id is provided",
+            AWS_LAMBDA_FUNCTION,
+            self._stack_name,
+        )
         resource_summaries = get_resource_summaries(
             self._boto_resource_provider, self._boto_client_provider, cast(str, self._stack_name), {AWS_LAMBDA_FUNCTION}
         )
@@ -93,6 +109,13 @@ class RemoteInvokeContext:
         )
 
     def _get_from_physical_resource_id(self) -> CloudFormationResourceSummary:
+        """
+        It first tries to parse given string as ARN and extracts the service name out of it. If it succeeds and that
+        service is supported, it generates CloudFormationResourceSummary out of that information
+
+        If it fails, it tries to resolve CloudFormationResourceSummary from the physical id of the resource
+        (see get_resource_summary_from_physical_id for details)
+        """
         resource_id = cast(str, self._resource_id)
         try:
             resource_arn = ARNParts(resource_id)
