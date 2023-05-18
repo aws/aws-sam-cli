@@ -110,12 +110,12 @@ class LambdaResponseConverter(RemoteInvokeRequestResponseMapper):
     def map(self, remote_invoke_input: RemoteInvokeExecutionInfo) -> RemoteInvokeExecutionInfo:
         if not isinstance(remote_invoke_input.response, dict):
             raise InvalideBotoResponseException("Invalid response type received from Lambda service, expecting dict")
-        else:
-            payload_field = remote_invoke_input.response.get(PAYLOAD)
-            if payload_field:
-                remote_invoke_input.response[PAYLOAD] = cast(StreamingBody, payload_field).read().decode("utf-8")
 
-            return remote_invoke_input
+        payload_field = remote_invoke_input.response.get(PAYLOAD)
+        if payload_field:
+            remote_invoke_input.response[PAYLOAD] = cast(StreamingBody, payload_field).read().decode("utf-8")
+
+        return remote_invoke_input
 
 
 class LambdaResponseOutputFormatter(RemoteInvokeRequestResponseMapper):
@@ -127,8 +127,8 @@ class LambdaResponseOutputFormatter(RemoteInvokeRequestResponseMapper):
 
     def map(self, remote_invoke_input: RemoteInvokeExecutionInfo) -> RemoteInvokeExecutionInfo:
         """
-        Maps the lambda response output to the type of output format specified by customer.
-        If output_format is original-boto-response, write the original boto repsonse
+        Maps the lambda response output to the type of output format specified as user input.
+        If output_format is original-boto-response, write the original boto API response
         to stdout.
         """
         if remote_invoke_input.output_format == RemoteInvokeOutputFormat.DEFAULT:

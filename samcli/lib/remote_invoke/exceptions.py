@@ -4,16 +4,12 @@ Exceptions used by remote invoke executors
 
 
 class InvalidResourceBotoParameterException(Exception):
-    msg: str
+    """Exception is raised when parameters passed to boto APIs are invalid"""
 
-    def __init__(self, msg: str) -> None:
-        self.msg = msg
-        super().__init__(self.msg)
+    pass
 
 
 class InvalideBotoResponseException(Exception):
-    msg: str
+    """Exception is raised when the boto APIs return an invalid response"""
 
-    def __init__(self, msg: str) -> None:
-        self.msg = msg
-        super().__init__(self.msg)
+    pass
