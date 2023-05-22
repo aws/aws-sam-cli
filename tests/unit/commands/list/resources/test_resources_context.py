@@ -445,6 +445,52 @@ class TestGetTranslatedDict(TestCase):
 
         mock_yaml_parse.assert_called_once()
 
+    @patch("samcli.commands.list.json_consumer.click.echo")
+    @patch("samcli.commands.list.json_consumer.click.get_current_context")
+    @patch("samcli.lib.list.resources.resource_mapping_producer.get_template_data")
+    def test_get_translated_dict_references_parameter_override(
+        self,
+        mock_sam_file_reader,
+        patched_click_get_current_context,
+        patched_click_echo,
+    ):
+        mock_sam_file_reader.return_value = {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Transform": "AWS::Serverless-2016-10-31",
+            "Parameters": {"DomainName": {"Type": "String"}},
+            "Resources": {
+                "Gateway": {
+                    "Type": "AWS::Serverless::HttpApi",
+                    "Properties": {"Domain": {"DomainName": {"Ref": "DomainName"}, "CertificateArn": "arn here"}},
+                }
+            },
+        }
+
+        expected_domain_name = "example.com"
+        expected_logical_id = "ApiGatewayDomainNameV20caaf24ab1"
+
+        resource_producer = ResourceMappingProducer(
+            stack_name=None,
+            region="us-east-1",
+            profile=None,
+            template_file=None,
+            cloudformation_client=None,
+            iam_client=None,
+            mapper=DataToJsonMapper(),
+            consumer=StringConsumerJsonOutput(),
+            parameter_overrides={"DomainName": expected_domain_name},
+        )
+        output = resource_producer.get_translated_dict(mock_sam_file_reader.return_value)
+
+        # check we have right logical ID + hash
+        self.assertIn(expected_logical_id, output.get("Resources", {}))
+
+        # check we have the domain name populated
+        output_domain_name = (
+            output.get("Resources", {}).get(expected_logical_id, {}).get("Properties", {}).get("DomainName")
+        )
+        self.assertEqual(expected_domain_name, output_domain_name)
+
 
 class TestResourcesInitClients(TestCase):
     @patch("samcli.commands.list.json_consumer.click.echo")

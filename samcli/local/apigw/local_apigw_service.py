@@ -239,7 +239,7 @@ class LocalApigwService(BaseLocalService):
         Parameters
         ----------
         flask_request: Request
-            Flask request object to get method and endpoint
+            Flask request object to get method and path
         event_type: str
             Type of event (API or HTTP)
 
@@ -249,11 +249,11 @@ class LocalApigwService(BaseLocalService):
             A built method ARN with fake values
         """
         context = RequestContext() if event_type == Route.API else RequestContextV2()
-        method, endpoint = self.get_request_methods_endpoints(flask_request)
+        method, path = flask_request.method, flask_request.path
 
         return (
             f"arn:aws:execute-api:us-east-1:{context.account_id}:"  # type: ignore
-            f"{context.api_id}/{self.api.stage_name}/{method}{endpoint}"
+            f"{context.api_id}/{self.api.stage_name}/{method}{path}"
         )
 
     def _generate_lambda_token_authorizer_event(
@@ -265,7 +265,7 @@ class LocalApigwService(BaseLocalService):
         Parameters
         ----------
         flask_request: Request
-            Flask request object to get method and endpoint
+            Flask request object to get method and path
         route: Route
             Route object representing the endpoint to be invoked later
         lambda_authorizer: LambdaAuthorizer
@@ -339,7 +339,7 @@ class LocalApigwService(BaseLocalService):
         Parameters
         ----------
         flask_request: Request
-            Flask request object to get method and endpoint
+            Flask request object to get method and path
         route: Route
             Route object representing the endpoint to be invoked later
         lambda_authorizer: LambdaAuthorizer
@@ -640,6 +640,7 @@ class LocalApigwService(BaseLocalService):
 
         route: Route = self._get_current_route(request)
         cors_headers = Cors.cors_to_headers(self.api.cors)
+        cors_headers = self._response_cors_headers(request, cors_headers)
         lambda_authorizer = route.authorizer_object
 
         # payloadFormatVersion can only support 2 values: "1.0" and "2.0"
@@ -799,6 +800,31 @@ class LocalApigwService(BaseLocalService):
             raise KeyError("Lambda function for the route not found")
 
         return route
+
+    @staticmethod
+    def _response_cors_headers(flask_request, cors_headers):
+        if "Access-Control-Allow-Origin" not in cors_headers:
+            return cors_headers
+
+        cors_origins = cors_headers["Access-Control-Allow-Origin"]
+        # unset this header due to restrictive manner
+        del cors_headers["Access-Control-Allow-Origin"]
+
+        incoming_origin = flask_request.headers.get("Origin")
+        # Restrictive manner: do not allow any origin by default
+        response_allowed_origin = None
+        if incoming_origin:
+            if cors_origins == "*" and cors_headers.get("Access-Control-Allow-Credentials") is True:
+                response_allowed_origin = incoming_origin
+            else:
+                cors_origins_arr = cors_origins.split(",")
+                if incoming_origin in cors_origins_arr:
+                    response_allowed_origin = incoming_origin
+
+        if response_allowed_origin:
+            cors_headers["Access-Control-Allow-Origin"] = response_allowed_origin
+
+        return cors_headers
 
     @staticmethod
     def get_request_methods_endpoints(flask_request):

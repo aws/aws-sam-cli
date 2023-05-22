@@ -611,13 +611,14 @@ class TestApiGatewayService(TestCase):
 
         self.assertEqual(self.api_service._valid_identity_sources(Mock(), route), is_valid)
 
-    @patch.object(LocalApigwService, "get_request_methods_endpoints")
-    def test_create_method_arn(self, method_endpoint_mock):
-        method_endpoint_mock.return_value = ("method", "/endpoint")
+    def test_create_method_arn(self):
+        flask_request = Mock()
+        flask_request.method = "GET"
+        flask_request.path = "/endpoint"
 
-        expected_method_arn = "arn:aws:execute-api:us-east-1:123456789012:1234567890/None/method/endpoint"
+        expected_method_arn = "arn:aws:execute-api:us-east-1:123456789012:1234567890/None/GET/endpoint"
 
-        self.assertEqual(self.api_service._create_method_arn(Mock(), Route.API), expected_method_arn)
+        self.assertEqual(self.api_service._create_method_arn(flask_request, Route.API), expected_method_arn)
 
     @patch.object(LocalApigwService, "_create_method_arn")
     def test_generate_lambda_token_authorizer_event_invalid_identity_source(self, method_arn_mock):
@@ -880,6 +881,7 @@ class TestApiGatewayService(TestCase):
         )
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
+    @patch.object(LocalApigwService, "_create_method_arn")
     @patch.object(LocalApigwService, "_generate_lambda_authorizer_event")
     @patch.object(LocalApigwService, "_valid_identity_sources")
     @patch.object(LocalApigwService, "_invoke_lambda_function")
@@ -894,6 +896,7 @@ class TestApiGatewayService(TestCase):
         invoke_mock,
         validate_id_mock,
         gen_auth_event_mock,
+        method_arn_mock,
         request_mock,
     ):
         make_response_mock = Mock()
@@ -919,6 +922,7 @@ class TestApiGatewayService(TestCase):
         self.api_service.service_response = service_response_mock
 
         request_mock.return_value = ("test", "test")
+        method_arn_mock.return_value = "arn"
 
         mock_context = {"key": "value"}
         invoke_mock.side_effect = [{"context": mock_context}, Mock()]
@@ -927,6 +931,7 @@ class TestApiGatewayService(TestCase):
         service_err_mock.lambda_authorizer_unauthorized.return_value = unauth_mock
 
         result = self.api_service._request_handler()
+
         self.assertEqual(result, unauth_mock)
 
     @patch.object(LocalApigwService, "_invoke_lambda_function")
@@ -1833,6 +1838,140 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
         self.assertEqual(status_code, 200)
         self.assertEqual(headers, Headers({"Content-Type": "application/json"}))
         self.assertEqual(body, lambda_output)
+
+
+class TestService_cors_response_headers(TestCase):
+    def test_response_cors_no_origin(self):
+        request_mock = Mock()
+        headers_mock = Mock()
+        headers_mock.keys.return_value = []
+        request_mock.headers = headers_mock
+        request_mock.scheme = "http"
+
+        cors = Cors(allow_origin="*", allow_methods="GET,POST,OPTIONS")
+
+        response_cors_headers = Cors.cors_to_headers(cors)
+        response_cors_headers = LocalApigwService._response_cors_headers(request_mock, response_cors_headers)
+
+        self.assertTrue("Access-Control-Allow-Origin" not in response_cors_headers)
+
+    def test_response_cors_with_origin(self):
+        incoming_origin = "localhost:3000"
+
+        request_mock = Mock()
+        headers_mock = Mock()
+        headers_mock.keys.return_value = []
+        headers_mock.keys.return_value = ["Origin", "Content-Type"]
+        headers_mock.get.side_effect = [incoming_origin, "application/json"]
+        headers_mock.getlist.side_effect = [[incoming_origin], ["application/json"]]
+        request_mock.headers = headers_mock
+        request_mock.scheme = "http"
+
+        cors = Cors(allow_origin="*", allow_methods="GET,POST,OPTIONS", allow_credentials=True)
+
+        response_cors_headers = Cors.cors_to_headers(cors)
+        response_cors_headers = LocalApigwService._response_cors_headers(request_mock, response_cors_headers)
+
+        self.assertEqual(incoming_origin, response_cors_headers["Access-Control-Allow-Origin"])
+
+    def test_response_cors_with_origin_single_domain(self):
+        incoming_origin = "localhost:3000"
+
+        request_mock = Mock()
+        headers_mock = Mock()
+        headers_mock.keys.return_value = []
+        headers_mock.keys.return_value = ["Origin", "Content-Type"]
+        headers_mock.get.side_effect = [incoming_origin, "application/json"]
+        headers_mock.getlist.side_effect = [[incoming_origin], ["application/json"]]
+        request_mock.headers = headers_mock
+        request_mock.scheme = "http"
+
+        cors = Cors(allow_origin="localhost:3000", allow_methods="GET,POST,OPTIONS", allow_credentials=True)
+
+        response_cors_headers = Cors.cors_to_headers(cors)
+        response_cors_headers = LocalApigwService._response_cors_headers(request_mock, response_cors_headers)
+
+        self.assertEqual(incoming_origin, response_cors_headers["Access-Control-Allow-Origin"])
+
+    def test_response_cors_with_origin_multi_domains(self):
+        incoming_origin = "localhost:3000"
+
+        request_mock = Mock()
+        headers_mock = Mock()
+        headers_mock.keys.return_value = []
+        headers_mock.keys.return_value = ["Origin", "Content-Type"]
+        headers_mock.get.side_effect = [incoming_origin, "application/json"]
+        headers_mock.getlist.side_effect = [[incoming_origin], ["application/json"]]
+        request_mock.headers = headers_mock
+        request_mock.scheme = "http"
+
+        cors = Cors(
+            allow_origin="localhost:3000,localhost:6000", allow_methods="GET,POST,OPTIONS", allow_credentials=True
+        )
+
+        response_cors_headers = Cors.cors_to_headers(cors)
+        response_cors_headers = LocalApigwService._response_cors_headers(request_mock, response_cors_headers)
+
+        self.assertEqual(incoming_origin, response_cors_headers["Access-Control-Allow-Origin"])
+
+    def test_response_cors_with_origin_multi_domains_not_matching(self):
+        incoming_origin = "localhost:3000"
+
+        request_mock = Mock()
+        headers_mock = Mock()
+        headers_mock.keys.return_value = []
+        headers_mock.keys.return_value = ["Origin", "Content-Type"]
+        headers_mock.get.side_effect = [incoming_origin, "application/json"]
+        headers_mock.getlist.side_effect = [[incoming_origin], ["application/json"]]
+        request_mock.headers = headers_mock
+        request_mock.scheme = "http"
+
+        cors = Cors(
+            allow_origin="localhost:4000,localhost:6000", allow_methods="GET,POST,OPTIONS", allow_credentials=True
+        )
+
+        response_cors_headers = Cors.cors_to_headers(cors)
+        response_cors_headers = LocalApigwService._response_cors_headers(request_mock, response_cors_headers)
+
+        self.assertTrue("Access-Control-Allow-Origin" not in response_cors_headers)
+
+    def test_response_cors_not_allow_credentials(self):
+        incoming_origin = "localhost:3000"
+
+        request_mock = Mock()
+        headers_mock = Mock()
+        headers_mock.keys.return_value = []
+        headers_mock.keys.return_value = ["Origin", "Content-Type"]
+        headers_mock.get.side_effect = [incoming_origin, "application/json"]
+        headers_mock.getlist.side_effect = [[incoming_origin], ["application/json"]]
+        request_mock.headers = headers_mock
+        request_mock.scheme = "http"
+
+        cors = Cors(allow_origin="*", allow_methods="GET,POST,OPTIONS", allow_credentials=False)
+
+        response_cors_headers = Cors.cors_to_headers(cors)
+        response_cors_headers = LocalApigwService._response_cors_headers(request_mock, response_cors_headers)
+
+        self.assertTrue("Access-Control-Allow-Origin" not in response_cors_headers)
+
+    def test_response_cors_missing_allow_credentials(self):
+        incoming_origin = "localhost:3000"
+
+        request_mock = Mock()
+        headers_mock = Mock()
+        headers_mock.keys.return_value = []
+        headers_mock.keys.return_value = ["Origin", "Content-Type"]
+        headers_mock.get.side_effect = [incoming_origin, "application/json"]
+        headers_mock.getlist.side_effect = [[incoming_origin], ["application/json"]]
+        request_mock.headers = headers_mock
+        request_mock.scheme = "http"
+
+        cors = Cors(allow_origin="*", allow_methods="GET,POST,OPTIONS")
+
+        response_cors_headers = Cors.cors_to_headers(cors)
+        response_cors_headers = LocalApigwService._response_cors_headers(request_mock, response_cors_headers)
+
+        self.assertTrue("Access-Control-Allow-Origin" not in response_cors_headers)
 
 
 class TestServiceCorsToHeaders(TestCase):

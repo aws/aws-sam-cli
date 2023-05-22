@@ -98,6 +98,35 @@ def auth_handler(event, context):
     authResponse['context'] = context
     return authResponse
 
+
+def auth_handler_swagger_parameterized(event, context):
+    principalId = "user|a1b2c3d4"
+    arn = event.get("methodArn") or event.get("routeArn")
+    tmp = arn.split(':')
+    apiGatewayArnTmp = tmp[5].split('/')
+    awsAccountId = tmp[4]
+
+    policy = AuthPolicy(principalId, awsAccountId)
+    policy.restApiId = apiGatewayArnTmp[0]
+    policy.region = tmp[3]
+    policy.stage = apiGatewayArnTmp[1]
+
+    policy.allowMethod(HttpVerb.GET, "/requestauthorizerswaggerrequest/authorized")
+    policy.allowMethod(HttpVerb.GET, "/requestauthorizerswaggertoken/authorized")
+
+    policy.denyMethod(HttpVerb.GET, "/requestauthorizerswaggerrequest/unauthorized")
+    policy.denyMethod(HttpVerb.GET, "/requestauthorizerswaggertoken/unauthorized")
+
+    authResponse = policy.build()
+    authResponse['context'] = {
+        'number' : 1,
+        'bool' : True,
+        'passed': 'from authorizer'
+    }
+
+    return authResponse
+
+
 class HttpVerb:
     GET     = "GET"
     POST    = "POST"
