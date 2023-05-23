@@ -8,7 +8,7 @@ from samcli.commands.exceptions import UserException
 ONE_LAMBDA_LAYER_LINKING_ISSUE_LINK = "https://github.com/aws/aws-sam-cli/issues/4395"
 LOCAL_VARIABLES_SUPPORT_ISSUE_LINK = "https://github.com/aws/aws-sam-cli/issues/4396"
 
-APPLY_WORK_AROUND_MESSAGE = "Run terraform apply as a work around to populate these values."
+APPLY_WORK_AROUND_MESSAGE = "Run terraform apply to populate these values."
 
 
 class InvalidResourceLinkingException(UserException):

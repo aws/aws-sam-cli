@@ -5,14 +5,13 @@ This method contains the logic required to translate the `terraform show` JSON o
 """
 import hashlib
 import logging
-from typing import Any, Dict, List, Tuple, Type, Union
+from typing import Any, Dict, Iterator, List, Tuple, Type, Union
 
 from samcli.hook_packages.terraform.hooks.prepare.constants import (
     CFN_CODE_PROPERTIES,
     SAM_METADATA_RESOURCE_NAME_ATTRIBUTE,
 )
 from samcli.hook_packages.terraform.hooks.prepare.enrich import enrich_resources_and_generate_makefile
-from samcli.hook_packages.terraform.hooks.prepare.exceptions import APPLY_WORK_AROUND_MESSAGE
 from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     REMOTE_DUMMY_VALUE,
     RESOURCE_TRANSLATOR_MAPPING,
@@ -69,7 +68,7 @@ TRANSLATION_VALIDATORS: Dict[str, Type[ResourceTranslationValidator]] = {
 }
 
 
-def _get_modules(root_module: dict, root_tf_module: TFModule) -> Tuple[dict, TFModule]:
+def _get_modules(root_module: dict, root_tf_module: TFModule) -> Iterator[Tuple[dict, TFModule]]:
     """
     Iterator helper method to find any child modules for processing.
 
@@ -110,10 +109,11 @@ def _check_unresolvable_values(root_module: dict, root_tf_module: TFModule) -> N
 
     for curr_module, curr_tf_module in _get_modules(root_module, root_tf_module):
         # iterate over resources for current module
-        for resource in curr_module.get("resources", {}):
+        for resource in curr_module.get("resources", []):
             resource_type = resource.get("type")
 
-            if resource_type not in RESOURCE_TRANSLATOR_MAPPING:
+            resource_mapper = RESOURCE_TRANSLATOR_MAPPING.get(resource_type)
+            if not resource_mapper:
                 continue
 
             resource_values = resource.get("values")
@@ -122,21 +122,18 @@ def _check_unresolvable_values(root_module: dict, root_tf_module: TFModule) -> N
             config_resource_address = get_configuration_address(resource_full_address)
             config_resource = curr_tf_module.resources[config_resource_address]
 
-            resource_mapper = RESOURCE_TRANSLATOR_MAPPING.get(resource_type)
-
-            for key, prop_builder in resource_mapper.property_builder_mapping.items():
+            for prop_builder in resource_mapper.property_builder_mapping.values():
                 planned_values = prop_builder(resource_values, config_resource)
                 config_values = prop_builder(config_resource.attributes, config_resource)
 
                 if config_values and not planned_values:
                     LOG.warning(
                         Colored().yellow(
-                            f"\nUnable to map to the Cloudformation property '{key}' for "
-                            f"'{resource_full_address}'.\n{APPLY_WORK_AROUND_MESSAGE}\n"
+                            "\nUnresolvable attributes discovered in project, run terraform apply to resolve them.\n"
                         )
                     )
 
-                    break
+                    return
 
 
 def translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_application_dir: str) -> dict:
