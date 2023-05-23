@@ -12,6 +12,8 @@ from samcli.hook_packages.terraform.hooks.prepare.resources.apigw import (
     _gateway_method_integration_identifier,
     _find_gateway_integration,
     add_integrations_to_methods,
+    add_integration_responses_to_methods,
+    _create_gateway_method_integration_response,
 )
 from samcli.hook_packages.terraform.hooks.prepare.types import References, TFResource, ConstantValue
 
@@ -282,4 +284,196 @@ class TestMethodToIntegrationLinking(TestCase):
         self, api_gateway_method, integration_resource_properties, expected_method_response
     ):
         _create_gateway_method_integration(api_gateway_method, integration_resource_properties)
+        self.assertEqual(api_gateway_method, expected_method_response)
+
+
+class TestMethodToIntegrationResponseLinking(TestCase):
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resources.apigw._gateway_method_integration_identifier")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resources.apigw._find_gateway_integration")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resources.apigw._create_gateway_method_integration_response")
+    def test_add_integration_responses_to_methods(
+        self,
+        mock_create_gateway_method_integration_response,
+        mock_find_gateway_integration,
+        mock_gateway_method_integration_identifier,
+    ):
+        integration_response_a = {
+            "Type": "Internal::ApiGateway::Method::Integration::Response",
+            "Properties": {
+                "ResponseParameters": {
+                    "parameter_key1": "parameter_value1",
+                    "parameter_key2": "parameter_value2",
+                }
+            },
+        }
+        integration_response_b = {
+            "Type": "Internal::ApiGateway::Method::Integration::Response",
+            "Properties": {
+                "ResponseParameters": {
+                    "parameter_key3": "parameter_value3",
+                    "parameter_key4": "parameter_value4",
+                }
+            },
+        }
+        gateway_integration_response = {
+            "MyResourceA": [integration_response_a],
+            "MyResourceB": [integration_response_b],
+            "MyResourceC": [Mock()],
+        }
+        method_a = {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+                "HttpMethod": "POST",
+                "Integration": {"Type": "AWS_PROXY"},
+            },
+        }
+        method_b = {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+                "HttpMethod": "GET",
+                "Integration": {"Type": "AWS_PROXY"},
+            },
+        }
+        gateway_methods = {
+            "MethodA": [method_a],
+            "MethodB": [method_b],
+        }
+        mock_find_gateway_integration.side_effect = [
+            integration_response_a["Properties"],
+            integration_response_b["Properties"],
+            None,
+        ]
+        add_integration_responses_to_methods(gateway_methods, gateway_integration_response)
+        mock_create_gateway_method_integration_response.assert_has_calls(
+            [
+                call(
+                    method_a,
+                    integration_response_a["Properties"],
+                ),
+                call(
+                    method_b,
+                    integration_response_b["Properties"],
+                ),
+            ]
+        )
+
+    @parameterized.expand(
+        [
+            (
+                {"Type": "AWS::ApiGateway::Method", "Properties": {"HttpMethod": "POST"}},
+                {
+                    "ResponseParameters": {
+                        "parameter_key1": "parameter_value1",
+                        "parameter_key2": "parameter_value2",
+                    }
+                },
+                {
+                    "Type": "AWS::ApiGateway::Method",
+                    "Properties": {
+                        "HttpMethod": "POST",
+                        "Integration": {
+                            "IntegrationResponses": [
+                                {
+                                    "ResponseParameters": {
+                                        "parameter_key1": "parameter_value1",
+                                        "parameter_key2": "parameter_value2",
+                                    }
+                                }
+                            ]
+                        },
+                    },
+                },
+            ),
+            (
+                {
+                    "Type": "AWS::ApiGateway::Method",
+                    "Properties": {
+                        "HttpMethod": "POST",
+                        "Integration": {
+                            "Uri": "my_cool_invoke_arn",
+                            "Type": "AWS_PROXY",
+                        },
+                    },
+                },
+                {
+                    "ResponseParameters": {
+                        "parameter_key1": "parameter_value1",
+                        "parameter_key2": "parameter_value2",
+                    }
+                },
+                {
+                    "Type": "AWS::ApiGateway::Method",
+                    "Properties": {
+                        "HttpMethod": "POST",
+                        "Integration": {
+                            "Uri": "my_cool_invoke_arn",
+                            "Type": "AWS_PROXY",
+                            "IntegrationResponses": [
+                                {
+                                    "ResponseParameters": {
+                                        "parameter_key1": "parameter_value1",
+                                        "parameter_key2": "parameter_value2",
+                                    }
+                                }
+                            ],
+                        },
+                    },
+                },
+            ),
+            (
+                {
+                    "Type": "AWS::ApiGateway::Method",
+                    "Properties": {
+                        "HttpMethod": "POST",
+                        "Integration": {
+                            "Uri": "my_cool_invoke_arn",
+                            "Type": "AWS_PROXY",
+                            "IntegrationResponses": [
+                                {
+                                    "ResponseParameters": {
+                                        "parameter_key3": "parameter_value3",
+                                        "parameter_key4": "parameter_value4",
+                                    }
+                                }
+                            ],
+                        },
+                    },
+                },
+                {
+                    "ResponseParameters": {
+                        "parameter_key1": "parameter_value1",
+                        "parameter_key2": "parameter_value2",
+                    }
+                },
+                {
+                    "Type": "AWS::ApiGateway::Method",
+                    "Properties": {
+                        "HttpMethod": "POST",
+                        "Integration": {
+                            "Uri": "my_cool_invoke_arn",
+                            "Type": "AWS_PROXY",
+                            "IntegrationResponses": [
+                                {
+                                    "ResponseParameters": {
+                                        "parameter_key3": "parameter_value3",
+                                        "parameter_key4": "parameter_value4",
+                                    }
+                                },
+                                {
+                                    "ResponseParameters": {
+                                        "parameter_key1": "parameter_value1",
+                                        "parameter_key2": "parameter_value2",
+                                    }
+                                },
+                            ],
+                        },
+                    },
+                },
+            ),
+        ]
+    )
+    def test_create_gateway_method_integration_response(
+        self, api_gateway_method, integration_response_resource_properties, expected_method_response
+    ):
+        _create_gateway_method_integration_response(api_gateway_method, integration_response_resource_properties)
         self.assertEqual(api_gateway_method, expected_method_response)
