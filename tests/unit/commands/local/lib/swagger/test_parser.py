@@ -427,6 +427,35 @@ class TestSwaggerParser_get_authorizers(TestCase):
                 },
                 Route.API,
             ),
+            (  # swagger 2.0 request authorizer using empty id source
+                {
+                    "swagger": "2.0",
+                    "securityDefinitions": {
+                        "QueryAuth": {
+                            "type": "apiKey",
+                            "in": "header",
+                            "name": "Auth",
+                            "x-amazon-apigateway-authtype": "custom",
+                            "x-amazon-apigateway-authorizer": {
+                                "type": "request",
+                                "authorizerUri": "arn",
+                            },
+                        },
+                    },
+                },
+                {
+                    "QueryAuth": LambdaAuthorizer(
+                        payload_version="1.0",
+                        authorizer_name="QueryAuth",
+                        type="request",
+                        lambda_name="arn",
+                        identity_sources=[],
+                        validation_string=None,
+                        use_simple_response=False,
+                    ),
+                },
+                Route.API,
+            ),
             (  # openapi 3.0 with token authorizer
                 {
                     "openapi": "3.0",

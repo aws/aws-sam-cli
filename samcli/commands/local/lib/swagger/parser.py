@@ -152,9 +152,13 @@ class SwaggerParser:
                         auth_name,
                     )
 
-            if not identity_sources and authorizer_type == LambdaAuthorizer.TOKEN:
+            # token based authorizers must have an identity source defined
+            # this is determined by taking the header key in the properties
+            # to form the identity source in a previous method call
+            if not identity_sources and authorizer_type == LambdaAuthorizer.TOKEN and event_type == Route.API:
                 LOG.warning(
-                    "Skip parsing Lambda authorizer '%s', must contain valid identity sources",
+                    "Skip parsing Lambda authorizer '%s', must contain valid "
+                    "identity sources for Rest Api based token authorizers",
                     auth_name,
                 )
                 continue
