@@ -1,6 +1,7 @@
 from typing import List
 
 from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
+    TF_AWS_API_GATEWAY_AUTHORIZER,
     TF_AWS_API_GATEWAY_INTEGRATION,
     TF_AWS_API_GATEWAY_INTEGRATION_RESPONSE,
     TF_AWS_API_GATEWAY_METHOD,
@@ -11,6 +12,7 @@ from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     TF_AWS_LAMBDA_LAYER_VERSION,
 )
 from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
+    _link_gateway_authorizer_to_lambda_function,
     _link_gateway_integration_responses_to_gateway_resource,
     _link_gateway_integration_responses_to_gateway_rest_apis,
     _link_gateway_integrations_to_function_resource,
@@ -70,5 +72,10 @@ RESOURCE_LINKS: List[LinkingPairCaller] = [
         source=TF_AWS_API_GATEWAY_INTEGRATION_RESPONSE,
         dest=TF_AWS_API_GATEWAY_RESOURCE,
         linking_func=_link_gateway_integration_responses_to_gateway_resource,
+    ),
+    LinkingPairCaller(
+        source=TF_AWS_API_GATEWAY_AUTHORIZER,
+        dest=TF_AWS_LAMBDA_FUNCTION,
+        linking_func=_link_gateway_authorizer_to_lambda_function,
     ),
 ]

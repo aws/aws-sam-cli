@@ -9,6 +9,7 @@ from typing import Callable, Dict, List, Optional, Type, Union
 
 from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     FunctionLayerLocalVariablesLinkingLimitationException,
+    GatewayAuthorizerToLambdaFunctionLocalVariablesLinkingLimitationException,
     GatewayResourceToApiGatewayIntegrationLocalVariablesLinkingLimitationException,
     GatewayResourceToApiGatewayIntegrationResponseLocalVariablesLinkingLimitationException,
     GatewayResourceToApiGatewayMethodLocalVariablesLinkingLimitationException,
@@ -16,6 +17,7 @@ from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     InvalidResourceLinkingException,
     LambdaFunctionToApiGatewayIntegrationLocalVariablesLinkingLimitationException,
     LocalVariablesLinkingLimitationException,
+    OneGatewayAuthorizerToLambdaFunctionLinkingLimitationException,
     OneGatewayResourceToApiGatewayIntegrationLinkingLimitationException,
     OneGatewayResourceToApiGatewayIntegrationResponseLinkingLimitationException,
     OneGatewayResourceToApiGatewayMethodLinkingLimitationException,
@@ -1084,7 +1086,7 @@ def _link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back(
     """
     # if the destination rest api list contains more than one element, so we have an issue in our linking logic
     if len(referenced_rest_apis_values) > 1:
-        raise InvalidResourceLinkingException("Could not link multiple Rest APIs to one Gateway resource")
+        raise InvalidResourceLinkingException("Could not link multiple Rest APIs to one Gateway method resource")
 
     logical_id = referenced_rest_apis_values[0]
     gateway_cfn_resource["Properties"]["RestApiId"] = (
@@ -1109,7 +1111,9 @@ def _link_gateway_resource_to_gateway_resource_call_back(
         in customer's account. This list should always contain one element only.
     """
     if len(referenced_gateway_resource_values) > 1:
-        raise InvalidResourceLinkingException("Could not link multiple Gateway Resources to one Gateway resource")
+        raise InvalidResourceLinkingException(
+            "Could not link multiple Gateway Resources to one Gateway method resource"
+        )
 
     logical_id = referenced_gateway_resource_values[0]
     gateway_resource_cfn_resource["Properties"]["ResourceId"] = (
@@ -1474,6 +1478,69 @@ def _link_gateway_integration_responses_to_gateway_resource(
         cfn_link_field_name="ResourceId",
         terraform_resource_type_prefix=API_GATEWAY_RESOURCE_RESOURCE_ADDRESS_PREFIX,
         cfn_resource_update_call_back_function=_link_gateway_resource_to_gateway_resource_call_back,
+        linking_exceptions=exceptions,
+    )
+    ResourceLinker(resource_linking_pair).link_resources()
+
+
+def _link_gateway_authorizer_to_lambda_function_call_back(
+    gateway_authorizer_cfn_resource: Dict, lambda_function_resource_values: List[ReferenceType]
+) -> None:
+    """
+    Callback function that is used by the linking algorithm to update an Api Gateway integration CFN Resource with
+    a reference to the Lambda function resource through the AWS_PROXY integration.
+
+    Parameters
+    ----------
+    gateway_authorizer_cfn_resource: Dict
+        API Gateway Authorizer CFN resource
+    lambda_function_resource_values: List[ReferenceType]
+        List of referenced Lambda Functions either as the logical id of Lambda Function reosurces
+        defined in the customer project, or ARN values for actual Lambda Functions defined
+        in customer's account. This list should always contain one element only.
+    """
+    if len(lambda_function_resource_values) > 1:
+        raise InvalidResourceLinkingException("Could not link multiple Lambda functions to one Gateway Authorizer")
+
+    logical_id = lambda_function_resource_values[0]
+    gateway_authorizer_cfn_resource["Properties"]["AuthorizerUri"] = (
+        {"Fn::Sub": INVOKE_ARN_FORMAT.format(function_logical_id=logical_id.value)}
+        if isinstance(logical_id, LogicalIdReference)
+        else logical_id.value
+    )
+
+
+def _link_gateway_authorizer_to_lambda_function(
+    authorizer_config_resources: Dict[str, TFResource],
+    authorizer_cfn_resources: Dict[str, List],
+    authorizer_tf_resources: Dict[str, Dict],
+) -> None:
+    """
+    Iterate through all the resources and link the corresponding Lambda Layers to each Lambda Function
+
+    Parameters
+    ----------
+    authorizer_config_resources: Dict[str, TFResource]
+        Dictionary of configuration Authorizer resources
+    authorizer_cfn_resources: Dict[str, List]
+        Dictionary containing resolved configuration address of CFN Authorizer resources
+    lambda_layers_terraform_resources: Dict[str, Dict]
+        Dictionary of all actual terraform layers resources (not configuration resources). The dictionary's key is the
+        calculated logical id for each resource
+    """
+    exceptions = ResourcePairExceptions(
+        multiple_resource_linking_exception=OneGatewayAuthorizerToLambdaFunctionLinkingLimitationException,
+        local_variable_linking_exception=GatewayAuthorizerToLambdaFunctionLocalVariablesLinkingLimitationException,
+    )
+    resource_linking_pair = ResourceLinkingPair(
+        source_resource_cfn_resource=authorizer_cfn_resources,
+        source_resource_tf_config=authorizer_config_resources,
+        destination_resource_tf=authorizer_tf_resources,
+        tf_destination_attribute_name="invoke_arn",
+        terraform_link_field_name="authorizer_uri",
+        cfn_link_field_name="AuthorizerUri",
+        terraform_resource_type_prefix=LAMBDA_FUNCTION_RESOURCE_ADDRESS_PREFIX,
+        cfn_resource_update_call_back_function=_link_gateway_authorizer_to_lambda_function_call_back,
         linking_exceptions=exceptions,
     )
     ResourceLinker(resource_linking_pair).link_resources()

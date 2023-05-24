@@ -6,10 +6,12 @@ from uuid import uuid4
 
 from parameterized import parameterized
 from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
+    GatewayAuthorizerToLambdaFunctionLocalVariablesLinkingLimitationException,
     InvalidResourceLinkingException,
     LocalVariablesLinkingLimitationException,
     ONE_LAMBDA_LAYER_LINKING_ISSUE_LINK,
     LOCAL_VARIABLES_SUPPORT_ISSUE_LINK,
+    OneGatewayAuthorizerToLambdaFunctionLinkingLimitationException,
     OneLambdaLayerLinkingLimitationException,
     FunctionLayerLocalVariablesLinkingLimitationException,
     OneGatewayResourceToApiGatewayMethodLinkingLimitationException,
@@ -34,6 +36,8 @@ from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
 
 from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     _clean_references_list,
+    _link_gateway_authorizer_to_lambda_function,
+    _link_gateway_authorizer_to_lambda_function_call_back,
     _resolve_module_output,
     _resolve_module_variable,
     _build_module,
@@ -1607,7 +1611,7 @@ class TestResourceLinker(TestCase):
         ]
     )
     def test_link_lambda_functions_to_layers_call_back(self, input_function, logical_ids, expected_layers):
-        lambda_function = input_function.copy()
+        lambda_function = deepcopy(input_function)
         _link_lambda_functions_to_layers_call_back(lambda_function, logical_ids)
         input_function["Properties"]["Layers"] = expected_layers
         self.assertEqual(lambda_function, input_function)
@@ -1933,7 +1937,7 @@ class TestResourceLinker(TestCase):
     def test_link_gateway_methods_to_gateway_rest_apis_call_back(
         self, input_gateway_method, logical_ids, expected_rest_api
     ):
-        gateway_method = input_gateway_method.copy()
+        gateway_method = deepcopy(input_gateway_method)
         _link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back(gateway_method, logical_ids)
         input_gateway_method["Properties"]["RestApiId"] = expected_rest_api
         self.assertEqual(gateway_method, input_gateway_method)
@@ -1941,9 +1945,9 @@ class TestResourceLinker(TestCase):
     def test_link_gateway_methods_to_gateway_rest_apis_call_back_multiple_destinations(self):
         gateway_method = Mock()
         logical_ids = [Mock(), Mock()]
-        with self.assertRaises(
+        with self.assertRaisesRegex(
             InvalidResourceLinkingException,
-            msg="Could not link multiple Rest APIs to one Gateway method resource",
+            expected_regex="An error occurred when attempting to link two resources: Could not link multiple Rest APIs to one Gateway method resource",
         ):
             _link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back(gateway_method, logical_ids)
 
@@ -1978,7 +1982,7 @@ class TestResourceLinker(TestCase):
     def test_link_gateway_method_to_gateway_resource_call_back(
         self, input_gateway_method, logical_ids, expected_resource
     ):
-        gateway_method = input_gateway_method.copy()
+        gateway_method = deepcopy(input_gateway_method)
         _link_gateway_resource_to_gateway_resource_call_back(gateway_method, logical_ids)
         input_gateway_method["Properties"]["ResourceId"] = expected_resource
         self.assertEqual(gateway_method, input_gateway_method)
@@ -1986,9 +1990,9 @@ class TestResourceLinker(TestCase):
     def test_link_gateway_method_to_gateway_resource_call_back_multiple_destinations(self):
         gateway_method = Mock()
         logical_ids = [Mock(), Mock()]
-        with self.assertRaises(
+        with self.assertRaisesRegex(
             InvalidResourceLinkingException,
-            msg="Could not link multiple Gateway Resources to one Gateway method resource",
+            expected_regex="An error occurred when attempting to link two resources: Could not link multiple Gateway Resources to one Gateway method resource",
         ):
             _link_gateway_resource_to_gateway_resource_call_back(gateway_method, logical_ids)
 
@@ -2016,14 +2020,14 @@ class TestResourceLinker(TestCase):
                     "Properties": {},
                 },
                 [LogicalIdReference("RestApi")],
-                {"Fn:GetAtt": ["RestApi", "RootResourceId"]},
+                {"Fn::GetAtt": ["RestApi", "RootResourceId"]},
             ),
         ]
     )
     def test_link_gateway_resource_to_gateway_rest_api_parent_id_call_back(
         self, input_gateway_resource, logical_ids, expected_rest_api
     ):
-        gateway_resource = input_gateway_resource.copy()
+        gateway_resource = deepcopy(input_gateway_resource)
         _link_gateway_resource_to_gateway_rest_apis_parent_id_call_back(gateway_resource, logical_ids)
         input_gateway_resource["Properties"]["ParentId"] = expected_rest_api
         self.assertEqual(gateway_resource, input_gateway_resource)
@@ -2031,9 +2035,9 @@ class TestResourceLinker(TestCase):
     def test_link_gateway_resource_to_gateway_rest_apis_call_back_multiple_destinations(self):
         gateway_resource = Mock()
         logical_ids = [Mock(), Mock()]
-        with self.assertRaises(
+        with self.assertRaisesRegex(
             InvalidResourceLinkingException,
-            msg="Could not link multiple Rest APIs to one Gateway resource",
+            expected_regex="An error occurred when attempting to link two resources: Could not link multiple Rest APIs to one Gateway resource",
         ):
             _link_gateway_resource_to_gateway_rest_apis_parent_id_call_back(gateway_resource, logical_ids)
 
@@ -2046,7 +2050,7 @@ class TestResourceLinker(TestCase):
                 },
                 [LogicalIdReference("FunctionA")],
                 {
-                    "Fn::Sub": "arn:${{AWS::Partition}}:apigateway:${{AWS::Region}}:lambda:path/2015-03-31/functions/${{FunctionA.Arn}}/invocations"
+                    "Fn::Sub": "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FunctionA.Arn}/invocations"
                 },
             ),
             (
@@ -2064,7 +2068,7 @@ class TestResourceLinker(TestCase):
                 },
                 [LogicalIdReference("RestApi")],
                 {
-                    "Fn::Sub": "arn:${{AWS::Partition}}:apigateway:${{AWS::Region}}:lambda:path/2015-03-31/functions/${{FunctionA.Arn}}/invocations"
+                    "Fn::Sub": "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RestApi.Arn}/invocations"
                 },
             ),
         ]
@@ -2072,7 +2076,7 @@ class TestResourceLinker(TestCase):
     def test_link_gateway_integration_to_function_call_back(
         self, input_gateway_integration, logical_ids, expected_integration
     ):
-        gateway_resource = input_gateway_integration.copy()
+        gateway_resource = deepcopy(input_gateway_integration)
         _link_gateway_integration_to_function_call_back(gateway_resource, logical_ids)
         input_gateway_integration["Properties"]["Uri"] = expected_integration
         self.assertEqual(gateway_resource, input_gateway_integration)
@@ -2080,9 +2084,9 @@ class TestResourceLinker(TestCase):
     def test_link_gateway_integration_to_function_call_back_multiple_destinations(self):
         gateway_integration = Mock()
         logical_ids = [Mock(), Mock()]
-        with self.assertRaises(
+        with self.assertRaisesRegex(
             InvalidResourceLinkingException,
-            msg="Could not link multiple Lambda functions to one Gateway integration resource",
+            expected_regex="An error occurred when attempting to link two resources: Could not link multiple Lambda functions to one Gateway integration resource",
         ):
             _link_gateway_integration_to_function_call_back(gateway_integration, logical_ids)
 
@@ -2156,4 +2160,83 @@ class TestResourceLinker(TestCase):
             cfn_resource_update_call_back_function=mock_link_gateway_resource_to_gateway_resource_call_back,
             linking_exceptions=mock_resource_linking_exceptions(),
         )
+        mock_resource_linker.assert_called_once_with(mock_resource_linking_pair())
+
+    @parameterized.expand(
+        [
+            (
+                {
+                    "Type": "AWS::ApiGateway::Authorizer",
+                    "Properties": {"Uri": "invoke_arn"},
+                },
+                [LogicalIdReference("Function")],
+                {
+                    "Fn::Sub": "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Function.Arn}/invocations"
+                },
+            ),
+            (
+                {
+                    "Type": "AWS::ApiGateway::Authorizer",
+                    "Properties": {"Uri": "invoke_arn"},
+                },
+                [ExistingResourceReference("invoke_arn")],
+                "invoke_arn",
+            ),
+        ]
+    )
+    def test_link_gateway_authorizer_to_lambda_function_call_back(
+        self, input_gateway_authorizer, logical_ids, expected_integration
+    ):
+        authorizer = deepcopy(input_gateway_authorizer)
+        _link_gateway_authorizer_to_lambda_function_call_back(authorizer, logical_ids)
+        input_gateway_authorizer["Properties"]["AuthorizerUri"] = expected_integration
+        self.assertEqual(authorizer, input_gateway_authorizer)
+
+    def test_link_gateway_authorizer_to_lambda_function_call_back_multiple_destinations(self):
+        authorizer = Mock()
+        logical_ids = [Mock(), Mock()]
+        with self.assertRaisesRegex(
+            InvalidResourceLinkingException,
+            expected_regex="An error occurred when attempting to link two resources: Could not link multiple Lambda functions to one Gateway Authorizer",
+        ):
+            _link_gateway_authorizer_to_lambda_function_call_back(authorizer, logical_ids)
+
+    @patch(
+        "samcli.hook_packages.terraform.hooks.prepare.resource_linking._link_gateway_authorizer_to_lambda_function_call_back"
+    )
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.ResourceLinker")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.ResourceLinkingPair")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.ResourcePairExceptions")
+    def test_link_gateway_authorizer_to_lambda_function(
+        self,
+        mock_resource_linking_exceptions,
+        mock_resource_linking_pair,
+        mock_resource_linker,
+        mock_link_gateway_authorizer_to_lambda_function_call_back,
+    ):
+        authorizer_cfn_resources = Mock()
+        authorizer_config_resources = Mock()
+        authorizer_tf_resources = Mock()
+
+        _link_gateway_authorizer_to_lambda_function(
+            authorizer_config_resources, authorizer_cfn_resources, authorizer_tf_resources
+        )
+
+        mock_resource_linking_exceptions.assert_called_once_with(
+            multiple_resource_linking_exception=OneGatewayAuthorizerToLambdaFunctionLinkingLimitationException,
+            local_variable_linking_exception=GatewayAuthorizerToLambdaFunctionLocalVariablesLinkingLimitationException,
+        )
+
+        mock_resource_linking_pair.assert_called_once_with(
+            source_resource_cfn_resource=authorizer_cfn_resources,
+            source_resource_tf_config=authorizer_config_resources,
+            destination_resource_tf=authorizer_tf_resources,
+            tf_destination_attribute_name="invoke_arn",
+            terraform_link_field_name="authorizer_uri",
+            cfn_link_field_name="AuthorizerUri",
+            terraform_resource_type_prefix=LAMBDA_FUNCTION_RESOURCE_ADDRESS_PREFIX,
+            cfn_resource_update_call_back_function=mock_link_gateway_authorizer_to_lambda_function_call_back,
+            linking_exceptions=mock_resource_linking_exceptions(),
+        )
+
         mock_resource_linker.assert_called_once_with(mock_resource_linking_pair())
