@@ -100,11 +100,6 @@ class RemoteInvokeContext:
             return
 
         self._resource_summary = get_resource_summary(self._boto_resource_provider, self._stack_name, self._resource_id)
-        if not self._resource_summary:
-            raise AmbiguousResourceForRemoteInvoke(
-                f"Can't find resource information from stack name ({self._stack_name}) "
-                f"and resource id ({self._resource_id})"
-            )
 
     def _get_single_resource_from_stack(self) -> CloudFormationResourceSummary:
         """

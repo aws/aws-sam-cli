@@ -87,8 +87,8 @@ class TestRemoteInvokeContext(TestCase):
     def test_if_no_resource_found_with_given_stack_and_resource_id_should_fail(self, patched_get_resource_summary):
         patched_get_resource_summary.return_value = None
         with self.assertRaises(AmbiguousResourceForRemoteInvoke):
-            with self._get_remote_invoke_context():
-                pass
+            with self._get_remote_invoke_context() as remote_invoke_context:
+                remote_invoke_context.run(Mock())
 
     @patch("samcli.commands.remote_invoke.remote_invoke_context.get_resource_summary_from_physical_id")
     def test_only_resource_id_as_valid_physical_id_should_be_valid(self, patched_resource_summary_from_physical_id):
