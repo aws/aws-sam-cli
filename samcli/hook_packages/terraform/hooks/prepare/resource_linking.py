@@ -1487,8 +1487,8 @@ def _link_gateway_authorizer_to_lambda_function_call_back(
     gateway_authorizer_cfn_resource: Dict, lambda_function_resource_values: List[ReferenceType]
 ) -> None:
     """
-    Callback function that is used by the linking algorithm to update an Api Gateway integration CFN Resource with
-    a reference to the Lambda function resource through the AWS_PROXY integration.
+    Callback function that is used by the linking algorithm to update a CFN Authorizer Resource with
+    a reference to the Lambda function's invocation URI
 
     Parameters
     ----------
@@ -1516,7 +1516,7 @@ def _link_gateway_authorizer_to_lambda_function(
     authorizer_tf_resources: Dict[str, Dict],
 ) -> None:
     """
-    Iterate through all the resources and link the corresponding Lambda Layers to each Lambda Function
+    Iterate through all the resources and link the corresponding Authorizer to each Lambda Function
 
     Parameters
     ----------
