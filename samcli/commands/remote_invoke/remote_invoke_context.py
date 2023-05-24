@@ -58,6 +58,22 @@ class RemoteInvokeContext:
         pass
 
     def run(self, remote_invoke_input: RemoteInvokeExecutionInfo) -> RemoteInvokeExecutionInfo:
+        """
+        Instantiates remote invoke executor with populated resource summary information, executes it with the provided
+        input & returns its response back to the caller. If no executor can be instantiated it raises
+        NoExecutorFoundForRemoteInvoke exception.
+
+        Parameters
+        ----------
+        remote_invoke_input: RemoteInvokeExecutionInfo
+            RemoteInvokeExecutionInfo which contains the payload and other information that will be required during
+            the invocation
+
+        Returns
+        -------
+        RemoteInvokeExecutionInfo
+            Populates result and exception info (if any) and returns back to the caller
+        """
         if not self._resource_summary:
             raise AmbiguousResourceForRemoteInvoke(
                 f"Can't find resource information from stack name ({self._stack_name}) "
