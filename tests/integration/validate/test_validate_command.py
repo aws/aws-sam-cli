@@ -164,7 +164,7 @@ class TestValidate(TestCase):
             with open(template_file, "w") as f:
                 f.write(json.dumps(template, indent=4) + "\n")
             command_result = run_command(self.command_list(lint=True), cwd=str(temp))
-            pattern = self.lint_patterns[TemplateFileTypes.JSON]  # type: ignore
+            pattern = self.lint_patterns[TemplateFileTypes.JSON]
             output = command_result.stdout.decode("utf-8")
             self.assertEqual(command_result.process.returncode, 0)
             self.assertRegex(output, pattern)
