@@ -1947,7 +1947,7 @@ class TestResourceLinker(TestCase):
         logical_ids = [Mock(), Mock()]
         with self.assertRaisesRegex(
             InvalidResourceLinkingException,
-            expected_regex="An error occurred when attempting to link two resources: Could not link multiple Rest APIs to one Gateway method resource",
+            expected_regex="An error occurred when attempting to link two resources: Could not link multiple Rest APIs to one Gateway resource",
         ):
             _link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back(gateway_method, logical_ids)
 
@@ -1992,7 +1992,7 @@ class TestResourceLinker(TestCase):
         logical_ids = [Mock(), Mock()]
         with self.assertRaisesRegex(
             InvalidResourceLinkingException,
-            expected_regex="An error occurred when attempting to link two resources: Could not link multiple Gateway Resources to one Gateway method resource",
+            expected_regex="An error occurred when attempting to link two resources: Could not link multiple Gateway Resources to one Gateway resource",
         ):
             _link_gateway_resource_to_gateway_resource_call_back(gateway_method, logical_ids)
 

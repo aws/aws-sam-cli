@@ -1086,7 +1086,7 @@ def _link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back(
     """
     # if the destination rest api list contains more than one element, so we have an issue in our linking logic
     if len(referenced_rest_apis_values) > 1:
-        raise InvalidResourceLinkingException("Could not link multiple Rest APIs to one Gateway method resource")
+        raise InvalidResourceLinkingException("Could not link multiple Rest APIs to one Gateway resource")
 
     logical_id = referenced_rest_apis_values[0]
     gateway_cfn_resource["Properties"]["RestApiId"] = (
@@ -1111,9 +1111,7 @@ def _link_gateway_resource_to_gateway_resource_call_back(
         in customer's account. This list should always contain one element only.
     """
     if len(referenced_gateway_resource_values) > 1:
-        raise InvalidResourceLinkingException(
-            "Could not link multiple Gateway Resources to one Gateway method resource"
-        )
+        raise InvalidResourceLinkingException("Could not link multiple Gateway Resources to one Gateway resource")
 
     logical_id = referenced_gateway_resource_values[0]
     gateway_resource_cfn_resource["Properties"]["ResourceId"] = (
