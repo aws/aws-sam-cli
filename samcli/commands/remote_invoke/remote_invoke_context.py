@@ -99,7 +99,9 @@ class RemoteInvokeContext:
             self._resource_summary = self._get_from_physical_resource_id()
             return
 
-        self._resource_summary = get_resource_summary(self._boto_resource_provider, self._stack_name, self._resource_id)
+        self._resource_summary = get_resource_summary(
+            self._boto_resource_provider, self._boto_client_provider, self._stack_name, self._resource_id
+        )
 
     def _get_single_resource_from_stack(self) -> CloudFormationResourceSummary:
         """

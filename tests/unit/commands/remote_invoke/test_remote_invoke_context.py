@@ -98,15 +98,17 @@ class TestRemoteInvokeContext(TestCase):
         with self._get_remote_invoke_context() as remote_invoke_context:
             self.assertEqual(remote_invoke_context._resource_summary, resource_summary)
 
-    def test_running_without_resource_summary_should_raise_exception(self):
+    @patch("samcli.commands.remote_invoke.remote_invoke_context.get_resource_summary")
+    def test_running_without_resource_summary_should_raise_exception(self, patched_get_resource_summary):
+        patched_get_resource_summary.return_value = None
         with self._get_remote_invoke_context() as remote_invoke_context:
-            remote_invoke_context._resource_summary = None
             with self.assertRaises(AmbiguousResourceForRemoteInvoke):
                 remote_invoke_context.run(Mock())
 
-    def test_running_with_unsupported_resource_should_raise_exception(self):
+    @patch("samcli.commands.remote_invoke.remote_invoke_context.get_resource_summary")
+    def test_running_with_unsupported_resource_should_raise_exception(self, patched_get_resource_summary):
+        patched_get_resource_summary.return_value = Mock(resource_type="UnSupportedResource")
         with self._get_remote_invoke_context() as remote_invoke_context:
-            remote_invoke_context._resource_summary = Mock(resource_type="UnSupportedResource")
             with self.assertRaises(NoExecutorFoundForRemoteInvoke):
                 remote_invoke_context.run(Mock())
 
