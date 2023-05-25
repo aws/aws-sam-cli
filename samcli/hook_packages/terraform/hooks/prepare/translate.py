@@ -16,6 +16,7 @@ from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     REMOTE_DUMMY_VALUE,
     RESOURCE_TRANSLATOR_MAPPING,
     TF_AWS_API_GATEWAY_INTEGRATION,
+    TF_AWS_API_GATEWAY_INTEGRATION_RESPONSE,
     TF_AWS_API_GATEWAY_METHOD,
     TF_AWS_API_GATEWAY_REST_API,
     PropertyBuilderMapping,
@@ -26,6 +27,7 @@ from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
 )
 from samcli.hook_packages.terraform.hooks.prepare.resources.apigw import (
     RESTAPITranslationValidator,
+    add_integration_responses_to_methods,
     add_integrations_to_methods,
 )
 from samcli.hook_packages.terraform.hooks.prepare.resources.internal import INTERNAL_PREFIX
@@ -236,6 +238,11 @@ def translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_applic
     add_integrations_to_methods(
         resource_property_mapping.get(TF_AWS_API_GATEWAY_METHOD, ResourceProperties()).cfn_resources,
         resource_property_mapping.get(TF_AWS_API_GATEWAY_INTEGRATION, ResourceProperties()).cfn_resources,
+    )
+
+    add_integration_responses_to_methods(
+        resource_property_mapping.get(TF_AWS_API_GATEWAY_METHOD, ResourceProperties()).cfn_resources,
+        resource_property_mapping.get(TF_AWS_API_GATEWAY_INTEGRATION_RESPONSE, ResourceProperties()).cfn_resources,
     )
 
     if sam_metadata_resources:
