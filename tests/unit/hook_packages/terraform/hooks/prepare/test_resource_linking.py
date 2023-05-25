@@ -10,6 +10,7 @@ from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     LocalVariablesLinkingLimitationException,
     ONE_LAMBDA_LAYER_LINKING_ISSUE_LINK,
     LOCAL_VARIABLES_SUPPORT_ISSUE_LINK,
+    APPLY_WORK_AROUND_MESSAGE,
     OneLambdaLayerLinkingLimitationException,
     FunctionLayerLocalVariablesLinkingLimitationException,
     OneGatewayResourceToApiGatewayMethodLinkingLimitationException,
@@ -1253,6 +1254,7 @@ class TestResourceLinker(TestCase):
             f"one destination resource. Destination resource(s) defined by {dest_resources} "
             f"could not be linked to source resource func_full_address."
             f"{os.linesep}Related issue: {ONE_LAMBDA_LAYER_LINKING_ISSUE_LINK}."
+            f"{os.linesep}{os.linesep}{APPLY_WORK_AROUND_MESSAGE}"
         )
         with self.assertRaises(OneLambdaLayerLinkingLimitationException) as exc:
             resource_linker._link_using_terraform_config(resource, source_resources)
@@ -1319,6 +1321,7 @@ class TestResourceLinker(TestCase):
             f"one destination resource. Destination resource(s) defined by {resolved_resources} "
             f"could not be linked to source resource func_full_address."
             f"{os.linesep}Related issue: {ONE_LAMBDA_LAYER_LINKING_ISSUE_LINK}."
+            f"{os.linesep}{os.linesep}{APPLY_WORK_AROUND_MESSAGE}"
         )
         with self.assertRaises(OneLambdaLayerLinkingLimitationException) as exc:
             resource_linker._process_resolved_resources(resource, resolved_resources)
@@ -1342,6 +1345,7 @@ class TestResourceLinker(TestCase):
             "that is linked to more than one destination resource. Destination resource(s) defined "
             f"by {resolved_resources} could not be linked to source resource func_full_address."
             f"{os.linesep}Related issue: {ONE_LAMBDA_LAYER_LINKING_ISSUE_LINK}."
+            f"{os.linesep}{os.linesep}{APPLY_WORK_AROUND_MESSAGE}"
         )
         with self.assertRaises(OneLambdaLayerLinkingLimitationException) as exc:
             resource_linker._process_resolved_resources(resource, resolved_resources)
@@ -1369,6 +1373,7 @@ class TestResourceLinker(TestCase):
             "AWS SAM CLI could not process a Terraform project that uses local variables to define linked resources. "
             "Destination resource(s) defined by local.layer_arn could not be linked to destination resource "
             f"func_full_address.{os.linesep}Related issue: {LOCAL_VARIABLES_SUPPORT_ISSUE_LINK}."
+            f"{os.linesep}{os.linesep}{APPLY_WORK_AROUND_MESSAGE}"
         )
         with self.assertRaises(LocalVariablesLinkingLimitationException) as exc:
             resource_linker._process_reference_resource_value(resource, reference_resolved_resources)

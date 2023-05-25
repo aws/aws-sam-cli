@@ -1,6 +1,7 @@
 """Test Terraform prepare translate"""
 import copy
 from unittest.mock import Mock, call, patch, MagicMock, ANY
+from samcli.lib.utils.colors import Colored
 
 from tests.unit.hook_packages.terraform.hooks.prepare.prepare_base import PrepareHookUnitBase
 from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
@@ -29,6 +30,7 @@ from samcli.hook_packages.terraform.hooks.prepare.types import (
     ResourceProperties,
 )
 from samcli.hook_packages.terraform.hooks.prepare.translate import (
+    _check_unresolvable_values,
     translate_to_cfn,
     _add_child_modules_to_queue,
     _add_metadata_resource_to_metadata_list,
@@ -84,8 +86,10 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.enrich_resources_and_generate_makefile")
     @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._check_unresolvable_values")
     def test_translate_to_cfn_with_root_module_only(
         self,
+        unresolvable_mock,
         checksum_mock,
         mock_enrich_resources_and_generate_makefile,
         mock_get_configuration_address,
@@ -181,8 +185,10 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._build_module")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.enrich_resources_and_generate_makefile")
     @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._check_unresolvable_values")
     def test_translate_to_cfn_with_child_modules(
         self,
+        unresolvable_mock,
         checksum_mock,
         mock_enrich_resources_and_generate_makefile,
         mock_build_module,
@@ -221,8 +227,10 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.enrich_resources_and_generate_makefile")
     @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._check_unresolvable_values")
     def test_translate_to_cfn_with_root_module_with_sam_metadata_resource(
         self,
+        unresolvable_mock,
         checksum_mock,
         mock_enrich_resources_and_generate_makefile,
         mock_get_configuration_address,
@@ -363,8 +371,10 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.enrich_resources_and_generate_makefile")
     @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._check_unresolvable_values")
     def test_translate_to_cfn_with_child_modules_with_sam_metadata_resource(
         self,
+        unresolvable_mock,
         checksum_mock,
         mock_enrich_resources_and_generate_makefile,
         mock_get_configuration_address,
@@ -436,8 +446,10 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.enrich_resources_and_generate_makefile")
     @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._check_unresolvable_values")
     def test_translate_to_cfn_with_unsupported_provider(
         self,
+        unresolvable_mock,
         checksum_mock,
         mock_enrich_resources_and_generate_makefile,
         mock_get_configuration_address,
@@ -470,8 +482,10 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.enrich_resources_and_generate_makefile")
     @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._check_unresolvable_values")
     def test_translate_to_cfn_with_unsupported_resource_type(
         self,
+        unresolvable_mock,
         checksum_mock,
         mock_enrich_resources_and_generate_makefile,
         mock_get_configuration_address,
@@ -504,8 +518,10 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.get_configuration_address")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.enrich_resources_and_generate_makefile")
     @patch("samcli.hook_packages.terraform.lib.utils.str_checksum")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate._check_unresolvable_values")
     def test_translate_to_cfn_with_mapping_s3_source_to_function(
         self,
+        unresolvable_mock,
         checksum_mock,
         mock_enrich_resources_and_generate_makefile,
         mock_get_configuration_address,
@@ -1094,3 +1110,27 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
             Mock(),
         )
         self.assertEqual(translated_cfn_properties, self.expected_internal_apigw_integration_response_properties)
+
+
+class TestUnresolvableAttributeCheck:
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.RESOURCE_TRANSLATOR_MAPPING")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.translate.LOG")
+    def test_module_contains_unresolvables(self, log_mock, mapping_mock):
+        config_addr = "addr"
+        module = {"resources": [{"address": config_addr, "values": Mock()}]}
+
+        tf_module = Mock()
+        tf_module_attr = Mock()
+        tf_module_attr.attributes = Mock()
+        tf_module.resources = {config_addr: tf_module_attr}
+
+        # mock module and tf module behaviour (planned values empty but have config values)
+        property_mapping_mock = Mock()
+        property_mapping_mock.property_builder_mapping.values.return_value = [Mock(side_effect=[None, Mock()])]
+        mapping_mock.get.return_value = property_mapping_mock
+
+        _check_unresolvable_values(module, tf_module)
+
+        log_mock.warning.assert_called_with(
+            Colored().yellow("\nUnresolvable attributes discovered in project, run terraform apply to resolve them.\n")
+        )
