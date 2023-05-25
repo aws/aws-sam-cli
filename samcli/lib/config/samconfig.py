@@ -127,10 +127,10 @@ class SamConfig:
 
         self.document = self.file_manager.read(self.filepath)
 
-        toml_content = self.document.get(env, {})
-        params = toml_content.get(self._to_key(cmd_names), {}).get(section, {})
-        if DEFAULT_GLOBAL_CMDNAME in toml_content:
-            global_params = toml_content.get(DEFAULT_GLOBAL_CMDNAME, {}).get(section, {})
+        config_content = self.document.get(env, {})
+        params = config_content.get(self._to_key(cmd_names), {}).get(section, {})
+        if DEFAULT_GLOBAL_CMDNAME in config_content:
+            global_params = config_content.get(DEFAULT_GLOBAL_CMDNAME, {}).get(section, {})
             global_params.update(params.copy())
             params = global_params.copy()
         return params
@@ -150,7 +150,7 @@ class SamConfig:
         key : str
             Key to write the data under
         value : Any
-            Value to write. Could be any of the supported TOML types.
+            Value to write. Could be any of the supported types.
         env : str
             Optional, Name of the environment
 
@@ -236,18 +236,6 @@ class SamConfig:
         return os.getcwd()
 
     def _read(self):
-        # if not self.document:
-        #     try:
-        #         txt = self.filepath.read_text()
-        #         self.document = tomlkit.loads(txt)
-        #         self._version_sanity_check(self._version())
-        #     except OSError:
-        #         self.document = tomlkit.document()
-
-        # if self.document.body:
-        #     self._version_sanity_check(self._version())
-        # return self.document
-
         if not self.document:
             self.document = self.file_manager.read(self.filepath)
         if self.document:
@@ -255,18 +243,6 @@ class SamConfig:
         return self.document
 
     def _write(self):
-        # if not self.document:
-        #     return
-
-        # self._ensure_exists()
-
-        # current_version = self._version() if self._version() else SAM_CONFIG_VERSION
-        # try:
-        #     self.document.add(VERSION_KEY, current_version)
-        # except tomlkit.exceptions.KeyAlreadyPresent:
-        #     # NOTE(TheSriram): Do not attempt to re-write an existing version
-        #     pass
-        # self.filepath.write_text(tomlkit.dumps(self.document))
         if not self.document:
             return
 
