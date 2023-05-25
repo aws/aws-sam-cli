@@ -91,7 +91,7 @@ def _get_modules(root_module: dict, root_tf_module: TFModule) -> Iterator[Tuple[
 
         yield modules
 
-        _add_child_modules_to_queue(modules[0], modules[1], queue)
+        _add_child_modules_to_queue(*modules, queue)
 
 
 def _check_unresolvable_values(root_module: dict, root_tf_module: TFModule) -> None:
