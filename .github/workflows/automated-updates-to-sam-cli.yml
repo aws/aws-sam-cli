@@ -96,7 +96,7 @@ jobs:
           git diff --quiet && exit 0 # exit if there is no change
           echo "is_new_sam_t=1" >> $GITHUB_ENV # set env variable for next step run decision
           git add -u
-          git commit -m "chore: update aws-sam-translator to $(SAM_T_CUR_VERSION)"
+          git commit -m "chore: update aws-sam-translator to $SAM_T_CUR_VERSION"
 
       - name: Raise PR for SAM CLI
         env:
@@ -152,7 +152,7 @@ jobs:
           git diff --quiet && exit 0 # exit if there is no change
           echo "is_new_lambda_builders=1" >> $GITHUB_ENV # set env variable for next step run decision
           git add -u
-          git commit -m "chore: update aws_lambda_builders to $(BUILDERS_CUR_VERSION)"
+          git commit -m "chore: update aws_lambda_builders to $BUILDERS_CUR_VERSION"
 
       - name: Raise PR for SAM CLI
         env:
