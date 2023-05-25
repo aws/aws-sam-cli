@@ -60,9 +60,9 @@ botocore==1.29.135 \
     # via
     #   boto3
     #   s3transfer
-certifi==2022.12.7 \
-    --hash=sha256:35824b4c3a97115964b408844d64aa14db1cc518f6562e8d7261699d1350a9e3 \
-    --hash=sha256:4ad3232f5e926d6718ec31cfc1fcadfde020920e278684144551c91769c7bc18
+certifi==2023.5.7 \
+    --hash=sha256:0f0d56dc5a6ad56fd4ba36484d6cc34451e1c6548c61daad8c320169f91eddc7 \
+    --hash=sha256:c6c2e98f5c7869efca1f8916fed228dd91539f9f1b444c314c06eef02980c716
     # via requests
 cffi==1.15.1 \
     --hash=sha256:00a9ed42e88df81ffae7a8ab6d9356b371399b91dbdf0c3cb1e84c03a13aceb5 \
@@ -130,9 +130,9 @@ cffi==1.15.1 \
     --hash=sha256:fa6693661a4c91757f4412306191b6dc88c1703f780c8234035eac011922bc01 \
     --hash=sha256:fcd131dd944808b5bdb38e6f5b53013c5aa4f334c5cad0c72742f6eba4b73db0
     # via cryptography
-cfn-lint==0.75.1 \
-    --hash=sha256:18ecb0713b4bfd0da4a7a3b357f7f64fc197f60eb971c811ee0bfd6edbe670f8 \
-    --hash=sha256:b878cf1a2e3fbf9e70ddcab672e1bed5edf87679f183ea1d4e80ac15dde4b57e
+cfn-lint==0.77.5 \
+    --hash=sha256:4282d13ffe76a5dee6431b1f56e3641d87c28b1ef5be663afe7d8dbf13f28bdb \
+    --hash=sha256:b5126dffb834078a71341090d49669046076c09196f0d2bdca68dbace1bf357a
     # via aws-sam-cli (setup.py)
 chardet==5.1.0 \
     --hash=sha256:0d62712b956bc154f85fb0a266e2a3c5913c2967e00348701b32411d6def31e5 \
@@ -393,6 +393,10 @@ mdurl==0.1.2 \
     --hash=sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8 \
     --hash=sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba
     # via markdown-it-py
+mpmath==1.3.0 \
+    --hash=sha256:7a28eb2a9774d00c7bc92411c19a89209d5da7c4c9a9e227be8330a23a25b91f \
+    --hash=sha256:a0b2b9fe80bbcd81a6647ff13108738cfb482d481d826cc0e02f5b35e5c88d2c
+    # via sympy
 networkx==2.6.3 \
     --hash=sha256:80b6b89c77d1dfb64a4c7854981b60aeea6360ac02c6d4e4913319e0a313abef \
     --hash=sha256:c0946ed31d71f1b732b5aaa6da5a0388a345019af232ce2f49c766e2d6795c51
@@ -627,10 +631,11 @@ regex==2023.5.5 \
     --hash=sha256:fee0016cc35a8a91e8cc9312ab26a6fe638d484131a7afa79e1ce6165328a135
     # via
     #   aws-sam-cli (setup.py)
+    #   cfn-lint
     #   dateparser
-requests==2.28.2 \
-    --hash=sha256:64299f4909223da747622c030b781c0d7811e359c37124b4bd368fb8c6518baa \
-    --hash=sha256:98b1b2782e3c6c4904938b84c0eb932721069dfdb9134313beff7c83c2df24bf
+requests==2.31.0 \
+    --hash=sha256:58cd2187c01e70e6e26505bca751777aa9f2ee0b7f4300988b709f44e013003f \
+    --hash=sha256:942c5a758f98d790eaed1a29cb6eefc7ffb0d1cf7af05c3d2791656dbd6ad1e1
     # via
     #   aws-sam-cli (setup.py)
     #   cookiecutter
@@ -701,6 +706,10 @@ six==1.16.0 \
     #   junit-xml
     #   python-dateutil
     #   serverlessrepo
+sympy==1.10.1 \
+    --hash=sha256:5939eeffdf9e152172601463626c022a2c27e75cf6278de8d401d50c9d58787b \
+    --hash=sha256:df75d738930f6fe9ebe7034e59d56698f29e85f443f743e51e47df0caccc2130
+    # via cfn-lint
 text-unidecode==1.3 \
     --hash=sha256:1311f10e8b895935241623731c2ba64f4c455287888b18189350b67134a822e8 \
     --hash=sha256:bad6603bb14d279193107714b288be206cac565dfa49aa5b105294dd5c4aab93

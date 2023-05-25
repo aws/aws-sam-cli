@@ -100,36 +100,34 @@ class TestCloudformationUtils(TestCase):
             ]
         )
 
-    def test_get_resource_summary(self):
-        resource_provider_mock = Mock()
+    @patch("samcli.lib.utils.cloudformation.get_resource_summaries")
+    def test_get_resource_summary(self, patched_get_resource_summaries):
         given_stack_name = "stack_name"
         given_resource_logical_id = "logical_id_1"
 
         given_resource_type = "ResourceType0"
         given_physical_id = "physical_id_1"
-        resource_provider_mock(ANY).StackResource.return_value = Mock(
-            physical_resource_id=given_physical_id,
-            logical_resource_id=given_resource_logical_id,
-            resource_type=given_resource_type,
-        )
+        patched_get_resource_summaries.return_value = {
+            given_resource_logical_id: Mock(
+                physical_resource_id=given_physical_id,
+                logical_resource_id=given_resource_logical_id,
+                resource_type=given_resource_type,
+            )
+        }
 
-        resource_summary = get_resource_summary(resource_provider_mock, given_stack_name, given_resource_logical_id)
+        resource_summary = get_resource_summary(Mock(), Mock(), given_stack_name, given_resource_logical_id)
 
         self.assertEqual(resource_summary.resource_type, given_resource_type)
         self.assertEqual(resource_summary.logical_resource_id, given_resource_logical_id)
         self.assertEqual(resource_summary.physical_resource_id, given_physical_id)
 
-        resource_provider_mock.assert_called_with("cloudformation")
-        resource_provider_mock(ANY).StackResource.assert_called_with(given_stack_name, given_resource_logical_id)
-
-    def test_get_resource_summary_fail(self):
-        resource_provider_mock = Mock()
+    @patch("samcli.lib.utils.cloudformation.get_resource_summaries")
+    def test_get_resource_summary_fail(self, patched_get_resource_summaries):
+        patched_get_resource_summaries.return_value = {}
         given_stack_name = "stack_name"
         given_resource_logical_id = "logical_id_1"
 
-        resource_provider_mock(ANY).StackResource.side_effect = ClientError({}, "operation")
-
-        resource_summary = get_resource_summary(resource_provider_mock, given_stack_name, given_resource_logical_id)
+        resource_summary = get_resource_summary(Mock(), Mock(), given_stack_name, given_resource_logical_id)
 
         self.assertIsNone(resource_summary)
 
