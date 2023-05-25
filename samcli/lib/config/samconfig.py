@@ -4,12 +4,13 @@ Class representing the samconfig.toml
 
 import logging
 import os
+from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Iterable
 
 import tomlkit
 
-from samcli.lib.config.exceptions import SamConfigVersionException
+from samcli.lib.config.exceptions import SamConfigFileReadException, SamConfigVersionException
 from samcli.lib.config.version import SAM_CONFIG_VERSION, VERSION_KEY
 
 LOG = logging.getLogger(__name__)
@@ -20,12 +21,56 @@ DEFAULT_ENV = "default"
 DEFAULT_GLOBAL_CMDNAME = "global"
 
 
-class SamConfig:
+class FileManager(ABC):
     """
-    Class to interface with `samconfig.toml` file.
+    Abstract class to be overridden by file managers for specific file extensions.
     """
 
-    document = None
+    @staticmethod
+    @abstractmethod
+    def read(filepath: Path) -> dict:
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def write(document: dict, filepath: Path):
+        pass
+
+
+class TomlFileManager(FileManager):
+    """
+    Static class to read and write toml files.
+    """
+
+    @staticmethod
+    def read(filepath: Path) -> dict:
+        document: dict = {}
+        try:
+            txt = filepath.read_text()
+            document = dict(tomlkit.loads(txt))
+        except OSError:
+            document = {}
+        except tomlkit.exceptions.TOMLKitError as e:
+            raise SamConfigFileReadException(e)
+
+        return document
+
+    @staticmethod
+    def write(document: dict, filepath: Path):
+        if not document:
+            return
+
+        filepath.write_text(tomlkit.dumps(document))
+
+
+class SamConfig:
+    """
+    Class to represent `samconfig` config options.
+    """
+
+    FILE_MANAGER_MAPPER: dict = {
+        "toml": TomlFileManager,
+    }
 
     def __init__(self, config_dir, filename=None):
         """
@@ -39,11 +84,15 @@ class SamConfig:
             Optional. Name of the configuration file. It is recommended to stick with default so in the future we
             could automatically support auto-resolving multiple config files within same directory.
         """
+        self.document = {}
         self.filepath = Path(config_dir, filename or DEFAULT_CONFIG_FILE_NAME)
+        self.file_manager = self.FILE_MANAGER_MAPPER.get(self.filepath.suffix[1:], TomlFileManager)  # default to TOML
+        if not self.file_manager:
+            LOG.warning(f"The config file extension '{self.filepath.suffix[1:]}' is not supported. TOML will be used.")
+        self._read()
 
     def get_stage_configuration_names(self):
-        self._read()
-        if isinstance(self.document, dict):
+        if self.document:
             return [stage for stage, value in self.document.items() if isinstance(value, dict)]
         return []
 
@@ -70,22 +119,21 @@ class SamConfig:
         KeyError
             If the config file does *not* have the specific section
 
-        tomlkit.exceptions.TOMLKitError
+        SamConfigFileReadException
             If the configuration file is invalid
         """
 
         env = env or DEFAULT_ENV
 
-        self._read()
-        if isinstance(self.document, dict):
-            toml_content = self.document.get(env, {})
-            params = toml_content.get(self._to_key(cmd_names), {}).get(section, {})
-            if DEFAULT_GLOBAL_CMDNAME in toml_content:
-                global_params = toml_content.get(DEFAULT_GLOBAL_CMDNAME, {}).get(section, {})
-                global_params.update(params.copy())
-                params = global_params.copy()
-            return params
-        return {}
+        self.document = self.file_manager.read(self.filepath)
+
+        toml_content = self.document.get(env, {})
+        params = toml_content.get(self._to_key(cmd_names), {}).get(section, {})
+        if DEFAULT_GLOBAL_CMDNAME in toml_content:
+            global_params = toml_content.get(DEFAULT_GLOBAL_CMDNAME, {}).get(section, {})
+            global_params.update(params.copy())
+            params = global_params.copy()
+        return params
 
     def put(self, cmd_names, section, key, value, env=DEFAULT_ENV):
         """
@@ -108,14 +156,9 @@ class SamConfig:
 
         Raises
         ------
-        tomlkit.exceptions.TOMLKitError
+        SamConfigFileReadException
             If the data is invalid
         """
-
-        if self.document is None:
-            # Checking for None here since a TOMLDocument can include a
-            # 'body' property but still be falsy without a 'value' property
-            self._read()
         # Empty document prepare the initial structure.
         # self.document is a nested dict, we need to check each layer and add new tables, otherwise duplicated key
         # in parent layer will override the whole child layer
@@ -144,10 +187,8 @@ class SamConfig:
         comment: str
             A comment to write to the samconfg file
         """
-        if self.document is None:
-            self._read()
 
-        self.document.add(tomlkit.comment(comment))
+        self.document.update({"__comment__": comment})
 
     def flush(self):
         """
@@ -155,11 +196,12 @@ class SamConfig:
 
         Raises
         ------
-        tomlkit.exceptions.TOMLKitError
+        SamConfigFileReadException
             If the data is invalid
 
         """
         self._write()
+        print(self.document)
 
     def sanity_check(self):
         """
@@ -167,7 +209,7 @@ class SamConfig:
         """
         try:
             self._read()
-        except tomlkit.exceptions.TOMLKitError:
+        except SamConfigFileReadException:
             return False
         else:
             return True
@@ -194,31 +236,46 @@ class SamConfig:
         return os.getcwd()
 
     def _read(self):
-        if not self.document:
-            try:
-                txt = self.filepath.read_text()
-                self.document = tomlkit.loads(txt)
-                self._version_sanity_check(self._version())
-            except OSError:
-                self.document = tomlkit.document()
+        # if not self.document:
+        #     try:
+        #         txt = self.filepath.read_text()
+        #         self.document = tomlkit.loads(txt)
+        #         self._version_sanity_check(self._version())
+        #     except OSError:
+        #         self.document = tomlkit.document()
 
-        if self.document.body:
+        # if self.document.body:
+        #     self._version_sanity_check(self._version())
+        # return self.document
+
+        if not self.document:
+            self.document = self.file_manager.read(self.filepath)
+        if self.document:
             self._version_sanity_check(self._version())
         return self.document
 
     def _write(self):
+        # if not self.document:
+        #     return
+
+        # self._ensure_exists()
+
+        # current_version = self._version() if self._version() else SAM_CONFIG_VERSION
+        # try:
+        #     self.document.add(VERSION_KEY, current_version)
+        # except tomlkit.exceptions.KeyAlreadyPresent:
+        #     # NOTE(TheSriram): Do not attempt to re-write an existing version
+        #     pass
+        # self.filepath.write_text(tomlkit.dumps(self.document))
         if not self.document:
             return
 
         self._ensure_exists()
 
         current_version = self._version() if self._version() else SAM_CONFIG_VERSION
-        try:
-            self.document.add(VERSION_KEY, current_version)
-        except tomlkit.exceptions.KeyAlreadyPresent:
-            # NOTE(TheSriram): Do not attempt to re-write an existing version
-            pass
-        self.filepath.write_text(tomlkit.dumps(self.document))
+        self.document.update({VERSION_KEY: current_version})
+
+        self.file_manager.write(self.document, self.filepath)
 
     def _version(self):
         return self.document.get(VERSION_KEY, None)
