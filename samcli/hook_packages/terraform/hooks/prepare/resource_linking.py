@@ -1085,8 +1085,10 @@ def _link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back(
         element only.
     """
     # if the destination rest api list contains more than one element, so we have an issue in our linking logic
-    if len(referenced_rest_apis_values) > 1:
-        raise InvalidResourceLinkingException("Could not link multiple Rest APIs to one Gateway resource")
+    if len(referenced_rest_apis_values) != 1:
+        raise InvalidResourceLinkingException(
+            "Unable to link a Rest API to the Gateway resource, ensure there is only one reference to the Rest API"
+        )
 
     logical_id = referenced_rest_apis_values[0]
     gateway_cfn_resource["Properties"]["RestApiId"] = (
@@ -1110,8 +1112,10 @@ def _link_gateway_resource_to_gateway_resource_call_back(
         defined in the customer project, or ARN values for actual Gateway Resources resource defined
         in customer's account. This list should always contain one element only.
     """
-    if len(referenced_gateway_resource_values) > 1:
-        raise InvalidResourceLinkingException("Could not link multiple Gateway Resources to one Gateway resource")
+    if len(referenced_gateway_resource_values) != 1:
+        raise InvalidResourceLinkingException(
+            "Unable to link two Gateway Resources together, ensure there is only one reference to the resource"
+        )
 
     logical_id = referenced_gateway_resource_values[0]
     gateway_resource_cfn_resource["Properties"]["ResourceId"] = (
@@ -1136,8 +1140,10 @@ def _link_gateway_resource_to_gateway_rest_apis_parent_id_call_back(
         element only.
     """
     # if the destination rest api list contains more than one element, so we have an issue in our linking logic
-    if len(referenced_rest_apis_values) > 1:
-        raise InvalidResourceLinkingException("Could not link multiple Rest APIs to one Gateway resource")
+    if len(referenced_rest_apis_values) != 1:
+        raise InvalidResourceLinkingException(
+            "Unable to link a Rest API to the Gateway resource, ensure there is only one reference to the Rest API"
+        )
 
     logical_id = referenced_rest_apis_values[0]
     gateway_cfn_resource["Properties"]["ParentId"] = (
@@ -1348,9 +1354,10 @@ def _link_gateway_integration_to_function_call_back(
         defined in the customer project, or ARN values for actual Gateway Resources resource defined
         in customer's account. This list should always contain one element only.
     """
-    if len(referenced_gateway_resource_values) > 1:
+    if len(referenced_gateway_resource_values) != 1:
         raise InvalidResourceLinkingException(
-            "Could not link multiple Lambda functions to one Gateway integration resource"
+            "Unable to link a Lambda Function to a Gateway integration resource, "
+            "ensure there is only one reference to the Lambda Function"
         )
 
     logical_id = referenced_gateway_resource_values[0]
@@ -1497,8 +1504,11 @@ def _link_gateway_authorizer_to_lambda_function_call_back(
         defined in the customer project, or ARN values for actual Lambda Functions defined
         in customer's account. This list should always contain one element only.
     """
-    if len(lambda_function_resource_values) > 1:
-        raise InvalidResourceLinkingException("Could not link multiple Lambda functions to one Gateway Authorizer")
+    if len(lambda_function_resource_values) != 1:
+        raise InvalidResourceLinkingException(
+            "Unable to link a Lambda Function to the Gateway Authorizer, "
+            "ensure there is only one reference to the Lambda Function"
+        )
 
     logical_id = lambda_function_resource_values[0]
     gateway_authorizer_cfn_resource["Properties"]["AuthorizerUri"] = (

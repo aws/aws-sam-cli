@@ -1947,15 +1947,6 @@ class TestResourceLinker(TestCase):
         input_gateway_method["Properties"]["RestApiId"] = expected_rest_api
         self.assertEqual(gateway_method, input_gateway_method)
 
-    def test_link_gateway_methods_to_gateway_rest_apis_call_back_multiple_destinations(self):
-        gateway_method = Mock()
-        logical_ids = [Mock(), Mock()]
-        with self.assertRaisesRegex(
-            InvalidResourceLinkingException,
-            expected_regex="An error occurred when attempting to link two resources: Could not link multiple Rest APIs to one Gateway resource",
-        ):
-            _link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back(gateway_method, logical_ids)
-
     @parameterized.expand(
         [
             (
@@ -1992,15 +1983,6 @@ class TestResourceLinker(TestCase):
         input_gateway_method["Properties"]["ResourceId"] = expected_resource
         self.assertEqual(gateway_method, input_gateway_method)
 
-    def test_link_gateway_method_to_gateway_resource_call_back_multiple_destinations(self):
-        gateway_method = Mock()
-        logical_ids = [Mock(), Mock()]
-        with self.assertRaisesRegex(
-            InvalidResourceLinkingException,
-            expected_regex="An error occurred when attempting to link two resources: Could not link multiple Gateway Resources to one Gateway resource",
-        ):
-            _link_gateway_resource_to_gateway_resource_call_back(gateway_method, logical_ids)
-
     @parameterized.expand(
         [
             (
@@ -2036,15 +2018,6 @@ class TestResourceLinker(TestCase):
         _link_gateway_resource_to_gateway_rest_apis_parent_id_call_back(gateway_resource, logical_ids)
         input_gateway_resource["Properties"]["ParentId"] = expected_rest_api
         self.assertEqual(gateway_resource, input_gateway_resource)
-
-    def test_link_gateway_resource_to_gateway_rest_apis_call_back_multiple_destinations(self):
-        gateway_resource = Mock()
-        logical_ids = [Mock(), Mock()]
-        with self.assertRaisesRegex(
-            InvalidResourceLinkingException,
-            expected_regex="An error occurred when attempting to link two resources: Could not link multiple Rest APIs to one Gateway resource",
-        ):
-            _link_gateway_resource_to_gateway_rest_apis_parent_id_call_back(gateway_resource, logical_ids)
 
     @parameterized.expand(
         [
@@ -2086,14 +2059,65 @@ class TestResourceLinker(TestCase):
         input_gateway_integration["Properties"]["Uri"] = expected_integration
         self.assertEqual(gateway_resource, input_gateway_integration)
 
-    def test_link_gateway_integration_to_function_call_back_multiple_destinations(self):
-        gateway_integration = Mock()
-        logical_ids = [Mock(), Mock()]
-        with self.assertRaisesRegex(
-            InvalidResourceLinkingException,
-            expected_regex="An error occurred when attempting to link two resources: Could not link multiple Lambda functions to one Gateway integration resource",
-        ):
-            _link_gateway_integration_to_function_call_back(gateway_integration, logical_ids)
+    @parameterized.expand(
+        [
+            (
+                [],
+                _link_gateway_integration_to_function_call_back,
+                "Unable to link a Lambda Function to a Gateway integration resource, ensure there is only one reference to the Lambda Function",
+            ),
+            (
+                [Mock(), Mock()],
+                _link_gateway_integration_to_function_call_back,
+                "Unable to link a Lambda Function to a Gateway integration resource, ensure there is only one reference to the Lambda Function",
+            ),
+            (
+                [],
+                _link_gateway_authorizer_to_lambda_function_call_back,
+                "Unable to link a Lambda Function to the Gateway Authorizer, ensure there is only one reference to the Lambda Function",
+            ),
+            (
+                [Mock(), Mock()],
+                _link_gateway_authorizer_to_lambda_function_call_back,
+                "Unable to link a Lambda Function to the Gateway Authorizer, ensure there is only one reference to the Lambda Function",
+            ),
+            (
+                [],
+                _link_gateway_resource_to_gateway_rest_apis_parent_id_call_back,
+                "Unable to link a Rest API to the Gateway resource, ensure there is only one reference to the Rest API",
+            ),
+            (
+                [Mock(), Mock()],
+                _link_gateway_resource_to_gateway_rest_apis_parent_id_call_back,
+                "Unable to link a Rest API to the Gateway resource, ensure there is only one reference to the Rest API",
+            ),
+            (
+                [],
+                _link_gateway_resource_to_gateway_resource_call_back,
+                "Unable to link two Gateway Resources together, ensure there is only one reference to the resource",
+            ),
+            (
+                [Mock(), Mock()],
+                _link_gateway_resource_to_gateway_resource_call_back,
+                "Unable to link two Gateway Resources together, ensure there is only one reference to the resource",
+            ),
+            (
+                [],
+                _link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back,
+                "Unable to link a Rest API to the Gateway resource, ensure there is only one reference to the Rest API",
+            ),
+            (
+                [Mock(), Mock()],
+                _link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back,
+                "Unable to link a Rest API to the Gateway resource, ensure there is only one reference to the Rest API",
+            ),
+        ]
+    )
+    def test_linking_callbacks_raises_reference_exception(self, references, linking_call_back_method, expected_message):
+        resource = Mock()
+
+        with self.assertRaisesRegex(InvalidResourceLinkingException, expected_regex=expected_message):
+            linking_call_back_method(resource, references)
 
     @patch(
         "samcli.hook_packages.terraform.hooks.prepare.resource_linking._link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back"
@@ -2196,15 +2220,6 @@ class TestResourceLinker(TestCase):
         _link_gateway_authorizer_to_lambda_function_call_back(authorizer, logical_ids)
         input_gateway_authorizer["Properties"]["AuthorizerUri"] = expected_integration
         self.assertEqual(authorizer, input_gateway_authorizer)
-
-    def test_link_gateway_authorizer_to_lambda_function_call_back_multiple_destinations(self):
-        authorizer = Mock()
-        logical_ids = [Mock(), Mock()]
-        with self.assertRaisesRegex(
-            InvalidResourceLinkingException,
-            expected_regex="An error occurred when attempting to link two resources: Could not link multiple Lambda functions to one Gateway Authorizer",
-        ):
-            _link_gateway_authorizer_to_lambda_function_call_back(authorizer, logical_ids)
 
     @patch(
         "samcli.hook_packages.terraform.hooks.prepare.resource_linking._link_gateway_authorizer_to_lambda_function_call_back"
