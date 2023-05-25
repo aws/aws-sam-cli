@@ -115,7 +115,7 @@ class CfnApiProvider(CfnBaseApiProvider):
         rest_api_id = properties.get(LambdaAuthorizerV1Validator.AUTHORIZER_REST_API)
         name = properties.get(LambdaAuthorizerV1Validator.AUTHORIZER_NAME)
         authorizer_uri = properties.get(LambdaAuthorizerV1Validator.AUTHORIZER_AUTHORIZER_URI)
-        identity_source_template = properties.get(LambdaAuthorizerV1Validator.AUTHORIZER_IDENTITY_SOURCE, [])
+        identity_source_template = properties.get(LambdaAuthorizerV1Validator.AUTHORIZER_IDENTITY_SOURCE, "")
 
         # this will always return a string since we have already validated above
         function_name = cast(str, LambdaUri.get_function_name(authorizer_uri))

@@ -18,3 +18,7 @@ class AmbiguousResourceForRemoteInvoke(UserException):
 
 class UnsupportedServiceForRemoteInvoke(UserException):
     pass
+
+
+class NoExecutorFoundForRemoteInvoke(UserException):
+    pass
