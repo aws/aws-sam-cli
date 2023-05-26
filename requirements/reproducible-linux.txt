@@ -15,13 +15,13 @@ attrs==22.2.0 \
     #   jschema-to-python
     #   jsonschema
     #   sarif-om
-aws-lambda-builders==1.31.0 \
-    --hash=sha256:e8c8353eef983b9ac037015038da5b17222f61886ccfcadb1b4aa0af44a49b90 \
-    --hash=sha256:ffe186dfb6616ef1f64b62c921b43ad67f50fce257a39a8d2c66ac76cde4ed6b
+aws-lambda-builders==1.32.0 \
+    --hash=sha256:97b6965d01596a3a15936faf345b88d17a25339f81f1e5643534345eb44b4dee \
+    --hash=sha256:a39e249a44265957e5b551e050490bf1ef3315ab564d44b187b17df6780713e4
     # via aws-sam-cli (setup.py)
-aws-sam-translator==1.67.0 \
-    --hash=sha256:207a216bec1ac3323b58e15ed7231c0f476b1a1a10892c9a6b22784041d32506 \
-    --hash=sha256:291fed2f08bad7f38368f4ee8609fce64dfe5c6b1872bb24b93cda1880bc9f7d
+aws-sam-translator==1.68.0 \
+    --hash=sha256:557d8080c9e6c1c609bfe806ea9545f7ea34144e2466c0ddc801806c2c05afdc \
+    --hash=sha256:d12a7bb3909142d32458f76818cb96a5ebc5f50fbd5943301d552679a893afcc
     # via
     #   aws-sam-cli (setup.py)
     #   cfn-lint
