@@ -25,6 +25,9 @@ updates:
       # Ignored intentionally since we have a GHA that updates to more
       # completely
       - dependency-name: "aws-sam-translator"
+      # Ignored intentionally since we have a GHA that updates to more
+      # completely
+      - dependency-name: "aws_lambda_builders"
       # The dependencies are intentionally pinned to certain
       # version ranges for specific Python versions
       - dependency-name: "flake8"
