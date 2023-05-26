@@ -26,6 +26,7 @@ from urllib.parse import parse_qs, urlparse
 import botocore
 import botocore.exceptions
 from boto3.s3 import transfer
+from boto3.s3.transfer import ProgressCallbackInvoker
 
 from samcli.commands.package.exceptions import BucketNotSpecifiedError, NoSuchBucketError
 from samcli.lib.package.local_files_utils import get_uploaded_s3_object_name
@@ -103,7 +104,9 @@ class S3Uploader:
                 raise BucketNotSpecifiedError()
 
             if not self.no_progressbar:
-                print_progress_callback = ProgressPercentage(file_name, remote_path)
+                print_progress_callback = ProgressCallbackInvoker(
+                    ProgressPercentage(file_name, remote_path).on_progress
+                )
                 future = self.transfer_manager.upload(
                     file_name, self.bucket_name, remote_path, additional_args, [print_progress_callback]
                 )
