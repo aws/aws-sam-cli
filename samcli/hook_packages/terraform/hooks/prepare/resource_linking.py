@@ -1118,7 +1118,7 @@ def _link_gateway_resource_to_gateway_resource_call_back(
         raise InvalidResourceLinkingException("Could not link multiple Gateway Resources to one Gateway resource")
 
     if not referenced_gateway_resource_values:
-        LOG.info("Unable to find any references to Rest APIs, skip linking Rest API to Gateway resource")
+        LOG.info("Unable to find any references to the Gateway Resource, skip linking Gateway resources")
         return
 
     logical_id = referenced_gateway_resource_values[0]
@@ -1366,7 +1366,7 @@ def _link_gateway_integration_to_function_call_back(
         )
 
     if not referenced_gateway_resource_values:
-        LOG.info("Unable to find any references to Lambda functions, skip linking Lambda function to Gateway resource")
+        LOG.info("Unable to find any references to Lambda functions, skip linking Lambda function to Gateway integration")
         return
 
     logical_id = referenced_gateway_resource_values[0]
