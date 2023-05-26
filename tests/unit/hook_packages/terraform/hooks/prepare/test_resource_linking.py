@@ -2062,62 +2062,47 @@ class TestResourceLinker(TestCase):
     @parameterized.expand(
         [
             (
-                [],
                 _link_gateway_integration_to_function_call_back,
-                "Unable to link a Lambda Function to a Gateway integration resource, ensure there is only one reference to the Lambda Function",
+                "Could not link multiple Lambda functions to one Gateway integration resource",
             ),
             (
-                [Mock(), Mock()],
-                _link_gateway_integration_to_function_call_back,
-                "Unable to link a Lambda Function to a Gateway integration resource, ensure there is only one reference to the Lambda Function",
-            ),
-            (
-                [],
                 _link_gateway_authorizer_to_lambda_function_call_back,
-                "Unable to link a Lambda Function to the Gateway Authorizer, ensure there is only one reference to the Lambda Function",
+                "Could not link multiple Lambda functions to one Gateway Authorizer",
             ),
             (
-                [Mock(), Mock()],
-                _link_gateway_authorizer_to_lambda_function_call_back,
-                "Unable to link a Lambda Function to the Gateway Authorizer, ensure there is only one reference to the Lambda Function",
-            ),
-            (
-                [],
                 _link_gateway_resource_to_gateway_rest_apis_parent_id_call_back,
-                "Unable to link a Rest API to the Gateway resource, ensure there is only one reference to the Rest API",
+                "Could not link multiple Rest APIs to one Gateway resource",
             ),
             (
-                [Mock(), Mock()],
-                _link_gateway_resource_to_gateway_rest_apis_parent_id_call_back,
-                "Unable to link a Rest API to the Gateway resource, ensure there is only one reference to the Rest API",
-            ),
-            (
-                [],
                 _link_gateway_resource_to_gateway_resource_call_back,
-                "Unable to link two Gateway Resources together, ensure there is only one reference to the resource",
+                "Could not link multiple Gateway Resources to one Gateway resource",
             ),
             (
-                [Mock(), Mock()],
-                _link_gateway_resource_to_gateway_resource_call_back,
-                "Unable to link two Gateway Resources together, ensure there is only one reference to the resource",
-            ),
-            (
-                [],
                 _link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back,
-                "Unable to link a Rest API to the Gateway resource, ensure there is only one reference to the Rest API",
-            ),
-            (
-                [Mock(), Mock()],
-                _link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back,
-                "Unable to link a Rest API to the Gateway resource, ensure there is only one reference to the Rest API",
+                "Could not link multiple Rest APIs to one Gateway resource",
             ),
         ]
     )
-    def test_linking_callbacks_raises_reference_exception(self, references, linking_call_back_method, expected_message):
-        resource = Mock()
-
+    def test_linking_callbacks_raises_multiple_reference_exception(self, linking_call_back_method, expected_message):
         with self.assertRaisesRegex(InvalidResourceLinkingException, expected_regex=expected_message):
-            linking_call_back_method(resource, references)
+            linking_call_back_method(Mock(), [Mock(), Mock()])
+
+    @parameterized.expand(
+        [
+            (_link_gateway_integration_to_function_call_back,),
+            (_link_gateway_authorizer_to_lambda_function_call_back,),
+            (_link_gateway_resource_to_gateway_rest_apis_parent_id_call_back,),
+            (_link_gateway_resource_to_gateway_resource_call_back,),
+            (_link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back,),
+        ]
+    )
+    def test_linking_callbacks_skips_empty_references(self, linking_call_back_method):
+        original_props = {"Properties": {}}
+        passed_props = deepcopy(original_props)
+
+        linking_call_back_method(passed_props, [])
+
+        self.assertEqual(original_props, passed_props)
 
     @patch(
         "samcli.hook_packages.terraform.hooks.prepare.resource_linking._link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back"
