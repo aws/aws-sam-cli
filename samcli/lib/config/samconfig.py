@@ -4,13 +4,11 @@ Class representing the samconfig.toml
 
 import logging
 import os
-from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Iterable
-
-import tomlkit
+from typing import Any, Dict, Iterable, Type
 
 from samcli.lib.config.exceptions import FileParseException, SamConfigFileReadException, SamConfigVersionException
+from samcli.lib.config.file_manager import FileManager, TomlFileManager
 from samcli.lib.config.version import SAM_CONFIG_VERSION, VERSION_KEY
 
 LOG = logging.getLogger(__name__)
@@ -21,54 +19,12 @@ DEFAULT_ENV = "default"
 DEFAULT_GLOBAL_CMDNAME = "global"
 
 
-class FileManager(ABC):
-    """
-    Abstract class to be overridden by file managers for specific file extensions.
-    """
-
-    @staticmethod
-    @abstractmethod
-    def read(filepath: Path) -> dict:
-        pass
-
-    @staticmethod
-    @abstractmethod
-    def write(document: dict, filepath: Path):
-        pass
-
-
-class TomlFileManager(FileManager):
-    """
-    Static class to read and write toml files.
-    """
-
-    @staticmethod
-    def read(filepath: Path) -> dict:
-        document: dict = {}
-        try:
-            txt = filepath.read_text()
-            document = dict(tomlkit.loads(txt))
-        except OSError:
-            document = {}
-        except tomlkit.exceptions.TOMLKitError as e:
-            raise FileParseException(e) from e
-
-        return document
-
-    @staticmethod
-    def write(document: dict, filepath: Path):
-        if not document:
-            return
-
-        filepath.write_text(tomlkit.dumps(document))
-
-
 class SamConfig:
     """
     Class to represent `samconfig` config options.
     """
 
-    FILE_MANAGER_MAPPER: dict = {
+    FILE_MANAGER_MAPPER: Dict[str, Type[FileManager]] = {
         "toml": TomlFileManager,
     }
 
