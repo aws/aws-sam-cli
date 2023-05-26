@@ -371,6 +371,10 @@ networkx==2.6.3 \
     --hash=sha256:80b6b89c77d1dfb64a4c7854981b60aeea6360ac02c6d4e4913319e0a313abef \
     --hash=sha256:c0946ed31d71f1b732b5aaa6da5a0388a345019af232ce2f49c766e2d6795c51
     # via cfn-lint
+packaging==23.1 \
+    --hash=sha256:994793af429502c4ea2ebf6bf664629d07c1a9fe974af92966e4b8d2df7edc61 \
+    --hash=sha256:a392980d2b6cffa644431898be54b0045151319d1e7ec34f0cfed48767dd334f
+    # via docker
 pbr==5.11.1 \
     --hash=sha256:567f09558bae2b3ab53cb3c1e2e33e726ff3338e7bae3db5dc954b3a44eef12b \
     --hash=sha256:aefc51675b0b533d56bb5fd1c8c6c0522fe31896679882e1c4c63d5e4a0fccb3
@@ -630,7 +634,6 @@ six==1.16.0 \
     --hash=sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926 \
     --hash=sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254
     # via
-    #   docker
     #   junit-xml
     #   python-dateutil
     #   serverlessrepo
@@ -664,6 +667,7 @@ urllib3==1.26.15 \
     --hash=sha256:aa751d169e23c7479ce47a0cb0da579e3ede798f994f5816a74e4f4500dcea42
     # via
     #   botocore
+    #   docker
     #   requests
 watchdog==2.1.2 \
     --hash=sha256:0237db4d9024859bea27d0efb59fe75eef290833fd988b8ead7a879b0308c2db \
