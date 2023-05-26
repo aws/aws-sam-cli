@@ -8,6 +8,8 @@ from samcli.commands.exceptions import UserException
 ONE_LAMBDA_LAYER_LINKING_ISSUE_LINK = "https://github.com/aws/aws-sam-cli/issues/4395"
 LOCAL_VARIABLES_SUPPORT_ISSUE_LINK = "https://github.com/aws/aws-sam-cli/issues/4396"
 
+APPLY_WORK_AROUND_MESSAGE = "Run terraform apply to populate these values."
+
 
 class InvalidResourceLinkingException(UserException):
     fmt = "An error occurred when attempting to link two resources: {message}"
@@ -17,7 +19,15 @@ class InvalidResourceLinkingException(UserException):
         UserException.__init__(self, msg)
 
 
-class OneResourceLinkingLimitationException(UserException):
+class ApplyLimitationException(UserException):
+    def __init__(self, message):
+        fmt = "{message}{line_sep}{line_sep}{apply_work_around}"
+        msg = fmt.format(message=message, line_sep=os.linesep, apply_work_around=APPLY_WORK_AROUND_MESSAGE)
+
+        UserException.__init__(self, msg)
+
+
+class OneResourceLinkingLimitationException(ApplyLimitationException):
     fmt = (
         "AWS SAM CLI could not process a Terraform project that contains a source resource that is linked to more "
         "than one destination resource. Destination resource(s) defined by {dest_resource_list} could not be linked to "
@@ -31,7 +41,7 @@ class OneResourceLinkingLimitationException(UserException):
             issue_link=ONE_LAMBDA_LAYER_LINKING_ISSUE_LINK,
             line_sep=os.linesep,
         )
-        UserException.__init__(self, msg)
+        ApplyLimitationException.__init__(self, msg)
 
 
 class OneLambdaLayerLinkingLimitationException(OneResourceLinkingLimitationException):
@@ -40,7 +50,7 @@ class OneLambdaLayerLinkingLimitationException(OneResourceLinkingLimitationExcep
     """
 
 
-class LocalVariablesLinkingLimitationException(UserException):
+class LocalVariablesLinkingLimitationException(ApplyLimitationException):
     fmt = (
         "AWS SAM CLI could not process a Terraform project that uses local variables to define linked resources. "
         "Destination resource(s) defined by {local_variable_reference} could not be linked to destination "
@@ -54,7 +64,7 @@ class LocalVariablesLinkingLimitationException(UserException):
             issue_link=LOCAL_VARIABLES_SUPPORT_ISSUE_LINK,
             line_sep=os.linesep,
         )
-        UserException.__init__(self, msg)
+        ApplyLimitationException.__init__(self, msg)
 
 
 class FunctionLayerLocalVariablesLinkingLimitationException(LocalVariablesLinkingLimitationException):
@@ -187,7 +197,7 @@ class InvalidSamMetadataPropertiesException(UserException):
     pass
 
 
-class OpenAPIBodyNotSupportedException(UserException):
+class OpenAPIBodyNotSupportedException(ApplyLimitationException):
     fmt = (
         "AWS SAM CLI is unable to process a Terraform project that uses an OpenAPI specification to "
         "define the API Gateway resource. AWS SAM CLI does not currently support this "
@@ -198,4 +208,4 @@ class OpenAPIBodyNotSupportedException(UserException):
         msg = self.fmt.format(
             api_id=api_id,
         )
-        UserException.__init__(self, msg)
+        ApplyLimitationException.__init__(self, msg)
