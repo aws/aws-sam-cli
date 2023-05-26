@@ -152,9 +152,13 @@ class SwaggerParser:
                         auth_name,
                     )
 
-            if not identity_sources:
+            # token based authorizers must have an identity source defined
+            # this is determined by taking the header key in the properties
+            # to form the identity source in a previous method call
+            if not identity_sources and authorizer_type == LambdaAuthorizer.TOKEN:
                 LOG.warning(
-                    "Skip parsing Lambda authorizer '%s', must contain at least one valid identity source",
+                    "Skip parsing Lambda authorizer '%s', must contain valid "
+                    "identity sources for Rest Api based token authorizers",
                     auth_name,
                 )
                 continue
@@ -216,28 +220,23 @@ class SwaggerParser:
             else:
                 identity_sources.append(f"method.request.header.{header_name}")
         else:
-            identity_source_string = authorizer_object.get(SwaggerParser._AUTHORIZER_IDENTITY_SOURCE)
+            identity_source_string = authorizer_object.get(SwaggerParser._AUTHORIZER_IDENTITY_SOURCE, "")
 
-            if not identity_source_string:
-                LOG.warning(
-                    "Missing property 'identitySource' in the authorizer integration for Lambda Authorizer '%s'",
-                    auth_name,
-                )
-            else:
-                # split the identity sources, remove any trailing spaces, and validate
-                split_identity_source: List[str] = identity_source_string.split(",")
+            # split the identity sources, remove any trailing spaces, and validate
+            # we check for false-y string since .split() will return [""] instead of [] on an empty string
+            split_identity_source: List[str] = identity_source_string.split(",") if identity_source_string else []
 
-                for identity in split_identity_source:
-                    trimmed_identity = identity.strip()
-                    is_valid_format = IdentitySourceValidator.validate_identity_source(trimmed_identity, event_type)
+            for identity in split_identity_source:
+                trimmed_identity = identity.strip()
+                is_valid_format = IdentitySourceValidator.validate_identity_source(trimmed_identity, event_type)
 
-                    if not is_valid_format:
-                        raise InvalidSecurityDefinition(
-                            f"Identity source '{trimmed_identity}' for Lambda Authorizer '{auth_name}' "
-                            "is not a valid identity source, check the spelling/format."
-                        )
+                if not is_valid_format:
+                    raise InvalidSecurityDefinition(
+                        f"Identity source '{trimmed_identity}' for Lambda Authorizer '{auth_name}' "
+                        "is not a valid identity source, check the spelling/format."
+                    )
 
-                    identity_sources.append(trimmed_identity)
+                identity_sources.append(trimmed_identity)
 
         return identity_sources
 
@@ -261,11 +260,10 @@ class SwaggerParser:
         if not authorizers:
             return None
 
-        if not document_version.startswith(SwaggerParser._3_X_VERSION) or not event_type == Route.HTTP:
+        if not document_version.startswith(SwaggerParser._3_X_VERSION):
             raise IncorrectOasWithDefaultAuthorizerException(
-                "Root level definition of default authorizers are only supported for "
-                "AWS::Serverless::HttpApi and AWS::ApiGatewayV2::Api resources using "
-                "an OpenApi 3.x body"
+                "Root level definition of default authorizers are only supported for API "
+                "resources using an OpenApi 3.x body"
             )
 
         if len(authorizers) > 1:
