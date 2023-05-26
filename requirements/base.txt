@@ -29,3 +29,4 @@ tzlocal==3.0
 
 #Adding cfn-lint dependency for SAM validate
 cfn-lint~=0.77.5
+ 
