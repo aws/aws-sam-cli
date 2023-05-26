@@ -9,7 +9,7 @@ import tomlkit
 
 from samcli.commands.exceptions import ConfigException
 from samcli.cli.cli_config_file import TomlProvider, configuration_option, configuration_callback, get_ctx_defaults
-from samcli.lib.config.exceptions import SamConfigFileReadException, SamConfigVersionException
+from samcli.lib.config.exceptions import FileParseException, SamConfigFileReadException, SamConfigVersionException
 from samcli.lib.config.samconfig import DEFAULT_ENV, TomlFileManager
 
 from tests.testing_utils import IS_WINDOWS
@@ -250,7 +250,7 @@ class TestTomlFileManager(TestCase):
         config_dir = tempfile.gettempdir()
         config_path = Path(config_dir, "samconfig.toml")
         config_path.write_text("fake='not real'\nimproper toml file\n")
-        with self.assertRaises(SamConfigFileReadException):
+        with self.assertRaises(FileParseException):
             TomlFileManager.read(config_path)
 
     def test_read_toml_file_path_not_valid(self):

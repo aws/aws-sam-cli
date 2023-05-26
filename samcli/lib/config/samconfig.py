@@ -10,7 +10,7 @@ from typing import Any, Iterable
 
 import tomlkit
 
-from samcli.lib.config.exceptions import SamConfigFileReadException, SamConfigVersionException
+from samcli.lib.config.exceptions import FileParseException, SamConfigFileReadException, SamConfigVersionException
 from samcli.lib.config.version import SAM_CONFIG_VERSION, VERSION_KEY
 
 LOG = logging.getLogger(__name__)
@@ -51,7 +51,7 @@ class TomlFileManager(FileManager):
         except OSError:
             document = {}
         except tomlkit.exceptions.TOMLKitError as e:
-            raise SamConfigFileReadException(e)
+            raise FileParseException(e) from e
 
         return document
 
@@ -237,7 +237,10 @@ class SamConfig:
 
     def _read(self):
         if not self.document:
-            self.document = self.file_manager.read(self.filepath)
+            try:
+                self.document = self.file_manager.read(self.filepath)
+            except FileParseException as e:
+                raise SamConfigFileReadException(e) from e
         if self.document:
             self._version_sanity_check(self._version())
         return self.document
