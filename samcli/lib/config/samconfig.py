@@ -42,9 +42,10 @@ class SamConfig:
         """
         self.document = {}
         self.filepath = Path(config_dir, filename or DEFAULT_CONFIG_FILE_NAME)
-        self.file_manager = self.FILE_MANAGER_MAPPER.get(self.filepath.suffix[1:], TomlFileManager)  # default to TOML
+        self.file_manager = self.FILE_MANAGER_MAPPER.get(self.filepath.suffix[1:], None)  # default to TOML
         if not self.file_manager:
             LOG.warning(f"The config file extension '{self.filepath.suffix[1:]}' is not supported. TOML will be used.")
+            self.file_manager = TomlFileManager
         self._read()
 
     def get_stage_configuration_names(self):
