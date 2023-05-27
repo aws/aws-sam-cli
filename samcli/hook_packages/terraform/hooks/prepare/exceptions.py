@@ -193,6 +193,20 @@ class GatewayResourceToApiGatewayIntegrationResponseLocalVariablesLinkingLimitat
     """
 
 
+class OneGatewayAuthorizerToLambdaFunctionLinkingLimitationException(OneResourceLinkingLimitationException):
+    """
+    Exception specific for Gateway Authorizer linking to more than one Lambda Function
+    """
+
+
+class GatewayAuthorizerToLambdaFunctionLocalVariablesLinkingLimitationException(
+    LocalVariablesLinkingLimitationException
+):
+    """
+    Exception specific for Gateway Authorizer linking to Lambda Function using locals.
+    """
+
+
 class InvalidSamMetadataPropertiesException(UserException):
     pass
 
