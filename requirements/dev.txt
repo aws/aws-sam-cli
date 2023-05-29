@@ -23,7 +23,7 @@ pytest-forked==1.6.0
 pytest-timeout==2.1.0
 pytest-rerunfailures==11.1.2
 pytest-json-report==1.5.0
-filelock==3.10.7
+filelock==3.12.0
 
 # formatter
 black==22.6.0
