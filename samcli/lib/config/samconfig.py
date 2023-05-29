@@ -80,9 +80,6 @@ class SamConfig:
         ------
         KeyError
             If the config file does *not* have the specific section
-
-        SamConfigFileReadException
-            If the configuration file is invalid
         """
 
         env = env or DEFAULT_ENV
@@ -115,11 +112,6 @@ class SamConfig:
             Value to write. Could be any of the supported types.
         env : str
             Optional, Name of the environment
-
-        Raises
-        ------
-        SamConfigFileReadException
-            If the data is invalid
         """
         # Empty document prepare the initial structure.
         # self.document is a nested dict, we need to check each layer and add new tables, otherwise duplicated key
@@ -155,12 +147,6 @@ class SamConfig:
     def flush(self):
         """
         Write the data back to file
-
-        Raises
-        ------
-        SamConfigFileReadException
-            If the data is invalid
-
         """
         self._write()
 
