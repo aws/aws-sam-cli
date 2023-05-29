@@ -1576,7 +1576,7 @@ def _link_gateway_authorizer_to_rest_api(
     rest_api_resource: Dict[str, Dict],
 ) -> None:
     """
-    Iterate through all the resources and link the corresponding Authorizer to each Lambda Function
+    Iterate through all the resources and link the corresponding Authorizer to each Rest Api
 
     Parameters
     ----------
