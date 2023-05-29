@@ -58,7 +58,8 @@ class TestTomlProvider(TestCase):
         config_path = Path(config_dir, "samconfig.toml")
         config_path.write_text("[topic]\nword=clarity\n")
 
-        self.assertEqual(self.toml_provider(config_dir, self.config_env, [self.cmd_name]), {})
+        with self.assertRaises(SamConfigFileReadException):
+            self.toml_provider(config_path, self.config_env, [self.cmd_name])
 
     def test_toml_invalid_file_name(self):
         config_dir = tempfile.gettempdir()

@@ -3,12 +3,15 @@ Class to represent the parsing of different file types into Python objects.
 """
 
 
+import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
 
 import tomlkit
 
 from samcli.lib.config.exceptions import FileParseException
+
+LOG = logging.getLogger(__name__)
 
 
 class FileManager(ABC):
@@ -74,7 +77,8 @@ class TomlFileManager(FileManager):
         try:
             txt = filepath.read_text()
             document = dict(tomlkit.loads(txt))
-        except OSError:
+        except OSError as e:
+            LOG.debug(f"OSError occurred while reading TOML file: {str(e)}")
             document = {}
         except tomlkit.exceptions.TOMLKitError as e:
             raise FileParseException(e) from e
@@ -94,6 +98,7 @@ class TomlFileManager(FileManager):
             The final location for the TOML file to be written.
         """
         if not document:
+            LOG.debug("No document given for TomlFileManager to write.")
             return
 
         filepath.write_text(tomlkit.dumps(document))

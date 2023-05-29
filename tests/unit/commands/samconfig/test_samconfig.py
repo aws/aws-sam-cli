@@ -14,6 +14,7 @@ from click.testing import CliRunner
 from unittest import TestCase
 from unittest.mock import patch, ANY
 import logging
+from samcli.lib.config.exceptions import SamConfigFileReadException
 
 from samcli.lib.config.samconfig import SamConfig, DEFAULT_ENV, TomlFileManager
 from samcli.lib.utils.packagetype import ZIP, IMAGE
@@ -1246,13 +1247,12 @@ class TestSamConfigWithOverrides(TestCase):
 
 
 class TestSamConfigFileManager(TestCase):
-    def test_file_manager_defaults_to_toml(self):
+    def test_file_manager_not_declared(self):
         config_dir = tempfile.gettempdir()
         config_path = Path(config_dir, "samconfig")
 
-        samconfig = SamConfig(config_path, filename="samconfig")
-
-        self.assertIs(samconfig.file_manager, TomlFileManager)
+        with self.assertRaises(SamConfigFileReadException):
+            SamConfig(config_path, filename="samconfig")
 
     def test_file_manager_toml(self):
         config_dir = tempfile.gettempdir()

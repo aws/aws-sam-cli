@@ -210,7 +210,7 @@ class TestSamConfig(TestCase):
     def test_write_config_file_will_create_the_file_if_not_exist(self):
         with osutils.mkdir_temp(ignore_errors=True) as tempdir:
             non_existing_dir = os.path.join(tempdir, "non-existing-dir")
-            non_existing_file = "non-existing-file"
+            non_existing_file = "non-existing-file.toml"
             samconfig = SamConfig(config_dir=non_existing_dir, filename=non_existing_file)
 
             self.assertFalse(samconfig.exists())
