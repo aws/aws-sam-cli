@@ -101,4 +101,12 @@ class TomlFileManager(FileManager):
             LOG.debug("No document given for TomlFileManager to write.")
             return
 
-        filepath.write_text(tomlkit.dumps(document))
+        doc_no_comments = {k: v for k, v in document.items() if k != "__comment__"}
+        toml_doc = tomlkit.document()
+
+        if document.get("__comment__", None):  # Comment appears at the top of doc
+            toml_doc.add(tomlkit.comment(document["__comment__"]))
+        for k, v in doc_no_comments.items():
+            toml_doc.add(k, v)
+
+        filepath.write_text(tomlkit.dumps(toml_doc))

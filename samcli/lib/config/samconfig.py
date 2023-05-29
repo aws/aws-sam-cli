@@ -42,7 +42,7 @@ class SamConfig:
         """
         self.document = {}
         self.filepath = Path(config_dir, filename or DEFAULT_CONFIG_FILE_NAME)
-        self.file_manager = self.FILE_MANAGER_MAPPER.get(self.filepath.suffix[1:], None)  # default to TOML
+        self.file_manager = self.FILE_MANAGER_MAPPER.get(self.filepath.suffix[1:], None)
         if not self.file_manager:
             LOG.warning(
                 f"The config file extension '{self.filepath.suffix[1:]}' is not supported. "
@@ -87,7 +87,7 @@ class SamConfig:
 
         env = env or DEFAULT_ENV
 
-        self.document = self.file_manager.read(self.filepath)
+        self.document = self._read()
 
         config_content = self.document.get(env, {})
         params = config_content.get(self._to_key(cmd_names), {}).get(section, {})
@@ -163,7 +163,6 @@ class SamConfig:
 
         """
         self._write()
-        print(self.document)
 
     def sanity_check(self):
         """

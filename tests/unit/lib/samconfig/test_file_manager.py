@@ -31,7 +31,11 @@ class TestTomlFileManager(TestCase):
     def test_write_toml(self):
         config_dir = tempfile.gettempdir()
         config_path = Path(config_dir, "samconfig.toml")
-        toml = {"version": 0.1, "config_env": {"topic2": {"parameters": {"word": "clarity"}}}}
+        toml = {
+            "version": 0.1,
+            "config_env": {"topic2": {"parameters": {"word": "clarity"}}},
+            "__comment__": "This is a comment",
+        }
 
         TomlFileManager.write(toml, config_path)
 
@@ -39,6 +43,7 @@ class TestTomlFileManager(TestCase):
         self.assertIn("version = 0.1", txt)
         self.assertIn("[config_env.topic2.parameters]", txt)
         self.assertIn('word = "clarity"', txt)
+        self.assertIn("# This is a comment", txt)
 
     def test_dont_write_toml_if_empty(self):
         config_dir = tempfile.gettempdir()
