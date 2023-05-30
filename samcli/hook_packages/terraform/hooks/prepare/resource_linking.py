@@ -1581,7 +1581,7 @@ def _link_gateway_method_to_gateway_authorizer_call_back(
     Parameters
     ----------
     gateway_method_cfn_resource: Dict
-        API Gateway Methodr CFN resource
+        API Gateway Method CFN resource
     authorizer_resources: List[ReferenceType]
         List of referenced Authorizers either as the logical id of Authorizer resources
         defined in the customer project, or ARN values for actual Authorizers defined
