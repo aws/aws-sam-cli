@@ -1,6 +1,8 @@
 from pathlib import Path
 import tempfile
 from unittest import TestCase
+
+import tomlkit
 from samcli.lib.config.exceptions import FileParseException
 
 from samcli.lib.config.file_manager import TomlFileManager
@@ -11,8 +13,9 @@ class TestTomlFileManager(TestCase):
         config_dir = tempfile.gettempdir()
         config_path = Path(config_dir, "samconfig.toml")
         config_path.write_text("version=0.1\n[config_env.topic1.parameters]\nword='clarity'\n")
+        config_dict, _ = TomlFileManager.read(config_path)
         self.assertEqual(
-            TomlFileManager.read(config_path),
+            config_dict,
             {"version": 0.1, "config_env": {"topic1": {"parameters": {"word": "clarity"}}}},
         )
 
@@ -26,7 +29,8 @@ class TestTomlFileManager(TestCase):
     def test_read_toml_file_path_not_valid(self):
         config_dir = "path/that/doesnt/exist"
         config_path = Path(config_dir, "samconfig.toml")
-        self.assertEqual(TomlFileManager.read(config_path), {})
+        config_dict, _ = TomlFileManager.read(config_path)
+        self.assertEqual(config_dict, {})
 
     def test_write_toml(self):
         config_dir = tempfile.gettempdir()
@@ -58,4 +62,32 @@ class TestTomlFileManager(TestCase):
     def test_write_toml_bad_path(self):
         config_path = Path("path/to/some", "file_that_doesnt_exist.toml")
         with self.assertRaises(FileNotFoundError):
-            TomlFileManager.write({"some key": "some value"}, config_path)
+            TomlFileManager.write({"key": "some value"}, config_path)
+
+    def test_write_toml_file(self):
+        config_dir = tempfile.gettempdir()
+        config_path = Path(config_dir, "samconfig.toml")
+        toml = tomlkit.parse('# This is a comment\nversion = 0.1\n[config_env.topic2.parameters]\nword = "clarity"\n')
+
+        TomlFileManager.write_document(toml, config_path)
+
+        txt = config_path.read_text()
+        self.assertIn("version = 0.1", txt)
+        self.assertIn("[config_env.topic2.parameters]", txt)
+        self.assertIn('word = "clarity"', txt)
+        self.assertIn("# This is a comment", txt)
+
+    def test_dont_write_toml_file_if_empty(self):
+        config_dir = tempfile.gettempdir()
+        config_path = Path(config_dir, "samconfig.toml")
+        config_path.write_text("nothing to see here\n")
+        toml = tomlkit.document()
+
+        TomlFileManager.write(toml, config_path)
+
+        self.assertEqual(config_path.read_text(), "nothing to see here\n")
+
+    def test_write_toml_file_bad_path(self):
+        config_path = Path("path/to/some", "file_that_doesnt_exist.toml")
+        with self.assertRaises(FileNotFoundError):
+            TomlFileManager.write_document(tomlkit.parse('key = "some value"'), config_path)

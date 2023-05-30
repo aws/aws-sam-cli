@@ -6,6 +6,7 @@ Class to represent the parsing of different file types into Python objects.
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import Any, Optional, Tuple
 
 import tomlkit
 
@@ -21,7 +22,7 @@ class FileManager(ABC):
 
     @staticmethod
     @abstractmethod
-    def read(filepath: Path) -> dict:
+    def read(filepath: Path) -> Tuple[dict, Optional[Any]]:
         """
         Read a file at a given path.
 
@@ -32,8 +33,9 @@ class FileManager(ABC):
 
         Returns
         -------
-        dict
-            The dictionary representation of the contents at the filepath location.
+        Tuple[dict, Optional[Any]]
+            The dictionary representation of the contents at the filepath location, along with a specialized
+            representation of the file that was read, if there is a specialization of it.
         """
         raise NotImplementedError("Read method not implemented.")
 
@@ -52,6 +54,21 @@ class FileManager(ABC):
         """
         raise NotImplementedError("Write method not implemented.")
 
+    @staticmethod
+    @abstractmethod
+    def write_document(document: Any, filepath: Path):
+        """
+        Write the contents of a document object to a file at the provided location.
+
+        Parameters
+        ----------
+        document: Any
+            The object to write.
+        filepath: Path
+            The final location for the file to be written.
+        """
+        raise NotImplementedError("Write document method not implemented.")
+
 
 class TomlFileManager(FileManager):
     """
@@ -59,7 +76,7 @@ class TomlFileManager(FileManager):
     """
 
     @staticmethod
-    def read(filepath: Path) -> dict:
+    def read(filepath: Path) -> Tuple[dict, Optional[Any]]:
         """
         Read a TOML file at the given path.
 
@@ -70,20 +87,23 @@ class TomlFileManager(FileManager):
 
         Returns
         -------
-        dict
-            A Python dictionary representation of the contents of the TOML file at the provided location.
+        Tuple[dict, Optional[Any]]
+            A Python dictionary representation of the contents of the TOML file at the provided location, as well as a
+            tomlkit document object of the TOML contents.
         """
         document: dict = {}
+        toml_doc = None
         try:
             txt = filepath.read_text()
-            document = dict(tomlkit.loads(txt))
+            toml_doc = tomlkit.loads(txt)
+            document = dict(toml_doc)
         except OSError as e:
             LOG.debug(f"OSError occurred while reading TOML file: {str(e)}")
             document = {}
         except tomlkit.exceptions.TOMLKitError as e:
             raise FileParseException(e) from e
 
-        return document
+        return document, toml_doc
 
     @staticmethod
     def write(document: dict, filepath: Path):
@@ -110,3 +130,21 @@ class TomlFileManager(FileManager):
             toml_doc.add(k, v)
 
         filepath.write_text(tomlkit.dumps(toml_doc))
+
+    @staticmethod
+    def write_document(document: Any, filepath: Path):
+        """
+        Write the contents of a tomlkit.TOMLDocument object to a TOML file at the provided location.
+
+        Parameters
+        ----------
+        document: Any
+            The object to write.
+        filepath: Path
+            The final location for the TOML file to be written.
+        """
+        if not document:
+            LOG.debug("No TOMLDocument given for TomlFileManager to write.")
+            return
+
+        filepath.write_text(tomlkit.dumps(document))
