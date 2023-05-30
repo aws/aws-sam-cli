@@ -2266,9 +2266,7 @@ class TestResourceLinker(TestCase):
         authorizer_config_resources = Mock()
         rest_api_resources = Mock()
 
-        _link_gateway_authorizer_to_rest_api(
-            authorizer_config_resources, authorizer_cfn_resources, rest_api_resources
-        )
+        _link_gateway_authorizer_to_rest_api(authorizer_config_resources, authorizer_cfn_resources, rest_api_resources)
 
         mock_resource_linking_exceptions.assert_called_once_with(
             multiple_resource_linking_exception=OneGatewayAuthorizerToRestApiLinkingLimitationException,
