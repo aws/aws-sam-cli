@@ -1,13 +1,13 @@
 -r pre-dev.txt
 
-coverage==5.3
-pytest-cov==4.0.0
+coverage
+pytest-cov
 
 
 # type checking and related stubs
 # mypy adds new rules in new minor versions, which could cause our PR check to fail
 # here we fix its version and upgrade it manually in the future
-mypy==0.790
+mypy
 boto3-stubs[apigateway,cloudformation,ecr,iam,lambda,s3,schemas,secretsmanager,signer,stepfunctions,sts,xray]==1.26.131
 types-pywin32==306.0.0.0
 types-PyYAML==6.0.12
@@ -16,14 +16,14 @@ types-psutil==5.9.5.12
 types-setuptools==65.4.0.0
 
 # Test requirements
-pytest==7.2.2
-parameterized==0.9.0
-pytest-xdist==3.2.0
-pytest-forked==1.6.0
-pytest-timeout==2.1.0
-pytest-rerunfailures==11.1.2
-pytest-json-report==1.5.0
-filelock==3.12.0
+pytest~=7.2.2
+parameterized
+pytest-xdist
+pytest-forked
+pytest-timeout
+pytest-rerunfailures
+pytest-json-report
+filelock
 
 # formatter
 black==22.6.0
