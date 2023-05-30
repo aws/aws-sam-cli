@@ -4,8 +4,17 @@ Remote Invoke factory to instantiate remote invoker for given resource
 import logging
 from typing import Any, Callable, Dict, Optional
 
-from samcli.lib.remote_invoke.remote_invoke_executors import RemoteInvokeExecutor
+from samcli.lib.remote_invoke.lambda_invoke_executors import (
+    DefaultConvertToJSON,
+    LambdaInvokeExecutor,
+    LambdaResponseConverter,
+    LambdaResponseOutputFormatter,
+)
+from samcli.lib.remote_invoke.remote_invoke_executors import RemoteInvokeExecutor, ResponseObjectToJsonStringMapper
 from samcli.lib.utils.cloudformation import CloudFormationResourceSummary
+from samcli.lib.utils.resources import (
+    AWS_LAMBDA_FUNCTION,
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -40,14 +49,37 @@ class RemoteInvokeExecutorFactory:
             return remote_invoke_executor(self, cfn_resource_summary)
 
         LOG.error(
-            "Can't find test executor instance for resource %s for type %s",
+            "Can't find remote invoke executor instance for resource %s for type %s",
             cfn_resource_summary.logical_resource_id,
             cfn_resource_summary.resource_type,
         )
 
         return None
 
+    def _create_lambda_boto_executor(self, cfn_resource_summary: CloudFormationResourceSummary) -> RemoteInvokeExecutor:
+        """Creates a remote invoke executor for Lambda resource type based on
+        the boto action being called.
+
+        :param cfn_resource_summary: Information about the Lambda resource
+
+        :return: Returns the created remote invoke Executor
+        """
+        return RemoteInvokeExecutor(
+            request_mappers=[DefaultConvertToJSON()],
+            response_mappers=[
+                LambdaResponseConverter(),
+                LambdaResponseOutputFormatter(),
+                ResponseObjectToJsonStringMapper(),
+            ],
+            boto_action_executor=LambdaInvokeExecutor(
+                self._boto_client_provider("lambda"),
+                cfn_resource_summary.physical_resource_id,
+            ),
+        )
+
     # mapping definition for each supported resource type
     REMOTE_INVOKE_EXECUTOR_MAPPING: Dict[
         str, Callable[["RemoteInvokeExecutorFactory", CloudFormationResourceSummary], RemoteInvokeExecutor]
-    ] = {}
+    ] = {
+        AWS_LAMBDA_FUNCTION: _create_lambda_boto_executor,
+    }
