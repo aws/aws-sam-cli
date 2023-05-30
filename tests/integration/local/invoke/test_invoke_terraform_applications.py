@@ -159,7 +159,7 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
             "You can also enable this beta feature with 'sam local invoke --beta-features'."
         )
         self.assertRegex(stdout.decode("utf-8"), terraform_beta_feature_prompted_text)
-        self.assertTrue(stderr.decode("utf-8").startswith(Colored().yellow(EXPERIMENTAL_WARNING)))
+        self.assertRegex(stderr.decode("utf-8"), EXPERIMENTAL_WARNING)
 
         response = json.loads(stdout.decode("utf-8").split("\n")[2][85:].strip())
         expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\": \\"hello world\\"}"}')
