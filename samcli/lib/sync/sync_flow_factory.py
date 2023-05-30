@@ -9,7 +9,7 @@ from samcli.commands.exceptions import InvalidStackNameException
 from samcli.lib.bootstrap.nested_stack.nested_stack_manager import NestedStackManager
 from samcli.lib.build.app_builder import ApplicationBuildResult
 from samcli.lib.package.utils import is_local_folder, is_zip_file
-from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_resource_by_id
+from samcli.lib.providers.provider import Function, FunctionBuildInfo, ResourceIdentifier, Stack, get_resource_by_id
 from samcli.lib.sync.flows.auto_dependency_layer_sync_flow import AutoDependencyLayerParentSyncFlow
 from samcli.lib.sync.flows.function_sync_flow import FunctionSyncFlow
 from samcli.lib.sync.flows.http_api_sync_flow import HttpApiSyncFlow
@@ -21,7 +21,11 @@ from samcli.lib.sync.flows.layer_sync_flow import (
 )
 from samcli.lib.sync.flows.rest_api_sync_flow import RestApiSyncFlow
 from samcli.lib.sync.flows.stepfunctions_sync_flow import StepFunctionsSyncFlow
-from samcli.lib.sync.flows.zip_function_sync_flow import ZipFunctionSyncFlow
+from samcli.lib.sync.flows.zip_function_sync_flow import (
+    ZipFunctionSyncFlow,
+    ZipFunctionSyncFlowSkipBuildDirectory,
+    ZipFunctionSyncFlowSkipBuildZipFile,
+)
 from samcli.lib.sync.sync_flow import SyncFlow
 from samcli.lib.utils.boto_utils import (
     get_boto_client_provider_with_config,
@@ -153,13 +157,34 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
         resource: Dict[str, Any],
         application_build_result: Optional[ApplicationBuildResult],
     ) -> Optional[FunctionSyncFlow]:
-        resource_properties = resource.get("Properties", dict())
-        package_type = resource_properties.get("PackageType", ZIP)
-        runtime = resource_properties.get("Runtime")
-        if package_type == ZIP:
-            # only return auto dependency layer sync if runtime is supported
-            if self._auto_dependency_layer and NestedStackManager.is_runtime_supported(runtime):
-                return AutoDependencyLayerParentSyncFlow(
+        function = self._build_context.function_provider.get(str(resource_identifier))
+        if not function:
+            LOG.warning("Can't find function resource with '%s' logical id", str(resource_identifier))
+            return None
+
+        if function.packagetype == ZIP:
+            return self._create_zip_type_lambda_flow(resource_identifier, application_build_result, function)
+        if function.packagetype == IMAGE:
+            return self._create_image_type_lambda_flow(resource_identifier, application_build_result, function)
+        return None
+
+    def _create_zip_type_lambda_flow(
+            self,
+            resource_identifier: ResourceIdentifier,
+            application_build_result: Optional[ApplicationBuildResult],
+            function: Function,
+    ) -> Optional[FunctionSyncFlow]:
+        if not function.build_info.is_buildable():
+            if function.build_info == FunctionBuildInfo.InlineCode:
+                LOG.debug(
+                    "No need to create sync flow for a function with InlineCode '%s' resource",
+                    str(resource_identifier)
+                )
+                return None
+            if function.build_info == FunctionBuildInfo.PreZipped:
+                # if codeuri points to zip file, use ZipFunctionSyncFlowSkipBuildZipFile sync flow
+                LOG.debug("Creating ZipFunctionSyncFlowSkipBuildZipFile for '%s' resource", resource_identifier)
+                return ZipFunctionSyncFlowSkipBuildZipFile(
                     str(resource_identifier),
                     self._build_context,
                     self._deploy_context,
@@ -169,7 +194,22 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
                     application_build_result,
                 )
 
-            return ZipFunctionSyncFlow(
+            if function.build_info == FunctionBuildInfo.SkipBuild:
+                # if function is marked with SkipBuild, use ZipFunctionSyncFlowSkipBuildDirectory sync flow
+                LOG.debug("Creating ZipFunctionSyncFlowSkipBuildDirectory for '%s' resource", resource_identifier)
+                return ZipFunctionSyncFlowSkipBuildDirectory(
+                    str(resource_identifier),
+                    self._build_context,
+                    self._deploy_context,
+                    self._sync_context,
+                    self._physical_id_mapping,
+                    self._stacks,
+                    application_build_result,
+                )
+
+        # only return auto dependency layer sync if runtime is supported
+        if self._auto_dependency_layer and NestedStackManager.is_runtime_supported(function.runtime):
+            return AutoDependencyLayerParentSyncFlow(
                 str(resource_identifier),
                 self._build_context,
                 self._deploy_context,
@@ -178,17 +218,36 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
                 self._stacks,
                 application_build_result,
             )
-        if package_type == IMAGE:
-            return ImageFunctionSyncFlow(
-                str(resource_identifier),
-                self._build_context,
-                self._deploy_context,
-                self._sync_context,
-                self._physical_id_mapping,
-                self._stacks,
-                application_build_result,
-            )
-        return None
+
+        return ZipFunctionSyncFlow(
+            str(resource_identifier),
+            self._build_context,
+            self._deploy_context,
+            self._sync_context,
+            self._physical_id_mapping,
+            self._stacks,
+            application_build_result,
+        )
+
+    def _create_image_type_lambda_flow(
+            self,
+            resource_identifier: ResourceIdentifier,
+            application_build_result: Optional[ApplicationBuildResult],
+            function: Function
+    ) -> Optional[FunctionSyncFlow]:
+        if not function.build_info.is_buildable():
+            LOG.warning("Can't build image type function with '%s' logical id", str(resource_identifier))
+            return None
+
+        return ImageFunctionSyncFlow(
+            str(resource_identifier),
+            self._build_context,
+            self._deploy_context,
+            self._sync_context,
+            self._physical_id_mapping,
+            self._stacks,
+            application_build_result,
+        )
 
     def _create_layer_flow(
         self,

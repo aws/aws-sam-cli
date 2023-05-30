@@ -7,6 +7,7 @@ import logging
 import os
 import posixpath
 from collections import namedtuple
+from enum import Enum, auto
 from typing import TYPE_CHECKING, Any, Dict, Iterator, List, NamedTuple, Optional, Set, Union, cast
 
 from samcli.commands.local.cli_common.user_exceptions import (
@@ -21,6 +22,7 @@ from samcli.lib.samlib.resource_metadata_normalizer import (
     ResourceMetadataNormalizer,
 )
 from samcli.lib.utils.architecture import X86_64
+from samcli.lib.utils.packagetype import IMAGE
 
 if TYPE_CHECKING:  # pragma: no cover
     # avoid circular import, https://docs.python.org/3/library/typing.html#typing.TYPE_CHECKING
@@ -33,6 +35,27 @@ CORS_METHODS_HEADER = "Access-Control-Allow-Methods"
 CORS_HEADERS_HEADER = "Access-Control-Allow-Headers"
 CORS_CREDENTIALS_HEADER = "Access-Control-Allow-Credentials"
 CORS_MAX_AGE_HEADER = "Access-Control-Max-Age"
+
+
+class FunctionBuildInfo(Enum):
+    """
+    Represents information about function's build, see values for details
+    """
+
+    # buildable
+    BuildableZip = auto(), 'Regular ZIP function which can be build with SAM CLI'
+    BuildableImage = auto(), 'Regular IMAGE function which can be build with SAM CLI'
+    # non-buildable
+    InlineCode = auto(), 'A ZIP function which has inline code, non buildable'
+    PreZipped = auto(), 'A ZIP function which points to a .zip file, non buildable'
+    SkipBuild = auto(), 'A Function which is denoted with SkipBuild in metadata, non buildable'
+    NonBuildableImage = auto(), 'An IMAGE function which is missing some information to build, non buildable'
+
+    def is_buildable(self) -> bool:
+        """
+        Returns whether this build info can be buildable nor not
+        """
+        return self.value in {FunctionBuildInfo.BuildableZip, FunctionBuildInfo.BuildableImage}
 
 
 class Function(NamedTuple):
@@ -137,6 +160,36 @@ class Function(NamedTuple):
                 f"Function {self.name} property Architectures should be a list of length 1"
             )
         return str(arch_list[0])
+
+    @property
+    def build_info(self) -> FunctionBuildInfo:
+        if self.inlinecode:
+            LOG.debug("Skip building inline function: %s", self.full_path)
+            return FunctionBuildInfo.InlineCode
+
+        if isinstance(self.codeuri, str) and self.codeuri.endswith(".zip"):
+            LOG.debug("Skip building zip function: %s", self.full_path)
+            return FunctionBuildInfo.PreZipped
+
+        if self.skip_build:
+            LOG.debug("Skip building pre-built function: %s", self.full_path)
+            return FunctionBuildInfo.SkipBuild
+
+        if self.packagetype == IMAGE:
+            metadata = self.metadata or {}
+            dockerfile = cast(str, metadata.get("Dockerfile", ""))
+            docker_context = cast(str, metadata.get("DockerContext", ""))
+
+            if not dockerfile or not docker_context:
+                LOG.debug(
+                    "Skip Building %s function, as it is missing either Dockerfile or DockerContext "
+                    "metadata properties.",
+                    self.full_path,
+                )
+                return FunctionBuildInfo.NonBuildableImage
+            return FunctionBuildInfo.BuildableImage
+
+        return FunctionBuildInfo.BuildableZip
 
 
 class ResourcesToBuildCollector:
