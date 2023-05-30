@@ -129,6 +129,8 @@ class SamConfig:
             env_content.update({cmd_name_key: {section: {key: value}}})
         else:
             self.data.update({env: {cmd_name_key: {section: {key: value}}}})
+            if self.file_document:
+                self.file_document.update({env: {cmd_name_key: {section: {key: value}}}})
         # If the value we want to add to samconfig already exist in global section, we don't put it again in
         # the special command section
         self._deduplicate_global_parameters(cmd_name_key, section, key, env)
