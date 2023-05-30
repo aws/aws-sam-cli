@@ -169,16 +169,15 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
         return None
 
     def _create_zip_type_lambda_flow(
-            self,
-            resource_identifier: ResourceIdentifier,
-            application_build_result: Optional[ApplicationBuildResult],
-            function: Function,
+        self,
+        resource_identifier: ResourceIdentifier,
+        application_build_result: Optional[ApplicationBuildResult],
+        function: Function,
     ) -> Optional[FunctionSyncFlow]:
         if not function.build_info.is_buildable():
             if function.build_info == FunctionBuildInfo.InlineCode:
                 LOG.debug(
-                    "No need to create sync flow for a function with InlineCode '%s' resource",
-                    str(resource_identifier)
+                    "No need to create sync flow for a function with InlineCode '%s' resource", str(resource_identifier)
                 )
                 return None
             if function.build_info == FunctionBuildInfo.PreZipped:
@@ -230,10 +229,10 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
         )
 
     def _create_image_type_lambda_flow(
-            self,
-            resource_identifier: ResourceIdentifier,
-            application_build_result: Optional[ApplicationBuildResult],
-            function: Function
+        self,
+        resource_identifier: ResourceIdentifier,
+        application_build_result: Optional[ApplicationBuildResult],
+        function: Function,
     ) -> Optional[FunctionSyncFlow]:
         if not function.build_info.is_buildable():
             LOG.warning("Can't build image type function with '%s' logical id", str(resource_identifier))

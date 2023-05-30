@@ -252,4 +252,3 @@ class ZipFunctionSyncFlowSkipBuildDirectory(ZipFunctionSyncFlow):
         self._zip_file = make_zip_with_lambda_permissions(zip_file_path, self._function.codeuri)
         LOG.debug("%sCreated artifact ZIP file: %s", self.log_prefix, self._zip_file)
         self._local_sha = file_checksum(cast(str, self._zip_file), hashlib.sha256())
-

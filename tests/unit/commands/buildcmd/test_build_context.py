@@ -7,6 +7,7 @@ from parameterized import parameterized
 from samcli.commands.build.utils import MountMode
 from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
 from samcli.lib.build.bundler import EsbuildBundlerManager
+from samcli.lib.providers.provider import Function
 from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.local.lambdafn.exceptions import ResourceNotFound
@@ -36,29 +37,45 @@ class DummyLayer:
         self.skip_build = skip_build
 
 
-class DummyFunction:
-    def __init__(
-        self,
-        name,
-        layers=[],
-        inlinecode=None,
-        codeuri="src",
-        imageuri="image:latest",
-        packagetype=ZIP,
-        metadata=None,
-        skip_build=False,
-        runtime=None,
-    ):
-        self.name = name
-        self.layers = layers
-        self.inlinecode = inlinecode
-        self.codeuri = codeuri
-        self.imageuri = imageuri
-        self.full_path = Mock()
-        self.packagetype = packagetype
-        self.metadata = metadata if metadata else {}
-        self.skip_build = skip_build
-        self.runtime = runtime
+def get_function(
+    name,
+    layers=None,
+    inlinecode=None,
+    codeuri="src",
+    imageuri="image:latest",
+    packagetype=ZIP,
+    metadata=None,
+    skip_build=False,
+    runtime=None,
+) -> Function:
+    layers = layers or []
+    metadata = metadata or {}
+    if skip_build:
+        metadata["SkipBuild"] = "True"
+    return Function(
+        function_id=name,
+        functionname=name,
+        name=name,
+        runtime=runtime,
+        memory=None,
+        timeout=None,
+        handler=None,
+        imageuri=imageuri,
+        packagetype=packagetype,
+        imageconfig=None,
+        codeuri=codeuri,
+        environment=None,
+        rolearn=None,
+        layers=layers,
+        events=None,
+        metadata=metadata,
+        inlinecode=inlinecode,
+        codesign_config_arn=None,
+        architectures=None,
+        function_url_config=None,
+        stack_path="",
+        runtime_management_config=None,
+    )
 
 
 class DummyStack:
@@ -93,7 +110,7 @@ class TestBuildContext__enter__(TestCase):
         layer_provider_mock.get.return_value = layer1
         layerprovider = SamLayerProviderMock.return_value = layer_provider_mock
 
-        function1 = DummyFunction("func1")
+        function1 = get_function("func1")
         func_provider_mock = Mock()
         func_provider_mock.get.return_value = function1
         funcprovider = SamFunctionProviderMock.return_value = func_provider_mock
@@ -171,7 +188,7 @@ class TestBuildContext__enter__(TestCase):
         get_buildable_stacks_mock.return_value = ([stack], [])
         func_provider_mock = Mock()
         func_provider_mock.get.return_value = None
-        func_provider_mock.get_all.return_value = [DummyFunction("func1"), DummyFunction("func2")]
+        func_provider_mock.get_all.return_value = [get_function("func1"), get_function("func2")]
         funcprovider = SamFunctionProviderMock.return_value = func_provider_mock
 
         layer_provider_mock = Mock()
@@ -288,7 +305,7 @@ class TestBuildContext__enter__(TestCase):
         layer_provider_mock.get.return_value = layer1
         layerprovider = SamLayerProviderMock.return_value = layer_provider_mock
 
-        func1 = DummyFunction("func1", [layer1, layer2])
+        func1 = get_function("func1", [layer1, layer2])
         func_provider_mock = Mock()
         func_provider_mock.get.return_value = func1
         funcprovider = SamFunctionProviderMock.return_value = func_provider_mock
@@ -405,15 +422,15 @@ class TestBuildContext__enter__(TestCase):
         stack = Mock()
         stack.template_dict = template_dict
         get_buildable_stacks_mock.return_value = ([stack], [])
-        func1 = DummyFunction("func1")
-        func2 = DummyFunction("func2")
-        func3_skipped = DummyFunction("func3", inlinecode="def handler(): pass", codeuri=None)
-        func4_skipped = DummyFunction("func4", codeuri="packaged_function.zip")
-        func5_skipped = DummyFunction("func5", codeuri=None, packagetype=IMAGE)
-        func6 = DummyFunction(
+        func1 = get_function("func1")
+        func2 = get_function("func2")
+        func3_skipped = get_function("func3", inlinecode="def handler(): pass", codeuri=None)
+        func4_skipped = get_function("func4", codeuri="packaged_function.zip")
+        func5_skipped = get_function("func5", codeuri=None, packagetype=IMAGE)
+        func6 = get_function(
             "func6", packagetype=IMAGE, metadata={"DockerContext": "/path", "Dockerfile": "DockerFile"}
         )
-        func7_skipped = DummyFunction("func7", skip_build=True)
+        func7_skipped = get_function("func7", skip_build=True)
 
         func_provider_mock = Mock()
         func_provider_mock.get_all.return_value = [
@@ -521,7 +538,7 @@ class TestBuildContext__enter__(TestCase):
         stack.template_dict = template_dict
         get_buildable_stacks_mock.return_value = ([stack], [])
 
-        funcs = [DummyFunction(f) for f in resources_to_build]
+        funcs = [get_function(f) for f in resources_to_build]
         resource_to_exclude = None
         for f in funcs:
             if f.name == resource_identifier:
@@ -682,7 +699,7 @@ class TestBuildContext__enter__(TestCase):
         layer_provider_mock = Mock()
         layer_provider_mock.get.return_value = layer1
         layerprovider = SamLayerProviderMock.return_value = layer_provider_mock
-        func1 = DummyFunction("func1", [layer1])
+        func1 = get_function("func1", [layer1])
         func_provider_mock = Mock()
         func_provider_mock.get.return_value = func1
         funcprovider = SamFunctionProviderMock.return_value = func_provider_mock
@@ -943,7 +960,7 @@ class TestBuildContext_run(TestCase):
         layer_provider_mock = Mock()
         layer_provider_mock.get.return_value = layer1
         layerprovider = SamLayerProviderMock.return_value = layer_provider_mock
-        func1 = DummyFunction("func1", [layer1])
+        func1 = get_function("func1", [layer1])
         func_provider_mock = Mock()
         func_provider_mock.get.return_value = func1
         funcprovider = SamFunctionProviderMock.return_value = func_provider_mock
@@ -1115,7 +1132,7 @@ class TestBuildContext_run(TestCase):
         layer_provider_mock = Mock()
         layer_provider_mock.get.return_value = layer1
         layerprovider = SamLayerProviderMock.return_value = layer_provider_mock
-        func1 = DummyFunction("func1", [layer1])
+        func1 = get_function("func1", [layer1])
         func_provider_mock = Mock()
         func_provider_mock.get.return_value = func1
         funcprovider = SamFunctionProviderMock.return_value = func_provider_mock
@@ -1193,7 +1210,7 @@ class TestBuildContext_run(TestCase):
         layer_provider_mock = Mock()
         layer_provider_mock.get.return_value = layer1
         layerprovider = SamLayerProviderMock.return_value = layer_provider_mock
-        func1 = DummyFunction("func1", [layer1])
+        func1 = get_function("func1", [layer1])
         func_provider_mock = Mock()
         func_provider_mock.get.return_value = func1
         funcprovider = SamFunctionProviderMock.return_value = func_provider_mock

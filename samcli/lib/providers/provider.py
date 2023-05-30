@@ -43,19 +43,19 @@ class FunctionBuildInfo(Enum):
     """
 
     # buildable
-    BuildableZip = auto(), 'Regular ZIP function which can be build with SAM CLI'
-    BuildableImage = auto(), 'Regular IMAGE function which can be build with SAM CLI'
+    BuildableZip = auto(), "Regular ZIP function which can be build with SAM CLI"
+    BuildableImage = auto(), "Regular IMAGE function which can be build with SAM CLI"
     # non-buildable
-    InlineCode = auto(), 'A ZIP function which has inline code, non buildable'
-    PreZipped = auto(), 'A ZIP function which points to a .zip file, non buildable'
-    SkipBuild = auto(), 'A Function which is denoted with SkipBuild in metadata, non buildable'
-    NonBuildableImage = auto(), 'An IMAGE function which is missing some information to build, non buildable'
+    InlineCode = auto(), "A ZIP function which has inline code, non buildable"
+    PreZipped = auto(), "A ZIP function which points to a .zip file, non buildable"
+    SkipBuild = auto(), "A Function which is denoted with SkipBuild in metadata, non buildable"
+    NonBuildableImage = auto(), "An IMAGE function which is missing some information to build, non buildable"
 
     def is_buildable(self) -> bool:
         """
         Returns whether this build info can be buildable nor not
         """
-        return self.value in {FunctionBuildInfo.BuildableZip, FunctionBuildInfo.BuildableImage}
+        return self in {FunctionBuildInfo.BuildableZip, FunctionBuildInfo.BuildableImage}
 
 
 class Function(NamedTuple):

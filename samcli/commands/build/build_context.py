@@ -579,11 +579,7 @@ Commands you can use next
         result = ResourcesToBuildCollector()
         excludes: Tuple[str, ...] = self._exclude if self._exclude is not None else ()
         result.add_functions(
-            [
-                f
-                for f in self.function_provider.get_all()
-                if (f.name not in excludes) and BuildContext._is_function_buildable(f)
-            ]
+            [f for f in self.function_provider.get_all() if (f.name not in excludes) and f.build_info.is_buildable()]
         )
         result.add_layers(
             [
@@ -645,10 +641,6 @@ Commands you can use next
             raise MissingBuildMethodException(f"Build method missing in layer {resource_identifier}.")
 
         resource_collector.add_layer(layer)
-
-    @staticmethod
-    def _is_function_buildable(function: Function):
-        return function.build_info.is_buildable()
 
     @staticmethod
     def is_layer_buildable(layer: LayerVersion):
