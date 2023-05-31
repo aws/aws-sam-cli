@@ -11,8 +11,10 @@ import click
 
 from samcli.commands._utils.constants import DEFAULT_BUILD_DIR
 from samcli.commands._utils.experimental import ExperimentalFlag, prompt_experimental
-from samcli.commands._utils.template import get_template_data
-from samcli.commands._utils.template import move_template
+from samcli.commands._utils.template import (
+    get_template_data,
+    move_template,
+)
 from samcli.commands.build.exceptions import InvalidBuildDirException, MissingBuildMethodException
 from samcli.commands.build.utils import prompt_user_to_enable_mount_with_write_if_needed, MountMode
 from samcli.commands.exceptions import UserException
@@ -25,8 +27,10 @@ from samcli.lib.build.app_builder import (
 )
 from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
 from samcli.lib.build.bundler import EsbuildBundlerManager
-from samcli.lib.build.exceptions import BuildInsideContainerError
-from samcli.lib.build.exceptions import InvalidBuildGraphException
+from samcli.lib.build.exceptions import (
+    BuildInsideContainerError,
+    InvalidBuildGraphException,
+)
 from samcli.lib.build.workflow_config import UnsupportedRuntimeException
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.providers.provider import ResourcesToBuildCollector, Stack, Function, LayerVersion
@@ -37,8 +41,10 @@ from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.telemetry.event import EventTracker
 from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
 from samcli.local.docker.manager import ContainerManager
-from samcli.local.lambdafn.exceptions import FunctionNotFound
-from samcli.local.lambdafn.exceptions import ResourceNotFound
+from samcli.local.lambdafn.exceptions import (
+    FunctionNotFound,
+    ResourceNotFound,
+)
 
 LOG = logging.getLogger(__name__)
 
