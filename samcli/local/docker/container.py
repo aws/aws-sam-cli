@@ -9,6 +9,7 @@ import socket
 import tempfile
 import threading
 import time
+import json
 from typing import Optional
 
 import docker
@@ -324,7 +325,7 @@ class Container:
             data=event.encode("utf-8"),
             timeout=(self.RAPID_CONNECTION_TIMEOUT, None),
         )
-        stdout.write(resp.content)
+        stdout.write(json.dumps(json.loads(resp.content), ensure_ascii=False))
 
     def wait_for_result(self, full_path, event, stdout, stderr, start_timer=None):
         # NOTE(sriram-mv): Let logging happen in its own thread, so that a http request can be sent.
