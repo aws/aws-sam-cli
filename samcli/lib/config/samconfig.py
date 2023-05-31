@@ -142,7 +142,7 @@ class SamConfig:
             A comment to write to the samconfg file
         """
 
-        self.document.update({"__comment__": comment})
+        self.document = self.file_manager.put_comment(self.document, comment)
 
     def flush(self):
         """

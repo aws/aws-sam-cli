@@ -69,6 +69,26 @@ class FileManager(ABC):
         """
         raise NotImplementedError("Write document method not implemented.")
 
+    @staticmethod
+    @abstractmethod
+    def put_comment(document: Any, comment: str) -> Any:
+        """
+        Put a comment in a document object.
+
+        Parameters
+        ----------
+        document: Any
+            The object to write
+        comment: str
+            The comment to include in the document.
+
+        Returns
+        -------
+        Any
+            The new document, with the comment added to it.
+        """
+        raise NotImplementedError("Put comment method not implemented.")
+
 
 class TomlFileManager(FileManager):
     """
@@ -145,3 +165,23 @@ class TomlFileManager(FileManager):
             return
 
         filepath.write_text(tomlkit.dumps(document))
+
+    @staticmethod
+    def put_comment(document: Any, comment: str) -> Any:
+        """
+        Put a comment in a document object.
+
+        Parameters
+        ----------
+        document: Any
+            The tomlkit.TOMLDocument object to write
+        comment: str
+            The comment to include in the document.
+
+        Returns
+        -------
+        Any
+            The new TOMLDocument, with the comment added to it.
+        """
+        document.add(tomlkit.comment(comment))
+        return document
