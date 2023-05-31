@@ -136,7 +136,7 @@ class TestGuidedContext(TestCase):
             call(f"\t{self.gc.start_bold}Allow SAM CLI IAM role creation{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Disable rollback{self.gc.end_bold}", default=False),
             call(
-                f"\t{self.gc.start_bold}HelloWorldFunction may not have authorization defined, Is this okay?{self.gc.end_bold}",
+                f"\t{self.gc.start_bold}HelloWorldFunction has no authentication. Is this okay?{self.gc.end_bold}",
                 default=False,
             ),
             call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
@@ -203,7 +203,7 @@ class TestGuidedContext(TestCase):
             call(f"\t{self.gc.start_bold}Allow SAM CLI IAM role creation{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Disable rollback{self.gc.end_bold}", default=False),
             call(
-                f"\t{self.gc.start_bold}HelloWorldFunction may not have authorization defined, Is this okay?{self.gc.end_bold}",
+                f"\t{self.gc.start_bold}HelloWorldFunction has no authentication. Is this okay?{self.gc.end_bold}",
                 default=False,
             ),
             call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
@@ -282,7 +282,7 @@ class TestGuidedContext(TestCase):
             call(f"\t{self.gc.start_bold}Allow SAM CLI IAM role creation{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Disable rollback{self.gc.end_bold}", default=False),
             call(
-                f"\t{self.gc.start_bold}HelloWorldFunction may not have authorization defined, Is this okay?{self.gc.end_bold}",
+                f"\t{self.gc.start_bold}HelloWorldFunction has no authentication. Is this okay?{self.gc.end_bold}",
                 default=False,
             ),
             call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
@@ -406,7 +406,7 @@ class TestGuidedContext(TestCase):
             call(f"\t{self.gc.start_bold}Allow SAM CLI IAM role creation{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Disable rollback{self.gc.end_bold}", default=False),
             call(
-                f"\t{self.gc.start_bold}HelloWorldFunction may not have authorization defined, Is this okay?{self.gc.end_bold}",
+                f"\t{self.gc.start_bold}HelloWorldFunction has no authentication. Is this okay?{self.gc.end_bold}",
                 default=False,
             ),
             call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
@@ -485,7 +485,7 @@ class TestGuidedContext(TestCase):
             call(f"\t{self.gc.start_bold}Allow SAM CLI IAM role creation{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Disable rollback{self.gc.end_bold}", default=False),
             call(
-                f"\t{self.gc.start_bold}HelloWorldFunction may not have authorization defined, Is this okay?{self.gc.end_bold}",
+                f"\t{self.gc.start_bold}HelloWorldFunction has no authentication. Is this okay?{self.gc.end_bold}",
                 default=False,
             ),
             call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
@@ -702,7 +702,7 @@ class TestGuidedContext(TestCase):
             call(f"\t{self.gc.start_bold}Allow SAM CLI IAM role creation{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Disable rollback{self.gc.end_bold}", default=False),
             call(
-                f"\t{self.gc.start_bold}HelloWorldFunction may not have authorization defined, Is this okay?{self.gc.end_bold}",
+                f"\t{self.gc.start_bold}HelloWorldFunction has no authentication. Is this okay?{self.gc.end_bold}",
                 default=False,
             ),
             call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
@@ -766,7 +766,7 @@ class TestGuidedContext(TestCase):
             call(f"\t{self.gc.start_bold}Allow SAM CLI IAM role creation{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Disable rollback{self.gc.end_bold}", default=False),
             call(
-                f"\t{self.gc.start_bold}HelloWorldFunction may not have authorization defined, Is this okay?{self.gc.end_bold}",
+                f"\t{self.gc.start_bold}HelloWorldFunction has no authentication. Is this okay?{self.gc.end_bold}",
                 default=False,
             ),
             call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
@@ -825,7 +825,7 @@ class TestGuidedContext(TestCase):
             call(f"\t{self.gc.start_bold}Allow SAM CLI IAM role creation{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Disable rollback{self.gc.end_bold}", default=False),
             call(
-                f"\t{self.gc.start_bold}HelloWorldFunction may not have authorization defined, Is this okay?{self.gc.end_bold}",
+                f"\t{self.gc.start_bold}HelloWorldFunction has no authentication. Is this okay?{self.gc.end_bold}",
                 default=False,
             ),
             call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
@@ -970,7 +970,7 @@ class TestGuidedContext(TestCase):
             call(f"\t{self.gc.start_bold}Allow SAM CLI IAM role creation{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Disable rollback{self.gc.end_bold}", default=False),
             call(
-                f"\t{self.gc.start_bold}HelloWorldFunction may not have authorization defined, Is this okay?{self.gc.end_bold}",
+                f"\t{self.gc.start_bold}HelloWorldFunction has no authentication. Is this okay?{self.gc.end_bold}",
                 default=False,
             ),
             call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
