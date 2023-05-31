@@ -219,6 +219,20 @@ class GatewayAuthorizerToRestApiLocalVariablesLinkingLimitationException(LocalVa
     """
 
 
+class OneGatewayMethodToGatewayAuthorizerLinkingLimitationException(OneResourceLinkingLimitationException):
+    """
+    Exception specific for Gateway Method linking to more than one Gateway Authorizer
+    """
+
+
+class GatewayMethodToGatewayAuthorizerLocalVariablesLinkingLimitationException(
+    LocalVariablesLinkingLimitationException
+):
+    """
+    Exception specific for Gateway Method linking to Gateway Authorizer using locals.
+    """
+
+
 class InvalidSamMetadataPropertiesException(UserException):
     pass
 

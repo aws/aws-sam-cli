@@ -19,6 +19,7 @@ from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     _link_gateway_integrations_to_function_resource,
     _link_gateway_integrations_to_gateway_resource,
     _link_gateway_integrations_to_gateway_rest_apis,
+    _link_gateway_method_to_gateway_authorizer,
     _link_gateway_method_to_gateway_resource,
     _link_gateway_methods_to_gateway_rest_apis,
     _link_gateway_resources_to_gateway_rest_apis,
@@ -83,5 +84,10 @@ RESOURCE_LINKS: List[LinkingPairCaller] = [
         source=TF_AWS_API_GATEWAY_AUTHORIZER,
         dest=TF_AWS_API_GATEWAY_REST_API,
         linking_func=_link_gateway_authorizer_to_rest_api,
+    ),
+    LinkingPairCaller(
+        source=TF_AWS_API_GATEWAY_METHOD,
+        dest=TF_AWS_API_GATEWAY_AUTHORIZER,
+        linking_func=_link_gateway_method_to_gateway_authorizer,
     ),
 ]
