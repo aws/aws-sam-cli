@@ -1116,8 +1116,12 @@ class TestUnresolvableAttributeCheck:
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.RESOURCE_TRANSLATOR_MAPPING")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.LOG")
     def test_module_contains_unresolvables(self, log_mock, mapping_mock):
-        config_addr = "addr"
-        module = {"resources": [{"address": config_addr, "values": Mock()}]}
+        config_addr = "function.func1"
+        module = {
+            "resources": [
+                {"address": config_addr, "values": Mock(), "type": "function", "mode": "resource", "name": "func1"}
+            ]
+        }
 
         tf_module = Mock()
         tf_module_attr = Mock()
