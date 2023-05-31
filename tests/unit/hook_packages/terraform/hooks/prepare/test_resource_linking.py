@@ -1129,6 +1129,21 @@ class TestResourceLinker(TestCase):
             linking_exceptions=self.linker_exceptions,
         )
 
+    def test_applied_empty_destination_skip_call_back(self):
+        resource_linker = ResourceLinker(self.sample_resource_linking_pair)
+        resource_linker._link_using_linking_fields({"Properties": {"Layers": []}})
+
+        self.sample_resource_linking_pair.cfn_resource_update_call_back_function.assert_not_called()
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._resolve_resource_attribute")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.ResourceLinker._process_resolved_resources")
+    def test_config_empty_destination_skip_call_back(self, proccess_resolved_res_mock, resolve_resource_attr_mock):
+        resource_linker = ResourceLinker(self.sample_resource_linking_pair)
+        proccess_resolved_res_mock.return_value = []
+        resource_linker._link_using_terraform_config(Mock(), Mock())
+
+        self.sample_resource_linking_pair.cfn_resource_update_call_back_function.assert_not_called()
+
     def test_handle_linking_mix_of_applied_and_non_applied_resources(self):
         cfn_resource_depend_on_applied_resources = {
             "Type": "AWS::Lambda::Function",
