@@ -7,6 +7,7 @@ from uuid import uuid4
 from parameterized import parameterized
 from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     GatewayAuthorizerToLambdaFunctionLocalVariablesLinkingLimitationException,
+    GatewayAuthorizerToRestApiLocalVariablesLinkingLimitationException,
     GatewayMethodToGatewayAuthorizerLocalVariablesLinkingLimitationException,
     InvalidResourceLinkingException,
     LocalVariablesLinkingLimitationException,
@@ -14,6 +15,7 @@ from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     LOCAL_VARIABLES_SUPPORT_ISSUE_LINK,
     APPLY_WORK_AROUND_MESSAGE,
     OneGatewayAuthorizerToLambdaFunctionLinkingLimitationException,
+    OneGatewayAuthorizerToRestApiLinkingLimitationException,
     OneGatewayMethodToGatewayAuthorizerLinkingLimitationException,
     OneLambdaLayerLinkingLimitationException,
     FunctionLayerLocalVariablesLinkingLimitationException,
@@ -42,6 +44,7 @@ from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     _clean_references_list,
     _link_gateway_authorizer_to_lambda_function,
     _link_gateway_authorizer_to_lambda_function_call_back,
+    _link_gateway_authorizer_to_rest_api,
     _link_gateway_method_to_gateway_authorizer,
     _link_gateway_method_to_gateway_authorizer_call_back,
     _resolve_module_output,
@@ -2294,6 +2297,44 @@ class TestResourceLinker(TestCase):
 
         original_method["Properties"]["AuthorizerId"] = expected_reference
         self.assertEqual(original_method, new_method)
+
+    @patch(
+        "samcli.hook_packages.terraform.hooks.prepare.resource_linking._link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back"
+    )
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.ResourceLinker")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.ResourceLinkingPair")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.ResourcePairExceptions")
+    def test_link_gateway_authorizer_to_rest_api(
+        self,
+        mock_resource_linking_exceptions,
+        mock_resource_linking_pair,
+        mock_resource_linker,
+        mock_link_resource_to_rest_api_call_back,
+    ):
+        authorizer_cfn_resources = Mock()
+        authorizer_config_resources = Mock()
+        rest_api_resources = Mock()
+
+        _link_gateway_authorizer_to_rest_api(authorizer_config_resources, authorizer_cfn_resources, rest_api_resources)
+
+        mock_resource_linking_exceptions.assert_called_once_with(
+            multiple_resource_linking_exception=OneGatewayAuthorizerToRestApiLinkingLimitationException,
+            local_variable_linking_exception=GatewayAuthorizerToRestApiLocalVariablesLinkingLimitationException,
+        )
+
+        mock_resource_linking_pair.assert_called_once_with(
+            source_resource_cfn_resource=authorizer_cfn_resources,
+            source_resource_tf_config=authorizer_config_resources,
+            destination_resource_tf=rest_api_resources,
+            tf_destination_attribute_name="id",
+            terraform_link_field_name="rest_api_id",
+            cfn_link_field_name="RestApiId",
+            terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+            cfn_resource_update_call_back_function=mock_link_resource_to_rest_api_call_back,
+            linking_exceptions=mock_resource_linking_exceptions(),
+        )
+
+        mock_resource_linker.assert_called_once_with(mock_resource_linking_pair())
 
     @patch(
         "samcli.hook_packages.terraform.hooks.prepare.resource_linking._link_gateway_method_to_gateway_authorizer_call_back"
