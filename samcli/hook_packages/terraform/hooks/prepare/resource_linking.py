@@ -10,6 +10,7 @@ from typing import Callable, Dict, List, Optional, Type, Union
 from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     FunctionLayerLocalVariablesLinkingLimitationException,
     GatewayAuthorizerToLambdaFunctionLocalVariablesLinkingLimitationException,
+    GatewayAuthorizerToRestApiLocalVariablesLinkingLimitationException,
     GatewayMethodToGatewayAuthorizerLocalVariablesLinkingLimitationException,
     GatewayResourceToApiGatewayIntegrationLocalVariablesLinkingLimitationException,
     GatewayResourceToApiGatewayIntegrationResponseLocalVariablesLinkingLimitationException,
@@ -19,6 +20,7 @@ from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     LambdaFunctionToApiGatewayIntegrationLocalVariablesLinkingLimitationException,
     LocalVariablesLinkingLimitationException,
     OneGatewayAuthorizerToLambdaFunctionLinkingLimitationException,
+    OneGatewayAuthorizerToRestApiLinkingLimitationException,
     OneGatewayMethodToGatewayAuthorizerLinkingLimitationException,
     OneGatewayResourceToApiGatewayIntegrationLinkingLimitationException,
     OneGatewayResourceToApiGatewayIntegrationResponseLinkingLimitationException,
@@ -1546,7 +1548,7 @@ def _link_gateway_authorizer_to_lambda_function_call_back(
 def _link_gateway_authorizer_to_lambda_function(
     authorizer_config_resources: Dict[str, TFResource],
     authorizer_cfn_resources: Dict[str, List],
-    authorizer_tf_resources: Dict[str, Dict],
+    lamda_function_resources: Dict[str, Dict],
 ) -> None:
     """
     Iterate through all the resources and link the corresponding Authorizer to each Lambda Function
@@ -1557,8 +1559,8 @@ def _link_gateway_authorizer_to_lambda_function(
         Dictionary of configuration Authorizer resources
     authorizer_cfn_resources: Dict[str, List]
         Dictionary containing resolved configuration address of CFN Authorizer resources
-    lambda_layers_terraform_resources: Dict[str, Dict]
-        Dictionary of all actual terraform layers resources (not configuration resources). The dictionary's key is the
+    lamda_function_resources: Dict[str, Dict]
+        Dictionary of Terraform Lambda Function resources (not configuration resources). The dictionary's key is the
         calculated logical id for each resource
     """
     exceptions = ResourcePairExceptions(
@@ -1568,12 +1570,48 @@ def _link_gateway_authorizer_to_lambda_function(
     resource_linking_pair = ResourceLinkingPair(
         source_resource_cfn_resource=authorizer_cfn_resources,
         source_resource_tf_config=authorizer_config_resources,
-        destination_resource_tf=authorizer_tf_resources,
+        destination_resource_tf=lamda_function_resources,
         tf_destination_attribute_name="invoke_arn",
         terraform_link_field_name="authorizer_uri",
         cfn_link_field_name="AuthorizerUri",
         terraform_resource_type_prefix=LAMBDA_FUNCTION_RESOURCE_ADDRESS_PREFIX,
         cfn_resource_update_call_back_function=_link_gateway_authorizer_to_lambda_function_call_back,
+        linking_exceptions=exceptions,
+    )
+    ResourceLinker(resource_linking_pair).link_resources()
+
+
+def _link_gateway_authorizer_to_rest_api(
+    authorizer_config_resources: Dict[str, TFResource],
+    authorizer_cfn_resources: Dict[str, List],
+    rest_api_resource: Dict[str, Dict],
+) -> None:
+    """
+    Iterate through all the resources and link the corresponding Authorizer to each Rest Api
+
+    Parameters
+    ----------
+    authorizer_config_resources: Dict[str, TFResource]
+        Dictionary of configuration Authorizer resources
+    authorizer_cfn_resources: Dict[str, List]
+        Dictionary containing resolved configuration address of CFN Authorizer resources
+    rest_api_resource: Dict[str, Dict]
+        Dictionary of Terraform Rest Api resources (not configuration resources). The dictionary's key is the
+        calculated logical id for each resource
+    """
+    exceptions = ResourcePairExceptions(
+        multiple_resource_linking_exception=OneGatewayAuthorizerToRestApiLinkingLimitationException,
+        local_variable_linking_exception=GatewayAuthorizerToRestApiLocalVariablesLinkingLimitationException,
+    )
+    resource_linking_pair = ResourceLinkingPair(
+        source_resource_cfn_resource=authorizer_cfn_resources,
+        source_resource_tf_config=authorizer_config_resources,
+        destination_resource_tf=rest_api_resource,
+        tf_destination_attribute_name="id",
+        terraform_link_field_name="rest_api_id",
+        cfn_link_field_name="RestApiId",
+        terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+        cfn_resource_update_call_back_function=_link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back,
         linking_exceptions=exceptions,
     )
     ResourceLinker(resource_linking_pair).link_resources()
