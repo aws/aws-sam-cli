@@ -1,6 +1,7 @@
 """
 Representation of a generic Docker container
 """
+import json
 import logging
 import os
 import pathlib
@@ -9,7 +10,6 @@ import socket
 import tempfile
 import threading
 import time
-import json
 from typing import Optional
 
 import docker
