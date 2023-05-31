@@ -707,6 +707,7 @@ class TestSyncLayerCode(TestSyncCodeBase):
 class TestFunctionWithPreZippedCodeUri(TestSyncCodeBase):
     template = "template-pre-zipped.yaml"
     folder = "code"
+    dependency_layer = False
 
     def test_pre_zipped_function(self):
         # CFN Api call here to collect all the stack resources
@@ -751,6 +752,7 @@ class TestFunctionWithPreZippedCodeUri(TestSyncCodeBase):
 class TestFunctionWithSkipBuild(TestSyncCodeBase):
     template = "template-skip-build.yaml"
     folder = "code"
+    dependency_layer = False
 
     def test_skip_build(self):
         # CFN Api call here to collect all the stack resources
