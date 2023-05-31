@@ -231,7 +231,7 @@ class ResourceLinker:
             )
         if not dest_resources:
             LOG.debug(
-                "There are no destination resources defined for for the source resource %s, skipping linking.",
+                "There are no destination resources defined for the source resource %s, skipping linking.",
                 source_tf_resource.full_address,
             )
 
