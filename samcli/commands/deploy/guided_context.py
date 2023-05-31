@@ -224,7 +224,7 @@ class GuidedContext:
         for resource, authorization_required in auth_required_per_resource:
             if not authorization_required:
                 auth_confirm = confirm(
-                    f"\t{self.start_bold}{resource} may not have authorization defined, Is this okay?{self.end_bold}",
+                    f"\t{self.start_bold}{resource} has no authentication. Is this okay?{self.end_bold}",
                     default=False,
                 )
                 if not auth_confirm:
