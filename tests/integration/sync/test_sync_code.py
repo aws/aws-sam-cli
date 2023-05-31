@@ -722,9 +722,9 @@ class TestFunctionWithPreZippedCodeUri(TestSyncCodeBase):
                 self.assertEqual(lambda_response.get("message"), "hello world")
 
         # update function code with new values
-        shutil.copytree(
-            self.test_data_path.joinpath(self.folder, "after", "pre_zipped_function"),
-            self.test_data_path.joinpath(self.folder, "before", "pre_zipped_function"),
+        self.update_file(
+            self.test_data_path.joinpath(self.folder, "after", "pre_zipped_function", "app.zip"),
+            self.test_data_path.joinpath(self.folder, "before", "pre_zipped_function", "app.zip"),
         )
 
         # Run code sync
@@ -767,7 +767,7 @@ class TestFunctionWithSkipBuild(TestSyncCodeBase):
                 self.assertEqual(lambda_response.get("message"), "hello world")
 
         # update function code with new values
-        shutil.copytree(
+        self.update_file(
             self.test_data_path.joinpath(self.folder, "after", "python_function_no_deps", "app_without_numpy.py"),
             self.test_data_path.joinpath(self.folder, "before", "python_function_no_deps", "app.py"),
         )
