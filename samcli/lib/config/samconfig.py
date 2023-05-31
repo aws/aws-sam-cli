@@ -40,8 +40,7 @@ class SamConfig:
             Optional. Name of the configuration file. It is recommended to stick with default so in the future we
             could automatically support auto-resolving multiple config files within same directory.
         """
-        self.data = {}
-        self.file_document = None
+        self.document = {}
         self.filepath = Path(config_dir, filename or DEFAULT_CONFIG_FILE_NAME)
         self.file_manager = self.FILE_MANAGER_MAPPER.get(self.filepath.suffix[1:], None)
         if not self.file_manager:
@@ -55,8 +54,8 @@ class SamConfig:
         self._read()
 
     def get_stage_configuration_names(self):
-        if self.data:
-            return [stage for stage, value in self.data.items() if isinstance(value, dict)]
+        if self.document:
+            return [stage for stage, value in self.document.items() if isinstance(value, dict)]
         return []
 
     def get_all(self, cmd_names, section, env=DEFAULT_ENV):
@@ -85,9 +84,9 @@ class SamConfig:
 
         env = env or DEFAULT_ENV
 
-        self.data = self._read()
+        self.document = self._read()
 
-        config_content = self.data.get(env, {})
+        config_content = self.document.get(env, {})
         params = config_content.get(self._to_key(cmd_names), {}).get(section, {})
         if DEFAULT_GLOBAL_CMDNAME in config_content:
             global_params = config_content.get(DEFAULT_GLOBAL_CMDNAME, {}).get(section, {})
@@ -118,7 +117,7 @@ class SamConfig:
         # self.document is a nested dict, we need to check each layer and add new tables, otherwise duplicated key
         # in parent layer will override the whole child layer
         cmd_name_key = self._to_key(cmd_names)
-        env_content = self.data.get(env, {})
+        env_content = self.document.get(env, {})
         cmd_content = env_content.get(cmd_name_key, {})
         param_content = cmd_content.get(section, {})
         if param_content:
@@ -128,9 +127,7 @@ class SamConfig:
         elif env_content:
             env_content.update({cmd_name_key: {section: {key: value}}})
         else:
-            self.data.update({env: {cmd_name_key: {section: {key: value}}}})
-            if self.file_document:
-                self.file_document.update({env: {cmd_name_key: {section: {key: value}}}})
+            self.document.update({env: {cmd_name_key: {section: {key: value}}}})
         # If the value we want to add to samconfig already exist in global section, we don't put it again in
         # the special command section
         self._deduplicate_global_parameters(cmd_name_key, section, key, env)
@@ -145,7 +142,7 @@ class SamConfig:
             A comment to write to the samconfg file
         """
 
-        self.data.update({"__comment__": comment})
+        self.document.update({"__comment__": comment})
 
     def flush(self):
         """
@@ -186,32 +183,28 @@ class SamConfig:
         return os.getcwd()
 
     def _read(self):
-        if not self.data:
+        if not self.document:
             try:
-                self.data, self.file_document = self.file_manager.read(self.filepath)
+                self.document = self.file_manager.read(self.filepath)
             except FileParseException as e:
                 raise SamConfigFileReadException(e) from e
-        if self.data:
+        if self.document:
             self._version_sanity_check(self._version())
-        return self.data
+        return self.document
 
     def _write(self):
-        if not self.data:
+        if not self.document:
             return
 
         self._ensure_exists()
 
         current_version = self._version() if self._version() else SAM_CONFIG_VERSION
-        self.data.update({VERSION_KEY: current_version})
+        self.document.update({VERSION_KEY: current_version})
 
-        if self.file_document:
-            self.file_document.update({VERSION_KEY: current_version})
-            self.file_manager.write_document(self.file_document, self.filepath)
-        else:
-            self.file_manager.write(self.data, self.filepath)
+        self.file_manager.write_document(self.document, self.filepath)
 
     def _version(self):
-        return self.data.get(VERSION_KEY, None)
+        return self.document.get(VERSION_KEY, None)
 
     def _deduplicate_global_parameters(self, cmd_name_key, section, key, env=DEFAULT_ENV):
         """
@@ -232,8 +225,8 @@ class SamConfig:
         env : str
             Optional, Name of the environment
         """
-        global_params = self.data.get(env, {}).get(DEFAULT_GLOBAL_CMDNAME, {}).get(section, {})
-        command_params = self.data.get(env, {}).get(cmd_name_key, {}).get(section, {})
+        global_params = self.document.get(env, {}).get(DEFAULT_GLOBAL_CMDNAME, {}).get(section, {})
+        command_params = self.document.get(env, {}).get(cmd_name_key, {}).get(section, {})
         if (
             cmd_name_key != DEFAULT_GLOBAL_CMDNAME
             and global_params
@@ -249,7 +242,7 @@ class SamConfig:
             )
             LOG.info(save_global_message)
             # Only keep the global parameter
-            del self.data[env][cmd_name_key][section][key]
+            del self.document[env][cmd_name_key][section][key]
 
     @staticmethod
     def _version_sanity_check(version: Any) -> None:

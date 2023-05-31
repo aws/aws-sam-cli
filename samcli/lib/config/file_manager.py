@@ -6,7 +6,7 @@ Class to represent the parsing of different file types into Python objects.
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Optional, Tuple
+from typing import Any
 
 import tomlkit
 
@@ -22,7 +22,7 @@ class FileManager(ABC):
 
     @staticmethod
     @abstractmethod
-    def read(filepath: Path) -> Tuple[dict, Optional[Any]]:
+    def read(filepath: Path) -> Any:
         """
         Read a file at a given path.
 
@@ -33,8 +33,8 @@ class FileManager(ABC):
 
         Returns
         -------
-        Tuple[dict, Optional[Any]]
-            The dictionary representation of the contents at the filepath location, along with a specialized
+        Any
+            A dictionary-like representation of the contents at the filepath location, along with a specialized
             representation of the file that was read, if there is a specialization of it.
         """
         raise NotImplementedError("Read method not implemented.")
@@ -76,7 +76,7 @@ class TomlFileManager(FileManager):
     """
 
     @staticmethod
-    def read(filepath: Path) -> Tuple[dict, Optional[Any]]:
+    def read(filepath: Path) -> Any:
         """
         Read a TOML file at the given path.
 
@@ -87,23 +87,20 @@ class TomlFileManager(FileManager):
 
         Returns
         -------
-        Tuple[dict, Optional[Any]]
-            A Python dictionary representation of the contents of the TOML file at the provided location, as well as a
-            tomlkit document object of the TOML contents.
+        Any
+            A dictionary-like tomlkit.TOMLDocument object, which represents the contents of the TOML file at the
+            provided location.
         """
-        document: dict = {}
-        toml_doc = None
+        toml_doc = tomlkit.document()
         try:
             txt = filepath.read_text()
             toml_doc = tomlkit.loads(txt)
-            document = dict(toml_doc)
         except OSError as e:
             LOG.debug(f"OSError occurred while reading TOML file: {str(e)}")
-            document = {}
         except tomlkit.exceptions.TOMLKitError as e:
             raise FileParseException(e) from e
 
-        return document, toml_doc
+        return toml_doc
 
     @staticmethod
     def write(document: dict, filepath: Path):

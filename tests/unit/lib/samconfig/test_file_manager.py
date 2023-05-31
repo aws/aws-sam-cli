@@ -13,9 +13,9 @@ class TestTomlFileManager(TestCase):
         config_dir = tempfile.gettempdir()
         config_path = Path(config_dir, "samconfig.toml")
         config_path.write_text("version=0.1\n[config_env.topic1.parameters]\nword='clarity'\n")
-        config_dict, _ = TomlFileManager.read(config_path)
+        config_doc = TomlFileManager.read(config_path)
         self.assertEqual(
-            config_dict,
+            config_doc,
             {"version": 0.1, "config_env": {"topic1": {"parameters": {"word": "clarity"}}}},
         )
 
@@ -29,8 +29,8 @@ class TestTomlFileManager(TestCase):
     def test_read_toml_file_path_not_valid(self):
         config_dir = "path/that/doesnt/exist"
         config_path = Path(config_dir, "samconfig.toml")
-        config_dict, _ = TomlFileManager.read(config_path)
-        self.assertEqual(config_dict, {})
+        config_doc = TomlFileManager.read(config_path)
+        self.assertEqual(config_doc, tomlkit.document())
 
     def test_write_toml(self):
         config_dir = tempfile.gettempdir()
