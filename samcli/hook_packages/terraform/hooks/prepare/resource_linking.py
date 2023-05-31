@@ -234,9 +234,12 @@ class ResourceLinker:
             )
         if not dest_resources:
             LOG.debug(
-                "There are destination resources defined for for the source resource %s",
+                "There are no destination resources defined for the source resource %s, skipping linking.",
                 source_tf_resource.full_address,
             )
+
+            return
+
         for cfn_resource in cfn_resources:
             self._resource_pair.cfn_resource_update_call_back_function(cfn_resource, dest_resources)  # type: ignore
 
@@ -287,7 +290,12 @@ class ResourceLinker:
             else ExistingResourceReference(value)
             for value in values
         ]
-        LOG.debug("The value of the source resource linking field after mapping $s", dest_resources)
+
+        if not dest_resources:
+            LOG.debug("Skipping linking call back, no destination resources discovered.")
+            return
+
+        LOG.debug("The value of the source resource linking field after mapping %s", dest_resources)
         self._resource_pair.cfn_resource_update_call_back_function(cfn_resource, dest_resources)  # type: ignore
 
     def _process_resolved_resources(
