@@ -338,15 +338,15 @@ class LambdaImage:
                         platform=get_docker_platform(architecture),
                     )
                     for log in resp_stream:
-                        stream_writer.write(".")
+                        stream_writer.write(".", write_to_buffer=False)
                         stream_writer.flush()
                         if "error" in log:
-                            stream_writer.write("\n")
+                            stream_writer.write("\n", write_to_buffer=False)
                             LOG.exception("Failed to build Docker Image")
                             raise ImageBuildException("Error building docker image: {}".format(log["error"]))
-                    stream_writer.write("\n")
+                    stream_writer.write("\n", write_to_buffer=False)
                 except (docker.errors.BuildError, docker.errors.APIError) as ex:
-                    stream_writer.write("\n")
+                    stream_writer.write("\n", write_to_buffer=False)
                     LOG.exception("Failed to build Docker Image")
                     raise ImageBuildException("Building Image failed.") from ex
         finally:
