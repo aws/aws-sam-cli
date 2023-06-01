@@ -11,7 +11,7 @@ from .invoke.cli import cli as invoke_cli
 @click.group()
 def cli():
     """
-    Run your Serverless application on cloud for quick development & testing
+    Interact with your Serverless application in the cloud for quick development & testing
     """
 
 
