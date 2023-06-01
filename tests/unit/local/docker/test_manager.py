@@ -227,7 +227,7 @@ class TestContainerManager_pull_image(TestCase):
 
         self.mock_docker_client.api.pull.assert_called_with(self.image_name, stream=True, decode=True, tag="latest")
 
-        stream.buffer.write.assert_called_once_with(expected_stream_output)
+        stream.write.assert_called_once_with(expected_stream_output)
 
     def test_must_raise_if_image_not_found(self):
         msg = "some error"
