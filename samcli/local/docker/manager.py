@@ -169,8 +169,7 @@ class ContainerManager:
 
             # io streams, especially StringIO, work only with unicode strings
             stream_writer.write(
-                "\nFetching {}:{} Docker container image...".format(image_name, tag),
-                write_to_buffer=False
+                "\nFetching {}:{} Docker container image...".format(image_name, tag), write_to_buffer=False
             )
 
             # Each line contains information on progress of the pull. Each line is a JSON string

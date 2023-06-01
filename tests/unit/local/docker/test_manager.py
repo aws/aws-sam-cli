@@ -231,7 +231,7 @@ class TestContainerManager_pull_image(TestCase):
             call(".", write_to_buffer=False),
             call(".", write_to_buffer=False),
             call(".", write_to_buffer=False),
-            call("\n", write_to_buffer=False)
+            call("\n", write_to_buffer=False),
         ]
 
         self.manager.pull_image(self.image_name, stream=stream)
