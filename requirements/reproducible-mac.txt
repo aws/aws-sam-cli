@@ -275,6 +275,7 @@ importlib-metadata==6.1.0 \
     --hash=sha256:43ce9281e097583d758c2c708c4376371261a02c34682491a8e98352365aad20 \
     --hash=sha256:ff80f3b5394912eb1b108fcfd444dc78b7f1f3e16b16188054bd01cb9cb86f09
     # via
+    #   attrs
     #   click
     #   flask
     #   jsonpickle
