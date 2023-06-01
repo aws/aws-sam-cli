@@ -111,15 +111,21 @@ def _check_unresolvable_values(root_module: dict, root_tf_module: TFModule) -> N
         # iterate over resources for current module
         for resource in curr_module.get("resources", []):
             resource_type = resource.get("type")
+            resource_name = resource.get("name")
+            resource_mode = resource.get("mode")
 
             resource_mapper = RESOURCE_TRANSLATOR_MAPPING.get(resource_type)
             if not resource_mapper:
                 continue
 
             resource_values = resource.get("values")
-            resource_full_address = resource.get("address")
+            resource_address = (
+                f"data.{resource_type}.{resource_name}"
+                if resource_mode == "data"
+                else f"{resource_type}.{resource_name}"
+            )
 
-            config_resource_address = get_configuration_address(resource_full_address)
+            config_resource_address = get_configuration_address(resource_address)
             config_resource = curr_tf_module.resources[config_resource_address]
 
             for prop_builder in resource_mapper.property_builder_mapping.values():
