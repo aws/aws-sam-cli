@@ -227,7 +227,7 @@ class LambdaImage:
             or not runtime
         ):
             stream_writer = stream or StreamWriter(sys.stderr)
-            stream_writer.write("Building image...")
+            stream_writer.write("Building image...", write_to_buffer=False)
             stream_writer.flush()
             self._build_image(
                 image if image else base_image, rapid_image, downloaded_layers, architecture, stream=stream_writer
