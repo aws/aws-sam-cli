@@ -38,10 +38,10 @@ class TerraformStartApiIntegrationBase(StartApiIntegBaseClass):
             pass
 
 
-# @skipIf(
-#     not CI_OVERRIDE,
-#     "Skip Terraform test cases unless running in CI",
-# )
+@skipIf(
+    not CI_OVERRIDE,
+    "Skip Terraform test cases unless running in CI",
+)
 @pytest.mark.flaky(reruns=3)
 class TestStartApiTerraformApplication(TerraformStartApiIntegrationBase):
     terraform_application = "terraform-v1-api-simple"
