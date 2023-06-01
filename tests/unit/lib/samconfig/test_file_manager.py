@@ -5,7 +5,7 @@ from unittest import TestCase
 import tomlkit
 from samcli.lib.config.exceptions import FileParseException
 
-from samcli.lib.config.file_manager import TomlFileManager
+from samcli.lib.config.file_manager import COMMENT_KEY, TomlFileManager
 
 
 class TestTomlFileManager(TestCase):
@@ -38,7 +38,7 @@ class TestTomlFileManager(TestCase):
         toml = {
             "version": 0.1,
             "config_env": {"topic2": {"parameters": {"word": "clarity"}}},
-            "__comment__": "This is a comment",
+            COMMENT_KEY: "This is a comment",
         }
 
         TomlFileManager.write(toml, config_path)
@@ -69,7 +69,7 @@ class TestTomlFileManager(TestCase):
         config_path = Path(config_dir, "samconfig.toml")
         toml = tomlkit.parse('# This is a comment\nversion = 0.1\n[config_env.topic2.parameters]\nword = "clarity"\n')
 
-        TomlFileManager.write_document(toml, config_path)
+        TomlFileManager.write(toml, config_path)
 
         txt = config_path.read_text()
         self.assertIn("version = 0.1", txt)
@@ -90,4 +90,12 @@ class TestTomlFileManager(TestCase):
     def test_write_toml_file_bad_path(self):
         config_path = Path("path/to/some", "file_that_doesnt_exist.toml")
         with self.assertRaises(FileNotFoundError):
-            TomlFileManager.write_document(tomlkit.parse('key = "some value"'), config_path)
+            TomlFileManager.write(tomlkit.parse('key = "some value"'), config_path)
+
+    def test_toml_put_comment(self):
+        toml_doc = tomlkit.loads('version = 0.1\n[config_env.topic2.parameters]\nword = "clarity"\n')
+
+        TomlFileManager.put_comment(toml_doc, "This is a comment")
+
+        txt = tomlkit.dumps(toml_doc)
+        self.assertIn("# This is a comment", txt)

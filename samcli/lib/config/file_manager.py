@@ -13,7 +13,7 @@ import tomlkit
 from samcli.lib.config.exceptions import FileParseException
 
 LOG = logging.getLogger(__name__)
-
+COMMENT_KEY = "__comment__"
 
 class FileManager(ABC):
     """
@@ -43,7 +43,7 @@ class FileManager(ABC):
     @abstractmethod
     def write(document: dict, filepath: Path):
         """
-        Write a dictionary to a given file.
+        Write a dictionary or dictionary-like object to a given file.
 
         Parameters
         ----------
@@ -53,21 +53,6 @@ class FileManager(ABC):
             The final location for the document to be written.
         """
         raise NotImplementedError("Write method not implemented.")
-
-    @staticmethod
-    @abstractmethod
-    def write_document(document: Any, filepath: Path):
-        """
-        Write the contents of a document object to a file at the provided location.
-
-        Parameters
-        ----------
-        document: Any
-            The object to write.
-        filepath: Path
-            The final location for the file to be written.
-        """
-        raise NotImplementedError("Write document method not implemented.")
 
     @staticmethod
     @abstractmethod
@@ -95,6 +80,8 @@ class TomlFileManager(FileManager):
     Static class to read and write toml files.
     """
 
+    file_format = "TOML"
+
     @staticmethod
     def read(filepath: Path) -> Any:
         """
@@ -116,7 +103,7 @@ class TomlFileManager(FileManager):
             txt = filepath.read_text()
             toml_doc = tomlkit.loads(txt)
         except OSError as e:
-            LOG.debug(f"OSError occurred while reading TOML file: {str(e)}")
+            LOG.debug(f"OSError occurred while reading {TomlFileManager.file_format} file: {str(e)}")
         except tomlkit.exceptions.TOMLKitError as e:
             raise FileParseException(e) from e
 
@@ -125,7 +112,7 @@ class TomlFileManager(FileManager):
     @staticmethod
     def write(document: dict, filepath: Path):
         """
-        Write the contents of a dictionary to a TOML file at the provided location.
+        Write the contents of a dictionary or tomlkit.TOMLDocument to a TOML file at the provided location.
 
         Parameters
         ----------
@@ -135,39 +122,19 @@ class TomlFileManager(FileManager):
             The final location for the TOML file to be written.
         """
         if not document:
-            LOG.debug("No document given for TomlFileManager to write.")
+            LOG.debug("Nothing for TomlFileManager to write.")
             return
+        
+        document = tomlkit.parse(tomlkit.dumps(document))  # cast from dict-like -> TOMLDocument
 
-        doc_no_comments = {k: v for k, v in document.items() if k != "__comment__"}
-        toml_doc = tomlkit.document()
-
-        if document.get("__comment__", None):  # Comment appears at the top of doc
-            toml_doc.add(tomlkit.comment(document["__comment__"]))
-        for k, v in doc_no_comments.items():
-            toml_doc.add(k, v)
-
-        filepath.write_text(tomlkit.dumps(toml_doc))
-
-    @staticmethod
-    def write_document(document: Any, filepath: Path):
-        """
-        Write the contents of a tomlkit.TOMLDocument object to a TOML file at the provided location.
-
-        Parameters
-        ----------
-        document: Any
-            The object to write.
-        filepath: Path
-            The final location for the TOML file to be written.
-        """
-        if not document:
-            LOG.debug("No TOMLDocument given for TomlFileManager to write.")
-            return
+        if document.get(COMMENT_KEY, None):  # Remove dunder comments that may be residue from other formats
+            document.add(tomlkit.comment(document[COMMENT_KEY]))
+            document.pop(COMMENT_KEY)
 
         filepath.write_text(tomlkit.dumps(document))
 
     @staticmethod
-    def put_comment(document: Any, comment: str) -> Any:
+    def put_comment(document: dict, comment: str) -> Any:
         """
         Put a comment in a document object.
 

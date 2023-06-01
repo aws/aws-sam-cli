@@ -13,8 +13,8 @@ from samcli.lib.config.version import SAM_CONFIG_VERSION, VERSION_KEY
 
 LOG = logging.getLogger(__name__)
 
-DEFAULT_CONFIG_FILE_EXTENSION = "toml"
-DEFAULT_CONFIG_FILE_NAME = f"samconfig.{DEFAULT_CONFIG_FILE_EXTENSION}"
+DEFAULT_CONFIG_FILE_EXTENSION = ".toml"
+DEFAULT_CONFIG_FILE_NAME = f"samconfig{DEFAULT_CONFIG_FILE_EXTENSION}"
 DEFAULT_ENV = "default"
 DEFAULT_GLOBAL_CMDNAME = "global"
 
@@ -25,7 +25,7 @@ class SamConfig:
     """
 
     FILE_MANAGER_MAPPER: Dict[str, Type[FileManager]] = {
-        "toml": TomlFileManager,
+        ".toml": TomlFileManager,
     }
 
     def __init__(self, config_dir, filename=None):
@@ -42,11 +42,11 @@ class SamConfig:
         """
         self.document = {}
         self.filepath = Path(config_dir, filename or DEFAULT_CONFIG_FILE_NAME)
-        self.file_manager = self.FILE_MANAGER_MAPPER.get(self.filepath.suffix[1:], None)
+        self.file_manager = self.FILE_MANAGER_MAPPER.get(self.filepath.suffix, None)
         if not self.file_manager:
             LOG.warning(
-                f"The config file extension '{self.filepath.suffix[1:]}' is not supported. "
-                f"Supported formats are: [.{'|.'.join(self.FILE_MANAGER_MAPPER.keys())}]"
+                f"The config file extension '{self.filepath.suffix}' is not supported. "
+                f"Supported formats are: [{'|'.join(self.FILE_MANAGER_MAPPER.keys())}]"
             )
             raise SamConfigFileReadException(
                 f"The config file {self.filepath} uses an unsupported extension, and cannot be read."
@@ -142,7 +142,7 @@ class SamConfig:
             A comment to write to the samconfg file
         """
 
-        self.document = self.file_manager.put_comment(self.document, comment)
+        self.file_manager.put_comment(self.document, comment)
 
     def flush(self):
         """
@@ -201,7 +201,7 @@ class SamConfig:
         current_version = self._version() if self._version() else SAM_CONFIG_VERSION
         self.document.update({VERSION_KEY: current_version})
 
-        self.file_manager.write_document(self.document, self.filepath)
+        self.file_manager.write(self.document, self.filepath)
 
     def _version(self):
         return self.document.get(VERSION_KEY, None)
