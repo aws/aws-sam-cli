@@ -126,7 +126,7 @@ class TomlFileManager(FileManager):
             LOG.debug("Nothing for TomlFileManager to write.")
             return
 
-        toml_document = tomlkit.parse(tomlkit.dumps(document))  # cast from dict-like -> TOMLDocument
+        toml_document = TomlFileManager._to_toml(document)
 
         if toml_document.get(COMMENT_KEY, None):  # Remove dunder comments that may be residue from other formats
             toml_document.add(tomlkit.comment(toml_document[COMMENT_KEY]))
@@ -151,6 +151,11 @@ class TomlFileManager(FileManager):
         Any
             The new TOMLDocument, with the comment added to it.
         """
-        document = tomlkit.parse(tomlkit.dumps(document))  # cast from dict-like -> TOMLDocument
+        document = TomlFileManager._to_toml(document)
         document.add(tomlkit.comment(comment))
         return document
+
+    @staticmethod
+    def _to_toml(document: dict) -> tomlkit.TOMLDocument:
+        """Ensure that a dictionary-like object is a TOMLDocument."""
+        return tomlkit.parse(tomlkit.dumps(document))
