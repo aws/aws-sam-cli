@@ -1,4 +1,4 @@
-"""CLI command for "test" command."""
+"""CLI command for "invoke" command."""
 import logging
 import sys
 from io import TextIOWrapper
