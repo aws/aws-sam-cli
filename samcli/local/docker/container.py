@@ -325,7 +325,7 @@ class Container:
             data=event.encode("utf-8"),
             timeout=(self.RAPID_CONNECTION_TIMEOUT, None),
         )
-        stdout.write(resp.content)
+        stdout.write(json.dumps(json.loads(resp.content), ensure_ascii=False), write_to_buffer=False)
 
     def wait_for_result(self, full_path, event, stdout, stderr, start_timer=None):
         # NOTE(sriram-mv): Let logging happen in its own thread, so that a http request can be sent.
@@ -432,9 +432,12 @@ class Container:
             for stdout_data, stderr_data in output_itr:
                 if stdout_data and stdout:
                     stdout.write(stdout_data)
+                    stdout.flush()
 
                 if stderr_data and stderr:
                     stderr.write(stderr_data)
+                    stderr.flush()
+
         except Exception as ex:
             LOG.debug("Failed to get the logs from the container", exc_info=ex)
 
