@@ -5,44 +5,46 @@ import logging
 import os
 import pathlib
 import shutil
-from typing import Dict, Optional, List, Tuple, cast
+from typing import Dict, Optional, List, Tuple
 
 import click
 
-from samcli.commands.build.utils import prompt_user_to_enable_mount_with_write_if_needed, MountMode
-from samcli.lib.build.bundler import EsbuildBundlerManager
-from samcli.lib.providers.sam_api_provider import SamApiProvider
-from samcli.lib.telemetry.event import EventTracker
-from samcli.lib.utils.packagetype import IMAGE
-
-from samcli.commands._utils.template import get_template_data
+from samcli.commands._utils.constants import DEFAULT_BUILD_DIR
 from samcli.commands._utils.experimental import ExperimentalFlag, prompt_experimental
+from samcli.commands._utils.template import (
+    get_template_data,
+    move_template,
+)
 from samcli.commands.build.exceptions import InvalidBuildDirException, MissingBuildMethodException
-from samcli.lib.bootstrap.nested_stack.nested_stack_manager import NestedStackManager
-from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
-from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
-from samcli.lib.providers.provider import ResourcesToBuildCollector, Stack, Function, LayerVersion
-from samcli.lib.providers.sam_function_provider import SamFunctionProvider
-from samcli.lib.providers.sam_layer_provider import SamLayerProvider
-from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
-from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
-from samcli.local.docker.manager import ContainerManager
-from samcli.local.lambdafn.exceptions import ResourceNotFound
-from samcli.lib.build.exceptions import BuildInsideContainerError
-
+from samcli.commands.build.utils import prompt_user_to_enable_mount_with_write_if_needed, MountMode
 from samcli.commands.exceptions import UserException
-
+from samcli.lib.bootstrap.nested_stack.nested_stack_manager import NestedStackManager
 from samcli.lib.build.app_builder import (
     ApplicationBuilder,
     BuildError,
     UnsupportedBuilderLibraryVersionError,
     ApplicationBuildResult,
 )
-from samcli.commands._utils.constants import DEFAULT_BUILD_DIR
+from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
+from samcli.lib.build.bundler import EsbuildBundlerManager
+from samcli.lib.build.exceptions import (
+    BuildInsideContainerError,
+    InvalidBuildGraphException,
+)
 from samcli.lib.build.workflow_config import UnsupportedRuntimeException
-from samcli.local.lambdafn.exceptions import FunctionNotFound
-from samcli.commands._utils.template import move_template
-from samcli.lib.build.exceptions import InvalidBuildGraphException
+from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
+from samcli.lib.providers.provider import ResourcesToBuildCollector, Stack, Function, LayerVersion
+from samcli.lib.providers.sam_api_provider import SamApiProvider
+from samcli.lib.providers.sam_function_provider import SamFunctionProvider
+from samcli.lib.providers.sam_layer_provider import SamLayerProvider
+from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
+from samcli.lib.telemetry.event import EventTracker
+from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
+from samcli.local.docker.manager import ContainerManager
+from samcli.local.lambdafn.exceptions import (
+    FunctionNotFound,
+    ResourceNotFound,
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -586,7 +588,7 @@ Commands you can use next
             [
                 f
                 for f in self.function_provider.get_all()
-                if (f.name not in excludes) and BuildContext._is_function_buildable(f)
+                if (f.name not in excludes) and f.function_build_info.is_buildable()
             ]
         )
         result.add_layers(
@@ -649,34 +651,6 @@ Commands you can use next
             raise MissingBuildMethodException(f"Build method missing in layer {resource_identifier}.")
 
         resource_collector.add_layer(layer)
-
-    @staticmethod
-    def _is_function_buildable(function: Function):
-        # no need to build inline functions
-        if function.inlinecode:
-            LOG.debug("Skip building inline function: %s", function.full_path)
-            return False
-        # no need to build functions that are already packaged as a zip file
-        if isinstance(function.codeuri, str) and function.codeuri.endswith(".zip"):
-            LOG.debug("Skip building zip function: %s", function.full_path)
-            return False
-        # skip build the functions that marked as skip-build
-        if function.skip_build:
-            LOG.debug("Skip building pre-built function: %s", function.full_path)
-            return False
-        # skip build the functions with Image Package Type with no docker context or docker file metadata
-        if function.packagetype == IMAGE:
-            metadata = function.metadata if function.metadata else {}
-            dockerfile = cast(str, metadata.get("Dockerfile", ""))
-            docker_context = cast(str, metadata.get("DockerContext", ""))
-            if not dockerfile or not docker_context:
-                LOG.debug(
-                    "Skip Building %s function, as it is missing either Dockerfile or DockerContext "
-                    "metadata properties.",
-                    function.full_path,
-                )
-                return False
-        return True
 
     @staticmethod
     def is_layer_buildable(layer: LayerVersion):
