@@ -423,7 +423,7 @@ class ImageRepositoriesType(click.ParamType):
         return {key: _value}
 
 
-class RemoteInvokeBotoAPIParameterType(click.ParamType):
+class RemoteInvokeBotoApiParameterType(click.ParamType):
     """
     Custom Parameter Type for Multi valued Boto API parameter option of remote invoke command.
     """
