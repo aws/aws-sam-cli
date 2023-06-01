@@ -1,8 +1,6 @@
 """
 Tests container manager
 """
-
-import io
 import importlib
 from unittest import TestCase
 from unittest.mock import Mock, patch, MagicMock, ANY, call
@@ -218,7 +216,7 @@ class TestContainerManager_pull_image(TestCase):
         self.manager = ContainerManager(docker_client=self.mock_docker_client)
 
     def test_must_pull_and_print_progress_dots(self):
-        stream = io.StringIO()
+        stream = Mock()
         pull_result = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]
         self.mock_docker_client.api.pull.return_value = pull_result
         expected_stream_output = "\nFetching {}:latest Docker container image...{}\n".format(
