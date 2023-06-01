@@ -4,15 +4,9 @@ from unittest.mock import MagicMock, patch, Mock, ANY, call
 
 from parameterized import parameterized
 
-from samcli.commands.build.utils import MountMode
-from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
-from samcli.lib.build.bundler import EsbuildBundlerManager
-from samcli.lib.providers.provider import Function
-from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
-from samcli.lib.utils.packagetype import ZIP, IMAGE
-from samcli.local.lambdafn.exceptions import ResourceNotFound
 from samcli.commands.build.build_context import BuildContext
 from samcli.commands.build.exceptions import InvalidBuildDirException, MissingBuildMethodException
+from samcli.commands.build.utils import MountMode
 from samcli.commands.exceptions import UserException
 from samcli.lib.build.app_builder import (
     BuildError,
@@ -20,8 +14,14 @@ from samcli.lib.build.app_builder import (
     BuildInsideContainerError,
     ApplicationBuildResult,
 )
+from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
+from samcli.lib.build.bundler import EsbuildBundlerManager
 from samcli.lib.build.workflow_config import UnsupportedRuntimeException
+from samcli.lib.providers.provider import Function, get_function_build_info
+from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
+from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.local.lambdafn.exceptions import FunctionNotFound
+from samcli.local.lambdafn.exceptions import ResourceNotFound
 
 
 class DeepWrap(Exception):
@@ -75,6 +75,7 @@ def get_function(
         function_url_config=None,
         stack_path="",
         runtime_management_config=None,
+        function_build_info=get_function_build_info("stack/function", packagetype, inlinecode, codeuri, metadata),
     )
 
 

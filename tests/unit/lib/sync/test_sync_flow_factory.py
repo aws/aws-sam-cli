@@ -95,7 +95,9 @@ class TestSyncFlowFactory(TestCase):
         _,
     ):
         build_context = MagicMock()
-        build_context.function_provider.get.return_value = Mock(packagetype=ZIP, build_info=function_build_info)
+        build_context.function_provider.get.return_value = Mock(
+            packagetype=ZIP, function_build_info=function_build_info
+        )
         factory = self.create_factory(build_context=build_context)
         result = factory._create_lambda_flow("Function1", pre_build_artifacts)
 
@@ -145,7 +147,9 @@ class TestSyncFlowFactory(TestCase):
     @patch("samcli.lib.sync.sync_flow_factory.ZipFunctionSyncFlow")
     def test_create_lambda_flow_image(self, pre_build_artifacts, function_build_info, _, image_function_mock):
         build_context = MagicMock()
-        build_context.function_provider.get.return_value = Mock(packagetype=IMAGE, build_info=function_build_info)
+        build_context.function_provider.get.return_value = Mock(
+            packagetype=IMAGE, function_build_info=function_build_info
+        )
         factory = self.create_factory(build_context=build_context)
         result = factory._create_lambda_flow("Function1", pre_build_artifacts)
         if function_build_info == FunctionBuildInfo.BuildableImage:

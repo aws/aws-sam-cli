@@ -105,6 +105,8 @@ class Function(NamedTuple):
     architectures: Optional[List[str]]
     # The function url configuration
     function_url_config: Optional[Dict]
+    # FunctionBuildInfo see implementation doc for its details
+    function_build_info: FunctionBuildInfo
     # The path of the stack relative to the root stack, it is empty for functions in root stack
     stack_path: str = ""
     # Configuration for runtime management. Includes the fields `UpdateRuntimeOn` and `RuntimeVersionArn` (optional).
@@ -128,7 +130,7 @@ class Function(NamedTuple):
         resource. It means that the customer is building the Lambda function code outside SAM, and the provided code
         path is already built.
         """
-        return self.metadata.get(SAM_METADATA_SKIP_BUILD_KEY, False) if self.metadata else False
+        return get_skip_build(self.metadata)
 
     def get_build_dir(self, build_root_dir: str) -> str:
         """
@@ -160,36 +162,6 @@ class Function(NamedTuple):
                 f"Function {self.name} property Architectures should be a list of length 1"
             )
         return str(arch_list[0])
-
-    @property
-    def build_info(self) -> FunctionBuildInfo:
-        if self.inlinecode:
-            LOG.debug("Skip building inline function: %s", self.full_path)
-            return FunctionBuildInfo.InlineCode
-
-        if isinstance(self.codeuri, str) and self.codeuri.endswith(".zip"):
-            LOG.debug("Skip building zip function: %s", self.full_path)
-            return FunctionBuildInfo.PreZipped
-
-        if self.skip_build:
-            LOG.debug("Skip building pre-built function: %s", self.full_path)
-            return FunctionBuildInfo.SkipBuild
-
-        if self.packagetype == IMAGE:
-            metadata = self.metadata or {}
-            dockerfile = cast(str, metadata.get("Dockerfile", ""))
-            docker_context = cast(str, metadata.get("DockerContext", ""))
-
-            if not dockerfile or not docker_context:
-                LOG.debug(
-                    "Skip Building %s function, as it is missing either Dockerfile or DockerContext "
-                    "metadata properties.",
-                    self.full_path,
-                )
-                return FunctionBuildInfo.NonBuildableImage
-            return FunctionBuildInfo.BuildableImage
-
-        return FunctionBuildInfo.BuildableZip
 
 
 class ResourcesToBuildCollector:
@@ -923,6 +895,52 @@ def get_unique_resource_ids(
             for resource_id in resource_type_ids:
                 output_resource_ids.add(resource_id)
     return output_resource_ids
+
+
+def get_skip_build(metadata: Optional[Dict]) -> bool:
+    """
+    Returns the value of SkipBuild property from Metadata, False if it is not defined
+    """
+    return metadata.get(SAM_METADATA_SKIP_BUILD_KEY, False) if metadata else False
+
+
+def get_function_build_info(
+    full_path: str,
+    packagetype: str,
+    inlinecode: Optional[str],
+    codeuri: Optional[str],
+    metadata: Optional[Dict],
+) -> FunctionBuildInfo:
+    """
+    Populates FunctionBuildInfo from the given information.
+    """
+    if inlinecode:
+        LOG.debug("Skip building inline function: %s", full_path)
+        return FunctionBuildInfo.InlineCode
+
+    if isinstance(codeuri, str) and codeuri.endswith(".zip"):
+        LOG.debug("Skip building zip function: %s", full_path)
+        return FunctionBuildInfo.PreZipped
+
+    if get_skip_build(metadata):
+        LOG.debug("Skip building pre-built function: %s", full_path)
+        return FunctionBuildInfo.SkipBuild
+
+    if packagetype == IMAGE:
+        metadata = metadata or {}
+        dockerfile = cast(str, metadata.get("Dockerfile", ""))
+        docker_context = cast(str, metadata.get("DockerContext", ""))
+
+        if not dockerfile or not docker_context:
+            LOG.debug(
+                "Skip Building %s function, as it is missing either Dockerfile or DockerContext "
+                "metadata properties.",
+                full_path,
+            )
+            return FunctionBuildInfo.NonBuildableImage
+        return FunctionBuildInfo.BuildableImage
+
+    return FunctionBuildInfo.BuildableZip
 
 
 def _get_build_dir(resource: Union[Function, LayerVersion], build_root: str) -> str:

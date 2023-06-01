@@ -585,7 +585,11 @@ Commands you can use next
         result = ResourcesToBuildCollector()
         excludes: Tuple[str, ...] = self._exclude if self._exclude is not None else ()
         result.add_functions(
-            [f for f in self.function_provider.get_all() if (f.name not in excludes) and f.build_info.is_buildable()]
+            [
+                f
+                for f in self.function_provider.get_all()
+                if (f.name not in excludes) and f.function_build_info.is_buildable()
+            ]
         )
         result.add_layers(
             [

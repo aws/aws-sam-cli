@@ -173,13 +173,13 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
         application_build_result: Optional[ApplicationBuildResult],
         function: Function,
     ) -> Optional[FunctionSyncFlow]:
-        if not function.build_info.is_buildable():
-            if function.build_info == FunctionBuildInfo.InlineCode:
+        if not function.function_build_info.is_buildable():
+            if function.function_build_info == FunctionBuildInfo.InlineCode:
                 LOG.debug(
                     "No need to create sync flow for a function with InlineCode '%s' resource", str(resource_identifier)
                 )
                 return None
-            if function.build_info == FunctionBuildInfo.PreZipped:
+            if function.function_build_info == FunctionBuildInfo.PreZipped:
                 # if codeuri points to zip file, use ZipFunctionSyncFlowSkipBuildZipFile sync flow
                 LOG.debug("Creating ZipFunctionSyncFlowSkipBuildZipFile for '%s' resource", resource_identifier)
                 return ZipFunctionSyncFlowSkipBuildZipFile(
@@ -192,7 +192,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
                     application_build_result,
                 )
 
-            if function.build_info == FunctionBuildInfo.SkipBuild:
+            if function.function_build_info == FunctionBuildInfo.SkipBuild:
                 # if function is marked with SkipBuild, use ZipFunctionSyncFlowSkipBuildDirectory sync flow
                 LOG.debug("Creating ZipFunctionSyncFlowSkipBuildDirectory for '%s' resource", resource_identifier)
                 return ZipFunctionSyncFlowSkipBuildDirectory(
@@ -233,7 +233,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
         application_build_result: Optional[ApplicationBuildResult],
         function: Function,
     ) -> Optional[FunctionSyncFlow]:
-        if not function.build_info.is_buildable():
+        if not function.function_build_info.is_buildable():
             LOG.warning("Can't build image type function with '%s' logical id", str(resource_identifier))
             return None
 
