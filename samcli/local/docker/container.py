@@ -1,7 +1,6 @@
 """
 Representation of a generic Docker container
 """
-import json
 import logging
 import os
 import pathlib
@@ -10,6 +9,7 @@ import socket
 import tempfile
 import threading
 import time
+import json
 from typing import Optional
 
 import docker
@@ -325,7 +325,7 @@ class Container:
             data=event.encode("utf-8"),
             timeout=(self.RAPID_CONNECTION_TIMEOUT, None),
         )
-        stdout.write(json.dumps(json.loads(resp.content), ensure_ascii=False))
+        stdout.write(resp.content)
 
     def wait_for_result(self, full_path, event, stdout, stderr, start_timer=None):
         # NOTE(sriram-mv): Let logging happen in its own thread, so that a http request can be sent.

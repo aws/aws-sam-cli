@@ -50,7 +50,6 @@ class LogStreamer:
                     self._stream.write(
                         self._cursor_up_formatter.cursor_format(change_cursor_count)
                         + self._cursor_left_formatter.cursor_format(),
-                        encode=True,
                     )
 
             self._stream_write(_id, status, stream, progress, error)
@@ -59,9 +58,8 @@ class LogStreamer:
                 self._stream.write(
                     self._cursor_down_formatter.cursor_format(change_cursor_count)
                     + self._cursor_left_formatter.cursor_format(),
-                    encode=True,
                 )
-        self._stream.write(os.linesep, encode=True)
+        self._stream.write(os.linesep)
 
     def _stream_write(self, _id: str, status: str, stream: bytes, progress: str, error: str):
         """
@@ -80,14 +78,14 @@ class LogStreamer:
 
         # NOTE(sriram-mv): Required for the purposes of when the cursor overflows existing terminal buffer.
         if not stream:
-            self._stream.write(os.linesep, encode=True)
+            self._stream.write(os.linesep)
             self._stream.write(
-                self._cursor_up_formatter.cursor_format() + self._cursor_left_formatter.cursor_format(), encode=True
+                self._cursor_up_formatter.cursor_format() + self._cursor_left_formatter.cursor_format()
             )
-            self._stream.write(self._cursor_clear_formatter.cursor_format(), encode=True)
+            self._stream.write(self._cursor_clear_formatter.cursor_format())
 
         if not _id:
-            self._stream.write(stream, encode=True)
-            self._stream.write(status, encode=True)
+            self._stream.write(stream)
+            self._stream.write(status)
         else:
-            self._stream.write(f"\r{_id}: {status} {progress}", encode=True)
+            self._stream.write(f"\r{_id}: {status} {progress}")
