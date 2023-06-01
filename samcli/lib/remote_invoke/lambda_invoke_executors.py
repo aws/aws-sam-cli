@@ -10,7 +10,11 @@ from typing import Any, Dict, cast
 from botocore.exceptions import ClientError, ParamValidationError
 from botocore.response import StreamingBody
 
-from samcli.lib.remote_invoke.exceptions import InvalideBotoResponseException, InvalidResourceBotoParameterException
+from samcli.lib.remote_invoke.exceptions import (
+    ErrorBotoApiCallException,
+    InvalideBotoResponseException,
+    InvalidResourceBotoParameterException,
+)
 from samcli.lib.remote_invoke.remote_invoke_executors import (
     BotoActionExecutor,
     RemoteInvokeExecutionInfo,
@@ -75,7 +79,9 @@ class LambdaInvokeExecutor(BotoActionExecutor):
                 raise InvalidResourceBotoParameterException(
                     f"Invalid parameter value provided. {str(client_ex).replace('(ValidationException) ', '')}"
                 ) from client_ex
-            raise client_ex
+            elif boto_utils.get_client_error_code(client_ex) == "InvalidRequestContentException":
+                raise InvalidResourceBotoParameterException(client_ex) from client_ex
+            raise ErrorBotoApiCallException(client_ex) from client_ex
         return response
 
 

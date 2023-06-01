@@ -4,7 +4,7 @@ Abstract class definitions and generic implementations for remote invoke
 import json
 import logging
 from abc import ABC, abstractmethod
-from enum import Enum
+from enum import Enum, auto
 from io import TextIOWrapper
 from pathlib import Path
 from typing import Any, Callable, List, Optional, Union, cast
@@ -17,8 +17,8 @@ class RemoteInvokeOutputFormat(Enum):
     Types of output formats used to by remote invoke
     """
 
-    DEFAULT = "default"
-    ORIGINAL_BOTO_RESPONSE = "original-boto-response"
+    DEFAULT = auto()
+    FULL_BOTO_RESPONSE = auto()
 
 
 class RemoteInvokeExecutionInfo:
