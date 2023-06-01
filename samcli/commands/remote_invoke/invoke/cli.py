@@ -19,7 +19,7 @@ LOG = logging.getLogger(__name__)
 HELP_TEXT = """
 Invoke or send an event to cloud resources in your CFN stack
 """
-SHORT_HELP = "Invoke a cloud deployed resource"
+SHORT_HELP = "Invoke a deployed resource in the cloud"
 
 
 @click.command("invoke", help=HELP_TEXT, short_help=SHORT_HELP)
