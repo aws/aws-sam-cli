@@ -3,6 +3,7 @@ import base64
 import hashlib
 import logging
 import os
+import shutil
 import tempfile
 import uuid
 from contextlib import ExitStack
@@ -226,3 +227,28 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
     @staticmethod
     def _combine_dependencies() -> bool:
         return True
+
+
+class ZipFunctionSyncFlowSkipBuildZipFile(ZipFunctionSyncFlow):
+    """
+    Alternative implementation for ZipFunctionSyncFlow, which uses pre-built zip file for running sync flow
+    """
+
+    def gather_resources(self) -> None:
+        self._zip_file = os.path.join(tempfile.gettempdir(), f"data-{uuid.uuid4().hex}")
+        shutil.copy2(cast(str, self._function.codeuri), self._zip_file)
+        LOG.debug("%sCreated artifact ZIP file: %s", self.log_prefix, self._zip_file)
+        self._local_sha = file_checksum(self._zip_file, hashlib.sha256())
+
+
+class ZipFunctionSyncFlowSkipBuildDirectory(ZipFunctionSyncFlow):
+    """
+    Alternative implementation for ZipFunctionSyncFlow, which doesn't build function but zips folder directly
+    since function is annotated with SkipBuild inside its Metadata
+    """
+
+    def gather_resources(self) -> None:
+        zip_file_path = os.path.join(tempfile.gettempdir(), f"data-{uuid.uuid4().hex}")
+        self._zip_file = make_zip_with_lambda_permissions(zip_file_path, self._function.codeuri)
+        LOG.debug("%sCreated artifact ZIP file: %s", self.log_prefix, self._zip_file)
+        self._local_sha = file_checksum(cast(str, self._zip_file), hashlib.sha256())

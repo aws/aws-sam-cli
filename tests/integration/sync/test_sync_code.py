@@ -702,3 +702,93 @@ class TestSyncLayerCode(TestSyncCodeBase):
                 lambda_response = json.loads(self._get_lambda_response(lambda_function))
                 self.assertIn("extra_message", lambda_response)
                 self.assertEqual(lambda_response.get("message_from_layer"), expected_value)
+
+
+class TestFunctionWithPreZippedCodeUri(TestSyncCodeBase):
+    template = "template-pre-zipped.yaml"
+    folder = "code"
+    dependency_layer = False
+
+    def test_pre_zipped_function(self):
+        # CFN Api call here to collect all the stack resources
+        self.stack_resources = self._get_stacks(TestSyncCodeBase.stack_name)
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+
+        # first verify current state of the function
+        for lambda_function in lambda_functions:
+            if lambda_function == "HelloWorldFunction":
+                lambda_response = json.loads(self._get_lambda_response(lambda_function))
+                self.assertIn("message", lambda_response)
+                self.assertEqual(lambda_response.get("message"), "hello world")
+
+        # update function code with new values
+        self.update_file(
+            self.test_data_path.joinpath(self.folder, "after", "pre_zipped_function", "app.zip"),
+            self.test_data_path.joinpath(self.folder, "before", "pre_zipped_function", "app.zip"),
+        )
+
+        # Run code sync
+        sync_command_list = self.get_sync_command_list(
+            template_file=TestSyncCodeBase.template_path,
+            code=True,
+            watch=False,
+            resource_list=["AWS::Serverless::Function"],
+            stack_name=TestSyncCodeBase.stack_name,
+            image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+        )
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
+        self.assertEqual(sync_process_execute.process.returncode, 0)
+
+        # Verify changed lambda response
+        for lambda_function in lambda_functions:
+            if lambda_function == "HelloWorldFunction":
+                lambda_response = json.loads(self._get_lambda_response(lambda_function))
+                self.assertIn("message", lambda_response)
+                self.assertEqual(lambda_response.get("message"), "hello mars")
+
+
+class TestFunctionWithSkipBuild(TestSyncCodeBase):
+    template = "template-skip-build.yaml"
+    folder = "code"
+    dependency_layer = False
+
+    def test_skip_build(self):
+        # CFN Api call here to collect all the stack resources
+        self.stack_resources = self._get_stacks(TestSyncCodeBase.stack_name)
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+
+        # first verify current state of the function
+        for lambda_function in lambda_functions:
+            if lambda_function == "HelloWorldFunction":
+                lambda_response = json.loads(self._get_lambda_response(lambda_function))
+                self.assertIn("message", lambda_response)
+                self.assertEqual(lambda_response.get("message"), "hello world")
+
+        # update function code with new values
+        self.update_file(
+            self.test_data_path.joinpath(self.folder, "after", "python_function_no_deps", "app_without_numpy.py"),
+            self.test_data_path.joinpath(self.folder, "before", "python_function_no_deps", "app.py"),
+        )
+
+        # Run code sync
+        sync_command_list = self.get_sync_command_list(
+            template_file=TestSyncCodeBase.template_path,
+            code=True,
+            watch=False,
+            resource_list=["AWS::Serverless::Function"],
+            stack_name=TestSyncCodeBase.stack_name,
+            image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+        )
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
+        self.assertEqual(sync_process_execute.process.returncode, 0)
+
+        # Verify changed lambda response
+        for lambda_function in lambda_functions:
+            if lambda_function == "HelloWorldFunction":
+                lambda_response = json.loads(self._get_lambda_response(lambda_function))
+                self.assertIn("message", lambda_response)
+                self.assertEqual(lambda_response.get("message"), "hello mars")
