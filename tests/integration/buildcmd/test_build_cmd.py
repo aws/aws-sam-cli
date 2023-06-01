@@ -2957,7 +2957,7 @@ class TestBuildWithZipFunctionsOrLayers(NestedBuildIntegBase):
 
 @skipIf(SKIP_SAR_TESTS, "Skip SAR tests")
 class TestBuildSAR(BuildIntegBase):
-    template = "aws-serverless-application-with-application-id-map.yaml"
+    template = "aws-serverless-application-with-application-id-map-build-only.yaml"
 
     @parameterized.expand(
         [
