@@ -15,6 +15,7 @@ from samcli.lib.config.exceptions import FileParseException
 LOG = logging.getLogger(__name__)
 COMMENT_KEY = "__comment__"
 
+
 class FileManager(ABC):
     """
     Abstract class to be overridden by file managers for specific file extensions.
@@ -124,14 +125,14 @@ class TomlFileManager(FileManager):
         if not document:
             LOG.debug("Nothing for TomlFileManager to write.")
             return
-        
-        document = tomlkit.parse(tomlkit.dumps(document))  # cast from dict-like -> TOMLDocument
 
-        if document.get(COMMENT_KEY, None):  # Remove dunder comments that may be residue from other formats
-            document.add(tomlkit.comment(document[COMMENT_KEY]))
-            document.pop(COMMENT_KEY)
+        toml_document = tomlkit.parse(tomlkit.dumps(document))  # cast from dict-like -> TOMLDocument
 
-        filepath.write_text(tomlkit.dumps(document))
+        if toml_document.get(COMMENT_KEY, None):  # Remove dunder comments that may be residue from other formats
+            toml_document.add(tomlkit.comment(toml_document[COMMENT_KEY]))
+            toml_document.pop(COMMENT_KEY)
+
+        filepath.write_text(tomlkit.dumps(toml_document))
 
     @staticmethod
     def put_comment(document: dict, comment: str) -> Any:
@@ -150,5 +151,6 @@ class TomlFileManager(FileManager):
         Any
             The new TOMLDocument, with the comment added to it.
         """
+        document = tomlkit.parse(tomlkit.dumps(document))  # cast from dict-like -> TOMLDocument
         document.add(tomlkit.comment(comment))
         return document

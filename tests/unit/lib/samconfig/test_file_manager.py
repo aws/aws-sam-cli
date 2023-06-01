@@ -95,7 +95,7 @@ class TestTomlFileManager(TestCase):
     def test_toml_put_comment(self):
         toml_doc = tomlkit.loads('version = 0.1\n[config_env.topic2.parameters]\nword = "clarity"\n')
 
-        TomlFileManager.put_comment(toml_doc, "This is a comment")
+        toml_doc = TomlFileManager.put_comment(toml_doc, "This is a comment")
 
         txt = tomlkit.dumps(toml_doc)
         self.assertIn("# This is a comment", txt)
