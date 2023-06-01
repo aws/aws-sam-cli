@@ -20,7 +20,7 @@ from samcli.lib.utils.resources import (
 )
 
 from ..build.constants import DEPRECATED_RUNTIMES
-from .provider import Function, LayerVersion, Stack
+from .provider import Function, LayerVersion, Stack, get_full_path, get_function_build_info
 from .sam_base_provider import SamBaseProvider
 from .sam_stack_provider import SamLocalStackProvider
 
@@ -444,12 +444,17 @@ class SamFunctionProvider(SamBaseProvider):
             LOG.debug("--base-dir is not presented, adjusting uri %s relative to %s", codeuri, stack.location)
             codeuri = SamLocalStackProvider.normalize_resource_path(stack.location, codeuri)
 
+        package_type = resource_properties.get("PackageType", ZIP)
+        function_build_info = get_function_build_info(
+            get_full_path(stack.stack_path, function_id), package_type, inlinecode, codeuri, metadata
+        )
+
         return Function(
             stack_path=stack.stack_path,
             function_id=function_id,
             name=name,
             functionname=resource_properties.get("FunctionName", name),
-            packagetype=resource_properties.get("PackageType", ZIP),
+            packagetype=package_type,
             runtime=resource_properties.get("Runtime"),
             memory=resource_properties.get("MemorySize"),
             timeout=resource_properties.get("Timeout"),
@@ -467,6 +472,7 @@ class SamFunctionProvider(SamBaseProvider):
             architectures=resource_properties.get("Architectures", None),
             function_url_config=resource_properties.get("FunctionUrlConfig"),
             runtime_management_config=resource_properties.get("RuntimeManagementConfig"),
+            function_build_info=function_build_info,
         )
 
     @staticmethod

@@ -12,7 +12,7 @@ from pathlib import Path, WindowsPath
 from parameterized import parameterized
 
 from samcli.lib.build.workflow_config import UnsupportedRuntimeException
-from samcli.lib.providers.provider import ResourcesToBuildCollector, Function
+from samcli.lib.providers.provider import ResourcesToBuildCollector, Function, FunctionBuildInfo
 from samcli.lib.build.app_builder import (
     ApplicationBuilder,
     UnsupportedBuilderLibraryVersionError,
@@ -440,6 +440,7 @@ class TestApplicationBuilder_build(TestCase):
             architectures=[X86_64, ARM64],
             stack_path="",
             function_url_config=None,
+            function_build_info=FunctionBuildInfo.BuildableZip,
         )
 
         resources_to_build_collector = ResourcesToBuildCollector()
@@ -498,6 +499,7 @@ class TestApplicationBuilder_build(TestCase):
             architectures=[X86_64],
             stack_path="",
             function_url_config=None,
+            function_build_info=FunctionBuildInfo.BuildableZip,
         )
 
         resources_to_build_collector = ResourcesToBuildCollector()
