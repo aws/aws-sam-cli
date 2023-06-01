@@ -421,3 +421,23 @@ class ImageRepositoriesType(click.ParamType):
         if not is_ecr_url(_value):
             raise click.BadParameter(f"{param.opts[0]} needs to have valid ECR URI as value")
         return {key: _value}
+
+
+class RemoteInvokeBotoAPIParameterType(click.ParamType):
+    """
+    Custom Parameter Type for Multi valued Boto API parameter option of remote invoke command.
+    """
+
+    name = ""
+    MIN_KEY_VALUE_PAIR_LENGTH = 2
+
+    def convert(self, value, param, ctx):
+        # Split by first "=" as some values could have multiple "=" For e.g. base-64 encoded ClientContext for Lambda
+        key_value_pair = value.split("=", 1)
+        if len(key_value_pair) < self.MIN_KEY_VALUE_PAIR_LENGTH:
+            raise click.BadParameter(
+                f"{param.opts[0]} is not a valid format, it needs to be of the form parameter_key=parameter_value"
+            )
+        key = key_value_pair[0]
+        _value = key_value_pair[1]
+        return {key: _value}
