@@ -248,6 +248,7 @@ class UpdatableSARTemplate:
     is used during the integration testing. This class helps to resolve the problem that SAM CLI does not support Sub
     intrinsic function, and to avoid exposing any of our testing accounts ids.
     """
+
     def __init__(self, source_template_path):
         self.source_template_path = source_template_path
         self.temp_directory = tempfile.TemporaryDirectory()
