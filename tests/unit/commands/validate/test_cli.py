@@ -11,8 +11,8 @@ from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFound
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.validate.validate import do_cli, _read_sam_file, _lint
 
-ctx_mock = namedtuple("ctx", ["profile", "region"])
-ctx_lint_mock = namedtuple("ctx", ["debug", "region"])
+ctx_mock = namedtuple("ctx_mock", ["profile", "region"])
+ctx_lint_mock = namedtuple("ctx_lint_mock", ["debug", "region"])
 
 
 class TestValidateCli(TestCase):

@@ -163,7 +163,7 @@ class GlobalConfig(metaclass=Singleton):
         self,
         config_entry: ConfigEntry,
         default: Optional[T] = None,
-        value_type: Type[T] = T,
+        value_type: Type[T] = T,  # type: ignore
         is_flag: bool = False,
         reload_config: bool = False,
     ) -> Optional[T]:

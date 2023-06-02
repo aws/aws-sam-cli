@@ -206,9 +206,6 @@ class Container:
             # Ex: 128m => 128MB
             kwargs["mem_limit"] = "{}m".format(self._memory_limit_mb)
 
-        if self.network_id == "host":
-            kwargs["network_mode"] = self.network_id
-
         real_container = self.docker_client.containers.create(self._image, **kwargs)
         self.id = real_container.id
 

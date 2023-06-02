@@ -68,7 +68,7 @@ class TestDoCli(TestCase):
             (False, False, False, False, True, InfraSyncResult(True)),
         ]
     )
-    @patch("os.environ", {**os.environ, "SAM_CLI_POLL_DELAY": 10})
+    @patch("os.environ", {**os.environ, "SAM_CLI_POLL_DELAY": 10})  # type: ignore
     @patch("samcli.commands.sync.command.click")
     @patch("samcli.commands.sync.command.execute_code_sync")
     @patch("samcli.commands.build.command.click")
