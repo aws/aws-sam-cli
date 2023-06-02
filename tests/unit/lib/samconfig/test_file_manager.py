@@ -9,9 +9,6 @@ from samcli.lib.config.exceptions import FileParseException
 from samcli.lib.config.file_manager import COMMENT_KEY, TomlFileManager, YamlFileManager
 
 
-yaml = YAML()
-
-
 class TestTomlFileManager(TestCase):
     def test_read_toml(self):
         config_dir = tempfile.gettempdir()
@@ -107,6 +104,9 @@ class TestTomlFileManager(TestCase):
 
 
 class TestYamlFileManager(TestCase):
+
+    yaml = YAML()
+
     def test_read_yaml(self):
         config_dir = tempfile.gettempdir()
         config_path = Path(config_dir, "samconfig.yaml")
@@ -133,7 +133,7 @@ class TestYamlFileManager(TestCase):
 
         config_doc = YamlFileManager.read(config_path)
 
-        self.assertEqual(config_doc, yaml.load(""))
+        self.assertEqual(config_doc, self.yaml.load(""))
 
     def test_write_yaml(self):
         config_dir = tempfile.gettempdir()
@@ -167,15 +167,15 @@ class TestYamlFileManager(TestCase):
         config_path = Path("path/to/some", "file_that_doesnt_exist.yaml")
 
         with self.assertRaises(FileNotFoundError):
-            YamlFileManager.write(yaml.load("key: some value"), config_path)
+            YamlFileManager.write(self.yaml.load("key: some value"), config_path)
 
     def test_yaml_put_comment(self):
         config_dir = tempfile.gettempdir()
         config_path = Path(config_dir, "samconfig.yaml")
-        yaml_doc = yaml.load("version: 0.1\nconfig_env:\n  topic2:\n    parameters:\n      word: clarity\n")
+        yaml_doc = self.yaml.load("version: 0.1\nconfig_env:\n  topic2:\n    parameters:\n      word: clarity\n")
 
         yaml_doc = YamlFileManager.put_comment(yaml_doc, "This is a comment")
 
-        yaml.dump(yaml_doc, config_path)
+        self.yaml.dump(yaml_doc, config_path)
         txt = config_path.read_text()
         self.assertIn("# This is a comment", txt)

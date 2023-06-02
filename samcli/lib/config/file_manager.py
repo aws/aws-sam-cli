@@ -17,8 +17,6 @@ from samcli.lib.config.exceptions import FileParseException
 LOG = logging.getLogger(__name__)
 COMMENT_KEY = "__comment__"
 
-yaml = YAML()
-
 
 class FileManager(ABC):
     """
@@ -170,6 +168,7 @@ class YamlFileManager(FileManager):
     Static class to read and write yaml files.
     """
 
+    yaml = YAML()
     file_format = "YAML"
 
     @staticmethod
@@ -188,9 +187,9 @@ class YamlFileManager(FileManager):
             A dictionary-like yaml object, which represents the contents of the YAML file at the
             provided location.
         """
-        yaml_doc = yaml.load("")
+        yaml_doc = YamlFileManager.yaml.load("")
         try:
-            yaml_doc = yaml.load(filepath.read_text())
+            yaml_doc = YamlFileManager.yaml.load(filepath.read_text())
         except OSError as e:
             LOG.debug(f"OSError occurred while reading {YamlFileManager.file_format} file: {str(e)}")
         except YAMLError as e:
@@ -220,7 +219,7 @@ class YamlFileManager(FileManager):
             yaml_doc.yaml_set_start_comment(document[COMMENT_KEY])
             yaml_doc.pop(COMMENT_KEY)
 
-        yaml.dump(yaml_doc, filepath)
+        YamlFileManager.yaml.dump(yaml_doc, filepath)
 
     @staticmethod
     def put_comment(document: Any, comment: str) -> Any:
@@ -247,5 +246,5 @@ class YamlFileManager(FileManager):
     def _to_yaml(document: dict) -> Any:
         """Ensure a dictionary-like object is a YAML document."""
         stream = StringIO()
-        yaml.dump(document, stream)
-        return yaml.load(stream.getvalue())
+        YamlFileManager.yaml.dump(document, stream)
+        return YamlFileManager.yaml.load(stream.getvalue())
