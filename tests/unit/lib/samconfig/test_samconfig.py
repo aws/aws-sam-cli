@@ -182,27 +182,27 @@ class TestSamConfig(TestCase):
 
     def test_check_version_non_supported_type(self):
         self._setup_config()
-        self.samconfig.document.remove(VERSION_KEY)
-        self.samconfig.document.add(VERSION_KEY, "aadeff")
+        self.samconfig.document.pop(VERSION_KEY)
+        self.samconfig.document.update({VERSION_KEY: "aadeff"})
         with self.assertRaises(SamConfigVersionException):
             self.samconfig.sanity_check()
 
     def test_check_version_no_version_exists(self):
         self._setup_config()
-        self.samconfig.document.remove(VERSION_KEY)
+        self.samconfig.document.pop(VERSION_KEY)
         with self.assertRaises(SamConfigVersionException):
             self.samconfig.sanity_check()
 
     def test_check_version_float(self):
         self._setup_config()
-        self.samconfig.document.remove(VERSION_KEY)
-        self.samconfig.document.add(VERSION_KEY, 0.2)
+        self.samconfig.document.pop(VERSION_KEY)
+        self.samconfig.document.update({VERSION_KEY: 0.2})
         self.samconfig.sanity_check()
 
     def test_write_config_file_non_standard_version(self):
         self._setup_config()
-        self.samconfig.document.remove(VERSION_KEY)
-        self.samconfig.document.add(VERSION_KEY, 0.2)
+        self.samconfig.document.pop(VERSION_KEY)
+        self.samconfig.document.update({VERSION_KEY: 0.2})
         self.samconfig.put(cmd_names=["local", "start", "api"], section="parameters", key="skip_pull_image", value=True)
         self.samconfig.sanity_check()
         self.assertEqual(self.samconfig.document.get(VERSION_KEY), 0.2)
@@ -210,7 +210,7 @@ class TestSamConfig(TestCase):
     def test_write_config_file_will_create_the_file_if_not_exist(self):
         with osutils.mkdir_temp(ignore_errors=True) as tempdir:
             non_existing_dir = os.path.join(tempdir, "non-existing-dir")
-            non_existing_file = "non-existing-file"
+            non_existing_file = "non-existing-file.toml"
             samconfig = SamConfig(config_dir=non_existing_dir, filename=non_existing_file)
 
             self.assertFalse(samconfig.exists())

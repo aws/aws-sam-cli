@@ -5,9 +5,12 @@ from pathlib import Path
 from unittest import TestCase, skipIf
 from unittest.mock import MagicMock, patch
 
+import tomlkit
+
 from samcli.commands.exceptions import ConfigException
 from samcli.cli.cli_config_file import TomlProvider, configuration_option, configuration_callback, get_ctx_defaults
-from samcli.lib.config.samconfig import DEFAULT_ENV
+from samcli.lib.config.exceptions import FileParseException, SamConfigFileReadException, SamConfigVersionException
+from samcli.lib.config.samconfig import DEFAULT_ENV, TomlFileManager
 
 from tests.testing_utils import IS_WINDOWS
 
@@ -40,14 +43,14 @@ class TestTomlProvider(TestCase):
         config_dir = tempfile.gettempdir()
         config_path = Path(config_dir, "samconfig.toml")
         config_path.write_text("[config_env.topic.parameters]\nword='clarity'\n")
-        with self.assertRaises(ConfigException):
+        with self.assertRaises(SamConfigVersionException):
             TomlProvider(section=self.parameters)(config_path, self.config_env, [self.cmd_name])
 
     def test_toml_valid_with_invalid_version(self):
         config_dir = tempfile.gettempdir()
         config_path = Path(config_dir, "samconfig.toml")
         config_path.write_text("version='abc'\n[config_env.topic.parameters]\nword='clarity'\n")
-        with self.assertRaises(ConfigException):
+        with self.assertRaises(SamConfigVersionException):
             TomlProvider(section=self.parameters)(config_path, self.config_env, [self.cmd_name])
 
     def test_toml_invalid_empty_dict(self):
@@ -55,7 +58,8 @@ class TestTomlProvider(TestCase):
         config_path = Path(config_dir, "samconfig.toml")
         config_path.write_text("[topic]\nword=clarity\n")
 
-        self.assertEqual(self.toml_provider(config_dir, self.config_env, [self.cmd_name]), {})
+        with self.assertRaises(SamConfigFileReadException):
+            self.toml_provider(config_path, self.config_env, [self.cmd_name])
 
     def test_toml_invalid_file_name(self):
         config_dir = tempfile.gettempdir()
@@ -63,7 +67,7 @@ class TestTomlProvider(TestCase):
         config_path.write_text("version=0.1\n[config_env.topic.parameters]\nword='clarity'\n")
         config_path_invalid = Path(config_dir, "samconfig.toml")
 
-        with self.assertRaises(ConfigException):
+        with self.assertRaises(SamConfigFileReadException):
             self.toml_provider(config_path_invalid, self.config_env, [self.cmd_name])
 
     def test_toml_invalid_syntax(self):
@@ -71,7 +75,7 @@ class TestTomlProvider(TestCase):
         config_path = Path(config_dir, "samconfig.toml")
         config_path.write_text("version=0.1\n[config_env.topic.parameters]\nword=_clarity'\n")
 
-        with self.assertRaises(ConfigException):
+        with self.assertRaises(SamConfigFileReadException):
             self.toml_provider(config_path, self.config_env, [self.cmd_name])
 
 
