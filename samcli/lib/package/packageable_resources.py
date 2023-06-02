@@ -134,7 +134,14 @@ class ResourceZip(Resource):
             if temp_dir:
                 shutil.rmtree(temp_dir)
 
-    def do_export(self, resource_id, resource_dict, parent_dir, property_path: Optional[str] = None, local_path: Optional[str] = None):
+    def do_export(
+        self,
+        resource_id,
+        resource_dict,
+        parent_dir,
+        property_path: Optional[str] = None,
+        local_path: Optional[str] = None,
+    ):
         """
         Default export action is to upload artifacts and set the property to
         S3 URL of the uploaded object
@@ -603,6 +610,7 @@ class GraphQLApiCodeResource(ResourceZip):
     There are more than one CodeUri resources in GraphQLApi.
     This class processes all of them.
     """
+
     RESOURCE_TYPE = AWS_SERVERLESS_GRAPHQLAPI
     PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][1]
     # if CodeUri is omitted the directory is not packaged because it's necessary to support CodeInline
@@ -629,7 +637,9 @@ class GraphQLApiCodeResource(ResourceZip):
                 set_value_from_jmespath(resource_dict, property_path, temp_dir)
 
             try:
-                self.do_export(resource_id, resource_dict, parent_dir, property_path=property_path, local_path=property_value)
+                self.do_export(
+                    resource_id, resource_dict, parent_dir, property_path=property_path, local_path=property_value
+                )
 
             except Exception as ex:
                 LOG.debug("Unable to export", exc_info=ex)
@@ -642,7 +652,7 @@ class GraphQLApiCodeResource(ResourceZip):
 
     @staticmethod
     def _find_all_in_graphql_resource(property_name: str, graphql_dict: Dict[str, Any]) -> List[Tuple[str, str]]:
-        stack: List[Tuple[Dict[str, Any], str]] = [(graphql_dict, '')]
+        stack: List[Tuple[Dict[str, Any], str]] = [(graphql_dict, "")]
         paths_values: List[Tuple[str, str]] = []
 
         while stack:

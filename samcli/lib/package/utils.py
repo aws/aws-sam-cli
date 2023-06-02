@@ -37,9 +37,7 @@ _S3_URL_REGEXS = [
     # - https://s3.Region.amazonaws.com/bucket-name/key name
     # - https://s3.amazonaws.com/bucket-name/key name (old, without region)
     # - https://s3.dualstack.us-west-2.amazonaws.com/...
-    re.compile(
-        rf"http(s)?://s3(.dualstack)?(\.{_REGION_PATTERN})?{_DOT_AMAZONAWS_COM_PATTERN}/.+/.+"
-    ),
+    re.compile(rf"http(s)?://s3(.dualstack)?(\.{_REGION_PATTERN})?{_DOT_AMAZONAWS_COM_PATTERN}/.+/.+"),
     # Virtual Hosted-Style (including two legacies)
     # https://docs.aws.amazon.com/AmazonS3/latest/userguide/VirtualHosting.html
     # - Virtual Hosted-Style: https://bucket-name.s3.Region.amazonaws.com/key name
@@ -48,9 +46,7 @@ _S3_URL_REGEXS = [
     re.compile(rf"http(s)?://.+\.s3((.|-){_REGION_PATTERN})?{_DOT_AMAZONAWS_COM_PATTERN}/.+"),
     # S3 access point:
     # - https://AccessPointName-AccountId.s3-accesspoint.region.amazonaws.com
-    re.compile(
-        rf"http(s)?://.+-\d+\.s3-accesspoint\.{_REGION_PATTERN}{_DOT_AMAZONAWS_COM_PATTERN}/.+/.+"
-    ),
+    re.compile(rf"http(s)?://.+-\d+\.s3-accesspoint\.{_REGION_PATTERN}{_DOT_AMAZONAWS_COM_PATTERN}/.+/.+"),
     # S3 protocol URL:
     # - s3://bucket-name/key-name
     re.compile(r"s3://.+/.+"),
@@ -61,7 +57,7 @@ def is_path_value_valid(path):
     return isinstance(path, str)
 
 
-def make_abs_path(directory, path):
+def make_abs_path(directory: str, path: str) -> str:
     if is_path_value_valid(path) and not os.path.isabs(path):
         return os.path.normpath(os.path.join(directory, path))
     return path
@@ -121,9 +117,7 @@ def upload_local_image_artifacts(resource_id, resource_dict, property_name, pare
 
     if not image_path:
         message_fmt = "Image not found for {property_name} parameter of {resource_id} resource. \n"
-        raise ImageNotFoundError(
-            property_name=property_name, resource_id=resource_id, message_fmt=message_fmt
-        )
+        raise ImageNotFoundError(property_name=property_name, resource_id=resource_id, message_fmt=message_fmt)
 
     if is_ecr_url(image_path):
         LOG.debug("Property %s of %s is already an ECR URL", property_name, resource_id)
@@ -189,18 +183,14 @@ def upload_local_artifacts(
             local_path,
             uploader,
             extension,
-            zip_method=make_zip_with_lambda_permissions
-            if resource_type in LAMBDA_LOCAL_RESOURCES
-            else make_zip,
+            zip_method=make_zip_with_lambda_permissions if resource_type in LAMBDA_LOCAL_RESOURCES else make_zip,
         )
 
     # Path could be pointing to a file. Upload the file
     if is_local_file(local_path):
         return uploader.upload_with_dedup(local_path)
 
-    raise InvalidLocalPathError(
-        resource_id=resource_id, property_name=property_path, local_path=local_path
-    )
+    raise InvalidLocalPathError(resource_id=resource_id, property_name=property_path, local_path=local_path)
 
 
 def resource_not_packageable(resource_dict):
@@ -210,9 +200,7 @@ def resource_not_packageable(resource_dict):
     return False
 
 
-def zip_and_upload(
-    local_path: str, uploader: S3Uploader, extension: Optional[str], zip_method: Callable
-) -> str:
+def zip_and_upload(local_path: str, uploader: S3Uploader, extension: Optional[str], zip_method: Callable) -> str:
     with zip_folder(local_path, zip_method=zip_method) as (zip_file, md5_hash):
         return uploader.upload_with_dedup(zip_file, precomputed_md5=md5_hash, extension=extension)
 

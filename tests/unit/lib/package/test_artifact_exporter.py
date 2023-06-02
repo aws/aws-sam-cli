@@ -86,30 +86,18 @@ class TestArtifactExporter(unittest.TestCase):
         self.code_signer_mock = Mock()
         self.code_signer_mock.should_sign_package.return_value = False
 
-        self.graphql_api_local_paths = [
-            "resolvers/createFoo.js", "functions/func1.js", "functions/func2.js"
-        ]
+        self.graphql_api_local_paths = ["resolvers/createFoo.js", "functions/func1.js", "functions/func2.js"]
         self.graphql_api_resource_dict = {
-            "Resolvers": {
-                "Mutation": {
-                    "createFoo": {
-                        "CodeUri": self.graphql_api_local_paths[0]
-                    }
-                }
-            },
+            "Resolvers": {"Mutation": {"createFoo": {"CodeUri": self.graphql_api_local_paths[0]}}},
             "Functions": {
-                "func1": {
-                    "CodeUri": self.graphql_api_local_paths[1]
-                },
-                "func2": {
-                    "CodeUri": self.graphql_api_local_paths[2]
-                }
-            }
+                "func1": {"CodeUri": self.graphql_api_local_paths[1]},
+                "func2": {"CodeUri": self.graphql_api_local_paths[2]},
+            },
         }
         self.graphql_api_paths_to_property = [
             "Resolvers.Mutation.createFoo.CodeUri",
             "Functions.func1.CodeUri",
-            "Functions.func2.CodeUri"
+            "Functions.func2.CodeUri",
         ]
 
     def test_all_resources_export(self):
@@ -199,38 +187,41 @@ class TestArtifactExporter(unittest.TestCase):
         resource_obj.export(resource_id, resource_dict, parent_dir)
 
         if test_class == GraphQLApiCodeResource:
-            upload_local_artifacts_mock.assert_has_calls([
-                call(
-                    test_class.RESOURCE_TYPE,
-                    resource_id,
-                    resource_dict,
-                    self.graphql_api_paths_to_property[0],
-                    parent_dir,
-                    s3_uploader_mock,
-                    None,
-                    self.graphql_api_local_paths[0],
-                ),
-                call(
-                    test_class.RESOURCE_TYPE,
-                    resource_id,
-                    resource_dict,
-                    self.graphql_api_paths_to_property[1],
-                    parent_dir,
-                    s3_uploader_mock,
-                    None,
-                    self.graphql_api_local_paths[1],
-                ),
-                call(
-                    test_class.RESOURCE_TYPE,
-                    resource_id,
-                    resource_dict,
-                    self.graphql_api_paths_to_property[2],
-                    parent_dir,
-                    s3_uploader_mock,
-                    None,
-                    self.graphql_api_local_paths[2],
-                ),
-            ], any_order=True)
+            upload_local_artifacts_mock.assert_has_calls(
+                [
+                    call(
+                        test_class.RESOURCE_TYPE,
+                        resource_id,
+                        resource_dict,
+                        self.graphql_api_paths_to_property[0],
+                        parent_dir,
+                        s3_uploader_mock,
+                        None,
+                        self.graphql_api_local_paths[0],
+                    ),
+                    call(
+                        test_class.RESOURCE_TYPE,
+                        resource_id,
+                        resource_dict,
+                        self.graphql_api_paths_to_property[1],
+                        parent_dir,
+                        s3_uploader_mock,
+                        None,
+                        self.graphql_api_local_paths[1],
+                    ),
+                    call(
+                        test_class.RESOURCE_TYPE,
+                        resource_id,
+                        resource_dict,
+                        self.graphql_api_paths_to_property[2],
+                        parent_dir,
+                        s3_uploader_mock,
+                        None,
+                        self.graphql_api_local_paths[2],
+                    ),
+                ],
+                any_order=True,
+            )
         elif test_class in (
             ApiGatewayRestApiResource,
             LambdaFunctionResource,
@@ -261,7 +252,7 @@ class TestArtifactExporter(unittest.TestCase):
             result = [
                 self.graphql_api_resource_dict["Resolvers"]["Mutation"]["createFoo"][test_class.PROPERTY_NAME],
                 self.graphql_api_resource_dict["Functions"]["func1"][test_class.PROPERTY_NAME],
-                self.graphql_api_resource_dict["Functions"]["func2"][test_class.PROPERTY_NAME]
+                self.graphql_api_resource_dict["Functions"]["func2"][test_class.PROPERTY_NAME],
             ]
         elif "." in test_class.PROPERTY_NAME:
             top_level_property_name = test_class.PROPERTY_NAME.split(".")[0]
