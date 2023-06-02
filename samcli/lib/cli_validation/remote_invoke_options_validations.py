@@ -16,7 +16,8 @@ LOG = logging.getLogger(__name__)
 
 def event_and_event_file_options_validation(func):
     """
-    This function validates that both --event and --event-file should not be provided
+    This function validates the cases when both --event and --event-file are provided and
+    neither option is provided
 
     Parameters
     ----------
