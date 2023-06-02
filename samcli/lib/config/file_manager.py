@@ -244,7 +244,19 @@ class YamlFileManager(FileManager):
 
     @staticmethod
     def _to_yaml(document: dict) -> Any:
-        """Ensure a dictionary-like object is a YAML document."""
-        stream = StringIO()
-        YamlFileManager.yaml.dump(document, stream)
-        return YamlFileManager.yaml.load(stream.getvalue())
+        """
+        Ensure a dictionary-like object is a YAML document.
+        
+        Parameters
+        ----------
+        document: dict
+            A dictionary-like object to parse.
+
+        Returns
+        -------
+        Any
+            A dictionary-like YAML object, as derived from `yaml.load()`.
+        """
+        with StringIO() as stream:
+            YamlFileManager.yaml.dump(document, stream)
+            return YamlFileManager.yaml.load(stream.getvalue())
