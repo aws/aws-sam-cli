@@ -13,7 +13,6 @@ def walk_modules(module: ModuleType, visited: set) -> None:
         visited.add(pkg.name)
         if pkg.ispkg:
             submodule = __import__(pkg.name)
-            submodule = submodule
             walk_modules(submodule, visited)
 
 
