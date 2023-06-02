@@ -54,3 +54,26 @@ class TestStartApiTerraformApplication(TerraformStartApiIntegrationBase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"message": "hello world"})
+
+
+@skipIf(
+    not CI_OVERRIDE,
+    "Skip Terraform test cases unless running in CI",
+)
+@pytest.mark.flaky(reruns=3)
+class TestStartApiTerraformApplicationV1LambdaAuthorizers(TerraformStartApiIntegrationBase):
+    terraform_application = "v1-lambda-authorizer"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    def test_invoke_authorizer(self):
+        response = requests.get(self.url + "/hello", timeout=300, headers={"myheader": "123"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"message": "from authorizer"})
+
+    def test_fails_validation(self):
+        response = requests.get(self.url + "/hello", timeout=300, headers={"myheader": "not valid"})
+
+        self.assertEqual(response.status_code, 401)

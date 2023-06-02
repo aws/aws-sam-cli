@@ -96,6 +96,7 @@ def auth_handler(event, context):
     # context['obj'] = {'foo':'bar'} <- also invalid
  
     authResponse['context'] = context
+    print(authResponse)
     return authResponse
 
 
