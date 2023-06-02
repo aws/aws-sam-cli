@@ -646,7 +646,9 @@ class GraphQLApiCodeResource(ResourceZip):
         if resource_not_packageable(resource_dict):
             return
 
-        paths_values = self._find_all_in_graphql_resource(self.PROPERTY_NAME, resource_dict)
+        # to be able to set different nested properties to S3 uri, paths are necessary
+        # jmespath doesn't provide that functionality, thus custom implementation
+        paths_values = self._find_all_with_property_name(resource_dict)
         for property_path, property_value in paths_values:
             if isinstance(property_value, dict):
                 LOG.debug("Property %s of %s resource is not a URL", self.PROPERTY_NAME, resource_id)
@@ -673,19 +675,13 @@ class GraphQLApiCodeResource(ResourceZip):
                 if temp_dir:
                     shutil.rmtree(temp_dir)
 
-    @staticmethod
-    def _find_all_in_graphql_resource(
-        property_name: str, graphql_dict: Dict[str, Any]
-    ) -> List[Tuple[str, Union[str, Dict]]]:
-        """Find paths to the all properties with the given name.
+    def _find_all_with_property_name(self, graphql_dict: Dict[str, Any]) -> List[Tuple[str, Union[str, Dict]]]:
+        """Find paths to the all properties with self.PROPERTY_NAME name and their (properties) values.
 
-        It utilizes the knowledge of GraphQLApi structure instead of doing a generic search in the graph.
+        It leverages the knowledge of GraphQLApi structure instead of doing generic search in the graph.
 
         Parameters
         ----------
-        property_name
-            name of the property to look up; it is supposed to be self.PROPERTY_NAME,
-            it's passed as a parameter though to avoid checking again that it's not None
         graphql_dict
             GraphQLApi resource dict
 
@@ -693,7 +689,7 @@ class GraphQLApiCodeResource(ResourceZip):
         -------
             list of tuple (path, value) for all found properties which has property_name
         """
-        # no need to look up in other subtrees other than "Resolvers" and "Functions"
+        # need to look up only in "Resolvers" and "Functions" subtrees
         resolvers_and_functions = {k: graphql_dict[k] for k in ("Resolvers", "Functions") if k in graphql_dict}
         stack: List[Tuple[Dict[str, Any], str]] = [(resolvers_and_functions, "")]
         paths_values: List[Tuple[str, Union[str, Dict]]] = []
@@ -702,12 +698,12 @@ class GraphQLApiCodeResource(ResourceZip):
             node, path = stack.pop()
             if isinstance(node, dict):
                 for key, value in node.items():
-                    if key == property_name:
+                    if key == self.PROPERTY_NAME:
                         paths_values.append((f"{path}{key}", value))
                     elif isinstance(value, dict):
                         stack.append((value, f"{path}{key}."))
-            # there is no need to handle lists because path to "CodeUri"
-            # within "Resolvers" and "Functions" doesn't have lists
+            # there is no need to handle lists because
+            # paths to "CodeUri" within "Resolvers" and "Functions" doesn't have lists
         return paths_values
 
 
