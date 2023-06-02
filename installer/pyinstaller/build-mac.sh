@@ -30,11 +30,11 @@ if [ "$python_library_zip_filename" = "" ]; then
 fi
 
 if [ "$openssl_version" = "" ]; then
-    openssl_version="1.1.1t";
+    openssl_version="1.1.1o";
 fi
 
 if [ "$python_version" = "" ]; then
-    python_version="3.11.3";
+    python_version="3.8.13";
 fi
 
 if ! [ "$build_binary_name" = "" ]; then
@@ -71,20 +71,8 @@ echo "Copying Source"
 cp -r ../[!.]* ./src
 cp -r ./src/* ./output/aws-sam-cli-src
 
-echo "Removing CI Scripts and other files/direcories not needed"
+echo "Removing CI Scripts"
 rm -vf ./output/aws-sam-cli-src/appveyor*.yml
-rm -rf ./output/aws-sam-cli-src/tests
-rm -rf ./output/aws-sam-cli-src/designs
-rm -rf ./output/aws-sam-cli-src/docs
-rm -rf ./output/aws-sam-cli-src/media
-rm -rf ./output/aws-sam-cli-src/Make.ps1
-rm -rf ./output/aws-sam-cli-src/CODEOWNERS
-rm -rf ./output/aws-sam-cli-src/CODE_OF_CONDUCT.md
-rm -rf ./output/aws-sam-cli-src/CONTRIBUTING.md
-rm -rf ./output/aws-sam-cli-src/DESIGN.md
-rm -rf ./output/aws-sam-cli-src/Makefile
-rm -rf ./output/aws-sam-cli-src/mypy.ini
-rm -rf ./output/aws-sam-cli-src/pytest.ini
 
 echo "Installing Python"
 curl "https://www.python.org/ftp/python/${python_version}/Python-${python_version}.tgz" --output python.tgz
@@ -96,7 +84,7 @@ sudo make install
 cd ..
 
 echo "Installing Python Libraries"
-/usr/local/bin/python3.11 -m venv venv
+/usr/local/bin/python3.8 -m venv venv
 ./venv/bin/pip install --upgrade pip
 ./venv/bin/pip install -r src/requirements/reproducible-mac.txt
 
