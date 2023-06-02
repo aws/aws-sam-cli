@@ -438,7 +438,9 @@ class Api:
         return list(self.binary_media_types_set)
 
 
-_CorsTuple = namedtuple("Cors", ["allow_origin", "allow_methods", "allow_headers", "allow_credentials", "max_age"])
+_CorsTuple = namedtuple(
+    "_CorsTuple", ["allow_origin", "allow_methods", "allow_headers", "allow_credentials", "max_age"]
+)
 
 _CorsTuple.__new__.__defaults__ = (
     None,  # Allow Origin defaults to None
