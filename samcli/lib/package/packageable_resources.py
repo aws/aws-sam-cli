@@ -4,7 +4,7 @@ Code for all Package-able resources
 import logging
 import os
 import shutil
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 import jmespath
 from botocore.utils import set_value_from_jmespath
@@ -90,7 +90,7 @@ class ResourceZip(Resource):
     Base class representing a CloudFormation resource that can be exported
     """
 
-    RESOURCE_TYPE: Optional[str] = None
+    RESOURCE_TYPE: str = ""
     PROPERTY_NAME: str = ""
     PACKAGE_NULL_PROPERTY = True
     # Set this property to True in base class if you want the exporter to zip
@@ -150,6 +150,7 @@ class ResourceZip(Resource):
         """
         if property_path is None:
             property_path = self.PROPERTY_NAME
+        uploader = cast(S3Uploader, self.uploader)
         # code signer only accepts files which has '.zip' extension in it
         # so package artifact with '.zip' if it is required to be signed
         should_sign_package = self.code_signer.should_sign_package(resource_id)
@@ -160,13 +161,13 @@ class ResourceZip(Resource):
             resource_dict,
             property_path,
             parent_dir,
-            self.uploader,
+            uploader,
             artifact_extension,
             local_path,
         )
         if should_sign_package:
             uploaded_url = self.code_signer.sign_package(
-                resource_id, uploaded_url, self.uploader.get_version_of_artifact(uploaded_url)
+                resource_id, uploaded_url, uploader.get_version_of_artifact(uploaded_url)
             )
         set_value_from_jmespath(resource_dict, property_path, uploaded_url)
 
@@ -639,7 +640,7 @@ class GraphQLApiCodeResource(ResourceZip):
     PACKAGE_NULL_PROPERTY = False
 
     def export(self, resource_id: str, resource_dict: Optional[Dict], parent_dir: str):
-        if self.PROPERTY_NAME is None or resource_dict is None:
+        if resource_dict is None:
             return
 
         if resource_not_packageable(resource_dict):
