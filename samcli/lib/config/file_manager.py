@@ -246,7 +246,7 @@ class YamlFileManager(FileManager):
     def _to_yaml(document: dict) -> Any:
         """
         Ensure a dictionary-like object is a YAML document.
-        
+
         Parameters
         ----------
         document: dict
