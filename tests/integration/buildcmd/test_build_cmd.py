@@ -26,6 +26,7 @@ from tests.testing_utils import (
     SKIP_DOCKER_BUILD,
     SKIP_DOCKER_MESSAGE,
     run_command_with_input,
+    UpdatableSARTemplate,
 )
 from .build_integ_base import (
     BuildIntegBase,
@@ -2958,6 +2959,20 @@ class TestBuildWithZipFunctionsOrLayers(NestedBuildIntegBase):
 @skipIf(SKIP_SAR_TESTS, "Skip SAR tests")
 class TestBuildSAR(BuildIntegBase):
     template = "aws-serverless-application-with-application-id-map.yaml"
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestBuildSAR, cls).setUpClass()
+        cls.update_sar_template = None
+        if cls.template_path:
+            cls.update_sar_template = UpdatableSARTemplate(cls.template_path)
+            cls.update_sar_template.setup()
+            cls.template_path = cls.update_sar_template.updated_template_path
+
+    @classmethod
+    def tearDownClass(cls):
+        if cls.update_sar_template:
+            cls.update_sar_template.clean()
 
     @parameterized.expand(
         [

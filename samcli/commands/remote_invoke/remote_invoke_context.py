@@ -30,7 +30,6 @@ SUPPORTED_SERVICES = {"lambda": AWS_LAMBDA_FUNCTION}
 
 
 class RemoteInvokeContext:
-
     _boto_client_provider: BotoProviderType
     _boto_resource_provider: BotoProviderType
     _stack_name: Optional[str]
