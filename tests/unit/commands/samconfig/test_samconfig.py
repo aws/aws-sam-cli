@@ -8,14 +8,15 @@ import shutil
 import tempfile
 from pathlib import Path
 from contextlib import contextmanager
-from samcli.lib.config.samconfig import SamConfig, DEFAULT_ENV
 
 from click.testing import CliRunner
 
 from unittest import TestCase
 from unittest.mock import patch, ANY
 import logging
+from samcli.lib.config.exceptions import SamConfigFileReadException
 
+from samcli.lib.config.samconfig import SamConfig, DEFAULT_ENV, TomlFileManager
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 
 LOG = logging.getLogger()
@@ -1245,6 +1246,23 @@ class TestSamConfigWithOverrides(TestCase):
             self.assertIsNone(result.exception)
 
             do_cli_mock.assert_called_with(ANY, str(Path(os.getcwd(), "mytemplate.yaml")), False)
+
+
+class TestSamConfigFileManager(TestCase):
+    def test_file_manager_not_declared(self):
+        config_dir = tempfile.gettempdir()
+        config_path = Path(config_dir, "samconfig")
+
+        with self.assertRaises(SamConfigFileReadException):
+            SamConfig(config_path, filename="samconfig")
+
+    def test_file_manager_toml(self):
+        config_dir = tempfile.gettempdir()
+        config_path = Path(config_dir, "samconfig.toml")
+
+        samconfig = SamConfig(config_path, filename="samconfig.toml")
+
+        self.assertIs(samconfig.file_manager, TomlFileManager)
 
 
 @contextmanager
