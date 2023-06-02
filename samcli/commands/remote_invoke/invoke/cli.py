@@ -1,6 +1,5 @@
 """CLI command for "invoke" command."""
 import logging
-import sys
 from io import TextIOWrapper
 from typing import cast
 
@@ -9,8 +8,13 @@ import click
 from samcli.cli.cli_config_file import TomlProvider, configuration_option
 from samcli.cli.context import Context
 from samcli.cli.main import aws_creds_options, common_options, pass_context, print_cmdline_args
+from samcli.cli.types import RemoteInvokeOutputFormatType
 from samcli.commands._utils.options import remote_invoke_parameter_option
-from samcli.lib.cli_validation.event_file_validation import event_and_event_file_options_validation
+from samcli.lib.cli_validation.remote_invoke_options_validations import (
+    event_and_event_file_options_validation,
+    stack_name_or_resource_id_atleast_one_option_validation,
+)
+from samcli.lib.remote_invoke.remote_invoke_executors import RemoteInvokeOutputFormat
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.version_checker import check_newer_version
 
@@ -40,10 +44,11 @@ SHORT_HELP = "Invoke a deployed resource in the cloud"
 @click.option(
     "--output-format",
     help="Output format for the boto API response",
-    default="default",
-    type=click.Choice(["default", "full-boto-response"]),
+    default=RemoteInvokeOutputFormat.DEFAULT.name.lower(),
+    type=RemoteInvokeOutputFormatType(RemoteInvokeOutputFormat),
 )
 @remote_invoke_parameter_option
+@stack_name_or_resource_id_atleast_one_option_validation
 @event_and_event_file_options_validation
 @common_options
 @aws_creds_options
@@ -57,7 +62,7 @@ def cli(
     resource_id: str,
     event: str,
     event_file: TextIOWrapper,
-    output_format: str,
+    output_format: RemoteInvokeOutputFormat,
     parameter: dict,
     config_file: str,
     config_env: str,
@@ -85,7 +90,7 @@ def do_cli(
     resource_id: str,
     event: str,
     event_file: TextIOWrapper,
-    output_format: str,
+    output_format: RemoteInvokeOutputFormat,
     parameter: dict,
     region: str,
     profile: str,
@@ -102,12 +107,11 @@ def do_cli(
         InvalideBotoResponseException,
         InvalidResourceBotoParameterException,
     )
-    from samcli.lib.remote_invoke.remote_invoke_executors import RemoteInvokeExecutionInfo, RemoteInvokeOutputFormat
+    from samcli.lib.remote_invoke.remote_invoke_executors import RemoteInvokeExecutionInfo
     from samcli.lib.utils.boto_utils import get_boto_client_provider_with_config, get_boto_resource_provider_with_config
 
     boto_client_provider = get_boto_client_provider_with_config(region_name=region)
     boto_resource_provider = get_boto_resource_provider_with_config(region_name=region)
-
     try:
         with RemoteInvokeContext(
             boto_client_provider=boto_client_provider,
@@ -116,27 +120,16 @@ def do_cli(
             resource_id=resource_id,
         ) as remote_invoke_context:
 
-            if not resource_id and not stack_name:
-                LOG.error("Atleast 1 of --stack-name or --resource-id parameters should be provided")
-                return
-
-            output_format_enum_value = RemoteInvokeOutputFormat.DEFAULT
-            if output_format == "full-boto-response":
-                output_format_enum_value = RemoteInvokeOutputFormat.FULL_BOTO_RESPONSE
-
-            # if no event nor event_file arguments are given, read from stdin
-            if not event and not event_file:
-                LOG.info("Neither --event nor --event-file options have been provided, reading from stdin")
-                event_file = cast(TextIOWrapper, sys.stdin)
-
             remote_invoke_input = RemoteInvokeExecutionInfo(
-                payload=event, payload_file=event_file, parameters=parameter, output_format=output_format_enum_value
+                payload=event, payload_file=event_file, parameters=parameter, output_format=output_format
             )
 
             remote_invoke_result = remote_invoke_context.run(remote_invoke_input=remote_invoke_input)
 
             if remote_invoke_result.is_succeeded():
+                LOG.debug("Invoking resource was successfull, writing response to stdout")
                 if remote_invoke_result.log_output:
+                    LOG.debug("Writing log output to stderr")
                     remote_invoke_context.stderr.write(remote_invoke_result.log_output.encode())
                 output_response = cast(str, remote_invoke_result.response)
                 remote_invoke_context.stdout.write(output_response.encode())

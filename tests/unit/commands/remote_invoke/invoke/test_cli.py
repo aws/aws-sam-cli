@@ -1,7 +1,7 @@
 from unittest import TestCase
 from unittest.mock import patch, Mock
 
-from parameterized import parameterized, param
+from parameterized import parameterized
 
 from samcli.commands.remote_invoke.invoke.cli import do_cli
 from samcli.lib.remote_invoke.remote_invoke_executors import RemoteInvokeOutputFormat
@@ -22,60 +22,21 @@ class TestRemoteInvokeCliCommand(TestCase):
         self.config_file = "config_file"
         self.config_env = "config_env"
 
-    @patch("samcli.commands.remote_invoke.invoke.cli.LOG")
-    @patch("samcli.lib.utils.boto_utils.get_boto_client_provider_with_config")
-    @patch("samcli.lib.utils.boto_utils.get_boto_resource_provider_with_config")
-    @patch("samcli.commands.remote_invoke.remote_invoke_context.RemoteInvokeContext")
-    def test_remote_invoke_no_stack_name_resource_id(
-        self,
-        mock_remote_invoke_context,
-        patched_get_boto_resource_provider_with_config,
-        patched_get_boto_client_provider_with_config,
-        patched_log,
-    ):
-        given_client_provider = Mock()
-        patched_get_boto_client_provider_with_config.return_value = given_client_provider
-
-        given_resource_provider = Mock()
-        patched_get_boto_resource_provider_with_config.return_value = given_resource_provider
-
-        context_mock = Mock()
-        mock_remote_invoke_context.return_value.__enter__.return_value = context_mock
-
-        do_cli(
-            stack_name=None,
-            resource_id=None,
-            event="event",
-            event_file=None,
-            parameter={},
-            output_format=RemoteInvokeOutputFormat.DEFAULT,
-            region=self.region,
-            profile=self.profile,
-            config_file=self.config_file,
-            config_env=self.config_env,
-        )
-
-        patched_get_boto_client_provider_with_config.assert_called_with(region_name=self.region)
-        patched_get_boto_resource_provider_with_config.assert_called_with(region_name=self.region)
-        patched_log.error.assert_called_with("Atleast 1 of --stack-name or --resource-id parameters should be provided")
-
     @parameterized.expand(
         [
-            ("event", None, "default", {}, "log-output"),
-            ("event", None, "default", {}, None),
-            ("event", None, "default", {"Param1": "ParamValue1"}, "log-output"),
-            ("event", None, "full-boto-response", {}, None),
-            ("event", None, "full-boto-response", {"Param1": "ParamValue1"}, "log-output"),
-            ("event", None, "full-boto-response", {"Param1": "ParamValue1"}, None),
-            (None, "event_file", "default", {"Param1": "ParamValue1"}, None),
-            (None, "event_file", "full-boto-response", {"Param1": "ParamValue1"}, "log-output"),
-            (None, None, "default", {}, None),
+            ("event", None, RemoteInvokeOutputFormat.DEFAULT, {}, "log-output"),
+            ("event", None, RemoteInvokeOutputFormat.DEFAULT, {}, None),
+            ("event", None, RemoteInvokeOutputFormat.DEFAULT, {"Param1": "ParamValue1"}, "log-output"),
+            ("event", None, RemoteInvokeOutputFormat.RAW, {}, None),
+            ("event", None, RemoteInvokeOutputFormat.RAW, {"Param1": "ParamValue1"}, "log-output"),
+            ("event", None, RemoteInvokeOutputFormat.RAW, {"Param1": "ParamValue1"}, None),
+            (None, "event_file", RemoteInvokeOutputFormat.DEFAULT, {"Param1": "ParamValue1"}, None),
+            (None, "event_file", RemoteInvokeOutputFormat.RAW, {"Param1": "ParamValue1"}, "log-output"),
         ]
     )
     @patch("samcli.lib.remote_invoke.remote_invoke_executors.RemoteInvokeExecutionInfo")
     @patch("samcli.lib.utils.boto_utils.get_boto_client_provider_with_config")
     @patch("samcli.lib.utils.boto_utils.get_boto_resource_provider_with_config")
-    @patch("sys.stdin")
     @patch("samcli.commands.remote_invoke.remote_invoke_context.RemoteInvokeContext")
     def test_remote_invoke_command(
         self,
@@ -85,7 +46,6 @@ class TestRemoteInvokeCliCommand(TestCase):
         parameter,
         log_output,
         mock_remote_invoke_context,
-        patched_stdin,
         patched_get_boto_resource_provider_with_config,
         patched_get_boto_client_provider_with_config,
         patched_remote_invoke_execution_info,
@@ -135,19 +95,9 @@ class TestRemoteInvokeCliCommand(TestCase):
             resource_id=self.resource_id,
         )
 
-        output_format_enum_value = RemoteInvokeOutputFormat.DEFAULT
-        if output_format == "full-boto-response":
-            output_format_enum_value = RemoteInvokeOutputFormat.FULL_BOTO_RESPONSE
-
-        # if both event and event_file is None, it should use sys.stdin
-        if not event and not event_file:
-            patched_remote_invoke_execution_info.assert_called_with(
-                payload=event, payload_file=patched_stdin, parameters=parameter, output_format=output_format_enum_value
-            )
-        else:
-            patched_remote_invoke_execution_info.assert_called_with(
-                payload=event, payload_file=event_file, parameters=parameter, output_format=output_format_enum_value
-            )
+        patched_remote_invoke_execution_info.assert_called_with(
+            payload=event, payload_file=event_file, parameters=parameter, output_format=output_format
+        )
 
         context_mock.run.assert_called_with(remote_invoke_input=given_remote_invoke_execution_info)
 
