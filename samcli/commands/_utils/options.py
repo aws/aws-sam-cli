@@ -138,7 +138,6 @@ def remote_invoke_boto_parameter_callback(ctx, param, provided_value):
     :param provided_value: Value provided by Click, after being processed by RemoteInvokeBotoApiParameterType.
     :return: dictionary of boto api parameters to their provided values. E.g. LogType=Tail for Lambda invoke API
     """
-    LOG.debug("Using provided values %s to create a dict of boto kwargs", provided_value)
     boto_api_parameters = {}
     for value in provided_value:
         boto_api_parameters.update(value)

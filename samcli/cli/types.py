@@ -435,6 +435,15 @@ class RemoteInvokeBotoApiParameterType(click.ParamType):
     MIN_KEY_VALUE_PAIR_LENGTH = 2
 
     def convert(self, value, param, ctx):
+        """Converts the user provided parameter value with the format "parameter=value" to dict
+            {"parameter": "value"}
+
+        Parameters
+        ------------
+        value: User provided value for the click option
+        param: click parameter
+        ctx: Context
+        """
         # Split by first "=" as some values could have multiple "=" For e.g. base-64 encoded ClientContext for Lambda
         key_value_pair = value.split("=", 1)
         if len(key_value_pair) < self.MIN_KEY_VALUE_PAIR_LENGTH:
@@ -457,6 +466,15 @@ class RemoteInvokeOutputFormatType(click.Choice):
         super().__init__(choices=[item.name.lower() for item in enum])
 
     def convert(self, value, param, ctx):
+        """Converts the user provided parameter value for the option to
+           the provided Enum
+
+        Parameters
+        ------------
+        value: User provided value for the click option
+        param: click parameter
+        ctx: Context
+        """
         LOG.debug("Converting provided %s option value to Enum", param.opts[0])
         value = super().convert(value, param, ctx)
         return self.enum(value)
