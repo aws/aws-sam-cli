@@ -13,7 +13,7 @@ import boto3
 import click
 import requests
 from botocore.exceptions import ClientError
-from OpenSSL import SSL, crypto  # type: ignore
+from OpenSSL import SSL, crypto
 
 from samcli.commands.pipeline.bootstrap.guided_context import BITBUCKET, GITHUB_ACTIONS, GITLAB, OPEN_ID_CONNECT
 from samcli.commands.pipeline.bootstrap.pipeline_oidc_provider import PipelineOidcProvider
