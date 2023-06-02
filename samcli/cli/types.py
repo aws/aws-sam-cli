@@ -443,8 +443,7 @@ class RemoteInvokeBotoApiParameterType(click.ParamType):
             )
         key = key_value_pair[0]
         _value = key_value_pair[1]
-        converted_dict = {key: _value}
-        LOG.debug("Converting provided parameter %s to dict %s", value, converted_dict)
+        LOG.debug("Converting provided %s option value to dict", param.opts[0])
         return {key: _value}
 
 
@@ -458,6 +457,6 @@ class RemoteInvokeOutputFormatType(click.Choice):
         super().__init__(choices=[item.name.lower() for item in enum])
 
     def convert(self, value, param, ctx):
-        LOG.debug("Converting provided output-format value to Enum", value)
+        LOG.debug("Converting provided %s option value to Enum", param.opts[0])
         value = super().convert(value, param, ctx)
         return self.enum(value)
