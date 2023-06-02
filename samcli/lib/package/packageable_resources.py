@@ -4,7 +4,7 @@ Code for all Package-able resources
 import logging
 import os
 import shutil
-from typing import Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import jmespath
 from botocore.utils import set_value_from_jmespath
@@ -40,6 +40,7 @@ from samcli.lib.utils.resources import (
     AWS_LAMBDA_LAYERVERSION,
     AWS_SERVERLESS_API,
     AWS_SERVERLESS_FUNCTION,
+    AWS_SERVERLESS_GRAPHQLAPI,
     AWS_SERVERLESS_HTTPAPI,
     AWS_SERVERLESS_LAYERVERSION,
     AWS_SERVERLESS_STATEMACHINE,
@@ -133,13 +134,15 @@ class ResourceZip(Resource):
             if temp_dir:
                 shutil.rmtree(temp_dir)
 
-    def do_export(self, resource_id, resource_dict, parent_dir):
+    def do_export(self, resource_id, resource_dict, parent_dir, property_path: Optional[str] = None, local_path: Optional[str] = None):
         """
         Default export action is to upload artifacts and set the property to
         S3 URL of the uploaded object
         If code signing configuration is provided for function/layer, uploaded artifact
         will be replaced by signed artifact location
         """
+        if property_path is None:
+            property_path = self.PROPERTY_NAME
         # code signer only accepts files which has '.zip' extension in it
         # so package artifact with '.zip' if it is required to be signed
         should_sign_package = self.code_signer.should_sign_package(resource_id)
@@ -148,16 +151,17 @@ class ResourceZip(Resource):
             self.RESOURCE_TYPE,
             resource_id,
             resource_dict,
-            self.PROPERTY_NAME,
+            property_path,
             parent_dir,
             self.uploader,
             artifact_extension,
+            local_path,
         )
         if should_sign_package:
             uploaded_url = self.code_signer.sign_package(
                 resource_id, uploaded_url, self.uploader.get_version_of_artifact(uploaded_url)
             )
-        set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, uploaded_url)
+        set_value_from_jmespath(resource_dict, property_path, uploaded_url)
 
     def delete(self, resource_id, resource_dict):
         """
@@ -585,6 +589,73 @@ class ECRResource(Resource):
         return jmespath.search(self.PROPERTY_NAME, resource_dict)
 
 
+class GraphQLApiSchemaResource(ResourceZip):
+    RESOURCE_TYPE = AWS_SERVERLESS_GRAPHQLAPI
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
+    # Don't package the directory if SchemaUri is omitted.
+    # Necessary to support SchemaInline
+    PACKAGE_NULL_PROPERTY = False
+
+
+class GraphQLApiCodeResource(ResourceZip):
+    """CodeUri for GraphQLApi resource.
+
+    There are more than one CodeUri resources in GraphQLApi.
+    This class processes all of them.
+    """
+    RESOURCE_TYPE = AWS_SERVERLESS_GRAPHQLAPI
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][1]
+    # if CodeUri is omitted the directory is not packaged because it's necessary to support CodeInline
+    PACKAGE_NULL_PROPERTY = False
+
+    def export(self, resource_id: str, resource_dict: Optional[Dict], parent_dir: str):
+        if resource_dict is None:
+            return
+
+        if resource_not_packageable(resource_dict):
+            return
+
+        paths_values = self._find_all_in_graphql_resource(self.PROPERTY_NAME, resource_dict)
+        for property_path, property_value in paths_values:
+            if isinstance(property_value, dict):
+                LOG.debug("Property %s of %s resource is not a URL", self.PROPERTY_NAME, resource_id)
+                return
+
+            # If property is a file but not a zip file, place file in temp
+            # folder and send the temp folder to be zipped
+            temp_dir = None
+            if is_local_file(property_value) and not is_zip_file(property_value) and self.FORCE_ZIP:
+                temp_dir = copy_to_temp_dir(property_value)
+                set_value_from_jmespath(resource_dict, property_path, temp_dir)
+
+            try:
+                self.do_export(resource_id, resource_dict, parent_dir, property_path=property_path, local_path=property_value)
+
+            except Exception as ex:
+                LOG.debug("Unable to export", exc_info=ex)
+                raise exceptions.ExportFailedError(
+                    resource_id=resource_id, property_name=property_path, property_value=property_value, ex=ex
+                )
+            finally:
+                if temp_dir:
+                    shutil.rmtree(temp_dir)
+
+    @staticmethod
+    def _find_all_in_graphql_resource(property_name: str, graphql_dict: Dict[str, Any]) -> List[Tuple[str, str]]:
+        stack: List[Tuple[Dict[str, Any], str]] = [(graphql_dict, '')]
+        paths_values: List[Tuple[str, str]] = []
+
+        while stack:
+            node, path = stack.pop()
+            if isinstance(node, dict):
+                for key, value in node.items():
+                    if key == property_name:
+                        paths_values.append((f"{path}{key}", value))
+                    elif isinstance(value, dict):
+                        stack.append((value, f"{path}{key}."))
+        return paths_values
+
+
 RESOURCES_EXPORT_LIST = [
     ServerlessFunctionResource,
     ServerlessFunctionImageResource,
@@ -610,6 +681,8 @@ RESOURCES_EXPORT_LIST = [
     CloudFormationModuleVersionModulePackage,
     CloudFormationResourceVersionSchemaHandlerPackage,
     ECRResource,
+    GraphQLApiSchemaResource,
+    GraphQLApiCodeResource,
 ]
 
 METADATA_EXPORT_LIST = [ServerlessRepoApplicationReadme, ServerlessRepoApplicationLicense]
