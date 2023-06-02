@@ -592,6 +592,7 @@ class TestArtifactExporter(unittest.TestCase):
             parent_dir,
             self.s3_uploader_mock,
             None,
+            None,
         )
 
         self.assertEqual(resource_dict[resource.PROPERTY_NAME], s3_url)
@@ -871,6 +872,7 @@ class TestArtifactExporter(unittest.TestCase):
             resource.PROPERTY_NAME,
             parent_dir,
             self.s3_uploader_mock,
+            None,
             None,
         )
         self.code_signer_mock.should_sign_package.assert_called_once_with(resource_id)
