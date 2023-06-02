@@ -1,6 +1,7 @@
 """
 Provide a CDK implementation of IaCPluginInterface
 """
+import abc
 from typing import List
 
 from samcli.lib.iac.plugins_interfaces import IaCPluginInterface, LookupPath, SamCliProject, Stack
@@ -19,12 +20,15 @@ class CdkIacImplementation(IaCPluginInterface):
         the CDK project type
     """
 
+    @abc.abstractmethod
     def read_project(self, lookup_paths: List[LookupPath]) -> SamCliProject:
         pass
 
+    @abc.abstractmethod
     def write_project(self, project: SamCliProject, build_dir: str) -> bool:
         pass
 
+    @abc.abstractmethod
     def update_packaged_locations(self, stack: Stack) -> bool:
         pass
 
