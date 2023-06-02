@@ -10,9 +10,11 @@ from samcli.cli.types import (
     SigningProfilesOptionType,
     ImageRepositoryType,
     ImageRepositoriesType,
-    RemoteInvokeBotoAPIParameterType,
+    RemoteInvokeBotoApiParameterType,
+    RemoteInvokeOutputFormatType,
 )
 from samcli.cli.types import CfnMetadataType
+from samcli.lib.remote_invoke.remote_invoke_executors import RemoteInvokeOutputFormat
 
 
 class TestCfnParameterOverridesType(TestCase):
@@ -444,9 +446,9 @@ class TestImageRepositoriesType(TestCase):
         self.assertEqual(result, expected, msg="Failed with Input = " + str(input))
 
 
-class TestRemoteInvokeBotoAPIParameterType(TestCase):
+class TestRemoteInvokeBotoApiParameterType(TestCase):
     def setUp(self):
-        self.param_type = RemoteInvokeBotoAPIParameterType()
+        self.param_type = RemoteInvokeBotoApiParameterType()
         self.mock_param = Mock(opts=["--parameter"])
 
     @parameterized.expand(
@@ -480,4 +482,37 @@ class TestRemoteInvokeBotoAPIParameterType(TestCase):
     )
     def test_successful_parsing(self, input, expected):
         result = self.param_type.convert(input, self.mock_param, Mock())
+        self.assertEqual(result, expected)
+
+
+class TestRemoteInvokeOutputFormatParameterType(TestCase):
+    def setUp(self):
+        self.param_type = RemoteInvokeOutputFormatType(enum=RemoteInvokeOutputFormat)
+        self.mock_param = Mock(opts=["--output-format"])
+
+    @parameterized.expand(
+        [
+            ("string"),
+            ("some string"),
+            ("non-default"),
+        ]
+    )
+    def test_must_fail_on_invalid_values(self, input):
+        with self.assertRaises(BadParameter):
+            self.param_type.convert(input, self.mock_param, None)
+
+    @parameterized.expand(
+        [
+            (
+                "default",
+                RemoteInvokeOutputFormat.DEFAULT,
+            ),
+            (
+                "raw",
+                RemoteInvokeOutputFormat.RAW,
+            ),
+        ]
+    )
+    def test_successful_parsing(self, input, expected):
+        result = self.param_type.convert(input, self.mock_param, None)
         self.assertEqual(result, expected)

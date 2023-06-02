@@ -1,11 +1,11 @@
 """
-Command group for "cloud" suite for commands. It provides common CLI arguments, template parsing capabilities,
-setting up stdin/stdout etc
+Command group for "cloud" suite for commands. It provides common CLI arguments for interacting with
+cloud resources such as Lambda Function.
 """
 
 import click
 
-from .invoke.cli import cli as invoke_cli
+from samcli.commands.remote_invoke.invoke.cli import cli as invoke_cli
 
 
 @click.group()

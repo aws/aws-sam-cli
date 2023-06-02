@@ -16,7 +16,7 @@ from samcli.cli.types import (
     CfnTags,
     ImageRepositoriesType,
     ImageRepositoryType,
-    RemoteInvokeBotoAPIParameterType,
+    RemoteInvokeBotoApiParameterType,
     SigningProfilesOptionType,
 )
 from samcli.commands._utils.constants import (
@@ -135,9 +135,10 @@ def remote_invoke_boto_parameter_callback(ctx, param, provided_value):
     Create an dictionary of boto parameters to their provided values.
     :param ctx: Click Context
     :param param: Param name
-    :param provided_value: Value provided by Click, after being processed by RemoteInvokeBotoAPIParameterType.
+    :param provided_value: Value provided by Click, after being processed by RemoteInvokeBotoApiParameterType.
     :return: dictionary of boto api parameters to their provided values. E.g. LogType=Tail for Lambda invoke API
     """
+    LOG.debug("Using provided values %s to create a dict of boto kwargs", provided_value)
     boto_api_parameters = {}
     for value in provided_value:
         boto_api_parameters.update(value)
@@ -591,10 +592,10 @@ def remote_invoke_parameter_click_option():
     return click.option(
         "--parameter",
         multiple=True,
-        type=RemoteInvokeBotoAPIParameterType(),
+        type=RemoteInvokeBotoApiParameterType(),
         callback=remote_invoke_boto_parameter_callback,
         required=False,
-        help="Additional parameters for the boto API call",
+        help="Additional parameters for the boto API call.\n" "Lambda APIs: invoke and invoke_with_response_stream",
     )
 
 

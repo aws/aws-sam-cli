@@ -3,6 +3,7 @@ Implementation of custom click parameter types
 """
 
 import json
+import logging
 import re
 from json import JSONDecodeError
 
@@ -11,6 +12,8 @@ import click
 from samcli.lib.package.ecr_utils import is_ecr_url
 
 PARAM_AND_METADATA_KEY_REGEX = """([A-Za-z0-9\\"\']+)"""
+
+LOG = logging.getLogger(__name__)
 
 
 def _generate_match_regex(match_pattern, delim):
@@ -440,4 +443,21 @@ class RemoteInvokeBotoApiParameterType(click.ParamType):
             )
         key = key_value_pair[0]
         _value = key_value_pair[1]
+        converted_dict = {key: _value}
+        LOG.debug("Converting provided parameter %s to dict %s", value, converted_dict)
         return {key: _value}
+
+
+class RemoteInvokeOutputFormatType(click.Choice):
+    """
+    Custom Parameter Type for output-format option of remote invoke command.
+    """
+
+    def __init__(self, enum):
+        self.enum = enum
+        super().__init__(choices=[item.name.lower() for item in enum])
+
+    def convert(self, value, param, ctx):
+        LOG.debug("Converting provided output-format value to Enum", value)
+        value = super().convert(value, param, ctx)
+        return self.enum(value)

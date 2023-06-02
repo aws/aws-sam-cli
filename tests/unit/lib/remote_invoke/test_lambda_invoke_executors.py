@@ -149,7 +149,7 @@ class TestLambdaResponseOutputFormatter(TestCase):
 
     def test_lambda_response_original_boto_output_formatter(self):
         given_response = {"Payload": {"StatusCode": 200, "message": "hello world"}}
-        output_format = RemoteInvokeOutputFormat.FULL_BOTO_RESPONSE
+        output_format = RemoteInvokeOutputFormat.RAW
 
         remote_invoke_execution_info = RemoteInvokeExecutionInfo(None, None, {}, output_format)
         remote_invoke_execution_info.response = given_response

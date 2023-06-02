@@ -92,6 +92,7 @@ class DefaultConvertToJSON(RemoteInvokeRequestResponseMapper):
 
     def map(self, test_input: RemoteInvokeExecutionInfo) -> RemoteInvokeExecutionInfo:
         if not test_input.is_file_provided():
+            LOG.debug("Mapping input Payload to JSON string object")
             try:
                 _ = json.loads(cast(str, test_input.payload))
             except JSONDecodeError:
@@ -114,6 +115,7 @@ class LambdaResponseConverter(RemoteInvokeRequestResponseMapper):
     """
 
     def map(self, remote_invoke_input: RemoteInvokeExecutionInfo) -> RemoteInvokeExecutionInfo:
+        LOG.debug("Mapping Lambda response to string object")
         if not isinstance(remote_invoke_input.response, dict):
             raise InvalideBotoResponseException("Invalid response type received from Lambda service, expecting dict")
 
@@ -138,6 +140,7 @@ class LambdaResponseOutputFormatter(RemoteInvokeRequestResponseMapper):
         to stdout.
         """
         if remote_invoke_input.output_format == RemoteInvokeOutputFormat.DEFAULT:
+            LOG.debug("Formatting Lambda output response")
             boto_response = cast(Dict, remote_invoke_input.response)
             log_field = boto_response.get("LogResult")
             if log_field:
