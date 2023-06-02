@@ -38,9 +38,6 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.7"
       - name: Build PyInstaller
         run: |
           chmod +x ./installer/pyinstaller/build-mac.sh
