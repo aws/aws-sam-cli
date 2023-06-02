@@ -3,6 +3,7 @@ import os
 import platform
 import subprocess
 import tempfile
+from pathlib import Path
 
 from threading import Thread
 from typing import Callable, List, Optional
@@ -13,6 +14,7 @@ from queue import Queue
 import shutil
 from uuid import uuid4
 
+import boto3
 import psutil
 
 RUNNING_ON_APPVEYOR = os.environ.get("APPVEYOR", False)
@@ -232,3 +234,42 @@ class FileCreator(object):
         f.full_path('foo/bar.txt') -> /tmp/asdfasd/foo/bar.txt
         """
         return os.path.join(self.rootdir, filename)
+
+
+def _get_current_account_id():
+    sts = boto3.client("sts")
+    account_id = sts.get_caller_identity()["Account"]
+    return account_id
+
+
+class UpdatableSARTemplate:
+    """
+    This class is used to replace the `${AWS::AccountId}` in the testing templates with the account id for the testing
+    is used during the integration testing. This class helps to resolve the problem that SAM CLI does not support Sub
+    intrinsic function, and to avoid exposing any of our testing accounts ids.
+    """
+
+    def __init__(self, source_template_path):
+        self.source_template_path = source_template_path
+        self.temp_directory = tempfile.TemporaryDirectory()
+        self.temp_directory_path = Path(tempfile.TemporaryDirectory().name)
+        self.updated_template_path = None
+
+    def setup(self):
+        with open(self.source_template_path, "r") as sar_template:
+            updated_template_content = sar_template.read()
+        updated_template_content = updated_template_content.replace("${AWS::AccountId}", _get_current_account_id())
+        self.temp_directory_path.mkdir()
+        self.updated_template_path = os.path.join(self.temp_directory_path, "template.yml")
+        with open(self.updated_template_path, "w") as updated_template:
+            updated_template.write(updated_template_content)
+
+    def clean(self):
+        self.temp_directory.cleanup()
+
+    def __enter__(self):
+        self.setup()
+        return self
+
+    def __exit__(self, *args):
+        self.clean()
