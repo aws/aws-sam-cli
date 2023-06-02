@@ -4,7 +4,7 @@ Context object used by `sam remote invoke` command
 import logging
 from typing import Optional, cast
 
-from samcli.commands.remote_invoke.exceptions import (
+from samcli.commands.cloud.exceptions import (
     AmbiguousResourceForRemoteInvoke,
     InvalidRemoteInvokeParameters,
     NoExecutorFoundForRemoteInvoke,

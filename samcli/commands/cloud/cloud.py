@@ -5,7 +5,7 @@ cloud resources such as Lambda Function.
 
 import click
 
-from samcli.commands.remote_invoke.invoke.cli import cli as invoke_cli
+from samcli.commands.cloud.invoke.cli import cli as invoke_cli
 
 
 @click.group()

@@ -50,7 +50,7 @@ def event_and_event_file_options_validation(func):
 
         # if no event nor event_file arguments are given, read from stdin
         if not event and not event_file:
-            LOG.info("Neither --event nor --event-file options have been provided, reading from stdin")
+            LOG.debug("Neither --event nor --event-file options have been provided, reading from stdin")
             kwargs["event_file"] = cast(TextIOWrapper, sys.stdin)
         return func(*args, **kwargs)
 

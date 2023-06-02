@@ -20,7 +20,7 @@ class TestEventFileValidation(TestCase):
         mocked_context.params.get.return_value = {}
 
         event_and_event_file_options_validation(mock_func)()
-        patched_log.info.assert_called_with(
+        patched_log.debug.assert_called_with(
             "Neither --event nor --event-file options have been provided, reading from stdin"
         )
 

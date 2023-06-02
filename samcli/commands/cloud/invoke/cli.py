@@ -100,8 +100,8 @@ def do_cli(
     """
     Implementation of the ``cli`` method
     """
+    from samcli.commands.cloud.remote_invoke_context import RemoteInvokeContext
     from samcli.commands.exceptions import UserException
-    from samcli.commands.remote_invoke.remote_invoke_context import RemoteInvokeContext
     from samcli.lib.remote_invoke.exceptions import (
         ErrorBotoApiCallException,
         InvalideBotoResponseException,
