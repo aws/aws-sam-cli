@@ -607,8 +607,30 @@ class GraphQLApiSchemaResource(ResourceZip):
 class GraphQLApiCodeResource(ResourceZip):
     """CodeUri for GraphQLApi resource.
 
-    There are more than one CodeUri resources in GraphQLApi.
-    This class processes all of them.
+    There can be more than a single instance of CodeUri property in GraphQLApi Resolvers and Functions.
+    This class handles them all.
+
+    GraphQLApi dict shape looks like the following (yaml representation)
+    >>> Resolvers:
+            Mutation:
+                Resolver1:
+                    CodeUri: ...
+                    Pipeline:
+                    - Func1
+                    - Func2
+            Query:
+                Resolver2:
+                    CodeUri: ...
+                    Pipeline:
+                    - Func3
+        Functions:
+            Func1:
+                CodeUri: ...
+            Func2:
+                CodeUri: ...
+            Func3:
+                CodeUri: ...
+        ... # other properties, which are not important here
     """
 
     RESOURCE_TYPE = AWS_SERVERLESS_GRAPHQLAPI
@@ -617,7 +639,7 @@ class GraphQLApiCodeResource(ResourceZip):
     PACKAGE_NULL_PROPERTY = False
 
     def export(self, resource_id: str, resource_dict: Optional[Dict], parent_dir: str):
-        if resource_dict is None:
+        if self.PROPERTY_NAME is None or resource_dict is None:
             return
 
         if resource_not_packageable(resource_dict):
@@ -651,9 +673,29 @@ class GraphQLApiCodeResource(ResourceZip):
                     shutil.rmtree(temp_dir)
 
     @staticmethod
-    def _find_all_in_graphql_resource(property_name: str, graphql_dict: Dict[str, Any]) -> List[Tuple[str, str]]:
-        stack: List[Tuple[Dict[str, Any], str]] = [(graphql_dict, "")]
-        paths_values: List[Tuple[str, str]] = []
+    def _find_all_in_graphql_resource(
+        property_name: str, graphql_dict: Dict[str, Any]
+    ) -> List[Tuple[str, Union[str, Dict]]]:
+        """Find paths to the all properties with the given name.
+
+        It utilizes the knowledge of GraphQLApi structure instead of doing a generic search in the graph.
+
+        Parameters
+        ----------
+        property_name
+            name of the property to look up; it is supposed to be self.PROPERTY_NAME,
+            it's passed as a parameter though to avoid checking again that it's not None
+        graphql_dict
+            GraphQLApi resource dict
+
+        Returns
+        -------
+            list of tuple (path, value) for all found properties which has property_name
+        """
+        # no need to look up in other subtrees other than "Resolvers" and "Functions"
+        resolvers_and_functions = {k: graphql_dict[k] for k in ("Resolvers", "Functions") if k in graphql_dict}
+        stack: List[Tuple[Dict[str, Any], str]] = [(resolvers_and_functions, "")]
+        paths_values: List[Tuple[str, Union[str, Dict]]] = []
 
         while stack:
             node, path = stack.pop()
@@ -663,6 +705,8 @@ class GraphQLApiCodeResource(ResourceZip):
                         paths_values.append((f"{path}{key}", value))
                     elif isinstance(value, dict):
                         stack.append((value, f"{path}{key}."))
+            # there is no need to handle lists because path to "CodeUri"
+            # within "Resolvers" and "Functions" doesn't have lists
         return paths_values
 
 
