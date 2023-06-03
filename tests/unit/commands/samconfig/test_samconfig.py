@@ -14,7 +14,9 @@ from click.testing import CliRunner
 from unittest import TestCase
 from unittest.mock import patch, ANY
 import logging
+from parameterized import parameterized
 from samcli.lib.config.exceptions import SamConfigFileReadException
+from samcli.lib.config.file_manager import YamlFileManager
 
 from samcli.lib.config.samconfig import SamConfig, DEFAULT_ENV, TomlFileManager
 from samcli.lib.utils.packagetype import ZIP, IMAGE
@@ -1254,13 +1256,20 @@ class TestSamConfigFileManager(TestCase):
         with self.assertRaises(SamConfigFileReadException):
             SamConfig(config_path, filename="samconfig")
 
-    def test_file_manager_toml(self):
+    @parameterized.expand(
+        [
+            ("samconfig.toml", TomlFileManager),
+            ("samconfig.yaml", YamlFileManager),
+            ("samconfig.yml", YamlFileManager),
+        ]
+    )
+    def test_file_manager(self, filename, expected_file_manager):
         config_dir = tempfile.gettempdir()
-        config_path = Path(config_dir, "samconfig.toml")
+        config_path = Path(config_dir, filename)
 
-        samconfig = SamConfig(config_path, filename="samconfig.toml")
+        samconfig = SamConfig(config_path, filename=filename)
 
-        self.assertIs(samconfig.file_manager, TomlFileManager)
+        self.assertIs(samconfig.file_manager, expected_file_manager)
 
 
 @contextmanager

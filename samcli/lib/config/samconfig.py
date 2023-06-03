@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, Type
 
 from samcli.lib.config.exceptions import FileParseException, SamConfigFileReadException, SamConfigVersionException
-from samcli.lib.config.file_manager import FileManager, TomlFileManager
+from samcli.lib.config.file_manager import FileManager, TomlFileManager, YamlFileManager
 from samcli.lib.config.version import SAM_CONFIG_VERSION, VERSION_KEY
 
 LOG = logging.getLogger(__name__)
@@ -26,6 +26,8 @@ class SamConfig:
 
     FILE_MANAGER_MAPPER: Dict[str, Type[FileManager]] = {
         ".toml": TomlFileManager,
+        ".yaml": YamlFileManager,
+        ".yml": YamlFileManager,
     }
 
     def __init__(self, config_dir, filename=None):
