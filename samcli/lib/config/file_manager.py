@@ -9,6 +9,8 @@ from pathlib import Path
 from typing import Any
 
 import tomlkit
+from ruamel.yaml import YAML, YAMLError
+from ruamel.yaml.compat import StringIO
 
 from samcli.lib.config.exceptions import FileParseException
 
@@ -159,3 +161,102 @@ class TomlFileManager(FileManager):
     def _to_toml(document: dict) -> tomlkit.TOMLDocument:
         """Ensure that a dictionary-like object is a TOMLDocument."""
         return tomlkit.parse(tomlkit.dumps(document))
+
+
+class YamlFileManager(FileManager):
+    """
+    Static class to read and write yaml files.
+    """
+
+    yaml = YAML()
+    file_format = "YAML"
+
+    @staticmethod
+    def read(filepath: Path) -> Any:
+        """
+        Read a YAML file at the given path.
+
+        Parameters
+        ----------
+        filepath: Path
+            The Path object that points to the file to be read.
+
+        Returns
+        -------
+        Any
+            A dictionary-like yaml object, which represents the contents of the YAML file at the
+            provided location.
+        """
+        yaml_doc = YamlFileManager.yaml.load("")
+        try:
+            yaml_doc = YamlFileManager.yaml.load(filepath.read_text())
+        except OSError as e:
+            LOG.debug(f"OSError occurred while reading {YamlFileManager.file_format} file: {str(e)}")
+        except YAMLError as e:
+            raise FileParseException(e) from e
+
+        return yaml_doc
+
+    @staticmethod
+    def write(document: dict, filepath: Path):
+        """
+        Write the contents of a dictionary to a YAML file at the provided location.
+
+        Parameters
+        ----------
+        document: dict
+            The object to write.
+        filepath: Path
+            The final location for the YAML file to be written.
+        """
+        if not document:
+            LOG.debug("No document given to YamlFileManager to write.")
+            return
+
+        yaml_doc = YamlFileManager._to_yaml(document)
+
+        if yaml_doc.get(COMMENT_KEY, None):  # Comment appears at the top of doc
+            yaml_doc.yaml_set_start_comment(document[COMMENT_KEY])
+            yaml_doc.pop(COMMENT_KEY)
+
+        YamlFileManager.yaml.dump(yaml_doc, filepath)
+
+    @staticmethod
+    def put_comment(document: Any, comment: str) -> Any:
+        """
+        Put a comment in a document object.
+
+        Parameters
+        ----------
+        document: Any
+            The yaml object to write
+        comment: str
+            The comment to include in the document.
+
+        Returns
+        -------
+        Any
+            The new yaml document, with the comment added to it.
+        """
+        document = YamlFileManager._to_yaml(document)
+        document.yaml_set_start_comment(comment)
+        return document
+
+    @staticmethod
+    def _to_yaml(document: dict) -> Any:
+        """
+        Ensure a dictionary-like object is a YAML document.
+
+        Parameters
+        ----------
+        document: dict
+            A dictionary-like object to parse.
+
+        Returns
+        -------
+        Any
+            A dictionary-like YAML object, as derived from `yaml.load()`.
+        """
+        with StringIO() as stream:
+            YamlFileManager.yaml.dump(document, stream)
+            return YamlFileManager.yaml.load(stream.getvalue())
