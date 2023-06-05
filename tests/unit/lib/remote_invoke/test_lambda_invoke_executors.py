@@ -7,6 +7,7 @@ from samcli.lib.remote_invoke.lambda_invoke_executors import (
     DefaultConvertToJSON,
     LambdaResponseConverter,
     LambdaResponseOutputFormatter,
+    ErrorBotoApiCallException,
     InvalidResourceBotoParameterException,
     InvalideBotoResponseException,
     RemoteInvokeOutputFormat,
@@ -34,9 +35,15 @@ class TestLambdaInvokeExecutor(TestCase):
             FunctionName=self.function_name, Payload=given_payload, InvocationType="RequestResponse", LogType="Tail"
         )
 
-    def test_execute_action_invalid_parameter_value_throws_validation_exception(self):
+    @parameterized.expand(
+        [
+            ("ValidationException",),
+            ("InvalidRequestContentException",),
+        ]
+    )
+    def test_execute_action_invalid_parameter_value_throws_client_error(self, error_code):
         given_payload = Mock()
-        error = ClientError(error_response={"Error": {"Code": "ValidationException"}}, operation_name="invoke")
+        error = ClientError(error_response={"Error": {"Code": error_code}}, operation_name="invoke")
         self.lambda_client.invoke.side_effect = error
         with self.assertRaises(InvalidResourceBotoParameterException):
             self.lambda_invoke_executor._execute_action(given_payload)
@@ -52,7 +59,7 @@ class TestLambdaInvokeExecutor(TestCase):
         given_payload = Mock()
         error = ClientError(error_response={"Error": {"Code": "MockException"}}, operation_name="invoke")
         self.lambda_client.invoke.side_effect = error
-        with self.assertRaises(ClientError):
+        with self.assertRaises(ErrorBotoApiCallException):
             self.lambda_invoke_executor._execute_action(given_payload)
 
     @parameterized.expand(
@@ -142,7 +149,7 @@ class TestLambdaResponseOutputFormatter(TestCase):
 
     def test_lambda_response_original_boto_output_formatter(self):
         given_response = {"Payload": {"StatusCode": 200, "message": "hello world"}}
-        output_format = RemoteInvokeOutputFormat.ORIGINAL_BOTO_RESPONSE
+        output_format = RemoteInvokeOutputFormat.RAW
 
         remote_invoke_execution_info = RemoteInvokeExecutionInfo(None, None, {}, output_format)
         remote_invoke_execution_info.response = given_response

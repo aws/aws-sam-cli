@@ -10,7 +10,11 @@ from typing import Any, Dict, cast
 from botocore.exceptions import ClientError, ParamValidationError
 from botocore.response import StreamingBody
 
-from samcli.lib.remote_invoke.exceptions import InvalideBotoResponseException, InvalidResourceBotoParameterException
+from samcli.lib.remote_invoke.exceptions import (
+    ErrorBotoApiCallException,
+    InvalideBotoResponseException,
+    InvalidResourceBotoParameterException,
+)
 from samcli.lib.remote_invoke.remote_invoke_executors import (
     BotoActionExecutor,
     RemoteInvokeExecutionInfo,
@@ -75,7 +79,9 @@ class LambdaInvokeExecutor(BotoActionExecutor):
                 raise InvalidResourceBotoParameterException(
                     f"Invalid parameter value provided. {str(client_ex).replace('(ValidationException) ', '')}"
                 ) from client_ex
-            raise client_ex
+            elif boto_utils.get_client_error_code(client_ex) == "InvalidRequestContentException":
+                raise InvalidResourceBotoParameterException(client_ex) from client_ex
+            raise ErrorBotoApiCallException(client_ex) from client_ex
         return response
 
 
@@ -86,6 +92,7 @@ class DefaultConvertToJSON(RemoteInvokeRequestResponseMapper):
 
     def map(self, test_input: RemoteInvokeExecutionInfo) -> RemoteInvokeExecutionInfo:
         if not test_input.is_file_provided():
+            LOG.debug("Mapping input Payload to JSON string object")
             try:
                 _ = json.loads(cast(str, test_input.payload))
             except JSONDecodeError:
@@ -108,6 +115,7 @@ class LambdaResponseConverter(RemoteInvokeRequestResponseMapper):
     """
 
     def map(self, remote_invoke_input: RemoteInvokeExecutionInfo) -> RemoteInvokeExecutionInfo:
+        LOG.debug("Mapping Lambda response to string object")
         if not isinstance(remote_invoke_input.response, dict):
             raise InvalideBotoResponseException("Invalid response type received from Lambda service, expecting dict")
 
@@ -132,6 +140,7 @@ class LambdaResponseOutputFormatter(RemoteInvokeRequestResponseMapper):
         to stdout.
         """
         if remote_invoke_input.output_format == RemoteInvokeOutputFormat.DEFAULT:
+            LOG.debug("Formatting Lambda output response")
             boto_response = cast(Dict, remote_invoke_input.response)
             log_field = boto_response.get("LogResult")
             if log_field:
