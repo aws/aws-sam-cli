@@ -18,7 +18,7 @@ class RemoteInvokeOutputFormat(Enum):
     """
 
     DEFAULT = "default"
-    ORIGINAL_BOTO_RESPONSE = "original-boto-response"
+    RAW = "raw"
 
 
 class RemoteInvokeExecutionInfo:
