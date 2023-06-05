@@ -64,7 +64,7 @@ class TestDeployCliCommand(TestCase):
     def tearDown(self):
         self.companion_stack_manager_patch.stop()
 
-    @patch("os.environ", {**os.environ, "SAM_CLI_POLL_DELAY": 10})
+    @patch("os.environ", {**os.environ, "SAM_CLI_POLL_DELAY": 10})  # type: ignore
     @patch("samcli.commands.package.command.click")
     @patch("samcli.commands.package.package_context.PackageContext")
     @patch("samcli.commands.deploy.command.click")

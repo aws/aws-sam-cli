@@ -13,7 +13,7 @@ import boto3
 import click
 import requests
 from botocore.exceptions import ClientError
-from OpenSSL import SSL, crypto  # type: ignore
+from OpenSSL import SSL, crypto
 
 from samcli.commands.pipeline.bootstrap.guided_context import BITBUCKET, GITHUB_ACTIONS, GITLAB, OPEN_ID_CONNECT
 from samcli.commands.pipeline.bootstrap.pipeline_oidc_provider import PipelineOidcProvider
@@ -222,7 +222,7 @@ class Stage:
         # If we attempt to get the cert chain without exchanging some traffic it will be empty
         c.sendall(str.encode("HEAD / HTTP/1.0\n\n"))
         peerCertChain = c.get_peer_cert_chain()
-        cert = peerCertChain[-1]
+        cert = peerCertChain[-1]  # type: ignore
 
         # Dump the certificate in DER/ASN1 format so that its SHA1 hash can be computed
         dumped_cert = crypto.dump_certificate(crypto.FILETYPE_ASN1, cert)
