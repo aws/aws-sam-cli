@@ -186,7 +186,6 @@ class TestJsonFileManager(TestCase):
     def test_read_json(self):
         config_dir = tempfile.gettempdir()
         config_path = Path(config_dir, "samconfig.json")
-        indent_spaces = " " * JsonFileManager.INDENT_SIZE
         config_path.write_text(
             json.dumps(
                 {"version": 0.1, "config_env": {"topic1": {"parameters": {"word": "clarity"}}}},
