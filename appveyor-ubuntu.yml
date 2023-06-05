@@ -38,8 +38,8 @@ environment:
     - PYTHON_HOME: "$HOME/venv3.8/bin"
       PYTHON_VERSION: '3.8'
 
-    - PYTHON_HOME: "$HOME/venv3.9/bin"
-      PYTHON_VERSION: '3.9'
+    - PYTHON_HOME: "$HOME/venv3.11/bin"
+      PYTHON_VERSION: '3.11'
 
 install:
   # AppVeyor's apt-get cache might be outdated, and the package could potentially be 404.
