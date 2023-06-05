@@ -119,6 +119,9 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "2.7"
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
       - uses: actions/setup-node@v3
         with:
           node-version: 18

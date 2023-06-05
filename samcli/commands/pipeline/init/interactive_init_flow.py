@@ -256,7 +256,7 @@ class InteractiveInitFlow:
                 continue
             click.echo(
                 Colored().yellow(
-                    "2 stage(s) were detected, matching the template requirements. "
+                    f"{number_of_stages} stage(s) were detected, matching the template requirements. "
                     "If these are incorrect, delete .aws-sam/pipeline/pipelineconfig.toml and rerun"
                 )
             )

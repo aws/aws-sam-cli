@@ -4,20 +4,26 @@ Context object used by `sam remote invoke` command
 import logging
 from typing import Optional, cast
 
-from samcli.commands.remote_invoke.exceptions import (
+from samcli.commands.cloud.exceptions import (
     AmbiguousResourceForRemoteInvoke,
     InvalidRemoteInvokeParameters,
+    NoExecutorFoundForRemoteInvoke,
     NoResourceFoundForRemoteInvoke,
     UnsupportedServiceForRemoteInvoke,
 )
+from samcli.lib.remote_invoke.remote_invoke_executor_factory import RemoteInvokeExecutorFactory
+from samcli.lib.remote_invoke.remote_invoke_executors import RemoteInvokeExecutionInfo
+from samcli.lib.utils import osutils
 from samcli.lib.utils.arn_utils import ARNParts, InvalidArnValue
 from samcli.lib.utils.boto_utils import BotoProviderType
 from samcli.lib.utils.cloudformation import (
     CloudFormationResourceSummary,
     get_resource_summaries,
+    get_resource_summary,
     get_resource_summary_from_physical_id,
 )
 from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION
+from samcli.lib.utils.stream_writer import StreamWriter
 
 LOG = logging.getLogger(__name__)
 
@@ -26,7 +32,6 @@ SUPPORTED_SERVICES = {"lambda": AWS_LAMBDA_FUNCTION}
 
 
 class RemoteInvokeContext:
-
     _boto_client_provider: BotoProviderType
     _boto_resource_provider: BotoProviderType
     _stack_name: Optional[str]
@@ -53,8 +58,37 @@ class RemoteInvokeContext:
     def __exit__(self, *args) -> None:
         pass
 
-    def run(self):
-        pass
+    def run(self, remote_invoke_input: RemoteInvokeExecutionInfo) -> RemoteInvokeExecutionInfo:
+        """
+        Instantiates remote invoke executor with populated resource summary information, executes it with the provided
+        input & returns its response back to the caller. If no executor can be instantiated it raises
+        NoExecutorFoundForRemoteInvoke exception.
+
+        Parameters
+        ----------
+        remote_invoke_input: RemoteInvokeExecutionInfo
+            RemoteInvokeExecutionInfo which contains the payload and other information that will be required during
+            the invocation
+
+        Returns
+        -------
+        RemoteInvokeExecutionInfo
+            Populates result and exception info (if any) and returns back to the caller
+        """
+        if not self._resource_summary:
+            raise AmbiguousResourceForRemoteInvoke(
+                f"Can't find resource information from stack name ({self._stack_name}) "
+                f"and resource id ({self._resource_id})"
+            )
+
+        remote_invoke_executor_factory = RemoteInvokeExecutorFactory(self._boto_client_provider)
+        remote_invoke_executor = remote_invoke_executor_factory.create_remote_invoke_executor(self._resource_summary)
+        if not remote_invoke_executor:
+            raise NoExecutorFoundForRemoteInvoke(
+                f"Resource type {self._resource_summary.resource_type} is not supported for remote invoke"
+            )
+
+        return remote_invoke_executor.execute(remote_invoke_input)
 
     def _populate_resource_summary(self) -> None:
         """
@@ -75,10 +109,16 @@ class RemoteInvokeContext:
             # no resource id provided, list all resources from stack and try to find one
             self._resource_summary = self._get_single_resource_from_stack()
             self._resource_id = self._resource_summary.logical_resource_id
+            return
 
         if not self._stack_name:
             # no stack name provided, resource id should be physical id so that we can use it
             self._resource_summary = self._get_from_physical_resource_id()
+            return
+
+        self._resource_summary = get_resource_summary(
+            self._boto_resource_provider, self._boto_client_provider, self._stack_name, self._resource_id
+        )
 
     def _get_single_resource_from_stack(self) -> CloudFormationResourceSummary:
         """
@@ -148,3 +188,29 @@ class RemoteInvokeContext:
                     f"Please provide full resource ARN or --stack-name to resolve the ambiguity."
                 )
             return resource_summary
+
+    @property
+    def stdout(self) -> StreamWriter:
+        """
+        Returns stream writer for stdout to output Lambda function logs to
+
+        Returns
+        -------
+        samcli.lib.utils.stream_writer.StreamWriter
+            Stream writer for stdout
+        """
+        stream = osutils.stdout()
+        return StreamWriter(stream, auto_flush=True)
+
+    @property
+    def stderr(self) -> StreamWriter:
+        """
+        Returns stream writer for stderr to output Lambda function errors to
+
+        Returns
+        -------
+        samcli.lib.utils.stream_writer.StreamWriter
+            Stream writer for stderr
+        """
+        stream = osutils.stderr()
+        return StreamWriter(stream, auto_flush=True)

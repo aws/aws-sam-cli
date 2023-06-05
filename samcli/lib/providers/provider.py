@@ -7,6 +7,7 @@ import logging
 import os
 import posixpath
 from collections import namedtuple
+from enum import Enum, auto
 from typing import TYPE_CHECKING, Any, Dict, Iterator, List, NamedTuple, Optional, Set, Union, cast
 
 from samcli.commands.local.cli_common.user_exceptions import (
@@ -21,6 +22,7 @@ from samcli.lib.samlib.resource_metadata_normalizer import (
     ResourceMetadataNormalizer,
 )
 from samcli.lib.utils.architecture import X86_64
+from samcli.lib.utils.packagetype import IMAGE
 
 if TYPE_CHECKING:  # pragma: no cover
     # avoid circular import, https://docs.python.org/3/library/typing.html#typing.TYPE_CHECKING
@@ -33,6 +35,27 @@ CORS_METHODS_HEADER = "Access-Control-Allow-Methods"
 CORS_HEADERS_HEADER = "Access-Control-Allow-Headers"
 CORS_CREDENTIALS_HEADER = "Access-Control-Allow-Credentials"
 CORS_MAX_AGE_HEADER = "Access-Control-Max-Age"
+
+
+class FunctionBuildInfo(Enum):
+    """
+    Represents information about function's build, see values for details
+    """
+
+    # buildable
+    BuildableZip = auto(), "Regular ZIP function which can be build with SAM CLI"
+    BuildableImage = auto(), "Regular IMAGE function which can be build with SAM CLI"
+    # non-buildable
+    InlineCode = auto(), "A ZIP function which has inline code, non buildable"
+    PreZipped = auto(), "A ZIP function which points to a .zip file, non buildable"
+    SkipBuild = auto(), "A Function which is denoted with SkipBuild in metadata, non buildable"
+    NonBuildableImage = auto(), "An IMAGE function which is missing some information to build, non buildable"
+
+    def is_buildable(self) -> bool:
+        """
+        Returns whether this build info can be buildable nor not
+        """
+        return self in {FunctionBuildInfo.BuildableZip, FunctionBuildInfo.BuildableImage}
 
 
 class Function(NamedTuple):
@@ -82,6 +105,8 @@ class Function(NamedTuple):
     architectures: Optional[List[str]]
     # The function url configuration
     function_url_config: Optional[Dict]
+    # FunctionBuildInfo see implementation doc for its details
+    function_build_info: FunctionBuildInfo
     # The path of the stack relative to the root stack, it is empty for functions in root stack
     stack_path: str = ""
     # Configuration for runtime management. Includes the fields `UpdateRuntimeOn` and `RuntimeVersionArn` (optional).
@@ -105,7 +130,7 @@ class Function(NamedTuple):
         resource. It means that the customer is building the Lambda function code outside SAM, and the provided code
         path is already built.
         """
-        return self.metadata.get(SAM_METADATA_SKIP_BUILD_KEY, False) if self.metadata else False
+        return get_skip_build(self.metadata)
 
     def get_build_dir(self, build_root_dir: str) -> str:
         """
@@ -438,9 +463,11 @@ class Api:
         return list(self.binary_media_types_set)
 
 
-_CorsTuple = namedtuple("Cors", ["allow_origin", "allow_methods", "allow_headers", "allow_credentials", "max_age"])
+_CorsTuple = namedtuple(
+    "_CorsTuple", ["allow_origin", "allow_methods", "allow_headers", "allow_credentials", "max_age"]
+)
 
-_CorsTuple.__new__.__defaults__ = (  # type: ignore
+_CorsTuple.__new__.__defaults__ = (
     None,  # Allow Origin defaults to None
     None,  # Allow Methods is optional and defaults to empty
     None,  # Allow Headers is optional and defaults to empty
@@ -870,6 +897,52 @@ def get_unique_resource_ids(
             for resource_id in resource_type_ids:
                 output_resource_ids.add(resource_id)
     return output_resource_ids
+
+
+def get_skip_build(metadata: Optional[Dict]) -> bool:
+    """
+    Returns the value of SkipBuild property from Metadata, False if it is not defined
+    """
+    return metadata.get(SAM_METADATA_SKIP_BUILD_KEY, False) if metadata else False
+
+
+def get_function_build_info(
+    full_path: str,
+    packagetype: str,
+    inlinecode: Optional[str],
+    codeuri: Optional[str],
+    metadata: Optional[Dict],
+) -> FunctionBuildInfo:
+    """
+    Populates FunctionBuildInfo from the given information.
+    """
+    if inlinecode:
+        LOG.debug("Skip building inline function: %s", full_path)
+        return FunctionBuildInfo.InlineCode
+
+    if isinstance(codeuri, str) and codeuri.endswith(".zip"):
+        LOG.debug("Skip building zip function: %s", full_path)
+        return FunctionBuildInfo.PreZipped
+
+    if get_skip_build(metadata):
+        LOG.debug("Skip building pre-built function: %s", full_path)
+        return FunctionBuildInfo.SkipBuild
+
+    if packagetype == IMAGE:
+        metadata = metadata or {}
+        dockerfile = cast(str, metadata.get("Dockerfile", ""))
+        docker_context = cast(str, metadata.get("DockerContext", ""))
+
+        if not dockerfile or not docker_context:
+            LOG.debug(
+                "Skip Building %s function, as it is missing either Dockerfile or DockerContext "
+                "metadata properties.",
+                full_path,
+            )
+            return FunctionBuildInfo.NonBuildableImage
+        return FunctionBuildInfo.BuildableImage
+
+    return FunctionBuildInfo.BuildableZip
 
 
 def _get_build_dir(resource: Union[Function, LayerVersion], build_root: str) -> str:

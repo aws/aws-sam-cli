@@ -36,7 +36,7 @@ lint:
 	# Linter performs static analysis to catch latent bugs
 	ruff samcli
 	# mypy performs type check
-	mypy --no-incremental setup.py samcli tests
+	mypy --exclude /testdata/ --exclude /init/templates/ --no-incremental setup.py samcli tests
 
 # Command to run everytime you make changes to verify everything works
 dev: lint test

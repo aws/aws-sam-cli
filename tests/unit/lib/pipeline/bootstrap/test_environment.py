@@ -2,7 +2,7 @@ import hashlib
 from unittest import TestCase
 from unittest.mock import Mock, patch, call, MagicMock
 
-import OpenSSL.SSL  # type: ignore
+import OpenSSL.SSL
 import requests
 
 from samcli.commands.pipeline.bootstrap.guided_context import GITHUB_ACTIONS

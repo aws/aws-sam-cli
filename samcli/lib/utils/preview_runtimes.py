@@ -4,4 +4,4 @@ But deployment of them would probably fail until their GA date
 """
 from typing import Set
 
-PREVIEW_RUNTIMES: Set[str] = set()
+PREVIEW_RUNTIMES: Set[str] = {"ruby3.2"}

@@ -2126,6 +2126,7 @@ test-project
             "amazon/python3.8-base",
             "amazon/ruby2.7-base",
             "amazon/go-provided.al2-base",
+            "amazon/ruby3.2-base",
         ]
 
         expected_runtime = [
@@ -2137,6 +2138,7 @@ test-project
             "python3.8",
             "ruby2.7",
             "go (provided.al2)",
+            "ruby3.2",
         ]
 
         for index, base_image in enumerate(base_images):
@@ -2786,9 +2788,9 @@ test-project
 
     @patch("samcli.local.common.runtime_template.INIT_RUNTIMES")
     def test_must_remove_unsupported_runtime(self, init_runtime_mock):
-        runtime_option_list = ["python3.7", "ruby2.7", "java11", "unsupported_runtime", "dotnetcore3.1"]
-        init_runtime_mock.return_value = ["dotnetcore3.1", "go1.x", "java11", "python3.7", "ruby2.7"]
-        expect_result = ["dotnetcore3.1", "java11", "python3.7", "ruby2.7"]
+        runtime_option_list = ["python3.7", "ruby3.2", "ruby2.7", "java11", "unsupported_runtime", "dotnetcore3.1"]
+        init_runtime_mock.return_value = ["dotnetcore3.1", "go1.x", "java11", "python3.7", "ruby3.2", "ruby2.7"]
+        expect_result = ["dotnetcore3.1", "java11", "python3.7", "ruby3.2", "ruby2.7"]
         actual_result = get_sorted_runtimes(runtime_option_list)
         self.assertEqual(actual_result, expect_result)
 

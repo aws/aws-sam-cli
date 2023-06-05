@@ -3,6 +3,7 @@ Implementation of custom click parameter types
 """
 
 import json
+import logging
 import re
 from json import JSONDecodeError
 
@@ -11,6 +12,8 @@ import click
 from samcli.lib.package.ecr_utils import is_ecr_url
 
 PARAM_AND_METADATA_KEY_REGEX = """([A-Za-z0-9\\"\']+)"""
+
+LOG = logging.getLogger(__name__)
 
 
 def _generate_match_regex(match_pattern, delim):
@@ -421,3 +424,57 @@ class ImageRepositoriesType(click.ParamType):
         if not is_ecr_url(_value):
             raise click.BadParameter(f"{param.opts[0]} needs to have valid ECR URI as value")
         return {key: _value}
+
+
+class RemoteInvokeBotoApiParameterType(click.ParamType):
+    """
+    Custom Parameter Type for Multi valued Boto API parameter option of remote invoke command.
+    """
+
+    name = ""
+    MIN_KEY_VALUE_PAIR_LENGTH = 2
+
+    def convert(self, value, param, ctx):
+        """Converts the user provided parameter value with the format "parameter=value" to dict
+            {"parameter": "value"}
+
+        Parameters
+        ------------
+        value: User provided value for the click option
+        param: click parameter
+        ctx: Context
+        """
+        # Split by first "=" as some values could have multiple "=" For e.g. base-64 encoded ClientContext for Lambda
+        key_value_pair = value.split("=", 1)
+        if len(key_value_pair) < self.MIN_KEY_VALUE_PAIR_LENGTH:
+            raise click.BadParameter(
+                f"{param.opts[0]} is not a valid format, it needs to be of the form parameter_key=parameter_value"
+            )
+        key = key_value_pair[0]
+        _value = key_value_pair[1]
+        LOG.debug("Converting provided %s option value to dict", param.opts[0])
+        return {key: _value}
+
+
+class RemoteInvokeOutputFormatType(click.Choice):
+    """
+    Custom Parameter Type for output-format option of remote invoke command.
+    """
+
+    def __init__(self, enum):
+        self.enum = enum
+        super().__init__(choices=[item.name.lower() for item in enum])
+
+    def convert(self, value, param, ctx):
+        """Converts the user provided parameter value for the option to
+           the provided Enum
+
+        Parameters
+        ------------
+        value: User provided value for the click option
+        param: click parameter
+        ctx: Context
+        """
+        LOG.debug("Converting provided %s option value to Enum", param.opts[0])
+        value = super().convert(value, param, ctx)
+        return self.enum(value)

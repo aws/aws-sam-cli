@@ -4,7 +4,7 @@ from collections import namedtuple
 from typing import List
 
 CONFIG = namedtuple(
-    "Capability",
+    "CONFIG",
     [
         "language",
         "dependency_manager",

@@ -34,7 +34,7 @@ from samcli.lib.build.build_graph import (
     BuildHashingInformation,
     HANDLER_FIELD,
 )
-from samcli.lib.providers.provider import Function, LayerVersion
+from samcli.lib.providers.provider import Function, LayerVersion, FunctionBuildInfo
 from samcli.lib.utils import osutils
 from samcli.lib.utils.packagetype import ZIP
 
@@ -60,6 +60,7 @@ def generate_function(
     inlinecode=None,
     architectures=[X86_64],
     stack_path="",
+    function_build_info=FunctionBuildInfo.BuildableZip,
 ):
     if metadata is None:
         metadata = {}
@@ -85,6 +86,7 @@ def generate_function(
         codesign_config_arn,
         architectures,
         stack_path,
+        function_build_info,
     )
 
 

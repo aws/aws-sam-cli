@@ -242,7 +242,7 @@ class DeployContext:
 
         for resource, authorization_required in auth_required_per_resource:
             if not authorization_required:
-                click.secho(f"{resource} may not have authorization defined.", fg="yellow")
+                click.secho(f"{resource} has no authentication.", fg="yellow")
 
         if use_changeset:
             try:
