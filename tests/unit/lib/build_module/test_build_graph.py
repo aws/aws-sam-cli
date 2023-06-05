@@ -976,4 +976,3 @@ class TestBuildDefinition(TestCase):
         copied_build_definitions = copy.deepcopy(build_definitions)
 
         self.assertEqual(copied_build_definitions, build_definitions)
-
