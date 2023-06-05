@@ -16,7 +16,7 @@ from unittest.mock import patch, ANY
 import logging
 from parameterized import parameterized
 from samcli.lib.config.exceptions import SamConfigFileReadException
-from samcli.lib.config.file_manager import YamlFileManager
+from samcli.lib.config.file_manager import JsonFileManager, YamlFileManager
 
 from samcli.lib.config.samconfig import SamConfig, DEFAULT_ENV, TomlFileManager
 from samcli.lib.utils.packagetype import ZIP, IMAGE
@@ -1256,11 +1256,19 @@ class TestSamConfigFileManager(TestCase):
         with self.assertRaises(SamConfigFileReadException):
             SamConfig(config_path, filename="samconfig")
 
+    def test_file_manager_unsupported(self):
+        config_dir = tempfile.gettempdir()
+        config_path = Path(config_dir, "samconfig.jpeg")
+
+        with self.assertRaises(SamConfigFileReadException):
+            SamConfig(config_path, filename="samconfig.jpeg")
+
     @parameterized.expand(
         [
             ("samconfig.toml", TomlFileManager),
             ("samconfig.yaml", YamlFileManager),
             ("samconfig.yml", YamlFileManager),
+            ("samconfig.json", JsonFileManager),
         ]
     )
     def test_file_manager(self, filename, expected_file_manager):
