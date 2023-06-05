@@ -186,17 +186,12 @@ class TestJsonFileManager(TestCase):
     def test_read_json(self):
         config_dir = tempfile.gettempdir()
         config_path = Path(config_dir, "samconfig.json")
+        indent_spaces = " " * JsonFileManager.INDENT_SIZE
         config_path.write_text(
-            "{\n"
-            + '    "version": 0.1,\n'
-            + '    "config_env": {\n'
-            + '        "topic1": {\n'
-            + '            "parameters": {\n'
-            + '                "word": "clarity"\n'
-            + "            }\n"
-            + "        }\n"
-            + "    }\n"
-            + "}\n"
+            json.dumps(
+                {"version": 0.1, "config_env": {"topic1": {"parameters": {"word": "clarity"}}}},
+                indent=JsonFileManager.INDENT_SIZE,
+            )
         )
 
         config_doc = JsonFileManager.read(config_path)
@@ -209,7 +204,7 @@ class TestJsonFileManager(TestCase):
     def test_read_json_invalid_json(self):
         config_dir = tempfile.gettempdir()
         config_path = Path(config_dir, "samconfig.json")
-        config_path.write_text("{\n" + '    "bad_file": "very bad"\n' + '    "improperly": "formatted"\n' + "}\n")
+        config_path.write_text("{\n" + '  "bad_file": "very bad"\n' + '  "improperly": "formatted"\n' + "}\n")
 
         with self.assertRaises(FileParseException):
             JsonFileManager.read(config_path)
@@ -225,13 +220,13 @@ class TestJsonFileManager(TestCase):
     def test_write_json(self):
         config_dir = tempfile.gettempdir()
         config_path = Path(config_dir, "samconfig.json")
-        yaml = {
+        json_doc = {
             "version": 0.1,
             "config_env": {"topic2": {"parameters": {"word": "clarity"}}},
             COMMENT_KEY: "This is a comment",
         }
 
-        JsonFileManager.write(yaml, config_path)
+        JsonFileManager.write(json_doc, config_path)
 
         txt = config_path.read_text()
         self.assertIn('"version": 0.1', txt)
@@ -258,18 +253,7 @@ class TestJsonFileManager(TestCase):
             JsonFileManager.write({"key": "value"}, config_path)
 
     def test_json_put_comment(self):
-        json_doc = json.loads(
-            "{\n"
-            + '    "version": 0.1,\n'
-            + '    "config_env": {\n'
-            + '        "topic1": {\n'
-            + '            "parameters": {\n'
-            + '                "word": "clarity"\n'
-            + "            }\n"
-            + "        }\n"
-            + "    }\n"
-            + "}\n"
-        )
+        json_doc = {"version": 0.1, "config_env": {"topic1": {"parameters": {"word": "clarity"}}}}
 
         json_doc = JsonFileManager.put_comment(json_doc, "This is a comment")
 

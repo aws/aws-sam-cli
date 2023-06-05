@@ -16,9 +16,9 @@ from unittest.mock import patch, ANY
 import logging
 from parameterized import parameterized
 from samcli.lib.config.exceptions import SamConfigFileReadException
-from samcli.lib.config.file_manager import JsonFileManager, YamlFileManager
+from samcli.lib.config.file_manager import JsonFileManager, TomlFileManager, YamlFileManager
 
-from samcli.lib.config.samconfig import SamConfig, DEFAULT_ENV, TomlFileManager
+from samcli.lib.config.samconfig import SamConfig, DEFAULT_ENV
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 
 LOG = logging.getLogger()

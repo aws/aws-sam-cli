@@ -268,6 +268,7 @@ class JsonFileManager(FileManager):
     """
 
     file_format = "JSON"
+    INDENT_SIZE = 2
 
     @staticmethod
     def read(filepath: Path) -> Any:
@@ -310,7 +311,7 @@ class JsonFileManager(FileManager):
             return
 
         with filepath.open("w") as file:
-            json.dump(document, file)
+            json.dump(document, file, indent=JsonFileManager.INDENT_SIZE)
 
     @staticmethod
     def put_comment(document: Any, comment: str) -> Any:
