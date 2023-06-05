@@ -4,7 +4,7 @@ Context object used by `sam remote invoke` command
 import logging
 from typing import Optional, cast
 
-from samcli.commands.remote_invoke.exceptions import (
+from samcli.commands.cloud.exceptions import (
     AmbiguousResourceForRemoteInvoke,
     InvalidRemoteInvokeParameters,
     NoExecutorFoundForRemoteInvoke,
@@ -13,6 +13,7 @@ from samcli.commands.remote_invoke.exceptions import (
 )
 from samcli.lib.remote_invoke.remote_invoke_executor_factory import RemoteInvokeExecutorFactory
 from samcli.lib.remote_invoke.remote_invoke_executors import RemoteInvokeExecutionInfo
+from samcli.lib.utils import osutils
 from samcli.lib.utils.arn_utils import ARNParts, InvalidArnValue
 from samcli.lib.utils.boto_utils import BotoProviderType
 from samcli.lib.utils.cloudformation import (
@@ -22,6 +23,7 @@ from samcli.lib.utils.cloudformation import (
     get_resource_summary_from_physical_id,
 )
 from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION
+from samcli.lib.utils.stream_writer import StreamWriter
 
 LOG = logging.getLogger(__name__)
 
@@ -186,3 +188,29 @@ class RemoteInvokeContext:
                     f"Please provide full resource ARN or --stack-name to resolve the ambiguity."
                 )
             return resource_summary
+
+    @property
+    def stdout(self) -> StreamWriter:
+        """
+        Returns stream writer for stdout to output Lambda function logs to
+
+        Returns
+        -------
+        samcli.lib.utils.stream_writer.StreamWriter
+            Stream writer for stdout
+        """
+        stream = osutils.stdout()
+        return StreamWriter(stream, auto_flush=True)
+
+    @property
+    def stderr(self) -> StreamWriter:
+        """
+        Returns stream writer for stderr to output Lambda function errors to
+
+        Returns
+        -------
+        samcli.lib.utils.stream_writer.StreamWriter
+            Stream writer for stderr
+        """
+        stream = osutils.stderr()
+        return StreamWriter(stream, auto_flush=True)
