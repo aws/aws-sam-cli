@@ -2,10 +2,17 @@
 Keeps list of hidden/dynamic imports that is being used in SAM CLI, so that pyinstaller can include these packages
 """
 import pkgutil
-from types import ModuleType
+from typing import cast
+
+from typing_extensions import Protocol
 
 
-def walk_modules(module: ModuleType, visited: set) -> None:
+class HasPathAndName(Protocol):
+    __path__: str
+    __name__: str
+
+
+def walk_modules(module: HasPathAndName, visited: set) -> None:
     """Recursively find all modules from a parent module"""
     for pkg in pkgutil.walk_packages(module.__path__, module.__name__ + "."):
         if pkg.name in visited:
@@ -13,11 +20,13 @@ def walk_modules(module: ModuleType, visited: set) -> None:
         visited.add(pkg.name)
         if pkg.ispkg:
             submodule = __import__(pkg.name)
+            submodule = cast(HasPathAndName, submodule)
             walk_modules(submodule, visited)
 
 
 samcli_modules = set(["samcli"])
 samcli = __import__("samcli")
+samcli = cast(HasPathAndName, samcli)
 walk_modules(samcli, samcli_modules)
 
 SAM_CLI_HIDDEN_IMPORTS = list(samcli_modules) + [
