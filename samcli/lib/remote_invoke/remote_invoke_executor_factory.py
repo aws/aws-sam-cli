@@ -64,6 +64,13 @@ class RemoteInvokeExecutorFactory:
 
         :return: Returns the created remote invoke Executor
         """
+        lambda_client = self._boto_client_provider("lambda")
+        function_url_config = lambda_client.get_function_url_config(cfn_resource_summary.physical_resource_id)
+        function_invoke_mode = function_url_config.get("InvokeMode")
+        if function_invoke_mode == "RESPONSE_STREAM":
+            #todo create invoke configuration with response stream
+            pass
+
         return RemoteInvokeExecutor(
             request_mappers=[DefaultConvertToJSON()],
             response_mappers=[
