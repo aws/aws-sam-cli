@@ -15,9 +15,9 @@ attrs==23.1.0 \
     #   jschema-to-python
     #   jsonschema
     #   sarif-om
-aws-lambda-builders==1.32.0 \
-    --hash=sha256:97b6965d01596a3a15936faf345b88d17a25339f81f1e5643534345eb44b4dee \
-    --hash=sha256:a39e249a44265957e5b551e050490bf1ef3315ab564d44b187b17df6780713e4
+aws-lambda-builders==1.33.0 \
+    --hash=sha256:9064bfd17252ec2a1f41a1db8f8c77410bfebb79635abd0610c17df0b6eaf68c \
+    --hash=sha256:f901e276f26b8051fba70ac8f10f1ab7ef73df4b01847b587196c4be26d24e1b
     # via aws-sam-cli (setup.py)
 aws-sam-translator==1.68.0 \
     --hash=sha256:557d8080c9e6c1c609bfe806ea9545f7ea34144e2466c0ddc801806c2c05afdc \

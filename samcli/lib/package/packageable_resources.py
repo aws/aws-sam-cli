@@ -4,7 +4,7 @@ Code for all Package-able resources
 import logging
 import os
 import shutil
-from typing import Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 import jmespath
 from botocore.utils import set_value_from_jmespath
@@ -40,6 +40,7 @@ from samcli.lib.utils.resources import (
     AWS_LAMBDA_LAYERVERSION,
     AWS_SERVERLESS_API,
     AWS_SERVERLESS_FUNCTION,
+    AWS_SERVERLESS_GRAPHQLAPI,
     AWS_SERVERLESS_HTTPAPI,
     AWS_SERVERLESS_LAYERVERSION,
     AWS_SERVERLESS_STATEMACHINE,
@@ -89,7 +90,7 @@ class ResourceZip(Resource):
     Base class representing a CloudFormation resource that can be exported
     """
 
-    RESOURCE_TYPE: Optional[str] = None
+    RESOURCE_TYPE: str = ""
     PROPERTY_NAME: str = ""
     PACKAGE_NULL_PROPERTY = True
     # Set this property to True in base class if you want the exporter to zip
@@ -133,13 +134,23 @@ class ResourceZip(Resource):
             if temp_dir:
                 shutil.rmtree(temp_dir)
 
-    def do_export(self, resource_id, resource_dict, parent_dir):
+    def do_export(
+        self,
+        resource_id,
+        resource_dict,
+        parent_dir,
+        property_path: Optional[str] = None,
+        local_path: Optional[str] = None,
+    ):
         """
         Default export action is to upload artifacts and set the property to
         S3 URL of the uploaded object
         If code signing configuration is provided for function/layer, uploaded artifact
         will be replaced by signed artifact location
         """
+        if property_path is None:
+            property_path = self.PROPERTY_NAME
+        uploader = cast(S3Uploader, self.uploader)
         # code signer only accepts files which has '.zip' extension in it
         # so package artifact with '.zip' if it is required to be signed
         should_sign_package = self.code_signer.should_sign_package(resource_id)
@@ -148,16 +159,17 @@ class ResourceZip(Resource):
             self.RESOURCE_TYPE,
             resource_id,
             resource_dict,
-            self.PROPERTY_NAME,
+            property_path,
             parent_dir,
-            self.uploader,
+            uploader,
             artifact_extension,
+            local_path,
         )
         if should_sign_package:
             uploaded_url = self.code_signer.sign_package(
-                resource_id, uploaded_url, self.uploader.get_version_of_artifact(uploaded_url)
+                resource_id, uploaded_url, uploader.get_version_of_artifact(uploaded_url)
             )
-        set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, uploaded_url)
+        set_value_from_jmespath(resource_dict, property_path, uploaded_url)
 
     def delete(self, resource_id, resource_dict):
         """
@@ -585,6 +597,116 @@ class ECRResource(Resource):
         return jmespath.search(self.PROPERTY_NAME, resource_dict)
 
 
+class GraphQLApiSchemaResource(ResourceZip):
+    RESOURCE_TYPE = AWS_SERVERLESS_GRAPHQLAPI
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
+    # Don't package the directory if SchemaUri is omitted.
+    # Necessary to support SchemaInline
+    PACKAGE_NULL_PROPERTY = False
+
+
+class GraphQLApiCodeResource(ResourceZip):
+    """CodeUri for GraphQLApi resource.
+
+    There can be more than a single instance of CodeUri property in GraphQLApi Resolvers and Functions.
+    This class handles them all.
+
+    GraphQLApi dict shape looks like the following (yaml representation)
+    >>> Resolvers:
+            Mutation:
+                Resolver1:
+                    CodeUri: ...
+                    Pipeline:
+                    - Func1
+                    - Func2
+            Query:
+                Resolver2:
+                    CodeUri: ...
+                    Pipeline:
+                    - Func3
+        Functions:
+            Func1:
+                CodeUri: ...
+            Func2:
+                CodeUri: ...
+            Func3:
+                CodeUri: ...
+        ... # other properties, which are not important here
+    """
+
+    RESOURCE_TYPE = AWS_SERVERLESS_GRAPHQLAPI
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][1]
+    # if CodeUri is omitted the directory is not packaged because it's necessary to support CodeInline
+    PACKAGE_NULL_PROPERTY = False
+
+    def export(self, resource_id: str, resource_dict: Optional[Dict], parent_dir: str):
+        if resource_dict is None:
+            return
+
+        if resource_not_packageable(resource_dict):
+            return
+
+        # to be able to set different nested properties to S3 uri, paths are necessary
+        # jmespath doesn't provide that functionality, thus custom implementation
+        paths_values = self._find_all_with_property_name(resource_dict)
+        for property_path, property_value in paths_values:
+            if isinstance(property_value, dict):
+                LOG.debug("Property %s of %s resource is not a URL", self.PROPERTY_NAME, resource_id)
+                return
+
+            # If property is a file but not a zip file, place file in temp
+            # folder and send the temp folder to be zipped
+            temp_dir = None
+            if is_local_file(property_value) and not is_zip_file(property_value) and self.FORCE_ZIP:
+                temp_dir = copy_to_temp_dir(property_value)
+                set_value_from_jmespath(resource_dict, property_path, temp_dir)
+
+            try:
+                self.do_export(
+                    resource_id, resource_dict, parent_dir, property_path=property_path, local_path=property_value
+                )
+
+            except Exception as ex:
+                LOG.debug("Unable to export", exc_info=ex)
+                raise exceptions.ExportFailedError(
+                    resource_id=resource_id, property_name=property_path, property_value=property_value, ex=ex
+                )
+            finally:
+                if temp_dir:
+                    shutil.rmtree(temp_dir)
+
+    def _find_all_with_property_name(self, graphql_dict: Dict[str, Any]) -> List[Tuple[str, Union[str, Dict]]]:
+        """Find paths to the all properties with self.PROPERTY_NAME name and their (properties) values.
+
+        It leverages the knowledge of GraphQLApi structure instead of doing generic search in the graph.
+
+        Parameters
+        ----------
+        graphql_dict
+            GraphQLApi resource dict
+
+        Returns
+        -------
+            list of tuple (path, value) for all found properties which has property_name
+        """
+        # need to look up only in "Resolvers" and "Functions" subtrees
+        resolvers_and_functions = {k: graphql_dict[k] for k in ("Resolvers", "Functions") if k in graphql_dict}
+        stack: List[Tuple[Dict[str, Any], str]] = [(resolvers_and_functions, "")]
+        paths_values: List[Tuple[str, Union[str, Dict]]] = []
+
+        while stack:
+            node, path = stack.pop()
+            if isinstance(node, dict):
+                for key, value in node.items():
+                    if key == self.PROPERTY_NAME:
+                        paths_values.append((f"{path}{key}", value))
+                    elif isinstance(value, dict):
+                        stack.append((value, f"{path}{key}."))
+            # there is no need to handle lists because
+            # paths to "CodeUri" within "Resolvers" and "Functions" doesn't have lists
+        return paths_values
+
+
 RESOURCES_EXPORT_LIST = [
     ServerlessFunctionResource,
     ServerlessFunctionImageResource,
@@ -610,6 +732,8 @@ RESOURCES_EXPORT_LIST = [
     CloudFormationModuleVersionModulePackage,
     CloudFormationResourceVersionSchemaHandlerPackage,
     ECRResource,
+    GraphQLApiSchemaResource,
+    GraphQLApiCodeResource,
 ]
 
 METADATA_EXPORT_LIST = [ServerlessRepoApplicationReadme, ServerlessRepoApplicationLicense]
