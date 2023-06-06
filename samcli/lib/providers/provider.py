@@ -7,7 +7,7 @@ import logging
 import os
 import posixpath
 from collections import namedtuple
-from enum import Enum, auto
+from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, Iterator, List, NamedTuple, Optional, Set, Union, cast
 
 from samcli.commands.local.cli_common.user_exceptions import (
@@ -43,13 +43,16 @@ class FunctionBuildInfo(Enum):
     """
 
     # buildable
-    BuildableZip = auto(), "Regular ZIP function which can be build with SAM CLI"
-    BuildableImage = auto(), "Regular IMAGE function which can be build with SAM CLI"
+    BuildableZip = "BuildableZip", "Regular ZIP function which can be build with SAM CLI"
+    BuildableImage = "BuildableImage", "Regular IMAGE function which can be build with SAM CLI"
     # non-buildable
-    InlineCode = auto(), "A ZIP function which has inline code, non buildable"
-    PreZipped = auto(), "A ZIP function which points to a .zip file, non buildable"
-    SkipBuild = auto(), "A Function which is denoted with SkipBuild in metadata, non buildable"
-    NonBuildableImage = auto(), "An IMAGE function which is missing some information to build, non buildable"
+    InlineCode = "InlineCode", "A ZIP function which has inline code, non buildable"
+    PreZipped = "PreZipped", "A ZIP function which points to a .zip file, non buildable"
+    SkipBuild = "SkipBuild", "A Function which is denoted with SkipBuild in metadata, non buildable"
+    NonBuildableImage = (
+        "NonBuildableImage",
+        "An IMAGE function which is missing some information to build, non buildable",
+    )
 
     def is_buildable(self) -> bool:
         """
