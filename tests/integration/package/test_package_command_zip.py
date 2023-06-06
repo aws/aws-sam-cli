@@ -88,6 +88,7 @@ class TestPackageZip(PackageIntegBase):
             "aws-serverless-statemachine.yaml",
             "aws-stepfunctions-statemachine.yaml",
             "aws-include-transform.yaml",
+            "aws-serverless-graphqlapi.yaml",
         ]
     )
     def test_package_barebones(self, template_file):
@@ -140,6 +141,7 @@ class TestPackageZip(PackageIntegBase):
             "aws-serverlessrepo-application.yaml",
             "aws-serverless-statemachine.yaml",
             "aws-stepfunctions-statemachine.yaml",
+            "aws-serverless-graphqlapi.yaml",
         ]
     )
     def test_package_with_prefix(self, template_file):
@@ -183,6 +185,7 @@ class TestPackageZip(PackageIntegBase):
             "aws-serverlessrepo-application.yaml",
             "aws-serverless-statemachine.yaml",
             "aws-stepfunctions-statemachine.yaml",
+            "aws-serverless-graphqlapi.yaml",
         ]
     )
     def test_package_with_output_template_file(self, template_file):
@@ -237,6 +240,7 @@ class TestPackageZip(PackageIntegBase):
             "aws-serverlessrepo-application.yaml",
             "aws-serverless-statemachine.yaml",
             "aws-stepfunctions-statemachine.yaml",
+            "aws-serverless-graphqlapi.yaml",
         ]
     )
     def test_package_with_json(self, template_file):
@@ -292,6 +296,7 @@ class TestPackageZip(PackageIntegBase):
             "aws-serverlessrepo-application.yaml",
             "aws-serverless-statemachine.yaml",
             "aws-stepfunctions-statemachine.yaml",
+            "aws-serverless-graphqlapi.yaml",
         ]
     )
     def test_package_with_force_upload(self, template_file):
@@ -349,6 +354,7 @@ class TestPackageZip(PackageIntegBase):
             "aws-serverlessrepo-application.yaml",
             "aws-serverless-statemachine.yaml",
             "aws-stepfunctions-statemachine.yaml",
+            "aws-serverless-graphqlapi.yaml",
         ]
     )
     def test_package_with_kms_key(self, template_file):
@@ -405,6 +411,7 @@ class TestPackageZip(PackageIntegBase):
             "aws-serverlessrepo-application.yaml",
             "aws-serverless-statemachine.yaml",
             "aws-stepfunctions-statemachine.yaml",
+            "aws-serverless-graphqlapi.yaml",
         ]
     )
     def test_package_with_metadata(self, template_file):
@@ -460,6 +467,7 @@ class TestPackageZip(PackageIntegBase):
             "aws-serverlessrepo-application.yaml",
             "aws-serverless-statemachine.yaml",
             "aws-stepfunctions-statemachine.yaml",
+            "aws-serverless-graphqlapi.yaml",
         ]
     )
     def test_package_with_resolve_s3(self, template_file):
