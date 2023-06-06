@@ -1,0 +1,46 @@
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+  DynamoDBPostsTable:
+    Type: AWS::Serverless::SimpleTable
+
+  SuperCoolAPI:
+    Type: AWS::Serverless::GraphQLApi
+    Properties:
+      SchemaUri: ./sam_graphql_api/schema.graphql
+      Auth:
+        Type: AWS_IAM
+      DataSources:
+        DynamoDb:
+          PostsDataSource:
+            TableName: !Ref DynamoDBPostsTable
+            TableArn: !GetAtt DynamoDBPostsTable.Arn
+      Functions:
+        createPostItem:
+          Runtime:
+            Name: APPSYNC_JS
+            Version: "1.0.0"
+          DataSource: PostsDataSource
+          CodeUri: ./sam_graphql_api/createPostItem.js
+        getPostFromTable:
+          Runtime:
+            Name: APPSYNC_JS
+            Version: "1.0.0"
+          DataSource: PostsDataSource
+          CodeUri: ./sam_graphql_api/getPostFromTable.js
+      Resolvers:
+        Mutation:
+          addPost:
+            Runtime:
+              Name: APPSYNC_JS
+              Version: "1.0.0"
+            Pipeline:
+            - createPostItem
+        Query:
+          getPost:
+            CodeUri: ./sam_graphql_api/getPost.js
+            Runtime:
+              Name: APPSYNC_JS
+              Version: "1.0.0"
+            Pipeline:
+            - getPostFromTable
