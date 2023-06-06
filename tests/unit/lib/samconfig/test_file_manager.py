@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 import tempfile
 from unittest import TestCase
@@ -6,7 +7,7 @@ import tomlkit
 from ruamel.yaml import YAML
 
 from samcli.lib.config.exceptions import FileParseException
-from samcli.lib.config.file_manager import COMMENT_KEY, TomlFileManager, YamlFileManager
+from samcli.lib.config.file_manager import COMMENT_KEY, JsonFileManager, TomlFileManager, YamlFileManager
 
 
 class TestTomlFileManager(TestCase):
@@ -179,3 +180,81 @@ class TestYamlFileManager(TestCase):
         self.yaml.dump(yaml_doc, config_path)
         txt = config_path.read_text()
         self.assertIn("# This is a comment", txt)
+
+
+class TestJsonFileManager(TestCase):
+    def test_read_json(self):
+        config_dir = tempfile.gettempdir()
+        config_path = Path(config_dir, "samconfig.json")
+        config_path.write_text(
+            json.dumps(
+                {"version": 0.1, "config_env": {"topic1": {"parameters": {"word": "clarity"}}}},
+                indent=JsonFileManager.INDENT_SIZE,
+            )
+        )
+
+        config_doc = JsonFileManager.read(config_path)
+
+        self.assertEqual(
+            config_doc,
+            {"version": 0.1, "config_env": {"topic1": {"parameters": {"word": "clarity"}}}},
+        )
+
+    def test_read_json_invalid_json(self):
+        config_dir = tempfile.gettempdir()
+        config_path = Path(config_dir, "samconfig.json")
+        config_path.write_text("{\n" + '  "bad_file": "very bad"\n' + '  "improperly": "formatted"\n' + "}\n")
+
+        with self.assertRaises(FileParseException):
+            JsonFileManager.read(config_path)
+
+    def test_read_json_file_path_not_valid(self):
+        config_dir = "path/that/doesnt/exist"
+        config_path = Path(config_dir, "samconfig.json")
+
+        config_doc = JsonFileManager.read(config_path)
+
+        self.assertEqual(config_doc, {})
+
+    def test_write_json(self):
+        config_dir = tempfile.gettempdir()
+        config_path = Path(config_dir, "samconfig.json")
+        json_doc = {
+            "version": 0.1,
+            "config_env": {"topic2": {"parameters": {"word": "clarity"}}},
+            COMMENT_KEY: "This is a comment",
+        }
+
+        JsonFileManager.write(json_doc, config_path)
+
+        txt = config_path.read_text()
+        self.assertIn('"version": 0.1', txt)
+        self.assertIn('"config_env": {', txt)
+        self.assertIn('"topic2": {', txt)
+        self.assertIn('"parameters": {', txt)
+        self.assertIn('"word": "clarity"', txt)
+        self.assertIn(f'"{COMMENT_KEY}": "This is a comment"', txt)
+
+    def test_dont_write_json_if_empty(self):
+        config_dir = tempfile.gettempdir()
+        config_path = Path(config_dir, "samconfig.json")
+        config_path.write_text("nothing to see here\n")
+        json_doc = {}
+
+        JsonFileManager.write(json_doc, config_path)
+
+        self.assertEqual(config_path.read_text(), "nothing to see here\n")
+
+    def test_write_json_file_bad_path(self):
+        config_path = Path("path/to/some", "file_that_doesnt_exist.json")
+
+        with self.assertRaises(FileNotFoundError):
+            JsonFileManager.write({"key": "value"}, config_path)
+
+    def test_json_put_comment(self):
+        json_doc = {"version": 0.1, "config_env": {"topic1": {"parameters": {"word": "clarity"}}}}
+
+        json_doc = JsonFileManager.put_comment(json_doc, "This is a comment")
+
+        txt = json.dumps(json_doc)
+        self.assertIn(f'"{COMMENT_KEY}": "This is a comment"', txt)
