@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 from typing import Optional
 from unittest import skipIf
-from http.client import HTTPConnection
+from parameterized import parameterized
 
 import pytest
 import requests
@@ -67,13 +67,32 @@ class TestStartApiTerraformApplicationV1LambdaAuthorizers(TerraformStartApiInteg
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
-    def test_invoke_authorizer(self):
-        response = requests.get(self.url + "/hello", timeout=300, headers={"myheader": "123"})
+    @parameterized.expand(
+        [
+            ("/hello", {"headers": {"myheader": "123"}}),
+            ("/hello-request", {"headers": {"myheader": "123"}, "params": {"mystring": "456"}}),
+            ("/hello-request-empty", {}),
+            ("/hello-request-empty", {"headers": {"foo": "bar"}}),
+        ]
+    )
+    def test_invoke_authorizer(self, endpoint, parameters):
+        response = requests.get(self.url + endpoint, timeout=300, **parameters)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"message": "from authorizer"})
 
-    def test_fails_validation(self):
+    @parameterized.expand(
+        [
+            ("/hello", {"headers": {"blank": "invalid"}}),
+            ("/hello-request", {"headers": {"blank": "invalid"}, "params": {"blank": "invalid"}}),
+        ]
+    )
+    def test_missing_authorizer_identity_source(self, endpoint, parameters):
+        response = requests.get(self.url + endpoint, timeout=300, **parameters)
+
+        self.assertEqual(response.status_code, 401)
+
+    def test_fails_token_header_validation_authorizer(self):
         response = requests.get(self.url + "/hello", timeout=300, headers={"myheader": "not valid"})
 
         self.assertEqual(response.status_code, 401)
