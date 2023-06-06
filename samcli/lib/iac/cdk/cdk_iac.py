@@ -19,13 +19,13 @@ class CdkIacImplementation(IaCPluginInterface):
         the CDK project type
     """
 
-    def read_project(self, lookup_paths: List[LookupPath]) -> SamCliProject:  # type: ignore
+    def read_project(self, lookup_paths: List[LookupPath]) -> SamCliProject:
         pass
 
-    def write_project(self, project: SamCliProject, build_dir: str) -> bool:  # type: ignore
+    def write_project(self, project: SamCliProject, build_dir: str) -> bool:
         pass
 
-    def update_packaged_locations(self, stack: Stack) -> bool:  # type: ignore
+    def update_packaged_locations(self, stack: Stack) -> bool:
         pass
 
     @staticmethod

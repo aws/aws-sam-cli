@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 from typing import Dict, NamedTuple, Optional, cast
 
-import jsonschema
+import jsonschema  # type: ignore
 
 from .exceptions import InvalidHookPackageConfigException
 
