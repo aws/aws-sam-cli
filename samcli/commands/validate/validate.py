@@ -8,7 +8,7 @@ import click
 from botocore.exceptions import NoCredentialsError
 from samtranslator.translator.arn_generator import NoRegionFound
 
-from samcli.cli.cli_config_file import TomlProvider, configuration_option
+from samcli.cli.cli_config_file import ConfigProvider, configuration_option
 from samcli.cli.context import Context
 from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
 from samcli.cli.main import common_options as cli_framework_options
@@ -35,7 +35,7 @@ DESCRIPTION = """
     requires_credentials=False,
     context_settings={"max_content_width": 120},
 )
-@configuration_option(provider=TomlProvider(section="parameters"))
+@configuration_option(provider=ConfigProvider(section="parameters"))
 @template_option_without_build
 @aws_creds_options
 @cli_framework_options

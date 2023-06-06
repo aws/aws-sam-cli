@@ -6,7 +6,7 @@ import functools
 
 import click
 
-from samcli.cli.cli_config_file import TomlProvider, configuration_option
+from samcli.cli.cli_config_file import ConfigProvider, configuration_option
 from samcli.cli.options import debug_option
 from samcli.lib.generated_sample_events import events
 from samcli.lib.telemetry.metric import track_command
@@ -160,7 +160,7 @@ class EventTypeSubCommand(click.MultiCommand):
             callback=command_callback,
         )
 
-        cmd = configuration_option(provider=TomlProvider(section="parameters"))(debug_option(cmd))
+        cmd = configuration_option(provider=ConfigProvider(section="parameters"))(debug_option(cmd))
         return cmd
 
     def list_commands(self, ctx):

@@ -141,7 +141,7 @@ def _get_customer_input_beta_features_option(default_map, experimental_entry, op
     if beta_features is not None:
         return beta_features
 
-    # Get the beta-features flag value from the SamConfig toml file if provided.
+    # Get the beta-features flag value from the SamConfig file if provided.
     beta_features = default_map.get("beta_features")
     if beta_features is not None:
         return beta_features

@@ -5,7 +5,7 @@ from typing import Any, Optional
 
 import click
 
-from samcli.cli.cli_config_file import TomlProvider, configuration_option
+from samcli.cli.cli_config_file import ConfigProvider, configuration_option
 from samcli.cli.main import common_options as cli_framework_options
 from samcli.cli.main import pass_context
 from samcli.commands._utils.command_exception_handler import command_exception_handler
@@ -24,7 +24,7 @@ file generation process, or refer to resources you have previously created with 
 
 
 @click.command("init", help=HELP_TEXT, short_help=SHORT_HELP)
-@configuration_option(provider=TomlProvider(section="parameters"))
+@configuration_option(provider=ConfigProvider(section="parameters"))
 @click.option(
     "--bootstrap",
     is_flag=True,
