@@ -1,6 +1,7 @@
 """
 Provide a CFN implementation of IaCPluginInterface
 """
+
 import logging
 import os
 from typing import List, Optional
@@ -71,11 +72,11 @@ class CfnIacImplementation(IaCPluginInterface):
         stack = self._build_stack(self._template_file)
         return SamCliProject([stack])
 
-    def write_project(self, project: SamCliProject, build_dir: str) -> bool:  # type: ignore
+    def write_project(self, project: SamCliProject, build_dir: str) -> bool:
         # TODO
         pass
 
-    def update_packaged_locations(self, stack: Stack) -> bool:  # type: ignore
+    def update_packaged_locations(self, stack: Stack) -> bool:
         # TODO
         pass
 
