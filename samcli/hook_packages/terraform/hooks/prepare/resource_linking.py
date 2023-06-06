@@ -243,7 +243,7 @@ class ResourceLinker:
             return
 
         for cfn_resource in cfn_resources:
-            self._resource_pair.cfn_resource_update_call_back_function(cfn_resource, dest_resources)
+            self._resource_pair.cfn_resource_update_call_back_function(cfn_resource, dest_resources)  # type: ignore
 
     def _link_using_linking_fields(self, cfn_resource: Dict) -> None:
         """
@@ -298,7 +298,7 @@ class ResourceLinker:
             return
 
         LOG.debug("The value of the source resource linking field after mapping %s", dest_resources)
-        self._resource_pair.cfn_resource_update_call_back_function(cfn_resource, dest_resources)
+        self._resource_pair.cfn_resource_update_call_back_function(cfn_resource, dest_resources)  # type: ignore
 
     def _process_resolved_resources(
         self,
