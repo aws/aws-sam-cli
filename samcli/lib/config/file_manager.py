@@ -3,6 +3,7 @@ Class to represent the parsing of different file types into Python objects.
 """
 
 
+import json
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -37,8 +38,7 @@ class FileManager(ABC):
         Returns
         -------
         Any
-            A dictionary-like representation of the contents at the filepath location, along with a specialized
-            representation of the file that was read, if there is a specialization of it.
+            A dictionary-like representation of the contents at the filepath location.
         """
         raise NotImplementedError("Read method not implemented.")
 
@@ -260,3 +260,75 @@ class YamlFileManager(FileManager):
         with StringIO() as stream:
             YamlFileManager.yaml.dump(document, stream)
             return YamlFileManager.yaml.load(stream.getvalue())
+
+
+class JsonFileManager(FileManager):
+    """
+    Static class to read and write json files.
+    """
+
+    file_format = "JSON"
+    INDENT_SIZE = 2
+
+    @staticmethod
+    def read(filepath: Path) -> Any:
+        """
+        Read a JSON file at a given path.
+
+        Parameters
+        ----------
+        filepath: Path
+            The Path object that points to the file to be read.
+
+        Returns
+        -------
+        Any
+            A dictionary representation of the contents of the JSON document.
+        """
+        json_file = {}
+        try:
+            json_file = json.loads(filepath.read_text())
+        except OSError as e:
+            LOG.debug(f"OSError occurred while reading {JsonFileManager.file_format} file: {str(e)}")
+        except json.JSONDecodeError as e:
+            raise FileParseException(e) from e
+        return json_file
+
+    @staticmethod
+    def write(document: dict, filepath: Path):
+        """
+        Write a dictionary or dictionary-like object to a JSON file.
+
+        Parameters
+        ----------
+        document: dict
+            The JSON object to write.
+        filepath: Path
+            The final location for the document to be written.
+        """
+        if not document:
+            LOG.debug("No document given to JsonFileManager to write.")
+            return
+
+        with filepath.open("w") as file:
+            json.dump(document, file, indent=JsonFileManager.INDENT_SIZE)
+
+    @staticmethod
+    def put_comment(document: Any, comment: str) -> Any:
+        """
+        Put a comment in a JSON object.
+
+        Parameters
+        ----------
+        document: Any
+            The JSON object to write
+        comment: str
+            The comment to include in the document.
+
+        Returns
+        -------
+        Any
+            The new JSON dictionary object, with the comment added to it.
+        """
+        document.update({COMMENT_KEY: comment})
+        return document
