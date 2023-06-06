@@ -4,7 +4,7 @@ Transform: AWS::Serverless-2016-10-31
 Mappings:
   MappingExample:
     us-east-2:
-      ApplicationId: arn:aws:serverlessrepo:us-east-1:077246666028:applications/hello-world
+      ApplicationId: arn:aws:serverlessrepo:us-east-1:${AWS::AccountId}:applications/shared-sam-cli-integration-test-sar-app
 
 Resources:
   MyApplication:
@@ -13,5 +13,3 @@ Resources:
       Location:
         ApplicationId: !FindInMap [ MappingExample, !Ref AWS::Region, ApplicationId ]
         SemanticVersion: 1.0.4
-      Parameters:
-        IdentityNameParameter: AnyValue

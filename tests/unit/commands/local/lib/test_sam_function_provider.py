@@ -8,7 +8,7 @@ from parameterized import parameterized
 from samcli.lib.utils.architecture import X86_64, ARM64
 
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
-from samcli.lib.providers.provider import Function, LayerVersion, Stack
+from samcli.lib.providers.provider import Function, LayerVersion, Stack, FunctionBuildInfo
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider, RefreshableSamFunctionProvider
 from samcli.lib.providers.exceptions import InvalidLayerReference
 from samcli.lib.utils.packagetype import IMAGE, ZIP
@@ -302,6 +302,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     architectures=None,
                     function_url_config=None,
                     stack_path="",
+                    function_build_info=FunctionBuildInfo.BuildableZip,
                 ),
             ),
             (
@@ -328,6 +329,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     architectures=None,
                     function_url_config=None,
                     stack_path="",
+                    function_build_info=FunctionBuildInfo.InlineCode,
                 ),
             ),
             (
@@ -354,6 +356,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     architectures=None,
                     function_url_config=None,
                     stack_path="",
+                    function_build_info=FunctionBuildInfo.BuildableZip,
                 ),
             ),
             ("SamFunc2", None),  # codeuri is a s3 location, ignored
@@ -387,6 +390,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     architectures=None,
                     function_url_config=None,
                     stack_path="",
+                    function_build_info=FunctionBuildInfo.BuildableImage,
                 ),
             ),
             (
@@ -418,6 +422,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     architectures=None,
                     function_url_config=None,
                     stack_path="",
+                    function_build_info=FunctionBuildInfo.BuildableImage,
                 ),
             ),
             ("SamFuncWithImage3", None),  # imageuri is ecr location, ignored
@@ -450,6 +455,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     architectures=None,
                     function_url_config=None,
                     stack_path="",
+                    function_build_info=FunctionBuildInfo.BuildableImage,
                 ),
             ),
             (
@@ -476,6 +482,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     architectures=None,
                     function_url_config=None,
                     stack_path="",
+                    function_build_info=FunctionBuildInfo.BuildableZip,
                 ),
             ),
             (
@@ -506,6 +513,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                         "UpdateRuntimeOn": "Manual",
                         "RuntimeVersionArn": "arn:aws:lambda:us-east-1::runtime:python3.9::0af1966588ced06e3143ae720245c9b7aeaae213c6921c12c742a166679cc505",
                     },
+                    function_build_info=FunctionBuildInfo.BuildableZip,
                 ),
             ),
             ("LambdaFunc1", None),  # codeuri is a s3 location, ignored
@@ -538,6 +546,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     architectures=None,
                     function_url_config=None,
                     stack_path="",
+                    function_build_info=FunctionBuildInfo.BuildableImage,
                 ),
             ),
             (
@@ -569,6 +578,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     architectures=None,
                     function_url_config=None,
                     stack_path="",
+                    function_build_info=FunctionBuildInfo.BuildableImage,
                 ),
             ),
             ("LambdaFuncWithImage3", None),  # imageuri is a ecr location, ignored
@@ -601,6 +611,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     architectures=None,
                     function_url_config=None,
                     stack_path="",
+                    function_build_info=FunctionBuildInfo.BuildableImage,
                 ),
             ),
             (
@@ -627,6 +638,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     architectures=None,
                     function_url_config=None,
                     stack_path="",
+                    function_build_info=FunctionBuildInfo.InlineCode,
                 ),
             ),
             (
@@ -653,6 +665,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     architectures=None,
                     function_url_config=None,
                     stack_path="",
+                    function_build_info=FunctionBuildInfo.BuildableZip,
                 ),
             ),
             (
@@ -679,6 +692,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     architectures=None,
                     function_url_config=None,
                     stack_path="",
+                    function_build_info=FunctionBuildInfo.BuildableZip,
                 ),
             ),
             (
@@ -705,6 +719,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     architectures=None,
                     function_url_config=None,
                     stack_path="",
+                    function_build_info=FunctionBuildInfo.BuildableZip,
                 ),
             ),
             (
@@ -731,6 +746,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     architectures=None,
                     function_url_config=None,
                     stack_path="ChildStack",
+                    function_build_info=FunctionBuildInfo.BuildableZip,
                 ),
             ),
             (
@@ -757,6 +773,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     architectures=None,
                     function_url_config=None,
                     stack_path="ChildStack",
+                    function_build_info=FunctionBuildInfo.BuildableZip,
                 ),
             ),
             (
@@ -788,6 +805,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     architectures=None,
                     function_url_config=None,
                     stack_path="ChildStack",
+                    function_build_info=FunctionBuildInfo.BuildableImage,
                 ),
             ),
             (
@@ -814,6 +832,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     architectures=None,
                     function_url_config=None,
                     stack_path="",
+                    function_build_info=FunctionBuildInfo.BuildableZip,
                 ),
             ),
             (
@@ -840,6 +859,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     architectures=None,
                     function_url_config=None,
                     stack_path="",
+                    function_build_info=FunctionBuildInfo.BuildableZip,
                 ),
             ),
             (
@@ -872,6 +892,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     architectures=None,
                     function_url_config=None,
                     stack_path="",
+                    function_build_info=FunctionBuildInfo.BuildableZip,
                 ),
             ),
             (
@@ -904,6 +925,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     architectures=None,
                     function_url_config=None,
                     stack_path="",
+                    function_build_info=FunctionBuildInfo.BuildableZip,
                 ),
             ),
             (
@@ -936,6 +958,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     architectures=None,
                     function_url_config=None,
                     stack_path="ChildStack",
+                    function_build_info=FunctionBuildInfo.BuildableZip,
                 ),
             ),
             (
@@ -968,6 +991,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     architectures=None,
                     function_url_config=None,
                     stack_path="ChildStack",
+                    function_build_info=FunctionBuildInfo.BuildableZip,
                 ),
             ),
             (
@@ -1000,6 +1024,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     architectures=None,
                     function_url_config=None,
                     stack_path="ChildStack",
+                    function_build_info=FunctionBuildInfo.BuildableZip,
                 ),
             ),
             (
@@ -1453,6 +1478,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             architectures=[X86_64],
             function_url_config=None,
             stack_path=STACK_PATH,
+            function_build_info=FunctionBuildInfo.BuildableZip,
         )
 
         result = SamFunctionProvider._convert_sam_function_resource(STACK, name, properties, ["Layer1", "Layer2"])
@@ -1495,6 +1521,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             architectures=None,
             function_url_config=None,
             stack_path=STACK_PATH,
+            function_build_info=FunctionBuildInfo.NonBuildableImage,
         )
 
         result = SamFunctionProvider._convert_sam_function_resource(STACK, name, properties, [])
@@ -1527,6 +1554,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             architectures=None,
             function_url_config=None,
             stack_path=STACK_PATH,
+            function_build_info=FunctionBuildInfo.BuildableZip,
         )
 
         result = SamFunctionProvider._convert_sam_function_resource(STACK, name, properties, [])
@@ -1573,6 +1601,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             architectures=[X86_64],
             function_url_config=None,
             stack_path=STACK_PATH,
+            function_build_info=FunctionBuildInfo.InlineCode,
         )
 
         result = SamFunctionProvider._convert_sam_function_resource(STACK, name, properties, [])
@@ -1613,6 +1642,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             architectures=[ARM64],
             function_url_config=None,
             stack_path=STACK_PATH,
+            function_build_info=FunctionBuildInfo.InlineCode,
         )
 
         result = SamFunctionProvider._convert_sam_function_resource(STACK, name, properties, [])
@@ -1668,6 +1698,7 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
             architectures=None,
             function_url_config=None,
             stack_path=STACK_PATH,
+            function_build_info=FunctionBuildInfo.BuildableZip,
         )
 
         result = SamFunctionProvider._convert_lambda_function_resource(STACK, name, properties, ["Layer1", "Layer2"])
@@ -1708,6 +1739,7 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
             architectures=[ARM64],
             function_url_config=None,
             stack_path=STACK_PATH,
+            function_build_info=FunctionBuildInfo.InlineCode,
         )
 
         result = SamFunctionProvider._convert_lambda_function_resource(STACK, name, properties, [])
@@ -1740,6 +1772,7 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
             architectures=None,
             function_url_config=None,
             stack_path=STACK_PATH,
+            function_build_info=FunctionBuildInfo.BuildableZip,
         )
 
         result = SamFunctionProvider._convert_lambda_function_resource(STACK, name, properties, [])
@@ -1882,6 +1915,7 @@ class TestSamFunctionProvider_get(TestCase):
             architectures=None,
             function_url_config=None,
             stack_path=STACK_PATH,
+            function_build_info=Mock(),
         )
         provider.functions = {"func1": function}
 
@@ -1912,6 +1946,7 @@ class TestSamFunctionProvider_get(TestCase):
             architectures=None,
             function_url_config=None,
             stack_path=posixpath.join("this_is", "stack_path_C"),
+            function_build_info=Mock(),
         )
 
         function2 = Function(
@@ -1936,6 +1971,7 @@ class TestSamFunctionProvider_get(TestCase):
             architectures=None,
             function_url_config=None,
             stack_path=posixpath.join("this_is", "stack_path_B"),
+            function_build_info=Mock(),
         )
 
         function3 = Function(
@@ -1960,6 +1996,7 @@ class TestSamFunctionProvider_get(TestCase):
             architectures=None,
             function_url_config=None,
             stack_path=posixpath.join("this_is", "stack_path_A"),
+            function_build_info=Mock(),
         )
 
         function4 = Function(
@@ -1984,6 +2021,7 @@ class TestSamFunctionProvider_get(TestCase):
             architectures=None,
             function_url_config=None,
             stack_path=posixpath.join("this_is", "stack_path_D"),
+            function_build_info=Mock(),
         )
         provider.functions = {"func1": function1, "func2": function2, "func3": function3, "func4": function4}
 

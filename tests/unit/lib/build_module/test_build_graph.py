@@ -1,3 +1,4 @@
+import copy
 import os.path
 from unittest import TestCase
 from unittest.mock import patch, Mock
@@ -34,7 +35,7 @@ from samcli.lib.build.build_graph import (
     BuildHashingInformation,
     HANDLER_FIELD,
 )
-from samcli.lib.providers.provider import Function, LayerVersion
+from samcli.lib.providers.provider import Function, LayerVersion, FunctionBuildInfo
 from samcli.lib.utils import osutils
 from samcli.lib.utils.packagetype import ZIP
 
@@ -60,6 +61,7 @@ def generate_function(
     inlinecode=None,
     architectures=[X86_64],
     stack_path="",
+    function_build_info=FunctionBuildInfo.BuildableZip,
 ):
     if metadata is None:
         metadata = {}
@@ -85,6 +87,7 @@ def generate_function(
         codesign_config_arn,
         architectures,
         stack_path,
+        function_build_info,
     )
 
 
@@ -959,3 +962,17 @@ class TestBuildDefinition(TestCase):
                 build_definition.get_build_dir("build_dir"),
                 build_definition.functions[0].get_build_dir("build_dir") + "-Shared",
             )
+
+    def test_deepcopy_build_definition(self):
+        build_definition = FunctionBuildDefinition(
+            "runtime", "codeuri", ZIP, ARM64, {}, "handler", "source_hash", "manifest_hash"
+        )
+        function1 = generate_function(runtime="runtime", codeuri="codeuri", handler="handler")
+        function2 = generate_function(runtime="runtime", codeuri="codeuri", handler="handler")
+        build_definition.add_function(function1)
+        build_definition.add_function(function2)
+        build_definitions = [build_definition]
+
+        copied_build_definitions = copy.deepcopy(build_definitions)
+
+        self.assertEqual(copied_build_definitions, build_definitions)

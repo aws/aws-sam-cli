@@ -20,6 +20,7 @@ from samcli.commands._utils.options import (
     artifact_callback,
     resolve_s3_callback,
     image_repositories_callback,
+    remote_invoke_boto_parameter_callback,
     _space_separated_list_func_type,
     skip_prepare_infra_callback,
     generate_next_command_recommendation,
@@ -133,6 +134,26 @@ class TestImageRepositoriesCallBack(TestCase):
                 ctx=MockContext(info_name="test", parent=None, params=mock_params), param=MagicMock(), provided_value=()
             ),
             None,
+        )
+
+
+class TestRemoteInvokeBotoParameterCallBack(TestCase):
+    def test_remote_invoke_boto_parameter_callback(self):
+        mock_params = MagicMock()
+        result = remote_invoke_boto_parameter_callback(
+            ctx=MockContext(info_name="test", parent=None, params=mock_params),
+            param=MagicMock(),
+            provided_value=({"a": "b"}, {"c": "d"}),
+        )
+        self.assertEqual(result, {"a": "b", "c": "d"})
+
+    def test_remote_invoke_boto_parameter_callback_empty(self):
+        mock_params = MagicMock()
+        self.assertEqual(
+            remote_invoke_boto_parameter_callback(
+                ctx=MockContext(info_name="test", parent=None, params=mock_params), param=MagicMock(), provided_value=()
+            ),
+            {},
         )
 
 
