@@ -205,12 +205,13 @@ jobs:
         with:
           # These are the versions of Python that correspond to the supported Lambda runtimes
           python-version: |
-            3.7
-            3.8
-            3.9
             3.10
+            3.9
+            3.8
+            3.7
       - name: Init samdev
         run: make init
+
       - name: Stop Docker Linux
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: sudo systemctl stop docker
@@ -218,6 +219,7 @@ jobs:
         if: ${{ matrix.os == 'windows-latest' }}
         shell: pwsh
         run: stop-service docker
+
       - name: Check Docker not Running
         run: docker info
         id: run-docker-info
@@ -225,5 +227,6 @@ jobs:
       - name: Report failure
         if: steps.run-docker-info.outcome == 'success'
         run: exit 1
+
       - name: Run tests without Docker
         run: SAM_CLI_DEV=1 pytest -vv tests/integration/buildcmd/test_build_cmd.py -k TestBuildCommand_PythonFunctions_WithoutDocker
