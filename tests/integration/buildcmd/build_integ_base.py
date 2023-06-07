@@ -328,7 +328,7 @@ class BuildIntegEsbuildBase(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
     # Everything should be minifed to one line and a second line for the sourcemap mapping
     MAX_MINIFIED_LINE_COUNT = 2
-    MANIFEST_PATH = None
+    MANIFEST_PATH: Optional[str] = None
 
     def _test_with_default_package_json(
         self, runtime, use_container, code_uri, expected_files, handler, architecture=None, build_in_source=None
@@ -424,7 +424,7 @@ class BuildIntegNodeBase(BuildIntegBase):
     CODE_URI = "Node"
     FUNCTION_LOGICAL_ID = "Function"
     TEST_INVOKE = False
-    MANIFEST_PATH = None
+    MANIFEST_PATH: Optional[str] = None
 
     def _test_with_default_package_json(self, runtime, use_container, relative_path, architecture=None):
         overrides = self.get_override(runtime, self.CODE_URI, architecture, "main.lambdaHandler")
