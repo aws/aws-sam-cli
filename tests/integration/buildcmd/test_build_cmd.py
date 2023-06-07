@@ -545,7 +545,6 @@ class TestBuildCommand_NodeFunctions_With_External_Manifest(BuildIntegNodeBase):
 
     @parameterized.expand(
         [
-            ("nodejs12.x",),
             ("nodejs14.x",),
             ("nodejs16.x",),
             ("nodejs18.x",),
@@ -609,12 +608,20 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest(BuildIntegEsbuild
                 "x86_64",
             ),
             (
-                "nodejs12.x",
+                "nodejs16.x",
                 "Esbuild/Node_without_manifest",
                 {"main.js", "main.js.map"},
                 "main.lambdaHandler",
                 False,
                 "arm64",
+            ),
+            (
+                    "nodejs18.x",
+                    "Esbuild/Node_without_manifest",
+                    {"main.js", "main.js.map"},
+                    "main.lambdaHandler",
+                    False,
+                    "arm64",
             ),
             (
                 "nodejs14.x",
@@ -625,12 +632,20 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest(BuildIntegEsbuild
                 "x86_64",
             ),
             (
-                "nodejs12.x",
+                "nodejs16.x",
                 "Esbuild/TypeScript_without_manifest",
                 {"app.js", "app.js.map"},
                 "app.lambdaHandler",
                 False,
                 "arm64",
+            ),
+            (
+                    "nodejs18.x",
+                    "Esbuild/TypeScript_without_manifest",
+                    {"app.js", "app.js.map"},
+                    "app.lambdaHandler",
+                    False,
+                    "arm64",
             ),
         ]
     )
