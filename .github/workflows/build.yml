@@ -198,6 +198,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
+          # These are the versions of Python that correspond to the supported Lambda runtimes
           python-version: |
             3.7
             3.8
@@ -215,4 +216,4 @@ jobs:
         if: steps.run-docker-info.outcome == 'success'
         run: exit 1
       - name: Run tests without Docker
-        run: pytest -vv tests/integration/buildcmd/test_build_cmd.py -k TestBuildCommand_PythonFunctions_WithoutDocker
+        run: SAM_CLI_DEV=1 pytest -vv tests/integration/buildcmd/test_build_cmd.py -k TestBuildCommand_PythonFunctions_WithoutDocker
