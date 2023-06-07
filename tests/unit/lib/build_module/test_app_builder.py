@@ -1418,7 +1418,8 @@ class TestApplicationBuilder_update_template_windows(TestCase):
     def test_must_write_absolute_path_for_different_drives(self):
         def mock_new(cls, *args, **kwargs):
             cls = WindowsPath
-            self = cls._from_parts(args)
+            self = cls._from_parts(args, init=False)
+            self._init()
             return self
 
         def mock_resolve(self):
