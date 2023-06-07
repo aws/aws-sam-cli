@@ -187,7 +187,7 @@ jobs:
         run: make init
       - name: Run functional & smoke tests
         run: pytest -vv -n 4 tests/functional tests/smoke
-        
+
   docker-disabled:
     name: docker-disabled-test
     if: github.repository_owner == 'aws'
@@ -196,6 +196,10 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
-          python-version: "3.11"
+          python-version: "3.7" # The integration test below needs python3.7 be to configured on the PATH
       - run: sudo systemctl stop docker
       - run: docker info
+      - if: success()
+        run: exit 1
+      - if: failure()
+        run: pytest -vv tests/integration/buildcmd/test_build_cmd.py::TestBuildCommand_PythonFunctions_0_template_yaml
