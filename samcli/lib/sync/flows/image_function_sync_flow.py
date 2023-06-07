@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import docker
 from docker.client import DockerClient
+from docker.constants import DEFAULT_DOCKER_API_VERSION
 
 from samcli.lib.build.app_builder import ApplicationBuilder, ApplicationBuildResult
 from samcli.lib.package.ecr_uploader import ECRUploader
@@ -69,7 +70,7 @@ class ImageFunctionSyncFlow(FunctionSyncFlow):
     def _get_docker_client(self) -> DockerClient:
         """Lazy instantiates and returns the docker client"""
         if not self._docker_client:
-            self._docker_client = docker.from_env()
+            self._docker_client = docker.from_env(version=DEFAULT_DOCKER_API_VERSION)
         return self._docker_client
 
     def _get_ecr_client(self) -> Any:

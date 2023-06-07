@@ -9,6 +9,7 @@ from typing import Dict
 import botocore
 import click
 import docker
+from docker.constants import DEFAULT_DOCKER_API_VERSION
 from docker.errors import APIError, BuildError
 
 from samcli.commands.package.exceptions import (
@@ -35,7 +36,7 @@ class ECRUploader:
     def __init__(
         self, docker_client, ecr_client, ecr_repo, ecr_repo_multi, no_progressbar=False, tag="latest", stream=stderr()
     ):
-        self.docker_client = docker_client if docker_client else docker.from_env()
+        self.docker_client = docker_client if docker_client else docker.from_env(version=DEFAULT_DOCKER_API_VERSION)
         self.ecr_client = ecr_client
         self.ecr_repo = ecr_repo
         self.ecr_repo_multi = ecr_repo_multi
