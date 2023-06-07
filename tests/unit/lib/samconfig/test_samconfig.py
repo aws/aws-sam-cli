@@ -6,7 +6,13 @@ from unittest import TestCase
 
 from samcli.lib.config.exceptions import SamConfigFileReadException, SamConfigVersionException
 from samcli.lib.config.file_manager import JsonFileManager, TomlFileManager, YamlFileManager
-from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE, SamConfig, DEFAULT_CONFIG_FILE_NAME, DEFAULT_GLOBAL_CMDNAME, DEFAULT_ENV
+from samcli.lib.config.samconfig import (
+    DEFAULT_CONFIG_FILE,
+    SamConfig,
+    DEFAULT_CONFIG_FILE_NAME,
+    DEFAULT_GLOBAL_CMDNAME,
+    DEFAULT_ENV,
+)
 from samcli.lib.config.version import VERSION_KEY, SAM_CONFIG_VERSION
 from samcli.lib.utils import osutils
 
