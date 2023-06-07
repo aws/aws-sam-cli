@@ -624,7 +624,7 @@ class Deployer:
             msg = ""
 
             if exists:
-                kwargs["DisableRollback"] = disable_rollback
+                kwargs["DisableRollback"] = disable_rollback  # type: ignore
 
                 result = self.update_stack(**kwargs)
                 self.wait_for_execute(stack_name, "UPDATE", disable_rollback, on_failure=on_failure)

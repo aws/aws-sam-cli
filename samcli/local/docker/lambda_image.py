@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Optional
 
 import docker
+from docker.constants import DEFAULT_DOCKER_API_VERSION
 
 from samcli.commands.local.cli_common.user_exceptions import (
     DockerDistributionAPIError,
@@ -123,7 +124,7 @@ class LambdaImage:
         self.layer_downloader = layer_downloader
         self.skip_pull_image = skip_pull_image
         self.force_image_build = force_image_build
-        self.docker_client = docker_client or docker.from_env()
+        self.docker_client = docker_client or docker.from_env(version=DEFAULT_DOCKER_API_VERSION)
         self.invoke_images = invoke_images
 
     def build(self, runtime, packagetype, image, layers, architecture, stream=None, function_name=None):
