@@ -2,6 +2,8 @@
 Terraform prepare property builder
 """
 import logging
+from json import loads
+from json.decoder import JSONDecodeError
 from typing import Any, Dict, Optional
 
 from samcli.hook_packages.terraform.hooks.prepare.resource_linking import _resolve_resource_attribute
@@ -234,10 +236,8 @@ def _get_json_body(tf_properties: dict, resource: TFResource) -> Any:
 
     if isinstance(body, str):
         try:
-            import json
-
-            return json.loads(body)
-        except TypeError:
+            return loads(body)
+        except JSONDecodeError:
             pass
 
     LOG.debug(f"Failed to load JSON body for API Gateway body, returning original value: '{body}'")
