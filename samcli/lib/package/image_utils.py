@@ -2,6 +2,7 @@
 Image artifacts based utilities
 """
 import docker
+from docker.constants import DEFAULT_DOCKER_API_VERSION
 from docker.errors import APIError, NullResource
 
 from samcli.commands.package.exceptions import DockerGetLocalImageFailedError
@@ -35,7 +36,7 @@ def tag_translation(image, docker_image_id=None, gen_tag="latest"):
 
     if not docker_image_id:
         try:
-            docker_client = docker.from_env()
+            docker_client = docker.from_env(version=DEFAULT_DOCKER_API_VERSION)
             docker_image_id = docker_client.images.get(image).id
         except APIError as ex:
             raise DockerGetLocalImageFailedError(str(ex)) from ex
