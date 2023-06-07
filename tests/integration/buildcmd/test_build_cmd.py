@@ -616,12 +616,12 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest(BuildIntegEsbuild
                 "arm64",
             ),
             (
-                    "nodejs18.x",
-                    "Esbuild/Node_without_manifest",
-                    {"main.js", "main.js.map"},
-                    "main.lambdaHandler",
-                    False,
-                    "arm64",
+                "nodejs18.x",
+                "Esbuild/Node_without_manifest",
+                {"main.js", "main.js.map"},
+                "main.lambdaHandler",
+                False,
+                "arm64",
             ),
             (
                 "nodejs14.x",
@@ -640,12 +640,12 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest(BuildIntegEsbuild
                 "arm64",
             ),
             (
-                    "nodejs18.x",
-                    "Esbuild/TypeScript_without_manifest",
-                    {"app.js", "app.js.map"},
-                    "app.lambdaHandler",
-                    False,
-                    "arm64",
+                "nodejs18.x",
+                "Esbuild/TypeScript_without_manifest",
+                {"app.js", "app.js.map"},
+                "app.lambdaHandler",
+                False,
+                "arm64",
             ),
         ]
     )
