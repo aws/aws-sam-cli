@@ -55,21 +55,22 @@ class TerraformStartApiIntegrationApplyBase(TerraformStartApiIntegrationBase):
     def get_integ_dir():
         return Path(__file__).resolve().parents[2]
 
-    def tearDown(self) -> None:
+    @classmethod
+    def tearDownClass(cls) -> None:
         try:
-            self._run_command(["terraform", "apply", "-destroy", "-auto-approve", "-input=false"])
+            cls._run_command(["terraform", "apply", "-destroy", "-auto-approve", "-input=false"])
         except CalledProcessError:
             # skip, command can fail here if there isn't an applied project to destroy
             # (eg. failed to apply in setup)
             pass
 
         try:
-            os.remove(str(Path(self.project_directory / "terraform.tfstate")))  # type: ignore
-            os.remove(str(Path(self.project_directory / "terraform.tfstate.backup")))  # type: ignore
+            os.remove(str(Path(cls.project_directory / "terraform.tfstate")))  # type: ignore
+            os.remove(str(Path(cls.project_directory / "terraform.tfstate.backup")))  # type: ignore
         except (FileNotFoundError, PermissionError):
             pass
 
-        super().tearDown()
+        super(TerraformStartApiIntegrationApplyBase, cls).tearDownClass()
 
     @classmethod
     def _run_command(cls, command) -> CompletedProcess:
