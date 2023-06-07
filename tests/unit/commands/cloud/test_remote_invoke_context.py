@@ -8,6 +8,7 @@ from samcli.commands.cloud.exceptions import (
     NoResourceFoundForRemoteInvoke,
     UnsupportedServiceForRemoteInvoke,
     NoExecutorFoundForRemoteInvoke,
+    InvalidStackNameProvidedForRemoteInvoke,
 )
 from samcli.commands.cloud.remote_invoke_context import RemoteInvokeContext, SUPPORTED_SERVICES
 from samcli.lib.utils.cloudformation import CloudFormationResourceSummary
@@ -29,6 +30,14 @@ class TestRemoteInvokeContext(TestCase):
         self.resource_id = None
         self.stack_name = None
         with self.assertRaises(InvalidRemoteInvokeParameters):
+            with self._get_remote_invoke_context():
+                pass
+
+    @patch("samcli.commands.cloud.remote_invoke_context.get_resource_summaries")
+    def test_invalid_stack_name_with_no_resource_should_fail(self, patched_resource_summaries):
+        self.resource_id = None
+        patched_resource_summaries.side_effect = InvalidStackNameProvidedForRemoteInvoke("Invalid stack-name")
+        with self.assertRaises(InvalidStackNameProvidedForRemoteInvoke):
             with self._get_remote_invoke_context():
                 pass
 
@@ -58,7 +67,7 @@ class TestRemoteInvokeContext(TestCase):
 
     def test_only_resource_id_unsupported_service_arn_should_fail(self):
         self.stack_name = None
-        self.resource_id = "arn:aws:unsupported-service:region:account:resource_id"
+        self.resource_id = "arn:aws:unsupported-service:region:account:resource_type:resource_id"
         with self.assertRaises(UnsupportedServiceForRemoteInvoke):
             with self._get_remote_invoke_context():
                 pass
@@ -66,7 +75,7 @@ class TestRemoteInvokeContext(TestCase):
     def test_only_resource_id_supported_service_arn_should_be_valid(self):
         self.stack_name = None
         service = "lambda"
-        self.resource_id = f"arn:aws:{service}:region:account:{self.resource_id}"
+        self.resource_id = f"arn:aws:{service}:region:account:resource_type:{self.resource_id}"
         with self._get_remote_invoke_context() as remote_invoke_context:
             self.assertEqual(
                 remote_invoke_context._resource_summary,

@@ -99,10 +99,9 @@ class ECRImageRepository(Resource):
         # ECR's resource_id contains the resource-type("resource") which is excluded from the URL
         # from docs: https://docs.aws.amazon.com/AmazonECR/latest/userguide/security_iam_service-with-iam.html
         # ECR's ARN: arn:${Partition}:ecr:${Region}:${Account}:repository/${Repository-name}
-        if not arn_parts.resource_id.startswith("repository/"):
+        if arn_parts.resource_type != "repository":
             raise ValueError(f"Invalid ECR ARN ({self.arn}), can't extract the URL from it.")
-        i = len("repository/")
-        repo_name = arn_parts.resource_id[i:]
+        repo_name = arn_parts.resource_id
         return f"{arn_parts.account_id}.dkr.ecr.{arn_parts.region}.amazonaws.com/{repo_name}"
 
 
