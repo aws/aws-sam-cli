@@ -213,4 +213,4 @@ jobs:
         if: steps.run-docker-info.outcome == 'success'
         run: exit 1
       - name: Run tests without Docker
-        run: pytest -vv tests/integration/buildcmd/test_build_cmd.py::TestBuildCommand_PythonFunctions_without_docker
+        run: pytest -vv tests/integration/buildcmd/test_build_cmd.py -k TestBuildCommand_PythonFunctions_WithoutDocker
