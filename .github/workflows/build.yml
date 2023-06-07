@@ -197,6 +197,8 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: "3.7" # The integration test below needs python3.7 be to configured on the PATH
+      - name: Init samdev
+        run: make init
       - run: sudo systemctl stop docker
       - run: docker info
       - if: success()
