@@ -1,5 +1,7 @@
 provider "aws" {}
 
+data "aws_region" "current" {}
+
 resource "aws_api_gateway_authorizer" "header_authorizer" {
   name = "header-authorizer-open-api"
   rest_api_id = aws_api_gateway_rest_api.api.id
@@ -43,7 +45,18 @@ resource "aws_api_gateway_rest_api" "api" {
         x-amazon-apigateway-authtype = "custom"
         x-amazon-apigateway-authorizer = {
           type = "TOKEN"
-          authorizerUri = "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/${aws_lambda_function.authorizer.arn}/invocations"
+          authorizerUri = "arn:aws:apigateway:${data.aws_region.current.name}:lambda:path/2015-03-31/functions/${aws_lambda_function.authorizer.arn}/invocations"
+        }
+      }
+      RequestAuthorizer = {
+        type = "apiKey"
+        in = "unused"
+        name = "unused"
+        x-amazon-apigateway-authtype = "custom"
+        x-amazon-apigateway-authorizer = {
+          type = "REQUEST"
+          identitySource = "method.request.header.myheader, method.request.querystring.mystring"
+          authorizerUri = "arn:aws:apigateway:${data.aws_region.current.name}:lambda:path/2015-03-31/functions/${aws_lambda_function.authorizer.arn}/invocations"
         }
       }
     }
@@ -57,7 +70,20 @@ resource "aws_api_gateway_rest_api" "api" {
             httpMethod = "GET"
             payloadFormatVersion = "1.0"
             type = "AWS_PROXY"
-            uri = "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/${aws_lambda_function.hello_endpoint.arn}/invocations"
+            uri = "arn:aws:apigateway:${data.aws_region.current.name}:lambda:path/2015-03-31/functions/${aws_lambda_function.hello_endpoint.arn}/invocations"
+          }
+        }
+      }
+      "/hello-request" = {
+        get = {
+          security = [
+            {RequestAuthorizer = []}
+          ]
+          x-amazon-apigateway-integration = {
+            httpMethod = "GET"
+            payloadFormatVersion = "1.0"
+            type = "AWS_PROXY"
+            uri = "arn:aws:apigateway:${data.aws_region.current.name}:lambda:path/2015-03-31/functions/${aws_lambda_function.hello_endpoint.arn}/invocations"
           }
         }
       }

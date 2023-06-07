@@ -4,6 +4,7 @@ from pathlib import Path
 from subprocess import CalledProcessError, CompletedProcess, run
 from typing import Optional
 from unittest import skipIf
+from parameterized import parameterized
 
 import pytest
 import requests
@@ -108,8 +109,25 @@ class TestStartApiTerraformApplicationV1OpenApiAuthorizer(TerraformStartApiInteg
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
-    def test_successful_request(self):
-        response = requests.get(self.url + "/hello", timeout=300, headers={"myheader": "123"})
+    @parameterized.expand(
+        [
+            ("/hello", {"headers": {"myheader": "123"}}),
+            ("/hello-request", {"headers": {"myheader": "123"}, "params": {"mystring": "456"}}),
+        ]
+    )
+    def test_successful_request(self, endpoint, params):
+        response = requests.get(self.url + endpoint, timeout=300, **params)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"message": "from authorizer"})
+
+    @parameterized.expand(
+        [
+            ("/hello", {"headers": {"missin": "123"}}),
+            ("/hello-request", {"headers": {"notcorrect": "123"}, "params": {"abcde": "456"}}),
+        ]
+    )
+    def test_missing_identity_sources(self, endpoint, params):
+        response = requests.get(self.url + endpoint, timeout=300, **params)
+
+        self.assertEqual(response.status_code, 401)
