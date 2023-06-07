@@ -82,8 +82,8 @@ class DeleteContext:
         """
         Read the provided config file if it exists and assign the options values.
         """
-        toml_provider = TomlProvider(CONFIG_SECTION, [CONFIG_COMMAND])
-        config_options = toml_provider(
+        config_provider = ConfigProvider(CONFIG_SECTION, [CONFIG_COMMAND])
+        config_options = config_provider(
             config_path=self.config_file, config_env=self.config_env, cmd_names=[CONFIG_COMMAND]
         )
         if not config_options:
