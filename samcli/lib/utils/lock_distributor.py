@@ -72,7 +72,7 @@ class LockDistributor:
         self._manager = manager
         self._dict_lock = self._create_new_lock()
         self._locks = (
-            self._manager.dict()  # type: ignore
+            self._manager.dict()
             if self._lock_type == LockDistributorType.PROCESS and self._manager is not None
             else dict()
         )
