@@ -1,6 +1,7 @@
 """
 Terraform prepare property builder
 """
+import logging
 from typing import Any, Dict, Optional
 
 from samcli.hook_packages.terraform.hooks.prepare.resource_linking import _resolve_resource_attribute
@@ -23,6 +24,8 @@ from samcli.lib.utils.resources import AWS_APIGATEWAY_RESTAPI as CFN_AWS_APIGATE
 from samcli.lib.utils.resources import AWS_APIGATEWAY_STAGE as CFN_AWS_APIGATEWAY_STAGE
 from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION
 from samcli.lib.utils.resources import AWS_LAMBDA_LAYERVERSION as CFN_AWS_LAMBDA_LAYER_VERSION
+
+LOG = logging.getLogger(__name__)
 
 REMOTE_DUMMY_VALUE = "<<REMOTE DUMMY VALUE - RAISE ERROR IF IT IS STILL THERE>>"
 TF_AWS_LAMBDA_FUNCTION = "aws_lambda_function"
@@ -211,6 +214,37 @@ def _check_image_config_value(image_config: Any) -> bool:
     return True
 
 
+def _get_json_body(tf_properties: dict, resource: TFResource) -> Any:
+    """
+    Gets the JSON formatted body value from the API Gateway if there is one
+
+    Parameters
+    ----------
+    tf_properties: dict
+        Properties of the terraform AWS Lambda function resource
+    resource: TFResource
+        Configuration terraform resource
+
+    Returns
+    -------
+    Any
+        Returns a dictonary if there is a valid body to parse, otherwise return original value
+    """
+    body = tf_properties.get("body")
+
+    if isinstance(body, str):
+        try:
+            import json
+
+            return json.loads(body)
+        except TypeError:
+            pass
+
+    LOG.debug(f"Failed to load JSON body for API Gateway body, returning original value: '{body}'")
+
+    return body
+
+
 AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
     "FunctionName": _get_property_extractor("function_name"),
     "Architectures": _get_property_extractor("architectures"),
@@ -234,7 +268,7 @@ AWS_LAMBDA_LAYER_VERSION_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
 
 AWS_API_GATEWAY_REST_API_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
     "Name": _get_property_extractor("name"),
-    "Body": _get_property_extractor("body"),
+    "Body": _get_json_body,
     "Parameters": _get_property_extractor("parameters"),
     "BinaryMediaTypes": _get_property_extractor("binary_media_types"),
 }
