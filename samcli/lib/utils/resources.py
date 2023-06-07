@@ -4,6 +4,8 @@ Enums for Resources and their Location Properties, along with utility functions
 
 from collections import defaultdict
 
+from samcli.lib.utils.graphql_api import CODE_ARTIFACT_PROPERTY, SCHEMA_ARTIFACT_PROPERTY
+
 # Lambda
 AWS_SERVERLESS_FUNCTION = "AWS::Serverless::Function"
 AWS_SERVERLESS_LAYERVERSION = "AWS::Serverless::LayerVersion"
@@ -62,7 +64,7 @@ AWS_RESOURCE_GROUP = "AWS::ResourceGroups::Group"
 METADATA_WITH_LOCAL_PATHS = {AWS_SERVERLESSREPO_APPLICATION: ["LicenseUrl", "ReadmeUrl"]}
 
 RESOURCES_WITH_LOCAL_PATHS = {
-    AWS_SERVERLESS_GRAPHQLAPI: ["SchemaUri", "CodeUri"],
+    AWS_SERVERLESS_GRAPHQLAPI: [SCHEMA_ARTIFACT_PROPERTY, CODE_ARTIFACT_PROPERTY],
     AWS_SERVERLESS_FUNCTION: ["CodeUri"],
     AWS_SERVERLESS_API: ["DefinitionUri"],
     AWS_SERVERLESS_HTTPAPI: ["DefinitionUri"],

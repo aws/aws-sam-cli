@@ -24,6 +24,7 @@ from samcli.lib.package.utils import (
     upload_local_artifacts,
     upload_local_image_artifacts,
 )
+from samcli.lib.utils import graphql_api
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.resources import (
     AWS_APIGATEWAY_RESTAPI,
@@ -599,7 +600,7 @@ class ECRResource(Resource):
 
 class GraphQLApiSchemaResource(ResourceZip):
     RESOURCE_TYPE = AWS_SERVERLESS_GRAPHQLAPI
-    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
+    PROPERTY_NAME = graphql_api.SCHEMA_ARTIFACT_PROPERTY
     # Don't package the directory if SchemaUri is omitted.
     # Necessary to support SchemaInline
     PACKAGE_NULL_PROPERTY = False
@@ -635,7 +636,7 @@ class GraphQLApiCodeResource(ResourceZip):
     """
 
     RESOURCE_TYPE = AWS_SERVERLESS_GRAPHQLAPI
-    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][1]
+    PROPERTY_NAME = graphql_api.CODE_ARTIFACT_PROPERTY
     # if CodeUri is omitted the directory is not packaged because it's necessary to support CodeInline
     PACKAGE_NULL_PROPERTY = False
 
@@ -648,7 +649,7 @@ class GraphQLApiCodeResource(ResourceZip):
 
         # to be able to set different nested properties to S3 uri, paths are necessary
         # jmespath doesn't provide that functionality, thus custom implementation
-        paths_values = self._find_all_with_property_name(resource_dict)
+        paths_values = graphql_api.find_all_paths_and_values(self.PROPERTY_NAME, resource_dict)
         for property_path, property_value in paths_values:
             if isinstance(property_value, dict):
                 LOG.debug("Property %s of %s resource is not a URL", self.PROPERTY_NAME, resource_id)
@@ -674,37 +675,6 @@ class GraphQLApiCodeResource(ResourceZip):
             finally:
                 if temp_dir:
                     shutil.rmtree(temp_dir)
-
-    def _find_all_with_property_name(self, graphql_dict: Dict[str, Any]) -> List[Tuple[str, Union[str, Dict]]]:
-        """Find paths to the all properties with self.PROPERTY_NAME name and their (properties) values.
-
-        It leverages the knowledge of GraphQLApi structure instead of doing generic search in the graph.
-
-        Parameters
-        ----------
-        graphql_dict
-            GraphQLApi resource dict
-
-        Returns
-        -------
-            list of tuple (path, value) for all found properties which has property_name
-        """
-        # need to look up only in "Resolvers" and "Functions" subtrees
-        resolvers_and_functions = {k: graphql_dict[k] for k in ("Resolvers", "Functions") if k in graphql_dict}
-        stack: List[Tuple[Dict[str, Any], str]] = [(resolvers_and_functions, "")]
-        paths_values: List[Tuple[str, Union[str, Dict]]] = []
-
-        while stack:
-            node, path = stack.pop()
-            if isinstance(node, dict):
-                for key, value in node.items():
-                    if key == self.PROPERTY_NAME:
-                        paths_values.append((f"{path}{key}", value))
-                    elif isinstance(value, dict):
-                        stack.append((value, f"{path}{key}."))
-            # there is no need to handle lists because
-            # paths to "CodeUri" within "Resolvers" and "Functions" doesn't have lists
-        return paths_values
 
 
 RESOURCES_EXPORT_LIST = [
