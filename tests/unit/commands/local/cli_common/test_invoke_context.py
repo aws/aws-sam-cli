@@ -555,13 +555,20 @@ class TestInvokeContext_function_name_property(TestCase):
 
 
 class TestInvokeContext_local_lambda_runner(TestCase):
+    @patch("samcli.local.lambdafn.runtime.LambdaFunctionObserver")
     @patch("samcli.commands.local.cli_common.invoke_context.LambdaImage")
     @patch("samcli.commands.local.cli_common.invoke_context.LayerDownloader")
     @patch("samcli.commands.local.cli_common.invoke_context.LambdaRuntime")
     @patch("samcli.commands.local.cli_common.invoke_context.LocalLambdaRunner")
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
     def test_must_create_runner(
-        self, SamFunctionProviderMock, LocalLambdaMock, LambdaRuntimeMock, download_layers_mock, lambda_image_patch
+        self,
+        SamFunctionProviderMock,
+        LocalLambdaMock,
+        LambdaRuntimeMock,
+        download_layers_mock,
+        lambda_image_patch,
+        LambdaFunctionObserver_patch,
     ):
         runtime_mock = Mock()
         LambdaRuntimeMock.return_value = runtime_mock
@@ -574,6 +581,9 @@ class TestInvokeContext_local_lambda_runner(TestCase):
 
         image_mock = Mock()
         lambda_image_patch.return_value = image_mock
+
+        LambdaFunctionObserver_mock = Mock()
+        LambdaFunctionObserver_patch.return_value = LambdaFunctionObserver_mock
 
         cwd = "cwd"
         self.context = InvokeContext(
@@ -705,13 +715,20 @@ class TestInvokeContext_local_lambda_runner(TestCase):
             # assert that lambda runner is created only one time, and the cached version used in the second call
             self.assertEqual(LocalLambdaMock.call_count, 1)
 
+    @patch("samcli.local.lambdafn.runtime.LambdaFunctionObserver")
     @patch("samcli.commands.local.cli_common.invoke_context.LambdaImage")
     @patch("samcli.commands.local.cli_common.invoke_context.LayerDownloader")
     @patch("samcli.commands.local.cli_common.invoke_context.LambdaRuntime")
     @patch("samcli.commands.local.cli_common.invoke_context.LocalLambdaRunner")
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
     def test_must_create_runner_with_container_host_option(
-        self, SamFunctionProviderMock, LocalLambdaMock, LambdaRuntimeMock, download_layers_mock, lambda_image_patch
+        self,
+        SamFunctionProviderMock,
+        LocalLambdaMock,
+        LambdaRuntimeMock,
+        download_layers_mock,
+        lambda_image_patch,
+        LambdaFunctionObserver_patch,
     ):
         runtime_mock = Mock()
         LambdaRuntimeMock.return_value = runtime_mock
@@ -724,6 +741,9 @@ class TestInvokeContext_local_lambda_runner(TestCase):
 
         image_mock = Mock()
         lambda_image_patch.return_value = image_mock
+
+        LambdaFunctionObserver_mock = Mock()
+        LambdaFunctionObserver_patch.return_value = LambdaFunctionObserver_mock
 
         cwd = "cwd"
         self.context = InvokeContext(
@@ -779,13 +799,20 @@ class TestInvokeContext_local_lambda_runner(TestCase):
             # assert that lambda runner is created only one time, and the cached version used in the second call
             self.assertEqual(LocalLambdaMock.call_count, 1)
 
+    @patch("samcli.local.lambdafn.runtime.LambdaFunctionObserver")
     @patch("samcli.commands.local.cli_common.invoke_context.LambdaImage")
     @patch("samcli.commands.local.cli_common.invoke_context.LayerDownloader")
     @patch("samcli.commands.local.cli_common.invoke_context.LambdaRuntime")
     @patch("samcli.commands.local.cli_common.invoke_context.LocalLambdaRunner")
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
     def test_must_create_runner_with_invoke_image_option(
-        self, SamFunctionProviderMock, LocalLambdaMock, LambdaRuntimeMock, download_layers_mock, lambda_image_patch
+        self,
+        SamFunctionProviderMock,
+        LocalLambdaMock,
+        LambdaRuntimeMock,
+        download_layers_mock,
+        lambda_image_patch,
+        LambdaFunctionObserver_patch,
     ):
         runtime_mock = Mock()
         LambdaRuntimeMock.return_value = runtime_mock
@@ -798,6 +825,9 @@ class TestInvokeContext_local_lambda_runner(TestCase):
 
         image_mock = Mock()
         lambda_image_patch.return_value = image_mock
+
+        LambdaFunctionObserver_mock = Mock()
+        LambdaFunctionObserver_patch.return_value = LambdaFunctionObserver_mock
 
         cwd = "cwd"
         self.context = InvokeContext(

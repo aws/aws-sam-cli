@@ -939,10 +939,11 @@ class TestWarmLambdaRuntime_get_code_dir(TestCase):
     @patch("samcli.local.lambdafn.runtime.os")
     def test_must_return_same_path_if_path_is_not_compressed_file(self, os_mock):
         lambda_image_mock = Mock()
+        observer_mock = Mock()
         os_mock.path.isfile.return_value = False
         code_path = "path"
 
-        self.runtime = WarmLambdaRuntime(self.manager_mock, lambda_image_mock)
+        self.runtime = WarmLambdaRuntime(self.manager_mock, lambda_image_mock, observer_mock)
         res = self.runtime._get_code_dir(code_path)
         self.assertEqual(self.runtime._temp_uncompressed_paths_to_be_cleaned, [])
         self.assertEqual(res, code_path)
@@ -951,12 +952,13 @@ class TestWarmLambdaRuntime_get_code_dir(TestCase):
     @patch("samcli.local.lambdafn.runtime.os")
     def test_must_cache_temp_uncompressed_dirs_to_be_cleared_later(self, os_mock, _unzip_file_mock):
         lambda_image_mock = Mock()
+        observer_mock = Mock()
         os_mock.path.isfile.return_value = True
         uncompressed_dir_mock = Mock()
         _unzip_file_mock.return_value = uncompressed_dir_mock
         code_path = "path.zip"
 
-        self.runtime = WarmLambdaRuntime(self.manager_mock, lambda_image_mock)
+        self.runtime = WarmLambdaRuntime(self.manager_mock, lambda_image_mock, observer_mock)
         res = self.runtime._get_code_dir(code_path)
         self.assertEqual(self.runtime._temp_uncompressed_paths_to_be_cleaned, [uncompressed_dir_mock])
         self.assertEqual(res, uncompressed_dir_mock)
@@ -966,16 +968,16 @@ class TestWarmLambdaRuntime_clean_warm_containers_related_resources(TestCase):
     def setUp(self):
         self.manager_mock = Mock()
         lambda_image_mock = Mock()
-        self.runtime = WarmLambdaRuntime(self.manager_mock, lambda_image_mock)
         self.observer_mock = Mock()
+        self.observer_mock.is_alive.return_value = True
+        self.runtime = WarmLambdaRuntime(self.manager_mock, lambda_image_mock, self.observer_mock)
+
         self.func1_container_mock = Mock()
         self.func2_container_mock = Mock()
         self.runtime._containers = {
             "func_name1": self.func1_container_mock,
             "func_name2": self.func2_container_mock,
         }
-        self.runtime._observer = self.observer_mock
-        self.runtime._observer.is_alive.return_value = True
         self.runtime._temp_uncompressed_paths_to_be_cleaned = ["path1", "path2"]
 
     @patch("samcli.local.lambdafn.runtime.shutil")
@@ -1002,10 +1004,8 @@ class TestWarmLambdaRuntime_on_code_change(TestCase):
     def setUp(self):
         self.manager_mock = Mock()
         lambda_image_mock = Mock()
-        self.runtime = WarmLambdaRuntime(self.manager_mock, lambda_image_mock)
-
         self.observer_mock = Mock()
-        self.runtime._observer = self.observer_mock
+        self.runtime = WarmLambdaRuntime(self.manager_mock, lambda_image_mock, self.observer_mock)
 
         self.lang = "runtime"
         self.handler = "handler"
