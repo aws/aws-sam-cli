@@ -201,6 +201,8 @@ jobs:
         run: make init
       - run: sudo systemctl stop docker
       - run: docker info
+        id: run-docker-info
         continue-on-error: true
-      - if: failure()
-        run: pytest -vv tests/integration/buildcmd/test_build_cmd.py::TestBuildCommand_PythonFunctions_0_template_yaml
+      - if: steps.run-docker-info.outcome == 'success'
+        run: exit 1
+      - run: pytest -vv tests/integration/buildcmd/test_build_cmd.py::TestBuildCommand_PythonFunctions_0_template_yaml
