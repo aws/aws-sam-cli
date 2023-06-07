@@ -3,9 +3,9 @@ name: Test Running Without Docker
 on: push
 
 jobs:
-  make-pr:
+  docker-disabled:
     name: docker-disabled-test
-#    if: github.repository_owner == 'aws'
+    if: github.repository_owner == 'aws'
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
