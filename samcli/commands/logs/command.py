@@ -6,7 +6,7 @@ import logging
 
 import click
 
-from samcli.cli.cli_config_file import TomlProvider, configuration_option
+from samcli.cli.cli_config_file import ConfigProvider, configuration_option
 from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
 from samcli.cli.main import common_options as cli_framework_options
 from samcli.commands._utils.command_exception_handler import command_exception_handler
@@ -51,7 +51,7 @@ $ sam logs --stack-name mystack -n MyNestedStack/HelloWorldFunction
 
 
 @click.command("logs", help=HELP_TEXT, short_help="Fetch logs for a function")
-@configuration_option(provider=TomlProvider(section="parameters"))
+@configuration_option(provider=ConfigProvider(section="parameters"))
 @click.option(
     "--name",
     "-n",
