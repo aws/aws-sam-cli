@@ -27,12 +27,14 @@ jobs:
       - make-pr
       - integration-tests
       - smoke-and-functional-tests
+      - docker-disabled
     steps:
       - name: report-failure
         if : |
           needs.make-pr.result != 'success' ||
           needs.integration-tests.result != 'success' ||
-          needs.smoke-and-functional-tests.result != 'success'
+          needs.smoke-and-functional-tests.result != 'success' ||
+          needs.docker-disabled.result != 'success'
         run: exit 1
       - name: report-success
         run: exit 0
@@ -206,7 +208,7 @@ jobs:
       - name: Stop Docker
         run: sudo systemctl stop docker
       - name: Check Docker not Running
-      - run: docker info
+        run: docker info
         id: run-docker-info
         continue-on-error: true
       - name: Report failure
