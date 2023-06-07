@@ -429,6 +429,7 @@ class TestBuildCommand_PythonFunctions_WithoutDocker(BuildIntegPythonBase):
         )
 
 
+@skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
 @parameterized_class(
     (
         "template",
@@ -455,8 +456,6 @@ class TestBuildCommand_PythonFunctions_WithDocker(BuildIntegPythonBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_with_default_requirements(self):
-        if SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
-            self.skipTest(SKIP_DOCKER_MESSAGE)
         self._test_with_default_requirements(
             self.runtime,
             self.codeuri,
