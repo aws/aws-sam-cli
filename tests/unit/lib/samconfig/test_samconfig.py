@@ -1,9 +1,12 @@
 import os
 from pathlib import Path
+from parameterized import parameterized
+import tempfile
 from unittest import TestCase
 
-from samcli.lib.config.exceptions import SamConfigVersionException
-from samcli.lib.config.samconfig import SamConfig, DEFAULT_CONFIG_FILE_NAME, DEFAULT_GLOBAL_CMDNAME, DEFAULT_ENV
+from samcli.lib.config.exceptions import SamConfigFileReadException, SamConfigVersionException
+from samcli.lib.config.file_manager import JsonFileManager, TomlFileManager, YamlFileManager
+from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE, SamConfig, DEFAULT_CONFIG_FILE_NAME, DEFAULT_GLOBAL_CMDNAME, DEFAULT_ENV
 from samcli.lib.config.version import VERSION_KEY, SAM_CONFIG_VERSION
 from samcli.lib.utils import osutils
 
@@ -221,3 +224,76 @@ class TestSamConfig(TestCase):
             samconfig.put(cmd_names=["any", "command"], section="any-section", key="any-key", value="any-value")
             samconfig.flush()
             self.assertTrue(samconfig.exists())
+
+    def test_passed_filename_used(self):
+        config_path = Path(self.config_dir, "myconfigfile.toml")
+
+        self.assertFalse(config_path.exists())
+
+        self.samconfig = SamConfig(self.config_dir, filename="myconfigfile.toml")
+        self.samconfig.put(  # put some config options so it creates the file
+            cmd_names=["any", "command"], section="section", key="key", value="value"
+        )
+        self.samconfig.flush()
+
+        self.assertTrue(config_path.exists())
+        self.assertFalse(Path(self.config_dir, DEFAULT_CONFIG_FILE_NAME).exists())
+
+    def test_config_uses_default_if_none_provided(self):
+        self.samconfig = SamConfig(self.config_dir)
+        self.samconfig.put(  # put some config options so it creates the file
+            cmd_names=["any", "command"], section="section", key="key", value="value"
+        )
+        self.samconfig.flush()
+
+        self.assertTrue(Path(self.config_dir, DEFAULT_CONFIG_FILE_NAME).exists())
+
+    def test_config_priority(self):
+        config_files = []
+        extensions_in_priority = list(SamConfig.FILE_MANAGER_MAPPER.keys())  # priority by order in dict
+        for extension in extensions_in_priority:
+            filename = DEFAULT_CONFIG_FILE + extension
+            config = SamConfig(self.config_dir, filename=filename)
+            config.put(  # put some config options so it creates the file
+                cmd_names=["any", "command"], section="section", key="key", value="value"
+            )
+            config.flush()
+            config_files.append(config)
+
+        while extensions_in_priority:
+            config = SamConfig(self.config_dir)
+            next_priority = extensions_in_priority.pop(0)
+            self.assertEqual(config.path(), self.config_dir + "/" + DEFAULT_CONFIG_FILE + next_priority)
+            os.remove(config.path())
+
+
+class TestSamConfigFileManager(TestCase):
+    def test_file_manager_not_declared(self):
+        config_dir = tempfile.gettempdir()
+        config_path = Path(config_dir, "samconfig")
+
+        with self.assertRaises(SamConfigFileReadException):
+            SamConfig(config_path, filename="samconfig")
+
+    def test_file_manager_unsupported(self):
+        config_dir = tempfile.gettempdir()
+        config_path = Path(config_dir, "samconfig.jpeg")
+
+        with self.assertRaises(SamConfigFileReadException):
+            SamConfig(config_path, filename="samconfig.jpeg")
+
+    @parameterized.expand(
+        [
+            ("samconfig.toml", TomlFileManager),
+            ("samconfig.yaml", YamlFileManager),
+            ("samconfig.yml", YamlFileManager),
+            ("samconfig.json", JsonFileManager),
+        ]
+    )
+    def test_file_manager(self, filename, expected_file_manager):
+        config_dir = tempfile.gettempdir()
+        config_path = Path(config_dir, filename)
+
+        samconfig = SamConfig(config_path, filename=filename)
+
+        self.assertIs(samconfig.file_manager, expected_file_manager)
