@@ -28,6 +28,10 @@ from samcli.lib.utils import boto_utils
 LOG = logging.getLogger(__name__)
 FUNCTION_NAME = "FunctionName"
 PAYLOAD = "Payload"
+EVENT_STREAM = "EventStream"
+PAYLOAD_CHUNK = "PayloadChunk"
+INVOKE_COMPLETE = "InvokeComplete"
+LOG_RESULT = "LogResult"
 
 
 class AbstractLambdaInvokeExecutor(BotoActionExecutor, ABC):
@@ -165,15 +169,20 @@ class LambdaStreamResponseConverter(RemoteInvokeRequestResponseMapper):
         if not isinstance(remote_invoke_input.response, dict):
             raise InvalideBotoResponseException("Invalid response type received from Lambda service, expecting dict")
 
-        event_stream: EventStream =  remote_invoke_input.response.get("EventStream")
-        payload = ""
+        event_stream: EventStream =  remote_invoke_input.response.get(EVENT_STREAM)
+        decoded_event_stream = []
         for event in event_stream:
-            if "PayloadChunk" in event:
-                payload = f'{payload}{event.get("PayloadChunk").get("Payload").decode("utf-8")}'
-            if "InvokeComplete" in event:
-                log_output = base64.b64decode(event.get("InvokeComplete").get("LogResult")).decode("utf-8")
-                remote_invoke_input.log_output = log_output
-                remote_invoke_input.response[PAYLOAD] = payload
+            if PAYLOAD_CHUNK in event:
+                decoded_payload_chunk = event.get(PAYLOAD_CHUNK).get(PAYLOAD).decode("utf-8")
+                decoded_event_stream.append(
+                    {PAYLOAD_CHUNK: {PAYLOAD: decoded_payload_chunk}}
+                )
+            if INVOKE_COMPLETE in event:
+                log_output = base64.b64decode(event.get(INVOKE_COMPLETE).get(LOG_RESULT)).decode("utf-8")
+                decoded_event_stream.append(
+                    {INVOKE_COMPLETE: {LOG_RESULT: log_output}}
+                )
+        remote_invoke_input.response[EVENT_STREAM] = decoded_event_stream
         return remote_invoke_input
 
 
@@ -193,7 +202,7 @@ class LambdaResponseOutputFormatter(RemoteInvokeRequestResponseMapper):
         if remote_invoke_input.output_format == RemoteInvokeOutputFormat.DEFAULT:
             LOG.debug("Formatting Lambda output response")
             boto_response = cast(Dict, remote_invoke_input.response)
-            log_field = boto_response.get("LogResult")
+            log_field = boto_response.get(LOG_RESULT)
             if log_field:
                 log_result = base64.b64decode(log_field).decode("utf-8")
                 remote_invoke_input.log_output = log_result
@@ -204,4 +213,32 @@ class LambdaResponseOutputFormatter(RemoteInvokeRequestResponseMapper):
             else:
                 remote_invoke_input.response = boto_response.get(PAYLOAD)
 
+        return remote_invoke_input
+
+
+class LambdaStreamResponseOutputFormatter(RemoteInvokeRequestResponseMapper):
+    """
+    This class helps to format streaming output response for lambda service that will be printed on the CLI.
+    It loops through EventStream elements and adds them to response, and once InvokeComplete is reached, it updates
+    log_output and response objects in remote_invoke_input.
+    """
+
+    def map(self, remote_invoke_input: RemoteInvokeExecutionInfo) -> RemoteInvokeExecutionInfo:
+        """
+        Maps the lambda response output to the type of output format specified as user input.
+        If output_format is original-boto-response, write the original boto API response
+        to stdout.
+        """
+        if remote_invoke_input.output_format == RemoteInvokeOutputFormat.DEFAULT:
+            LOG.debug("Formatting Lambda output response")
+            boto_response = cast(Dict, remote_invoke_input.response)
+            combined_response = ""
+            for event in boto_response.get(EVENT_STREAM):
+                if PAYLOAD_CHUNK in event:
+                    payload_chunk = event.get(PAYLOAD_CHUNK).get(PAYLOAD)
+                    combined_response = f"{combined_response}{payload_chunk}"
+                if INVOKE_COMPLETE in event:
+                    log_result = event.get(INVOKE_COMPLETE).get(LOG_RESULT)
+                    remote_invoke_input.log_output = log_result
+                    remote_invoke_input.response = combined_response
         return remote_invoke_input

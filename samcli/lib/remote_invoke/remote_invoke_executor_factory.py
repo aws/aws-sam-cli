@@ -8,7 +8,10 @@ from samcli.lib.remote_invoke.lambda_invoke_executors import (
     DefaultConvertToJSON,
     LambdaInvokeExecutor,
     LambdaResponseConverter,
-    LambdaResponseOutputFormatter, LambdaInvokeWithResponseStreamExecutor, LambdaStreamResponseConverter,
+    LambdaResponseOutputFormatter,
+    LambdaInvokeWithResponseStreamExecutor,
+    LambdaStreamResponseConverter,
+    LambdaStreamResponseOutputFormatter,
 )
 from samcli.lib.remote_invoke.remote_invoke_executors import RemoteInvokeExecutor, ResponseObjectToJsonStringMapper
 from samcli.lib.utils.cloudformation import CloudFormationResourceSummary
@@ -73,7 +76,7 @@ class RemoteInvokeExecutorFactory:
                 request_mappers=[DefaultConvertToJSON()],
                 response_mappers=[
                     LambdaStreamResponseConverter(),
-                    LambdaResponseOutputFormatter(),
+                    LambdaStreamResponseOutputFormatter(),
                     ResponseObjectToJsonStringMapper(),
                 ],
                 boto_action_executor=LambdaInvokeWithResponseStreamExecutor(
