@@ -47,13 +47,14 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          # TODO: Add macos-latest; fails currently, see e.g. https://github.com/aws/aws-sam-cli/actions/runs/3596883449/jobs/6058055981
+          - macos-latest
           - ubuntu-latest
           - windows-latest
         python:
           - "3.7"
           - "3.8"
           - "3.9"
+          - "3.11"
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-python@v4
@@ -114,6 +115,7 @@ jobs:
             3.8
             3.9
             3.10
+            3.11
             ${{ matrix.python }}
       - uses: actions/setup-go@v4
         with:
@@ -180,6 +182,7 @@ jobs:
           - "3.7"
           - "3.8"
           - "3.9"
+          - "3.11"
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
