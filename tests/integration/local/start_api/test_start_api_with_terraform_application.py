@@ -104,8 +104,8 @@ class TestStartApiTerraformApplication(TerraformStartApiIntegrationBase):
     "Skip Terraform test cases unless running in CI",
 )
 @pytest.mark.flaky(reruns=3)
-class TestStartApiTerraformApplicationV1OpenApiAuthorizer(TerraformStartApiIntegrationApplyBase):
-    terraform_application = "v1-lambda-auth-openapi"
+class TestStartApiTerraformApplicationOpenApiAuthorizer(TerraformStartApiIntegrationApplyBase):
+    terraform_application = "lambda-auth-openapi"
 
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
