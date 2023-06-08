@@ -24,6 +24,7 @@ environment:
   AWS_DEFAULT_REGION: us-east-1
   SAM_CLI_DEV: 1
   CARGO_LAMBDA_VERSION: "v0.17.1"
+  DOCKER_API_VERSION: 1.40
 
   # Python uses $TMPDIR envvar to find root of tempdir
   TMPDIR: "%TEMP%"
@@ -74,6 +75,7 @@ install:
   - "echo %PATH%"
   - "python --version"
   - "docker info"
+  - "docker version"
 
   # install Terraform CLI
   - "choco install terraform"
