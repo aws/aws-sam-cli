@@ -6,7 +6,7 @@ from typing import Optional, cast
 
 from botocore.exceptions import ClientError
 
-from samcli.commands.cloud.exceptions import (
+from samcli.commands.remote.exceptions import (
     AmbiguousResourceForRemoteInvoke,
     InvalidRemoteInvokeParameters,
     InvalidStackNameProvidedForRemoteInvoke,
