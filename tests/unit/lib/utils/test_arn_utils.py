@@ -67,6 +67,17 @@ class TestArnUtils(TestCase):
                 },
             ),
             (
+                "arn:partition:service:::s3-bucket-name",
+                {
+                    "partition": "partition",
+                    "service": "service",
+                    "region": "",
+                    "account_id": "",
+                    "resource_type": "",
+                    "resource_id": "s3-bucket-name",
+                },
+            ),
+            (
                 "arn:aws:lambda:us-west-2:123456789012:function:my-function",
                 {
                     "partition": "aws",
