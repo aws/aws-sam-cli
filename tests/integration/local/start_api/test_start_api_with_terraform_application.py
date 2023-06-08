@@ -42,17 +42,17 @@ class TerraformStartApiIntegrationBase(StartApiIntegBaseClass):
 
     @classmethod
     def _remove_generated_directories(cls):
-        shutil.rmtree(str(Path(cls.project_directory / ".aws-sam-iacs")), ignore_errors=True)  # type: ignore
-        shutil.rmtree(str(Path(cls.project_directory / ".terraform")), ignore_errors=True)  # type: ignore
+        shutil.rmtree(str(Path(cls.project_directory / ".aws-sam-iacs")), ignore_errors=True)
+        shutil.rmtree(str(Path(cls.project_directory / ".terraform")), ignore_errors=True)
         try:
-            os.remove(str(Path(cls.project_directory / ".terraform.lock.hcl")))  # type: ignore
+            os.remove(str(Path(cls.project_directory / ".terraform.lock.hcl")))
         except (FileNotFoundError, PermissionError):
             pass
 
     @classmethod
     def _run_command(cls, command, check) -> CompletedProcess:
         test_data_folder = (
-            Path(cls.get_integ_dir()) / "testdata" / "start_api" / "terraform" / cls.terraform_application
+            Path(cls.get_integ_dir()) / "testdata" / "start_api" / "terraform" / cls.terraform_application  # type: ignore
         )
         return run(command, cwd=test_data_folder, check=check, capture_output=True, timeout=cls.run_command_timeout)
 
