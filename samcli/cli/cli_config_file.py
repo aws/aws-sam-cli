@@ -67,7 +67,9 @@ class ConfigProvider:
 
         # Use default sam config file name if config_path only contain the directory
         config_file_path = (
-            Path(os.path.abspath(config_path)) if config_path else Path(os.getcwd(), DEFAULT_CONFIG_FILE_NAME)
+            Path(os.path.abspath(config_path))
+            if config_path
+            else Path(os.getcwd(), SamConfig.get_default_file(os.getcwd()))
         )
         config_file_name = config_file_path.name
         config_file_dir = config_file_path.parents[0]
