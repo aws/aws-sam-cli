@@ -266,7 +266,7 @@ class SamConfig:
         config_files_found = 0
         config_file = DEFAULT_CONFIG_FILE_NAME
 
-        for extension in reversed(SamConfig.FILE_MANAGER_MAPPER.keys()):
+        for extension in reversed(list(SamConfig.FILE_MANAGER_MAPPER.keys())):
             filename = DEFAULT_CONFIG_FILE + extension
             if Path(config_dir, filename).exists():
                 config_files_found += 1
