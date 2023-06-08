@@ -8,13 +8,13 @@ import logging
 import pathlib
 from typing import List, Optional, Dict, cast, NamedTuple
 import docker
-from docker.constants import DEFAULT_DOCKER_API_VERSION
 import docker.errors
 from aws_lambda_builders import (
     RPC_PROTOCOL_VERSION as lambda_builders_protocol_version,
 )
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import LambdaBuilderError
+from samcli.lib.constants import DOCKER_MIN_API_VERSION
 from samcli.lib.build.build_graph import FunctionBuildDefinition, LayerBuildDefinition, BuildGraph
 from samcli.lib.build.build_strategy import (
     DefaultBuildStrategy,
@@ -157,7 +157,7 @@ class ApplicationBuilder:
         self._parallel = parallel
         self._mode = mode
         self._stream_writer = stream_writer if stream_writer else StreamWriter(stream=osutils.stderr(), auto_flush=True)
-        self._docker_client = docker_client if docker_client else docker.from_env(version=DEFAULT_DOCKER_API_VERSION)
+        self._docker_client = docker_client if docker_client else docker.from_env(version=DOCKER_MIN_API_VERSION)
 
         self._deprecated_runtimes = DEPRECATED_RUNTIMES
         self._colored = Colored()
