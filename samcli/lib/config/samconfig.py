@@ -14,7 +14,8 @@ from samcli.lib.config.version import SAM_CONFIG_VERSION, VERSION_KEY
 LOG = logging.getLogger(__name__)
 
 DEFAULT_CONFIG_FILE_EXTENSION = ".toml"
-DEFAULT_CONFIG_FILE_NAME = f"samconfig{DEFAULT_CONFIG_FILE_EXTENSION}"
+DEFAULT_CONFIG_FILE = "samconfig"
+DEFAULT_CONFIG_FILE_NAME = DEFAULT_CONFIG_FILE + DEFAULT_CONFIG_FILE_EXTENSION
 DEFAULT_ENV = "default"
 DEFAULT_GLOBAL_CMDNAME = "global"
 
@@ -24,7 +25,7 @@ class SamConfig:
     Class to represent `samconfig` config options.
     """
 
-    FILE_MANAGER_MAPPER: Dict[str, Type[FileManager]] = {
+    FILE_MANAGER_MAPPER: Dict[str, Type[FileManager]] = {  # keys ordered by priority
         ".toml": TomlFileManager,
         ".yaml": YamlFileManager,
         ".yml": YamlFileManager,
@@ -44,7 +45,7 @@ class SamConfig:
             could automatically support auto-resolving multiple config files within same directory.
         """
         self.document = {}
-        self.filepath = Path(config_dir, filename or DEFAULT_CONFIG_FILE_NAME)
+        self.filepath = Path(config_dir, filename or self.get_default_file(config_dir=config_dir))
         self.file_manager = self.FILE_MANAGER_MAPPER.get(self.filepath.suffix, None)
         if not self.file_manager:
             LOG.warning(
@@ -246,6 +247,40 @@ class SamConfig:
             LOG.info(save_global_message)
             # Only keep the global parameter
             del self.document[env][cmd_name_key][section][key]
+
+    @staticmethod
+    def get_default_file(config_dir: str) -> str:
+        """Return a defaultly-named config file, if it exists, otherwise the current default.
+
+        Parameters
+        ----------
+        config_dir: str
+            The name of the directory where the config file is/will be stored.
+
+        Returns
+        -------
+        str
+            The name of the config file found, if it exists. In the case that it does not exist, the default config
+            file name is returned instead.
+        """
+        config_files_found = 0
+        config_file = DEFAULT_CONFIG_FILE_NAME
+
+        for extension in reversed(list(SamConfig.FILE_MANAGER_MAPPER.keys())):
+            filename = DEFAULT_CONFIG_FILE + extension
+            if Path(config_dir, filename).exists():
+                config_files_found += 1
+                config_file = filename
+
+        if config_files_found == 0:  # Config file doesn't exist (yet!)
+            LOG.info(f"No config file found. Creating one as {config_file}.")
+        elif config_files_found > 1:  # Multiple config files; let user know which is used
+            LOG.info(
+                f"More than one samconfig file found; using {config_file}."
+                f" To use another config file, please specify it using the '--config-file' flag."
+            )
+
+        return config_file
 
     @staticmethod
     def _version_sanity_check(version: Any) -> None:
