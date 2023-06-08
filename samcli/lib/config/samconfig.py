@@ -45,7 +45,7 @@ class SamConfig:
             could automatically support auto-resolving multiple config files within same directory.
         """
         self.document = {}
-        self.filepath = Path(config_dir, filename or self._get_default_file(config_dir=config_dir))
+        self.filepath = Path(config_dir, filename or self.get_default_file(config_dir=config_dir))
         self.file_manager = self.FILE_MANAGER_MAPPER.get(self.filepath.suffix, None)
         if not self.file_manager:
             LOG.warning(
@@ -248,7 +248,8 @@ class SamConfig:
             # Only keep the global parameter
             del self.document[env][cmd_name_key][section][key]
 
-    def _get_default_file(self, config_dir: str) -> str:
+    @staticmethod
+    def get_default_file(config_dir: str) -> str:
         """Return a defaultly-named config file, if it exists, otherwise the current default.
 
         Parameters
@@ -265,7 +266,7 @@ class SamConfig:
         config_files_found = 0
         config_file = DEFAULT_CONFIG_FILE_NAME
 
-        for extension in reversed(self.FILE_MANAGER_MAPPER.keys()):
+        for extension in reversed(SamConfig.FILE_MANAGER_MAPPER.keys()):
             filename = DEFAULT_CONFIG_FILE + extension
             if Path(config_dir, filename).exists():
                 config_files_found += 1
