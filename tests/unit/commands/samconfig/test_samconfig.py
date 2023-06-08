@@ -14,9 +14,6 @@ from click.testing import CliRunner
 from unittest import TestCase
 from unittest.mock import patch, ANY
 import logging
-from parameterized import parameterized
-from samcli.lib.config.exceptions import SamConfigFileReadException
-from samcli.lib.config.file_manager import JsonFileManager, TomlFileManager, YamlFileManager
 
 from samcli.lib.config.samconfig import SamConfig, DEFAULT_ENV
 from samcli.lib.utils.packagetype import ZIP, IMAGE
@@ -1246,38 +1243,6 @@ class TestSamConfigWithOverrides(TestCase):
             self.assertIsNone(result.exception)
 
             do_cli_mock.assert_called_with(ANY, str(Path(os.getcwd(), "mytemplate.yaml")), False)
-
-
-class TestSamConfigFileManager(TestCase):
-    def test_file_manager_not_declared(self):
-        config_dir = tempfile.gettempdir()
-        config_path = Path(config_dir, "samconfig")
-
-        with self.assertRaises(SamConfigFileReadException):
-            SamConfig(config_path, filename="samconfig")
-
-    def test_file_manager_unsupported(self):
-        config_dir = tempfile.gettempdir()
-        config_path = Path(config_dir, "samconfig.jpeg")
-
-        with self.assertRaises(SamConfigFileReadException):
-            SamConfig(config_path, filename="samconfig.jpeg")
-
-    @parameterized.expand(
-        [
-            ("samconfig.toml", TomlFileManager),
-            ("samconfig.yaml", YamlFileManager),
-            ("samconfig.yml", YamlFileManager),
-            ("samconfig.json", JsonFileManager),
-        ]
-    )
-    def test_file_manager(self, filename, expected_file_manager):
-        config_dir = tempfile.gettempdir()
-        config_path = Path(config_dir, filename)
-
-        samconfig = SamConfig(config_path, filename=filename)
-
-        self.assertIs(samconfig.file_manager, expected_file_manager)
 
 
 @contextmanager

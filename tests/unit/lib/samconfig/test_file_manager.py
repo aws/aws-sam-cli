@@ -134,7 +134,7 @@ class TestYamlFileManager(TestCase):
 
         config_doc = YamlFileManager.read(config_path)
 
-        self.assertEqual(config_doc, self.yaml.load(""))
+        self.assertEqual(config_doc, {})
 
     def test_write_yaml(self):
         config_dir = tempfile.gettempdir()

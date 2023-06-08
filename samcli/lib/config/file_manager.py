@@ -187,7 +187,7 @@ class YamlFileManager(FileManager):
             A dictionary-like yaml object, which represents the contents of the YAML file at the
             provided location.
         """
-        yaml_doc = YamlFileManager.yaml.load("")
+        yaml_doc = {}
         try:
             yaml_doc = YamlFileManager.yaml.load(filepath.read_text())
         except OSError as e:
