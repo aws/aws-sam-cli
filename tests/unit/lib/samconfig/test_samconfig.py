@@ -269,7 +269,7 @@ class TestSamConfig(TestCase):
         while extensions_in_priority:
             config = SamConfig(self.config_dir)
             next_priority = extensions_in_priority.pop(0)
-            self.assertEqual(config.path(), self.config_dir + "/" + DEFAULT_CONFIG_FILE + next_priority)
+            self.assertEqual(config.filepath, Path(self.config_dir, DEFAULT_CONFIG_FILE + next_priority))
             os.remove(config.path())
 
 
