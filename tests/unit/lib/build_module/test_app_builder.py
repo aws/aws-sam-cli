@@ -12,7 +12,7 @@ from pathlib import Path, WindowsPath
 from parameterized import parameterized
 
 from samcli.lib.build.workflow_config import UnsupportedRuntimeException
-from samcli.lib.providers.provider import ResourcesToBuildCollector, Function
+from samcli.lib.providers.provider import ResourcesToBuildCollector, Function, FunctionBuildInfo
 from samcli.lib.build.app_builder import (
     ApplicationBuilder,
     UnsupportedBuilderLibraryVersionError,
@@ -440,6 +440,7 @@ class TestApplicationBuilder_build(TestCase):
             architectures=[X86_64, ARM64],
             stack_path="",
             function_url_config=None,
+            function_build_info=FunctionBuildInfo.BuildableZip,
         )
 
         resources_to_build_collector = ResourcesToBuildCollector()
@@ -498,6 +499,7 @@ class TestApplicationBuilder_build(TestCase):
             architectures=[X86_64],
             stack_path="",
             function_url_config=None,
+            function_build_info=FunctionBuildInfo.BuildableZip,
         )
 
         resources_to_build_collector = ResourcesToBuildCollector()
@@ -1416,8 +1418,7 @@ class TestApplicationBuilder_update_template_windows(TestCase):
     def test_must_write_absolute_path_for_different_drives(self):
         def mock_new(cls, *args, **kwargs):
             cls = WindowsPath
-            self = cls._from_parts(args, init=False)
-            self._init()
+            self = cls._from_parts(args)
             return self
 
         def mock_resolve(self):

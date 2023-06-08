@@ -10,7 +10,7 @@ from parameterized import parameterized, param
 from samcli.lib.utils.architecture import X86_64, ARM64
 
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
-from samcli.lib.providers.provider import Function
+from samcli.lib.providers.provider import Function, FunctionBuildInfo
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.local.docker.container import ContainerResponseException
 from samcli.local.lambdafn.exceptions import FunctionNotFound
@@ -252,6 +252,7 @@ class TestLocalLambda_make_env_vars(TestCase):
             codesign_config_arn=None,
             function_url_config=None,
             runtime_management_config=None,
+            function_build_info=FunctionBuildInfo.BuildableZip,
         )
 
         self.local_lambda.env_vars_values = env_vars_values
@@ -305,6 +306,7 @@ class TestLocalLambda_make_env_vars(TestCase):
             codesign_config_arn=None,
             function_url_config=None,
             runtime_management_config=None,
+            function_build_info=FunctionBuildInfo.BuildableZip,
         )
 
         self.local_lambda.env_vars_values = env_vars_values
@@ -348,6 +350,7 @@ class TestLocalLambda_make_env_vars(TestCase):
             codesign_config_arn=None,
             function_url_config=None,
             runtime_management_config=None,
+            function_build_info=FunctionBuildInfo.BuildableZip,
         )
 
         self.local_lambda.env_vars_values = {}
@@ -427,6 +430,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
             codesign_config_arn=None,
             function_url_config=None,
             runtime_management_config=None,
+            function_build_info=FunctionBuildInfo.BuildableZip,
         )
 
         config = "someconfig"
@@ -495,6 +499,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
             function_url_config=None,
             codesign_config_arn=None,
             runtime_management_config=None,
+            function_build_info=FunctionBuildInfo.BuildableZip,
         )
 
         config = "someconfig"

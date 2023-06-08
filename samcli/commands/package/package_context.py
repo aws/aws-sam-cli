@@ -24,6 +24,7 @@ import click
 import docker
 
 from samcli.commands.package.exceptions import PackageFailedError
+from samcli.lib.constants import DOCKER_MIN_API_VERSION
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.package.artifact_exporter import Template
 from samcli.lib.package.code_signer import CodeSigner
@@ -120,7 +121,7 @@ class PackageContext:
         )
         ecr_client = boto3.client("ecr", config=get_boto_config_with_user_agent(region_name=region_name))
 
-        docker_client = docker.from_env()
+        docker_client = docker.from_env(version=DOCKER_MIN_API_VERSION)
 
         s3_uploader = S3Uploader(
             s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, self.force_upload, self.no_progressbar

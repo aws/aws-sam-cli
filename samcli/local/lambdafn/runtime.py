@@ -331,7 +331,7 @@ class WarmLambdaRuntime(LambdaRuntime):
     warm containers life cycle.
     """
 
-    def __init__(self, container_manager, image_builder):
+    def __init__(self, container_manager, image_builder, observer=None):
         """
         Initialize the Local Lambda runtime
 
@@ -347,7 +347,7 @@ class WarmLambdaRuntime(LambdaRuntime):
         self._function_configs = {}
         self._containers = {}
 
-        self._observer = LambdaFunctionObserver(self._on_code_change)
+        self._observer = observer if observer else LambdaFunctionObserver(self._on_code_change)
 
         super().__init__(container_manager, image_builder)
 

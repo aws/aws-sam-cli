@@ -8,6 +8,7 @@ import threading
 
 import docker
 
+from samcli.lib.constants import DOCKER_MIN_API_VERSION
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker import utils
 from samcli.local.docker.container import Container
@@ -35,7 +36,7 @@ class ContainerManager:
 
         self.skip_pull_image = skip_pull_image
         self.docker_network_id = docker_network_id
-        self.docker_client = docker_client or docker.from_env()
+        self.docker_client = docker_client or docker.from_env(version=DOCKER_MIN_API_VERSION)
         self.do_shutdown_event = do_shutdown_event
 
         self._lock = threading.Lock()
