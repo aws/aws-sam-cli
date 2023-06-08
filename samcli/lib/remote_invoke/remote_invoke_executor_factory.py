@@ -8,7 +8,7 @@ from samcli.lib.remote_invoke.lambda_invoke_executors import (
     DefaultConvertToJSON,
     LambdaInvokeExecutor,
     LambdaResponseConverter,
-    LambdaResponseOutputFormatter,
+    LambdaResponseOutputFormatter, LambdaInvokeWithResponseStreamExecutor, LambdaStreamResponseConverter,
 )
 from samcli.lib.remote_invoke.remote_invoke_executors import RemoteInvokeExecutor, ResponseObjectToJsonStringMapper
 from samcli.lib.utils.cloudformation import CloudFormationResourceSummary
@@ -65,11 +65,22 @@ class RemoteInvokeExecutorFactory:
         :return: Returns the created remote invoke Executor
         """
         lambda_client = self._boto_client_provider("lambda")
-        function_url_config = lambda_client.get_function_url_config(cfn_resource_summary.physical_resource_id)
+        function_url_config = lambda_client.get_function_url_config(FunctionName=cfn_resource_summary.physical_resource_id, Qualifier="live")
         function_invoke_mode = function_url_config.get("InvokeMode")
         if function_invoke_mode == "RESPONSE_STREAM":
-            #todo create invoke configuration with response stream
-            pass
+            LOG.debug("Creating response stream invocator for function %s", cfn_resource_summary.physical_resource_id)
+            return RemoteInvokeExecutor(
+                request_mappers=[DefaultConvertToJSON()],
+                response_mappers=[
+                    LambdaStreamResponseConverter(),
+                    LambdaResponseOutputFormatter(),
+                    ResponseObjectToJsonStringMapper(),
+                ],
+                boto_action_executor=LambdaInvokeWithResponseStreamExecutor(
+                    self._boto_client_provider("lambda"),
+                    cfn_resource_summary.physical_resource_id,
+                ),
+            )
 
         return RemoteInvokeExecutor(
             request_mappers=[DefaultConvertToJSON()],

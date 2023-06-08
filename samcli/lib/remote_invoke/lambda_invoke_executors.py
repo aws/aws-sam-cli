@@ -1,12 +1,14 @@
 """
 Remote invoke executor implementation for Lambda
 """
+from abc import ABC, abstractmethod
 import base64
 import json
 import logging
 from json import JSONDecodeError
 from typing import Any, Dict, cast
 
+from botocore.eventstream import EventStream
 from botocore.exceptions import ClientError, ParamValidationError
 from botocore.response import StreamingBody
 
@@ -28,10 +30,10 @@ FUNCTION_NAME = "FunctionName"
 PAYLOAD = "Payload"
 
 
-class LambdaInvokeExecutor(BotoActionExecutor):
+class AbstractLambdaInvokeExecutor(BotoActionExecutor, ABC):
     """
-    Calls "invoke" method of "lambda" service with given input.
-    If a file location provided, the file handle will be passed as Payload object
+    Abstract class for different lambda invocation executors, see implementation for details.
+    For Payload parameter, if a file location provided, the file handle will be passed as Payload object
     """
 
     _lambda_client: Any
@@ -61,14 +63,9 @@ class LambdaInvokeExecutor(BotoActionExecutor):
     def _execute_action(self, payload: str):
         self.request_parameters[FUNCTION_NAME] = self._function_name
         self.request_parameters[PAYLOAD] = payload
-        LOG.debug(
-            "Calling lambda_client.invoke with FunctionName:%s, Payload:%s, parameters:%s",
-            self._function_name,
-            payload,
-            self.request_parameters,
-        )
+
         try:
-            response = self._lambda_client.invoke(**self.request_parameters)
+            return self._execute_lambda_invoke(payload)
         except ParamValidationError as param_val_ex:
             raise InvalidResourceBotoParameterException(
                 f"Invalid parameter key provided."
@@ -82,7 +79,42 @@ class LambdaInvokeExecutor(BotoActionExecutor):
             elif boto_utils.get_client_error_code(client_ex) == "InvalidRequestContentException":
                 raise InvalidResourceBotoParameterException(client_ex) from client_ex
             raise ErrorBotoApiCallException(client_ex) from client_ex
-        return response
+
+    @abstractmethod
+    def _execute_lambda_invoke(self, payload: str):
+        pass
+
+
+
+class LambdaInvokeExecutor(AbstractLambdaInvokeExecutor):
+    """
+    Calls "invoke" method of "lambda" service with given input.
+    """
+
+    def _execute_lambda_invoke(self, payload: str) -> dict:
+        LOG.debug(
+            "Calling lambda_client.invoke with FunctionName:%s, Payload:%s, parameters:%s",
+            self._function_name,
+            payload,
+            self.request_parameters,
+        )
+        return self._lambda_client.invoke(**self.request_parameters)
+
+
+
+class LambdaInvokeWithResponseStreamExecutor(AbstractLambdaInvokeExecutor):
+    """
+    Calls "invoke_with_response_stream" method of "lambda" service with given input.
+    """
+
+    def _execute_lambda_invoke(self, payload: str) -> dict:
+        LOG.debug(
+            "Calling lambda_client.invoke_with_response_stream with FunctionName:%s, Payload:%s, parameters:%s",
+            self._function_name,
+            payload,
+            self.request_parameters,
+        )
+        return self._lambda_client.invoke_with_response_stream(**self.request_parameters)
 
 
 class DefaultConvertToJSON(RemoteInvokeRequestResponseMapper):
@@ -123,6 +155,25 @@ class LambdaResponseConverter(RemoteInvokeRequestResponseMapper):
         if payload_field:
             remote_invoke_input.response[PAYLOAD] = cast(StreamingBody, payload_field).read().decode("utf-8")
 
+        return remote_invoke_input
+
+
+class LambdaStreamResponseConverter(RemoteInvokeRequestResponseMapper):
+
+    def map(self, remote_invoke_input: RemoteInvokeExecutionInfo) -> RemoteInvokeExecutionInfo:
+        LOG.debug("Mapping Lambda response to string object")
+        if not isinstance(remote_invoke_input.response, dict):
+            raise InvalideBotoResponseException("Invalid response type received from Lambda service, expecting dict")
+
+        event_stream: EventStream =  remote_invoke_input.response.get("EventStream")
+        payload = ""
+        for event in event_stream:
+            if "PayloadChunk" in event:
+                payload = f'{payload}{event.get("PayloadChunk").get("Payload").decode("utf-8")}'
+            if "InvokeComplete" in event:
+                log_output = base64.b64decode(event.get("InvokeComplete").get("LogResult")).decode("utf-8")
+                remote_invoke_input.log_output = log_output
+                remote_invoke_input.response[PAYLOAD] = payload
         return remote_invoke_input
 
 
