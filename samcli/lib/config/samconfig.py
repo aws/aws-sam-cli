@@ -249,7 +249,19 @@ class SamConfig:
             del self.document[env][cmd_name_key][section][key]
 
     def _get_default_file(self, config_dir: str) -> str:
-        """Return a defaultly-named config file, if it exists, otherwise the current default."""
+        """Return a defaultly-named config file, if it exists, otherwise the current default.
+
+        Parameters
+        ----------
+        config_dir: str
+            The name of the directory where the config file is/will be stored.
+
+        Returns
+        -------
+        str
+            The name of the config file found, if it exists. In the case that it does not exist, the default config
+            file name is returned instead.
+        """
         config_files_found = 0
         config_file = DEFAULT_CONFIG_FILE_NAME
 
@@ -260,9 +272,12 @@ class SamConfig:
                 config_file = filename
 
         if config_files_found == 0:  # Config file doesn't exist (yet!)
-            LOG.debug(f"No config file exists yet. Creating one as {config_file}.")
+            LOG.info(f"No config file found. Creating one as {config_file}.")
         elif config_files_found > 1:  # Multiple config files; let user know which is used
-            LOG.debug(f"More than one samconfig file found. Using {config_file}.")
+            LOG.info(
+                f"More than one samconfig file found; using {config_file}."
+                f" To use another config file, please specify it using the '--config-file' flag."
+            )
 
         return config_file
 
