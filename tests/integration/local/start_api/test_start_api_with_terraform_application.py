@@ -104,6 +104,48 @@ class TestStartApiTerraformApplication(TerraformStartApiIntegrationBase):
     "Skip Terraform test cases unless running in CI",
 )
 @pytest.mark.flaky(reruns=3)
+class TestStartApiTerraformApplicationV1LambdaAuthorizers(TerraformStartApiIntegrationBase):
+    terraform_application = "v1-lambda-authorizer"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @parameterized.expand(
+        [
+            ("/hello", {"headers": {"myheader": "123"}}),
+            ("/hello-request", {"headers": {"myheader": "123"}, "params": {"mystring": "456"}}),
+            ("/hello-request-empty", {}),
+            ("/hello-request-empty", {"headers": {"foo": "bar"}}),
+        ]
+    )
+    def test_invoke_authorizer(self, endpoint, parameters):
+        response = requests.get(self.url + endpoint, timeout=300, **parameters)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"message": "from authorizer"})
+
+    @parameterized.expand(
+        [
+            ("/hello", {"headers": {"blank": "invalid"}}),
+            ("/hello-request", {"headers": {"blank": "invalid"}, "params": {"blank": "invalid"}}),
+        ]
+    )
+    def test_missing_authorizer_identity_source(self, endpoint, parameters):
+        response = requests.get(self.url + endpoint, timeout=300, **parameters)
+
+        self.assertEqual(response.status_code, 401)
+
+    def test_fails_token_header_validation_authorizer(self):
+        response = requests.get(self.url + "/hello", timeout=300, headers={"myheader": "not valid"})
+
+        self.assertEqual(response.status_code, 401)
+
+
+@skipIf(
+    not CI_OVERRIDE,
+    "Skip Terraform test cases unless running in CI",
+)
+@pytest.mark.flaky(reruns=3)
 class TestStartApiTerraformApplicationOpenApiAuthorizer(TerraformStartApiIntegrationApplyBase):
     terraform_application = "lambda-auth-openapi"
 
