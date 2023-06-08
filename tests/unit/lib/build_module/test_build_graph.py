@@ -1,3 +1,4 @@
+import copy
 import os.path
 from unittest import TestCase
 from unittest.mock import patch, Mock
@@ -961,3 +962,17 @@ class TestBuildDefinition(TestCase):
                 build_definition.get_build_dir("build_dir"),
                 build_definition.functions[0].get_build_dir("build_dir") + "-Shared",
             )
+
+    def test_deepcopy_build_definition(self):
+        build_definition = FunctionBuildDefinition(
+            "runtime", "codeuri", ZIP, ARM64, {}, "handler", "source_hash", "manifest_hash"
+        )
+        function1 = generate_function(runtime="runtime", codeuri="codeuri", handler="handler")
+        function2 = generate_function(runtime="runtime", codeuri="codeuri", handler="handler")
+        build_definition.add_function(function1)
+        build_definition.add_function(function2)
+        build_definitions = [build_definition]
+
+        copied_build_definitions = copy.deepcopy(build_definitions)
+
+        self.assertEqual(copied_build_definitions, build_definitions)

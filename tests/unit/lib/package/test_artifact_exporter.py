@@ -10,7 +10,7 @@ import unittest
 
 from contextlib import contextmanager, closing
 from unittest import mock
-from unittest.mock import patch, Mock, MagicMock
+from unittest.mock import call, patch, Mock, MagicMock
 
 from samcli.commands.package.exceptions import ExportFailedError
 from samcli.lib.package.permissions import (
@@ -35,6 +35,8 @@ from samcli.lib.package.artifact_exporter import (
     ServerlessApplicationResource,
 )
 from samcli.lib.package.packageable_resources import (
+    GraphQLApiCodeResource,
+    GraphQLApiSchemaResource,
     is_s3_protocol_url,
     is_local_file,
     upload_local_artifacts,
@@ -84,6 +86,20 @@ class TestArtifactExporter(unittest.TestCase):
         self.code_signer_mock = Mock()
         self.code_signer_mock.should_sign_package.return_value = False
 
+        self.graphql_api_local_paths = ["resolvers/createFoo.js", "functions/func1.js", "functions/func2.js"]
+        self.graphql_api_resource_dict = {
+            "Resolvers": {"Mutation": {"createFoo": {"CodeUri": self.graphql_api_local_paths[0]}}},
+            "Functions": {
+                "func1": {"CodeUri": self.graphql_api_local_paths[1]},
+                "func2": {"CodeUri": self.graphql_api_local_paths[2]},
+            },
+        }
+        self.graphql_api_paths_to_property = [
+            "Resolvers.Mutation.createFoo.CodeUri",
+            "Functions.func1.CodeUri",
+            "Functions.func2.CodeUri",
+        ]
+
     def test_all_resources_export(self):
         uploaded_s3_url = "s3://foo/bar?versionId=baz"
 
@@ -114,6 +130,8 @@ class TestArtifactExporter(unittest.TestCase):
             {"class": GlueJobCommandScriptLocationResource, "expected_result": {"ScriptLocation": uploaded_s3_url}},
             {"class": CloudFormationModuleVersionModulePackage, "expected_result": uploaded_s3_url},
             {"class": CloudFormationResourceVersionSchemaHandlerPackage, "expected_result": uploaded_s3_url},
+            {"class": GraphQLApiSchemaResource, "expected_result": uploaded_s3_url},
+            {"class": GraphQLApiCodeResource, "expected_result": [uploaded_s3_url, uploaded_s3_url, uploaded_s3_url]},
         ]
 
         with patch("samcli.lib.package.packageable_resources.upload_local_artifacts") as upload_local_artifacts_mock:
@@ -149,7 +167,9 @@ class TestArtifactExporter(unittest.TestCase):
 
         resource_id = "id"
 
-        if "." in test_class.PROPERTY_NAME:
+        if test_class == GraphQLApiCodeResource:
+            resource_dict = self.graphql_api_resource_dict
+        elif "." in test_class.PROPERTY_NAME:
             reversed_property_names = test_class.PROPERTY_NAME.split(".")
             reversed_property_names.reverse()
             property_dict = {reversed_property_names[0]: "foo"}
@@ -166,7 +186,43 @@ class TestArtifactExporter(unittest.TestCase):
 
         resource_obj.export(resource_id, resource_dict, parent_dir)
 
-        if test_class in (
+        if test_class == GraphQLApiCodeResource:
+            upload_local_artifacts_mock.assert_has_calls(
+                [
+                    call(
+                        test_class.RESOURCE_TYPE,
+                        resource_id,
+                        resource_dict,
+                        self.graphql_api_paths_to_property[0],
+                        parent_dir,
+                        s3_uploader_mock,
+                        None,
+                        self.graphql_api_local_paths[0],
+                    ),
+                    call(
+                        test_class.RESOURCE_TYPE,
+                        resource_id,
+                        resource_dict,
+                        self.graphql_api_paths_to_property[1],
+                        parent_dir,
+                        s3_uploader_mock,
+                        None,
+                        self.graphql_api_local_paths[1],
+                    ),
+                    call(
+                        test_class.RESOURCE_TYPE,
+                        resource_id,
+                        resource_dict,
+                        self.graphql_api_paths_to_property[2],
+                        parent_dir,
+                        s3_uploader_mock,
+                        None,
+                        self.graphql_api_local_paths[2],
+                    ),
+                ],
+                any_order=True,
+            )
+        elif test_class in (
             ApiGatewayRestApiResource,
             LambdaFunctionResource,
             ElasticBeanstalkApplicationVersion,
@@ -189,9 +245,16 @@ class TestArtifactExporter(unittest.TestCase):
                 parent_dir,
                 s3_uploader_mock,
                 None,
+                None,
             )
         code_signer_mock.sign_package.assert_not_called()
-        if "." in test_class.PROPERTY_NAME:
+        if test_class == GraphQLApiCodeResource:
+            result = [
+                self.graphql_api_resource_dict["Resolvers"]["Mutation"]["createFoo"][test_class.PROPERTY_NAME],
+                self.graphql_api_resource_dict["Functions"]["func1"][test_class.PROPERTY_NAME],
+                self.graphql_api_resource_dict["Functions"]["func2"][test_class.PROPERTY_NAME],
+            ]
+        elif "." in test_class.PROPERTY_NAME:
             top_level_property_name = test_class.PROPERTY_NAME.split(".")[0]
             result = resource_dict[top_level_property_name]
         else:
@@ -529,6 +592,7 @@ class TestArtifactExporter(unittest.TestCase):
             parent_dir,
             self.s3_uploader_mock,
             None,
+            None,
         )
 
         self.assertEqual(resource_dict[resource.PROPERTY_NAME], s3_url)
@@ -808,6 +872,7 @@ class TestArtifactExporter(unittest.TestCase):
             resource.PROPERTY_NAME,
             parent_dir,
             self.s3_uploader_mock,
+            None,
             None,
         )
         self.code_signer_mock.should_sign_package.assert_called_once_with(resource_id)

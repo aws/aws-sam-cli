@@ -11,6 +11,7 @@ from typing import Callable, Dict, List, Optional
 
 import docker
 from docker import DockerClient
+from docker.constants import DEFAULT_DOCKER_API_VERSION
 from docker.errors import ImageNotFound
 from docker.types import CancellableStream
 from watchdog.events import FileSystemEvent, FileSystemEventHandler, PatternMatchingEventHandler
@@ -257,7 +258,7 @@ class ImageObserver(ResourceObserver):
         """
         self._observed_images: Dict[str, str] = {}
         self._input_on_change: Callable = on_change
-        self.docker_client: DockerClient = docker.from_env()
+        self.docker_client: DockerClient = docker.from_env(version=DEFAULT_DOCKER_API_VERSION)
         self.events: CancellableStream = self.docker_client.events(filters={"type": "image"}, decode=True)
         self._images_observer_thread: Optional[Thread] = None
         self._lock: Lock = threading.Lock()

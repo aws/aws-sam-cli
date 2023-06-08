@@ -13,6 +13,7 @@ from typing import Optional
 
 import docker
 import requests
+from docker.constants import DEFAULT_DOCKER_API_VERSION
 from docker.errors import NotFound as DockerNetworkNotFound
 
 from samcli.lib.utils.retry import retry
@@ -111,7 +112,7 @@ class Container:
         self._logs_thread = None
 
         # Use the given Docker client or create new one
-        self.docker_client = docker_client or docker.from_env()
+        self.docker_client = docker_client or docker.from_env(version=DEFAULT_DOCKER_API_VERSION)
 
         # Runtime properties of the container. They won't have value until container is created or started
         self.id = None
