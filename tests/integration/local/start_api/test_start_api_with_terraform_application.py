@@ -1,19 +1,24 @@
+import logging
 import shutil
 import os
 from pathlib import Path
 from subprocess import CalledProcessError, CompletedProcess, run
 from typing import Optional
 from unittest import skipIf
-from parameterized import parameterized
+from parameterized import parameterized, parameterized_class
 
 import pytest
 import requests
 
+from tests.integration.local.common_utils import random_port
 from tests.integration.local.start_api.start_api_integ_base import StartApiIntegBaseClass
 from tests.testing_utils import get_sam_command, CI_OVERRIDE
 
+LOG = logging.getLogger(__name__)
+
 
 class TerraformStartApiIntegrationBase(StartApiIntegBaseClass):
+    run_command_timeout = 300
     terraform_application: Optional[str] = None
 
     @classmethod
@@ -30,24 +35,36 @@ class TerraformStartApiIntegrationBase(StartApiIntegBaseClass):
     def get_integ_dir():
         return Path(__file__).resolve().parents[2]
 
-    def tearDown(self) -> None:
-        shutil.rmtree(str(Path(self.project_directory / ".aws-sam-iacs")), ignore_errors=True)  # type: ignore
-        shutil.rmtree(str(Path(self.project_directory / ".terraform")), ignore_errors=True)  # type: ignore
+    @classmethod
+    def tearDownClass(cls) -> None:
+        super(TerraformStartApiIntegrationBase, cls).tearDownClass()
+        cls._remove_generated_directories()
+
+    @classmethod
+    def _remove_generated_directories(cls):
+        shutil.rmtree(str(Path(cls.project_directory / ".aws-sam-iacs")), ignore_errors=True)  # type: ignore
+        shutil.rmtree(str(Path(cls.project_directory / ".terraform")), ignore_errors=True)  # type: ignore
         try:
-            os.remove(str(Path(self.project_directory / ".terraform.lock.hcl")))  # type: ignore
+            os.remove(str(Path(cls.project_directory / ".terraform.lock.hcl")))  # type: ignore
         except (FileNotFoundError, PermissionError):
             pass
+
+    @classmethod
+    def _run_command(cls, command, check) -> CompletedProcess:
+        test_data_folder = (
+            Path(cls.get_integ_dir()) / "testdata" / "start_api" / "terraform" / cls.terraform_application
+        )
+        return run(command, cwd=test_data_folder, check=check, capture_output=True, timeout=cls.run_command_timeout)
 
 
 class TerraformStartApiIntegrationApplyBase(TerraformStartApiIntegrationBase):
     terraform_application: str
-    run_command_timeout = 300
 
     @classmethod
     def setUpClass(cls):
         # init terraform project to populate deploy-only values
-        cls._run_command(["terraform", "init", "-input=false"])
-        cls._run_command(["terraform", "apply", "-auto-approve", "-input=false"])
+        cls._run_command(["terraform", "init", "-input=false"], check=True)
+        cls._run_command(["terraform", "apply", "-auto-approve", "-input=false"], check=True)
 
         super(TerraformStartApiIntegrationApplyBase, cls).setUpClass()
 
@@ -58,7 +75,7 @@ class TerraformStartApiIntegrationApplyBase(TerraformStartApiIntegrationBase):
     @classmethod
     def tearDownClass(cls) -> None:
         try:
-            cls._run_command(["terraform", "apply", "-destroy", "-auto-approve", "-input=false"])
+            cls._run_command(["terraform", "apply", "-destroy", "-auto-approve", "-input=false"], check=True)
         except CalledProcessError:
             # skip, command can fail here if there isn't an applied project to destroy
             # (eg. failed to apply in setup)
@@ -72,14 +89,6 @@ class TerraformStartApiIntegrationApplyBase(TerraformStartApiIntegrationBase):
 
         super(TerraformStartApiIntegrationApplyBase, cls).tearDownClass()
 
-    @classmethod
-    def _run_command(cls, command) -> CompletedProcess:
-        test_data_folder = (
-            Path(cls.get_integ_dir()) / "testdata" / "start_api" / "terraform" / cls.terraform_application
-        )
-
-        return run(command, cwd=test_data_folder, check=True, capture_output=True, timeout=cls.run_command_timeout)
-
 
 @skipIf(
     not CI_OVERRIDE,
@@ -89,6 +98,89 @@ class TerraformStartApiIntegrationApplyBase(TerraformStartApiIntegrationBase):
 class TestStartApiTerraformApplication(TerraformStartApiIntegrationBase):
     terraform_application = "terraform-v1-api-simple"
 
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    def test_successful_request(self):
+        response = requests.get(self.url + "/hello", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"message": "hello world"})
+
+
+@skipIf(
+    not CI_OVERRIDE,
+    "Skip Terraform test cases unless running in CI",
+)
+@pytest.mark.flaky(reruns=3)
+@parameterized_class(
+    [
+        {
+            "terraform_application": "lambda-auth-openapi",
+            "expected_error_message": "Error: AWS SAM CLI is unable to process a Terraform project that uses an OpenAPI"
+            " specification to define the API Gateway resource.",
+        },
+        {
+            "terraform_application": "terraform-api-simple-multiple-resources-limitation",
+            "expected_error_message": "Error: AWS SAM CLI could not process a Terraform project that contains a source "
+            "resource that is linked to more than one destination resource.",
+        },
+        {
+            "terraform_application": "terraform-api-simple-local-variables-limitation",
+            "expected_error_message": "Error: AWS SAM CLI could not process a Terraform project that uses local "
+            "variables to define linked resources.",
+        },
+    ]
+)
+class TestStartApiTerraformApplicationLimitations(TerraformStartApiIntegrationBase):
+    @classmethod
+    def setUpClass(cls):
+        command = get_sam_command()
+        cls.command_list = [
+            command,
+            "local",
+            "start-api",
+            "--hook-name",
+            "terraform",
+            "--beta-features",
+            "-p",
+            str(random_port()),
+        ]
+        cls.test_data_path = Path(cls.get_integ_dir()) / "testdata" / "start_api"
+        cls.project_directory = cls.test_data_path / "terraform" / cls.terraform_application
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls._remove_generated_directories()
+
+    def test_unsupported_limitations(self):
+        apply_disclaimer_message = "Unresolvable attributes discovered in project, run terraform apply to resolve them."
+
+        process = self._run_command(self.command_list, check=False)
+
+        LOG.info(process.stderr)
+        output = process.stderr.decode("utf-8")
+        self.assertNotEqual(process.returncode, 0)
+        self.assertRegex(output, self.expected_error_message)
+        self.assertRegex(output, apply_disclaimer_message)
+
+
+@skipIf(
+    not CI_OVERRIDE,
+    "Skip Terraform test cases unless running in CI",
+)
+@pytest.mark.flaky(reruns=3)
+@parameterized_class(
+    [
+        {
+            "terraform_application": "terraform-api-simple-multiple-resources-limitation",
+        },
+        {
+            "terraform_application": "terraform-api-simple-local-variables-limitation",
+        },
+    ]
+)
+class TestStartApiTerraformApplicationLimitationsAfterApply(TerraformStartApiIntegrationApplyBase):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
