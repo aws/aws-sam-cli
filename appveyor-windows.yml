@@ -74,6 +74,7 @@ install:
   - "echo %PATH%"
   - "python --version"
   - "docker info"
+  - "docker version"
 
   # install Terraform CLI
   - "choco install terraform"

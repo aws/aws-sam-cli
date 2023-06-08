@@ -61,7 +61,8 @@ install:
 
   - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
   - sh: "rvm use 2.7.2"
-  - sh: "docker --version"
+  - sh: "docker info"
+  - sh: "docker version"
   - sh: "nvm install ${NODE_VERSION}"
   - sh: "npm install npm@7.24.2 -g"
   - sh: "npm -v"
