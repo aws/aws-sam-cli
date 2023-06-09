@@ -18,6 +18,7 @@ from samcli.commands.local.cli_common.user_exceptions import (
     ImageBuildException,
 )
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
+from samcli.lib.constants import DOCKER_MIN_API_VERSION
 from samcli.lib.utils.architecture import has_runtime_multi_arch_image
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.stream_writer import StreamWriter
@@ -123,7 +124,7 @@ class LambdaImage:
         self.layer_downloader = layer_downloader
         self.skip_pull_image = skip_pull_image
         self.force_image_build = force_image_build
-        self.docker_client = docker_client or docker.from_env()
+        self.docker_client = docker_client or docker.from_env(version=DOCKER_MIN_API_VERSION)
         self.invoke_images = invoke_images
 
     def build(self, runtime, packagetype, image, layers, architecture, stream=None, function_name=None):
