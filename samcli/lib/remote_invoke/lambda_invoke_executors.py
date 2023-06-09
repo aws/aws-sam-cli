@@ -162,10 +162,11 @@ class LambdaResponseConverter(RemoteInvokeRequestResponseMapper):
 
 class LambdaStreamResponseConverter(RemoteInvokeRequestResponseMapper):
     """
-    This class helps to convert response from lambda invoke_with_response_stream API call. 
+    This class helps to convert response from lambda invoke_with_response_stream API call.
     That API call returns 'EventStream' which yields 'PayloadChunk's and 'InvokeComplete' as they become available.
     This mapper, gets all 'PayloadChunk's and 'InvokeComplete' events and decodes them for next mapper.
     """
+
     def map(self, remote_invoke_input: RemoteInvokeExecutionInfo) -> RemoteInvokeExecutionInfo:
         LOG.debug("Mapping Lambda response to string object")
         if not isinstance(remote_invoke_input.response, dict):
