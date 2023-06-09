@@ -69,8 +69,8 @@ class TestSyncInfra(SyncIntegBase):
         IS_WINDOWS,
         "Skip sync ruby tests in windows",
     )
-    @pytest.mark.flaky(reruns=3)
     @parameterized.expand([["ruby", False], ["python", False], ["python", True]])
+    @pytest.mark.flaky(reruns=3)
     def test_sync_infra(self, runtime, use_container):
         template_before = f"infra/template-{runtime}-before.yaml"
         template_path = str(self.test_data_path.joinpath(template_before))
@@ -147,8 +147,8 @@ class TestSyncInfra(SyncIntegBase):
         else:
             self._verify_infra_changes(self.stack_resources)
 
-    @pytest.mark.flaky(reruns=3)
     @parameterized.expand([["python", False], ["python", True]])
+    @pytest.mark.flaky(reruns=3)
     def test_sync_infra_auto_skip(self, runtime, use_container):
         template_before = f"infra/template-{runtime}-before.yaml"
         template_path = str(self.test_data_path.joinpath(template_before))
@@ -208,8 +208,8 @@ class TestSyncInfra(SyncIntegBase):
         # Lambda Api call here, which tests both the python function and the layer
         self._verify_infra_changes(self.stack_resources)
 
-    @pytest.mark.flaky(reruns=3)
     @parameterized.expand([["python", False], ["python", True]])
+    @pytest.mark.flaky(reruns=3)
     def test_sync_infra_auto_skip_nested(self, runtime, use_container):
         template_before = str(Path("infra", "parent-stack.yaml"))
         template_path = str(self.test_data_path.joinpath(template_before))
