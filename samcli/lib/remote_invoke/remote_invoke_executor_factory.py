@@ -4,12 +4,14 @@ Remote Invoke factory to instantiate remote invoker for given resource
 import logging
 from typing import Any, Callable, Dict, Optional
 
+from botocore.exceptions import ClientError
+
 from samcli.lib.remote_invoke.lambda_invoke_executors import (
     DefaultConvertToJSON,
     LambdaInvokeExecutor,
+    LambdaInvokeWithResponseStreamExecutor,
     LambdaResponseConverter,
     LambdaResponseOutputFormatter,
-    LambdaInvokeWithResponseStreamExecutor,
     LambdaStreamResponseConverter,
     LambdaStreamResponseOutputFormatter,
 )
@@ -68,9 +70,7 @@ class RemoteInvokeExecutorFactory:
         :return: Returns the created remote invoke Executor
         """
         lambda_client = self._boto_client_provider("lambda")
-        function_url_config = lambda_client.get_function_url_config(FunctionName=cfn_resource_summary.physical_resource_id, Qualifier="live")
-        function_invoke_mode = function_url_config.get("InvokeMode")
-        if function_invoke_mode == "RESPONSE_STREAM":
+        if _is_function_invoke_mode_response_stream(lambda_client, cfn_resource_summary.physical_resource_id):
             LOG.debug("Creating response stream invocator for function %s", cfn_resource_summary.physical_resource_id)
             return RemoteInvokeExecutor(
                 request_mappers=[DefaultConvertToJSON()],
@@ -80,7 +80,7 @@ class RemoteInvokeExecutorFactory:
                     ResponseObjectToJsonStringMapper(),
                 ],
                 boto_action_executor=LambdaInvokeWithResponseStreamExecutor(
-                    self._boto_client_provider("lambda"),
+                    lambda_client,
                     cfn_resource_summary.physical_resource_id,
                 ),
             )
@@ -93,7 +93,7 @@ class RemoteInvokeExecutorFactory:
                 ResponseObjectToJsonStringMapper(),
             ],
             boto_action_executor=LambdaInvokeExecutor(
-                self._boto_client_provider("lambda"),
+                lambda_client,
                 cfn_resource_summary.physical_resource_id,
             ),
         )
@@ -104,3 +104,17 @@ class RemoteInvokeExecutorFactory:
     ] = {
         AWS_LAMBDA_FUNCTION: _create_lambda_boto_executor,
     }
+
+
+def _is_function_invoke_mode_response_stream(lambda_client: Any, function_name: str):
+    """
+    Returns True if given function has RESPONSE_STREAM as InvokeMode, False otherwise
+    """
+    try:
+        function_url_config = lambda_client.get_function_url_config(FunctionName=function_name)
+        function_invoke_mode = function_url_config.get("InvokeMode")
+        LOG.debug("InvokeMode of function %s: %s", function_name, function_invoke_mode)
+        return function_invoke_mode == "RESPONSE_STREAM"
+    except ClientError as ex:
+        LOG.debug("Function %s, doesn't have Function URL configured, using regular invoke", function_name, exc_info=ex)
+        return False

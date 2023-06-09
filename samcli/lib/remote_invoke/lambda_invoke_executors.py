@@ -1,10 +1,10 @@
 """
 Remote invoke executor implementation for Lambda
 """
-from abc import ABC, abstractmethod
 import base64
 import json
 import logging
+from abc import ABC, abstractmethod
 from json import JSONDecodeError
 from typing import Any, Dict, cast
 
@@ -89,7 +89,6 @@ class AbstractLambdaInvokeExecutor(BotoActionExecutor, ABC):
         pass
 
 
-
 class LambdaInvokeExecutor(AbstractLambdaInvokeExecutor):
     """
     Calls "invoke" method of "lambda" service with given input.
@@ -102,8 +101,7 @@ class LambdaInvokeExecutor(AbstractLambdaInvokeExecutor):
             payload,
             self.request_parameters,
         )
-        return self._lambda_client.invoke(**self.request_parameters)
-
+        return cast(dict, self._lambda_client.invoke(**self.request_parameters))
 
 
 class LambdaInvokeWithResponseStreamExecutor(AbstractLambdaInvokeExecutor):
@@ -118,7 +116,7 @@ class LambdaInvokeWithResponseStreamExecutor(AbstractLambdaInvokeExecutor):
             payload,
             self.request_parameters,
         )
-        return self._lambda_client.invoke_with_response_stream(**self.request_parameters)
+        return cast(dict, self._lambda_client.invoke_with_response_stream(**self.request_parameters))
 
 
 class DefaultConvertToJSON(RemoteInvokeRequestResponseMapper):
@@ -163,25 +161,20 @@ class LambdaResponseConverter(RemoteInvokeRequestResponseMapper):
 
 
 class LambdaStreamResponseConverter(RemoteInvokeRequestResponseMapper):
-
     def map(self, remote_invoke_input: RemoteInvokeExecutionInfo) -> RemoteInvokeExecutionInfo:
         LOG.debug("Mapping Lambda response to string object")
         if not isinstance(remote_invoke_input.response, dict):
             raise InvalideBotoResponseException("Invalid response type received from Lambda service, expecting dict")
 
-        event_stream: EventStream =  remote_invoke_input.response.get(EVENT_STREAM)
+        event_stream: EventStream = remote_invoke_input.response.get(EVENT_STREAM, [])
         decoded_event_stream = []
         for event in event_stream:
             if PAYLOAD_CHUNK in event:
                 decoded_payload_chunk = event.get(PAYLOAD_CHUNK).get(PAYLOAD).decode("utf-8")
-                decoded_event_stream.append(
-                    {PAYLOAD_CHUNK: {PAYLOAD: decoded_payload_chunk}}
-                )
+                decoded_event_stream.append({PAYLOAD_CHUNK: {PAYLOAD: decoded_payload_chunk}})
             if INVOKE_COMPLETE in event:
-                log_output = base64.b64decode(event.get(INVOKE_COMPLETE).get(LOG_RESULT)).decode("utf-8")
-                decoded_event_stream.append(
-                    {INVOKE_COMPLETE: {LOG_RESULT: log_output}}
-                )
+                log_output = base64.b64decode(event.get(INVOKE_COMPLETE).get(LOG_RESULT, b"")).decode("utf-8")
+                decoded_event_stream.append({INVOKE_COMPLETE: {LOG_RESULT: log_output}})
         remote_invoke_input.response[EVENT_STREAM] = decoded_event_stream
         return remote_invoke_input
 
@@ -233,12 +226,12 @@ class LambdaStreamResponseOutputFormatter(RemoteInvokeRequestResponseMapper):
             LOG.debug("Formatting Lambda output response")
             boto_response = cast(Dict, remote_invoke_input.response)
             combined_response = ""
-            for event in boto_response.get(EVENT_STREAM):
+            for event in boto_response.get(EVENT_STREAM, []):
                 if PAYLOAD_CHUNK in event:
                     payload_chunk = event.get(PAYLOAD_CHUNK).get(PAYLOAD)
                     combined_response = f"{combined_response}{payload_chunk}"
                 if INVOKE_COMPLETE in event:
                     log_result = event.get(INVOKE_COMPLETE).get(LOG_RESULT)
                     remote_invoke_input.log_output = log_result
-                    remote_invoke_input.response = combined_response
+            remote_invoke_input.response = combined_response
         return remote_invoke_input
