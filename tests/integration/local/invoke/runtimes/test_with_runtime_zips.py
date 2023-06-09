@@ -33,8 +33,8 @@ class TestWithDifferentLambdaRuntimeZips(InvokeIntegBase):
     def tearDown(self):
         os.remove(self.events_file_path)
 
-    @pytest.mark.timeout(timeout=300, method="thread")
     @parameterized.expand([param("Go1xFunction"), param("Java8Function")])
+    @pytest.mark.timeout(timeout=300, method="thread")
     def test_runtime_zip(self, function_name):
         command_list = InvokeIntegBase.get_command_list(
             function_name, template_path=self.template_path, event_path=self.events_file_path
