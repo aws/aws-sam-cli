@@ -22,7 +22,7 @@ def event_and_event_file_options_validation(func):
     Parameters
     ----------
     func :
-        Command that would be executed, in this case it is 'sam cloud invoke'
+        Command that would be executed, in this case it is 'sam remote invoke'
 
     Returns
     -------
@@ -64,7 +64,7 @@ def stack_name_or_resource_id_atleast_one_option_validation(func):
     Parameters
     ----------
     func :
-        Command that would be executed, in this case it is 'sam cloud invoke'
+        Command that would be executed, in this case it is 'sam remote invoke'
 
     Returns
     -------
