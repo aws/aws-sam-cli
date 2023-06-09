@@ -5,11 +5,12 @@ Class representing the samconfig.toml
 import logging
 import os
 from pathlib import Path
-from typing import Any, Dict, Iterable, Type
+from typing import Any, Iterable
 
 from samcli.lib.config.exceptions import FileParseException, SamConfigFileReadException, SamConfigVersionException
-from samcli.lib.config.file_manager import FileManager, JsonFileManager, TomlFileManager, YamlFileManager
+from samcli.lib.config.file_manager import FILE_MANAGER_MAPPER
 from samcli.lib.config.version import SAM_CONFIG_VERSION, VERSION_KEY
+from samcli.lib.telemetry.event import EventTracker
 
 LOG = logging.getLogger(__name__)
 
@@ -25,13 +26,6 @@ class SamConfig:
     Class to represent `samconfig` config options.
     """
 
-    FILE_MANAGER_MAPPER: Dict[str, Type[FileManager]] = {  # keys ordered by priority
-        ".toml": TomlFileManager,
-        ".yaml": YamlFileManager,
-        ".yml": YamlFileManager,
-        ".json": JsonFileManager,
-    }
-
     def __init__(self, config_dir, filename=None):
         """
         Initialize the class
@@ -46,16 +40,18 @@ class SamConfig:
         """
         self.document = {}
         self.filepath = Path(config_dir, filename or self.get_default_file(config_dir=config_dir))
-        self.file_manager = self.FILE_MANAGER_MAPPER.get(self.filepath.suffix, None)
+        file_extension = self.filepath.suffix
+        self.file_manager = FILE_MANAGER_MAPPER.get(file_extension, None)
         if not self.file_manager:
             LOG.warning(
-                f"The config file extension '{self.filepath.suffix}' is not supported. "
-                f"Supported formats are: [{'|'.join(self.FILE_MANAGER_MAPPER.keys())}]"
+                f"The config file extension '{file_extension}' is not supported. "
+                f"Supported formats are: [{'|'.join(FILE_MANAGER_MAPPER.keys())}]"
             )
             raise SamConfigFileReadException(
                 f"The config file {self.filepath} uses an unsupported extension, and cannot be read."
             )
         self._read()
+        EventTracker.track_event("SamConfigFileExtension", file_extension)
 
     def get_stage_configuration_names(self):
         if self.document:
@@ -266,7 +262,7 @@ class SamConfig:
         config_files_found = 0
         config_file = DEFAULT_CONFIG_FILE_NAME
 
-        for extension in reversed(list(SamConfig.FILE_MANAGER_MAPPER.keys())):
+        for extension in reversed(list(FILE_MANAGER_MAPPER.keys())):
             filename = DEFAULT_CONFIG_FILE + extension
             if Path(config_dir, filename).exists():
                 config_files_found += 1

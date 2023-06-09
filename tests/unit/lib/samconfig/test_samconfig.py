@@ -5,7 +5,7 @@ import tempfile
 from unittest import TestCase
 
 from samcli.lib.config.exceptions import SamConfigFileReadException, SamConfigVersionException
-from samcli.lib.config.file_manager import JsonFileManager, TomlFileManager, YamlFileManager
+from samcli.lib.config.file_manager import FILE_MANAGER_MAPPER, JsonFileManager, TomlFileManager, YamlFileManager
 from samcli.lib.config.samconfig import (
     DEFAULT_CONFIG_FILE,
     SamConfig,
@@ -256,7 +256,7 @@ class TestSamConfig(TestCase):
 
     def test_config_priority(self):
         config_files = []
-        extensions_in_priority = list(SamConfig.FILE_MANAGER_MAPPER.keys())  # priority by order in dict
+        extensions_in_priority = list(FILE_MANAGER_MAPPER.keys())  # priority by order in dict
         for extension in extensions_in_priority:
             filename = DEFAULT_CONFIG_FILE + extension
             config = SamConfig(self.config_dir, filename=filename)
