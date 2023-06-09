@@ -195,7 +195,7 @@ class TestLambdaStreamResponseConverter(TestCase):
     def setUp(self) -> None:
         self.lambda_stream_response_converter = LambdaStreamResponseConverter()
 
-    @parameterized.expand([({LOG_RESULT: base64.b64encode(b"log output")}, "log output"), ({}, "")])
+    @parameterized.expand([({LOG_RESULT: base64.b64encode(b"log output")}, base64.b64encode(b"log output")), ({}, b"")])
     def test_lambda_streaming_body_response_conversion(self, invoke_complete_response, mapped_log_response):
         output_format = RemoteInvokeOutputFormat.DEFAULT
         given_test_result = {
@@ -299,7 +299,7 @@ class TestLambdaStreamResponseOutputFormatter(TestCase):
                 {PAYLOAD_CHUNK: {PAYLOAD: "stream1"}},
                 {PAYLOAD_CHUNK: {PAYLOAD: "stream2"}},
                 {PAYLOAD_CHUNK: {PAYLOAD: "stream3"}},
-                {INVOKE_COMPLETE: {LOG_RESULT: "log output"}},
+                {INVOKE_COMPLETE: {LOG_RESULT: base64.b64encode(b"log output")}},
             ]
         }
 

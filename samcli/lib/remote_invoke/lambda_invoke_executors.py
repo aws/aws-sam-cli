@@ -6,7 +6,7 @@ import json
 import logging
 from abc import ABC, abstractmethod
 from json import JSONDecodeError
-from typing import Any, Dict, cast
+from typing import Any, cast
 
 from botocore.eventstream import EventStream
 from botocore.exceptions import ClientError, ParamValidationError
@@ -178,7 +178,7 @@ class LambdaStreamResponseConverter(RemoteInvokeRequestResponseMapper):
                 decoded_payload_chunk = event.get(PAYLOAD_CHUNK).get(PAYLOAD).decode("utf-8")
                 decoded_event_stream.append({PAYLOAD_CHUNK: {PAYLOAD: decoded_payload_chunk}})
             if INVOKE_COMPLETE in event:
-                log_output = base64.b64decode(event.get(INVOKE_COMPLETE).get(LOG_RESULT, b"")).decode("utf-8")
+                log_output = event.get(INVOKE_COMPLETE).get(LOG_RESULT, b"")
                 decoded_event_stream.append({INVOKE_COMPLETE: {LOG_RESULT: log_output}})
         remote_invoke_input.response[EVENT_STREAM] = decoded_event_stream
         return remote_invoke_input
@@ -199,7 +199,7 @@ class LambdaResponseOutputFormatter(RemoteInvokeRequestResponseMapper):
         """
         if remote_invoke_input.output_format == RemoteInvokeOutputFormat.DEFAULT:
             LOG.debug("Formatting Lambda output response")
-            boto_response = cast(Dict, remote_invoke_input.response)
+            boto_response = cast(dict, remote_invoke_input.response)
             log_field = boto_response.get(LOG_RESULT)
             if log_field:
                 log_result = base64.b64decode(log_field).decode("utf-8")
@@ -229,14 +229,14 @@ class LambdaStreamResponseOutputFormatter(RemoteInvokeRequestResponseMapper):
         """
         if remote_invoke_input.output_format == RemoteInvokeOutputFormat.DEFAULT:
             LOG.debug("Formatting Lambda output response")
-            boto_response = cast(Dict, remote_invoke_input.response)
+            boto_response = cast(dict, remote_invoke_input.response)
             combined_response = ""
             for event in boto_response.get(EVENT_STREAM, []):
                 if PAYLOAD_CHUNK in event:
                     payload_chunk = event.get(PAYLOAD_CHUNK).get(PAYLOAD)
                     combined_response = f"{combined_response}{payload_chunk}"
                 if INVOKE_COMPLETE in event:
-                    log_result = event.get(INVOKE_COMPLETE).get(LOG_RESULT)
+                    log_result = base64.b64decode(event.get(INVOKE_COMPLETE).get(LOG_RESULT)).decode("utf-8")
                     remote_invoke_input.log_output = log_result
             remote_invoke_input.response = combined_response
         return remote_invoke_input
