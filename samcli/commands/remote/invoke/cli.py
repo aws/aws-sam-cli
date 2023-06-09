@@ -68,7 +68,7 @@ def cli(
     config_env: str,
 ) -> None:
     """
-    `sam cloud invoke` command entry point
+    `sam remote invoke` command entry point
     """
 
     do_cli(
@@ -100,8 +100,8 @@ def do_cli(
     """
     Implementation of the ``cli`` method
     """
-    from samcli.commands.cloud.remote_invoke_context import RemoteInvokeContext
     from samcli.commands.exceptions import UserException
+    from samcli.commands.remote.remote_invoke_context import RemoteInvokeContext
     from samcli.lib.remote_invoke.exceptions import (
         ErrorBotoApiCallException,
         InvalideBotoResponseException,
