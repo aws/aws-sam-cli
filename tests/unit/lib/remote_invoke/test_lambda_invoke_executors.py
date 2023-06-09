@@ -1,25 +1,31 @@
 import base64
-import functools
 from abc import ABC, abstractmethod
 from typing import Any
 from unittest import TestCase
 from unittest.mock import Mock, patch
+
 from parameterized import parameterized
 
 from samcli.lib.remote_invoke.lambda_invoke_executors import (
-    LambdaInvokeExecutor,
+    EVENT_STREAM,
+    INVOKE_COMPLETE,
+    LOG_RESULT,
+    PAYLOAD,
+    PAYLOAD_CHUNK,
+    AbstractLambdaInvokeExecutor,
+    ClientError,
     DefaultConvertToJSON,
+    ErrorBotoApiCallException,
+    InvalideBotoResponseException,
+    InvalidResourceBotoParameterException,
+    LambdaInvokeExecutor,
+    LambdaInvokeWithResponseStreamExecutor,
     LambdaResponseConverter,
     LambdaResponseOutputFormatter,
-    ErrorBotoApiCallException,
-    InvalidResourceBotoParameterException,
-    InvalideBotoResponseException,
-    RemoteInvokeOutputFormat,
-    ClientError,
+    LambdaStreamResponseConverter,
+    LambdaStreamResponseOutputFormatter,
     ParamValidationError,
-    AbstractLambdaInvokeExecutor,
-    LambdaInvokeWithResponseStreamExecutor, LambdaStreamResponseConverter, EVENT_STREAM, PAYLOAD_CHUNK, PAYLOAD,
-    INVOKE_COMPLETE, LOG_RESULT, LambdaStreamResponseOutputFormatter,
+    RemoteInvokeOutputFormat,
 )
 from samcli.lib.remote_invoke.remote_invoke_executors import RemoteInvokeExecutionInfo
 
@@ -65,16 +71,16 @@ class CommonTestsLambdaInvokeExecutor:
                 ({}, {"InvocationType": "RequestResponse", "LogType": "Tail"}),
                 ({"InvocationType": "Event"}, {"InvocationType": "Event", "LogType": "Tail"}),
                 (
-                        {"InvocationType": "DryRun", "Qualifier": "TestQualifier"},
-                        {"InvocationType": "DryRun", "LogType": "Tail", "Qualifier": "TestQualifier"},
+                    {"InvocationType": "DryRun", "Qualifier": "TestQualifier"},
+                    {"InvocationType": "DryRun", "LogType": "Tail", "Qualifier": "TestQualifier"},
                 ),
                 (
-                        {"InvocationType": "RequestResponse", "LogType": "None"},
-                        {"InvocationType": "RequestResponse", "LogType": "None"},
+                    {"InvocationType": "RequestResponse", "LogType": "None"},
+                    {"InvocationType": "RequestResponse", "LogType": "None"},
                 ),
                 (
-                        {"FunctionName": "MyFunction", "Payload": "{hello world}"},
-                        {"InvocationType": "RequestResponse", "LogType": "Tail"},
+                    {"FunctionName": "MyFunction", "Payload": "{hello world}"},
+                    {"InvocationType": "RequestResponse", "LogType": "Tail"},
                 ),
             ]
         )
@@ -186,7 +192,6 @@ class TestLambdaResponseConverter(TestCase):
 
 
 class TestLambdaStreamResponseConverter(TestCase):
-
     def setUp(self) -> None:
         self.lambda_stream_response_converter = LambdaStreamResponseConverter()
 
@@ -198,7 +203,7 @@ class TestLambdaStreamResponseConverter(TestCase):
                 {PAYLOAD_CHUNK: {PAYLOAD: b"stream1"}},
                 {PAYLOAD_CHUNK: {PAYLOAD: b"stream2"}},
                 {PAYLOAD_CHUNK: {PAYLOAD: b"stream3"}},
-                {INVOKE_COMPLETE: invoke_complete_response}
+                {INVOKE_COMPLETE: invoke_complete_response},
             ]
         }
         remote_invoke_execution_info = RemoteInvokeExecutionInfo(None, None, {}, output_format)
@@ -277,7 +282,6 @@ class TestLambdaResponseOutputFormatter(TestCase):
 
 
 class TestLambdaStreamResponseOutputFormatter(TestCase):
-
     def setUp(self) -> None:
         self.lambda_response_converter = LambdaStreamResponseOutputFormatter()
 
