@@ -160,7 +160,7 @@ class TestStartApiTerraformApplicationLimitations(TerraformStartApiIntegrationBa
 
         LOG.info(process.stderr)
         output = process.stderr.decode("utf-8")
-        self.assertNotEqual(process.returncode, 0)
+        self.assertEqual(process.returncode, 1)
         self.assertRegex(output, self.expected_error_message)
         self.assertRegex(output, apply_disclaimer_message)
 
