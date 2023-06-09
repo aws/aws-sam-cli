@@ -211,8 +211,10 @@ class TestExperimentalMetric(IntegBase):
 
             self.assertEqual(process.returncode, 2, "Command should fail")
             all_requests = server.get_all_requests()
-            self.assertEqual(1, len(all_requests), "Command run metric must be sent")
-            request = all_requests[0]
+            self.assertEqual(2, len(all_requests), "Command run metric must be sent")  # 2 = cmd_run + events
+            request = (
+                all_requests[0] if "commandRun" in all_requests[0]["data"]["metrics"][0].keys() else all_requests[1]
+            )  # ignore event request
             self.assertIn("Content-Type", request["headers"])
             self.assertEqual(request["headers"]["Content-Type"], "application/json")
 

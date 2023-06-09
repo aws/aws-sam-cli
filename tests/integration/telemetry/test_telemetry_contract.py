@@ -28,7 +28,7 @@ class TestTelemetryContract(IntegBase):
 
             self.assertEqual(process.returncode, 0, "Command should successfully complete")
             all_requests = server.get_all_requests()
-            self.assertEqual(1, len(all_requests), "Command run metric should be sent")
+            self.assertEqual(2, len(all_requests), "Command run metric should be sent")  # 2 = cmd_run + events
 
     def test_must_send_metrics_if_enabled_via_envvar(self):
         """
@@ -52,7 +52,7 @@ class TestTelemetryContract(IntegBase):
 
             self.assertEqual(process.returncode, 0, "Command should successfully complete")
             all_requests = server.get_all_requests()
-            self.assertEqual(1, len(all_requests), "Command run metric must be sent")
+            self.assertEqual(2, len(all_requests), "Command run metric must be sent")  # cmd_run + events
 
     def test_must_not_crash_when_offline(self):
         """
