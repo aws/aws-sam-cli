@@ -3,7 +3,7 @@ from unittest.mock import patch, Mock
 
 from parameterized import parameterized
 
-from samcli.commands.cloud.invoke.cli import do_cli
+from samcli.commands.remote.invoke.cli import do_cli
 from samcli.lib.remote_invoke.remote_invoke_executors import RemoteInvokeOutputFormat
 from samcli.lib.remote_invoke.exceptions import (
     ErrorBotoApiCallException,
@@ -37,7 +37,7 @@ class TestRemoteInvokeCliCommand(TestCase):
     @patch("samcli.lib.remote_invoke.remote_invoke_executors.RemoteInvokeExecutionInfo")
     @patch("samcli.lib.utils.boto_utils.get_boto_client_provider_with_config")
     @patch("samcli.lib.utils.boto_utils.get_boto_resource_provider_with_config")
-    @patch("samcli.commands.cloud.remote_invoke_context.RemoteInvokeContext")
+    @patch("samcli.commands.remote.remote_invoke_context.RemoteInvokeContext")
     def test_remote_invoke_command(
         self,
         event,
@@ -112,7 +112,7 @@ class TestRemoteInvokeCliCommand(TestCase):
             (InvalidResourceBotoParameterException,),
         ]
     )
-    @patch("samcli.commands.cloud.remote_invoke_context.RemoteInvokeContext")
+    @patch("samcli.commands.remote.remote_invoke_context.RemoteInvokeContext")
     def test_raise_user_exception_invoke_not_successfull(self, exeception_to_raise, mock_invoke_context):
 
         context_mock = Mock()
