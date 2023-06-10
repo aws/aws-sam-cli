@@ -33,6 +33,9 @@ PAYLOAD_CHUNK = "PayloadChunk"
 INVOKE_COMPLETE = "InvokeComplete"
 LOG_RESULT = "LogResult"
 
+INVOKE_MODE = "InvokeMode"
+RESPONSE_STREAM = "RESPONSE_STREAM"
+
 
 class AbstractLambdaInvokeExecutor(BotoActionExecutor, ABC):
     """
@@ -241,3 +244,17 @@ class LambdaStreamResponseOutputFormatter(RemoteInvokeRequestResponseMapper):
                     remote_invoke_input.log_output = log_result
             remote_invoke_input.response = combined_response
         return remote_invoke_input
+
+
+def _is_function_invoke_mode_response_stream(lambda_client: Any, function_name: str):
+    """
+    Returns True if given function has RESPONSE_STREAM as InvokeMode, False otherwise
+    """
+    try:
+        function_url_config = lambda_client.get_function_url_config(FunctionName=function_name)
+        function_invoke_mode = function_url_config.get(INVOKE_MODE)
+        LOG.debug("InvokeMode of function %s: %s", function_name, function_invoke_mode)
+        return function_invoke_mode == RESPONSE_STREAM
+    except ClientError as ex:
+        LOG.debug("Function %s, doesn't have Function URL configured, using regular invoke", function_name, exc_info=ex)
+        return False

@@ -4,8 +4,6 @@ Remote Invoke factory to instantiate remote invoker for given resource
 import logging
 from typing import Any, Callable, Dict, Optional
 
-from botocore.exceptions import ClientError
-
 from samcli.lib.remote_invoke.lambda_invoke_executors import (
     DefaultConvertToJSON,
     LambdaInvokeExecutor,
@@ -14,6 +12,7 @@ from samcli.lib.remote_invoke.lambda_invoke_executors import (
     LambdaResponseOutputFormatter,
     LambdaStreamResponseConverter,
     LambdaStreamResponseOutputFormatter,
+    _is_function_invoke_mode_response_stream,
 )
 from samcli.lib.remote_invoke.remote_invoke_executors import RemoteInvokeExecutor, ResponseObjectToJsonStringMapper
 from samcli.lib.utils.cloudformation import CloudFormationResourceSummary
@@ -104,17 +103,3 @@ class RemoteInvokeExecutorFactory:
     ] = {
         AWS_LAMBDA_FUNCTION: _create_lambda_boto_executor,
     }
-
-
-def _is_function_invoke_mode_response_stream(lambda_client: Any, function_name: str):
-    """
-    Returns True if given function has RESPONSE_STREAM as InvokeMode, False otherwise
-    """
-    try:
-        function_url_config = lambda_client.get_function_url_config(FunctionName=function_name)
-        function_invoke_mode = function_url_config.get("InvokeMode")
-        LOG.debug("InvokeMode of function %s: %s", function_name, function_invoke_mode)
-        return function_invoke_mode == "RESPONSE_STREAM"
-    except ClientError as ex:
-        LOG.debug("Function %s, doesn't have Function URL configured, using regular invoke", function_name, exc_info=ex)
-        return False

@@ -26,6 +26,7 @@ from samcli.lib.remote_invoke.lambda_invoke_executors import (
     LambdaStreamResponseOutputFormatter,
     ParamValidationError,
     RemoteInvokeOutputFormat,
+    _is_function_invoke_mode_response_stream,
 )
 from samcli.lib.remote_invoke.remote_invoke_executors import RemoteInvokeExecutionInfo
 
@@ -306,3 +307,21 @@ class TestLambdaStreamResponseOutputFormatter(TestCase):
         mapped_response = self.lambda_response_converter.map(remote_invoke_execution_info)
         self.assertEqual(mapped_response.response, "stream1stream2stream3")
         self.assertEqual(mapped_response.log_output, "log output")
+
+
+class TestLambdaInvokeExecutorUtilities(TestCase):
+    @parameterized.expand(
+        [
+            ({}, False),
+            ({"InvokeMode": "BUFFERED"}, False),
+            ({"InvokeMode": "RESPONSE_STREAM"}, True),
+            (ClientError({}, "operation"), False),
+        ]
+    )
+    def test_is_function_invoke_mode_response_stream(self, boto_response, expected_result):
+        given_boto_client = Mock()
+        if type(boto_response) is ClientError:
+            given_boto_client.get_function_url_config.side_effect = boto_response
+        else:
+            given_boto_client.get_function_url_config.return_value = boto_response
+        self.assertEqual(_is_function_invoke_mode_response_stream(given_boto_client, "function_id"), expected_result)

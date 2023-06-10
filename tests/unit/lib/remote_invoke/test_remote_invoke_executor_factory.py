@@ -1,12 +1,10 @@
 from unittest import TestCase
 from unittest.mock import patch, Mock
 
-from botocore.exceptions import ClientError
 from parameterized import parameterized
 
 from samcli.lib.remote_invoke.remote_invoke_executor_factory import (
     RemoteInvokeExecutorFactory,
-    _is_function_invoke_mode_response_stream,
 )
 
 
@@ -14,22 +12,6 @@ class TestRemoteInvokeExecutorFactory(TestCase):
     def setUp(self) -> None:
         self.boto_client_provider_mock = Mock()
         self.remote_invoke_executor_factory = RemoteInvokeExecutorFactory(self.boto_client_provider_mock)
-
-    @parameterized.expand(
-        [
-            ({}, False),
-            ({"InvokeMode": "BUFFERED"}, False),
-            ({"InvokeMode": "RESPONSE_STREAM"}, True),
-            (ClientError({}, "operation"), False),
-        ]
-    )
-    def test_is_function_invoke_mode_response_stream(self, boto_response, expected_result):
-        given_boto_client = Mock()
-        if type(boto_response) is ClientError:
-            given_boto_client.get_function_url_config.side_effect = boto_response
-        else:
-            given_boto_client.get_function_url_config.return_value = boto_response
-        self.assertEqual(_is_function_invoke_mode_response_stream(given_boto_client, "function_id"), expected_result)
 
     @patch(
         "samcli.lib.remote_invoke.remote_invoke_executor_factory.RemoteInvokeExecutorFactory.REMOTE_INVOKE_EXECUTOR_MAPPING"
