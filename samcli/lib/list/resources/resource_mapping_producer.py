@@ -42,7 +42,9 @@ class ResourceMappingProducer(Producer):
         iam_client,
         mapper,
         consumer,
+        parameter_overrides=None,
     ):
+        self.parameter_overrides = parameter_overrides
         self.stack_name = stack_name
         self.region = region
         self.profile = profile
@@ -99,7 +101,11 @@ class ResourceMappingProducer(Producer):
         try:
             # Note to check if IAM can be mocked to get around doing a translate without it
             validator = SamTemplateValidator(
-                template_file_dict, ManagedPolicyLoader(self.iam_client), profile=self.profile, region=self.region
+                template_file_dict,
+                ManagedPolicyLoader(self.iam_client),
+                profile=self.profile,
+                region=self.region,
+                parameter_overrides=self.parameter_overrides,
             )
             translated_dict = yaml_parse(validator.get_translated_template_if_valid())
             return translated_dict

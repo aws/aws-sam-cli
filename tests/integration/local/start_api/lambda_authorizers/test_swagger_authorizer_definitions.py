@@ -24,6 +24,16 @@ from parameterized import parameterized_class
             "requestauthorizersimple",
             {"AuthHandler": "app.simple_handler"},
         ),
+        (
+            "/testdata/start_api/lambda_authorizers/swagger-api.yaml",
+            "requestauthorizerswaggerrequest/authorized",
+            {"AuthHandler": "app.auth_handler_swagger_parameterized"},
+        ),
+        (
+            "/testdata/start_api/lambda_authorizers/swagger-api.yaml",
+            "requestauthorizerswaggertoken/authorized",
+            {"AuthHandler": "app.auth_handler_swagger_parameterized"},
+        ),
     ],
 )
 class TestSwaggerLambdaAuthorizerResources(StartApiIntegBaseClass):
@@ -80,6 +90,16 @@ class TestSwaggerLambdaAuthorizerResources(StartApiIntegBaseClass):
             "/testdata/start_api/lambda_authorizers/swagger-http.yaml",
             "requestauthorizersimple",
             {"AuthHandler": "app.unauthv2"},
+        ),
+        (
+            "/testdata/start_api/lambda_authorizers/swagger-api.yaml",
+            "requestauthorizerswaggerrequest/unauthorized",
+            {"AuthHandler": "app.auth_handler_swagger_parameterized"},
+        ),
+        (
+            "/testdata/start_api/lambda_authorizers/swagger-api.yaml",
+            "requestauthorizerswaggertoken/unauthorized",
+            {"AuthHandler": "app.auth_handler_swagger_parameterized"},
         ),
     ],
 )

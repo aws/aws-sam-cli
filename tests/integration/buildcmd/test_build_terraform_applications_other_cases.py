@@ -4,7 +4,7 @@ import shutil
 from pathlib import Path
 from unittest import skipIf
 
-from parameterized import parameterized
+from parameterized import parameterized, parameterized_class
 
 from tests.integration.buildcmd.test_build_terraform_applications import (
     BuildTerraformApplicationIntegBase,
@@ -286,14 +286,77 @@ class TestUnsupportedCases(BuildTerraformApplicationIntegBase):
         ]
     )
     def test_unsupported_cases(self, app, expected_error_message):
+        apply_disclaimer_message = "Unresolvable attributes discovered in project, run terraform apply to resolve them."
+
         self.terraform_application_path = Path(self.terraform_application_path) / app
         shutil.copytree(Path(self.terraform_application_path), Path(self.working_dir))
         build_cmd_list = self.get_command_list(beta_features=True, hook_name="terraform")
         LOG.info("command list: %s", build_cmd_list)
         _, stderr, return_code = self.run_command(build_cmd_list)
         LOG.info(stderr)
+
+        output = stderr.decode("utf-8")
+
         self.assertEqual(return_code, 1)
-        self.assertRegex(stderr.decode("utf-8"), expected_error_message)
+        self.assertRegex(output, expected_error_message)
+        self.assertRegex(output, apply_disclaimer_message)
+
+
+@skipIf(
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
+    "Skip Terraform test cases unless running in CI",
+)
+@parameterized_class(
+    [
+        {"app": "conditional_layers"},
+        {"app": "conditional_layers_null"},
+        {"app": "one_lambda_function_linked_to_two_layers"},
+        {"app": "lambda_function_referencing_local_var_layer"},
+    ]
+)
+class TestUnsupportedCasesAfterApply(BuildTerraformApplicationIntegBase):
+    terraform_application = Path("terraform/unsupported")
+
+    def setUp(self):
+        super().setUp()
+        shutil.rmtree(Path(self.working_dir))
+        self.terraform_application_path = Path(self.terraform_application_path) / self.app
+
+        shutil.copytree(Path(self.terraform_application_path), Path(self.working_dir))
+        init_command = ["terraform", "init"]
+        LOG.info("init tf project command: %s", init_command)
+        stdout, stderr, return_code = self.run_command(init_command)
+        if return_code != 0:
+            LOG.info(stdout)
+            LOG.info(stderr)
+        self.assertEqual(return_code, 0)
+        apply_command = ["terraform", "apply", "-auto-approve"]
+        LOG.info("apply tf project command: %s", apply_command)
+        stdout, stderr, return_code = self.run_command(apply_command)
+        if return_code != 0:
+            LOG.info(stdout)
+            LOG.info(stderr)
+        self.assertEqual(return_code, 0)
+
+    def tearDown(self):
+        destroy_command = ["terraform", "destroy", "-auto-approve"]
+        LOG.info("destroy tf project command: %s", destroy_command)
+        stdout, stderr, return_code = self.run_command(destroy_command)
+        if return_code != 0:
+            LOG.info(stdout)
+            LOG.info(stderr)
+        self.assertEqual(return_code, 0)
+
+    def test_unsupported_cases_runs_after_apply(self):
+        build_cmd_list = self.get_command_list(beta_features=True, hook_name="terraform")
+        LOG.info("command list: %s", build_cmd_list)
+        _, _, return_code = self.run_command(build_cmd_list)
+        self.assertEqual(return_code, 0)
+        self._verify_invoke_built_function(
+            function_logical_id="aws_lambda_function.function1",
+            overrides=None,
+            expected_result={"statusCode": 200, "body": "hello world 1"},
+        )
 
 
 @skipIf(

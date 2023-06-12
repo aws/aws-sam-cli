@@ -16,6 +16,7 @@ from samcli.lib.build.build_strategy import (
     CachedBuildStrategy,
     CachedOrIncrementalBuildStrategyWrapper,
     IncrementalBuildStrategy,
+    clean_redundant_folders,
 )
 from samcli.lib.utils import osutils
 from pathlib import Path
@@ -126,6 +127,59 @@ class BuildStrategyTest(BuildStrategyBaseTest):
                 call(self.layer_build_definition2),
             ]
         )
+
+    @patch("samcli.lib.build.build_strategy.pathlib")
+    @patch("samcli.lib.build.build_strategy.shutil")
+    def test_clean_redundant_folders(self, patched_shutil, patched_pathlib):
+        base_dir = "base_dir"
+        valid_uuid = "valid_uuid"
+        redundant_uuid = "redundant_uuid"
+        not_a_folder = "not a folder"
+
+        # create mock for a valid uuid which shouldn't be deleted
+        patched_valid_uuid_path = Mock()
+        patched_valid_uuid_path.name = valid_uuid
+        patched_valid_uuid_path.is_dir.return_value = True
+
+        # create mock for an invalid uuid which should be deleted
+        patched_redundant_uuid_path = Mock()
+        patched_redundant_uuid_path.name = redundant_uuid
+        patched_redundant_uuid_path.is_dir.return_value = True
+
+        # create a mock for a pathc which is not a directory and shouldn't be deleted
+        patched_not_a_folder_path = Mock()
+        patched_not_a_folder_path.name = not_a_folder
+        patched_not_a_folder_path.is_dir.return_value = False
+
+        # create mock for the base directory
+        patched_base_dir_path = Mock()
+        patched_base_dir_path.iterdir.return_value = [
+            patched_valid_uuid_path,
+            patched_redundant_uuid_path,
+            patched_not_a_folder_path,
+        ]
+
+        patched_deleted_path = Mock()
+
+        patched_paths = {
+            base_dir: patched_base_dir_path,
+            valid_uuid: patched_valid_uuid_path,
+            redundant_uuid: patched_redundant_uuid_path,
+            not_a_folder: patched_not_a_folder_path,
+        }
+
+        def path_side_effect(path, additional_path=None):
+            if path and additional_path:
+                return patched_deleted_path
+            return patched_paths.get(path)
+
+        patched_pathlib.Path.side_effect = path_side_effect
+        clean_redundant_folders(base_dir, {valid_uuid})
+
+        # only 1 directory should be deleted
+        patched_shutil.rmtree.assert_called_once()
+        # confirm expected path is deleted
+        patched_shutil.rmtree.assert_called_with(patched_deleted_path)
 
 
 @patch("samcli.lib.build.build_strategy.osutils.copytree")

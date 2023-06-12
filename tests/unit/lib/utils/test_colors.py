@@ -1,5 +1,9 @@
+from logging import StreamHandler
 from unittest import TestCase
+from unittest.mock import patch
+
 from parameterized import parameterized, param
+from rich.logging import RichHandler
 
 from samcli.lib.utils.colors import Colored
 
@@ -7,6 +11,7 @@ from samcli.lib.utils.colors import Colored
 class TestColored(TestCase):
     def setUp(self):
         self.msg = "message"
+        self.color = "green"
 
     @parameterized.expand(
         [
@@ -26,3 +31,15 @@ class TestColored(TestCase):
 
         self.assertEqual(expected, getattr(with_color, decoration_name)(self.msg))
         self.assertEqual(self.msg, getattr(without_color, decoration_name)(self.msg))
+
+    @parameterized.expand(
+        [
+            param([RichHandler()], "[green]message[/green]"),
+            param([StreamHandler()], "\x1b[32mmessage\x1b[0m"),
+        ]
+    )
+    @patch("samcli.lib.utils.colors.logging")
+    def test_color_log_log_handlers(self, log_handler, response, mock_logger):
+        mock_logger.getLogger().handlers = log_handler
+        with_rich_color = Colored(colorize=True)
+        self.assertEqual(with_rich_color.color_log(msg=self.msg, color=self.color), response)

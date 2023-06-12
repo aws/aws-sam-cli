@@ -86,7 +86,7 @@ cd ..
 echo "Installing Python Libraries"
 /usr/local/bin/python3.8 -m venv venv
 ./venv/bin/pip install --upgrade pip
-./venv/bin/pip install -r src/requirements/reproducible-linux.txt
+./venv/bin/pip install -r src/requirements/reproducible-mac.txt
 
 echo "Copying All Python Libraries"
 cp -r ./venv/lib/python*/site-packages/* ./output/python-libraries

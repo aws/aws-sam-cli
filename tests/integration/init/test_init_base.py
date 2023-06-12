@@ -1,8 +1,10 @@
+import pytest
 from unittest import TestCase
 
 from tests.testing_utils import get_sam_command
 
 
+@pytest.mark.xdist_group(name="sam_init")
 class InitIntegBase(TestCase):
     BINARY_READY_WAIT_TIME = 5
 

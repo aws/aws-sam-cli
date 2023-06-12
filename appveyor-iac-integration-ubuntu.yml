@@ -5,33 +5,21 @@ image:
 environment:
   AWS_DEFAULT_REGION: us-east-1
   SAM_CLI_DEV: 1
- 
+  NOSE_PARAMETERIZED_NO_WARN: 1
+  APPVEYOR_CONSOLE_DISABLE_PTY: false
+  APPVEYOR_DETAILED_SHELL_LOGGING: true
+
   matrix:
+    - PYTHON_HOME: "$HOME/venv3.7/bin"
+      PYTHON_VERSION: '3.7'
 
-    - PYTHON_VERSION: '3.7'
-      PYTHON_ARCH: '64'
-      NOSE_PARAMETERIZED_NO_WARN: 1
-      INSTALL_PY_38_PIP: 1
-      INSTALL_PY_39_PIP: 1
-      APPVEYOR_CONSOLE_DISABLE_PTY: true
+    - PYTHON_HOME: "$HOME/venv3.8/bin"
+      PYTHON_VERSION: '3.8'
 
-    - PYTHON_VERSION: '3.8'
-      PYTHON_ARCH: '64'
-      NOSE_PARAMETERIZED_NO_WARN: 1
-      INSTALL_PY_37_PIP: 1
-      INSTALL_PY_39_PIP: 1
-      APPVEYOR_CONSOLE_DISABLE_PTY: true
-
-    - PYTHON_VERSION: '3.9'
-      PYTHON_ARCH: '64'
-      NOSE_PARAMETERIZED_NO_WARN: 1
-      INSTALL_PY_37_PIP: 1
-      INSTALL_PY_38_PIP: 1
-      APPVEYOR_CONSOLE_DISABLE_PTY: true
+    - PYTHON_HOME: "$HOME/venv3.9/bin"
+      PYTHON_VERSION: '3.9'
 
 install:
-  # apt repo for python3.9 installation
-  - sh: "sudo add-apt-repository ppa:deadsnakes/ppa"
   # AppVeyor's apt-get cache might be outdated, and the package could potentially be 404.
   - sh: "sudo apt-get update"
 
@@ -58,22 +46,7 @@ install:
   - sh: "sudo apt install maven"
   - sh: "mvn --version"
 
-  - sh: "sudo apt-get -y install python3.7"
-  - sh: "sudo apt-get -y install python3.8"
-  - sh: "sudo apt-get -y install python3.9 python3.9-venv"
-
-  - sh: "which python3.8"
-  - sh: "which python3.7"
-  - sh: "which python3.9"
-
-  - sh: "PATH=$PATH:/usr/bin/python3.9:/usr/bin/python3.8:/usr/bin/python3.7"
-  - sh: "curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py"
-
-  - sh: "sudo apt-get -y install python3-distutils"
-  - sh: "sudo apt-get -y install python3.9-distutils"
-  - ps: "If ($env:INSTALL_PY_39_PIP) {python3.9 get-pip.py --user}"
-  - ps: "If ($env:INSTALL_PY_38_PIP) {python3.8 get-pip.py --user}"
-  - ps: "If ($env:INSTALL_PY_37_PIP) {python3.7 get-pip.py --user}"
+  - sh: "PATH=$PATH:$HOME/venv3.7/bin:$HOME/venv3.8/bin:$HOME/venv3.9/bin:$HOME/venv3.10/bin"
 
   # get testing env vars
   - sh: "sudo apt install -y jq"

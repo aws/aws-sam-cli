@@ -150,6 +150,7 @@ class PythonStack(cdk.Stack):
         nodejs_function = NodejsFunction(
             self,
             "NodejsFunction",
+            runtime=lambda1.Runtime.NODEJS_14_X,
             entry=os.path.join(
                 Path(__file__).resolve().parents[0], "../../../src/nodejs/NodeJsFunctionConstruct/app.ts"
             ),

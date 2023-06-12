@@ -1,5 +1,6 @@
 import os
 import tempfile
+import pytest
 from pathlib import Path
 from unittest import skipIf
 
@@ -14,6 +15,7 @@ SKIP_SCHEMA_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_
 
 
 @skipIf(SKIP_SCHEMA_TESTS, "Skip schema test")
+@pytest.mark.xdist_group(name="sam_init")
 class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
     def test_init_interactive_with_event_bridge_app_aws_registry(self):
         # WHEN the user follows interactive init prompts

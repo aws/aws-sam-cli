@@ -3,55 +3,56 @@ Terraform translate to CFN implementation
 
 This method contains the logic required to translate the `terraform show` JSON output into a Cloudformation template
 """
-# ruff: noqa: PLR0915
 import hashlib
 import logging
-from typing import Any, Dict, List, Tuple, Type, Union
+from typing import Any, Dict, Iterator, List, Tuple, Type, Union
 
 from samcli.hook_packages.terraform.hooks.prepare.constants import (
     CFN_CODE_PROPERTIES,
     SAM_METADATA_RESOURCE_NAME_ATTRIBUTE,
 )
 from samcli.hook_packages.terraform.hooks.prepare.enrich import enrich_resources_and_generate_makefile
-from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
-    FunctionLayerLocalVariablesLinkingLimitationException,
-    OneLambdaLayerLinkingLimitationException,
-)
 from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     REMOTE_DUMMY_VALUE,
     RESOURCE_TRANSLATOR_MAPPING,
+    TF_AWS_API_GATEWAY_INTEGRATION,
+    TF_AWS_API_GATEWAY_INTEGRATION_RESPONSE,
+    TF_AWS_API_GATEWAY_METHOD,
     TF_AWS_API_GATEWAY_REST_API,
-    TF_AWS_LAMBDA_FUNCTION,
-    TF_AWS_LAMBDA_LAYER_VERSION,
     PropertyBuilderMapping,
 )
 from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
-    LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX,
-    LinkerIntrinsics,
-    ResourceLinker,
-    ResourceLinkingPair,
-    ResourcePairExceptions,
     _build_module,
-    _get_configuration_address,
     _resolve_resource_attribute,
 )
-from samcli.hook_packages.terraform.hooks.prepare.resources.apigw import RESTAPITranslationValidator
+from samcli.hook_packages.terraform.hooks.prepare.resources.apigw import (
+    RESTAPITranslationValidator,
+    add_integration_responses_to_methods,
+    add_integrations_to_methods,
+)
+from samcli.hook_packages.terraform.hooks.prepare.resources.internal import INTERNAL_PREFIX
+from samcli.hook_packages.terraform.hooks.prepare.resources.resource_links import RESOURCE_LINKS
+from samcli.hook_packages.terraform.hooks.prepare.resources.resource_properties import get_resource_property_mapping
 from samcli.hook_packages.terraform.hooks.prepare.types import (
+    CodeResourceProperties,
     ConstantValue,
     References,
     ResolvedReference,
+    ResourceProperties,
+    ResourceTranslationProperties,
     ResourceTranslationValidator,
     SamMetadataResource,
     TFModule,
     TFResource,
 )
+from samcli.hook_packages.terraform.hooks.prepare.utilities import get_configuration_address
 from samcli.hook_packages.terraform.lib.utils import (
     _calculate_configuration_attribute_value_hash,
     build_cfn_logical_id,
     get_sam_metadata_planned_resource_value_attribute,
 )
 from samcli.lib.hook.exceptions import PrepareHookException
-from samcli.lib.utils.packagetype import IMAGE, ZIP
+from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION
 
 SAM_METADATA_RESOURCE_TYPE = "null_resource"
@@ -65,6 +66,80 @@ LOG = logging.getLogger(__name__)
 TRANSLATION_VALIDATORS: Dict[str, Type[ResourceTranslationValidator]] = {
     TF_AWS_API_GATEWAY_REST_API: RESTAPITranslationValidator,
 }
+
+
+def _get_modules(root_module: dict, root_tf_module: TFModule) -> Iterator[Tuple[dict, TFModule]]:
+    """
+    Iterator helper method to find any child modules for processing.
+
+    Parameters
+    ----------
+    root_module: dict
+        The root level planned values dictionary
+    root_tf_module: TFModule
+        The TFModule class representation of the configuration values
+
+    Yields
+    ------
+    Tuple[dict, TFModule]
+        A tuple of the current module's planned values and TFModule representation of configuration values
+    """
+    queue = [(root_module, root_tf_module)]
+
+    while queue:
+        modules = queue.pop(0)
+
+        yield modules
+
+        _add_child_modules_to_queue(*modules, queue)
+
+
+def _check_unresolvable_values(root_module: dict, root_tf_module: TFModule) -> None:
+    """
+    Checks the planned values and configuration values if there are any properties
+    that are unresolved, or unknown, until the Terraform project is applied.
+
+    Parameters
+    ----------
+    root_module: dict
+        The root level planned values dictionary
+    root_tf_module: TFModule
+        The TFModule class representation of the configuration values
+    """
+
+    for curr_module, curr_tf_module in _get_modules(root_module, root_tf_module):
+        # iterate over resources for current module
+        for resource in curr_module.get("resources", []):
+            resource_type = resource.get("type")
+            resource_name = resource.get("name")
+            resource_mode = resource.get("mode")
+
+            resource_mapper = RESOURCE_TRANSLATOR_MAPPING.get(resource_type)
+            if not resource_mapper:
+                continue
+
+            resource_values = resource.get("values")
+            resource_address = (
+                f"data.{resource_type}.{resource_name}"
+                if resource_mode == "data"
+                else f"{resource_type}.{resource_name}"
+            )
+
+            config_resource_address = get_configuration_address(resource_address)
+            config_resource = curr_tf_module.resources[config_resource_address]
+
+            for prop_builder in resource_mapper.property_builder_mapping.values():
+                planned_values = prop_builder(resource_values, config_resource)
+                config_values = prop_builder(config_resource.attributes, config_resource)
+
+                if config_values and not planned_values:
+                    LOG.warning(
+                        Colored().yellow(
+                            "\nUnresolvable attributes discovered in project, run terraform apply to resolve them.\n"
+                        )
+                    )
+
+                    return
 
 
 def translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_application_dir: str) -> dict:
@@ -110,18 +185,13 @@ def translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_applic
 
     sam_metadata_resources: List[SamMetadataResource] = []
 
-    lambda_layers_terraform_resources: Dict[str, Dict] = {}
-    lambda_funcs_conf_cfn_resources: Dict[str, List] = {}
-    lambda_config_funcs_conf_cfn_resources: Dict[str, TFResource] = {}
+    resource_property_mapping: Dict[str, ResourceProperties] = get_resource_property_mapping()
+
+    _check_unresolvable_values(root_module, root_tf_module)
 
     # create and iterate over queue of modules to handle child modules
-    module_queue = [(root_module, root_tf_module)]
-    while module_queue:
-        modules_pair = module_queue.pop(0)
-        curr_module, curr_tf_module = modules_pair
+    for curr_module, curr_tf_module in _get_modules(root_module, root_tf_module):
         curr_module_address = curr_module.get("address")
-
-        _add_child_modules_to_queue(curr_module, curr_tf_module, module_queue)
 
         # iterate over resources for current module
         resources = curr_module.get("resources", {})
@@ -138,7 +208,7 @@ def translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_applic
                 if resource_mode == "data"
                 else f"{resource_type}.{resource_name}"
             )
-            config_resource_address = _get_configuration_address(resource_address)
+            config_resource_address = get_configuration_address(resource_address)
             if config_resource_address not in curr_tf_module.resources:
                 raise PrepareHookException(
                     f"There is no configuration resource for resource address {resource_full_address} and "
@@ -206,46 +276,26 @@ def translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_applic
             logical_id = build_cfn_logical_id(resource_full_address)
 
             # Add resource to cfn dict
-            cfn_dict["Resources"][logical_id] = translated_resource
+            if not translated_resource.get("Type", "").startswith(INTERNAL_PREFIX):
+                # Internal resources are ones used for the purpose of translation, they are not real CFN resources.
+                # These are usually resources that exist in other IaCs that don't map 1:1 with CFN resources, but their
+                # properties need to be mapped to other, existing CFN resources.
+                cfn_dict["Resources"][logical_id] = translated_resource
 
-            if resource_type == TF_AWS_LAMBDA_LAYER_VERSION:
-                lambda_layers_terraform_resources[logical_id] = resource
-                planned_value_layer_code_path = translated_properties.get("Content")
-                _add_lambda_resource_code_path_to_code_map(
-                    config_resource,
-                    "layer",
-                    lambda_resources_to_code_map,
-                    logical_id,
-                    planned_value_layer_code_path,
-                    "filename",
-                    translated_resource,
-                )
-
-            if resource_type == TF_AWS_LAMBDA_FUNCTION:
-                resolved_config_address = _get_configuration_address(resource_full_address)
-                matched_lambdas = lambda_funcs_conf_cfn_resources.get(resolved_config_address, [])
-                matched_lambdas.append(translated_resource)
-                lambda_funcs_conf_cfn_resources[resolved_config_address] = matched_lambdas
-                lambda_config_funcs_conf_cfn_resources[resolved_config_address] = config_resource
-
-                resource_type = translated_properties.get("PackageType", ZIP)
-                resource_type_constants = {ZIP: ("zip", "filename"), IMAGE: ("image", "image_uri")}
-                planned_value_function_code_path = (
-                    translated_properties.get("Code")
-                    if resource_type == ZIP
-                    else translated_properties.get("Code", {}).get("ImageUri")
-                )
-                func_type, tf_code_property = resource_type_constants[resource_type]
-
-                _add_lambda_resource_code_path_to_code_map(
-                    config_resource,
-                    func_type,
-                    lambda_resources_to_code_map,
-                    logical_id,
-                    planned_value_function_code_path,
-                    tf_code_property,
-                    translated_resource,
-                )
+            resource_translation_properties = ResourceTranslationProperties(
+                resource=resource,
+                translated_resource=translated_resource,
+                config_resource=config_resource,
+                logical_id=logical_id,
+                resource_full_address=resource_full_address,
+            )
+            if resource_type in resource_property_mapping:
+                resource_properties: ResourceProperties = resource_property_mapping[resource_type]
+                resource_properties.collect(resource_translation_properties)
+                if isinstance(resource_properties, CodeResourceProperties):
+                    resource_properties.add_lambda_resources_to_code_map(
+                        resource_translation_properties, translated_properties, lambda_resources_to_code_map
+                    )
 
             if resource_type in TRANSLATION_VALIDATORS:
                 validator = TRANSLATION_VALIDATORS[resource_type](resource=resource, config_resource=config_resource)
@@ -255,8 +305,16 @@ def translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_applic
     LOG.debug("Mapping S3 object sources to corresponding functions")
     _map_s3_sources_to_functions(s3_hash_to_source, cfn_dict.get("Resources", {}), lambda_resources_to_code_map)
 
-    _link_lambda_functions_to_layers(
-        lambda_config_funcs_conf_cfn_resources, lambda_funcs_conf_cfn_resources, lambda_layers_terraform_resources
+    _handle_linking(resource_property_mapping)
+
+    add_integrations_to_methods(
+        resource_property_mapping.get(TF_AWS_API_GATEWAY_METHOD, ResourceProperties()).cfn_resources,
+        resource_property_mapping.get(TF_AWS_API_GATEWAY_INTEGRATION, ResourceProperties()).cfn_resources,
+    )
+
+    add_integration_responses_to_methods(
+        resource_property_mapping.get(TF_AWS_API_GATEWAY_METHOD, ResourceProperties()).cfn_resources,
+        resource_property_mapping.get(TF_AWS_API_GATEWAY_INTEGRATION_RESPONSE, ResourceProperties()).cfn_resources,
     )
 
     if sam_metadata_resources:
@@ -277,6 +335,15 @@ def translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_applic
     return cfn_dict
 
 
+def _handle_linking(resource_property_mapping: Dict[str, ResourceProperties]) -> None:
+    for links in RESOURCE_LINKS:
+        links.linking_func(
+            resource_property_mapping[links.source].terraform_config,
+            resource_property_mapping[links.source].cfn_resources,
+            resource_property_mapping[links.dest].terraform_resources,
+        )
+
+
 def _add_child_modules_to_queue(curr_module: Dict, curr_module_configuration: TFModule, modules_queue: List) -> None:
     """
     Iterate over the children modules of current module and add each module with its related child module configuration
@@ -295,7 +362,7 @@ def _add_child_modules_to_queue(curr_module: Dict, curr_module_configuration: TF
     if child_modules:
         for child_module in child_modules:
             config_child_module_address = (
-                _get_configuration_address(child_module["address"]) if "address" in child_module else None
+                get_configuration_address(child_module["address"]) if "address" in child_module else None
             )
             module_name = (
                 config_child_module_address[config_child_module_address.rfind(".") + 1 :]
@@ -347,7 +414,7 @@ def _translate_properties(
     ----------
     tf_properties: dict
         The terraform properties to translate
-    property_builder_mappping: PropertyBuilderMapping
+    property_builder_mapping: PropertyBuilderMapping
         A mapping of the CloudFormation property name to a function for building that property
     resource: TFResource
         The terraform configuration resource that can be used to retrieve some attributes values if needed
@@ -363,85 +430,6 @@ def _translate_properties(
         if cfn_property_value is not None:
             cfn_properties[cfn_property_name] = cfn_property_value
     return cfn_properties
-
-
-def _add_lambda_resource_code_path_to_code_map(
-    terraform_resource: TFResource,
-    lambda_resource_prefix: str,
-    lambda_resources_to_code_map: Dict,
-    logical_id: str,
-    lambda_resource_code_value: Any,
-    terraform_code_property_name: str,
-    translated_resource: Dict,
-) -> None:
-    """
-    Calculate the hash value of  the lambda resource code path planned value or the configuration value and use it to
-    map the lambda resource logical id to the source code path. This will be used later to map the metadata resource to
-    the correct lambda resource.
-
-    Parameters
-    ----------
-    terraform_resource: TFResource
-        The mapped TF resource. This will be used to resolve the configuration value of the code attribute in the lambda
-         resource
-    lambda_resource_prefix: str
-        a string prefix to be added to the hash value to differentiate between the different lambda resources types
-    lambda_resources_to_code_map: dict
-        the map between lambda resources code path values, and the lambda resources logical ids
-    logical_id: str
-        lambda resource logical id
-    lambda_resource_code_value: Any
-        The planned value of the lambda resource code path
-    terraform_code_property_name: str
-        The lambda resource code property name
-    translated_resource: Dict
-        The CFN translated lambda resource
-    """
-    if not lambda_resource_code_value or not isinstance(lambda_resource_code_value, str):
-        lambda_resource_code_value = _resolve_resource_attribute(terraform_resource, terraform_code_property_name)
-    if lambda_resource_code_value:
-        hash_value = (
-            f"{lambda_resource_prefix}_{_calculate_configuration_attribute_value_hash(lambda_resource_code_value)}"
-        )
-        functions_list = lambda_resources_to_code_map.get(hash_value, [])
-        functions_list.append((translated_resource, logical_id))
-        lambda_resources_to_code_map[hash_value] = functions_list
-
-
-def _link_lambda_functions_to_layers(
-    lambda_config_funcs_conf_cfn_resources: Dict[str, TFResource],
-    lambda_funcs_conf_cfn_resources: Dict[str, List],
-    lambda_layers_terraform_resources: Dict[str, Dict],
-):
-    """
-    Iterate through all of the resources and link the corresponding Lambda Layers to each Lambda Function
-
-    Parameters
-    ----------
-    lambda_config_funcs_conf_cfn_resources: Dict[str, TFResource]
-        Dictionary of configuration lambda resources
-    lambda_funcs_conf_cfn_resources: Dict[str, List]
-        Dictionary containing resolved configuration addresses matched up to the cfn Lambda functions
-    lambda_layers_terraform_resources: Dict[str, Dict]
-        Dictionary of all actual terraform layers resources (not configuration resources). The dictionary's key is the
-        calculated logical id for each resource
-    """
-    exceptions = ResourcePairExceptions(
-        multiple_resource_linking_exception=OneLambdaLayerLinkingLimitationException,
-        local_variable_linking_exception=FunctionLayerLocalVariablesLinkingLimitationException,
-    )
-    resource_linking_pair = ResourceLinkingPair(
-        source_resource_cfn_resource=lambda_funcs_conf_cfn_resources,
-        source_resource_tf_config=lambda_config_funcs_conf_cfn_resources,
-        destination_resource_tf=lambda_layers_terraform_resources,
-        intrinsic_type=LinkerIntrinsics.Ref,
-        cfn_intrinsic_attribute=None,
-        source_link_field_name="Layers",
-        terraform_link_field_name="layers",
-        terraform_resource_type_prefix=LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX,
-        linking_exceptions=exceptions,
-    )
-    ResourceLinker(resource_linking_pair).link_resources()
 
 
 def _map_s3_sources_to_functions(

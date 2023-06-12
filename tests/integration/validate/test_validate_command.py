@@ -1,9 +1,10 @@
 """
 Integration tests for sam validate
 """
-
+import json
 import os
 import re
+import tempfile
 from enum import Enum, auto
 from pathlib import Path
 from typing import List, Optional
@@ -122,6 +123,51 @@ class TestValidate(TestCase):
         output = command_result.stdout.decode("utf-8")
         self.assertEqual(command_result.process.returncode, 0)
         self.assertRegex(output, pattern)
+
+    def test_lint_supported_runtimes(self):
+        template = {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Transform": "AWS::Serverless-2016-10-31",
+            "Resources": {},
+        }
+        supported_runtimes = [
+            "dotnet6",
+            "go1.x",
+            "java17",
+            "java11",
+            "java8",
+            "java8.al2",
+            "nodejs14.x",
+            "nodejs16.x",
+            "nodejs18.x",
+            "provided",
+            "provided.al2",
+            "python3.7",
+            "python3.8",
+            "python3.9",
+            "python3.10",
+            "ruby2.7",
+        ]
+        i = 0
+        for runtime in supported_runtimes:
+            i += 1
+            template["Resources"][f"HelloWorldFunction{i}"] = {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {
+                    "CodeUri": "HelloWorldFunction",
+                    "Handler": "app.lambdaHandler",
+                    "Runtime": runtime,
+                },
+            }
+        with tempfile.TemporaryDirectory() as temp:
+            template_file = Path(temp, "template.json")
+            with open(template_file, "w") as f:
+                f.write(json.dumps(template, indent=4) + "\n")
+            command_result = run_command(self.command_list(lint=True), cwd=str(temp))
+            pattern = self.lint_patterns[TemplateFileTypes.JSON]
+            output = command_result.stdout.decode("utf-8")
+            self.assertEqual(command_result.process.returncode, 0)
+            self.assertRegex(output, pattern)
 
     def test_lint_error_no_region(self):
         test_data_path = Path(__file__).resolve().parents[2] / "integration" / "testdata" / "validate" / "default_json"

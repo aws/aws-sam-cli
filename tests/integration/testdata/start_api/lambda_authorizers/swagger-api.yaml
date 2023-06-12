@@ -62,6 +62,34 @@ Resources:
                 httpMethod: POST
                 type: aws_proxy
                 uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${HelloWorldFunction.Arn}/invocations
+          "/requestauthorizerswaggerrequest/{status}":
+            parameters:
+              - status:
+                  in: path
+                  name: status
+                  schema:
+                    type: string
+            get:
+              security:
+                - ApiKeyAuthRequest: []
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${HelloWorldFunction.Arn}/invocations
+          "/requestauthorizerswaggertoken/{status}":
+            parameters:
+              - status:
+                  in: path
+                  name: status
+                  schema:
+                    type: integer
+            get:
+              security:
+                - ApiKeyAuthToken: []
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${HelloWorldFunction.Arn}/invocations
       Name: RestApiSwagger
   ##
   # OpenAPI definitino with a REST API

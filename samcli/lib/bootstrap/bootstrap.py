@@ -11,7 +11,7 @@ from botocore.exceptions import ClientError
 
 from samcli import __version__
 from samcli.cli.global_config import GlobalConfig
-from samcli.commands.exceptions import CredentialsError, UserException
+from samcli.commands.exceptions import AWSServiceClientError, UserException
 from samcli.lib.utils.managed_cloudformation_stack import StackOutput
 from samcli.lib.utils.managed_cloudformation_stack import manage_stack as manage_cloudformation_stack
 
@@ -43,10 +43,10 @@ def get_current_account_id(profile: Optional[str] = None):
         caller_identity = sts_client.get_caller_identity()
     except ClientError as ex:
         if ex.response["Error"]["Code"] == "InvalidClientTokenId":
-            raise CredentialsError("Cannot identify account due to invalid configured credentials.") from ex
-        raise CredentialsError("Cannot identify account based on configured credentials.") from ex
+            raise AWSServiceClientError("Cannot identify account due to invalid configured credentials.") from ex
+        raise AWSServiceClientError("Cannot identify account based on configured credentials.") from ex
     if "Account" not in caller_identity:
-        raise CredentialsError("Cannot identify account based on configured credentials.")
+        raise AWSServiceClientError("Cannot identify account based on configured credentials.")
     return caller_identity["Account"]
 
 

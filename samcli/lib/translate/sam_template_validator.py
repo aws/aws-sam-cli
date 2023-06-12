@@ -3,7 +3,7 @@ Library for Validating Sam Templates
 """
 import functools
 import logging
-from typing import Dict, cast
+from typing import Dict, Optional, cast
 
 from boto3.session import Session
 from samtranslator.parser import parser
@@ -20,7 +20,14 @@ LOG = logging.getLogger(__name__)
 
 
 class SamTemplateValidator:
-    def __init__(self, sam_template, managed_policy_loader: ManagedPolicyLoader, profile=None, region=None):
+    def __init__(
+        self,
+        sam_template: dict,
+        managed_policy_loader: ManagedPolicyLoader,
+        profile: Optional[str] = None,
+        region: Optional[str] = None,
+        parameter_overrides: Optional[dict] = None,
+    ):
         """
         Construct a SamTemplateValidator
 
@@ -36,15 +43,22 @@ class SamTemplateValidator:
 
         Parameters
         ----------
-        sam_template dict
+        sam_template: dict
             Dictionary representing a SAM Template
-        managed_policy_loader ManagedPolicyLoader
+        managed_policy_loader: ManagedPolicyLoader
             Sam ManagedPolicyLoader
+        profile: Optional[str]
+            Optional name of boto profile
+        region: Optional[str]
+            Optional AWS region name
+        parameter_overrides: Optional[dict]
+            Template parameter overrides
         """
         self.sam_template = sam_template
         self.managed_policy_loader = managed_policy_loader
         self.sam_parser = parser.Parser()
         self.boto3_session = Session(profile_name=profile, region_name=region)
+        self.parameter_overrides = parameter_overrides or {}
 
     def get_translated_template_if_valid(self):
         """
@@ -69,7 +83,9 @@ class SamTemplateValidator:
 
         try:
             template = sam_translator.translate(
-                sam_template=self.sam_template, parameter_values={}, get_managed_policy_map=self._get_managed_policy_map
+                sam_template=self.sam_template,
+                parameter_values=self.parameter_overrides,
+                get_managed_policy_map=self._get_managed_policy_map,
             )
             LOG.debug("Translated template is:\n%s", yaml_dump(template))
             return yaml_dump(template)

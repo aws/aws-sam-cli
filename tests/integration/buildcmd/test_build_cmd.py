@@ -26,6 +26,7 @@ from tests.testing_utils import (
     SKIP_DOCKER_BUILD,
     SKIP_DOCKER_MESSAGE,
     run_command_with_input,
+    UpdatableSARTemplate,
 )
 from .build_integ_base import (
     BuildIntegBase,
@@ -397,34 +398,64 @@ class TestSkipBuildingFlaggedFunctions(BuildIntegPythonBase):
         "overrides",
         "runtime",
         "codeuri",
-        "use_container",
         "check_function_only",
         "prop",
     ),
     [
-        ("template.yaml", "Function", True, "python3.7", "Python", False, False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.8", "Python", False, False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.9", "Python", False, False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.10", "Python", False, False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.7", "PythonPEP600", False, False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.8", "PythonPEP600", False, False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.7", "Python", "use_container", False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.8", "Python", "use_container", False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.9", "Python", "use_container", False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.10", "Python", "use_container", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.7", "Python", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.8", "Python", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.9", "Python", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.10", "Python", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.7", "PythonPEP600", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.8", "PythonPEP600", False, "CodeUri"),
     ],
 )
-class TestBuildCommand_PythonFunctions(BuildIntegPythonBase):
+class TestBuildCommand_PythonFunctions_WithoutDocker(BuildIntegPythonBase):
     overrides = True
     runtime = "python3.9"
     codeuri = "Python"
+    check_function_only = False
     use_container = False
+
+    @pytest.mark.flaky(reruns=3)
+    def test_with_default_requirements(self):
+        self._test_with_default_requirements(
+            self.runtime,
+            self.codeuri,
+            self.use_container,
+            self.test_data_path,
+            do_override=self.overrides,
+            check_function_only=self.check_function_only,
+        )
+
+
+@skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
+@parameterized_class(
+    (
+        "template",
+        "FUNCTION_LOGICAL_ID",
+        "overrides",
+        "runtime",
+        "codeuri",
+        "check_function_only",
+        "prop",
+    ),
+    [
+        ("template.yaml", "Function", True, "python3.7", "Python", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.8", "Python", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.9", "Python", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.10", "Python", False, "CodeUri"),
+    ],
+)
+class TestBuildCommand_PythonFunctions_WithDocker(BuildIntegPythonBase):
+    overrides = True
+    runtime = "python3.9"
+    codeuri = "Python"
+    use_container = "use_container"
     check_function_only = False
 
     @pytest.mark.flaky(reruns=3)
     def test_with_default_requirements(self):
-        if self.use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
-            self.skipTest(SKIP_DOCKER_MESSAGE)
         self._test_with_default_requirements(
             self.runtime,
             self.codeuri,
@@ -464,7 +495,9 @@ class TestBuildCommand_PythonFunctions(BuildIntegPythonBase):
         ),
     ],
 )
-class TestBuildCommand_PythonFunctions_CDK(TestBuildCommand_PythonFunctions):
+class TestBuildCommand_PythonFunctions_CDK(TestBuildCommand_PythonFunctions_WithoutDocker):
+    use_container = False
+
     @pytest.mark.flaky(reruns=3)
     def test_cdk_app_with_default_requirements(self):
         self._test_with_default_requirements(
@@ -637,13 +670,13 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture(BuildIntegNodeB
 
 
 class TestBuildCommand_RubyFunctions(BuildIntegRubyBase):
-    @parameterized.expand(["ruby2.7"])
+    @parameterized.expand(["ruby2.7", "ruby3.2"])
     @pytest.mark.flaky(reruns=3)
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_building_ruby_in_container(self, runtime):
         self._test_with_default_gemfile(runtime, "use_container", "Ruby", self.test_data_path)
 
-    @parameterized.expand(["ruby2.7"])
+    @parameterized.expand(["ruby2.7", "ruby3.2"])
     @pytest.mark.flaky(reruns=3)
     def test_building_ruby_in_process(self, runtime):
         self._test_with_default_gemfile(runtime, False, "Ruby", self.test_data_path)
@@ -652,13 +685,13 @@ class TestBuildCommand_RubyFunctions(BuildIntegRubyBase):
 class TestBuildCommand_RubyFunctions_With_Architecture(BuildIntegRubyBase):
     template = "template_with_architecture.yaml"
 
-    @parameterized.expand(["ruby2.7", ("ruby2.7", "arm64")])
+    @parameterized.expand(["ruby2.7", ("ruby2.7", "arm64"), "ruby3.2", ("ruby3.2", "arm64")])
     @pytest.mark.flaky(reruns=3)
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_building_ruby_in_container_with_specified_architecture(self, runtime, architecture="x86_64"):
         self._test_with_default_gemfile(runtime, "use_container", "Ruby", self.test_data_path, architecture)
 
-    @parameterized.expand(["ruby2.7", ("ruby2.7", "arm64")])
+    @parameterized.expand(["ruby2.7", ("ruby2.7", "arm64"), "ruby3.2", ("ruby3.2", "arm64")])
     @pytest.mark.flaky(reruns=3)
     def test_building_ruby_in_process_with_specified_architecture(self, runtime, architecture="x86_64"):
         self._test_with_default_gemfile(runtime, False, "Ruby", self.test_data_path, architecture)
@@ -670,7 +703,7 @@ class TestBuildCommand_RubyFunctionsWithGemfileInTheRoot(BuildIntegRubyBase):
     This doesn't apply to containerized build, since it copies only the function folder to the container
     """
 
-    @parameterized.expand([("ruby2.7")])
+    @parameterized.expand([("ruby2.7"), ("ruby3.2")])
     @pytest.mark.flaky(reruns=3)
     def test_building_ruby_in_process_with_root_gemfile(self, runtime):
         self._prepare_application_environment()
@@ -2931,6 +2964,20 @@ class TestBuildWithZipFunctionsOrLayers(NestedBuildIntegBase):
 @skipIf(SKIP_SAR_TESTS, "Skip SAR tests")
 class TestBuildSAR(BuildIntegBase):
     template = "aws-serverless-application-with-application-id-map.yaml"
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestBuildSAR, cls).setUpClass()
+        cls.update_sar_template = None
+        if cls.template_path:
+            cls.update_sar_template = UpdatableSARTemplate(cls.template_path)
+            cls.update_sar_template.setup()
+            cls.template_path = cls.update_sar_template.updated_template_path
+
+    @classmethod
+    def tearDownClass(cls):
+        if cls.update_sar_template:
+            cls.update_sar_template.clean()
 
     @parameterized.expand(
         [

@@ -68,9 +68,9 @@ class UnhandledException(click.ClickException):
         click.secho(msg, file=file, err=True, fg="yellow")
 
 
-class CredentialsError(UserException):
+class AWSServiceClientError(UserException):
     """
-    Exception class when credentials that have been passed are invalid.
+    Exception class when there are errors calling any AWS services via Boto.
     """
 
 

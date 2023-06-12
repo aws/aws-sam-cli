@@ -12,7 +12,7 @@ from parameterized import parameterized
 from samcli.lib.bootstrap.bootstrap import SAM_CLI_STACK_NAME
 from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME
 from tests.integration.deploy.deploy_integ_base import DeployIntegBase
-from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
+from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY, UpdatableSARTemplate
 
 # Deploy tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
 # This is to restrict package tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary
@@ -888,25 +888,28 @@ to create a managed default bucket, or run sam deploy --guided",
         ]
     )
     def test_deploy_sar_with_location_from_map(self, template_file, region, will_succeed):
-        template_path = Path(__file__).resolve().parents[1].joinpath("testdata", "buildcmd", template_file)
-        stack_name = self._method_to_stack_name(self.id())
-        self.stacks.append({"name": stack_name, "region": region})
+        with UpdatableSARTemplate(
+            Path(__file__).resolve().parents[1].joinpath("testdata", "buildcmd", template_file)
+        ) as sar_app:
+            template_path = sar_app.updated_template_path
+            stack_name = self._method_to_stack_name(self.id())
+            self.stacks.append({"name": stack_name, "region": region})
 
-        # The default region (us-east-1) has no entry in the map
-        deploy_command_list = self.get_deploy_command_list(
-            template_file=template_path,
-            s3_prefix=self.s3_prefix,
-            stack_name=stack_name,
-            capabilities_list=["CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND"],
-            region=region,  # the !FindInMap has an entry for use-east-2 region only
-        )
-        deploy_process_execute = self.run_command(deploy_command_list)
+            # The default region (us-east-1) has no entry in the map
+            deploy_command_list = self.get_deploy_command_list(
+                template_file=template_path,
+                s3_prefix=self.s3_prefix,
+                stack_name=stack_name,
+                capabilities_list=["CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND"],
+                region=region,  # the !FindInMap has an entry for use-east-2 region only
+            )
+            deploy_process_execute = self.run_command(deploy_command_list)
 
-        if will_succeed:
-            self.assertEqual(deploy_process_execute.process.returncode, 0)
-        else:
-            self.assertEqual(deploy_process_execute.process.returncode, 1)
-            self.assertIn("Property \\'ApplicationId\\' cannot be resolved.", str(deploy_process_execute.stderr))
+            if will_succeed:
+                self.assertEqual(deploy_process_execute.process.returncode, 0)
+            else:
+                self.assertEqual(deploy_process_execute.process.returncode, 1)
+                self.assertIn("Property \\'ApplicationId\\' cannot be resolved.", str(deploy_process_execute.stderr))
 
     @parameterized.expand(
         [
@@ -915,23 +918,26 @@ to create a managed default bucket, or run sam deploy --guided",
         ]
     )
     def test_deploy_guided_sar_with_location_from_map(self, template_file, region, will_succeed):
-        template_path = Path(__file__).resolve().parents[1].joinpath("testdata", "buildcmd", template_file)
-        stack_name = self._method_to_stack_name(self.id())
-        self.stacks.append({"name": stack_name, "region": region})
+        with UpdatableSARTemplate(
+            Path(__file__).resolve().parents[1].joinpath("testdata", "buildcmd", template_file)
+        ) as sar_app:
+            template_path = sar_app.updated_template_path
+            stack_name = self._method_to_stack_name(self.id())
+            self.stacks.append({"name": stack_name, "region": region})
 
-        # Package and Deploy in one go without confirming change set.
-        deploy_command_list = self.get_deploy_command_list(template_file=template_path, guided=True)
+            # Package and Deploy in one go without confirming change set.
+            deploy_command_list = self.get_deploy_command_list(template_file=template_path, guided=True)
 
-        deploy_process_execute = self.run_command_with_input(
-            deploy_command_list,
-            f"{stack_name}\n{region}\n\nN\nCAPABILITY_IAM CAPABILITY_AUTO_EXPAND\nn\nN\n".encode(),
-        )
+            deploy_process_execute = self.run_command_with_input(
+                deploy_command_list,
+                f"{stack_name}\n{region}\n\nN\nCAPABILITY_IAM CAPABILITY_AUTO_EXPAND\nn\nN\n".encode(),
+            )
 
-        if will_succeed:
-            self.assertEqual(deploy_process_execute.process.returncode, 0)
-        else:
-            self.assertEqual(deploy_process_execute.process.returncode, 1)
-            self.assertIn("Property \\'ApplicationId\\' cannot be resolved.", str(deploy_process_execute.stderr))
+            if will_succeed:
+                self.assertEqual(deploy_process_execute.process.returncode, 0)
+            else:
+                self.assertEqual(deploy_process_execute.process.returncode, 1)
+                self.assertIn("Property \\'ApplicationId\\' cannot be resolved.", str(deploy_process_execute.stderr))
 
     @parameterized.expand(
         [os.path.join("deep-nested", "template.yaml"), os.path.join("deep-nested-image", "template.yaml")]

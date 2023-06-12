@@ -127,7 +127,10 @@ def get_resource_summaries(
 
 
 def get_resource_summary(
-    boto_resource_provider: BotoProviderType, stack_name: str, resource_logical_id: str
+    boto_resource_provider: BotoProviderType,
+    boto_client_provider: BotoProviderType,
+    stack_name: str,
+    resource_logical_id: str,
 ) -> Optional[CloudFormationResourceSummary]:
     """
     Returns resource summary of given single resource with its logical id
@@ -136,6 +139,8 @@ def get_resource_summary(
     ----------
     boto_resource_provider : BotoProviderType
         A callable which will return boto3 resource
+    boto_client_provider : BotoProviderType
+        A callable which will return boto3 client
     stack_name : str
         Name of the stack which is deployed to CFN
     resource_logical_id : str
@@ -145,18 +150,45 @@ def get_resource_summary(
     -------
         CloudFormationResourceSummary of the resource which is identified by given logical id
     """
-    try:
-        cfn_resource_summary = boto_resource_provider("cloudformation").StackResource(stack_name, resource_logical_id)
+    cfn_resource_summaries = get_resource_summaries(boto_resource_provider, boto_client_provider, stack_name)
+    for logical_id, cfn_resource_summary in cfn_resource_summaries.items():
+        if logical_id == resource_logical_id:
+            return cfn_resource_summary
 
-        return CloudFormationResourceSummary(
-            cfn_resource_summary.resource_type,
-            cfn_resource_summary.logical_resource_id,
-            cfn_resource_summary.physical_resource_id,
-        )
+    return None
+
+
+def get_resource_summary_from_physical_id(
+    boto_client_provider: BotoProviderType, resource_physical_id: str
+) -> Optional[CloudFormationResourceSummary]:
+    """
+    Returns resource summary from the physical id of the resource. Returns None if no resource can be found
+
+    Parameters
+    ----------
+    boto_client_provider : BotoProviderType
+        A callable which will return boto3 client
+    resource_physical_id : str
+        Physical ID of the resource that will be returned as resource summary
+
+    Returns
+    -------
+        CloudFormationResourceSummary of the resource which is identified by given logical id
+    """
+    try:
+        cfn_client = boto_client_provider("cloudformation")
+        describe_stack_response = cfn_client.describe_stack_resources(PhysicalResourceId=resource_physical_id)
+        stack_resources = describe_stack_response.get("StackResources", [])
+        for stack_resource in stack_resources:
+            if stack_resource.get("PhysicalResourceId") == resource_physical_id:
+                return CloudFormationResourceSummary(
+                    stack_resource.get("ResourceType"),
+                    stack_resource.get("LogicalResourceId"),
+                    stack_resource.get("PhysicalResourceId"),
+                )
+        return None
     except ClientError as e:
-        LOG.error(
-            "Failed to pull resource (%s) information from stack (%s)", resource_logical_id, stack_name, exc_info=e
-        )
+        LOG.debug("Failed to pull resource (%s) information with its physical id.", exc_info=e)
         return None
 
 

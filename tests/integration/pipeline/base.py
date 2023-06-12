@@ -9,12 +9,14 @@ from unittest.mock import Mock
 
 import boto3
 import botocore.exceptions
+import pytest
 from botocore.exceptions import ClientError
 
 from samcli.lib.pipeline.bootstrap.stage import Stage
 from tests.testing_utils import get_sam_command
 
 
+@pytest.mark.xdist_group(name="sam_pipeline")
 class PipelineBase(TestCase):
     pass
 

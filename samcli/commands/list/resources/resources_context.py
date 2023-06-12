@@ -14,7 +14,13 @@ LOG = logging.getLogger(__name__)
 
 class ResourcesContext(ListContext):
     def __init__(
-        self, stack_name: str, output: str, region: Optional[str], profile: Optional[str], template_file: Optional[str]
+        self,
+        stack_name: str,
+        output: str,
+        region: Optional[str],
+        profile: Optional[str],
+        template_file: Optional[str],
+        parameter_overrides: Optional[dict] = None,
     ):
         super().__init__()
         self.stack_name = stack_name
@@ -23,6 +29,7 @@ class ResourcesContext(ListContext):
         self.profile = profile
         self.template_file = template_file
         self.iam_client = None
+        self.parameter_overrides = parameter_overrides
 
     def __enter__(self):
         self.init_clients()
@@ -53,5 +60,6 @@ class ResourcesContext(ListContext):
             iam_client=self.iam_client,
             mapper=container.mapper,
             consumer=container.consumer,
+            parameter_overrides=self.parameter_overrides,
         )
         resource_producer.produce()

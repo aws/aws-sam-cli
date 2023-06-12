@@ -18,7 +18,13 @@ class EndpointsContext(ListContext):
     """
 
     def __init__(
-        self, stack_name: str, output: str, region: Optional[str], profile: Optional[str], template_file: Optional[str]
+        self,
+        stack_name: str,
+        output: str,
+        region: Optional[str],
+        profile: Optional[str],
+        template_file: Optional[str],
+        parameter_overrides: Optional[dict] = None,
     ):
         """
         Parameters
@@ -33,8 +39,11 @@ class EndpointsContext(ListContext):
             Optional profile to be used
         template_file: Optional[str]
             The location of the template file. If one is not specified, the default will be "template.yaml" in the CWD
+        parameter_overrides: Optional[dict]
+            Dictionary of parameters to override in the template
         """
         super().__init__()
+        self.parameter_overrides = parameter_overrides
         self.stack_name = stack_name
         self.output = output
         self.region = region
@@ -80,5 +89,6 @@ class EndpointsContext(ListContext):
             apigatewayv2_client=self.apigatewayv2_client,
             mapper=container.mapper,
             consumer=container.consumer,
+            parameter_overrides=self.parameter_overrides,
         )
         endpoints_producer.produce()

@@ -25,7 +25,7 @@ class TestHeaderIdentitySource(TestCase):
         [
             ({"headers": Headers({})},),  # test empty headers
             ({},),  # test no headers
-            ({"headers": Headers({"not here": 123})},),  # test missing headers
+            ({"headers": Headers({"not here": 123})},),  # type: ignore  # test missing headers
             ({"validation_expression": "^123$"},),  # test no headers, but provided validation
         ]
     )
@@ -387,6 +387,36 @@ class TestLambdaAuthorizer(TestCase):
                 },
                 True,
             ),
+            (  # resource as string
+                {
+                    "principalId": "123",
+                    "policyDocument": {
+                        "Statement": [
+                            {
+                                "Action": "execute-api:Invoke",
+                                "Effect": "Allow",
+                                "Resource": "arn:aws:execute-api:us-east-1:123456789012:1234567890/prod/GET/hello",
+                            }
+                        ]
+                    },
+                },
+                True,
+            ),
+            (  # action as list
+                {
+                    "principalId": "123",
+                    "policyDocument": {
+                        "Statement": [
+                            {
+                                "Action": ["execute-api:Invoke"],
+                                "Effect": "Allow",
+                                "Resource": "arn:aws:execute-api:us-east-1:123456789012:1234567890/prod/GET/hello",
+                            }
+                        ]
+                    },
+                },
+                True,
+            ),
         ]
     )
     def test_validate_is_resource_authorized(self, response, expected_result):
@@ -458,17 +488,42 @@ class TestLambdaAuthorizerIamPolicyValidator(TestCase):
                 {"principalId": "123", "policyDocument": {"Statement": [{"Action": "execute-api:Invoke"}]}},
                 "Authorizer 'my auth' policy document contains an invalid 'Effect'",
             ),
-            (  # statement resource not a list
-                {
-                    "principalId": "123",
-                    "policyDocument": {
-                        "Statement": [{"Action": "execute-api:Invoke", "Effect": "Allow", "Resource": "not list"}]
-                    },
-                },
-                "Authorizer 'my auth' policy document contains an invalid 'Resource'",
-            ),
         ]
     )
     def test_validate_validate_statement_raises(self, response, message):
         with self.assertRaisesRegex(InvalidLambdaAuthorizerResponse, message):
             LambdaAuthorizerIAMPolicyValidator.validate_statement("my auth", response)
+
+    @parameterized.expand(
+        [
+            (  # default
+                {
+                    "principalId": "123",
+                    "policyDocument": {
+                        "Statement": [{"Action": "execute-api:Invoke", "Effect": "Allow", "Resource": ["arn"]}]
+                    },
+                },
+            ),
+            (  # statement resource as string
+                {
+                    "principalId": "123",
+                    "policyDocument": {
+                        "Statement": [{"Action": "execute-api:Invoke", "Effect": "Allow", "Resource": "arn"}]
+                    },
+                },
+            ),
+            (  # statement action as list
+                {
+                    "principalId": "123",
+                    "policyDocument": {
+                        "Statement": [{"Action": ["execute-api:Invoke"], "Effect": "Allow", "Resource": ["arn"]}]
+                    },
+                },
+            ),
+        ]
+    )
+    def test_validate_validate_statement_does_not_raise(self, response):
+        try:
+            LambdaAuthorizerIAMPolicyValidator.validate_statement("my auth", response)
+        except InvalidLambdaAuthorizerResponse as e:
+            self.fail(f"validate statement raised unexpectedly: {e.message}")

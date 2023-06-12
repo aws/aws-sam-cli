@@ -1,0 +1,21 @@
+name: Close issues on release cut
+
+on:
+  release:
+    types: [released]
+
+jobs:
+  run-workflow:
+    permissions:
+      issues: write
+    runs-on: ubuntu-latest
+    steps:
+    - name: Close issues marked
+      env:
+        REPO : ${{ github.repository }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        release_url=$(gh release view ${{ github.ref_name }} --repo $REPO --json url --jq ".url")
+        for issue_number in $(gh issue list -l "stage/waiting-for-release" --repo $REPO --json number --jq ".[].number"); do
+          gh issue close $issue_number -c "Patch is released in [${{ github.ref_name }}]($release_url). Closing" -r completed --repo $REPO
+        done

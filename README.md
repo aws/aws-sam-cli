@@ -44,7 +44,7 @@ environment that lets you locally build, test, debug, and deploy [AWS serverless
 * [Build & Deploy a "Hello World" Web App](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-quick-start.html)
 * [Install AWS Toolkit](https://aws.amazon.com/getting-started/tools-sdks/#IDE_and_IDE_Toolkits) to use SAM with your favorite IDEs
 * [Tutorials and Workshops](https://serverlessland.com/learn)
-* [Lambda Powertools](https://aws.amazon.com/blogs/opensource/simplifying-serverless-best-practices-with-lambda-powertools/) Utilities for building Lambda functions in [Python](https://awslabs.github.io/aws-lambda-powertools-python/latest/), [Java](https://github.com/awslabs/aws-lambda-powertools-java), and [TypeScript](https://github.com/awslabs/aws-lambda-powertools-typescript)
+* [Powertools for AWS Lambda](https://aws.amazon.com/blogs/opensource/simplifying-serverless-best-practices-with-lambda-powertools/) Utilities for building Lambda functions in [Python](https://awslabs.github.io/aws-lambda-powertools-python/latest/), [Java](https://github.com/awslabs/aws-lambda-powertools-java), and [TypeScript](https://github.com/awslabs/aws-lambda-powertools-typescript)
 
 
 **Next Steps:** Learn to build a more complex serverless application.

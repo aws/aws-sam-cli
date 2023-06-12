@@ -1,7 +1,7 @@
 import itertools
 import time
 from pathlib import Path
-from typing import List
+from typing import Any, List
 from unittest import skipIf
 
 import boto3
@@ -30,8 +30,9 @@ SKIP_TRACES_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_
 
 
 @skipIf(SKIP_TRACES_TESTS, "Skip traces tests in CI/CD only")
+@pytest.mark.xdist_group(name="sam_traces")
 class TestTracesCommand(TracesIntegBase):
-    stack_resources = []
+    stack_resources: List[Any] = []
     stack_name = ""
 
     def setUp(self):

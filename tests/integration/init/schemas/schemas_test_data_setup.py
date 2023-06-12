@@ -2,6 +2,7 @@ import os
 import time
 import shutil
 import tempfile
+import pytest
 from unittest import TestCase
 from typing import Optional
 
@@ -18,6 +19,7 @@ AWS_PROFILE = "AWS_PROFILE"
 SLEEP_TIME = 1
 
 
+@pytest.mark.xdist_group(name="sam_init")
 class SchemaTestDataSetup(TestCase):
     original_cred_file: Optional[str]
     original_config_file: Optional[str]

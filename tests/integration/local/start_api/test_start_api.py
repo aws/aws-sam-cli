@@ -34,7 +34,11 @@ class TestServiceHTTP10(StartApiIntegBaseClass):
 
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
+        self.current_svn_str = HTTPConnection._http_vsn_str
         HTTPConnection._http_vsn_str = "HTTP/1.0"
+
+    def tearDown(self) -> None:
+        HTTPConnection._http_vsn_str = self.current_svn_str  # type: ignore
 
     def test_static_directory(self):
         pass

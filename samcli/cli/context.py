@@ -9,7 +9,7 @@ from typing import List, Optional, cast
 import click
 
 from samcli.cli.formatters import RootCommandHelpTextFormatter
-from samcli.commands.exceptions import CredentialsError
+from samcli.commands.exceptions import AWSServiceClientError
 from samcli.lib.utils.sam_logging import (
     LAMBDA_BULDERS_LOGGER_NAME,
     SAM_CLI_FORMATTER_WITH_TIMESTAMP,
@@ -213,7 +213,7 @@ class Context:
             ).cache = credentials.JSONFileCache()
 
         except exceptions.ProfileNotFound as ex:
-            raise CredentialsError(str(ex)) from ex
+            raise AWSServiceClientError(str(ex)) from ex
 
 
 def get_cmd_names(cmd_name, ctx) -> List[str]:

@@ -1,6 +1,6 @@
 """
 Contains method decorator which can be used to convert common exceptions into click exceptions
-which will end exeecution gracefully
+which will end execution gracefully
 """
 from functools import wraps
 from typing import Any, Callable, Dict, Optional
@@ -8,8 +8,7 @@ from typing import Any, Callable, Dict, Optional
 from botocore.exceptions import BotoCoreError, ClientError, NoRegionError
 
 from samcli.commands._utils.parameterized_option import parameterized_option
-from samcli.commands.exceptions import CredentialsError, RegionError, SDKError
-from samcli.lib.utils.boto_utils import get_client_error_code
+from samcli.commands.exceptions import AWSServiceClientError, RegionError, SDKError
 
 
 class CustomExceptionHandler:
@@ -37,15 +36,11 @@ def _handle_no_region_error(ex: NoRegionError) -> None:
 
 
 def _handle_client_errors(ex: ClientError) -> None:
-    error_code = get_client_error_code(ex)
-
-    if error_code in ("ExpiredToken", "ExpiredTokenException"):
-        raise CredentialsError(
-            "Your credential configuration is invalid or has expired token value. \nFor more information please "
-            "visit: https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html"
-        )
-
-    raise ex
+    additional_exception_message = (
+        "\n\nFor more information please visit: "
+        "https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html"
+    )
+    raise AWSServiceClientError(str(ex) + additional_exception_message) from ex
 
 
 def _catch_all_boto_errors(ex: BotoCoreError) -> None:

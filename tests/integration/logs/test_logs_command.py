@@ -2,7 +2,7 @@ import itertools
 import logging
 import time
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import boto3
 import pytest
@@ -30,7 +30,7 @@ class LogsIntegTestCases(LogsIntegBase):
     test_template_folder = ""
 
     stack_name = ""
-    stack_resources = {}
+    stack_resources: Dict[Any, Any] = {}
     stack_info = None
 
     def setUp(self):
@@ -76,7 +76,7 @@ class LogsIntegTestCases(LogsIntegBase):
         return self.stack_resources[resource_path]
 
     def _get_output_value(self, key: str):
-        for output in self.stack_info.outputs:
+        for output in self.stack_info.outputs:  # type: ignore
             if output.get("OutputKey", "") == key:
                 return output.get("OutputValue", "")
 
@@ -239,6 +239,7 @@ REGULAR_STACK_SFN_LIST = [
 ]
 
 
+@pytest.mark.xdist_group(name="sam_logs_regular")
 class TestLogsCommandWithRegularStack(LogsIntegTestCases):
     test_template_folder = "python-apigw-sfn"
 
@@ -313,6 +314,7 @@ NESTED_STACK_SFN_LIST = [
 ]
 
 
+@pytest.mark.xdist_group(name="sam_logs_nested")
 class TestLogsCommandWithNestedStack(LogsIntegTestCases):
     test_template_folder = "nested-python-apigw-sfn"
 

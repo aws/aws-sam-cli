@@ -15,7 +15,7 @@ from samcli.lib.sync.exceptions import InfraSyncRequiredError, MissingPhysicalRe
 from samcli.lib.sync.infra_sync_executor import InfraSyncExecutor, InfraSyncResult
 from samcli.lib.sync.sync_flow_factory import SyncFlowFactory
 from samcli.lib.utils.code_trigger_factory import CodeTriggerFactory
-from samcli.lib.utils.colors import Colored
+from samcli.lib.utils.colors import Colored, Colors
 from samcli.lib.utils.path_observer import HandlerObserver
 from samcli.lib.utils.resource_trigger import OnChangeCallback, TemplateTrigger
 
@@ -96,10 +96,12 @@ class WatchManager:
         """
         if self._disable_infra_syncs:
             LOG.info(
-                self._color.yellow(
-                    "You have enabled the --code flag, which limits sam sync updates to code changes only. To do a "
-                    "complete infrastructure and code sync, remove the --code flag."
-                )
+                self._color.color_log(
+                    msg="You have enabled the --code flag, which limits sam sync updates to code changes only. To do a "
+                    "complete infrastructure and code sync, remove the --code flag.",
+                    color=Colors.WARNING,
+                ),
+                extra=dict(markup=True),
             )
             return
         self._waiting_infra_sync = True
@@ -131,8 +133,12 @@ class WatchManager:
                 trigger = self._trigger_factory.create_trigger(resource_id, self._on_code_change_wrapper(resource_id))
             except (MissingCodeUri, MissingLocalDefinition):
                 LOG.warning(
-                    self._color.yellow("CodeTrigger not created as CodeUri or DefinitionUri is missing for %s."),
+                    self._color.color_log(
+                        msg="CodeTrigger not created as CodeUri or DefinitionUri is missing for %s.",
+                        color=Colors.WARNING,
+                    ),
                     str(resource_id),
+                    extra=dict(markup=True),
                 )
                 continue
 
@@ -149,7 +155,12 @@ class WatchManager:
             try:
                 template_trigger.validate_template()
             except InvalidTemplateFile:
-                LOG.warning(self._color.yellow("Template validation failed for %s in %s"), template, stack.name)
+                LOG.warning(
+                    self._color.color_log(msg="Template validation failed for %s in %s", color=Colors.WARNING),
+                    template,
+                    stack.name,
+                    extra=dict(markup=True),
+                )
 
             self._observer.schedule_handlers(template_trigger.get_path_handlers())
 
@@ -192,13 +203,17 @@ class WatchManager:
             self.queue_infra_sync()
             if self._disable_infra_syncs:
                 self._start_sync()
-                LOG.info(self._color.green("Sync watch started."))
+                LOG.info(
+                    self._color.color_log(msg="Sync watch started.", color=Colors.SUCCESS), extra=dict(markup=True)
+                )
             self._start()
         except KeyboardInterrupt:
-            LOG.info(self._color.cyan("Shutting down sync watch..."))
+            LOG.info(
+                self._color.color_log(msg="Shutting down sync watch...", color=Colors.PROGRESS), extra=dict(markup=True)
+            )
             self._observer.stop()
             self._stop_code_sync()
-            LOG.info(self._color.green("Sync watch stopped."))
+            LOG.info(self._color.color_log(msg="Sync watch stopped.", color=Colors.SUCCESS), extra=dict(markup=True))
 
     def _start(self) -> None:
         """Start WatchManager and watch for changes to the template and its code resources."""
@@ -220,16 +235,24 @@ class WatchManager:
 
     def _execute_infra_sync(self, first_sync: bool = False) -> None:
         """Logic to execute infra sync."""
-        LOG.info(self._color.cyan("Queued infra sync. Waiting for in progress code syncs to complete..."))
+        LOG.info(
+            self._color.color_log(
+                msg="Queued infra sync. Waiting for in progress code syncs to complete...", color=Colors.PROGRESS
+            ),
+            extra=dict(markup=True),
+        )
         self._waiting_infra_sync = False
         self._stop_code_sync()
         try:
-            LOG.info(self._color.cyan("Starting infra sync."))
+            LOG.info(self._color.color_log(msg="Starting infra sync.", color=Colors.PROGRESS), extra=dict(markup=True))
             infra_sync_result = self._execute_infra_context(first_sync)
         except Exception as e:
             LOG.error(
-                self._color.red("Failed to sync infra. Code sync is paused until template/stack is fixed."),
+                self._color.color_log(
+                    msg="Failed to sync infra. Code sync is paused until template/stack is fixed.", color=Colors.FAILURE
+                ),
                 exc_info=e,
+                extra=dict(markup=True),
             )
             # Unschedule all triggers and only add back the template one as infra sync is incorrect.
             self._observer.unschedule_all()
@@ -245,12 +268,18 @@ class WatchManager:
                 # To improve: only initiate code syncs for ones with template changes
                 self._queue_up_code_syncs(infra_sync_result.code_sync_resources)
                 LOG.info(
-                    self._color.green("Skipped infra sync as the local template is in sync with the cloud template.")
+                    self._color.color_log(
+                        msg="Skipped infra sync as the local template is in sync with the cloud template.",
+                        color=Colors.SUCCESS,
+                    ),
+                    extra=dict(markup=True),
                 )
                 if len(infra_sync_result.code_sync_resources) != 0:
                     LOG.info("Required code syncs are queued up.")
             else:
-                LOG.info(self._color.green("Infra sync completed."))
+                LOG.info(
+                    self._color.color_log(msg="Infra sync completed.", color=Colors.SUCCESS), extra=dict(markup=True)
+                )
 
     def _queue_up_code_syncs(self, resource_ids_with_code_sync: Set[ResourceIdentifier]) -> None:
         """
@@ -300,15 +329,25 @@ class WatchManager:
         """
         exception = sync_flow_exception.exception
         if isinstance(exception, MissingPhysicalResourceError):
-            LOG.warning(self._color.yellow("Missing physical resource. Infra sync will be started."))
+            LOG.warning(
+                self._color.color_log(
+                    msg="Missing physical resource. Infra sync will be started.", color=Colors.WARNING
+                ),
+                extra=dict(markup=True),
+            )
             self.queue_infra_sync()
         elif isinstance(exception, InfraSyncRequiredError):
             LOG.warning(
                 self._color.yellow(
                     f"Infra sync is required for {exception.resource_identifier} due to: "
                     + f"{exception.reason}. Infra sync will be started."
-                )
+                ),
+                extra=dict(markup=True),
             )
             self.queue_infra_sync()
         else:
-            LOG.error(self._color.red("Code sync encountered an error."), exc_info=exception)
+            LOG.error(
+                self._color.color_log(msg="Code sync encountered an error.", color=Colors.FAILURE),
+                exc_info=exception,
+                extra=dict(markup=True),
+            )

@@ -114,7 +114,7 @@ class TestCli(TestCase):
         context_mock.local_lambda_runner.invoke.assert_called_with(
             context_mock.function_identifier, event=event_data, stdout=context_mock.stdout, stderr=context_mock.stderr
         )
-        get_event_mock.assert_called_with(self.eventfile)
+        get_event_mock.assert_called_with(self.eventfile, exception_class=UserException)
 
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     @patch("samcli.commands.local.invoke.cli._get_event")
@@ -291,7 +291,21 @@ class TestGetEvent(TestCase):
         click_mock.open_file.return_value.__enter__.return_value = fp_mock
         fp_mock.read.return_value = event_data
 
-        result = invoke_cli_get_event(filename)
+        result = invoke_cli_get_event(filename, exception_class=UserException)
 
         self.assertEqual(result, event_data)
         fp_mock.read.assert_called_with()
+
+    @patch("samcli.commands.local.invoke.cli.click")
+    def test_error_non_existent_file(self, click_mock):
+        filename = "non_existent"
+
+        # Mock file pointer
+        fp_mock = Mock()
+
+        # Mock the context manager
+        click_mock.open_file.return_value.__enter__.return_value = fp_mock
+        fp_mock.read = Mock(side_effect=FileNotFoundError)
+
+        with self.assertRaises(UserException):
+            invoke_cli_get_event(filename, exception_class=UserException)

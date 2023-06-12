@@ -2,14 +2,13 @@ from typing import Callable
 from unittest import TestCase
 
 from botocore.exceptions import NoRegionError, ClientError, NoCredentialsError
-from parameterized import parameterized
 
 from samcli.commands._utils.command_exception_handler import (
     command_exception_handler,
     CustomExceptionHandler,
     GenericExceptionHandler,
 )
-from samcli.commands.exceptions import RegionError, CredentialsError, UserException, SDKError
+from samcli.commands.exceptions import RegionError, AWSServiceClientError, UserException, SDKError
 
 
 @command_exception_handler
@@ -39,23 +38,13 @@ class TestCommandExceptionHandler(TestCase):
         with self.assertRaises(SDKError):
             echo_command(_proxy_function_that_raises_generic_boto_error)
 
-    @parameterized.expand([("ExpiredToken",), ("ExpiredTokenException",)])
-    def test_expired_token_error(self, error_code):
+    def test_aws_client_service_error(self):
         def _proxy_function_that_raises_expired_token():
-            raise ClientError({"Error": {"Code": error_code}}, "mock")
+            # Error code does not matter.
+            raise ClientError({"Error": {"Code": "Mock Code"}}, "mock")
 
-        with self.assertRaises(CredentialsError):
+        with self.assertRaises(AWSServiceClientError):
             echo_command(_proxy_function_that_raises_expired_token)
-
-    def test_unhandled_client_error(self):
-        client_error = ClientError({"Error": {"Code": "UnhandledCode"}}, "mock")
-
-        def _proxy_function_that_raises_unhandled_client_error():
-            raise client_error
-
-        with self.assertRaises(ClientError) as ex:
-            echo_command(_proxy_function_that_raises_unhandled_client_error)
-            self.assertEqual(client_error, ex)
 
     def test_unhandled_exception(self):
         def _proxy_function_that_raises_unhandled_exception():
