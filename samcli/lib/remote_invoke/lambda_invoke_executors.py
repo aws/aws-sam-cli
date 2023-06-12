@@ -52,9 +52,7 @@ class LambdaInvokeExecutor(BotoActionExecutor):
             if parameter_key == FUNCTION_NAME:
                 LOG.warning("FunctionName is defined using the value provided for --resource-id option.")
             elif parameter_key == PAYLOAD:
-                LOG.warning(
-                    "Payload is defined using the value provided for either --payload or --payload-file options."
-                )
+                LOG.warning("Payload is defined using the value provided for either --event or --event-file options.")
             else:
                 self.request_parameters[parameter_key] = parameter_value
 

@@ -212,38 +212,34 @@ cookiecutter==2.1.1 \
     --hash=sha256:9f3ab027cec4f70916e28f03470bdb41e637a3ad354b4d65c765d93aad160022 \
     --hash=sha256:f3982be8d9c53dac1261864013fdec7f83afd2e42ede6f6dd069c5e149c540d5
     # via aws-sam-cli (setup.py)
-cryptography==39.0.2 \
-    --hash=sha256:103e8f7155f3ce2ffa0049fe60169878d47a4364b277906386f8de21c9234aa1 \
-    --hash=sha256:23df8ca3f24699167daf3e23e51f7ba7334d504af63a94af468f468b975b7dd7 \
-    --hash=sha256:2725672bb53bb92dc7b4150d233cd4b8c59615cd8288d495eaa86db00d4e5c06 \
-    --hash=sha256:30b1d1bfd00f6fc80d11300a29f1d8ab2b8d9febb6ed4a38a76880ec564fae84 \
-    --hash=sha256:35d658536b0a4117c885728d1a7032bdc9a5974722ae298d6c533755a6ee3915 \
-    --hash=sha256:50cadb9b2f961757e712a9737ef33d89b8190c3ea34d0fb6675e00edbe35d074 \
-    --hash=sha256:5f8c682e736513db7d04349b4f6693690170f95aac449c56f97415c6980edef5 \
-    --hash=sha256:6236a9610c912b129610eb1a274bdc1350b5df834d124fa84729ebeaf7da42c3 \
-    --hash=sha256:788b3921d763ee35dfdb04248d0e3de11e3ca8eb22e2e48fef880c42e1f3c8f9 \
-    --hash=sha256:8bc0008ef798231fac03fe7d26e82d601d15bd16f3afaad1c6113771566570f3 \
-    --hash=sha256:8f35c17bd4faed2bc7797d2a66cbb4f986242ce2e30340ab832e5d99ae60e011 \
-    --hash=sha256:b49a88ff802e1993b7f749b1eeb31134f03c8d5c956e3c125c75558955cda536 \
-    --hash=sha256:bc0521cce2c1d541634b19f3ac661d7a64f9555135e9d8af3980965be717fd4a \
-    --hash=sha256:bc5b871e977c8ee5a1bbc42fa8d19bcc08baf0c51cbf1586b0e87a2694dde42f \
-    --hash=sha256:c43ac224aabcbf83a947eeb8b17eaf1547bce3767ee2d70093b461f31729a480 \
-    --hash=sha256:d15809e0dbdad486f4ad0979753518f47980020b7a34e9fc56e8be4f60702fac \
-    --hash=sha256:d7d84a512a59f4412ca8549b01f94be4161c94efc598bf09d027d67826beddc0 \
-    --hash=sha256:e029b844c21116564b8b61216befabca4b500e6816fa9f0ba49527653cae2108 \
-    --hash=sha256:e8a0772016feeb106efd28d4a328e77dc2edae84dfbac06061319fdb669ff828 \
-    --hash=sha256:e944fe07b6f229f4c1a06a7ef906a19652bdd9fd54c761b0ff87e83ae7a30354 \
-    --hash=sha256:eb40fe69cfc6f5cdab9a5ebd022131ba21453cf7b8a7fd3631f45bbf52bed612 \
-    --hash=sha256:fa507318e427169ade4e9eccef39e9011cdc19534f55ca2f36ec3f388c1f70f3 \
-    --hash=sha256:ffd394c7896ed7821a6d13b24657c6a34b6e2650bd84ae063cf11ccffa4f1a97
+cryptography==41.0.0 \
+    --hash=sha256:0ddaee209d1cf1f180f1efa338a68c4621154de0afaef92b89486f5f96047c55 \
+    --hash=sha256:14754bcdae909d66ff24b7b5f166d69340ccc6cb15731670435efd5719294895 \
+    --hash=sha256:344c6de9f8bda3c425b3a41b319522ba3208551b70c2ae00099c205f0d9fd3be \
+    --hash=sha256:34d405ea69a8b34566ba3dfb0521379b210ea5d560fafedf9f800a9a94a41928 \
+    --hash=sha256:3680248309d340fda9611498a5319b0193a8dbdb73586a1acf8109d06f25b92d \
+    --hash=sha256:3c5ef25d060c80d6d9f7f9892e1d41bb1c79b78ce74805b8cb4aa373cb7d5ec8 \
+    --hash=sha256:4ab14d567f7bbe7f1cdff1c53d5324ed4d3fc8bd17c481b395db224fb405c237 \
+    --hash=sha256:5c1f7293c31ebc72163a9a0df246f890d65f66b4a40d9ec80081969ba8c78cc9 \
+    --hash=sha256:6b71f64beeea341c9b4f963b48ee3b62d62d57ba93eb120e1196b31dc1025e78 \
+    --hash=sha256:7d92f0248d38faa411d17f4107fc0bce0c42cae0b0ba5415505df72d751bf62d \
+    --hash=sha256:8362565b3835ceacf4dc8f3b56471a2289cf51ac80946f9087e66dc283a810e0 \
+    --hash=sha256:84a165379cb9d411d58ed739e4af3396e544eac190805a54ba2e0322feb55c46 \
+    --hash=sha256:88ff107f211ea696455ea8d911389f6d2b276aabf3231bf72c8853d22db755c5 \
+    --hash=sha256:9f65e842cb02550fac96536edb1d17f24c0a338fd84eaf582be25926e993dde4 \
+    --hash=sha256:a4fc68d1c5b951cfb72dfd54702afdbbf0fb7acdc9b7dc4301bbf2225a27714d \
+    --hash=sha256:b7f2f5c525a642cecad24ee8670443ba27ac1fab81bba4cc24c7b6b41f2d0c75 \
+    --hash=sha256:b846d59a8d5a9ba87e2c3d757ca019fa576793e8758174d3868aecb88d6fc8eb \
+    --hash=sha256:bf8fc66012ca857d62f6a347007e166ed59c0bc150cefa49f28376ebe7d992a2 \
+    --hash=sha256:f5d0bf9b252f30a31664b6f64432b4730bb7038339bd18b1fafe129cfc2be9be
     # via pyopenssl
 dateparser==1.1.8 \
     --hash=sha256:070b29b5bbf4b1ec2cd51c96ea040dc68a614de703910a91ad1abba18f9f379f \
     --hash=sha256:86b8b7517efcc558f085a142cdb7620f0921543fcabdb538c8a4c4001d8178e3
     # via aws-sam-cli (setup.py)
-docker==4.2.2 \
-    --hash=sha256:03a46400c4080cb6f7aa997f881ddd84fef855499ece219d75fbdb53289c17ab \
-    --hash=sha256:26eebadce7e298f55b76a88c4f8802476c5eaddbdbe38dbc6cce8781c47c9b54
+docker==6.1.3 \
+    --hash=sha256:aa6d17830045ba5ef0168d5eaa34d37beeb113948c413affe1d5991fc11f9a20 \
+    --hash=sha256:aecd2277b8bf8e506e484f6ab7aec39abe0038e29fa4a6d3ba86c3fe01844ed9
     # via aws-sam-cli (setup.py)
 flask==2.2.5 \
     --hash=sha256:58107ed83443e86067e41eff4631b058178191a355886f8e479e347fa1285fdf \
@@ -268,9 +264,9 @@ jinja2-time==0.2.0 \
     --hash=sha256:d14eaa4d315e7688daa4969f616f226614350c48730bfa1692d2caebd8c90d40 \
     --hash=sha256:d3eab6605e3ec8b7a0863df09cc1d23714908fa61aa6986a845c20ba488b4efa
     # via cookiecutter
-jmespath==0.10.0 \
-    --hash=sha256:b85d0567b8666149a93172712e68920734333c0ce7e89b78b3e987f71e5ed4f9 \
-    --hash=sha256:cdf6525904cc597730141d61b36f2e4b8ecc257c420fa2f4549bac2c2d0cb72f
+jmespath==1.0.1 \
+    --hash=sha256:02e2e4cc71b5bcab88332eebf907519190dd9e6e82107fa7f83b1003a6252980 \
+    --hash=sha256:90261b206d6defd58fdd5e85f478bf633a2901798906be2ad389150c5c60edbe
     # via
     #   aws-sam-cli (setup.py)
     #   boto3
@@ -371,6 +367,10 @@ networkx==2.6.3 \
     --hash=sha256:80b6b89c77d1dfb64a4c7854981b60aeea6360ac02c6d4e4913319e0a313abef \
     --hash=sha256:c0946ed31d71f1b732b5aaa6da5a0388a345019af232ce2f49c766e2d6795c51
     # via cfn-lint
+packaging==23.1 \
+    --hash=sha256:994793af429502c4ea2ebf6bf664629d07c1a9fe974af92966e4b8d2df7edc61 \
+    --hash=sha256:a392980d2b6cffa644431898be54b0045151319d1e7ec34f0cfed48767dd334f
+    # via docker
 pbr==5.11.1 \
     --hash=sha256:567f09558bae2b3ab53cb3c1e2e33e726ff3338e7bae3db5dc954b3a44eef12b \
     --hash=sha256:aefc51675b0b533d56bb5fd1c8c6c0522fe31896679882e1c4c63d5e4a0fccb3
@@ -423,9 +423,9 @@ pygments==2.15.1 \
     --hash=sha256:8ace4d3c1dd481894b2005f560ead0f9f19ee64fe983366be1a21e171d12775c \
     --hash=sha256:db2db3deb4b4179f399a09054b023b6a586b76499d36965813c71aa8ed7b5fd1
     # via rich
-pyopenssl==23.0.0 \
-    --hash=sha256:c1cc5f86bcacefc84dada7d31175cae1b1518d5f60d3d0bb595a67822a868a6f \
-    --hash=sha256:df5fc28af899e74e19fccb5510df423581047e10ab6f1f4ba1763ff5fde844c0
+pyopenssl==23.2.0 \
+    --hash=sha256:24f0dc5227396b3e831f4c7f602b950a5e9833d292c8e4a2e06b709292806ae2 \
+    --hash=sha256:276f931f55a452e7dea69c7173e984eb2a4407ce413c918aa34b55f82f9b8bac
     # via aws-sam-cli (setup.py)
 pyrsistent==0.19.3 \
     --hash=sha256:016ad1afadf318eb7911baa24b049909f7f3bb2c5b1ed7b6a8f21db21ea3faa8 \
@@ -630,7 +630,6 @@ six==1.16.0 \
     --hash=sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926 \
     --hash=sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254
     # via
-    #   docker
     #   junit-xml
     #   python-dateutil
     #   serverlessrepo
@@ -664,6 +663,7 @@ urllib3==1.26.15 \
     --hash=sha256:aa751d169e23c7479ce47a0cb0da579e3ede798f994f5816a74e4f4500dcea42
     # via
     #   botocore
+    #   docker
     #   requests
 watchdog==2.1.2 \
     --hash=sha256:0237db4d9024859bea27d0efb59fe75eef290833fd988b8ead7a879b0308c2db \

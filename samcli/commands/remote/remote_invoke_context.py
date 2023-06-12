@@ -4,9 +4,12 @@ Context object used by `sam remote invoke` command
 import logging
 from typing import Optional, cast
 
-from samcli.commands.cloud.exceptions import (
+from botocore.exceptions import ClientError
+
+from samcli.commands.remote.exceptions import (
     AmbiguousResourceForRemoteInvoke,
     InvalidRemoteInvokeParameters,
+    InvalidStackNameProvidedForRemoteInvoke,
     NoExecutorFoundForRemoteInvoke,
     NoResourceFoundForRemoteInvoke,
     UnsupportedServiceForRemoteInvoke,
@@ -15,7 +18,7 @@ from samcli.lib.remote_invoke.remote_invoke_executor_factory import RemoteInvoke
 from samcli.lib.remote_invoke.remote_invoke_executors import RemoteInvokeExecutionInfo
 from samcli.lib.utils import osutils
 from samcli.lib.utils.arn_utils import ARNParts, InvalidArnValue
-from samcli.lib.utils.boto_utils import BotoProviderType
+from samcli.lib.utils.boto_utils import BotoProviderType, get_client_error_code
 from samcli.lib.utils.cloudformation import (
     CloudFormationResourceSummary,
     get_resource_summaries,
@@ -105,20 +108,28 @@ class RemoteInvokeContext:
         if not self._stack_name and not self._resource_id:
             raise InvalidRemoteInvokeParameters("Either --stack-name or --resource-id parameter should be provided")
 
-        if not self._resource_id:
-            # no resource id provided, list all resources from stack and try to find one
-            self._resource_summary = self._get_single_resource_from_stack()
-            self._resource_id = self._resource_summary.logical_resource_id
-            return
+        try:
+            if not self._resource_id:
+                # no resource id provided, list all resources from stack and try to find one
+                self._resource_summary = self._get_single_resource_from_stack()
+                self._resource_id = self._resource_summary.logical_resource_id
+                return
 
-        if not self._stack_name:
-            # no stack name provided, resource id should be physical id so that we can use it
-            self._resource_summary = self._get_from_physical_resource_id()
-            return
+            if not self._stack_name:
+                # no stack name provided, resource id should be physical id so that we can use it
+                self._resource_summary = self._get_from_physical_resource_id()
+                return
 
-        self._resource_summary = get_resource_summary(
-            self._boto_resource_provider, self._boto_client_provider, self._stack_name, self._resource_id
-        )
+            self._resource_summary = get_resource_summary(
+                self._boto_resource_provider, self._boto_client_provider, self._stack_name, self._resource_id
+            )
+        except ClientError as ex:
+            error_code = get_client_error_code(ex)
+            if error_code == "ValidationError":
+                raise InvalidStackNameProvidedForRemoteInvoke(
+                    f"Invalid --stack-name parameter. Stack with id '{self._stack_name}' does not exist"
+                )
+            raise ex
 
     def _get_single_resource_from_stack(self) -> CloudFormationResourceSummary:
         """

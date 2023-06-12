@@ -54,9 +54,10 @@ def _gather_docker_info() -> str:
 
     import docker
 
+    from samcli.lib.constants import DOCKER_MIN_API_VERSION
     from samcli.local.docker.utils import is_docker_reachable
 
-    with contextlib.closing(docker.from_env()) as client:
+    with contextlib.closing(docker.from_env(version=DOCKER_MIN_API_VERSION)) as client:
         if is_docker_reachable(client):
             return cast(str, client.version().get("Version", "Not available"))
         return "Not available"

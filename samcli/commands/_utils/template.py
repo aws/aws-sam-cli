@@ -11,10 +11,12 @@ from botocore.utils import set_value_from_jmespath
 
 from samcli.commands.exceptions import UserException
 from samcli.lib.samlib.resource_metadata_normalizer import ASSET_PATH_METADATA_KEY, ResourceMetadataNormalizer
+from samcli.lib.utils import graphql_api
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.resources import (
     AWS_LAMBDA_FUNCTION,
     AWS_SERVERLESS_FUNCTION,
+    AWS_SERVERLESS_GRAPHQLAPI,
     METADATA_WITH_LOCAL_PATHS,
     RESOURCES_WITH_LOCAL_PATHS,
     get_packageable_resource_paths,
@@ -160,6 +162,18 @@ def _update_relative_paths(template_dict, original_root, new_root):
                 and properties.get("PackageType", ZIP) == IMAGE
             ):
                 continue
+
+            # SAM GraphQLApi has many instances of CODE_ARTIFACT_PROPERTY and all of them must be updated
+            if resource_type == AWS_SERVERLESS_GRAPHQLAPI and path_prop_name == graphql_api.CODE_ARTIFACT_PROPERTY:
+                # to be able to set different nested properties to S3 uri, paths are necessary
+                # jmespath doesn't provide that functionality, thus custom implementation
+                paths_values = graphql_api.find_all_paths_and_values(path_prop_name, properties)
+                for property_path, property_value in paths_values:
+                    updated_path = _resolve_relative_to(property_value, original_root, new_root)
+                    if not updated_path:
+                        # This path does not need to get updated
+                        continue
+                    set_value_from_jmespath(properties, property_path, updated_path)
 
             path = jmespath.search(path_prop_name, properties)
             updated_path = _resolve_relative_to(path, original_root, new_root)
