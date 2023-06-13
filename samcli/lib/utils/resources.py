@@ -4,6 +4,8 @@ Enums for Resources and their Location Properties, along with utility functions
 
 from collections import defaultdict
 
+from samcli.lib.utils.graphql_api import CODE_ARTIFACT_PROPERTY, SCHEMA_ARTIFACT_PROPERTY
+
 # Lambda
 AWS_SERVERLESS_FUNCTION = "AWS::Serverless::Function"
 AWS_SERVERLESS_LAYERVERSION = "AWS::Serverless::LayerVersion"
@@ -41,6 +43,7 @@ AWS_STEPFUNCTIONS_STATEMACHINE = "AWS::StepFunctions::StateMachine"
 AWS_SERVERLESS_APPLICATION = "AWS::Serverless::Application"
 
 AWS_SERVERLESSREPO_APPLICATION = "AWS::ServerlessRepo::Application"
+AWS_SERVERLESS_GRAPHQLAPI = "AWS::Serverless::GraphQLApi"
 AWS_APPSYNC_GRAPHQLSCHEMA = "AWS::AppSync::GraphQLSchema"
 AWS_APPSYNC_RESOLVER = "AWS::AppSync::Resolver"
 AWS_APPSYNC_FUNCTIONCONFIGURATION = "AWS::AppSync::FunctionConfiguration"
@@ -61,12 +64,17 @@ AWS_RESOURCE_GROUP = "AWS::ResourceGroups::Group"
 METADATA_WITH_LOCAL_PATHS = {AWS_SERVERLESSREPO_APPLICATION: ["LicenseUrl", "ReadmeUrl"]}
 
 RESOURCES_WITH_LOCAL_PATHS = {
+    AWS_SERVERLESS_GRAPHQLAPI: [SCHEMA_ARTIFACT_PROPERTY, CODE_ARTIFACT_PROPERTY],
     AWS_SERVERLESS_FUNCTION: ["CodeUri"],
     AWS_SERVERLESS_API: ["DefinitionUri"],
     AWS_SERVERLESS_HTTPAPI: ["DefinitionUri"],
     AWS_SERVERLESS_STATEMACHINE: ["DefinitionUri"],
     AWS_APPSYNC_GRAPHQLSCHEMA: ["DefinitionS3Location"],
-    AWS_APPSYNC_RESOLVER: ["RequestMappingTemplateS3Location", "ResponseMappingTemplateS3Location", "CodeS3Location"],
+    AWS_APPSYNC_RESOLVER: [
+        "RequestMappingTemplateS3Location",
+        "ResponseMappingTemplateS3Location",
+        "CodeS3Location",
+    ],
     AWS_APPSYNC_FUNCTIONCONFIGURATION: [
         "RequestMappingTemplateS3Location",
         "ResponseMappingTemplateS3Location",
@@ -133,7 +141,11 @@ def get_packageable_resource_paths():
         Resource Dictionary containing packageable resource types and their locations as a list.
     """
     _resource_property_dict = defaultdict(list)
-    for _dict in (METADATA_WITH_LOCAL_PATHS, RESOURCES_WITH_LOCAL_PATHS, RESOURCES_WITH_IMAGE_COMPONENT):
+    for _dict in (
+        METADATA_WITH_LOCAL_PATHS,
+        RESOURCES_WITH_LOCAL_PATHS,
+        RESOURCES_WITH_IMAGE_COMPONENT,
+    ):
         for key, value in _dict.items():
             # Only add values to the list if they are different, same property name could be used with the resource
             # to package to different locations.

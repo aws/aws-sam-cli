@@ -296,7 +296,6 @@ class TestContainer_create(TestCase):
             tty=False,
             use_config_proxy=True,
             volumes=expected_volumes,
-            network_mode="host",
         )
 
         self.mock_docker_client.networks.get.assert_not_called()

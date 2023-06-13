@@ -18,6 +18,7 @@ from samcli.lib.providers.provider import (
     get_unique_resource_ids,
     Function,
     get_resource_full_path_by_id,
+    FunctionBuildInfo,
 )
 from samcli.commands.local.cli_common.user_exceptions import (
     InvalidLayerVersionArn,
@@ -293,6 +294,7 @@ class TestFunction(TestCase):
             None,
             [ARM64],
             None,
+            FunctionBuildInfo.BuildableZip,
             "stackpath",
             None,
         )

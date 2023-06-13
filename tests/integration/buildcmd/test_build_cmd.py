@@ -26,6 +26,7 @@ from tests.testing_utils import (
     SKIP_DOCKER_BUILD,
     SKIP_DOCKER_MESSAGE,
     run_command_with_input,
+    UpdatableSARTemplate,
 )
 from .build_integ_base import (
     BuildIntegBase,
@@ -397,34 +398,64 @@ class TestSkipBuildingFlaggedFunctions(BuildIntegPythonBase):
         "overrides",
         "runtime",
         "codeuri",
-        "use_container",
         "check_function_only",
         "prop",
     ),
     [
-        ("template.yaml", "Function", True, "python3.7", "Python", False, False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.8", "Python", False, False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.9", "Python", False, False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.10", "Python", False, False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.7", "PythonPEP600", False, False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.8", "PythonPEP600", False, False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.7", "Python", "use_container", False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.8", "Python", "use_container", False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.9", "Python", "use_container", False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.10", "Python", "use_container", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.7", "Python", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.8", "Python", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.9", "Python", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.10", "Python", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.7", "PythonPEP600", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.8", "PythonPEP600", False, "CodeUri"),
     ],
 )
-class TestBuildCommand_PythonFunctions(BuildIntegPythonBase):
+class TestBuildCommand_PythonFunctions_WithoutDocker(BuildIntegPythonBase):
     overrides = True
     runtime = "python3.9"
     codeuri = "Python"
+    check_function_only = False
     use_container = False
+
+    @pytest.mark.flaky(reruns=3)
+    def test_with_default_requirements(self):
+        self._test_with_default_requirements(
+            self.runtime,
+            self.codeuri,
+            self.use_container,
+            self.test_data_path,
+            do_override=self.overrides,
+            check_function_only=self.check_function_only,
+        )
+
+
+@skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
+@parameterized_class(
+    (
+        "template",
+        "FUNCTION_LOGICAL_ID",
+        "overrides",
+        "runtime",
+        "codeuri",
+        "check_function_only",
+        "prop",
+    ),
+    [
+        ("template.yaml", "Function", True, "python3.7", "Python", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.8", "Python", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.9", "Python", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.10", "Python", False, "CodeUri"),
+    ],
+)
+class TestBuildCommand_PythonFunctions_WithDocker(BuildIntegPythonBase):
+    overrides = True
+    runtime = "python3.9"
+    codeuri = "Python"
+    use_container = "use_container"
     check_function_only = False
 
     @pytest.mark.flaky(reruns=3)
     def test_with_default_requirements(self):
-        if self.use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
-            self.skipTest(SKIP_DOCKER_MESSAGE)
         self._test_with_default_requirements(
             self.runtime,
             self.codeuri,
@@ -464,7 +495,9 @@ class TestBuildCommand_PythonFunctions(BuildIntegPythonBase):
         ),
     ],
 )
-class TestBuildCommand_PythonFunctions_CDK(TestBuildCommand_PythonFunctions):
+class TestBuildCommand_PythonFunctions_CDK(TestBuildCommand_PythonFunctions_WithoutDocker):
+    use_container = False
+
     @pytest.mark.flaky(reruns=3)
     def test_cdk_app_with_default_requirements(self):
         self._test_with_default_requirements(
@@ -537,6 +570,23 @@ class TestBuildCommand_NodeFunctions(BuildIntegNodeBase):
         self._test_with_default_package_json(runtime, use_container, self.test_data_path)
 
 
+class TestBuildCommand_NodeFunctions_With_External_Manifest(BuildIntegNodeBase):
+    CODE_URI = "Node_without_manifest"
+    TEST_INVOKE = True
+    MANIFEST_PATH = "npm_manifest/package.json"
+
+    @parameterized.expand(
+        [
+            ("nodejs14.x",),
+            ("nodejs16.x",),
+            ("nodejs18.x",),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_building_default_package_json(self, runtime):
+        self._test_with_default_package_json(runtime, False, self.test_data_path)
+
+
 class TestBuildCommand_EsbuildFunctions(BuildIntegEsbuildBase):
     template = "template_with_metadata_esbuild.yaml"
 
@@ -562,6 +612,71 @@ class TestBuildCommand_EsbuildFunctions(BuildIntegEsbuildBase):
                 {"app.js", "app.js.map"},
                 "app.lambdaHandler",
                 "use_container",
+                "arm64",
+            ),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_building_default_package_json(
+        self, runtime, code_uri, expected_files, handler, use_container, architecture
+    ):
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+        self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, architecture)
+
+
+class TestBuildCommand_EsbuildFunctions_With_External_Manifest(BuildIntegEsbuildBase):
+    template = "template_with_metadata_esbuild.yaml"
+    MANIFEST_PATH = "Esbuild/npm_manifest/package.json"
+
+    @parameterized.expand(
+        [
+            (
+                "nodejs14.x",
+                "Esbuild/Node_without_manifest",
+                {"main.js", "main.js.map"},
+                "main.lambdaHandler",
+                False,
+                "x86_64",
+            ),
+            (
+                "nodejs16.x",
+                "Esbuild/Node_without_manifest",
+                {"main.js", "main.js.map"},
+                "main.lambdaHandler",
+                False,
+                "arm64",
+            ),
+            (
+                "nodejs18.x",
+                "Esbuild/Node_without_manifest",
+                {"main.js", "main.js.map"},
+                "main.lambdaHandler",
+                False,
+                "arm64",
+            ),
+            (
+                "nodejs14.x",
+                "Esbuild/TypeScript_without_manifest",
+                {"app.js", "app.js.map"},
+                "app.lambdaHandler",
+                False,
+                "x86_64",
+            ),
+            (
+                "nodejs16.x",
+                "Esbuild/TypeScript_without_manifest",
+                {"app.js", "app.js.map"},
+                "app.lambdaHandler",
+                False,
+                "arm64",
+            ),
+            (
+                "nodejs18.x",
+                "Esbuild/TypeScript_without_manifest",
+                {"app.js", "app.js.map"},
+                "app.lambdaHandler",
+                False,
                 "arm64",
             ),
         ]
@@ -2958,6 +3073,20 @@ class TestBuildWithZipFunctionsOrLayers(NestedBuildIntegBase):
 @skipIf(SKIP_SAR_TESTS, "Skip SAR tests")
 class TestBuildSAR(BuildIntegBase):
     template = "aws-serverless-application-with-application-id-map.yaml"
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestBuildSAR, cls).setUpClass()
+        cls.update_sar_template = None
+        if cls.template_path:
+            cls.update_sar_template = UpdatableSARTemplate(cls.template_path)
+            cls.update_sar_template.setup()
+            cls.template_path = cls.update_sar_template.updated_template_path
+
+    @classmethod
+    def tearDownClass(cls):
+        if cls.update_sar_template:
+            cls.update_sar_template.clean()
 
     @parameterized.expand(
         [

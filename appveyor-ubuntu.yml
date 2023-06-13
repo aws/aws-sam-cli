@@ -38,8 +38,8 @@ environment:
     - PYTHON_HOME: "$HOME/venv3.8/bin"
       PYTHON_VERSION: '3.8'
 
-    - PYTHON_HOME: "$HOME/venv3.9/bin"
-      PYTHON_VERSION: '3.9'
+    - PYTHON_HOME: "$HOME/venv3.11/bin"
+      PYTHON_VERSION: '3.11'
 
 install:
   # AppVeyor's apt-get cache might be outdated, and the package could potentially be 404.
@@ -61,7 +61,8 @@ install:
 
   - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
   - sh: "rvm use 2.7.2"
-  - sh: "docker --version"
+  - sh: "docker info"
+  - sh: "docker version"
   - sh: "nvm install ${NODE_VERSION}"
   - sh: "npm install npm@7.24.2 -g"
   - sh: "npm -v"
@@ -149,7 +150,8 @@ install:
 
 
 build_script:
-      - "python -c \"import sys; print(sys.executable)\""
+    - "python -c \"import sys; print(sys.executable)\""
+    - "make init"
 
 # Final clean up no matter success or failure
 on_finish:
@@ -176,10 +178,6 @@ for:
         - configuration: BuildIntegTesting
 
     test_script:
-      # Pre-dev Tests
-      - "pip install -e \".[pre-dev]\""
-
-      - "pip install -e \".[dev]\""
       - sh: "pytest -vv tests/integration/buildcmd --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
       # Set JAVA_HOME to java11
@@ -193,10 +191,6 @@ for:
         - configuration: LocalZipTerraformBuildIntegTesting
 
     test_script:
-      # Pre-dev Tests
-      - "pip install -e \".[pre-dev]\""
-
-      - "pip install -e \".[dev]\""
       - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend_0 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
   # Local ZIP  Terraform Build In Container  integ testing
@@ -206,10 +200,6 @@ for:
         - configuration: LocalZipTerraformBuildInContainerIntegTesting
 
     test_script:
-      # Pre-dev Tests
-      - "pip install -e \".[pre-dev]\""
-
-      - "pip install -e \".[dev]\""
       - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend_1 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
   # S3 ZIP  Terraform Build integ testing
@@ -219,10 +209,6 @@ for:
         - configuration: S3ZipTerraformBuildIntegTesting
 
     test_script:
-      # Pre-dev Tests
-      - "pip install -e \".[pre-dev]\""
-
-      - "pip install -e \".[dev]\""
       - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend_0 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
   # S3 ZIP  Terraform Build In Container integ testing
@@ -232,10 +218,6 @@ for:
         - configuration: S3ZipTerraformBuildInContainerIntegTesting
 
     test_script:
-      # Pre-dev Tests
-      - "pip install -e \".[pre-dev]\""
-
-      - "pip install -e \".[dev]\""
       - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend_1 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
   # Other Terraform Build In Container integ testing
@@ -245,10 +227,6 @@ for:
         - configuration: OtherTerraformBuildIntegTesting
 
     test_script:
-      # Pre-dev Tests
-      - "pip install -e \".[pre-dev]\""
-
-      - "pip install -e \".[dev]\""
       - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
   # Integ testing deploy
@@ -258,7 +236,6 @@ for:
         - configuration: DeployIntegTesting
 
     test_script:
-      - "pip install -e \".[dev]\""
       - sh: "pytest -vv tests/integration/deploy -n 4 --reruns 4 --dist=loadgroup --json-report --json-report-file=TEST_REPORT-integration-deploy.json"
 
   # Integ testing package
@@ -268,7 +245,6 @@ for:
         - configuration: PackageIntegTesting
 
     test_script:
-      - "pip install -e \".[dev]\""
       - sh: "pytest -vv tests/integration/package -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-package.json"
 
   # Integ testing delete
@@ -278,7 +254,6 @@ for:
         - configuration: DeleteIntegTesting
 
     test_script:
-      - "pip install -e \".[dev]\""
       - sh: "pytest -vv tests/integration/delete -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-delete.json"
 
   # Integ testing sync
@@ -288,7 +263,6 @@ for:
         - configuration: SyncIntegTesting
 
     test_script:
-      - "pip install -e \".[dev]\""
       - sh: "pytest -vv tests/integration/sync -n 3 --reruns 3 --dist loadscope --json-report --json-report-file=TEST_REPORT-integration-sync.json"
 
   # Integ testing local
@@ -298,11 +272,6 @@ for:
         - configuration: LocalIntegTesting
 
     test_script:
-      # Pre-dev Tests
-      - "pip install -e \".[pre-dev]\""
-      - "ruff samcli"
-
-      - "pip install -e \".[dev]\""
       - sh: "pytest -vv tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-local.json"
 
   # End-to-end testing
@@ -312,7 +281,6 @@ for:
         - configuration: EndToEndTesting
 
     test_script:
-      - "pip install -e \".[dev]\""
       - sh: "pytest -vv -n 4 --reruns 5 --dist loadscope tests/end_to_end --json-report --json-report-file=TEST_REPORT-end-to-end.json"
 
   # Other testing
@@ -322,18 +290,5 @@ for:
         - configuration: OtherTesting
 
     test_script:
-      # Pre-dev Tests
-      - "pip install -e \".[pre-dev]\""
-      - "ruff samcli"
-
-      # Dev Tests
-      - "pip install -e \".[dev]\""
-      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit --json-report --json-report-file=TEST_REPORT-unit.json"
-      - "ruff samcli"
-      - "mypy setup.py samcli tests"
-      - "pytest -n 4 tests/functional --json-report --json-report-file=TEST_REPORT-functional.json"
-      
       - sh: "pytest -vv -n 4 --reruns 4 --dist loadgroup tests/integration --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-others.json"
       - sh: "pytest -vv tests/regression --json-report --json-report-file=TEST_REPORT-regression.json"
-      - sh: "black --check setup.py tests samcli"
-      - sh: "pytest -n 4 -vv tests/smoke --json-report --json-report-file=TEST_REPORT-smoke.json"

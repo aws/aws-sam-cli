@@ -8,8 +8,14 @@ import shutil
 import yaml
 from botocore.utils import set_value_from_jmespath
 from parameterized import parameterized, param
+from samcli.lib.utils.graphql_api import CODE_ARTIFACT_PROPERTY, find_all_paths_and_values
 
-from samcli.lib.utils.resources import AWS_SERVERLESS_FUNCTION, AWS_SERVERLESS_API, RESOURCES_WITH_IMAGE_COMPONENT
+from samcli.lib.utils.resources import (
+    AWS_SERVERLESS_FUNCTION,
+    AWS_SERVERLESS_API,
+    AWS_SERVERLESS_GRAPHQLAPI,
+    RESOURCES_WITH_IMAGE_COMPONENT,
+)
 from samcli.commands._utils.template import (
     get_template_data,
     METADATA_WITH_LOCAL_PATHS,
@@ -215,35 +221,14 @@ class Test_update_relative_paths(TestCase):
     @parameterized.expand([(resource_type, props) for resource_type, props in RESOURCES_WITH_LOCAL_PATHS.items()])
     def test_must_update_relative_resource_paths(self, resource_type, properties):
         for propname in properties:
-            template_dict = {
-                "Resources": {
-                    "MyResourceWithRelativePath": {"Type": resource_type, "Properties": {}},
-                    "MyResourceWithS3Path": {"Type": resource_type, "Properties": {propname: self.s3path}},
-                    "MyResourceWithAbsolutePath": {"Type": resource_type, "Properties": {propname: self.abspath}},
-                    "MyResourceWithInvalidPath": {
-                        "Type": resource_type,
-                        "Properties": {
-                            # Path is not a string
-                            propname: {"foo": "bar"}
-                        },
-                    },
-                    "MyResourceWithoutProperties": {"Type": resource_type},
-                    "UnsupportedResourceType": {"Type": "AWS::Ec2::Instance", "Properties": {"Code": "bar"}},
-                    "ResourceWithoutType": {"foo": "bar"},
-                },
-                "Parameters": {"a": "b"},
-            }
+            template_dict = self._generate_template(resource_type, propname)
 
-            set_value_from_jmespath(
-                template_dict, f"Resources.MyResourceWithRelativePath.Properties.{propname}", self.curpath
-            )
+            self._set_property(self.curpath, propname, template_dict, resource_type, "MyResourceWithRelativePath")
 
             expected_template_dict = copy.deepcopy(template_dict)
 
-            set_value_from_jmespath(
-                expected_template_dict,
-                f"Resources.MyResourceWithRelativePath.Properties.{propname}",
-                self.expected_result,
+            self._set_property(
+                self.expected_result, propname, expected_template_dict, resource_type, "MyResourceWithRelativePath"
             )
 
             result = _update_relative_paths(template_dict, self.src, self.dest)
@@ -251,7 +236,13 @@ class Test_update_relative_paths(TestCase):
             self.maxDiff = None
             self.assertEqual(result, expected_template_dict)
 
-    @parameterized.expand([(resource_type, props) for resource_type, props in RESOURCES_WITH_LOCAL_PATHS.items()])
+    @parameterized.expand(
+        [
+            (resource_type, props)
+            for resource_type, props in RESOURCES_WITH_LOCAL_PATHS.items()
+            if resource_type != AWS_SERVERLESS_GRAPHQLAPI  # Metadata path to code artifacts is not supported
+        ]
+    )
     def test_must_update_relative_resource_metadata_paths(self, resource_type, properties):
         for propname in properties:
             template_dict = {
@@ -336,34 +327,18 @@ class Test_update_relative_paths(TestCase):
     ):
         for non_image_propname in non_image_properties:
             for image_propname in image_properties:
-                template_dict = {
-                    "Resources": {
-                        "MyResourceWithRelativePath": {"Type": non_image_resource_type, "Properties": {}},
-                        "MyResourceWithS3Path": {
-                            "Type": non_image_resource_type,
-                            "Properties": {non_image_propname: self.s3path},
-                        },
-                        "MyResourceWithAbsolutePath": {
-                            "Type": non_image_resource_type,
-                            "Properties": {non_image_propname: self.abspath},
-                        },
-                        "MyResourceWithInvalidPath": {
-                            "Type": non_image_resource_type,
-                            "Properties": {
-                                # Path is not a string
-                                non_image_propname: {"foo": "bar"}
-                            },
-                        },
-                        "MyResourceWithoutProperties": {"Type": non_image_resource_type},
-                        "UnsupportedResourceType": {"Type": "AWS::Ec2::Instance", "Properties": {"Code": "bar"}},
-                        "ResourceWithoutType": {"foo": "bar"},
-                        "ImageResource": {"Type": image_resource_type, "Properties": {"PackageType": "Image"}},
-                    },
-                    "Parameters": {"a": "b"},
+                template_dict = self._generate_template(non_image_resource_type, non_image_resource_type)
+                template_dict["Resources"]["ImageResource"] = {
+                    "Type": image_resource_type,
+                    "Properties": {"PackageType": "Image"},
                 }
 
-                set_value_from_jmespath(
-                    template_dict, f"Resources.MyResourceWithRelativePath.Properties.{non_image_propname}", self.curpath
+                self._set_property(
+                    self.curpath,
+                    non_image_propname,
+                    template_dict,
+                    non_image_resource_type,
+                    "MyResourceWithRelativePath",
                 )
 
                 set_value_from_jmespath(
@@ -372,10 +347,12 @@ class Test_update_relative_paths(TestCase):
 
                 expected_template_dict = copy.deepcopy(template_dict)
 
-                set_value_from_jmespath(
-                    expected_template_dict,
-                    f"Resources.MyResourceWithRelativePath.Properties.{non_image_propname}",
+                self._set_property(
                     self.expected_result,
+                    non_image_propname,
+                    expected_template_dict,
+                    non_image_resource_type,
+                    "MyResourceWithRelativePath",
                 )
 
                 result = _update_relative_paths(template_dict, self.src, self.dest)
@@ -419,6 +396,74 @@ class Test_update_relative_paths(TestCase):
         result = _update_relative_paths(template_dict, self.src, self.dest)
         self.maxDiff = None
         self.assertEqual(result, expected_template_dict)
+
+    def _generate_template(self, resource_type, property_name):
+        template = {
+            "Resources": {
+                "MyResourceWithRelativePath": {"Type": resource_type, "Properties": {}},
+                "MyResourceWithS3Path": {"Type": resource_type, "Properties": {}},
+                "MyResourceWithAbsolutePath": {"Type": resource_type, "Properties": {}},
+                "MyResourceWithInvalidPath": {
+                    "Type": resource_type,
+                    "Properties": {},
+                },
+                "MyResourceWithoutProperties": {"Type": resource_type},
+                "UnsupportedResourceType": {"Type": "AWS::Ec2::Instance", "Properties": {"Code": "bar"}},
+                "ResourceWithoutType": {"foo": "bar"},
+            },
+            "Parameters": {"a": "b"},
+        }
+        if self._is_graphql_code_uri(resource_type, property_name):
+            template["Resources"]["MyResourceWithRelativePath"]["Properties"] = self._generate_graphql_props(
+                property_name
+            )
+            template["Resources"]["MyResourceWithS3Path"]["Properties"] = self._generate_graphql_props(
+                property_name, self.s3path
+            )
+            template["Resources"]["MyResourceWithAbsolutePath"]["Properties"] = self._generate_graphql_props(
+                property_name, self.abspath
+            )
+            template["Resources"]["MyResourceWithInvalidPath"]["Properties"] = self._generate_graphql_props(
+                property_name, {"foo": "bar"}
+            )
+        else:
+            template["Resources"]["MyResourceWithS3Path"]["Properties"] = {property_name: self.s3path}
+            template["Resources"]["MyResourceWithAbsolutePath"]["Properties"] = {property_name: self.abspath}
+            template["Resources"]["MyResourceWithInvalidPath"]["Properties"] = {property_name: {"foo": "bar"}}
+        return template
+
+    @staticmethod
+    def _generate_graphql_props(property_name, path=None):
+        if path is not None:
+            return {
+                "Functions": {"Func1": {property_name: path}, "Func2": {property_name: path}},
+                "Resolvers": {"Mutation": {"Resolver1": {property_name: path}}},
+            }
+        return {
+            "Functions": {"Func1": {}, "Func2": {}},
+            "Resolvers": {"Mutation": {"Resolver1": {}}},
+        }
+
+    def _set_property(self, value, property_name, template, tested_type, resource_name):
+        if self._is_graphql_code_uri(tested_type, property_name):
+            resource_dict = template["Resources"][resource_name]
+            paths_values = find_all_paths_and_values(property_name, resource_dict)
+            for property_path, _ in paths_values:
+                set_value_from_jmespath(template, f"Resources.{resource_name}.{property_path}", value)
+        else:
+            set_value_from_jmespath(template, f"Resources.{resource_name}.Properties.{property_name}", value)
+
+    @staticmethod
+    def _is_graphql_code_uri(resource_type, property_name):
+        return resource_type == AWS_SERVERLESS_GRAPHQLAPI and property_name == CODE_ARTIFACT_PROPERTY
+
+    def _assert_templates_are_equal(self, actual, expected, tested_type, property_name):
+        if self._is_graphql_code_uri(tested_type, property_name):
+            actual_paths_values = find_all_paths_and_values(property_name, actual)
+            expepcted_paths_values = find_all_paths_and_values(property_name, expected)
+            self.assertListEqual(actual_paths_values, expepcted_paths_values)
+        else:
+            self.assertEqual(actual, expected)
 
 
 class Test_resolve_relative_to(TestCase):
