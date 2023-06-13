@@ -7,7 +7,7 @@ import json
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict, Type
 
 import tomlkit
 from ruamel.yaml import YAML, YAMLError
@@ -332,3 +332,11 @@ class JsonFileManager(FileManager):
         """
         document.update({COMMENT_KEY: comment})
         return document
+
+
+FILE_MANAGER_MAPPER: Dict[str, Type[FileManager]] = {  # keys ordered by priority
+    ".toml": TomlFileManager,
+    ".yaml": YamlFileManager,
+    ".yml": YamlFileManager,
+    ".json": JsonFileManager,
+}
