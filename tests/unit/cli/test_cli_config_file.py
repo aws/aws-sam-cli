@@ -9,8 +9,8 @@ import tomlkit
 
 from samcli.commands.exceptions import ConfigException
 from samcli.cli.cli_config_file import ConfigProvider, configuration_option, configuration_callback, get_ctx_defaults
-from samcli.lib.config.exceptions import FileParseException, SamConfigFileReadException, SamConfigVersionException
-from samcli.lib.config.samconfig import DEFAULT_ENV, TomlFileManager
+from samcli.lib.config.exceptions import SamConfigFileReadException, SamConfigVersionException
+from samcli.lib.config.samconfig import DEFAULT_ENV
 
 from tests.testing_utils import IS_WINDOWS
 
