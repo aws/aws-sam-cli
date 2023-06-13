@@ -1,7 +1,6 @@
 """CLI command for "invoke" command."""
 import logging
 from io import TextIOWrapper
-from typing import cast
 
 import click
 
@@ -124,16 +123,6 @@ def do_cli(
                 payload=event, payload_file=event_file, parameters=parameter, output_format=output_format
             )
 
-            remote_invoke_result = remote_invoke_context.run(remote_invoke_input=remote_invoke_input)
-
-            if remote_invoke_result.is_succeeded():
-                LOG.debug("Invoking resource was successfull, writing response to stdout")
-                if remote_invoke_result.log_output:
-                    LOG.debug("Writing log output to stderr")
-                    remote_invoke_context.stderr.write(remote_invoke_result.log_output.encode())
-                output_response = cast(str, remote_invoke_result.response)
-                remote_invoke_context.stdout.write(output_response.encode())
-            else:
-                raise cast(Exception, remote_invoke_result.exception)
+            remote_invoke_context.run(remote_invoke_input=remote_invoke_input)
     except (ErrorBotoApiCallException, InvalideBotoResponseException, InvalidResourceBotoParameterException) as ex:
         raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
