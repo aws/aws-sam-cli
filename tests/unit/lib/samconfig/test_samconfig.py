@@ -306,6 +306,7 @@ class TestSamConfigFileManager(TestCase):
 
         def mock_tracker(name, value):  # when track_event is called, just append the Event to our list
             tracked_events.append(Event(name, value))
+
         track_mock.side_effect = mock_tracker
 
         samconfig = SamConfig(config_path, filename=filename)
