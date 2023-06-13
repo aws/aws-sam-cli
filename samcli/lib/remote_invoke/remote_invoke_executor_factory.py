@@ -7,8 +7,12 @@ from typing import Any, Callable, Dict, Optional
 from samcli.lib.remote_invoke.lambda_invoke_executors import (
     DefaultConvertToJSON,
     LambdaInvokeExecutor,
+    LambdaInvokeWithResponseStreamExecutor,
     LambdaResponseConverter,
     LambdaResponseOutputFormatter,
+    LambdaStreamResponseConverter,
+    LambdaStreamResponseOutputFormatter,
+    _is_function_invoke_mode_response_stream,
 )
 from samcli.lib.remote_invoke.remote_invoke_executors import RemoteInvokeExecutor, ResponseObjectToJsonStringMapper
 from samcli.lib.utils.cloudformation import CloudFormationResourceSummary
@@ -64,6 +68,22 @@ class RemoteInvokeExecutorFactory:
 
         :return: Returns the created remote invoke Executor
         """
+        lambda_client = self._boto_client_provider("lambda")
+        if _is_function_invoke_mode_response_stream(lambda_client, cfn_resource_summary.physical_resource_id):
+            LOG.debug("Creating response stream invocator for function %s", cfn_resource_summary.physical_resource_id)
+            return RemoteInvokeExecutor(
+                request_mappers=[DefaultConvertToJSON()],
+                response_mappers=[
+                    LambdaStreamResponseConverter(),
+                    LambdaStreamResponseOutputFormatter(),
+                    ResponseObjectToJsonStringMapper(),
+                ],
+                boto_action_executor=LambdaInvokeWithResponseStreamExecutor(
+                    lambda_client,
+                    cfn_resource_summary.physical_resource_id,
+                ),
+            )
+
         return RemoteInvokeExecutor(
             request_mappers=[DefaultConvertToJSON()],
             response_mappers=[
@@ -72,7 +92,7 @@ class RemoteInvokeExecutorFactory:
                 ResponseObjectToJsonStringMapper(),
             ],
             boto_action_executor=LambdaInvokeExecutor(
-                self._boto_client_provider("lambda"),
+                lambda_client,
                 cfn_resource_summary.physical_resource_id,
             ),
         )
