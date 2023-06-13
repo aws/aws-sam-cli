@@ -3,6 +3,7 @@ from unittest import TestCase
 from unittest.mock import patch, call, MagicMock
 
 import click
+from botocore.exceptions import NoCredentialsError, NoRegionError
 
 from samcli.commands.delete.delete_context import DeleteContext
 from samcli.lib.package.artifact_exporter import Template
@@ -10,6 +11,7 @@ from samcli.cli.cli_config_file import TomlProvider
 from samcli.lib.delete.cfn_utils import CfnUtils
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.ecr_uploader import ECRUploader
+from samcli.commands.exceptions import AWSServiceClientError, RegionError
 
 from samcli.commands.delete.exceptions import CfDeleteFailedStatusError
 
@@ -518,3 +520,39 @@ class TestDeleteContext(TestCase):
         ) as delete_context:
             self.assertEqual(delete_context.s3_bucket, "s3_bucket_override")
             self.assertEqual(delete_context.s3_prefix, "s3_prefix_override")
+
+    @patch.object(DeleteContext, "parse_config_file", MagicMock())
+    @patch("samcli.commands.delete.delete_context.click.get_current_context")
+    @patch("boto3.client")
+    def test_must_throw_error_if_boto3_cannot_resolve_credentials(self, boto3_client_mock, patched_get_current_context):
+        boto3_client_mock.side_effect = NoCredentialsError
+        with self.assertRaises(AWSServiceClientError) as ex:
+            with DeleteContext(
+                stack_name="test",
+                region=None,
+                config_file=None,
+                config_env=None,
+                profile="profile_without_creds",
+                no_prompts=True,
+                s3_bucket=None,
+                s3_prefix=None,
+            ):
+                self.assertIn("Unable to resolve credentials for the AWS SDK for Python client", ex)
+
+    @patch.object(DeleteContext, "parse_config_file", MagicMock())
+    @patch("samcli.commands.delete.delete_context.click.get_current_context")
+    @patch("boto3.client")
+    def test_must_throw_error_if_boto3_cannot_resolve_region(self, boto3_client_mock, patched_get_current_context):
+        boto3_client_mock.side_effect = NoRegionError
+        with self.assertRaises(RegionError) as ex:
+            with DeleteContext(
+                stack_name="test",
+                region=None,
+                config_file=None,
+                config_env=None,
+                profile="profile_without_region",
+                no_prompts=True,
+                s3_bucket=None,
+                s3_prefix=None,
+            ):
+                self.assertIn("Unable to resolve a region", ex)

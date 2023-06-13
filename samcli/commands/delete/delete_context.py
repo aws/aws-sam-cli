@@ -7,11 +7,13 @@ from typing import Optional
 
 import boto3
 import click
+from botocore.exceptions import NoCredentialsError, NoRegionError
 from click import confirm, prompt
 
 from samcli.cli.cli_config_file import TomlProvider
 from samcli.cli.context import Context
 from samcli.commands.delete.exceptions import CfDeleteFailedStatusError
+from samcli.commands.exceptions import AWSServiceClientError, RegionError
 from samcli.lib.bootstrap.companion_stack.companion_stack_builder import CompanionStack
 from samcli.lib.delete.cfn_utils import CfnUtils
 from samcli.lib.package.artifact_exporter import Template
@@ -108,38 +110,27 @@ class DeleteContext:
         """
         Initialize all the clients being used by sam delete.
         """
-        if not self.region:
-            if not self.no_prompts:
-                session = boto3.Session()
-                region = session.region_name
-                self.region = region if region else "us-east-1"
-            else:
-                # TODO: as part of the guided and non-guided context separation, we need also to move the options
-                # validations to a validator similar to samcli/lib/cli_validation/image_repository_validation.py.
-                raise click.BadOptionUsage(
-                    option_name="--region",
-                    message="Missing option '--region', region is required to run the non guided delete command.",
-                )
+        boto_config = get_boto_config_with_user_agent(region_name=self.region if self.region else None)
 
-        if self.profile:
-            Context.get_current_context().profile = self.profile
-        if self.region:
-            Context.get_current_context().region = self.region
-
-        boto_config = get_boto_config_with_user_agent()
-
-        # Define cf_client based on the region as different regions can have same stack-names
-        cloudformation_client = boto3.client(
-            "cloudformation", region_name=self.region if self.region else None, config=boto_config
-        )
-
-        s3_client = boto3.client("s3", region_name=self.region if self.region else None, config=boto_config)
-        ecr_client = boto3.client("ecr", region_name=self.region if self.region else None, config=boto_config)
+        try:
+            cloudformation_client = boto3.client("cloudformation", config=boto_config)
+            s3_client = boto3.client("s3", config=boto_config)
+            ecr_client = boto3.client("ecr", config=boto_config)
+        except NoCredentialsError as ex:
+            raise AWSServiceClientError(
+                "Unable to resolve credentials for the AWS SDK for Python client. "
+                "Please see their documentation for options to pass in credentials: "
+                "https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html"
+            ) from ex
+        except NoRegionError as ex:
+            raise RegionError(
+                "Unable to resolve a region. "
+                "Please provide a region via the --region, via --profile or by the "
+                "AWS_DEFAULT_REGION environment variable."
+            ) from ex
 
         self.s3_uploader = S3Uploader(s3_client=s3_client, bucket_name=self.s3_bucket, prefix=self.s3_prefix)
-
         self.ecr_uploader = ECRUploader(docker_client=None, ecr_client=ecr_client, ecr_repo=None, ecr_repo_multi=None)
-
         self.uploaders = Uploaders(self.s3_uploader, self.ecr_uploader)
         self.cf_utils = CfnUtils(cloudformation_client)
 
