@@ -20,7 +20,7 @@ class TestEventFileValidation(TestCase):
         mocked_context.params.get.return_value = {}
 
         event_and_event_file_options_validation(mock_func)()
-        patched_log.debug.assert_called_with(
+        patched_log.info.assert_called_with(
             "Neither --event nor --event-file options have been provided, reading from stdin"
         )
 
@@ -106,6 +106,8 @@ class TestRemoteInvokeAtleast1OptionProvidedValidation(TestCase):
         with self.assertRaises(BadOptionUsage) as ex:
             stack_name_or_resource_id_atleast_one_option_validation(mock_func)()
 
-        self.assertIn("Atleast 1 of --stack-name or --resource-id parameters should be provided.", ex.exception.message)
+        self.assertIn(
+            "Atleast one of --stack-name option or resource_id argument should be provided.", ex.exception.message
+        )
 
         mock_func.assert_not_called()

@@ -50,7 +50,7 @@ def event_and_event_file_options_validation(func):
 
         # if no event nor event_file arguments are given, read from stdin
         if not event and not event_file:
-            LOG.debug("Neither --event nor --event-file options have been provided, reading from stdin")
+            LOG.info("Neither --event nor --event-file options have been provided, reading from stdin")
             kwargs["event_file"] = cast(TextIOWrapper, sys.stdin)
         return func(*args, **kwargs)
 
@@ -59,7 +59,7 @@ def event_and_event_file_options_validation(func):
 
 def stack_name_or_resource_id_atleast_one_option_validation(func):
     """
-    This function validates that atleast one of --stack-name or --resource-id should is be provided
+    This function validates that atleast one of --stack-name option or resource_id argument should is be provided
 
     Parameters
     ----------
@@ -81,9 +81,9 @@ def stack_name_or_resource_id_atleast_one_option_validation(func):
         validator = Validator(
             validation_function=lambda: not (stack_name or resource_id),
             exception=click.BadOptionUsage(
-                option_name="--resource-id",
+                option_name="--stack-name",
                 ctx=ctx,
-                message="Atleast 1 of --stack-name or --resource-id parameters should be provided.",
+                message="Atleast one of --stack-name option or resource_id argument should be provided.",
             ),
         )
 
