@@ -1,11 +1,12 @@
 import os
 from pathlib import Path
+from unittest.mock import patch
 from parameterized import parameterized
 import tempfile
 from unittest import TestCase
 
 from samcli.lib.config.exceptions import SamConfigFileReadException, SamConfigVersionException
-from samcli.lib.config.file_manager import JsonFileManager, TomlFileManager, YamlFileManager
+from samcli.lib.config.file_manager import FILE_MANAGER_MAPPER, JsonFileManager, TomlFileManager, YamlFileManager
 from samcli.lib.config.samconfig import (
     DEFAULT_CONFIG_FILE,
     SamConfig,
@@ -14,6 +15,7 @@ from samcli.lib.config.samconfig import (
     DEFAULT_ENV,
 )
 from samcli.lib.config.version import VERSION_KEY, SAM_CONFIG_VERSION
+from samcli.lib.telemetry.event import Event
 from samcli.lib.utils import osutils
 
 
@@ -256,7 +258,7 @@ class TestSamConfig(TestCase):
 
     def test_config_priority(self):
         config_files = []
-        extensions_in_priority = list(SamConfig.FILE_MANAGER_MAPPER.keys())  # priority by order in dict
+        extensions_in_priority = list(FILE_MANAGER_MAPPER.keys())  # priority by order in dict
         for extension in extensions_in_priority:
             filename = DEFAULT_CONFIG_FILE + extension
             config = SamConfig(self.config_dir, filename=filename)
@@ -290,16 +292,24 @@ class TestSamConfigFileManager(TestCase):
 
     @parameterized.expand(
         [
-            ("samconfig.toml", TomlFileManager),
-            ("samconfig.yaml", YamlFileManager),
-            ("samconfig.yml", YamlFileManager),
-            ("samconfig.json", JsonFileManager),
+            ("samconfig.toml", TomlFileManager, ".toml"),
+            ("samconfig.yaml", YamlFileManager, ".yaml"),
+            ("samconfig.yml", YamlFileManager, ".yml"),
+            ("samconfig.json", JsonFileManager, ".json"),
         ]
     )
-    def test_file_manager(self, filename, expected_file_manager):
+    @patch("samcli.lib.telemetry.event.EventTracker.track_event")
+    def test_file_manager(self, filename, expected_file_manager, expected_extension, track_mock):
         config_dir = tempfile.gettempdir()
         config_path = Path(config_dir, filename)
+        tracked_events = []
+
+        def mock_tracker(name, value):  # when track_event is called, just append the Event to our list
+            tracked_events.append(Event(name, value))
+
+        track_mock.side_effect = mock_tracker
 
         samconfig = SamConfig(config_path, filename=filename)
 
         self.assertIs(samconfig.file_manager, expected_file_manager)
+        self.assertIn(Event("SamConfigFileExtension", expected_extension), tracked_events)
