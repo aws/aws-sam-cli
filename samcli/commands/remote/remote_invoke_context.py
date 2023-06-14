@@ -78,11 +78,6 @@ class RemoteInvokeContext:
         remote_invoke_input: RemoteInvokeExecutionInfo
             RemoteInvokeExecutionInfo which contains the payload and other information that will be required during
             the invocation
-
-        Returns
-        -------
-        RemoteInvokeExecutionInfo
-            Populates result and exception info (if any) and returns back to the caller
         """
         if not self._resource_summary:
             raise AmbiguousResourceForRemoteInvoke(

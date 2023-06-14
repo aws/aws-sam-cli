@@ -114,10 +114,10 @@ class LambdaInvokeExecutor(AbstractLambdaInvokeExecutor):
         if self._remote_output_format == RemoteInvokeOutputFormat.RAW:
             yield RemoteInvokeResponse(lambda_response)
         if self._remote_output_format == RemoteInvokeOutputFormat.DEFAULT:
-            yield RemoteInvokeResponse(cast(StreamingBody, lambda_response.get(PAYLOAD)).read().decode("utf-8"))
             log_result = lambda_response.get(LOG_RESULT)
             if log_result:
                 yield RemoteInvokeLogOutput(base64.b64decode(log_result).decode("utf-8"))
+            yield RemoteInvokeResponse(cast(StreamingBody, lambda_response.get(PAYLOAD)).read().decode("utf-8"))
 
 
 class LambdaInvokeWithResponseStreamExecutor(AbstractLambdaInvokeExecutor):

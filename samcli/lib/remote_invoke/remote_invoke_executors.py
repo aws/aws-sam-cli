@@ -193,8 +193,8 @@ class BotoActionExecutor(ABC):
 
         Returns
         -------
-        RemoteInvokeExecutionInfo
-            Updates response or exception fields of given input and returns it
+        RemoteInvokeIterableResponseType
+            Returns iterable response, see response type definition for details
         """
         action_executor: Callable[[Any], Iterable[Union[RemoteInvokeResponse, RemoteInvokeLogOutput]]]
         payload: Union[str, Path]
@@ -279,13 +279,13 @@ class RemoteInvokeExecutor:
 
         Parameters
         ----------
-        remote_invoke_output : RemoteInvokeExecutionInfo
-            Given remote invoke execution info which contains the response information
+        remote_invoke_output : RemoteInvokeResponse
+            Given remote invoke response which contains the payload itself
 
         Returns
         -------
-        RemoteInvokeExecutionInfo
-            RemoteInvokeExecutionInfo which contains updated response
+        RemoteInvokeResponse
+            Returns the mapped instance of RemoteInvokeResponse, after applying all configured mappers
         """
         for output_mapper in self._response_mappers:
             remote_invoke_output = output_mapper.map(remote_invoke_output)
