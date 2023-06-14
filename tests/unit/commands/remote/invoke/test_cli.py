@@ -101,10 +101,6 @@ class TestRemoteInvokeCliCommand(TestCase):
 
         context_mock.run.assert_called_with(remote_invoke_input=given_remote_invoke_execution_info)
 
-        if log_output:
-            stderr_stream_writer_mock.write.assert_called()
-        stdout_stream_writer_mock.write.assert_called()
-
     @parameterized.expand(
         [
             (InvalideBotoResponseException,),
@@ -114,14 +110,9 @@ class TestRemoteInvokeCliCommand(TestCase):
     )
     @patch("samcli.commands.remote.remote_invoke_context.RemoteInvokeContext")
     def test_raise_user_exception_invoke_not_successfull(self, exeception_to_raise, mock_invoke_context):
-
         context_mock = Mock()
         mock_invoke_context.return_value.__enter__.return_value = context_mock
-
-        given_remote_invoke_result = Mock()
-        given_remote_invoke_result.is_succeeded.return_value = False
-        context_mock.run.return_value = given_remote_invoke_result
-        given_remote_invoke_result.exception = exeception_to_raise
+        context_mock.run.side_effect = exeception_to_raise
 
         with self.assertRaises(UserException):
             do_cli(
