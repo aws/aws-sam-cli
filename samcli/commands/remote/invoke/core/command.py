@@ -65,7 +65,7 @@ class RemoteInvokeCommand(CoreCommand):
                     ]
                 )
             with formatter.indented_section(
-                name="Invoke lambda function using lambda ARN and get full boto response", extra_indents=1
+                name="Invoke lambda function using lambda ARN and get AWS API response", extra_indents=1
             ):
                 formatter.write_rd(
                     [
@@ -124,11 +124,6 @@ class RemoteInvokeCommand(CoreCommand):
                     RowDefinition(
                         name="ARN",
                         text="Amazon Resource Name",
-                        extra_row_modifiers=[ShowcaseRowModifier()],
-                    ),
-                    RowDefinition(
-                        name="CFN",
-                        text="CloudFormation",
                         extra_row_modifiers=[ShowcaseRowModifier()],
                     ),
                 ]

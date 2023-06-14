@@ -23,12 +23,12 @@ from samcli.lib.utils.version_checker import check_newer_version
 LOG = logging.getLogger(__name__)
 
 HELP_TEXT = """
-Invoke or send an event to cloud resources in your CFN stack
+Invoke or send an event to resources in the cloud.
 """
 SHORT_HELP = "Invoke a deployed resource in the cloud"
 
 DESCRIPTION = """
-  Invoke or send an event to cloud resources.
+  Invoke or send an event to resources in the cloud.
   An event body can be passed using either -e (--event) or --event-file parameter.
   Returned response will be written to stdout. Lambda logs will be written to stderr.
 """

@@ -53,7 +53,7 @@ class TestRemoteInvokeCommand(unittest.TestCase):
                 ("", ""),
                 ('$ echo {"message": "hello!"} | sam remote invoke HelloWorldFunction -e <>\x1b[0m', ""),
             ],
-            "Invoke lambda function using lambda ARN and get full boto response": [
+            "Invoke lambda function using lambda ARN and get AWS API response": [
                 ("", ""),
                 (
                     "$sam remote invoke arn:aws:lambda:us-west-2:123456789012:function:my-function -e <> --output-format raw\x1b[0m",
@@ -71,7 +71,7 @@ class TestRemoteInvokeCommand(unittest.TestCase):
                 ("", ""),
                 ("$sam remote invoke HelloWorldFunction -e <> --parameter InvocationType=DryRun\x1b[0m", ""),
             ],
-            "Acronyms": [("ARN", ""), ("CFN", "")],
+            "Acronyms": [("ARN", "")],
             "Infrastructure Options": [("", ""), ("--stack-name", ""), ("", "")],
             "Input Event Options": [("", ""), ("--event", ""), ("", "")],
             "Additional Options": [("", ""), ("--parameter", ""), ("", "")],
