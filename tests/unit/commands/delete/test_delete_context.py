@@ -215,7 +215,11 @@ class TestDeleteContext(TestCase):
     @patch.object(S3Uploader, "delete_artifact", MagicMock())
     @patch("samcli.commands.delete.delete_context.get_boto_client_provider_with_config")
     def test_guided_prompts_s3_bucket_prefix_present_execute_run(
-        self, get_boto_client_provider_mock, patched_click_get_current_context, patched_confirm, patched_get_cf_template_name
+        self,
+        get_boto_client_provider_mock,
+        patched_click_get_current_context,
+        patched_confirm,
+        patched_get_cf_template_name,
     ):
         patched_get_cf_template_name.return_value = "hello.template"
         with DeleteContext(
@@ -274,7 +278,11 @@ class TestDeleteContext(TestCase):
     @patch.object(ECRUploader, "delete_ecr_repository", MagicMock())
     @patch("samcli.commands.delete.delete_context.get_boto_client_provider_with_config")
     def test_guided_prompts_s3_bucket_present_no_prefix_execute_run(
-        self, get_boto_client_provider_mock, patched_click_get_current_context, patched_confirm, patched_get_cf_template_name
+        self,
+        get_boto_client_provider_mock,
+        patched_click_get_current_context,
+        patched_confirm,
+        patched_get_cf_template_name,
     ):
         patched_get_cf_template_name.return_value = "hello.template"
         with DeleteContext(
@@ -325,7 +333,11 @@ class TestDeleteContext(TestCase):
     @patch.object(CompanionStack, "stack_name", "Companion-Stack-Name")
     @patch("samcli.commands.delete.delete_context.get_boto_client_provider_with_config")
     def test_guided_prompts_ecr_companion_stack_present_execute_run(
-        self, get_boto_client_provider_mock, patched_click_get_current_context, patched_confirm, patched_get_cf_template_name
+        self,
+        get_boto_client_provider_mock,
+        patched_click_get_current_context,
+        patched_confirm,
+        patched_get_cf_template_name,
     ):
         patched_get_cf_template_name.return_value = "hello.template"
         with DeleteContext(
@@ -402,7 +414,11 @@ class TestDeleteContext(TestCase):
     @patch.object(CompanionStack, "stack_name", "Companion-Stack-Name")
     @patch("samcli.commands.delete.delete_context.get_boto_client_provider_with_config")
     def test_no_prompts_input_is_ecr_companion_stack_present_execute_run(
-        self, get_boto_client_provider_mock, patched_click_get_current_context, patched_click_echo, patched_get_cf_template_name
+        self,
+        get_boto_client_provider_mock,
+        patched_click_get_current_context,
+        patched_click_echo,
+        patched_get_cf_template_name,
     ):
         CfnUtils.get_stack_template.return_value = {
             "TemplateBody": {"Metadata": {"CompanionStackname": "Companion-Stack-Name"}}

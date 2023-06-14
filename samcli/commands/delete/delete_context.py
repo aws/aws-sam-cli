@@ -108,9 +108,7 @@ class DeleteContext:
         """
         Initialize all the clients being used by sam delete.
         """
-        client_provider = get_boto_client_provider_with_config(
-            region=self.region, profile=self.profile
-        )
+        client_provider = get_boto_client_provider_with_config(region=self.region, profile=self.profile)
 
         try:
             cloudformation_client = client_provider("cloudformation")
