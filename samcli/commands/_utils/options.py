@@ -595,11 +595,11 @@ def remote_invoke_parameter_click_option():
         callback=remote_invoke_boto_parameter_callback,
         required=False,
         help="Additional parameters that can be passed to invoke the resource.\n"
-        "The following additional parameters can be used to invoke a lambda resource with Buffered InvokeMode: "
+        "The following additional parameters can be used to invoke a lambda resource and get a buffered response: "
         "InvocationType='Event'|'RequestResponse'|'DryRun', LogType='None'|'Tail', "
         "ClientContext='base64-encoded string' Qualifier='string'. "
-        "The following additional parameters can be used to invoke a lambda resource with ResponseStream "
-        "InvokeMode: InvocationType='RequestResponse'|'DryRun', LogType='None'|'Tail', "
+        "The following additional parameters can be used to invoke a lambda resource with response streaming: "
+        "InvocationType='RequestResponse'|'DryRun', LogType='None'|'Tail', "
         "ClientContext='base64-encoded string', Qualifier='string'.",
     )
 
