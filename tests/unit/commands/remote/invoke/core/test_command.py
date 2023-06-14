@@ -17,7 +17,7 @@ class MockParams:
         return self.rv
 
 
-class TestLocalInvokeCommand(unittest.TestCase):
+class TestRemoteInvokeCommand(unittest.TestCase):
     @patch.object(RemoteInvokeCommand, "get_params")
     def test_get_options_local_invoke_command_text(self, mock_get_params):
         ctx = Mock()
