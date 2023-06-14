@@ -50,16 +50,17 @@ DESCRIPTION = """
     "--event",
     "-e",
     help="The event that will be sent to the resource. The target parameter will depend on the resource type. "
-    "For instance: 'Payload' for Lambda",
+    "For instance: 'Payload' for Lambda which can be passed as a JSON string",
 )
 @click.option(
     "--event-file",
     type=click.File("r", encoding="utf-8"),
-    help="The file that contains the event that will be sent to the resource",
+    help="The file that contains the event that will be sent to the resource.",
 )
 @click.option(
     "--output-format",
-    help="Output format for the boto API response",
+    help="Output format for the boto API response. The default format prints a readable response. "
+    "The raw format prints the full boto response.",
     default=RemoteInvokeOutputFormat.DEFAULT.name.lower(),
     type=RemoteInvokeOutputFormatType(RemoteInvokeOutputFormat),
 )
