@@ -5,7 +5,6 @@ import json
 import logging
 from typing import Optional
 
-import boto3
 import click
 from botocore.exceptions import NoCredentialsError, NoRegionError
 from click import confirm, prompt
@@ -20,7 +19,7 @@ from samcli.lib.package.ecr_uploader import ECRUploader
 from samcli.lib.package.local_files_utils import get_uploaded_s3_object_name
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.uploaders import Uploaders
-from samcli.lib.utils.boto_utils import get_boto_config_with_user_agent
+from samcli.lib.utils.boto_utils import get_boto_client_provider_with_config
 
 CONFIG_COMMAND = "deploy"
 CONFIG_SECTION = "parameters"
@@ -109,12 +108,14 @@ class DeleteContext:
         """
         Initialize all the clients being used by sam delete.
         """
-        boto_config = get_boto_config_with_user_agent(region_name=self.region if self.region else None)
+        client_provider = get_boto_client_provider_with_config(
+            region=self.region if self.region else None, profile=self.profile if self.profile else None
+        )
 
         try:
-            cloudformation_client = boto3.client("cloudformation", config=boto_config)
-            s3_client = boto3.client("s3", config=boto_config)
-            ecr_client = boto3.client("ecr", config=boto_config)
+            cloudformation_client = client_provider("cloudformation")
+            s3_client = client_provider("s3")
+            ecr_client = client_provider("ecr")
         except NoCredentialsError as ex:
             raise AWSServiceClientError(
                 "Unable to resolve credentials for the AWS SDK for Python client. "
