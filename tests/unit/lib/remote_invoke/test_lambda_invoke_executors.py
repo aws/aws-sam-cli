@@ -2,7 +2,7 @@ import base64
 from abc import ABC, abstractmethod
 from typing import Any
 from unittest import TestCase
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 from parameterized import parameterized
 
@@ -21,14 +21,12 @@ from samcli.lib.remote_invoke.lambda_invoke_executors import (
     LambdaInvokeExecutor,
     LambdaInvokeWithResponseStreamExecutor,
     LambdaResponseConverter,
-    LambdaResponseOutputFormatter,
     LambdaStreamResponseConverter,
-    LambdaStreamResponseOutputFormatter,
     ParamValidationError,
     RemoteInvokeOutputFormat,
     _is_function_invoke_mode_response_stream,
 )
-from samcli.lib.remote_invoke.remote_invoke_executors import RemoteInvokeExecutionInfo
+from samcli.lib.remote_invoke.remote_invoke_executors import RemoteInvokeExecutionInfo, RemoteInvokeResponse
 
 
 class CommonTestsLambdaInvokeExecutor:
@@ -51,21 +49,24 @@ class CommonTestsLambdaInvokeExecutor:
             error = ClientError(error_response={"Error": {"Code": error_code}}, operation_name="invoke")
             self._get_boto3_method().side_effect = error
             with self.assertRaises(InvalidResourceBotoParameterException):
-                self.lambda_invoke_executor._execute_action(given_payload)
+                for _ in self.lambda_invoke_executor._execute_action(given_payload):
+                    pass
 
         def test_execute_action_invalid_parameter_key_throws_parameter_validation_exception(self):
             given_payload = Mock()
             error = ParamValidationError(report="Invalid parameters")
             self._get_boto3_method().side_effect = error
             with self.assertRaises(InvalidResourceBotoParameterException):
-                self.lambda_invoke_executor._execute_action(given_payload)
+                for _ in self.lambda_invoke_executor._execute_action(given_payload):
+                    pass
 
         def test_execute_action_throws_client_error_exception(self):
-            given_payload = Mock()
+            given_payload = "payload"
             error = ClientError(error_response={"Error": {"Code": "MockException"}}, operation_name="invoke")
             self._get_boto3_method().side_effect = error
             with self.assertRaises(ErrorBotoApiCallException):
-                self.lambda_invoke_executor._execute_action(given_payload)
+                for _ in self.lambda_invoke_executor._execute_action(given_payload):
+                    pass
 
         @parameterized.expand(
             [
@@ -94,7 +95,9 @@ class TestLambdaInvokeExecutor(CommonTestsLambdaInvokeExecutor.AbstractLambdaInv
     def setUp(self) -> None:
         self.lambda_client = Mock()
         self.function_name = Mock()
-        self.lambda_invoke_executor = LambdaInvokeExecutor(self.lambda_client, self.function_name)
+        self.lambda_invoke_executor = LambdaInvokeExecutor(
+            self.lambda_client, self.function_name, RemoteInvokeOutputFormat.RAW
+        )
 
     def test_execute_action(self):
         given_payload = Mock()
@@ -103,7 +106,7 @@ class TestLambdaInvokeExecutor(CommonTestsLambdaInvokeExecutor.AbstractLambdaInv
 
         result = self.lambda_invoke_executor._execute_action(given_payload)
 
-        self.assertEqual(result, given_result)
+        self.assertEqual(list(result), [RemoteInvokeResponse(given_result)])
         self.lambda_client.invoke.assert_called_with(
             FunctionName=self.function_name, Payload=given_payload, InvocationType="RequestResponse", LogType="Tail"
         )
@@ -116,7 +119,9 @@ class TestLambdaInvokeWithResponseStreamExecutor(CommonTestsLambdaInvokeExecutor
     def setUp(self) -> None:
         self.lambda_client = Mock()
         self.function_name = Mock()
-        self.lambda_invoke_executor = LambdaInvokeWithResponseStreamExecutor(self.lambda_client, self.function_name)
+        self.lambda_invoke_executor = LambdaInvokeWithResponseStreamExecutor(
+            self.lambda_client, self.function_name, RemoteInvokeOutputFormat.RAW
+        )
 
     def test_execute_action(self):
         given_payload = Mock()
@@ -125,7 +130,7 @@ class TestLambdaInvokeWithResponseStreamExecutor(CommonTestsLambdaInvokeExecutor
 
         result = self.lambda_invoke_executor._execute_action(given_payload)
 
-        self.assertEqual(result, given_result)
+        self.assertEqual(list(result), [RemoteInvokeResponse(given_result)])
         self.lambda_client.invoke_with_response_stream.assert_called_with(
             FunctionName=self.function_name, Payload=given_payload, InvocationType="RequestResponse", LogType="Tail"
         )
@@ -196,7 +201,9 @@ class TestLambdaStreamResponseConverter(TestCase):
     def setUp(self) -> None:
         self.lambda_stream_response_converter = LambdaStreamResponseConverter()
 
-    @parameterized.expand([({LOG_RESULT: base64.b64encode(b"log output")}, base64.b64encode(b"log output")), ({}, b"")])
+    @parameterized.expand(
+        [({LOG_RESULT: base64.b64encode(b"log output")}, {LOG_RESULT: base64.b64encode(b"log output")}), ({}, {})]
+    )
     def test_lambda_streaming_body_response_conversion(self, invoke_complete_response, mapped_log_response):
         output_format = RemoteInvokeOutputFormat.DEFAULT
         given_test_result = {
@@ -207,20 +214,18 @@ class TestLambdaStreamResponseConverter(TestCase):
                 {INVOKE_COMPLETE: invoke_complete_response},
             ]
         }
-        remote_invoke_execution_info = RemoteInvokeExecutionInfo(None, None, {}, output_format)
-        remote_invoke_execution_info.response = given_test_result
+        remote_invoke_response = RemoteInvokeResponse(given_test_result)
 
         expected_result = {
             EVENT_STREAM: [
                 {PAYLOAD_CHUNK: {PAYLOAD: "stream1"}},
                 {PAYLOAD_CHUNK: {PAYLOAD: "stream2"}},
                 {PAYLOAD_CHUNK: {PAYLOAD: "stream3"}},
-                {INVOKE_COMPLETE: {LOG_RESULT: mapped_log_response}},
+                {INVOKE_COMPLETE: {**mapped_log_response}},
             ]
         }
 
-        result = self.lambda_stream_response_converter.map(remote_invoke_execution_info)
-
+        result = self.lambda_stream_response_converter.map(remote_invoke_response)
         self.assertEqual(result.response, expected_result)
 
     def test_lambda_streaming_body_invalid_response_exception(self):
@@ -230,83 +235,6 @@ class TestLambdaStreamResponseConverter(TestCase):
 
         with self.assertRaises(InvalideBotoResponseException):
             self.lambda_stream_response_converter.map(remote_invoke_execution_info)
-
-
-class TestLambdaResponseOutputFormatter(TestCase):
-    def setUp(self) -> None:
-        self.lambda_response_converter = LambdaResponseOutputFormatter()
-
-    def test_lambda_response_original_boto_output_formatter(self):
-        given_response = {"Payload": {"StatusCode": 200, "message": "hello world"}}
-        output_format = RemoteInvokeOutputFormat.RAW
-
-        remote_invoke_execution_info = RemoteInvokeExecutionInfo(None, None, {}, output_format)
-        remote_invoke_execution_info.response = given_response
-        result = self.lambda_response_converter.map(remote_invoke_execution_info)
-
-        self.assertEqual(result.response, given_response)
-
-    @patch("samcli.lib.remote_invoke.lambda_invoke_executors.base64")
-    def test_lambda_response_default_output_formatter(self, base64_mock):
-        decoded_log_str = "decoded log string"
-        log_str_mock = Mock()
-        base64_mock.b64decode().decode.return_value = decoded_log_str
-        given_response = {"Payload": {"StatusCode": 200, "message": "hello world"}, "LogResult": log_str_mock}
-        output_format = RemoteInvokeOutputFormat.DEFAULT
-
-        remote_invoke_execution_info = RemoteInvokeExecutionInfo(None, None, {}, output_format)
-        remote_invoke_execution_info.response = given_response
-
-        expected_result = {"StatusCode": 200, "message": "hello world"}
-        result = self.lambda_response_converter.map(remote_invoke_execution_info)
-
-        self.assertEqual(result.response, expected_result)
-        self.assertEqual(result.log_output, decoded_log_str)
-
-    @parameterized.expand(
-        [
-            ({"InvocationType": "DryRun", "Qualifier": "TestQualifier"},),
-            ({"InvocationType": "Event", "LogType": None},),
-        ]
-    )
-    def test_non_default_invocation_type_output_formatter(self, parameters):
-        given_response = {"StatusCode": 200, "Payload": {"StatusCode": 200, "message": "hello world"}}
-        output_format = RemoteInvokeOutputFormat.DEFAULT
-
-        remote_invoke_execution_info = RemoteInvokeExecutionInfo(None, None, parameters, output_format)
-        remote_invoke_execution_info.response = given_response
-
-        expected_result = {"StatusCode": 200}
-        result = self.lambda_response_converter.map(remote_invoke_execution_info)
-
-        self.assertEqual(result.response, expected_result)
-
-
-class TestLambdaStreamResponseOutputFormatter(TestCase):
-    def setUp(self) -> None:
-        self.lambda_response_converter = LambdaStreamResponseOutputFormatter()
-
-    def test_none_event_stream(self):
-        remote_invoke_execution_info = RemoteInvokeExecutionInfo(None, None, {}, RemoteInvokeOutputFormat.DEFAULT)
-        remote_invoke_execution_info.response = {}
-
-        mapped_response = self.lambda_response_converter.map(remote_invoke_execution_info)
-        self.assertEqual(mapped_response.response, "")
-
-    def test_event_stream(self):
-        remote_invoke_execution_info = RemoteInvokeExecutionInfo(None, None, {}, RemoteInvokeOutputFormat.DEFAULT)
-        remote_invoke_execution_info.response = {
-            EVENT_STREAM: [
-                {PAYLOAD_CHUNK: {PAYLOAD: "stream1"}},
-                {PAYLOAD_CHUNK: {PAYLOAD: "stream2"}},
-                {PAYLOAD_CHUNK: {PAYLOAD: "stream3"}},
-                {INVOKE_COMPLETE: {LOG_RESULT: base64.b64encode(b"log output")}},
-            ]
-        }
-
-        mapped_response = self.lambda_response_converter.map(remote_invoke_execution_info)
-        self.assertEqual(mapped_response.response, "stream1stream2stream3")
-        self.assertEqual(mapped_response.log_output, "log output")
 
 
 class TestLambdaInvokeExecutorUtilities(TestCase):
