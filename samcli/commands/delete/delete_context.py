@@ -109,7 +109,7 @@ class DeleteContext:
         Initialize all the clients being used by sam delete.
         """
         client_provider = get_boto_client_provider_with_config(
-            region=self.region if self.region else None, profile=self.profile if self.profile else None
+            region=self.region, profile=self.profile
         )
 
         try:
