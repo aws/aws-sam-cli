@@ -9,7 +9,9 @@ from samcli.cli.cli_config_file import TomlProvider, configuration_option
 from samcli.cli.context import Context
 from samcli.cli.main import aws_creds_options, common_options, pass_context, print_cmdline_args
 from samcli.cli.types import RemoteInvokeOutputFormatType
+from samcli.commands._utils.command_exception_handler import command_exception_handler
 from samcli.commands._utils.options import remote_invoke_parameter_option
+from samcli.commands.remote.invoke.core.command import RemoteInvokeCommand
 from samcli.lib.cli_validation.remote_invoke_options_validations import (
     event_and_event_file_options_validation,
     stack_name_or_resource_id_atleast_one_option_validation,
@@ -25,11 +27,25 @@ Invoke or send an event to cloud resources in your CFN stack
 """
 SHORT_HELP = "Invoke a deployed resource in the cloud"
 
+DESCRIPTION = """
+  Invoke or send an event to cloud resources.
+  An event body can be passed using either -e (--event) or --event-file parameter.
+  Returned response will be written to stdout. Lambda logs will be written to stderr.
+"""
 
-@click.command("invoke", help=HELP_TEXT, short_help=SHORT_HELP)
+
+@click.command(
+    "invoke",
+    cls=RemoteInvokeCommand,
+    help=HELP_TEXT,
+    description=DESCRIPTION,
+    short_help=SHORT_HELP,
+    requires_credentials=True,
+    context_settings={"max_content_width": 120},
+)
 @configuration_option(provider=TomlProvider(section="parameters"))
 @click.option("--stack-name", required=False, help="Name of the stack to get the resource information from")
-@click.option("--resource-id", required=False, help="Name of the resource that will be invoked")
+@click.argument("resource-id", required=False)
 @click.option(
     "--event",
     "-e",
@@ -56,6 +72,7 @@ SHORT_HELP = "Invoke a deployed resource in the cloud"
 @track_command
 @check_newer_version
 @print_cmdline_args
+@command_exception_handler
 def cli(
     ctx: Context,
     stack_name: str,

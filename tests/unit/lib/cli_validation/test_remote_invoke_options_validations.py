@@ -106,6 +106,8 @@ class TestRemoteInvokeAtleast1OptionProvidedValidation(TestCase):
         with self.assertRaises(BadOptionUsage) as ex:
             stack_name_or_resource_id_atleast_one_option_validation(mock_func)()
 
-        self.assertIn("Atleast 1 of --stack-name or --resource-id parameters should be provided.", ex.exception.message)
+        self.assertIn(
+            "At least 1 of --stack-name or --resource-id parameters should be provided.", ex.exception.message
+        )
 
         mock_func.assert_not_called()

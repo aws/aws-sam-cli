@@ -83,7 +83,7 @@ def stack_name_or_resource_id_atleast_one_option_validation(func):
             exception=click.BadOptionUsage(
                 option_name="--resource-id",
                 ctx=ctx,
-                message="Atleast 1 of --stack-name or --resource-id parameters should be provided.",
+                message="At least 1 of --stack-name or --resource-id parameters should be provided.",
             ),
         )
 
