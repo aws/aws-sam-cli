@@ -48,11 +48,7 @@ jobs:
         run: |
           cd aws-sam-cli
           git push --force origin update_app_templates_hash
-          gh pr list --repo aws/aws-sam-cli --head update_app_templates_hash --json id --jq length | grep 1 && \
-              gh pr close update_app_templates_hash --repo aws/aws-sam-cli && \
-              sleep 2 && \
-              gh pr reopen update_app_templates_hash --repo aws/aws-sam-cli && \
-              exit 0 # if there is exisitng pr, close/reopen to re-run checks, then exit
+          gh pr list --repo aws/aws-sam-cli --head update_app_templates_hash --json id --jq length | grep 1 && exit 0 # exit if there is existing pr
           gh pr create --base develop --head update_app_templates_hash --title "feat: update SAM CLI with latest App Templates commit hash" --body "This PR & commit is automatically created from App Templates repo to update the SAM CLI with latest hash of the App Templates." --label "pr/internal"
 
   updateSAMTranslator:
@@ -69,13 +65,13 @@ jobs:
           path: serverless-application-model
           ref: main
           fetch-depth: 0
-
+      
       - name: Checkout SAM CLI
         uses: actions/checkout@v3
         with:
           repository: aws/aws-sam-cli
           path: aws-sam-cli
-
+      
       - uses: actions/setup-python@v4 # used for make update-reproducible-reqs below
         with:
           python-version: |
@@ -109,11 +105,7 @@ jobs:
         run: |
           cd aws-sam-cli
           git push --force origin update_sam_transform_version
-          gh pr list --repo aws/aws-sam-cli --head update_sam_transform_version --json id --jq length | grep 1 && \
-              gh pr close update_sam_transform_version --repo aws/aws-sam-cli && \
-              sleep 2 && \
-              gh pr reopen update_sam_transform_version --repo aws/aws-sam-cli && \
-              exit 0 # if there is exisitng pr, close/reopen to re-run checks, then exit
+          gh pr list --repo aws/aws-sam-cli --head update_sam_transform_version --json id --jq length | grep 1 && exit 0 # exit if there is existing pr
           gh pr create --base develop --head update_sam_transform_version --fill --label "pr/internal"
 
   updateAWSLambdaBuilders:
@@ -169,9 +161,5 @@ jobs:
         run: |
           cd aws-sam-cli
           git push --force origin update_lambda_builders_version
-          gh pr list --repo aws/aws-sam-cli --head update_lambda_builders_version --json id --jq length | grep 1 && \
-              gh pr close update_lambda_builders_version --repo aws/aws-sam-cli && \
-              sleep 2 && \
-              gh pr reopen update_lambda_builders_version --repo aws/aws-sam-cli && \
-              exit 0 # if there is exisitng pr, close/reopen to re-run checks, then exit
+          gh pr list --repo aws/aws-sam-cli --head update_lambda_builders_version --json id --jq length | grep 1 && exit 0 # exit if there is existing pr
           gh pr create --base develop --head update_lambda_builders_version --fill --label "pr/internal"
