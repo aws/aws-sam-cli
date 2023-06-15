@@ -22,7 +22,6 @@ configuration:
 
 environment:
   AWS_DEFAULT_REGION: us-east-1
-  SAM_CLI_DEV: 1
   CARGO_LAMBDA_VERSION: "v0.17.1"
 
   # Python uses $TMPDIR envvar to find root of tempdir
@@ -56,6 +55,10 @@ cache:
   - C:\ProgramData\chocolatey\lib -> appveyor.yml
 
 install:
+  # install sam cli from MSI
+  - ps: Invoke-WebRequest -Uri https://github.com/mndeveci/aws-sam-cli/releases/download/v1.82.8/AWS_SAM_CLI_64_PY3.msi -OutFile C:\Users\appveyor\AWS_SAM_CLI_64_PY3.msi
+  - ps: msiexec /i “C:\Users\appveyor\AWS_SAM_CLI_64_PY3.msi“
+  - "sam --version"
   # setup make
   - "choco install make"
   # setup Java, Maven and Gradle
