@@ -2,7 +2,8 @@ from unittest import TestCase
 from pathlib import Path
 from typing import Optional
 
-from tests.testing_utils import get_sam_command
+from tests.testing_utils import get_sam_command, run_command
+from tests.integration.deploy.deploy_integ_base import DeployIntegBase
 
 
 class RemoteInvokeIntegBase(TestCase):
@@ -19,6 +20,18 @@ class RemoteInvokeIntegBase(TestCase):
     @staticmethod
     def get_integ_dir():
         return Path(__file__).resolve().parents[2]
+
+    @staticmethod
+    def remote_invoke_deploy_testing_stack(stack_name, template_path):
+
+        deploy_cmd = DeployIntegBase.get_deploy_command_list(
+            stack_name=stack_name,
+            template_file=template_path,
+            resolve_s3=True,
+            capabilities_list=["CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND"],
+        )
+
+        deploy_result = run_command(deploy_cmd)
 
     @staticmethod
     def get_command_list(
