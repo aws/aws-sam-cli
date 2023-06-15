@@ -166,8 +166,12 @@ def configuration_callback(
     param.default = None
     config_env_name = ctx.params.get("config_env") or DEFAULT_ENV
 
-    config_file = ctx.params.get("config_file") or DEFAULT_CONFIG_FILE_NAME
     config_dir = getattr(ctx, "samconfig_dir", None) or os.getcwd()
+    config_file = (
+        SamConfig.get_default_file(config_dir=config_dir)
+        if getattr(ctx.get_parameter_source("config_file"), "name", "") == "DEFAULT"
+        else ctx.params.get("config_file") or SamConfig.get_default_file(config_dir=config_dir)
+    )
     # If --config-file is an absolute path, use it, if not, start from config_dir
     config_file_path = config_file if os.path.isabs(config_file) else os.path.join(config_dir, config_file)
     if (
