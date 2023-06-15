@@ -94,7 +94,7 @@ class RemoteInvokeExecutorFactory:
         if _is_function_invoke_mode_response_stream(lambda_client, cfn_resource_summary.physical_resource_id):
             LOG.debug("Creating response stream invocator for function %s", cfn_resource_summary.physical_resource_id)
 
-            if remote_invoke_output_format == RemoteInvokeOutputFormat.RAW:
+            if remote_invoke_output_format == RemoteInvokeOutputFormat.JSON:
                 mappers = [
                     LambdaStreamResponseConverter(),
                     ResponseObjectToJsonStringMapper(),
@@ -110,7 +110,7 @@ class RemoteInvokeExecutorFactory:
                 log_consumer=log_consumer,
             )
 
-        if remote_invoke_output_format == RemoteInvokeOutputFormat.RAW:
+        if remote_invoke_output_format == RemoteInvokeOutputFormat.JSON:
             mappers = [
                 LambdaResponseConverter(),
                 ResponseObjectToJsonStringMapper(),

@@ -13,7 +13,7 @@ INFRASTRUCTURE_OPTION_NAMES: List[str] = ["stack_name"]
 
 INPUT_EVENT_OPTIONS: List[str] = ["event", "event_file"]
 
-ADDITIONAL_OPTIONS: List[str] = ["parameter", "output_format"]
+ADDITIONAL_OPTIONS: List[str] = ["parameter", "output"]
 
 AWS_CREDENTIAL_OPTION_NAMES: List[str] = ["region", "profile"]
 

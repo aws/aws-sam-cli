@@ -57,10 +57,10 @@ DESCRIPTION = """
     help="The file that contains the event that will be sent to the resource.",
 )
 @click.option(
-    "--output-format",
-    help="Output format for the boto API response. The default format prints a readable response. "
-    "The raw format prints the full boto response.",
-    default=RemoteInvokeOutputFormat.DEFAULT.name.lower(),
+    "--output",
+    help="Output the results from the command in a given output format. "
+    "The text format prints a readable AWS API response. The json format prints the full AWS API response.",
+    default=RemoteInvokeOutputFormat.TEXT.name.lower(),
     type=RemoteInvokeOutputFormatType(RemoteInvokeOutputFormat),
 )
 @remote_invoke_parameter_option
@@ -79,7 +79,7 @@ def cli(
     resource_id: str,
     event: str,
     event_file: TextIOWrapper,
-    output_format: RemoteInvokeOutputFormat,
+    output: RemoteInvokeOutputFormat,
     parameter: dict,
     config_file: str,
     config_env: str,
@@ -93,7 +93,7 @@ def cli(
         resource_id,
         event,
         event_file,
-        output_format,
+        output,
         parameter,
         ctx.region,
         ctx.profile,
@@ -107,7 +107,7 @@ def do_cli(
     resource_id: str,
     event: str,
     event_file: TextIOWrapper,
-    output_format: RemoteInvokeOutputFormat,
+    output: RemoteInvokeOutputFormat,
     parameter: dict,
     region: str,
     profile: str,
@@ -138,7 +138,7 @@ def do_cli(
         ) as remote_invoke_context:
 
             remote_invoke_input = RemoteInvokeExecutionInfo(
-                payload=event, payload_file=event_file, parameters=parameter, output_format=output_format
+                payload=event, payload_file=event_file, parameters=parameter, output_format=output
             )
 
             remote_invoke_context.run(remote_invoke_input=remote_invoke_input)

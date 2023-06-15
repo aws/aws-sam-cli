@@ -53,10 +53,10 @@ class TestRemoteInvokeCommand(unittest.TestCase):
                 ("", ""),
                 ('$ echo {"message": "hello!"} | sam remote invoke HelloWorldFunction -e <>\x1b[0m', ""),
             ],
-            "Invoke lambda function using lambda ARN and get AWS API response": [
+            "Invoke lambda function using lambda ARN and get the full AWS API response": [
                 ("", ""),
                 (
-                    "$sam remote invoke arn:aws:lambda:us-west-2:123456789012:function:my-function -e <> --output-format raw\x1b[0m",
+                    "$sam remote invoke arn:aws:lambda:us-west-2:123456789012:function:my-function -e <> --output json\x1b[0m",
                     "",
                 ),
             ],
@@ -69,7 +69,10 @@ class TestRemoteInvokeCommand(unittest.TestCase):
             ],
             "Dry invoke a lambda function to validate parameter values and user/role permissions": [
                 ("", ""),
-                ("$sam remote invoke HelloWorldFunction -e <> --parameter InvocationType=DryRun\x1b[0m", ""),
+                (
+                    "$sam remote invoke HelloWorldFunction -e <> --output json --parameter InvocationType=DryRun\x1b[0m",
+                    "",
+                ),
             ],
             "Acronyms": [("ARN", "")],
             "Infrastructure Options": [("", ""), ("--stack-name", ""), ("", "")],

@@ -65,7 +65,7 @@ class RemoteInvokeCommand(CoreCommand):
                     ]
                 )
             with formatter.indented_section(
-                name="Invoke lambda function using lambda ARN and get AWS API response", extra_indents=1
+                name="Invoke lambda function using lambda ARN and get the full AWS API response", extra_indents=1
             ):
                 formatter.write_rd(
                     [
@@ -75,7 +75,7 @@ class RemoteInvokeCommand(CoreCommand):
                         RowDefinition(
                             name=style(
                                 f"${ctx.command_path} arn:aws:lambda:us-west-2:123456789012:function:my-function -e <>"
-                                f" --output-format raw"
+                                f" --output json"
                             ),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
@@ -109,7 +109,8 @@ class RemoteInvokeCommand(CoreCommand):
                         ),
                         RowDefinition(
                             name=style(
-                                f"${ctx.command_path} HelloWorldFunction -e <> " f"--parameter InvocationType=DryRun"
+                                f"${ctx.command_path} HelloWorldFunction -e <> --output json "
+                                f"--parameter InvocationType=DryRun"
                             ),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
