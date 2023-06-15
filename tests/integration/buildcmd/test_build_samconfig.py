@@ -35,7 +35,7 @@ class TestSamConfigWithBuild(BuildIntegBase):
 
         self.assertEqual(command_result.process.returncode, 0, "Build should succeed")
         self.assertIn(
-            str(Path(extension, self.template)),
+            f"Built Artifacts  : {extension}\\n",
             stdout,
             f"Build template should use build_dir from samconfig{extension}",
         )
@@ -63,12 +63,12 @@ class TestSamConfigWithBuild(BuildIntegBase):
 
         self.assertEqual(command_result.process.returncode, 0, "Build should succeed")
         self.assertNotIn(
-            str(Path(extension, self.template)),
+            f"Built Artifacts  : {extension}\\n",
             stdout,
             f"Build template should not use build_dir from samconfig{extension}",
         )
         self.assertIn(
-            str(Path(overridden_build_dir, self.template)), stdout, f"Build template should use overridden build_dir"
+            f"Built Artifacts  : {overridden_build_dir}\\n", stdout, f"Build template should use overridden build_dir"
         )
         self.assertIn("Starting Build use cache", stderr, f"'cache'=true should be set in samconfig{extension}")
         self.assertNotIn("python3.9", stderr, f"parameter_overrides runtime should not read from samconfig{extension}")
