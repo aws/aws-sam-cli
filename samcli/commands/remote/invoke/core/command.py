@@ -20,7 +20,21 @@ class RemoteInvokeCommand(CoreCommand):
     @staticmethod
     def format_examples(ctx: Context, formatter: RemoteInvokeCommandHelpTextFormatter):
         with formatter.indented_section(name="Examples", extra_indents=1):
-            with formatter.indented_section(name="Invoke default lambda function", extra_indents=1):
+            with formatter.indented_section(name="Invoke default lambda function with empty event", extra_indents=1):
+                formatter.write_rd(
+                    [
+                        RowDefinition(
+                            text="\n",
+                        ),
+                        RowDefinition(
+                            name=style(f"${ctx.command_path} --stack-name hello-world"),
+                            extra_row_modifiers=[ShowcaseRowModifier()],
+                        ),
+                    ]
+                )
+            with formatter.indented_section(
+                name="Invoke default lambda function with event passed as text input", extra_indents=1
+            ):
                 formatter.write_rd(
                     [
                         RowDefinition(
@@ -57,8 +71,8 @@ class RemoteInvokeCommand(CoreCommand):
                         ),
                         RowDefinition(
                             name=style(
-                                f"$ echo {json.dumps({'message':'hello!'})} | "
-                                f"{ctx.command_path} HelloWorldFunction -e <>"
+                                f"$ echo '{json.dumps({'message':'hello!'})}' | "
+                                f"{ctx.command_path} HelloWorldFunction --event-file -"
                             ),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),

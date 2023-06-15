@@ -146,6 +146,7 @@ class TestDefaultConvertToJSON(TestCase):
 
     @parameterized.expand(
         [
+            (None, "{}"),
             ("Hello World", '"Hello World"'),
             ('{"message": "hello world"}', '{"message": "hello world"}'),
         ]

@@ -89,6 +89,7 @@ class RemoteInvokeExecutorFactory:
 
         :return: Returns the created remote invoke Executor
         """
+        LOG.info(f"Invoking Lambda Function {cfn_resource_summary.logical_resource_id}")
         lambda_client = self._boto_client_provider("lambda")
         mappers = []
         if _is_function_invoke_mode_response_stream(lambda_client, cfn_resource_summary.physical_resource_id):

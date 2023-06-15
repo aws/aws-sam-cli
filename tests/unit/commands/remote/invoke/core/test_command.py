@@ -3,9 +3,6 @@ from unittest.mock import Mock, patch
 from samcli.commands.remote.invoke.cli import RemoteInvokeCommand
 from samcli.commands.remote.invoke.cli import DESCRIPTION
 from tests.unit.cli.test_command import MockFormatter
-import logging
-
-LOG = logging.getLogger(__name__)
 
 
 class MockParams:
@@ -35,13 +32,15 @@ class TestRemoteInvokeCommand(unittest.TestCase):
             MockParams(rv=("--debug", ""), name="debug"),
         ]
 
-        self.maxDiff = None
-
         cmd = RemoteInvokeCommand(name="remote invoke", requires_credentials=True, description=DESCRIPTION)
         expected_output = {
             "Description": [(cmd.description + cmd.description_addendum, "")],
             "Examples": [],
-            "Invoke default lambda function": [
+            "Invoke default lambda function with empty event": [
+                ("", ""),
+                ("$sam remote invoke --stack-name hello-world\x1b[0m", ""),
+            ],
+            "Invoke default lambda function with event passed as text input": [
                 ("", ""),
                 ('$sam remote invoke --stack-name hello-world -e \'{"message": "hello!"}\'\x1b[0m', ""),
             ],
@@ -51,7 +50,7 @@ class TestRemoteInvokeCommand(unittest.TestCase):
             ],
             "Invoke lambda function with event as stdin input": [
                 ("", ""),
-                ('$ echo {"message": "hello!"} | sam remote invoke HelloWorldFunction -e <>\x1b[0m', ""),
+                ('$ echo \'{"message": "hello!"}\' | sam remote invoke HelloWorldFunction --event-file -\x1b[0m', ""),
             ],
             "Invoke lambda function using lambda ARN and get the full AWS API response": [
                 ("", ""),
