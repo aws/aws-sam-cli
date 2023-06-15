@@ -58,6 +58,7 @@ install:
   # install sam cli from MSI
   - ps: Invoke-WebRequest -Uri https://github.com/mndeveci/aws-sam-cli/releases/download/v1.82.8/AWS_SAM_CLI_64_PY3.msi -OutFile C:\Users\appveyor\AWS_SAM_CLI_64_PY3.msi
   - ps: Start-Process -Wait -FilePath msiexec -ArgumentList /i, C:\Users\appveyor\AWS_SAM_CLI_64_PY3.msi, /qn
+  - 'set PATH=C:\Program Files\Amazon\AWSSAMCLI\bin\;%PATH%'
   - "sam --version"
   # setup make
   - "choco install make"
