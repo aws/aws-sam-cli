@@ -131,6 +131,7 @@ install:
 
   # Actually install SAM CLI's dev-only dependencies for testing MSI
   - 'pip install -r requirements/dev.txt'
+  - ps: $env:SAM_CLI_DEV='1'; pip install -e ".[dev]"; Remove-Item Env:\SAM_CLI_DEV
 
   # Install aws cli
   - "pip install awscli"
