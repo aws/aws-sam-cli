@@ -20,7 +20,7 @@ class PackageCommand(CoreCommand):
     @staticmethod
     def format_examples(ctx: Context, formatter: PackageCommandHelpTextFormatter):
         with formatter.indented_section(name="Examples", extra_indents=1):
-            with formatter.indented_section(name="Automatic resolution of s3 buckets", extra_indents=1):
+            with formatter.indented_section(name="Automatic resolution of S3 buckets", extra_indents=1):
                 formatter.write_rd(
                     [
                         RowDefinition(
