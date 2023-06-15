@@ -58,7 +58,6 @@ install:
   # install sam cli from MSI
   - ps: Invoke-WebRequest -Uri https://github.com/mndeveci/aws-sam-cli/releases/download/v1.82.8/AWS_SAM_CLI_64_PY3.msi -OutFile C:\Users\appveyor\AWS_SAM_CLI_64_PY3.msi
   - ps: Start-Process -Wait -FilePath msiexec -ArgumentList /i, C:\Users\appveyor\AWS_SAM_CLI_64_PY3.msi, /qn
-  - "refreshenv"
   - "sam --version"
   # setup make
   - "choco install make"
@@ -129,8 +128,8 @@ install:
   - "venv\\Scripts\\activate"
   - "python --version"
 
-  # Actually install SAM CLI's dependencies
-  - 'pip install -e ".[dev]"'
+  # Actually install SAM CLI's dev-only dependencies for testing MSI
+  - 'pip install -r requirements/dev.txt'
 
   # Install aws cli
   - "pip install awscli"
