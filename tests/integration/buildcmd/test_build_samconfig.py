@@ -35,7 +35,7 @@ class TestSamConfigWithBuild(BuildIntegBase):
 
         self.assertEqual(command_result.process.returncode, 0, "Build should succeed")
         self.assertIn(
-            f"Built Artifacts  : {extension}\\n",
+            f"Built Artifacts  : {extension}",
             stdout,
             f"Build template should use build_dir from samconfig{extension}",
         )
@@ -50,7 +50,7 @@ class TestSamConfigWithBuild(BuildIntegBase):
     )
     def test_samconfig_parameters_are_overridden(self, extension):
         overrides = {"Runtime": "python3.8"}
-        overridden_build_dir = f"{extension}_override"
+        overridden_build_dir = f"override_{extension}"
 
         cmdlist = self.get_command_list(
             config_file=configs[extension], parameter_overrides=overrides, build_dir=overridden_build_dir
@@ -63,12 +63,12 @@ class TestSamConfigWithBuild(BuildIntegBase):
 
         self.assertEqual(command_result.process.returncode, 0, "Build should succeed")
         self.assertNotIn(
-            f"Built Artifacts  : {extension}\\n",
+            f"Built Artifacts  : {extension}",
             stdout,
             f"Build template should not use build_dir from samconfig{extension}",
         )
         self.assertIn(
-            f"Built Artifacts  : {overridden_build_dir}\\n", stdout, f"Build template should use overridden build_dir"
+            f"Built Artifacts  : {overridden_build_dir}", stdout, f"Build template should use overridden build_dir"
         )
         self.assertIn("Starting Build use cache", stderr, f"'cache'=true should be set in samconfig{extension}")
         self.assertNotIn("python3.9", stderr, f"parameter_overrides runtime should not read from samconfig{extension}")
