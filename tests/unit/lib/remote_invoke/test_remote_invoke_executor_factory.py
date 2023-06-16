@@ -51,7 +51,7 @@ class TestRemoteInvokeExecutorFactory(TestCase):
         self.assertIsNone(executor)
 
     @parameterized.expand(
-        itertools.product([True, False], [RemoteInvokeOutputFormat.RAW, RemoteInvokeOutputFormat.DEFAULT])
+        itertools.product([True, False], [RemoteInvokeOutputFormat.JSON, RemoteInvokeOutputFormat.TEXT])
     )
     @patch("samcli.lib.remote_invoke.remote_invoke_executor_factory.LambdaInvokeExecutor")
     @patch("samcli.lib.remote_invoke.remote_invoke_executor_factory.LambdaInvokeWithResponseStreamExecutor")
@@ -96,7 +96,7 @@ class TestRemoteInvokeExecutorFactory(TestCase):
 
         if is_function_invoke_mode_response_stream:
             expected_mappers = []
-            if remote_invoke_output_format == RemoteInvokeOutputFormat.RAW:
+            if remote_invoke_output_format == RemoteInvokeOutputFormat.JSON:
                 patched_object_to_json_converter.assert_called_once()
                 patched_stream_response_converter.assert_called_once()
                 patched_lambda_invoke_with_response_stream_executor.assert_called_with(
@@ -115,7 +115,7 @@ class TestRemoteInvokeExecutorFactory(TestCase):
             )
         else:
             expected_mappers = []
-            if remote_invoke_output_format == RemoteInvokeOutputFormat.RAW:
+            if remote_invoke_output_format == RemoteInvokeOutputFormat.JSON:
                 patched_object_to_json_converter.assert_called_once()
                 patched_response_converter.assert_called_once()
                 patched_lambda_invoke_executor.assert_called_with(
