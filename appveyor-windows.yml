@@ -60,6 +60,7 @@ install:
   - ps: Start-Process -Wait -FilePath msiexec -ArgumentList /i, C:\Users\appveyor\AWS_SAM_CLI_64_PY3.msi, /qn
   - 'set PATH=C:\Program Files\Amazon\AWSSAMCLI\bin\;%PATH%'
   - "sam --version"
+  - ps: 'sam --version'
   # setup make
   - "choco install make"
   # setup Java, Maven and Gradle
@@ -129,9 +130,9 @@ install:
   - "venv\\Scripts\\activate"
   - "python --version"
 
-  # Actually install SAM CLI's dev-only dependencies for testing MSI
-  - 'pip install -r requirements/dev.txt'
+  # Install dependencies with SAM_CLI_DEV=1, and then remove the environment variable
   - ps: $env:SAM_CLI_DEV='1'; pip install -e ".[dev]"; Remove-Item Env:\SAM_CLI_DEV
+  - ps: echo $env:SAM_CLI_DEV
 
   # Install aws cli
   - "pip install awscli"
