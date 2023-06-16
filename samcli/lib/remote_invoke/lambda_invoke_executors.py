@@ -111,9 +111,9 @@ class LambdaInvokeExecutor(AbstractLambdaInvokeExecutor):
             self.request_parameters,
         )
         lambda_response = self._execute_boto_call(self._lambda_client.invoke)
-        if self._remote_output_format == RemoteInvokeOutputFormat.RAW:
+        if self._remote_output_format == RemoteInvokeOutputFormat.JSON:
             yield RemoteInvokeResponse(lambda_response)
-        if self._remote_output_format == RemoteInvokeOutputFormat.DEFAULT:
+        if self._remote_output_format == RemoteInvokeOutputFormat.TEXT:
             log_result = lambda_response.get(LOG_RESULT)
             if log_result:
                 yield RemoteInvokeLogOutput(base64.b64decode(log_result).decode("utf-8"))
@@ -133,9 +133,9 @@ class LambdaInvokeWithResponseStreamExecutor(AbstractLambdaInvokeExecutor):
             self.request_parameters,
         )
         lambda_response = self._execute_boto_call(self._lambda_client.invoke_with_response_stream)
-        if self._remote_output_format == RemoteInvokeOutputFormat.RAW:
+        if self._remote_output_format == RemoteInvokeOutputFormat.JSON:
             yield RemoteInvokeResponse(lambda_response)
-        if self._remote_output_format == RemoteInvokeOutputFormat.DEFAULT:
+        if self._remote_output_format == RemoteInvokeOutputFormat.TEXT:
             event_stream: EventStream = lambda_response.get(EVENT_STREAM, [])
             for event in event_stream:
                 if PAYLOAD_CHUNK in event:
@@ -154,6 +154,9 @@ class DefaultConvertToJSON(RemoteInvokeRequestResponseMapper[RemoteInvokeExecuti
 
     def map(self, test_input: RemoteInvokeExecutionInfo) -> RemoteInvokeExecutionInfo:
         if not test_input.is_file_provided():
+            if not test_input.payload:
+                LOG.debug("Input event not found, invoking Lambda Function with an empty event")
+                test_input.payload = "{}"
             LOG.debug("Mapping input Payload to JSON string object")
             try:
                 _ = json.loads(cast(str, test_input.payload))
