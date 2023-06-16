@@ -43,8 +43,8 @@ class RemoteInvokeOutputFormat(Enum):
     Types of output formats used to by remote invoke
     """
 
-    DEFAULT = "default"
-    RAW = "raw"
+    TEXT = "text"
+    JSON = "json"
 
 
 class RemoteInvokeExecutionInfo:
