@@ -2,9 +2,6 @@ import json
 import uuid
 import base64
 
-from samcli.lib.utils.boto_utils import get_boto_resource_provider_with_config, get_boto_client_provider_with_config
-from samcli.lib.utils.cloudformation import get_resource_summaries
-
 from parameterized import parameterized
 
 from tests.integration.remote.invoke.remote_invoke_integ_base import RemoteInvokeIntegBase
@@ -27,22 +24,11 @@ class TestSingleResourceInvoke(RemoteInvokeIntegBase):
     def setUpClass(cls):
         super().setUpClass()
         cls.stack_name = f"{TestSingleResourceInvoke.__name__}-{uuid.uuid4().hex}"
-        RemoteInvokeIntegBase.remote_invoke_deploy_testing_stack(cls.stack_name, cls.template_path)
-        stack_resource_summaries = get_resource_summaries(
-            get_boto_resource_provider_with_config(),
-            get_boto_client_provider_with_config(),
-            cls.stack_name,
-        )
-        cls.stack_resources = {
-            resource_full_path: stack_resource_summary.physical_resource_id
-            for resource_full_path, stack_resource_summary in stack_resource_summaries.items()
-        }
-        cls.cfn_client = get_boto_client_provider_with_config()("cloudformation")
-        cls.lambda_client = get_boto_client_provider_with_config()("lambda")
+        cls.create_resources_and_boto_clients()
 
     def test_invoke_with_event_and_event_file_provided(self):
         event_file_path = str(self.events_folder_path.joinpath("default_event.json"))
-        command_list = RemoteInvokeIntegBase.get_command_list(
+        command_list = self.get_command_list(
             stack_name=self.stack_name,
             event='{"hello": "world"}',
             event_file=event_file_path,
@@ -55,7 +41,7 @@ class TestSingleResourceInvoke(RemoteInvokeIntegBase):
         )
 
     def test_invoke_with_only_event_provided(self):
-        command_list = RemoteInvokeIntegBase.get_command_list(
+        command_list = self.get_command_list(
             stack_name=self.stack_name,
             event='{"key1": "Hello", "key2": "serverless", "key3": "world"}',
         )
@@ -68,7 +54,7 @@ class TestSingleResourceInvoke(RemoteInvokeIntegBase):
 
     def test_invoke_with_only_event_file_provided(self):
         event_file_path = str(self.events_folder_path.joinpath("default_event.json"))
-        command_list = RemoteInvokeIntegBase.get_command_list(
+        command_list = self.get_command_list(
             stack_name=self.stack_name, resource_id="HelloWorldFunction", event_file=event_file_path
         )
 
@@ -83,7 +69,7 @@ class TestSingleResourceInvoke(RemoteInvokeIntegBase):
         lambda_name = self.stack_resources[resource_id]
         lambda_arn = self.lambda_client.get_function(FunctionName=lambda_name)["Configuration"]["FunctionArn"]
 
-        command_list = RemoteInvokeIntegBase.get_command_list(
+        command_list = self.get_command_list(
             resource_id=lambda_arn,
             event='{"key1": "Hello", "key2": "serverless", "key3": "world"}',
         )
@@ -95,7 +81,7 @@ class TestSingleResourceInvoke(RemoteInvokeIntegBase):
         self.assertEqual(remote_invoke_result_stdout, {"message": "Hello world"})
 
     def test_invoke_asynchronous_using_boto_parameter(self):
-        command_list = RemoteInvokeIntegBase.get_command_list(
+        command_list = self.get_command_list(
             stack_name=self.stack_name,
             event='{"key1": "Hello", "key2": "serverless", "key3": "world"}',
             parameter_list=[("InvocationType", "Event"), ("LogType", "None")],
@@ -110,7 +96,7 @@ class TestSingleResourceInvoke(RemoteInvokeIntegBase):
         self.assertEqual(remote_invoke_result_stdout["StatusCode"], 202)
 
     def test_invoke_dryrun_using_boto_parameter(self):
-        command_list = RemoteInvokeIntegBase.get_command_list(
+        command_list = self.get_command_list(
             stack_name=self.stack_name,
             event='{"key1": "Hello", "key2": "serverless", "key3": "world"}',
             parameter_list=[("InvocationType", "DryRun"), ("Qualifier", "$LATEST")],
@@ -125,7 +111,7 @@ class TestSingleResourceInvoke(RemoteInvokeIntegBase):
         self.assertEqual(remote_invoke_result_stdout["StatusCode"], 204)
 
     def test_invoke_response_raw_output_format(self):
-        command_list = RemoteInvokeIntegBase.get_command_list(
+        command_list = self.get_command_list(
             stack_name=self.stack_name,
             event='{"key1": "Hello", "key2": "serverless", "key3": "world"}',
             output_format="raw",
@@ -143,7 +129,6 @@ class TestSingleResourceInvoke(RemoteInvokeIntegBase):
 
 @pytest.mark.xdist_group(name="sam_remote_invoke_multiple_resources")
 class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
-
     template = Path("template-multiple-resources.yaml")
 
     @classmethod
@@ -155,21 +140,10 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
     def setUpClass(cls):
         super().setUpClass()
         cls.stack_name = f"{TestMultipleResourcesInvoke.__name__}-{uuid.uuid4().hex}"
-        RemoteInvokeIntegBase.remote_invoke_deploy_testing_stack(cls.stack_name, cls.template_path)
-        stack_resource_summaries = get_resource_summaries(
-            get_boto_resource_provider_with_config(),
-            get_boto_client_provider_with_config(),
-            cls.stack_name,
-        )
-        cls.stack_resources = {
-            resource_full_path: stack_resource_summary.physical_resource_id
-            for resource_full_path, stack_resource_summary in stack_resource_summaries.items()
-        }
-        cls.cfn_client = get_boto_client_provider_with_config()("cloudformation")
-        cls.lambda_client = get_boto_client_provider_with_config()("lambda")
+        cls.create_resources_and_boto_clients()
 
     def test_invoke_no_resource_id_provided(self):
-        command_list = RemoteInvokeIntegBase.get_command_list(
+        command_list = self.get_command_list(
             stack_name=self.stack_name,
             event='{"hello": "world"}',
         )
@@ -189,7 +163,7 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
         ]
     )
     def test_invoke_with_only_event_provided(self, resource_id, expected_response):
-        command_list = RemoteInvokeIntegBase.get_command_list(
+        command_list = self.get_command_list(
             stack_name=self.stack_name,
             resource_id=resource_id,
             event='{"key1": "Hello", "key2": "serverless", "key3": "world"}',
@@ -212,7 +186,7 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
         lambda_name = self.stack_resources[resource_id]
         lambda_arn = self.lambda_client.get_function(FunctionName=lambda_name)["Configuration"]["FunctionArn"]
 
-        command_list = RemoteInvokeIntegBase.get_command_list(
+        command_list = self.get_command_list(
             resource_id=lambda_arn,
             event='{"key1": "Hello", "key2": "serverless", "key3": "world"}',
         )
@@ -239,7 +213,7 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
         self.assertEqual('"wrote to stderr"', remote_invoke_result_stdout)
 
     def test_lambda_raises_exception_invoke(self):
-        command_list = RemoteInvokeIntegBase.get_command_list(
+        command_list = self.get_command_list(
             stack_name=self.stack_name,
             resource_id="RaiseExceptionFunction",
             event='{"key1": "Hello", "key2": "serverless", "key3": "world"}',
@@ -258,7 +232,7 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
         custom_json_str = {"custom": {"foo": "bar", "baz": "quzz"}}
         client_context_base64_str = base64.b64encode(json.dumps(custom_json_str).encode()).decode("utf-8")
 
-        command_list = RemoteInvokeIntegBase.get_command_list(
+        command_list = self.get_command_list(
             stack_name=self.stack_name,
             resource_id="EchoClientContextData",
             event='{"key1": "Hello", "key2": "serverless", "key3": "world"}',
@@ -285,21 +259,10 @@ class TestNestedTemplateResourcesInvoke(RemoteInvokeIntegBase):
     def setUpClass(cls):
         super().setUpClass()
         cls.stack_name = f"{TestNestedTemplateResourcesInvoke.__name__}-{uuid.uuid4().hex}"
-        RemoteInvokeIntegBase.remote_invoke_deploy_testing_stack(cls.stack_name, cls.template_path)
-        stack_resource_summaries = get_resource_summaries(
-            get_boto_resource_provider_with_config(),
-            get_boto_client_provider_with_config(),
-            cls.stack_name,
-        )
-        cls.stack_resources = {
-            resource_full_path: stack_resource_summary.physical_resource_id
-            for resource_full_path, stack_resource_summary in stack_resource_summaries.items()
-        }
-        cls.cfn_client = get_boto_client_provider_with_config()("cloudformation")
-        cls.lambda_client = get_boto_client_provider_with_config()("lambda")
+        cls.create_resources_and_boto_clients()
 
     def test_invoke_with_only_event_provided(self):
-        command_list = RemoteInvokeIntegBase.get_command_list(
+        command_list = self.get_command_list(
             stack_name=self.stack_name,
             resource_id="ChildStack/HelloWorldFunction",
             event='{"key1": "Hello", "key2": "serverless", "key3": "world"}',
@@ -313,7 +276,7 @@ class TestNestedTemplateResourcesInvoke(RemoteInvokeIntegBase):
 
     def test_invoke_default_lambda_function(self):
         event_file_path = str(self.events_folder_path.joinpath("default_event.json"))
-        command_list = RemoteInvokeIntegBase.get_command_list(stack_name=self.stack_name, event_file=event_file_path)
+        command_list = self.get_command_list(stack_name=self.stack_name, event_file=event_file_path)
 
         remote_invoke_result = run_command(command_list)
 

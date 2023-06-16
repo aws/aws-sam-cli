@@ -53,5 +53,3 @@ Resources:
       Runtime: python3.9
       CodeUri: ./lambda-fns
       Timeout: 600
-        
-# UTF-8 Test 😐

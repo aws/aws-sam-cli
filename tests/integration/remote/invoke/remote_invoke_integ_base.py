@@ -1,11 +1,23 @@
-from unittest import TestCase
+from unittest import TestCase, skipIf
 from pathlib import Path
 from typing import Optional
 
-from tests.testing_utils import get_sam_command, run_command
+from tests.testing_utils import (
+    get_sam_command,
+    run_command,
+    RUNNING_ON_CI,
+    RUNNING_TEST_FOR_MASTER_ON_CI,
+    RUN_BY_CANARY,
+)
 from tests.integration.deploy.deploy_integ_base import DeployIntegBase
 
+from samcli.lib.utils.boto_utils import get_boto_resource_provider_with_config, get_boto_client_provider_with_config
+from samcli.lib.utils.cloudformation import get_resource_summaries
 
+SKIP_REMOTE_INVOKE_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
+
+
+@skipIf(SKIP_REMOTE_INVOKE_TESTS, "Skip remote invoke tests in CI/CD only")
 class RemoteInvokeIntegBase(TestCase):
     template: Optional[Path] = None
 
@@ -22,7 +34,7 @@ class RemoteInvokeIntegBase(TestCase):
         return Path(__file__).resolve().parents[2]
 
     @staticmethod
-    def remote_invoke_deploy_testing_stack(stack_name, template_path):
+    def remote_invoke_deploy_stack(stack_name, template_path):
 
         deploy_cmd = DeployIntegBase.get_deploy_command_list(
             stack_name=stack_name,
@@ -31,7 +43,22 @@ class RemoteInvokeIntegBase(TestCase):
             capabilities_list=["CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND"],
         )
 
-        deploy_result = run_command(deploy_cmd)
+        run_command(deploy_cmd)
+
+    @classmethod
+    def create_resources_and_boto_clients(cls):
+        cls.remote_invoke_deploy_stack(cls.stack_name, cls.template_path)
+        stack_resource_summaries = get_resource_summaries(
+            get_boto_resource_provider_with_config(),
+            get_boto_client_provider_with_config(),
+            cls.stack_name,
+        )
+        cls.stack_resources = {
+            resource_full_path: stack_resource_summary.physical_resource_id
+            for resource_full_path, stack_resource_summary in stack_resource_summaries.items()
+        }
+        cls.cfn_client = get_boto_client_provider_with_config()("cloudformation")
+        cls.lambda_client = get_boto_client_provider_with_config()("lambda")
 
     @staticmethod
     def get_command_list(
