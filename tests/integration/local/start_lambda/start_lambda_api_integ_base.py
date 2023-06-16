@@ -144,7 +144,7 @@ class StartLambdaIntegBaseClass(TestCase):
             beta_features=cls.beta_features,
         )
 
-        cls.start_lambda_process = Popen(command_list, stderr=PIPE, stdin=PIPE, env=env, cwd=cls.working_dir)
+        cls.start_lambda_process = Popen(command_list, stderr=PIPE, stdin=PIPE, env=env, cwd=cls.working_dir, shell=True,)
         cls.start_lambda_process_output = ""
 
         if input:

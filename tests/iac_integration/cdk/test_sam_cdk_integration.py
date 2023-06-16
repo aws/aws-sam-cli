@@ -67,7 +67,7 @@ class TestSamCdkIntegration(TestCase):
         command_list = [command, "local", "start-api", "-p", cls.api_port]
 
         working_dir = cls.cdk_project + "/cdk.out"
-        cls.start_api_process = Popen(command_list, cwd=working_dir, stderr=PIPE)
+        cls.start_api_process = Popen(command_list, cwd=working_dir, stderr=PIPE, shell=True,)
 
         while True:
             line = cls.start_api_process.stderr.readline()

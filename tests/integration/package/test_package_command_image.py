@@ -54,7 +54,7 @@ class TestPackageImage(PackageIntegBase):
         template_path = self.test_data_path.joinpath(template_file)
         command_list = PackageIntegBase.get_command_list(template=template_path)
 
-        process = Popen(command_list, stdout=PIPE, stderr=PIPE)
+        process = Popen(command_list, stdout=PIPE, stderr=PIPE, shell=True,)
         try:
             stdout, stderr = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -77,7 +77,7 @@ class TestPackageImage(PackageIntegBase):
         template_path = self.test_data_path.joinpath(template_file)
         command_list = PackageIntegBase.get_command_list(image_repository=self.ecr_repo_name, template=template_path)
 
-        process = Popen(command_list, stdout=PIPE)
+        process = Popen(command_list, stdout=PIPE, shell=True,)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -102,7 +102,7 @@ class TestPackageImage(PackageIntegBase):
             image_repositories=f"{resource_id}={self.ecr_repo_name}", template=template_path
         )
 
-        process = Popen(command_list, stdout=PIPE)
+        process = Popen(command_list, stdout=PIPE, shell=True,)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -132,7 +132,7 @@ class TestPackageImage(PackageIntegBase):
             image_repositories=f"{resource_id}={self.ecr_repo_name}", template=template_path, resolve_s3=True
         )
 
-        process = Popen(command_list, stderr=PIPE)
+        process = Popen(command_list, stderr=PIPE, shell=True,)
         try:
             _, stderr = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -156,7 +156,7 @@ class TestPackageImage(PackageIntegBase):
             image_repository="non-ecr-repo-uri", template=template_path, resolve_s3=True
         )
 
-        process = Popen(command_list, stderr=PIPE)
+        process = Popen(command_list, stderr=PIPE, shell=True,)
         try:
             _, stderr = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -180,7 +180,7 @@ class TestPackageImage(PackageIntegBase):
             s3_bucket=self.s3_bucket, s3_prefix=self.s3_prefix, template=template_path
         )
 
-        process = Popen(command_list, stdout=PIPE, stderr=PIPE)
+        process = Popen(command_list, stdout=PIPE, stderr=PIPE, shell=True,)
         try:
             _, stderr = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -209,7 +209,7 @@ class TestPackageImage(PackageIntegBase):
                 output_template_file=packaged_file.name,
             )
 
-            process = Popen(command_list, stdout=PIPE, stderr=PIPE)
+            process = Popen(command_list, stdout=PIPE, stderr=PIPE, shell=True,)
             try:
                 process.communicate(timeout=TIMEOUT)
             except TimeoutExpired:
@@ -251,7 +251,7 @@ class TestPackageImage(PackageIntegBase):
             image_repository=self.ecr_repo_name, resolve_s3=True, template=template_path, force_upload=True
         )
 
-        process = Popen(command_list, stdout=PIPE, stderr=PIPE)
+        process = Popen(command_list, stdout=PIPE, stderr=PIPE, shell=True,)
         try:
             _, stderr = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:

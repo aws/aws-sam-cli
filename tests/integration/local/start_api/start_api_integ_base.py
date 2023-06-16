@@ -99,7 +99,7 @@ class StartApiIntegBaseClass(TestCase):
             for image in cls.invoke_image:
                 command_list += ["--invoke-image", image]
 
-        cls.start_api_process = Popen(command_list, stderr=PIPE, stdout=PIPE)
+        cls.start_api_process = Popen(command_list, stderr=PIPE, stdout=PIPE, shell=True,)
         cls.start_api_process_output = wait_for_local_process(
             cls.start_api_process, cls.port, collect_output=cls.do_collect_cmd_init_output
         )
