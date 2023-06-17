@@ -2,6 +2,7 @@
 Wraps watchdog to observe file system for any change.
 """
 import logging
+import platform
 import threading
 import uuid
 from abc import ABC, abstractmethod
@@ -264,15 +265,33 @@ class ImageObserver(ResourceObserver):
         self._lock: Lock = threading.Lock()
 
     def _watch_images_events(self):
-        for event in self.events:
-            if event.get("Action", None) != "tag":
-                continue
-            image_name = event["Actor"]["Attributes"]["name"]
-            if self._observed_images.get(image_name, None):
-                new_image_id = event["id"]
-                if new_image_id != self._observed_images[image_name]:
-                    self._observed_images[image_name] = new_image_id
-                    self._input_on_change([image_name])
+        try:
+            for event in self.events:
+                if event.get("Action", None) != "tag":
+                    continue
+                image_name = event["Actor"]["Attributes"]["name"]
+                if self._observed_images.get(image_name, None):
+                    new_image_id = event["id"]
+                    if new_image_id != self._observed_images[image_name]:
+                        self._observed_images[image_name] = new_image_id
+                        self._input_on_change([image_name])
+        except Exception as exception:
+            # handle a pywintypes exception that gets thrown when trying to exit
+            # from a command that utilizes ImageObserver(s) in
+            # EAGER container mode (start-api, start-lambda)
+
+            # all containers would have been stopped, and deleted, however
+            # the pipes to those containers are still loaded somewhere
+
+            if not platform.system() == "Windows":
+                raise
+
+            arguments = getattr(exception, "args", None)
+
+            if not arguments == (109, "GetOverlappedResult", "The pipe has been ended."):
+                raise
+
+            LOG.debug("Handling 'GetOverlappedResult' pipe pywintypes exception gracefully")
 
     def watch(self, resource: str) -> None:
         """
