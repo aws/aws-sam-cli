@@ -28,7 +28,6 @@ class TestSamConfigWithBuild(BuildIntegBase):
     def test_samconfig_works_with_extension(self, extension):
         cmdlist = self.get_command_list(config_file=configs[extension])
 
-        LOG.info("Running Command: %s", cmdlist)
         command_result = run_command(cmdlist, cwd=self.working_dir)
         stdout = str(command_result[1])
         stderr = str(command_result[2])
@@ -56,7 +55,6 @@ class TestSamConfigWithBuild(BuildIntegBase):
             config_file=configs[extension], parameter_overrides=overrides, build_dir=overridden_build_dir
         )
 
-        LOG.info("Running Command: %s", cmdlist)
         command_result = run_command(cmdlist, cwd=self.working_dir)
         stdout = str(command_result[1])
         stderr = str(command_result[2])
@@ -83,28 +81,17 @@ class TestSamConfigWithBuild(BuildIntegBase):
     ]
 )
 class TestSamConfigExtensionHierarchy(BuildIntegBase):
-    testing_wd = Path(os.getcwd(), "tests", "integration")
-
-    @classmethod
-    def setUpClass(cls):
-        # Bring config files to cwd
-        # for extension in path.exists(), f"File samconfig{extension} should have been created in cwd")
-        super().setUpClass()
+    build_testdata_dir = Path(os.getcwd(), "tests", "integration", "testdata", "buildcmd")
 
     def setUp(self):
         super().setUp()
         new_template_location = Path(self.working_dir, "template.yaml")
         new_template_location.write_text(Path(self.template_path).read_text())
         for extension in self.extensions:
-            config_contents = Path(self.testing_wd, "testdata", "buildcmd", configs[extension]).read_text()
+            config_contents = Path(self.build_testdata_dir, configs[extension]).read_text()
             new_path = Path(self.working_dir, f"samconfig{extension}")
             new_path.write_text(config_contents)
             self.assertTrue(new_path.exists(), f"File samconfig{extension} should have been created in cwd")
-
-    @classmethod
-    def tearDownClass(cls):
-        # Remove brought config files from cwd
-        super().tearDownClass()
 
     def tearDown(self):
         for extension in self.extensions:
@@ -115,7 +102,6 @@ class TestSamConfigExtensionHierarchy(BuildIntegBase):
     def test_samconfig_pulls_correct_file_if_multiple(self):
         self.template_path = str(Path(self.working_dir, "template.yaml"))
         cmdlist = self.get_command_list(debug=True)
-        LOG.info("Running Command: %s", cmdlist)
         command_result = run_command(cmdlist, cwd=self.working_dir)
         stdout = str(command_result[1])
 
