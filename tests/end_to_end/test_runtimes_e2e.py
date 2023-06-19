@@ -84,7 +84,7 @@ class TestHelloWorldDefaultEndToEnd(EndToEndBase):
             build_command_list = self.get_command_list()
             deploy_command_list = self._get_deploy_command(stack_name)
             stack_outputs_command_list = self._get_stack_outputs_command(stack_name)
-            remote_invoke_command_list = self._get_remote_invoke_command(stack_name, function_name, event, "raw")
+            remote_invoke_command_list = self._get_remote_invoke_command(stack_name, function_name, event, "json")
             delete_command_list = self._get_delete_command(stack_name)
             stages = [
                 DefaultInitStage(InitValidator(e2e_context), e2e_context, init_command_list, self.app_name),
@@ -153,7 +153,7 @@ class TestHelloWorldDefaultSyncEndToEnd(EndToEndBase):
             init_command_list = self._get_init_command(e2e_context.working_directory)
             sync_command_list = self._get_sync_command(stack_name)
             stack_outputs_command_list = self._get_stack_outputs_command(stack_name)
-            remote_invoke_command_list = self._get_remote_invoke_command(stack_name, function_name, event, "raw")
+            remote_invoke_command_list = self._get_remote_invoke_command(stack_name, function_name, event, "json")
             delete_command_list = self._get_delete_command(stack_name)
             stages = [
                 DefaultInitStage(InitValidator(e2e_context), e2e_context, init_command_list, self.app_name),

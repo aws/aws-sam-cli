@@ -26,19 +26,13 @@ class TestSingleResourceInvoke(RemoteInvokeIntegBase):
         cls.stack_name = f"{TestSingleResourceInvoke.__name__}-{uuid.uuid4().hex}"
         cls.create_resources_and_boto_clients()
 
-    def test_invoke_with_event_and_event_file_provided(self):
-        event_file_path = str(self.events_folder_path.joinpath("default_event.json"))
-        command_list = self.get_command_list(
-            stack_name=self.stack_name,
-            event='{"hello": "world"}',
-            event_file=event_file_path,
-        )
+    def test_invoke_empty_event_provided(self):
+        command_list = self.get_command_list(stack_name=self.stack_name)
 
         remote_invoke_result = run_command(command_list)
-        self.assertEqual(2, remote_invoke_result.process.returncode)
-        self.assertIn(
-            "Error: Both '--event-file' and '--event' cannot be provided.", remote_invoke_result.stderr.strip().decode()
-        )
+        self.assertEqual(0, remote_invoke_result.process.returncode)
+        remote_invoke_result_stdout = json.loads(remote_invoke_result.stdout.strip().decode())
+        self.assertEqual(remote_invoke_result_stdout["errorType"], "KeyError")
 
     def test_invoke_with_only_event_provided(self):
         command_list = self.get_command_list(
@@ -85,7 +79,7 @@ class TestSingleResourceInvoke(RemoteInvokeIntegBase):
             stack_name=self.stack_name,
             event='{"key1": "Hello", "key2": "serverless", "key3": "world"}',
             parameter_list=[("InvocationType", "Event"), ("LogType", "None")],
-            output_format="raw",
+            output="json",
         )
 
         remote_invoke_result = run_command(command_list)
@@ -100,7 +94,7 @@ class TestSingleResourceInvoke(RemoteInvokeIntegBase):
             stack_name=self.stack_name,
             event='{"key1": "Hello", "key2": "serverless", "key3": "world"}',
             parameter_list=[("InvocationType", "DryRun"), ("Qualifier", "$LATEST")],
-            output_format="raw",
+            output="json",
         )
 
         remote_invoke_result = run_command(command_list)
@@ -110,11 +104,11 @@ class TestSingleResourceInvoke(RemoteInvokeIntegBase):
         self.assertEqual(remote_invoke_result_stdout["Payload"], "")
         self.assertEqual(remote_invoke_result_stdout["StatusCode"], 204)
 
-    def test_invoke_response_raw_output_format(self):
+    def test_invoke_response_json_output_format(self):
         command_list = self.get_command_list(
             stack_name=self.stack_name,
             event='{"key1": "Hello", "key2": "serverless", "key3": "world"}',
-            output_format="raw",
+            output="json",
         )
 
         remote_invoke_result = run_command(command_list)
@@ -142,18 +136,13 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
         cls.stack_name = f"{TestMultipleResourcesInvoke.__name__}-{uuid.uuid4().hex}"
         cls.create_resources_and_boto_clients()
 
-    def test_invoke_no_resource_id_provided(self):
-        command_list = self.get_command_list(
-            stack_name=self.stack_name,
-            event='{"hello": "world"}',
-        )
+    def test_invoke_empty_event_provided(self):
+        command_list = self.get_command_list(stack_name=self.stack_name, resource_id="EchoEventFunction")
 
         remote_invoke_result = run_command(command_list)
-        self.assertEqual(1, remote_invoke_result.process.returncode)
-        self.assertIn(
-            f"{self.stack_name} contains more than one resource that could be used with remote invoke, ",
-            remote_invoke_result.stderr.strip().decode(),
-        )
+        self.assertEqual(0, remote_invoke_result.process.returncode)
+        remote_invoke_result_stdout = json.loads(remote_invoke_result.stdout.strip().decode())
+        self.assertEqual(remote_invoke_result_stdout, {})
 
     @parameterized.expand(
         [
@@ -260,6 +249,16 @@ class TestNestedTemplateResourcesInvoke(RemoteInvokeIntegBase):
         super().setUpClass()
         cls.stack_name = f"{TestNestedTemplateResourcesInvoke.__name__}-{uuid.uuid4().hex}"
         cls.create_resources_and_boto_clients()
+
+    def test_invoke_empty_event_provided(self):
+        command_list = self.get_command_list(
+            stack_name=self.stack_name,
+        )
+
+        remote_invoke_result = run_command(command_list)
+        self.assertEqual(0, remote_invoke_result.process.returncode)
+        remote_invoke_result_stdout = json.loads(remote_invoke_result.stdout.strip().decode())
+        self.assertEqual(remote_invoke_result_stdout, {"message": "Hello world"})
 
     def test_invoke_with_only_event_provided(self):
         command_list = self.get_command_list(

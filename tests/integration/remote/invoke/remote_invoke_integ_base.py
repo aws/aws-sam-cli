@@ -67,7 +67,7 @@ class RemoteInvokeIntegBase(TestCase):
         event=None,
         event_file=None,
         parameter_list=None,
-        output_format=None,
+        output=None,
         region=None,
         profile=None,
         beta_features=None,
@@ -86,8 +86,8 @@ class RemoteInvokeIntegBase(TestCase):
         if profile:
             command_list = command_list + ["--parameter", parameter]
 
-        if output_format:
-            command_list = command_list + ["--output-format", output_format]
+        if output:
+            command_list = command_list + ["--output", output]
 
         if parameter_list:
             for (parameter, value) in parameter_list:
