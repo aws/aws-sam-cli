@@ -25,6 +25,7 @@ from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.local.lambdafn.config import FunctionConfig
 
 LOG = logging.getLogger(__name__)
+BROKEN_PIPE_ERROR = 109
 
 
 class ResourceObserver(ABC):
@@ -286,12 +287,12 @@ class ImageObserver(ResourceObserver):
             if not platform.system() == "Windows":
                 raise
 
-            arguments = getattr(exception, "args", None)
+            win_error = getattr(exception, "winerror", None)
 
-            if not arguments == (109, "GetOverlappedResult", "The pipe has been ended."):
+            if not win_error == BROKEN_PIPE_ERROR:
                 raise
 
-            LOG.debug("Handling 'GetOverlappedResult' pipe pywintypes exception gracefully")
+            LOG.debug("Handling BROKEN_PIPE_ERROR pywintypes exception ignored gracefully")
 
     def watch(self, resource: str) -> None:
         """
