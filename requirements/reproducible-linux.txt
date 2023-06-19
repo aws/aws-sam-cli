@@ -15,13 +15,13 @@ attrs==23.1.0 \
     #   jschema-to-python
     #   jsonschema
     #   sarif-om
-aws-lambda-builders==1.33.0 \
-    --hash=sha256:9064bfd17252ec2a1f41a1db8f8c77410bfebb79635abd0610c17df0b6eaf68c \
-    --hash=sha256:f901e276f26b8051fba70ac8f10f1ab7ef73df4b01847b587196c4be26d24e1b
+aws-lambda-builders==1.34.0 \
+    --hash=sha256:0790f7e9b7ee7286b96fbcf49450c5be0341bb7cb852ca7d74beae190139eb48 \
+    --hash=sha256:20456a942a417407b42ecf8ab7fce6a47306fd063051e7cb09d02d1be24d5cf3
     # via aws-sam-cli (setup.py)
-aws-sam-translator==1.68.0 \
-    --hash=sha256:557d8080c9e6c1c609bfe806ea9545f7ea34144e2466c0ddc801806c2c05afdc \
-    --hash=sha256:d12a7bb3909142d32458f76818cb96a5ebc5f50fbd5943301d552679a893afcc
+aws-sam-translator==1.69.0 \
+    --hash=sha256:bf26c061675f20367e87d48963ada1ec983a8d897e85db02d0f35913a6174bb0 \
+    --hash=sha256:c6ed7a25c77d30d3d31156049415d15fde46c0d3b77a4c5cdc0ef8b53ba9bca2
     # via
     #   aws-sam-cli (setup.py)
     #   cfn-lint
