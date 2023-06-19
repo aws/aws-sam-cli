@@ -1,14 +1,10 @@
-import logging
 import os
 from pathlib import Path
-import shutil
 from parameterized import parameterized, parameterized_class
 
 from tests.integration.buildcmd.build_integ_base import BuildIntegBase
 from tests.testing_utils import run_command
 
-
-LOG = logging.getLogger(__name__)
 
 configs = {
     ".toml": "samconfig/samconfig.toml",
