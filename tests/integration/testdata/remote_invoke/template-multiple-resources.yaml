@@ -1,0 +1,55 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: A hello world application that creates multiple resources used for inteting remote invoke command.
+
+Resources:
+  HelloWorldServerlessFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.default_handler
+      Runtime: python3.9
+      CodeUri: ./lambda-fns
+      Timeout: 600
+
+  EchoEventFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.echo_event
+      Runtime: python3.9
+      CodeUri: ./lambda-fns
+      Timeout: 5
+
+  EchoClientContextData:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.echo_client_context_data
+      Runtime: python3.9
+      CodeUri: ./lambda-fns
+      Timeout: 5
+
+  EchoCustomEnvVarFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.custom_env_var_echo_handler
+      Runtime: python3.9
+      CodeUri: ./lambda-fns
+      Environment:
+        Variables:
+          CustomEnvVar: "MyOtherVar"
+      Timeout: 600
+
+  WriteToStderrFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.write_to_stderr
+      Runtime: python3.9
+      CodeUri: ./lambda-fns
+      Timeout: 600
+
+  RaiseExceptionFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.raise_exception
+      Runtime: python3.9
+      CodeUri: ./lambda-fns
+      Timeout: 600
