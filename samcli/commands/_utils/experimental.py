@@ -10,7 +10,7 @@ import click
 from samcli.cli.context import Context
 from samcli.cli.global_config import ConfigEntry, GlobalConfig
 from samcli.commands._utils.parameterized_option import parameterized_option
-from samcli.lib.utils.colors import Colored
+from samcli.lib.utils.colors import Colored, Colors
 
 LOG = logging.getLogger(__name__)
 
@@ -162,7 +162,7 @@ def update_experimental_context(show_warning=True):
     if not Context.get_current_context().experimental:
         Context.get_current_context().experimental = True
         if show_warning:
-            LOG.warning(Colored().yellow(EXPERIMENTAL_WARNING))
+            LOG.warning(Colored().color_log(EXPERIMENTAL_WARNING, color=Colors.WARNING), extra=dict(markup=True))
 
 
 def _experimental_option_callback(ctx, param, enabled: Optional[bool]):
