@@ -9,7 +9,7 @@ Resources:
       Handler: main.default_handler
       Runtime: python3.9
       CodeUri: ./lambda-fns
-      Timeout: 600
+      Timeout: 5
 
   EchoEventFunction:
     Type: AWS::Serverless::Function
@@ -36,7 +36,7 @@ Resources:
       Environment:
         Variables:
           CustomEnvVar: "MyOtherVar"
-      Timeout: 600
+      Timeout: 5
 
   WriteToStderrFunction:
     Type: AWS::Serverless::Function
@@ -44,7 +44,7 @@ Resources:
       Handler: main.write_to_stderr
       Runtime: python3.9
       CodeUri: ./lambda-fns
-      Timeout: 600
+      Timeout: 5
 
   RaiseExceptionFunction:
     Type: AWS::Serverless::Function
@@ -52,4 +52,4 @@ Resources:
       Handler: main.raise_exception
       Runtime: python3.9
       CodeUri: ./lambda-fns
-      Timeout: 600
+      Timeout: 5
