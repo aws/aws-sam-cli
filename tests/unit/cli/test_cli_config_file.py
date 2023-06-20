@@ -125,6 +125,7 @@ class TestCliConfiguration(TestCase):
         self.ctx.parent = mock_context3
         self.ctx.info_name = "test_info"
         self.ctx.params = {"config_file": "invalid_config_file"}
+        self.ctx._parameter_source.__get__ = "COMMANDLINE"
         setattr(self.ctx, "samconfig_dir", None)
         with self.assertRaises(ConfigException):
             configuration_callback(
