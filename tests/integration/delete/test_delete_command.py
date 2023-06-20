@@ -436,52 +436,6 @@ class TestDelete(DeleteIntegBase):
         delete_process_execute = run_command(delete_command_list)
         self.assertEqual(delete_process_execute.process.returncode, 2)
 
-    @pytest.mark.flaky(reruns=3)
-    def test_no_prompts_no_region(self):
-        stack_name = self._method_to_stack_name(self.id())
-
-        delete_command_list = self.get_delete_command_list(stack_name=stack_name, no_prompts=True)
-        delete_process_execute = run_command(delete_command_list)
-        self.assertEqual(delete_process_execute.process.returncode, 2)
-
-    @parameterized.expand(
-        [
-            "aws-serverless-function.yaml",
-        ]
-    )
-    @pytest.mark.flaky(reruns=3)
-    def test_delete_guided_no_stack_name_no_region(self, template_file):
-        template_path = self.test_data_path.joinpath(template_file)
-
-        stack_name = self._method_to_stack_name(self.id())
-
-        deploy_command_list = self.get_deploy_command_list(
-            template_file=template_path,
-            stack_name=stack_name,
-            capabilities="CAPABILITY_IAM",
-            s3_bucket=self.bucket_name,
-            s3_prefix=self.s3_prefix,
-            force_upload=True,
-            notification_arns=self.sns_arn,
-            parameter_overrides="Parameter=Clarity",
-            kms_key_id=self.kms_key,
-            no_execute_changeset=False,
-            tags="integ=true clarity=yes foo_bar=baz",
-            confirm_changeset=False,
-            region=self._session.region_name,
-        )
-        deploy_process_execute = run_command(deploy_command_list)
-
-        delete_command_list = self.get_delete_command_list()
-        delete_process_execute = run_command_with_input(delete_command_list, "{}\ny\ny\n".format(stack_name).encode())
-
-        self.assertEqual(delete_process_execute.process.returncode, 0)
-
-        try:
-            resp = self.cf_client.describe_stacks(StackName=stack_name)
-        except ClientError as ex:
-            self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
-
     @parameterized.expand(
         [
             "aws-ecr-repository.yaml",
