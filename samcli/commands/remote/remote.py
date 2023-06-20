@@ -1,11 +1,11 @@
 """
-Command group for "cloud" suite for commands. It provides common CLI arguments for interacting with
+Command group for "remote" suite for commands. It provides common CLI arguments for interacting with
 cloud resources such as Lambda Function.
 """
 
 import click
 
-from samcli.commands.cloud.invoke.cli import cli as invoke_cli
+from samcli.commands.remote.invoke.cli import cli as invoke_cli
 
 
 @click.group()

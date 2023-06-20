@@ -504,12 +504,12 @@ class TestRemoteInvokeOutputFormatParameterType(TestCase):
     @parameterized.expand(
         [
             (
-                "default",
-                RemoteInvokeOutputFormat.DEFAULT,
+                "text",
+                RemoteInvokeOutputFormat.TEXT,
             ),
             (
-                "raw",
-                RemoteInvokeOutputFormat.RAW,
+                "json",
+                RemoteInvokeOutputFormat.JSON,
             ),
         ]
     )
