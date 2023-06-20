@@ -44,6 +44,7 @@ STDIN_FILE_NAME = "-"
     context_settings={"max_content_width": 120},
 )
 @configuration_option(provider=TomlProvider(section="parameters"))
+@click.option("--plan-file", type=click.Path())
 @hook_name_click_option(
     force_prepare=False, invalid_coexist_options=["t", "template-file", "template", "parameter-overrides"]
 )
@@ -91,6 +92,7 @@ def cli(
     invoke_image,
     hook_name,
     skip_prepare_infra,
+    plan_file,
 ):
     """
     `sam local invoke` command entry point

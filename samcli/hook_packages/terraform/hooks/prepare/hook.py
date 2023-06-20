@@ -58,6 +58,8 @@ def prepare(params: dict) -> dict:
     skip_prepare_infra = params.get("SkipPrepareInfra")
     metadata_file_path = os.path.join(output_dir_path, TERRAFORM_METADATA_FILE)
 
+    plan_file = params.get("PlanFile")
+
     if skip_prepare_infra and os.path.exists(metadata_file_path):
         LOG.info("Skipping preparation stage, the metadata file already exists at %s", metadata_file_path)
     else:
@@ -71,33 +73,38 @@ def prepare(params: dict) -> dict:
         )
         try:
             # initialize terraform application
-            LOG.info(log_msg)
-            invoke_subprocess_with_loading_pattern(
-                command_args={
-                    "args": ["terraform", "init", "-input=false"],
-                    "cwd": terraform_application_dir,
-                }
-            )
-
-            # get json output of terraform plan
-            LOG.info("Creating terraform plan and getting JSON output")
-            with osutils.tempfile_platform_independent() as temp_file:
+            if not plan_file:
+                LOG.info(log_msg)
                 invoke_subprocess_with_loading_pattern(
-                    # input false to avoid SAM CLI to stuck in case if the
-                    # Terraform project expects input, and customer does not provide it.
                     command_args={
-                        "args": ["terraform", "plan", "-out", temp_file.name, "-input=false"],
+                        "args": ["terraform", "init", "-input=false"],
                         "cwd": terraform_application_dir,
                     }
                 )
 
-                result = run(
-                    ["terraform", "show", "-json", temp_file.name],
-                    check=True,
-                    capture_output=True,
-                    cwd=terraform_application_dir,
-                )
-            tf_json = json.loads(result.stdout)
+                # get json output of terraform plan
+                LOG.info("Creating terraform plan and getting JSON output")
+                with osutils.tempfile_platform_independent() as temp_file:
+                    invoke_subprocess_with_loading_pattern(
+                        # input false to avoid SAM CLI to stuck in case if the
+                        # Terraform project expects input, and customer does not provide it.
+                        command_args={
+                            "args": ["terraform", "plan", "-out", temp_file.name, "-input=false"],
+                            "cwd": terraform_application_dir,
+                        }
+                    )
+
+                    result = run(
+                        ["terraform", "show", "-json", temp_file.name],
+                        check=True,
+                        capture_output=True,
+                        cwd=terraform_application_dir,
+                    )
+                tf_json = json.loads(result.stdout)
+            else:
+                LOG.info(f"Using provided plan file: {plan_file}")
+                with open(plan_file, 'r') as f:
+                    tf_json = json.load(f)
 
             # convert terraform to cloudformation
             LOG.info("Generating metadata file")

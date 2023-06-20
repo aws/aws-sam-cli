@@ -51,6 +51,7 @@ class IacHookWrapper:
         aws_profile: Optional[str] = None,
         aws_region: Optional[str] = None,
         skip_prepare_infra: bool = False,
+        plan_file: str = False,
     ) -> str:
         """
         Run the prepare hook to generate the IaC Metadata file.
@@ -86,6 +87,8 @@ class IacHookWrapper:
             params["Profile"] = aws_profile
         if aws_region:
             params["Region"] = aws_region
+        if plan_file:
+            params["PlanFile"] = plan_file
 
         output = self._execute("prepare", params)
 
