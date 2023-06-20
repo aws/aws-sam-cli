@@ -1,4 +1,5 @@
 # -*- mode: python -*-
+import sys ; sys.setrecursionlimit(sys.getrecursionlimit() * 5)
 block_cipher = None
 exe_name = 'sam'
 analysis = Analysis(['../../samcli/__main__.py'],

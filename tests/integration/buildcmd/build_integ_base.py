@@ -328,13 +328,18 @@ class BuildIntegEsbuildBase(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
     # Everything should be minifed to one line and a second line for the sourcemap mapping
     MAX_MINIFIED_LINE_COUNT = 2
+    MANIFEST_PATH: Optional[str] = None
 
     def _test_with_default_package_json(
         self, runtime, use_container, code_uri, expected_files, handler, architecture=None, build_in_source=None
     ):
         overrides = self.get_override(runtime, code_uri, architecture, handler)
+        manifest_path = str(Path(self.test_data_path, self.MANIFEST_PATH)) if self.MANIFEST_PATH else None
         cmdlist = self.get_command_list(
-            use_container=use_container, parameter_overrides=overrides, build_in_source=build_in_source
+            use_container=use_container,
+            parameter_overrides=overrides,
+            build_in_source=build_in_source,
+            manifest_path=manifest_path,
         )
 
         LOG.info("Running Command: {}".format(cmdlist))
@@ -416,12 +421,17 @@ class BuildIntegEsbuildBase(BuildIntegBase):
 class BuildIntegNodeBase(BuildIntegBase):
     EXPECTED_FILES_PROJECT_MANIFEST = {"node_modules", "main.js"}
     EXPECTED_NODE_MODULES = {"minimal-request-promise"}
-
+    CODE_URI = "Node"
     FUNCTION_LOGICAL_ID = "Function"
+    TEST_INVOKE = False
+    MANIFEST_PATH: Optional[str] = None
 
     def _test_with_default_package_json(self, runtime, use_container, relative_path, architecture=None):
-        overrides = self.get_override(runtime, "Node", architecture, "ignored")
-        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
+        overrides = self.get_override(runtime, self.CODE_URI, architecture, "main.lambdaHandler")
+        manifest_path = str(Path(self.test_data_path, self.MANIFEST_PATH)) if self.MANIFEST_PATH else None
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, manifest_path=manifest_path
+        )
 
         LOG.info("Running Command: {}".format(cmdlist))
         run_command(cmdlist, cwd=self.working_dir)
@@ -432,6 +442,12 @@ class BuildIntegNodeBase(BuildIntegBase):
             self.EXPECTED_FILES_PROJECT_MANIFEST,
             self.EXPECTED_NODE_MODULES,
         )
+
+        expected = {"body": '{"message":"hello world!"}', "statusCode": 200}
+        if not SKIP_DOCKER_TESTS and self.TEST_INVOKE:
+            self._verify_invoke_built_function(
+                self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
+            )
 
         self._verify_resource_property(
             str(self.built_template),

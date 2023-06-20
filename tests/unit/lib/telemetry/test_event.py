@@ -8,6 +8,7 @@ from typing import List, Tuple
 from unittest import TestCase
 from unittest.mock import ANY, Mock, patch
 from samcli.cli.context import Context
+from uuid import UUID, uuid4
 
 from samcli.lib.telemetry.event import Event, EventCreationError, EventTracker, track_long_event
 
@@ -26,13 +27,32 @@ class TestEventCreation(TestCase):
         name_mock.return_value = Mock(value="TestOne")
         type_mock.get_accepted_values.return_value = ["value1", "value2"]
         verify_mock.return_value = None
+        thread_id = uuid4()
+
+        test_event = Event("TestOne", "value1", thread_id)
+
+        name_mock.assert_called_once()
+        self.assertEqual(test_event.event_name.value, "TestOne")
+        self.assertEqual(test_event.event_value, "value1")
+        self.assertEqual(test_event.thread_id, thread_id)  # Should be on the same thread
+
+    @patch("samcli.lib.telemetry.event.uuid4")
+    @patch("samcli.lib.telemetry.event.Event._verify_event")
+    @patch("samcli.lib.telemetry.event.EventType")
+    @patch("samcli.lib.telemetry.event.EventName")
+    def test_create_event_exists_no_thread_id(self, name_mock, type_mock, verify_mock, uuid_mock):
+        name_mock.return_value = Mock(value="TestOne")
+        type_mock.get_accepted_values.return_value = ["value1", "value2"]
+        verify_mock.return_value = None
+        thread_id = uuid4()
+        uuid_mock.return_value = thread_id
 
         test_event = Event("TestOne", "value1")
 
         name_mock.assert_called_once()
         self.assertEqual(test_event.event_name.value, "TestOne")
         self.assertEqual(test_event.event_value, "value1")
-        self.assertEqual(test_event.thread_id, threading.get_ident())  # Should be on the same thread
+        self.assertEqual(test_event.thread_id, thread_id)
 
     @patch("samcli.lib.telemetry.event.EventType")
     @patch("samcli.lib.telemetry.event.EventName")
@@ -60,15 +80,16 @@ class TestEventCreation(TestCase):
         name_mock.return_value = Mock(value="Testing")
         type_mock.get_accepted_values.return_value = ["value1"]
         verify_mock.return_value = None
+        thread_id = uuid4()
 
-        test_event = Event("Testing", "value1")
+        test_event = Event("Testing", "value1", thread_id)
 
         self.assertEqual(
             test_event.to_json(),
             {
                 "event_name": "Testing",
                 "event_value": "value1",
-                "thread_id": threading.get_ident(),
+                "thread_id": thread_id.hex,
                 "time_stamp": ANY,
                 "exception_name": None,
             },
@@ -86,7 +107,7 @@ class TestEventTracker(TestCase):
         lock_mock.__exit__ = Mock()
 
         # Test that an event can be tracked
-        dummy_event = Mock(event_name="Test", event_value="SomeValue", thread_id=threading.get_ident(), timestamp=ANY)
+        dummy_event = Mock(event_name="Test", event_value="SomeValue", thread_id=uuid4(), timestamp=ANY)
         event_mock.return_value = dummy_event
 
         EventTracker.track_event("Test", "SomeValue")
@@ -114,6 +135,7 @@ class TestEventTracker(TestCase):
         dummy_telemetry.emit.return_value = None
         dummy_telemetry.emit.side_effect = mock_emit
         telemetry_mock.return_value = dummy_telemetry
+        thread_id = uuid4()
 
         # Verify that no events are sent if tracker is empty
         # Note we are using the in-line version of the method, as the regular send_events will
@@ -124,9 +146,7 @@ class TestEventTracker(TestCase):
         dummy_telemetry.emit.assert_not_called()  # Nothing should have been sent (empty list)
 
         # Verify that events get sent when they exist in tracker
-        dummy_event = Mock(
-            event_name=Mock(value="Test"), event_value="SomeValue", thread_id=threading.get_ident(), time_stamp=ANY
-        )
+        dummy_event = Mock(event_name=Mock(value="Test"), event_value="SomeValue", thread_id=thread_id, time_stamp=ANY)
         dummy_event.to_json.return_value = Event.to_json(dummy_event)
         EventTracker._events.append(dummy_event)
 
@@ -148,7 +168,7 @@ class TestEventTracker(TestCase):
                     {
                         "event_name": "Test",
                         "event_value": "SomeValue",
-                        "thread_id": ANY,
+                        "thread_id": thread_id.hex,
                         "time_stamp": ANY,
                         "exception_name": ANY,
                     }
@@ -205,9 +225,11 @@ class TestTrackLongEvent(TestCase):
         mock_tracker = {}
         mock_tracker["tracked_events"]: List[Tuple[str, str]] = []  # Tuple to bypass Event verification
         mock_tracker["emitted_events"]: List[Tuple[str, str]] = []
+        tracked_threads: List[UUID] = []
 
-        def mock_track(name, value):
+        def mock_track(name, value, thread_id):
             mock_tracker["tracked_events"].append((name, value))
+            tracked_threads.append(thread_id)
 
         def mock_send():
             mock_tracker["emitted_events"] = mock_tracker["tracked_events"]
@@ -227,6 +249,7 @@ class TestTrackLongEvent(TestCase):
         self.assertEqual(len(mock_tracker["emitted_events"]), 2, "Unexpected number of emitted events.")
         self.assertIn(("StartEvent", "StartValue"), mock_tracker["emitted_events"], "Starting event not tracked.")
         self.assertIn(("EndEvent", "EndValue"), mock_tracker["emitted_events"], "Ending event not tracked.")
+        self.assertEqual(tracked_threads[0], tracked_threads[1], "Thread ID for start and end events differ.")
 
     @patch("samcli.lib.telemetry.event.EventTracker.send_events")
     @patch("samcli.lib.telemetry.event.EventTracker.track_event")

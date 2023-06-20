@@ -16,6 +16,7 @@ from samcli.cli.types import (
     CfnTags,
     ImageRepositoriesType,
     ImageRepositoryType,
+    RemoteInvokeBotoApiParameterType,
     SigningProfilesOptionType,
 )
 from samcli.commands._utils.constants import (
@@ -127,6 +128,21 @@ def image_repositories_callback(ctx, param, provided_value):
         image_repositories.update(value)
 
     return image_repositories if image_repositories else None
+
+
+def remote_invoke_boto_parameter_callback(ctx, param, provided_value):
+    """
+    Create an dictionary of boto parameters to their provided values.
+    :param ctx: Click Context
+    :param param: Param name
+    :param provided_value: Value provided by Click, after being processed by RemoteInvokeBotoApiParameterType.
+    :return: dictionary of boto api parameters to their provided values. E.g. LogType=Tail for Lambda invoke API
+    """
+    boto_api_parameters = {}
+    for value in provided_value:
+        boto_api_parameters.update(value)
+
+    return boto_api_parameters
 
 
 def artifact_callback(ctx, param, provided_value, artifact):
@@ -569,6 +585,27 @@ def image_repositories_click_option():
 
 def image_repositories_option(f):
     return image_repositories_click_option()(f)
+
+
+def remote_invoke_parameter_click_option():
+    return click.option(
+        "--parameter",
+        multiple=True,
+        type=RemoteInvokeBotoApiParameterType(),
+        callback=remote_invoke_boto_parameter_callback,
+        required=False,
+        help="Additional parameters that can be passed to invoke the resource.\n"
+        "The following additional parameters can be used to invoke a lambda resource and get a buffered response: "
+        "InvocationType='Event'|'RequestResponse'|'DryRun', LogType='None'|'Tail', "
+        "ClientContext='base64-encoded string' Qualifier='string'. "
+        "The following additional parameters can be used to invoke a lambda resource with response streaming: "
+        "InvocationType='RequestResponse'|'DryRun', LogType='None'|'Tail', "
+        "ClientContext='base64-encoded string', Qualifier='string'.",
+    )
+
+
+def remote_invoke_parameter_option(f):
+    return remote_invoke_parameter_click_option()(f)
 
 
 def s3_prefix_click_option():

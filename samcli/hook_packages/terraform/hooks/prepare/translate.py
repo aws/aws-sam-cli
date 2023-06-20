@@ -5,7 +5,7 @@ This method contains the logic required to translate the `terraform show` JSON o
 """
 import hashlib
 import logging
-from typing import Any, Dict, List, Tuple, Type, Union
+from typing import Any, Dict, Iterator, List, Tuple, Type, Union
 
 from samcli.hook_packages.terraform.hooks.prepare.constants import (
     CFN_CODE_PROPERTIES,
@@ -15,6 +15,9 @@ from samcli.hook_packages.terraform.hooks.prepare.enrich import enrich_resources
 from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     REMOTE_DUMMY_VALUE,
     RESOURCE_TRANSLATOR_MAPPING,
+    TF_AWS_API_GATEWAY_INTEGRATION,
+    TF_AWS_API_GATEWAY_INTEGRATION_RESPONSE,
+    TF_AWS_API_GATEWAY_METHOD,
     TF_AWS_API_GATEWAY_REST_API,
     PropertyBuilderMapping,
 )
@@ -22,7 +25,11 @@ from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     _build_module,
     _resolve_resource_attribute,
 )
-from samcli.hook_packages.terraform.hooks.prepare.resources.apigw import RESTAPITranslationValidator
+from samcli.hook_packages.terraform.hooks.prepare.resources.apigw import (
+    RESTAPITranslationValidator,
+    add_integration_responses_to_methods,
+    add_integrations_to_methods,
+)
 from samcli.hook_packages.terraform.hooks.prepare.resources.internal import INTERNAL_PREFIX
 from samcli.hook_packages.terraform.hooks.prepare.resources.resource_links import RESOURCE_LINKS
 from samcli.hook_packages.terraform.hooks.prepare.resources.resource_properties import get_resource_property_mapping
@@ -45,6 +52,7 @@ from samcli.hook_packages.terraform.lib.utils import (
     get_sam_metadata_planned_resource_value_attribute,
 )
 from samcli.lib.hook.exceptions import PrepareHookException
+from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION
 
 SAM_METADATA_RESOURCE_TYPE = "null_resource"
@@ -58,6 +66,80 @@ LOG = logging.getLogger(__name__)
 TRANSLATION_VALIDATORS: Dict[str, Type[ResourceTranslationValidator]] = {
     TF_AWS_API_GATEWAY_REST_API: RESTAPITranslationValidator,
 }
+
+
+def _get_modules(root_module: dict, root_tf_module: TFModule) -> Iterator[Tuple[dict, TFModule]]:
+    """
+    Iterator helper method to find any child modules for processing.
+
+    Parameters
+    ----------
+    root_module: dict
+        The root level planned values dictionary
+    root_tf_module: TFModule
+        The TFModule class representation of the configuration values
+
+    Yields
+    ------
+    Tuple[dict, TFModule]
+        A tuple of the current module's planned values and TFModule representation of configuration values
+    """
+    queue = [(root_module, root_tf_module)]
+
+    while queue:
+        modules = queue.pop(0)
+
+        yield modules
+
+        _add_child_modules_to_queue(*modules, queue)
+
+
+def _check_unresolvable_values(root_module: dict, root_tf_module: TFModule) -> None:
+    """
+    Checks the planned values and configuration values if there are any properties
+    that are unresolved, or unknown, until the Terraform project is applied.
+
+    Parameters
+    ----------
+    root_module: dict
+        The root level planned values dictionary
+    root_tf_module: TFModule
+        The TFModule class representation of the configuration values
+    """
+
+    for curr_module, curr_tf_module in _get_modules(root_module, root_tf_module):
+        # iterate over resources for current module
+        for resource in curr_module.get("resources", []):
+            resource_type = resource.get("type")
+            resource_name = resource.get("name")
+            resource_mode = resource.get("mode")
+
+            resource_mapper = RESOURCE_TRANSLATOR_MAPPING.get(resource_type)
+            if not resource_mapper:
+                continue
+
+            resource_values = resource.get("values")
+            resource_address = (
+                f"data.{resource_type}.{resource_name}"
+                if resource_mode == "data"
+                else f"{resource_type}.{resource_name}"
+            )
+
+            config_resource_address = get_configuration_address(resource_address)
+            config_resource = curr_tf_module.resources[config_resource_address]
+
+            for prop_builder in resource_mapper.property_builder_mapping.values():
+                planned_values = prop_builder(resource_values, config_resource)
+                config_values = prop_builder(config_resource.attributes, config_resource)
+
+                if config_values and not planned_values:
+                    LOG.warning(
+                        Colored().yellow(
+                            "\nUnresolvable attributes discovered in project, run terraform apply to resolve them.\n"
+                        )
+                    )
+
+                    return
 
 
 def translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_application_dir: str) -> dict:
@@ -105,14 +187,11 @@ def translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_applic
 
     resource_property_mapping: Dict[str, ResourceProperties] = get_resource_property_mapping()
 
-    # create and iterate over queue of modules to handle child modules
-    module_queue = [(root_module, root_tf_module)]
-    while module_queue:
-        modules_pair = module_queue.pop(0)
-        curr_module, curr_tf_module = modules_pair
-        curr_module_address = curr_module.get("address")
+    _check_unresolvable_values(root_module, root_tf_module)
 
-        _add_child_modules_to_queue(curr_module, curr_tf_module, module_queue)
+    # create and iterate over queue of modules to handle child modules
+    for curr_module, curr_tf_module in _get_modules(root_module, root_tf_module):
+        curr_module_address = curr_module.get("address")
 
         # iterate over resources for current module
         resources = curr_module.get("resources", {})
@@ -227,6 +306,16 @@ def translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_applic
     _map_s3_sources_to_functions(s3_hash_to_source, cfn_dict.get("Resources", {}), lambda_resources_to_code_map)
 
     _handle_linking(resource_property_mapping)
+
+    add_integrations_to_methods(
+        resource_property_mapping.get(TF_AWS_API_GATEWAY_METHOD, ResourceProperties()).cfn_resources,
+        resource_property_mapping.get(TF_AWS_API_GATEWAY_INTEGRATION, ResourceProperties()).cfn_resources,
+    )
+
+    add_integration_responses_to_methods(
+        resource_property_mapping.get(TF_AWS_API_GATEWAY_METHOD, ResourceProperties()).cfn_resources,
+        resource_property_mapping.get(TF_AWS_API_GATEWAY_INTEGRATION_RESPONSE, ResourceProperties()).cfn_resources,
+    )
 
     if sam_metadata_resources:
         LOG.debug("Enrich the mapped resources with the sam metadata information and generate Makefile")

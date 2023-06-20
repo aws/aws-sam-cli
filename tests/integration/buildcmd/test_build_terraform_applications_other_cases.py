@@ -286,14 +286,20 @@ class TestUnsupportedCases(BuildTerraformApplicationIntegBase):
         ]
     )
     def test_unsupported_cases(self, app, expected_error_message):
+        apply_disclaimer_message = "Unresolvable attributes discovered in project, run terraform apply to resolve them."
+
         self.terraform_application_path = Path(self.terraform_application_path) / app
         shutil.copytree(Path(self.terraform_application_path), Path(self.working_dir))
         build_cmd_list = self.get_command_list(beta_features=True, hook_name="terraform")
         LOG.info("command list: %s", build_cmd_list)
         _, stderr, return_code = self.run_command(build_cmd_list)
         LOG.info(stderr)
+
+        output = stderr.decode("utf-8")
+
         self.assertEqual(return_code, 1)
-        self.assertRegex(stderr.decode("utf-8"), expected_error_message)
+        self.assertRegex(output, expected_error_message)
+        self.assertRegex(output, apply_disclaimer_message)
 
 
 @skipIf(

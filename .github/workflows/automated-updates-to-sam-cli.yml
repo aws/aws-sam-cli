@@ -74,7 +74,9 @@ jobs:
       
       - uses: actions/setup-python@v4 # used for make update-reproducible-reqs below
         with:
-          python-version: "3.7"
+          python-version: |
+            3.7
+            3.11
 
       - name: Update aws-sam-translator & commit
         run: |
@@ -94,7 +96,7 @@ jobs:
           git diff --quiet && exit 0 # exit if there is no change
           echo "is_new_sam_t=1" >> $GITHUB_ENV # set env variable for next step run decision
           git add -u
-          git commit -m "chore: update aws-sam-translator to $(SAM_T_CUR_VERSION)"
+          git commit -m "chore: update aws-sam-translator to $SAM_T_CUR_VERSION"
 
       - name: Raise PR for SAM CLI
         env:
@@ -105,3 +107,59 @@ jobs:
           git push --force origin update_sam_transform_version
           gh pr list --repo aws/aws-sam-cli --head update_sam_transform_version --json id --jq length | grep 1 && exit 0 # exit if there is existing pr
           gh pr create --base develop --head update_sam_transform_version --fill --label "pr/internal"
+
+  updateAWSLambdaBuilders:
+    permissions:
+      pull-requests: write
+      contents: write
+    if: github.repository == 'aws/aws-sam-cli'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Lambda Builders
+        uses: actions/checkout@v3
+        with:
+          repository: aws/aws-lambda-builders
+          path: aws-lambda-builders
+          ref: main
+          fetch-depth: 0
+
+      - name: Checkout SAM CLI
+        uses: actions/checkout@v3
+        with:
+          repository: aws/aws-sam-cli
+          path: aws-sam-cli
+
+      - uses: actions/setup-python@v4 # used for make update-reproducible-reqs below
+        with:
+          python-version: |
+            3.7
+            3.11
+
+      - name: Upgrade aws_lambda_builders & commit
+        run: |
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Action"
+          cd aws-lambda-builders
+          BUILDERS_CUR_VERSION=$(git describe --tags --abbrev=0 | sed 's/v//')
+          echo "Lambda Builders cur version is $BUILDERS_CUR_VERSION"
+          cd ../aws-sam-cli
+          git checkout -b update_lambda_builders_version
+          BUILDERS_PRE_VERSION=$(grep "aws_lambda_builders=" requirements/base.txt)
+          echo "Lambda Builders pre version is $BUILDERS_PRE_VERSION"
+          git reset --hard develop
+          sed -i "s/$BUILDERS_PRE_VERSION/aws_lambda_builders==$BUILDERS_CUR_VERSION/g" requirements/base.txt; make update-reproducible-reqs
+          git status
+          git diff --quiet && exit 0 # exit if there is no change
+          echo "is_new_lambda_builders=1" >> $GITHUB_ENV # set env variable for next step run decision
+          git add -u
+          git commit -m "chore: update aws_lambda_builders to $BUILDERS_CUR_VERSION"
+
+      - name: Raise PR for SAM CLI
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: ${{ env.is_new_lambda_builders == 1 }} # run only if there was a change
+        run: |
+          cd aws-sam-cli
+          git push --force origin update_lambda_builders_version
+          gh pr list --repo aws/aws-sam-cli --head update_lambda_builders_version --json id --jq length | grep 1 && exit 0 # exit if there is existing pr
+          gh pr create --base develop --head update_lambda_builders_version --fill --label "pr/internal"

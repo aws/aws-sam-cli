@@ -27,6 +27,7 @@ class TestRuntime(TestCase):
             ("python3.8", "python:3.8-x86_64"),
             ("python3.9", "python:3.9-x86_64"),
             ("ruby2.7", "ruby:2.7-x86_64"),
+            ("ruby3.2", "ruby:3.2-x86_64"),
             ("java8", "java:8"),
             ("java8.al2", "java:8.al2-x86_64"),
             ("java11", "java:11-x86_64"),

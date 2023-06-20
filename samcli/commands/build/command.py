@@ -38,7 +38,7 @@ HELP_TEXT = """
 """
 
 DESCRIPTION = """
-  Build AWS serverless function code to generate artifacts targeting 
+  Build AWS serverless function code to generate artifacts targeting
   AWS Lambda execution environment.\n
   \b
   Supported Resource Types
@@ -52,7 +52,7 @@ DESCRIPTION = """
   ------------------
   1. Python 3.7, 3.8, 3.9, 3.10 using PIP\n
   2. Nodejs 18.x, 16.x, 14.x, 12.x using NPM\n
-  3. Ruby 2.7 using Bundler\n
+  3. Ruby 2.7, 3.2 using Bundler\n
   4. Java 8, Java 11, Java 17 using Gradle and Maven\n
   5. Dotnetcore 3.1, Dotnet6 using Dotnet CLI (without --use-container)\n
   6. Go 1.x using Go Modules (without --use-container)\n

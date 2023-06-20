@@ -4,7 +4,10 @@ Terraform prepare property builder
 from typing import Any, Dict, Optional
 
 from samcli.hook_packages.terraform.hooks.prepare.resource_linking import _resolve_resource_attribute
-from samcli.hook_packages.terraform.hooks.prepare.resources.internal import INTERNAL_API_GATEWAY_INTEGRATION
+from samcli.hook_packages.terraform.hooks.prepare.resources.internal import (
+    INTERNAL_API_GATEWAY_INTEGRATION,
+    INTERNAL_API_GATEWAY_INTEGRATION_RESPONSE,
+)
 from samcli.hook_packages.terraform.hooks.prepare.types import (
     PropertyBuilder,
     PropertyBuilderMapping,
@@ -13,6 +16,7 @@ from samcli.hook_packages.terraform.hooks.prepare.types import (
 )
 from samcli.lib.hook.exceptions import PrepareHookException
 from samcli.lib.utils.packagetype import IMAGE, ZIP
+from samcli.lib.utils.resources import AWS_APIGATEWAY_AUTHORIZER as CFN_AWS_APIGATEWAY_AUTHORIZER
 from samcli.lib.utils.resources import AWS_APIGATEWAY_METHOD as CFN_AWS_APIGATEWAY_METHOD
 from samcli.lib.utils.resources import AWS_APIGATEWAY_RESOURCE as CFN_AWS_APIGATEWAY_RESOURCE
 from samcli.lib.utils.resources import AWS_APIGATEWAY_RESTAPI as CFN_AWS_APIGATEWAY_RESTAPI
@@ -29,6 +33,8 @@ TF_AWS_API_GATEWAY_REST_API = "aws_api_gateway_rest_api"
 TF_AWS_API_GATEWAY_STAGE = "aws_api_gateway_stage"
 TF_AWS_API_GATEWAY_METHOD = "aws_api_gateway_method"
 TF_AWS_API_GATEWAY_INTEGRATION = "aws_api_gateway_integration"
+TF_AWS_API_GATEWAY_AUTHORIZER = "aws_api_gateway_authorizer"
+TF_AWS_API_GATEWAY_INTEGRATION_RESPONSE = "aws_api_gateway_method_response"
 
 
 def _build_code_property(tf_properties: dict, resource: TFResource) -> Any:
@@ -250,6 +256,8 @@ AWS_API_GATEWAY_METHOD_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
     "ResourceId": _get_property_extractor("resource_id"),
     "HttpMethod": _get_property_extractor("http_method"),
     "OperationName": _get_property_extractor("operation_name"),
+    "AuthorizerId": _get_property_extractor("authorizer_id"),
+    "AuthorizationType": _get_property_extractor("authorization"),
 }
 
 AWS_API_GATEWAY_INTEGRATION_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
@@ -260,6 +268,22 @@ AWS_API_GATEWAY_INTEGRATION_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
     "Type": _get_property_extractor("type"),
     "ContentHandling": _get_property_extractor("content_handling"),
     "ConnectionType": _get_property_extractor("connection_type"),
+}
+
+AWS_API_GATEWAY_AUTHORIZER_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
+    "Name": _get_property_extractor("name"),
+    "RestApiId": _get_property_extractor("rest_api_id"),
+    "AuthorizerUri": _get_property_extractor("authorizer_uri"),
+    "IdentitySource": _get_property_extractor("identity_source"),
+    "Type": _get_property_extractor("type"),
+    "IdentityValidationExpression": _get_property_extractor("identity_validation_expression"),
+}
+
+AWS_API_GATEWAY_INTEGRATION_RESPONSE_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
+    "RestApiId": _get_property_extractor("rest_api_id"),
+    "ResourceId": _get_property_extractor("resource_id"),
+    "HttpMethod": _get_property_extractor("http_method"),
+    "ResponseParameters": _get_property_extractor("response_parameters"),
 }
 
 RESOURCE_TRANSLATOR_MAPPING: Dict[str, ResourceTranslator] = {
@@ -281,5 +305,11 @@ RESOURCE_TRANSLATOR_MAPPING: Dict[str, ResourceTranslator] = {
     ),
     TF_AWS_API_GATEWAY_INTEGRATION: ResourceTranslator(
         INTERNAL_API_GATEWAY_INTEGRATION, AWS_API_GATEWAY_INTEGRATION_PROPERTY_BUILDER_MAPPING
+    ),
+    TF_AWS_API_GATEWAY_AUTHORIZER: ResourceTranslator(
+        CFN_AWS_APIGATEWAY_AUTHORIZER, AWS_API_GATEWAY_AUTHORIZER_PROPERTY_BUILDER_MAPPING
+    ),
+    TF_AWS_API_GATEWAY_INTEGRATION_RESPONSE: ResourceTranslator(
+        INTERNAL_API_GATEWAY_INTEGRATION_RESPONSE, AWS_API_GATEWAY_INTEGRATION_RESPONSE_PROPERTY_BUILDER_MAPPING
     ),
 }

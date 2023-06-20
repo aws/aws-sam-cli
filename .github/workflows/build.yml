@@ -27,12 +27,14 @@ jobs:
       - make-pr
       - integration-tests
       - smoke-and-functional-tests
+      - docker-disabled
     steps:
       - name: report-failure
         if : |
           needs.make-pr.result != 'success' ||
           needs.integration-tests.result != 'success' ||
-          needs.smoke-and-functional-tests.result != 'success'
+          needs.smoke-and-functional-tests.result != 'success' ||
+          needs.docker-disabled.result != 'success'
         run: exit 1
       - name: report-success
         run: exit 0
@@ -45,18 +47,27 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          # TODO: Add macos-latest; fails currently, see e.g. https://github.com/aws/aws-sam-cli/actions/runs/3596883449/jobs/6058055981
+          - macos-latest
           - ubuntu-latest
           - windows-latest
         python:
           - "3.7"
           - "3.8"
           - "3.9"
+          - "3.11"
     steps:
     - uses: actions/checkout@v3
+    # @melasmar
+    # TODO: Revert back to use 3.7 to all operating systems after the regression issue in Python
+    # https://github.com/actions/setup-python/issues/682 in github action got resolved
     - uses: actions/setup-python@v4
+      if: matrix.os != 'macos-latest' || ( matrix.os == 'macos-latest' && matrix.python != '3.7' )
       with:
         python-version: ${{ matrix.python }}
+    - uses: actions/setup-python@v4
+      if: matrix.os == 'macos-latest' && matrix.python == '3.7'
+      with:
+        python-version: "3.7.16"
     - run: test -f "./.github/ISSUE_TEMPLATE/Bug_report.md"  # prevent Bug_report.md from being renamed or deleted
     - run: make init
     - run: make pr
@@ -112,6 +123,7 @@ jobs:
             3.8
             3.9
             3.10
+            3.11
             ${{ matrix.python }}
       - uses: actions/setup-go@v4
         with:
@@ -119,6 +131,9 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "2.7"
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
       - uses: actions/setup-node@v3
         with:
           node-version: 18
@@ -175,6 +190,7 @@ jobs:
           - "3.7"
           - "3.8"
           - "3.9"
+          - "3.11"
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -184,3 +200,43 @@ jobs:
         run: make init
       - name: Run functional & smoke tests
         run: pytest -vv -n 4 tests/functional tests/smoke
+
+  docker-disabled:
+    name: Docker-disabled Tests / ${{ matrix.os }}
+    if: github.repository_owner == 'aws'
+    runs-on: ${{ matrix.os }}
+    env:
+      SAM_CLI_DEV: "1"
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          # These are the versions of Python that correspond to the supported Lambda runtimes
+          python-version: |
+            3.10
+            3.9
+            3.8
+            3.7
+      - name: Init samdev
+        run: make init
+      - name: Stop Docker Linux
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: sudo systemctl stop docker
+      - name: Stop Docker Windows
+        if: ${{ matrix.os == 'windows-latest' }}
+        shell: pwsh
+        run: stop-service docker
+      - name: Check Docker not Running
+        run: docker info
+        id: run-docker-info
+        continue-on-error: true
+      - name: Report failure
+        if: steps.run-docker-info.outcome == 'success'
+        run: exit 1
+      - name: Run tests without Docker
+        run: pytest -vv tests/integration/buildcmd/test_build_cmd.py -k TestBuildCommand_PythonFunctions_WithoutDocker

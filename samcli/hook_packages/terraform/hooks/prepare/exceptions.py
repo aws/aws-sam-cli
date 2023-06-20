@@ -8,6 +8,8 @@ from samcli.commands.exceptions import UserException
 ONE_LAMBDA_LAYER_LINKING_ISSUE_LINK = "https://github.com/aws/aws-sam-cli/issues/4395"
 LOCAL_VARIABLES_SUPPORT_ISSUE_LINK = "https://github.com/aws/aws-sam-cli/issues/4396"
 
+APPLY_WORK_AROUND_MESSAGE = "Run terraform apply to populate these values."
+
 
 class InvalidResourceLinkingException(UserException):
     fmt = "An error occurred when attempting to link two resources: {message}"
@@ -17,7 +19,15 @@ class InvalidResourceLinkingException(UserException):
         UserException.__init__(self, msg)
 
 
-class OneResourceLinkingLimitationException(UserException):
+class ApplyLimitationException(UserException):
+    def __init__(self, message):
+        fmt = "{message}{line_sep}{line_sep}{apply_work_around}"
+        msg = fmt.format(message=message, line_sep=os.linesep, apply_work_around=APPLY_WORK_AROUND_MESSAGE)
+
+        UserException.__init__(self, msg)
+
+
+class OneResourceLinkingLimitationException(ApplyLimitationException):
     fmt = (
         "AWS SAM CLI could not process a Terraform project that contains a source resource that is linked to more "
         "than one destination resource. Destination resource(s) defined by {dest_resource_list} could not be linked to "
@@ -31,7 +41,7 @@ class OneResourceLinkingLimitationException(UserException):
             issue_link=ONE_LAMBDA_LAYER_LINKING_ISSUE_LINK,
             line_sep=os.linesep,
         )
-        UserException.__init__(self, msg)
+        ApplyLimitationException.__init__(self, msg)
 
 
 class OneLambdaLayerLinkingLimitationException(OneResourceLinkingLimitationException):
@@ -40,7 +50,7 @@ class OneLambdaLayerLinkingLimitationException(OneResourceLinkingLimitationExcep
     """
 
 
-class LocalVariablesLinkingLimitationException(UserException):
+class LocalVariablesLinkingLimitationException(ApplyLimitationException):
     fmt = (
         "AWS SAM CLI could not process a Terraform project that uses local variables to define linked resources. "
         "Destination resource(s) defined by {local_variable_reference} could not be linked to destination "
@@ -54,7 +64,7 @@ class LocalVariablesLinkingLimitationException(UserException):
             issue_link=LOCAL_VARIABLES_SUPPORT_ISSUE_LINK,
             line_sep=os.linesep,
         )
-        UserException.__init__(self, msg)
+        ApplyLimitationException.__init__(self, msg)
 
 
 class FunctionLayerLocalVariablesLinkingLimitationException(LocalVariablesLinkingLimitationException):
@@ -113,11 +123,121 @@ class RestApiToApiGatewayStageLocalVariablesLinkingLimitationException(LocalVari
     """
 
 
+class OneRestApiToApiGatewayIntegrationLinkingLimitationException(OneResourceLinkingLimitationException):
+    """
+    Exception specific for Gateway Integration linking to more than one Rest API
+    """
+
+
+class RestApiToApiGatewayIntegrationLocalVariablesLinkingLimitationException(LocalVariablesLinkingLimitationException):
+    """
+    Exception specific for Gateway Integration linking to Rest API using locals.
+    """
+
+
+class OneGatewayResourceToApiGatewayIntegrationLinkingLimitationException(OneResourceLinkingLimitationException):
+    """
+    Exception specific for Gateway Integration linking to more than one Gateway resource
+    """
+
+
+class GatewayResourceToApiGatewayIntegrationLocalVariablesLinkingLimitationException(
+    LocalVariablesLinkingLimitationException
+):
+    """
+    Exception specific for Gateway Integration linking to Gateway Resource using locals.
+    """
+
+
+class OneLambdaFunctionResourceToApiGatewayIntegrationLinkingLimitationException(OneResourceLinkingLimitationException):
+    """
+    Exception specific for Gateway Integration linking to more than one Lambda function resource
+    """
+
+
+class LambdaFunctionToApiGatewayIntegrationLocalVariablesLinkingLimitationException(
+    LocalVariablesLinkingLimitationException
+):
+    """
+    Exception specific for Gateway Integration linking to a Lambda function resource using locals.
+    """
+
+
+class OneRestApiToApiGatewayIntegrationResponseLinkingLimitationException(OneResourceLinkingLimitationException):
+    """
+    Exception specific for Gateway Integration Response linking to more than one Rest API
+    """
+
+
+class RestApiToApiGatewayIntegrationResponseLocalVariablesLinkingLimitationException(
+    LocalVariablesLinkingLimitationException
+):
+    """
+    Exception specific for Gateway Integration Response linking to Rest API using locals.
+    """
+
+
+class OneGatewayResourceToApiGatewayIntegrationResponseLinkingLimitationException(
+    OneResourceLinkingLimitationException
+):
+    """
+    Exception specific for Gateway Integration Response linking to more than one Gateway resource
+    """
+
+
+class GatewayResourceToApiGatewayIntegrationResponseLocalVariablesLinkingLimitationException(
+    LocalVariablesLinkingLimitationException
+):
+    """
+    Exception specific for Gateway Integration Response linking to Gateway Resource using locals.
+    """
+
+
+class OneGatewayAuthorizerToLambdaFunctionLinkingLimitationException(OneResourceLinkingLimitationException):
+    """
+    Exception specific for Gateway Authorizer linking to more than one Lambda Function
+    """
+
+
+class GatewayAuthorizerToLambdaFunctionLocalVariablesLinkingLimitationException(
+    LocalVariablesLinkingLimitationException
+):
+    """
+    Exception specific for Gateway Authorizer linking to Lambda Function using locals.
+    """
+
+
+class OneGatewayAuthorizerToRestApiLinkingLimitationException(OneResourceLinkingLimitationException):
+    """
+    Exception specific for Gateway Authorizer linking to more than one Rest API
+    """
+
+
+class GatewayAuthorizerToRestApiLocalVariablesLinkingLimitationException(LocalVariablesLinkingLimitationException):
+    """
+    Exception specific for Gateway Authorizer linking to Rest APIs using locals.
+    """
+
+
+class OneGatewayMethodToGatewayAuthorizerLinkingLimitationException(OneResourceLinkingLimitationException):
+    """
+    Exception specific for Gateway Method linking to more than one Gateway Authorizer
+    """
+
+
+class GatewayMethodToGatewayAuthorizerLocalVariablesLinkingLimitationException(
+    LocalVariablesLinkingLimitationException
+):
+    """
+    Exception specific for Gateway Method linking to Gateway Authorizer using locals.
+    """
+
+
 class InvalidSamMetadataPropertiesException(UserException):
     pass
 
 
-class OpenAPIBodyNotSupportedException(UserException):
+class OpenAPIBodyNotSupportedException(ApplyLimitationException):
     fmt = (
         "AWS SAM CLI is unable to process a Terraform project that uses an OpenAPI specification to "
         "define the API Gateway resource. AWS SAM CLI does not currently support this "
@@ -128,4 +248,4 @@ class OpenAPIBodyNotSupportedException(UserException):
         msg = self.fmt.format(
             api_id=api_id,
         )
-        UserException.__init__(self, msg)
+        ApplyLimitationException.__init__(self, msg)

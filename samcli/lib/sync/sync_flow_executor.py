@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from queue import Queue
 from threading import RLock
 from typing import Callable, List, Optional, Set
+from uuid import uuid4
 
 from botocore.exceptions import ClientError
 
@@ -336,11 +337,12 @@ class SyncFlowExecutor:
         dependent_sync_flows = []
         sync_types = EventType.get_accepted_values(EventName.SYNC_FLOW_START)
         sync_type: Optional[str] = type(sync_flow).__name__
+        thread_id = uuid4()
         if sync_type not in sync_types:
             sync_type = None
         try:
             if sync_type:
-                EventTracker.track_event("SyncFlowStart", sync_type)
+                EventTracker.track_event("SyncFlowStart", sync_type, thread_id=thread_id)
             dependent_sync_flows = sync_flow.execute()
         except ClientError as e:
             if e.response.get("Error", dict()).get("Code", "") == "ResourceNotFoundException":
@@ -350,5 +352,5 @@ class SyncFlowExecutor:
             raise SyncFlowException(sync_flow, e) from e
         finally:
             if sync_type:
-                EventTracker.track_event("SyncFlowEnd", sync_type)
+                EventTracker.track_event("SyncFlowEnd", sync_type, thread_id=thread_id)
         return SyncFlowResult(sync_flow=sync_flow, dependent_sync_flows=dependent_sync_flows)

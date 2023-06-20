@@ -427,6 +427,35 @@ class TestSwaggerParser_get_authorizers(TestCase):
                 },
                 Route.API,
             ),
+            (  # swagger 2.0 request authorizer using empty id source
+                {
+                    "swagger": "2.0",
+                    "securityDefinitions": {
+                        "QueryAuth": {
+                            "type": "apiKey",
+                            "in": "header",
+                            "name": "Auth",
+                            "x-amazon-apigateway-authtype": "custom",
+                            "x-amazon-apigateway-authorizer": {
+                                "type": "request",
+                                "authorizerUri": "arn",
+                            },
+                        },
+                    },
+                },
+                {
+                    "QueryAuth": LambdaAuthorizer(
+                        payload_version="1.0",
+                        authorizer_name="QueryAuth",
+                        type="request",
+                        lambda_name="arn",
+                        identity_sources=[],
+                        validation_string=None,
+                        use_simple_response=False,
+                    ),
+                },
+                Route.API,
+            ),
             (  # openapi 3.0 with token authorizer
                 {
                     "openapi": "3.0",
@@ -854,6 +883,33 @@ class TestSwaggerParser_get_authorizers(TestCase):
 
         self.assertEqual(parser.get_authorizers(Route.API)["TokenAuth"].use_simple_response, False)
 
+    @patch("samcli.commands.local.lib.swagger.parser.LambdaUri")
+    @patch("samcli.commands.local.lib.swagger.parser.SwaggerParser._get_lambda_identity_sources")
+    def test_ignore_token_auth_with_empty_id_sources(self, get_id_sources_mock, mock_lambda_uri):
+        """
+        Test if we skip a token authorizer if identity source gathering method returns empty
+        """
+        mock_lambda_uri.get_function_name.return_value = "arn"
+        get_id_sources_mock.return_value = []
+
+        # sample token auth
+        swagger_doc = {
+            "swagger": "2.0",
+            "securityDefinitions": {
+                "TokenAuth": {
+                    "type": "apiKey",
+                    "in": "header",
+                    "name": "Auth",
+                    "x-amazon-apigateway-authtype": "custom",
+                    "x-amazon-apigateway-authorizer": {"type": "token", "authorizerUri": "arn"},
+                },
+            },
+        }
+
+        parser = SwaggerParser(Mock(), swagger_doc)
+
+        self.assertEqual(len(parser.get_authorizers(Route.API)), 0)
+
 
 class TestSwaggerParser_get_default_authorizer(TestCase):
     def test_valid_default_authorizers(self):
@@ -885,15 +941,23 @@ class TestSwaggerParser_get_default_authorizer(TestCase):
 
     @parameterized.expand(
         [
-            ({"swagger": "2.0", "security": [{"auth": []}]}, IncorrectOasWithDefaultAuthorizerException),
-            ({"openapi": "3.0", "security": [{"auth": []}, {"auth2": []}]}, MultipleAuthorizerException),
+            ({"swagger": "2.0", "security": [{"auth": []}]}, IncorrectOasWithDefaultAuthorizerException, Route.API),
+            ({"swagger": "2.0", "security": [{"auth": []}]}, IncorrectOasWithDefaultAuthorizerException, Route.HTTP),
+            ({"openapi": "3.0", "security": [{"auth": []}, {"auth2": []}]}, MultipleAuthorizerException, Route.API),
+            ({"openapi": "3.0", "security": [{"auth": []}, {"auth2": []}]}, MultipleAuthorizerException, Route.HTTP),
         ]
     )
-    def test_invalid_default_authorizer_definition(self, swagger, expected_exception):
+    def test_invalid_default_authorizer_definition(self, swagger, expected_exception, type):
         parser = SwaggerParser(Mock(), swagger)
 
         with self.assertRaises(expected_exception):
-            parser.get_default_authorizer(Route.HTTP)
+            parser.get_default_authorizer(type)
+
+    def test_default_authorizer_definition_using_3_x_version(self):
+        parser = SwaggerParser(Mock(), {"swagger": "3.0", "security": [{"auth": []}]})
+
+        parser.get_default_authorizer(Route.API)
+        parser.get_default_authorizer(Route.HTTP)
 
 
 class TestSwaggerParser_get_lambda_identity_sources(TestCase):
@@ -913,6 +977,7 @@ class TestSwaggerParser_get_lambda_identity_sources(TestCase):
                 {"identitySource": "method.request.header.Authentication, method.request.header.otherheader"},
                 ["method.request.header.Authentication", "method.request.header.otherheader"],
             ),
+            ("request", Route.HTTP, {"name": "unused", "in": "header"}, {}, []),  # missing 'identitySource' for request
         ]
     )
     def test_valid_identity_sources(self, type, event_type, properties, authorizer_object, expected_result):
@@ -940,12 +1005,6 @@ class TestSwaggerParser_get_lambda_identity_sources(TestCase):
                 Route.HTTP,
                 {"name": "auth", "in": "header"},
                 {"identitySource": "method.request.header.Authentication, method.request.header.otherheader"},
-            ),
-            (  # missing 'identitySource' for request
-                "request",
-                Route.HTTP,
-                {"name": "unused", "in": "header"},
-                {},
             ),
         ]
     )
