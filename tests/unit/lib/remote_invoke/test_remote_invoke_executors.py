@@ -11,12 +11,13 @@ from samcli.lib.remote_invoke.remote_invoke_executors import (
     ResponseObjectToJsonStringMapper,
     RemoteInvokeRequestResponseMapper,
     RemoteInvokeOutputFormat,
+    RemoteInvokeResponse,
 )
 
 
 class TestRemoteInvokeExecutionInfo(TestCase):
     def setUp(self) -> None:
-        self.output_format = RemoteInvokeOutputFormat.DEFAULT
+        self.output_format = RemoteInvokeOutputFormat.TEXT
 
     def test_execution_info_payload(self):
         given_payload = Mock()
@@ -75,7 +76,7 @@ class TestBotoActionExecutor(TestCase):
     def test_execute_with_payload(self):
         given_payload = Mock()
         given_parameters = {"ExampleParameter": "ExampleValue"}
-        given_output_format = "default"
+        given_output_format = "text"
         test_execution_info = RemoteInvokeExecutionInfo(given_payload, None, given_parameters, given_output_format)
 
         with patch.object(self.boto_action_executor, "_execute_action") as patched_execute_action, patch.object(
@@ -89,12 +90,10 @@ class TestBotoActionExecutor(TestCase):
             patched_execute_action.assert_called_with(given_payload)
             patched_execute_action_file.assert_not_called()
 
-            self.assertEqual(given_result, result.response)
-
     def test_execute_with_payload_file(self):
         given_payload_file = Mock()
         given_parameters = {"ExampleParameter": "ExampleValue"}
-        given_output_format = "original-boto-response"
+        given_output_format = "json"
         test_execution_info = RemoteInvokeExecutionInfo(None, given_payload_file, given_parameters, given_output_format)
 
         with patch.object(self.boto_action_executor, "_execute_action") as patched_execute_action, patch.object(
@@ -108,23 +107,19 @@ class TestBotoActionExecutor(TestCase):
             patched_execute_action_file.assert_called_with(given_payload_file)
             patched_execute_action.assert_not_called()
 
-            self.assertEqual(given_result, result.response)
-
     def test_execute_error(self):
         given_payload = Mock()
         given_parameters = {"ExampleParameter": "ExampleValue"}
-        given_output_format = "original-boto-response"
+        given_output_format = "json"
         test_execution_info = RemoteInvokeExecutionInfo(given_payload, None, given_parameters, given_output_format)
 
         with patch.object(self.boto_action_executor, "_execute_action") as patched_execute_action:
             given_exception = ValueError()
             patched_execute_action.side_effect = given_exception
 
-            result = self.boto_action_executor.execute(test_execution_info)
-
-            patched_execute_action.assert_called_with(given_payload)
-
-            self.assertEqual(given_exception, result.exception)
+            with self.assertRaises(ValueError):
+                result = self.boto_action_executor.execute(test_execution_info)
+                patched_execute_action.assert_called_with(given_payload)
 
 
 class TestRemoteInvokeExecutor(TestCase):
@@ -142,20 +137,20 @@ class TestRemoteInvokeExecutor(TestCase):
         ]
 
         self.test_executor = RemoteInvokeExecutor(
-            self.mock_request_mappers, self.mock_response_mappers, self.mock_boto_action_executor
+            self.mock_request_mappers, self.mock_response_mappers, self.mock_boto_action_executor, Mock(), Mock()
         )
 
     def test_execution(self):
         given_payload = Mock()
         given_parameters = {"ExampleParameter": "ExampleValue"}
-        given_output_format = "original-boto-response"
+        given_output_format = RemoteInvokeOutputFormat.JSON
         test_execution_info = RemoteInvokeExecutionInfo(given_payload, None, given_parameters, given_output_format)
         validate_action_parameters_function = Mock()
         self.mock_boto_action_executor.validate_action_parameters = validate_action_parameters_function
+        self.mock_boto_action_executor.execute.return_value = [RemoteInvokeResponse(Mock())]
 
-        result = self.test_executor.execute(remote_invoke_input=test_execution_info)
+        self.test_executor.execute(remote_invoke_input=test_execution_info)
 
-        self.assertIsNotNone(result)
         validate_action_parameters_function.assert_called_once()
 
         for request_mapper in self.mock_request_mappers:
@@ -167,7 +162,7 @@ class TestRemoteInvokeExecutor(TestCase):
     def test_execution_failure(self):
         given_payload = Mock()
         given_parameters = {"ExampleParameter": "ExampleValue"}
-        given_output_format = "original-boto-response"
+        given_output_format = RemoteInvokeOutputFormat.JSON
         test_execution_info = RemoteInvokeExecutionInfo(given_payload, None, given_parameters, given_output_format)
         validate_action_parameters_function = Mock()
         self.mock_boto_action_executor.validate_action_parameters = validate_action_parameters_function
@@ -176,11 +171,10 @@ class TestRemoteInvokeExecutor(TestCase):
             given_payload, None, given_parameters, given_output_format
         )
         given_result_execution_info.exception = Mock()
-        self.mock_boto_action_executor.execute.return_value = given_result_execution_info
+        self.mock_boto_action_executor.execute.return_value = [given_result_execution_info]
 
-        result = self.test_executor.execute(test_execution_info)
+        self.test_executor.execute(test_execution_info)
 
-        self.assertIsNotNone(result)
         validate_action_parameters_function.assert_called_once()
 
         for request_mapper in self.mock_request_mappers:
@@ -192,7 +186,7 @@ class TestRemoteInvokeExecutor(TestCase):
 
 class TestResponseObjectToJsonStringMapper(TestCase):
     def test_mapper(self):
-        output_format = RemoteInvokeOutputFormat.DEFAULT
+        output_format = RemoteInvokeOutputFormat.TEXT
         given_object = [{"key": "value", "key2": 123}]
         test_execution_info = RemoteInvokeExecutionInfo(None, None, {}, output_format)
         test_execution_info.response = given_object
