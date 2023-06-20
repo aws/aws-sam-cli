@@ -1138,7 +1138,7 @@ class TestUnresolvableAttributeCheck(TestCase):
 
         log_mock.warning.assert_called_with(
             Colored().color_log(
-                msg="\nUnresolvable attributes discovered in project, " "run terraform apply to resolve them.\n",
+                msg="\nUnresolvable attributes discovered in project, run terraform apply to resolve them.\n",
                 color=Colors.WARNING,
             ),
             extra=dict(markup=True),
