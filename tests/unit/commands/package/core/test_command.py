@@ -16,7 +16,7 @@ class MockParams:
 
 class TestPackageCommand(unittest.TestCase):
     @patch.object(PackageCommand, "get_params")
-    def test_get_options_deploy_command_text(self, mock_get_params):
+    def test_get_options_package_command_text(self, mock_get_params):
         with patch("click.get_current_context", return_value=MagicMock()) as mock_get_current_context:
             # Set up the chain of calls to return 'mock' on .get()
             mock_get_current_context.return_value.obj.console.capture().__enter__().get.return_value = "mock"
@@ -42,7 +42,7 @@ class TestPackageCommand(unittest.TestCase):
                 "AWS Credential Options": [("", ""), ("--region", ""), ("", "")],
                 "Acronyms": [("", ""), ("S3", ""), ("ECR", ""), ("KMS", "")],
                 "Additional Options": [("", ""), ("--signing-profiles", ""), ("", "")],
-                "Automatic resolution of s3 buckets": [("", ""), ("$ sam package --resolve-s3\x1b[0m", "")],
+                "Automatic resolution of S3 buckets": [("", ""), ("$ sam package --resolve-s3\x1b[0m", "")],
                 "Beta Options": [("", ""), ("--beta-features", ""), ("", "")],
                 "Configuration Options": [("", ""), ("--config-file", ""), ("", "")],
                 "Customized location for uploading artifacts": [
