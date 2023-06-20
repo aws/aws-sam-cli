@@ -11,8 +11,6 @@ Resources:
       CodeUri: ./lambda-fns/src/
       Handler: index.handler
       Runtime: nodejs18.x
-      Architectures:
-        - x86_64
       Timeout: 10
       FunctionUrlConfig:
         AuthType: AWS_IAM
@@ -24,8 +22,6 @@ Resources:
       CodeUri: ./lambda-fns/src/
       Handler: index.stream_event_values
       Runtime: nodejs18.x
-      Architectures:
-        - x86_64
       Timeout: 10
       FunctionUrlConfig:
         AuthType: AWS_IAM

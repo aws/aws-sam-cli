@@ -13,11 +13,6 @@ class TestInvokeResponseStreamingLambdas(RemoteInvokeIntegBase):
     template = Path("template-lambda-response-streaming-fns.yaml")
 
     @classmethod
-    def tearDownClass(cls):
-        # Delete the deployed stack
-        cls.cfn_client.delete_stack(StackName=cls.stack_name)
-
-    @classmethod
     def setUpClass(cls):
         super().setUpClass()
         cls.stack_name = f"{TestInvokeResponseStreamingLambdas.__name__}-{uuid.uuid4().hex}"
