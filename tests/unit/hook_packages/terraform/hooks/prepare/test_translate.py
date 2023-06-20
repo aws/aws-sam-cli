@@ -1,7 +1,8 @@
 """Test Terraform prepare translate"""
 import copy
+from unittest import TestCase
 from unittest.mock import Mock, call, patch, MagicMock, ANY
-from samcli.lib.utils.colors import Colored
+from samcli.lib.utils.colors import Colored, Colors
 
 from tests.unit.hook_packages.terraform.hooks.prepare.prepare_base import PrepareHookUnitBase
 from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
@@ -1112,7 +1113,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         self.assertEqual(translated_cfn_properties, self.expected_internal_apigw_integration_response_properties)
 
 
-class TestUnresolvableAttributeCheck:
+class TestUnresolvableAttributeCheck(TestCase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.RESOURCE_TRANSLATOR_MAPPING")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.LOG")
     def test_module_contains_unresolvables(self, log_mock, mapping_mock):
@@ -1136,5 +1137,9 @@ class TestUnresolvableAttributeCheck:
         _check_unresolvable_values(module, tf_module)
 
         log_mock.warning.assert_called_with(
-            Colored().yellow("\nUnresolvable attributes discovered in project, run terraform apply to resolve them.\n")
+            Colored().color_log(
+                msg="\nUnresolvable attributes discovered in project, " "run terraform apply to resolve them.\n",
+                color=Colors.WARNING,
+            ),
+            extra=dict(markup=True),
         )
