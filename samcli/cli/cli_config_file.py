@@ -167,9 +167,9 @@ def configuration_callback(
     config_env_name = ctx.params.get("config_env") or DEFAULT_ENV
 
     config_dir = getattr(ctx, "samconfig_dir", None) or os.getcwd()
-    config_file = (
+    config_file = (  # If given by default, check for other `samconfig` extensions first. Else use user-provided value
         SamConfig.get_default_file(config_dir=config_dir)
-        if getattr(ctx.get_parameter_source("config_file"), "name", "") == "DEFAULT"
+        if getattr(ctx.get_parameter_source("config_file"), "name", "") == click.core.ParameterSource.DEFAULT
         else ctx.params.get("config_file") or SamConfig.get_default_file(config_dir=config_dir)
     )
     # If --config-file is an absolute path, use it, if not, start from config_dir

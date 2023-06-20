@@ -77,14 +77,12 @@ class TestSamConfigWithBuild(BuildIntegBase):
     ]
 )
 class TestSamConfigExtensionHierarchy(BuildIntegBase):
-    build_testdata_dir = Path(os.getcwd(), "tests", "integration", "testdata", "buildcmd")
-
     def setUp(self):
         super().setUp()
         new_template_location = Path(self.working_dir, "template.yaml")
         new_template_location.write_text(Path(self.template_path).read_text())
         for extension in self.extensions:
-            config_contents = Path(self.build_testdata_dir, configs[extension]).read_text()
+            config_contents = Path(self.test_data_path, configs[extension]).read_text()
             new_path = Path(self.working_dir, f"samconfig{extension}")
             new_path.write_text(config_contents)
             self.assertTrue(new_path.exists(), f"File samconfig{extension} should have been created in cwd")
