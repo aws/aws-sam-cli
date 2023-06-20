@@ -29,6 +29,11 @@ class RemoteInvokeIntegBase(TestCase):
             cls.template_path = str(cls.test_data_path.joinpath("remote_invoke", cls.template))
         cls.events_folder_path = cls.test_data_path.joinpath("remote_invoke", "events")
 
+    @classmethod
+    def tearDownClass(cls):
+        # Delete the deployed stack
+        cls.cfn_client.delete_stack(StackName=cls.stack_name)
+
     @staticmethod
     def get_integ_dir():
         return Path(__file__).resolve().parents[2]
