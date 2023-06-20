@@ -9,7 +9,7 @@ from collections import defaultdict
 from typing import Dict, Iterator, List, Optional, Set, Tuple, Union
 
 from samcli.lib.providers.provider import Api, Cors
-from samcli.lib.utils.colors import Colored
+from samcli.lib.utils.colors import Colored, Colors
 from samcli.local.apigw.authorizers.authorizer import Authorizer
 from samcli.local.apigw.route import Route
 
@@ -197,7 +197,7 @@ and authorizers deployed on AWS. Any application critical behavior should
 be validated thoroughly before deploying to production.
 
 Testing application behaviour against authorizers deployed on AWS can be done using the sam sync command.{os.linesep}"""
-                LOG.warning(Colored().yellow(message))
+                LOG.warning(Colored().color_log(message, color=Colors.WARNING), extra=dict(markup=True))
 
                 break
 
