@@ -5,19 +5,13 @@ from typing import Optional
 from tests.testing_utils import (
     get_sam_command,
     run_command,
-    RUNNING_ON_CI,
-    RUNNING_TEST_FOR_MASTER_ON_CI,
-    RUN_BY_CANARY,
 )
 from tests.integration.deploy.deploy_integ_base import DeployIntegBase
 
 from samcli.lib.utils.boto_utils import get_boto_resource_provider_with_config, get_boto_client_provider_with_config
 from samcli.lib.utils.cloudformation import get_resource_summaries
 
-SKIP_REMOTE_INVOKE_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 
-
-@skipIf(SKIP_REMOTE_INVOKE_TESTS, "Skip remote invoke tests in CI/CD only")
 class RemoteInvokeIntegBase(TestCase):
     template: Optional[Path] = None
 
