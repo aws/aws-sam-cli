@@ -64,7 +64,7 @@ class AbstractLambdaInvokeExecutor(BotoActionExecutor, ABC):
         """
         for parameter_key, parameter_value in parameters.items():
             if parameter_key == FUNCTION_NAME:
-                LOG.warning("FunctionName is defined using the value provided for --resource-id option.")
+                LOG.warning("FunctionName is defined using the value provided for resource_id argument.")
             elif parameter_key == PAYLOAD:
                 LOG.warning("Payload is defined using the value provided for either --event or --event-file options.")
             else:

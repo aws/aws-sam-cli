@@ -56,7 +56,7 @@ def event_and_event_file_options_validation(func):
 
 def stack_name_or_resource_id_atleast_one_option_validation(func):
     """
-    This function validates that atleast one of --stack-name or --resource-id should is be provided
+    This function validates that atleast one of --stack-name option or resource_id argument should is be provided
 
     Parameters
     ----------
