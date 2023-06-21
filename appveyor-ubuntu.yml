@@ -43,7 +43,7 @@ environment:
 
 install:
   # AppVeyor's apt-get cache might be outdated, and the package could potentially be 404.
-  - sh: "sudo apt-get update"
+  - sh: "sudo apt-get update --allow-releaseinfo-change"
 
   - sh: "gvm use go1.19"
   - sh: "echo $PATH"
@@ -87,7 +87,7 @@ install:
   - sh: "sudo apt install -y jq"
 
   # install Terraform
-  - sh: "sudo apt update"
+  - sh: "sudo apt update --allow-releaseinfo-change"
   - sh: "TER_VER=`curl -s https://api.github.com/repos/hashicorp/terraform/releases/latest | grep tag_name | cut -d: -f2 | tr -d \\\"\\,\\v | awk '{$1=$1};1'`"
   - sh: "wget https://releases.hashicorp.com/terraform/${TER_VER}/terraform_${TER_VER}_linux_amd64.zip -P /tmp"
   - sh: "sudo unzip -d /opt/terraform /tmp/terraform_${TER_VER}_linux_amd64.zip"
