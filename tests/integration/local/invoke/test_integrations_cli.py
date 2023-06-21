@@ -303,7 +303,7 @@ class TestSamPython37HelloWorldIntegration(InvokeIntegBase):
         except TimeoutExpired:
             process.kill()
             raise
-            
+
         process_stdout = stdout.strip()
 
         with open(self.event_utf8_path) as f:
