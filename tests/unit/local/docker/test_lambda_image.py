@@ -34,7 +34,6 @@ class TestRuntime(TestCase):
             ("java17", "java:17-x86_64"),
             ("go1.x", "go:1"),
             ("dotnet6", "dotnet:6-x86_64"),
-            ("dotnetcore3.1", "dotnet:core3.1-x86_64"),
             ("provided", "provided:alami"),
             ("provided.al2", "provided:al2-x86_64"),
         ]
