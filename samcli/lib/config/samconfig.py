@@ -269,7 +269,7 @@ class SamConfig:
                 config_file = filename
 
         if config_files_found == 0:  # Config file doesn't exist (yet!)
-            LOG.debug(f"No config file found in this directory.")
+            LOG.debug("No config file found in this directory.")
         elif config_files_found > 1:  # Multiple config files; let user know which is used
             LOG.info(
                 f"More than one samconfig file found; using {config_file}."
