@@ -27,7 +27,7 @@ class TestDocsBaseCommand(TestCase):
             ),
             description[0][0],
         )
-        self.assertEqual(len(commands), 19)
+        self.assertEqual(len(commands), 20)
         all_commands = set(DocsCommandContext().get_complete_command_paths())
         formatter_commands = set([command[0] for command in commands])
         self.assertEqual(all_commands, formatter_commands)
