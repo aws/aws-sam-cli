@@ -2119,7 +2119,6 @@ test-project
     def test_must_return_runtime_from_base_image_name(self):
         base_images = [
             "amazon/dotnet6-base",
-            "amazon/dotnetcore3.1-base",
             "amazon/go1.x-base",
             "amazon/java11-base",
             "amazon/nodejs14.x-base",
@@ -2131,7 +2130,6 @@ test-project
 
         expected_runtime = [
             "dotnet6",
-            "dotnetcore3.1",
             "go1.x",
             "java11",
             "nodejs14.x",
@@ -2153,10 +2151,10 @@ test-project
         preprocess_manifest = template.get_preprocessed_manifest()
         expected_result = {
             "Hello World Example": {
-                "dotnetcore3.1": {
+                "dotnet6": {
                     "Zip": [
                         {
-                            "directory": "dotnetcore3.1/cookiecutter-aws-sam-hello-dotnet",
+                            "directory": "dotnet6/cookiecutter-aws-sam-hello-dotnet",
                             "displayName": "Hello World Example",
                             "dependencyManager": "cli-package",
                             "appTemplate": "hello-world",
@@ -2788,9 +2786,9 @@ test-project
 
     @patch("samcli.local.common.runtime_template.INIT_RUNTIMES")
     def test_must_remove_unsupported_runtime(self, init_runtime_mock):
-        runtime_option_list = ["python3.7", "ruby3.2", "ruby2.7", "java11", "unsupported_runtime", "dotnetcore3.1"]
-        init_runtime_mock.return_value = ["dotnetcore3.1", "go1.x", "java11", "python3.7", "ruby3.2", "ruby2.7"]
-        expect_result = ["dotnetcore3.1", "java11", "python3.7", "ruby3.2", "ruby2.7"]
+        runtime_option_list = ["python3.7", "ruby3.2", "ruby2.7", "java11", "unsupported_runtime"]
+        init_runtime_mock.return_value = ["go1.x", "java11", "python3.7", "ruby3.2", "ruby2.7"]
+        expect_result = ["java11", "python3.7", "ruby3.2", "ruby2.7"]
         actual_result = get_sorted_runtimes(runtime_option_list)
         self.assertEqual(actual_result, expect_result)
 
