@@ -96,7 +96,7 @@ class TestLambdaInvokeExecutor(CommonTestsLambdaInvokeExecutor.AbstractLambdaInv
         self.lambda_client = Mock()
         self.function_name = Mock()
         self.lambda_invoke_executor = LambdaInvokeExecutor(
-            self.lambda_client, self.function_name, RemoteInvokeOutputFormat.RAW
+            self.lambda_client, self.function_name, RemoteInvokeOutputFormat.JSON
         )
 
     def test_execute_action(self):
@@ -120,7 +120,7 @@ class TestLambdaInvokeWithResponseStreamExecutor(CommonTestsLambdaInvokeExecutor
         self.lambda_client = Mock()
         self.function_name = Mock()
         self.lambda_invoke_executor = LambdaInvokeWithResponseStreamExecutor(
-            self.lambda_client, self.function_name, RemoteInvokeOutputFormat.RAW
+            self.lambda_client, self.function_name, RemoteInvokeOutputFormat.JSON
         )
 
     def test_execute_action(self):
@@ -142,10 +142,11 @@ class TestLambdaInvokeWithResponseStreamExecutor(CommonTestsLambdaInvokeExecutor
 class TestDefaultConvertToJSON(TestCase):
     def setUp(self) -> None:
         self.lambda_convert_to_default_json = DefaultConvertToJSON()
-        self.output_format = RemoteInvokeOutputFormat.DEFAULT
+        self.output_format = RemoteInvokeOutputFormat.TEXT
 
     @parameterized.expand(
         [
+            (None, "{}"),
             ("Hello World", '"Hello World"'),
             ('{"message": "hello world"}', '{"message": "hello world"}'),
         ]
@@ -170,7 +171,7 @@ class TestLambdaResponseConverter(TestCase):
         self.lambda_response_converter = LambdaResponseConverter()
 
     def test_lambda_streaming_body_response_conversion(self):
-        output_format = RemoteInvokeOutputFormat.DEFAULT
+        output_format = RemoteInvokeOutputFormat.TEXT
         given_streaming_body = Mock()
         given_decoded_string = "decoded string"
         given_streaming_body.read().decode.return_value = given_decoded_string
@@ -185,7 +186,7 @@ class TestLambdaResponseConverter(TestCase):
         self.assertEqual(result.response, expected_result)
 
     def test_lambda_streaming_body_invalid_response_exception(self):
-        output_format = RemoteInvokeOutputFormat.DEFAULT
+        output_format = RemoteInvokeOutputFormat.TEXT
         given_streaming_body = Mock()
         given_decoded_string = "decoded string"
         given_streaming_body.read().decode.return_value = given_decoded_string
@@ -205,7 +206,7 @@ class TestLambdaStreamResponseConverter(TestCase):
         [({LOG_RESULT: base64.b64encode(b"log output")}, {LOG_RESULT: base64.b64encode(b"log output")}), ({}, {})]
     )
     def test_lambda_streaming_body_response_conversion(self, invoke_complete_response, mapped_log_response):
-        output_format = RemoteInvokeOutputFormat.DEFAULT
+        output_format = RemoteInvokeOutputFormat.TEXT
         given_test_result = {
             EVENT_STREAM: [
                 {PAYLOAD_CHUNK: {PAYLOAD: b"stream1"}},
@@ -229,7 +230,7 @@ class TestLambdaStreamResponseConverter(TestCase):
         self.assertEqual(result.response, expected_result)
 
     def test_lambda_streaming_body_invalid_response_exception(self):
-        output_format = RemoteInvokeOutputFormat.DEFAULT
+        output_format = RemoteInvokeOutputFormat.TEXT
         remote_invoke_execution_info = RemoteInvokeExecutionInfo(None, None, {}, output_format)
         remote_invoke_execution_info.response = Mock()
 

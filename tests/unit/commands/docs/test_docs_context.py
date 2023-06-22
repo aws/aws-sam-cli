@@ -24,6 +24,7 @@ SUPPORTED_COMMANDS = [
     "list endpoints",
     "list resources",
     "deploy",
+    "remote invoke",
     "package",
     "delete",
     "sync",

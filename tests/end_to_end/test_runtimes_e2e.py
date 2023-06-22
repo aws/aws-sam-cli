@@ -10,7 +10,6 @@ from tests.end_to_end.end_to_end_context import EndToEndTestContext
 from tests.end_to_end.test_stages import (
     DefaultInitStage,
     PackageDownloadZipFunctionStage,
-    DefaultRemoteInvokeStage,
     DefaultDeleteStage,
     EndToEndBaseStage,
     DefaultSyncStage,
@@ -47,8 +46,10 @@ class LocalInvokeValidator(BaseValidator):
 
 class RemoteInvokeValidator(BaseValidator):
     def validate(self, command_result: CommandResult):
-        self.assertEqual(command_result.process.get("StatusCode"), 200)
-        self.assertEqual(command_result.process.get("FunctionError", ""), "")
+        response = json.loads(command_result.stdout.decode("utf-8"))
+        self.assertEqual(command_result.process.returncode, 0)
+        self.assertEqual(response["StatusCode"], 200)
+        self.assertEqual(response.get("FunctionError", ""), "")
 
 
 class StackOutputsValidator(BaseValidator):
@@ -75,18 +76,21 @@ class TestHelloWorldDefaultEndToEnd(EndToEndBase):
 
     def test_hello_world_default_workflow(self):
         stack_name = self._method_to_stack_name(self.id())
+        function_name = "HelloWorldFunction"
+        event = '{"hello": "world"}'
         with EndToEndTestContext(self.app_name) as e2e_context:
             self.template_path = e2e_context.template_path
             init_command_list = self._get_init_command(e2e_context.working_directory)
             build_command_list = self.get_command_list()
             deploy_command_list = self._get_deploy_command(stack_name)
             stack_outputs_command_list = self._get_stack_outputs_command(stack_name)
+            remote_invoke_command_list = self._get_remote_invoke_command(stack_name, function_name, event, "json")
             delete_command_list = self._get_delete_command(stack_name)
             stages = [
                 DefaultInitStage(InitValidator(e2e_context), e2e_context, init_command_list, self.app_name),
                 EndToEndBaseStage(BuildValidator(e2e_context), e2e_context, build_command_list),
                 EndToEndBaseStage(BaseValidator(e2e_context), e2e_context, deploy_command_list),
-                DefaultRemoteInvokeStage(RemoteInvokeValidator(e2e_context), e2e_context, stack_name),
+                EndToEndBaseStage(RemoteInvokeValidator(e2e_context), e2e_context, remote_invoke_command_list),
                 EndToEndBaseStage(BaseValidator(e2e_context), e2e_context, stack_outputs_command_list),
                 DefaultDeleteStage(BaseValidator(e2e_context), e2e_context, delete_command_list, stack_name),
             ]
@@ -117,7 +121,7 @@ class TestHelloWorldZipPackagePermissionsEndToEnd(EndToEndBase):
             package_command_list = self._get_package_command(
                 s3_prefix="end-to-end-package-test", use_json=True, output_template_file="packaged_template.json"
             )
-            local_command_list = self._get_local_command("HelloWorldFunction")
+            local_command_list = self._get_local_command(function_name)
             stages = [
                 DefaultInitStage(InitValidator(e2e_context), e2e_context, init_command_list, self.app_name),
                 EndToEndBaseStage(BuildValidator(e2e_context), e2e_context, build_command_list),
@@ -141,17 +145,20 @@ class TestHelloWorldDefaultSyncEndToEnd(EndToEndBase):
     app_template = "hello-world"
 
     def test_go_hello_world_default_workflow(self):
+        function_name = "HelloWorldFunction"
+        event = '{"hello": "world"}'
         stack_name = self._method_to_stack_name(self.id())
         with EndToEndTestContext(self.app_name) as e2e_context:
             self.template_path = e2e_context.template_path
             init_command_list = self._get_init_command(e2e_context.working_directory)
             sync_command_list = self._get_sync_command(stack_name)
             stack_outputs_command_list = self._get_stack_outputs_command(stack_name)
+            remote_invoke_command_list = self._get_remote_invoke_command(stack_name, function_name, event, "json")
             delete_command_list = self._get_delete_command(stack_name)
             stages = [
                 DefaultInitStage(InitValidator(e2e_context), e2e_context, init_command_list, self.app_name),
                 DefaultSyncStage(BaseValidator(e2e_context), e2e_context, sync_command_list),
-                DefaultRemoteInvokeStage(RemoteInvokeValidator(e2e_context), e2e_context, stack_name),
+                EndToEndBaseStage(RemoteInvokeValidator(e2e_context), e2e_context, remote_invoke_command_list),
                 EndToEndBaseStage(BaseValidator(e2e_context), e2e_context, stack_outputs_command_list),
                 DefaultDeleteStage(BaseValidator(e2e_context), e2e_context, delete_command_list, stack_name),
             ]
