@@ -10,49 +10,67 @@ import functools
 import logging
 import os
 from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional
 
 import click
+from click.core import ParameterSource
 
 from samcli.cli.context import get_cmd_names
 from samcli.commands.exceptions import ConfigException
 from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME, DEFAULT_ENV, SamConfig
 
-__all__ = ("TomlProvider", "configuration_option", "get_ctx_defaults")
+__all__ = ("ConfigProvider", "configuration_option", "get_ctx_defaults")
 
 LOG = logging.getLogger(__name__)
 
 
-class TomlProvider:
+class ConfigProvider:
     """
-    A parser for toml configuration files
+    A parser for sam configuration files
     """
 
     def __init__(self, section=None, cmd_names=None):
         """
-        The constructor for TomlProvider class
-        :param section: section defined in the configuration file nested within `cmd`
-        :param cmd_names: cmd_name defined in the configuration file
+        The constructor for ConfigProvider class
+
+        Parameters
+        ----------
+        section
+            The section defined in the configuration file nested within `cmd`
+        cmd_names
+            The cmd_name defined in the configuration file
         """
         self.section = section
         self.cmd_names = cmd_names
 
-    def __call__(self, config_path, config_env, cmd_names):
+    def __call__(self, config_path: Path, config_env: str, cmd_names: List[str]) -> dict:
         """
         Get resolved config based on the `file_path` for the configuration file,
         `config_env` targeted inside the config file and corresponding `cmd_name`
         as denoted by `click`.
 
-        :param config_path: The path of configuration file.
-        :param config_env: The name of the sectional config_env within configuration file.
-        :param list cmd_names: sam command name as defined by click
-        :returns dictionary containing the configuration parameters under specified config_env
+        Parameters
+        ----------
+        config_path: Path
+            The path of configuration file.
+        config_env: str
+            The name of the sectional config_env within configuration file.
+        cmd_names: List[str]
+            The sam command name as defined by click.
+
+        Returns
+        -------
+        dict
+            A dictionary containing the configuration parameters under specified config_env.
         """
 
-        resolved_config = {}
+        resolved_config: dict = {}
 
         # Use default sam config file name if config_path only contain the directory
         config_file_path = (
-            Path(os.path.abspath(config_path)) if config_path else Path(os.getcwd(), DEFAULT_CONFIG_FILE_NAME)
+            Path(os.path.abspath(config_path))
+            if config_path
+            else Path(os.getcwd(), SamConfig.get_default_file(os.getcwd()))
         )
         config_file_name = config_file_path.name
         config_file_dir = config_file_path.parents[0]
@@ -105,32 +123,56 @@ class TomlProvider:
         return resolved_config
 
 
-def configuration_callback(cmd_name, option_name, saved_callback, provider, ctx, param, value):
+def configuration_callback(
+    cmd_name: str,
+    option_name: str,
+    saved_callback: Optional[Callable],
+    provider: Callable,
+    ctx: click.Context,
+    param: click.Parameter,
+    value,
+):
     """
     Callback for reading the config file.
 
     Also takes care of calling user specified custom callback afterwards.
 
-    :param cmd_name: `sam` command name derived from click.
-    :param option_name: The name of the option. This is used for error messages.
-    :param saved_callback: User-specified callback to be called later.
-    :param provider:  A callable that parses the configuration file and returns a dictionary
+    Parameters
+    ----------
+    cmd_name: str
+        The `sam` command name derived from click.
+    option_name: str
+        The name of the option. This is used for error messages.
+    saved_callback: Optional[Callable]
+        User-specified callback to be called later.
+    provider: Callable
+        A callable that parses the configuration file and returns a dictionary
         of the configuration parameters. Will be called as
         `provider(file_path, config_env, cmd_name)`.
-    :param ctx: Click context
-    :param param: Click parameter
-    :param value: Specified value for config_env
-    :returns specified callback or the specified value for config_env.
+    ctx: click.Context
+        Click context
+    param: click.Parameter
+        Click parameter
+    value
+        Specified value for config_env
+
+    Returns
+    -------
+    The specified callback or the specified value for config_env.
     """
 
     # ctx, param and value are default arguments for click specified callbacks.
     ctx.default_map = ctx.default_map or {}
-    cmd_name = cmd_name or ctx.info_name
+    cmd_name = cmd_name or str(ctx.info_name)
     param.default = None
     config_env_name = ctx.params.get("config_env") or DEFAULT_ENV
 
-    config_file = ctx.params.get("config_file") or DEFAULT_CONFIG_FILE_NAME
     config_dir = getattr(ctx, "samconfig_dir", None) or os.getcwd()
+    config_file = (  # If given by default, check for other `samconfig` extensions first. Else use user-provided value
+        SamConfig.get_default_file(config_dir=config_dir)
+        if getattr(ctx.get_parameter_source("config_file"), "name", "") == ParameterSource.DEFAULT.name
+        else ctx.params.get("config_file") or SamConfig.get_default_file(config_dir=config_dir)
+    )
     # If --config-file is an absolute path, use it, if not, start from config_dir
     config_file_path = config_file if os.path.isabs(config_file) else os.path.join(config_dir, config_file)
     if (
@@ -154,21 +196,35 @@ def configuration_callback(cmd_name, option_name, saved_callback, provider, ctx,
     return saved_callback(ctx, param, config_env_name) if saved_callback else config_env_name
 
 
-def get_ctx_defaults(cmd_name, provider, ctx, config_env_name, config_file=None):
+def get_ctx_defaults(
+    cmd_name: str, provider: Callable, ctx: click.Context, config_env_name: str, config_file: Optional[str] = None
+) -> Any:
     """
     Get the set of the parameters that are needed to be set into the click command.
+
     This function also figures out the command name by looking up current click context's parent
     and constructing the parsed command name that is used in default configuration file.
     If a given cmd_name is start-api, the parsed name is "local_start_api".
     provider is called with `config_file`, `config_env_name` and `parsed_cmd_name`.
 
-    :param cmd_name: `sam` command name
-    :param provider: provider to be called for reading configuration file
-    :param ctx: Click context
-    :param config_env_name: config-env within configuration file, sam configuration file will be relative to the
-                            supplied original template if its path is not specified
-    :param config_file: configuration file name
-    :return: dictionary of defaults for parameters
+    Parameters
+    ----------
+    cmd_name: str
+        The `sam` command name.
+    provider: Callable
+        The provider to be called for reading configuration file.
+    ctx: click.Context
+        Click context
+    config_env_name: str
+        The config-env within configuration file, sam configuration file will be relative to the
+        supplied original template if its path is not specified.
+    config_file: Optional[str]
+        The configuration file name.
+
+    Returns
+    -------
+    Any
+        A dictionary of defaults for parameters.
     """
 
     return provider(config_file, config_env_name, get_cmd_names(cmd_name, ctx))
@@ -180,30 +236,38 @@ def configuration_option(*param_decls, **attrs):
     """
     Adds configuration file support to a click application.
 
-    NOTE: This decorator should be added to the top of parameter chain, right below click.command, before
-          any options are declared.
-
-    Example:
-        >>> @click.command("hello")
-            @configuration_option(provider=TomlProvider(section="parameters"))
-            @click.option('--name', type=click.String)
-            def hello(name):
-                print("Hello " + name)
-
     This will create a hidden click option whose callback function loads configuration parameters from default
     configuration environment [default] in default configuration file [samconfig.toml] in the template file
     directory.
-    :param preconfig_decorator_list: A list of click option decorator which need to place before this function. For
-        exmple, if we want to add option "--config-file" and "--config-env" to allow customized configuration file
+
+    Note
+    ----
+    This decorator should be added to the top of parameter chain, right below click.command, before
+    any options are declared.
+
+    Example
+    -------
+    >>> @click.command("hello")
+        @configuration_option(provider=ConfigProvider(section="parameters"))
+        @click.option('--name', type=click.String)
+        def hello(name):
+            print("Hello " + name)
+
+    Parameters
+    ----------
+    preconfig_decorator_list: list
+        A list of click option decorator which need to place before this function. For
+        example, if we want to add option "--config-file" and "--config-env" to allow customized configuration file
         and configuration environment, we will use configuration_option as below:
         @configuration_option(
             preconfig_decorator_list=[decorator_customize_config_file, decorator_customize_config_env],
-            provider=TomlProvider(section=CONFIG_SECTION),
+            provider=ConfigProvider(section=CONFIG_SECTION),
         )
         By default, we enable these two options.
-    :param provider: A callable that parses the configuration file and returns a dictionary
+    provider: Callable
+        A callable that parses the configuration file and returns a dictionary
         of the configuration parameters. Will be called as
-        `provider(file_path, config_env, cmd_name)
+        `provider(file_path, config_env, cmd_name)`
     """
 
     def decorator_configuration_setup(f):
@@ -240,14 +304,22 @@ def configuration_option(*param_decls, **attrs):
     return composed_decorator(decorator_list)
 
 
-def decorator_customize_config_file(f):
+def decorator_customize_config_file(f: Callable) -> Callable:
     """
     CLI option to customize configuration file name. By default it is 'samconfig.toml' in project directory.
     Ex: --config-file samconfig.toml
-    :param f: Callback function passed by Click
-    :return: Callback function
+
+    Parameters
+    ----------
+    f: Callable
+        Callback function passed by Click
+
+    Returns
+    -------
+    Callable
+        A Callback function
     """
-    config_file_attrs = {}
+    config_file_attrs: Dict[str, Any] = {}
     config_file_param_decls = ("--config-file",)
     config_file_attrs["help"] = "Configuration file containing default parameter values."
     config_file_attrs["default"] = "samconfig.toml"
@@ -258,14 +330,22 @@ def decorator_customize_config_file(f):
     return click.option(*config_file_param_decls, **config_file_attrs)(f)
 
 
-def decorator_customize_config_env(f):
+def decorator_customize_config_env(f: Callable) -> Callable:
     """
     CLI option to customize configuration environment name. By default it is 'default'.
     Ex: --config-env default
-    :param f: Callback function passed by Click
-    :return: Callback function
+
+    Parameters
+    ----------
+    f: Callable
+        Callback function passed by Click
+
+    Returns
+    -------
+    Callable
+        A Callback function
     """
-    config_env_attrs = {}
+    config_env_attrs: Dict[str, Any] = {}
     config_env_param_decls = ("--config-env",)
     config_env_attrs["help"] = "Environment name specifying default parameter values in the configuration file."
     config_env_attrs["default"] = "default"
