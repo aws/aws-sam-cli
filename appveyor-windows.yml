@@ -6,6 +6,7 @@ clone_folder: C:\source
 
 configuration:
   - BuildIntegTesting
+  - BuildIntegTestingArm64
   - LocalZipTerraformBuildIntegTesting
   - LocalZipTerraformBuildInContainerIntegTesting
   - S3ZipTerraformBuildIntegTesting
@@ -166,10 +167,12 @@ on_finish:
 
 
 for:
-  #Integ testing build, regression
+  #Setting up Integ testing build & buildarm64
   - matrix:
       only:
-        - configuration: BuildIntegTesting
+        - configuration:
+          - BuildIntegTesting
+          - BuildIntegTestingArm64
 
     build_script:
       # install Rust in build_script to not override the default "install" actions
@@ -188,9 +191,24 @@ for:
       - cargo -V
       - cargo lambda -V
 
+  #Integ testing build
+  - matrix:
+      only:
+        - configuration:
+            - BuildIntegTesting
+
     test_script:
-      - ps: "pytest -vv -n 4 --reruns 4 tests/integration/buildcmd --ignore tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+      - ps: "pytest -vv -n 4 --reruns 4 tests/integration/buildcmd --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
       
+  #Integ testing build arm64
+  - matrix:
+      only:
+        - configuration:
+            - BuildIntegTestingArm64
+
+    test_script:
+      - ps: "pytest -vv tests/integration/buildcmd/test_build_cmd_arm64.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64.json"
+
   # Local ZIP  Terraform Build integ testing
   - matrix:
       only:
