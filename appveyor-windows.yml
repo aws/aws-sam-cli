@@ -172,6 +172,7 @@ for:
       only:
         - configuration:
             - BuildIntegTesting
+        - configuration:
             - BuildIntegTestingArm64
 
     build_script:
