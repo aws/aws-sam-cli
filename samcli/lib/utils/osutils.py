@@ -87,7 +87,7 @@ def stdout():
     io.BytesIO
         Byte stream of Stdout
     """
-    return sys.stdout
+    return sys.stdout.buffer
 
 
 def stderr():
@@ -99,7 +99,7 @@ def stderr():
     io.BytesIO
         Byte stream of stderr
     """
-    return sys.stderr
+    return sys.stderr.buffer
 
 
 def remove(path):
