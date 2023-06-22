@@ -13,6 +13,11 @@ else
     sam_binary="sam"
 fi
 
+if ! command -v "$sam_binary" &> /dev/null; then
+    echo "$sam_binary not found. Please check if it is in PATH"
+    exit 1
+fi
+
 echo "Using ${sam_binary} as SAM CLI binary name" 
 
 if [ "$sam_binary" = "sam" ]; then
@@ -32,9 +37,9 @@ fi
 
 echo "Starting testing sam binary"
 rm -rf sam-app-testing
-$sam_binary init --no-interactive -n sam-app-testing --dependency-manager mod --runtime go1.x --app-template hello-world --package-type Zip --architecture x86_64
+"$sam_binary" init --no-interactive -n sam-app-testing --dependency-manager mod --runtime go1.x --app-template hello-world --package-type Zip --architecture x86_64
 cd sam-app-testing
-$sam_binary build
-$sam_binary validate
+GOFLAGS="-buildvcs=false" "$sam_binary" build
+"$sam_binary" validate
 
 echo "sam init, sam build, and sam validate commands Succeeded"
