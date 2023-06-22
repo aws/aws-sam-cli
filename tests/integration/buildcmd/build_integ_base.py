@@ -333,6 +333,8 @@ class BuildIntegEsbuildBase(BuildIntegBase):
     def _test_with_default_package_json(
         self, runtime, use_container, code_uri, expected_files, handler, architecture=None, build_in_source=None
     ):
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
+            self.skipTest(SKIP_DOCKER_MESSAGE)
         overrides = self.get_override(runtime, code_uri, architecture, handler)
         manifest_path = str(Path(self.test_data_path, self.MANIFEST_PATH)) if self.MANIFEST_PATH else None
         cmdlist = self.get_command_list(
@@ -427,6 +429,8 @@ class BuildIntegNodeBase(BuildIntegBase):
     MANIFEST_PATH: Optional[str] = None
 
     def _test_with_default_package_json(self, runtime, use_container, relative_path, architecture=None):
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
+            self.skipTest(SKIP_DOCKER_MESSAGE)
         overrides = self.get_override(runtime, self.CODE_URI, architecture, "main.lambdaHandler")
         manifest_path = str(Path(self.test_data_path, self.MANIFEST_PATH)) if self.MANIFEST_PATH else None
         cmdlist = self.get_command_list(
