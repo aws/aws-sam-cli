@@ -1,5 +1,5 @@
 #!/bin/bash
-set -xe
+set -xeo pipefail
 
 if [ "$CI_OVERRIDE" = "1" ]; then
     sam_binary="sam-beta"
