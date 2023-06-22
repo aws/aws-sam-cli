@@ -1225,15 +1225,13 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
 
     @parameterized.expand(
         [
-            ("dotnetcore3.1", "Dotnetcore3.1", None),
             ("dotnet6", "Dotnet6", None),
-            ("dotnetcore3.1", "Dotnetcore3.1", "debug"),
             ("dotnet6", "Dotnet6", "debug"),
             ("provided.al2", "Dotnet7", None),
         ]
     )
     @pytest.mark.flaky(reruns=3)
-    def test_dotnetcore_in_process(self, runtime, code_uri, mode, architecture="x86_64"):
+    def test_dotnet_in_process(self, runtime, code_uri, mode, architecture="x86_64"):
         # dotnet7 requires docker to build the function
         if code_uri == "Dotnet7" and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
@@ -1296,9 +1294,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
 
     @parameterized.expand(
         [
-            ("dotnetcore3.1", "Dotnetcore3.1", None),
             ("dotnet6", "Dotnet6", None),
-            ("dotnetcore3.1", "Dotnetcore3.1", "debug"),
             ("dotnet6", "Dotnet6", "debug"),
             # force to run tests on arm64 machines may cause dotnet7 test failing
             # because Native AOT Lambda functions require the host and lambda architectures to match
@@ -1307,7 +1303,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     @pytest.mark.flaky(reruns=3)
-    def test_dotnetcore_in_container_mount_with_write_explicit(self, runtime, code_uri, mode, architecture="x86_64"):
+    def test_dotnet_in_container_mount_with_write_explicit(self, runtime, code_uri, mode, architecture="x86_64"):
         overrides = {
             "Runtime": runtime,
             "CodeUri": code_uri,
@@ -1370,9 +1366,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
 
     @parameterized.expand(
         [
-            ("dotnetcore3.1", "Dotnetcore3.1", None),
             ("dotnet6", "Dotnet6", None),
-            ("dotnetcore3.1", "Dotnetcore3.1", "debug"),
             ("dotnet6", "Dotnet6", "debug"),
             # force to run tests on arm64 machines may cause dotnet7 test failing
             # because Native AOT Lambda functions require the host and lambda architectures to match
@@ -1381,7 +1375,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     @pytest.mark.flaky(reruns=3)
-    def test_dotnetcore_in_container_mount_with_write_interactive(
+    def test_dotnet_in_container_mount_with_write_interactive(
         self,
         runtime,
         code_uri,
@@ -1446,7 +1440,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         )
         self.verify_docker_container_cleanedup(runtime)
 
-    @parameterized.expand([("dotnetcore3.1", "Dotnetcore3.1"), ("dotnet6", "Dotnet6")])
+    @parameterized.expand([("dotnet6", "Dotnet6")])
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     @pytest.mark.flaky(reruns=3)
     def test_must_fail_on_container_mount_without_write_interactive(self, runtime, code_uri):
@@ -2049,13 +2043,6 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
             # in process
             (
                 False,
-                "Dotnetcore3.1",
-                "HelloWorld::HelloWorld.FirstFunction::FunctionHandler",
-                "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
-                "dotnetcore3.1",
-            ),
-            (
-                False,
                 "Dotnet6",
                 "HelloWorld::HelloWorld.FirstFunction::FunctionHandler",
                 "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
@@ -2179,13 +2166,6 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
     @parameterized.expand(
         [
             # in process
-            (
-                False,
-                "Dotnetcore3.1",
-                "HelloWorld::HelloWorld.FirstFunction::FunctionHandler",
-                "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
-                "dotnetcore3.1",
-            ),
             (
                 False,
                 "Dotnet6",
@@ -2368,13 +2348,6 @@ class TestParallelBuilds(DedupBuildIntegBase):
     @parameterized.expand(
         [
             # in process
-            (
-                False,
-                "Dotnetcore3.1",
-                "HelloWorld::HelloWorld.FirstFunction::FunctionHandler",
-                "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
-                "dotnetcore3.1",
-            ),
             (
                 False,
                 "Dotnet6",
