@@ -4,7 +4,7 @@ from io import TextIOWrapper
 
 import click
 
-from samcli.cli.cli_config_file import TomlProvider, configuration_option
+from samcli.cli.cli_config_file import ConfigProvider, configuration_option
 from samcli.cli.context import Context
 from samcli.cli.main import aws_creds_options, common_options, pass_context, print_cmdline_args
 from samcli.cli.types import RemoteInvokeOutputFormatType
@@ -26,7 +26,7 @@ SHORT_HELP = "Invoke a deployed resource in the cloud"
 
 
 @click.command("invoke", help=HELP_TEXT, short_help=SHORT_HELP)
-@configuration_option(provider=TomlProvider(section="parameters"))
+@configuration_option(provider=ConfigProvider(section="parameters"))
 @click.option("--stack-name", required=False, help="Name of the stack to get the resource information from")
 @click.option("--resource-id", required=False, help="Name of the resource that will be invoked")
 @click.option(
