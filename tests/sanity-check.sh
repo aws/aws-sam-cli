@@ -1,7 +1,7 @@
 #!/bin/bash
 set -xeo pipefail
 
-SAM_CLI_TELEMETRY="${SAM_CLI_TELEMETRY:-0}"
+export SAM_CLI_TELEMETRY="${SAM_CLI_TELEMETRY:-0}"
 
 if [ "$CI_OVERRIDE" = "1" ]; then
     sam_binary="sam-beta"
