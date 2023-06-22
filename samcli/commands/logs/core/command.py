@@ -39,7 +39,8 @@ class LogsCommand(CoreCommand):
                         ),
                         RowDefinition(
                             name=style(
-                                f"$ {ctx.command_path} -n HelloWorldFunction --stack-name mystack -s '10min ago' -e '2min ago'"
+                                f"$ {ctx.command_path} -n HelloWorldFunction --stack-name mystack -s "
+                                f"'10min ago' -e '2min ago'"
                             ),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
@@ -52,7 +53,8 @@ class LogsCommand(CoreCommand):
                             text="\n",
                         ),
                         RowDefinition(
-                            name=style(f"$ {ctx.command_path} -n HelloWorldFunction --stack-name mystack --tail"),
+                            name=style(f"$ {ctx.command_path} -n HelloWorldFunction --stack-name "
+                                       f"mystack --tail"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
                     ]
@@ -65,7 +67,8 @@ class LogsCommand(CoreCommand):
                         ),
                         RowDefinition(
                             name=style(
-                                f"$ {ctx.command_path} --cw-log-group /aws/lambda/myfunction-123 --cw-log-group /aws/lambda/myfunction-456"
+                                f"$ {ctx.command_path} --cw-log-group /aws/lambda/myfunction-123 "
+                                f"--cw-log-group /aws/lambda/myfunction-456"
                             ),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
