@@ -170,9 +170,8 @@ for:
   #Setting up Integ testing build & buildarm64
   - matrix:
       only:
-        - configuration:
-          - BuildIntegTesting
-          - BuildIntegTestingArm64
+        - configuration: BuildIntegTesting
+        - configuration: BuildIntegTestingArm64
 
     build_script:
       # install Rust in build_script to not override the default "install" actions
