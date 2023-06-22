@@ -46,7 +46,7 @@ def resources_and_properties_help_string():
 DESCRIPTION = """
   Creates and uploads artifacts based on the package type of a given resource.
   It uploads local images to ECR for `Image` package types.
-  It creates a zip of code and dependencies and  uploads it to S3 for `Zip` package types. 
+  It creates a zip of code and dependencies and uploads it to S3 for `Zip` package types. 
   
   A new template is returned which replaces references to local artifacts
   with the AWS location where the command uploaded the artifacts.

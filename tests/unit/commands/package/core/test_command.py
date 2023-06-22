@@ -56,7 +56,7 @@ class TestPackageCommand(unittest.TestCase):
                         "of a given resource.\n"
                         "  It uploads local images to ECR for `Image` package "
                         "types.\n"
-                        "  It creates a zip of code and dependencies and  uploads it "
+                        "  It creates a zip of code and dependencies and uploads it "
                         "to S3 for `Zip` package types. \n"
                         "  \n"
                         "  A new template is returned which replaces references to "
