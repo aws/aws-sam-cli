@@ -50,7 +50,11 @@ jobs:
         with:
           python-version: "3.7"
       - name: Set up Go
+<<<<<<< HEAD
         uses: actions/setup-go@v4
+=======
+        uses: actions/setup-go@v3
+>>>>>>> 44daa48b (chore: Rebase config project to develop (#5406))
         with:
           go-version: "1.20"
       - name: Build PyInstaller

@@ -131,7 +131,7 @@ class TomlFileManager(FileManager):
         toml_document = TomlFileManager._to_toml(document)
 
         if toml_document.get(COMMENT_KEY, None):  # Remove dunder comments that may be residue from other formats
-            toml_document.add(tomlkit.comment(toml_document[COMMENT_KEY]))
+            toml_document.add(tomlkit.comment(toml_document.get(COMMENT_KEY, "")))
             toml_document.pop(COMMENT_KEY)
 
         filepath.write_text(tomlkit.dumps(toml_document))

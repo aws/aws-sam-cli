@@ -9,7 +9,7 @@ import click
 from botocore.exceptions import NoCredentialsError, NoRegionError
 from click import confirm, prompt
 
-from samcli.cli.cli_config_file import TomlProvider
+from samcli.cli.cli_config_file import ConfigProvider
 from samcli.commands.delete.exceptions import CfDeleteFailedStatusError
 from samcli.commands.exceptions import AWSServiceClientError, RegionError
 from samcli.lib.bootstrap.companion_stack.companion_stack_builder import CompanionStack
