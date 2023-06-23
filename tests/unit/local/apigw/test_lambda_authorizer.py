@@ -25,7 +25,7 @@ class TestHeaderIdentitySource(TestCase):
         [
             ({"headers": Headers({})},),  # test empty headers
             ({},),  # test no headers
-            ({"headers": Headers({"not here": 123})},),  # test missing headers
+            ({"headers": Headers({"not here": 123})},),  # type: ignore  # test missing headers
             ({"validation_expression": "^123$"},),  # test no headers, but provided validation
         ]
     )

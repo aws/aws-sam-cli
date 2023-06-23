@@ -5,6 +5,7 @@ import docker
 from docker.errors import APIError, NullResource
 
 from samcli.commands.package.exceptions import DockerGetLocalImageFailedError
+from samcli.lib.constants import DOCKER_MIN_API_VERSION
 from samcli.lib.package.utils import is_ecr_url
 
 SHA_CHECKSUM_TRUNCATION_LENGTH = 12
@@ -35,7 +36,7 @@ def tag_translation(image, docker_image_id=None, gen_tag="latest"):
 
     if not docker_image_id:
         try:
-            docker_client = docker.from_env()
+            docker_client = docker.from_env(version=DOCKER_MIN_API_VERSION)
             docker_image_id = docker_client.images.get(image).id
         except APIError as ex:
             raise DockerGetLocalImageFailedError(str(ex)) from ex

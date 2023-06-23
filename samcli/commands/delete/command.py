@@ -9,6 +9,7 @@ import click
 
 from samcli.cli.main import aws_creds_options, common_options, pass_context, print_cmdline_args
 from samcli.commands._utils.command_exception_handler import command_exception_handler
+from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.version_checker import check_newer_version
 
 SHORT_HELP = "Delete an AWS SAM application and the artifacts created by sam deploy."
@@ -82,6 +83,7 @@ LOG = logging.getLogger(__name__)
 @aws_creds_options
 @common_options
 @pass_context
+@track_command
 @check_newer_version
 @print_cmdline_args
 @command_exception_handler

@@ -6,6 +6,7 @@ SAM_CLI_COMMANDS = {
     "validate": "Validate an AWS SAM template.",
     "build": "Build your AWS serverless function code.",
     "local": "Run your AWS serverless function locally.",
+    "remote": "Invoke or send an event to cloud resources in your CFN stack",
     "package": "Package an AWS SAM application.",
     "deploy": "Deploy an AWS SAM application.",
     "delete": "Delete an AWS SAM application and the artifacts created by sam deploy.",
