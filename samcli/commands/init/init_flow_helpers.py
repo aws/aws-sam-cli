@@ -3,10 +3,13 @@ Init flow based helper functions
 """
 import functools
 import logging
+import pathlib
 import re
 from typing import Optional
 
+from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME
 from samcli.lib.utils.architecture import X86_64
+from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.local.common.runtime_template import INIT_RUNTIMES, LAMBDA_IMAGES_RUNTIMES_MAP, is_custom_runtime
 
 LOG = logging.getLogger(__name__)
@@ -175,3 +178,66 @@ def get_architectures(architecture):
     Returns list of architecture value based on the init input value
     """
     return [X86_64] if architecture is None else [architecture]
+
+
+def generate_summary_message(
+    package_type, runtime, base_image, dependency_manager, output_dir, name, app_template, architecture
+):
+    """
+    Parameters
+    ----------
+    package_type : str
+        The package type, 'Zip' or 'Image', see samcli/lib/utils/packagetype.py
+    runtime : str
+        AWS Lambda function runtime
+    base_image : str
+        base image
+    dependency_manager : str
+        dependency manager
+    output_dir : str
+        the directory where project will be generated in
+    name : str
+        Project Name
+    app_template : str
+        application template generated
+    architecture : list
+        Architecture type either x86_64 or arm64 on AWS lambda
+
+    Returns
+    -------
+    str
+        Summary Message of the application template generated
+    """
+
+    summary_msg = ""
+    if package_type == ZIP:
+        summary_msg = f"""
+    -----------------------
+    Generating application:
+    -----------------------
+    Name: {name}
+    Runtime: {runtime}
+    Architectures: {architecture[0]}
+    Dependency Manager: {dependency_manager}
+    Application Template: {app_template}
+    Output Directory: {output_dir}
+    Configuration file: {pathlib.Path(output_dir).joinpath(name, DEFAULT_CONFIG_FILE_NAME)}
+
+    Next steps can be found in the README file at {pathlib.Path(output_dir).joinpath(name, "README.md")}
+        """
+    elif package_type == IMAGE:
+        summary_msg = f"""
+    -----------------------
+    Generating application:
+    -----------------------
+    Name: {name}
+    Base Image: {base_image}
+    Architectures: {architecture[0]}
+    Dependency Manager: {dependency_manager}
+    Output Directory: {output_dir}
+    Configuration file: {pathlib.Path(output_dir).joinpath(name, DEFAULT_CONFIG_FILE_NAME)}
+
+    Next steps can be found in the README file at {pathlib.Path(output_dir).joinpath(name, "README.md")}
+    """
+
+    return summary_msg

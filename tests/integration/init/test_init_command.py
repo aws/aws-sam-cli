@@ -890,6 +890,25 @@ sam-interactive-init-app-default-runtime
             self.assertTrue(Path(expected_output_folder, "hello_world").is_dir())
             self.assertTrue(Path(expected_output_folder, "hello_world", "app.py").is_file())
 
+    def test_interactive_init_graphql_flow(self):
+        # 1: AWS Quick Start Templates
+        # 16: GraphQLApi Hello World Example
+        user_input = """
+1
+16
+sam-interactive-init-app
+        """
+        with tempfile.TemporaryDirectory() as temp:
+            runner = CliRunner()
+            result = runner.invoke(init_cmd, ["--output-dir", temp, "--debug"], input=user_input)
+
+            self.assertFalse(result.exception)
+            expected_output_folder = Path(temp, "sam-interactive-init-app")
+            self.assertTrue(expected_output_folder.exists)
+            self.assertTrue(expected_output_folder.is_dir())
+            self.assertTrue(Path(expected_output_folder, "gql").is_dir())
+            self.assertTrue(Path(expected_output_folder, "gql", "createPostItem.js").is_file())
+
 
 @pytest.mark.xdist_group(name="sam_init")
 class TestSubsequentInitCaching(TestCase):

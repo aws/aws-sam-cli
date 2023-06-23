@@ -2,9 +2,8 @@
 Isolates interactive init prompt flow. Expected to call generator logic at end of flow.
 """
 import logging
-import pathlib
 import tempfile
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Type
 
 import click
 from botocore.exceptions import ClientError, WaiterError
@@ -15,6 +14,7 @@ from samcli.commands.init.init_flow_helpers import (
     _get_image_from_runtime,
     _get_runtime_from_image,
     _get_templates_with_dependency_manager,
+    generate_summary_message,
     get_architectures,
     get_sorted_runtimes,
 )
@@ -25,7 +25,7 @@ from samcli.commands.init.interactive_event_bridge_flow import (
     get_schemas_api_caller,
     get_schemas_template_parameter,
 )
-from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME
+from samcli.commands.init.override_init_flows import OverrideFlow, OverrideWorkflowExecutor, get_override_workflow
 from samcli.lib.schemas.schemas_code_manager import do_download_source_code_binding, do_extract_and_merge_schemas_code
 from samcli.lib.utils.osutils import remove
 from samcli.lib.utils.packagetype import IMAGE, ZIP
@@ -220,6 +220,13 @@ def _generate_from_use_case(
         question,
         "Template",
     )
+
+    override_workflow: Optional[Type[OverrideFlow]] = get_override_workflow(use_case)
+    if override_workflow:
+        # If there is a use case that implements the override workflow, execute that flow instead
+        workflow = override_workflow(templates, use_case, preprocessed_options, name, output_dir)
+        OverrideWorkflowExecutor(workflow).execute()
+        return
 
     default_app_template_properties = _generate_default_hello_world_application(
         use_case, package_type, runtime, base_image, dependency_manager, pt_explicit
@@ -512,66 +519,3 @@ def _package_schemas_code(runtime, schemas_api_caller, schema_template_details, 
         ) from e
     finally:
         remove(download_location.name)
-
-
-def generate_summary_message(
-    package_type, runtime, base_image, dependency_manager, output_dir, name, app_template, architecture
-):
-    """
-    Parameters
-    ----------
-    package_type : str
-        The package type, 'Zip' or 'Image', see samcli/lib/utils/packagetype.py
-    runtime : str
-        AWS Lambda function runtime
-    base_image : str
-        base image
-    dependency_manager : str
-        dependency manager
-    output_dir : str
-        the directory where project will be generated in
-    name : str
-        Project Name
-    app_template : str
-        application template generated
-    architecture : list
-        Architecture type either x86_64 or arm64 on AWS lambda
-
-    Returns
-    -------
-    str
-        Summary Message of the application template generated
-    """
-
-    summary_msg = ""
-    if package_type == ZIP:
-        summary_msg = f"""
-    -----------------------
-    Generating application:
-    -----------------------
-    Name: {name}
-    Runtime: {runtime}
-    Architectures: {architecture[0]}
-    Dependency Manager: {dependency_manager}
-    Application Template: {app_template}
-    Output Directory: {output_dir}
-    Configuration file: {pathlib.Path(output_dir).joinpath(name, DEFAULT_CONFIG_FILE_NAME)}
-    
-    Next steps can be found in the README file at {pathlib.Path(output_dir).joinpath(name, "README.md")}
-        """
-    elif package_type == IMAGE:
-        summary_msg = f"""
-    -----------------------
-    Generating application:
-    -----------------------
-    Name: {name}
-    Base Image: {base_image}
-    Architectures: {architecture[0]}
-    Dependency Manager: {dependency_manager}
-    Output Directory: {output_dir}
-    Configuration file: {pathlib.Path(output_dir).joinpath(name, DEFAULT_CONFIG_FILE_NAME)}
-
-    Next steps can be found in the README file at {pathlib.Path(output_dir).joinpath(name, "README.md")}
-    """
-
-    return summary_msg
