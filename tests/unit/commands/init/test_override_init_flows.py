@@ -148,7 +148,7 @@ class TestOverrideWorkflowExecutor(TestCase):
                 GraphQlInitFlow,
             ),
             ("Hello World", None),
-            ("", None)
+            ("", None),
         ]
     )
     def test_get_override_workflow(self, use_case, expected):
