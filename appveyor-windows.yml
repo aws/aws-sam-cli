@@ -170,8 +170,7 @@ for:
   #Integ testing build
   - matrix:
       only:
-        - configuration:
-            - BuildIntegTesting
+        - configuration: BuildIntegTesting
 
     build_script:
       # install Rust in build_script to not override the default "install" actions
@@ -196,25 +195,7 @@ for:
   #Integ testing buildarm64
   - matrix:
       only:
-        - configuration:
-            - BuildIntegTestingArm64
-
-    build_script:
-      # install Rust in build_script to not override the default "install" actions
-      - appveyor-retry appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
-      - rustup-init.exe -y --default-host x86_64-pc-windows-msvc --default-toolchain stable
-      - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
-      - set RUST_BACKTRACE=1
-      - rustup toolchain install stable --profile minimal --no-self-update
-      - rustup default stable
-      - rustup target add x86_64-unknown-linux-gnu --toolchain stable
-      - rustup target add aarch64-unknown-linux-gnu --toolchain stable
-      - ps: "choco install zig"
-      - ps: Invoke-WebRequest -Uri https://github.com/cargo-lambda/cargo-lambda/releases/download/$env:CARGO_LAMBDA_VERSION/cargo-lambda-$env:CARGO_LAMBDA_VERSION.windows-x64.zip -OutFile C:\Users\appveyor\cargo-lambda.zip
-      - ps: Expand-Archive -DestinationPath C:\Users\appveyor\.cargo\bin C:\Users\appveyor\cargo-lambda.zip
-      - rustc -V
-      - cargo -V
-      - cargo lambda -V
+        - configuration: BuildIntegTestingArm64
 
     test_script:
       - ps: "pytest -vv tests/integration/buildcmd/test_build_cmd_arm64.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64.json"
