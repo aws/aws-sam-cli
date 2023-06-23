@@ -113,7 +113,7 @@ class GraphQlInitFlow(OverrideFlow):
             output_dir=self._output_dir,
             name=self._name,
             app_template=self._use_case,
-            architecture=NOT_APPLICABLE,
+            architecture=[NOT_APPLICABLE],
         )
         click.echo(summary_msg)
 

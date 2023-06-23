@@ -43,7 +43,7 @@ class TestGraphQLInitFlow(TestCase):
             "Generating application:\n    -----------------------\n"
             "    Name: my-app\n"
             "    Runtime: N/A\n"
-            "    Architectures: N\n"
+            "    Architectures: N/A\n"
             "    Dependency Manager: N/A\n"
             "    Application Template: GraphQLApi Hello World Example\n"
             f"    Output Directory: {self.output_dir}\n"
