@@ -8,6 +8,7 @@ from tests.integration.delete.delete_integ_base import DeleteIntegBase
 from tests.integration.init.test_init_base import InitIntegBase
 from tests.integration.package.package_integ_base import PackageIntegBase
 from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase
+from tests.integration.remote.invoke.remote_invoke_integ_base import RemoteInvokeIntegBase
 from tests.integration.sync.sync_integ_base import SyncIntegBase
 from tests.integration.list.stack_outputs.stack_outputs_integ_base import StackOutputsIntegBase
 import logging
@@ -72,6 +73,11 @@ class EndToEndBase(InitIntegBase, StackOutputsIntegBase, DeleteIntegBase, SyncIn
 
     def _get_local_command(self, function_name):
         return InvokeIntegBase.get_command_list(function_to_invoke=function_name)
+
+    def _get_remote_invoke_command(self, stack_name, resource_id, event, output):
+        return RemoteInvokeIntegBase.get_command_list(
+            stack_name=stack_name, resource_id=resource_id, event=event, output=output
+        )
 
     def _get_delete_command(self, stack_name):
         return self.get_delete_command_list(stack_name=stack_name, region=self.region_name, no_prompts=True)
