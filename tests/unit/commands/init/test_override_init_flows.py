@@ -2,6 +2,7 @@ from unittest import TestCase
 from unittest.mock import patch, Mock
 
 from parameterized import parameterized
+from pathlib import Path
 
 from samcli.commands.exceptions import InvalidInitOptionException
 from samcli.commands.init.init_templates import InitTemplates
@@ -12,12 +13,13 @@ class TestGraphQLInitFlow(TestCase):
     def setUp(self) -> None:
         self.init_templates = InitTemplates()
         preprocessed_options = self.init_templates.get_preprocessed_manifest()
+        self.output_dir = str(Path("output"))
         self.graphql_flow = GraphQlInitFlow(
             name="my-app",
             templates=self.init_templates,
             preprocessed_options=preprocessed_options,
             use_case="GraphQLApi Hello World Example",
-            output_dir="outdir/",
+            output_dir=self.output_dir,
         )
 
     @patch("samcli.commands.init.override_init_flows.click")
@@ -33,6 +35,8 @@ class TestGraphQLInitFlow(TestCase):
 
     @patch("samcli.commands.init.override_init_flows.click")
     def test_print_summary_message(self, mock_click):
+        expected_configuration_path = Path(self.output_dir) / "my-app" / "samconfig.toml"
+        expected_readme_path = Path(self.output_dir) / "my-app" / "README.md"
         self.graphql_flow.print_summary_message()
         mock_click.echo.assert_called_with(
             "\n    -----------------------\n    "
@@ -42,9 +46,9 @@ class TestGraphQLInitFlow(TestCase):
             "    Architectures: N\n"
             "    Dependency Manager: N/A\n"
             "    Application Template: GraphQLApi Hello World Example\n"
-            "    Output Directory: outdir/\n"
-            "    Configuration file: outdir/my-app/samconfig.toml\n\n"
-            "    Next steps can be found in the README file at outdir/my-app/README.md\n        "
+            f"    Output Directory: {self.output_dir}\n"
+            f"    Configuration file: {expected_configuration_path}\n\n"
+            f"    Next steps can be found in the README file at {expected_readme_path}\n        "
         )
 
     @patch("samcli.commands.init.override_init_flows.do_generate")
