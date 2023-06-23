@@ -1074,15 +1074,27 @@ class TestCalculateChecksum(TestCase):
 
 
 class TestBrokenPipeDecorator(TestCase):
+    def setUp(self):
+        self.mock_exception = Exception()
+        setattr(self.mock_exception, "winerror", 109)
+
     @patch("samcli.lib.utils.file_observer.platform.system")
     def test_decorator_handle_gracefully(self, system_mock):
-        mock_exception = Exception()
-        setattr(mock_exception, "winerror", 109)
-
         system_mock.return_value = "Windows"
 
         @broken_pipe_handler
         def test_method():
-            raise mock_exception
+            raise self.mock_exception
 
         test_method()
+
+    @patch("samcli.lib.utils.file_observer.platform.system")
+    def test_decorator_raises_exception(self, system_mock):
+        system_mock.return_value = "not windows"
+
+        @broken_pipe_handler
+        def test_method():
+            raise self.mock_exception
+
+        with self.assertRaises(Exception):
+            test_method()
