@@ -245,6 +245,40 @@ class ImageObserverException(ObserverException):
     """
 
 
+def broken_pipe_handler(func: Callable) -> Callable:
+    """
+    Decorator to handle the Windows API BROKEN_PIPE_ERROR error.
+
+    Parameters
+    ----------
+    func: Callable
+        The method to wrap around
+    """
+
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as exception:
+            # handle a pywintypes exception that gets thrown when trying to exit
+            # from a command that utilizes ImageObserver(s) in
+            # EAGER container mode (start-api, start-lambda)
+
+            # all containers would have been stopped, and deleted, however
+            # the pipes to those containers are still loaded somewhere
+
+            if not platform.system() == "Windows":
+                raise
+
+            win_error = getattr(exception, "winerror", None)
+
+            if not win_error == BROKEN_PIPE_ERROR:
+                raise
+
+            LOG.debug("Handling BROKEN_PIPE_ERROR pywintypes, exception ignored gracefully")
+
+    return wrapper
+
+
 class ImageObserver(ResourceObserver):
     """
     A class that will observe some docker images for any change.
@@ -265,34 +299,17 @@ class ImageObserver(ResourceObserver):
         self._images_observer_thread: Optional[Thread] = None
         self._lock: Lock = threading.Lock()
 
+    @broken_pipe_handler
     def _watch_images_events(self):
-        try:
-            for event in self.events:
-                if event.get("Action", None) != "tag":
-                    continue
-                image_name = event["Actor"]["Attributes"]["name"]
-                if self._observed_images.get(image_name, None):
-                    new_image_id = event["id"]
-                    if new_image_id != self._observed_images[image_name]:
-                        self._observed_images[image_name] = new_image_id
-                        self._input_on_change([image_name])
-        except Exception as exception:
-            # handle a pywintypes exception that gets thrown when trying to exit
-            # from a command that utilizes ImageObserver(s) in
-            # EAGER container mode (start-api, start-lambda)
-
-            # all containers would have been stopped, and deleted, however
-            # the pipes to those containers are still loaded somewhere
-
-            if not platform.system() == "Windows":
-                raise
-
-            win_error = getattr(exception, "winerror", None)
-
-            if not win_error == BROKEN_PIPE_ERROR:
-                raise
-
-            LOG.debug("Handling BROKEN_PIPE_ERROR pywintypes exception ignored gracefully")
+        for event in self.events:
+            if event.get("Action", None) != "tag":
+                continue
+            image_name = event["Actor"]["Attributes"]["name"]
+            if self._observed_images.get(image_name, None):
+                new_image_id = event["id"]
+                if new_image_id != self._observed_images[image_name]:
+                    self._observed_images[image_name] = new_image_id
+                    self._input_on_change([image_name])
 
     def watch(self, resource: str) -> None:
         """

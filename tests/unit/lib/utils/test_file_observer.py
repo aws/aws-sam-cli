@@ -11,6 +11,7 @@ from samcli.lib.providers.provider import LayerVersion
 from samcli.lib.utils.file_observer import (
     FileObserver,
     FileObserverException,
+    broken_pipe_handler,
     calculate_checksum,
     ImageObserver,
     ImageObserverException,
@@ -1070,3 +1071,18 @@ class TestCalculateChecksum(TestCase):
         path_mock.is_file.return_value = False
         dir_checksum_mock.return_value = "1234"
         self.assertEqual(calculate_checksum(path), "1234")
+
+
+class TestBrokenPipeDecorator(TestCase):
+    @patch("samcli.lib.utils.file_observer.platform.system")
+    def test_decorator_handle_gracefully(self, system_mock):
+        mock_exception = Exception()
+        setattr(mock_exception, "winerror", 109)
+
+        system_mock.return_value = "Windows"
+
+        @broken_pipe_handler
+        def test_method():
+            raise mock_exception
+
+        test_method()
