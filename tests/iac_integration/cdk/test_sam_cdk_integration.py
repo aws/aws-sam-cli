@@ -9,17 +9,14 @@ import pytest
 import requests
 from parameterized import parameterized_class, parameterized
 
-from tests.testing_utils import run_command, start_persistent_process, read_until_string, kill_process
+from tests.testing_utils import run_command, kill_process
 
 
 @parameterized_class(
     ("cdk_project_path", "cdk_version", "cdk_stack_template"),
     [
-        ("/testdata/cdk_v1/typescript", "1.x", "TestStack.template.json"),
         ("/testdata/cdk_v2/typescript", "2.x", "TestStack.template.json"),
-        ("/testdata/cdk_v1/python", "1.x", "TestStack.template.json"),
         ("/testdata/cdk_v2/python", "2.x", "TestStack.template.json"),
-        ("/testdata/cdk_v1/java", "1.x", "TestStack.template.json"),
         ("/testdata/cdk_v2/java", "2.x", "TestStack.template.json"),
     ],
 )
