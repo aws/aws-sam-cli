@@ -10,7 +10,7 @@ from unittest import TestCase
 
 from tests.testing_utils import get_sam_command
 
-LOG = logging.getLogger(__name__)
+LOG = logging.getLogger("interactive_init")
 
 
 OUTPUT_WAIT_THRESHOLD = 2
@@ -50,7 +50,7 @@ class Option:
             parent_selection = self.parent.get_selection_path()
             parent_selection.append(self.value)
             return parent_selection
-        return [self.value]
+        return [f"{self.value} - {self.name}"]
 
     def get_unvisited_node_count(self) -> int:
         total_unvisited = 0
