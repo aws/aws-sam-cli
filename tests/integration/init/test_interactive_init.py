@@ -89,9 +89,7 @@ class Worker:
             validate_process = Popen([sam_cmd, "validate", "--no-lint"], cwd=working_dir.joinpath("sam-app"), stdout=PIPE, stderr=STDOUT)
             validate_process.wait(100)
 
-            selection_path = self.current_option.get_selection_path()
-            LOG.info("Init completed with following selection path: %s", selection_path)
-            return init_process.returncode, validate_process.returncode, selection_path
+            return init_process.returncode, validate_process.returncode, self.current_option.get_selection_path()
 
 
     def output_reader(self, proc: Popen):
