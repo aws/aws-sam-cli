@@ -10,7 +10,7 @@ from unittest import TestCase
 
 from tests.testing_utils import get_sam_command
 
-LOG = logging.getLogger("interactive_init")
+LOG = logging.getLogger()
 
 
 OUTPUT_WAIT_THRESHOLD = 2
@@ -48,7 +48,7 @@ class Option:
     def get_selection_path(self) -> List[str]:
         if self.parent:
             parent_selection = self.parent.get_selection_path()
-            parent_selection.append(f"{self.value} - {self.name[:5]}")
+            parent_selection.append(f"{self.value} - {self.name}")
             return parent_selection
         return []
 
@@ -121,9 +121,16 @@ class Worker:
                     continue
 
                 if "[y/N]: " in line:
+                    option_name = line
+                    if "most popular runtime" in line:
+                        option_name = "Python Shortcut"
+                    if "X-Ray" in line:
+                        option_name = "XRay"
+                    if "Application Insights" in line:
+                        option_name = "AppInsights"
                     with self.lock:
-                        self.current_option.add_option(f"{line}-y", "y")
-                        self.current_option.add_option(f"{line}-n", "n")
+                        self.current_option.add_option(f"{option_name}-y", "y")
+                        self.current_option.add_option(f"{option_name}-n", "n")
                     self.branch_out(proc)
                     line = ""
 
@@ -169,7 +176,7 @@ class DynamicInteractiveInitTests(TestCase):
                     self.assertEqual(init_return_code, 0)
                     self.assertEqual(validate_return_code, 0)
                     total_tests.append(test_path)
-                    LOG.info("Following path completed %s", test_path)
+                    LOG.info("Completed %s", test_path)
 
         LOG.info("Total %s test cases have been passed!", len(total_tests))
 
