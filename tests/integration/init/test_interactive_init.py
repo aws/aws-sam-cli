@@ -1,11 +1,11 @@
 import logging
 import re
 import tempfile
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from subprocess import Popen, PIPE, STDOUT
 from threading import Thread, Lock
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from unittest import TestCase
 
 from tests.testing_utils import get_sam_command
@@ -67,18 +67,14 @@ class Option:
 class Worker:
     current_option: Option
     lock: Lock
-    total_tests: List[List[str]]
-    test_case: TestCase
     dead_end: bool
 
-    def __init__(self, root_option: Option, lock: Lock, total_tests: List[List[str]], test_case: TestCase):
+    def __init__(self, root_option: Option, lock: Lock):
         self.current_option = root_option
         self.lock = lock
-        self.total_tests = total_tests
         self.dead_end = False
-        self.test_case = test_case
 
-    def test_init_flow(self):
+    def test_init_flow(self) -> Tuple[int, int, List[str]]:
         sam_cmd = get_sam_command()
         with tempfile.TemporaryDirectory() as working_dir:
             working_dir = Path(working_dir)
@@ -89,16 +85,13 @@ class Worker:
 
             if self.dead_end:
                 return
-            self.test_case.assertEqual(init_process.returncode, 0)
 
             validate_process = Popen([sam_cmd, "validate", "--no-lint"], cwd=working_dir.joinpath("sam-app"), stdout=PIPE, stderr=STDOUT)
             validate_process.wait(100)
-            self.test_case.assertEqual(validate_process.returncode, 0)
 
             selection_path = self.current_option.get_selection_path()
             LOG.info("Init completed with following selection path: %s", selection_path)
-            with self.lock:
-                self.total_tests.append(selection_path)
+            return init_process.returncode, validate_process.returncode, selection_path
 
 
     def output_reader(self, proc: Popen):
@@ -163,13 +156,21 @@ class DynamicInteractiveInitTests(TestCase):
         total_tests: List[List[str]] = []
         lock = Lock()
         while not self.root_option.exhausted():
+            futures = []
             with ThreadPoolExecutor(max_workers=8) as executor:
                 with lock:
                     unvisited_node_count = self.root_option.get_unvisited_node_count()
                 for _ in range(unvisited_node_count):
-                    worker = Worker(self.root_option, lock, total_tests, self)
-                    executor.submit(worker.test_init_flow)
+                    worker = Worker(self.root_option, lock)
+                    futures.append(executor.submit(worker.test_init_flow))
                 self.root_option.visited = True
+
+                for future in as_completed(futures):
+                    (init_return_code, validate_return_code, test_path) = future.result()
+                    self.assertEqual(init_return_code, 0)
+                    self.assertEqual(validate_return_code, 0)
+                    total_tests.append(test_path)
+                    LOG.info("Following path completed %s", test_path)
 
         LOG.info("Total %s test cases have been passed!", len(total_tests))
 
