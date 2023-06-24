@@ -89,7 +89,7 @@ class Worker:
             # validate_process = Popen([sam_cmd, "validate", "--no-lint"], cwd=working_dir.joinpath("sam-app"), stdout=PIPE, stderr=STDOUT)
             # validate_process.wait(100)
 
-            return init_process.returncode, 0, self.current_option.get_selection_path()
+            return 0, 0, self.current_option.get_selection_path()
 
 
     def output_reader(self, proc: Popen):
@@ -112,6 +112,7 @@ class Worker:
                 line += data
                 # LOG.info(line)
                 if "Project name [sam-app]: " in line:
+                    proc.kill()
                     proc.stdin.writelines([b"\n"])
                     proc.stdin.flush()
                     line = ""
@@ -180,3 +181,17 @@ class DynamicInteractiveInitTests(TestCase):
 
         LOG.info("Total %s test cases have been passed!", len(total_tests))
 
+    def test_1(self):
+        # ['1 - AWS Quick Start Templates', '15 - Machine Learning', '3 - python3.10', '4 - XGBoost Machine Learning Inference API', 'n - XRay-n', 'n - AppInsights-n']
+        sam_cmd = get_sam_command()
+        with tempfile.TemporaryDirectory() as working_dir:
+            working_dir = Path(working_dir)
+            init_process = Popen([sam_cmd, "init"], cwd=working_dir, stdin=PIPE)
+            init_process.communicate(b"1\n15\n3\n4\nn\nn\n\n")
+            init_process.wait(100)
+            self.assertEqual(init_process.returncode, 0)
+
+            validate_process = Popen([sam_cmd, "validate", "--no-lint"], cwd=working_dir.joinpath("sam-app"))
+            validate_process.wait(100)
+
+            self.assertEqual(validate_process.returncode, 0)
