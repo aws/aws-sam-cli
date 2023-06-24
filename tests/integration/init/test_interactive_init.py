@@ -69,7 +69,7 @@ class DynamicInteractiveInitTests(TestCase):
         while proc.poll() is None:
             data = proc.stdout.read(1).decode()
             if data == "\n":
-                LOG.info(line)
+                #LOG.info(line)
 
                 if DEFAULT_OPTION_REGEX.match(line):
                     (option_value, option_text) = DEFAULT_OPTION_REGEX.findall(line)[0]
