@@ -4,7 +4,7 @@ import sys
 import tempfile
 from pathlib import Path
 from subprocess import Popen, PIPE, STDOUT
-from threading import Thread, Lock
+from threading import Thread
 from typing import List, Optional
 from unittest import TestCase
 
@@ -58,8 +58,6 @@ class Option:
 class DynamicInteractiveInitTests(TestCase):
 
     def setUp(self) -> None:
-        self.lock = Lock()
-        self.answers = []
         self.root_option = Option(ROOT, ROOT)
         self.current_option = self.root_option
 
@@ -114,6 +112,7 @@ class DynamicInteractiveInitTests(TestCase):
 
     def test(self):
         while not self.root_option.exhausted():
+            self.root_option.visited = True
             self.current_option = self.root_option
             sam_cmd = get_sam_command()
             with tempfile.TemporaryDirectory() as working_dir:
