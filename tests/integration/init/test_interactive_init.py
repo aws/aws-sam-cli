@@ -141,9 +141,10 @@ class DynamicInteractiveInitTests(TestCase):
     def test(self):
         lock = Lock()
         while not self.root_option.exhausted():
-            with ThreadPoolExecutor() as executor:
+            with ThreadPoolExecutor(max_workers=8) as executor:
                 with lock:
                     unvisited_node_count = self.root_option.get_unvisited_node_count()
+                LOG.info("Spinning up %s jobs", unvisited_node_count)
                 for _ in range(unvisited_node_count):
                     worker = Worker(self.root_option, lock)
                     executor.submit(worker.test_init_flow)
