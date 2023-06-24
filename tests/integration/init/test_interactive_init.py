@@ -126,7 +126,7 @@ class Worker:
                         option_name = "Python Shortcut"
                     if "X-Ray" in line:
                         option_name = "XRay"
-                    if "Application Insights" in line:
+                    if "cloudwatch-application-insights" in line:
                         option_name = "AppInsights"
                     with self.lock:
                         self.current_option.add_option(f"{option_name}-y", "y")
