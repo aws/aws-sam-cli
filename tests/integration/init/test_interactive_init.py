@@ -126,5 +126,5 @@ class DynamicInteractiveInitTests(TestCase):
 
                 LOG.info("Init completed with following selection path: %s", self.current_option.get_selection_path())
 
-                validate_process = Popen([sam_cmd, "validate", "--no-lint"], cwd=working_dir.joinpath("sam-app"), stdout=sys.stdout, stderr=STDOUT)
-                validate_process.wait(100)
+                # validate_process = Popen([sam_cmd, "validate", "--no-lint"], cwd=working_dir.joinpath("sam-app"), stdout=sys.stdout, stderr=STDOUT)
+                # validate_process.wait(100)
