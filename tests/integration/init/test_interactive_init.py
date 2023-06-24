@@ -73,7 +73,7 @@ class DynamicInteractiveInitTests(TestCase):
 
                 if DEFAULT_OPTION_REGEX.match(line):
                     (option_value, option_text) = DEFAULT_OPTION_REGEX.findall(line)[0]
-                    if "Custom Template Location" in option_text:
+                    if "Custom Template Location" in option_text or "EventBridge App from scratch" in option_text:
                         continue
                     self.current_option.add_option(option_text, option_value)
 
