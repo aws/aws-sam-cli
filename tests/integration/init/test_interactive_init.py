@@ -91,7 +91,7 @@ class Worker:
                 return
             self.test_case.assertEqual(init_process.returncode, 0)
 
-            validate_process = Popen([sam_cmd, "validate", "--no-lint"], cwd=working_dir, stdout=PIPE, stderr=STDOUT)
+            validate_process = Popen([sam_cmd, "validate", "--no-lint"], cwd=working_dir.joinpath("sam-app"), stdout=PIPE, stderr=STDOUT)
             validate_process.wait(100)
             self.test_case.assertEqual(validate_process.returncode, 0)
 
