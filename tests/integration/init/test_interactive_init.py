@@ -53,6 +53,15 @@ class Option:
             return parent_selection
         return [self.value]
 
+    def get_unvisited_node_count(self) -> int:
+        total_unvisited = 0
+        for option in self.options:
+            total_unvisited += option.get_unvisited_node_count()
+
+        if not self.visited:
+            total_unvisited += 1
+        return total_unvisited
+
     def __repr__(self):
         return f"{self.name}:{self.value} - {self.options}"
 
@@ -131,11 +140,12 @@ class DynamicInteractiveInitTests(TestCase):
 
     def test(self):
         lock = Lock()
-        with ThreadPoolExecutor() as executor:
-            while not self.root_option.exhausted():
+        while not self.root_option.exhausted():
+            with ThreadPoolExecutor() as executor:
+                with lock:
+                    unvisited_node_count = self.root_option.get_unvisited_node_count()
+                for _ in range(unvisited_node_count):
+                    worker = Worker(self.root_option, lock)
+                    executor.submit(worker.test_init_flow)
                 self.root_option.visited = True
-                worker = Worker(self.root_option, lock)
-                executor.submit(worker.test_init_flow)
-                if self.root_option.exhausted():
-                    time.sleep(5)
 
