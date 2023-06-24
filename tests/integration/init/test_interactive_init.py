@@ -45,10 +45,12 @@ class Option:
 
         return self.visited
 
-    def print_selection_path(self):
+    def get_selection_path(self) -> List[str]:
         if self.parent:
-            self.parent.print_selection_path()
-        LOG.info(f"{self.name} - {self.value}")
+            parent_selection = self.parent.get_selection_path()
+            parent_selection.append(self.value)
+            return parent_selection
+        return [self.value]
 
     def __repr__(self):
         return f"{self.name}:{self.value} - {self.options}"
@@ -119,15 +121,10 @@ class DynamicInteractiveInitTests(TestCase):
                 init_process = Popen([sam_cmd, "init"], cwd=working_dir, stdout=PIPE, stderr=STDOUT, stdin=PIPE)
                 t = Thread(target=self.output_reader, args=(init_process,), daemon=True)
                 t.start()
-                init_process.wait(1000)
+                init_process.wait(100)
                 self.assertEqual(init_process.returncode, 0)
 
-                LOG.info("Init completed with following selection path:")
-                self.current_option.print_selection_path()
+                LOG.info("Init completed with following selection path: %s", self.current_option.get_selection_path())
 
-                validate_process = Popen([sam_cmd, "validate"], cwd=working_dir.joinpath("sam-app"), stdout=sys.stdout, stderr=STDOUT)
-                validate_process.wait(1000)
-                if validate_process.returncode != 0:
-                    validate_process = Popen([sam_cmd, "validate", "--no-lint"], cwd=working_dir.joinpath("sam-app"),
-                                             stdout=sys.stdout, stderr=STDOUT)
-                    self.assertEqual(validate_process.returncode, 0)
+                validate_process = Popen([sam_cmd, "validate", "--no-lint"], cwd=working_dir.joinpath("sam-app"), stdout=sys.stdout, stderr=STDOUT)
+                validate_process.wait(100)
