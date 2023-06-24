@@ -48,9 +48,9 @@ class Option:
     def get_selection_path(self) -> List[str]:
         if self.parent:
             parent_selection = self.parent.get_selection_path()
-            parent_selection.append(self.value)
+            parent_selection.append(f"{self.value} - {self.name}")
             return parent_selection
-        return [f"{self.value} - {self.name}"]
+        return []
 
     def get_unvisited_node_count(self) -> int:
         total_unvisited = 0
