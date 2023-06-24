@@ -1,7 +1,6 @@
 import logging
 import re
 import tempfile
-import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from subprocess import Popen, PIPE, STDOUT
@@ -67,10 +66,13 @@ class Option:
 
 class Worker:
     current_option: Option
+    lock: Lock
+    total_tests: List[List[str]]
 
-    def __init__(self, root_option: Option, lock: Lock):
+    def __init__(self, root_option: Option, lock: Lock, total_tests: List[List[str]]):
         self.current_option = root_option
         self.lock = lock
+        self.total_tests = total_tests
 
     def test_init_flow(self):
         sam_cmd = get_sam_command()
@@ -80,7 +82,9 @@ class Worker:
             t = Thread(target=self.output_reader, args=(init_process,), daemon=True)
             t.start()
             init_process.wait(100)
-        LOG.info("Init completed with following selection path: %s", self.current_option.get_selection_path())
+            LOG.info("Process exited with %s", init_process.returncode)
+            selection_path = self.current_option.get_selection_path()
+            LOG.info("Init completed with following selection path: %s", selection_path)
 
     def output_reader(self, proc: Popen):
         line = ""
@@ -132,8 +136,7 @@ class Worker:
                     proc.stdin.writelines([f"{option_value}\n".encode("utf-8")])
                     proc.stdin.flush()
                     return
-        LOG.error("No available option found, killing process")
-        proc.kill()
+        proc.send_signal(999)
 
 class DynamicInteractiveInitTests(TestCase):
 
