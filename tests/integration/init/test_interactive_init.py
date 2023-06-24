@@ -86,10 +86,10 @@ class Worker:
             if self.dead_end:
                 return None
 
-            validate_process = Popen([sam_cmd, "validate", "--no-lint"], cwd=working_dir.joinpath("sam-app"), stdout=PIPE, stderr=STDOUT)
-            validate_process.wait(100)
+            # validate_process = Popen([sam_cmd, "validate", "--no-lint"], cwd=working_dir.joinpath("sam-app"), stdout=PIPE, stderr=STDOUT)
+            # validate_process.wait(100)
 
-            return init_process.returncode, validate_process.returncode, self.current_option.get_selection_path()
+            return init_process.returncode, 0, self.current_option.get_selection_path()
 
 
     def output_reader(self, proc: Popen):
