@@ -123,15 +123,16 @@ class Worker:
                     line = ""
 
     def branch_out(self, proc: Popen):
-        with self.lock:
-            for possible_option in self.current_option.options:
-                if not possible_option.exhausted():
-                    possible_option.visited = True
-                    self.current_option = possible_option
-                    option_value = possible_option.value
-                    proc.stdin.writelines([f"{option_value}\n".encode("utf-8")])
-                    proc.stdin.flush()
-                    break
+        for possible_option in self.current_option.options:
+            if not possible_option.exhausted():
+                possible_option.visited = True
+                self.current_option = possible_option
+                option_value = possible_option.value
+                proc.stdin.writelines([f"{option_value}\n".encode("utf-8")])
+                proc.stdin.flush()
+                break
+        LOG.error("No available option found, killing process")
+        proc.kill()
 
 class DynamicInteractiveInitTests(TestCase):
 
