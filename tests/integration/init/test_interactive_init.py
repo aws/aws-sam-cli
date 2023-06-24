@@ -68,11 +68,15 @@ class Worker:
     current_option: Option
     lock: Lock
     total_tests: List[List[str]]
+    test_case: TestCase
+    dead_end: bool
 
-    def __init__(self, root_option: Option, lock: Lock, total_tests: List[List[str]]):
+    def __init__(self, root_option: Option, lock: Lock, total_tests: List[List[str]], test_case: TestCase):
         self.current_option = root_option
         self.lock = lock
         self.total_tests = total_tests
+        self.dead_end = False
+        self.test_case = test_case
 
     def test_init_flow(self):
         sam_cmd = get_sam_command()
@@ -82,9 +86,20 @@ class Worker:
             t = Thread(target=self.output_reader, args=(init_process,), daemon=True)
             t.start()
             init_process.wait(100)
-            LOG.info("Process exited with %s", init_process.returncode)
+
+            if self.dead_end:
+                return
+            self.test_case.assertEqual(init_process.returncode, 0)
+
+            validate_process = Popen([sam_cmd, "validate", "--no-lint"], cwd=working_dir, stdout=PIPE, stderr=STDOUT)
+            validate_process.wait(100)
+            self.test_case.assertEqual(validate_process.returncode, 0)
+
             selection_path = self.current_option.get_selection_path()
             LOG.info("Init completed with following selection path: %s", selection_path)
+            with self.lock:
+                self.total_tests.append(selection_path)
+
 
     def output_reader(self, proc: Popen):
         line = ""
@@ -136,7 +151,8 @@ class Worker:
                     proc.stdin.writelines([f"{option_value}\n".encode("utf-8")])
                     proc.stdin.flush()
                     return
-        proc.send_signal(999)
+        self.dead_end = True
+        proc.kill()
 
 class DynamicInteractiveInitTests(TestCase):
 
@@ -150,9 +166,10 @@ class DynamicInteractiveInitTests(TestCase):
             with ThreadPoolExecutor(max_workers=8) as executor:
                 with lock:
                     unvisited_node_count = self.root_option.get_unvisited_node_count()
-                LOG.info("Spinning up %s jobs", unvisited_node_count)
                 for _ in range(unvisited_node_count):
-                    worker = Worker(self.root_option, lock, total_tests)
+                    worker = Worker(self.root_option, lock, total_tests, self)
                     executor.submit(worker.test_init_flow)
                 self.root_option.visited = True
+
+        LOG.info("Total %s test cases have been passed!", len(total_tests))
 
