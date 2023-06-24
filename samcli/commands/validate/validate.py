@@ -40,7 +40,7 @@ DESCRIPTION = """
 @aws_creds_options
 @cli_framework_options
 @click.option(
-    "--lint",
+    "--lint/--no-lint",
     is_flag=True,
     help="Run linting validation on template through cfn-lint. "
     "Create a cfnlintrc config file to specify additional parameters. "
