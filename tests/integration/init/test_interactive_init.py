@@ -48,7 +48,7 @@ class Option:
     def get_selection_path(self) -> List[str]:
         if self.parent:
             parent_selection = self.parent.get_selection_path()
-            parent_selection.append(f"{self.value} - {self.name}")
+            parent_selection.append(f"{self.value} - {self.name[5:]}")
             return parent_selection
         return []
 
