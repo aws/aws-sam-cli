@@ -74,7 +74,7 @@ class Worker:
         self.lock = lock
         self.dead_end = False
 
-    def test_init_flow(self) -> Optional[Tuple[int, int, List[str]]]:
+    def test_init_flow(self) -> Optional[Tuple[Popen, Popen, List[str]]]:
         sam_cmd = get_sam_command()
         with tempfile.TemporaryDirectory() as working_dir:
             working_dir = Path(working_dir)
@@ -86,10 +86,12 @@ class Worker:
             if self.dead_end:
                 return None
 
-            # validate_process = Popen([sam_cmd, "validate", "--no-lint"], cwd=working_dir.joinpath("sam-app"), stdout=PIPE, stderr=STDOUT)
-            # validate_process.wait(100)
+            validate_process = Popen(
+                [sam_cmd, "validate", "--no-lint"], cwd=working_dir.joinpath("sam-app"), stdout=PIPE, stderr=STDOUT
+            )
+            validate_process.wait(100)
 
-            return 0, 0, self.current_option.get_selection_path()
+            return init_process, validate_process, self.current_option.get_selection_path()
 
 
     def output_reader(self, proc: Popen):
@@ -112,7 +114,6 @@ class Worker:
                 line += data
                 # LOG.info(line)
                 if "Project name [sam-app]: " in line:
-                    proc.kill()
                     proc.stdin.writelines([b"\n"])
                     proc.stdin.flush()
                     line = ""
@@ -171,27 +172,21 @@ class DynamicInteractiveInitTests(TestCase):
                 self.root_option.visited = True
 
                 for future in as_completed(futures):
-                    (init_return_code, validate_return_code, test_path) = future.result() or (0, 0, [])
+                    (init_process, validate_process, test_path) = future.result() or (0, 0, [])
                     if not test_path:
                         continue
-                    self.assertEqual(init_return_code, 0)
-                    self.assertEqual(validate_return_code, 0)
+
+                    self.check_process_result(init_process, test_path)
+                    self.check_process_result(validate_process, test_path)
                     total_tests.append(test_path)
                     LOG.info("Completed %s", test_path)
 
         LOG.info("Total %s test cases have been passed!", len(total_tests))
 
-    def test_1(self):
-        # ['1 - AWS Quick Start Templates', '15 - Machine Learning', '3 - python3.10', '4 - XGBoost Machine Learning Inference API', 'n - XRay-n', 'n - AppInsights-n']
-        sam_cmd = get_sam_command()
-        with tempfile.TemporaryDirectory() as working_dir:
-            working_dir = Path(working_dir)
-            init_process = Popen([sam_cmd, "init"], cwd=working_dir, stdin=PIPE)
-            init_process.communicate(b"1\n15\n3\n4\nn\nn\n\n")
-            init_process.wait(100)
-            self.assertEqual(init_process.returncode, 0)
-
-            validate_process = Popen([sam_cmd, "validate", "--no-lint"], cwd=working_dir.joinpath("sam-app"))
-            validate_process.wait(100)
-
-            self.assertEqual(validate_process.returncode, 0)
+    def check_process_result(self, process: Popen, test_path: List[str]):
+        if process.returncode != 0:
+            LOG.error("stdout")
+            LOG.error(process.stdout.read().decode())
+            LOG.error("stderr")
+            LOG.error(process.stderr.read().decode())
+            self.fail(f"Following selection path have failed {test_path}")
