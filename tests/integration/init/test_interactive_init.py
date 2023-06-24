@@ -1,9 +1,11 @@
 import logging
 import re
 import tempfile
+import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from subprocess import Popen, PIPE, STDOUT
-from threading import Thread
+from threading import Thread, Lock
 from typing import List, Optional
 from unittest import TestCase
 
@@ -54,11 +56,22 @@ class Option:
     def __repr__(self):
         return f"{self.name}:{self.value} - {self.options}"
 
-class DynamicInteractiveInitTests(TestCase):
+class Worker:
+    current_option: Option
 
-    def setUp(self) -> None:
-        self.root_option = Option(ROOT, ROOT)
-        self.current_option = self.root_option
+    def __init__(self, root_option: Option, lock: Lock):
+        self.current_option = root_option
+        self.lock = lock
+
+    def test_init_flow(self):
+        sam_cmd = get_sam_command()
+        with tempfile.TemporaryDirectory() as working_dir:
+            working_dir = Path(working_dir)
+            init_process = Popen([sam_cmd, "init"], cwd=working_dir, stdout=PIPE, stderr=STDOUT, stdin=PIPE)
+            t = Thread(target=self.output_reader, args=(init_process,), daemon=True)
+            t.start()
+            init_process.wait(100)
+        LOG.info("Init completed with following selection path: %s", self.current_option.get_selection_path())
 
     def output_reader(self, proc: Popen):
         line = ""
@@ -66,18 +79,19 @@ class DynamicInteractiveInitTests(TestCase):
         while proc.poll() is None:
             data = proc.stdout.read(1).decode()
             if data == "\n":
-                #LOG.info(line)
+                # LOG.info(line)
 
                 if DEFAULT_OPTION_REGEX.match(line):
                     (option_value, option_text) = DEFAULT_OPTION_REGEX.findall(line)[0]
                     if "Custom Template Location" in option_text or "EventBridge App from scratch" in option_text:
                         continue
-                    self.current_option.add_option(option_text, option_value)
+                    with self.lock:
+                        self.current_option.add_option(option_text, option_value)
 
                 line = ""
             else:
                 line += data
-                #LOG.info(line)
+                # LOG.info(line)
                 if "Project name [sam-app]: " in line:
                     proc.kill()
                     proc.stdin.writelines([b"\n"])
@@ -89,8 +103,9 @@ class DynamicInteractiveInitTests(TestCase):
                     continue
 
                 if "[y/N]: " in line:
-                    self.current_option.add_option(f"{line}-y", "y")
-                    self.current_option.add_option(f"{line}-n", "n")
+                    with self.lock:
+                        self.current_option.add_option(f"{line}-y", "y")
+                        self.current_option.add_option(f"{line}-n", "n")
                     self.branch_out(proc)
                     line = ""
 
@@ -99,31 +114,28 @@ class DynamicInteractiveInitTests(TestCase):
                     line = ""
 
     def branch_out(self, proc: Popen):
-        for possible_option in self.current_option.options:
-            if not possible_option.exhausted():
-                possible_option.visited = True
-                self.current_option = possible_option
-                option_value = possible_option.value
-                proc.stdin.writelines([f"{option_value}\n".encode("utf-8")])
-                proc.stdin.flush()
-                break
+        with self.lock:
+            for possible_option in self.current_option.options:
+                if not possible_option.exhausted():
+                    possible_option.visited = True
+                    self.current_option = possible_option
+                    option_value = possible_option.value
+                    proc.stdin.writelines([f"{option_value}\n".encode("utf-8")])
+                    proc.stdin.flush()
+                    break
 
+class DynamicInteractiveInitTests(TestCase):
 
+    def setUp(self) -> None:
+        self.root_option = Option(ROOT, ROOT)
 
     def test(self):
-        while not self.root_option.exhausted():
-            self.root_option.visited = True
-            self.current_option = self.root_option
-            sam_cmd = get_sam_command()
-            with tempfile.TemporaryDirectory() as working_dir:
-                working_dir = Path(working_dir)
-                init_process = Popen([sam_cmd, "init"], cwd=working_dir, stdout=PIPE, stderr=STDOUT, stdin=PIPE)
-                t = Thread(target=self.output_reader, args=(init_process,), daemon=True)
-                t.start()
-                init_process.wait(100)
-                #self.assertEqual(init_process.returncode, 0)
+        lock = Lock()
+        with ThreadPoolExecutor() as executor:
+            while not self.root_option.exhausted():
+                self.root_option.visited = True
+                worker = Worker(self.root_option, lock)
+                executor.submit(worker.test_init_flow)
+                if self.root_option.exhausted():
+                    time.sleep(5)
 
-                LOG.info("Init completed with following selection path: %s", self.current_option.get_selection_path())
-
-                # validate_process = Popen([sam_cmd, "validate", "--no-lint"], cwd=working_dir.joinpath("sam-app"), stdout=sys.stdout, stderr=STDOUT)
-                # validate_process.wait(100)
