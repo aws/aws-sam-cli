@@ -74,7 +74,7 @@ class Worker:
         self.lock = lock
         self.dead_end = False
 
-    def test_init_flow(self) -> Tuple[int, int, List[str]]:
+    def test_init_flow(self) -> Optional[Tuple[int, int, List[str]]]:
         sam_cmd = get_sam_command()
         with tempfile.TemporaryDirectory() as working_dir:
             working_dir = Path(working_dir)
@@ -84,7 +84,7 @@ class Worker:
             init_process.wait(100)
 
             if self.dead_end:
-                return
+                return None
 
             validate_process = Popen([sam_cmd, "validate", "--no-lint"], cwd=working_dir.joinpath("sam-app"), stdout=PIPE, stderr=STDOUT)
             validate_process.wait(100)
@@ -114,7 +114,6 @@ class Worker:
                 line += data
                 # LOG.info(line)
                 if "Project name [sam-app]: " in line:
-                    proc.kill()
                     proc.stdin.writelines([b"\n"])
                     proc.stdin.flush()
                     line = ""
@@ -166,7 +165,9 @@ class DynamicInteractiveInitTests(TestCase):
                 self.root_option.visited = True
 
                 for future in as_completed(futures):
-                    (init_return_code, validate_return_code, test_path) = future.result()
+                    (init_return_code, validate_return_code, test_path) = future.result() or (0, 0, [])
+                    if not test_path:
+                        continue
                     self.assertEqual(init_return_code, 0)
                     self.assertEqual(validate_return_code, 0)
                     total_tests.append(test_path)
