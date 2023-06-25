@@ -52,5 +52,5 @@ jobs:
           node-version: 14
       - name: Init samdev
         run: make init
-      - name: Run CDK dintegration tests
+      - name: Run CDK integration tests
         run: pytest -vv tests/iac_integration
