@@ -2,7 +2,7 @@ name: Test the integration between SAM CLI and Latest CDK version
 
 on:
   schedule:
-    - cron: "0 7 * * 1-5" # run 7am UTC (12am PDT time) in every weekday
+    - cron: "0 13 * * 1-5" # run 1PM UTC (6 am PDT) in every weekday
   workflow_dispatch: {}
 
 # to automatically cancel the running workflow for same PR.
