@@ -33,9 +33,7 @@ jobs:
         with:
           # set last version as the one in matrix to make it default
           python-version: |
-            3.7
-            3.8
-            3.11
+            3.9
             ${{ matrix.python }}
       - uses: actions/setup-go@v4
         with:

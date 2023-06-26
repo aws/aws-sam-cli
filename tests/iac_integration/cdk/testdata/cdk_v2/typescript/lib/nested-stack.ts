@@ -15,7 +15,6 @@ export class NestedStack1 extends cdk.NestedStack {
         // Layers
         const pythonLayerVersion = new PythonLayerVersion(this, 'PythonLayerVersion', {
           compatibleRuntimes: [
-            lambda.Runtime.PYTHON_3_7,
             lambda.Runtime.PYTHON_3_8,
             lambda.Runtime.PYTHON_3_9,
           ],
@@ -23,7 +22,6 @@ export class NestedStack1 extends cdk.NestedStack {
         });
         const layerVersion = new lambda.LayerVersion(this, 'LayerVersion', {
           compatibleRuntimes: [
-            lambda.Runtime.PYTHON_3_7,
             lambda.Runtime.PYTHON_3_8,
             lambda.Runtime.PYTHON_3_9,
           ],

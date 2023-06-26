@@ -31,14 +31,14 @@ public class JavaStack extends Stack {
         // Layers
         PythonLayerVersion pythonLayerVersion = PythonLayerVersion.Builder
                 .create(this, "PythonLayerVersion")
-                .compatibleRuntimes(Arrays.asList(Runtime.PYTHON_3_7, Runtime.PYTHON_3_8,
+                .compatibleRuntimes(Arrays.asList(Runtime.PYTHON_3_8,
                         Runtime.PYTHON_3_9))
                 .entry("../../src/python/layers/PythonLayerVersion")
                 .build();
 
         LayerVersion layerVersion = LayerVersion.Builder
                 .create(this, "LayerVersion")
-                .compatibleRuntimes(Arrays.asList(Runtime.PYTHON_3_7, Runtime.PYTHON_3_8,
+                .compatibleRuntimes(Arrays.asList(Runtime.PYTHON_3_8,
                         Runtime.PYTHON_3_9))
                 .code(Code.fromAsset("../../src/python/layers/LayerVersion"))
                 .build();
@@ -49,12 +49,12 @@ public class JavaStack extends Stack {
         // Lambda LayerVersion with bundled Asset that will be built by CDK
         LayerVersion bundledLayerVersionPythonRuntime = LayerVersion.Builder
                 .create(this, "BundledLayerVersionPythonRuntime")
-                .compatibleRuntimes(Arrays.asList(Runtime.PYTHON_3_7, Runtime.PYTHON_3_8,
+                .compatibleRuntimes(Arrays.asList(Runtime.PYTHON_3_8,
                         Runtime.PYTHON_3_9))
                 .code(Code.fromAsset("../../src/python/layers/BundledLayerVersion",
                         AssetOptions.builder().bundling(
                                 BundlingOptions.builder()
-                                        .image(Runtime.PYTHON_3_7.getBundlingImage())
+                                        .image(Runtime.PYTHON_3_9.getBundlingImage())
                                         .command(Arrays.asList(
                                                 "/bin/sh",
                                                 "-c",
@@ -81,7 +81,7 @@ public class JavaStack extends Stack {
 
         // Normal Lambda Function Construct - Python Runtime
         Function functionPythonRuntime = Function.Builder.create(this, "FunctionPythonRuntime")
-                .runtime(Runtime.PYTHON_3_7)
+                .runtime(Runtime.PYTHON_3_9)
                 .code(Code.fromAsset("../../src/python/FunctionConstruct"))
                 .handler("app.lambda_handler")
                 .layers(Arrays.asList(pythonLayerVersion, layerVersion))
@@ -90,7 +90,7 @@ public class JavaStack extends Stack {
 
         // Normal Lambda Function Construct - Python Runtime - with skip build metadata
         Function preBuiltFunctionPythonRuntime = Function.Builder.create(this, "PreBuiltFunctionPythonRuntime")
-                .runtime(Runtime.PYTHON_3_7)
+                .runtime(Runtime.PYTHON_3_9)
                 .code(Code.fromAsset("../../src/python/BuiltFunctionConstruct"))
                 .handler("app.lambda_handler")
                 .layers(Arrays.asList(pythonLayerVersion, layerVersion))
@@ -103,12 +103,12 @@ public class JavaStack extends Stack {
 
         // Normal Lambda Function with bundled Asset will be built by CDK
         Function bundledFunctionPythonRuntime = Function.Builder.create(this, "BundledFunctionPythonRuntime")
-                .runtime(Runtime.PYTHON_3_7)
+                .runtime(Runtime.PYTHON_3_9)
                 .code(Code.fromAsset("../../src/python/BundledFunctionConstruct/",
                         AssetOptions.builder().bundling(
                                 BundlingOptions.builder()
                                         .command(Arrays.asList("/bin/sh", "-c", "rm -rf /tmp/asset-input && mkdir /tmp/asset-input && cp * /tmp/asset-input && cd /tmp/asset-input && pip install -r requirements.txt -t . && cp -R /tmp/asset-input/* /asset-output"))
-                                        .image(Runtime.PYTHON_3_7.getBundlingImage())
+                                        .image(Runtime.PYTHON_3_9.getBundlingImage())
                                         .build()
                         ).build()
                 ))

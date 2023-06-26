@@ -24,14 +24,14 @@ public class NestedStack1 extends NestedStack {
         // Layers
         PythonLayerVersion pythonLayerVersion = PythonLayerVersion.Builder
                 .create(this, "PythonLayerVersion")
-                .compatibleRuntimes(Arrays.asList(Runtime.PYTHON_3_7, Runtime.PYTHON_3_8,
+                .compatibleRuntimes(Arrays.asList(Runtime.PYTHON_3_8,
                         Runtime.PYTHON_3_9))
                 .entry("../../src/python/layers/PythonLayerVersion")
                 .build();
 
         LayerVersion layerVersion = LayerVersion.Builder
                 .create(this, "LayerVersion")
-                .compatibleRuntimes(Arrays.asList(Runtime.PYTHON_3_7, Runtime.PYTHON_3_8,
+                .compatibleRuntimes(Arrays.asList(Runtime.PYTHON_3_8,
                         Runtime.PYTHON_3_9))
                 .code(Code.fromAsset("../../src/python/layers/LayerVersion"))
                 .build();

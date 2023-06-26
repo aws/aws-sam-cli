@@ -18,7 +18,6 @@ class NestedStack1(NestedStack):
             self,
             "PythonLayerVersion",
             compatible_runtimes=[
-                lambda1.Runtime.PYTHON_3_7,
                 lambda1.Runtime.PYTHON_3_8,
                 lambda1.Runtime.PYTHON_3_9,
             ],
@@ -28,7 +27,6 @@ class NestedStack1(NestedStack):
             self,
             "LayerVersion",
             compatible_runtimes=[
-                lambda1.Runtime.PYTHON_3_7,
                 lambda1.Runtime.PYTHON_3_8,
                 lambda1.Runtime.PYTHON_3_9,
             ],

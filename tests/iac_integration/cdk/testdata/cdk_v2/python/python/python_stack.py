@@ -24,7 +24,6 @@ class PythonStack(Stack):
             self,
             "PythonLayerVersion",
             compatible_runtimes=[
-                lambda1.Runtime.PYTHON_3_7,
                 lambda1.Runtime.PYTHON_3_8,
                 lambda1.Runtime.PYTHON_3_9,
             ],
@@ -34,7 +33,6 @@ class PythonStack(Stack):
             self,
             "LayerVersion",
             compatible_runtimes=[
-                lambda1.Runtime.PYTHON_3_7,
                 lambda1.Runtime.PYTHON_3_8,
                 lambda1.Runtime.PYTHON_3_9,
             ],
@@ -49,7 +47,6 @@ class PythonStack(Stack):
             self,
             "BundledLayerVersionPythonRuntime",
             compatible_runtimes=[
-                lambda1.Runtime.PYTHON_3_7,
                 lambda1.Runtime.PYTHON_3_8,
                 lambda1.Runtime.PYTHON_3_9,
             ],
@@ -61,7 +58,7 @@ class PythonStack(Stack):
                         "-c",
                         "rm -rf /tmp/asset-input && mkdir /tmp/asset-input && cp * /tmp/asset-input && cd /tmp/asset-input && pip install -r requirements.txt -t . && mkdir /asset-output/python && cp -R /tmp/asset-input/* /asset-output/python",
                     ],
-                    image=lambda1.Runtime.PYTHON_3_7.bundling_image,
+                    image=lambda1.Runtime.PYTHON_3_9.bundling_image,
                     user="root",
                 ),
             ),
@@ -86,7 +83,7 @@ class PythonStack(Stack):
         function_python_runtime = lambda1.Function(
             self,
             "FunctionPythonRuntime",
-            runtime=lambda1.Runtime.PYTHON_3_7,
+            runtime=lambda1.Runtime.PYTHON_3_9,
             code=lambda1.Code.from_asset("../../src/python/FunctionConstruct"),
             handler="app.lambda_handler",
             layers=[python_layer_version, layer_version],
@@ -97,7 +94,7 @@ class PythonStack(Stack):
         pre_built_function_python_runtime = lambda1.Function(
             self,
             "PreBuiltFunctionPythonRuntime",
-            runtime=lambda1.Runtime.PYTHON_3_7,
+            runtime=lambda1.Runtime.PYTHON_3_9,
             code=lambda1.Code.from_asset("../../src/python/BuiltFunctionConstruct"),
             handler="app.lambda_handler",
             layers=[python_layer_version, layer_version],
@@ -111,7 +108,7 @@ class PythonStack(Stack):
         bundled_function_python_runtime = lambda1.Function(
             self,
             "BundledFunctionPythonRuntime",
-            runtime=lambda1.Runtime.PYTHON_3_7,
+            runtime=lambda1.Runtime.PYTHON_3_9,
             code=lambda1.Code.from_asset(
                 "../../src/python/BundledFunctionConstruct/",
                 bundling=BundlingOptions(
@@ -120,7 +117,7 @@ class PythonStack(Stack):
                         "-c",
                         "rm -rf /tmp/asset-input && mkdir /tmp/asset-input && cp * /tmp/asset-input && cd /tmp/asset-input && pip install -r requirements.txt -t . && cp -R /tmp/asset-input/* /asset-output",
                     ],
-                    image=lambda1.Runtime.PYTHON_3_7.bundling_image,
+                    image=lambda1.Runtime.PYTHON_3_9.bundling_image,
                     user="root",
                 ),
             ),

@@ -20,7 +20,6 @@ export class CDKSupportDemoRootStack extends cdk.Stack {
     // Layers
     const pythonLayerVersion = new PythonLayerVersion(this, 'PythonLayerVersion', {
       compatibleRuntimes: [
-        lambda.Runtime.PYTHON_3_7,
         lambda.Runtime.PYTHON_3_8,
         lambda.Runtime.PYTHON_3_9,
       ],
@@ -28,7 +27,6 @@ export class CDKSupportDemoRootStack extends cdk.Stack {
     });
     const layerVersion = new lambda.LayerVersion(this, 'LayerVersion', {
       compatibleRuntimes: [
-        lambda.Runtime.PYTHON_3_7,
         lambda.Runtime.PYTHON_3_8,
         lambda.Runtime.PYTHON_3_9,
       ],
@@ -40,7 +38,6 @@ export class CDKSupportDemoRootStack extends cdk.Stack {
 
     const bundledLayerVersionPythonRuntime = new lambda.LayerVersion(this, 'BundledLayerVersionPythonRuntime', {
       compatibleRuntimes: [
-        lambda.Runtime.PYTHON_3_7,
         lambda.Runtime.PYTHON_3_8,
         lambda.Runtime.PYTHON_3_9,
       ],
@@ -51,7 +48,7 @@ export class CDKSupportDemoRootStack extends cdk.Stack {
             '-c',
             'rm -rf /tmp/asset-input && mkdir /tmp/asset-input && cp * /tmp/asset-input && cd /tmp/asset-input && pip install -r requirements.txt -t . && mkdir /asset-output/python && cp -R /tmp/asset-input/* /asset-output/python',
           ],
-          image: lambda.Runtime.PYTHON_3_7.bundlingImage,
+          image: lambda.Runtime.PYTHON_3_9.bundlingImage,
           user: 'root',
         }
       }),
@@ -72,7 +69,7 @@ export class CDKSupportDemoRootStack extends cdk.Stack {
 
     // Normal Lambda Function Construct - Python Runtime
     const functionPythonRuntime = new lambda.Function(this, 'FunctionPythonRuntime', {
-      runtime: lambda.Runtime.PYTHON_3_7,
+      runtime: lambda.Runtime.PYTHON_3_9,
       code: lambda.Code.fromAsset('../../src/python/FunctionConstruct'),
       handler: 'app.lambda_handler',
       layers: [pythonLayerVersion, layerVersion],
@@ -81,7 +78,7 @@ export class CDKSupportDemoRootStack extends cdk.Stack {
 
     // Normal Lambda Function Construct - Python Runtime - with skip build metadata
     const preBuiltFunctionPythonRuntime = new lambda.Function(this, 'PreBuiltFunctionPythonRuntime', {
-      runtime: lambda.Runtime.PYTHON_3_7,
+      runtime: lambda.Runtime.PYTHON_3_9,
       code: lambda.Code.fromAsset('../../src/python/BuiltFunctionConstruct'),
       handler: 'app.lambda_handler',
       layers: [pythonLayerVersion, layerVersion],
@@ -92,7 +89,7 @@ export class CDKSupportDemoRootStack extends cdk.Stack {
     cfnPreBuiltFunctionPythonRuntime.addMetadata('SkipBuild', true);
 
     const bundledFunctionPythonRuntime = new lambda.Function(this, 'BundledFunctionPythonRuntime', {
-      runtime: lambda.Runtime.PYTHON_3_7,
+      runtime: lambda.Runtime.PYTHON_3_9,
       code: lambda.Code.fromAsset('../../src/python/BundledFunctionConstruct/', {
         bundling: {
           command: [
@@ -100,7 +97,7 @@ export class CDKSupportDemoRootStack extends cdk.Stack {
             '-c',
             'rm -rf /tmp/asset-input && mkdir /tmp/asset-input && cp * /tmp/asset-input && cd /tmp/asset-input && pip install -r requirements.txt -t . && cp -R /tmp/asset-input/* /asset-output',
           ],
-          image: lambda.Runtime.PYTHON_3_7.bundlingImage,
+          image: lambda.Runtime.PYTHON_3_9.bundlingImage,
           user: 'root',
         }
       }),
