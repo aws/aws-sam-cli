@@ -13,7 +13,7 @@ concurrency:
 jobs:
   integration-tests:
     name:  Integration Tests / ${{ matrix.python }}
-    #if: github.repository == 'aws/aws-sam-cli'
+    if: github.repository == 'aws/aws-sam-cli'
     runs-on: ubuntu-latest
     env:
       AWS_DEFAULT_REGION: us-east-1
