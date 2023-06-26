@@ -1,3 +1,6 @@
+"""
+`sam package` command class for help text visual layer.
+"""
 import click
 from click import Context, style
 from rich.table import Table
@@ -12,6 +15,13 @@ COL_SIZE_MODIFIER = 38
 
 
 class PackageCommand(CoreCommand):
+    """
+    `sam` package specific command class that specializes in the visual appearance
+    of `sam package` help text.
+    It hosts a custom formatter, examples, table for supported resources, acronyms
+    and how options are to be used in the CLI for `sam package`.
+    """
+
     class CustomFormatterContext(Context):
         formatter_class = PackageCommandHelpTextFormatter
 
