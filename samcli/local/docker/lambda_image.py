@@ -46,7 +46,6 @@ class Runtime(Enum):
     java11 = "java11"
     java17 = "java17"
     go1x = "go1.x"
-    dotnetcore31 = "dotnetcore3.1"
     dotnet6 = "dotnet6"
     provided = "provided"
     providedal2 = "provided.al2"
@@ -86,7 +85,7 @@ class Runtime(Enum):
             # `provided.al2` becomes `provided:al2``
             runtime_image_tag = runtime.replace(".", ":")
         elif runtime.startswith("dotnet"):
-            # dotnetcore3.1 becomes dotnet:core3.1 and dotnet6 becomes dotnet:6
+            # dotnet6 becomes dotnet:6
             runtime_image_tag = runtime.replace("dotnet", "dotnet:")
         else:
             # This fits most runtimes format: `nameN.M` becomes `name:N.M` (python3.9 -> python:3.9)

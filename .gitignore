@@ -412,19 +412,16 @@ coverage.xml
 
 # Temporary scratch directory used by the tests
 tests/integration/buildcmd/scratch
-tests/integration/testdata/buildcmd/Dotnetcore2.0/bin
-tests/integration/testdata/buildcmd/Dotnetcore2.0/obj
-tests/integration/testdata/buildcmd/Dotnetcore2.1/bin
-tests/integration/testdata/buildcmd/Dotnetcore2.1/obj
-tests/integration/testdata/buildcmd/Dotnetcore3.1/bin
-tests/integration/testdata/buildcmd/Dotnetcore3.1/obj
 tests/integration/testdata/buildcmd/Dotnet6/bin
 tests/integration/testdata/buildcmd/Dotnet6/obj
 tests/integration/testdata/buildcmd/Dotnet7/bin
 tests/integration/testdata/buildcmd/Dotnet7/obj
 tests/integration/testdata/invoke/credential_tests/inprocess/dotnet/STS/obj
+tests/integration/testdata/sync/code/after/dotnet_function/src/HelloWorld/obj/
+tests/integration/testdata/sync/code/before/dotnet_function/src/HelloWorld/obj/
 
 # End of https://www.gitignore.io/api/osx,node,macos,linux,python,windows,pycharm,intellij,sublimetext,visualstudiocode
 
 # Installer build folder
 .build
+
