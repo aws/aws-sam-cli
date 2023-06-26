@@ -37,7 +37,7 @@ public class NestedStack1 extends NestedStack {
                 .build();
         // add SAM metadata to build layer
         CfnLayerVersion cfnLayerVersion = (CfnLayerVersion) layerVersion.getNode().getDefaultChild();
-        cfnLayerVersion.addMetadata("BuildMethod", "python3.7");
+        cfnLayerVersion.addMetadata("BuildMethod", "python3.9");
 
         // ZIP package type Functions
         // Functions Built by CDK - Runtime Functions Constructs

@@ -34,7 +34,7 @@ class NestedStack1(NestedStack):
         )
         # add SAM metadata to build layer
         cfn_layer_version = cast(CfnLayerVersion, layer_version.node.default_child)
-        cfn_layer_version.add_metadata("BuildMethod", "python3.7")
+        cfn_layer_version.add_metadata("BuildMethod", "python3.9")
 
         # ZIP package type Functions
         # Functions Built by CDK - Runtime Functions Constructs

@@ -40,7 +40,7 @@ class PythonStack(Stack):
         )
         # add SAM metadata to build layer
         cfn_layer_version = cast(CfnLayerVersion, layer_version.node.default_child)
-        cfn_layer_version.add_metadata("BuildMethod", "python3.7")
+        cfn_layer_version.add_metadata("BuildMethod", "python3.9")
 
         # Lambda LayerVersion with bundled Asset that will be built by CDK
         bundled_layer_version_python_runtime = lambda1.LayerVersion(

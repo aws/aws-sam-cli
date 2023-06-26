@@ -29,7 +29,7 @@ export class NestedStack1 extends cdk.NestedStack {
         });
         // add SAM metadata to build layer
         const cfnLayerVersion = layerVersion.node.defaultChild as CfnLayerVersion;
-        cfnLayerVersion.addMetadata('BuildMethod', 'python3.7');
+        cfnLayerVersion.addMetadata('BuildMethod', 'python3.9');
 
         // ZIP package type Functions
         // Functions Built by CDK - Runtime Functions Constructs

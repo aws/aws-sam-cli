@@ -44,7 +44,7 @@ public class JavaStack extends Stack {
                 .build();
         // add SAM metadata to build layer
         CfnLayerVersion cfnLayerVersion = (CfnLayerVersion) layerVersion.getNode().getDefaultChild();
-        cfnLayerVersion.addMetadata("BuildMethod", "python3.7");
+        cfnLayerVersion.addMetadata("BuildMethod", "python3.9");
 
         // Lambda LayerVersion with bundled Asset that will be built by CDK
         LayerVersion bundledLayerVersionPythonRuntime = LayerVersion.Builder
