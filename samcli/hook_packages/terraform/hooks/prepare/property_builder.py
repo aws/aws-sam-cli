@@ -24,6 +24,8 @@ from samcli.lib.utils.resources import AWS_APIGATEWAY_METHOD as CFN_AWS_APIGATEW
 from samcli.lib.utils.resources import AWS_APIGATEWAY_RESOURCE as CFN_AWS_APIGATEWAY_RESOURCE
 from samcli.lib.utils.resources import AWS_APIGATEWAY_RESTAPI as CFN_AWS_APIGATEWAY_RESTAPI
 from samcli.lib.utils.resources import AWS_APIGATEWAY_STAGE as CFN_AWS_APIGATEWAY_STAGE
+from samcli.lib.utils.resources import AWS_APIGATEWAY_V2_API as CFN_AWS_APIGATEWAY_V2_API
+from samcli.lib.utils.resources import AWS_APIGATEWAY_V2_ROUTE as CFN_AWS_APIGATEWAY_V2_ROUTE
 from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION
 from samcli.lib.utils.resources import AWS_LAMBDA_LAYERVERSION as CFN_AWS_LAMBDA_LAYER_VERSION
 
@@ -40,6 +42,9 @@ TF_AWS_API_GATEWAY_METHOD = "aws_api_gateway_method"
 TF_AWS_API_GATEWAY_INTEGRATION = "aws_api_gateway_integration"
 TF_AWS_API_GATEWAY_AUTHORIZER = "aws_api_gateway_authorizer"
 TF_AWS_API_GATEWAY_INTEGRATION_RESPONSE = "aws_api_gateway_method_response"
+
+TF_AWS_API_GATEWAY_V2_API = "aws_apigatewayv2_api"
+TF_AWS_API_GATEWAY_V2_ROUTE = "aws_apigatewayv2_route"
 
 
 def _build_code_property(tf_properties: dict, resource: TFResource) -> Any:
@@ -245,6 +250,19 @@ def _get_json_body(tf_properties: dict, resource: TFResource) -> Any:
     return body
 
 
+def _get_cors_v2_api(tf_properties: dict, resource: TFResource) -> Any:
+    cors = tf_properties.get("cors_configuration")
+    cors_configurations = {
+        "AllowCredentials": cors.get("allow_credentials"),
+        "AllowHeaders": cors.get("allow_headers"),
+        "AllowMethods": cors.get("allow_methods"),
+        "AllowOrigins": cors.get("allow_origins"),
+        "ExposeHeaders": cors.get("expose_headers"),
+        "MaxAge": cors.get("max_age"),
+    }
+    return cors_configurations or None
+
+
 AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
     "FunctionName": _get_property_extractor("function_name"),
     "Architectures": _get_property_extractor("architectures"),
@@ -320,6 +338,22 @@ AWS_API_GATEWAY_INTEGRATION_RESPONSE_PROPERTY_BUILDER_MAPPING: PropertyBuilderMa
     "ResponseParameters": _get_property_extractor("response_parameters"),
 }
 
+AWS_API_GATEWAY_V2_API_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
+    "Name": _get_property_extractor("name"),
+    "Body": _get_property_extractor("body"),
+    "Target": _get_property_extractor("target"),
+    "ProtocolType": _get_property_extractor("protocol_type"),
+    "RouteKey": _get_property_extractor("route_key"),
+    "CorsConfiguration": _get_cors_v2_api,
+}
+
+AWS_API_GATEWAY_V2_ROUTE_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
+    "ApiId": _get_property_extractor("api_id"),
+    "RouteKey": _get_property_extractor("route_key"),
+    "Target": _get_property_extractor("target"),
+    "OperationName": _get_property_extractor("operation_name"),
+}
+
 RESOURCE_TRANSLATOR_MAPPING: Dict[str, ResourceTranslator] = {
     TF_AWS_LAMBDA_FUNCTION: ResourceTranslator(CFN_AWS_LAMBDA_FUNCTION, AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING),
     TF_AWS_LAMBDA_LAYER_VERSION: ResourceTranslator(
@@ -345,5 +379,11 @@ RESOURCE_TRANSLATOR_MAPPING: Dict[str, ResourceTranslator] = {
     ),
     TF_AWS_API_GATEWAY_INTEGRATION_RESPONSE: ResourceTranslator(
         INTERNAL_API_GATEWAY_INTEGRATION_RESPONSE, AWS_API_GATEWAY_INTEGRATION_RESPONSE_PROPERTY_BUILDER_MAPPING
+    ),
+    TF_AWS_API_GATEWAY_V2_API: ResourceTranslator(
+        CFN_AWS_APIGATEWAY_V2_API, AWS_API_GATEWAY_V2_API_PROPERTY_BUILDER_MAPPING
+    ),
+    TF_AWS_API_GATEWAY_V2_ROUTE: ResourceTranslator(
+        CFN_AWS_APIGATEWAY_V2_ROUTE, AWS_API_GATEWAY_V2_ROUTE_PROPERTY_BUILDER_MAPPING
     ),
 }
