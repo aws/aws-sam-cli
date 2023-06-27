@@ -460,7 +460,9 @@ class TestApplicationBuilder_build(TestCase):
         msg = "Function name property Architectures should be a list of length 1"
         self.assertEqual(str(ex.exception), msg)
 
-    @parameterized.expand([("python2.7",), ("python3.6",), ("ruby2.5",), ("nodejs10.x",), ("dotnetcore2.1",)])
+    @parameterized.expand(
+        [("python2.7",), ("python3.6",), ("ruby2.5",), ("nodejs10.x",), ("dotnetcore2.1",), ("dotnetcore3.1",)]
+    )
     def test_deprecated_runtimes(self, runtime):
         with self.assertRaises(UnsupportedRuntimeException):
             self.builder._build_function(

@@ -112,7 +112,7 @@ class RemoteInvokeContext:
         see _get_from_physical_resource_id for details.
         """
         if not self._stack_name and not self._resource_id:
-            raise InvalidRemoteInvokeParameters("Either --stack-name or --resource-id parameter should be provided")
+            raise InvalidRemoteInvokeParameters("Either --stack-name option or resource_id argument should be provided")
 
         try:
             if not self._resource_id:
@@ -162,7 +162,7 @@ class RemoteInvokeContext:
         if len(resource_summaries) > 1:
             raise AmbiguousResourceForRemoteInvoke(
                 f"{self._stack_name} contains more than one resource that could be used with remote invoke, "
-                f"please provide --resource-id to resolve ambiguity."
+                f"please provide resource_id argument to resolve ambiguity."
             )
 
         # fail if no resource summary found with given types
