@@ -57,9 +57,17 @@ jobs:
           - "3.11"
     steps:
     - uses: actions/checkout@v3
+    # @melasmar
+    # TODO: Revert back to use 3.7 to all operating systems after the regression issue in Python
+    # https://github.com/actions/setup-python/issues/682 in github action got resolved
     - uses: actions/setup-python@v4
+      if: matrix.os != 'macos-latest' || ( matrix.os == 'macos-latest' && matrix.python != '3.7' )
       with:
         python-version: ${{ matrix.python }}
+    - uses: actions/setup-python@v4
+      if: matrix.os == 'macos-latest' && matrix.python == '3.7'
+      with:
+        python-version: "3.7.16"
     - run: test -f "./.github/ISSUE_TEMPLATE/Bug_report.md"  # prevent Bug_report.md from being renamed or deleted
     - run: make init
     - run: make pr

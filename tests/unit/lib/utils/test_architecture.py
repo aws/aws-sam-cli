@@ -44,7 +44,7 @@ class TestArchitecture(TestCase):
         [
             ("nodejs14.x", X86_64, ZIP),
             ("java8.al2", ARM64, ZIP),
-            ("dotnetcore3.1", ARM64, ZIP),
+            ("dotnet6", ARM64, ZIP),
             (None, X86_64, IMAGE),
             (None, ARM64, IMAGE),
             (None, X86_64, IMAGE),

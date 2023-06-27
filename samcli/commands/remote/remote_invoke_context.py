@@ -2,6 +2,7 @@
 Context object used by `sam remote invoke` command
 """
 import logging
+from dataclasses import dataclass
 from typing import Optional, cast
 
 from botocore.exceptions import ClientError
@@ -15,7 +16,12 @@ from samcli.commands.remote.exceptions import (
     UnsupportedServiceForRemoteInvoke,
 )
 from samcli.lib.remote_invoke.remote_invoke_executor_factory import RemoteInvokeExecutorFactory
-from samcli.lib.remote_invoke.remote_invoke_executors import RemoteInvokeExecutionInfo
+from samcli.lib.remote_invoke.remote_invoke_executors import (
+    RemoteInvokeConsumer,
+    RemoteInvokeExecutionInfo,
+    RemoteInvokeLogOutput,
+    RemoteInvokeResponse,
+)
 from samcli.lib.utils import osutils
 from samcli.lib.utils.arn_utils import ARNParts, InvalidArnValue
 from samcli.lib.utils.boto_utils import BotoProviderType, get_client_error_code
@@ -61,7 +67,7 @@ class RemoteInvokeContext:
     def __exit__(self, *args) -> None:
         pass
 
-    def run(self, remote_invoke_input: RemoteInvokeExecutionInfo) -> RemoteInvokeExecutionInfo:
+    def run(self, remote_invoke_input: RemoteInvokeExecutionInfo) -> None:
         """
         Instantiates remote invoke executor with populated resource summary information, executes it with the provided
         input & returns its response back to the caller. If no executor can be instantiated it raises
@@ -72,11 +78,6 @@ class RemoteInvokeContext:
         remote_invoke_input: RemoteInvokeExecutionInfo
             RemoteInvokeExecutionInfo which contains the payload and other information that will be required during
             the invocation
-
-        Returns
-        -------
-        RemoteInvokeExecutionInfo
-            Populates result and exception info (if any) and returns back to the caller
         """
         if not self._resource_summary:
             raise AmbiguousResourceForRemoteInvoke(
@@ -85,13 +86,18 @@ class RemoteInvokeContext:
             )
 
         remote_invoke_executor_factory = RemoteInvokeExecutorFactory(self._boto_client_provider)
-        remote_invoke_executor = remote_invoke_executor_factory.create_remote_invoke_executor(self._resource_summary)
+        remote_invoke_executor = remote_invoke_executor_factory.create_remote_invoke_executor(
+            self._resource_summary,
+            remote_invoke_input.output_format,
+            DefaultRemoteInvokeResponseConsumer(self.stdout),
+            DefaultRemoteInvokeLogConsumer(self.stderr),
+        )
         if not remote_invoke_executor:
             raise NoExecutorFoundForRemoteInvoke(
                 f"Resource type {self._resource_summary.resource_type} is not supported for remote invoke"
             )
 
-        return remote_invoke_executor.execute(remote_invoke_input)
+        remote_invoke_executor.execute(remote_invoke_input)
 
     def _populate_resource_summary(self) -> None:
         """
@@ -106,7 +112,7 @@ class RemoteInvokeContext:
         see _get_from_physical_resource_id for details.
         """
         if not self._stack_name and not self._resource_id:
-            raise InvalidRemoteInvokeParameters("Either --stack-name or --resource-id parameter should be provided")
+            raise InvalidRemoteInvokeParameters("Either --stack-name option or resource_id argument should be provided")
 
         try:
             if not self._resource_id:
@@ -156,7 +162,7 @@ class RemoteInvokeContext:
         if len(resource_summaries) > 1:
             raise AmbiguousResourceForRemoteInvoke(
                 f"{self._stack_name} contains more than one resource that could be used with remote invoke, "
-                f"please provide --resource-id to resolve ambiguity."
+                f"please provide resource_id argument to resolve ambiguity."
             )
 
         # fail if no resource summary found with given types
@@ -225,3 +231,27 @@ class RemoteInvokeContext:
         """
         stream = osutils.stderr()
         return StreamWriter(stream, auto_flush=True)
+
+
+@dataclass
+class DefaultRemoteInvokeResponseConsumer(RemoteInvokeConsumer[RemoteInvokeResponse]):
+    """
+    Default RemoteInvokeResponse consumer, writes given response event to the configured StreamWriter
+    """
+
+    _stream_writer: StreamWriter
+
+    def consume(self, remote_invoke_response: RemoteInvokeResponse) -> None:
+        self._stream_writer.write(cast(str, remote_invoke_response.response).encode())
+
+
+@dataclass
+class DefaultRemoteInvokeLogConsumer(RemoteInvokeConsumer[RemoteInvokeLogOutput]):
+    """
+    Default RemoteInvokeLogOutput consumer, writes given log event to the configured StreamWriter
+    """
+
+    _stream_writer: StreamWriter
+
+    def consume(self, remote_invoke_response: RemoteInvokeLogOutput) -> None:
+        self._stream_writer.write(remote_invoke_response.log_output.encode())
