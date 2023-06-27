@@ -4,8 +4,6 @@ This file contains validations remote invoke options
 import logging
 import sys
 from functools import wraps
-from io import TextIOWrapper
-from typing import cast
 
 import click
 
@@ -17,12 +15,12 @@ LOG = logging.getLogger(__name__)
 def event_and_event_file_options_validation(func):
     """
     This function validates the cases when both --event and --event-file are provided and
-    neither option is provided
+    logs if "-" is provided for --event-file and event is read from stdin.
 
     Parameters
     ----------
     func :
-        Command that would be executed, in this case it is 'sam cloud invoke'
+        Command that would be executed, in this case it is 'sam remote invoke'
 
     Returns
     -------
@@ -48,10 +46,9 @@ def event_and_event_file_options_validation(func):
 
         validator.validate()
 
-        # if no event nor event_file arguments are given, read from stdin
-        if not event and not event_file:
-            LOG.debug("Neither --event nor --event-file options have been provided, reading from stdin")
-            kwargs["event_file"] = cast(TextIOWrapper, sys.stdin)
+        # If "-" is provided for --event-file, click uses it as a special file to refer to stdin.
+        if event_file and event_file.fileno() == sys.stdin.fileno():
+            LOG.info("Reading event from stdin (you can also pass it from file with --event-file)")
         return func(*args, **kwargs)
 
     return wrapped
@@ -59,12 +56,12 @@ def event_and_event_file_options_validation(func):
 
 def stack_name_or_resource_id_atleast_one_option_validation(func):
     """
-    This function validates that atleast one of --stack-name or --resource-id should is be provided
+    This function validates that atleast one of --stack-name option or resource_id argument should is be provided
 
     Parameters
     ----------
     func :
-        Command that would be executed, in this case it is 'sam cloud invoke'
+        Command that would be executed, in this case it is 'sam remote invoke'
 
     Returns
     -------
@@ -83,7 +80,7 @@ def stack_name_or_resource_id_atleast_one_option_validation(func):
             exception=click.BadOptionUsage(
                 option_name="--resource-id",
                 ctx=ctx,
-                message="Atleast 1 of --stack-name or --resource-id parameters should be provided.",
+                message="At least 1 of --stack-name or --resource-id parameters should be provided.",
             ),
         )
 

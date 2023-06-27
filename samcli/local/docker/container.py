@@ -15,6 +15,7 @@ import docker
 import requests
 from docker.errors import NotFound as DockerNetworkNotFound
 
+from samcli.lib.constants import DOCKER_MIN_API_VERSION
 from samcli.lib.utils.retry import retry
 from samcli.lib.utils.tar import extract_tarfile
 from samcli.local.docker.effective_user import ROOT_USER_ID, EffectiveUser
@@ -111,7 +112,7 @@ class Container:
         self._logs_thread = None
 
         # Use the given Docker client or create new one
-        self.docker_client = docker_client or docker.from_env()
+        self.docker_client = docker_client or docker.from_env(version=DOCKER_MIN_API_VERSION)
 
         # Runtime properties of the container. They won't have value until container is created or started
         self.id = None

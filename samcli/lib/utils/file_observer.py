@@ -18,6 +18,7 @@ from watchdog.observers import Observer
 from watchdog.observers.api import BaseObserver, ObservedWatch
 
 from samcli.cli.global_config import Singleton
+from samcli.lib.constants import DOCKER_MIN_API_VERSION
 from samcli.lib.utils.hash import dir_checksum, file_checksum
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.local.lambdafn.config import FunctionConfig
@@ -257,7 +258,7 @@ class ImageObserver(ResourceObserver):
         """
         self._observed_images: Dict[str, str] = {}
         self._input_on_change: Callable = on_change
-        self.docker_client: DockerClient = docker.from_env()
+        self.docker_client: DockerClient = docker.from_env(version=DOCKER_MIN_API_VERSION)
         self.events: CancellableStream = self.docker_client.events(filters={"type": "image"}, decode=True)
         self._images_observer_thread: Optional[Thread] = None
         self._lock: Lock = threading.Lock()

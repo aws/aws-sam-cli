@@ -3,7 +3,7 @@ from unittest.mock import patch, Mock
 
 from parameterized import parameterized
 
-from samcli.commands.cloud.invoke.cli import do_cli
+from samcli.commands.remote.invoke.cli import do_cli
 from samcli.lib.remote_invoke.remote_invoke_executors import RemoteInvokeOutputFormat
 from samcli.lib.remote_invoke.exceptions import (
     ErrorBotoApiCallException,
@@ -24,25 +24,25 @@ class TestRemoteInvokeCliCommand(TestCase):
 
     @parameterized.expand(
         [
-            ("event", None, RemoteInvokeOutputFormat.DEFAULT, {}, "log-output"),
-            ("event", None, RemoteInvokeOutputFormat.DEFAULT, {}, None),
-            ("event", None, RemoteInvokeOutputFormat.DEFAULT, {"Param1": "ParamValue1"}, "log-output"),
-            ("event", None, RemoteInvokeOutputFormat.RAW, {}, None),
-            ("event", None, RemoteInvokeOutputFormat.RAW, {"Param1": "ParamValue1"}, "log-output"),
-            ("event", None, RemoteInvokeOutputFormat.RAW, {"Param1": "ParamValue1"}, None),
-            (None, "event_file", RemoteInvokeOutputFormat.DEFAULT, {"Param1": "ParamValue1"}, None),
-            (None, "event_file", RemoteInvokeOutputFormat.RAW, {"Param1": "ParamValue1"}, "log-output"),
+            ("event", None, RemoteInvokeOutputFormat.TEXT, {}, "log-output"),
+            ("event", None, RemoteInvokeOutputFormat.TEXT, {}, None),
+            ("event", None, RemoteInvokeOutputFormat.TEXT, {"Param1": "ParamValue1"}, "log-output"),
+            ("event", None, RemoteInvokeOutputFormat.JSON, {}, None),
+            ("event", None, RemoteInvokeOutputFormat.JSON, {"Param1": "ParamValue1"}, "log-output"),
+            ("event", None, RemoteInvokeOutputFormat.JSON, {"Param1": "ParamValue1"}, None),
+            (None, "event_file", RemoteInvokeOutputFormat.TEXT, {"Param1": "ParamValue1"}, None),
+            (None, "event_file", RemoteInvokeOutputFormat.JSON, {"Param1": "ParamValue1"}, "log-output"),
         ]
     )
     @patch("samcli.lib.remote_invoke.remote_invoke_executors.RemoteInvokeExecutionInfo")
     @patch("samcli.lib.utils.boto_utils.get_boto_client_provider_with_config")
     @patch("samcli.lib.utils.boto_utils.get_boto_resource_provider_with_config")
-    @patch("samcli.commands.cloud.remote_invoke_context.RemoteInvokeContext")
+    @patch("samcli.commands.remote.remote_invoke_context.RemoteInvokeContext")
     def test_remote_invoke_command(
         self,
         event,
         event_file,
-        output_format,
+        output,
         parameter,
         log_output,
         mock_remote_invoke_context,
@@ -78,7 +78,7 @@ class TestRemoteInvokeCliCommand(TestCase):
             event=event,
             event_file=event_file,
             parameter=parameter,
-            output_format=output_format,
+            output=output,
             region=self.region,
             profile=self.profile,
             config_file=self.config_file,
@@ -96,14 +96,10 @@ class TestRemoteInvokeCliCommand(TestCase):
         )
 
         patched_remote_invoke_execution_info.assert_called_with(
-            payload=event, payload_file=event_file, parameters=parameter, output_format=output_format
+            payload=event, payload_file=event_file, parameters=parameter, output_format=output
         )
 
         context_mock.run.assert_called_with(remote_invoke_input=given_remote_invoke_execution_info)
-
-        if log_output:
-            stderr_stream_writer_mock.write.assert_called()
-        stdout_stream_writer_mock.write.assert_called()
 
     @parameterized.expand(
         [
@@ -112,16 +108,11 @@ class TestRemoteInvokeCliCommand(TestCase):
             (InvalidResourceBotoParameterException,),
         ]
     )
-    @patch("samcli.commands.cloud.remote_invoke_context.RemoteInvokeContext")
+    @patch("samcli.commands.remote.remote_invoke_context.RemoteInvokeContext")
     def test_raise_user_exception_invoke_not_successfull(self, exeception_to_raise, mock_invoke_context):
-
         context_mock = Mock()
         mock_invoke_context.return_value.__enter__.return_value = context_mock
-
-        given_remote_invoke_result = Mock()
-        given_remote_invoke_result.is_succeeded.return_value = False
-        context_mock.run.return_value = given_remote_invoke_result
-        given_remote_invoke_result.exception = exeception_to_raise
+        context_mock.run.side_effect = exeception_to_raise
 
         with self.assertRaises(UserException):
             do_cli(
@@ -130,7 +121,7 @@ class TestRemoteInvokeCliCommand(TestCase):
                 event="event",
                 event_file=None,
                 parameter={},
-                output_format=RemoteInvokeOutputFormat.DEFAULT,
+                output=RemoteInvokeOutputFormat.TEXT,
                 region=self.region,
                 profile=self.profile,
                 config_file=self.config_file,

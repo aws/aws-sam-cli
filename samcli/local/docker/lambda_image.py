@@ -18,6 +18,7 @@ from samcli.commands.local.cli_common.user_exceptions import (
     ImageBuildException,
 )
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
+from samcli.lib.constants import DOCKER_MIN_API_VERSION
 from samcli.lib.utils.architecture import has_runtime_multi_arch_image
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.stream_writer import StreamWriter
@@ -45,7 +46,6 @@ class Runtime(Enum):
     java11 = "java11"
     java17 = "java17"
     go1x = "go1.x"
-    dotnetcore31 = "dotnetcore3.1"
     dotnet6 = "dotnet6"
     provided = "provided"
     providedal2 = "provided.al2"
@@ -85,7 +85,7 @@ class Runtime(Enum):
             # `provided.al2` becomes `provided:al2``
             runtime_image_tag = runtime.replace(".", ":")
         elif runtime.startswith("dotnet"):
-            # dotnetcore3.1 becomes dotnet:core3.1 and dotnet6 becomes dotnet:6
+            # dotnet6 becomes dotnet:6
             runtime_image_tag = runtime.replace("dotnet", "dotnet:")
         else:
             # This fits most runtimes format: `nameN.M` becomes `name:N.M` (python3.9 -> python:3.9)
@@ -123,7 +123,7 @@ class LambdaImage:
         self.layer_downloader = layer_downloader
         self.skip_pull_image = skip_pull_image
         self.force_image_build = force_image_build
-        self.docker_client = docker_client or docker.from_env()
+        self.docker_client = docker_client or docker.from_env(version=DOCKER_MIN_API_VERSION)
         self.invoke_images = invoke_images
 
     def build(self, runtime, packagetype, image, layers, architecture, stream=None, function_name=None):

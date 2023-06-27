@@ -10,18 +10,22 @@ from samcli.lib.cli_validation.remote_invoke_options_validations import (
 
 
 class TestEventFileValidation(TestCase):
+    @patch("samcli.lib.cli_validation.remote_invoke_options_validations.sys")
     @patch("samcli.lib.cli_validation.remote_invoke_options_validations.LOG")
     @patch("samcli.lib.cli_validation.remote_invoke_options_validations.click.get_current_context")
-    def test_both_not_provided_params(self, patched_click_context, patched_log):
+    def test_event_file_provided_as_stdin(self, patched_click_context, patched_log, patched_sys):
         mock_func = Mock()
         mocked_context = Mock()
         patched_click_context.return_value = mocked_context
+        mock_event_file = Mock()
+        mock_event_file.fileno.return_value = 0
+        patched_sys.stdin.fileno.return_value = 0
 
-        mocked_context.params.get.return_value = {}
+        mocked_context.params.get.side_effect = lambda key: mock_event_file if key == "event_file" else None
 
         event_and_event_file_options_validation(mock_func)()
-        patched_log.debug.assert_called_with(
-            "Neither --event nor --event-file options have been provided, reading from stdin"
+        patched_log.info.assert_called_with(
+            "Reading event from stdin (you can also pass it from file with --event-file)"
         )
 
         mock_func.assert_called_once()
@@ -39,14 +43,18 @@ class TestEventFileValidation(TestCase):
 
         mock_func.assert_called_once()
 
+    @patch("samcli.lib.cli_validation.remote_invoke_options_validations.sys")
     @patch("samcli.lib.cli_validation.remote_invoke_options_validations.click.get_current_context")
-    def test_only_event_file_param(self, patched_click_context):
+    def test_only_event_file_param(self, patched_click_context, patched_sys):
         mock_func = Mock()
 
         mocked_context = Mock()
         patched_click_context.return_value = mocked_context
+        mock_event_file = Mock()
+        mock_event_file.fileno.return_value = 4
+        patched_sys.stdin.fileno.return_value = 0
 
-        mocked_context.params.get.side_effect = lambda key: "event_file" if key == "event_file" else None
+        mocked_context.params.get.side_effect = lambda key: mock_event_file if key == "event_file" else None
 
         event_and_event_file_options_validation(mock_func)()
 
@@ -106,6 +114,8 @@ class TestRemoteInvokeAtleast1OptionProvidedValidation(TestCase):
         with self.assertRaises(BadOptionUsage) as ex:
             stack_name_or_resource_id_atleast_one_option_validation(mock_func)()
 
-        self.assertIn("Atleast 1 of --stack-name or --resource-id parameters should be provided.", ex.exception.message)
+        self.assertIn(
+            "At least 1 of --stack-name or --resource-id parameters should be provided.", ex.exception.message
+        )
 
         mock_func.assert_not_called()

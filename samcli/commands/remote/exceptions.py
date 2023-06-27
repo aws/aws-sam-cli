@@ -22,3 +22,7 @@ class UnsupportedServiceForRemoteInvoke(UserException):
 
 class NoExecutorFoundForRemoteInvoke(UserException):
     pass
+
+
+class InvalidStackNameProvidedForRemoteInvoke(UserException):
+    pass
