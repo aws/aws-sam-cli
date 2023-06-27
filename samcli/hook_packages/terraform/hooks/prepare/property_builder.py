@@ -252,15 +252,25 @@ def _get_json_body(tf_properties: dict, resource: TFResource) -> Any:
 
 def _get_cors_v2_api(tf_properties: dict, resource: TFResource) -> Any:
     cors = tf_properties.get("cors_configuration")
-    cors_configurations = {
-        "AllowCredentials": cors.get("allow_credentials"),
-        "AllowHeaders": cors.get("allow_headers"),
-        "AllowMethods": cors.get("allow_methods"),
-        "AllowOrigins": cors.get("allow_origins"),
-        "ExposeHeaders": cors.get("expose_headers"),
-        "MaxAge": cors.get("max_age"),
-    }
-    return cors_configurations or None
+    if not cors:
+        return None
+
+    extractable_configs = cors[0]
+    cors_configuration = {}
+
+    def _add_property(cfn_prop, tf_prop):
+        property_value = extractable_configs.get(tf_prop)
+        if property_value:
+            cors_configuration[cfn_prop] = property_value
+
+    _add_property("AllowCredentials", "allow_credentials")
+    _add_property("AllowHeaders", "allow_headers")
+    _add_property("AllowMethods", "allow_methods")
+    _add_property("AllowOrigins", "allow_origins")
+    _add_property("ExposeHeaders", "expose_headers")
+    _add_property("MaxAge", "max_age")
+
+    return cors_configuration
 
 
 AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
