@@ -11,7 +11,9 @@ from samcli.lib.utils.resources import (
     AWS_APIGATEWAY_RESTAPI,
     AWS_APIGATEWAY_STAGE,
     AWS_APIGATEWAY_METHOD,
-    AWS_APIGATEWAY_AUTHORIZER, AWS_APIGATEWAY_V2_API,
+    AWS_APIGATEWAY_AUTHORIZER,
+    AWS_APIGATEWAY_V2_API,
+    AWS_APIGATEWAY_V2_ROUTE,
 )
 from samcli.hook_packages.terraform.hooks.prepare.resources.internal import (
     INTERNAL_API_GATEWAY_INTEGRATION,
@@ -819,7 +821,7 @@ class PrepareHookUnitBase(TestCase):
             "name": "my_v2_api_quick_create",
             "protocol_type": "HTTP",
             "target": "arn:aws:apigateway:{region}:lambda:path/2015-03-31/functions/"
-                      "arn:aws:lambda:{region}:{account-id}:function:{function-name}/invocations",
+            "arn:aws:lambda:{region}:{account-id}:function:{function-name}/invocations",
             "route_key": "my_route",
         }
 
@@ -827,7 +829,7 @@ class PrepareHookUnitBase(TestCase):
             "Name": "my_v2_api_quick_create",
             "ProtocolType": "HTTP",
             "Target": "arn:aws:apigateway:{region}:lambda:path/2015-03-31/functions/"
-                      "arn:aws:lambda:{region}:{account-id}:function:{function-name}/invocations",
+            "arn:aws:lambda:{region}:{account-id}:function:{function-name}/invocations",
             "RouteKey": "my_route",
         }
 
@@ -842,6 +844,33 @@ class PrepareHookUnitBase(TestCase):
             "Type": AWS_APIGATEWAY_V2_API,
             "Properties": self.expected_cfn_apigwv2_api_quick_create_properties,
             "Metadata": {"SamResourceId": f"aws_apigatewayv2_api.{self.apigwv2_api_quick_create_name}"},
+        }
+
+        self.tf_apigwv2_route_properties: dict = {
+            "api_id": "aws_apigatewayv2_api.my_api.id",
+            "target": "aws_apigatewayv2_integration.example.id",
+            "route_key": "$default",
+            "operation_name": "my_operation",
+        }
+
+        self.expected_cfn_apigwv2_route_properties: dict = {
+            "ApiId": "aws_apigatewayv2_api.my_api.id",
+            "Target": "aws_apigatewayv2_integration.example.id",
+            "RouteKey": "$default",
+            "OperationName": "my_operation",
+        }
+
+        self.tf_apigwv2_route_resource: dict = {
+            **self.tf_apigwv2_route_common_attributes,
+            "values": self.tf_apigwv2_route_properties,
+            "address": f"aws_apigatewayv2_route.{self.apigwv2_route_name}",
+            "name": self.apigwv2_route_name,
+        }
+
+        self.expected_cfn_apigwv2_route: dict = {
+            "Type": AWS_APIGATEWAY_V2_ROUTE,
+            "Properties": self.expected_cfn_apigwv2_route_properties,
+            "Metadata": {"SamResourceId": f"aws_apigatewayv2_route.{self.apigwv2_route_name}"},
         }
 
         self.tf_json_with_root_module_only: dict = {
@@ -861,6 +890,7 @@ class PrepareHookUnitBase(TestCase):
                         self.tf_apigw_integration_response_resource,
                         self.tf_apigwv2_api_resource,
                         self.tf_apigwv2_api_quick_create_resource,
+                        self.tf_apigwv2_route_resource,
                     ]
                 }
             }
@@ -879,6 +909,7 @@ class PrepareHookUnitBase(TestCase):
                 f"AwsApiGatewayAuthorizerMyAuthorizer{self.mock_logical_id_hash}": self.expected_cfn_apigw_authorizer,
                 f"AwsApigatewayv2ApiMyApigwv2Api{self.mock_logical_id_hash}": self.expected_cfn_apigwv2_api,
                 f"AwsApigatewayv2ApiMyApigwv2ApiQuickCreate{self.mock_logical_id_hash}": self.expected_cfn_apigwv2_api_quick_create,
+                f"AwsApigatewayv2RouteMyApigwv2Route{self.mock_logical_id_hash}": self.expected_cfn_apigwv2_route,
             },
         }
 
