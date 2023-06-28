@@ -1,7 +1,6 @@
 """CLI command for "invoke" command."""
 import logging
 from io import TextIOWrapper
-from typing import cast
 
 import click
 
@@ -9,7 +8,9 @@ from samcli.cli.cli_config_file import TomlProvider, configuration_option
 from samcli.cli.context import Context
 from samcli.cli.main import aws_creds_options, common_options, pass_context, print_cmdline_args
 from samcli.cli.types import RemoteInvokeOutputFormatType
+from samcli.commands._utils.command_exception_handler import command_exception_handler
 from samcli.commands._utils.options import remote_invoke_parameter_option
+from samcli.commands.remote.invoke.core.command import RemoteInvokeCommand
 from samcli.lib.cli_validation.remote_invoke_options_validations import (
     event_and_event_file_options_validation,
     stack_name_or_resource_id_atleast_one_option_validation,
@@ -21,30 +22,45 @@ from samcli.lib.utils.version_checker import check_newer_version
 LOG = logging.getLogger(__name__)
 
 HELP_TEXT = """
-Invoke or send an event to cloud resources in your CFN stack
+Invoke or send an event to resources in the cloud.
 """
 SHORT_HELP = "Invoke a deployed resource in the cloud"
 
+DESCRIPTION = """
+  Invoke or send an event to resources in the cloud.
+  An event body can be passed using either -e (--event) or --event-file parameter.
+  Returned response will be written to stdout. Lambda logs will be written to stderr.
+"""
 
-@click.command("invoke", help=HELP_TEXT, short_help=SHORT_HELP)
+
+@click.command(
+    "invoke",
+    cls=RemoteInvokeCommand,
+    help=HELP_TEXT,
+    description=DESCRIPTION,
+    short_help=SHORT_HELP,
+    requires_credentials=True,
+    context_settings={"max_content_width": 120},
+)
 @configuration_option(provider=TomlProvider(section="parameters"))
 @click.option("--stack-name", required=False, help="Name of the stack to get the resource information from")
-@click.option("--resource-id", required=False, help="Name of the resource that will be invoked")
+@click.argument("resource-id", required=False)
 @click.option(
     "--event",
     "-e",
     help="The event that will be sent to the resource. The target parameter will depend on the resource type. "
-    "For instance: 'Payload' for Lambda",
+    "For instance: 'Payload' for Lambda which can be passed as a JSON string",
 )
 @click.option(
     "--event-file",
     type=click.File("r", encoding="utf-8"),
-    help="The file that contains the event that will be sent to the resource",
+    help="The file that contains the event that will be sent to the resource.",
 )
 @click.option(
-    "--output-format",
-    help="Output format for the boto API response",
-    default=RemoteInvokeOutputFormat.DEFAULT.name.lower(),
+    "--output",
+    help="Output the results from the command in a given output format. "
+    "The text format prints a readable AWS API response. The json format prints the full AWS API response.",
+    default=RemoteInvokeOutputFormat.TEXT.name.lower(),
     type=RemoteInvokeOutputFormatType(RemoteInvokeOutputFormat),
 )
 @remote_invoke_parameter_option
@@ -56,13 +72,14 @@ SHORT_HELP = "Invoke a deployed resource in the cloud"
 @track_command
 @check_newer_version
 @print_cmdline_args
+@command_exception_handler
 def cli(
     ctx: Context,
     stack_name: str,
     resource_id: str,
     event: str,
     event_file: TextIOWrapper,
-    output_format: RemoteInvokeOutputFormat,
+    output: RemoteInvokeOutputFormat,
     parameter: dict,
     config_file: str,
     config_env: str,
@@ -76,7 +93,7 @@ def cli(
         resource_id,
         event,
         event_file,
-        output_format,
+        output,
         parameter,
         ctx.region,
         ctx.profile,
@@ -90,7 +107,7 @@ def do_cli(
     resource_id: str,
     event: str,
     event_file: TextIOWrapper,
-    output_format: RemoteInvokeOutputFormat,
+    output: RemoteInvokeOutputFormat,
     parameter: dict,
     region: str,
     profile: str,
@@ -121,19 +138,9 @@ def do_cli(
         ) as remote_invoke_context:
 
             remote_invoke_input = RemoteInvokeExecutionInfo(
-                payload=event, payload_file=event_file, parameters=parameter, output_format=output_format
+                payload=event, payload_file=event_file, parameters=parameter, output_format=output
             )
 
-            remote_invoke_result = remote_invoke_context.run(remote_invoke_input=remote_invoke_input)
-
-            if remote_invoke_result.is_succeeded():
-                LOG.debug("Invoking resource was successfull, writing response to stdout")
-                if remote_invoke_result.log_output:
-                    LOG.debug("Writing log output to stderr")
-                    remote_invoke_context.stderr.write(remote_invoke_result.log_output.encode())
-                output_response = cast(str, remote_invoke_result.response)
-                remote_invoke_context.stdout.write(output_response.encode())
-            else:
-                raise cast(Exception, remote_invoke_result.exception)
+            remote_invoke_context.run(remote_invoke_input=remote_invoke_input)
     except (ErrorBotoApiCallException, InvalideBotoResponseException, InvalidResourceBotoParameterException) as ex:
         raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex

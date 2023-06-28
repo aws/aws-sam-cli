@@ -30,7 +30,7 @@ _SAM_CLI_COMMAND_PACKAGES = [
     "samcli.commands.pipeline.pipeline",
     "samcli.commands.list.list",
     "samcli.commands.docs",
-    # "samcli.commands.remote.remote",
+    "samcli.commands.remote.remote",
     # We intentionally do not expose the `bootstrap` command for now. We might open it up later
     # "samcli.commands.bootstrap",
 ]
@@ -171,6 +171,11 @@ class BaseCommand(click.MultiCommand):
                         RowDefinition(
                             name="sync",
                             text=SAM_CLI_COMMANDS.get("sync", ""),
+                            extra_row_modifiers=[HighlightNewRowNameModifier()],
+                        ),
+                        RowDefinition(
+                            name="remote",
+                            text=SAM_CLI_COMMANDS.get("remote", ""),
                             extra_row_modifiers=[HighlightNewRowNameModifier()],
                         ),
                     ],

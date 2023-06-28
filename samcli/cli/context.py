@@ -7,6 +7,7 @@ import uuid
 from typing import List, Optional, cast
 
 import click
+from rich.console import Console
 
 from samcli.cli.formatters import RootCommandHelpTextFormatter
 from samcli.commands.exceptions import AWSServiceClientError
@@ -44,6 +45,11 @@ class Context:
         self._session_id = str(uuid.uuid4())
         self._experimental = False
         self._exception = None
+        self._console = Console()
+
+    @property
+    def console(self):
+        return self._console
 
     @property
     def exception(self):
