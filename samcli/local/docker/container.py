@@ -1,6 +1,7 @@
 """
 Representation of a generic Docker container
 """
+import io
 import json
 import logging
 import os
@@ -10,7 +11,7 @@ import socket
 import tempfile
 import threading
 import time
-from typing import Optional
+from typing import Iterator, Optional, Tuple, Union
 
 import docker
 import requests
@@ -18,6 +19,7 @@ from docker.errors import NotFound as DockerNetworkNotFound
 
 from samcli.lib.constants import DOCKER_MIN_API_VERSION
 from samcli.lib.utils.retry import retry
+from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.lib.utils.tar import extract_tarfile
 from samcli.local.docker.effective_user import ROOT_USER_ID, EffectiveUser
 
@@ -315,7 +317,7 @@ class Container:
         real_container.start()
 
     @retry(exc=requests.exceptions.RequestException, exc_raise=ContainerResponseException)
-    def wait_for_http_response(self, name, event, stdout):
+    def wait_for_http_response(self, name, event, stdout) -> str:
         # TODO(sriram-mv): `aws-lambda-rie` is in a mode where the function_name is always "function"
         # NOTE(sriram-mv): There is a connection timeout set on the http call to `aws-lambda-rie`, however there is not
         # a read time out for the response received from the server.
@@ -325,8 +327,7 @@ class Container:
             data=event.encode("utf-8"),
             timeout=(self.RAPID_CONNECTION_TIMEOUT, None),
         )
-        stdout.write(json.dumps(json.loads(resp.content), ensure_ascii=False), write_to_buffer=False)
-        stdout.flush()
+        return json.dumps(json.loads(resp.content), ensure_ascii=False)
 
     def wait_for_result(self, full_path, event, stdout, stderr, start_timer=None):
         # NOTE(sriram-mv): Let logging happen in its own thread, so that a http request can be sent.
@@ -346,11 +347,21 @@ class Container:
         # start the timer for function timeout right before executing the function, as waiting for the socket
         # can take some time
         timer = start_timer() if start_timer else None
-        self.wait_for_http_response(full_path, event, stdout)
+        response = self.wait_for_http_response(full_path, event, stdout)
         if timer:
             timer.cancel()
 
-    def wait_for_logs(self, stdout=None, stderr=None):
+        # NOTE(jfuss): Adding a sleep after we get a response from the contianer but before we
+        # we write the response to ensure the last thing written to stdout is the container response
+        time.sleep(1)
+        stdout.write_str(response)
+        stdout.flush()
+
+    def wait_for_logs(
+        self,
+        stdout: Optional[Union[StreamWriter, io.BytesIO, io.TextIOWrapper]] = None,
+        stderr: Optional[Union[StreamWriter, io.BytesIO, io.TextIOWrapper]] = None,
+    ):
         # Return instantly if we don't have to fetch any logs
         if not stdout and not stderr:
             return
@@ -362,7 +373,6 @@ class Container:
 
         # Fetch both stdout and stderr streams from Docker as a single iterator.
         logs_itr = real_container.attach(stream=True, logs=True, demux=True)
-
         self._write_container_output(logs_itr, stdout=stdout, stderr=stderr)
 
     def _wait_for_socket_connection(self) -> None:
@@ -413,7 +423,11 @@ class Container:
             extract_tarfile(file_obj=fp, unpack_dir=to_host_path)
 
     @staticmethod
-    def _write_container_output(output_itr, stdout=None, stderr=None):
+    def _write_container_output(
+        output_itr: Iterator[Tuple[bytes, bytes]],
+        stdout: Optional[Union[StreamWriter, io.BytesIO, io.TextIOWrapper]] = None,
+        stderr: Optional[Union[StreamWriter, io.BytesIO, io.TextIOWrapper]] = None,
+    ):
         """
         Based on the data returned from the Container output, via the iterator, write it to the appropriate streams
 
@@ -432,10 +446,26 @@ class Container:
             # Iterator returns a tuple of (stdout, stderr)
             for stdout_data, stderr_data in output_itr:
                 if stdout_data and stdout:
-                    stdout.write(stdout_data)
+                    if isinstance(stdout, StreamWriter):
+                        stdout.write_bytes(stdout_data)
+                        stdout.flush()
+
+                    if isinstance(stdout, io.BytesIO):
+                        stdout.write(stdout_data)
+
+                    if isinstance(stdout, io.TextIOWrapper):
+                        stdout.buffer.write(stdout_data)
 
                 if stderr_data and stderr:
-                    stderr.write(stderr_data)
+                    if isinstance(stderr, StreamWriter):
+                        stderr.write_bytes(stderr_data)
+                        stderr.flush()
+
+                    if isinstance(stderr, io.BytesIO):
+                        stderr.write(stderr_data)
+
+                    if isinstance(stderr, io.TextIOWrapper):
+                        stderr.buffer.write(stderr_data)
 
         except Exception as ex:
             LOG.debug("Failed to get the logs from the container", exc_info=ex)

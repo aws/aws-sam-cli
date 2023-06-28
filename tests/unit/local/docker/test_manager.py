@@ -220,25 +220,25 @@ class TestContainerManager_pull_image(TestCase):
         pull_result = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]
         self.mock_docker_client.api.pull.return_value = pull_result
         expected_stream_calls = [
-            call(f"\nFetching {self.image_name}:latest Docker container image...", write_to_buffer=False),
-            call(".", write_to_buffer=False),
-            call(".", write_to_buffer=False),
-            call(".", write_to_buffer=False),
-            call(".", write_to_buffer=False),
-            call(".", write_to_buffer=False),
-            call(".", write_to_buffer=False),
-            call(".", write_to_buffer=False),
-            call(".", write_to_buffer=False),
-            call(".", write_to_buffer=False),
-            call(".", write_to_buffer=False),
-            call("\n", write_to_buffer=False),
+            call(f"\nFetching {self.image_name}:latest Docker container image..."),
+            call("."),
+            call("."),
+            call("."),
+            call("."),
+            call("."),
+            call("."),
+            call("."),
+            call("."),
+            call("."),
+            call("."),
+            call("\n"),
         ]
 
         self.manager.pull_image(self.image_name, stream=stream)
 
         self.mock_docker_client.api.pull.assert_called_with(self.image_name, stream=True, decode=True, tag="latest")
 
-        stream.write.assert_has_calls(expected_stream_calls)
+        stream.write_str.assert_has_calls(expected_stream_calls)
 
     def test_must_raise_if_image_not_found(self):
         msg = "some error"
