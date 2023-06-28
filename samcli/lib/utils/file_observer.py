@@ -25,6 +25,7 @@ from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.local.lambdafn.config import FunctionConfig
 
 LOG = logging.getLogger(__name__)
+# Windows API error returned when attempting to perform I/O on closed pipe
 BROKEN_PIPE_ERROR = 109
 
 
@@ -254,6 +255,10 @@ def broken_pipe_handler(func: Callable) -> Callable:
     func: Callable
         The method to wrap around
     """
+
+    # NOTE: As of right now, this checks for the Windows API error 109
+    # specifically. This could be abstracted to potentially utilize a
+    # callback method to further customize this.
 
     def wrapper(*args, **kwargs):
         try:
