@@ -14,11 +14,16 @@ class TestTomlFileManager(TestCase):
     def test_read_toml(self):
         config_dir = tempfile.gettempdir()
         config_path = Path(config_dir, "samconfig.toml")
-        config_path.write_text("version=0.1\n[config_env.topic1.parameters]\nword='clarity'\n")
+        config_path.write_text(
+            "version=0.1\n[config_env.topic1.parameters]\nword='clarity'\nmultiword=['thing 1', 'thing 2']"
+        )
         config_doc = TomlFileManager.read(config_path)
         self.assertEqual(
             config_doc,
-            {"version": 0.1, "config_env": {"topic1": {"parameters": {"word": "clarity"}}}},
+            {
+                "version": 0.1,
+                "config_env": {"topic1": {"parameters": {"word": "clarity", "multiword": ["thing 1", "thing 2"]}}},
+            },
         )
 
     def test_read_toml_invalid_toml(self):
@@ -111,13 +116,18 @@ class TestYamlFileManager(TestCase):
     def test_read_yaml(self):
         config_dir = tempfile.gettempdir()
         config_path = Path(config_dir, "samconfig.yaml")
-        config_path.write_text("version: 0.1\nconfig_env:\n  topic1:\n    parameters:\n      word: clarity\n")
+        config_path.write_text(
+            "version: 0.1\nconfig_env:\n  topic1:\n    parameters:\n      word: clarity\n      multiword: [thing 1, thing 2]"
+        )
 
         config_doc = YamlFileManager.read(config_path)
 
         self.assertEqual(
             config_doc,
-            {"version": 0.1, "config_env": {"topic1": {"parameters": {"word": "clarity"}}}},
+            {
+                "version": 0.1,
+                "config_env": {"topic1": {"parameters": {"word": "clarity", "multiword": ["thing 1", "thing 2"]}}},
+            },
         )
 
     def test_read_yaml_invalid_yaml(self):
@@ -189,7 +199,10 @@ class TestJsonFileManager(TestCase):
         config_path = Path(config_dir, "samconfig.json")
         config_path.write_text(
             json.dumps(
-                {"version": 0.1, "config_env": {"topic1": {"parameters": {"word": "clarity"}}}},
+                {
+                    "version": 0.1,
+                    "config_env": {"topic1": {"parameters": {"word": "clarity", "multiword": ["thing 1", "thing 2"]}}},
+                },
                 indent=JsonFileManager.INDENT_SIZE,
             )
         )
@@ -198,7 +211,10 @@ class TestJsonFileManager(TestCase):
 
         self.assertEqual(
             config_doc,
-            {"version": 0.1, "config_env": {"topic1": {"parameters": {"word": "clarity"}}}},
+            {
+                "version": 0.1,
+                "config_env": {"topic1": {"parameters": {"word": "clarity", "multiword": ["thing 1", "thing 2"]}}},
+            },
         )
 
     def test_read_json_invalid_json(self):
