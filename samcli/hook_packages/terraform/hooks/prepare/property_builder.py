@@ -250,7 +250,37 @@ def _get_json_body(tf_properties: dict, resource: TFResource) -> Any:
     return body
 
 
-def _get_cors_v2_api(tf_properties: dict, resource: TFResource) -> Any:
+def _get_cors_v2_api(tf_properties: dict, resource: TFResource) -> Optional[Dict[str, Any]]:
+    """
+    Extract the cors properties from an aws_apigatewayv2_api since they are in a nested property
+    called "cors_configuration" and not in the root of the resource
+
+    e.g.
+    resource "aws_apigatewayv2_api" "my_api" {
+      name           = "my_api"
+      protocol_type  = "HTTP"
+
+      cors_configuration {
+        allow_credentials = true
+        allow_headers     = ["Content-Type"]
+        allow_methods     = ["OPTIONS", "POST", "GET"]
+        allow_origins     = ["my-origin.com"]
+        max_age           = "500"
+      }
+    }
+
+    Parameters
+    ----------
+    tf_properties: dict
+        Properties of the terraform AWS Lambda function resource
+    resource: TFResource
+        Configuration terraform resource
+
+    Returns
+    -------
+    Optional[Dict[str, Any]]
+        Optional dictionary containing the extracted cors properties with CFN property names
+    """
     cors = tf_properties.get("cors_configuration")
     if not cors:
         return None
