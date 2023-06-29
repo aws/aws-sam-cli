@@ -38,6 +38,7 @@ from samcli.lib.deploy.utils import DeployColor, FailureMode
 from samcli.lib.package.local_files_utils import get_uploaded_s3_object_name, mktempfile
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.utils.colors import Colored, Colors
+from samcli.lib.utils.s3 import parse_s3_url
 from samcli.lib.utils.time import utc_to_timestamp
 
 LOG = logging.getLogger(__name__)
@@ -203,9 +204,7 @@ class Deployer:
                 temporary_file.flush()
                 remote_path = get_uploaded_s3_object_name(file_path=temporary_file.name, extension="template")
                 # TemplateUrl property requires S3 URL to be in path-style format
-                parts = S3Uploader.parse_s3_url(
-                    s3_uploader.upload(temporary_file.name, remote_path), version_property="Version"
-                )
+                parts = parse_s3_url(s3_uploader.upload(temporary_file.name, remote_path), version_property="Version")
                 kwargs["TemplateURL"] = s3_uploader.to_path_style_s3_url(parts["Key"], parts.get("Version", None))
 
         # don't set these arguments if not specified to use existing values

@@ -51,6 +51,7 @@ from samcli.lib.utils.resources import (
     RESOURCES_WITH_IMAGE_COMPONENT,
     RESOURCES_WITH_LOCAL_PATHS,
 )
+from samcli.lib.utils.s3 import parse_s3_url
 
 LOG = logging.getLogger(__name__)
 
@@ -196,7 +197,7 @@ class ResourceZip(Resource):
         # artifact, as deletion of intrinsic ref function artifacts is not supported yet.
         # TODO: Allow deletion of S3 artifacts with intrinsic ref functions.
         if resource_path and isinstance(resource_path, str):
-            return self.uploader.parse_s3_url(resource_path)
+            return parse_s3_url(resource_path)
         return {"Bucket": None, "Key": None}
 
 
@@ -340,7 +341,7 @@ class ResourceWithS3UrlDict(ResourceZip):
             self.RESOURCE_TYPE, resource_id, resource_dict, self.PROPERTY_NAME, parent_dir, self.uploader
         )
 
-        parsed_url = S3Uploader.parse_s3_url(
+        parsed_url = parse_s3_url(
             artifact_s3_url,
             bucket_name_property=self.BUCKET_NAME_PROPERTY,
             object_key_property=self.OBJECT_KEY_PROPERTY,
