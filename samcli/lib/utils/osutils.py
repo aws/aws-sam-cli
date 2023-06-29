@@ -89,9 +89,8 @@ def stdout() -> io.TextIOWrapper:
         Byte stream of Stdout
     """
     # Note(jfuss): sys.stdout is a type typing.TextIO but are initialized to
-    # io.TextIOWrapper. To make mypy and typing play well, we cast to io.TextIOWrapper
+    # io.TextIOWrapper. To make mypy and typing play well, tell mypy to ignore.
     return sys.stdout  # type:ignore[return-value]
-    # return cast(sys.stdout, io.TextIOWrapper)
 
 
 def stderr() -> io.TextIOWrapper:
@@ -104,9 +103,8 @@ def stderr() -> io.TextIOWrapper:
         Byte stream of stderr
     """
     # Note(jfuss): sys.stderr is a type typing.TextIO but are initialized to
-    # io.TextIOWrapper. To make mypy and typing play well, we cast to io.TextIOWrapper
+    # io.TextIOWrapper. To make mypy and typing play well, tell mypy to ignore.
     return sys.stderr  # type:ignore[return-value]
-    # return cast(sys.stderr, io.TextIOWrapper)
 
 
 def remove(path):
