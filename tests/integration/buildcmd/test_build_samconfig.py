@@ -9,6 +9,7 @@ from tests.testing_utils import run_command
 configs = {
     ".toml": "samconfig/samconfig.toml",
     ".yaml": "samconfig/samconfig.yaml",
+    ".yml": "samconfig/samconfig.yml",
     ".json": "samconfig/samconfig.json",
 }
 
@@ -18,7 +19,7 @@ class TestSamConfigWithBuild(BuildIntegBase):
         [
             (".toml"),
             (".yaml"),
-            (".json"),
+            # (".json"),
         ]
     )
     def test_samconfig_works_with_extension(self, extension):
@@ -40,7 +41,7 @@ class TestSamConfigWithBuild(BuildIntegBase):
         [
             (".toml"),
             (".yaml"),
-            (".json"),
+            # (".json"),
         ]
     )
     def test_samconfig_parameters_are_overridden(self, extension):
@@ -72,8 +73,8 @@ class TestSamConfigWithBuild(BuildIntegBase):
 
 @parameterized_class(
     [  # Ordered by expected priority
-        {"extensions": [".toml", ".yaml", ".json"]},
-        {"extensions": [".yaml", ".json"]},
+        {"extensions": [".toml", ".yaml", ".yml"]},
+        {"extensions": [".yaml", ".yml"]},
     ]
 )
 class TestSamConfigExtensionHierarchy(BuildIntegBase):

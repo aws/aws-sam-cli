@@ -338,5 +338,5 @@ FILE_MANAGER_MAPPER: Dict[str, Type[FileManager]] = {  # keys ordered by priorit
     ".toml": TomlFileManager,
     ".yaml": YamlFileManager,
     ".yml": YamlFileManager,
-    ".json": JsonFileManager,
+    # ".json": JsonFileManager,  # JSON support disabled
 }
