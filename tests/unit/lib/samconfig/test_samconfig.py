@@ -295,7 +295,7 @@ class TestSamConfigFileManager(TestCase):
             ("samconfig.toml", TomlFileManager, ".toml"),
             ("samconfig.yaml", YamlFileManager, ".yaml"),
             ("samconfig.yml", YamlFileManager, ".yml"),
-            ("samconfig.json", JsonFileManager, ".json"),
+            # ("samconfig.json", JsonFileManager, ".json"),
         ]
     )
     @patch("samcli.lib.telemetry.event.EventTracker.track_event")

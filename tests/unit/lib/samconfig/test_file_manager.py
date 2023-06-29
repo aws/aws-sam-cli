@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 import tempfile
-from unittest import TestCase
+from unittest import TestCase, skip
 
 import tomlkit
 from ruamel.yaml import YAML
@@ -182,6 +182,7 @@ class TestYamlFileManager(TestCase):
         self.assertIn("# This is a comment", txt)
 
 
+@skip("JSON config support disabled")
 class TestJsonFileManager(TestCase):
     def test_read_json(self):
         config_dir = tempfile.gettempdir()
