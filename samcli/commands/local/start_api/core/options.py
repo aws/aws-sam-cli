@@ -17,6 +17,8 @@ TEMPLATE_OPTIONS: List[str] = [
     "parameter_overrides",
 ]
 
+EXTENSION_OPTIONS: List[str] = ["hook_name", "skip_prepare_infra"]
+
 CONTAINER_OPTION_NAMES: List[str] = [
     "host",
     "port",
@@ -53,6 +55,7 @@ ALL_OPTIONS: List[str] = (
     + ARTIFACT_LOCATION_OPTIONS
     + CONFIGURATION_OPTION_NAMES
     + ALL_COMMON_OPTIONS
+    + EXTENSION_OPTIONS
 )
 
 OPTIONS_INFO: Dict[str, Dict] = {
@@ -65,6 +68,7 @@ OPTIONS_INFO: Dict[str, Dict] = {
     "Artifact Location Options": {
         "option_names": {opt: {"rank": idx} for idx, opt in enumerate(ARTIFACT_LOCATION_OPTIONS)}
     },
+    "Extension Options": {"option_names": {opt: {"rank": idx} for idx, opt in enumerate(EXTENSION_OPTIONS)}},
     "Configuration Options": {
         "option_names": {opt: {"rank": idx} for idx, opt in enumerate(CONFIGURATION_OPTION_NAMES)},
         "extras": [

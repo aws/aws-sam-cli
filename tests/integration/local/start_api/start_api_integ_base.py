@@ -33,6 +33,9 @@ class StartApiIntegBaseClass(TestCase):
 
     do_collect_cmd_init_output: bool = False
 
+    command_list = None
+    project_directory = None
+
     @classmethod
     def setUpClass(cls):
         # This is the directory for tests/integration which will be used to file the testdata
@@ -84,7 +87,8 @@ class StartApiIntegBaseClass(TestCase):
     def start_api(cls):
         command = get_sam_command()
 
-        command_list = [command, "local", "start-api", "-t", cls.template, "-p", cls.port]
+        command_list = cls.command_list or [command, "local", "start-api", "-t", cls.template]
+        command_list.extend(["-p", cls.port])
 
         if cls.container_mode:
             command_list += ["--warm-containers", cls.container_mode]
@@ -99,7 +103,11 @@ class StartApiIntegBaseClass(TestCase):
             for image in cls.invoke_image:
                 command_list += ["--invoke-image", image]
 
-        cls.start_api_process = Popen(command_list, stderr=PIPE, stdout=PIPE)
+        cls.start_api_process = (
+            Popen(command_list, stderr=PIPE, stdout=PIPE)
+            if not cls.project_directory
+            else Popen(command_list, stderr=PIPE, stdout=PIPE, cwd=cls.project_directory)
+        )
         cls.start_api_process_output = wait_for_local_process(
             cls.start_api_process, cls.port, collect_output=cls.do_collect_cmd_init_output
         )
