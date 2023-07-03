@@ -1,6 +1,6 @@
 from samcli.cli.formatters import RootCommandHelpTextFormatter
 from samcli.cli.row_modifiers import BaseLineRowModifier
-from samcli.commands.deploy.core.options import ALL_OPTIONS
+from samcli.commands.package.core.options import ALL_OPTIONS
 
 
 class PackageCommandHelpTextFormatter(RootCommandHelpTextFormatter):
