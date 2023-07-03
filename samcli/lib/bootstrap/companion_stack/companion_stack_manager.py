@@ -17,6 +17,7 @@ from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.packagetype import IMAGE
+from samcli.lib.utils.s3 import parse_s3_url
 
 # pylint: disable=E0401
 if typing.TYPE_CHECKING:  # pragma: no cover
@@ -112,7 +113,7 @@ class CompanionStackManager:
                 self._s3_client, bucket_name=self._s3_bucket, prefix=self._s3_prefix, no_progressbar=True
             )
             # TemplateUrl property requires S3 URL to be in path-style format
-            parts = S3Uploader.parse_s3_url(
+            parts = parse_s3_url(
                 s3_uploader.upload_with_dedup(temporary_file.name, "template"), version_property="Version"
             )
 
