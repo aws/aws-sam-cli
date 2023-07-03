@@ -20,8 +20,7 @@ import os
 import sys
 import threading
 from collections import abc
-from typing import Any, Dict, Optional, cast
-from urllib.parse import parse_qs, urlparse
+from typing import Any, Optional, cast
 
 import botocore
 import botocore.exceptions
@@ -30,6 +29,7 @@ from boto3.s3.transfer import ProgressCallbackInvoker
 
 from samcli.commands.package.exceptions import BucketNotSpecifiedError, NoSuchBucketError
 from samcli.lib.package.local_files_utils import get_uploaded_s3_object_name
+from samcli.lib.utils.s3 import parse_s3_url
 
 LOG = logging.getLogger(__name__)
 
@@ -234,84 +234,13 @@ class S3Uploader:
         """
         Returns version information of the S3 object that is given as S3 URL
         """
-        parsed_s3_url = self.parse_s3_url(s3_url)
+        parsed_s3_url = parse_s3_url(s3_url)
         s3_bucket = parsed_s3_url["Bucket"]
         s3_key = parsed_s3_url["Key"]
         s3_object_tagging = self.s3.get_object_tagging(Bucket=s3_bucket, Key=s3_key)
         LOG.debug("S3 Object (%s) tagging information %s", s3_url, s3_object_tagging)
         s3_object_version_id = s3_object_tagging["VersionId"]
         return cast(str, s3_object_version_id)
-
-    @staticmethod
-    def parse_s3_url(
-        url: Any,
-        bucket_name_property: str = "Bucket",
-        object_key_property: str = "Key",
-        version_property: Optional[str] = None,
-    ) -> Dict:
-        if isinstance(url, str) and url.startswith("s3://"):
-            return S3Uploader._parse_s3_format_url(
-                url=url,
-                bucket_name_property=bucket_name_property,
-                object_key_property=object_key_property,
-                version_property=version_property,
-            )
-
-        if isinstance(url, str) and url.startswith("https://s3"):
-            return S3Uploader._parse_path_style_s3_url(
-                url=url, bucket_name_property=bucket_name_property, object_key_property=object_key_property
-            )
-
-        raise ValueError("URL given to the parse method is not a valid S3 url {0}".format(url))
-
-    @staticmethod
-    def _parse_s3_format_url(
-        url: Any,
-        bucket_name_property: str = "Bucket",
-        object_key_property: str = "Key",
-        version_property: Optional[str] = None,
-    ) -> Dict:
-        """
-        Method for parsing s3 urls that begin with s3://
-        e.g. s3://bucket/key
-        """
-        parsed = urlparse(url)
-        query = parse_qs(parsed.query)
-        if parsed.netloc and parsed.path:
-            result = dict()
-            result[bucket_name_property] = parsed.netloc
-            result[object_key_property] = parsed.path.lstrip("/")
-
-            # If there is a query string that has a single versionId field,
-            # set the object version and return
-            if version_property is not None and "versionId" in query and len(query["versionId"]) == 1:
-                result[version_property] = query["versionId"][0]
-
-            return result
-
-        raise ValueError("URL given to the parse method is not a valid S3 url {0}".format(url))
-
-    @staticmethod
-    def _parse_path_style_s3_url(
-        url: Any,
-        bucket_name_property: str = "Bucket",
-        object_key_property: str = "Key",
-    ) -> Dict:
-        """
-        Static method for parsing path style s3 urls.
-        e.g. https://s3.us-east-1.amazonaws.com/bucket/key
-        """
-        parsed = urlparse(url)
-        result = dict()
-        # parsed.path would point to /bucket/key
-        if parsed.path:
-            s3_bucket_key = parsed.path.split("/", 2)[1:]
-
-            result[bucket_name_property] = s3_bucket_key[0]
-            result[object_key_property] = s3_bucket_key[1]
-
-            return result
-        raise ValueError("URL given to the parse method is not a valid S3 url {0}".format(url))
 
 
 class ProgressPercentage:
