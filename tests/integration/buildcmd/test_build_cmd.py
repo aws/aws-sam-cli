@@ -65,7 +65,7 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
     @parameterized.expand([("3.7", False), ("3.8", False), ("3.9", False)])
     @pytest.mark.flaky(reruns=3)
     def test_with_default_requirements(self, runtime, use_container):
-        _tag = uuid.uuid4().hex 
+        _tag = uuid.uuid4().hex
         overrides = {
             "Runtime": runtime,
             "Handler": "main.handler",
@@ -94,7 +94,7 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
     @parameterized.expand([("3.7", False), ("3.8", False), ("3.9", False)])
     @pytest.mark.flaky(reruns=3)
     def test_with_dockerfile_extension(self, runtime, use_container):
-        _tag = uuid.uuid4().hex 
+        _tag = uuid.uuid4().hex
         overrides = {
             "Runtime": runtime,
             "Handler": "main.handler",
@@ -122,7 +122,7 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_intermediate_container_deleted(self):
-        _tag = uuid.uuid4().hex 
+        _tag = uuid.uuid4().hex
         overrides = {
             "Runtime": "3.9",
             "Handler": "main.handler",
@@ -176,7 +176,7 @@ class TestBuildCommand_PythonFunctions_ImagesWithSharedCode(BuildIntegBase):
     )
     @pytest.mark.flaky(reruns=3)
     def test_with_default_requirements(self, runtime, dockerfile, expected):
-        _tag = uuid.uuid4().hex 
+        _tag = uuid.uuid4().hex
         overrides = {
             "Runtime": runtime,
             "Handler": "main.handler",
@@ -209,7 +209,7 @@ class TestBuildCommand_PythonFunctions_ImagesWithSharedCode(BuildIntegBase):
     )
     @pytest.mark.flaky(reruns=3)
     def test_intermediate_container_deleted(self, dockerfile, expected):
-        _tag = uuid.uuid4().hex 
+        _tag = uuid.uuid4().hex
         overrides = {
             "Runtime": "3.9",
             "Handler": "main.handler",
@@ -262,7 +262,7 @@ class TestSkipBuildingFunctionsWithLocalImageUri(BuildIntegBase):
     @parameterized.expand(["3.7", "3.8", "3.9"])
     @pytest.mark.flaky(reruns=3)
     def test_with_default_requirements(self, runtime):
-        _tag = uuid.uuid4().hex 
+        _tag = uuid.uuid4().hex
         image_uri = f"func:{_tag}"
         docker_client = docker.from_env()
         docker_client.images.build(
@@ -706,13 +706,23 @@ class TestBuildCommand_RubyFunctions(BuildIntegRubyBase):
 class TestBuildCommand_RubyFunctions_With_Architecture(BuildIntegRubyBase):
     template = "template_with_architecture.yaml"
 
-    @parameterized.expand(["ruby2.7", "ruby3.2",])
+    @parameterized.expand(
+        [
+            "ruby2.7",
+            "ruby3.2",
+        ]
+    )
     @pytest.mark.flaky(reruns=3)
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_building_ruby_in_container_with_specified_architecture(self, runtime, architecture="x86_64"):
         self._test_with_default_gemfile(runtime, "use_container", "Ruby", self.test_data_path, architecture)
 
-    @parameterized.expand(["ruby2.7", "ruby3.2",])
+    @parameterized.expand(
+        [
+            "ruby2.7",
+            "ruby3.2",
+        ]
+    )
     @pytest.mark.flaky(reruns=3)
     def test_building_ruby_in_process_with_specified_architecture(self, runtime, architecture="x86_64"):
         self._test_with_default_gemfile(runtime, False, "Ruby", self.test_data_path, architecture)

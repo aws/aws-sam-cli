@@ -34,25 +34,24 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture_arm64(
 
 
 class TestBuildCommand_EsbuildFunctions_arm64(TestBuildCommand_EsbuildFunctions):
-
     @parameterized.expand(
         [
             ("nodejs12.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", False, "arm64"),
             ("nodejs12.x", "Esbuild/TypeScript", {"app.js", "app.js.map"}, "app.lambdaHandler", False, "arm64"),
             ("nodejs12.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", "use_container", "arm64"),
             (
-                    "nodejs12.x",
-                    "Esbuild/TypeScript",
-                    {"app.js", "app.js.map"},
-                    "app.lambdaHandler",
-                    "use_container",
-                    "arm64",
+                "nodejs12.x",
+                "Esbuild/TypeScript",
+                {"app.js", "app.js.map"},
+                "app.lambdaHandler",
+                "use_container",
+                "arm64",
             ),
         ]
     )
     @pytest.mark.flaky(reruns=3)
     def test_building_default_package_json(
-            self, runtime, code_uri, expected_files, handler, use_container, architecture
+        self, runtime, code_uri, expected_files, handler, use_container, architecture
     ):
         self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, architecture)
 
@@ -63,42 +62,42 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(
     @parameterized.expand(
         [
             (
-                    "nodejs16.x",
-                    "Esbuild/Node_without_manifest",
-                    {"main.js", "main.js.map"},
-                    "main.lambdaHandler",
-                    False,
-                    "arm64",
+                "nodejs16.x",
+                "Esbuild/Node_without_manifest",
+                {"main.js", "main.js.map"},
+                "main.lambdaHandler",
+                False,
+                "arm64",
             ),
             (
-                    "nodejs18.x",
-                    "Esbuild/Node_without_manifest",
-                    {"main.js", "main.js.map"},
-                    "main.lambdaHandler",
-                    False,
-                    "arm64",
+                "nodejs18.x",
+                "Esbuild/Node_without_manifest",
+                {"main.js", "main.js.map"},
+                "main.lambdaHandler",
+                False,
+                "arm64",
             ),
             (
-                    "nodejs16.x",
-                    "Esbuild/TypeScript_without_manifest",
-                    {"app.js", "app.js.map"},
-                    "app.lambdaHandler",
-                    False,
-                    "arm64",
+                "nodejs16.x",
+                "Esbuild/TypeScript_without_manifest",
+                {"app.js", "app.js.map"},
+                "app.lambdaHandler",
+                False,
+                "arm64",
             ),
             (
-                    "nodejs18.x",
-                    "Esbuild/TypeScript_without_manifest",
-                    {"app.js", "app.js.map"},
-                    "app.lambdaHandler",
-                    False,
-                    "arm64",
+                "nodejs18.x",
+                "Esbuild/TypeScript_without_manifest",
+                {"app.js", "app.js.map"},
+                "app.lambdaHandler",
+                False,
+                "arm64",
             ),
         ]
     )
     @pytest.mark.flaky(reruns=3)
     def test_building_default_package_json(
-            self, runtime, code_uri, expected_files, handler, use_container, architecture
+        self, runtime, code_uri, expected_files, handler, use_container, architecture
     ):
         self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, architecture)
 
@@ -123,9 +122,7 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture_arm64(
         self._test_with_default_package_json(runtime, use_container, self.test_data_path, architecture)
 
 
-class TestBuildCommand_RubyFunctions_With_Architecture_arm64(
-    TestBuildCommand_RubyFunctions_With_Architecture
-):
+class TestBuildCommand_RubyFunctions_With_Architecture_arm64(TestBuildCommand_RubyFunctions_With_Architecture):
     @parameterized.expand([("ruby2.7", "arm64"), ("ruby3.2", "arm64")])
     @pytest.mark.flaky(reruns=3)
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
@@ -258,8 +255,7 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
             ),
         ]
     )
-    #@skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
-    @skipIf(True, "Skipping java arm64 container tests for now")
+    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     @pytest.mark.flaky(reruns=3)
     def test_building_java_in_container_with_arm64_architecture(
         self, runtime, runtime_version, code_path, expected_files, expected_dependencies, architecture
@@ -423,7 +419,6 @@ class TestBuildCommand_Go_Modules_With_Specified_Architecture_arm64(
     ],
 )
 class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture_arm64(BuildIntegProvidedBase):
-
     @parameterized.expand(
         [
             ("provided", False, None, "arm64"),
