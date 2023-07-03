@@ -52,7 +52,7 @@ from samcli.hook_packages.terraform.lib.utils import (
     get_sam_metadata_planned_resource_value_attribute,
 )
 from samcli.lib.hook.exceptions import PrepareHookException
-from samcli.lib.utils.colors import Colored
+from samcli.lib.utils.colors import Colored, Colors
 from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION
 
 SAM_METADATA_RESOURCE_TYPE = "null_resource"
@@ -134,9 +134,12 @@ def _check_unresolvable_values(root_module: dict, root_tf_module: TFModule) -> N
 
                 if config_values and not planned_values:
                     LOG.warning(
-                        Colored().yellow(
-                            "\nUnresolvable attributes discovered in project, run terraform apply to resolve them.\n"
-                        )
+                        Colored().color_log(
+                            msg="\nUnresolvable attributes discovered in project, "
+                            "run terraform apply to resolve them.\n",
+                            color=Colors.WARNING,
+                        ),
+                        extra=dict(markup=True),
                     )
 
                     return
