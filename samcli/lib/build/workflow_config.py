@@ -161,7 +161,6 @@ def get_workflow_config(
         "nodejs18.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "ruby2.7": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
         "ruby3.2": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
-        "dotnetcore3.1": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
         "dotnet6": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
         "go1.x": BasicWorkflowSelector(GO_MOD_CONFIG),
         # When Maven builder exists, add to this list so we can automatically choose a builder based on the supported

@@ -29,7 +29,6 @@ from samcli.lib.package.packageable_resources import (
     ECRResource,
     ResourceZip,
 )
-from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.uploaders import Destination, Uploaders
 from samcli.lib.package.utils import (
     is_local_file,
@@ -47,6 +46,7 @@ from samcli.lib.utils.resources import (
     AWS_SERVERLESS_FUNCTION,
     RESOURCES_WITH_LOCAL_PATHS,
 )
+from samcli.lib.utils.s3 import parse_s3_url
 from samcli.yamlhelper import yaml_dump, yaml_parse
 
 # NOTE: sriram-mv, A cyclic dependency on `Template` needs to be broken.
@@ -99,7 +99,7 @@ class CloudFormationStackResource(ResourceZip):
             url = self.uploader.upload(temporary_file.name, remote_path)
 
             # TemplateUrl property requires S3 URL to be in path-style format
-            parts = S3Uploader.parse_s3_url(url, version_property="Version")
+            parts = parse_s3_url(url, version_property="Version")
             s3_path_url = self.uploader.to_path_style_s3_url(parts["Key"], parts.get("Version", None))
             set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, s3_path_url)
 
@@ -146,7 +146,7 @@ class CloudFormationStackSetResource(ResourceZip):
         url = self.uploader.upload(abs_template_path, remote_path)
 
         # TemplateUrl property requires S3 URL to be in path-style format
-        parts = S3Uploader.parse_s3_url(url, version_property="Version")
+        parts = parse_s3_url(url, version_property="Version")
         s3_path_url = self.uploader.to_path_style_s3_url(parts["Key"], parts.get("Version", None))
         set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, s3_path_url)
 

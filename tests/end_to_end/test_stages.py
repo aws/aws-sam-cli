@@ -12,6 +12,7 @@ import os
 
 from samcli.cli.global_config import GlobalConfig
 from filelock import FileLock
+from samcli.lib.utils.s3 import parse_s3_url
 from tests.end_to_end.end_to_end_context import EndToEndTestContext
 from tests.testing_utils import CommandResult, run_command, run_command_with_input
 
@@ -102,7 +103,7 @@ class PackageDownloadZipFunctionStage(EndToEndBaseStage):
         )
 
         if zipped_fn_s3_loc:
-            s3_info = S3Uploader.parse_s3_url(zipped_fn_s3_loc)
+            s3_info = parse_s3_url(zipped_fn_s3_loc)
             self.s3_client.download_file(s3_info["Bucket"], s3_info["Key"], str(zip_file_path))
 
             with zipfile.ZipFile(zip_file_path, "r") as zip_refzip:

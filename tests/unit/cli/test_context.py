@@ -5,6 +5,8 @@ import logging
 from unittest import TestCase
 from unittest.mock import patch, ANY
 
+from rich.console import Console
+
 from samcli.cli.context import Context
 from samcli.lib.utils.sam_logging import (
     SamCliLogger,
@@ -19,6 +21,10 @@ class TestContext(TestCase):
         ctx = Context()
 
         self.assertEqual(ctx.debug, False, "debug must default to False")
+
+    def test_must_have_console(self):
+        ctx = Context()
+        self.assertTrue(isinstance(ctx.console, Console))
 
     def test_must_set_get_debug_flag(self):
         ctx = Context()

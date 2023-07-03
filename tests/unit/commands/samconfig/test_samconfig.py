@@ -457,6 +457,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "localhost",
                 "127.0.0.1",
                 ("image",),
+                None,
             )
 
     @patch("samcli.commands.local.start_lambda.cli.do_cli")
