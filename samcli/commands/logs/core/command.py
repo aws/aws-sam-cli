@@ -53,8 +53,7 @@ class LogsCommand(CoreCommand):
                             text="\n",
                         ),
                         RowDefinition(
-                            name=style(f"$ {ctx.command_path} -n HelloWorldFunction --stack-name "
-                                       f"mystack --tail"),
+                            name=style(f"$ {ctx.command_path} -n HelloWorldFunction --stack-name " f"mystack --tail"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
                     ]
