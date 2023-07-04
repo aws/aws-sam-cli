@@ -37,6 +37,8 @@ from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     RestApiToApiGatewayIntegrationResponseLocalVariablesLinkingLimitationException,
     OneGatewayResourceToApiGatewayIntegrationResponseLinkingLimitationException,
     GatewayResourceToApiGatewayIntegrationResponseLocalVariablesLinkingLimitationException,
+    OneGatewayV2RouteToGatewayV2IntegrationLinkingLimitationException,
+    GatewayV2RouteToGatewayV2IntegrationLocalVariablesLinkingLimitationException,
 )
 
 from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
@@ -81,6 +83,9 @@ from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     _link_gateway_integration_to_function_call_back,
     _link_gateway_integration_responses_to_gateway_rest_apis,
     _link_gateway_integration_responses_to_gateway_resource,
+    _link_gateway_v2_route_to_integration,
+    API_GATEWAY_V2_INTEGRATION_RESOURCE_ADDRESS_PREFIX,
+    _link_gateway_v2_route_to_integration_callback,
 )
 from samcli.hook_packages.terraform.hooks.prepare.utilities import get_configuration_address
 from samcli.hook_packages.terraform.hooks.prepare.types import (
@@ -2108,6 +2113,10 @@ class TestResourceLinker(TestCase):
                 _link_gateway_method_to_gateway_authorizer_call_back,
                 "Could not link multiple Lambda Authorizers to one Gateway Method",
             ),
+            (
+                _link_gateway_v2_route_to_integration_callback,
+                "Could not link multiple Gateway V2 Integrations to one Gateway V2 Route",
+            ),
         ]
     )
     def test_linking_callbacks_raises_multiple_reference_exception(self, linking_call_back_method, expected_message):
@@ -2122,6 +2131,7 @@ class TestResourceLinker(TestCase):
             (_link_gateway_resource_to_gateway_resource_call_back,),
             (_link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back,),
             (_link_gateway_method_to_gateway_authorizer_call_back,),
+            (_link_gateway_v2_route_to_integration_callback,),
         ]
     )
     def test_linking_callbacks_skips_empty_references(self, linking_call_back_method):
@@ -2375,3 +2385,77 @@ class TestResourceLinker(TestCase):
         )
 
         mock_resource_linker.assert_called_once_with(mock_resource_linking_pair())
+
+    @patch(
+        "samcli.hook_packages.terraform.hooks.prepare.resource_linking._link_gateway_v2_route_to_integration_callback"
+    )
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.ResourceLinker")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.ResourceLinkingPair")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.ResourcePairExceptions")
+    def test_link_gateway_method_to_gateway_authorizer(
+        self,
+        mock_resource_linking_exceptions,
+        mock_resource_linking_pair,
+        mock_resource_linker,
+        mock_link_gateway_v2_route_to_integration_callback,
+    ):
+        routes_v2_cfn_resources = Mock()
+        routes_v2_config_resources = Mock()
+        integrations_v2_tf_resources = Mock()
+
+        _link_gateway_v2_route_to_integration(
+            routes_v2_config_resources, routes_v2_cfn_resources, integrations_v2_tf_resources
+        )
+
+        mock_resource_linking_exceptions.assert_called_once_with(
+            multiple_resource_linking_exception=OneGatewayV2RouteToGatewayV2IntegrationLinkingLimitationException,
+            local_variable_linking_exception=GatewayV2RouteToGatewayV2IntegrationLocalVariablesLinkingLimitationException,
+        )
+
+        mock_resource_linking_pair.assert_called_once_with(
+            source_resource_cfn_resource=routes_v2_cfn_resources,
+            source_resource_tf_config=routes_v2_config_resources,
+            destination_resource_tf=integrations_v2_tf_resources,
+            tf_destination_attribute_name="id",
+            terraform_link_field_name="target",
+            cfn_link_field_name="Target",
+            terraform_resource_type_prefix=API_GATEWAY_V2_INTEGRATION_RESOURCE_ADDRESS_PREFIX,
+            cfn_resource_update_call_back_function=mock_link_gateway_v2_route_to_integration_callback,
+            linking_exceptions=mock_resource_linking_exceptions(),
+        )
+
+        mock_resource_linker.assert_called_once_with(mock_resource_linking_pair())
+
+    @parameterized.expand(
+        [
+            (
+                {
+                    "Type": "AWS::ApiGatewayV2::Route",
+                    "Properties": {"Target": "invoke_arn"},
+                },
+                [LogicalIdReference("FunctionA")],
+                {"Fn::Join": ["/", ["integrations", {"Ref": "FunctionA"}]]},
+            ),
+            (
+                {
+                    "Type": "AWS::ApiGatewayV2::Route",
+                    "Properties": {"Target": "invoke_arn"},
+                },
+                [ExistingResourceReference("invoke_arn")],
+                "invoke_arn",
+            ),
+            (
+                {
+                    "Type": "AWS::ApiGatewayV2::Route",
+                    "Properties": {"Target": "invoke_arn"},
+                },
+                [LogicalIdReference("Integration")],
+                {"Fn::Join": ["/", ["integrations", {"Ref": "Integration"}]]},
+            ),
+        ]
+    )
+    def test__link_gateway_v2_route_to_integration_callback(self, input_gateway_v2_route, logical_ids, expected_route):
+        gateway_resource = deepcopy(input_gateway_v2_route)
+        _link_gateway_v2_route_to_integration_callback(gateway_resource, logical_ids)
+        input_gateway_v2_route["Properties"]["Target"] = expected_route
+        self.assertEqual(gateway_resource, input_gateway_v2_route)
