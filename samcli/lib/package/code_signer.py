@@ -5,7 +5,7 @@ Client for initiate and monitor code signing jobs
 import logging
 
 from samcli.commands.exceptions import UserException
-from samcli.lib.package.s3_uploader import S3Uploader
+from samcli.lib.utils.s3 import parse_s3_url
 
 LOG = logging.getLogger(__name__)
 
@@ -60,7 +60,7 @@ class CodeSigner:
         profile_owner = signing_profile_for_resource["profile_owner"]
 
         # parse given s3 url, and extract bucket and object key
-        parsed_s3_url = S3Uploader.parse_s3_url(s3_url)
+        parsed_s3_url = parse_s3_url(s3_url)
         s3_bucket = parsed_s3_url["Bucket"]
         s3_key = parsed_s3_url["Key"]
         s3_target_prefix = s3_key.rsplit("/", 1)[0] + "/signed_"

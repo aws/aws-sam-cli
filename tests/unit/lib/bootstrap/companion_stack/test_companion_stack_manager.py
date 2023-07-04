@@ -48,8 +48,10 @@ class TestCompanionStackManager(TestCase):
 
     @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.mktempfile")
     @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.S3Uploader")
+    @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.parse_s3_url")
     def test_create_companion_stack(
         self,
+        parse_s3_url_mock,
         s3_uploader_mock,
         mktempfile_mock,
     ):
@@ -70,8 +72,10 @@ class TestCompanionStackManager(TestCase):
 
     @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.mktempfile")
     @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.S3Uploader")
+    @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.parse_s3_url")
     def test_update_companion_stack(
         self,
+        parse_s3_url_mock,
         s3_uploader_mock,
         mktempfile_mock,
     ):
