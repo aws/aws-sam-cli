@@ -13,7 +13,7 @@ from samcli.lib.utils.resources import (
     AWS_APIGATEWAY_METHOD,
     AWS_APIGATEWAY_AUTHORIZER,
     AWS_APIGATEWAY_V2_API,
-    AWS_APIGATEWAY_V2_ROUTE,
+    AWS_APIGATEWAY_V2_ROUTE, AWS_APIGATEWAY_V2_STAGE, AWS_APIGATEWAY_V2_INTEGRATION,
 )
 from samcli.hook_packages.terraform.hooks.prepare.resources.internal import (
     INTERNAL_API_GATEWAY_INTEGRATION,
@@ -57,6 +57,8 @@ class PrepareHookUnitBase(TestCase):
         self.apigwv2_api_name = "my_apigwv2_api"
         self.apigwv2_api_quick_create_name = "my_apigwv2_api_quick_create"
         self.apigwv2_route_name = "my_apigwv2_route"
+        self.apigwv2_stage_name = "my_apigwv2_stage"
+        self.apigwv2_integration_name = "my_apigwv2_integration"
 
         self.tf_function_common_properties: dict = {
             "function_name": self.zip_function_name,
@@ -359,6 +361,16 @@ class PrepareHookUnitBase(TestCase):
 
         self.tf_apigwv2_route_common_attributes: dict = {
             "type": "aws_apigatewayv2_route",
+            "provider_name": AWS_PROVIDER_NAME,
+        }
+
+        self.tf_apigwv2_stage_common_attributes: dict = {
+            "type": "aws_apigatewayv2_stage",
+            "provider_name": AWS_PROVIDER_NAME,
+        }
+
+        self.tf_apigwv2_integration_common_attributes: dict = {
+            "type": "aws_apigatewayv2_integration",
             "provider_name": AWS_PROVIDER_NAME,
         }
 
@@ -873,6 +885,64 @@ class PrepareHookUnitBase(TestCase):
             "Metadata": {"SamResourceId": f"aws_apigatewayv2_route.{self.apigwv2_route_name}"},
         }
 
+        self.tf_apigwv2_stage_properties: dict = {
+            "api_id": "aws_apigatewayv2_api.my_api.id",
+            "name": "example-stage",
+            "stage_variables": {
+                "foo": "bar"
+            }
+        }
+
+        self.expected_cfn_apigwv2_stage_properties: dict = {
+            "ApiId": "aws_apigatewayv2_api.my_api.id",
+            "StageName": "example-stage",
+            "StageVariables": {
+                "foo": "bar"
+            }
+        }
+
+        self.tf_apigwv2_stage_resource: dict = {
+            **self.tf_apigwv2_stage_common_attributes,
+            "values": self.tf_apigwv2_stage_properties,
+            "address": f"aws_apigatewayv2_stage.{self.apigwv2_stage_name}",
+            "name": self.apigwv2_stage_name,
+        }
+
+        self.expected_cfn_apigwv2_stage: dict = {
+            "Type": AWS_APIGATEWAY_V2_STAGE,
+            "Properties": self.expected_cfn_apigwv2_stage_properties,
+            "Metadata": {"SamResourceId": f"aws_apigatewayv2_stage.{self.apigwv2_stage_name}"},
+        }
+
+        self.tf_apigwv2_integration_properties: dict = {
+            "api_id": "aws_apigatewayv2_api.my_api.id",
+            "integration_type": "AWS_PROXY",
+            "integration_method": "POST",
+            "integration_uri": "aws_lambda_function.HelloWorldFunction.invoke_arn",
+            "payload_format_version": "2.0",
+        }
+
+        self.expected_cfn_apigwv2_integration_properties: dict = {
+            "ApiId": "aws_apigatewayv2_api.my_api.id",
+            "IntegrationType": "AWS_PROXY",
+            "IntegrationMethod": "POST",
+            "IntegrationUri": "aws_lambda_function.HelloWorldFunction.invoke_arn",
+            "PayloadFormatVersion": "2.0",
+        }
+
+        self.tf_apigwv2_integration_resource: dict = {
+            **self.tf_apigwv2_integration_common_attributes,
+            "values": self.tf_apigwv2_integration_properties,
+            "address": f"aws_apigatewayv2_integration.{self.apigwv2_integration_name}",
+            "name": self.apigwv2_integration_name,
+        }
+
+        self.expected_cfn_apigwv2_integration: dict = {
+            "Type": AWS_APIGATEWAY_V2_INTEGRATION,
+            "Properties": self.expected_cfn_apigwv2_integration_properties,
+            "Metadata": {"SamResourceId": f"aws_apigatewayv2_integration.{self.apigwv2_integration_name}"},
+        }
+
         self.tf_json_with_root_module_only: dict = {
             "planned_values": {
                 "root_module": {
@@ -891,6 +961,8 @@ class PrepareHookUnitBase(TestCase):
                         self.tf_apigwv2_api_resource,
                         self.tf_apigwv2_api_quick_create_resource,
                         self.tf_apigwv2_route_resource,
+                        self.tf_apigwv2_stage_resource,
+                        self.tf_apigwv2_integration_resource,
                     ]
                 }
             }
@@ -910,6 +982,8 @@ class PrepareHookUnitBase(TestCase):
                 f"AwsApigatewayv2ApiMyApigwv2Api{self.mock_logical_id_hash}": self.expected_cfn_apigwv2_api,
                 f"AwsApigatewayv2ApiMyApigwv2ApiQuickCreate{self.mock_logical_id_hash}": self.expected_cfn_apigwv2_api_quick_create,
                 f"AwsApigatewayv2RouteMyApigwv2Route{self.mock_logical_id_hash}": self.expected_cfn_apigwv2_route,
+                f"AwsApigatewayv2StageMyApigwv2Stage{self.mock_logical_id_hash}": self.expected_cfn_apigwv2_stage,
+                f"AwsApigatewayv2IntegrationMyApigwv2Integration{self.mock_logical_id_hash}": self.expected_cfn_apigwv2_integration,
             },
         }
 
