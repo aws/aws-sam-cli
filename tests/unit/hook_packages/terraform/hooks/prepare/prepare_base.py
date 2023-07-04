@@ -13,7 +13,9 @@ from samcli.lib.utils.resources import (
     AWS_APIGATEWAY_METHOD,
     AWS_APIGATEWAY_AUTHORIZER,
     AWS_APIGATEWAY_V2_API,
-    AWS_APIGATEWAY_V2_ROUTE, AWS_APIGATEWAY_V2_STAGE, AWS_APIGATEWAY_V2_INTEGRATION,
+    AWS_APIGATEWAY_V2_ROUTE,
+    AWS_APIGATEWAY_V2_STAGE,
+    AWS_APIGATEWAY_V2_INTEGRATION,
 )
 from samcli.hook_packages.terraform.hooks.prepare.resources.internal import (
     INTERNAL_API_GATEWAY_INTEGRATION,
@@ -888,17 +890,13 @@ class PrepareHookUnitBase(TestCase):
         self.tf_apigwv2_stage_properties: dict = {
             "api_id": "aws_apigatewayv2_api.my_api.id",
             "name": "example-stage",
-            "stage_variables": {
-                "foo": "bar"
-            }
+            "stage_variables": {"foo": "bar"},
         }
 
         self.expected_cfn_apigwv2_stage_properties: dict = {
             "ApiId": "aws_apigatewayv2_api.my_api.id",
             "StageName": "example-stage",
-            "StageVariables": {
-                "foo": "bar"
-            }
+            "StageVariables": {"foo": "bar"},
         }
 
         self.tf_apigwv2_stage_resource: dict = {
