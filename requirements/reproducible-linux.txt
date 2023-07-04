@@ -15,7 +15,7 @@ attrs==23.1.0 \
     #   jschema-to-python
     #   jsonschema
     #   sarif-om
-aws-lambda-builders==1.34.0 \
+aws-lambda-builders @ git+https://github.com/mndeveci/aws-lambda-builders@dont_use_sys_executable \
     --hash=sha256:0790f7e9b7ee7286b96fbcf49450c5be0341bb7cb852ca7d74beae190139eb48 \
     --hash=sha256:20456a942a417407b42ecf8ab7fce6a47306fd063051e7cb09d02d1be24d5cf3
     # via aws-sam-cli (setup.py)
