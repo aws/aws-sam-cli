@@ -1658,6 +1658,14 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
             ),
         )
 
+    def test_can_raise_build_error(self):
+        self.docker_client_mock.images.build.side_effect = docker.errors.BuildError(
+            reason="Missing Dockerfile", build_log="Build failed"
+        )
+
+        with self.assertRaises(DockerBuildFailed):
+            self.builder._build_lambda_image("Name", {}, X86_64)
+
 
 class TestApplicationBuilder_build_function(TestCase):
     def setUp(self):
