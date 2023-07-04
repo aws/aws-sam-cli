@@ -9,8 +9,13 @@ import click
 from samcli.cli.cli_config_file import TomlProvider, configuration_option
 from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
 from samcli.cli.main import common_options as cli_framework_options
+from samcli.commands._utils.experimental import ExperimentalFlag, is_experimental_enabled
 from samcli.commands._utils.option_value_processor import process_image_options
-from samcli.commands._utils.options import generate_next_command_recommendation
+from samcli.commands._utils.options import (
+    generate_next_command_recommendation,
+    hook_name_click_option,
+    skip_prepare_infra_option,
+)
 from samcli.commands.local.cli_common.options import (
     invoke_common_options,
     local_common_options,
@@ -54,6 +59,10 @@ DESCRIPTION = """
     context_settings={"max_content_width": 120},
 )
 @configuration_option(provider=TomlProvider(section="parameters"))
+@hook_name_click_option(
+    force_prepare=False, invalid_coexist_options=["t", "template-file", "template", "parameter-overrides"]
+)
+@skip_prepare_infra_option
 @service_common_options(3000)
 @click.option(
     "--static-dir",
@@ -98,6 +107,8 @@ def cli(
     container_host,
     container_host_interface,
     invoke_image,
+    hook_name,
+    skip_prepare_infra,
 ):
     """
     `sam local start-api` command entry point
@@ -128,6 +139,7 @@ def cli(
         container_host,
         container_host_interface,
         invoke_image,
+        hook_name,
     )  # pragma: no cover
 
 
@@ -155,6 +167,7 @@ def do_cli(  # pylint: disable=R0914
     container_host,
     container_host_interface,
     invoke_image,
+    hook_name,
 ):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
@@ -169,6 +182,14 @@ def do_cli(  # pylint: disable=R0914
     from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported
 
     LOG.debug("local start-api command is called")
+
+    if (
+        hook_name
+        and ExperimentalFlag.IaCsSupport.get(hook_name) is not None
+        and not is_experimental_enabled(ExperimentalFlag.IaCsSupport.get(hook_name))
+    ):
+        LOG.info("Terraform Support beta feature is not enabled.")
+        return
 
     processed_invoke_images = process_image_options(invoke_image)
 
@@ -202,14 +223,15 @@ def do_cli(  # pylint: disable=R0914
         ) as invoke_context:
             service = LocalApiService(lambda_invoke_context=invoke_context, port=port, host=host, static_dir=static_dir)
             service.start()
-            command_suggestions = generate_next_command_recommendation(
-                [
-                    ("Validate SAM template", "sam validate"),
-                    ("Test Function in the Cloud", "sam sync --stack-name {{stack-name}} --watch"),
-                    ("Deploy", "sam deploy --guided"),
-                ]
-            )
-            click.secho(command_suggestions, fg="yellow")
+            if not hook_name:
+                command_suggestions = generate_next_command_recommendation(
+                    [
+                        ("Validate SAM template", "sam validate"),
+                        ("Test Function in the Cloud", "sam sync --stack-name {{stack-name}} --watch"),
+                        ("Deploy", "sam deploy --guided"),
+                    ]
+                )
+                click.secho(command_suggestions, fg="yellow")
 
     except NoApisDefined as ex:
         raise UserException(

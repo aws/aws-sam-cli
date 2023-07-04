@@ -39,6 +39,8 @@ class TestCli(TestCase):
         self.warm_containers = None
         self.debug_function = None
 
+        self.hook_name = None
+
         self.ctx_mock = Mock()
         self.ctx_mock.region = self.region_name
         self.ctx_mock.profile = self.profile
@@ -196,4 +198,5 @@ class TestCli(TestCase):
             container_host=self.container_host,
             container_host_interface=self.container_host_interface,
             invoke_image=self.invoke_image,
+            hook_name=self.hook_name,
         )
