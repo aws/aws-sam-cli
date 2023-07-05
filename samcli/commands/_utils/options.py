@@ -326,7 +326,7 @@ def no_progressbar_click_option():
         default=False,
         required=False,
         is_flag=True,
-        help="Does not showcase a progress bar when uploading artifacts to s3 and pushing docker images to ECR",
+        help="Does not showcase a progress bar when uploading artifacts to S3 and pushing docker images to ECR",
     )
 
 
@@ -679,9 +679,9 @@ def resolve_s3_click_option(guided):
         required=False,
         is_flag=True,
         callback=callback,
-        help="Automatically resolve s3 bucket for non-guided deployments. "
-        "Enabling this option will also create a managed default s3 bucket for you. "
-        "If you do not provide a --s3-bucket value, the managed bucket will be used. "
+        help="Automatically resolve AWS S3 bucket for non-guided deployments. "
+        "Enabling this option will also create a managed default AWS S3 bucket for you. "
+        "If one does not provide a --s3-bucket value, the managed bucket will be used. "
         "Do not use --guided with this option.",
     )
 
