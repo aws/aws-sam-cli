@@ -73,6 +73,8 @@ jobs:
       SAM_CLI_DEV: "1"
       CARGO_LAMBDA_VERSION: 0.17.1
       CI: true
+      BY_CANARY: ${{matrix.tests_folder == 'buildcmd' && matrix.os == 'ubuntu-latest' && 1 || 0}}
+      CI_OVERRIDE: ${{matrix.tests_folder == 'buildcmd' && matrix.os == 'ubuntu-latest' && 1 || 0}}
     defaults:
       run:
         shell: bash
@@ -106,6 +108,18 @@ jobs:
           #- "validate"
           - "docs"
     steps:
+      - name: check environment variables
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: |
+          echo $BY_CANARY 
+          echo $CI
+          echo $CI_OVERRIDE
+      - name: check environment variables
+        if: ${{ matrix.os == 'windows-latest' }}
+        run: |
+          echo $env:BY_CANARY 
+          echo $env:CI
+          echo $env:CI_OVERRIDE
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
