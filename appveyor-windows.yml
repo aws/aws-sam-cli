@@ -134,7 +134,14 @@ install:
   # Echo final Path
   - "echo %PATH%"
 
-  - "IF DEFINED BY_CANARY ECHO Logging in Public ECR && aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws"
+  # use amazon-ecr-credential-helper
+  - choco install amazon-ecr-credential-helper
+  - ps: "
+    $docker_config = Get-Content $env:HOME/.docker/config.json -raw | ConvertFrom-Json;
+    $docker_config.credsStore = 'ecr-login';
+    $docker_config | ConvertTo-Json | set-content $env:HOME/.docker/config.json;
+  "
+  - ps: "get-content $env:HOME/.docker/config.json"
 
   # claim some disk space before starting the tests
   - "docker system prune -a -f"
