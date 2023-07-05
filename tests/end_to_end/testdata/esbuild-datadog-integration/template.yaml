@@ -1,0 +1,24 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  DataDogLayers:
+    Description: DataDog layers
+    Type: CommaDelimitedList
+    Default: "arn:aws:lambda:us-east-1:464622532012:layer:Datadog-Node16-x:93, arn:aws:lambda:us-east-1:464622532012:layer:Datadog-Extension:44"
+
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: /opt/nodejs/node_modules/datadog-lambda-js/handler.handler
+      Runtime: nodejs16.x
+      Environment:
+        Variables:
+          DD_LAMBDA_HANDLER: main.lambdaHandler
+      Layers: !Ref DataDogLayers
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+          - main.js

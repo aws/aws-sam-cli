@@ -1,8 +1,12 @@
+from distutils.dir_util import copy_tree
 from unittest import skipIf
 
 import json
 from pathlib import Path
 
+import shutil
+
+import os
 from parameterized import parameterized_class
 
 from tests.end_to_end.end_to_end_base import EndToEndBase
@@ -160,6 +164,31 @@ class TestHelloWorldDefaultSyncEndToEnd(EndToEndBase):
                 DefaultSyncStage(BaseValidator(e2e_context), e2e_context, sync_command_list),
                 EndToEndBaseStage(RemoteInvokeValidator(e2e_context), e2e_context, remote_invoke_command_list),
                 EndToEndBaseStage(BaseValidator(e2e_context), e2e_context, stack_outputs_command_list),
+                DefaultDeleteStage(BaseValidator(e2e_context), e2e_context, delete_command_list, stack_name),
+            ]
+            self._run_tests(stages)
+
+
+class TestEsbuildDatadogLayerIntegration(EndToEndBase):
+    app_template = ""
+
+    def test_integration(self):
+        function_name = "HelloWorldFunction"
+        event = '{"hello": "world"}'
+        stack_name = self._method_to_stack_name(self.id())
+        with EndToEndTestContext(self.app_name) as e2e_context:
+            project_path = str(Path("testdata") / "esbuild-datadog-integration")
+            os.mkdir(e2e_context.project_directory)
+            copy_tree(project_path, e2e_context.project_directory)
+            self.template_path = e2e_context.template_path
+            build_command_list = self.get_command_list()
+            deploy_command_list = self._get_deploy_command(stack_name)
+            remote_invoke_command_list = self._get_remote_invoke_command(stack_name, function_name, event, "json")
+            delete_command_list = self._get_delete_command(stack_name)
+            stages = [
+                EndToEndBaseStage(BuildValidator(e2e_context), e2e_context, build_command_list),
+                EndToEndBaseStage(BaseValidator(e2e_context), e2e_context, deploy_command_list),
+                EndToEndBaseStage(RemoteInvokeValidator(e2e_context), e2e_context, remote_invoke_command_list),
                 DefaultDeleteStage(BaseValidator(e2e_context), e2e_context, delete_command_list, stack_name),
             ]
             self._run_tests(stages)
