@@ -1,12 +1,11 @@
 """Handles JSON schema generation logic"""
 
 
-import click
 import importlib
 
+import click
+
 from samcli.cli.command import _SAM_CLI_COMMAND_PACKAGES
-from samcli.commands._utils.click_mutex import ClickMutex
-from samcli.commands.build.click_container import ContainerOptions
 from samcli.lib.config.samconfig import SamConfig
 
 
@@ -37,7 +36,6 @@ def retrieve_command_structure(package_name: str) -> dict:
         A dictionary that maps the name of the command to its relevant click options.
     """
     module = importlib.import_module(package_name)
-    command_name = package_name.split(".")[-1]  # command name is the last folder
     command = {}
 
     def get_params_from_command(cli, main_command_name: str = "") -> dict:
@@ -45,7 +43,7 @@ def retrieve_command_structure(package_name: str) -> dict:
         params = [
             param
             for param in cli.params
-            if param.name != None and isinstance(param, click.core.Option)  # exclude None and non-Options
+            if param.name is not None and isinstance(param, click.core.Option)  # exclude None and non-Options
         ]
         cmd_name = SamConfig.to_key([main_command_name, cli.name]) if main_command_name else cli.name
         return {cmd_name: {param.name: format_param(param) for param in params}}
