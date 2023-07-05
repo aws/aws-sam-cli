@@ -15,10 +15,7 @@ attrs==23.1.0 \
     #   jschema-to-python
     #   jsonschema
     #   sarif-om
-aws-lambda-builders @ git+https://github.com/mndeveci/aws-lambda-builders@dont_use_sys_executable \
-    --hash=sha256:0790f7e9b7ee7286b96fbcf49450c5be0341bb7cb852ca7d74beae190139eb48 \
-    --hash=sha256:20456a942a417407b42ecf8ab7fce6a47306fd063051e7cb09d02d1be24d5cf3
-    # via aws-sam-cli (setup.py)
+aws-lambda-builders @ git+https://github.com/mndeveci/aws-lambda-builders@dont_use_sys_executable
 aws-sam-translator==1.70.0 \
     --hash=sha256:753288eda07b057e5350773b7617076962b59404d49cd05e2259ac96a7694436 \
     --hash=sha256:a2df321607d29791893707ef2ded9e79be00dbb71ac430696f6e6d7d0b0301a5
