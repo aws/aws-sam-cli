@@ -4,8 +4,6 @@ from unittest import skipIf
 import json
 from pathlib import Path
 
-import shutil
-
 import os
 from parameterized import parameterized_class
 
