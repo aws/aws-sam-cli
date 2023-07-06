@@ -3,6 +3,7 @@ chevron~=0.12
 click~=8.0,!=8.1.4
 Flask<2.3
 #Need to add latest lambda changes which will return invoke mode details
+# Pin boto3 to < 1.28 to avoid python3.7 deprecation error
 boto3>=1.26.109,==1.*,<1.28.0
 jmespath~=1.0.1
 ruamel_yaml~=0.17.32
@@ -19,6 +20,7 @@ tomlkit==0.11.8
 watchdog==2.1.2
 rich~=13.3.3
 pyopenssl~=23.2.0
+# Pin to <4.18 to avoid error coming through SAM-T for jsonschema deprecation
 jsonschema<4.18
 
 # Needed for supporting Protocol in Python 3.7, Protocol class became public with python3.8
