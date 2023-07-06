@@ -36,7 +36,7 @@ lint:
 	# Linter performs static analysis to catch latent bugs
 	ruff samcli schema
 	# mypy performs type check
-	mypy --exclude /testdata/ --exclude /init/templates/ --no-incremental setup.py samcli tests
+	mypy --exclude /testdata/ --exclude /init/templates/ --no-incremental setup.py samcli tests schema
 
 # Command to run everytime you make changes to verify everything works
 dev: lint test
@@ -45,7 +45,7 @@ black:
 	black setup.py samcli tests schema
 
 black-check:
-	black --check setup.py samcli tests
+	black --check setup.py samcli tests schema
 
 format: black
 	ruff samcli --fix

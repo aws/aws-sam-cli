@@ -24,6 +24,8 @@ def format_param(param: click.core.Option) -> Dict[str, Union[str, List[str]]]:
     """
     formatted_param = {"name": param.name, "help": param.help}
 
+    # NOTE: Params do not have explicit "string" type; either "text" or "path".
+    #       All choice options are from a set of strings.
     if param.type.name in ["text", "path", "choice"]:
         formatted_param["type"] = "string"
     else:
