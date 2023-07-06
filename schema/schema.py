@@ -2,6 +2,7 @@
 
 
 import importlib
+from typing import Dict, List, Union
 
 import click
 
@@ -9,8 +10,18 @@ from samcli.cli.command import _SAM_CLI_COMMAND_PACKAGES
 from samcli.lib.config.samconfig import SamConfig
 
 
-def format_param(param: click.core.Option):
-    """Format a click Option parameter to a dictionary object."""
+def format_param(param: click.core.Option) -> Dict[str, Union[str, List[str]]]:
+    """Format a click Option parameter to a dictionary object.
+
+    A parameter object should contain the following information that will be
+    necessary for including in the JSON schema:
+    * name - The name of the parameter
+    * help - The parameter's description (may vary between commands)
+    * type - The data type accepted by the parameter
+      * type.choices - If there are only a certain number of options allowed,
+                       a list of those allowed options
+    * default - The default option for that parameter
+    """
     formatted_param = {"name": param.name, "help": param.help}
 
     if param.type.name in ["text", "path", "choice"]:
@@ -27,8 +38,24 @@ def format_param(param: click.core.Option):
     return formatted_param
 
 
-def retrieve_command_structure(package_name: str) -> dict:
+def get_params_from_command(cli, main_command_name: str = "") -> Dict[str, dict]:
+    """Given a command CLI, return it in a dictionary, pointing to its parameters as dictionary objects."""
+    params = [
+        param
+        for param in cli.params
+        if param.name and isinstance(param, click.core.Option)  # exclude None and non-Options
+    ]
+    cmd_name = SamConfig.to_key([main_command_name, cli.name]) if main_command_name else cli.name
+    return {cmd_name: {param.name: format_param(param) for param in params}}
+
+
+def retrieve_command_structure(package_name: str) -> Dict[str, dict]:
     """Given a SAM CLI package name, retrieve its structure.
+
+    Parameters
+    ----------
+    package_name: str
+        The name of the command package to retrieve.
 
     Returns
     -------
@@ -38,22 +65,12 @@ def retrieve_command_structure(package_name: str) -> dict:
     module = importlib.import_module(package_name)
     command = {}
 
-    def get_params_from_command(cli, main_command_name: str = "") -> dict:
-        """Given a command CLI, return its parameters."""
-        params = [
-            param
-            for param in cli.params
-            if param.name and isinstance(param, click.core.Option)  # exclude None and non-Options
-        ]
-        cmd_name = SamConfig.to_key([main_command_name, cli.name]) if main_command_name else cli.name
-        return {cmd_name: {param.name: format_param(param) for param in params}}
-
     if isinstance(module.cli, click.core.Group):  # command has subcommands (e.g. local invoke)
         for subcommand in module.cli.commands.values():
             command.update(
                 get_params_from_command(
-                    subcommand, 
-                    module.__name__.split(".")[-1]  # if Group CLI, get last section of module name for cmd name
+                    subcommand,
+                    module.__name__.split(".")[-1],  # if Group CLI, get last section of module name for cmd name
                 )
             )
     else:
