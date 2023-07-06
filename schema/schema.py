@@ -50,7 +50,12 @@ def retrieve_command_structure(package_name: str) -> dict:
 
     if isinstance(module.cli, click.core.Group):  # command has subcommands (e.g. local invoke)
         for subcommand in module.cli.commands.values():
-            command.update(get_params_from_command(subcommand, module.__name__.split(".")[-1]))
+            command.update(
+                get_params_from_command(
+                    subcommand, 
+                    module.__name__.split(".")[-1]  # if Group CLI, get last section of module name for cmd name
+                )
+            )
     else:
         command.update(get_params_from_command(module.cli))
     return command
