@@ -175,7 +175,7 @@ class TestEsbuildDatadogLayerIntegration(EndToEndBase):
         event = '{"hello": "world"}'
         stack_name = self._method_to_stack_name(self.id())
         with EndToEndTestContext(self.app_name) as e2e_context:
-            project_path = str(Path("testdata") / "esbuild-datadog-integration")
+            project_path = str(self.e2e_test_data_path / "esbuild-datadog-integration")
             os.mkdir(e2e_context.project_directory)
             copy_tree(project_path, e2e_context.project_directory)
             self.template_path = e2e_context.template_path
