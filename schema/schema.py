@@ -43,14 +43,14 @@ def retrieve_command_structure(package_name: str) -> dict:
         params = [
             param
             for param in cli.params
-            if param.name is not None and isinstance(param, click.core.Option)  # exclude None and non-Options
+            if param.name and isinstance(param, click.core.Option)  # exclude None and non-Options
         ]
         cmd_name = SamConfig.to_key([main_command_name, cli.name]) if main_command_name else cli.name
         return {cmd_name: {param.name: format_param(param) for param in params}}
 
     if isinstance(module.cli, click.core.Group):  # command has subcommands (e.g. local invoke)
         for subcommand in module.cli.commands.values():
-            command.update(get_params_from_command(subcommand))
+            command.update(get_params_from_command(subcommand, module.__name__.split(".")[-1]))
     else:
         command.update(get_params_from_command(module.cli))
     return command
@@ -74,7 +74,6 @@ def generate_schema() -> dict:
         for param_list in new_command.values():
             command_params = [param for param in param_list]
         params.update(command_params)
-    print(commands)  # DEBUG: note that some params appear multiple times due to slight differences
     return schema
 
 
