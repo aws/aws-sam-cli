@@ -31,13 +31,13 @@ from samcli.lib.utils.cloudformation import (
     get_resource_summary,
     get_resource_summary_from_physical_id,
 )
-from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION
+from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION, AWS_STEPFUNCTIONS_STATEMACHINE
 from samcli.lib.utils.stream_writer import StreamWriter
 
 LOG = logging.getLogger(__name__)
 
 
-SUPPORTED_SERVICES = {"lambda": AWS_LAMBDA_FUNCTION}
+SUPPORTED_SERVICES = {"lambda": AWS_LAMBDA_FUNCTION, "step-functions": AWS_STEPFUNCTIONS_STATEMACHINE}
 
 
 class RemoteInvokeContext:

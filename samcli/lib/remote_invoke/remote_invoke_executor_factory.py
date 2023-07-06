@@ -20,10 +20,12 @@ from samcli.lib.remote_invoke.remote_invoke_executors import (
     RemoteInvokeResponse,
     ResponseObjectToJsonStringMapper,
 )
-from samcli.lib.utils.cloudformation import CloudFormationResourceSummary
-from samcli.lib.utils.resources import (
-    AWS_LAMBDA_FUNCTION,
+from samcli.lib.remote_invoke.stepfunctions_invoke_executors import (
+    SfnDescribeExecutionResponseConverter,
+    StepFunctionsStartExecutionExecutor,
 )
+from samcli.lib.utils.cloudformation import CloudFormationResourceSummary
+from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION, AWS_STEPFUNCTIONS_STATEMACHINE
 
 LOG = logging.getLogger(__name__)
 
@@ -127,6 +129,41 @@ class RemoteInvokeExecutorFactory:
             log_consumer=log_consumer,
         )
 
+    def _create_stepfunctions_boto_executor(
+        self,
+        cfn_resource_summary: CloudFormationResourceSummary,
+        remote_invoke_output_format: RemoteInvokeOutputFormat,
+        response_consumer: RemoteInvokeConsumer[RemoteInvokeResponse],
+        log_consumer: RemoteInvokeConsumer[RemoteInvokeLogOutput],
+    ):
+        """Creates a remote invoke executor for Step Functions resource type based on
+        the boto action being called.
+
+        :param cfn_resource_summary: Information about the Lambda resource
+        :param remote_invoke_output_format: Response output format
+        :param response_consumer: Consumer for writing responses to stdout
+        :param log_consumer: Log consumer for writing logs to stderr
+
+        :return: Returns the created remote invoke Executor
+        """
+        LOG.info(f"Invoking Step Function {cfn_resource_summary.logical_resource_id}")
+        sfn_client = self._boto_client_provider("stepfunctions")
+        mappers = []
+        if remote_invoke_output_format == RemoteInvokeOutputFormat.JSON:
+            mappers = [
+                SfnDescribeExecutionResponseConverter(),
+                ResponseObjectToJsonStringMapper(),
+            ]
+        return RemoteInvokeExecutor(
+            request_mappers=[DefaultConvertToJSON()],
+            response_mappers=mappers,
+            boto_action_executor=StepFunctionsStartExecutionExecutor(
+                sfn_client, cfn_resource_summary.physical_resource_id, remote_invoke_output_format
+            ),
+            response_consumer=response_consumer,
+            log_consumer=log_consumer,
+        )
+
     # mapping definition for each supported resource type
     REMOTE_INVOKE_EXECUTOR_MAPPING: Dict[
         str,
@@ -142,4 +179,5 @@ class RemoteInvokeExecutorFactory:
         ],
     ] = {
         AWS_LAMBDA_FUNCTION: _create_lambda_boto_executor,
+        AWS_STEPFUNCTIONS_STATEMACHINE: _create_stepfunctions_boto_executor,
     }

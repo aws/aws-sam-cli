@@ -82,7 +82,7 @@ class AbstractLambdaInvokeExecutor(BotoActionExecutor, ABC):
         except ParamValidationError as param_val_ex:
             raise InvalidResourceBotoParameterException(
                 f"Invalid parameter key provided."
-                f" {str(param_val_ex).replace('{FUNCTION_NAME}, ', '').replace('{PAYLOAD}, ', '')}"
+                f" {str(param_val_ex).replace(f'{FUNCTION_NAME}, ', '').replace(f'{PAYLOAD}, ', '')}"
             ) from param_val_ex
         except ClientError as client_ex:
             if boto_utils.get_client_error_code(client_ex) == "ValidationException":
