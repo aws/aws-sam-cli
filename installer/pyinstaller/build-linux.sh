@@ -26,7 +26,7 @@ else
     is_nightly="false"
 fi
 
-set -eu
+set -eux
 
 yum install -y zlib-devel libffi-devel bzip2-devel
 

@@ -45,7 +45,7 @@ else
     is_nightly="false"
 fi
 
-set -eu
+set -eux
 
 echo "Making Folders"
 mkdir -p .build/src
