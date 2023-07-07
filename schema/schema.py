@@ -39,7 +39,7 @@ def format_param(param: click.core.Option) -> Dict[str, Any]:
     elif param.type.name == "LIST":
         formatted_param["type"] = "array"
     else:
-        formatted_param["type"] = param.type.name
+        formatted_param["type"] = param.type.name or "string"
 
     if param.default:
         formatted_param["default"] = list(param.default) if isinstance(param.default, tuple) else param.default
@@ -127,7 +127,7 @@ def write_schema():
     """Generate the SAM CLI JSON schema and write it to file."""
     schema = generate_schema()
     with open(SchemaKeys.SCHEMA_FILE_NAME.value, "w+", encoding="utf-8") as outfile:
-        json.dump(schema, outfile)
+        json.dump(schema, outfile, indent=2)
 
 
 if __name__ == "__main__":
