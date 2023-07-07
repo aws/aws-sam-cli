@@ -457,6 +457,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "localhost",
                 "127.0.0.1",
                 ("image",),
+                None,
             )
 
     @patch("samcli.commands.local.start_lambda.cli.do_cli")
@@ -1006,6 +1007,7 @@ class TestSamConfigForAllCommands(TestCase):
                 {"a": "tag1", "b": "tag with spaces"},
                 {"m1": "value1", "m2": "value2"},
                 True,
+                (),
                 "samconfig.toml",
                 "default",
                 None,

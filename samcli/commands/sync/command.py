@@ -1,7 +1,7 @@
 """CLI command for "sync" command."""
 import logging
 import os
-from typing import TYPE_CHECKING, List, Optional, Set
+from typing import TYPE_CHECKING, List, Optional, Set, Tuple
 
 import click
 
@@ -18,8 +18,10 @@ from samcli.commands._utils.constants import (
     DEFAULT_CACHE_DIR,
 )
 from samcli.commands._utils.custom_options.replace_help_option import ReplaceHelpSummaryOption
+from samcli.commands._utils.option_value_processor import process_image_options
 from samcli.commands._utils.options import (
     base_dir_option,
+    build_image_option,
     capabilities_option,
     image_repositories_option,
     image_repository_option,
@@ -35,6 +37,7 @@ from samcli.commands._utils.options import (
     template_option_without_build,
     use_container_build_option,
 )
+from samcli.commands.build.click_container import ContainerOptions
 from samcli.commands.build.command import _get_mode_value_from_envvar
 from samcli.commands.sync.core.command import SyncCommand
 from samcli.commands.sync.sync_context import SyncContext
@@ -155,6 +158,7 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 @stack_name_option(required=True)  # pylint: disable=E1120
 @base_dir_option
 @use_container_build_option
+@build_image_option(cls=ContainerOptions)
 @image_repository_option
 @image_repositories_option
 @s3_bucket_option(disable_callback=True)  # pylint: disable=E1120
@@ -202,6 +206,7 @@ def cli(
     use_container: bool,
     config_file: str,
     config_env: str,
+    build_image: Optional[Tuple[str]],
 ) -> None:
     """
     `sam sync` command entry point
@@ -234,6 +239,7 @@ def cli(
         tags,
         metadata,
         use_container,
+        build_image,
         config_file,
         config_env,
         None,  # TODO: replace with build_in_source once it's added as a click option
@@ -265,6 +271,7 @@ def do_cli(
     tags: dict,
     metadata: dict,
     use_container: bool,
+    build_image: Optional[Tuple[str]],
     config_file: str,
     config_env: str,
     build_in_source: Optional[bool],
@@ -303,6 +310,8 @@ def do_cli(
     LOG.debug("Using build directory as %s", build_dir)
     EventTracker.track_event("UsedFeature", "Accelerate")
 
+    processed_build_images = process_image_options(build_image)
+
     with BuildContext(
         resource_identifier=None,
         template_file=template_file,
@@ -320,6 +329,7 @@ def do_cli(
         print_success_message=False,
         locate_layer_nested=True,
         build_in_source=build_in_source,
+        build_images=processed_build_images,
     ) as build_context:
         built_template = os.path.join(build_dir, DEFAULT_TEMPLATE_NAME)
 

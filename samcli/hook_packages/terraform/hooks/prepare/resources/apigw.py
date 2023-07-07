@@ -66,7 +66,7 @@ def _unsupported_reference_field(field: str, resource: Dict, config_resource: TF
         False otherwise
     """
     return bool(
-        not resource.get(field)
+        not (resource.get(field) or resource.get("values", {}).get(field))
         and config_resource.attributes.get(field)
         and isinstance(config_resource.attributes.get(field), References)
     )
