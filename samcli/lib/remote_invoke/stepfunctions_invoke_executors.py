@@ -11,6 +11,7 @@ from samcli.lib.remote_invoke.exceptions import (
 )
 from samcli.lib.remote_invoke.remote_invoke_executors import (
     BotoActionExecutor,
+    RemoteInvokeIterableResponseType,
     RemoteInvokeLogOutput,
     RemoteInvokeOutputFormat,
     RemoteInvokeRequestResponseMapper,
@@ -55,7 +56,7 @@ class StepFunctionsStartExecutionExecutor(BotoActionExecutor):
             timestamp = str(int(time.time() * 1000))
             self.request_parameters["name"] = f"sam_remote_invoke_{timestamp}"
 
-    def _execute_action(self, payload: str):
+    def _execute_action(self, payload: str) -> RemoteInvokeIterableResponseType:
         self.request_parameters[INPUT] = payload
         self.request_parameters[STATE_MACHINE_ARN] = self._state_machine_arn
         LOG.debug(
@@ -68,9 +69,12 @@ class StepFunctionsStartExecutionExecutor(BotoActionExecutor):
             start_execution_response = self._stepfunctions_client.start_execution(**self.request_parameters)
             execution_arn = start_execution_response.get(EXECUTION_ARN)
 
-            describe_execution_response = self._stepfunctions_client.describe_execution(executionArn=execution_arn)
-            while describe_execution_response["status"] == RUNNING:
+            execution_status = RUNNING
+            while execution_status == RUNNING:
                 describe_execution_response = self._stepfunctions_client.describe_execution(executionArn=execution_arn)
+                execution_status = describe_execution_response["status"]
+                execution_arn = describe_execution_response["executionArn"]
+                LOG.debug(f"ExecutionArn: {execution_arn}, status: {execution_status}")
                 time.sleep(SFN_EXECUTION_WAIT_TIME)
 
             if self._remote_output_format == RemoteInvokeOutputFormat.JSON:
@@ -109,7 +113,7 @@ class SfnDescribeExecutionResponseConverter(RemoteInvokeRequestResponseMapper[Re
         start_date_field = remote_invoke_input.response.get("startDate")
         stop_date_field = remote_invoke_input.response.get("stopDate")
         if start_date_field:
-            remote_invoke_input.response["startDate"] = start_date_field.strftime("%m/%d/%Y")
+            remote_invoke_input.response["startDate"] = start_date_field.strftime("%m/%d/%Y, %H:%M:%S")
         if stop_date_field:
-            remote_invoke_input.response["stopDate"] = stop_date_field.strftime("%m/%d/%Y")
+            remote_invoke_input.response["stopDate"] = stop_date_field.strftime("%m/%d/%Y, %H:%M:%S")
         return remote_invoke_input
