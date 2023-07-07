@@ -1,5 +1,6 @@
 chevron~=0.12
-click~=8.0
+# 8.1.4 of Click has an issue with the typing breaking the linter - https://github.com/pallets/click/issues/2558
+click~=8.0,!=8.1.4
 Flask<2.3
 #Need to add latest lambda changes which will return invoke mode details
 boto3>=1.26.109,==1.*
@@ -7,7 +8,7 @@ jmespath~=1.0.1
 ruamel_yaml~=0.17.32
 PyYAML>=5.4.1,==5.*
 cookiecutter~=2.1.1
-aws-sam-translator==1.70.0
+aws-sam-translator==1.71.0
 #docker minor version updates can include breaking changes. Auto update micro version only.
 docker~=6.1.0
 dateparser~=1.1
@@ -18,6 +19,8 @@ tomlkit==0.11.8
 watchdog==2.1.2
 rich~=13.3.3
 pyopenssl~=23.2.0
+# Pin to <4.18 to until SAM-T no longer uses RefResolver
+jsonschema<4.18
 
 # Needed for supporting Protocol in Python 3.7, Protocol class became public with python3.8
 typing_extensions~=4.4.0
