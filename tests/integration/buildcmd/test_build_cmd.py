@@ -1879,7 +1879,6 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
             use_container=use_container, parameter_overrides=overrides, cached=True, beta_features=self.beta_features
         )
 
-        LOG.info("Running Command: %s", cmdlist)
         # Built using `native` python-pip builder for a python project.
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
@@ -2061,7 +2060,7 @@ class TestParallelBuilds(DedupBuildIntegBase):
             use_container=use_container, parameter_overrides=overrides, parallel=True, beta_features=self.beta_features
         )
 
-        LOG.info("Running Command: %s", cmdlist)
+
         # Built using `native` python-pip builder for a python project.
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
@@ -2291,7 +2290,6 @@ class TestBuildWithNestedStacks(NestedBuildIntegBase):
             use_container=use_container, parameter_overrides=overrides, cached=cached, parallel=parallel
         )
 
-        LOG.info("Running Command: %s", cmdlist)
         LOG.info(self.working_dir)
 
         command_result = run_command(cmdlist, cwd=self.working_dir)
@@ -2363,8 +2361,6 @@ class TestBuildWithNestedStacks3Level(NestedBuildIntegBase):
             parallel=True,
             base_dir=(os.path.join(self.test_data_path, "base-dir") if self.use_base_dir else None),
         )
-
-        LOG.info("Running Command: %s", cmdlist)
         LOG.info(self.working_dir)
 
         command_result = run_command(cmdlist, cwd=self.working_dir)
@@ -2425,7 +2421,6 @@ class TestBuildWithNestedStacks3LevelWithSymlink(NestedBuildIntegBase):
 
         cmdlist = self.get_command_list(use_container=True, cached=True, parallel=True)
 
-        LOG.info("Running Command: %s", cmdlist)
         LOG.info(self.working_dir)
 
         command_result = run_command(cmdlist, cwd=self.working_dir)
@@ -2521,7 +2516,6 @@ class TestBuildWithNestedStacksImage(NestedBuildIntegBase):
             base_dir=(os.path.join(self.test_data_path, "base-dir-image") if self.use_base_dir else None),
         )
 
-        LOG.info("Running Command: %s", cmdlist)
         LOG.info(self.working_dir)
 
         command_result = run_command(cmdlist, cwd=self.working_dir)
@@ -2636,7 +2630,6 @@ class TestBuildPassingLayerAcrossStacks(IntrinsicIntegBase):
             parallel=True,
         )
 
-        LOG.info("Running Command: %s", cmdlist)
         LOG.info(self.working_dir)
 
         command_result = run_command(cmdlist, cwd=self.working_dir)
@@ -2676,7 +2669,6 @@ class TestBuildWithS3FunctionsOrLayers(NestedBuildIntegBase):
             use_container=True,
         )
 
-        LOG.info("Running Command: %s", cmdlist)
         LOG.info(self.working_dir)
 
         command_result = run_command(cmdlist, cwd=self.working_dir)
@@ -2709,7 +2701,6 @@ class TestBuildWithZipFunctionsOrLayers(NestedBuildIntegBase):
             use_container=True,
         )
 
-        LOG.info("Running Command: %s", cmdlist)
         LOG.info(self.working_dir)
 
         command_result = run_command(cmdlist, cwd=self.working_dir)
@@ -2756,7 +2747,6 @@ class TestBuildSAR(BuildIntegBase):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
         cmdlist = self.get_command_list(use_container=use_container, region=region)
-        LOG.info("Running Command: %s", cmdlist)
         LOG.info(self.working_dir)
         process_execute = run_command(cmdlist, cwd=self.working_dir)
 
@@ -2778,7 +2768,6 @@ class TestBuildWithLanguageExtensions(BuildIntegBase):
 
     def test_validation_does_not_error_out(self):
         cmdlist = self.get_command_list()
-        LOG.info("Running Command: %s", cmdlist)
         LOG.info(self.working_dir)
         process_execute = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(process_execute.process.returncode, 0)
