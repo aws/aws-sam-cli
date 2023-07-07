@@ -57,6 +57,7 @@ class TestDoCli(TestCase):
         self.clean = True
         self.config_env = "mock-default-env"
         self.config_file = "mock-default-filename"
+        self.build_image = None
         MOCK_SAM_CONFIG.reset_mock()
 
     @parameterized.expand(
@@ -141,6 +142,7 @@ class TestDoCli(TestCase):
             self.tags,
             self.metadata,
             use_container,
+            self.build_image,
             self.config_file,
             self.config_env,
             build_in_source=False,
@@ -167,6 +169,7 @@ class TestDoCli(TestCase):
             print_success_message=False,
             locate_layer_nested=True,
             build_in_source=False,
+            build_images={},
         )
 
         PackageContextMock.assert_called_with(
@@ -298,6 +301,7 @@ class TestDoCli(TestCase):
             self.tags,
             self.metadata,
             use_container,
+            self.build_image,
             self.config_file,
             self.config_env,
             build_in_source=False,
@@ -320,6 +324,7 @@ class TestDoCli(TestCase):
             print_success_message=False,
             locate_layer_nested=True,
             build_in_source=False,
+            build_images={},
         )
 
         PackageContextMock.assert_called_with(
@@ -443,6 +448,7 @@ class TestDoCli(TestCase):
             self.tags,
             self.metadata,
             use_container,
+            self.build_image,
             self.config_file,
             self.config_env,
             build_in_source=None,

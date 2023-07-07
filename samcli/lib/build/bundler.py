@@ -12,6 +12,7 @@ from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 
 LOG = logging.getLogger(__name__)
 
+LAYER_PREFIX = "/opt"
 ESBUILD_PROPERTY = "esbuild"
 
 
@@ -156,6 +157,9 @@ class EsbuildBundlerManager:
         handler_filename = self._get_path_and_filename_from_handler(handler)
         if not handler_filename:
             LOG.debug("Unable to parse handler, continuing without post-processing template.")
+            return False
+        if handler_filename.startswith(LAYER_PREFIX):
+            LOG.debug("Skipping updating the handler path as it is pointing to a layer.")
             return False
         expected_artifact_path = Path(self._build_dir, name, handler_filename)
         return not expected_artifact_path.is_file()
