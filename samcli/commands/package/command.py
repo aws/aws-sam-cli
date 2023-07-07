@@ -67,7 +67,7 @@ DESCRIPTION = """
     description=DESCRIPTION,
     requires_credentials=True,
 )
-@configuration_option(provider=TomlProvider(section="parameters"))
+@configuration_option(provider=ConfigProvider(section="parameters"))
 @template_click_option(include_build=True)
 @click.option(
     "--output-template-file",

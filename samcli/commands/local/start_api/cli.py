@@ -58,7 +58,7 @@ DESCRIPTION = """
     requires_credentials=False,
     context_settings={"max_content_width": 120},
 )
-@configuration_option(provider=TomlProvider(section="parameters"))
+@configuration_option(provider=ConfigProvider(section="parameters"))
 @hook_name_click_option(
     force_prepare=False, invalid_coexist_options=["t", "template-file", "template", "parameter-overrides"]
 )

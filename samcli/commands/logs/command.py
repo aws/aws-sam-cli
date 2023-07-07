@@ -49,7 +49,7 @@ DESCRIPTION = """
     description=DESCRIPTION,
     requires_credentials=True,
 )
-@configuration_option(provider=TomlProvider(section="parameters"))
+@configuration_option(provider=ConfigProvider(section="parameters"))
 @click.option(
     "--name",
     "-n",
