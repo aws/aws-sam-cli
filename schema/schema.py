@@ -2,7 +2,7 @@
 
 
 import importlib
-from typing import Dict, List, Union
+from typing import Dict, List, Optional, Union
 
 import click
 
@@ -10,7 +10,7 @@ from samcli.cli.command import _SAM_CLI_COMMAND_PACKAGES
 from samcli.lib.config.samconfig import SamConfig
 
 
-def format_param(param: click.core.Option) -> Dict[str, Union[str, List[str]]]:
+def format_param(param: click.core.Option) -> Dict[str, Union[Optional[str], List[str]]]:
     """Format a click Option parameter to a dictionary object.
 
     A parameter object should contain the following information that will be
@@ -22,7 +22,7 @@ def format_param(param: click.core.Option) -> Dict[str, Union[str, List[str]]]:
                        a list of those allowed options
     * default - The default option for that parameter
     """
-    formatted_param = {"name": param.name, "help": param.help}
+    formatted_param: Dict[str, Union[Optional[str], List[str]]] = {"name": param.name, "help": param.help}
 
     # NOTE: Params do not have explicit "string" type; either "text" or "path".
     #       All choice options are from a set of strings.
@@ -32,10 +32,10 @@ def format_param(param: click.core.Option) -> Dict[str, Union[str, List[str]]]:
         formatted_param["type"] = param.type.name
 
     if param.default:
-        formatted_param["default"] = param.default
+        formatted_param["default"] = str(param.default)
 
-    if param.type.name == "choice":
-        formatted_param["choices"] = param.type.choices
+    if param.type.name == "choice" and isinstance(param.type, click.Choice):
+        formatted_param["choices"] = list(param.type.choices)
 
     return formatted_param
 
@@ -88,7 +88,7 @@ def generate_schema() -> dict:
     dict
         A dictionary representation of the JSON schema.
     """
-    schema = {}
+    schema: dict = {}
     commands = {}
     params = set()  # NOTE(leogama): Currently unused due to some params having different help values
     # TODO: Populate schema with relevant attributes
