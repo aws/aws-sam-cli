@@ -25,6 +25,7 @@ INFRASTRUCTURE_OPTION_NAMES: List[str] = [
     "notification_arns",
     "tags",
     "metadata",
+    "build_image",
 ]
 
 CONFIGURATION_OPTION_NAMES: List[str] = ["config_env", "config_file"]
