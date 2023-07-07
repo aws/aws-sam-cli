@@ -174,7 +174,7 @@ class ContainerManager:
             for _ in result_itr:
                 # For every line, print a dot to show progress
                 stream_writer.write_str(".")
-                # stream_writer.flush()
+                stream_writer.flush()
 
             # We are done. Go to the next line
             stream_writer.write_str("\n")

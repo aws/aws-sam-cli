@@ -446,29 +446,25 @@ class Container:
             # Iterator returns a tuple of (stdout, stderr)
             for stdout_data, stderr_data in output_itr:
                 if stdout_data and stdout:
-                    if isinstance(stdout, StreamWriter):
-                        stdout.write_bytes(stdout_data)
-                        stdout.flush()
-
-                    if isinstance(stdout, io.BytesIO):
-                        stdout.write(stdout_data)
-
-                    if isinstance(stdout, io.TextIOWrapper):
-                        stdout.buffer.write(stdout_data)
+                    Container._handle_data_writing(stdout, stdout_data)
 
                 if stderr_data and stderr:
-                    if isinstance(stderr, StreamWriter):
-                        stderr.write_bytes(stderr_data)
-                        stderr.flush()
-
-                    if isinstance(stderr, io.BytesIO):
-                        stderr.write(stderr_data)
-
-                    if isinstance(stderr, io.TextIOWrapper):
-                        stderr.buffer.write(stderr_data)
+                    Container._handle_data_writing(stderr, stderr_data)
 
         except Exception as ex:
             LOG.debug("Failed to get the logs from the container", exc_info=ex)
+
+    @staticmethod
+    def _handle_data_writing(output_stream: Union[StreamWriter, io.BytesIO, io.TextIOWrapper], output_data: bytes):
+        if isinstance(output_stream, StreamWriter):
+            output_stream.write_bytes(output_data)
+            output_stream.flush()
+
+        if isinstance(output_stream, io.BytesIO):
+            output_stream.write(output_data)
+
+        if isinstance(output_stream, io.TextIOWrapper):
+            output_stream.buffer.write(output_data)
 
     @property
     def network_id(self):

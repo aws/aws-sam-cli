@@ -291,7 +291,7 @@ class TestSamPython37HelloWorldIntegration(InvokeIntegBase):
         self.assertEqual(process.returncode, 0)
         self.assertEqual("{}", process_stdout.decode("utf-8"))
 
-    # @pytest.mark.flaky(reruns=3)
+    @pytest.mark.flaky(reruns=3)
     def test_invoke_returns_utf8(self):
         command_list = InvokeIntegBase.get_command_list(
             "EchoEventFunction", template_path=self.template_path, event_path=self.event_utf8_path
