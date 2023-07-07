@@ -40,6 +40,7 @@ class TestRESTAPITranslationValidator(TestCase):
     @parameterized.expand(
         [
             ({"field": "a"}, TFResource("address", "", Mock(), {}), False),
+            ({"values": {"field": "a"}}, TFResource("address", "", Mock(), {}), False),
             ({}, TFResource("address", "", Mock(), {"field": ConstantValue("a")}), False),
             ({}, TFResource("address", "", Mock(), {"field": References(["a"])}), True),
         ]
