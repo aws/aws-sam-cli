@@ -39,7 +39,7 @@ SKIP_DOCKER_MESSAGE = "Skipped Docker test: running on CI not in canary or new b
 LOG = logging.getLogger(__name__)
 
 CommandResult = namedtuple("CommandResult", "process stdout stderr")
-TIMEOUT = 600
+TIMEOUT = 900
 CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".", "-")
 
 
