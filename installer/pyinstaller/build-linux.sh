@@ -83,6 +83,7 @@ cp -r ./venv/lib/python*/site-packages/* ./output/python-libraries
 
 echo "Installing PyInstaller"
 ./venv/bin/pip install -r src/requirements/pyinstaller-build.txt
+./venv/bin/pip check
 
 echo "Building Binary"
 cd src
