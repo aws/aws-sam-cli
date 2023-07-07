@@ -26,7 +26,7 @@ else
     is_nightly="false"
 fi
 
-set -eu
+set -eux
 
 yum install -y zlib-devel libffi-devel bzip2-devel
 
@@ -83,6 +83,7 @@ cp -r ./venv/lib/python*/site-packages/* ./output/python-libraries
 
 echo "Installing PyInstaller"
 ./venv/bin/pip install -r src/requirements/pyinstaller-build.txt
+./venv/bin/pip check
 
 echo "Building Binary"
 cd src
