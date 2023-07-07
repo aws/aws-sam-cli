@@ -317,6 +317,7 @@ jsonschema==4.17.3 \
     --hash=sha256:0f864437ab8b6076ba6707453ef8f98a6a0d512a80e93f8abdb676f737ecb60d \
     --hash=sha256:a870ad254da1a8ca84b6a2905cac29d265f805acc57af304784962a2aa6508f6
     # via
+    #   aws-sam-cli (setup.py)
     #   aws-sam-translator
     #   cfn-lint
 junit-xml==1.9 \
