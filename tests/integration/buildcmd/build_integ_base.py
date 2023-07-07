@@ -830,7 +830,8 @@ class BuildIntegProvidedBase(BuildIntegBase):
         self.assertEqual(actual_files, expected_files)
 
     def _get_python_version(self):
-        return "python{}.{}".format(sys.version_info.major, sys.version_info.minor)
+        # don't use the system version as we might be testing with a python version which is not supported by lambda
+        return "python3.10"
 
 
 class DedupBuildIntegBase(BuildIntegBase):
