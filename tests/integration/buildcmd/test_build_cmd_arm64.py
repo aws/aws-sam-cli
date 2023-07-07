@@ -26,7 +26,7 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture_arm64(
             ("python3.8", "Python", "use_container", "arm64"),
         ]
     )
-    @pytest.mark.flaky(reruns=3)
+    # @pytest.mark.flaky(reruns=3)
     def test_with_default_requirements(self, runtime, codeuri, use_container, architecture):
         self._test_with_default_requirements(
             runtime, codeuri, use_container, self.test_data_path, architecture=architecture
@@ -49,7 +49,7 @@ class TestBuildCommand_EsbuildFunctions_arm64(TestBuildCommand_EsbuildFunctions)
             ),
         ]
     )
-    @pytest.mark.flaky(reruns=3)
+    # @pytest.mark.flaky(reruns=3)
     def test_building_default_package_json(
         self, runtime, code_uri, expected_files, handler, use_container, architecture
     ):
@@ -95,7 +95,7 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(
             ),
         ]
     )
-    @pytest.mark.flaky(reruns=3)
+    # @pytest.mark.flaky(reruns=3)
     def test_building_default_package_json(
         self, runtime, code_uri, expected_files, handler, use_container, architecture
     ):
@@ -117,20 +117,20 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture_arm64(
             ("nodejs18.x", "use_container", "arm64"),
         ]
     )
-    @pytest.mark.flaky(reruns=3)
+    #@pytest.mark.flaky(reruns=3)
     def test_building_default_package_json(self, runtime, use_container, architecture):
         self._test_with_default_package_json(runtime, use_container, self.test_data_path, architecture)
 
 
 class TestBuildCommand_RubyFunctions_With_Architecture_arm64(TestBuildCommand_RubyFunctions_With_Architecture):
     @parameterized.expand([("ruby2.7", "arm64"), ("ruby3.2", "arm64")])
-    @pytest.mark.flaky(reruns=3)
+    #@pytest.mark.flaky(reruns=3)
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_building_ruby_in_container_with_specified_architecture(self, runtime, architecture):
         self._test_with_default_gemfile(runtime, "use_container", "Ruby", self.test_data_path, architecture)
 
     @parameterized.expand([("ruby2.7", "arm64"), ("ruby3.2", "arm64")])
-    @pytest.mark.flaky(reruns=3)
+    #@pytest.mark.flaky(reruns=3)
     def test_building_ruby_in_process_with_specified_architecture(self, runtime, architecture):
         self._test_with_default_gemfile(runtime, False, "Ruby", self.test_data_path, architecture)
 
@@ -256,7 +256,7 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
         ]
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
-    @pytest.mark.flaky(reruns=3)
+    #@pytest.mark.flaky(reruns=3)
     def test_building_java_in_container_with_arm64_architecture(
         self, runtime, runtime_version, code_path, expected_files, expected_dependencies, architecture
     ):
@@ -302,7 +302,7 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
             ),
         ]
     )
-    @pytest.mark.flaky(reruns=3)
+    #@pytest.mark.flaky(reruns=3)
     def test_building_java8_in_process_with_arm_architecture(
         self, runtime, code_path, expected_files, expected_dependencies, architecture
     ):
@@ -342,7 +342,7 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
             ("java11", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES, "arm64"),
         ]
     )
-    @pytest.mark.flaky(reruns=3)
+    #@pytest.mark.flaky(reruns=3)
     def test_building_java11_in_process_with_arm_architecture(
         self, runtime, code_path, expected_files, expected_dependencies, architecture
     ):
@@ -382,7 +382,7 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
             ("java17", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES, "arm64"),
         ]
     )
-    @pytest.mark.flaky(reruns=3)
+    #@pytest.mark.flaky(reruns=3)
     def test_building_java17_in_process_with_arm_architecture(
         self, runtime, code_path, expected_files, expected_dependencies, architecture
     ):
@@ -406,7 +406,7 @@ class TestBuildCommand_Go_Modules_With_Specified_Architecture_arm64(
             ("go1.x", "Go", "debug", "arm64"),
         ]
     )
-    @pytest.mark.flaky(reruns=3)
+    #@pytest.mark.flaky(reruns=3)
     def test_building_go(self, runtime, code_uri, mode, architecture):
         self._test_with_go(runtime, code_uri, mode, self.test_data_path, architecture)
 
@@ -427,6 +427,6 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture_arm64(Build
             ("provided.al2", "use_container", "Makefile-container", "arm64"),
         ]
     )
-    @pytest.mark.flaky(reruns=3)
+    #@pytest.mark.flaky(reruns=3)
     def test_building_Makefile(self, runtime, use_container, manifest, architecture):
         self._test_with_Makefile(runtime, use_container, manifest, architecture)
