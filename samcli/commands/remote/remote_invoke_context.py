@@ -71,7 +71,7 @@ class RemoteInvokeContext:
         """
         Instantiates remote invoke executor with populated resource summary information, executes it with the provided
         input & returns its response back to the caller. If resource is not supported by command, raises
-        ResourceNotForRemoteInvoke exception.
+        ResourceNotSupportedForRemoteInvoke exception.
 
         Parameters
         ----------
