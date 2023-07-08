@@ -28,7 +28,7 @@ SHORT_HELP = "Generates the required AWS resources to connect your CI/CD system.
 
 HELP_TEXT = """
 This command generates the required AWS infrastructure resources to connect to your CI/CD system.
-This step must be run for each deployment stage in your pipeline, prior to running the sam pipline init command.
+This step must be run for each deployment stage in your pipeline, prior to running the sam pipeline init command.
 """
 
 PIPELINE_CONFIG_DIR = os.path.join(".aws-sam", "pipeline")

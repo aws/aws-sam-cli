@@ -20,6 +20,7 @@ from samcli.commands._utils.options import (
     manifest_option,
     cached_option,
     use_container_build_option,
+    build_image_option,
     hook_name_click_option,
 )
 from samcli.commands._utils.option_value_processor import process_env_var, process_image_options
@@ -94,21 +95,7 @@ DESCRIPTION = """
     help="Environment variables json file (e.g., env_vars.json) to be passed to build containers.",
     cls=ContainerOptions,
 )
-@click.option(
-    "--build-image",
-    "-bi",
-    default=None,
-    multiple=True,  # Can pass in multiple build images
-    required=False,
-    help="Container image URIs for building functions/layers. "
-    "You can specify for all functions/layers with just the image URI "
-    "(--build-image public.ecr.aws/sam/build-nodejs18.x:latest). "
-    "You can specify for each individual function with "
-    "(--build-image FunctionLogicalID=public.ecr.aws/sam/build-nodejs18.x:latest). "
-    "A combination of the two can be used. If a function does not have build image specified or "
-    "an image URI for all functions, the default SAM CLI build images will be used.",
-    cls=ContainerOptions,
-)
+@build_image_option(cls=ContainerOptions)
 @click.option(
     "--exclude",
     "-x",
