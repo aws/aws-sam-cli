@@ -50,11 +50,7 @@ LOG = logging.getLogger(__name__)
 SKIP_SAR_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 
 
-@skipIf(
-    # Hits public ECR pull limitation, move it to canary tests
-    (not RUN_BY_CANARY and not CI_OVERRIDE),
-    "Skip build tests on windows when running in CI unless overridden",
-)
+@skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
 class TestBuildingImageTypeLambdaDockerFileFailures(BuildIntegBase):
     template = "template_image.yaml"
 
