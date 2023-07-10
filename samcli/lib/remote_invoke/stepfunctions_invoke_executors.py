@@ -4,7 +4,7 @@ Remote invoke executor implementation for Step Functions
 import logging
 import time
 from datetime import datetime
-from typing import Any, cast
+from typing import cast
 
 from botocore.exceptions import ClientError, ParamValidationError
 from mypy_boto3_stepfunctions import SFNClient
@@ -25,7 +25,6 @@ from samcli.lib.remote_invoke.remote_invoke_executors import (
 
 LOG = logging.getLogger(__name__)
 STATE_MACHINE_ARN = "stateMachineArn"
-EXECUTION_ARN = "executionArn"
 INPUT = "input"
 RUNNING = "RUNNING"
 SFN_EXECUTION_WAIT_TIME = 2
@@ -44,7 +43,9 @@ class StepFunctionsStartExecutionExecutor(BotoActionExecutor):
     _remote_output_format: RemoteInvokeOutputFormat
     request_parameters: dict
 
-    def __init__(self, stepfunctions_client: Any, physical_id: str, remote_output_format: RemoteInvokeOutputFormat):
+    def __init__(
+        self, stepfunctions_client: SFNClient, physical_id: str, remote_output_format: RemoteInvokeOutputFormat
+    ):
         self._stepfunctions_client = stepfunctions_client
         self._remote_output_format = remote_output_format
         self._state_machine_arn = physical_id
@@ -96,7 +97,7 @@ class StepFunctionsStartExecutionExecutor(BotoActionExecutor):
         )
         try:
             start_execution_response = self._stepfunctions_client.start_execution(**self.request_parameters)
-            execution_arn = cast(str, start_execution_response.get(EXECUTION_ARN))
+            execution_arn = start_execution_response["executionArn"]
 
             execution_status = RUNNING
             while execution_status == RUNNING:

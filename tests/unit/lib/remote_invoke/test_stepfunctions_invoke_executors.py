@@ -42,7 +42,7 @@ class TestStepFunctionsStartExecutionExecutor(TestCase):
             "status": "SUCCEEDED",
             "output": '{"output_key": "mock_output"}',
         }
-        self.stepfunctions_client.start_execution.return_value = {"stateMachineArn": mock_exec_arn}
+        self.stepfunctions_client.start_execution.return_value = {"executionArn": mock_exec_arn}
         self.stepfunctions_client.describe_execution.side_effect = [
             {"executionArn": mock_exec_arn, "status": "RUNNING"},
             mock_response,
@@ -69,7 +69,7 @@ class TestStepFunctionsStartExecutionExecutor(TestCase):
         mock_cause = "Execution failed due to mock error"
         given_input = '{"input_key": "value"}'
         mock_response = {"executionArn": mock_exec_arn, "status": "FAILED", "error": mock_error, "cause": mock_cause}
-        self.stepfunctions_client.start_execution.return_value = {"stateMachineArn": mock_exec_arn}
+        self.stepfunctions_client.start_execution.return_value = {"executionArn": mock_exec_arn}
         self.stepfunctions_client.describe_execution.side_effect = [
             {"executionArn": mock_exec_arn, "status": "RUNNING"},
             mock_response,

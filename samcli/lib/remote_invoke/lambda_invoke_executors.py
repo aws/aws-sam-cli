@@ -6,7 +6,7 @@ import json
 import logging
 from abc import ABC, abstractmethod
 from json import JSONDecodeError
-from typing import Any, cast
+from typing import cast
 
 from botocore.eventstream import EventStream
 from botocore.exceptions import ClientError, ParamValidationError
@@ -51,7 +51,7 @@ class AbstractLambdaInvokeExecutor(BotoActionExecutor, ABC):
     _function_name: str
     _remote_output_format: RemoteInvokeOutputFormat
 
-    def __init__(self, lambda_client: Any, function_name: str, remote_output_format: RemoteInvokeOutputFormat):
+    def __init__(self, lambda_client: LambdaClient, function_name: str, remote_output_format: RemoteInvokeOutputFormat):
         self._lambda_client = lambda_client
         self._function_name = function_name
         self._remote_output_format = remote_output_format
@@ -219,7 +219,7 @@ class LambdaStreamResponseConverter(RemoteInvokeRequestResponseMapper):
         return remote_invoke_input
 
 
-def _is_function_invoke_mode_response_stream(lambda_client: Any, function_name: str):
+def _is_function_invoke_mode_response_stream(lambda_client: LambdaClient, function_name: str):
     """
     Returns True if given function has RESPONSE_STREAM as InvokeMode, False otherwise
     """
