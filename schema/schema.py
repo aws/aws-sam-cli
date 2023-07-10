@@ -34,12 +34,13 @@ def format_param(param: click.core.Option) -> Dict[str, Any]:
 
     # NOTE: Params do not have explicit "string" type; either "text" or "path".
     #       All choice options are from a set of strings.
-    if param.type.name.lower() in ["text", "path", "choice", "filename", "directory"]:
+    param_type = param.type.name.lower()
+    if param_type in ["text", "path", "choice", "filename", "directory"]:
         formatted_param["type"] = "string"
-    elif param.type.name.lower() == "list":
+    elif param_type == "list":
         formatted_param["type"] = "array"
     else:
-        formatted_param["type"] = param.type.name.lower() or "string"
+        formatted_param["type"] = param_type or "string"
 
     if param.default:
         formatted_param["default"] = list(param.default) if isinstance(param.default, tuple) else param.default
