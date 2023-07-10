@@ -4,9 +4,7 @@ from unittest.mock import patch, Mock
 
 from parameterized import parameterized
 
-from samcli.lib.remote_invoke.remote_invoke_executor_factory import (
-    RemoteInvokeExecutorFactory,
-)
+from samcli.lib.remote_invoke.remote_invoke_executor_factory import RemoteInvokeExecutorFactory, AWS_LAMBDA_FUNCTION
 from samcli.lib.remote_invoke.remote_invoke_executors import RemoteInvokeOutputFormat
 
 
@@ -14,6 +12,12 @@ class TestRemoteInvokeExecutorFactory(TestCase):
     def setUp(self) -> None:
         self.boto_client_provider_mock = Mock()
         self.remote_invoke_executor_factory = RemoteInvokeExecutorFactory(self.boto_client_provider_mock)
+
+    def test_supported_resource_executors(self):
+        supported_executors = self.remote_invoke_executor_factory.REMOTE_INVOKE_EXECUTOR_MAPPING
+        self.assertEqual(1, len(supported_executors))
+        expected_executors = {AWS_LAMBDA_FUNCTION}
+        self.assertEqual(expected_executors, set(supported_executors.keys()))
 
     @patch(
         "samcli.lib.remote_invoke.remote_invoke_executor_factory.RemoteInvokeExecutorFactory.REMOTE_INVOKE_EXECUTOR_MAPPING"
