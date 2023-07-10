@@ -92,9 +92,9 @@ class RemoteInvokeContext:
             DefaultRemoteInvokeResponseConsumer(self.stdout),
             DefaultRemoteInvokeLogConsumer(self.stderr),
         )
-        if not remote_invoke_executor or self._resource_summary.resource_type not in SUPPORTED_SERVICES.values():
+        if not remote_invoke_executor:
             raise ResourceNotSupportedForRemoteInvoke(
-                f"Resource type {self._resource_summary.resource_type} is not supported for remote invoke"
+                f"Resource type {self._resource_summary.resource_type} is not supported for remote invoke."
             )
 
         remote_invoke_executor.execute(remote_invoke_input)

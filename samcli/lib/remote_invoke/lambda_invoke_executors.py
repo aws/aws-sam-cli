@@ -11,6 +11,7 @@ from typing import Any, cast
 from botocore.eventstream import EventStream
 from botocore.exceptions import ClientError, ParamValidationError
 from botocore.response import StreamingBody
+from mypy_boto3_lambda.client import LambdaClient
 
 from samcli.lib.remote_invoke.exceptions import (
     ErrorBotoApiCallException,
@@ -46,7 +47,7 @@ class AbstractLambdaInvokeExecutor(BotoActionExecutor, ABC):
     For Payload parameter, if a file location provided, the file handle will be passed as Payload object
     """
 
-    _lambda_client: Any
+    _lambda_client: LambdaClient
     _function_name: str
     _remote_output_format: RemoteInvokeOutputFormat
 
@@ -60,7 +61,10 @@ class AbstractLambdaInvokeExecutor(BotoActionExecutor, ABC):
         """
         Validates the input boto parameters and prepares the parameters for calling the API.
 
-        :param parameters: Boto parameters provided as input
+        Parameters
+        ----------
+        parameters: dict
+            Boto parameters provided as input
         """
         for parameter_key, parameter_value in parameters.items():
             if parameter_key == FUNCTION_NAME:

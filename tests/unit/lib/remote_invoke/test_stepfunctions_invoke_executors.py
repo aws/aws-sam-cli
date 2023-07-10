@@ -81,29 +81,29 @@ class TestStepFunctionsStartExecutionExecutor(TestCase):
         if self.output == RemoteInvokeOutputFormat.JSON:
             self.assertEqual(list(result), [RemoteInvokeResponse(mock_response)])
         else:
-            self.assertEqual(list(result), [RemoteInvokeResponse(""), RemoteInvokeLogOutput(expected_response)])
+            self.assertEqual(list(result), [RemoteInvokeLogOutput(expected_response)])
 
     @parameterized.expand(
         [
-            ({}, {"name": "sam_remote_invoke_123456789"}),
+            ({}, {"name": "sam_remote_invoke_20230710T072625"}),
             ({"name": "custom_execution_name"}, {"name": "custom_execution_name"}),
             (
                 {"traceHeader": "Mock X-Ray trace header"},
-                {"traceHeader": "Mock X-Ray trace header", "name": "sam_remote_invoke_123456789"},
+                {"traceHeader": "Mock X-Ray trace header", "name": "sam_remote_invoke_20230710T072625"},
             ),
             (
                 {"stateMachineArn": "ParameterProvidedArn", "input": "ParameterProvidedInput"},
-                {"name": "sam_remote_invoke_123456789"},
+                {"name": "sam_remote_invoke_20230710T072625"},
             ),
             (
                 {"invalidParameterKey": "invalidParameterValue"},
-                {"invalidParameterKey": "invalidParameterValue", "name": "sam_remote_invoke_123456789"},
+                {"invalidParameterKey": "invalidParameterValue", "name": "sam_remote_invoke_20230710T072625"},
             ),
         ]
     )
-    @patch("samcli.lib.remote_invoke.stepfunctions_invoke_executors.time")
-    def test_validate_action_parameters(self, parameters, expected_boto_parameters, patched_time):
-        patched_time.time.return_value = 123456.789
+    @patch("samcli.lib.remote_invoke.stepfunctions_invoke_executors.datetime")
+    def test_validate_action_parameters(self, parameters, expected_boto_parameters, patched_datetime):
+        patched_datetime.now.return_value = datetime(2023, 7, 10, 7, 26, 25)
         self.stepfunctions_invoke_executor.validate_action_parameters(parameters)
         self.assertEqual(self.stepfunctions_invoke_executor.request_parameters, expected_boto_parameters)
 
@@ -144,8 +144,8 @@ class TestSfnDescribeExecutionResponseConverter(TestCase):
 
         expected_result = {
             "output": given_output_string,
-            "startDate": "12/25/2022, 00:00:00",
-            "stopDate": "12/25/2022, 00:00:00",
+            "startDate": "2022-12-25 00:00:00.000000",
+            "stopDate": "2022-12-25 00:00:00.000000",
         }
 
         result = self.sfn_response_converter.map(remote_invoke_execution_info)
