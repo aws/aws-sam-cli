@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import os
 
 from typing import List
@@ -25,9 +27,11 @@ class EndToEndBase(InitIntegBase, StackOutputsIntegBase, DeleteIntegBase, SyncIn
 
     def setUp(self):
         super().setUp()
+        e2e_dir = Path(__file__).resolve().parent
         self.stacks = []
         self.config_file_dir = GlobalConfig().config_dir
         self._create_config_dir()
+        self.e2e_test_data_path = Path(e2e_dir, "testdata")
 
     def _create_config_dir(self):
         # Init tests will lock the config dir, ensure it exists before obtaining a lock

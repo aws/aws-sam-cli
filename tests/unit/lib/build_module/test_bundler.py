@@ -195,6 +195,13 @@ class PostProcessHandler(TestCase):
         return_val = bundler_manager._should_update_handler("", "")
         self.assertFalse(return_val)
 
+    def test_should_not_update_layer_path(self):
+        bundler_manager = EsbuildBundlerManager(Mock(), build_dir="/build/dir")
+        bundler_manager._get_path_and_filename_from_handler = Mock()
+        bundler_manager._get_path_and_filename_from_handler.return_value = "/opt/nodejs/node_modules/d/handler.handler"
+        return_val = bundler_manager._should_update_handler("", "")
+        self.assertFalse(return_val)
+
     def test_update_function_handler(self):
         resources = {
             "FunctionA": {

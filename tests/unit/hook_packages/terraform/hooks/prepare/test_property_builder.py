@@ -1,10 +1,12 @@
 """Test Terraform property builder"""
+import json
 from unittest.mock import patch, Mock, call
 from parameterized import parameterized
 
 from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     _build_code_property,
     REMOTE_DUMMY_VALUE,
+    _get_json_body,
     _get_property_extractor,
     _build_lambda_function_environment_property,
     _build_lambda_function_image_config_property,
@@ -194,3 +196,21 @@ class TestTerraformPropBuilder(PrepareHookUnitBase):
         f"aws_lambda_function resource in the terraform plan output, but there are {len(image_config)} items"
         with self.assertRaises(PrepareHookException, msg=expected_message):
             _check_image_config_value(image_config)
+
+    def test_get_json_body(self):
+        body_object = {"foo": "bar"}
+
+        result = _get_json_body({"body": json.dumps(body_object)}, Mock())
+
+        self.assertEqual(result, body_object)
+
+    @parameterized.expand(
+        [
+            (Mock(),),  # wrong type
+            ("not valid json",),  # not valid json
+        ]
+    )
+    def test_get_json_body_invalid(self, invalid_value):
+        result = _get_json_body({"body": invalid_value}, Mock())
+
+        self.assertEqual(result, invalid_value)

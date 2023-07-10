@@ -686,7 +686,7 @@ class LocalApigwService(BaseLocalService):
 
             LOG.warning(
                 "Failed to find a Function to invoke a Lambda authorizer, verify that "
-                "this Function exists locally if it is not a remote resource."
+                "this Function is defined and exists locally in the template."
             )
         except Exception as ex:
             # re-raise the catch all exception after we track it in our telemetry
