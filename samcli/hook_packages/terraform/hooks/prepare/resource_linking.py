@@ -64,6 +64,24 @@ DATA_RESOURCE_ADDRESS_PREFIX = "data."
 LOG = logging.getLogger(__name__)
 
 
+def _default_tf_destination_value_id_extractor(value: str) -> str:
+    """
+    The default function to extract the Terraform destination resource id from the linking property value. The logic of
+    this function is to return the same input value.
+
+    Parameters
+    ----------
+    value: str
+        linking property value
+
+    Returns
+    --------
+    str:
+        the extracted destination resource value.
+    """
+    return value
+
+
 @dataclass
 class ReferenceType:
     """
@@ -110,6 +128,10 @@ class ResourceLinkingPair:
     terraform_resource_type_prefix: str
     cfn_resource_update_call_back_function: Callable[[Dict, List[ReferenceType]], None]
     linking_exceptions: ResourcePairExceptions
+    # function to extract the terraform destination value from the linking field value
+    tf_destination_value_extractor_from_link_field_value_function: Callable[
+        [str], str
+    ] = _default_tf_destination_value_id_extractor
 
 
 class ResourceLinker:
@@ -273,6 +295,12 @@ class ResourceLinker:
         # make the resource values as a list to make processing easier.
         if not isinstance(values, List):
             values = [values]
+
+        # loop on the linking field values and call the Logical Id extractor function to extrac the destination resource
+        # logical id.
+        values = [
+            self._resource_pair.tf_destination_value_extractor_from_link_field_value_function(value) for value in values
+        ]
 
         # build map between the destination linking field property values, and resources' logical ids
         child_resources_linking_attributes_logical_id_mapping = {}
@@ -1713,11 +1741,34 @@ def _link_gateway_v2_route_to_integration_callback(
         return
 
     logical_id = gateway_v2_integration_resources[0]
-    gateway_v2_route_cfn_resource["Properties"]["Target"] = (
-        {"Fn::Join": ["/", ["integrations", {"Ref": logical_id.value}]]}
-        if isinstance(logical_id, LogicalIdReference)
-        else logical_id.value
-    )
+    if isinstance(logical_id, LogicalIdReference):
+        gateway_v2_route_cfn_resource["Properties"]["Target"] = {
+            "Fn::Join": ["/", ["integrations", {"Ref": logical_id.value}]]
+        }
+    elif not logical_id.value.startswith("integrations/"):
+        gateway_v2_route_cfn_resource["Properties"]["Target"] = f"integrations/{logical_id.value}"
+    else:
+        gateway_v2_route_cfn_resource["Properties"]["Target"] = logical_id.value
+
+
+def _extract_gateway_v2_integration_id_from_route_target_value(value: str) -> str:
+    """
+    Function to extract the Gateway V2 Integration id value from the Gateway V2 Route resource target property value.
+    The Route Target value should be in the format `integrations/<Gateway Ve Integration resource id>`
+
+    Parameters
+    ----------
+    value: str
+        Gateway V2 Route target property value
+
+    Returns
+    --------
+    str:
+        The Gateway V2 integration id extracted from the route target property
+    """
+    if value.startswith("integrations/"):
+        return value[len("integrations/") :]
+    return value
 
 
 def _link_gateway_v2_route_to_integration(
@@ -1753,5 +1804,6 @@ def _link_gateway_v2_route_to_integration(
         terraform_resource_type_prefix=API_GATEWAY_V2_INTEGRATION_RESOURCE_ADDRESS_PREFIX,
         cfn_resource_update_call_back_function=_link_gateway_v2_route_to_integration_callback,
         linking_exceptions=exceptions,
+        tf_destination_value_extractor_from_link_field_value_function=_extract_gateway_v2_integration_id_from_route_target_value,
     )
     ResourceLinker(resource_linking_pair).link_resources()
