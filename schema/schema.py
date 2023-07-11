@@ -13,9 +13,10 @@ from samcli.lib.config.samconfig import SamConfig
 
 
 class SchemaKeys(Enum):
-    SCHEMA_FILE_NAME = "samcli.json"
+    SCHEMA_FILE_NAME = "schema/samcli.json"
     SCHEMA_DRAFT = "http://json-schema.org/draft-04/schema"
     TITLE = "AWS SAM CLI samconfig schema"
+    ENVIRONMENT_REGEX = "^.+$"
 
 
 def format_param(param: click.core.Option) -> Dict[str, Any]:
@@ -51,15 +52,14 @@ def format_param(param: click.core.Option) -> Dict[str, Any]:
     return formatted_param
 
 
-def get_params_from_command(cli, main_command_name: str = "") -> Dict[str, dict]:
+def get_params_from_command(cli) -> Dict[str, dict]:
     """Given a command CLI, return it in a dictionary, pointing to its parameters as dictionary objects."""
     params = [
         param
         for param in cli.params
         if param.name and isinstance(param, click.core.Option)  # exclude None and non-Options
     ]
-    cmd_name = SamConfig.to_key([main_command_name, cli.name]) if main_command_name else cli.name
-    return {cmd_name: {param.name: format_param(param) for param in params}}
+    return {param.name: format_param(param) for param in params if param.name}
 
 
 def retrieve_command_structure(package_name: str) -> Dict[str, dict]:
@@ -80,14 +80,13 @@ def retrieve_command_structure(package_name: str) -> Dict[str, dict]:
 
     if isinstance(module.cli, click.core.Group):  # command has subcommands (e.g. local invoke)
         for subcommand in module.cli.commands.values():
+            cmd_name = SamConfig.to_key([module.__name__.split(".")[-1], str(subcommand.name)])
             command.update(
-                get_params_from_command(
-                    subcommand,
-                    module.__name__.split(".")[-1],  # if Group CLI, get last section of module name for cmd name
-                )
+                {cmd_name: {"description": subcommand.help, "parameters": get_params_from_command(subcommand)}}
             )
     else:
-        command.update(get_params_from_command(module.cli))
+        cmd_name = SamConfig.to_key([module.__name__.split(".")[-1]])
+        command.update({cmd_name: {"description": module.cli.help, "parameters": get_params_from_command(module.cli)}})
     return command
 
 
@@ -109,7 +108,7 @@ def generate_schema() -> dict:
     schema["type"] = "object"
     schema["properties"] = {
         # Version number required for samconfig files to be valid
-        "version": {"type": "number"}
+        "version": {"title": "Config version", "type": "number", "default": 0.1}
     }
     schema["required"] = ["version"]
     schema["additionalProperties"] = False
@@ -117,10 +116,57 @@ def generate_schema() -> dict:
     for package_name in _SAM_CLI_COMMAND_PACKAGES:
         new_command = retrieve_command_structure(package_name)
         commands.update(new_command)
-        for param_list in new_command.values():
+    for cmd_properties in commands.values():
+        for param_list in cmd_properties["parameters"].values():
             command_params = [param for param in param_list]
         params.update(command_params)
-    # TODO: Generate schema for each of the commands
+    # Generate schema for each of the commands
+    schema["patternProperties"] = {SchemaKeys.ENVIRONMENT_REGEX.value: {"title": "Environment", "properties": {}}}
+    COMMANDS_TO_EXCLUDE = [  # TEMPORARY: for use only while generating piece-by-piece
+        "deploy",
+        "build",
+        "local",
+        "validate",
+        "package",
+        "init",
+        "delete",
+        "bootstrap",
+        "list",
+        "traces",
+        "sync",
+        "publish",
+        "pipeline",
+        "logs",
+        "remote",
+    ]
+    for cmd_name, cmd_items in commands.items():
+        full_cmd_name = cmd_name.split("_")
+        formatted_cmd_name = " ".join(full_cmd_name)
+        exclude_params = full_cmd_name[0] in COMMANDS_TO_EXCLUDE
+        formatted_params_list = (
+            "* "
+            + "\n* ".join([f"{param['title']}:\n{param['description']}" for param in cmd_items["parameters"].values()])
+            if not exclude_params
+            else ""
+        )
+        param_description = f"Available parameters for the {formatted_cmd_name} command:\n{formatted_params_list}"
+        schema["patternProperties"][SchemaKeys.ENVIRONMENT_REGEX.value]["properties"].update(
+            {
+                cmd_name: {
+                    "title": f"{' '.join(full_cmd_name).title()} command",
+                    "description": cmd_items["description"] or "",
+                    "properties": {
+                        "parameters": {
+                            "title": f"Parameters for the {formatted_cmd_name} command",
+                            "description": param_description,
+                            "type": "object",
+                            "properties": cmd_items["parameters"] if not exclude_params else {},
+                        },
+                    },
+                    "required": ["parameters"],
+                }
+            }
+        )
     return schema
 
 
@@ -132,4 +178,4 @@ def write_schema():
 
 
 if __name__ == "__main__":
-    generate_schema()
+    write_schema()

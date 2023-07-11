@@ -1,0 +1,338 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema",
+  "title": "AWS SAM CLI samconfig schema",
+  "type": "object",
+  "properties": {
+    "version": {
+      "title": "Config version",
+      "type": "number",
+      "default": 0.1
+    }
+  },
+  "required": [
+    "version"
+  ],
+  "additionalProperties": false,
+  "patternProperties": {
+    "^.+$": {
+      "title": "Environment",
+      "properties": {
+        "init": {
+          "title": "Init command",
+          "description": "",
+          "properties": {
+            "parameters": {
+              "title": "Parameters for the init command",
+              "description": "Available parameters for the init command:\n",
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "required": [
+            "parameters"
+          ]
+        },
+        "validate": {
+          "title": "Validate command",
+          "description": "Validate an AWS SAM Template.",
+          "properties": {
+            "parameters": {
+              "title": "Parameters for the validate command",
+              "description": "Available parameters for the validate command:\n",
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "required": [
+            "parameters"
+          ]
+        },
+        "build": {
+          "title": "Build command",
+          "description": "\n    Build AWS serverless function code.\n",
+          "properties": {
+            "parameters": {
+              "title": "Parameters for the build command",
+              "description": "Available parameters for the build command:\n",
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "required": [
+            "parameters"
+          ]
+        },
+        "local_invoke": {
+          "title": "Local Invoke command",
+          "description": "\n    Invoke AWS serverless functions locally.\n",
+          "properties": {
+            "parameters": {
+              "title": "Parameters for the local invoke command",
+              "description": "Available parameters for the local invoke command:\n",
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "required": [
+            "parameters"
+          ]
+        },
+        "local_start_api": {
+          "title": "Local Start Api command",
+          "description": "\nRun & test AWS serverless functions locally as a HTTP API.\n",
+          "properties": {
+            "parameters": {
+              "title": "Parameters for the local start api command",
+              "description": "Available parameters for the local start api command:\n",
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "required": [
+            "parameters"
+          ]
+        },
+        "local_generate_event": {
+          "title": "Local Generate Event command",
+          "description": "Generate events for Lambda functions.",
+          "properties": {
+            "parameters": {
+              "title": "Parameters for the local generate event command",
+              "description": "Available parameters for the local generate event command:\n",
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "required": [
+            "parameters"
+          ]
+        },
+        "local_start_lambda": {
+          "title": "Local Start Lambda command",
+          "description": "\nEmulate AWS serverless functions locally.\n",
+          "properties": {
+            "parameters": {
+              "title": "Parameters for the local start lambda command",
+              "description": "Available parameters for the local start lambda command:\n",
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "required": [
+            "parameters"
+          ]
+        },
+        "package": {
+          "title": "Package command",
+          "description": "Package an AWS SAM application.",
+          "properties": {
+            "parameters": {
+              "title": "Parameters for the package command",
+              "description": "Available parameters for the package command:\n",
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "required": [
+            "parameters"
+          ]
+        },
+        "deploy": {
+          "title": "Deploy command",
+          "description": "The sam deploy command creates a Cloudformation Stack and deploys your resources.",
+          "properties": {
+            "parameters": {
+              "title": "Parameters for the deploy command",
+              "description": "Available parameters for the deploy command:\n",
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "required": [
+            "parameters"
+          ]
+        },
+        "delete": {
+          "title": "Delete command",
+          "description": "The sam delete command deletes the CloudFormation\nstack and all the artifacts which were created using sam deploy.\n\n\b\ne.g. sam delete\n\n\b\n",
+          "properties": {
+            "parameters": {
+              "title": "Parameters for the delete command",
+              "description": "Available parameters for the delete command:\n",
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "required": [
+            "parameters"
+          ]
+        },
+        "logs": {
+          "title": "Logs command",
+          "description": "\nThe sam logs commands fetches logs of Lambda Functions/CloudWatch log groups\nwith additional filtering by options.\n",
+          "properties": {
+            "parameters": {
+              "title": "Parameters for the logs command",
+              "description": "Available parameters for the logs command:\n",
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "required": [
+            "parameters"
+          ]
+        },
+        "publish": {
+          "title": "Publish command",
+          "description": "\nUse this command to publish a packaged AWS SAM template to\nthe AWS Serverless Application Repository to share within your team,\nacross your organization, or with the community at large.\n\n\b\nThis command expects the template's Metadata section to contain an\nAWS::ServerlessRepo::Application section with application metadata\nfor publishing. For more details on this metadata section, see\nhttps://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-template-publishing-applications.html\n\b\nExamples\n--------\nTo publish an application\n$ sam publish -t packaged.yaml --region <region>\n",
+          "properties": {
+            "parameters": {
+              "title": "Parameters for the publish command",
+              "description": "Available parameters for the publish command:\n",
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "required": [
+            "parameters"
+          ]
+        },
+        "traces": {
+          "title": "Traces command",
+          "description": "\nUse this command to fetch AWS X-Ray traces generated by your stack.\n\n\b\nRun the following command to fetch X-Ray traces by ID.\n$ sam traces --trace-id tracing-id-1 --trace-id tracing-id-2\n\b\nRun the following command to tail X-Ray traces as they become available.\n$ sam traces --tail\n",
+          "properties": {
+            "parameters": {
+              "title": "Parameters for the traces command",
+              "description": "Available parameters for the traces command:\n",
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "required": [
+            "parameters"
+          ]
+        },
+        "sync": {
+          "title": "Sync command",
+          "description": "\n  NEW! Sync an AWS SAM Project to AWS.\n\n",
+          "properties": {
+            "parameters": {
+              "title": "Parameters for the sync command",
+              "description": "Available parameters for the sync command:\n",
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "required": [
+            "parameters"
+          ]
+        },
+        "pipeline_bootstrap": {
+          "title": "Pipeline Bootstrap command",
+          "description": "\nThis command generates the required AWS infrastructure resources to connect to your CI/CD system.\nThis step must be run for each deployment stage in your pipeline, prior to running the sam pipline init command.\n",
+          "properties": {
+            "parameters": {
+              "title": "Parameters for the pipeline bootstrap command",
+              "description": "Available parameters for the pipeline bootstrap command:\n",
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "required": [
+            "parameters"
+          ]
+        },
+        "pipeline_init": {
+          "title": "Pipeline Init command",
+          "description": "\nThis command generates a pipeline configuration file that your CI/CD system can use to deploy\nserverless applications using AWS SAM.\n\nBefore using sam pipeline init, you must bootstrap the necessary resources for each stage in your pipeline.\nYou can do this by running sam pipeline init --bootstrap to be guided through the setup and configuration\nfile generation process, or refer to resources you have previously created with the sam pipeline bootstrap command.\n",
+          "properties": {
+            "parameters": {
+              "title": "Parameters for the pipeline init command",
+              "description": "Available parameters for the pipeline init command:\n",
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "required": [
+            "parameters"
+          ]
+        },
+        "list_resources": {
+          "title": "List Resources command",
+          "description": "\nGet a list of resources that will be deployed to CloudFormation.\n\nIf a stack name is provided, the corresponding physical IDs of each\nresource will be mapped to the logical ID of each resource.\n",
+          "properties": {
+            "parameters": {
+              "title": "Parameters for the list resources command",
+              "description": "Available parameters for the list resources command:\n",
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "required": [
+            "parameters"
+          ]
+        },
+        "list_stack_outputs": {
+          "title": "List Stack Outputs command",
+          "description": "\nGet the stack outputs as defined in the SAM/CloudFormation template.\n",
+          "properties": {
+            "parameters": {
+              "title": "Parameters for the list stack outputs command",
+              "description": "Available parameters for the list stack outputs command:\n",
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "required": [
+            "parameters"
+          ]
+        },
+        "list_endpoints": {
+          "title": "List Endpoints command",
+          "description": "\nGet a summary of the cloud endpoints in the stack.\n\nThis command will show both the cloud and local endpoints that can\nbe used with sam local and sam sync. Currently the endpoint resources\nare Lambda functions and API Gateway API resources.\n",
+          "properties": {
+            "parameters": {
+              "title": "Parameters for the list endpoints command",
+              "description": "Available parameters for the list endpoints command:\n",
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "required": [
+            "parameters"
+          ]
+        },
+        "docs": {
+          "title": "Docs command",
+          "description": "NEW! Open the documentation in a browser.",
+          "properties": {
+            "parameters": {
+              "title": "Parameters for the docs command",
+              "description": "Available parameters for the docs command:\n* ",
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "required": [
+            "parameters"
+          ]
+        },
+        "remote_invoke": {
+          "title": "Remote Invoke command",
+          "description": "\nInvoke or send an event to resources in the cloud.\n",
+          "properties": {
+            "parameters": {
+              "title": "Parameters for the remote invoke command",
+              "description": "Available parameters for the remote invoke command:\n",
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "required": [
+            "parameters"
+          ]
+        }
+      }
+    }
+  }
+}
