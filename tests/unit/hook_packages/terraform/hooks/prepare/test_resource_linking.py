@@ -2563,7 +2563,7 @@ class TestResourceLinker(TestCase):
         _link_gateway_v2_integration_to_lambda_function_callback(gateway_resource, logical_ids)
         input_gateway_v2_integration["Properties"]["IntegrationUri"] = expected_route
         self.assertEqual(gateway_resource, input_gateway_v2_integration)
-    
+
     @parameterized.expand(
         [
             ("integrations/invokeArn", "invokeArn"),
