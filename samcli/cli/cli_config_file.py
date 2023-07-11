@@ -322,7 +322,7 @@ def decorator_customize_config_file(f: Callable) -> Callable:
     config_file_attrs: Dict[str, Any] = {}
     config_file_param_decls = ("--config-file",)
     config_file_attrs["help"] = "Configuration file containing default parameter values."
-    config_file_attrs["default"] = "samconfig.toml"
+    config_file_attrs["default"] = DEFAULT_CONFIG_FILE_NAME
     config_file_attrs["show_default"] = True
     config_file_attrs["is_eager"] = True
     config_file_attrs["required"] = False
@@ -348,7 +348,7 @@ def decorator_customize_config_env(f: Callable) -> Callable:
     config_env_attrs: Dict[str, Any] = {}
     config_env_param_decls = ("--config-env",)
     config_env_attrs["help"] = "Environment name specifying default parameter values in the configuration file."
-    config_env_attrs["default"] = "default"
+    config_env_attrs["default"] = DEFAULT_ENV
     config_env_attrs["show_default"] = True
     config_env_attrs["is_eager"] = True
     config_env_attrs["required"] = False
