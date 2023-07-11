@@ -34,7 +34,8 @@ from samcli.local.common.runtime_template import (
 )
 
 LOG = logging.getLogger(__name__)
-APP_TEMPLATES_REPO_COMMIT = configuration.get_app_template_repo_commit()
+APP_TEMPLATES_REPO_COMMIT = os.environ.get("SAM_CLI_DEV_INIT_COMMIT", configuration.get_app_template_repo_commit())
+
 MANIFEST_URL = (
     f"https://raw.githubusercontent.com/aws/aws-sam-cli-app-templates/{APP_TEMPLATES_REPO_COMMIT}/manifest-v2.json"
 )
