@@ -415,7 +415,7 @@ class ApplicationBuilder:
 
         try:
             (build_image, build_logs) = self._docker_client.images.build(**build_args)
-            LOG.debug("%s image is built for %s function", function_name, build_image)
+            LOG.debug("%s image is built for %s function", build_image, function_name)
         except docker.errors.BuildError as ex:
             LOG.error("Failed building function %s", function_name)
             raise DockerBuildFailed(str(ex)) from ex
