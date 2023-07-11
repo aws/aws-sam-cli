@@ -81,7 +81,7 @@ class SwaggerParser:
         authorizers: Dict[str, Authorizer] = {}
 
         authorizer_dict = {}
-        document_version = self.swagger.get(SwaggerParser._SWAGGER) or self.swagger.get(SwaggerParser._OPENAPI) or ""
+        document_version = self._get_document_version()
 
         if document_version.startswith(SwaggerParser._2_X_VERSION):
             LOG.debug("Parsing Swagger document using 2.0 specification")
@@ -240,6 +240,19 @@ class SwaggerParser:
 
         return identity_sources
 
+    def _get_document_version(self) -> str:
+        """
+        Helper method to fetch the Swagger document version
+
+        Returns
+        -------
+        str
+            A string representing a version, blank if not found
+        """
+        document_version = self.swagger.get(SwaggerParser._SWAGGER) or self.swagger.get(SwaggerParser._OPENAPI) or ""
+
+        return str(document_version)
+
     def get_default_authorizer(self, event_type: str) -> Union[str, None]:
         """
         Parses the body definition to find root level Authorizer definitions
@@ -254,7 +267,7 @@ class SwaggerParser:
         Union[str, None]
             Returns the name of the authorizer, if there is one defined, otherwise None
         """
-        document_version = self.swagger.get(SwaggerParser._SWAGGER) or self.swagger.get(SwaggerParser._OPENAPI) or ""
+        document_version = self._get_document_version()
         authorizers = self.swagger.get(SwaggerParser._SWAGGER_SECURITY, [])
 
         if not authorizers:
