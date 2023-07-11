@@ -20,7 +20,7 @@ class UnsupportedServiceForRemoteInvoke(UserException):
     pass
 
 
-class NoExecutorFoundForRemoteInvoke(UserException):
+class ResourceNotSupportedForRemoteInvoke(UserException):
     pass
 
 
