@@ -90,6 +90,7 @@ from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     _link_gateway_v2_route_to_integration_callback,
     _link_gateway_v2_integration_to_lambda_function_callback,
     _link_gateway_v2_integration_to_lambda_function,
+    _extract_gateway_v2_integration_id_from_route_target_value,
 )
 from samcli.hook_packages.terraform.hooks.prepare.utilities import get_configuration_address
 from samcli.hook_packages.terraform.hooks.prepare.types import (
@@ -2396,6 +2397,9 @@ class TestResourceLinker(TestCase):
         mock_resource_linker.assert_called_once_with(mock_resource_linking_pair())
 
     @patch(
+        "samcli.hook_packages.terraform.hooks.prepare.resource_linking._extract_gateway_v2_integration_id_from_route_target_value"
+    )
+    @patch(
         "samcli.hook_packages.terraform.hooks.prepare.resource_linking._link_gateway_v2_route_to_integration_callback"
     )
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.ResourceLinker")
@@ -2407,6 +2411,7 @@ class TestResourceLinker(TestCase):
         mock_resource_linking_pair,
         mock_resource_linker,
         mock_link_gateway_v2_route_to_integration_callback,
+        mock_integration_id_extractor_function,
     ):
         routes_v2_cfn_resources = Mock()
         routes_v2_config_resources = Mock()
@@ -2431,6 +2436,7 @@ class TestResourceLinker(TestCase):
             terraform_resource_type_prefix=API_GATEWAY_V2_INTEGRATION_RESOURCE_ADDRESS_PREFIX,
             cfn_resource_update_call_back_function=mock_link_gateway_v2_route_to_integration_callback,
             linking_exceptions=mock_resource_linking_exceptions(),
+            tf_destination_value_extractor_from_link_field_value_function=mock_integration_id_extractor_function,
         )
 
         mock_resource_linker.assert_called_once_with(mock_resource_linking_pair())
@@ -2451,7 +2457,15 @@ class TestResourceLinker(TestCase):
                     "Properties": {"Target": "invoke_arn"},
                 },
                 [ExistingResourceReference("invoke_arn")],
-                "invoke_arn",
+                "integrations/invoke_arn",
+            ),
+            (
+                {
+                    "Type": "AWS::ApiGatewayV2::Route",
+                    "Properties": {"Target": "invoke_arn"},
+                },
+                [ExistingResourceReference("integrations/invoke_arn")],
+                "integrations/invoke_arn",
             ),
             (
                 {
@@ -2548,4 +2562,14 @@ class TestResourceLinker(TestCase):
         gateway_resource = deepcopy(input_gateway_v2_integration)
         _link_gateway_v2_integration_to_lambda_function_callback(gateway_resource, logical_ids)
         input_gateway_v2_integration["Properties"]["IntegrationUri"] = expected_route
-        self.assertEqual(gateway_resource, input_gateway_v2_integration)
+        self.assertEqual(gateway_resource, input_gateway_v2_integration
+    
+    @parameterized.expand(
+        [
+            ("integrations/invokeArn", "invokeArn"),
+            ("invokeArn", "invokeArn"),
+        ]
+    )
+    def test_extract_gateway_v2_integration_id_from_route_target_value(self, input_value, expected_output):
+        output = _extract_gateway_v2_integration_id_from_route_target_value(input_value)
+        self.assertEqual(output, expected_output)
