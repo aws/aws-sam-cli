@@ -1,6 +1,6 @@
 chevron~=0.12
 # 8.1.4 of Click has an issue with the typing breaking the linter - https://github.com/pallets/click/issues/2558
-click~=8.0,!=8.1.4
+click~=8.1
 Flask<2.3
 #Need to add latest lambda changes which will return invoke mode details
 boto3>=1.26.109,==1.*
