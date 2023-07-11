@@ -117,6 +117,24 @@ class ApiGatewayAuthorizerProperties(ResourceProperties):
         super(ApiGatewayAuthorizerProperties, self).__init__()
 
 
+class ApiGatewayV2RouteProperties(ResourceProperties):
+    """
+    Contains the collection logic of the required properties for linking the aws_api_gateway_v2_route resources.
+    """
+
+    def __init__(self):
+        super(ApiGatewayV2RouteProperties, self).__init__()
+
+
+class ApiGatewayV2IntegrationProperties(ResourceProperties):
+    """
+    Contains the collection logic of the required properties for linking the aws_api_gateway_v2_authorizer resources.
+    """
+
+    def __init__(self):
+        super(ApiGatewayV2IntegrationProperties, self).__init__()
+
+
 def add_integrations_to_methods(
     gateway_methods_cfn: Dict[str, List], gateway_integrations_cfn: Dict[str, List]
 ) -> None:

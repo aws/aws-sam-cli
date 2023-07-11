@@ -16,6 +16,8 @@ from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     GatewayResourceToApiGatewayIntegrationResponseLocalVariablesLinkingLimitationException,
     GatewayResourceToApiGatewayMethodLocalVariablesLinkingLimitationException,
     GatewayResourceToGatewayRestApiLocalVariablesLinkingLimitationException,
+    GatewayV2IntegrationToLambdaFunctionLocalVariablesLinkingLimitationException,
+    GatewayV2RouteToGatewayV2IntegrationLocalVariablesLinkingLimitationException,
     InvalidResourceLinkingException,
     LambdaFunctionToApiGatewayIntegrationLocalVariablesLinkingLimitationException,
     LocalVariablesLinkingLimitationException,
@@ -26,6 +28,8 @@ from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     OneGatewayResourceToApiGatewayIntegrationResponseLinkingLimitationException,
     OneGatewayResourceToApiGatewayMethodLinkingLimitationException,
     OneGatewayResourceToRestApiLinkingLimitationException,
+    OneGatewayV2IntegrationToLambdaFunctionLinkingLimitationException,
+    OneGatewayV2RouteToGatewayV2IntegrationLinkingLimitationException,
     OneLambdaFunctionResourceToApiGatewayIntegrationLinkingLimitationException,
     OneLambdaLayerLinkingLimitationException,
     OneResourceLinkingLimitationException,
@@ -55,10 +59,29 @@ LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX = "aws_lambda_layer_version."
 API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX = "aws_api_gateway_rest_api."
 API_GATEWAY_RESOURCE_RESOURCE_ADDRESS_PREFIX = "aws_api_gateway_resource."
 API_GATEWAY_AUTHORIZER_RESOURCE_ADDRESS_PREFIX = "aws_api_gateway_authorizer."
+API_GATEWAY_V2_INTEGRATION_RESOURCE_ADDRESS_PREFIX = "aws_apigatewayv2_integration"
 TERRAFORM_LOCAL_VARIABLES_ADDRESS_PREFIX = "local."
 DATA_RESOURCE_ADDRESS_PREFIX = "data."
 
 LOG = logging.getLogger(__name__)
+
+
+def _default_tf_destination_value_id_extractor(value: str) -> str:
+    """
+    The default function to extract the Terraform destination resource id from the linking property value. The logic of
+    this function is to return the same input value.
+
+    Parameters
+    ----------
+    value: str
+        linking property value
+
+    Returns
+    --------
+    str:
+        the extracted destination resource value.
+    """
+    return value
 
 
 @dataclass
@@ -107,6 +130,10 @@ class ResourceLinkingPair:
     terraform_resource_type_prefix: str
     cfn_resource_update_call_back_function: Callable[[Dict, List[ReferenceType]], None]
     linking_exceptions: ResourcePairExceptions
+    # function to extract the terraform destination value from the linking field value
+    tf_destination_value_extractor_from_link_field_value_function: Callable[
+        [str], str
+    ] = _default_tf_destination_value_id_extractor
 
 
 class ResourceLinker:
@@ -270,6 +297,12 @@ class ResourceLinker:
         # make the resource values as a list to make processing easier.
         if not isinstance(values, List):
             values = [values]
+
+        # loop on the linking field values and call the Logical Id extractor function to extrac the destination resource
+        # logical id.
+        values = [
+            self._resource_pair.tf_destination_value_extractor_from_link_field_value_function(value) for value in values
+        ]
 
         # build map between the destination linking field property values, and resources' logical ids
         child_resources_linking_attributes_logical_id_mapping = {}
@@ -1678,6 +1711,184 @@ def _link_gateway_method_to_gateway_authorizer(
         cfn_link_field_name="AuthorizerId",
         terraform_resource_type_prefix=API_GATEWAY_AUTHORIZER_RESOURCE_ADDRESS_PREFIX,
         cfn_resource_update_call_back_function=_link_gateway_method_to_gateway_authorizer_call_back,
+        linking_exceptions=exceptions,
+    )
+    ResourceLinker(resource_linking_pair).link_resources()
+
+
+def _link_gateway_v2_route_to_integration_callback(
+    gateway_v2_route_cfn_resource: Dict, gateway_v2_integration_resources: List[ReferenceType]
+):
+    """
+    Callback function that is used by the linking algorithm to update a CFN V2 Route Resource with
+    a reference to the Gateway V2 integration resource
+
+    Parameters
+    ----------
+    gateway_v2_route_cfn_resource: Dict
+        API Gateway V2 Route CFN resource
+    gateway_v2_integration_resources: List[ReferenceType]
+        List of referenced Gateway V2 Integrations either as the logical id of Integration resources
+        defined in the customer project, or ARN values for actual Integration defined
+        in customer's account. This list should always contain one element only.
+    """
+    if len(gateway_v2_integration_resources) > 1:
+        raise InvalidResourceLinkingException("Could not link multiple Gateway V2 Integrations to one Gateway V2 Route")
+
+    if not gateway_v2_integration_resources:
+        LOG.info(
+            "Unable to find any references to Gateway V2 Integrations, "
+            "skip linking Gateway V2 Route to Gateway V2 Integrations"
+        )
+        return
+
+    logical_id = gateway_v2_integration_resources[0]
+    if isinstance(logical_id, LogicalIdReference):
+        gateway_v2_route_cfn_resource["Properties"]["Target"] = {
+            "Fn::Join": ["/", ["integrations", {"Ref": logical_id.value}]]
+        }
+    elif not logical_id.value.startswith("integrations/"):
+        gateway_v2_route_cfn_resource["Properties"]["Target"] = f"integrations/{logical_id.value}"
+    else:
+        gateway_v2_route_cfn_resource["Properties"]["Target"] = logical_id.value
+
+
+def _extract_gateway_v2_integration_id_from_route_target_value(value: str) -> str:
+    """
+    Function to extract the Gateway V2 Integration id value from the Gateway V2 Route resource target property value.
+    The Route Target value should be in the format `integrations/<Gateway Ve Integration resource id>`
+
+    Parameters
+    ----------
+    value: str
+        Gateway V2 Route target property value
+
+    Returns
+    --------
+    str:
+        The Gateway V2 integration id extracted from the route target property
+    """
+    if value.startswith("integrations/"):
+        return value[len("integrations/") :]
+    return value
+
+
+def _link_gateway_v2_route_to_integration(
+    gateway_route_config_resources: Dict[str, TFResource],
+    gateway_route_config_address_cfn_resources_map: Dict[str, List],
+    integration_resources: Dict[str, Dict],
+) -> None:
+    """
+    Iterate through all the resources and link the corresponding
+    Gateway V2 Route resources to each Gateway V2 Integration
+
+    Parameters
+    ----------
+    gateway_route_config_resources: Dict[str, TFResource]
+        Dictionary of configuration Gateway Routes
+    gateway_route_config_address_cfn_resources_map: Dict[str, List]
+        Dictionary containing resolved configuration addresses matched up to the cfn Gateway Route
+    integration_resources: Dict[str, Dict]
+        Dictionary of all Terraform Gateway V2 integration resources (not configuration resources).
+        The dictionary's key is the calculated logical id for each resource.
+    """
+    exceptions = ResourcePairExceptions(
+        multiple_resource_linking_exception=OneGatewayV2RouteToGatewayV2IntegrationLinkingLimitationException,
+        local_variable_linking_exception=GatewayV2RouteToGatewayV2IntegrationLocalVariablesLinkingLimitationException,
+    )
+    resource_linking_pair = ResourceLinkingPair(
+        source_resource_cfn_resource=gateway_route_config_address_cfn_resources_map,
+        source_resource_tf_config=gateway_route_config_resources,
+        destination_resource_tf=integration_resources,
+        tf_destination_attribute_name="id",
+        terraform_link_field_name="target",
+        cfn_link_field_name="Target",
+        terraform_resource_type_prefix=API_GATEWAY_V2_INTEGRATION_RESOURCE_ADDRESS_PREFIX,
+        cfn_resource_update_call_back_function=_link_gateway_v2_route_to_integration_callback,
+        linking_exceptions=exceptions,
+        tf_destination_value_extractor_from_link_field_value_function=_extract_gateway_v2_integration_id_from_route_target_value,
+    )
+    ResourceLinker(resource_linking_pair).link_resources()
+
+
+def _link_gateway_v2_integration_to_lambda_function_callback(
+    gateway_v2_integration_cfn_resource: Dict, lambda_function_resources: List[ReferenceType]
+):
+    """
+    Callback function that is used by the linking algorithm to update a CFN V2 Route Resource with a reference to
+    the Gateway V2 integration resource
+
+    Parameters
+    ----------
+    gateway_v2_integration_cfn_resource: Dict
+        API Gateway V2 Integration CFN resource
+    lambda_function_resources: List[ReferenceType]
+        List of referenced lambda function either as the logical id of Integration resources
+        defined in the customer project, or the invocation ARN values for actual functions defined
+        in customer's account. This list should always contain one element only.
+    """
+    if len(lambda_function_resources) > 1:
+        raise InvalidResourceLinkingException("Could not link multiple lambda functions to one Gateway V2 Integration")
+
+    if not lambda_function_resources:
+        LOG.info(
+            "Unable to find any references to Lambda functions, skip linking Gateway V2 Integration to Lambda Functions"
+        )
+        return
+
+    logical_id = lambda_function_resources[0]
+    gateway_v2_integration_cfn_resource["Properties"]["IntegrationUri"] = (
+        {
+            "Fn::Join": [
+                "",
+                [
+                    "arn:",
+                    {"Ref": "AWS::Partition"},
+                    ":apigateway:",
+                    {"Ref": "AWS::Region"},
+                    ":lambda:path/2015-03-31/functions/",
+                    {"Fn::GetAtt": [logical_id.value, "Arn"]},
+                    "/invocations",
+                ],
+            ]
+        }
+        if isinstance(logical_id, LogicalIdReference)
+        else logical_id.value
+    )
+
+
+def _link_gateway_v2_integration_to_lambda_function(
+    v2_gateway_integration_config_resources: Dict[str, TFResource],
+    v2_gateway_integration_config_address_cfn_resources_map: Dict[str, List],
+    lambda_functions_resources: Dict[str, Dict],
+) -> None:
+    """
+    Iterate through all the resources and link the corresponding
+    Gateway V2 integration resources to each lambda functions
+
+    Parameters
+    ----------
+    v2_gateway_integration_config_resources: Dict[str, TFResource]
+        Dictionary of configuration Gateway Integrations
+    v2_gateway_integration_config_address_cfn_resources_map: Dict[str, List]
+        Dictionary containing resolved configuration addresses matched up to the cfn Gateway Integration
+    lambda_functions_resources: Dict[str, Dict]
+        Dictionary of all Terraform lambda functions resources (not configuration resources).
+        The dictionary's key is the calculated logical id for each resource.
+    """
+    exceptions = ResourcePairExceptions(
+        multiple_resource_linking_exception=OneGatewayV2IntegrationToLambdaFunctionLinkingLimitationException,
+        local_variable_linking_exception=GatewayV2IntegrationToLambdaFunctionLocalVariablesLinkingLimitationException,
+    )
+    resource_linking_pair = ResourceLinkingPair(
+        source_resource_cfn_resource=v2_gateway_integration_config_address_cfn_resources_map,
+        source_resource_tf_config=v2_gateway_integration_config_resources,
+        destination_resource_tf=lambda_functions_resources,
+        tf_destination_attribute_name="invoke_arn",
+        terraform_link_field_name="integration_uri",
+        cfn_link_field_name="IntegrationUri",
+        terraform_resource_type_prefix=LAMBDA_FUNCTION_RESOURCE_ADDRESS_PREFIX,
+        cfn_resource_update_call_back_function=_link_gateway_v2_integration_to_lambda_function_callback,
         linking_exceptions=exceptions,
     )
     ResourceLinker(resource_linking_pair).link_resources()

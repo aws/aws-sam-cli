@@ -26,6 +26,8 @@ from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     AWS_API_GATEWAY_INTEGRATION_RESPONSE_PROPERTY_BUILDER_MAPPING,
     AWS_API_GATEWAY_V2_API_PROPERTY_BUILDER_MAPPING,
     AWS_API_GATEWAY_V2_ROUTE_PROPERTY_BUILDER_MAPPING,
+    AWS_API_GATEWAY_V2_STAGE_PROPERTY_BUILDER_MAPPING,
+    AWS_API_GATEWAY_V2_INTEGRATION_PROPERTY_BUILDER_MAPPING,
 )
 from samcli.hook_packages.terraform.hooks.prepare.types import (
     SamMetadataResource,
@@ -1126,11 +1128,23 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         )
         self.assertEqual(translated_cfn_properties, self.expected_cfn_apigwv2_api_quick_create_properties)
 
-    def test_translating_apigwv2_route_quick_create(self):
+    def test_translating_apigwv2_route(self):
         translated_cfn_properties = _translate_properties(
             self.tf_apigwv2_route_properties, AWS_API_GATEWAY_V2_ROUTE_PROPERTY_BUILDER_MAPPING, Mock()
         )
         self.assertEqual(translated_cfn_properties, self.expected_cfn_apigwv2_route_properties)
+
+    def test_translating_apigwv2_stage(self):
+        translated_cfn_properties = _translate_properties(
+            self.tf_apigwv2_stage_properties, AWS_API_GATEWAY_V2_STAGE_PROPERTY_BUILDER_MAPPING, Mock()
+        )
+        self.assertEqual(translated_cfn_properties, self.expected_cfn_apigwv2_stage_properties)
+
+    def test_translating_apigwv2_integration(self):
+        translated_cfn_properties = _translate_properties(
+            self.tf_apigwv2_integration_properties, AWS_API_GATEWAY_V2_INTEGRATION_PROPERTY_BUILDER_MAPPING, Mock()
+        )
+        self.assertEqual(translated_cfn_properties, self.expected_cfn_apigwv2_integration_properties)
 
 
 class TestUnresolvableAttributeCheck(TestCase):

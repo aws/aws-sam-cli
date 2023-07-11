@@ -25,7 +25,9 @@ from samcli.lib.utils.resources import AWS_APIGATEWAY_RESOURCE as CFN_AWS_APIGAT
 from samcli.lib.utils.resources import AWS_APIGATEWAY_RESTAPI as CFN_AWS_APIGATEWAY_RESTAPI
 from samcli.lib.utils.resources import AWS_APIGATEWAY_STAGE as CFN_AWS_APIGATEWAY_STAGE
 from samcli.lib.utils.resources import AWS_APIGATEWAY_V2_API as CFN_AWS_APIGATEWAY_V2_API
+from samcli.lib.utils.resources import AWS_APIGATEWAY_V2_INTEGRATION as CFN_AWS_APIGATEWAY_V2_INTEGRATION
 from samcli.lib.utils.resources import AWS_APIGATEWAY_V2_ROUTE as CFN_AWS_APIGATEWAY_V2_ROUTE
+from samcli.lib.utils.resources import AWS_APIGATEWAY_V2_STAGE as CFN_AWS_APIGATEWAY_V2_STAGE
 from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION
 from samcli.lib.utils.resources import AWS_LAMBDA_LAYERVERSION as CFN_AWS_LAMBDA_LAYER_VERSION
 
@@ -45,6 +47,8 @@ TF_AWS_API_GATEWAY_INTEGRATION_RESPONSE = "aws_api_gateway_method_response"
 
 TF_AWS_API_GATEWAY_V2_API = "aws_apigatewayv2_api"
 TF_AWS_API_GATEWAY_V2_ROUTE = "aws_apigatewayv2_route"
+TF_AWS_API_GATEWAY_V2_STAGE = "aws_apigatewayv2_stage"
+TF_AWS_API_GATEWAY_V2_INTEGRATION = "aws_apigatewayv2_integration"
 
 
 def _build_code_property(tf_properties: dict, resource: TFResource) -> Any:
@@ -394,6 +398,20 @@ AWS_API_GATEWAY_V2_ROUTE_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
     "OperationName": _get_property_extractor("operation_name"),
 }
 
+AWS_API_GATEWAY_V2_STAGE_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
+    "ApiId": _get_property_extractor("api_id"),
+    "StageName": _get_property_extractor("name"),
+    "StageVariables": _get_property_extractor("stage_variables"),
+}
+
+AWS_API_GATEWAY_V2_INTEGRATION_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
+    "ApiId": _get_property_extractor("api_id"),
+    "IntegrationType": _get_property_extractor("integration_type"),
+    "IntegrationMethod": _get_property_extractor("integration_method"),
+    "IntegrationUri": _get_property_extractor("integration_uri"),
+    "PayloadFormatVersion": _get_property_extractor("payload_format_version"),
+}
+
 RESOURCE_TRANSLATOR_MAPPING: Dict[str, ResourceTranslator] = {
     TF_AWS_LAMBDA_FUNCTION: ResourceTranslator(CFN_AWS_LAMBDA_FUNCTION, AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING),
     TF_AWS_LAMBDA_LAYER_VERSION: ResourceTranslator(
@@ -425,5 +443,11 @@ RESOURCE_TRANSLATOR_MAPPING: Dict[str, ResourceTranslator] = {
     ),
     TF_AWS_API_GATEWAY_V2_ROUTE: ResourceTranslator(
         CFN_AWS_APIGATEWAY_V2_ROUTE, AWS_API_GATEWAY_V2_ROUTE_PROPERTY_BUILDER_MAPPING
+    ),
+    TF_AWS_API_GATEWAY_V2_STAGE: ResourceTranslator(
+        CFN_AWS_APIGATEWAY_V2_STAGE, AWS_API_GATEWAY_V2_STAGE_PROPERTY_BUILDER_MAPPING
+    ),
+    TF_AWS_API_GATEWAY_V2_INTEGRATION: ResourceTranslator(
+        CFN_AWS_APIGATEWAY_V2_INTEGRATION, AWS_API_GATEWAY_V2_INTEGRATION_PROPERTY_BUILDER_MAPPING
     ),
 }
