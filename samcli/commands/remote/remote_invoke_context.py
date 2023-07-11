@@ -11,8 +11,8 @@ from samcli.commands.remote.exceptions import (
     AmbiguousResourceForRemoteInvoke,
     InvalidRemoteInvokeParameters,
     InvalidStackNameProvidedForRemoteInvoke,
-    NoExecutorFoundForRemoteInvoke,
     NoResourceFoundForRemoteInvoke,
+    ResourceNotSupportedForRemoteInvoke,
     UnsupportedServiceForRemoteInvoke,
 )
 from samcli.lib.remote_invoke.remote_invoke_executor_factory import RemoteInvokeExecutorFactory
@@ -70,8 +70,8 @@ class RemoteInvokeContext:
     def run(self, remote_invoke_input: RemoteInvokeExecutionInfo) -> None:
         """
         Instantiates remote invoke executor with populated resource summary information, executes it with the provided
-        input & returns its response back to the caller. If no executor can be instantiated it raises
-        NoExecutorFoundForRemoteInvoke exception.
+        input & returns its response back to the caller. If resource is not supported by command, raises
+        ResourceNotSupportedForRemoteInvoke exception.
 
         Parameters
         ----------
@@ -93,8 +93,8 @@ class RemoteInvokeContext:
             DefaultRemoteInvokeLogConsumer(self.stderr),
         )
         if not remote_invoke_executor:
-            raise NoExecutorFoundForRemoteInvoke(
-                f"Resource type {self._resource_summary.resource_type} is not supported for remote invoke"
+            raise ResourceNotSupportedForRemoteInvoke(
+                f"Resource type {self._resource_summary.resource_type} is not supported for remote invoke."
             )
 
         remote_invoke_executor.execute(remote_invoke_input)
