@@ -11,8 +11,8 @@ from samcli.commands.remote.exceptions import (
     AmbiguousResourceForRemoteInvoke,
     InvalidRemoteInvokeParameters,
     InvalidStackNameProvidedForRemoteInvoke,
-    NoExecutorFoundForRemoteInvoke,
     NoResourceFoundForRemoteInvoke,
+    ResourceNotSupportedForRemoteInvoke,
     UnsupportedServiceForRemoteInvoke,
 )
 from samcli.lib.remote_invoke.remote_invoke_executor_factory import RemoteInvokeExecutorFactory
@@ -70,8 +70,8 @@ class RemoteInvokeContext:
     def run(self, remote_invoke_input: RemoteInvokeExecutionInfo) -> None:
         """
         Instantiates remote invoke executor with populated resource summary information, executes it with the provided
-        input & returns its response back to the caller. If no executor can be instantiated it raises
-        NoExecutorFoundForRemoteInvoke exception.
+        input & returns its response back to the caller. If resource is not supported by command, raises
+        ResourceNotSupportedForRemoteInvoke exception.
 
         Parameters
         ----------
@@ -93,8 +93,8 @@ class RemoteInvokeContext:
             DefaultRemoteInvokeLogConsumer(self.stderr),
         )
         if not remote_invoke_executor:
-            raise NoExecutorFoundForRemoteInvoke(
-                f"Resource type {self._resource_summary.resource_type} is not supported for remote invoke"
+            raise ResourceNotSupportedForRemoteInvoke(
+                f"Resource type {self._resource_summary.resource_type} is not supported for remote invoke."
             )
 
         remote_invoke_executor.execute(remote_invoke_input)
@@ -242,7 +242,7 @@ class DefaultRemoteInvokeResponseConsumer(RemoteInvokeConsumer[RemoteInvokeRespo
     _stream_writer: StreamWriter
 
     def consume(self, remote_invoke_response: RemoteInvokeResponse) -> None:
-        self._stream_writer.write(cast(str, remote_invoke_response.response).encode())
+        self._stream_writer.write_bytes(cast(str, remote_invoke_response.response).encode())
 
 
 @dataclass
@@ -254,4 +254,4 @@ class DefaultRemoteInvokeLogConsumer(RemoteInvokeConsumer[RemoteInvokeLogOutput]
     _stream_writer: StreamWriter
 
     def consume(self, remote_invoke_response: RemoteInvokeLogOutput) -> None:
-        self._stream_writer.write(remote_invoke_response.log_output.encode())
+        self._stream_writer.write_bytes(remote_invoke_response.log_output.encode())
