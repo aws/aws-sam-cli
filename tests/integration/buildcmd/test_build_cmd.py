@@ -7,6 +7,7 @@ import uuid
 from pathlib import Path
 from typing import Set
 from unittest import skipIf
+from uuid import uuid4
 
 import jmespath
 import docker
@@ -48,6 +49,39 @@ LOG = logging.getLogger(__name__)
 
 # SAR tests require credentials. This is to skip running the test where credentials are not available.
 SKIP_SAR_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
+
+
+@skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
+class TestBuildingImageTypeLambdaDockerFileFailures(BuildIntegBase):
+    template = "template_image.yaml"
+
+    def test_with_invalid_dockerfile_location(self):
+        overrides = {
+            "Runtime": "3.10",
+            "Handler": "handler",
+            "DockerFile": "ThisDockerfileDoesNotExist",
+            "Tag": uuid4().hex,
+        }
+        cmdlist = self.get_command_list(parameter_overrides=overrides)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        # confirm build failed
+        self.assertEqual(command_result.process.returncode, 1)
+        self.assertIn("Cannot locate specified Dockerfile", command_result.stderr.decode())
+
+    def test_with_invalid_dockerfile_definition(self):
+        overrides = {
+            "Runtime": "3.10",
+            "Handler": "handler",
+            "DockerFile": "InvalidDockerfile",
+            "Tag": uuid4().hex,
+        }
+        cmdlist = self.get_command_list(parameter_overrides=overrides)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        # confirm build failed
+        self.assertEqual(command_result.process.returncode, 1)
+        self.assertIn("COPY requires at least two arguments", command_result.stderr.decode())
 
 
 @skipIf(
