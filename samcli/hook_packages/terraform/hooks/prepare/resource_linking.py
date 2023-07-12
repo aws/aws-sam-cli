@@ -43,6 +43,8 @@ from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     RestApiToApiGatewayIntegrationResponseLocalVariablesLinkingLimitationException,
     RestApiToApiGatewayMethodLocalVariablesLinkingLimitationException,
     RestApiToApiGatewayStageLocalVariablesLinkingLimitationException,
+    GatewayV2RouteToGatewayV2ApiLocalVariablesLinkingLimitationException,
+    OneGatewayV2RouteToGatewayV2ApiLinkingLimitationException,
 )
 from samcli.hook_packages.terraform.hooks.prepare.resources.apigw import INVOKE_ARN_FORMAT
 from samcli.hook_packages.terraform.hooks.prepare.types import (
@@ -1897,8 +1899,8 @@ def _link_gateway_v2_integration_to_lambda_function(
     ResourceLinker(resource_linking_pair).link_resources()
 
 
-def _link_gateway_v2_integration_to_api_callback(
-    gateway_v2_integration_cfn_resource: Dict, gateway_v2_api_resources: List[ReferenceType]
+def _link_gateway_v2_resource_to_api_callback(
+    gateway_v2_resource_cfn_resource: Dict, gateway_v2_api_resources: List[ReferenceType]
 ):
     """
     Callback function that is used by the linking algorithm to update a CFN V2 Integration Resource with
@@ -1906,7 +1908,7 @@ def _link_gateway_v2_integration_to_api_callback(
 
     Parameters
     ----------
-    gateway_v2_integration_cfn_resource: Dict
+    gateway_v2_resource_cfn_resource: Dict
         API Gateway V2 Integration CFN resource
     gateway_v2_api_resources: List[ReferenceType]
         List of referenced Gateway V2 Apis either as the logical id of Apis resources
@@ -1914,16 +1916,16 @@ def _link_gateway_v2_integration_to_api_callback(
         in customer's account. This list should always contain one element only.
     """
     if len(gateway_v2_api_resources) > 1:
-        raise InvalidResourceLinkingException("Could not link multiple Gateway V2 Apis to one Gateway V2 Integration")
+        raise InvalidResourceLinkingException("Could not link multiple Gateway V2 Apis to one Gateway V2 resource")
 
     if not gateway_v2_api_resources:
         LOG.info(
-            "Unable to find any references to Gateway V2 APIs, skip linking Gateway V2 Integration to Gateway V2 APIs"
+            "Unable to find any references to Gateway V2 APIs, skip linking Gateway V2 resources to Gateway V2 APIs"
         )
         return
 
     logical_id = gateway_v2_api_resources[0]
-    gateway_v2_integration_cfn_resource["Properties"]["ApiId"] = (
+    gateway_v2_resource_cfn_resource["Properties"]["ApiId"] = (
         {"Ref": logical_id.value} if isinstance(logical_id, LogicalIdReference) else logical_id.value
     )
 
@@ -1959,7 +1961,44 @@ def _link_gateway_v2_integration_to_api(
         terraform_link_field_name="api_id",
         cfn_link_field_name="ApiId",
         terraform_resource_type_prefix=API_GATEWAY_V2_API_RESOURCE_ADDRESS_PREFIX,
-        cfn_resource_update_call_back_function=_link_gateway_v2_integration_to_api_callback,
+        cfn_resource_update_call_back_function=_link_gateway_v2_resource_to_api_callback,
+        linking_exceptions=exceptions,
+    )
+    ResourceLinker(resource_linking_pair).link_resources()
+
+
+def _link_gateway_v2_route_to_api(
+    gateway_route_config_resources: Dict[str, TFResource],
+    gateway_route_config_address_cfn_resources_map: Dict[str, List],
+    api_resources: Dict[str, Dict],
+) -> None:
+    """
+    Iterate through all the resources and link the corresponding
+    Gateway V2 Route resources to each Gateway V2 Api
+
+    Parameters
+    ----------
+    gateway_route_config_resources: Dict[str, TFResource]
+        Dictionary of configuration Gateway Integrations
+    gateway_route_config_address_cfn_resources_map: Dict[str, List]
+        Dictionary containing resolved configuration addresses matched up to the cfn Gateway Route
+    api_resources: Dict[str, Dict]
+        Dictionary of all Terraform Gateway V2 Api resources (not configuration resources).
+        The dictionary's key is the calculated logical id for each resource.
+    """
+    exceptions = ResourcePairExceptions(
+        multiple_resource_linking_exception=OneGatewayV2RouteToGatewayV2ApiLinkingLimitationException,
+        local_variable_linking_exception=GatewayV2RouteToGatewayV2ApiLocalVariablesLinkingLimitationException,
+    )
+    resource_linking_pair = ResourceLinkingPair(
+        source_resource_cfn_resource=gateway_route_config_address_cfn_resources_map,
+        source_resource_tf_config=gateway_route_config_resources,
+        destination_resource_tf=api_resources,
+        tf_destination_attribute_name="id",
+        terraform_link_field_name="api_id",
+        cfn_link_field_name="ApiId",
+        terraform_resource_type_prefix=API_GATEWAY_V2_API_RESOURCE_ADDRESS_PREFIX,
+        cfn_resource_update_call_back_function=_link_gateway_v2_resource_to_api_callback,
         linking_exceptions=exceptions,
     )
     ResourceLinker(resource_linking_pair).link_resources()

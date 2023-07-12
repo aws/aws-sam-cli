@@ -31,6 +31,7 @@ from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     _link_gateway_v2_integration_to_lambda_function,
     _link_gateway_v2_route_to_integration,
     _link_lambda_functions_to_layers,
+    _link_gateway_v2_route_to_api,
 )
 from samcli.hook_packages.terraform.hooks.prepare.types import LinkingPairCaller
 
@@ -110,5 +111,10 @@ RESOURCE_LINKS: List[LinkingPairCaller] = [
         source=TF_AWS_API_GATEWAY_V2_INTEGRATION,
         dest=TF_AWS_API_GATEWAY_V2_API,
         linking_func=_link_gateway_v2_integration_to_api,
+    ),
+    LinkingPairCaller(
+        source=TF_AWS_API_GATEWAY_V2_ROUTE,
+        dest=TF_AWS_API_GATEWAY_V2_API,
+        linking_func=_link_gateway_v2_route_to_api,
     ),
 ]
