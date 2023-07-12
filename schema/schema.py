@@ -1,10 +1,11 @@
 """Handles JSON schema generation logic"""
 
 
+from dataclasses import dataclass
 import importlib
 import json
 from enum import Enum
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 
 import click
 
@@ -19,8 +20,88 @@ class SchemaKeys(Enum):
     ENVIRONMENT_REGEX = "^.+$"
 
 
+@dataclass()
+class SamCliParameterSchema:
+    name: str
+    type: str
+    description: str = ""
+    default: Optional[Any] = None
+    choices: Optional[List[str]] = None
+
+    def to_schema(self) -> Dict[str, Any]:
+        """Return the JSON schema representation of the SAM CLI parameter."""
+        param = {}
+        param.update({"title": self.name, "type": self.type, "description": self.description})
+        if self.default:
+            param.update({"default": self.default})
+        if self.choices:
+            param.update({"enum": self.choices})
+        return param
+
+
+@dataclass()
+class SamCliCommandSchema:
+    name: str  # Full command name, with underscores (i.e. remote_invoke, local_start_lambda)
+    description: str
+    parameters: List[SamCliParameterSchema]
+
+    def to_schema(self) -> dict:
+        """Return the JSON schema representation of the SAM CLI command."""
+        COMMANDS_TO_EXCLUDE = [  # TEMPORARY: for use only while generating piece-by-piece
+            "deploy",
+            "build",
+            "local",
+            "validate",
+            "package",
+            "init",
+            "delete",
+            "bootstrap",
+            "list",
+            "traces",
+            "sync",
+            "publish",
+            "pipeline",
+            "logs",
+            "remote",
+        ]
+        split_cmd_name = self.name.split("_")
+        formatted_cmd_name = " ".join(split_cmd_name)
+        exclude_params = split_cmd_name[0] in COMMANDS_TO_EXCLUDE
+        formatted_params_list = (
+            "* " + "\n* ".join([f"{param.name}:\n{param.description}" for param in self.parameters])
+            if not exclude_params
+            else ""
+        )
+        params_description = f"Available parameters for the {formatted_cmd_name} command:\n{formatted_params_list}"
+
+        return {
+            self.name: {
+                "title": f"{formatted_cmd_name.title()} command",
+                "description": self.description or "",
+                "properties": {
+                    "parameters": {
+                        "title": f"Parameters for the {formatted_cmd_name} command",
+                        "description": params_description,
+                        "type": "object",
+                        "properties": {param.name: param.to_schema() for param in self.parameters}
+                        if not exclude_params
+                        else {},
+                    },
+                },
+                "required": ["parameters"],
+            }
+        }
+
+
+def clean_text(text: str) -> str:
+    """Clean up a string of text to be formatted for the JSON schema."""
+    if not text:
+        return ""
+    return text.replace("\b", "").strip("\n").strip()
+
+
 def format_param(param: click.core.Option) -> Dict[str, Any]:
-    """Format a click Option parameter to a dictionary object.
+    """Format a click Option parameter to a SamCliParameter object.
 
     A parameter object should contain the following information that will be
     necessary for including in the JSON schema:
@@ -31,38 +112,35 @@ def format_param(param: click.core.Option) -> Dict[str, Any]:
                        a list of those allowed options
     * default - The default option for that parameter
     """
-    formatted_param: Dict[str, Any] = {"title": param.name, "description": param.help}
-
+    param_type = param.type.name.lower()
+    formatted_param_type = None
     # NOTE: Params do not have explicit "string" type; either "text" or "path".
     #       All choice options are from a set of strings.
-    param_type = param.type.name.lower()
     if param_type in ["text", "path", "choice", "filename", "directory"]:
-        formatted_param["type"] = "string"
+        formatted_param_type = "string"
     elif param_type == "list":
-        formatted_param["type"] = "array"
+        formatted_param_type = "array"
     else:
-        formatted_param["type"] = param_type or "string"
+        formatted_param_type = param_type or "string"
+
+    formatted_param: SamCliParameterSchema = SamCliParameterSchema(
+        param.name, formatted_param_type, clean_text(param.help)
+    )
 
     if param.default:
-        formatted_param["default"] = list(param.default) if isinstance(param.default, tuple) else param.default
+        formatted_param.default = list(param.default) if isinstance(param.default, tuple) else param.default
 
     if param.type.name == "choice" and isinstance(param.type, click.Choice):
-        formatted_param["enum"] = list(param.type.choices)
+        formatted_param.choices = list(param.type.choices)
 
     return formatted_param
 
 
-def get_params_from_command(cli) -> Dict[str, dict]:
-    """Given a command CLI, return it in a dictionary, pointing to its parameters as dictionary objects."""
-    params = [
-        param
-        for param in cli.params
-        if param.name and isinstance(param, click.core.Option)  # exclude None and non-Options
-    ]
-    return {param.name: format_param(param) for param in params if param.name}
+def get_params_from_command(cli) -> List[SamCliParameterSchema]:
+    return [format_param(param) for param in cli.params if param.name and isinstance(param, click.core.Option)]
 
 
-def retrieve_command_structure(package_name: str) -> Dict[str, dict]:
+def retrieve_command_structure(package_name: str) -> List[SamCliCommandSchema]:
     """Given a SAM CLI package name, retrieve its structure.
 
     Parameters
@@ -76,17 +154,23 @@ def retrieve_command_structure(package_name: str) -> Dict[str, dict]:
         A dictionary that maps the name of the command to its relevant click options.
     """
     module = importlib.import_module(package_name)
-    command = {}
+    command = []
 
     if isinstance(module.cli, click.core.Group):  # command has subcommands (e.g. local invoke)
         for subcommand in module.cli.commands.values():
             cmd_name = SamConfig.to_key([module.__name__.split(".")[-1], str(subcommand.name)])
-            command.update(
-                {cmd_name: {"description": subcommand.help, "parameters": get_params_from_command(subcommand)}}
+            command.append(
+                SamCliCommandSchema(
+                    cmd_name, clean_text(subcommand.help or subcommand.short_help), get_params_from_command(subcommand)
+                )
             )
     else:
         cmd_name = SamConfig.to_key([module.__name__.split(".")[-1]])
-        command.update({cmd_name: {"description": module.cli.help, "parameters": get_params_from_command(module.cli)}})
+        command.append(
+            SamCliCommandSchema(
+                cmd_name, clean_text(module.cli.help or module.cli.short_help), get_params_from_command(module.cli)
+            )
+        )
     return command
 
 
@@ -99,8 +183,7 @@ def generate_schema() -> dict:
         A dictionary representation of the JSON schema.
     """
     schema: dict = {}
-    commands = {}
-    params = set()  # NOTE(leogama): Currently unused due to some params having different help values
+    commands: List[SamCliCommandSchema] = []
 
     # Populate schema with relevant attributes
     schema["$schema"] = SchemaKeys.SCHEMA_DRAFT.value
@@ -114,59 +197,11 @@ def generate_schema() -> dict:
     schema["additionalProperties"] = False
     # Iterate through packages for command and parameter information
     for package_name in _SAM_CLI_COMMAND_PACKAGES:
-        new_command = retrieve_command_structure(package_name)
-        commands.update(new_command)
-    for cmd_properties in commands.values():
-        for param_list in cmd_properties["parameters"].values():
-            command_params = [param for param in param_list]
-        params.update(command_params)
+        commands.extend(retrieve_command_structure(package_name))
     # Generate schema for each of the commands
     schema["patternProperties"] = {SchemaKeys.ENVIRONMENT_REGEX.value: {"title": "Environment", "properties": {}}}
-    COMMANDS_TO_EXCLUDE = [  # TEMPORARY: for use only while generating piece-by-piece
-        "deploy",
-        "build",
-        "local",
-        "validate",
-        "package",
-        "init",
-        "delete",
-        "bootstrap",
-        "list",
-        "traces",
-        "sync",
-        "publish",
-        "pipeline",
-        "logs",
-        "remote",
-    ]
-    for cmd_name, cmd_items in commands.items():
-        full_cmd_name = cmd_name.split("_")
-        formatted_cmd_name = " ".join(full_cmd_name)
-        exclude_params = full_cmd_name[0] in COMMANDS_TO_EXCLUDE
-        formatted_params_list = (
-            "* "
-            + "\n* ".join([f"{param['title']}:\n{param['description']}" for param in cmd_items["parameters"].values()])
-            if not exclude_params
-            else ""
-        )
-        param_description = f"Available parameters for the {formatted_cmd_name} command:\n{formatted_params_list}"
-        schema["patternProperties"][SchemaKeys.ENVIRONMENT_REGEX.value]["properties"].update(
-            {
-                cmd_name: {
-                    "title": f"{' '.join(full_cmd_name).title()} command",
-                    "description": cmd_items["description"] or "",
-                    "properties": {
-                        "parameters": {
-                            "title": f"Parameters for the {formatted_cmd_name} command",
-                            "description": param_description,
-                            "type": "object",
-                            "properties": cmd_items["parameters"] if not exclude_params else {},
-                        },
-                    },
-                    "required": ["parameters"],
-                }
-            }
-        )
+    for command in commands:
+        schema["patternProperties"][SchemaKeys.ENVIRONMENT_REGEX.value]["properties"].update(command.to_schema())
     return schema
 
 
