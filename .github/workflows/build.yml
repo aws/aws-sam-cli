@@ -88,7 +88,7 @@ jobs:
           - "3.9"
         # folders that is commented below requires credentials, no need to spare time to run them
         tests_folder:
-          - "buildcmd -n 3"
+          - "buildcmd -n 3 --dist loadscope"
           #- "delete"
           #- "deploy"
           - "init"
