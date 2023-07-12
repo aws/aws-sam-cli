@@ -18,6 +18,7 @@ from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     GatewayResourceToGatewayRestApiLocalVariablesLinkingLimitationException,
     GatewayV2IntegrationToGatewayV2ApiLocalVariablesLinkingLimitationException,
     GatewayV2IntegrationToLambdaFunctionLocalVariablesLinkingLimitationException,
+    GatewayV2RouteToGatewayV2ApiLocalVariablesLinkingLimitationException,
     GatewayV2RouteToGatewayV2IntegrationLocalVariablesLinkingLimitationException,
     InvalidResourceLinkingException,
     LambdaFunctionToApiGatewayIntegrationLocalVariablesLinkingLimitationException,
@@ -31,6 +32,7 @@ from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     OneGatewayResourceToRestApiLinkingLimitationException,
     OneGatewayV2IntegrationToGatewayV2ApiLinkingLimitationException,
     OneGatewayV2IntegrationToLambdaFunctionLinkingLimitationException,
+    OneGatewayV2RouteToGatewayV2ApiLinkingLimitationException,
     OneGatewayV2RouteToGatewayV2IntegrationLinkingLimitationException,
     OneLambdaFunctionResourceToApiGatewayIntegrationLinkingLimitationException,
     OneLambdaLayerLinkingLimitationException,
@@ -43,8 +45,6 @@ from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     RestApiToApiGatewayIntegrationResponseLocalVariablesLinkingLimitationException,
     RestApiToApiGatewayMethodLocalVariablesLinkingLimitationException,
     RestApiToApiGatewayStageLocalVariablesLinkingLimitationException,
-    GatewayV2RouteToGatewayV2ApiLocalVariablesLinkingLimitationException,
-    OneGatewayV2RouteToGatewayV2ApiLinkingLimitationException,
 )
 from samcli.hook_packages.terraform.hooks.prepare.resources.apigw import INVOKE_ARN_FORMAT
 from samcli.hook_packages.terraform.hooks.prepare.types import (
