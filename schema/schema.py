@@ -23,10 +23,11 @@ class SchemaKeys(Enum):
 @dataclass()
 class SamCliParameterSchema:
     """Representation of a parameter in the SAM CLI.
-    
+
     It includes relevant information for the JSON schema, such as name, data type,
     and description, among others.
     """
+
     name: str
     type: str
     description: str = ""
@@ -47,10 +48,11 @@ class SamCliParameterSchema:
 @dataclass()
 class SamCliCommandSchema:
     """Representation of a command in the SAM CLI.
-    
+
     It includes relevant information for the JSON schema, such as name, a description of the
     command, and a list of all available parameters.
     """
+
     name: str  # Full command name, with underscores (i.e. remote_invoke, local_start_lambda)
     description: str
     parameters: List[SamCliParameterSchema]
