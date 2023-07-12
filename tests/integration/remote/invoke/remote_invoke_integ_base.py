@@ -58,6 +58,8 @@ class RemoteInvokeIntegBase(TestCase):
         }
         cls.cfn_client = get_boto_client_provider_with_config()("cloudformation")
         cls.lambda_client = get_boto_client_provider_with_config()("lambda")
+        cls.stepfunctions_client = get_boto_client_provider_with_config()("stepfunctions")
+        cls.xray_client = get_boto_client_provider_with_config()("xray")
 
     @staticmethod
     def get_command_list(
