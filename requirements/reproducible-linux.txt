@@ -36,9 +36,9 @@ boto3==1.26.134 \
     #   aws-sam-cli (setup.py)
     #   aws-sam-translator
     #   serverlessrepo
-botocore==1.29.135 \
-    --hash=sha256:06502a4473924ef60ac0de908385a5afab9caee6c5b49cf6a330fab0d76ddf5f \
-    --hash=sha256:0c61d4e5e04fe5329fa65da6b31492ef9d0d5174d72fc2af69de2ed0f87804ca
+botocore==1.31.2 \
+    --hash=sha256:67a475bec9e52d495a358b34e219ef7f62907e83b87e5bc712528f998bd46dab \
+    --hash=sha256:d368ac0b58e2b9025b9c397e4a4f86d71788913ee619263506885a866a4f6811
     # via
     #   boto3
     #   s3transfer
