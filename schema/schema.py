@@ -22,6 +22,11 @@ class SchemaKeys(Enum):
 
 @dataclass()
 class SamCliParameterSchema:
+    """Representation of a parameter in the SAM CLI.
+    
+    It includes relevant information for the JSON schema, such as name, data type,
+    and description, among others.
+    """
     name: str
     type: str
     description: str = ""
@@ -41,6 +46,11 @@ class SamCliParameterSchema:
 
 @dataclass()
 class SamCliCommandSchema:
+    """Representation of a command in the SAM CLI.
+    
+    It includes relevant information for the JSON schema, such as name, a description of the
+    command, and a list of all available parameters.
+    """
     name: str  # Full command name, with underscores (i.e. remote_invoke, local_start_lambda)
     description: str
     parameters: List[SamCliParameterSchema]
@@ -137,11 +147,15 @@ def format_param(param: click.core.Option) -> SamCliParameterSchema:
 
 
 def get_params_from_command(cli) -> List[SamCliParameterSchema]:
+    """Given a CLI object, return a list of all parameters in that CLI, formatted as SamCliParameterSchema objects."""
     return [format_param(param) for param in cli.params if param.name and isinstance(param, click.core.Option)]
 
 
 def retrieve_command_structure(package_name: str) -> List[SamCliCommandSchema]:
     """Given a SAM CLI package name, retrieve its structure.
+
+    Such a structure is the list of all subcommands as `SamCliCommandSchema`, which includes
+    the command's name, description, and its parameters.
 
     Parameters
     ----------
@@ -150,8 +164,9 @@ def retrieve_command_structure(package_name: str) -> List[SamCliCommandSchema]:
 
     Returns
     -------
-    dict
-        A dictionary that maps the name of the command to its relevant click options.
+    List[SamCliCommandSchema]
+        A list of SamCliCommandSchema objects which represent either a command or a list of
+        subcommands within the package.
     """
     module = importlib.import_module(package_name)
     command = []
