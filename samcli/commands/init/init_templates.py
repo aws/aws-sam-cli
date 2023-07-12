@@ -35,11 +35,12 @@ from samcli.local.common.runtime_template import (
 
 LOG = logging.getLogger(__name__)
 APP_TEMPLATES_REPO_COMMIT = os.environ.get("SAM_CLI_DEV_INIT_COMMIT", configuration.get_app_template_repo_commit())
+GH_ORG = os.environ.get("SAM_CLI_DEV_INIT_GH_ORG", "aws")
 
 MANIFEST_URL = (
-    f"https://raw.githubusercontent.com/aws/aws-sam-cli-app-templates/{APP_TEMPLATES_REPO_COMMIT}/manifest-v2.json"
+    f"https://raw.githubusercontent.com/{GH_ORG}/aws-sam-cli-app-templates/{APP_TEMPLATES_REPO_COMMIT}/manifest-v2.json"
 )
-APP_TEMPLATES_REPO_URL = "https://github.com/aws/aws-sam-cli-app-templates"
+APP_TEMPLATES_REPO_URL = f"https://github.com/{GH_ORG}/aws-sam-cli-app-templates"
 APP_TEMPLATES_REPO_NAME = "aws-sam-cli-app-templates"
 APP_TEMPLATES_REPO_NAME_WINDOWS = "tmpl"
 
