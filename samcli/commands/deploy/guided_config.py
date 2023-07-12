@@ -7,7 +7,8 @@ import click
 
 from samcli.cli.context import get_cmd_names
 from samcli.commands.deploy.exceptions import GuidedDeployFailedError
-from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME, DEFAULT_ENV, SamConfig
+from samcli.lib.config.exceptions import SamConfigFileReadException
+from samcli.lib.config.samconfig import DEFAULT_ENV, SamConfig
 
 
 class GuidedConfig:
@@ -19,20 +20,25 @@ class GuidedConfig:
         ctx = click.get_current_context()
 
         samconfig_dir = getattr(ctx, "samconfig_dir", None)
+        config_dir = samconfig_dir if samconfig_dir else SamConfig.config_dir(template_file_path=self.template_file)
         samconfig = SamConfig(
-            config_dir=samconfig_dir if samconfig_dir else SamConfig.config_dir(template_file_path=self.template_file),
-            filename=config_file or DEFAULT_CONFIG_FILE_NAME,
+            config_dir=config_dir,
+            filename=config_file or SamConfig.get_default_file(config_dir=config_dir),
         )
         return ctx, samconfig
 
     def read_config_showcase(self, config_file=None):
-        _, samconfig = self.get_config_ctx(config_file)
-
-        status = "Found" if samconfig.exists() else "Not found"
         msg = (
             "Syntax invalid in samconfig.toml; save values "
             "through sam deploy --guided to overwrite file with a valid set of values."
         )
+        try:
+            _, samconfig = self.get_config_ctx(config_file)
+        except SamConfigFileReadException:
+            raise GuidedDeployFailedError(msg)
+
+        status = "Found" if samconfig.exists() else "Not found"
+
         config_sanity = samconfig.sanity_check()
         click.secho("\nConfiguring SAM deploy\n======================", fg="yellow")
         click.echo(f"\n\tLooking for config file [{config_file}] :  {status}")

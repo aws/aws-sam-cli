@@ -1,0 +1,7 @@
+version: 0.1
+default:
+  build:
+    parameters:
+      build_dir: .yaml
+      cached: true
+      parameter_overrides: Runtime=python3.9 CodeUri=SomeURI Handler=SomeHandler
