@@ -126,6 +126,15 @@ class ApiGatewayV2RouteProperties(ResourceProperties):
         super(ApiGatewayV2RouteProperties, self).__init__()
 
 
+class ApiGatewayV2ApiProperties(ResourceProperties):
+    """
+    Contains the collection logic of the required properties for linking the aws_apigatewayv2_api resources.
+    """
+
+    def __init__(self):
+        super(ApiGatewayV2ApiProperties, self).__init__()
+
+
 class ApiGatewayV2IntegrationProperties(ResourceProperties):
     """
     Contains the collection logic of the required properties for linking the aws_api_gateway_v2_authorizer resources.
