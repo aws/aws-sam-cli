@@ -106,6 +106,7 @@ def non_interactive_validation(func):
 
 @click.command(
     "init",
+    help=HELP_TEXT,
     short_help=HELP_TEXT,
     context_settings={"max_content_width": 120},
     cls=InitCommand,
