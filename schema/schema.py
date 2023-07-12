@@ -1,9 +1,9 @@
 """Handles JSON schema generation logic"""
 
 
-from dataclasses import dataclass
 import importlib
 import json
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
@@ -26,7 +26,7 @@ class SamCliParameterSchema:
     type: str
     description: str = ""
     default: Optional[Any] = None
-    choices: Optional[List[str]] = None
+    choices: Optional[Any] = None
 
     def to_schema(self) -> Dict[str, Any]:
         """Return the JSON schema representation of the SAM CLI parameter."""
@@ -100,7 +100,7 @@ def clean_text(text: str) -> str:
     return text.replace("\b", "").strip("\n").strip()
 
 
-def format_param(param: click.core.Option) -> Dict[str, Any]:
+def format_param(param: click.core.Option) -> SamCliParameterSchema:
     """Format a click Option parameter to a SamCliParameter object.
 
     A parameter object should contain the following information that will be
@@ -113,7 +113,7 @@ def format_param(param: click.core.Option) -> Dict[str, Any]:
     * default - The default option for that parameter
     """
     param_type = param.type.name.lower()
-    formatted_param_type = None
+    formatted_param_type = ""
     # NOTE: Params do not have explicit "string" type; either "text" or "path".
     #       All choice options are from a set of strings.
     if param_type in ["text", "path", "choice", "filename", "directory"]:
@@ -124,7 +124,7 @@ def format_param(param: click.core.Option) -> Dict[str, Any]:
         formatted_param_type = param_type or "string"
 
     formatted_param: SamCliParameterSchema = SamCliParameterSchema(
-        param.name, formatted_param_type, clean_text(param.help)
+        param.name or "", formatted_param_type, clean_text(param.help or "")
     )
 
     if param.default:
@@ -161,14 +161,18 @@ def retrieve_command_structure(package_name: str) -> List[SamCliCommandSchema]:
             cmd_name = SamConfig.to_key([module.__name__.split(".")[-1], str(subcommand.name)])
             command.append(
                 SamCliCommandSchema(
-                    cmd_name, clean_text(subcommand.help or subcommand.short_help), get_params_from_command(subcommand)
+                    cmd_name,
+                    clean_text(subcommand.help or subcommand.short_help or ""),
+                    get_params_from_command(subcommand),
                 )
             )
     else:
         cmd_name = SamConfig.to_key([module.__name__.split(".")[-1]])
         command.append(
             SamCliCommandSchema(
-                cmd_name, clean_text(module.cli.help or module.cli.short_help), get_params_from_command(module.cli)
+                cmd_name,
+                clean_text(module.cli.help or module.cli.short_help or ""),
+                get_params_from_command(module.cli),
             )
         )
     return command
