@@ -4,7 +4,7 @@ import base64
 import time
 
 from parameterized import parameterized
-from unittest import skip
+from unittest import skip, skipIf
 
 from tests.integration.remote.invoke.remote_invoke_integ_base import RemoteInvokeIntegBase
 from tests.testing_utils import run_command
@@ -57,7 +57,7 @@ class TestSingleLambdaInvoke(RemoteInvokeIntegBase):
 
     def test_invoke_with_resource_id_provided_as_arn(self):
         resource_id = "HelloWorldFunction"
-        lambda_name = self.stack_resources[resource_id]
+        lambda_name = self.stack_resource_summaries[resource_id].physical_resource_id
         lambda_arn = self.lambda_client.get_function(FunctionName=lambda_name)["Configuration"]["FunctionArn"]
 
         command_list = self.get_command_list(
@@ -126,7 +126,7 @@ class TestSFNPriorityInvoke(RemoteInvokeIntegBase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.stack_name = f"{TestSFNPriorityInvoke.__name__}-{uuid.uuid4().hex}"
+        cls.stack_name = f"{cls.__name__}-{uuid.uuid4().hex}"
         cls.create_resources_and_boto_clients()
 
     def test_invoke_empty_event_provided(self):
@@ -192,24 +192,19 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
     template = Path("template-multiple-resources.yaml")
 
     @classmethod
-    def tearDownClass(cls):
-        # Delete the deployed stack
-        cls.cfn_client.delete_stack(StackName=cls.stack_name)
-
-    @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.stack_name = f"{TestMultipleResourcesInvoke.__name__}-{uuid.uuid4().hex}"
+        cls.stack_name = f"{cls.__name__}-{uuid.uuid4().hex}"
         cls.create_resources_and_boto_clients()
 
-    @parameterized.expand([("EchoEventFunction", {})])
-    def test_invoke_empty_event_provided(self, resource_id, expected_response):
+    def test_invoke_empty_event_provided(self):
+        resource_id = "EchoEventFunction"
         command_list = self.get_command_list(stack_name=self.stack_name, resource_id=resource_id)
 
         remote_invoke_result = run_command(command_list)
         self.assertEqual(0, remote_invoke_result.process.returncode)
         remote_invoke_result_stdout = json.loads(remote_invoke_result.stdout.strip().decode())
-        self.assertEqual(remote_invoke_result_stdout, expected_response)
+        self.assertEqual(remote_invoke_result_stdout, {})
 
     @parameterized.expand(
         [
@@ -224,12 +219,14 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
                 '{"key1": "Hello", "key2": "serverless", "key3": "world"}',
                 {"key1": "Hello", "key2": "serverless", "key3": "world"},
             ),
-            # Skip remote invoke Step function integration tests
-            # ("StockPriceGuideStateMachine", '{"stock_price": 60, "balance": 200, "qty": 2}', {"balance": 320}),
-            # ("StockPriceGuideStateMachine", '{"stock_price": 30, "balance": 200, "qty": 2}', {"balance": 140}),
+            ("StockPriceGuideStateMachine", '{"stock_price": 60, "balance": 200, "qty": 2}', {"balance": 320}),
+            ("StockPriceGuideStateMachine", '{"stock_price": 30, "balance": 200, "qty": 2}', {"balance": 140}),
         ]
     )
     def test_invoke_with_only_event_provided(self, resource_id, event, expected_response):
+        if self.stack_resource_summaries[resource_id].resource_type not in self.supported_resources:
+            pytest.skip()
+
         command_list = self.get_command_list(
             stack_name=self.stack_name,
             resource_id=resource_id,
@@ -250,7 +247,7 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
         ]
     )
     def test_lambda_invoke_with_resource_id_provided_as_arn(self, resource_id, expected_response):
-        lambda_name = self.stack_resources[resource_id]
+        lambda_name = self.stack_resource_summaries[resource_id].physical_resource_id
         lambda_arn = self.lambda_client.get_function(FunctionName=lambda_name)["Configuration"]["FunctionArn"]
 
         command_list = self.get_command_list(
@@ -265,7 +262,7 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
         self.assertEqual(remote_invoke_result_stdout, expected_response)
 
     def test_lambda_writes_to_stderr_invoke(self):
-        command_list = RemoteInvokeIntegBase.get_command_list(
+        command_list = self.get_command_list(
             stack_name=self.stack_name,
             resource_id="WriteToStderrFunction",
             event='{"key1": "Hello", "key2": "serverless", "key3": "world"}',
@@ -312,11 +309,12 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
         remote_invoke_result_stdout = json.loads(remote_invoke_result.stdout.strip().decode())
         self.assertEqual(remote_invoke_result_stdout, custom_json_str["custom"])
 
-    @skip("Skip remote invoke Step function integration tests")
     def test_sfn_invoke_with_resource_id_provided_as_arn(self):
         resource_id = "StockPriceGuideStateMachine"
+        if self.stack_resource_summaries[resource_id].resource_type not in self.supported_resources:
+            pytest.skip()
         expected_response = {"balance": 320}
-        state_machine_arn = self.stack_resources[resource_id]
+        state_machine_arn = self.stack_resource_summaries[resource_id].physical_resource_id
 
         command_list = self.get_command_list(
             resource_id=state_machine_arn,
@@ -328,9 +326,10 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
         remote_invoke_result_stdout = json.loads(remote_invoke_result.stdout.strip().decode())
         self.assertEqual(remote_invoke_result_stdout, expected_response)
 
-    @skip("Skip remote invoke Step function integration tests")
     def test_sfn_invoke_boto_parameters(self):
         resource_id = "StockPriceGuideStateMachine"
+        if self.stack_resource_summaries[resource_id].resource_type not in self.supported_resources:
+            pytest.skip()
         expected_response = {"balance": 320}
         name = "custom-execution-name"
         command_list = self.get_command_list(
@@ -346,9 +345,10 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
         remote_invoke_result_stdout = json.loads(remote_invoke_result.stdout.strip().decode())
         self.assertEqual(remote_invoke_result_stdout, expected_response)
 
-    @skip("Skip remote invoke Step function integration tests")
     def test_sfn_invoke_execution_fails(self):
         resource_id = "StateMachineExecutionFails"
+        if self.stack_resource_summaries[resource_id].resource_type not in self.supported_resources:
+            pytest.skip()
         expected_response = "The execution failed due to the error: MockError and cause: Mock Invalid response."
         command_list = self.get_command_list(
             stack_name=self.stack_name,
@@ -368,24 +368,20 @@ class TestNestedTemplateResourcesInvoke(RemoteInvokeIntegBase):
     template = Path("nested_templates/template.yaml")
 
     @classmethod
-    def tearDownClass(cls):
-        # Delete the deployed stack
-        cls.cfn_client.delete_stack(StackName=cls.stack_name)
-
-    @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.stack_name = f"{TestNestedTemplateResourcesInvoke.__name__}-{uuid.uuid4().hex}"
+        cls.stack_name = f"{cls.__name__}-{uuid.uuid4().hex}"
         cls.create_resources_and_boto_clients()
 
     @parameterized.expand(
         [
             ("ChildStack/HelloWorldFunction", {"message": "Hello world"}),
-            # Skip remote invoke Step function integration tests
-            # ("ChildStack/HelloWorldStateMachine", "World"),
+            ("ChildStack/HelloWorldStateMachine", "World"),
         ]
     )
     def test_invoke_empty_event_provided(self, resource_id, expected_response):
+        if self.stack_resource_summaries[resource_id].resource_type not in self.supported_resources:
+            pytest.skip()
         command_list = self.get_command_list(stack_name=self.stack_name, resource_id=resource_id)
 
         remote_invoke_result = run_command(command_list)
@@ -396,11 +392,12 @@ class TestNestedTemplateResourcesInvoke(RemoteInvokeIntegBase):
     @parameterized.expand(
         [
             ("ChildStack/HelloWorldFunction", '{"key1": "Hello", "key2": "world"}', {"message": "Hello world"}),
-            # Skip remote invoke Step function integration tests
-            # ("ChildStack/HelloWorldStateMachine", '{"key1": "Hello", "key2": "world"}', "World"),
+            ("ChildStack/HelloWorldStateMachine", '{"key1": "Hello", "key2": "world"}', "World"),
         ]
     )
     def test_invoke_with_event_provided(self, resource_id, event, expected_response):
+        if self.stack_resource_summaries[resource_id].resource_type not in self.supported_resources:
+            pytest.skip()
         command_list = self.get_command_list(
             stack_name=self.stack_name,
             resource_id=resource_id,
