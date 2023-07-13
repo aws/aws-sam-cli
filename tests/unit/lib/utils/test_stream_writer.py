@@ -1,7 +1,6 @@
 """
 Tests for StreamWriter
 """
-import io
 
 from unittest import TestCase
 
@@ -12,13 +11,13 @@ from unittest.mock import Mock
 
 class TestStreamWriter(TestCase):
     def test_must_write_to_stream(self):
-        buffer = b"something"
+        buffer = "something"
         stream_mock = Mock()
 
         writer = StreamWriter(stream_mock)
-        writer.write_bytes(buffer)
+        writer.write(buffer)
 
-        stream_mock.buffer.write.assert_called_once_with(buffer)
+        stream_mock.write.assert_called_once_with(buffer)
 
     def test_must_flush_underlying_stream(self):
         stream_mock = Mock()
@@ -32,7 +31,7 @@ class TestStreamWriter(TestCase):
         stream_mock = Mock()
 
         writer = StreamWriter(stream_mock)
-        writer.write_str("something")
+        writer.write("something")
 
         stream_mock.flush.assert_not_called()
 
@@ -47,6 +46,6 @@ class TestStreamWriter(TestCase):
         writer = StreamWriter(stream_mock, True)
 
         for line in lines:
-            writer.write_str(line)
+            writer.write(line)
             flush_mock.assert_called_once_with()
             flush_mock.reset_mock()
