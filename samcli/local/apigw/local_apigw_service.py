@@ -4,7 +4,7 @@ import base64
 import json
 import logging
 from datetime import datetime
-from io import StringIO
+from io import BytesIO
 from time import time
 from typing import Any, Dict, List, Optional
 
@@ -605,7 +605,7 @@ class LocalApigwService(BaseLocalService):
         str
             A string containing the output from the Lambda function
         """
-        with StringIO() as stdout:
+        with BytesIO() as stdout:
             event_str = json.dumps(event, sort_keys=True)
             stdout_writer = StreamWriter(stdout, auto_flush=True)
 
