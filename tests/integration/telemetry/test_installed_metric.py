@@ -24,7 +24,9 @@ class TestSendInstalledMetric(IntegBase):
             self.assertIn(EXPECTED_TELEMETRY_PROMPT, stderrdata.decode())
 
             all_requests = server.get_all_requests()
-            self.assertEqual(2, len(all_requests), "There should be exactly two metrics request")
+            self.assertEqual(
+                3, len(all_requests), "There should be exactly three metrics request"
+            )  # 3 = 2 expected + events
 
             # First one is usually the installed metric
             requests = filter_installed_metric_requests(all_requests)
