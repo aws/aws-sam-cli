@@ -23,7 +23,7 @@ pyopenssl~=23.2.0
 jsonschema<4.18
 
 # Needed for supporting Protocol in Python 3.7, Protocol class became public with python3.8
-typing_extensions~=4.4.0
+typing_extensions>=4.4.0,<5
 
 # NOTE: regex is not a direct dependency of SAM CLI, exclude version 2021.10.8 due to not working on M1 Mac - https://github.com/mrabarnett/mrab-regex/issues/399
 regex!=2021.10.8
