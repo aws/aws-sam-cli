@@ -4,7 +4,7 @@ import base64
 import time
 
 from parameterized import parameterized
-from unittest import skip, skipIf
+from unittest import skip
 
 from tests.integration.remote.invoke.remote_invoke_integ_base import RemoteInvokeIntegBase
 from tests.testing_utils import run_command
@@ -225,7 +225,7 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
     )
     def test_invoke_with_only_event_provided(self, resource_id, event, expected_response):
         if self.stack_resource_summaries[resource_id].resource_type not in self.supported_resources:
-            pytest.skip()
+            pytest.skip("Skip remote invoke Step function integration tests as resource is not supported")
 
         command_list = self.get_command_list(
             stack_name=self.stack_name,
@@ -312,7 +312,7 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
     def test_sfn_invoke_with_resource_id_provided_as_arn(self):
         resource_id = "StockPriceGuideStateMachine"
         if self.stack_resource_summaries[resource_id].resource_type not in self.supported_resources:
-            pytest.skip()
+            pytest.skip("Skip remote invoke Step function integration tests as resource is not supported")
         expected_response = {"balance": 320}
         state_machine_arn = self.stack_resource_summaries[resource_id].physical_resource_id
 
@@ -329,7 +329,7 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
     def test_sfn_invoke_boto_parameters(self):
         resource_id = "StockPriceGuideStateMachine"
         if self.stack_resource_summaries[resource_id].resource_type not in self.supported_resources:
-            pytest.skip()
+            pytest.skip("Skip remote invoke Step function integration tests as resource is not supported")
         expected_response = {"balance": 320}
         name = "custom-execution-name"
         command_list = self.get_command_list(
@@ -348,7 +348,7 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
     def test_sfn_invoke_execution_fails(self):
         resource_id = "StateMachineExecutionFails"
         if self.stack_resource_summaries[resource_id].resource_type not in self.supported_resources:
-            pytest.skip()
+            pytest.skip("Skip remote invoke Step function integration tests as resource is not supported")
         expected_response = "The execution failed due to the error: MockError and cause: Mock Invalid response."
         command_list = self.get_command_list(
             stack_name=self.stack_name,
@@ -381,7 +381,7 @@ class TestNestedTemplateResourcesInvoke(RemoteInvokeIntegBase):
     )
     def test_invoke_empty_event_provided(self, resource_id, expected_response):
         if self.stack_resource_summaries[resource_id].resource_type not in self.supported_resources:
-            pytest.skip()
+            pytest.skip("Skip remote invoke Step function integration tests as resource is not supported")
         command_list = self.get_command_list(stack_name=self.stack_name, resource_id=resource_id)
 
         remote_invoke_result = run_command(command_list)
@@ -397,7 +397,7 @@ class TestNestedTemplateResourcesInvoke(RemoteInvokeIntegBase):
     )
     def test_invoke_with_event_provided(self, resource_id, event, expected_response):
         if self.stack_resource_summaries[resource_id].resource_type not in self.supported_resources:
-            pytest.skip()
+            pytest.skip("Skip remote invoke Step function integration tests as resource is not supported")
         command_list = self.get_command_list(
             stack_name=self.stack_name,
             resource_id=resource_id,
