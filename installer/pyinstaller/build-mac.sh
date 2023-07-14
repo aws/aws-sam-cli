@@ -45,7 +45,7 @@ else
     is_nightly="false"
 fi
 
-set -eu
+set -eux
 
 echo "Making Folders"
 mkdir -p .build/src
@@ -93,6 +93,7 @@ cp -r ./venv/lib/python*/site-packages/* ./output/python-libraries
 
 echo "Installing PyInstaller"
 ./venv/bin/pip install -r src/requirements/pyinstaller-build.txt
+./venv/bin/pip check
 
 # Building the binary using pyinstaller
 echo "Building Binary"

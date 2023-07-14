@@ -9,7 +9,7 @@ import click
 from botocore.exceptions import NoCredentialsError, NoRegionError
 from click import confirm, prompt
 
-from samcli.cli.cli_config_file import TomlProvider
+from samcli.cli.cli_config_file import ConfigProvider
 from samcli.commands.delete.exceptions import CfDeleteFailedStatusError
 from samcli.commands.exceptions import AWSServiceClientError, RegionError
 from samcli.lib.bootstrap.companion_stack.companion_stack_builder import CompanionStack
@@ -82,8 +82,8 @@ class DeleteContext:
         """
         Read the provided config file if it exists and assign the options values.
         """
-        toml_provider = TomlProvider(CONFIG_SECTION, [CONFIG_COMMAND])
-        config_options = toml_provider(
+        config_provider = ConfigProvider(CONFIG_SECTION, [CONFIG_COMMAND])
+        config_options = config_provider(
             config_path=self.config_file, config_env=self.config_env, cmd_names=[CONFIG_COMMAND]
         )
         if not config_options:
