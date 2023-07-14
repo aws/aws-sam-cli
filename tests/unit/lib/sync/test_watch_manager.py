@@ -115,6 +115,7 @@ class TestWatchManager(TestCase):
         self.watch_manager._add_template_triggers()
 
         template_trigger_mock.assert_called_once_with(self.template, stack_name, ANY)
+        get_stack_mock.assert_called_with(self.template, use_sam_transform=False)
         self.path_observer.schedule_handlers.assert_any_call(trigger.get_path_handlers.return_value)
 
     @patch("samcli.lib.sync.watch_manager.TemplateTrigger")

@@ -148,7 +148,7 @@ class WatchManager:
 
     def _add_template_triggers(self) -> None:
         """Create TemplateTrigger and add its handlers to observer"""
-        stacks = SamLocalStackProvider.get_stacks(self._template)[0]
+        stacks = SamLocalStackProvider.get_stacks(self._template, use_sam_transform=False)[0]
         for stack in stacks:
             template = stack.location
             template_trigger = TemplateTrigger(template, stack.name, lambda _=None: self.queue_infra_sync())
