@@ -20,13 +20,14 @@ from samcli.commands._utils.options import (
     manifest_option,
     cached_option,
     use_container_build_option,
+    build_image_option,
     hook_name_click_option,
 )
 from samcli.commands._utils.option_value_processor import process_env_var, process_image_options
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.commands.build.core.command import BuildCommand
 from samcli.lib.telemetry.metric import track_command
-from samcli.cli.cli_config_file import configuration_option, TomlProvider
+from samcli.cli.cli_config_file import configuration_option, ConfigProvider
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.commands.build.click_container import ContainerOptions
 from samcli.commands.build.utils import MountMode
@@ -68,7 +69,7 @@ DESCRIPTION = """
     short_help=HELP_TEXT,
     context_settings={"max_content_width": 120},
 )
-@configuration_option(provider=TomlProvider(section="parameters"))
+@configuration_option(provider=ConfigProvider(section="parameters"))
 @hook_name_click_option(
     force_prepare=True,
     invalid_coexist_options=["t", "template-file", "template", "parameter-overrides"],
@@ -94,21 +95,7 @@ DESCRIPTION = """
     help="Environment variables json file (e.g., env_vars.json) to be passed to build containers.",
     cls=ContainerOptions,
 )
-@click.option(
-    "--build-image",
-    "-bi",
-    default=None,
-    multiple=True,  # Can pass in multiple build images
-    required=False,
-    help="Container image URIs for building functions/layers. "
-    "You can specify for all functions/layers with just the image URI "
-    "(--build-image public.ecr.aws/sam/build-nodejs18.x:latest). "
-    "You can specify for each individual function with "
-    "(--build-image FunctionLogicalID=public.ecr.aws/sam/build-nodejs18.x:latest). "
-    "A combination of the two can be used. If a function does not have build image specified or "
-    "an image URI for all functions, the default SAM CLI build images will be used.",
-    cls=ContainerOptions,
-)
+@build_image_option(cls=ContainerOptions)
 @click.option(
     "--exclude",
     "-x",
