@@ -37,7 +37,7 @@ class SamCliParameterSchema:
 
     def to_schema(self) -> Dict[str, Any]:
         """Return the JSON schema representation of the SAM CLI parameter."""
-        param = {}
+        param: Dict[str, Any] = {}
         param.update({"title": self.name, "type": self.type, "description": self.description})
         if self.default:
             param.update({"default": self.default})
