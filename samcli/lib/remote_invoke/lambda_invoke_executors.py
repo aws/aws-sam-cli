@@ -159,16 +159,16 @@ class DefaultConvertToJSON(RemoteInvokeRequestResponseMapper[RemoteInvokeExecuti
     def map(self, test_input: RemoteInvokeExecutionInfo) -> RemoteInvokeExecutionInfo:
         if not test_input.is_file_provided():
             if not test_input.payload:
-                LOG.debug("Input event not found, invoking Lambda Function with an empty event")
+                LOG.debug("Input event not found, invoking resource with an empty event")
                 test_input.payload = "{}"
-            LOG.debug("Mapping input Payload to JSON string object")
+            LOG.debug("Mapping input event to JSON string object")
             try:
                 _ = json.loads(cast(str, test_input.payload))
             except JSONDecodeError:
                 json_value = json.dumps(test_input.payload)
                 LOG.info(
                     "Auto converting value '%s' into JSON '%s'. "
-                    "If you don't want auto-conversion, please provide a JSON string as payload",
+                    "If you don't want auto-conversion, please provide a JSON string as event",
                     test_input.payload,
                     json_value,
                 )

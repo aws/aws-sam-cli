@@ -15,7 +15,7 @@ class TestInvokeResponseStreamingLambdas(RemoteInvokeIntegBase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.stack_name = f"{TestInvokeResponseStreamingLambdas.__name__}-{uuid.uuid4().hex}"
+        cls.stack_name = f"{cls.__name__}-{uuid.uuid4().hex}"
         cls.create_resources_and_boto_clients()
 
     def test_invoke_empty_event_provided(self):
