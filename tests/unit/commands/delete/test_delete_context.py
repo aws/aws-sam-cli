@@ -7,7 +7,7 @@ from botocore.exceptions import NoCredentialsError, NoRegionError
 
 from samcli.commands.delete.delete_context import DeleteContext
 from samcli.lib.package.artifact_exporter import Template
-from samcli.cli.cli_config_file import TomlProvider
+from samcli.cli.cli_config_file import ConfigProvider
 from samcli.lib.delete.cfn_utils import CfnUtils
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.ecr_uploader import ECRUploader
@@ -58,7 +58,7 @@ class TestDeleteContext(TestCase):
             self.assertEqual(delete_context.init_clients.call_count, 1)
 
     @patch.object(
-        TomlProvider,
+        ConfigProvider,
         "__call__",
         MagicMock(
             return_value=(
@@ -123,7 +123,7 @@ class TestDeleteContext(TestCase):
         self.assertEqual(expected_prompt_calls, patched_prompt.call_args_list)
 
     @patch.object(
-        TomlProvider,
+        ConfigProvider,
         "__call__",
         MagicMock(
             return_value=(
@@ -506,7 +506,7 @@ class TestDeleteContext(TestCase):
             self.assertEqual(delete_context.s3_prefix, "s3_prefix")
 
     @patch.object(
-        TomlProvider,
+        ConfigProvider,
         "__call__",
         MagicMock(
             return_value=(

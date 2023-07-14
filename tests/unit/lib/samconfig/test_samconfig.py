@@ -1,10 +1,21 @@
 import os
 from pathlib import Path
+from unittest.mock import patch
+from parameterized import parameterized
+import tempfile
 from unittest import TestCase
 
-from samcli.lib.config.exceptions import SamConfigVersionException
-from samcli.lib.config.samconfig import SamConfig, DEFAULT_CONFIG_FILE_NAME, DEFAULT_GLOBAL_CMDNAME, DEFAULT_ENV
+from samcli.lib.config.exceptions import SamConfigFileReadException, SamConfigVersionException
+from samcli.lib.config.file_manager import FILE_MANAGER_MAPPER, JsonFileManager, TomlFileManager, YamlFileManager
+from samcli.lib.config.samconfig import (
+    DEFAULT_CONFIG_FILE,
+    SamConfig,
+    DEFAULT_CONFIG_FILE_NAME,
+    DEFAULT_GLOBAL_CMDNAME,
+    DEFAULT_ENV,
+)
 from samcli.lib.config.version import VERSION_KEY, SAM_CONFIG_VERSION
+from samcli.lib.telemetry.event import Event
 from samcli.lib.utils import osutils
 
 
@@ -182,27 +193,27 @@ class TestSamConfig(TestCase):
 
     def test_check_version_non_supported_type(self):
         self._setup_config()
-        self.samconfig.document.remove(VERSION_KEY)
-        self.samconfig.document.add(VERSION_KEY, "aadeff")
+        self.samconfig.document.pop(VERSION_KEY)
+        self.samconfig.document.update({VERSION_KEY: "aadeff"})
         with self.assertRaises(SamConfigVersionException):
             self.samconfig.sanity_check()
 
     def test_check_version_no_version_exists(self):
         self._setup_config()
-        self.samconfig.document.remove(VERSION_KEY)
+        self.samconfig.document.pop(VERSION_KEY)
         with self.assertRaises(SamConfigVersionException):
             self.samconfig.sanity_check()
 
     def test_check_version_float(self):
         self._setup_config()
-        self.samconfig.document.remove(VERSION_KEY)
-        self.samconfig.document.add(VERSION_KEY, 0.2)
+        self.samconfig.document.pop(VERSION_KEY)
+        self.samconfig.document.update({VERSION_KEY: 0.2})
         self.samconfig.sanity_check()
 
     def test_write_config_file_non_standard_version(self):
         self._setup_config()
-        self.samconfig.document.remove(VERSION_KEY)
-        self.samconfig.document.add(VERSION_KEY, 0.2)
+        self.samconfig.document.pop(VERSION_KEY)
+        self.samconfig.document.update({VERSION_KEY: 0.2})
         self.samconfig.put(cmd_names=["local", "start", "api"], section="parameters", key="skip_pull_image", value=True)
         self.samconfig.sanity_check()
         self.assertEqual(self.samconfig.document.get(VERSION_KEY), 0.2)
@@ -210,7 +221,7 @@ class TestSamConfig(TestCase):
     def test_write_config_file_will_create_the_file_if_not_exist(self):
         with osutils.mkdir_temp(ignore_errors=True) as tempdir:
             non_existing_dir = os.path.join(tempdir, "non-existing-dir")
-            non_existing_file = "non-existing-file"
+            non_existing_file = "non-existing-file.toml"
             samconfig = SamConfig(config_dir=non_existing_dir, filename=non_existing_file)
 
             self.assertFalse(samconfig.exists())
@@ -221,3 +232,84 @@ class TestSamConfig(TestCase):
             samconfig.put(cmd_names=["any", "command"], section="any-section", key="any-key", value="any-value")
             samconfig.flush()
             self.assertTrue(samconfig.exists())
+
+    def test_passed_filename_used(self):
+        config_path = Path(self.config_dir, "myconfigfile.toml")
+
+        self.assertFalse(config_path.exists())
+
+        self.samconfig = SamConfig(self.config_dir, filename="myconfigfile.toml")
+        self.samconfig.put(  # put some config options so it creates the file
+            cmd_names=["any", "command"], section="section", key="key", value="value"
+        )
+        self.samconfig.flush()
+
+        self.assertTrue(config_path.exists())
+        self.assertFalse(Path(self.config_dir, DEFAULT_CONFIG_FILE_NAME).exists())
+
+    def test_config_uses_default_if_none_provided(self):
+        self.samconfig = SamConfig(self.config_dir)
+        self.samconfig.put(  # put some config options so it creates the file
+            cmd_names=["any", "command"], section="section", key="key", value="value"
+        )
+        self.samconfig.flush()
+
+        self.assertTrue(Path(self.config_dir, DEFAULT_CONFIG_FILE_NAME).exists())
+
+    def test_config_priority(self):
+        config_files = []
+        extensions_in_priority = list(FILE_MANAGER_MAPPER.keys())  # priority by order in dict
+        for extension in extensions_in_priority:
+            filename = DEFAULT_CONFIG_FILE + extension
+            config = SamConfig(self.config_dir, filename=filename)
+            config.put(  # put some config options so it creates the file
+                cmd_names=["any", "command"], section="section", key="key", value="value"
+            )
+            config.flush()
+            config_files.append(config)
+
+        while extensions_in_priority:
+            config = SamConfig(self.config_dir)
+            next_priority = extensions_in_priority.pop(0)
+            self.assertEqual(config.filepath, Path(self.config_dir, DEFAULT_CONFIG_FILE + next_priority))
+            os.remove(config.path())
+
+
+class TestSamConfigFileManager(TestCase):
+    def test_file_manager_not_declared(self):
+        config_dir = tempfile.gettempdir()
+        config_path = Path(config_dir, "samconfig")
+
+        with self.assertRaises(SamConfigFileReadException):
+            SamConfig(config_path, filename="samconfig")
+
+    def test_file_manager_unsupported(self):
+        config_dir = tempfile.gettempdir()
+        config_path = Path(config_dir, "samconfig.jpeg")
+
+        with self.assertRaises(SamConfigFileReadException):
+            SamConfig(config_path, filename="samconfig.jpeg")
+
+    @parameterized.expand(
+        [
+            ("samconfig.toml", TomlFileManager, ".toml"),
+            ("samconfig.yaml", YamlFileManager, ".yaml"),
+            ("samconfig.yml", YamlFileManager, ".yml"),
+            # ("samconfig.json", JsonFileManager, ".json"),
+        ]
+    )
+    @patch("samcli.lib.telemetry.event.EventTracker.track_event")
+    def test_file_manager(self, filename, expected_file_manager, expected_extension, track_mock):
+        config_dir = tempfile.gettempdir()
+        config_path = Path(config_dir, filename)
+        tracked_events = []
+
+        def mock_tracker(name, value):  # when track_event is called, just append the Event to our list
+            tracked_events.append(Event(name, value))
+
+        track_mock.side_effect = mock_tracker
+
+        samconfig = SamConfig(config_path, filename=filename)
+
+        self.assertIs(samconfig.file_manager, expected_file_manager)
+        self.assertIn(Event("SamConfigFileExtension", expected_extension), tracked_events)
