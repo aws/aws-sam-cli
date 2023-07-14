@@ -60,7 +60,7 @@ class TestWatchManager(TestCase):
             stacks,
         ]
         self.watch_manager._update_stacks()
-        get_stacks_mock.assert_called_once_with(self.template)
+        get_stacks_mock.assert_called_once_with(self.template, use_sam_transform=False)
         sync_flow_factory_mock.assert_called_once_with(
             self.build_context, self.deploy_context, self.sync_context, stacks, False
         )
