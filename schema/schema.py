@@ -32,6 +32,7 @@ class SamCliParameterSchema:
     type: str
     description: str = ""
     default: Optional[Any] = None
+    items: Optional[str] = None
     choices: Optional[Any] = None
 
     def to_schema(self) -> Dict[str, Any]:
@@ -40,6 +41,8 @@ class SamCliParameterSchema:
         param.update({"title": self.name, "type": self.type, "description": self.description})
         if self.default:
             param.update({"default": self.default})
+        if self.items:
+            param.update({"items": {"type": self.items}})
         if self.choices:
             param.update({"enum": self.choices})
         return param
@@ -136,7 +139,8 @@ def format_param(param: click.core.Option) -> SamCliParameterSchema:
         formatted_param_type = param_type or "string"
 
     formatted_param: SamCliParameterSchema = SamCliParameterSchema(
-        param.name or "", formatted_param_type, clean_text(param.help or "")
+        param.name or "", formatted_param_type, clean_text(param.help or ""),
+        items="string" if formatted_param_type == "array" else None
     )
 
     if param.default:
