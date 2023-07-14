@@ -83,6 +83,7 @@ class BuildIntegBase(TestCase):
         beta_features=None,
         build_in_source=None,
         mount_with=None,
+        config_file=None,
     ):
         command_list = [self.cmd, "build"]
 
@@ -145,6 +146,9 @@ class BuildIntegBase(TestCase):
 
         if build_in_source is not None:
             command_list += ["--build-in-source"] if build_in_source else ["--no-build-in-source"]
+
+        if config_file is not None:
+            command_list += ["--config-file", config_file]
 
         return command_list
 
