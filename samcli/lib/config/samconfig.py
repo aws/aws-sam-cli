@@ -87,7 +87,7 @@ class SamConfig:
         self.document = self._read()
 
         config_content = self.document.get(env, {})
-        params = config_content.get(self._to_key(cmd_names), {}).get(section, {})
+        params = config_content.get(self.to_key(cmd_names), {}).get(section, {})
         if DEFAULT_GLOBAL_CMDNAME in config_content:
             global_params = config_content.get(DEFAULT_GLOBAL_CMDNAME, {}).get(section, {})
             global_params.update(params.copy())
