@@ -16,6 +16,7 @@ Resources:
     Properties:
       Handler: /opt/nodejs/node_modules/datadog-lambda-js/handler.handler
       Runtime: nodejs18.x
+      Timeout: 15
       Environment:
         Variables:
           DD_LAMBDA_HANDLER: main.lambdaHandler
