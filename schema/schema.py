@@ -139,8 +139,10 @@ def format_param(param: click.core.Option) -> SamCliParameterSchema:
         formatted_param_type = param_type or "string"
 
     formatted_param: SamCliParameterSchema = SamCliParameterSchema(
-        param.name or "", formatted_param_type, clean_text(param.help or ""),
-        items="string" if formatted_param_type == "array" else None
+        param.name or "",
+        formatted_param_type,
+        clean_text(param.help or ""),
+        items="string" if formatted_param_type == "array" else None,
     )
 
     if param.default:
@@ -154,7 +156,15 @@ def format_param(param: click.core.Option) -> SamCliParameterSchema:
 
 def get_params_from_command(cli) -> List[SamCliParameterSchema]:
     """Given a CLI object, return a list of all parameters in that CLI, formatted as SamCliParameterSchema objects."""
-    return [format_param(param) for param in cli.params if param.name and isinstance(param, click.core.Option)]
+    params_to_exclude = [
+        "config_env",  # shouldn't allow different environment from where the config is being read from
+        "config_file",  # shouldn't allow reading another file within current file
+    ]
+    return [
+        format_param(param)
+        for param in cli.params
+        if param.name and isinstance(param, click.core.Option) and param.name not in params_to_exclude
+    ]
 
 
 def retrieve_command_structure(package_name: str) -> List[SamCliCommandSchema]:
