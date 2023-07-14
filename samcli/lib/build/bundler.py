@@ -174,7 +174,8 @@ class EsbuildBundlerManager:
         :return: string path to built handler file
         """
         try:
-            path = str(Path(handler).parent / Path(handler).stem) + ".js"
+            path = (Path(handler).parent / Path(handler).stem).as_posix()
+            path = path + ".js"
         except (AttributeError, TypeError):
             return None
         return path
