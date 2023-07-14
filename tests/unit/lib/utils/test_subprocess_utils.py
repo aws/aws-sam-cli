@@ -11,7 +11,6 @@ from unittest import TestCase
 from parameterized import parameterized
 from unittest.mock import patch, Mock, call, ANY
 
-from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.lib.utils.subprocess_utils import (
     default_loading_pattern,
     invoke_subprocess_with_loading_pattern,
@@ -65,7 +64,7 @@ class TestSubprocessUtils(TestCase):
     @patch("samcli.lib.utils.subprocess_utils.Popen")
     def test_loader_raises_exception_non_zero_exit_code(self, patched_Popen):
         standard_error = "an error has occurred"
-        mock_stream_writer = Mock(spec=StreamWriter)
+        mock_stream_writer = Mock()
         mock_process = Mock()
         mock_process.returncode = 1
         mock_process.stdout = None
@@ -75,7 +74,7 @@ class TestSubprocessUtils(TestCase):
         with self.assertRaises(LoadingPatternError) as ex:
             invoke_subprocess_with_loading_pattern({"args": ["ls"]}, mock_pattern, mock_stream_writer)
         self.assertIn(standard_error, ex.exception.message)
-        mock_stream_writer.write_str.assert_called_once_with(os.linesep)
+        mock_stream_writer.write.assert_called_once_with(os.linesep)
         mock_stream_writer.flush.assert_called_once_with()
 
     @patch("samcli.lib.utils.subprocess_utils.Popen")
@@ -96,19 +95,19 @@ class TestSubprocessUtils(TestCase):
 
     @patch("samcli.lib.utils.subprocess_utils.StreamWriter")
     def test_default_pattern_default_stream_writer(self, patched_stream_writer):
-        stream_writer_mock = Mock(spec=StreamWriter)
+        stream_writer_mock = Mock()
         patched_stream_writer.return_value = stream_writer_mock
         default_loading_pattern(loading_pattern_rate=0.01)
         patched_stream_writer.assert_called_once_with(sys.stderr)
-        stream_writer_mock.write_str.assert_called_once_with(".")
+        stream_writer_mock.write.assert_called_once_with(".")
         stream_writer_mock.flush.assert_called_once_with()
 
     @patch("samcli.lib.utils.subprocess_utils.StreamWriter")
     def test_default_pattern(self, patched_stream_writer):
-        stream_writer_mock = Mock(spec=StreamWriter)
+        stream_writer_mock = Mock()
         default_loading_pattern(stream_writer_mock, 0.01)
         patched_stream_writer.assert_not_called()
-        stream_writer_mock.write_str.assert_called_once_with(".")
+        stream_writer_mock.write.assert_called_once_with(".")
         stream_writer_mock.flush.assert_called_once_with()
 
     @parameterized.expand([("hello".encode("utf-8"), "hello"), ("hello", "hello")])

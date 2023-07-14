@@ -7,7 +7,7 @@ import logging
 import os
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, TextIO, Tuple, Type, cast
+from typing import IO, Any, Dict, List, Optional, Tuple, Type, cast
 
 from samcli.commands._utils.template import TemplateFailedParsingException, TemplateNotFoundException
 from samcli.commands.exceptions import ContainersInitializationException
@@ -195,7 +195,7 @@ class InvokeContext:
         self._stacks: List[Stack] = None  # type: ignore
         self._env_vars_value: Optional[Dict] = None
         self._container_env_vars_value: Optional[Dict] = None
-        self._log_file_handle: Optional[TextIO] = None
+        self._log_file_handle: Optional[IO] = None
         self._debug_context: Optional[DebugContext] = None
         self._layers_downloader: Optional[LayerDownloader] = None
         self._container_manager: Optional[ContainerManager] = None
@@ -487,7 +487,7 @@ class InvokeContext:
             ) from ex
 
     @staticmethod
-    def _setup_log_file(log_file: Optional[str]) -> Optional[TextIO]:
+    def _setup_log_file(log_file: Optional[str]) -> Optional[IO]:
         """
         Open a log file if necessary and return the file handle. This will create a file if it does not exist
 
@@ -497,7 +497,7 @@ class InvokeContext:
         if not log_file:
             return None
 
-        return open(log_file, "w")
+        return open(log_file, "wb")
 
     @staticmethod
     def _get_debug_context(
