@@ -210,6 +210,7 @@ jobs:
         with:
           # These are the versions of Python that correspond to the supported Lambda runtimes
           python-version: |
+            3.11
             3.10
             3.9
             3.8
