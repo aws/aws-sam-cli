@@ -89,7 +89,8 @@ echo "Installing Python Libraries"
 
 # https://github.com/yaml/pyyaml/issues/724
 echo "Force cython package version to be lower than 3.x.x"
-./venv/bin/pip install --no-build-isolation "cython<3.0.0"
+./venv/bin/pip install wheel
+./venv/bin/pip install --no-build-isolation "cython<3.0.0" pyyaml==5.4.1
 
 ./venv/bin/pip install -r src/requirements/reproducible-mac.txt
 
