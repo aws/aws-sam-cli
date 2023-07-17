@@ -82,11 +82,11 @@ echo "Force cython package version to be lower than 3.x.x"
 ./venv/bin/pip install wheel
 ./venv/bin/pip install --no-build-isolation "cython<3.0.0" pyyaml==5.4.1
 
-./venv/bin/pip install -r src/requirements/reproducible-linux.txt
-
-# https://github.com/yaml/pyyaml/issues/724
 echo "Uninstall local cython package"
-./venv/bin/pip uninstall cython --yes
+./venv/bin/pip uninstall wheel cython --yes
+# end cython work around
+
+./venv/bin/pip install -r src/requirements/reproducible-linux.txt
 
 echo "Copying All Python Libraries"
 cp -r ./venv/lib/python*/site-packages/* ./output/python-libraries
