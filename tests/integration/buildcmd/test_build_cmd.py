@@ -474,6 +474,7 @@ class TestSkipBuildingFlaggedFunctions(BuildIntegPythonBase):
         ("template.yaml", "Function", True, "python3.8", "Python", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.9", "Python", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.10", "Python", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.11", "Python", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.7", "PythonPEP600", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.8", "PythonPEP600", False, "CodeUri"),
     ],
@@ -513,6 +514,7 @@ class TestBuildCommand_PythonFunctions_WithoutDocker(BuildIntegPythonBase):
         ("template.yaml", "Function", True, "python3.8", "Python", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.9", "Python", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.10", "Python", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.11", "Python", False, "CodeUri"),
     ],
 )
 class TestBuildCommand_PythonFunctions_WithDocker(BuildIntegPythonBase):

@@ -1,0 +1,11 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: A hello world application with a step function.
+
+Resources:
+  HelloWorldStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      DefinitionUri: ./state-machines/hello-world-state-machine-definition.asl.json
+    Tracing:
+      Enabled: true
