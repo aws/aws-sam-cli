@@ -83,7 +83,7 @@ DESCRIPTION = """
     multiple=True,  # Can pass in multiple env vars
     required=False,
     help="Environment variables to be passed into build containers"
-    "Resource format (FuncName.VarName=Value) or Global format (VarName=Value)."
+    "\nResource format (FuncName.VarName=Value) or Global format (VarName=Value)."
     "\n\n Example: --container-env-var Func1.VAR1=value1 --container-env-var VAR2=value2",
     cls=ContainerOptions,
 )
