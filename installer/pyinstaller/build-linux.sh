@@ -73,10 +73,18 @@ make install
 ldconfig
 cd ..
 
+# https://github.com/yaml/pyyaml/issues/724
+echo "Force cython package version to be lower than 3.x.x"
+pip install cython<3.0.0
+
 echo "Installing Python Libraries"
 python3 -m venv venv
 ./venv/bin/pip install --upgrade pip
 ./venv/bin/pip install -r src/requirements/reproducible-linux.txt
+
+# https://github.com/yaml/pyyaml/issues/724
+echo "Uninstall local cython package"
+./venv/bin/pip uninstall cython --yes
 
 echo "Copying All Python Libraries"
 cp -r ./venv/lib/python*/site-packages/* ./output/python-libraries

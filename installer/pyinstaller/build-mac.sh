@@ -74,6 +74,10 @@ cp -r ./src/* ./output/aws-sam-cli-src
 echo "Removing CI Scripts"
 rm -vf ./output/aws-sam-cli-src/appveyor*.yml
 
+# https://github.com/yaml/pyyaml/issues/724
+echo "Force cython package version to be lower than 3.x.x"
+pip install cython<3.0.0
+
 echo "Installing Python"
 curl "https://www.python.org/ftp/python/${python_version}/Python-${python_version}.tgz" --output python.tgz
 tar -xzf python.tgz
@@ -87,6 +91,10 @@ echo "Installing Python Libraries"
 /usr/local/bin/python3.8 -m venv venv
 ./venv/bin/pip install --upgrade pip
 ./venv/bin/pip install -r src/requirements/reproducible-mac.txt
+
+# https://github.com/yaml/pyyaml/issues/724
+echo "Uninstall local cython package"
+./venv/bin/pip uninstall cython --yes
 
 echo "Copying All Python Libraries"
 cp -r ./venv/lib/python*/site-packages/* ./output/python-libraries
