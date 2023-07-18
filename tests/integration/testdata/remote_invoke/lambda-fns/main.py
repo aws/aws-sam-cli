@@ -29,3 +29,27 @@ def echo_event(event, context):
 
 def raise_exception(event, context):
     raise Exception("Lambda is raising an exception")
+
+def stock_transaction_recommender(event, context):
+    stock_price = int(event["stock_price"])
+    balance = event["balance"]
+    qty = event["qty"]
+    if qty*stock_price < 100:
+        stock_action = "Buy"
+    else:
+        stock_action = "Sell"
+    return {"stock_price": stock_price, "action": stock_action, "balance": balance, "qty": qty}
+
+def stock_buyer(event, context):
+    current_balance = event["balance"]
+    new_balance = current_balance - (event["qty"]*event["stock_price"])
+    return {
+        "balance": new_balance
+    }
+
+def stock_seller(event, context):
+    current_balance = event["balance"]
+    new_balance = current_balance + (event["qty"]*event["stock_price"])
+    return {
+        "balance": new_balance
+    }

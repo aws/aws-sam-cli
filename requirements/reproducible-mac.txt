@@ -15,9 +15,9 @@ attrs==23.1.0 \
     #   jschema-to-python
     #   jsonschema
     #   sarif-om
-aws-lambda-builders==1.34.0 \
-    --hash=sha256:0790f7e9b7ee7286b96fbcf49450c5be0341bb7cb852ca7d74beae190139eb48 \
-    --hash=sha256:20456a942a417407b42ecf8ab7fce6a47306fd063051e7cb09d02d1be24d5cf3
+aws-lambda-builders==1.35.0 \
+    --hash=sha256:419d766e60ac2a7303a23889b354d108a4244ce8d467dcf9dc71a62461895780 \
+    --hash=sha256:cf462961ec8c9d493f82b955d6b76630dc0ed356b166caddd5436719ce599586
     # via aws-sam-cli (setup.py)
 aws-sam-translator==1.71.0 \
     --hash=sha256:17fb87c8137d8d49e7a978396b2b3b279211819dee44618415aab1e99c2cb659 \
@@ -271,9 +271,9 @@ idna==3.4 \
     --hash=sha256:814f528e8dead7d329833b91c5faa87d60bf71824cd12a7530b5526063d02cb4 \
     --hash=sha256:90b77e79eaa3eba6de819a0c442c0b4ceefc341a7a2ab77d7562bf49f425c5c2
     # via requests
-importlib-metadata==6.7.0 \
-    --hash=sha256:1aaf550d4f73e5d6783e7acb77aec43d49da8017410afae93822cc9cca98c4d4 \
-    --hash=sha256:cb52082e659e97afc5dac71e79de97d8681de3aa07ff18578330904a9d18e5b5
+importlib-metadata==6.8.0 \
+    --hash=sha256:3ebb78df84a805d7698245025b975d9d67053cd94c79245ba4b3eb694abe68bb \
+    --hash=sha256:dbace7892d8c0c4ac1ad096662232f831d4e64f4c4545bd53016a3e9d4654743
     # via flask
 importlib-resources==5.12.0 \
     --hash=sha256:4be82589bf5c1d7999aedf2a45159d10cb3ca4f19b2271f8792bc8e6da7b22f6 \
