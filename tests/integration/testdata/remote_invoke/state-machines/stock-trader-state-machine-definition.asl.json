@@ -1,0 +1,62 @@
+{
+  "Comment": "A state machine that does mock stock trading.",
+  "StartAt": "Recommend Stock Transaction",
+  "States": {
+      "Recommend Stock Transaction": {
+          "Type": "Task",
+          "Resource": "${StockActionRecommenderFunction}",
+          "Retry": [
+              {
+                  "ErrorEquals": [
+                      "States.TaskFailed"
+                  ],
+                  "IntervalSeconds": 14,
+                  "MaxAttempts": 1,
+                  "BackoffRate": 1.5
+              }
+          ],
+          "Next": "Buy or Sell?"
+      },
+      "Buy or Sell?": {
+          "Type": "Choice",
+          "Choices": [
+              {
+                  "Variable": "$.action",
+                  "StringEquals": "Buy",
+                  "Next": "Buy Stock"
+              }
+          ],
+          "Default": "Sell Stock"
+      },
+      "Sell Stock": {
+          "Type": "Task",
+          "Resource": "${StockSellerFunctionArn}",
+          "Retry": [
+              {
+                  "ErrorEquals": [
+                      "States.TaskFailed"
+                  ],
+                  "IntervalSeconds": 2,
+                  "MaxAttempts": 3,
+                  "BackoffRate": 1
+              }
+          ],
+          "End": true
+      },
+      "Buy Stock": {
+          "Type": "Task",
+          "Resource": "${StockBuyerFunctionArn}",
+          "Retry": [
+              {
+                  "ErrorEquals": [
+                      "States.TaskFailed"
+                  ],
+                  "IntervalSeconds": 2,
+                  "MaxAttempts": 3,
+                  "BackoffRate": 1
+              }
+          ],
+          "End": true
+      }
+  }
+}
