@@ -1,0 +1,16 @@
+{
+    "Comment": "A Simple example of the Amazon States Language using Pass and Fail states",
+    "StartAt": "Hello",
+    "States": {
+      "Hello": {
+        "Type": "Pass",
+        "Result": "Hello",
+        "Next": "World"
+      },
+      "World": {
+        "Type": "Fail",
+        "Cause": "Mock Invalid response.",
+        "Error": "MockError"
+      }
+    }
+  }

@@ -7,6 +7,7 @@ from tests.testing_utils import (
     run_command,
 )
 from tests.integration.deploy.deploy_integ_base import DeployIntegBase
+from samcli.lib.remote_invoke.remote_invoke_executor_factory import RemoteInvokeExecutorFactory
 
 from samcli.lib.utils.boto_utils import get_boto_resource_provider_with_config, get_boto_client_provider_with_config
 from samcli.lib.utils.cloudformation import get_resource_summaries
@@ -47,17 +48,17 @@ class RemoteInvokeIntegBase(TestCase):
     @classmethod
     def create_resources_and_boto_clients(cls):
         cls.remote_invoke_deploy_stack(cls.stack_name, cls.template_path)
-        stack_resource_summaries = get_resource_summaries(
+        boto_client_provider = get_boto_client_provider_with_config()
+        cls.stack_resource_summaries = get_resource_summaries(
             get_boto_resource_provider_with_config(),
-            get_boto_client_provider_with_config(),
+            boto_client_provider,
             cls.stack_name,
         )
-        cls.stack_resources = {
-            resource_full_path: stack_resource_summary.physical_resource_id
-            for resource_full_path, stack_resource_summary in stack_resource_summaries.items()
-        }
-        cls.cfn_client = get_boto_client_provider_with_config()("cloudformation")
-        cls.lambda_client = get_boto_client_provider_with_config()("lambda")
+        cls.supported_resources = RemoteInvokeExecutorFactory.REMOTE_INVOKE_EXECUTOR_MAPPING.keys()
+        cls.cfn_client = boto_client_provider("cloudformation")
+        cls.lambda_client = boto_client_provider("lambda")
+        cls.stepfunctions_client = boto_client_provider("stepfunctions")
+        cls.xray_client = boto_client_provider("xray")
 
     @staticmethod
     def get_command_list(

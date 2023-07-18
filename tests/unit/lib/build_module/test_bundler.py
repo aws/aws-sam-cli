@@ -1,10 +1,11 @@
 from pathlib import Path
-from unittest import TestCase
+from unittest import TestCase, skipIf
 from unittest.mock import patch, Mock
 
 from parameterized import parameterized
 
 from samcli.lib.build.bundler import EsbuildBundlerManager
+from tests.testing_utils import IS_WINDOWS
 from tests.unit.commands.buildcmd.test_build_context import DummyStack
 
 
@@ -178,7 +179,7 @@ class PostProcessHandler(TestCase):
     def test_get_path_and_filename_from_handler(self):
         handler = "src/functions/FunctionName/app.Handler"
         file = EsbuildBundlerManager._get_path_and_filename_from_handler(handler)
-        expected_path = str(Path("src") / "functions" / "FunctionName" / "app.js")
+        expected_path = (Path("src") / "functions" / "FunctionName" / "app.js").as_posix()
         self.assertEqual(file, expected_path)
 
     @patch("samcli.lib.build.bundler.Path.__init__")
@@ -240,3 +241,22 @@ class PostProcessHandler(TestCase):
         self.assertEqual(updated_handler_a, "app.handler")
         self.assertEqual(updated_handler_b, "app.handler")
         self.assertEqual(updated_handler_c, "functions/source/update/app.handler")
+
+    @parameterized.expand(
+        [("/opt/my/path/handler.handler", "/opt/my/path/handler.js"), ("handler.handler", "handler.js")]
+    )
+    def test_get_handler_path_unix(self, input_path, expected_path):
+        result_path = EsbuildBundlerManager(Mock())._get_path_and_filename_from_handler(input_path)
+
+        self.assertEqual(result_path, expected_path)
+
+    @parameterized.expand(
+        [
+            ("\\opt\\my\\path\\handler.handler", "/opt/my/path/handler.js"),
+        ]
+    )
+    @skipIf(not IS_WINDOWS, "Skipping POSIX converting logic since WindowsPath is not available on unix systems")
+    def test_get_handler_windows_returns_posix(self, input_path, expected_path):
+        result_path = EsbuildBundlerManager(Mock())._get_path_and_filename_from_handler(input_path)
+
+        self.assertEqual(result_path, expected_path)
