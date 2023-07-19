@@ -260,8 +260,7 @@
                 "layer_cache_basedir": {
                   "title": "layer_cache_basedir",
                   "type": "string",
-                  "description": "Specify the location basedir where the lambda layers used by the template will be downloaded to.",
-                  "default": "/Users/leogama/.aws-sam/layers-pkg"
+                  "description": "Specify the location basedir where the lambda layers used by the template will be downloaded to."
                 },
                 "skip_pull_image": {
                   "title": "skip_pull_image",
@@ -413,8 +412,7 @@
                 "layer_cache_basedir": {
                   "title": "layer_cache_basedir",
                   "type": "string",
-                  "description": "Specify the location basedir where the lambda layers used by the template will be downloaded to.",
-                  "default": "/Users/leogama/.aws-sam/layers-pkg"
+                  "description": "Specify the location basedir where the lambda layers used by the template will be downloaded to."
                 },
                 "skip_pull_image": {
                   "title": "skip_pull_image",
@@ -589,8 +587,7 @@
                 "layer_cache_basedir": {
                   "title": "layer_cache_basedir",
                   "type": "string",
-                  "description": "Specify the location basedir where the lambda layers used by the template will be downloaded to.",
-                  "default": "/Users/leogama/.aws-sam/layers-pkg"
+                  "description": "Specify the location basedir where the lambda layers used by the template will be downloaded to."
                 },
                 "skip_pull_image": {
                   "title": "skip_pull_image",

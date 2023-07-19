@@ -145,7 +145,10 @@ def format_param(param: click.core.Option) -> SamCliParameterSchema:
         items="string" if formatted_param_type == "array" else None,
     )
 
-    if param.default:
+    params_to_exclude_default = [
+        "layer_cache_basedir"  # sets default to root directory of machine the schema is generated on
+    ]
+    if param.default and param.name not in params_to_exclude_default:
         formatted_param.default = list(param.default) if isinstance(param.default, tuple) else param.default
 
     if param.type.name == "choice" and isinstance(param.type, click.Choice):
