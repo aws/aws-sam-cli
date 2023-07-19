@@ -127,7 +127,7 @@ def format_param(param: click.core.Option) -> SamCliParameterSchema:
                        a list of those allowed options
     * default - The default option for that parameter
     """
-    param_type = param.type.name.lower()
+    param_type = param.type.name.lower() if param.type.name else None
     formatted_param_type = ""
     # NOTE: Params do not have explicit "string" type; either "text" or "path".
     #       All choice options are from a set of strings.
