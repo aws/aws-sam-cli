@@ -3,11 +3,14 @@ Remote invoke executor implementation for Step Functions
 """
 import logging
 import time
+import typing
 from datetime import datetime
 from typing import cast
 
 from botocore.exceptions import ClientError, ParamValidationError
-from mypy_boto3_stepfunctions import SFNClient
+
+if typing.TYPE_CHECKING:  # pragma: no cover
+    from mypy_boto3_stepfunctions import SFNClient
 
 from samcli.lib.remote_invoke.exceptions import (
     ErrorBotoApiCallException,
@@ -38,13 +41,13 @@ class StepFunctionsStartExecutionExecutor(BotoActionExecutor):
     execution details.
     """
 
-    _stepfunctions_client: SFNClient
+    _stepfunctions_client: "SFNClient"
     _state_machine_arn: str
     _remote_output_format: RemoteInvokeOutputFormat
     request_parameters: dict
 
     def __init__(
-        self, stepfunctions_client: SFNClient, physical_id: str, remote_output_format: RemoteInvokeOutputFormat
+        self, stepfunctions_client: "SFNClient", physical_id: str, remote_output_format: RemoteInvokeOutputFormat
     ):
         self._stepfunctions_client = stepfunctions_client
         self._remote_output_format = remote_output_format
