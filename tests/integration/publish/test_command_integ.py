@@ -19,7 +19,7 @@ SKIP_PUBLISH_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN
 TIMEOUT = 300
 
 
-# @skipIf(SKIP_PUBLISH_TESTS, "Skip publish tests in CI/CD only")
+@skipIf(SKIP_PUBLISH_TESTS, "Skip publish tests in CI/CD only")
 class TestPublishExistingApp(PublishAppIntegBase):
     def setUp(self):
         super().setUp()
@@ -75,7 +75,7 @@ class TestPublishExistingApp(PublishAppIntegBase):
         self.assert_metadata_details(app_metadata, result.stdout.decode("utf-8"))
 
 
-# @skipIf(SKIP_PUBLISH_TESTS, "Skip publish tests in CI/CD only")
+@skipIf(SKIP_PUBLISH_TESTS, "Skip publish tests in CI/CD only")
 class TestPublishNewApp(PublishAppIntegBase):
     def setUp(self):
         super().setUp()
