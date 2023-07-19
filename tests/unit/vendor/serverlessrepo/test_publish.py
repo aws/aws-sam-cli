@@ -1,6 +1,6 @@
 import json
 from unittest import TestCase
-from mock import patch, Mock
+from unittest.mock import patch, Mock
 
 from botocore.exceptions import ClientError
 
