@@ -14,7 +14,6 @@ aws-sam-translator==1.71.0
 docker~=6.1.0
 dateparser~=1.1
 requests~=2.31.0
-serverlessrepo==0.1.10
 aws_lambda_builders==1.35.0
 tomlkit==0.11.8
 watchdog==2.1.2
