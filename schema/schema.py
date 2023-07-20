@@ -12,7 +12,6 @@ import click
 from samcli.cli.command import _SAM_CLI_COMMAND_PACKAGES
 from samcli.lib.config.samconfig import SamConfig
 
-
 PARAMS_TO_EXCLUDE = [
     "config_env",  # shouldn't allow different environment from where the config is being read from
     "config_file",  # shouldn't allow reading another file within current file
