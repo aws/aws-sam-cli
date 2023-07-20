@@ -5,6 +5,7 @@ import importlib
 import json
 from dataclasses import dataclass
 from enum import Enum
+import re
 from typing import Any, Dict, List, Optional
 
 import click
@@ -44,6 +45,8 @@ class SamCliParameterSchema:
         if self.items:
             param.update({"items": {"type": self.items}})
         if self.choices:
+            if isinstance(self.choices, list):
+                self.choices.sort()
             param.update({"enum": self.choices})
         return param
 
@@ -112,6 +115,8 @@ def clean_text(text: str) -> str:
     """Clean up a string of text to be formatted for the JSON schema."""
     if not text:
         return ""
+    ansi_regex = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+    text = ansi_regex.sub("", text)
     return text.replace("\b", "").strip("\n").strip()
 
 
