@@ -12,6 +12,14 @@ import click
 from samcli.cli.command import _SAM_CLI_COMMAND_PACKAGES
 from samcli.lib.config.samconfig import SamConfig
 
+PARAMS_TO_EXCLUDE = [
+    "config_env",  # shouldn't allow different environment from where the config is being read from
+    "config_file",  # shouldn't allow reading another file within current file
+]
+PARAMS_TO_OMIT_DEFAULT_FIELD = [
+    "layer_cache_basedir"  # sets default to root directory to that of machine the schema is generated on
+]
+
 
 class SchemaKeys(Enum):
     SCHEMA_FILE_NAME = "schema/samcli.json"
@@ -145,7 +153,7 @@ def format_param(param: click.core.Option) -> SamCliParameterSchema:
         items="string" if formatted_param_type == "array" else None,
     )
 
-    if param.default:
+    if param.default and param.name not in PARAMS_TO_OMIT_DEFAULT_FIELD:
         formatted_param.default = list(param.default) if isinstance(param.default, tuple) else param.default
 
     if param.type.name == "choice" and isinstance(param.type, click.Choice):
@@ -156,14 +164,10 @@ def format_param(param: click.core.Option) -> SamCliParameterSchema:
 
 def get_params_from_command(cli) -> List[SamCliParameterSchema]:
     """Given a CLI object, return a list of all parameters in that CLI, formatted as SamCliParameterSchema objects."""
-    params_to_exclude = [
-        "config_env",  # shouldn't allow different environment from where the config is being read from
-        "config_file",  # shouldn't allow reading another file within current file
-    ]
     return [
         format_param(param)
         for param in cli.params
-        if param.name and isinstance(param, click.core.Option) and param.name not in params_to_exclude
+        if param.name and isinstance(param, click.core.Option) and param.name not in PARAMS_TO_EXCLUDE
     ]
 
 
