@@ -5,7 +5,6 @@ import logging
 
 import boto3
 import click
-from serverlessrepo.publish import CREATE_APPLICATION
 
 from samcli.cli.cli_config_file import ConfigProvider, configuration_option
 from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
@@ -15,6 +14,7 @@ from samcli.commands._utils.options import template_common_option
 from samcli.commands._utils.template import TemplateFailedParsingException, TemplateNotFoundException, get_template_data
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.version_checker import check_newer_version
+from samcli.vendor.serverlessrepo.publish import CREATE_APPLICATION
 
 LOG = logging.getLogger(__name__)
 
@@ -69,11 +69,10 @@ def cli(
 def do_cli(ctx, template, semantic_version):
     """Publish the application based on command line inputs."""
 
-    from serverlessrepo import publish_application
-    from serverlessrepo.exceptions import InvalidS3UriError, ServerlessRepoError
-    from serverlessrepo.parser import METADATA, SERVERLESS_REPO_APPLICATION
-
     from samcli.commands.exceptions import UserException
+    from samcli.vendor.serverlessrepo import publish_application
+    from samcli.vendor.serverlessrepo.exceptions import InvalidS3UriError, ServerlessRepoError
+    from samcli.vendor.serverlessrepo.parser import METADATA, SERVERLESS_REPO_APPLICATION
 
     try:
         template_data = get_template_data(template)

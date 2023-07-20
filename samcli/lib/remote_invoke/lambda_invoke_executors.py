@@ -4,6 +4,7 @@ Remote invoke executor implementation for Lambda
 import base64
 import json
 import logging
+import typing
 from abc import ABC, abstractmethod
 from json import JSONDecodeError
 from typing import cast
@@ -11,7 +12,9 @@ from typing import cast
 from botocore.eventstream import EventStream
 from botocore.exceptions import ClientError, ParamValidationError
 from botocore.response import StreamingBody
-from mypy_boto3_lambda.client import LambdaClient
+
+if typing.TYPE_CHECKING:  # pragma: no cover
+    from mypy_boto3_lambda.client import LambdaClient
 
 from samcli.lib.remote_invoke.exceptions import (
     ErrorBotoApiCallException,
@@ -47,11 +50,13 @@ class AbstractLambdaInvokeExecutor(BotoActionExecutor, ABC):
     For Payload parameter, if a file location provided, the file handle will be passed as Payload object
     """
 
-    _lambda_client: LambdaClient
+    _lambda_client: "LambdaClient"
     _function_name: str
     _remote_output_format: RemoteInvokeOutputFormat
 
-    def __init__(self, lambda_client: LambdaClient, function_name: str, remote_output_format: RemoteInvokeOutputFormat):
+    def __init__(
+        self, lambda_client: "LambdaClient", function_name: str, remote_output_format: RemoteInvokeOutputFormat
+    ):
         self._lambda_client = lambda_client
         self._function_name = function_name
         self._remote_output_format = remote_output_format
@@ -219,7 +224,7 @@ class LambdaStreamResponseConverter(RemoteInvokeRequestResponseMapper):
         return remote_invoke_input
 
 
-def _is_function_invoke_mode_response_stream(lambda_client: LambdaClient, function_name: str):
+def _is_function_invoke_mode_response_stream(lambda_client: "LambdaClient", function_name: str):
     """
     Returns True if given function has RESPONSE_STREAM as InvokeMode, False otherwise
     """
