@@ -3,9 +3,9 @@
 
 import importlib
 import json
+import re
 from dataclasses import dataclass
 from enum import Enum
-import re
 from typing import Any, Dict, List, Optional
 
 import click
