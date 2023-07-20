@@ -20,6 +20,7 @@ PARAMS_TO_EXCLUDE = [
 PARAMS_TO_OMIT_DEFAULT_FIELD = [
     "layer_cache_basedir"  # sets default to root directory to that of machine the schema is generated on
 ]
+ANSI_REGEX = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 
 
 class SchemaKeys(Enum):
@@ -123,8 +124,7 @@ def clean_text(text: str) -> str:
     """Clean up a string of text to be formatted for the JSON schema."""
     if not text:
         return ""
-    ansi_regex = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
-    text = ansi_regex.sub("", text)
+    text = ANSI_REGEX.sub("", text)
     return text.replace("\b", "").strip("\n").strip()
 
 
