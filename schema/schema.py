@@ -115,7 +115,7 @@ def clean_text(text: str) -> str:
     """Clean up a string of text to be formatted for the JSON schema."""
     if not text:
         return ""
-    ansi_regex = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+    ansi_regex = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
     text = ansi_regex.sub("", text)
     return text.replace("\b", "").strip("\n").strip()
 
