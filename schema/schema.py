@@ -74,12 +74,12 @@ class SamCliCommandSchema:
     def to_schema(self) -> dict:
         """Return the JSON schema representation of the SAM CLI command."""
         COMMANDS_TO_EXCLUDE = [  # TEMPORARY: for use only while generating piece-by-piece
-            # "deploy",
-            # "build",
-            # "local",
-            # "validate",
-            # "package",
-            # "init",
+            "deploy",
+            "build",
+            "local",
+            "validate",
+            "package",
+            "init",
             "delete",
             "bootstrap",
             "list",
