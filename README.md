@@ -5,7 +5,7 @@
 
 ![Apache 2.0 License](https://img.shields.io/github/license/aws/aws-sam-cli)
 ![SAM CLI Version](https://img.shields.io/github/release/aws/aws-sam-cli.svg?label=CLI%20Version)
-![Install](https://img.shields.io/badge/brew-aws--sam--cli-orange)
+![Install](https://img.shields.io/badge/brew-aws/tap/aws--sam--cli-orange)
 ![pip](https://img.shields.io/badge/pip-aws--sam--cli-9cf)
 
 [Installation](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html) | [Blogs](https://serverlessland.com/blog?tag=AWS%20SAM) | [Videos](https://serverlessland.com/video?tag=AWS%20SAM) | [AWS Docs](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html) | [Roadmap](https://github.com/aws/aws-sam-cli/wiki/SAM-CLI-Roadmap) | [Try It Out](https://s12d.com/jKo46elk) | [Slack Us](https://join.slack.com/t/awsdevelopers/shared_invite/zt-yryddays-C9fkWrmguDv0h2EEDzCqvw)
