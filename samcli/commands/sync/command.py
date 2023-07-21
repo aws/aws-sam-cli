@@ -175,7 +175,7 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 @pass_context
 @track_command
 @track_long_event("SyncUsed", "Start", "SyncUsed", "End")
-@image_repository_validation
+@image_repository_validation(support_resolve_image_repos=False)
 @track_template_warnings([CodeDeployWarning.__name__, CodeDeployConditionWarning.__name__])
 @check_newer_version
 @print_cmdline_args

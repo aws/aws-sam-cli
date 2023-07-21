@@ -90,7 +90,7 @@ DESCRIPTION = """
 @no_progressbar_option
 @common_options
 @aws_creds_options
-@image_repository_validation
+@image_repository_validation(support_resolve_image_repos=False)
 @pass_context
 @track_command
 @check_newer_version
