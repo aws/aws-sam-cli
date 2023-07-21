@@ -27,7 +27,7 @@ from samcli.commands._utils.option_value_processor import process_env_var, proce
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.commands.build.core.command import BuildCommand
 from samcli.lib.telemetry.metric import track_command
-from samcli.cli.cli_config_file import configuration_option, TomlProvider
+from samcli.cli.cli_config_file import configuration_option, ConfigProvider
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.commands.build.click_container import ContainerOptions
 from samcli.commands.build.utils import MountMode
@@ -51,7 +51,7 @@ DESCRIPTION = """
   \b
   Supported Runtimes
   ------------------
-  1. Python 3.7, 3.8, 3.9, 3.10 using PIP\n
+  1. Python 3.7, 3.8, 3.9, 3.10, 3.11 using PIP\n
   2. Nodejs 18.x, 16.x, 14.x, 12.x using NPM\n
   3. Ruby 2.7, 3.2 using Bundler\n
   4. Java 8, Java 11, Java 17 using Gradle and Maven\n
@@ -69,7 +69,7 @@ DESCRIPTION = """
     short_help=HELP_TEXT,
     context_settings={"max_content_width": 120},
 )
-@configuration_option(provider=TomlProvider(section="parameters"))
+@configuration_option(provider=ConfigProvider(section="parameters"))
 @hook_name_click_option(
     force_prepare=True,
     invalid_coexist_options=["t", "template-file", "template", "parameter-overrides"],

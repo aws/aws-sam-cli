@@ -404,7 +404,7 @@ class ApplicationBuilder:
 
         build_args = {
             "path": str(docker_context_dir),
-            "dockerfile": dockerfile,
+            "dockerfile": str(pathlib.Path(dockerfile).as_posix()),
             "tag": docker_tag,
             "buildargs": docker_build_args,
             "platform": get_docker_platform(architecture),

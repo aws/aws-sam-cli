@@ -34,7 +34,7 @@ def default_loading_pattern(stream_writer: Optional[StreamWriter] = None, loadin
         How frequently to generate the pattern
     """
     stream_writer = stream_writer or StreamWriter(sys.stderr)
-    stream_writer.write_str(".")
+    stream_writer.write(".")
     stream_writer.flush()
     sleep(loading_pattern_rate)
 
@@ -96,7 +96,7 @@ def invoke_subprocess_with_loading_pattern(
                 return_code = process.wait()
                 keep_printing = False
 
-                stream_writer.write_str(os.linesep)
+                stream_writer.write(os.linesep)
                 stream_writer.flush()
                 process_stderr = _check_and_convert_stream_to_string(process.stderr)
 

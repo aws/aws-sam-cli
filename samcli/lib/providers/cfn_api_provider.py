@@ -522,7 +522,7 @@ class CfnApiProvider(CfnBaseApiProvider):
         api_resource_type = resources.get(api_id, {}).get("Type")
         if api_resource_type != AWS_APIGATEWAY_V2_API:
             raise InvalidSamTemplateException(
-                "The AWS::ApiGatewayV2::Stag must have a valid ApiId that points to Api resource {}".format(api_id)
+                "The AWS::ApiGatewayV2::Stage must have a valid ApiId that points to Api resource {}".format(api_id)
             )
 
         collector.stage_name = stage_name

@@ -29,6 +29,7 @@ class SamLocalStackProvider(SamBaseProvider):
         template_dict: Dict,
         parameter_overrides: Optional[Dict] = None,
         global_parameter_overrides: Optional[Dict] = None,
+        use_sam_transform: bool = True,
     ):
         """
         Initialize the class with SAM template data. The SAM template passed to this provider is assumed
@@ -37,13 +38,22 @@ class SamLocalStackProvider(SamBaseProvider):
         This class does not perform any syntactic validation of the template.
         After the class is initialized, any changes to the ``template_dict`` will not be reflected in here.
         You need to explicitly update the class with new template, if necessary.
-        :param str template_file: SAM Stack Template file path
-        :param str stack_path: SAM Stack stack_path (See samcli.lib.providers.provider.Stack.stack_path)
-        :param dict template_dict: SAM Template as a dictionary
-        :param dict parameter_overrides: Optional dictionary of values for SAM template parameters that might want
-            to get substituted within the template
-        :param dict global_parameter_overrides: Optional dictionary of values for SAM template global parameters that
-            might want to get substituted within the template and all its child templates
+        Parameters
+        ----------
+        template_file: str
+            SAM Stack Template file path
+        stack_path: str
+            SAM Stack stack_path (See samcli.lib.providers.provider.Stack.stack_path)
+        template_dict: dict
+            SAM Template as a dictionary
+        parameter_overrides: dict
+            Optional dictionary of values for SAM template parameters that might want to get substituted within
+            the template
+        global_parameter_overrides: dict
+            Optional dictionary of values for SAM template global parameters that might want to get substituted within
+            the template and all its child templates
+        use_sam_transform: bool
+            Whether to transform the given template with Serverless Application Model. Default is True
         """
 
         self._template_file = template_file
@@ -51,6 +61,7 @@ class SamLocalStackProvider(SamBaseProvider):
         self._template_dict = self.get_template(
             template_dict,
             SamLocalStackProvider.merge_parameter_overrides(parameter_overrides, global_parameter_overrides),
+            use_sam_transform=use_sam_transform,
         )
         self._resources = self._template_dict.get("Resources", {})
         self._global_parameter_overrides = global_parameter_overrides
@@ -198,6 +209,7 @@ class SamLocalStackProvider(SamBaseProvider):
         global_parameter_overrides: Optional[Dict] = None,
         metadata: Optional[Dict] = None,
         template_dictionary: Optional[Dict] = None,
+        use_sam_transform: bool = True,
     ) -> Tuple[List[Stack], List[str]]:
         """
         Recursively extract stacks from a template file.
@@ -221,6 +233,8 @@ class SamLocalStackProvider(SamBaseProvider):
             Optional dictionary of nested stack resource metadata values.
         template_dictionary: Optional[Dict]
             dictionary representing the sam template. Only one of either template_dict or template_file is required
+        use_sam_transform: bool
+            Whether to transform the given template with Serverless Application Model. Default is True
 
         Returns
         -------
@@ -253,7 +267,12 @@ class SamLocalStackProvider(SamBaseProvider):
         remote_stack_full_paths: List[str] = []
 
         current = SamLocalStackProvider(
-            template_file, stack_path, template_dict, parameter_overrides, global_parameter_overrides
+            template_file,
+            stack_path,
+            template_dict,
+            parameter_overrides,
+            global_parameter_overrides,
+            use_sam_transform=use_sam_transform,
         )
         remote_stack_full_paths.extend(current.remote_stack_full_paths)
 
@@ -265,6 +284,7 @@ class SamLocalStackProvider(SamBaseProvider):
                 child_stack.parameters,
                 global_parameter_overrides,
                 child_stack.metadata,
+                use_sam_transform=use_sam_transform,
             )
             stacks.extend(stacks_in_child)
             remote_stack_full_paths.extend(remote_stack_full_paths_in_child)

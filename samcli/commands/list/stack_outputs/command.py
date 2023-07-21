@@ -4,7 +4,7 @@ Sets up the cli for stack-outputs
 
 import click
 
-from samcli.cli.cli_config_file import TomlProvider, configuration_option
+from samcli.cli.cli_config_file import ConfigProvider, configuration_option
 from samcli.cli.main import aws_creds_options, common_options, pass_context, print_cmdline_args
 from samcli.commands._utils.command_exception_handler import command_exception_handler
 from samcli.commands.list.cli_common.options import output_option
@@ -23,7 +23,7 @@ Get the stack outputs as defined in the SAM/CloudFormation template.
     required=True,
     type=click.STRING,
 )
-@configuration_option(provider=TomlProvider(section="parameters"))
+@configuration_option(provider=ConfigProvider(section="parameters"))
 @output_option
 @aws_creds_options
 @common_options

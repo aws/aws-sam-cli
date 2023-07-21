@@ -9,8 +9,12 @@ from unittest.mock import Mock, call, patch, ANY
 from requests import RequestException
 
 from samcli.lib.utils.packagetype import IMAGE
-from samcli.lib.utils.stream_writer import StreamWriter
-from samcli.local.docker.container import Container, ContainerResponseException, ContainerConnectionTimeoutException
+from samcli.local.docker.container import (
+    Container,
+    ContainerResponseException,
+    ContainerConnectionTimeoutException,
+    PortAlreadyInUse,
+)
 
 
 class TestContainer_init(TestCase):
@@ -505,6 +509,26 @@ class TestContainer_start(TestCase):
         with self.assertRaises(RuntimeError):
             self.container.start()
 
+    def test_docker_raises_port_inuse_error(self):
+        self.container.is_created.return_value = True
+
+        container_mock = Mock()
+        self.mock_docker_client.containers.get.return_value = container_mock
+        container_mock.start.side_effect = PortAlreadyInUse()
+
+        with self.assertRaises(PortAlreadyInUse):
+            self.container.start()
+
+    def test_docker_raises_api_error(self):
+        self.container.is_created.return_value = True
+
+        container_mock = Mock()
+        self.mock_docker_client.containers.get.return_value = container_mock
+        container_mock.start.side_effect = APIError("Mock Error")
+
+        with self.assertRaises(APIError):
+            self.container.start()
+
     def test_must_not_support_input_data(self):
         self.container.is_created.return_value = True
 
@@ -697,17 +721,17 @@ class TestContainer_wait_for_result(TestCase):
         self.assertEqual(mock_requests.post.call_count, 0)
 
     def test_write_container_output_successful(self):
-        stdout_mock = Mock(spec=StreamWriter)
-        stderr_mock = Mock(spec=StreamWriter)
+        stdout_mock = Mock()
+        stderr_mock = Mock()
 
         def _output_iterator():
-            yield b"Hello", None
-            yield None, b"World"
+            yield "Hello", None
+            yield None, "World"
             raise ValueError("The pipe has been ended.")
 
         Container._write_container_output(_output_iterator(), stdout_mock, stderr_mock)
-        stdout_mock.assert_has_calls([call.write_bytes(b"Hello")])
-        stderr_mock.assert_has_calls([call.write_bytes(b"World")])
+        stdout_mock.assert_has_calls([call.write("Hello")])
+        stderr_mock.assert_has_calls([call.write("World")])
 
 
 class TestContainer_wait_for_logs(TestCase):
@@ -761,33 +785,33 @@ class TestContainer_write_container_output(TestCase):
     def setUp(self):
         self.output_itr = [(b"stdout1", None), (None, b"stderr1"), (b"stdout2", b"stderr2"), (None, None)]
 
-        self.stdout_mock = Mock(spec=StreamWriter)
-        self.stderr_mock = Mock(spec=StreamWriter)
+        self.stdout_mock = Mock()
+        self.stderr_mock = Mock()
 
     def test_must_write_stdout_and_stderr_data(self):
         # All the invalid frames must be ignored
 
         Container._write_container_output(self.output_itr, stdout=self.stdout_mock, stderr=self.stderr_mock)
 
-        self.stdout_mock.write_bytes.assert_has_calls([call(b"stdout1"), call(b"stdout2")])
+        self.stdout_mock.write.assert_has_calls([call(b"stdout1"), call(b"stdout2")])
 
-        self.stderr_mock.write_bytes.assert_has_calls([call(b"stderr1"), call(b"stderr2")])
+        self.stderr_mock.write.assert_has_calls([call(b"stderr1"), call(b"stderr2")])
 
     def test_must_write_only_stderr(self):
         # All the invalid frames must be ignored
 
         Container._write_container_output(self.output_itr, stdout=None, stderr=self.stderr_mock)
 
-        self.stdout_mock.write_bytes.assert_not_called()
+        self.stdout_mock.write.assert_not_called()
 
-        self.stderr_mock.write_bytes.assert_has_calls([call(b"stderr1"), call(b"stderr2")])
+        self.stderr_mock.write.assert_has_calls([call(b"stderr1"), call(b"stderr2")])
 
     def test_must_write_only_stdout(self):
         Container._write_container_output(self.output_itr, stdout=self.stdout_mock, stderr=None)
 
-        self.stdout_mock.write_bytes.assert_has_calls([call(b"stdout1"), call(b"stdout2")])
+        self.stdout_mock.write.assert_has_calls([call(b"stdout1"), call(b"stdout2")])
 
-        self.stderr_mock.write_bytes.assert_not_called()  # stderr must never be called
+        self.stderr_mock.write.assert_not_called()  # stderr must never be called
 
 
 class TestContainer_wait_for_socket_connection(TestCase):
