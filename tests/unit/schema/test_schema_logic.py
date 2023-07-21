@@ -43,31 +43,37 @@ class TestCommandSchema(TestCase):
 
         command_schema = command.to_schema()
 
-        self._validate_command_schema(command_schema, params)
-
-    def _validate_command_schema(self, command_schema, expected_params):
         self.assertEqual(len(command_schema.keys()), 1)
         self.assertEqual(list(command_schema.keys())[0], "commandname")
         inner_schema = command_schema["commandname"]
+        self._validate_schema_keys(inner_schema)
+        self._validate_schema_parameters_keys(inner_schema)
+        self._validate_schema_parameters_exist_correctly(inner_schema, params)
+        self.assertEqual(["parameters"], inner_schema["required"], "Parameters attribute should be required")
+
+    def _validate_schema_keys(self, schema):
         for expected_key in ["title", "description", "properties", "required"]:
-            self.assertIn(expected_key, inner_schema.keys(), f"Command schema should have key {expected_key}")
-        self.assertIn("parameters", inner_schema["properties"].keys(), "Schema should have 'parameters'")
+            self.assertIn(expected_key, schema.keys(), f"Command schema should have key {expected_key}")
+        self.assertIn("parameters", schema["properties"].keys(), "Schema should have 'parameters'")
+
+    def _validate_schema_parameters_keys(self, schema):
         for expected_key in ["title", "description", "type", "properties"]:
             self.assertIn(
                 expected_key,
-                inner_schema["properties"]["parameters"],
+                schema["properties"]["parameters"],
                 f"Parameters schema should have key {expected_key}",
             )
+
+    def _validate_schema_parameters_exist_correctly(self, schema, expected_params):
         for param in expected_params:
             self.assertIn(
-                param.name, inner_schema["properties"]["parameters"]["properties"], f"{param.name} should be in schema"
+                param.name, schema["properties"]["parameters"]["properties"], f"{param.name} should be in schema"
             )
             self.assertEqual(
                 param.to_schema(),
-                inner_schema["properties"]["parameters"]["properties"].get(param.name),
+                schema["properties"]["parameters"]["properties"].get(param.name),
                 f"{param.name} should point to schema representation",
             )
-        self.assertEqual(["parameters"], inner_schema["required"], "Parameters attribute should be required")
 
 
 class TestSchemaLogic(TestCase):
