@@ -146,7 +146,7 @@ def format_param(param: click.core.Option) -> SamCliParameterSchema:
     * default - The default option for that parameter
     """
     if not param:
-        raise SchemaGenerationException(f"Expected to format a parameter that doesn't exist")
+        raise SchemaGenerationException("Expected to format a parameter that doesn't exist")
     if not param.type.name:
         raise SchemaGenerationException(f"Parameter {param} passed without a type")
 

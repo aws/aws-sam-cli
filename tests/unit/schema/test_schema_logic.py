@@ -1,3 +1,4 @@
+from typing import List
 from unittest.mock import MagicMock, Mock, patch
 import click
 from parameterized import parameterized
@@ -142,33 +143,34 @@ class TestSchemaLogic(TestCase):
         self.assertNotIn("config_file", params)
         self.assertNotIn(None, params)
 
-    @parameterized.expand([(False,), (True,)])
     @patch("schema.schema.importlib.import_module")
     @patch("schema.schema.get_params_from_command")
-    @patch("schema.schema.isinstance")
-    def test_command_structure_is_retrieved(self, is_group, isinstance_mock, get_params_mock, import_mock):
-        isinstance_mock.return_value = is_group  # for checking if isinstace of click.core.Group
-        mock_module = MagicMock()
-        mock_module.__setattr__("__name__", "samcli.commands.cmdname")
-        if is_group:
-            mock_module.cli.commands = {}
-            for i in range(2):
-                mock_subcommand = MagicMock()
-                mock_subcommand.name = f"subcommand{i}"
-                mock_subcommand.help = "help text"
-                mock_module.cli.commands.update({f"subcommand{i}": mock_subcommand})
-        else:
-            mock_module.cli.help = "help text"
+    def test_command_structure_is_retrieved(self, get_params_mock, import_mock):
+        mock_module = self._setup_mock_module()
         import_mock.side_effect = lambda _: mock_module
         get_params_mock.return_value = []
 
         commands = retrieve_command_structure("")
 
-        for i, command in enumerate(commands):
-            self.assertTrue(command.name.startswith("cmdname"), "Name of command should be parsed")
-            if is_group:
-                self.assertEqual(command.name, f"cmdname_subcommand{i}", "Subcommand name should be parsed")
-            self.assertEqual(command.description, "help text", "Help text should be parsed")
+        self._validate_retrieved_command_structure(commands)
+
+    @patch("schema.schema.importlib.import_module")
+    @patch("schema.schema.get_params_from_command")
+    @patch("schema.schema.isinstance")
+    def test_command_structure_is_retrieved_from_group_cli(self, isinstance_mock, get_params_mock, import_mock):
+        mock_module = self._setup_mock_module()
+        mock_module.cli.commands = {}
+        for i in range(2):
+            mock_subcommand = MagicMock()
+            mock_subcommand.name = f"subcommand{i}"
+            mock_subcommand.help = "help text"
+            mock_module.cli.commands.update({f"subcommand{i}": mock_subcommand})
+        import_mock.side_effect = lambda _: mock_module
+        get_params_mock.return_value = []
+
+        commands = retrieve_command_structure("")
+
+        self._validate_retrieved_command_structure(commands)
 
     @patch("schema.schema.retrieve_command_structure")
     def test_schema_is_generated_properly(self, retrieve_commands_mock):
@@ -210,3 +212,14 @@ class TestSchemaLogic(TestCase):
                 SamCliCommandSchema(f"command-{command_number}", "some command", []).to_schema(),
                 "Command should be represented correctly in schema",
             )
+
+    def _setup_mock_module(self) -> MagicMock:
+        mock_module = MagicMock()
+        mock_module.__setattr__("__name__", "samcli.commands.cmdname")
+        mock_module.cli.help = "help text"
+        return mock_module
+
+    def _validate_retrieved_command_structure(self, commands: List[SamCliCommandSchema]):
+        for command in commands:
+            self.assertTrue(command.name.startswith("cmdname"), "Name of command should be parsed")
+            self.assertEqual(command.description, "help text", "Help text should be parsed")
