@@ -19,6 +19,11 @@ PARAMS_TO_EXCLUDE = [
 PARAMS_TO_OMIT_DEFAULT_FIELD = [
     "layer_cache_basedir"  # sets default to root directory to that of machine the schema is generated on
 ]
+CHARS_TO_CLEAN = [
+    "\b",  # backspaces
+    "\u001b[0m",  # ANSI start bold
+    "\u001b[1m",  # ANSI end bold
+]
 
 
 class SchemaKeys(Enum):
@@ -52,6 +57,8 @@ class SamCliParameterSchema:
         if self.items:
             param.update({"items": {"type": self.items}})
         if self.choices:
+            if isinstance(self.choices, list):
+                self.choices.sort()
             param.update({"enum": self.choices})
         return param
 
@@ -120,7 +127,9 @@ def clean_text(text: str) -> str:
     """Clean up a string of text to be formatted for the JSON schema."""
     if not text:
         return ""
-    return text.replace("\b", "").strip("\n").strip()
+    for char_to_delete in CHARS_TO_CLEAN:
+        text = text.replace(char_to_delete, "")
+    return text.strip("\n").strip()
 
 
 def format_param(param: click.core.Option) -> SamCliParameterSchema:
