@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, Mock, patch
 import click
 from parameterized import parameterized
 from unittest import TestCase
+from schema.exceptions import SchemaGenerationException
 
 from schema.schema import (
     SamCliCommandSchema,
@@ -75,7 +76,6 @@ class TestSchemaLogic(TestCase):
             ("filename", "string"),
             ("directory", "string"),
             ("LIST", "array"),
-            (None, "string"),
         ]
     )
     def test_param_formatted_correctly(self, param_type, expected_type):
@@ -92,6 +92,16 @@ class TestSchemaLogic(TestCase):
         self.assertEqual(formatted_param.type, expected_type)
         self.assertEqual(formatted_param.description, "param description")
         self.assertEqual(formatted_param.default, None)
+
+    def test_param_formatted_throws_error_when_none(self):
+        mock_param = MagicMock()
+        mock_param.type.name = None
+
+        with self.assertRaises(SchemaGenerationException):
+            format_param(None)
+
+        with self.assertRaises(SchemaGenerationException):
+            format_param(mock_param)
 
     @parameterized.expand(
         [

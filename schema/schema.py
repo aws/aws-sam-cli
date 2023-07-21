@@ -11,6 +11,7 @@ import click
 
 from samcli.cli.command import _SAM_CLI_COMMAND_PACKAGES
 from samcli.lib.config.samconfig import SamConfig
+from schema.exceptions import SchemaGenerationException
 
 PARAMS_TO_EXCLUDE = [
     "config_env",  # shouldn't allow different environment from where the config is being read from
@@ -144,7 +145,12 @@ def format_param(param: click.core.Option) -> SamCliParameterSchema:
                        a list of those allowed options
     * default - The default option for that parameter
     """
-    param_type = param.type.name.lower() if param.type.name else None
+    if not param:
+        raise SchemaGenerationException(f"Expected to format a parameter that doesn't exist")
+    if not param.type.name:
+        raise SchemaGenerationException(f"Parameter {param} passed without a type")
+
+    param_type = param.type.name.lower()
     formatted_param_type = ""
     # NOTE: Params do not have explicit "string" type; either "text" or "path".
     #       All choice options are from a set of strings.
