@@ -40,7 +40,12 @@ class TestCommandSchema(TestCase):
     def test_command_to_schema(self):
         params = [SamCliParameterSchema("param1", "string"), SamCliParameterSchema("param2", "number")]
         command = SamCliCommandSchema("commandname", "command description", params)
+
         command_schema = command.to_schema()
+
+        self._validate_command_schema(command_schema, params)
+
+    def _validate_command_schema(self, command_schema, expected_params):
         self.assertEqual(len(command_schema.keys()), 1)
         self.assertEqual(list(command_schema.keys())[0], "commandname")
         inner_schema = command_schema["commandname"]
@@ -53,7 +58,7 @@ class TestCommandSchema(TestCase):
                 inner_schema["properties"]["parameters"],
                 f"Parameters schema should have key {expected_key}",
             )
-        for param in params:
+        for param in expected_params:
             self.assertIn(
                 param.name, inner_schema["properties"]["parameters"]["properties"], f"{param.name} should be in schema"
             )
