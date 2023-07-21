@@ -3,7 +3,6 @@
 
 import importlib
 import json
-import re
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List, Optional
@@ -20,7 +19,11 @@ PARAMS_TO_EXCLUDE = [
 PARAMS_TO_OMIT_DEFAULT_FIELD = [
     "layer_cache_basedir"  # sets default to root directory to that of machine the schema is generated on
 ]
-ANSI_REGEX = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+CHARS_TO_CLEAN = [
+    "\b",  # backspaces
+    "\u001b[0m",  # ANSI start bold
+    "\u001b[1m",  # ANSI end bold
+]
 
 
 class SchemaKeys(Enum):
@@ -124,8 +127,9 @@ def clean_text(text: str) -> str:
     """Clean up a string of text to be formatted for the JSON schema."""
     if not text:
         return ""
-    text = ANSI_REGEX.sub("", text)
-    return text.replace("\b", "").strip("\n").strip()
+    for char_to_delete in CHARS_TO_CLEAN:
+        text = text.replace(char_to_delete, "")
+    return text.strip("\n").strip()
 
 
 def format_param(param: click.core.Option) -> SamCliParameterSchema:
