@@ -173,7 +173,6 @@ class TestImageRepositoryValidation(TestCase):
                 ex.exception.message,
             )
 
-
     @patch("samcli.lib.cli_validation.image_repository_validation.click")
     @patch("samcli.lib.cli_validation.image_repository_validation._is_all_image_funcs_provided")
     @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format")
