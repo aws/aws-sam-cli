@@ -5,7 +5,7 @@ import importlib
 import json
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import click
 
@@ -52,7 +52,7 @@ class SamCliParameterSchema:
     """
 
     name: str
-    type: str
+    type: Union[str, List[str]]
     description: str = ""
     default: Optional[Any] = None
     items: Optional[str] = None
