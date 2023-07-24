@@ -26,7 +26,7 @@ from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
 from samcli.commands.local.start_api.core.command import InvokeAPICommand
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.version_checker import check_newer_version
-from samcli.local.docker.exceptions import ContainerNotStartableException
+from samcli.local.docker.exceptions import ContainerNotStartableException, PortAlreadyInUse
 
 LOG = logging.getLogger(__name__)
 
@@ -243,6 +243,7 @@ def do_cli(  # pylint: disable=R0914
         InvalidLayerReference,
         InvalidIntermediateImageError,
         DebuggingNotSupported,
+        PortAlreadyInUse,
     ) as ex:
         raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
     except ContainerNotStartableException as ex:
