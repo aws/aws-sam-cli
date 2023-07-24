@@ -317,7 +317,10 @@
                     "array",
                     "string"
                   ],
-                  "description": "String that contains AWS CloudFormation parameter overrides encoded as key=value pairs."
+                  "description": "String that contains AWS CloudFormation parameter overrides encoded as key=value pairs.",
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 "skip_pull_image": {
                   "title": "skip_pull_image",
@@ -403,7 +406,10 @@
                     "array",
                     "string"
                   ],
-                  "description": "String that contains AWS CloudFormation parameter overrides encoded as key=value pairs."
+                  "description": "String that contains AWS CloudFormation parameter overrides encoded as key=value pairs.",
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 "debug_port": {
                   "title": "debug_port",
@@ -558,7 +564,10 @@
                     "array",
                     "string"
                   ],
-                  "description": "String that contains AWS CloudFormation parameter overrides encoded as key=value pairs."
+                  "description": "String that contains AWS CloudFormation parameter overrides encoded as key=value pairs.",
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 "debug_port": {
                   "title": "debug_port",
@@ -736,7 +745,10 @@
                     "array",
                     "string"
                   ],
-                  "description": "String that contains AWS CloudFormation parameter overrides encoded as key=value pairs."
+                  "description": "String that contains AWS CloudFormation parameter overrides encoded as key=value pairs.",
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 "debug_port": {
                   "title": "debug_port",
@@ -1093,7 +1105,10 @@
                     "array",
                     "string"
                   ],
-                  "description": "String that contains AWS CloudFormation parameter overrides encoded as key=value pairs."
+                  "description": "String that contains AWS CloudFormation parameter overrides encoded as key=value pairs.",
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 "signing_profiles": {
                   "title": "signing_profiles",

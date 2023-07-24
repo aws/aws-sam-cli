@@ -22,12 +22,12 @@ PARAMS_TO_OMIT_DEFAULT_FIELD = [
 ]
 EXCEPTION_OPTION_CLASS_MAPPER = {  # for params without proper class names, map them uniquely
     "parameter_overrides": ["array", "string"],
-    "image_repository": "string",
-    "image_repositories": "array",
-    "metadata": "string",
-    "signing_profiles": "string",
-    "tags": "array",
-    "parameter": "array",
+    "image_repository": ["string"],
+    "image_repositories": ["array"],
+    "metadata": ["string"],
+    "signing_profiles": ["string"],
+    "tags": ["array"],
+    "parameter": ["array"],
 }
 CHARS_TO_CLEAN = [
     "\b",  # backspaces
@@ -160,23 +160,23 @@ def format_param(param: click.core.Option) -> SamCliParameterSchema:
         raise SchemaGenerationException(f"Parameter {param} passed without a type:\n{param.type}")
 
     param_type = param.type.name.lower()
-    formatted_param_type: Any = None
+    formatted_param_types = []
     # NOTE: Params do not have explicit "string" type; either "text" or "path".
     #       All choice options are from a set of strings.
     if param.name in EXCEPTION_OPTION_CLASS_MAPPER.keys():
-        formatted_param_type = EXCEPTION_OPTION_CLASS_MAPPER[param.name]
+        formatted_param_types = EXCEPTION_OPTION_CLASS_MAPPER[param.name]
     elif param_type in ["text", "path", "choice", "filename", "directory"]:
-        formatted_param_type = "string"
+        formatted_param_types = ["string"]
     elif param_type == "list":
-        formatted_param_type = "array"
+        formatted_param_types = ["array"]
     else:
-        formatted_param_type = param_type or "string"
+        formatted_param_types = [param_type] or ["string"]
 
     formatted_param: SamCliParameterSchema = SamCliParameterSchema(
         param.name or "",
-        formatted_param_type,
+        formatted_param_types if len(formatted_param_types) > 1 else formatted_param_types[0],
         clean_text(param.help or ""),
-        items="string" if formatted_param_type == "array" or "array" in formatted_param_type else None,
+        items="string" if "array" in formatted_param_types else None,
     )
 
     if param.default and param.name not in PARAMS_TO_OMIT_DEFAULT_FIELD:
