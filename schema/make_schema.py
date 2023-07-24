@@ -20,6 +20,15 @@ PARAMS_TO_EXCLUDE = [
 PARAMS_TO_OMIT_DEFAULT_FIELD = [
     "layer_cache_basedir"  # sets default to root directory to that of machine the schema is generated on
 ]
+EXCEPTION_OPTION_CLASS_MAPPER = {  # for params without proper class names, map them uniquely
+    "parameter_overrides": ["array", "string"],
+    "image_repository": "string",
+    "image_repositories": "array",
+    "metadata": "string",
+    "signing_profiles": "string",
+    "tags": "array",
+    "parameter": "array",
+}
 CHARS_TO_CLEAN = [
     "\b",  # backspaces
     "\u001b[0m",  # ANSI start bold
@@ -147,14 +156,16 @@ def format_param(param: click.core.Option) -> SamCliParameterSchema:
     """
     if not param:
         raise SchemaGenerationException("Expected to format a parameter that doesn't exist")
-    if not param.type.name:
-        raise SchemaGenerationException(f"Parameter {param} passed without a type")
+    if not param.type.name and param.name not in EXCEPTION_OPTION_CLASS_MAPPER.keys():
+        raise SchemaGenerationException(f"Parameter {param} passed without a type:\n{param.type}")
 
     param_type = param.type.name.lower()
-    formatted_param_type = ""
+    formatted_param_type: Any = None
     # NOTE: Params do not have explicit "string" type; either "text" or "path".
     #       All choice options are from a set of strings.
-    if param_type in ["text", "path", "choice", "filename", "directory"]:
+    if param.name in EXCEPTION_OPTION_CLASS_MAPPER.keys():
+        formatted_param_type = EXCEPTION_OPTION_CLASS_MAPPER[param.name]
+    elif param_type in ["text", "path", "choice", "filename", "directory"]:
         formatted_param_type = "string"
     elif param_type == "list":
         formatted_param_type = "array"
@@ -165,7 +176,7 @@ def format_param(param: click.core.Option) -> SamCliParameterSchema:
         param.name or "",
         formatted_param_type,
         clean_text(param.help or ""),
-        items="string" if formatted_param_type == "array" else None,
+        items="string" if formatted_param_type == "array" or "array" in formatted_param_type else None,
     )
 
     if param.default and param.name not in PARAMS_TO_OMIT_DEFAULT_FIELD:
