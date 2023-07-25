@@ -42,12 +42,7 @@ class TestDelete(DeleteIntegBase):
         time.sleep(CFN_SLEEP)
         super().setUp()
 
-    @parameterized.expand(
-        [
-            "aws-serverless-function.yaml",
-            "aws-s3-with-lang-ext.yaml"
-        ]
-    )
+    @parameterized.expand(["aws-serverless-function.yaml", "aws-s3-with-lang-ext.yaml"])
     def test_s3_options(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
@@ -134,9 +129,7 @@ class TestDelete(DeleteIntegBase):
         deploy_command_list = self.get_deploy_command_list(
             template_file=template_path, guided=True, config_file=config_file_name
         )
-        _ = run_command_with_input(
-            deploy_command_list, "{}\n\n\n\n\n\n\n\n\n".format(stack_name).encode()
-        )
+        _ = run_command_with_input(deploy_command_list, "{}\n\n\n\n\n\n\n\n\n".format(stack_name).encode())
 
         config_file_path = self.test_data_path.joinpath(config_file_name)
         delete_command_list = self.get_delete_command_list(
@@ -204,9 +197,7 @@ class TestDelete(DeleteIntegBase):
         deploy_command_list = self.get_deploy_command_list(
             template_file=template_path, guided=True, config_file=config_file_name
         )
-        _ = run_command_with_input(
-            deploy_command_list, "{}\n\n\n\n\n\n\n\n\n".format(stack_name).encode()
-        )
+        _ = run_command_with_input(deploy_command_list, "{}\n\n\n\n\n\n\n\n\n".format(stack_name).encode())
 
         config_file_path = self.test_data_path.joinpath(config_file_name)
         delete_command_list = self.get_delete_command_list(stack_name=stack_name, config_file=config_file_path)
@@ -234,9 +225,7 @@ class TestDelete(DeleteIntegBase):
         stack_name = self._method_to_stack_name(self.id())
 
         deploy_command_list = self.get_deploy_command_list(template_file=template_path, guided=True)
-        _ = run_command_with_input(
-            deploy_command_list, "{}\n\n\n\n\nn\n\n\n".format(stack_name).encode()
-        )
+        _ = run_command_with_input(deploy_command_list, "{}\n\n\n\n\nn\n\n\n".format(stack_name).encode())
 
         delete_command_list = self.get_delete_command_list(
             stack_name=stack_name, region=self._session.region_name, no_prompts=True
@@ -522,7 +511,7 @@ class TestDelete(DeleteIntegBase):
             resp = self.cf_client.describe_stacks(StackName=stack_name)
         except ClientError as ex:
             self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
-    
+
     def validate_delete_process(self, command_result: CommandResult):
         self.assertEqual(command_result.process.returncode, 0)
         self.assertNotIn(b"Could not find and delete the S3 object with the key", command_result.stderr)
