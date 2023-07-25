@@ -13,7 +13,7 @@ types-PyYAML==6.0.12
 types-chevron==0.14.2.4
 types-psutil==5.9.5.12
 types-setuptools==65.4.0.0
-types-Pygments==2.15.0.1 
+types-Pygments==2.15.0.2 
 types-colorama==0.4.15.11
 types-dateparser==1.1.4.9
 types-docutils==0.20.0.1
