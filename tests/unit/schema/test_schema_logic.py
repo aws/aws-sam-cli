@@ -1,11 +1,10 @@
 from typing import List
-from unittest.mock import MagicMock, Mock, patch
-import click
+from unittest.mock import MagicMock, patch
 from parameterized import parameterized
 from unittest import TestCase
 from schema.exceptions import SchemaGenerationException
 
-from schema.schema import (
+from schema.make_schema import (
     SamCliCommandSchema,
     SamCliParameterSchema,
     SchemaKeys,
@@ -121,7 +120,7 @@ class TestSchemaLogic(TestCase):
             ("choice", SamCliParameterSchema("p_name", "string", default=["default", "value"], choices=["1", "2"])),
         ]
     )
-    @patch("schema.schema.isinstance")
+    @patch("schema.make_schema.isinstance")
     def test_param_formatted_given_type(self, param_type, expected_param, isinstance_mock):
         mock_param = MagicMock()
         mock_param.name = "p_name"
@@ -135,8 +134,8 @@ class TestSchemaLogic(TestCase):
 
         self.assertEqual(expected_param, formatted_param)
 
-    @patch("schema.schema.isinstance")
-    @patch("schema.schema.format_param")
+    @patch("schema.make_schema.isinstance")
+    @patch("schema.make_schema.format_param")
     def test_getting_params_from_cli_object(self, format_param_mock, isinstance_mock):
         mock_cli = MagicMock()
         mock_cli.params = []
@@ -154,8 +153,8 @@ class TestSchemaLogic(TestCase):
         self.assertNotIn("config_file", params)
         self.assertNotIn(None, params)
 
-    @patch("schema.schema.importlib.import_module")
-    @patch("schema.schema.get_params_from_command")
+    @patch("schema.make_schema.importlib.import_module")
+    @patch("schema.make_schema.get_params_from_command")
     def test_command_structure_is_retrieved(self, get_params_mock, import_mock):
         mock_module = self._setup_mock_module()
         import_mock.side_effect = lambda _: mock_module
@@ -165,9 +164,9 @@ class TestSchemaLogic(TestCase):
 
         self._validate_retrieved_command_structure(commands)
 
-    @patch("schema.schema.importlib.import_module")
-    @patch("schema.schema.get_params_from_command")
-    @patch("schema.schema.isinstance")
+    @patch("schema.make_schema.importlib.import_module")
+    @patch("schema.make_schema.get_params_from_command")
+    @patch("schema.make_schema.isinstance")
     def test_command_structure_is_retrieved_from_group_cli(self, isinstance_mock, get_params_mock, import_mock):
         mock_module = self._setup_mock_module()
         mock_module.cli.commands = {}
@@ -183,7 +182,7 @@ class TestSchemaLogic(TestCase):
 
         self._validate_retrieved_command_structure(commands)
 
-    @patch("schema.schema.retrieve_command_structure")
+    @patch("schema.make_schema.retrieve_command_structure")
     def test_schema_is_generated_properly(self, retrieve_commands_mock):
         def mock_retrieve_commands(package_name, counter=[0]):
             counter[0] += 1

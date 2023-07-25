@@ -313,8 +313,14 @@
                 },
                 "parameter_overrides": {
                   "title": "parameter_overrides",
-                  "type": "string",
-                  "description": "String that contains AWS CloudFormation parameter overrides encoded as key=value pairs."
+                  "type": [
+                    "array",
+                    "string"
+                  ],
+                  "description": "String that contains AWS CloudFormation parameter overrides encoded as key=value pairs.",
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 "skip_pull_image": {
                   "title": "skip_pull_image",
@@ -396,8 +402,14 @@
                 },
                 "parameter_overrides": {
                   "title": "parameter_overrides",
-                  "type": "string",
-                  "description": "String that contains AWS CloudFormation parameter overrides encoded as key=value pairs."
+                  "type": [
+                    "array",
+                    "string"
+                  ],
+                  "description": "String that contains AWS CloudFormation parameter overrides encoded as key=value pairs.",
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 "debug_port": {
                   "title": "debug_port",
@@ -548,8 +560,14 @@
                 },
                 "parameter_overrides": {
                   "title": "parameter_overrides",
-                  "type": "string",
-                  "description": "String that contains AWS CloudFormation parameter overrides encoded as key=value pairs."
+                  "type": [
+                    "array",
+                    "string"
+                  ],
+                  "description": "String that contains AWS CloudFormation parameter overrides encoded as key=value pairs.",
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 "debug_port": {
                   "title": "debug_port",
@@ -723,8 +741,14 @@
                 },
                 "parameter_overrides": {
                   "title": "parameter_overrides",
-                  "type": "string",
-                  "description": "String that contains AWS CloudFormation parameter overrides encoded as key=value pairs."
+                  "type": [
+                    "array",
+                    "string"
+                  ],
+                  "description": "String that contains AWS CloudFormation parameter overrides encoded as key=value pairs.",
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 "debug_port": {
                   "title": "debug_port",
@@ -871,8 +895,11 @@
                 },
                 "image_repositories": {
                   "title": "image_repositories",
-                  "type": "string",
-                  "description": "Mapping of Function Logical ID to AWS ECR Repository URI.\n\nExample: Function_Logical_ID=ECR_Repo_Uri\nThis option can be specified multiple times."
+                  "type": "array",
+                  "description": "Mapping of Function Logical ID to AWS ECR Repository URI.\n\nExample: Function_Logical_ID=ECR_Repo_Uri\nThis option can be specified multiple times.",
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 "s3_prefix": {
                   "title": "s3_prefix",
@@ -1010,8 +1037,11 @@
                 },
                 "image_repositories": {
                   "title": "image_repositories",
-                  "type": "string",
-                  "description": "Mapping of Function Logical ID to AWS ECR Repository URI.\n\nExample: Function_Logical_ID=ECR_Repo_Uri\nThis option can be specified multiple times."
+                  "type": "array",
+                  "description": "Mapping of Function Logical ID to AWS ECR Repository URI.\n\nExample: Function_Logical_ID=ECR_Repo_Uri\nThis option can be specified multiple times.",
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 "force_upload": {
                   "title": "force_upload",
@@ -1063,13 +1093,22 @@
                 },
                 "tags": {
                   "title": "tags",
-                  "type": "string",
-                  "description": "List of tags to associate with the stack."
+                  "type": "array",
+                  "description": "List of tags to associate with the stack.",
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 "parameter_overrides": {
                   "title": "parameter_overrides",
-                  "type": "string",
-                  "description": "String that contains AWS CloudFormation parameter overrides encoded as key=value pairs."
+                  "type": [
+                    "array",
+                    "string"
+                  ],
+                  "description": "String that contains AWS CloudFormation parameter overrides encoded as key=value pairs.",
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 "signing_profiles": {
                   "title": "signing_profiles",
