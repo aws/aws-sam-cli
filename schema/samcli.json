@@ -314,8 +314,8 @@
                 "parameter_overrides": {
                   "title": "parameter_overrides",
                   "type": [
-                    "array",
-                    "string"
+                    "string",
+                    "array"
                   ],
                   "description": "String that contains AWS CloudFormation parameter overrides encoded as key=value pairs.",
                   "items": {
@@ -403,8 +403,8 @@
                 "parameter_overrides": {
                   "title": "parameter_overrides",
                   "type": [
-                    "array",
-                    "string"
+                    "string",
+                    "array"
                   ],
                   "description": "String that contains AWS CloudFormation parameter overrides encoded as key=value pairs.",
                   "items": {
@@ -561,8 +561,8 @@
                 "parameter_overrides": {
                   "title": "parameter_overrides",
                   "type": [
-                    "array",
-                    "string"
+                    "string",
+                    "array"
                   ],
                   "description": "String that contains AWS CloudFormation parameter overrides encoded as key=value pairs.",
                   "items": {
@@ -742,8 +742,8 @@
                 "parameter_overrides": {
                   "title": "parameter_overrides",
                   "type": [
-                    "array",
-                    "string"
+                    "string",
+                    "array"
                   ],
                   "description": "String that contains AWS CloudFormation parameter overrides encoded as key=value pairs.",
                   "items": {
@@ -1102,8 +1102,8 @@
                 "parameter_overrides": {
                   "title": "parameter_overrides",
                   "type": [
-                    "array",
-                    "string"
+                    "string",
+                    "array"
                   ],
                   "description": "String that contains AWS CloudFormation parameter overrides encoded as key=value pairs.",
                   "items": {
@@ -1422,8 +1422,8 @@
                 "parameter_overrides": {
                   "title": "parameter_overrides",
                   "type": [
-                    "array",
-                    "string"
+                    "string",
+                    "array"
                   ],
                   "description": "String that contains AWS CloudFormation parameter overrides encoded as key=value pairs.",
                   "items": {
@@ -1532,8 +1532,8 @@
                 "parameter_overrides": {
                   "title": "parameter_overrides",
                   "type": [
-                    "array",
-                    "string"
+                    "string",
+                    "array"
                   ],
                   "description": "String that contains AWS CloudFormation parameter overrides encoded as key=value pairs.",
                   "items": {
@@ -1651,8 +1651,8 @@
                 "parameter_overrides": {
                   "title": "parameter_overrides",
                   "type": [
-                    "array",
-                    "string"
+                    "string",
+                    "array"
                   ],
                   "description": "String that contains AWS CloudFormation parameter overrides encoded as key=value pairs.",
                   "items": {
