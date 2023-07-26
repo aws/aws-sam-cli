@@ -2144,7 +2144,7 @@ class TestResourceLinker(TestCase):
             ),
             (
                 _link_gateway_v2_api_to_function_callback,
-                "Could not link multiple a V2 API to more than one Lambda Function resources",
+                "Could not link a V2 API to more than one Lambda Function resources",
             ),
         ]
     )
