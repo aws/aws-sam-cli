@@ -28,6 +28,7 @@ from samcli.lib.utils.resources import AWS_APIGATEWAY_V2_API as CFN_AWS_APIGATEW
 from samcli.lib.utils.resources import AWS_APIGATEWAY_V2_INTEGRATION as CFN_AWS_APIGATEWAY_V2_INTEGRATION
 from samcli.lib.utils.resources import AWS_APIGATEWAY_V2_ROUTE as CFN_AWS_APIGATEWAY_V2_ROUTE
 from samcli.lib.utils.resources import AWS_APIGATEWAY_V2_STAGE as CFN_AWS_APIGATEWAY_V2_STAGE
+from samcli.lib.utils.resources import AWS_APIGATEWAY_V2_AUTHORIZER as CFN_AWS_APIGATEWAY_V2_AUTHORIZER
 from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION
 from samcli.lib.utils.resources import AWS_LAMBDA_LAYERVERSION as CFN_AWS_LAMBDA_LAYER_VERSION
 
@@ -49,6 +50,7 @@ TF_AWS_API_GATEWAY_V2_API = "aws_apigatewayv2_api"
 TF_AWS_API_GATEWAY_V2_ROUTE = "aws_apigatewayv2_route"
 TF_AWS_API_GATEWAY_V2_STAGE = "aws_apigatewayv2_stage"
 TF_AWS_API_GATEWAY_V2_INTEGRATION = "aws_apigatewayv2_integration"
+TF_AWS_API_GATEWAY_V2_AUTHORIZER = "aws_apigatewayv2_authorizer"
 
 
 def _build_code_property(tf_properties: dict, resource: TFResource) -> Any:
@@ -412,6 +414,16 @@ AWS_API_GATEWAY_V2_INTEGRATION_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping 
     "PayloadFormatVersion": _get_property_extractor("payload_format_version"),
 }
 
+AWS_API_GATEWAY_V2_AUTHORIZER_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
+    "ApiId": _get_property_extractor("api_id"),
+    "AuthorizerType": _get_property_extractor("authorizer_type"),
+    "AuthorizerUri": _get_property_extractor("authorizer_uri"),
+    "Name": _get_property_extractor("name"),
+    "AuthorizerPayloadFormatVersion": _get_property_extractor("authorizer_payload_format_version"),
+    "IdentitySource": _get_property_extractor("identity_sources"),
+    "EnableSimpleResponses": _get_property_extractor("enable_simple_responses"),
+}
+
 RESOURCE_TRANSLATOR_MAPPING: Dict[str, ResourceTranslator] = {
     TF_AWS_LAMBDA_FUNCTION: ResourceTranslator(CFN_AWS_LAMBDA_FUNCTION, AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING),
     TF_AWS_LAMBDA_LAYER_VERSION: ResourceTranslator(
@@ -449,5 +461,8 @@ RESOURCE_TRANSLATOR_MAPPING: Dict[str, ResourceTranslator] = {
     ),
     TF_AWS_API_GATEWAY_V2_INTEGRATION: ResourceTranslator(
         CFN_AWS_APIGATEWAY_V2_INTEGRATION, AWS_API_GATEWAY_V2_INTEGRATION_PROPERTY_BUILDER_MAPPING
+    ),
+    TF_AWS_API_GATEWAY_V2_AUTHORIZER: ResourceTranslator(
+        CFN_AWS_APIGATEWAY_V2_AUTHORIZER, AWS_API_GATEWAY_V2_AUTHORIZER_PROPERTY_BUILDER_MAPPING
     ),
 }
