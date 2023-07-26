@@ -368,13 +368,6 @@ def common_observability_click_options():
             "formatted timestamp like '2018-01-01 10:10:10'",
         ),
         click.option(
-            "--tail",
-            "-t",
-            is_flag=True,
-            help="Tail events. This will ignore the end time argument and continue to fetch events as they "
-            "become available. If option --tail without a --name will pull from all possible resources",
-        ),
-        click.option(
             "--output",
             help="""
             The formatting style of the command output. Following options are available:\n
