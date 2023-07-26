@@ -154,7 +154,7 @@ LOG = logging.getLogger(__name__)
 @capabilities_option
 @aws_creds_options
 @common_options
-@image_repository_validation
+@image_repository_validation()
 @pass_context
 @track_command
 @check_newer_version

@@ -3,9 +3,6 @@
 SAM_CLI_TELEMETRY ?= 0
 
 init:
-	pip install wheel
-	pip install "cython<3.0.0" pyyaml==5.4.1 --no-build-isolation
-	pip uninstall wheel cython --yes
 	SAM_CLI_DEV=1 pip install -e '.[dev]'
 
 test:

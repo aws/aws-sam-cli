@@ -3,7 +3,7 @@ from unittest.mock import patch, MagicMock
 
 import click
 import posixpath
-from parameterized import parameterized
+from parameterized import parameterized, parameterized_class
 
 from samcli.lib.cli_validation.image_repository_validation import (
     image_repository_validation,
@@ -14,9 +14,18 @@ from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 
 
+@parameterized_class(
+    ("support_resolve_image_repos"),
+    [
+        (True,),
+        (False,),
+    ],
+)
 class TestImageRepositoryValidation(TestCase):
+    support_resolve_image_repos = False
+
     def setUp(self):
-        @image_repository_validation
+        @image_repository_validation(self.support_resolve_image_repos)
         def foo():
             pass
 
@@ -102,10 +111,16 @@ class TestImageRepositoryValidation(TestCase):
 
         with self.assertRaises(click.BadOptionUsage) as ex:
             self.foobar()
-        self.assertIn(
-            "Only one of the following can be provided: '--image-repositories', '--image-repository', or '--resolve-image-repos'. ",
-            ex.exception.message,
-        )
+        if self.support_resolve_image_repos:
+            self.assertIn(
+                "Only one of the following can be provided: '--image-repositories', '--image-repository', '--resolve-image-repos'.",
+                ex.exception.message,
+            )
+        else:
+            self.assertIn(
+                "Only one of the following can be provided: '--image-repositories', '--image-repository'.",
+                ex.exception.message,
+            )
 
     @patch("samcli.lib.cli_validation.image_repository_validation.click")
     @patch("samcli.lib.cli_validation.image_repository_validation._is_all_image_funcs_provided")
@@ -147,10 +162,16 @@ class TestImageRepositoryValidation(TestCase):
 
         with self.assertRaises(click.BadOptionUsage) as ex:
             self.foobar()
-        self.assertIn(
-            "Missing option '--image-repository', '--image-repositories', or '--resolve-image-repos'",
-            ex.exception.message,
-        )
+        if self.support_resolve_image_repos:
+            self.assertIn(
+                "Missing option '--image-repositories', '--image-repository', '--resolve-image-repos'",
+                ex.exception.message,
+            )
+        else:
+            self.assertIn(
+                "Missing option '--image-repositories', '--image-repository'",
+                ex.exception.message,
+            )
 
     @patch("samcli.lib.cli_validation.image_repository_validation.click")
     @patch("samcli.lib.cli_validation.image_repository_validation._is_all_image_funcs_provided")
