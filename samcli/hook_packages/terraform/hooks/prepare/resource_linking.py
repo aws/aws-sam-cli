@@ -2023,9 +2023,7 @@ def _link_gateway_v2_api_to_function_callback(
         in customer's account. This list should always contain one element only.
     """
     if len(referenced_function_resource_values) > 1:
-        raise InvalidResourceLinkingException(
-            "Could not link a V2 API to more than one Lambda Function resources"
-        )
+        raise InvalidResourceLinkingException("Could not link a V2 API to more than one Lambda Function resources")
 
     if not referenced_function_resource_values:
         LOG.info("Unable to find any references to Lambda functions, skip linking Lambda function to Gateway V2 API")
