@@ -96,7 +96,7 @@ class TestSchemaLogic(TestCase):
             ("directory", "string"),
             ("LIST", "array"),
             ("type1,type2", ["type1", "type2"]),
-            ("type1,list", ["type1", "array"]),
+            ("list,type1", ["array", "type1"]),
             ("string,path,choice,filename,directory", "string"),
         ]
     )
