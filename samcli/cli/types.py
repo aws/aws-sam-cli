@@ -85,7 +85,6 @@ class CfnParameterOverridesType(click.ParamType):
 
     ordered_pattern_match = [_pattern_1, _pattern_2]
 
-    # NOTE(TheSriram): name needs to be added to click.ParamType requires it.
     name = "string,list"
 
     def convert(self, value, param, ctx):
@@ -140,7 +139,6 @@ class CfnMetadataType(click.ParamType):
 
     _pattern = r"(?:{key}={value})".format(key=PARAM_AND_METADATA_KEY_REGEX, value=VALUE_REGEX_COMMA_DELIM)
 
-    # NOTE(TheSriram): name needs to be added to click.ParamType requires it.
     name = "string"
 
     def convert(self, value, param, ctx):
@@ -196,7 +194,6 @@ class CfnTags(click.ParamType):
 
     _pattern = r"{tag}={tag}".format(tag=_generate_match_regex(match_pattern=TAG_REGEX, delim=" "))
 
-    # NOTE(TheSriram): name needs to be added to click.ParamType requires it.
     name = "list"
 
     def convert(self, value, param, ctx):
@@ -301,7 +298,6 @@ class SigningProfilesOptionType(click.ParamType):
 
     pattern = r"(?:(?: )([A-Za-z0-9\"]+)=(\"(?:\\.|[^\"\\]+)*\"|(?:\\.|[^ \"\\]+)+))"
 
-    # Note: this is required, otherwise it is failing when running help
     name = "string"
 
     def convert(self, value, param, ctx):
