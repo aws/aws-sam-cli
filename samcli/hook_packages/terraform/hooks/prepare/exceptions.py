@@ -301,6 +301,20 @@ class GatewayV2AuthorizerToLambdaFunctionLocalVariablesLinkingLimitationExceptio
     """
 
 
+class OneGatewayV2AuthorizerToGatewayV2ApiLinkingLimitationException(OneResourceLinkingLimitationException):
+    """
+    Exception specific for Gateway V2 Authorizer linking to more than one Gateway V2 API
+    """
+
+
+class GatewayV2AuthorizerToGatewayV2ApiLocalVariablesLinkingLimitationException(
+    LocalVariablesLinkingLimitationException
+):
+    """
+    Exception specific for Gateway V2 Authorizer linking to Gateway V2 API using locals.
+    """
+
+
 class InvalidSamMetadataPropertiesException(UserException):
     pass
 
