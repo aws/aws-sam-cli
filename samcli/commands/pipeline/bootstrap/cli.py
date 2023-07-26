@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 
 import click
 
-from samcli.cli.cli_config_file import TomlProvider, configuration_option
+from samcli.cli.cli_config_file import ConfigProvider, configuration_option
 from samcli.cli.main import aws_creds_options, common_options, pass_context, print_cmdline_args
 from samcli.commands._utils.click_mutex import ClickMutex
 from samcli.commands._utils.command_exception_handler import command_exception_handler
@@ -38,7 +38,7 @@ OPENID_CONNECT = "OpenID Connect (OIDC)"
 
 
 @click.command("bootstrap", short_help=SHORT_HELP, help=HELP_TEXT, context_settings=dict(max_content_width=120))
-@configuration_option(provider=TomlProvider(section="parameters"))
+@configuration_option(provider=ConfigProvider(section="parameters"))
 @click.option(
     "--interactive/--no-interactive",
     is_flag=True,

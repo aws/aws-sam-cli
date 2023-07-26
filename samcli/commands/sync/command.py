@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, List, Optional, Set, Tuple
 
 import click
 
-from samcli.cli.cli_config_file import TomlProvider, configuration_option
+from samcli.cli.cli_config_file import ConfigProvider, configuration_option
 from samcli.cli.context import Context
 from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
 from samcli.cli.main import common_options as cli_framework_options
@@ -114,7 +114,7 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
     requires_credentials=True,
     context_settings={"max_content_width": 120},
 )
-@configuration_option(provider=TomlProvider(section="parameters"))
+@configuration_option(provider=ConfigProvider(section="parameters"))
 @template_option_without_build
 @click.option(
     "--code",
@@ -175,7 +175,7 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 @pass_context
 @track_command
 @track_long_event("SyncUsed", "Start", "SyncUsed", "End")
-@image_repository_validation
+@image_repository_validation(support_resolve_image_repos=False)
 @track_template_warnings([CodeDeployWarning.__name__, CodeDeployConditionWarning.__name__])
 @check_newer_version
 @print_cmdline_args

@@ -7,25 +7,24 @@ import os
 from pathlib import Path
 from typing import Any, Iterable
 
-import tomlkit
-
-from samcli.lib.config.exceptions import SamConfigVersionException
+from samcli.lib.config.exceptions import FileParseException, SamConfigFileReadException, SamConfigVersionException
+from samcli.lib.config.file_manager import FILE_MANAGER_MAPPER
 from samcli.lib.config.version import SAM_CONFIG_VERSION, VERSION_KEY
+from samcli.lib.telemetry.event import EventTracker
 
 LOG = logging.getLogger(__name__)
 
-DEFAULT_CONFIG_FILE_EXTENSION = "toml"
-DEFAULT_CONFIG_FILE_NAME = f"samconfig.{DEFAULT_CONFIG_FILE_EXTENSION}"
+DEFAULT_CONFIG_FILE_EXTENSION = ".toml"
+DEFAULT_CONFIG_FILE = "samconfig"
+DEFAULT_CONFIG_FILE_NAME = DEFAULT_CONFIG_FILE + DEFAULT_CONFIG_FILE_EXTENSION
 DEFAULT_ENV = "default"
 DEFAULT_GLOBAL_CMDNAME = "global"
 
 
 class SamConfig:
     """
-    Class to interface with `samconfig.toml` file.
+    Class to represent `samconfig` config options.
     """
-
-    document = None
 
     def __init__(self, config_dir, filename=None):
         """
@@ -39,11 +38,23 @@ class SamConfig:
             Optional. Name of the configuration file. It is recommended to stick with default so in the future we
             could automatically support auto-resolving multiple config files within same directory.
         """
-        self.filepath = Path(config_dir, filename or DEFAULT_CONFIG_FILE_NAME)
+        self.document = {}
+        self.filepath = Path(config_dir, filename or self.get_default_file(config_dir=config_dir))
+        file_extension = self.filepath.suffix
+        self.file_manager = FILE_MANAGER_MAPPER.get(file_extension, None)
+        if not self.file_manager:
+            LOG.warning(
+                f"The config file extension '{file_extension}' is not supported. "
+                f"Supported formats are: [{'|'.join(FILE_MANAGER_MAPPER.keys())}]"
+            )
+            raise SamConfigFileReadException(
+                f"The config file {self.filepath} uses an unsupported extension, and cannot be read."
+            )
+        self._read()
+        EventTracker.track_event("SamConfigFileExtension", file_extension)
 
     def get_stage_configuration_names(self):
-        self._read()
-        if isinstance(self.document, dict):
+        if self.document:
             return [stage for stage, value in self.document.items() if isinstance(value, dict)]
         return []
 
@@ -69,23 +80,19 @@ class SamConfig:
         ------
         KeyError
             If the config file does *not* have the specific section
-
-        tomlkit.exceptions.TOMLKitError
-            If the configuration file is invalid
         """
 
         env = env or DEFAULT_ENV
 
-        self._read()
-        if isinstance(self.document, dict):
-            toml_content = self.document.get(env, {})
-            params = toml_content.get(self._to_key(cmd_names), {}).get(section, {})
-            if DEFAULT_GLOBAL_CMDNAME in toml_content:
-                global_params = toml_content.get(DEFAULT_GLOBAL_CMDNAME, {}).get(section, {})
-                global_params.update(params.copy())
-                params = global_params.copy()
-            return params
-        return {}
+        self.document = self._read()
+
+        config_content = self.document.get(env, {})
+        params = config_content.get(self._to_key(cmd_names), {}).get(section, {})
+        if DEFAULT_GLOBAL_CMDNAME in config_content:
+            global_params = config_content.get(DEFAULT_GLOBAL_CMDNAME, {}).get(section, {})
+            global_params.update(params.copy())
+            params = global_params.copy()
+        return params
 
     def put(self, cmd_names, section, key, value, env=DEFAULT_ENV):
         """
@@ -102,20 +109,10 @@ class SamConfig:
         key : str
             Key to write the data under
         value : Any
-            Value to write. Could be any of the supported TOML types.
+            Value to write. Could be any of the supported types.
         env : str
             Optional, Name of the environment
-
-        Raises
-        ------
-        tomlkit.exceptions.TOMLKitError
-            If the data is invalid
         """
-
-        if self.document is None:
-            # Checking for None here since a TOMLDocument can include a
-            # 'body' property but still be falsy without a 'value' property
-            self._read()
         # Empty document prepare the initial structure.
         # self.document is a nested dict, we need to check each layer and add new tables, otherwise duplicated key
         # in parent layer will override the whole child layer
@@ -144,20 +141,12 @@ class SamConfig:
         comment: str
             A comment to write to the samconfg file
         """
-        if self.document is None:
-            self._read()
 
-        self.document.add(tomlkit.comment(comment))
+        self.document = self.file_manager.put_comment(self.document, comment)
 
     def flush(self):
         """
         Write the data back to file
-
-        Raises
-        ------
-        tomlkit.exceptions.TOMLKitError
-            If the data is invalid
-
         """
         self._write()
 
@@ -167,7 +156,7 @@ class SamConfig:
         """
         try:
             self._read()
-        except tomlkit.exceptions.TOMLKitError:
+        except SamConfigFileReadException:
             return False
         else:
             return True
@@ -196,13 +185,10 @@ class SamConfig:
     def _read(self):
         if not self.document:
             try:
-                txt = self.filepath.read_text()
-                self.document = tomlkit.loads(txt)
-                self._version_sanity_check(self._version())
-            except OSError:
-                self.document = tomlkit.document()
-
-        if self.document.body:
+                self.document = self.file_manager.read(self.filepath)
+            except FileParseException as e:
+                raise SamConfigFileReadException(e) from e
+        if self.document:
             self._version_sanity_check(self._version())
         return self.document
 
@@ -213,12 +199,9 @@ class SamConfig:
         self._ensure_exists()
 
         current_version = self._version() if self._version() else SAM_CONFIG_VERSION
-        try:
-            self.document.add(VERSION_KEY, current_version)
-        except tomlkit.exceptions.KeyAlreadyPresent:
-            # NOTE(TheSriram): Do not attempt to re-write an existing version
-            pass
-        self.filepath.write_text(tomlkit.dumps(self.document))
+        self.document.update({VERSION_KEY: current_version})
+
+        self.file_manager.write(self.document, self.filepath)
 
     def _version(self):
         return self.document.get(VERSION_KEY, None)
@@ -260,6 +243,40 @@ class SamConfig:
             LOG.info(save_global_message)
             # Only keep the global parameter
             del self.document[env][cmd_name_key][section][key]
+
+    @staticmethod
+    def get_default_file(config_dir: str) -> str:
+        """Return a defaultly-named config file, if it exists, otherwise the current default.
+
+        Parameters
+        ----------
+        config_dir: str
+            The name of the directory where the config file is/will be stored.
+
+        Returns
+        -------
+        str
+            The name of the config file found, if it exists. In the case that it does not exist, the default config
+            file name is returned instead.
+        """
+        config_files_found = 0
+        config_file = DEFAULT_CONFIG_FILE_NAME
+
+        for extension in reversed(list(FILE_MANAGER_MAPPER.keys())):
+            filename = DEFAULT_CONFIG_FILE + extension
+            if Path(config_dir, filename).exists():
+                config_files_found += 1
+                config_file = filename
+
+        if config_files_found == 0:  # Config file doesn't exist (yet!)
+            LOG.debug("No config file found in this directory.")
+        elif config_files_found > 1:  # Multiple config files; let user know which is used
+            LOG.info(
+                f"More than one samconfig file found; using {config_file}."
+                f" To use another config file, please specify it using the '--config-file' flag."
+            )
+
+        return config_file
 
     @staticmethod
     def _version_sanity_check(version: Any) -> None:

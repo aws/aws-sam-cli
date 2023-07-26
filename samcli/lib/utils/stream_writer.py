@@ -1,11 +1,10 @@
 """
 This class acts like a wrapper around output streams to provide any flexibility with output we need
 """
-from typing import Union
 
 
 class StreamWriter:
-    def __init__(self, stream, auto_flush: bool = False):
+    def __init__(self, stream, auto_flush=False):
         """
         Instatiates new StreamWriter to the specified stream
 
@@ -23,7 +22,7 @@ class StreamWriter:
     def stream(self):
         return self._stream
 
-    def write_bytes(self, output: Union[bytes, bytearray]):
+    def write(self, output, encode=False):
         """
         Writes specified text to the underlying stream
 
@@ -32,21 +31,7 @@ class StreamWriter:
         output bytes-like object
             Bytes to write
         """
-        self._stream.buffer.write(output)
-
-        if self._auto_flush:
-            self._stream.flush()
-
-    def write_str(self, output: str):
-        """
-        Writes specified text to the underlying stream
-
-        Parameters
-        ----------
-        output bytes-like object
-            Bytes to write
-        """
-        self._stream.write(output)
+        self._stream.write(output.encode() if encode else output)
 
         if self._auto_flush:
             self._stream.flush()

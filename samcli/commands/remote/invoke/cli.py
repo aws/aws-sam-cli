@@ -4,7 +4,7 @@ from io import TextIOWrapper
 
 import click
 
-from samcli.cli.cli_config_file import TomlProvider, configuration_option
+from samcli.cli.cli_config_file import ConfigProvider, configuration_option
 from samcli.cli.context import Context
 from samcli.cli.main import aws_creds_options, common_options, pass_context, print_cmdline_args
 from samcli.cli.types import RemoteInvokeOutputFormatType
@@ -42,7 +42,7 @@ DESCRIPTION = """
     requires_credentials=True,
     context_settings={"max_content_width": 120},
 )
-@configuration_option(provider=TomlProvider(section="parameters"))
+@configuration_option(provider=ConfigProvider(section="parameters"))
 @click.option("--stack-name", required=False, help="Name of the stack to get the resource information from")
 @click.argument("resource-id", required=False)
 @click.option(
