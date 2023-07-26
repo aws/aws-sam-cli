@@ -45,6 +45,8 @@ from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     GatewayV2IntegrationToGatewayV2ApiLocalVariablesLinkingLimitationException,
     OneGatewayV2RouteToGatewayV2ApiLinkingLimitationException,
     GatewayV2RouteToGatewayV2ApiLocalVariablesLinkingLimitationException,
+    OneGatewayV2ApiToLambdaFunctionLinkingLimitationException,
+    GatewayV2ApiToLambdaFunctionLocalVariablesLinkingLimitationException,
 )
 
 from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
@@ -99,6 +101,8 @@ from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     API_GATEWAY_V2_API_RESOURCE_ADDRESS_PREFIX,
     _link_gateway_v2_resource_to_api_callback,
     _link_gateway_v2_route_to_api,
+    _link_gateway_v2_api_to_function,
+    _link_gateway_v2_api_to_function_callback,
 )
 from samcli.hook_packages.terraform.hooks.prepare.utilities import get_configuration_address
 from samcli.hook_packages.terraform.hooks.prepare.types import (
@@ -2138,6 +2142,10 @@ class TestResourceLinker(TestCase):
                 _link_gateway_v2_resource_to_api_callback,
                 "Could not link multiple Gateway V2 Apis to one Gateway V2 resource",
             ),
+            (
+                _link_gateway_v2_api_to_function_callback,
+                "Could not link multiple a V2 API to more than one Lambda Function resources",
+            ),
         ]
     )
     def test_linking_callbacks_raises_multiple_reference_exception(self, linking_call_back_method, expected_message):
@@ -2155,6 +2163,7 @@ class TestResourceLinker(TestCase):
             (_link_gateway_v2_route_to_integration_callback,),
             (_link_gateway_v2_integration_to_lambda_function_callback,),
             (_link_gateway_v2_resource_to_api_callback,),
+            (_link_gateway_v2_api_to_function_callback,),
         ]
     )
     def test_linking_callbacks_skips_empty_references(self, linking_call_back_method):
@@ -2688,3 +2697,72 @@ class TestResourceLinker(TestCase):
         _link_gateway_v2_resource_to_api_callback(gateway_resource, logical_ids)
         input_gateway_v2_integration["Properties"]["ApiId"] = expected_api_reference
         self.assertEqual(gateway_resource, input_gateway_v2_integration)
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking._link_gateway_v2_api_to_function_callback")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.ResourceLinker")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.ResourceLinkingPair")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.ResourcePairExceptions")
+    def test_link_gateway_v2_api_to_lambda_function(
+        self,
+        mock_resource_linking_exceptions,
+        mock_resource_linking_pair,
+        mock_resource_linker,
+        mock_link_gateway_v2_api_to_function_callback,
+    ):
+        api_v2_cfn_resources = Mock()
+        quick_create_resource = TFResource("resource_address", "type", Mock(), {"target": ConstantValue("val")})
+        combined_resources = {
+            "ResourceA": quick_create_resource,
+            "ResourceB": TFResource("resource_address", "type", Mock(), {"name": ConstantValue("MyAPI")}),
+        }
+        expected_quick_create_resource = {"ResourceA": quick_create_resource}
+        lambda_function_tf_resources = Mock()
+
+        _link_gateway_v2_api_to_function(combined_resources, api_v2_cfn_resources, lambda_function_tf_resources)
+
+        mock_resource_linking_exceptions.assert_called_once_with(
+            multiple_resource_linking_exception=OneGatewayV2ApiToLambdaFunctionLinkingLimitationException,
+            local_variable_linking_exception=GatewayV2ApiToLambdaFunctionLocalVariablesLinkingLimitationException,
+        )
+
+        mock_resource_linking_pair.assert_called_once_with(
+            source_resource_cfn_resource=api_v2_cfn_resources,
+            source_resource_tf_config=expected_quick_create_resource,
+            destination_resource_tf=lambda_function_tf_resources,
+            tf_destination_attribute_name="invoke_arn",
+            terraform_link_field_name="target",
+            cfn_link_field_name="Target",
+            terraform_resource_type_prefix=LAMBDA_FUNCTION_RESOURCE_ADDRESS_PREFIX,
+            cfn_resource_update_call_back_function=mock_link_gateway_v2_api_to_function_callback,
+            linking_exceptions=mock_resource_linking_exceptions(),
+        )
+
+        mock_resource_linker.assert_called_once_with(mock_resource_linking_pair())
+
+    @parameterized.expand(
+        [
+            (
+                {
+                    "Type": "AWS::ApiGatewayV2::Api",
+                    "Properties": {"Target": "functionA.invoke_arn"},
+                },
+                [LogicalIdReference("FunctionA")],
+                {
+                    "Fn::Sub": "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FunctionA.Arn}/invocations"
+                },
+            ),
+            (
+                {
+                    "Type": "AWS::ApiGatewayV2::Api",
+                    "Properties": {"Target": "functionA.invoke_arn"},
+                },
+                [ExistingResourceReference("myapi_arn")],
+                "myapi_arn",
+            ),
+        ]
+    )
+    def test_link_gateway_v2_api_to_function_callback(self, input_gateway_v2_api, logical_ids, expected_api_reference):
+        gateway_resource = deepcopy(input_gateway_v2_api)
+        _link_gateway_v2_api_to_function_callback(gateway_resource, logical_ids)
+        input_gateway_v2_api["Properties"]["Target"] = expected_api_reference
+        self.assertEqual(gateway_resource, input_gateway_v2_api)
