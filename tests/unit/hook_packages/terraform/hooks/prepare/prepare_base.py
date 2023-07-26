@@ -955,7 +955,7 @@ class PrepareHookUnitBase(TestCase):
             "name": self.apigwv2_authorizer_name,
             "authorizer_payload_format_version": "2.0",
             "identity_sources": ["$request.header.hello"],
-            "enable_simple_responses": False
+            "enable_simple_responses": False,
         }
 
         self.expected_cfn_apigwv2_authorizer_properties: dict = {
@@ -965,7 +965,7 @@ class PrepareHookUnitBase(TestCase):
             "Name": self.apigwv2_authorizer_name,
             "AuthorizerPayloadFormatVersion": "2.0",
             "IdentitySource": ["$request.header.hello"],
-            "EnableSimpleResponses": False
+            "EnableSimpleResponses": False,
         }
 
         self.tf_apigwv2_authorizer_resource: dict = {

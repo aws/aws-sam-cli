@@ -25,10 +25,10 @@ from samcli.lib.utils.resources import AWS_APIGATEWAY_RESOURCE as CFN_AWS_APIGAT
 from samcli.lib.utils.resources import AWS_APIGATEWAY_RESTAPI as CFN_AWS_APIGATEWAY_RESTAPI
 from samcli.lib.utils.resources import AWS_APIGATEWAY_STAGE as CFN_AWS_APIGATEWAY_STAGE
 from samcli.lib.utils.resources import AWS_APIGATEWAY_V2_API as CFN_AWS_APIGATEWAY_V2_API
+from samcli.lib.utils.resources import AWS_APIGATEWAY_V2_AUTHORIZER as CFN_AWS_APIGATEWAY_V2_AUTHORIZER
 from samcli.lib.utils.resources import AWS_APIGATEWAY_V2_INTEGRATION as CFN_AWS_APIGATEWAY_V2_INTEGRATION
 from samcli.lib.utils.resources import AWS_APIGATEWAY_V2_ROUTE as CFN_AWS_APIGATEWAY_V2_ROUTE
 from samcli.lib.utils.resources import AWS_APIGATEWAY_V2_STAGE as CFN_AWS_APIGATEWAY_V2_STAGE
-from samcli.lib.utils.resources import AWS_APIGATEWAY_V2_AUTHORIZER as CFN_AWS_APIGATEWAY_V2_AUTHORIZER
 from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION
 from samcli.lib.utils.resources import AWS_LAMBDA_LAYERVERSION as CFN_AWS_LAMBDA_LAYER_VERSION
 
