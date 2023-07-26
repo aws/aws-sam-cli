@@ -2668,7 +2668,7 @@ class TestResourceLinker(TestCase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.ResourceLinker")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.ResourceLinkingPair")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.ResourcePairExceptions")
-    def test_link_gateway_v2_route_to_gateway_v2_api(
+    def test_link_gateway_v2_stage_to_gateway_v2_api(
         self,
         mock_resource_linking_exceptions,
         mock_resource_linking_pair,
