@@ -274,6 +274,40 @@ class TestBuildCommand_PythonFunctions_ImagesWithSharedCode(BuildIntegBase):
             _num_of_containers_before_build, _num_of_containers_after_build, "Intermediate containers are not removed"
         )
 
+    @parameterized.expand(
+        [
+            ("feature_phi\\Dockerfile", {"phi": "1.62"}),
+            ("feature_pi\\Dockerfile", {"pi": "3.14"}),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    @skipIf(not IS_WINDOWS, "Skipping passing Windows path for dockerfile path on non Windows platform")
+    def test_windows_dockerfile_present_sub_dir(self, dockerfile, expected):
+        _tag = f"{random.randint(1, 100)}"
+        overrides = {
+            "Runtime": "3.9",
+            "Handler": "main.handler",
+            "DockerFile": dockerfile,
+            "Tag": _tag,
+        }
+        cmdlist = self.get_command_list(use_container=False, parameter_overrides=overrides)
+
+        LOG.info("Running Command: ")
+        LOG.info(cmdlist)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
+
+        self._verify_image_build_artifact(
+            self.built_template,
+            self.FUNCTION_LOGICAL_ID_IMAGE,
+            "ImageUri",
+            f"{self.FUNCTION_LOGICAL_ID_IMAGE.lower()}:{_tag}",
+        )
+
+        self._verify_invoke_built_function(
+            self.built_template, self.FUNCTION_LOGICAL_ID_IMAGE, self._make_parameter_override_arg(overrides), expected
+        )
+
 
 @skipIf(
     # Hits public ECR pull limitation, move it to canary tests
@@ -544,6 +578,47 @@ class TestBuildCommand_PythonFunctions_CDK(TestBuildCommand_PythonFunctions_With
             do_override=self.overrides,
             check_function_only=self.check_function_only,
         )
+
+
+@skipIf(
+    # Hits public ECR pull limitation, move it to canary tests
+    SKIP_DOCKER_TESTS,
+    "Skip build tests that requires Docker in CI environment",
+)
+@parameterized_class(
+    (
+        "template",
+        "FUNCTION_LOGICAL_ID",
+        "overrides",
+        "use_container",
+        "prop",
+    ),
+    [
+        (
+            "cdk_v2_synthesized_template_image_function_shared_code.json",
+            "TestLambdaFunctionC089708A",
+            False,
+            False,
+            "Code.ImageUri",
+        ),
+    ],
+)
+class TestBuildCommandCDKPythonImageFunctionSharedCode(BuildIntegPythonBase):
+    @pytest.mark.flaky(reruns=3)
+    def test_cdk_app_with_default_requirements(self):
+        expected = "Hello World"
+        cmdlist = self.get_command_list(use_container=self.use_container)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
+
+        self._verify_image_build_artifact(
+            self.built_template,
+            self.FUNCTION_LOGICAL_ID,
+            self.prop,
+            f"{self.FUNCTION_LOGICAL_ID.lower()}:latest",
+        )
+
+        self._verify_invoke_built_function(self.built_template, self.FUNCTION_LOGICAL_ID, {}, expected)
 
 
 class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPythonBase):
