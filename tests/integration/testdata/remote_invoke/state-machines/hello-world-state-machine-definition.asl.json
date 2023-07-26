@@ -1,0 +1,32 @@
+{
+  "Comment": "A Hello World example of the Amazon States Language using Pass states",
+  "StartAt": "Type of World",
+  "States": {
+    "Type of World": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.is_developer",
+          "IsPresent": false,
+          "Next": "World"
+        },
+        {
+          "Variable": "$.is_developer",
+          "BooleanEquals": true,
+          "Next": "Developer World"
+        }
+      ],
+      "Default": "World"
+    },
+    "World": {
+      "Type": "Pass",
+      "Result": "Hello World",
+      "End": true
+    },
+    "Developer World": {
+      "Type": "Pass",
+      "Result": "Hello Developer World",
+      "End": true
+    }
+  }
+}
