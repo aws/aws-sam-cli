@@ -481,7 +481,7 @@ _CorsTuple.__new__.__defaults__ = (
 
 class Cors(_CorsTuple):
     @staticmethod
-    def cors_to_headers(cors: Optional["Cors"]) -> Dict[str, Union[int, str]]:
+    def cors_to_headers(cors: Optional["Cors"], request_origin: str) -> Dict[str, Union[int, str]]:
         """
         Convert CORS object to headers dictionary
         Parameters
@@ -494,8 +494,21 @@ class Cors(_CorsTuple):
         """
         if not cors:
             return {}
+
+        # cors.allow_origin can be either a single origin or comma separated list of origins
+        allowed_origins = cors.allow_origin.split(",") if cors.allow_origin else list()
+
+        matched_origin = None
+        if "*" in allowed_origins:
+            matched_origin = "*"
+        elif request_origin in allowed_origins:
+            matched_origin = request_origin
+
+        if matched_origin is None:
+            return {}
+
         headers = {
-            CORS_ORIGIN_HEADER: cors.allow_origin,
+            CORS_ORIGIN_HEADER: matched_origin,
             CORS_METHODS_HEADER: cors.allow_methods,
             CORS_HEADERS_HEADER: cors.allow_headers,
             CORS_CREDENTIALS_HEADER: cors.allow_credentials,

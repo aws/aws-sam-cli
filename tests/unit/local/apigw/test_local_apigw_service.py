@@ -1845,8 +1845,7 @@ class TestServiceCorsToHeaders(TestCase):
         cors = Cors(
             allow_origin="*", allow_methods=",".join(["POST", "OPTIONS"]), allow_headers="UPGRADE-HEADER", max_age=6
         )
-        headers = Cors.cors_to_headers(cors)
-
+        headers = Cors.cors_to_headers(cors, "https://abc")
         self.assertEqual(
             headers,
             {
@@ -1859,12 +1858,45 @@ class TestServiceCorsToHeaders(TestCase):
 
     def test_empty_elements(self):
         cors = Cors(allow_origin="www.domain.com", allow_methods=",".join(["GET", "POST", "OPTIONS"]))
-        headers = Cors.cors_to_headers(cors)
+        headers = Cors.cors_to_headers(cors, "www.domain.com")
 
         self.assertEqual(
             headers,
             {"Access-Control-Allow-Origin": "www.domain.com", "Access-Control-Allow-Methods": "GET,POST,OPTIONS"},
         )
+
+    def test_multiple_origins_conversion(self):
+        cors = Cors(
+            allow_origin="https://abc,https://xyz", allow_methods=",".join(["POST", "OPTIONS"])
+        )
+
+        headers_abc = Cors.cors_to_headers(cors, "https://abc")
+        self.assertEqual(
+            headers_abc,
+            {
+                "Access-Control-Allow-Origin": "https://abc",
+                "Access-Control-Allow-Methods": "POST,OPTIONS",
+            },
+        )
+
+        headers_xyz = Cors.cors_to_headers(cors, "https://xyz")
+        self.assertEqual(
+            headers_xyz,
+            {
+                "Access-Control-Allow-Origin": "https://xyz",
+                "Access-Control-Allow-Methods": "POST,OPTIONS",
+            },
+        )
+
+        headers_unknown = Cors.cors_to_headers(cors, "https://unknown")
+        self.assertEqual(headers_unknown, {})
+
+    def test_missing_request_origin(self):
+        cors = Cors(allow_origin="www.domain.com", allow_methods=",".join(["GET", "POST", "OPTIONS"]))
+
+        self.assertEqual(Cors.cors_to_headers(cors, None), {})
+        self.assertEqual(Cors.cors_to_headers(cors, ""), {})
+        self.assertEqual(Cors.cors_to_headers(cors, list()), {})
 
 
 class TestRouteEqualsHash(TestCase):
