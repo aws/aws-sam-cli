@@ -166,6 +166,9 @@ def format_param(param: click.core.Option) -> SamCliParameterSchema:
             formatted_param_types.append("array")
         else:
             formatted_param_types.append(param_name or "string")
+    formatted_param_types = [
+        x for i, x in enumerate(formatted_param_types) if x not in formatted_param_types[:i]
+    ]  # deduplicate
 
     formatted_param: SamCliParameterSchema = SamCliParameterSchema(
         param.name or "",
