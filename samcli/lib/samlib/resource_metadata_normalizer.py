@@ -186,7 +186,7 @@ class ResourceMetadataNormalizer:
         asset_path = Path(metadata.get(ASSET_PATH_METADATA_KEY, ""))
         dockerfile_path = Path(metadata.get(ASSET_DOCKERFILE_PATH_KEY), "")
         return {
-            SAM_METADATA_DOCKERFILE_KEY: str(dockerfile_path),
+            SAM_METADATA_DOCKERFILE_KEY: str(dockerfile_path.as_posix()),
             SAM_METADATA_DOCKER_CONTEXT_KEY: str(asset_path),
             SAM_METADATA_DOCKER_BUILD_ARGS_KEY: metadata.get(ASSET_DOCKERFILE_BUILD_ARGS_KEY, {}),
         }

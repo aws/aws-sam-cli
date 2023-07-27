@@ -32,3 +32,6 @@ tzlocal==3.0
 
 #Adding cfn-lint dependency for SAM validate
 cfn-lint~=0.78.1
+
+# Type checking boto3 objects
+boto3-stubs[apigateway,cloudformation,ecr,iam,lambda,s3,schemas,secretsmanager,signer,stepfunctions,sts,xray]==1.28.2

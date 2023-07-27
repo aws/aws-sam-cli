@@ -7,7 +7,7 @@ import uuid
 from contextlib import contextmanager
 from typing import Optional
 
-from samcli.lib.utils.hash import file_checksum
+from samcli.lib.utils.hash import file_checksum, str_checksum
 
 
 @contextmanager
@@ -51,10 +51,7 @@ def get_uploaded_s3_object_name(
     if precomputed_md5:
         filemd5 = precomputed_md5
     elif file_content:
-        with mktempfile() as temp_file:
-            temp_file.write(file_content)
-            temp_file.flush()
-            filemd5 = file_checksum(temp_file.name)
+        filemd5 = str_checksum(file_content)
     elif file_path:
         filemd5 = file_checksum(file_path)
     else:

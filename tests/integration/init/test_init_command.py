@@ -843,7 +843,7 @@ class TestInteractiveInit(TestCase):
         # 1: AWS Quick Start Templates
         # 1: Hello World Example
         # N: Use the most popular runtime and package type? (Python and zip) [y/N]
-        # 14: nodejs16.x
+        # 12: nodejs16.x
         # 1: Zip
         # 1: Hello World Example
         # N: Would you like to enable X-Ray tracing on the function(s) in your application?  [y/N]
@@ -852,7 +852,7 @@ class TestInteractiveInit(TestCase):
 1
 1
 N
-14
+12
 1
 1
 N

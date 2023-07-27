@@ -9,7 +9,12 @@ from unittest.mock import Mock, call, patch, ANY
 from requests import RequestException
 
 from samcli.lib.utils.packagetype import IMAGE
-from samcli.local.docker.container import Container, ContainerResponseException, ContainerConnectionTimeoutException
+from samcli.local.docker.container import (
+    Container,
+    ContainerResponseException,
+    ContainerConnectionTimeoutException,
+    PortAlreadyInUse,
+)
 
 
 class TestContainer_init(TestCase):
@@ -502,6 +507,26 @@ class TestContainer_start(TestCase):
         self.container.is_created.return_value = False
 
         with self.assertRaises(RuntimeError):
+            self.container.start()
+
+    def test_docker_raises_port_inuse_error(self):
+        self.container.is_created.return_value = True
+
+        container_mock = Mock()
+        self.mock_docker_client.containers.get.return_value = container_mock
+        container_mock.start.side_effect = PortAlreadyInUse()
+
+        with self.assertRaises(PortAlreadyInUse):
+            self.container.start()
+
+    def test_docker_raises_api_error(self):
+        self.container.is_created.return_value = True
+
+        container_mock = Mock()
+        self.mock_docker_client.containers.get.return_value = container_mock
+        container_mock.start.side_effect = APIError("Mock Error")
+
+        with self.assertRaises(APIError):
             self.container.start()
 
     def test_must_not_support_input_data(self):
