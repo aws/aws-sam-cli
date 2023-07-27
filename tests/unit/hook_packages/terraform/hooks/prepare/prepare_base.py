@@ -971,14 +971,14 @@ class PrepareHookUnitBase(TestCase):
         self.tf_apigwv2_authorizer_resource: dict = {
             **self.tf_apigwv2_authorizer_common_attributes,
             "values": self.tf_apigwv2_authorizer_properties,
-            "address": f"aws_api_gateway_authorizer.{self.apigwv2_authorizer_name}",
+            "address": f"aws_apigatewayv2_authorizer.{self.apigwv2_authorizer_name}",
             "name": self.apigwv2_authorizer_name,
         }
 
-        self.expectedv2_cfn_apigw_authorizer: dict = {
+        self.expected_cfn_apigwv2_authorizer: dict = {
             "Type": AWS_APIGATEWAY_V2_AUTHORIZER,
             "Properties": self.expected_cfn_apigwv2_authorizer_properties,
-            "Metadata": {"SamResourceId": f"aws_api_gateway_authorizer.{self.apigwv2_authorizer_name}"},
+            "Metadata": {"SamResourceId": f"aws_apigatewayv2_authorizer.{self.apigwv2_authorizer_name}"},
         }
 
         self.tf_json_with_root_module_only: dict = {
@@ -1001,6 +1001,7 @@ class PrepareHookUnitBase(TestCase):
                         self.tf_apigwv2_route_resource,
                         self.tf_apigwv2_stage_resource,
                         self.tf_apigwv2_integration_resource,
+                        self.tf_apigwv2_authorizer_resource,
                     ]
                 }
             }
@@ -1022,9 +1023,9 @@ class PrepareHookUnitBase(TestCase):
                 f"AwsApigatewayv2RouteMyApigwv2Route{self.mock_logical_id_hash}": self.expected_cfn_apigwv2_route,
                 f"AwsApigatewayv2StageMyApigwv2Stage{self.mock_logical_id_hash}": self.expected_cfn_apigwv2_stage,
                 f"AwsApigatewayv2IntegrationMyApigwv2Integration{self.mock_logical_id_hash}": self.expected_cfn_apigwv2_integration,
+                f"AwsApigatewayv2AuthorizerMyAuthorizerV2{self.mock_logical_id_hash}": self.expected_cfn_apigwv2_authorizer,
             },
         }
-
         self.tf_json_with_root_module_with_sam_metadata_resources: dict = {
             "planned_values": {
                 "root_module": {
