@@ -1026,7 +1026,6 @@ class PrepareHookUnitBase(TestCase):
                 f"AwsApigatewayv2AuthorizerMyAuthorizerV2{self.mock_logical_id_hash}": self.expected_cfn_apigwv2_authorizer,
             },
         }
-        self.maxDiff = None
         self.tf_json_with_root_module_with_sam_metadata_resources: dict = {
             "planned_values": {
                 "root_module": {
