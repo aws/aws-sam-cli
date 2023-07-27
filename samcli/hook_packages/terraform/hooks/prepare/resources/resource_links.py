@@ -11,6 +11,7 @@ from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     TF_AWS_API_GATEWAY_V2_API,
     TF_AWS_API_GATEWAY_V2_INTEGRATION,
     TF_AWS_API_GATEWAY_V2_ROUTE,
+    TF_AWS_API_GATEWAY_V2_STAGE,
     TF_AWS_LAMBDA_FUNCTION,
     TF_AWS_LAMBDA_LAYER_VERSION,
 )
@@ -32,6 +33,7 @@ from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     _link_gateway_v2_integration_to_lambda_function,
     _link_gateway_v2_route_to_api,
     _link_gateway_v2_route_to_integration,
+    _link_gateway_v2_stage_to_api,
     _link_lambda_functions_to_layers,
 )
 from samcli.hook_packages.terraform.hooks.prepare.types import LinkingPairCaller
@@ -122,5 +124,10 @@ RESOURCE_LINKS: List[LinkingPairCaller] = [
         source=TF_AWS_API_GATEWAY_V2_API,
         dest=TF_AWS_LAMBDA_FUNCTION,
         linking_func=_link_gateway_v2_api_to_function,
+    ),
+    LinkingPairCaller(
+        source=TF_AWS_API_GATEWAY_V2_STAGE,
+        dest=TF_AWS_API_GATEWAY_V2_API,
+        linking_func=_link_gateway_v2_stage_to_api,
     ),
 ]
