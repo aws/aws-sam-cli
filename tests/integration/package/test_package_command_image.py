@@ -62,7 +62,7 @@ class TestPackageImage(PackageIntegBase):
             raise
         process_stderr = stderr.strip()
         self.assertIn(
-            "Error: Missing option(s) '--image-repositories', '--image-repository'", process_stderr.decode("utf-8")
+            "Error: Missing option '--image-repositories', '--image-repository'", process_stderr.decode("utf-8")
         )
         self.assertEqual(2, process.returncode)
 
@@ -191,7 +191,7 @@ class TestPackageImage(PackageIntegBase):
 
         self.assertEqual(2, process.returncode)
         self.assertIn(
-            "Error: Missing option(s) '--image-repositories', '--image-repository'", process_stderr.decode("utf-8")
+            "Error: Missing option '--image-repositories', '--image-repository'", process_stderr.decode("utf-8")
         )
 
     @parameterized.expand(["aws-serverless-application-image.yaml"])

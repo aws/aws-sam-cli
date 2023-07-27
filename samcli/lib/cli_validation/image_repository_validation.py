@@ -89,7 +89,7 @@ def image_repository_validation(support_resolve_image_repos=True):
                     exception=click.BadOptionUsage(
                         option_name="--image-repositories",
                         ctx=ctx,
-                        message=f"Missing option(s) {available_options}",
+                        message=f"Missing option {available_options}",
                     ),
                 ),
                 Validator(
