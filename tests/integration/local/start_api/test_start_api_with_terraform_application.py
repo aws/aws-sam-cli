@@ -95,9 +95,20 @@ class TerraformStartApiIntegrationApplyBase(TerraformStartApiIntegrationBase):
     "Skip Terraform test cases unless running in CI",
 )
 @pytest.mark.flaky(reruns=3)
+@parameterized_class(
+    [
+        {
+            "terraform_application": "terraform-v1-api-simple",
+        },
+        {
+            "terraform_application": "terraform-v2-api-simple",
+        },
+        {
+            "terraform_application": "terraform-v2-api-quick-create",
+        },
+    ]
+)
 class TestStartApiTerraformApplication(TerraformStartApiIntegrationBase):
-    terraform_application = "terraform-v1-api-simple"
-
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
