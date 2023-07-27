@@ -34,6 +34,14 @@ class TestParameterSchema(TestCase):
         expected_schema.update(added_property_field)
         self.assertEqual(expected_schema, param_schema)
 
+    def test_parameter_to_schema_with_multiple_type(self):
+        param = SamCliParameterSchema("param name", ["type1", "type2"], "param description")
+
+        param_schema = param.to_schema()
+
+        expected_schema = {"title": "param name", "type": ["type1", "type2"], "description": "param description"}
+        self.assertEqual(expected_schema, param_schema)
+
 
 class TestCommandSchema(TestCase):
     def test_command_to_schema(self):
@@ -87,6 +95,9 @@ class TestSchemaLogic(TestCase):
             ("filename", "string"),
             ("directory", "string"),
             ("LIST", "array"),
+            ("type1,type2", ["type1", "type2"]),
+            ("list,type1", ["array", "type1"]),
+            ("string,path,choice,filename,directory", "string"),
         ]
     )
     def test_param_formatted_correctly(self, param_type, expected_type):

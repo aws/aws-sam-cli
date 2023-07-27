@@ -20,15 +20,6 @@ PARAMS_TO_EXCLUDE = [
 PARAMS_TO_OMIT_DEFAULT_FIELD = [
     "layer_cache_basedir"  # sets default to root directory to that of machine the schema is generated on
 ]
-EXCEPTION_OPTION_CLASS_MAPPER = {  # for params without proper class names, map them uniquely
-    "parameter_overrides": ["array", "string"],
-    "image_repository": ["string"],
-    "image_repositories": ["array"],
-    "metadata": ["string"],
-    "signing_profiles": ["string"],
-    "tags": ["array"],
-    "parameter": ["array"],
-}
 CHARS_TO_CLEAN = [
     "\b",  # backspaces
     "\u001b[0m",  # ANSI start bold
@@ -156,21 +147,26 @@ def format_param(param: click.core.Option) -> SamCliParameterSchema:
     """
     if not param:
         raise SchemaGenerationException("Expected to format a parameter that doesn't exist")
-    if not param.type.name and param.name not in EXCEPTION_OPTION_CLASS_MAPPER.keys():
+    if not param.type.name:
         raise SchemaGenerationException(f"Parameter {param} passed without a type:\n{param.type}")
 
-    param_type = param.type.name.lower()
+    param_type = []
+    if "," in param.type.name:  # custom type with support for various input values
+        param_type = [x.lower() for x in param.type.name.split(",")]
+    else:
+        param_type.append(param.type.name.lower())
+
     formatted_param_types = []
     # NOTE: Params do not have explicit "string" type; either "text" or "path".
     #       All choice options are from a set of strings.
-    if param.name in EXCEPTION_OPTION_CLASS_MAPPER.keys():
-        formatted_param_types = EXCEPTION_OPTION_CLASS_MAPPER[param.name]
-    elif param_type in ["text", "path", "choice", "filename", "directory"]:
-        formatted_param_types = ["string"]
-    elif param_type == "list":
-        formatted_param_types = ["array"]
-    else:
-        formatted_param_types = [param_type] or ["string"]
+    for param_name in param_type:
+        if param_name in ["text", "path", "choice", "filename", "directory"]:
+            formatted_param_types.append("string")
+        elif param_name == "list":
+            formatted_param_types.append("array")
+        else:
+            formatted_param_types.append(param_name or "string")
+    formatted_param_types = sorted(list(set(formatted_param_types)))  # deduplicate
 
     formatted_param: SamCliParameterSchema = SamCliParameterSchema(
         param.name or "",
