@@ -639,7 +639,10 @@ class LocalApigwService(BaseLocalService):
         """
 
         route: Route = self._get_current_route(request)
-        cors_headers = Cors.cors_to_headers(self.api.cors, request.headers.get("Origin"))
+
+        request_origin = request.headers.get("Origin")
+        cors_headers = Cors.cors_to_headers(self.api.cors, request_origin)
+
         lambda_authorizer = route.authorizer_object
 
         # payloadFormatVersion can only support 2 values: "1.0" and "2.0"

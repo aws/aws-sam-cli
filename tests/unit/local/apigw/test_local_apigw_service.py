@@ -87,6 +87,9 @@ class TestApiGatewayService(TestCase):
             self.http, self.lambda_runner, port=3000, host="127.0.0.1", stderr=self.stderr
         )
 
+        self.ctx = flask.Flask('test_app').test_request_context()
+        self.ctx.push()
+
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     @patch("samcli.local.apigw.local_apigw_service.construct_v1_event")
     @patch("samcli.local.apigw.local_apigw_service.construct_v2_event_http")
@@ -1872,24 +1875,24 @@ class TestServiceCorsToHeaders(TestCase):
 
         headers_abc = Cors.cors_to_headers(cors, "https://abc")
         self.assertEqual(
-            headers_abc,
             {
                 "Access-Control-Allow-Origin": "https://abc",
                 "Access-Control-Allow-Methods": "POST,OPTIONS",
             },
+            headers_abc,
         )
 
         headers_xyz = Cors.cors_to_headers(cors, "https://xyz")
         self.assertEqual(
-            headers_xyz,
             {
                 "Access-Control-Allow-Origin": "https://xyz",
                 "Access-Control-Allow-Methods": "POST,OPTIONS",
             },
+            headers_xyz,
         )
 
         headers_unknown = Cors.cors_to_headers(cors, "https://unknown")
-        self.assertEqual(headers_unknown, {})
+        self.assertEqual({}, headers_unknown)
 
     def test_missing_request_origin(self):
         cors = Cors(allow_origin="www.domain.com", allow_methods=",".join(["GET", "POST", "OPTIONS"]))

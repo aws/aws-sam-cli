@@ -495,6 +495,13 @@ class Cors(_CorsTuple):
         if not cors:
             return {}
 
+        # Resource processing start here.
+        # The following code is based on the following spec:
+        # https://www.w3.org/TR/2020/SPSD-cors-20200602/#resource-processing-model
+
+        if request_origin is None:
+            return {}
+
         # cors.allow_origin can be either a single origin or comma separated list of origins
         allowed_origins = cors.allow_origin.split(",") if cors.allow_origin else list()
 
