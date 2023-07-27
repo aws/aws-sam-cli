@@ -108,7 +108,7 @@ class TestResourceMetadataNormalizer(TestCase):
         self.assertEqual(
             expected_docker_context_path, template_data["Resources"]["Function1"]["Metadata"]["DockerContext"]
         )
-        expected_dockerfile_path = str(pathlib.Path("path", "to", "Dockerfile"))
+        expected_dockerfile_path = str(pathlib.Path("path", "to", "Dockerfile").as_posix())
         self.assertEqual(expected_dockerfile_path, template_data["Resources"]["Function1"]["Metadata"]["Dockerfile"])
         self.assertEqual(docker_build_args, template_data["Resources"]["Function1"]["Metadata"]["DockerBuildArgs"])
         self.assertEqual("Function1", template_data["Resources"]["Function1"]["Metadata"]["SamResourceId"])
@@ -145,7 +145,7 @@ class TestResourceMetadataNormalizer(TestCase):
             expected_docker_context_path, template_data["Resources"]["Function1"]["Metadata"]["DockerContext"]
         )
         self.assertEqual(
-            str(pathlib.Path("path/to/Dockerfile.production")),
+            str(pathlib.Path("path/to/Dockerfile.production").as_posix()),
             template_data["Resources"]["Function1"]["Metadata"]["Dockerfile"],
         )
         self.assertEqual(docker_build_args, template_data["Resources"]["Function1"]["Metadata"]["DockerBuildArgs"])
@@ -182,7 +182,7 @@ class TestResourceMetadataNormalizer(TestCase):
         self.assertEqual(
             expected_docker_context_path, template_data["Resources"]["Function1"]["Metadata"]["DockerContext"]
         )
-        expected_dockerfile_path = str(pathlib.Path("rel/path/to/Dockerfile"))
+        expected_dockerfile_path = str(pathlib.Path("rel/path/to/Dockerfile").as_posix())
         self.assertEqual(expected_dockerfile_path, template_data["Resources"]["Function1"]["Metadata"]["Dockerfile"])
         self.assertEqual(docker_build_args, template_data["Resources"]["Function1"]["Metadata"]["DockerBuildArgs"])
         self.assertEqual("Function1", template_data["Resources"]["Function1"]["Metadata"]["SamResourceId"])

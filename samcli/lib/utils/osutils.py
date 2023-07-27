@@ -1,7 +1,6 @@
 """
 Common OS utilities
 """
-import io
 import logging
 import os
 import shutil
@@ -79,7 +78,7 @@ def rmtree_if_exists(path: Union[str, Path]):
         shutil.rmtree(path_obj)
 
 
-def stdout() -> io.TextIOWrapper:
+def stdout():
     """
     Returns the stdout as a byte stream in a Py2/PY3 compatible manner
 
@@ -88,12 +87,10 @@ def stdout() -> io.TextIOWrapper:
     io.BytesIO
         Byte stream of Stdout
     """
-    # Note(jfuss): sys.stdout is a type typing.TextIO but are initialized to
-    # io.TextIOWrapper. To make mypy and typing play well, tell mypy to ignore.
-    return sys.stdout  # type:ignore[return-value]
+    return sys.stdout.buffer
 
 
-def stderr() -> io.TextIOWrapper:
+def stderr():
     """
     Returns the stderr as a byte stream in a Py2/PY3 compatible manner
 
@@ -102,9 +99,7 @@ def stderr() -> io.TextIOWrapper:
     io.BytesIO
         Byte stream of stderr
     """
-    # Note(jfuss): sys.stderr is a type typing.TextIO but are initialized to
-    # io.TextIOWrapper. To make mypy and typing play well, tell mypy to ignore.
-    return sys.stderr  # type:ignore[return-value]
+    return sys.stderr.buffer
 
 
 def remove(path):

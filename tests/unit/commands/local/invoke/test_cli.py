@@ -6,7 +6,7 @@ from unittest import TestCase
 from unittest.mock import patch, Mock
 from parameterized import parameterized, param
 
-from samcli.local.docker.exceptions import ContainerNotStartableException
+from samcli.local.docker.exceptions import ContainerNotStartableException, PortAlreadyInUse
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.lib.providers.exceptions import InvalidLayerReference
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
@@ -164,7 +164,7 @@ class TestCli(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     @patch("samcli.commands.local.invoke.cli._get_event")
     def test_must_raise_user_exception_on_function_not_found(
-        self, side_effect_exception, expected_exectpion_message, get_event_mock, InvokeContextMock
+        self, side_effect_exception, expected_exception_message, get_event_mock, InvokeContextMock
     ):
         event_data = "data"
         get_event_mock.return_value = event_data
@@ -179,7 +179,7 @@ class TestCli(TestCase):
             self.call_cli()
 
         msg = str(ex_ctx.exception)
-        self.assertEqual(msg, expected_exectpion_message)
+        self.assertEqual(msg, expected_exception_message)
 
     @parameterized.expand(
         [
@@ -192,7 +192,7 @@ class TestCli(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     @patch("samcli.commands.local.invoke.cli._get_event")
     def test_must_raise_user_exception_on_function_local_invoke_image_not_found_for_IMAGE_packagetype(
-        self, side_effect_exception, expected_exectpion_message, get_event_mock, InvokeContextMock
+        self, side_effect_exception, expected_exception_message, get_event_mock, InvokeContextMock
     ):
         event_data = "data"
         get_event_mock.return_value = event_data
@@ -207,7 +207,7 @@ class TestCli(TestCase):
             self.call_cli()
 
         msg = str(ex_ctx.exception)
-        self.assertEqual(msg, expected_exectpion_message)
+        self.assertEqual(msg, expected_exception_message)
 
     @parameterized.expand(
         [
@@ -222,18 +222,18 @@ class TestCli(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     @patch("samcli.commands.local.invoke.cli._get_event")
     def test_must_raise_user_exception_on_invalid_sam_template(
-        self, exeception_to_raise, execption_message, get_event_mock, InvokeContextMock
+        self, exception_to_raise, exception_message, get_event_mock, InvokeContextMock
     ):
         event_data = "data"
         get_event_mock.return_value = event_data
 
-        InvokeContextMock.side_effect = exeception_to_raise
+        InvokeContextMock.side_effect = exception_to_raise
 
         with self.assertRaises(UserException) as ex_ctx:
             self.call_cli()
 
         msg = str(ex_ctx.exception)
-        self.assertEqual(msg, execption_message)
+        self.assertEqual(msg, exception_message)
 
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     @patch("samcli.commands.local.invoke.cli._get_event")
@@ -255,12 +255,16 @@ class TestCli(TestCase):
                 ContainerNotStartableException("Container cannot be started, no free ports on host"),
                 "Container cannot be started, no free ports on host",
             ),
+            param(
+                PortAlreadyInUse("Container cannot be started, provided port already in use"),
+                "Container cannot be started, provided port already in use",
+            ),
         ]
     )
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     @patch("samcli.commands.local.invoke.cli._get_event")
     def test_must_raise_user_exception_on_function_no_free_ports(
-        self, side_effect_exception, expected_exectpion_message, get_event_mock, InvokeContextMock
+        self, side_effect_exception, expected_exception_message, get_event_mock, InvokeContextMock
     ):
         event_data = "data"
         get_event_mock.return_value = event_data
@@ -275,7 +279,7 @@ class TestCli(TestCase):
             self.call_cli()
 
         msg = str(ex_ctx.exception)
-        self.assertEqual(msg, expected_exectpion_message)
+        self.assertEqual(msg, expected_exception_message)
 
 
 class TestGetEvent(TestCase):

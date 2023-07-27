@@ -9,3 +9,8 @@ Resources:
       Runtime: python3.9
       CodeUri: function/
       Timeout: 30
+  
+  HelloWorldStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      DefinitionUri: ./state-machines/hello-world-state-machine-definition.asl.json
