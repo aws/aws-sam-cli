@@ -78,31 +78,9 @@ class SamCliCommandSchema:
 
     def to_schema(self) -> dict:
         """Return the JSON schema representation of the SAM CLI command."""
-        COMMANDS_TO_EXCLUDE = [  # TEMPORARY: for use only while generating piece-by-piece
-            "deploy",
-            "build",
-            "local",
-            "validate",
-            "package",
-            "init",
-            "delete",
-            "bootstrap",
-            "list",
-            "traces",
-            "sync",
-            "publish",
-            "pipeline",
-            "logs",
-            "remote",
-        ]
         split_cmd_name = self.name.split("_")
         formatted_cmd_name = " ".join(split_cmd_name)
-        exclude_params = split_cmd_name[0] in COMMANDS_TO_EXCLUDE
-        formatted_params_list = (
-            "* " + "\n* ".join([f"{param.name}:\n{param.description}" for param in self.parameters])
-            if not exclude_params
-            else ""
-        )
+        formatted_params_list = "* " + "\n* ".join([f"{param.name}:\n{param.description}" for param in self.parameters])
         params_description = f"Available parameters for the {formatted_cmd_name} command:\n{formatted_params_list}"
 
         return {
@@ -114,9 +92,7 @@ class SamCliCommandSchema:
                         "title": f"Parameters for the {formatted_cmd_name} command",
                         "description": params_description,
                         "type": "object",
-                        "properties": {param.name: param.to_schema() for param in self.parameters}
-                        if not exclude_params
-                        else {},
+                        "properties": {param.name: param.to_schema() for param in self.parameters},
                     },
                 },
                 "required": ["parameters"],
