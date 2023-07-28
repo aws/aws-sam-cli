@@ -88,6 +88,9 @@ def stdout() -> io.TextIOWrapper:
     io.BytesIO
         Byte stream of Stdout
     """
+    # ensure stdout is utf8
+    sys.stdout.reconfigure(encoding="utf-8")  # type:ignore[attr-defined]
+
     # Note(jfuss): sys.stdout is a type typing.TextIO but are initialized to
     # io.TextIOWrapper. To make mypy and typing play well, tell mypy to ignore.
     return sys.stdout  # type:ignore[return-value]
@@ -102,6 +105,9 @@ def stderr() -> io.TextIOWrapper:
     io.BytesIO
         Byte stream of stderr
     """
+    # ensure stderr is utf8
+    sys.stderr.reconfigure(encoding="utf-8")  # type:ignore[attr-defined]
+
     # Note(jfuss): sys.stderr is a type typing.TextIO but are initialized to
     # io.TextIOWrapper. To make mypy and typing play well, tell mypy to ignore.
     return sys.stderr  # type:ignore[return-value]

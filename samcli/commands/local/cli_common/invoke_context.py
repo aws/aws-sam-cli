@@ -500,7 +500,7 @@ class InvokeContext:
         if not log_file:
             return None
 
-        return open(log_file, "w")
+        return open(log_file, "w", encoding="utf8")
 
     @staticmethod
     def _get_debug_context(
