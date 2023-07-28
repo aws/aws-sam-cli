@@ -49,7 +49,9 @@ class TestValidateCli(TestCase):
         read_sam_file_patch.return_value = {"a": "b"}
 
         get_translated_template_if_valid_mock = Mock()
-        get_translated_template_if_valid_mock.get_translated_template_if_valid.side_effect = InvalidSamDocumentException("")
+        get_translated_template_if_valid_mock.get_translated_template_if_valid.side_effect = (
+            InvalidSamDocumentException("")
+        )
         template_valiadator.return_value = get_translated_template_if_valid_mock
 
         with self.assertRaises(InvalidSamTemplateException):
