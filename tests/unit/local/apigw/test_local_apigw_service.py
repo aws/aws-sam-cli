@@ -87,7 +87,7 @@ class TestApiGatewayService(TestCase):
             self.http, self.lambda_runner, port=3000, host="127.0.0.1", stderr=self.stderr
         )
 
-        self.ctx = flask.Flask('test_app').test_request_context()
+        self.ctx = flask.Flask("test_app").test_request_context()
         self.ctx.push()
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
@@ -1869,9 +1869,7 @@ class TestServiceCorsToHeaders(TestCase):
         )
 
     def test_multiple_origins_conversion(self):
-        cors = Cors(
-            allow_origin="https://abc,https://xyz", allow_methods=",".join(["POST", "OPTIONS"])
-        )
+        cors = Cors(allow_origin="https://abc,https://xyz", allow_methods=",".join(["POST", "OPTIONS"]))
 
         headers_abc = Cors.cors_to_headers(cors, "https://abc")
         self.assertEqual(
