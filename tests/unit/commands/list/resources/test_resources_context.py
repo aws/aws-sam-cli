@@ -325,7 +325,7 @@ class TestGetTranslatedDict(TestCase):
                 }
             },
         }
-        mock_get_translated_template_if_valid.side_effect = InvalidSamDocumentException()
+        mock_get_translated_template_if_valid.side_effect = InvalidSamDocumentException("")
         with self.assertRaises(InvalidSamTemplateException):
             resource_producer = ResourceMappingProducer(
                 stack_name=None,
