@@ -15,7 +15,7 @@ class TestSchemaValidation(TestCase):
     def setUpClass(cls):
         cls.schema = generate_schema()
         testing_dir = Path(__name__).resolve().parents[0]
-        cls.testdata_dir = Path(testing_dir, "tests", "unit", "schema", "testdata")
+        cls.testdata_dir = str(Path(testing_dir, "tests", "unit", "schema", "testdata"))
 
     def test_samconfig_validates_against_schema(self):
         self.assertIsNotNone(self.schema, "Schema was not set")
@@ -25,7 +25,7 @@ class TestSchemaValidation(TestCase):
 
         # Read in and assert all files in passing_tests pass
         for config_file_path in passing_tests_dir.iterdir():
-            config_file = FILE_MANAGER_MAPPER[config_file_path.suffix].read(Path(passing_tests_dir, config_file_path))
+            config_file = FILE_MANAGER_MAPPER[config_file_path.suffix].read(Path(str(passing_tests_dir), config_file_path))
             self.assertNotEqual(config_file, {}, f"Config file {config_file_path} should be read correctly")
 
             try:
@@ -44,7 +44,7 @@ class TestSchemaValidation(TestCase):
 
         # Read in and assert all files in failing_tests fail
         for config_file_path in failing_tests_dir.iterdir():
-            config_file = FILE_MANAGER_MAPPER[config_file_path.suffix].read(Path(failing_tests_dir, config_file_path))
+            config_file = FILE_MANAGER_MAPPER[config_file_path.suffix].read(Path(str(failing_tests_dir), config_file_path))
             self.assertNotEqual(config_file, {}, f"Config file {config_file_path} should be read correctly")
 
             with self.assertRaises(
