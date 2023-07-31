@@ -2,38 +2,39 @@ name: Update reproducibles
 on:
   pull_request:
     branches: [develop]
-  jobs:
-    update-reqs:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            python: 3.11
-            target: update-reproducible-linux-reqs
-          - os: macos-latest
-            python: 3.8
-            target: update-reproducible-mac-reqs
-          - os: windows-latest
-            python: 3.8
-            target: update-reproducible-mac-reqs
-      runs-on: ${{ matrix.os }}
-      steps:
-        - uses: actions/checkout@v3
-          with:
-            ref: ${{ github.head_ref }}
-        - uses: actions/setup-python@v4
-          with:
-            python-version: ${{ matrix.python }}
-        - run: make ${{ matrix.target }}
-        - name: Check for modified files
-          id: git-check
-          run: echo "modified=$(if git diff-index --quiet HEAD --; then echo "false"; else echo "true"; fi)" >> $GITHUB_OUTPUT
-        - name: Print ENV
-          run: env
-        # - name: Push changes
-        #   if: steps.git-check.outputs.modified == 'true'
-        #   run: |
-        #     git config --global user.name 'Mehmet Nuri Deveci'
-        #     git config --global user.email 'mndeveci@users.noreply.github.com'
-        #     git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
-        #     git commit -am "Automated changes"
-        #     git push
+
+jobs:
+  update-reqs:
+    matrix:
+      include:
+        - os: ubuntu-latest
+          python: 3.11
+          target: update-reproducible-linux-reqs
+        - os: macos-latest
+          python: 3.8
+          target: update-reproducible-mac-reqs
+        - os: windows-latest
+          python: 3.8
+          target: update-reproducible-mac-reqs
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.head_ref }}
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+      - run: make ${{ matrix.target }}
+      - name: Check for modified files
+        id: git-check
+        run: echo "modified=$(if git diff-index --quiet HEAD --; then echo "false"; else echo "true"; fi)" >> $GITHUB_OUTPUT
+      - name: Print ENV
+        run: env
+      # - name: Push changes
+      #   if: steps.git-check.outputs.modified == 'true'
+      #   run: |
+      #     git config --global user.name 'Mehmet Nuri Deveci'
+      #     git config --global user.email 'mndeveci@users.noreply.github.com'
+      #     git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+      #     git commit -am "Automated changes"
+      #     git push
