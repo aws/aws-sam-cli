@@ -15,83 +15,103 @@ from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.packagetype import IMAGE
 
 
-def image_repository_validation(func):
+def image_repository_validation(support_resolve_image_repos=True):
     """
     Wrapper Validation function that will run last after the all cli parmaters have been loaded
     to check for conditions surrounding `--image-repository`, `--image-repositories`, and `--resolve-image-repos`. The
     reason they are done last instead of in callback functions, is because the options depend
     on each other, and this breaks cyclic dependencies.
 
-    :param func: Click command function
-    :return: Click command function after validation
+    Parameters
+    ----------
+    support_resolve_image_repos: bool
+        If it is True, it will be adding `--resolve-image-repos` related error messages below. Default is True.
     """
 
-    def wrapped(*args, **kwargs):
-        ctx = click.get_current_context()
-        guided = ctx.params.get("guided", False) or ctx.params.get("g", False)
-        image_repository = ctx.params.get("image_repository", False)
-        image_repositories = ctx.params.get("image_repositories", False) or {}
-        resolve_image_repos = ctx.params.get("resolve_image_repos", False)
-        parameters_overrides = ctx.params.get("parameters_overrides", {})
-        template_file = (
-            ctx.params.get("t", False) or ctx.params.get("template_file", False) or ctx.params.get("template", False)
-        )
+    def decorator(func):
+        """
+        Actual decorator implementation for the validation functionality
 
-        # Check if `--image-repository`, `--image-repositories`, or `--resolve-image-repos` are required by
-        # looking for resources that have an IMAGE based packagetype.
+        :param func: Click command function
+        :return: Click command function after validation
+        """
 
-        required = any(
-            [
-                _template_artifact == IMAGE
-                for _template_artifact in get_template_artifacts_format(template_file=template_file)
+        def wrapped(*args, **kwargs):
+            ctx = click.get_current_context()
+            guided = ctx.params.get("guided", False) or ctx.params.get("g", False)
+            image_repository = ctx.params.get("image_repository", False)
+            image_repositories = ctx.params.get("image_repositories", False) or {}
+            resolve_image_repos = ctx.params.get("resolve_image_repos", False)
+            parameters_overrides = ctx.params.get("parameters_overrides", {})
+            template_file = (
+                ctx.params.get("t", False)
+                or ctx.params.get("template_file", False)
+                or ctx.params.get("template", False)
+            )
+
+            # Check if `--image-repository`, `--image-repositories`, or `--resolve-image-repos` are required by
+            # looking for resources that have an IMAGE based packagetype.
+
+            required = any(
+                [
+                    _template_artifact == IMAGE
+                    for _template_artifact in get_template_artifacts_format(template_file=template_file)
+                ]
+            )
+
+            available_options = "'--image-repositories', '--image-repository'"
+            if support_resolve_image_repos:
+                available_options += ", '--resolve-image-repos'"
+
+            image_repos_error_msg = "Incomplete list of function logical ids specified for '--image-repositories'."
+            if support_resolve_image_repos:
+                image_repos_error_msg += (
+                    "You can also add --resolve-image-repos to automatically create missing " "repositories."
+                )
+
+            validators = [
+                Validator(
+                    validation_function=lambda: bool(image_repository)
+                    + bool(image_repositories)
+                    + bool(resolve_image_repos)
+                    > 1,
+                    exception=click.BadOptionUsage(
+                        option_name="--image-repositories",
+                        ctx=ctx,
+                        message=f"Only one of the following can be provided: {available_options}. "
+                        "Do you have multiple specified in the command or in a configuration file?",
+                    ),
+                ),
+                Validator(
+                    validation_function=lambda: not guided
+                    and not (image_repository or image_repositories or resolve_image_repos)
+                    and required,
+                    exception=click.BadOptionUsage(
+                        option_name="--image-repositories",
+                        ctx=ctx,
+                        message=f"Missing option {available_options}",
+                    ),
+                ),
+                Validator(
+                    validation_function=lambda: not guided
+                    and (
+                        image_repositories
+                        and not resolve_image_repos
+                        and not _is_all_image_funcs_provided(template_file, image_repositories, parameters_overrides)
+                    ),
+                    exception=click.BadOptionUsage(
+                        option_name="--image-repositories", ctx=ctx, message=image_repos_error_msg
+                    ),
+                ),
             ]
-        )
+            for validator in validators:
+                validator.validate()
+            # Call Original function after validation.
+            return func(*args, **kwargs)
 
-        validators = [
-            Validator(
-                validation_function=lambda: bool(image_repository)
-                + bool(image_repositories)
-                + bool(resolve_image_repos)
-                > 1,
-                exception=click.BadOptionUsage(
-                    option_name="--image-repositories",
-                    ctx=ctx,
-                    message="Only one of the following can be provided: '--image-repositories', "
-                    "'--image-repository', or '--resolve-image-repos'. "
-                    "Do you have multiple specified in the command or in a configuration file?",
-                ),
-            ),
-            Validator(
-                validation_function=lambda: not guided
-                and not (image_repository or image_repositories or resolve_image_repos)
-                and required,
-                exception=click.BadOptionUsage(
-                    option_name="--image-repositories",
-                    ctx=ctx,
-                    message="Missing option '--image-repository', '--image-repositories', or '--resolve-image-repos'",
-                ),
-            ),
-            Validator(
-                validation_function=lambda: not guided
-                and (
-                    image_repositories
-                    and not resolve_image_repos
-                    and not _is_all_image_funcs_provided(template_file, image_repositories, parameters_overrides)
-                ),
-                exception=click.BadOptionUsage(
-                    option_name="--image-repositories",
-                    ctx=ctx,
-                    message="Incomplete list of function logical ids specified for '--image-repositories'. "
-                    "You can also add --resolve-image-repos to automatically create missing repositories.",
-                ),
-            ),
-        ]
-        for validator in validators:
-            validator.validate()
-        # Call Original function after validation.
-        return func(*args, **kwargs)
+        return wrapped
 
-    return wrapped
+    return decorator
 
 
 def _is_all_image_funcs_provided(template_file, image_repositories, parameters_overrides):

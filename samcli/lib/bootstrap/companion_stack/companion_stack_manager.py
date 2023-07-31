@@ -2,12 +2,14 @@
     Companion stack manager
 """
 import logging
-import typing
 from typing import Dict, List, Optional
 
 import boto3
 from botocore.config import Config
 from botocore.exceptions import ClientError, NoCredentialsError, NoRegionError
+from mypy_boto3_cloudformation.client import CloudFormationClient
+from mypy_boto3_cloudformation.type_defs import WaiterConfigTypeDef
+from mypy_boto3_s3.client import S3Client
 
 from samcli.commands.exceptions import AWSServiceClientError, RegionError
 from samcli.lib.bootstrap.companion_stack.companion_stack_builder import CompanionStackBuilder
@@ -18,12 +20,6 @@ from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.packagetype import IMAGE
 from samcli.lib.utils.s3 import parse_s3_url
-
-# pylint: disable=E0401
-if typing.TYPE_CHECKING:  # pragma: no cover
-    from mypy_boto3_cloudformation.client import CloudFormationClient
-    from mypy_boto3_cloudformation.type_defs import WaiterConfigTypeDef
-    from mypy_boto3_s3.client import S3Client
 
 LOG = logging.getLogger(__name__)
 
@@ -37,12 +33,12 @@ class CompanionStackManager:
     _companion_stack: CompanionStack
     _builder: CompanionStackBuilder
     _boto_config: Config
-    _update_stack_waiter_config: "WaiterConfigTypeDef"
-    _delete_stack_waiter_config: "WaiterConfigTypeDef"
+    _update_stack_waiter_config: WaiterConfigTypeDef
+    _delete_stack_waiter_config: WaiterConfigTypeDef
     _s3_bucket: str
     _s3_prefix: str
-    _cfn_client: "CloudFormationClient"
-    _s3_client: "S3Client"
+    _cfn_client: CloudFormationClient
+    _s3_client: S3Client
 
     def __init__(self, stack_name, region, s3_bucket, s3_prefix):
         self._companion_stack = CompanionStack(stack_name)
