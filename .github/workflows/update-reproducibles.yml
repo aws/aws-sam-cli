@@ -5,17 +5,18 @@ on:
 
 jobs:
   update-reqs:
-    matrix:
-      include:
-        - os: ubuntu-latest
-          python: 3.11
-          target: update-reproducible-linux-reqs
-        - os: macos-latest
-          python: 3.8
-          target: update-reproducible-mac-reqs
-        - os: windows-latest
-          python: 3.8
-          target: update-reproducible-mac-reqs
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python: 3.11
+            target: update-reproducible-linux-reqs
+          - os: macos-latest
+            python: 3.8
+            target: update-reproducible-mac-reqs
+          - os: windows-latest
+            python: 3.8
+            target: update-reproducible-mac-reqs
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
