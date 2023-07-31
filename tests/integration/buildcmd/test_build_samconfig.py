@@ -11,6 +11,7 @@ configs = {
     ".yaml": "samconfig/samconfig.yaml",
     ".yml": "samconfig/samconfig.yml",
     ".json": "samconfig/samconfig.json",
+    ".jpeg": "samconfig/samconfig.jpeg",  # unsupported format, but file that exists
 }
 
 
@@ -36,6 +37,16 @@ class TestSamConfigWithBuild(BuildIntegBase):
             f"Build template should use build_dir from samconfig{extension}",
         )
         self.assertIn("Starting Build use cache", stderr, f"'cache'=true should be set in samconfig{extension}")
+
+    def test_samconfig_fails_properly_with_incorrect_extension(self):
+        cmdlist = self.get_command_list(config_file=configs[".jpeg"])
+
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        stderr = str(command_result[2])
+
+        self.assertNotEqual(command_result.process.returncode, 0, "Build should not succeed")
+        self.assertEqual(command_result.process.returncode, 1, "Correct error code should be thrown")
+        self.assertNotIn("Traceback", stderr, "Traceback should not be in output")
 
     @parameterized.expand(
         [
