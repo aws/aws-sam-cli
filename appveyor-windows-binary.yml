@@ -127,12 +127,12 @@ install:
 
   # Install aws-sam-cli MSI binary
   - ps: "
-  Write-Host "Starting installation for MSI"
-  Invoke-WebRequest https://github.com/aws/aws-sam-cli/releases/downloads/sam-cli-nightly/AWS_SAM_CLI_64_PY3.msi -OutFile $HOME\aws-sam-cli-installer.msi
-  $process = Start-Process C:\Windows\System32\msiexec.exe -ArgumentList "/i $HOME\aws-sam-cli-installer.msi /qn /norestart" -wait -PassThru
-  $process
-  Set-Alias -Name sam -Value 'C:\Program Files\Amazon\AWSSAMCLI_NIGHTLY\bin\sam-nightly.cmd'
-  sam --version
+    Write-Host "Starting installation for MSI"
+    Invoke-WebRequest https://github.com/aws/aws-sam-cli/releases/downloads/sam-cli-nightly/AWS_SAM_CLI_64_PY3.msi -OutFile $HOME\aws-sam-cli-installer.msi
+    $process = Start-Process C:\Windows\System32\msiexec.exe -ArgumentList "/i $HOME\aws-sam-cli-installer.msi /qn /norestart" -wait -PassThru
+    $process
+    Set-Alias -Name sam -Value 'C:\Program Files\Amazon\AWSSAMCLI_NIGHTLY\bin\sam-nightly.cmd'
+    sam --version
   "
 
   # Install aws cli
