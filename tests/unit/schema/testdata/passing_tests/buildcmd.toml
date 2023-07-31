@@ -1,0 +1,36 @@
+version = 0.1
+
+[default.build.parameters]
+hook_name = "Hook name"
+skip_prepare_infra = false
+use_container = false
+container_env_var = "Container env var"
+container_env_var_file = "Container env var file"
+build_image = "Build image"
+exclude = "Exclude"
+parallel = false
+mount_with = "READ"
+build_dir = "Build dir"
+cache_dir = "Cache dir"
+base_dir = "Base dir"
+manifest = "Manifest"
+cached = false
+template_file = "Template file"
+parameter_overrides = "Parameter overrides"
+skip_pull_image = false
+docker_network = "Docker network"
+beta_features = false
+debug = false
+profile = "Profile"
+region = "Region"
+
+[other.build.parameters]
+skip_prepare_infra = true
+use_container = true
+parallel = true
+mount_with = "WRITE"
+cached = true
+parameter_overrides = ["Parameter", "Overrides"]
+skip_pull_image = true
+beta_features = true
+debug = true

@@ -1,0 +1,42 @@
+version = 0.1
+
+[default.local_start_lambda.parameters]
+hook_name = "Hook name"
+skip_prepare_infra = false
+host = "Host"
+port = 10
+template_file = "Template file"
+env_vars = "Env vars"
+parameter_overrides = "Parameter overrides"
+debug_port = 10
+debugger_path = "Debugger path"
+debug_args = "Debug args"
+container_env_vars = "Container env vars"
+docker_volume_basedir = "Docker volume basedir"
+log_file = "Log file"
+layer_cache_basedir = "Layer cache basedir"
+skip_pull_image = false
+docker_network = "Docker network"
+force_image_build = false
+warm_containers = "EAGER"
+debug_function = "Debug function"
+shutdown = false
+container_host = "Container host"
+container_host_interface = "Container host interface"
+invoke_image = "Invoke image"
+beta_features = false
+debug = false
+profile = "Profile"
+region = "Region"
+
+[other.local_start_lambda.parameters]
+skip_prepare_infra = true
+port = 200
+parameter_overrides = ["Parameter", "Overrides"]
+debug_port = 1
+skip_pull_image = true
+force_image_build = true
+warm_containers = "LAZY"
+shutdown = true
+beta_features = true
+debug = true

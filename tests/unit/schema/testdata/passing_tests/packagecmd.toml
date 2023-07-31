@@ -1,0 +1,28 @@
+version = 0.1
+
+[default.package.parameters]
+template_file = "Template file"
+output_template_file = "Output template file"
+s3_bucket = "S3 Bucket"
+image_repository = "Image repository"
+image_repositories = ["Image", "Repositories"]
+s3_prefix = "S3 Prefix"
+kms_key_id = "KMS Key ID"
+use_json = false
+force_upload = false
+resolve_s3 = false
+metadata = "Metadata"
+signing_profiles = "Signing profiles"
+no_progressbar = false
+beta_features = false
+debug = false
+profile = "Profile"
+region = "Region"
+
+[other.package.parameters]
+use_json = true
+force_upload = true
+resolve_s3 = true
+no_profressbar = true
+beta_features = true
+debug = true

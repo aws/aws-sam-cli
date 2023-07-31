@@ -1,0 +1,4 @@
+default:
+  build:
+    parameters:
+      debug: false
