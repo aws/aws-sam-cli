@@ -38,3 +38,5 @@ use_container = true
 parameter_overrides = ["Parameter", "Overrides"]
 beta_features = true
 debug = true
+notification_arns = "Notification ARNS"
+capabilities = "Capabilities"

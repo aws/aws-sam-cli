@@ -820,7 +820,7 @@ def _space_separated_list_func_type(value):
     raise ValueError()
 
 
-_space_separated_list_func_type.__name__ = "LIST"
+_space_separated_list_func_type.__name__ = "list,string"
 
 
 def generate_next_command_recommendation(command_tuples: List[Tuple[str, str]]) -> str:
