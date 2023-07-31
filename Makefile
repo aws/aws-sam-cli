@@ -72,8 +72,8 @@ update-reproducible-mac-reqs:
 
 update-reproducible-win-reqs:
 	python -m venv venv-update-reproducible-win
-	venv-update-reproducible-win/bin/pip install --upgrade pip-tools pip
-	venv-update-reproducible-win/bin/pip install -r requirements/base.txt
-	venv-update-reproducible-win/bin/pip-compile --generate-hashes --allow-unsafe -o requirements/reproducible-mac.txt
+	venv-update-reproducible-win\bin\pip install --upgrade pip-tools pip
+	venv-update-reproducible-win\bin\pip install -r requirements\base.txt
+	venv-update-reproducible-win\bin\pip-compile --generate-hashes --allow-unsafe -o requirements\reproducible-win.txt
 
 update-reproducible-reqs: update-reproducible-linux-reqs update-reproducible-mac-reqs
