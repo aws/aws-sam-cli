@@ -16,7 +16,7 @@ jobs:
             target: update-reproducible-mac-reqs
           - os: windows-latest
             python: 3.8
-            target: update-reproducible-mac-reqs
+            target: update-reproducible-win-reqs
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
