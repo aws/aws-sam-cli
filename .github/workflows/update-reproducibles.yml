@@ -34,5 +34,5 @@ jobs:
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
-          git commit -am "Update reproducibles" || echo "nothing to commit"
+          git commit -am "Update reproducibles: ${{ matrix.target }}" || echo "nothing to commit"
           git push
