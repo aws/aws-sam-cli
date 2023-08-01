@@ -2,6 +2,8 @@ name: Update reproducibles
 on:
   pull_request:
     branches: [develop]
+    paths:
+      - requirements/base.txt # run this GHA only if requirements file is changed
 
 jobs:
   update-reqs:
@@ -26,18 +28,14 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - run: make ${{ matrix.target }}
-      # - name: Check for modified files
-      #   id: git-check
-      #   run: echo "modified=$(if git diff-index --quiet HEAD --; then echo "false"; else echo "true"; fi)" >> $GITHUB_OUTPUT
-      - name: Print ENV
+      - name: Check for modified files
+        id: git-check
+        run: echo "modified=$(if git diff-index --quiet HEAD --; then echo "false"; else echo "true"; fi)" >> $GITHUB_OUTPUT
+      - name: Push changes
+        if: steps.git-check.outputs.modified == 'true'
         run: |
-          env
-          echo ${{ github.repository }}
-      # - name: Push changes
-      #   if: steps.git-check.outputs.modified == 'true'
-      #   run: |
-      #     git config --global user.name 'Mehmet Nuri Deveci'
-      #     git config --global user.email 'mndeveci@users.noreply.github.com'
-      #     git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
-      #     git commit -am "Automated changes"
-      #     git push
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Action"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+          git commit -am "Update reproducibles"
+          git push
