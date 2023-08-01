@@ -34,7 +34,9 @@ jobs:
       - run: make ${{ matrix.target }}
       - name: Check for modified files
         id: git-check
-        run: echo "modified=$(if git diff-index --quiet HEAD --; then echo "false"; else echo "true"; fi)" >> $GITHUB_OUTPUT
+        run: |
+          git update-index -q --really-refresh
+          echo "modified=$(if git diff-index --quiet HEAD --; then echo "false"; else echo "true"; fi)" >> $GITHUB_OUTPUT
       - name: Push changes
         if: steps.git-check.outputs.modified == 'true'
         run: |
