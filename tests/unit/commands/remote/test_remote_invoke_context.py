@@ -7,7 +7,7 @@ from samcli.commands.remote.exceptions import (
     AmbiguousResourceForRemoteInvoke,
     NoResourceFoundForRemoteInvoke,
     UnsupportedServiceForRemoteInvoke,
-    NoExecutorFoundForRemoteInvoke,
+    ResourceNotSupportedForRemoteInvoke,
     InvalidStackNameProvidedForRemoteInvoke,
 )
 from samcli.commands.remote.remote_invoke_context import RemoteInvokeContext, SUPPORTED_SERVICES
@@ -118,7 +118,7 @@ class TestRemoteInvokeContext(TestCase):
     def test_running_with_unsupported_resource_should_raise_exception(self, patched_get_resource_summary):
         patched_get_resource_summary.return_value = Mock(resource_type="UnSupportedResource")
         with self._get_remote_invoke_context() as remote_invoke_context:
-            with self.assertRaises(NoExecutorFoundForRemoteInvoke):
+            with self.assertRaises(ResourceNotSupportedForRemoteInvoke):
                 remote_invoke_context.run(Mock())
 
     @patch("samcli.commands.remote.remote_invoke_context.RemoteInvokeExecutorFactory")
@@ -126,6 +126,7 @@ class TestRemoteInvokeContext(TestCase):
     def test_running_should_execute_remote_invoke_executor_instance(
         self, patched_get_resource_summary, patched_remote_invoke_executor_factory
     ):
+        patched_get_resource_summary.return_value = Mock(resource_type=SUPPORTED_SERVICES["lambda"])
         mocked_remote_invoke_executor_factory = Mock()
         patched_remote_invoke_executor_factory.return_value = mocked_remote_invoke_executor_factory
         mocked_remote_invoke_executor = Mock()

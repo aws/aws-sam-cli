@@ -6,11 +6,12 @@ import json
 import logging
 from abc import ABC, abstractmethod
 from json import JSONDecodeError
-from typing import Any, cast
+from typing import cast
 
 from botocore.eventstream import EventStream
 from botocore.exceptions import ClientError, ParamValidationError
 from botocore.response import StreamingBody
+from mypy_boto3_lambda.client import LambdaClient
 
 from samcli.lib.remote_invoke.exceptions import (
     ErrorBotoApiCallException,
@@ -46,11 +47,11 @@ class AbstractLambdaInvokeExecutor(BotoActionExecutor, ABC):
     For Payload parameter, if a file location provided, the file handle will be passed as Payload object
     """
 
-    _lambda_client: Any
+    _lambda_client: LambdaClient
     _function_name: str
     _remote_output_format: RemoteInvokeOutputFormat
 
-    def __init__(self, lambda_client: Any, function_name: str, remote_output_format: RemoteInvokeOutputFormat):
+    def __init__(self, lambda_client: LambdaClient, function_name: str, remote_output_format: RemoteInvokeOutputFormat):
         self._lambda_client = lambda_client
         self._function_name = function_name
         self._remote_output_format = remote_output_format
@@ -60,7 +61,10 @@ class AbstractLambdaInvokeExecutor(BotoActionExecutor, ABC):
         """
         Validates the input boto parameters and prepares the parameters for calling the API.
 
-        :param parameters: Boto parameters provided as input
+        Parameters
+        ----------
+        parameters: dict
+            Boto parameters provided as input
         """
         for parameter_key, parameter_value in parameters.items():
             if parameter_key == FUNCTION_NAME:
@@ -82,7 +86,7 @@ class AbstractLambdaInvokeExecutor(BotoActionExecutor, ABC):
         except ParamValidationError as param_val_ex:
             raise InvalidResourceBotoParameterException(
                 f"Invalid parameter key provided."
-                f" {str(param_val_ex).replace('{FUNCTION_NAME}, ', '').replace('{PAYLOAD}, ', '')}"
+                f" {str(param_val_ex).replace(f'{FUNCTION_NAME}, ', '').replace(f'{PAYLOAD}, ', '')}"
             ) from param_val_ex
         except ClientError as client_ex:
             if boto_utils.get_client_error_code(client_ex) == "ValidationException":
@@ -155,16 +159,16 @@ class DefaultConvertToJSON(RemoteInvokeRequestResponseMapper[RemoteInvokeExecuti
     def map(self, test_input: RemoteInvokeExecutionInfo) -> RemoteInvokeExecutionInfo:
         if not test_input.is_file_provided():
             if not test_input.payload:
-                LOG.debug("Input event not found, invoking Lambda Function with an empty event")
+                LOG.debug("Input event not found, invoking resource with an empty event")
                 test_input.payload = "{}"
-            LOG.debug("Mapping input Payload to JSON string object")
+            LOG.debug("Mapping input event to JSON string object")
             try:
                 _ = json.loads(cast(str, test_input.payload))
             except JSONDecodeError:
                 json_value = json.dumps(test_input.payload)
                 LOG.info(
                     "Auto converting value '%s' into JSON '%s'. "
-                    "If you don't want auto-conversion, please provide a JSON string as payload",
+                    "If you don't want auto-conversion, please provide a JSON string as event",
                     test_input.payload,
                     json_value,
                 )
@@ -215,7 +219,7 @@ class LambdaStreamResponseConverter(RemoteInvokeRequestResponseMapper):
         return remote_invoke_input
 
 
-def _is_function_invoke_mode_response_stream(lambda_client: Any, function_name: str):
+def _is_function_invoke_mode_response_stream(lambda_client: LambdaClient, function_name: str):
     """
     Returns True if given function has RESPONSE_STREAM as InvokeMode, False otherwise
     """

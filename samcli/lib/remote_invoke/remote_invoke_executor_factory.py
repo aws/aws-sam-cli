@@ -20,10 +20,12 @@ from samcli.lib.remote_invoke.remote_invoke_executors import (
     RemoteInvokeResponse,
     ResponseObjectToJsonStringMapper,
 )
-from samcli.lib.utils.cloudformation import CloudFormationResourceSummary
-from samcli.lib.utils.resources import (
-    AWS_LAMBDA_FUNCTION,
+from samcli.lib.remote_invoke.stepfunctions_invoke_executors import (
+    SfnDescribeExecutionResponseConverter,
+    StepFunctionsStartExecutionExecutor,
 )
+from samcli.lib.utils.cloudformation import CloudFormationResourceSummary
+from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION
 
 LOG = logging.getLogger(__name__)
 
@@ -85,11 +87,23 @@ class RemoteInvokeExecutorFactory:
         """Creates a remote invoke executor for Lambda resource type based on
         the boto action being called.
 
-        :param cfn_resource_summary: Information about the Lambda resource
+        Parameters
+        ----------
+        cfn_resource_summary: CloudFormationResourceSummary
+            Information about the Lambda resource
+        remote_invoke_output_format: RemoteInvokeOutputFormat
+            Response output format that will be used for remote invoke execution
+        response_consumer: RemoteInvokeConsumer[RemoteInvokeResponse]
+            Consumer instance which can process RemoteInvokeResponse events
+        log_consumer: RemoteInvokeConsumer[RemoteInvokeLogOutput]
+            Consumer instance which can process RemoteInvokeLogOutput events
 
-        :return: Returns the created remote invoke Executor
+        Returns
+        -------
+        RemoteInvokeExecutor
+            Returns the Executor created for Lambda
         """
-        LOG.info(f"Invoking Lambda Function {cfn_resource_summary.logical_resource_id}")
+        LOG.info("Invoking Lambda Function %s", cfn_resource_summary.logical_resource_id)
         lambda_client = self._boto_client_provider("lambda")
         mappers = []
         if _is_function_invoke_mode_response_stream(lambda_client, cfn_resource_summary.physical_resource_id):
@@ -127,6 +141,50 @@ class RemoteInvokeExecutorFactory:
             log_consumer=log_consumer,
         )
 
+    def _create_stepfunctions_boto_executor(
+        self,
+        cfn_resource_summary: CloudFormationResourceSummary,
+        remote_invoke_output_format: RemoteInvokeOutputFormat,
+        response_consumer: RemoteInvokeConsumer[RemoteInvokeResponse],
+        log_consumer: RemoteInvokeConsumer[RemoteInvokeLogOutput],
+    ) -> RemoteInvokeExecutor:
+        """Creates a remote invoke executor for Step Functions resource type based on
+        the boto action being called.
+
+        Parameters
+        ----------
+        cfn_resource_summary: CloudFormationResourceSummary
+            Information about the Step Function resource
+        remote_invoke_output_format: RemoteInvokeOutputFormat
+            Response output format that will be used for remote invoke execution
+        response_consumer: RemoteInvokeConsumer[RemoteInvokeResponse]
+            Consumer instance which can process RemoteInvokeResponse events
+        log_consumer: RemoteInvokeConsumer[RemoteInvokeLogOutput]
+            Consumer instance which can process RemoteInvokeLogOutput events
+
+        Returns
+        -------
+        RemoteInvokeExecutor
+            Returns the Executor created for Step Functions
+        """
+        LOG.info("Invoking Step Function %s", cfn_resource_summary.logical_resource_id)
+        sfn_client = self._boto_client_provider("stepfunctions")
+        mappers = []
+        if remote_invoke_output_format == RemoteInvokeOutputFormat.JSON:
+            mappers = [
+                SfnDescribeExecutionResponseConverter(),
+                ResponseObjectToJsonStringMapper(),
+            ]
+        return RemoteInvokeExecutor(
+            request_mappers=[DefaultConvertToJSON()],
+            response_mappers=mappers,
+            boto_action_executor=StepFunctionsStartExecutionExecutor(
+                sfn_client, cfn_resource_summary.physical_resource_id, remote_invoke_output_format
+            ),
+            response_consumer=response_consumer,
+            log_consumer=log_consumer,
+        )
+
     # mapping definition for each supported resource type
     REMOTE_INVOKE_EXECUTOR_MAPPING: Dict[
         str,
@@ -140,6 +198,4 @@ class RemoteInvokeExecutorFactory:
             ],
             RemoteInvokeExecutor,
         ],
-    ] = {
-        AWS_LAMBDA_FUNCTION: _create_lambda_boto_executor,
-    }
+    ] = {AWS_LAMBDA_FUNCTION: _create_lambda_boto_executor}

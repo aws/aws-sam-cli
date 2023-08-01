@@ -4,14 +4,13 @@ from unittest import skipIf
 
 import boto3
 import docker
-import pytest
 from botocore.exceptions import ClientError
 from parameterized import parameterized
 
 from tests.integration.delete.delete_integ_base import DeleteIntegBase
 from tests.integration.deploy.deploy_integ_base import DeployIntegBase
 from tests.integration.package.package_integ_base import PackageIntegBase
-from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
+from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY, CommandResult
 from tests.testing_utils import run_command, run_command_with_input
 
 # Delete tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
@@ -43,12 +42,7 @@ class TestDelete(DeleteIntegBase):
         time.sleep(CFN_SLEEP)
         super().setUp()
 
-    @parameterized.expand(
-        [
-            "aws-serverless-function.yaml",
-        ]
-    )
-    @pytest.mark.flaky(reruns=3)
+    @parameterized.expand(["aws-serverless-function.yaml", "aws-s3-with-lang-ext.yaml"])
     def test_s3_options(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
@@ -70,7 +64,7 @@ class TestDelete(DeleteIntegBase):
             confirm_changeset=False,
             region=self._session.region_name,
         )
-        deploy_process_execute = run_command(deploy_command_list)
+        _ = run_command(deploy_command_list)
 
         delete_command_list = self.get_delete_command_list(
             stack_name=stack_name,
@@ -81,11 +75,11 @@ class TestDelete(DeleteIntegBase):
         )
         delete_process_execute = run_command(delete_command_list)
 
-        self.assertEqual(delete_process_execute.process.returncode, 0)
+        self.validate_delete_process(delete_process_execute)
 
         # Check if the stack was deleted
         try:
-            resp = self.cf_client.describe_stacks(StackName=stack_name)
+            _ = self.cf_client.describe_stacks(StackName=stack_name)
         except ClientError as ex:
             self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
 
@@ -93,7 +87,6 @@ class TestDelete(DeleteIntegBase):
         s3_objects_resp = self.s3_client.list_objects_v2(Bucket=self.bucket_name, Prefix=self.s3_prefix)
         self.assertEqual(s3_objects_resp["KeyCount"], 0)
 
-    @pytest.mark.flaky(reruns=3)
     def test_delete_command_no_stack_deployed(self):
         stack_name = self._method_to_stack_name(self.id())
 
@@ -102,7 +95,7 @@ class TestDelete(DeleteIntegBase):
         )
 
         delete_process_execute = run_command(delete_command_list)
-        self.assertEqual(delete_process_execute.process.returncode, 0)
+        self.validate_delete_process(delete_process_execute)
         self.assertIn(
             f"Error: The input stack {stack_name} does not exist on Cloudformation", str(delete_process_execute.stdout)
         )
@@ -127,7 +120,6 @@ class TestDelete(DeleteIntegBase):
             "aws-stepfunctions-statemachine.yaml",
         ]
     )
-    @pytest.mark.flaky(reruns=3)
     def test_delete_no_prompts_with_s3_prefix_present_zip(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
@@ -137,10 +129,7 @@ class TestDelete(DeleteIntegBase):
         deploy_command_list = self.get_deploy_command_list(
             template_file=template_path, guided=True, config_file=config_file_name
         )
-
-        deploy_process_execute = run_command_with_input(
-            deploy_command_list, "{}\n\n\n\n\n\n\n\n\n".format(stack_name).encode()
-        )
+        _ = run_command_with_input(deploy_command_list, "{}\n\n\n\n\n\n\n\n\n".format(stack_name).encode())
 
         config_file_path = self.test_data_path.joinpath(config_file_name)
         delete_command_list = self.get_delete_command_list(
@@ -148,10 +137,10 @@ class TestDelete(DeleteIntegBase):
         )
 
         delete_process_execute = run_command(delete_command_list)
-        self.assertEqual(delete_process_execute.process.returncode, 0)
+        self.validate_delete_process(delete_process_execute)
 
         try:
-            resp = self.cf_client.describe_stacks(StackName=stack_name)
+            _ = self.cf_client.describe_stacks(StackName=stack_name)
         except ClientError as ex:
             self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
 
@@ -164,7 +153,6 @@ class TestDelete(DeleteIntegBase):
             "aws-serverless-function-image.yaml",
         ]
     )
-    @pytest.mark.flaky(reruns=3)
     def test_delete_no_prompts_with_s3_prefix_present_image(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
@@ -174,8 +162,7 @@ class TestDelete(DeleteIntegBase):
         deploy_command_list = self.get_deploy_command_list(
             template_file=template_path, guided=True, config_file=config_file_name, image_repository=self.ecr_repo_name
         )
-
-        deploy_process_execute = run_command_with_input(
+        _ = run_command_with_input(
             deploy_command_list, f"{stack_name}\n\n{self.ecr_repo_name}\n\n\ny\n\n\n\n\n\n".encode()
         )
 
@@ -185,10 +172,10 @@ class TestDelete(DeleteIntegBase):
         )
 
         delete_process_execute = run_command(delete_command_list)
-        self.assertEqual(delete_process_execute.process.returncode, 0)
+        self.validate_delete_process(delete_process_execute)
 
         try:
-            resp = self.cf_client.describe_stacks(StackName=stack_name)
+            _ = self.cf_client.describe_stacks(StackName=stack_name)
         except ClientError as ex:
             self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
 
@@ -201,7 +188,6 @@ class TestDelete(DeleteIntegBase):
             "aws-serverless-function.yaml",
         ]
     )
-    @pytest.mark.flaky(reruns=3)
     def test_delete_guided_config_file_present(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
@@ -211,20 +197,16 @@ class TestDelete(DeleteIntegBase):
         deploy_command_list = self.get_deploy_command_list(
             template_file=template_path, guided=True, config_file=config_file_name
         )
-
-        deploy_process_execute = run_command_with_input(
-            deploy_command_list, "{}\n\n\n\n\n\n\n\n\n".format(stack_name).encode()
-        )
+        _ = run_command_with_input(deploy_command_list, "{}\n\n\n\n\n\n\n\n\n".format(stack_name).encode())
 
         config_file_path = self.test_data_path.joinpath(config_file_name)
         delete_command_list = self.get_delete_command_list(stack_name=stack_name, config_file=config_file_path)
-
         delete_process_execute = run_command_with_input(delete_command_list, "y\nn\ny\n".encode())
 
-        self.assertEqual(delete_process_execute.process.returncode, 0)
+        self.validate_delete_process(delete_process_execute)
 
         try:
-            resp = self.cf_client.describe_stacks(StackName=stack_name)
+            _ = self.cf_client.describe_stacks(StackName=stack_name)
         except ClientError as ex:
             self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
 
@@ -237,27 +219,22 @@ class TestDelete(DeleteIntegBase):
             "aws-serverless-function.yaml",
         ]
     )
-    @pytest.mark.flaky(reruns=3)
     def test_delete_no_config_file_zip(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
         stack_name = self._method_to_stack_name(self.id())
 
         deploy_command_list = self.get_deploy_command_list(template_file=template_path, guided=True)
-
-        deploy_process_execute = run_command_with_input(
-            deploy_command_list, "{}\n\n\n\n\nn\n\n\n".format(stack_name).encode()
-        )
+        _ = run_command_with_input(deploy_command_list, "{}\n\n\n\n\nn\n\n\n".format(stack_name).encode())
 
         delete_command_list = self.get_delete_command_list(
             stack_name=stack_name, region=self._session.region_name, no_prompts=True
         )
-
         delete_process_execute = run_command(delete_command_list)
-        self.assertEqual(delete_process_execute.process.returncode, 0)
+        self.validate_delete_process(delete_process_execute)
 
         try:
-            resp = self.cf_client.describe_stacks(StackName=stack_name)
+            _ = self.cf_client.describe_stacks(StackName=stack_name)
         except ClientError as ex:
             self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
 
@@ -266,7 +243,6 @@ class TestDelete(DeleteIntegBase):
             "aws-serverless-function.yaml",
         ]
     )
-    @pytest.mark.flaky(reruns=3)
     def test_delete_no_prompts_no_s3_prefix_zip(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
@@ -287,19 +263,16 @@ class TestDelete(DeleteIntegBase):
             confirm_changeset=False,
             region=self._session.region_name,
         )
-
-        deploy_process_execute = run_command(deploy_command_list)
+        _ = run_command(deploy_command_list)
 
         delete_command_list = self.get_delete_command_list(
             stack_name=stack_name, region=self._session.region_name, no_prompts=True
         )
-
         delete_process_execute = run_command(delete_command_list)
-
-        self.assertEqual(delete_process_execute.process.returncode, 0)
+        self.validate_delete_process(delete_process_execute)
 
         try:
-            resp = self.cf_client.describe_stacks(StackName=stack_name)
+            _ = self.cf_client.describe_stacks(StackName=stack_name)
         except ClientError as ex:
             self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
 
@@ -308,7 +281,6 @@ class TestDelete(DeleteIntegBase):
             "aws-serverless-function-image.yaml",
         ]
     )
-    @pytest.mark.flaky(reruns=3)
     def test_delete_no_prompts_no_s3_prefix_image(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
@@ -331,26 +303,22 @@ class TestDelete(DeleteIntegBase):
             confirm_changeset=False,
             region=self._session.region_name,
         )
-
-        deploy_process_execute = run_command(deploy_command_list)
+        _ = run_command(deploy_command_list)
 
         delete_command_list = self.get_delete_command_list(
             stack_name=stack_name, region=self._session.region_name, no_prompts=True
         )
-
         delete_process_execute = run_command(delete_command_list)
-
-        self.assertEqual(delete_process_execute.process.returncode, 0)
+        self.validate_delete_process(delete_process_execute)
 
         try:
-            resp = self.cf_client.describe_stacks(StackName=stack_name)
+            _ = self.cf_client.describe_stacks(StackName=stack_name)
         except ClientError as ex:
             self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
 
     @parameterized.expand(
         [os.path.join("deep-nested", "template.yaml"), os.path.join("deep-nested-image", "template.yaml")]
     )
-    @pytest.mark.flaky(reruns=3)
     def test_delete_nested_stacks(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
@@ -374,22 +342,19 @@ class TestDelete(DeleteIntegBase):
             image_repository=self.ecr_repo_name,
         )
 
-        deploy_process_execute = run_command(deploy_command_list)
+        _ = run_command(deploy_command_list)
 
         delete_command_list = self.get_delete_command_list(
             stack_name=stack_name, region=self._session.region_name, no_prompts=True
         )
-
         delete_process_execute = run_command(delete_command_list)
-
-        self.assertEqual(delete_process_execute.process.returncode, 0)
+        self.validate_delete_process(delete_process_execute)
 
         try:
-            resp = self.cf_client.describe_stacks(StackName=stack_name)
+            _ = self.cf_client.describe_stacks(StackName=stack_name)
         except ClientError as ex:
             self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
 
-    @pytest.mark.flaky(reruns=3)
     def test_delete_stack_termination_protection_enabled(self):
         template_str = """
         AWSTemplateFormatVersion: '2010-09-09'
@@ -423,14 +388,13 @@ class TestDelete(DeleteIntegBase):
         self.cf_client.update_termination_protection(StackName=stack_name, EnableTerminationProtection=False)
 
         delete_process_execute = run_command(delete_command_list)
-        self.assertEqual(delete_process_execute.process.returncode, 0)
+        self.validate_delete_process(delete_process_execute)
 
         try:
-            resp = self.cf_client.describe_stacks(StackName=stack_name)
+            _ = self.cf_client.describe_stacks(StackName=stack_name)
         except ClientError as ex:
             self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
 
-    @pytest.mark.flaky(reruns=3)
     def test_no_prompts_no_stack_name(self):
         delete_command_list = self.get_delete_command_list(no_prompts=True)
         delete_process_execute = run_command(delete_command_list)
@@ -441,7 +405,6 @@ class TestDelete(DeleteIntegBase):
             "aws-ecr-repository.yaml",
         ]
     )
-    @pytest.mark.flaky(reruns=3)
     def test_delete_guided_ecr_repository_present(self, template_file):
         template_path = self.delete_test_data_path.joinpath(template_file)
         stack_name = self._method_to_stack_name(self.id())
@@ -461,15 +424,15 @@ class TestDelete(DeleteIntegBase):
             confirm_changeset=False,
             region=self._session.region_name,
         )
-        deploy_process_execute = run_command(deploy_command_list)
+        _ = run_command(deploy_command_list)
 
         delete_command_list = self.get_delete_command_list(stack_name=stack_name, region=self._session.region_name)
         delete_process_execute = run_command_with_input(delete_command_list, "y\ny\ny\n".encode())
 
-        self.assertEqual(delete_process_execute.process.returncode, 0)
+        self.validate_delete_process(delete_process_execute)
 
         try:
-            resp = self.cf_client.describe_stacks(StackName=stack_name)
+            _ = self.cf_client.describe_stacks(StackName=stack_name)
         except ClientError as ex:
             self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
 
@@ -478,7 +441,6 @@ class TestDelete(DeleteIntegBase):
             "aws-serverless-function-image.yaml",
         ]
     )
-    @pytest.mark.flaky(reruns=3)
     def test_delete_guided_no_s3_prefix_image(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
@@ -502,16 +464,14 @@ class TestDelete(DeleteIntegBase):
             region=self._session.region_name,
         )
 
-        deploy_process_execute = run_command(deploy_command_list)
+        _ = run_command(deploy_command_list)
 
         delete_command_list = self.get_delete_command_list(stack_name=stack_name, region=self._session.region_name)
-
         delete_process_execute = run_command_with_input(delete_command_list, "y\n".encode())
-
-        self.assertEqual(delete_process_execute.process.returncode, 0)
+        self.validate_delete_process(delete_process_execute)
 
         try:
-            resp = self.cf_client.describe_stacks(StackName=stack_name)
+            _ = self.cf_client.describe_stacks(StackName=stack_name)
         except ClientError as ex:
             self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
 
@@ -520,7 +480,6 @@ class TestDelete(DeleteIntegBase):
             "aws-serverless-function-retain.yaml",
         ]
     )
-    @pytest.mark.flaky(reruns=3)
     def test_delete_guided_retain_s3_artifact(self, template_file):
         template_path = self.delete_test_data_path.joinpath(template_file)
         stack_name = self._method_to_stack_name(self.id())
@@ -540,18 +499,22 @@ class TestDelete(DeleteIntegBase):
             confirm_changeset=False,
             region=self._session.region_name,
         )
-        deploy_process_execute = run_command(deploy_command_list)
+        _ = run_command(deploy_command_list)
         self.add_left_over_resources_from_stack(stack_name)
 
         delete_command_list = self.get_delete_command_list(stack_name=stack_name, region=self._session.region_name)
         delete_process_execute = run_command_with_input(delete_command_list, "y\nn\nn\n".encode())
 
-        self.assertEqual(delete_process_execute.process.returncode, 0)
+        self.validate_delete_process(delete_process_execute)
 
         try:
             resp = self.cf_client.describe_stacks(StackName=stack_name)
         except ClientError as ex:
             self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
+
+    def validate_delete_process(self, command_result: CommandResult):
+        self.assertEqual(command_result.process.returncode, 0)
+        self.assertNotIn(b"Could not find and delete the S3 object with the key", command_result.stderr)
 
     # TODO: Add 3 more tests after Auto ECR is merged to develop
     # 1. Create a stack using guided deploy of type image and delete

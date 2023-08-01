@@ -69,3 +69,7 @@ area/logs:
 area/traces:
 - samcli/commands/traces/*
 - samcli/commands/traces/**/*
+
+area/schema:
+- schema/*
+- schema/**/*
