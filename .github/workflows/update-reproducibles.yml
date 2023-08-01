@@ -38,6 +38,7 @@ jobs:
       - name: Push changes
         if: steps.git-check.outputs.modified == 'true'
         run: |
+          git status
           echo ${{ steps.git-check.outputs.modified }}
           echo ${{ steps.git-checkv1.outputs.modified }}
           git config --global user.email "action@github.com"
