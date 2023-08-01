@@ -28,23 +28,11 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
-      - name: Check for modified files
-        id: git-checkv1
-        run: echo "modified=$(if git diff-index --quiet HEAD --; then echo "false"; else echo "true"; fi)" >> $GITHUB_OUTPUT
       - run: make ${{ matrix.target }}
-      - name: Check for modified files
-        id: git-check
-        run: |
-          git update-index -q --really-refresh
-          echo "modified=$(if git diff-index --quiet HEAD --; then echo "false"; else echo "true"; fi)" >> $GITHUB_OUTPUT
       - name: Push changes
-        if: steps.git-check.outputs.modified == 'true'
         run: |
-          git status
-          echo ${{ steps.git-check.outputs.modified }}
-          echo ${{ steps.git-checkv1.outputs.modified }}
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
-          git commit -am "Update reproducibles"
+          git commit -am "Update reproducibles" || echo "nothing to commit"
           git push
