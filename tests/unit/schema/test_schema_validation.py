@@ -22,7 +22,6 @@ class TestSchemaValidation(TestCase):
         self.assertIsNotNone(self.schema, "Schema was not set")
 
         passing_tests_dir = Path(self.testdata_dir, "passing_tests")
-        tests_not_passing = []
 
         # Read in and assert all files in passing_tests pass
         for config_file_path in os.listdir(passing_tests_dir):
@@ -34,16 +33,12 @@ class TestSchemaValidation(TestCase):
             try:
                 jsonschema.validate(config_file, self.schema)
             except jsonschema.ValidationError as e:
-                tests_not_passing.append(f"<{config_file_path}: {e.message}>")
-
-        if tests_not_passing:
-            self.assertTrue(False, f"Some config files are not validating against schema: {tests_not_passing}")
+                self.assertTrue(False, f"File {config_file_path} not validating: {e.message}")
 
     def test_samconfig_doesnt_validate_against_schema(self):
         self.assertIsNotNone(self.schema, "Schema was not set")
 
         failing_tests_dir = Path(self.testdata_dir, "failing_tests")
-        tests_not_failing = []
 
         # Read in and assert all files in failing_tests fail
         for config_file_path in os.listdir(failing_tests_dir):
@@ -56,10 +51,3 @@ class TestSchemaValidation(TestCase):
                 jsonschema.ValidationError, msg=f"Config file {config_file_path} should not validate against schema"
             ):
                 jsonschema.validate(config_file, self.schema)
-                tests_not_failing.append(config_file_path)
-                raise jsonschema.ValidationError("Test should have failed but didn't")
-
-        if tests_not_failing:
-            self.assertTrue(
-                False, f"Some config files are validating against schema when they shouldn't: {tests_not_failing}"
-            )
