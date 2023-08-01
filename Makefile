@@ -73,9 +73,9 @@ update-reproducible-mac-reqs:
 # note that this should be run on a windows environment
 update-reproducible-win-reqs:
 	python -m venv venv-update-reproducible-win
-	.\venv-update-reproducible-win\Scripts\pip install --upgrade pip-tools pip
-	.\venv-update-reproducible-win\Scripts\pip install -r requirements\base.txt
-	.\venv-update-reproducible-win\Scripts\pip-compile --generate-hashes --allow-unsafe -o requirements\reproducible-win.txt
+	.\venv-update-reproducible-win\Scripts\pip.exe install --upgrade pip-tools pip
+	.\venv-update-reproducible-win\Scripts\pip.exe install -r requirements\base.txt
+	.\venv-update-reproducible-win\Scripts\pip-compile.exe --generate-hashes --allow-unsafe -o requirements\reproducible-win.txt
 
 
 update-reproducible-reqs: update-reproducible-linux-reqs update-reproducible-mac-reqs
