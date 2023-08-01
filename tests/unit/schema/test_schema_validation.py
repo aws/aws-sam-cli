@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 import jsonschema
 from parameterized import parameterized
@@ -24,8 +25,10 @@ class TestSchemaValidation(TestCase):
         tests_not_passing = []
 
         # Read in and assert all files in passing_tests pass
-        for config_file_path in passing_tests_dir.iterdir():
-            config_file = FILE_MANAGER_MAPPER[config_file_path.suffix].read(Path(str(passing_tests_dir), config_file_path))
+        for config_file_path in os.listdir(passing_tests_dir):
+            config_file = FILE_MANAGER_MAPPER[Path(config_file_path).suffix].read(
+                Path(str(passing_tests_dir), config_file_path)
+            )
             self.assertNotEqual(config_file, {}, f"Config file {config_file_path} should be read correctly")
 
             try:
@@ -43,8 +46,10 @@ class TestSchemaValidation(TestCase):
         tests_not_failing = []
 
         # Read in and assert all files in failing_tests fail
-        for config_file_path in failing_tests_dir.iterdir():
-            config_file = FILE_MANAGER_MAPPER[config_file_path.suffix].read(Path(str(failing_tests_dir), config_file_path))
+        for config_file_path in os.listdir(failing_tests_dir):
+            config_file = FILE_MANAGER_MAPPER[Path(config_file_path).suffix].read(
+                Path(str(failing_tests_dir), config_file_path)
+            )
             self.assertNotEqual(config_file, {}, f"Config file {config_file_path} should be read correctly")
 
             with self.assertRaises(
