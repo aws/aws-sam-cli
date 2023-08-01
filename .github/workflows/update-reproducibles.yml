@@ -35,6 +35,7 @@ jobs:
       - name: Push changes
         if: steps.git-check.outputs.modified == 'true'
         run: |
+          echo ${{ steps.git-check.outputs.modified }}
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
