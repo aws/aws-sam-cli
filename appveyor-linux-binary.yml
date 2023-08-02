@@ -151,6 +151,7 @@ build_script:
   - unzip aws-sam-cli-linux-x86_64.zip -d sam-installation
   - sudo ./sam-installation/install
   - sam-nightly --version
+  - shopt -s expand_aliases
   - alias sam='sam-nightly'
   - sam --version
 
