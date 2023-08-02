@@ -72,6 +72,7 @@ install:
 
   # Install pytest
   - sh: "pip3 install pytest"
+  - sh: "pip3 install boto3"
   - sh: "pytest --version"
 
   - sh: "PATH=$PATH:$HOME/venv3.7/bin:$HOME/venv3.8/bin:$HOME/venv3.9/bin:$HOME/venv3.10/bin"
