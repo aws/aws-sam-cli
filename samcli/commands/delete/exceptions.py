@@ -38,3 +38,22 @@ class FetchTemplateFailedError(UserException):
         message = f"Failed to fetch the template for the stack: {stack_name}, {msg}"
 
         super().__init__(message=message)
+
+
+class FetchChangeSetError(UserException):
+    def __init__(self, stack_name, msg):
+        self.stack_name = stack_name
+        self.msg = msg
+
+        message = f"Failed to fetch change sets for stack: {stack_name}, {msg}"
+
+        super().__init__(message=message)
+
+
+class NoChangeSetFoundError(UserException):
+    def __init__(self, stack_name):
+        self.stack_name = stack_name
+
+        message = f"Stack {stack_name} does not contain any change sets"
+
+        super().__init__(message=message)

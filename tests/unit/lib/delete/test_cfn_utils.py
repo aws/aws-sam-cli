@@ -1,8 +1,15 @@
-from unittest.mock import patch, MagicMock, ANY, call
+from unittest.mock import patch, MagicMock
 from unittest import TestCase
 
+from parameterized import parameterized
 
-from samcli.commands.delete.exceptions import DeleteFailedError, FetchTemplateFailedError, CfDeleteFailedStatusError
+from samcli.commands.delete.exceptions import (
+    DeleteFailedError,
+    FetchChangeSetError,
+    FetchTemplateFailedError,
+    CfDeleteFailedStatusError,
+    NoChangeSetFoundError,
+)
 from botocore.exceptions import ClientError, BotoCoreError, WaiterError
 
 from samcli.lib.delete.cfn_utils import CfnUtils
@@ -59,12 +66,6 @@ class TestCfUtils(TestCase):
         with self.assertRaises(DeleteFailedError):
             self.cf_utils.has_stack("test")
 
-    def test_cf_utils_has_stack_in_review(self):
-        self.cf_utils._client.describe_stacks = MagicMock(
-            return_value={"Stacks": [{"StackStatus": "REVIEW_IN_PROGRESS", "EnableTerminationProtection": False}]}
-        )
-        self.assertEqual(self.cf_utils.has_stack("test"), False)
-
     def test_cf_utils_has_stack_exception_botocore(self):
         self.cf_utils._client.describe_stacks = MagicMock(side_effect=BotoCoreError())
         with self.assertRaises(DeleteFailedError):
@@ -94,7 +95,7 @@ class TestCfUtils(TestCase):
         self.cf_utils._client.get_template = MagicMock(return_value=({"TemplateBody": "Hello World"}))
 
         response = self.cf_utils.get_stack_template("test", "Original")
-        self.assertEqual(response, {"TemplateBody": "Hello World"})
+        self.assertEqual(response, "Hello World")
 
     def test_cf_utils_delete_stack_exception_botocore(self):
         self.cf_utils._client.delete_stack = MagicMock(side_effect=BotoCoreError())
@@ -187,3 +188,74 @@ class TestCfUtils(TestCase):
         )
         with self.assertRaises(CfDeleteFailedStatusError):
             self.cf_utils.wait_for_delete("test")
+
+    def test_cfn_utils_has_stack(self):
+        self.cf_utils._client.describe_stacks = MagicMock(
+            return_value={"Stacks": [{"EnableTerminationProtection": False}]}
+        )
+
+        result = self.cf_utils.has_stack(MagicMock())
+
+        self.assertTrue(result)
+
+    def test_cfn_utils_get_change_set_name(self):
+        change_set_name = "hello change set"
+
+        self.cf_utils._client.list_change_sets = MagicMock(
+            return_value={"Summaries": [{"ChangeSetName": change_set_name}]}
+        )
+
+        result = self.cf_utils._get_change_set_name(MagicMock())
+
+        self.assertEqual(change_set_name, result)
+
+    def test_cfn_utils_get_change_set_name_raises_no_change_sets(self):
+        self.cf_utils._client.list_change_sets = MagicMock()
+
+        with self.assertRaises(NoChangeSetFoundError):
+            self.cf_utils._get_change_set_name(MagicMock())
+
+    @parameterized.expand(
+        [
+            (ClientError(MagicMock(), MagicMock()),),
+            (BotoCoreError(),),
+        ]
+    )
+    def test_cfn_utils_get_change_set_name_reraises_api_error(self, exception):
+        self.cf_utils._client.list_change_sets = MagicMock(side_effect=exception)
+
+        with self.assertRaises(FetchChangeSetError):
+            self.cf_utils._get_change_set_name(MagicMock())
+
+    def test_get_template_use_change_set(self):
+        change_set_template = "from change set"
+
+        self.cf_utils._client.get_template = MagicMock(
+            side_effect=[{"TemplateBody": ""}, {"TemplateBody": change_set_template}]
+        )
+        self.cf_utils._get_change_set_name = MagicMock(return_value=MagicMock())
+
+        result = self.cf_utils.get_stack_template(MagicMock(), MagicMock())
+
+        self.assertEqual(change_set_template, result)
+
+    def test_get_template_use_change_set_empty(self):
+        self.cf_utils._client.get_template = MagicMock(return_value={"TemplateBody": ""})
+        self.cf_utils._get_change_set_name = MagicMock(return_value=MagicMock())
+
+        result = self.cf_utils.get_stack_template(MagicMock(), MagicMock())
+
+        self.assertEqual(result, "")
+
+    @parameterized.expand(
+        [
+            (FetchChangeSetError(MagicMock(), MagicMock()),),
+            (NoChangeSetFoundError(MagicMock()),),
+        ]
+    )
+    def test_get_change_set_reraises_exceptions(self, caught_exception):
+        self.cf_utils._client.get_template = MagicMock(return_value={"TemplateBody": ""})
+        self.cf_utils._get_change_set_name = MagicMock(side_effect=caught_exception)
+
+        with self.assertRaises(FetchTemplateFailedError):
+            self.cf_utils.get_stack_template(MagicMock(), MagicMock())

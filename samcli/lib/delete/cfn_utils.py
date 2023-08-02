@@ -3,11 +3,17 @@ Delete Cloudformation stacks and s3 files
 """
 
 import logging
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from botocore.exceptions import BotoCoreError, ClientError, WaiterError
 
-from samcli.commands.delete.exceptions import CfDeleteFailedStatusError, DeleteFailedError, FetchTemplateFailedError
+from samcli.commands.delete.exceptions import (
+    CfDeleteFailedStatusError,
+    DeleteFailedError,
+    FetchChangeSetError,
+    FetchTemplateFailedError,
+    NoChangeSetFoundError,
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -20,8 +26,21 @@ class CfnUtils:
         """
         Checks if a CloudFormation stack with given name exists
 
-        :param stack_name: Name or ID of the stack
-        :return: True if stack exists. False otherwise
+        Parameters
+        ----------
+        stack_name: str
+            Name or ID of the stack
+
+        Returns
+        -------
+        bool
+            True if stack exists. False otherwise
+
+        Raises
+        ------
+        DeleteFailedError
+            Raised when the boto call fails to get stack information
+            or when the stack is protected from deletions
         """
         try:
             resp = self._client.describe_stacks(StackName=stack_name)
@@ -33,11 +52,7 @@ class CfnUtils:
                 message = "Stack cannot be deleted while TerminationProtection is enabled."
                 raise DeleteFailedError(stack_name=stack_name, msg=message)
 
-            # Note: Stacks with REVIEW_IN_PROGRESS can be deleted
-            # using delete_stack but get_template does not return
-            # the template_str for this stack restricting deletion of
-            # artifacts.
-            return bool(stack["StackStatus"] != "REVIEW_IN_PROGRESS")
+            return True
 
         except ClientError as e:
             # If a stack does not exist, describe_stacks will throw an
@@ -56,19 +71,44 @@ class CfnUtils:
             LOG.error("Botocore Exception : %s", str(e))
             raise DeleteFailedError(stack_name=stack_name, msg=str(e)) from e
 
-    def get_stack_template(self, stack_name: str, stage: str) -> Dict:
+    def get_stack_template(self, stack_name: str, stage: str) -> str:
         """
         Return the Cloudformation template of the given stack_name
 
-        :param stack_name: Name or ID of the stack
-        :param stage: The Stage of the template Original or Processed
-        :return: Template body of the stack
+        Parameters
+        ----------
+
+        stack_name: str
+            Name or ID of the stack
+        stage: str
+            The Stage of the template Original or Processed
+
+        Returns
+        -------
+        str
+            Template body of the stack
+
+        Raises
+        ------
+        FetchTemplateFailedError
+            Raised when boto calls or parsing fails to fetch template
         """
         try:
             resp = self._client.get_template(StackName=stack_name, TemplateStage=stage)
-            if not resp["TemplateBody"]:
-                return {}
-            return dict(resp)
+            template = resp.get("TemplateBody", "")
+
+            # stack may not have template, check the change set
+            if not template:
+                change_set_name = self._get_change_set_name(stack_name)
+
+                if change_set_name:
+                    # the stack has a change set, use the template from this
+                    resp = self._client.get_template(
+                        StackName=stack_name, TemplateStage=stage, ChangeSetName=change_set_name
+                    )
+                    template = resp.get("TemplateBody", "")
+
+            return str(template)
 
         except (ClientError, BotoCoreError) as e:
             # If there are credentials, environment errors,
@@ -76,7 +116,11 @@ class CfnUtils:
 
             LOG.error("Failed to fetch template for the stack : %s", str(e))
             raise FetchTemplateFailedError(stack_name=stack_name, msg=str(e)) from e
-
+        except FetchChangeSetError as ex:
+            raise FetchTemplateFailedError(stack_name=stack_name, msg=str(ex)) from ex
+        except NoChangeSetFoundError as ex:
+            msg = f"Failed to find a change set for stack {stack_name} to fetch the template"
+            raise FetchTemplateFailedError(stack_name=stack_name, msg=msg) from ex
         except Exception as e:
             # We don't know anything about this exception. Don't handle
             LOG.error("Unable to get stack details.", exc_info=e)
@@ -86,8 +130,17 @@ class CfnUtils:
         """
         Delete the Cloudformation stack with the given stack_name
 
-        :param stack_name: Name or ID of the stack
-        :param retain_resources: List of repositories to retain if the stack has DELETE_FAILED status.
+        Parameters
+        ----------
+        stack_name:
+            str Name or ID of the stack
+        retain_resources: Optional[List]
+            List of repositories to retain if the stack has DELETE_FAILED status.
+
+        Raises
+        ------
+        DeleteFailedError
+            Raised when the boto delete_stack call fails
         """
         if not retain_resources:
             retain_resources = []
@@ -106,11 +159,21 @@ class CfnUtils:
             LOG.error("Failed to delete stack. ", exc_info=e)
             raise e
 
-    def wait_for_delete(self, stack_name):
+    def wait_for_delete(self, stack_name: str):
         """
         Waits until the delete stack completes
 
-        :param stack_name:   Stack name
+        Parameter
+        ---------
+        stack_name: str
+            The name of the stack to watch when deleting
+
+        Raises
+        ------
+        CfDeleteFailedStatusError
+            Raised when the stack fails to delete
+        DeleteFailedError
+            Raised when the stack fails to wait when polling for status
         """
 
         # Wait for Delete to Finish
@@ -121,7 +184,7 @@ class CfnUtils:
         try:
             waiter.wait(StackName=stack_name, WaiterConfig=waiter_config)
         except WaiterError as ex:
-            stack_status = ex.last_response.get("Stacks", [{}])[0].get("StackStatusReason", "")
+            stack_status = ex.last_response.get("Stacks", [{}])[0].get("StackStatusReason", "")  # type: ignore
 
             if "DELETE_FAILED" in str(ex):
                 raise CfDeleteFailedStatusError(
@@ -129,3 +192,42 @@ class CfnUtils:
                 ) from ex
 
             raise DeleteFailedError(stack_name=stack_name, stack_status=stack_status, msg="ex: {0}".format(ex)) from ex
+
+    def _get_change_set_name(self, stack_name: str) -> str:
+        """
+        Returns the name of the change set for a stack
+
+        Parameters
+        ----------
+        stack_name: str
+            The name of the stack to find a change set
+
+        Returns
+        -------
+        str
+            The name of a change set
+
+        Raises
+        ------
+        FetchChangeSetError
+            Raised if there are boto call errors or parsing errors
+        NoChangeSetFoundError
+            Raised if a stack does not have any change sets
+        """
+        try:
+            change_sets: dict = self._client.list_change_sets(StackName=stack_name)
+        except (ClientError, BotoCoreError) as ex:
+            LOG.debug("Failed to perform boto call to fetch change sets")
+            raise FetchChangeSetError(stack_name=stack_name, msg=str(ex)) from ex
+
+        change_sets = change_sets.get("Summaries", [])
+
+        if len(change_sets) > 0:
+            change_set = change_sets[0]
+            change_set_name = str(change_set.get("ChangeSetName", ""))
+
+            LOG.debug(f"Returning change set: {change_set}")
+            return change_set_name
+
+        LOG.debug("Stack contains no change sets")
+        raise NoChangeSetFoundError(stack_name=stack_name)

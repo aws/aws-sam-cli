@@ -1,3 +1,4 @@
+import json
 from samcli.lib.bootstrap.companion_stack.data_types import CompanionStack
 from unittest import TestCase
 from unittest.mock import patch, call, MagicMock, Mock
@@ -138,7 +139,7 @@ class TestDeleteContext(TestCase):
         ),
     )
     @patch.object(CfnUtils, "has_stack", MagicMock(return_value=(True)))
-    @patch.object(CfnUtils, "get_stack_template", MagicMock(return_value=({"TemplateBody": "Hello World"})))
+    @patch.object(CfnUtils, "get_stack_template", MagicMock(return_value="Hello World"))
     @patch.object(CfnUtils, "delete_stack", MagicMock())
     @patch.object(CfnUtils, "wait_for_delete", MagicMock())
     @patch.object(Template, "get_ecr_repos", MagicMock(return_value=({"logical_id": {"Repository": "test_id"}})))
@@ -170,7 +171,7 @@ class TestDeleteContext(TestCase):
     @patch("samcli.commands.deploy.guided_context.click.secho")
     @patch("samcli.commands.delete.delete_context.click.get_current_context")
     @patch.object(CfnUtils, "has_stack", MagicMock(side_effect=(True, False)))
-    @patch.object(CfnUtils, "get_stack_template", MagicMock(return_value=({"TemplateBody": "Hello World"})))
+    @patch.object(CfnUtils, "get_stack_template", MagicMock(return_value="Hello World"))
     @patch.object(CfnUtils, "delete_stack", MagicMock())
     @patch.object(CfnUtils, "wait_for_delete", MagicMock())
     @patch("samcli.commands.delete.delete_context.get_boto_client_provider_with_config")
@@ -209,7 +210,7 @@ class TestDeleteContext(TestCase):
     @patch("samcli.commands.delete.delete_context.confirm")
     @patch("samcli.commands.delete.delete_context.click.get_current_context")
     @patch.object(CfnUtils, "has_stack", MagicMock(side_effect=(True, False)))
-    @patch.object(CfnUtils, "get_stack_template", MagicMock(return_value=({"TemplateBody": "Hello World"})))
+    @patch.object(CfnUtils, "get_stack_template", MagicMock(return_value="Hello World"))
     @patch.object(CfnUtils, "delete_stack", MagicMock())
     @patch.object(CfnUtils, "wait_for_delete", MagicMock())
     @patch.object(S3Uploader, "delete_artifact", MagicMock())
@@ -271,7 +272,7 @@ class TestDeleteContext(TestCase):
     @patch("samcli.commands.delete.delete_context.confirm")
     @patch("samcli.commands.delete.delete_context.click.get_current_context")
     @patch.object(CfnUtils, "has_stack", MagicMock(side_effect=(True, False)))
-    @patch.object(CfnUtils, "get_stack_template", MagicMock(return_value=({"TemplateBody": "Hello World"})))
+    @patch.object(CfnUtils, "get_stack_template", MagicMock(return_value="Hello World"))
     @patch.object(CfnUtils, "delete_stack", MagicMock())
     @patch.object(CfnUtils, "wait_for_delete", MagicMock())
     @patch.object(S3Uploader, "delete_artifact", MagicMock())
@@ -324,7 +325,7 @@ class TestDeleteContext(TestCase):
     @patch("samcli.commands.delete.delete_context.confirm")
     @patch("samcli.commands.delete.delete_context.click.get_current_context")
     @patch.object(CfnUtils, "has_stack", MagicMock(side_effect=(True, True)))
-    @patch.object(CfnUtils, "get_stack_template", MagicMock(return_value=({"TemplateBody": "Hello World"})))
+    @patch.object(CfnUtils, "get_stack_template", MagicMock(return_value="Hello World"))
     @patch.object(CfnUtils, "delete_stack", MagicMock())
     @patch.object(CfnUtils, "wait_for_delete", MagicMock())
     @patch.object(S3Uploader, "delete_artifact", MagicMock())
@@ -405,7 +406,7 @@ class TestDeleteContext(TestCase):
     @patch("samcli.commands.delete.delete_context.click.echo")
     @patch("samcli.commands.delete.delete_context.click.get_current_context")
     @patch.object(CfnUtils, "has_stack", MagicMock(side_effect=(True, False)))
-    @patch.object(CfnUtils, "get_stack_template", MagicMock(return_value=({"TemplateBody": "Hello World"})))
+    @patch.object(CfnUtils, "get_stack_template", MagicMock(return_value="Hello World"))
     @patch.object(CfnUtils, "delete_stack", MagicMock())
     @patch.object(CfnUtils, "wait_for_delete", MagicMock())
     @patch.object(S3Uploader, "delete_prefix_artifacts", MagicMock())
@@ -420,9 +421,9 @@ class TestDeleteContext(TestCase):
         patched_click_echo,
         patched_get_cf_template_name,
     ):
-        CfnUtils.get_stack_template.return_value = {
-            "TemplateBody": {"Metadata": {"CompanionStackname": "Companion-Stack-Name"}}
-        }
+        CfnUtils.get_stack_template.return_value = json.dumps(
+            {"Metadata": {"CompanionStackname": "Companion-Stack-Name"}}
+        )
         patched_get_cf_template_name.return_value = "hello.template"
         with DeleteContext(
             stack_name="Companion-Stack-Name",
@@ -447,7 +448,7 @@ class TestDeleteContext(TestCase):
     @patch("samcli.commands.delete.delete_context.get_uploaded_s3_object_name")
     @patch("samcli.commands.delete.delete_context.click.get_current_context")
     @patch.object(CfnUtils, "has_stack", MagicMock(side_effect=(True, True)))
-    @patch.object(CfnUtils, "get_stack_template", MagicMock(return_value=({"TemplateBody": "Hello World"})))
+    @patch.object(CfnUtils, "get_stack_template", MagicMock(return_value="Hello World"))
     @patch.object(CfnUtils, "delete_stack", MagicMock())
     @patch.object(
         CfnUtils,
