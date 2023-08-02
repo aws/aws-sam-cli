@@ -1,0 +1,46 @@
+name: Generate SAM CLI JSON schema
+
+on:
+  schedule:
+    - cron: 30 15 * * 1-5  # 8:30am PST Monday-Friday
+  
+jobs:
+  generateSchema:
+    permissions:
+      pull-requests: write
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        name: Checkout latest AWS SAM CLI commit
+        with:
+          repository: 'aws/aws-sam-cli'
+          ref: 'develop'
+          path: 'aws-sam-cli-develop'
+      - uses: actions/setup-python@v4
+        name: Install Python 3.9
+        with:
+          python-version: 3.9
+      - run: |
+          make -C aws-sam-cli-develop init
+          cd aws-sam-cli-develop
+          diff <( cat schema/samcli.json ) <( python schema/make_schema.py; cat schema/samcli.json ) && exit 0 # exit if schema is unchanged
+          echo "is_schema_changed=1" >> $GITHUB_ENV
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Action"
+          git checkout -b update-schema
+          git status
+          git add schema/samcli.json
+          git commit -m "chore: Update JSON schema" && exit 0
+          name: Generate the schema
+          shell: bash
+      - name: Raise PR to update JSON schema
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: ${{ env.is_schema_changed == 1 }} # run only if there was a change
+        run: |
+          cd aws-sam-cli-develop
+          git push --force origin update-schema
+          gh pr list --repo aws/aws-sam-cli --head update-schema --json id --jq length | grep 1 && exit 0 # exit if there is existing pr
+          gh pr create --base develop --head update-schema --title "chore: Update JSON schema" --body "This PR & commit are automatically created by the SAM CLI repo to update the JSON schema with the latest changes." --label "pr/internal" --label "area/schema"
+
