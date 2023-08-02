@@ -71,7 +71,7 @@ install:
   - sh: "PATH=$(echo $PWD'/aws_cli/bin'):$PATH"
 
   # Install pytest
-  - sh: "pip3 install pytest"
+  - sh: "pip3 install -r requirements/dev.txt"
   # We currently need to install boto3 for pytest to work since we're ignoring a boto3 deprecation warning in the pytest configuration
   - sh: "pip3 install boto3"
   - sh: "pytest --version"
