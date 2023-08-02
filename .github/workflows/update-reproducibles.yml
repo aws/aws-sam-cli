@@ -7,6 +7,10 @@ on:
 
 jobs:
   update-reqs:
+    permissions:
+      pull-requests: write
+      contents: write
+    if: github.repository == 'aws/aws-sam-cli'
     strategy:
       matrix:
         include:
