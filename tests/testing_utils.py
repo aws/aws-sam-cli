@@ -44,11 +44,7 @@ CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".
 
 
 def get_sam_command():
-    if os.getenv("SAM_CLI_NIGHTLY"):
-        return "sam-nightly"
-    if os.getenv("SAM_CLI_DEV"):
-        return "samdev"
-    return "sam"
+    return "samdev" if os.getenv("SAM_CLI_DEV") else "sam"
 
 
 def method_to_stack_name(method_name):

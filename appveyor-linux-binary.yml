@@ -71,10 +71,10 @@ install:
   - sh: "PATH=$(echo $PWD'/aws_cli/bin'):$PATH"
 
   # Install pytest
-  - sh: "$HOME/venv3.11/bin/python -m pip install pytest"
+  - sh: "sudo apt-get install python3-pytest -y"
+  - sh: "pytest --version"
 
   - sh: "PATH=$PATH:$HOME/venv3.7/bin:$HOME/venv3.8/bin:$HOME/venv3.9/bin:$HOME/venv3.10/bin:$HOME/venv3.11/bin"
-  - sh: "pytest --version"
 
   # update ca-certificates which causes failures with newest golang library
   - sh: "sudo apt-get install --reinstall ca-certificates"
@@ -150,6 +150,8 @@ build_script:
   - unzip aws-sam-cli-linux-x86_64.zip -d sam-installation
   - sudo ./sam-installation/install
   - sam-nightly --version
+  - mv /usr/local/bin/sam-nightly /usr/local/bin/sam
+  - sam --version
 
 # Final clean up no matter success or failure
 on_finish:
