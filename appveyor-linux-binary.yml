@@ -20,7 +20,6 @@ configuration:
 
 environment:
   AWS_DEFAULT_REGION: us-east-1
-  SAM_CLI_DEV: 1
   NODE_VERSION: "14.17.6"
   AWS_S3: 'AWS_S3_TESTING'
   AWS_ECR: 'AWS_ECR_TESTING'
@@ -145,8 +144,9 @@ install:
 build_script:
   - curl -L https://github.com/aws/aws-sam-cli/releases/download/sam-cli-nightly/aws-sam-cli-linux-x86_64.zip -o aws-sam-cli-linux-x86_64.zip
   - unzip aws-sam-cli-linux-x86_64.zip -d sam-installation
-  - ./sam-installation/install
-  - sam --version
+  - sudo ./sam-installation/install
+  - sam-nightly --version
+  - alias sam='sam-nightly'
 
 # Final clean up no matter success or failure
 on_finish:
