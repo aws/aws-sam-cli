@@ -2,6 +2,8 @@
 # environment variable.
 SAM_CLI_TELEMETRY ?= 0
 
+.PHONY: schema
+
 init:
 	SAM_CLI_DEV=1 pip install -e '.[dev]'
 
@@ -50,8 +52,11 @@ black-check:
 format: black
 	ruff samcli --fix
 
+schema: 
+	python schema/make_schema.py
+
 # Verifications to run before sending a pull request
-pr: init dev black-check
+pr: init dev schema black-check
 
 # (jfuss) We updated to have two requirement files, one for mac and one for linux. This
 # is meant to be a short term fix when upgrading the Linux installer to be python3.11 from 

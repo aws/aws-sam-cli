@@ -60,7 +60,7 @@ class SamCliParameterSchema:
         if self.choices:
             if isinstance(self.choices, list):
                 self.choices.sort()
-            param.update({"enum": self.choices})
+            # param.update({"enum": self.choices})
         return param
 
 

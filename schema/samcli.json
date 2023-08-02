@@ -34,11 +34,7 @@
                 "architecture": {
                   "title": "architecture",
                   "type": "string",
-                  "description": "Architectures for Lambda functions.\n\nArchitectures: ['arm64', 'x86_64']",
-                  "enum": [
-                    "arm64",
-                    "x86_64"
-                  ]
+                  "description": "Architectures for Lambda functions.\n\nArchitectures: ['arm64', 'x86_64']"
                 },
                 "location": {
                   "title": "location",
@@ -48,76 +44,22 @@
                 "runtime": {
                   "title": "runtime",
                   "type": "string",
-                  "description": "Lambda runtime for application.\n\nRuntimes: dotnet6, go1.x, java17, java11, java8.al2, java8, nodejs18.x, nodejs16.x, nodejs14.x, nodejs12.x, provided, provided.al2, python3.9, python3.8, python3.7, python3.11, python3.10, ruby3.2, ruby2.7",
-                  "enum": [
-                    "dotnet6",
-                    "go1.x",
-                    "java11",
-                    "java17",
-                    "java8",
-                    "java8.al2",
-                    "nodejs12.x",
-                    "nodejs14.x",
-                    "nodejs16.x",
-                    "nodejs18.x",
-                    "provided",
-                    "provided.al2",
-                    "python3.10",
-                    "python3.11",
-                    "python3.7",
-                    "python3.8",
-                    "python3.9",
-                    "ruby2.7",
-                    "ruby3.2"
-                  ]
+                  "description": "Lambda runtime for application.\n\nRuntimes: dotnet6, go1.x, java17, java11, java8.al2, java8, nodejs18.x, nodejs16.x, nodejs14.x, nodejs12.x, provided, provided.al2, python3.9, python3.8, python3.7, python3.11, python3.10, ruby3.2, ruby2.7"
                 },
                 "package_type": {
                   "title": "package_type",
                   "type": "string",
-                  "description": "Lambda deployment package type.\n\nPackage Types: Zip, Image",
-                  "enum": [
-                    "Image",
-                    "Zip"
-                  ]
+                  "description": "Lambda deployment package type.\n\nPackage Types: Zip, Image"
                 },
                 "base_image": {
                   "title": "base_image",
                   "type": "string",
-                  "description": "Lambda base image for deploying IMAGE based package type.\n\nBase images: amazon/dotnet6-base, amazon/go-provided.al2-base, amazon/go1.x-base, amazon/java11-base, amazon/java17-base, amazon/java8-base, amazon/java8.al2-base, amazon/nodejs12.x-base, amazon/nodejs14.x-base, amazon/nodejs16.x-base, amazon/nodejs18.x-base, amazon/python3.10-base, amazon/python3.11-base, amazon/python3.7-base, amazon/python3.8-base, amazon/python3.9-base, amazon/ruby2.7-base, amazon/ruby3.2-base",
-                  "enum": [
-                    "amazon/dotnet6-base",
-                    "amazon/go-provided.al2-base",
-                    "amazon/go1.x-base",
-                    "amazon/java11-base",
-                    "amazon/java17-base",
-                    "amazon/java8-base",
-                    "amazon/java8.al2-base",
-                    "amazon/nodejs12.x-base",
-                    "amazon/nodejs14.x-base",
-                    "amazon/nodejs16.x-base",
-                    "amazon/nodejs18.x-base",
-                    "amazon/python3.10-base",
-                    "amazon/python3.11-base",
-                    "amazon/python3.7-base",
-                    "amazon/python3.8-base",
-                    "amazon/python3.9-base",
-                    "amazon/ruby2.7-base",
-                    "amazon/ruby3.2-base"
-                  ]
+                  "description": "Lambda base image for deploying IMAGE based package type.\n\nBase images: amazon/dotnet6-base, amazon/go-provided.al2-base, amazon/go1.x-base, amazon/java11-base, amazon/java17-base, amazon/java8-base, amazon/java8.al2-base, amazon/nodejs12.x-base, amazon/nodejs14.x-base, amazon/nodejs16.x-base, amazon/nodejs18.x-base, amazon/python3.10-base, amazon/python3.11-base, amazon/python3.7-base, amazon/python3.8-base, amazon/python3.9-base, amazon/ruby2.7-base, amazon/ruby3.2-base"
                 },
                 "dependency_manager": {
                   "title": "dependency_manager",
                   "type": "string",
-                  "description": "Dependency manager for Lambda runtime.\n\nDependency managers: bundler, cli-package, gradle, maven, mod, npm, pip",
-                  "enum": [
-                    "bundler",
-                    "cli-package",
-                    "gradle",
-                    "maven",
-                    "mod",
-                    "npm",
-                    "pip"
-                  ]
+                  "description": "Dependency manager for Lambda runtime.\n\nDependency managers: bundler, cli-package, gradle, maven, mod, npm, pip"
                 },
                 "output_dir": {
                   "title": "output_dir",
@@ -272,11 +214,7 @@
                   "title": "mount_with",
                   "type": "string",
                   "description": "Specify mount mode for building functions/layers inside container. If it is mounted with write permissions, some files in source code directory may be changed/added by the build process. By default the source code directory is read only.",
-                  "default": "READ",
-                  "enum": [
-                    "READ",
-                    "WRITE"
-                  ]
+                  "default": "READ"
                 },
                 "build_dir": {
                   "title": "build_dir",
@@ -622,11 +560,7 @@
                 "warm_containers": {
                   "title": "warm_containers",
                   "type": "string",
-                  "description": "Optional. Specifies how AWS SAM CLI manages \ncontainers for each function.\nTwo modes are available:\nEAGER: Containers for all functions are \nloaded at startup and persist between \ninvocations.\nLAZY:  Containers are only loaded when each \nfunction is first invoked. Those containers \npersist for additional invocations.",
-                  "enum": [
-                    "EAGER",
-                    "LAZY"
-                  ]
+                  "description": "Optional. Specifies how AWS SAM CLI manages \ncontainers for each function.\nTwo modes are available:\nEAGER: Containers for all functions are \nloaded at startup and persist between \ninvocations.\nLAZY:  Containers are only loaded when each \nfunction is first invoked. Those containers \npersist for additional invocations."
                 },
                 "debug_function": {
                   "title": "debug_function",
@@ -803,11 +737,7 @@
                 "warm_containers": {
                   "title": "warm_containers",
                   "type": "string",
-                  "description": "Optional. Specifies how AWS SAM CLI manages \ncontainers for each function.\nTwo modes are available:\nEAGER: Containers for all functions are \nloaded at startup and persist between \ninvocations.\nLAZY:  Containers are only loaded when each \nfunction is first invoked. Those containers \npersist for additional invocations.",
-                  "enum": [
-                    "EAGER",
-                    "LAZY"
-                  ]
+                  "description": "Optional. Specifies how AWS SAM CLI manages \ncontainers for each function.\nTwo modes are available:\nEAGER: Containers for all functions are \nloaded at startup and persist between \ninvocations.\nLAZY:  Containers are only loaded when each \nfunction is first invoked. Those containers \npersist for additional invocations."
                 },
                 "debug_function": {
                   "title": "debug_function",
@@ -1013,12 +943,7 @@
                   "title": "on_failure",
                   "type": "string",
                   "description": "Provide an action to determine what will happen when a stack fails to create. Three actions are available:\n\n- ROLLBACK: This will rollback a stack to a previous known good state.\n\n- DELETE: The stack will rollback to a previous state if one exists, otherwise the stack will be deleted.\n\n- DO_NOTHING: The stack will not rollback or delete, this is the same as disabling rollback.\n\nDefault behaviour is ROLLBACK.\n\n\n\nThis option is mutually exclusive with --disable-rollback/--no-disable-rollback. You can provide\n--on-failure or --disable-rollback/--no-disable-rollback but not both at the same time.",
-                  "default": "ROLLBACK",
-                  "enum": [
-                    "DELETE",
-                    "DO_NOTHING",
-                    "ROLLBACK"
-                  ]
+                  "default": "ROLLBACK"
                 },
                 "stack_name": {
                   "title": "stack_name",
@@ -1259,11 +1184,7 @@
                 "output": {
                   "title": "output",
                   "type": "string",
-                  "description": "The formatting style of the command output. Following options are available:\n\nTEXT: Prints information as regular text with some formatting (default option)\n\nJSON: Prints each line as JSON without formatting",
-                  "enum": [
-                    "json",
-                    "text"
-                  ]
+                  "description": "The formatting style of the command output. Following options are available:\n\nTEXT: Prints information as regular text with some formatting (default option)\n\nJSON: Prints each line as JSON without formatting"
                 },
                 "end_time": {
                   "title": "end_time",
@@ -1372,11 +1293,7 @@
                 "output": {
                   "title": "output",
                   "type": "string",
-                  "description": "The formatting style of the command output. Following options are available:\n\nTEXT: Prints information as regular text with some formatting (default option)\n\nJSON: Prints each line as JSON without formatting",
-                  "enum": [
-                    "json",
-                    "text"
-                  ]
+                  "description": "The formatting style of the command output. Following options are available:\n\nTEXT: Prints information as regular text with some formatting (default option)\n\nJSON: Prints each line as JSON without formatting"
                 },
                 "end_time": {
                   "title": "end_time",
@@ -1449,19 +1366,7 @@
                 "resource": {
                   "title": "resource",
                   "type": "string",
-                  "description": "Sync code for all resources of the given resource type. Accepted values are ['AWS::Serverless::Function', 'AWS::Lambda::Function', 'AWS::Serverless::LayerVersion', 'AWS::Lambda::LayerVersion', 'AWS::Serverless::Api', 'AWS::ApiGateway::RestApi', 'AWS::Serverless::HttpApi', 'AWS::ApiGatewayV2::Api', 'AWS::Serverless::StateMachine', 'AWS::StepFunctions::StateMachine']",
-                  "enum": [
-                    "AWS::ApiGateway::RestApi",
-                    "AWS::ApiGatewayV2::Api",
-                    "AWS::Lambda::Function",
-                    "AWS::Lambda::LayerVersion",
-                    "AWS::Serverless::Api",
-                    "AWS::Serverless::Function",
-                    "AWS::Serverless::HttpApi",
-                    "AWS::Serverless::LayerVersion",
-                    "AWS::Serverless::StateMachine",
-                    "AWS::StepFunctions::StateMachine"
-                  ]
+                  "description": "Sync code for all resources of the given resource type. Accepted values are ['AWS::Serverless::Function', 'AWS::Lambda::Function', 'AWS::Serverless::LayerVersion', 'AWS::Lambda::LayerVersion', 'AWS::Serverless::Api', 'AWS::ApiGateway::RestApi', 'AWS::Serverless::HttpApi', 'AWS::ApiGatewayV2::Api', 'AWS::Serverless::StateMachine', 'AWS::StepFunctions::StateMachine']"
                 },
                 "dependency_layer": {
                   "title": "dependency_layer",
@@ -1665,11 +1570,7 @@
                   "title": "permissions_provider",
                   "type": "string",
                   "description": "Choose a permissions provider to assume the pipeline execution role. Default is to use an IAM User.",
-                  "default": "iam",
-                  "enum": [
-                    "iam",
-                    "oidc"
-                  ]
+                  "default": "iam"
                 },
                 "oidc_provider_url": {
                   "title": "oidc_provider_url",
@@ -1699,12 +1600,7 @@
                 "oidc_provider": {
                   "title": "oidc_provider",
                   "type": "string",
-                  "description": "The name of the CI/CD system that will be used for OIDC permissions Currently supported CI/CD systems are : GitLab, GitHub and Bitbucket",
-                  "enum": [
-                    "bitbucket-pipelines",
-                    "github-actions",
-                    "gitlab"
-                  ]
+                  "description": "The name of the CI/CD system that will be used for OIDC permissions Currently supported CI/CD systems are : GitLab, GitHub and Bitbucket"
                 },
                 "gitlab_group": {
                   "title": "gitlab_group",
@@ -1813,11 +1709,7 @@
                   "title": "output",
                   "type": "string",
                   "description": "Output the results from the command in a given output format (json or table).",
-                  "default": "table",
-                  "enum": [
-                    "json",
-                    "table"
-                  ]
+                  "default": "table"
                 },
                 "template_file": {
                   "title": "template_file",
@@ -1870,11 +1762,7 @@
                   "title": "output",
                   "type": "string",
                   "description": "Output the results from the command in a given output format (json or table).",
-                  "default": "table",
-                  "enum": [
-                    "json",
-                    "table"
-                  ]
+                  "default": "table"
                 },
                 "profile": {
                   "title": "profile",
@@ -1932,11 +1820,7 @@
                   "title": "output",
                   "type": "string",
                   "description": "Output the results from the command in a given output format (json or table).",
-                  "default": "table",
-                  "enum": [
-                    "json",
-                    "table"
-                  ]
+                  "default": "table"
                 },
                 "template_file": {
                   "title": "template_file",
@@ -2014,11 +1898,7 @@
                   "title": "output",
                   "type": "string",
                   "description": "Output the results from the command in a given output format. The text format prints a readable AWS API response. The json format prints the full AWS API response.",
-                  "default": "text",
-                  "enum": [
-                    "json",
-                    "text"
-                  ]
+                  "default": "text"
                 },
                 "parameter": {
                   "title": "parameter",
