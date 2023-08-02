@@ -1085,7 +1085,10 @@
                 },
                 "notification_arns": {
                   "title": "notification_arns",
-                  "type": "array",
+                  "type": [
+                    "array",
+                    "string"
+                  ],
                   "description": "ARNs of SNS topics that AWS Cloudformation associates with the stack.",
                   "items": {
                     "type": "string"
@@ -1122,7 +1125,10 @@
                 },
                 "capabilities": {
                   "title": "capabilities",
-                  "type": "array",
+                  "type": [
+                    "array",
+                    "string"
+                  ],
                   "description": "List of capabilities that one must specify before AWS Cloudformation can create certain stacks.\n\nAccepted Values: CAPABILITY_IAM, CAPABILITY_NAMED_IAM, CAPABILITY_RESOURCE_POLICY, CAPABILITY_AUTO_EXPAND.\n\nLearn more at: https://docs.aws.amazon.com/serverlessrepo/latest/devguide/acknowledging-application-capabilities.html",
                   "items": {
                     "type": "string"
@@ -1560,7 +1566,10 @@
                 },
                 "notification_arns": {
                   "title": "notification_arns",
-                  "type": "array",
+                  "type": [
+                    "array",
+                    "string"
+                  ],
                   "description": "ARNs of SNS topics that AWS Cloudformation associates with the stack.",
                   "items": {
                     "type": "string"
@@ -1576,7 +1585,10 @@
                 },
                 "capabilities": {
                   "title": "capabilities",
-                  "type": "array",
+                  "type": [
+                    "array",
+                    "string"
+                  ],
                   "description": "List of capabilities that one must specify before AWS Cloudformation can create certain stacks.\n\nAccepted Values: CAPABILITY_IAM, CAPABILITY_NAMED_IAM, CAPABILITY_RESOURCE_POLICY, CAPABILITY_AUTO_EXPAND.\n\nLearn more at: https://docs.aws.amazon.com/serverlessrepo/latest/devguide/acknowledging-application-capabilities.html",
                   "default": [
                     "CAPABILITY_NAMED_IAM",
