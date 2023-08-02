@@ -70,6 +70,11 @@ install:
   - sh: "./aws_cli/bin/python -m pip install awscli"
   - sh: "PATH=$(echo $PWD'/aws_cli/bin'):$PATH"
 
+  # Install pytest
+  - sh: "virtualenv pytest"
+  - sh: "./pytest/bin/python -m pip install pytest"
+  - sh: "PATH=$(echo $PWD'/pytest/bin'):$PATH"
+
   - sh: "PATH=$PATH:$HOME/venv3.7/bin:$HOME/venv3.8/bin:$HOME/venv3.9/bin:$HOME/venv3.10/bin"
 
   # update ca-certificates which causes failures with newest golang library
@@ -147,6 +152,7 @@ build_script:
   - sudo ./sam-installation/install
   - sam-nightly --version
   - alias sam='sam-nightly'
+  - sam --version
 
 # Final clean up no matter success or failure
 on_finish:
