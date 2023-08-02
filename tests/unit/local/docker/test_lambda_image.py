@@ -1,4 +1,3 @@
-import io
 import tempfile
 
 from unittest import TestCase
@@ -271,7 +270,7 @@ class TestLambdaImage(TestCase):
         docker_client_mock.images.get.side_effect = ImageNotFound("image not found")
         docker_client_mock.images.list.return_value = []
 
-        stream = io.StringIO()
+        stream = Mock()
 
         lambda_image = LambdaImage(layer_downloader_mock, False, True, docker_client=docker_client_mock)
         actual_image_id = lambda_image.build(
@@ -311,7 +310,7 @@ class TestLambdaImage(TestCase):
         docker_client_mock.images.get.side_effect = NotFound("image not found")
         docker_client_mock.images.list.return_value = []
 
-        stream = io.StringIO()
+        stream = Mock()
 
         lambda_image = LambdaImage(layer_downloader_mock, False, True, docker_client=docker_client_mock)
         actual_image_id = lambda_image.build(
@@ -351,7 +350,7 @@ class TestLambdaImage(TestCase):
         docker_client_mock.images.get.side_effect = APIError("error from docker daemon")
         docker_client_mock.images.list.return_value = []
 
-        stream = io.StringIO()
+        stream = Mock()
 
         lambda_image = LambdaImage(layer_downloader_mock, False, True, docker_client=docker_client_mock)
         with self.assertRaises(DockerDistributionAPIError):
@@ -377,7 +376,7 @@ class TestLambdaImage(TestCase):
         docker_client_mock.images.get.side_effect = ImageNotFound("image not found")
         docker_client_mock.images.list.return_value = []
 
-        stream = io.StringIO()
+        stream = Mock()
 
         lambda_image = LambdaImage(layer_downloader_mock, False, False, docker_client=docker_client_mock)
         actual_image_id = lambda_image.build(
