@@ -306,7 +306,7 @@ class TestSamPython37HelloWorldIntegration(InvokeIntegBase):
 
         process_stdout = stdout.strip()
 
-        with open(self.event_utf8_path) as f:
+        with open(self.event_utf8_path, encoding="utf8") as f:
             expected_output = json.dumps(json.load(f), ensure_ascii=False)
 
         self.assertEqual(process.returncode, 0)
