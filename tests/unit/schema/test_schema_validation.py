@@ -33,7 +33,7 @@ class TestSchemaValidation(TestCase):
             try:
                 jsonschema.validate(config_file, self.schema)
             except jsonschema.ValidationError as e:
-                self.assertTrue(False, f"File {config_file_path} not validating: {e.message}")
+                self.fail(f"File {config_file_path} not validating: {e.message}")
 
     def test_samconfig_doesnt_validate_against_schema(self):
         self.assertIsNotNone(self.schema, "Schema was not set")
