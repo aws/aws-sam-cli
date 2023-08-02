@@ -2,8 +2,8 @@ name: Update reproducible requirements
 on:
   pull_request:
     branches: [develop]
-    paths:
-      - requirements/base.txt # run this GHA only if requirements file is changed
+    # paths:
+    #   - requirements/base.txt # run this GHA only if requirements file is changed
 
 jobs:
   update-reqs:
