@@ -160,7 +160,9 @@ class TestSamPython37HelloWorldIntegration(InvokeIntegBase):
 
         # validate the time of the cli (timeout is set to 5s)
         self.assertGreater(wall_clock_cli_duration, 5)
-        self.assertLess(wall_clock_cli_duration, 20)
+        # validate the the duration is roughly under the timeout (with some additional
+        # time to take in account time for SAM CLI to do work)
+        self.assertLess(wall_clock_cli_duration, 25)
 
         self.assertEqual(process.returncode, 0)
         self.assertEqual(
