@@ -1,4 +1,4 @@
-name: Update reproducibles
+name: Update reproducible requirements
 on:
   pull_request:
     branches: [develop]
@@ -10,7 +10,7 @@ jobs:
     permissions:
       pull-requests: write
       contents: write
-    if: github.repository == 'aws/aws-sam-cli'
+    if: github.repository_owner == 'aws'
     strategy:
       matrix:
         include:

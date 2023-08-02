@@ -4,10 +4,6 @@ on:
   pull_request:
     branches:
       - develop
-  workflow_run:
-    workflows: ["Update reproducibles"]
-    types:
-      - completed
 
 env:
   CI_OVERRIDE: "1"

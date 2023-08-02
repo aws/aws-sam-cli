@@ -12,10 +12,6 @@ on:
       - develop
       - "feat/*"
       - "feat-*"
-  workflow_run:
-    workflows: ["Update reproducibles"]
-    types:
-      - completed
 
 # to automatically cancel the running workflow for same PR.
 concurrency:
