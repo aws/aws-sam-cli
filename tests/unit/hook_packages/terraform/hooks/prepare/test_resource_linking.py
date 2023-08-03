@@ -5,6 +5,14 @@ from unittest.mock import Mock, patch, call
 from uuid import uuid4
 
 from parameterized import parameterized
+
+from samcli.hook_packages.terraform.hooks.prepare.constants import (
+    TF_AWS_LAMBDA_LAYER_VERSION,
+    TF_AWS_API_GATEWAY_AUTHORIZER,
+    TF_AWS_LAMBDA_FUNCTION,
+    TF_AWS_API_GATEWAY_REST_API,
+    TF_AWS_API_GATEWAY_RESOURCE,
+)
 from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     GatewayAuthorizerToLambdaFunctionLocalVariablesLinkingLimitationException,
     GatewayAuthorizerToRestApiLocalVariablesLinkingLimitationException,
@@ -37,6 +45,8 @@ from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     RestApiToApiGatewayIntegrationResponseLocalVariablesLinkingLimitationException,
     OneGatewayResourceToApiGatewayIntegrationResponseLinkingLimitationException,
     GatewayResourceToApiGatewayIntegrationResponseLocalVariablesLinkingLimitationException,
+    OneGatewayResourceToParentResourceLinkingLimitationException,
+    GatewayResourceToParentResourceLocalVariablesLinkingLimitationException,
 )
 
 from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
@@ -63,7 +73,6 @@ from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     ResourceLinker,
     LogicalIdReference,
     ExistingResourceReference,
-    _link_gateway_resource_to_gateway_rest_apis_parent_id_call_back,
     _link_gateway_resource_to_gateway_resource_call_back,
     _link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back,
     _link_gateway_method_to_gateway_resource,
@@ -81,6 +90,9 @@ from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     _link_gateway_integration_to_function_call_back,
     _link_gateway_integration_responses_to_gateway_rest_apis,
     _link_gateway_integration_responses_to_gateway_resource,
+    ResourcePairExceptedDestination,
+    _link_gateway_resource_to_parent_resource_call_back,
+    _link_gateway_resources_to_parents,
 )
 from samcli.hook_packages.terraform.hooks.prepare.utilities import get_configuration_address
 from samcli.hook_packages.terraform.hooks.prepare.types import (
@@ -1120,14 +1132,26 @@ class TestResourceLinker(TestCase):
             source_resource_cfn_resource=Mock(),
             source_resource_tf_config=Mock(),
             destination_resource_tf={
-                "applied_layer1_logical_id": {"values": {"arn": "applied_layer1.arn", "filename": "/some/path"}},
-                "applied_layer2_logical_id": {"values": {"arn": "applied_layer2.arn", "filename": "/some/path"}},
-                "noo_applied_layer3_logical_id": {"values": {"filename": "/some/path"}},
+                "applied_layer1_logical_id": {
+                    "values": {"arn": "applied_layer1.arn", "filename": "/some/path"},
+                    "type": TF_AWS_LAMBDA_LAYER_VERSION,
+                },
+                "applied_layer2_logical_id": {
+                    "values": {"arn": "applied_layer2.arn", "filename": "/some/path"},
+                    "type": TF_AWS_LAMBDA_LAYER_VERSION,
+                },
+                "noo_applied_layer3_logical_id": {
+                    "values": {"filename": "/some/path"},
+                    "type": TF_AWS_LAMBDA_LAYER_VERSION,
+                },
             },
-            tf_destination_attribute_name="arn",
+            expected_destinations=[
+                ResourcePairExceptedDestination(
+                    terraform_resource_type_prefix=LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX, terraform_attribute_name="arn"
+                )
+            ],
             terraform_link_field_name="layers",
             cfn_link_field_name="Layers",
-            terraform_resource_type_prefix=LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX,
             cfn_resource_update_call_back_function=Mock(),
             linking_exceptions=self.linker_exceptions,
         )
@@ -1295,7 +1319,7 @@ class TestResourceLinker(TestCase):
         resource_linker = ResourceLinker(self.sample_resource_linking_pair)
         resource_linker._link_using_linking_fields(cfn_resource)
         dest_resources = [
-            LogicalIdReference("applied_layer1_logical_id"),
+            LogicalIdReference(value="applied_layer1_logical_id", resource_type=TF_AWS_LAMBDA_LAYER_VERSION),
             ExistingResourceReference("existing_layer1.arn"),
         ]
         self.sample_resource_linking_pair.cfn_resource_update_call_back_function.assert_called_with(
@@ -1412,11 +1436,16 @@ class TestResourceLinker(TestCase):
         reference_resolved_layer = ResolvedReference("aws_lambda_layer_version.layer.arn", "module.layer1")
         resource = Mock()
         resource_linker = ResourceLinker(self.sample_resource_linking_pair)
-        resource_linker._resource_pair.destination_resource_tf = {"layer1LogicalId": Mock()}
+
+        resource_linker._resource_pair.destination_resource_tf = {
+            "layer1LogicalId": {"values": Mock(), "type": TF_AWS_LAMBDA_LAYER_VERSION}
+        }
 
         resources = resource_linker._process_reference_resource_value(resource, reference_resolved_layer)
         self.assertEqual(len(resources), 1)
-        self.assertEqual(resources[0], LogicalIdReference("layer1LogicalId"))
+        self.assertEqual(
+            resources[0], LogicalIdReference(value="layer1LogicalId", resource_type=TF_AWS_LAMBDA_LAYER_VERSION)
+        )
         build_cfn_logical_id_mock.assert_called_with("module.layer1.aws_lambda_layer_version.layer")
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.build_cfn_logical_id")
@@ -1436,10 +1465,10 @@ class TestResourceLinker(TestCase):
         resource = Mock()
         resource.full_address = "func_full_address"
         expected_exception = (
-            f"An error occurred when attempting to link two resources: Could not use the value "
-            f"aws_lambda_layer_version.layer.name as a destination resource for the source "
-            f"resource func_full_address. The source resource value should refer to valid destination "
-            f"resource ARN property."
+            "An error occurred when attempting to link two resources: Could not use the value "
+            "aws_lambda_layer_version.layer.name as a destination for the source resource func_full_address. "
+            "The expected destination resources should be of destination resource type aws_lambda_layer_version. "
+            "using arn property."
         )
         resource_linker = ResourceLinker(self.sample_resource_linking_pair)
         with self.assertRaises(InvalidResourceLinkingException) as exc:
@@ -1451,9 +1480,10 @@ class TestResourceLinker(TestCase):
         resource = Mock()
         resource.full_address = "func_full_address"
         expected_exception = (
-            f"An error occurred when attempting to link two resources: Could not use the value "
-            f"aws_lambda_layer_version2.layer.arn as a destination for the source resource func_full_address. "
-            f"The source resource value should refer to valid destination ARN property."
+            "An error occurred when attempting to link two resources: Could not use the value "
+            "aws_lambda_layer_version2.layer.arn as a destination for the source resource func_full_address. "
+            "The expected destination resources should be of destination resource type aws_lambda_layer_version. "
+            "using arn property."
         )
         resource_linker = ResourceLinker(self.sample_resource_linking_pair)
         with self.assertRaises(InvalidResourceLinkingException) as exc:
@@ -1596,10 +1626,14 @@ class TestResourceLinker(TestCase):
             source_resource_cfn_resource=lambda_funcs_config_resources,
             source_resource_tf_config=resources,
             destination_resource_tf=terraform_layers_resources,
-            tf_destination_attribute_name="arn",
+            expected_destinations=[
+                ResourcePairExceptedDestination(
+                    terraform_resource_type_prefix=LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX,
+                    terraform_attribute_name="arn",
+                ),
+            ],
             terraform_link_field_name="layers",
             cfn_link_field_name="Layers",
-            terraform_resource_type_prefix=LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX,
             cfn_resource_update_call_back_function=mock_link_lambda_functions_to_layers_call_back,
             linking_exceptions=mock_resource_linking_exceptions(),
         )
@@ -1613,7 +1647,10 @@ class TestResourceLinker(TestCase):
                     "Properties": {"FunctionName": "func", "Layers": ["existing_layer1.arn", "applied_layer1.arn"]},
                     "Metadata": {"SamResourceId": "aws_lambda_function.remote_lambda_code", "SkipBuild": True},
                 },
-                [ExistingResourceReference("existing_layer1.arn"), LogicalIdReference("Layer1LogicaId")],
+                [
+                    ExistingResourceReference("existing_layer1.arn"),
+                    LogicalIdReference(value="Layer1LogicaId", resource_type=TF_AWS_LAMBDA_LAYER_VERSION),
+                ],
                 ["existing_layer1.arn", {"Ref": "Layer1LogicaId"}],
             ),
             (
@@ -1633,7 +1670,7 @@ class TestResourceLinker(TestCase):
                     },
                     "Metadata": {"SamResourceId": "aws_lambda_function.remote_lambda_code", "SkipBuild": True},
                 },
-                [LogicalIdReference("Layer1LogicaId")],
+                [LogicalIdReference(value="Layer1LogicaId", resource_type=TF_AWS_LAMBDA_LAYER_VERSION)],
                 [{"Ref": "Layer1LogicaId"}],
             ),
         ]
@@ -1671,20 +1708,65 @@ class TestResourceLinker(TestCase):
             source_resource_cfn_resource=gateway_method_config_resources,
             source_resource_tf_config=resources,
             destination_resource_tf=terraform_rest_apis_resources,
-            tf_destination_attribute_name="id",
+            expected_destinations=[
+                ResourcePairExceptedDestination(
+                    terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+                    terraform_attribute_name="id",
+                ),
+            ],
             terraform_link_field_name="rest_api_id",
             cfn_link_field_name="RestApiId",
-            terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
             cfn_resource_update_call_back_function=mock_link_gateway_methods_to_gateway_rest_apis_call_back,
             linking_exceptions=mock_resource_linking_exceptions(),
         )
         mock_resource_linker.assert_called_once_with(mock_resource_linking_pair())
 
     @patch(
-        "samcli.hook_packages.terraform.hooks.prepare.resource_linking._link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back"
+        "samcli.hook_packages.terraform.hooks.prepare.resource_linking._link_gateway_resource_to_parent_resource_call_back"
     )
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.ResourceLinker")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.ResourceLinkingPair")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.ResourcePairExceptions")
+    def test_link_gateway_resources_to_parents(
+        self,
+        mock_resource_linking_exceptions,
+        mock_resource_linking_pair,
+        mock_resource_linker,
+        mock_link_gateway_resource_to_parent_resource_call_back,
+    ):
+        gateway_resource_config_resources = Mock()
+        terraform_parent_resources = Mock()
+        resources = Mock()
+        _link_gateway_resources_to_parents(resources, gateway_resource_config_resources, terraform_parent_resources)
+
+        mock_resource_linking_exceptions.assert_called_once_with(
+            multiple_resource_linking_exception=OneGatewayResourceToParentResourceLinkingLimitationException,
+            local_variable_linking_exception=GatewayResourceToParentResourceLocalVariablesLinkingLimitationException,
+        )
+
+        mock_resource_linking_pair.assert_called_once_with(
+            source_resource_cfn_resource=gateway_resource_config_resources,
+            source_resource_tf_config=resources,
+            destination_resource_tf=terraform_parent_resources,
+            expected_destinations=[
+                ResourcePairExceptedDestination(
+                    terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+                    terraform_attribute_name="root_resource_id",
+                ),
+                ResourcePairExceptedDestination(
+                    terraform_resource_type_prefix=API_GATEWAY_RESOURCE_RESOURCE_ADDRESS_PREFIX,
+                    terraform_attribute_name="id",
+                ),
+            ],
+            terraform_link_field_name="parent_id",
+            cfn_link_field_name="ParentId",
+            cfn_resource_update_call_back_function=mock_link_gateway_resource_to_parent_resource_call_back,
+            linking_exceptions=mock_resource_linking_exceptions(),
+        )
+        mock_resource_linker.assert_called_once_with(mock_resource_linking_pair())
+
     @patch(
-        "samcli.hook_packages.terraform.hooks.prepare.resource_linking._link_gateway_resource_to_gateway_rest_apis_parent_id_call_back"
+        "samcli.hook_packages.terraform.hooks.prepare.resource_linking._link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back"
     )
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.ResourceLinker")
     @patch("samcli.hook_packages.terraform.hooks.prepare.resource_linking.ResourceLinkingPair")
@@ -1694,7 +1776,6 @@ class TestResourceLinker(TestCase):
         mock_resource_linking_exceptions,
         mock_resource_linking_pair,
         mock_resource_linker,
-        mock_link_gateway_methods_to_gateway_rest_apis_parent_id_call_back,
         mock_link_gateway_methods_to_gateway_rest_apis_rest_api_id_call_back,
     ):
         gateway_resource_config_resources = Mock()
@@ -1703,53 +1784,28 @@ class TestResourceLinker(TestCase):
         _link_gateway_resources_to_gateway_rest_apis(
             resources, gateway_resource_config_resources, terraform_rest_apis_resources
         )
-        mock_resource_linking_exceptions.assert_has_calls(
-            [
-                call(
-                    multiple_resource_linking_exception=OneGatewayResourceToRestApiLinkingLimitationException,
-                    local_variable_linking_exception=GatewayResourceToGatewayRestApiLocalVariablesLinkingLimitationException,
-                ),
-                call(
-                    multiple_resource_linking_exception=OneGatewayResourceToRestApiLinkingLimitationException,
-                    local_variable_linking_exception=GatewayResourceToGatewayRestApiLocalVariablesLinkingLimitationException,
-                ),
-            ]
+
+        mock_resource_linking_exceptions.assert_called_once_with(
+            multiple_resource_linking_exception=OneGatewayResourceToRestApiLinkingLimitationException,
+            local_variable_linking_exception=GatewayResourceToGatewayRestApiLocalVariablesLinkingLimitationException,
         )
 
-        mock_resource_linking_pair.assert_has_calls(
-            [
-                call(
-                    source_resource_cfn_resource=gateway_resource_config_resources,
-                    source_resource_tf_config=resources,
-                    destination_resource_tf=terraform_rest_apis_resources,
-                    tf_destination_attribute_name="id",
-                    terraform_link_field_name="rest_api_id",
-                    cfn_link_field_name="RestApiId",
+        mock_resource_linking_pair.assert_called_once_with(
+            source_resource_cfn_resource=gateway_resource_config_resources,
+            source_resource_tf_config=resources,
+            destination_resource_tf=terraform_rest_apis_resources,
+            expected_destinations=[
+                ResourcePairExceptedDestination(
                     terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
-                    cfn_resource_update_call_back_function=mock_link_gateway_methods_to_gateway_rest_apis_rest_api_id_call_back,
-                    linking_exceptions=mock_resource_linking_exceptions(),
+                    terraform_attribute_name="id",
                 ),
-                call(
-                    source_resource_cfn_resource=gateway_resource_config_resources,
-                    source_resource_tf_config=resources,
-                    destination_resource_tf=terraform_rest_apis_resources,
-                    tf_destination_attribute_name="root_resource_id",
-                    terraform_link_field_name="parent_id",
-                    cfn_link_field_name="ResourceId",
-                    terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
-                    cfn_resource_update_call_back_function=mock_link_gateway_methods_to_gateway_rest_apis_parent_id_call_back,
-                    linking_exceptions=mock_resource_linking_exceptions(),
-                ),
-            ]
+            ],
+            terraform_link_field_name="rest_api_id",
+            cfn_link_field_name="RestApiId",
+            cfn_resource_update_call_back_function=mock_link_gateway_methods_to_gateway_rest_apis_rest_api_id_call_back,
+            linking_exceptions=mock_resource_linking_exceptions(),
         )
-        mock_resource_linker.assert_has_calls(
-            [
-                call(mock_resource_linking_pair()),
-                call().link_resources(),
-                call(mock_resource_linking_pair()),
-                call().link_resources(),
-            ]
-        )
+        mock_resource_linker.assert_called_once_with(mock_resource_linking_pair())
 
     @patch(
         "samcli.hook_packages.terraform.hooks.prepare.resource_linking._link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back"
@@ -1776,10 +1832,14 @@ class TestResourceLinker(TestCase):
             source_resource_cfn_resource=gateway_stage_config_resources,
             source_resource_tf_config=resources,
             destination_resource_tf=terraform_rest_apis_resources,
-            tf_destination_attribute_name="id",
+            expected_destinations=[
+                ResourcePairExceptedDestination(
+                    terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+                    terraform_attribute_name="id",
+                ),
+            ],
             terraform_link_field_name="rest_api_id",
             cfn_link_field_name="RestApiId",
-            terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
             cfn_resource_update_call_back_function=mock_link_gateway_resource_to_gateway_rest_apis_call_back,
             linking_exceptions=mock_resource_linking_exceptions(),
         )
@@ -1812,10 +1872,14 @@ class TestResourceLinker(TestCase):
             source_resource_cfn_resource=gateway_method_config_resources,
             source_resource_tf_config=resources,
             destination_resource_tf=terraform_resources_resources,
-            tf_destination_attribute_name="id",
+            expected_destinations=[
+                ResourcePairExceptedDestination(
+                    terraform_resource_type_prefix=API_GATEWAY_RESOURCE_RESOURCE_ADDRESS_PREFIX,
+                    terraform_attribute_name="id",
+                ),
+            ],
             terraform_link_field_name="resource_id",
             cfn_link_field_name="ResourceId",
-            terraform_resource_type_prefix=API_GATEWAY_RESOURCE_RESOURCE_ADDRESS_PREFIX,
             cfn_resource_update_call_back_function=mock_link_gateway_method_to_gateway_resource_call_back,
             linking_exceptions=mock_resource_linking_exceptions(),
         )
@@ -1848,10 +1912,14 @@ class TestResourceLinker(TestCase):
             source_resource_cfn_resource=gateway_integrations_config_resources,
             source_resource_tf_config=resources,
             destination_resource_tf=terraform_resources_resources,
-            tf_destination_attribute_name="id",
+            expected_destinations=[
+                ResourcePairExceptedDestination(
+                    terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+                    terraform_attribute_name="id",
+                ),
+            ],
             terraform_link_field_name="rest_api_id",
             cfn_link_field_name="RestApiId",
-            terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
             cfn_resource_update_call_back_function=mock_link_gateway_integrations_to_gateway_rest_apis,
             linking_exceptions=mock_resource_linking_exceptions(),
         )
@@ -1884,10 +1952,14 @@ class TestResourceLinker(TestCase):
             source_resource_cfn_resource=gateway_integrations_config_resources,
             source_resource_tf_config=resources,
             destination_resource_tf=terraform_resources_resources,
-            tf_destination_attribute_name="id",
+            expected_destinations=[
+                ResourcePairExceptedDestination(
+                    terraform_resource_type_prefix=API_GATEWAY_RESOURCE_RESOURCE_ADDRESS_PREFIX,
+                    terraform_attribute_name="id",
+                ),
+            ],
             terraform_link_field_name="resource_id",
             cfn_link_field_name="ResourceId",
-            terraform_resource_type_prefix=API_GATEWAY_RESOURCE_RESOURCE_ADDRESS_PREFIX,
             cfn_resource_update_call_back_function=mock_link_gateway_resource_to_gateway_resource_call_back,
             linking_exceptions=mock_resource_linking_exceptions(),
         )
@@ -1925,10 +1997,14 @@ class TestResourceLinker(TestCase):
             source_resource_cfn_resource=gateway_integrations_config_resources,
             source_resource_tf_config=expected_aws_proxy_integrations,
             destination_resource_tf=terraform_resources_resources,
-            tf_destination_attribute_name="invoke_arn",
+            expected_destinations=[
+                ResourcePairExceptedDestination(
+                    terraform_resource_type_prefix=LAMBDA_FUNCTION_RESOURCE_ADDRESS_PREFIX,
+                    terraform_attribute_name="invoke_arn",
+                ),
+            ],
             terraform_link_field_name="uri",
             cfn_link_field_name="Uri",
-            terraform_resource_type_prefix=LAMBDA_FUNCTION_RESOURCE_ADDRESS_PREFIX,
             cfn_resource_update_call_back_function=mock_link_gateway_integration_to_function_call_back,
             linking_exceptions=mock_resource_linking_exceptions(),
         )
@@ -1941,7 +2017,7 @@ class TestResourceLinker(TestCase):
                     "Type": "AWS::ApiGateway::Method",
                     "Properties": {"HttpMethod": "post", "RestApiId": "restapi.id"},
                 },
-                [LogicalIdReference("RestApi1")],
+                [LogicalIdReference(value="RestApi1", resource_type=TF_AWS_API_GATEWAY_REST_API)],
                 {"Ref": "RestApi1"},
             ),
             (
@@ -1957,7 +2033,7 @@ class TestResourceLinker(TestCase):
                     "Type": "AWS::ApiGateway::Method",
                     "Properties": {"HttpMethod": "post"},
                 },
-                [LogicalIdReference("RestApi1")],
+                [LogicalIdReference(value="RestApi1", resource_type=TF_AWS_API_GATEWAY_REST_API)],
                 {"Ref": "RestApi1"},
             ),
         ]
@@ -1977,7 +2053,7 @@ class TestResourceLinker(TestCase):
                     "Type": "AWS::ApiGateway::Method",
                     "Properties": {"HttpMethod": "post", "ResourceId": "resource.id"},
                 },
-                [LogicalIdReference("Resource1")],
+                [LogicalIdReference(value="Resource1", resource_type=TF_AWS_API_GATEWAY_RESOURCE)],
                 {"Ref": "Resource1"},
             ),
             (
@@ -1993,7 +2069,7 @@ class TestResourceLinker(TestCase):
                     "Type": "AWS::ApiGateway::Method",
                     "Properties": {"HttpMethod": "post"},
                 },
-                [LogicalIdReference("Resource1")],
+                [LogicalIdReference(value="Resource1", resource_type=TF_AWS_API_GATEWAY_RESOURCE)],
                 {"Ref": "Resource1"},
             ),
         ]
@@ -2013,7 +2089,7 @@ class TestResourceLinker(TestCase):
                     "Type": "AWS::ApiGateway::Resource",
                     "Properties": {"ParentId": "restapi.parent_id"},
                 },
-                [LogicalIdReference("RestApi")],
+                [LogicalIdReference(value="RestApi", resource_type=TF_AWS_API_GATEWAY_REST_API)],
                 {"Fn::GetAtt": ["RestApi", "RootResourceId"]},
             ),
             (
@@ -2029,7 +2105,7 @@ class TestResourceLinker(TestCase):
                     "Type": "AWS::ApiGateway::Resource",
                     "Properties": {},
                 },
-                [LogicalIdReference("RestApi")],
+                [LogicalIdReference(value="RestApi", resource_type=TF_AWS_API_GATEWAY_REST_API)],
                 {"Fn::GetAtt": ["RestApi", "RootResourceId"]},
             ),
         ]
@@ -2038,7 +2114,7 @@ class TestResourceLinker(TestCase):
         self, input_gateway_resource, logical_ids, expected_rest_api
     ):
         gateway_resource = deepcopy(input_gateway_resource)
-        _link_gateway_resource_to_gateway_rest_apis_parent_id_call_back(gateway_resource, logical_ids)
+        _link_gateway_resource_to_parent_resource_call_back(gateway_resource, logical_ids)
         input_gateway_resource["Properties"]["ParentId"] = expected_rest_api
         self.assertEqual(gateway_resource, input_gateway_resource)
 
@@ -2049,7 +2125,7 @@ class TestResourceLinker(TestCase):
                     "Type": "Internal::ApiGateway::Method::Integration",
                     "Properties": {"Uri": "invoke_arn"},
                 },
-                [LogicalIdReference("FunctionA")],
+                [LogicalIdReference(value="FunctionA", resource_type=TF_AWS_LAMBDA_FUNCTION)],
                 {
                     "Fn::Sub": "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FunctionA.Arn}/invocations"
                 },
@@ -2067,7 +2143,7 @@ class TestResourceLinker(TestCase):
                     "Type": "Internal::ApiGateway::Method::Integration",
                     "Properties": {"Uri": "invoke_arn"},
                 },
-                [LogicalIdReference("RestApi")],
+                [LogicalIdReference(value="RestApi", resource_type=TF_AWS_API_GATEWAY_REST_API)],
                 {
                     "Fn::Sub": "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RestApi.Arn}/invocations"
                 },
@@ -2093,8 +2169,8 @@ class TestResourceLinker(TestCase):
                 "Could not link multiple Lambda functions to one Gateway Authorizer",
             ),
             (
-                _link_gateway_resource_to_gateway_rest_apis_parent_id_call_back,
-                "Could not link multiple Rest APIs to one Gateway resource",
+                _link_gateway_resource_to_parent_resource_call_back,
+                "Could not link multiple parent Resources to one Gateway resource",
             ),
             (
                 _link_gateway_resource_to_gateway_resource_call_back,
@@ -2118,7 +2194,7 @@ class TestResourceLinker(TestCase):
         [
             (_link_gateway_integration_to_function_call_back,),
             (_link_gateway_authorizer_to_lambda_function_call_back,),
-            (_link_gateway_resource_to_gateway_rest_apis_parent_id_call_back,),
+            (_link_gateway_resource_to_parent_resource_call_back,),
             (_link_gateway_resource_to_gateway_resource_call_back,),
             (_link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back,),
             (_link_gateway_method_to_gateway_authorizer_call_back,),
@@ -2159,10 +2235,14 @@ class TestResourceLinker(TestCase):
             source_resource_cfn_resource=gateway_integration_responses_config_resources,
             source_resource_tf_config=resources,
             destination_resource_tf=terraform_resources_resources,
-            tf_destination_attribute_name="id",
+            expected_destinations=[
+                ResourcePairExceptedDestination(
+                    terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+                    terraform_attribute_name="id",
+                ),
+            ],
             terraform_link_field_name="rest_api_id",
             cfn_link_field_name="RestApiId",
-            terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
             cfn_resource_update_call_back_function=mock_link_gateway_integrations_to_gateway_rest_apis,
             linking_exceptions=mock_resource_linking_exceptions(),
         )
@@ -2195,10 +2275,14 @@ class TestResourceLinker(TestCase):
             source_resource_cfn_resource=gateway_integration_responses_config_resources,
             source_resource_tf_config=resources,
             destination_resource_tf=terraform_resources_resources,
-            tf_destination_attribute_name="id",
+            expected_destinations=[
+                ResourcePairExceptedDestination(
+                    terraform_resource_type_prefix=API_GATEWAY_RESOURCE_RESOURCE_ADDRESS_PREFIX,
+                    terraform_attribute_name="id",
+                ),
+            ],
             terraform_link_field_name="resource_id",
             cfn_link_field_name="ResourceId",
-            terraform_resource_type_prefix=API_GATEWAY_RESOURCE_RESOURCE_ADDRESS_PREFIX,
             cfn_resource_update_call_back_function=mock_link_gateway_resource_to_gateway_resource_call_back,
             linking_exceptions=mock_resource_linking_exceptions(),
         )
@@ -2211,7 +2295,7 @@ class TestResourceLinker(TestCase):
                     "Type": "AWS::ApiGateway::Authorizer",
                     "Properties": {"Uri": "invoke_arn"},
                 },
-                [LogicalIdReference("Function")],
+                [LogicalIdReference(value="Function", resource_type=TF_AWS_LAMBDA_FUNCTION)],
                 {
                     "Fn::Sub": "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Function.Arn}/invocations"
                 },
@@ -2264,10 +2348,14 @@ class TestResourceLinker(TestCase):
             source_resource_cfn_resource=authorizer_cfn_resources,
             source_resource_tf_config=authorizer_config_resources,
             destination_resource_tf=authorizer_tf_resources,
-            tf_destination_attribute_name="invoke_arn",
+            expected_destinations=[
+                ResourcePairExceptedDestination(
+                    terraform_resource_type_prefix=LAMBDA_FUNCTION_RESOURCE_ADDRESS_PREFIX,
+                    terraform_attribute_name="invoke_arn",
+                ),
+            ],
             terraform_link_field_name="authorizer_uri",
             cfn_link_field_name="AuthorizerUri",
-            terraform_resource_type_prefix=LAMBDA_FUNCTION_RESOURCE_ADDRESS_PREFIX,
             cfn_resource_update_call_back_function=mock_link_gateway_authorizer_to_lambda_function_call_back,
             linking_exceptions=mock_resource_linking_exceptions(),
         )
@@ -2277,7 +2365,7 @@ class TestResourceLinker(TestCase):
     @parameterized.expand(
         [
             (
-                [LogicalIdReference("Authorizer")],
+                [LogicalIdReference(value="Authorizer", resource_type=TF_AWS_API_GATEWAY_AUTHORIZER)],
                 {"Ref": "Authorizer"},
             ),
             (
@@ -2326,10 +2414,14 @@ class TestResourceLinker(TestCase):
             source_resource_cfn_resource=authorizer_cfn_resources,
             source_resource_tf_config=authorizer_config_resources,
             destination_resource_tf=rest_api_resources,
-            tf_destination_attribute_name="id",
+            expected_destinations=[
+                ResourcePairExceptedDestination(
+                    terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+                    terraform_attribute_name="id",
+                ),
+            ],
             terraform_link_field_name="rest_api_id",
             cfn_link_field_name="RestApiId",
-            terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
             cfn_resource_update_call_back_function=mock_link_resource_to_rest_api_call_back,
             linking_exceptions=mock_resource_linking_exceptions(),
         )
@@ -2366,10 +2458,14 @@ class TestResourceLinker(TestCase):
             source_resource_cfn_resource=method_cfn_resources,
             source_resource_tf_config=method_config_resources,
             destination_resource_tf=authorizer_tf_resources,
-            tf_destination_attribute_name="id",
+            expected_destinations=[
+                ResourcePairExceptedDestination(
+                    terraform_resource_type_prefix=API_GATEWAY_AUTHORIZER_RESOURCE_ADDRESS_PREFIX,
+                    terraform_attribute_name="id",
+                ),
+            ],
             terraform_link_field_name="authorizer_id",
             cfn_link_field_name="AuthorizerId",
-            terraform_resource_type_prefix=API_GATEWAY_AUTHORIZER_RESOURCE_ADDRESS_PREFIX,
             cfn_resource_update_call_back_function=mock_link_gateway_method_to_gateway_authorizer_call_back,
             linking_exceptions=mock_resource_linking_exceptions(),
         )

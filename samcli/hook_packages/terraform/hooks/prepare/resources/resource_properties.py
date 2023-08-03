@@ -1,7 +1,7 @@
 """Module for getting the resource property mappings for various resource types"""
 from typing import Dict
 
-from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
+from samcli.hook_packages.terraform.hooks.prepare.constants import (
     TF_AWS_API_GATEWAY_AUTHORIZER,
     TF_AWS_API_GATEWAY_INTEGRATION,
     TF_AWS_API_GATEWAY_INTEGRATION_RESPONSE,
