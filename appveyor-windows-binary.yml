@@ -22,7 +22,6 @@ configuration:
 
 environment:
   AWS_DEFAULT_REGION: us-east-1
-  SAM_CLI_DEV: 1
   CARGO_LAMBDA_VERSION: "v0.17.1"
 
   # Python uses $TMPDIR envvar to find root of tempdir
