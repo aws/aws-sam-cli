@@ -265,4 +265,4 @@ class ProgressPercentage:
             )
             sys.stderr.flush()
             if int(percentage) == 100:  # noqa: PLR2004
-                sys.stderr.write("\n")
+                sys.stderr.write(os.linesep)
