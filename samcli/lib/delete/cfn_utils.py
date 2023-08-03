@@ -224,6 +224,12 @@ class CfnUtils:
 
         change_sets = change_sets.get("Summaries", [])
 
+        if len(change_sets) > 1:
+            LOG.info(
+                "More than one change set was found, please clean up any "
+                "lingering template files that may exist in the S3 bucket."
+            )
+
         if len(change_sets) > 0:
             change_set = change_sets[0]
             change_set_name = str(change_set.get("ChangeSetName", ""))
