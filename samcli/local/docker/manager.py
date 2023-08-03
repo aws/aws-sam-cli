@@ -168,16 +168,16 @@ class ContainerManager:
                 raise DockerImagePullFailedException(str(ex)) from ex
 
             # io streams, especially StringIO, work only with unicode strings
-            stream_writer.write("\nFetching {}:{} Docker container image...".format(image_name, tag))
+            stream_writer.write_str("\nFetching {}:{} Docker container image...".format(image_name, tag))
 
             # Each line contains information on progress of the pull. Each line is a JSON string
             for _ in result_itr:
                 # For every line, print a dot to show progress
-                stream_writer.write(".")
+                stream_writer.write_str(".")
                 stream_writer.flush()
 
             # We are done. Go to the next line
-            stream_writer.write("\n")
+            stream_writer.write_str("\n")
 
     def has_image(self, image_name):
         """

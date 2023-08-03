@@ -75,4 +75,13 @@ update-reproducible-mac-reqs:
 	venv-update-reproducible-mac/bin/pip install -r requirements/base.txt
 	venv-update-reproducible-mac/bin/pip-compile --generate-hashes --allow-unsafe -o requirements/reproducible-mac.txt
 
+# note that this should be run on a windows environment with python3.8 as default interpreter
+update-reproducible-win-reqs:
+	python -m venv venv-update-reproducible-win
+	.\venv-update-reproducible-win\Scripts\activate
+	pip install --upgrade pip-tools pip
+	pip install -r requirements\base.txt
+	pip-compile --generate-hashes --allow-unsafe -o requirements\reproducible-win.txt
+
+
 update-reproducible-reqs: update-reproducible-linux-reqs update-reproducible-mac-reqs
