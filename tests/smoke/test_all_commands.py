@@ -52,7 +52,7 @@ class TestAllCommands(TestCase):
         # if a previous smoke test run have been killed, re-running them will fail. so run them in a temp folder
         with tempfile.TemporaryDirectory() as temp:
             process = subprocess.Popen(
-                [sam_cmd, cmd_name] + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=temp
+                [sam_cmd, cmd_name] + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=temp, shell=True,
             )
             stdout, stderr = process.communicate()
 

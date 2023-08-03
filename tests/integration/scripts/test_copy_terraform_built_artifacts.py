@@ -46,7 +46,7 @@ class TestCopyTerraformBuiltArtifacts(TestCase):
                 json_str,
             ]
             subprocess.check_call(
-                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, cwd=self.working_dir
+                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, cwd=self.working_dir, shell=True,
             )
         self.assertEqual(os.listdir(self.directory), [self.artifact_name])
 
@@ -65,7 +65,7 @@ class TestCopyTerraformBuiltArtifacts(TestCase):
                 json_str,
             ]
             subprocess.check_call(
-                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, cwd=self.working_dir
+                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, cwd=self.working_dir, shell=True,
             )
         self.assertEqual(os.listdir(self.directory), [self.artifact_name])
 
@@ -85,7 +85,7 @@ class TestCopyTerraformBuiltArtifacts(TestCase):
             ]
         with self.assertRaises(subprocess.CalledProcessError):
             subprocess.check_call(
-                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, cwd=self.working_dir
+                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, cwd=self.working_dir, shell=True,
             )
 
     def test_script_output_path_directory_invalid_expression(self):
@@ -107,7 +107,7 @@ class TestCopyTerraformBuiltArtifacts(TestCase):
             ]
         with self.assertRaises(subprocess.CalledProcessError):
             subprocess.check_call(
-                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, cwd=self.working_dir
+                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, cwd=self.working_dir, shell=True,
             )
 
     def test_script_output_path_directory_valid_expression_invalid_extracted_path(self):
@@ -129,7 +129,7 @@ class TestCopyTerraformBuiltArtifacts(TestCase):
             ]
         with self.assertRaises(subprocess.CalledProcessError):
             subprocess.check_call(
-                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, cwd=self.working_dir
+                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, cwd=self.working_dir, shell=True,
             )
 
     def test_script_output_path_directory_same_directory_and_extracted_path(self):
@@ -148,7 +148,7 @@ class TestCopyTerraformBuiltArtifacts(TestCase):
             ]
         with self.assertRaises(subprocess.CalledProcessError):
             subprocess.check_call(
-                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, cwd=self.working_dir
+                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, cwd=self.working_dir, shell=True,
             )
 
     def test_script_output_path_no_target_and_no_json(self):
@@ -162,7 +162,7 @@ class TestCopyTerraformBuiltArtifacts(TestCase):
                 self.expression,
             ]
             subprocess.check_call(
-                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, cwd=self.working_dir
+                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, cwd=self.working_dir, shell=True,
             )
 
     def test_script_output_path_both_target_and_option(self):
@@ -182,7 +182,7 @@ class TestCopyTerraformBuiltArtifacts(TestCase):
             ]
         with self.assertRaises(subprocess.CalledProcessError):
             subprocess.check_call(
-                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, cwd=self.working_dir
+                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, cwd=self.working_dir, shell=True,
             )
 
     def test_script_output_path_invalid_json(self):
@@ -198,5 +198,5 @@ class TestCopyTerraformBuiltArtifacts(TestCase):
                 "invalid_json",
             ]
             subprocess.check_call(
-                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, cwd=self.working_dir
+                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, cwd=self.working_dir, shell=True,
             )

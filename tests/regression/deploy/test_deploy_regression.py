@@ -42,7 +42,7 @@ class TestDeployRegression(PackageRegressionBase, DeployRegressionBase):
             s3_bucket=self.s3_bucket.name, template_file=template_path, output_template_file=output_template_file.name
         )
 
-        package_process = Popen(package_command_list, stdout=PIPE)
+        package_process = Popen(package_command_list, stdout=PIPE, shell=True,)
         try:
             stdout, _ = package_process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
