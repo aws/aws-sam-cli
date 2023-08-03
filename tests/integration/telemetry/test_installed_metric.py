@@ -3,6 +3,7 @@ import platform
 from unittest.mock import ANY
 from .integ_base import IntegBase, TelemetryServer, EXPECTED_TELEMETRY_PROMPT
 from samcli import __version__ as SAM_CLI_VERSION
+from ...testing_utils import strip_nightly_installer_suffix
 
 
 class TestSendInstalledMetric(IntegBase):
@@ -32,6 +33,7 @@ class TestSendInstalledMetric(IntegBase):
             requests = filter_installed_metric_requests(all_requests)
             self.assertEqual(1, len(requests), "There should be only one 'installed' metric")
             request = requests[0]
+            strip_nightly_installer_suffix(request, "installed")
             self.assertIn("Content-Type", request["headers"])
             self.assertEqual(request["headers"]["Content-Type"], "application/json")
 
@@ -113,11 +115,6 @@ def filter_installed_metric_requests(all_requests):
     for r in all_requests:
         data = r["data"]
         if "metrics" in data and data["metrics"] and "installed" in data["metrics"][0]:
-            # If it's a nightly release version, it will have a suffix.
-            # We can strip it for the purpose of testing telemetry
-            version = data["metrics"][0].get("installed", {}).get("samcliVersion", "")
-            if version:
-                data["metrics"][0]["installed"]["samcliVersion"] = version[: len(SAM_CLI_VERSION)]
             result.append(r)
 
     return result
