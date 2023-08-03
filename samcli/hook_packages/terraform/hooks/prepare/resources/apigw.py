@@ -137,11 +137,20 @@ class ApiGatewayV2ApiProperties(ResourceProperties):
 
 class ApiGatewayV2IntegrationProperties(ResourceProperties):
     """
-    Contains the collection logic of the required properties for linking the aws_api_gateway_v2_authorizer resources.
+    Contains the collection logic of the required properties for linking the aws_api_gateway_v2_integration resources.
     """
 
     def __init__(self):
         super(ApiGatewayV2IntegrationProperties, self).__init__()
+
+
+class ApiGatewayV2AuthorizerProperties(ResourceProperties):
+    """
+    Contains the collection logic of the required properties for linking the aws_api_gateway_v2_authorizer resources.
+    """
+
+    def __init__(self):
+        super(ApiGatewayV2AuthorizerProperties, self).__init__()
 
 
 class ApiGatewayV2StageProperties(ResourceProperties):

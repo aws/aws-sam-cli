@@ -5,6 +5,7 @@ from unittest import TestCase
 
 from samcli.hook_packages.terraform.hooks.prepare.translate import AWS_PROVIDER_NAME, NULL_RESOURCE_PROVIDER_NAME
 from samcli.lib.utils.resources import (
+    AWS_APIGATEWAY_V2_AUTHORIZER,
     AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION,
     AWS_LAMBDA_LAYERVERSION,
     AWS_APIGATEWAY_RESOURCE,
@@ -61,6 +62,7 @@ class PrepareHookUnitBase(TestCase):
         self.apigwv2_route_name = "my_apigwv2_route"
         self.apigwv2_stage_name = "my_apigwv2_stage"
         self.apigwv2_integration_name = "my_apigwv2_integration"
+        self.apigwv2_authorizer_name = "my_authorizer_v2"
 
         self.tf_function_common_properties: dict = {
             "function_name": self.zip_function_name,
@@ -941,6 +943,44 @@ class PrepareHookUnitBase(TestCase):
             "Metadata": {"SamResourceId": f"aws_apigatewayv2_integration.{self.apigwv2_integration_name}"},
         }
 
+        self.tf_apigwv2_authorizer_common_attributes: dict = {
+            "type": "aws_apigatewayv2_authorizer",
+            "provider_name": AWS_PROVIDER_NAME,
+        }
+
+        self.tf_apigwv2_authorizer_properties: dict = {
+            "api_id": "aws_apigatewayv2_api.my_api.id",
+            "authorizer_type": "REQUEST",
+            "authorizer_uri": "aws_lambda_function.authorizerv2.invoke_arn",
+            "name": self.apigwv2_authorizer_name,
+            "authorizer_payload_format_version": "2.0",
+            "identity_sources": ["$request.header.hello"],
+            "enable_simple_responses": False,
+        }
+
+        self.expected_cfn_apigwv2_authorizer_properties: dict = {
+            "ApiId": "aws_apigatewayv2_api.my_api.id",
+            "AuthorizerType": "REQUEST",
+            "AuthorizerUri": "aws_lambda_function.authorizerv2.invoke_arn",
+            "Name": self.apigwv2_authorizer_name,
+            "AuthorizerPayloadFormatVersion": "2.0",
+            "IdentitySource": ["$request.header.hello"],
+            "EnableSimpleResponses": False,
+        }
+
+        self.tf_apigwv2_authorizer_resource: dict = {
+            **self.tf_apigwv2_authorizer_common_attributes,
+            "values": self.tf_apigwv2_authorizer_properties,
+            "address": f"aws_apigatewayv2_authorizer.{self.apigwv2_authorizer_name}",
+            "name": self.apigwv2_authorizer_name,
+        }
+
+        self.expected_cfn_apigwv2_authorizer: dict = {
+            "Type": AWS_APIGATEWAY_V2_AUTHORIZER,
+            "Properties": self.expected_cfn_apigwv2_authorizer_properties,
+            "Metadata": {"SamResourceId": f"aws_apigatewayv2_authorizer.{self.apigwv2_authorizer_name}"},
+        }
+
         self.tf_json_with_root_module_only: dict = {
             "planned_values": {
                 "root_module": {
@@ -961,6 +1001,7 @@ class PrepareHookUnitBase(TestCase):
                         self.tf_apigwv2_route_resource,
                         self.tf_apigwv2_stage_resource,
                         self.tf_apigwv2_integration_resource,
+                        self.tf_apigwv2_authorizer_resource,
                     ]
                 }
             }
@@ -982,9 +1023,9 @@ class PrepareHookUnitBase(TestCase):
                 f"AwsApigatewayv2RouteMyApigwv2Route{self.mock_logical_id_hash}": self.expected_cfn_apigwv2_route,
                 f"AwsApigatewayv2StageMyApigwv2Stage{self.mock_logical_id_hash}": self.expected_cfn_apigwv2_stage,
                 f"AwsApigatewayv2IntegrationMyApigwv2Integration{self.mock_logical_id_hash}": self.expected_cfn_apigwv2_integration,
+                f"AwsApigatewayv2AuthorizerMyAuthorizerV2{self.mock_logical_id_hash}": self.expected_cfn_apigwv2_authorizer,
             },
         }
-
         self.tf_json_with_root_module_with_sam_metadata_resources: dict = {
             "planned_values": {
                 "root_module": {

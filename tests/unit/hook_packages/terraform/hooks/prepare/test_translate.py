@@ -6,6 +6,7 @@ from samcli.lib.utils.colors import Colored, Colors
 
 from tests.unit.hook_packages.terraform.hooks.prepare.prepare_base import PrepareHookUnitBase
 from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
+    AWS_API_GATEWAY_V2_AUTHORIZER_PROPERTY_BUILDER_MAPPING,
     AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING,
     REMOTE_DUMMY_VALUE,
     AWS_API_GATEWAY_RESOURCE_PROPERTY_BUILDER_MAPPING,
@@ -1145,6 +1146,12 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
             self.tf_apigwv2_integration_properties, AWS_API_GATEWAY_V2_INTEGRATION_PROPERTY_BUILDER_MAPPING, Mock()
         )
         self.assertEqual(translated_cfn_properties, self.expected_cfn_apigwv2_integration_properties)
+
+    def test_translating_apigwv2_authorizer(self):
+        translated_cfn_properties = _translate_properties(
+            self.tf_apigwv2_authorizer_properties, AWS_API_GATEWAY_V2_AUTHORIZER_PROPERTY_BUILDER_MAPPING, Mock()
+        )
+        self.assertEqual(translated_cfn_properties, self.expected_cfn_apigwv2_authorizer_properties)
 
 
 class TestUnresolvableAttributeCheck(TestCase):
