@@ -827,7 +827,9 @@ to create a managed default bucket, or run sam deploy --guided",
         deploy_process_execute = self.run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 1)
         self.assertIn(
-            "Unexpected character", str(deploy_process_execute.stderr), "Should notify user of the parsing error."
+            "Unexpected character: 'm' at line 2 col 11",
+            str(deploy_process_execute.stderr),
+            "Should notify user of the parsing error.",
         )
 
     @parameterized.expand([("aws-serverless-function.yaml", "samconfig-tags-list.toml")])
