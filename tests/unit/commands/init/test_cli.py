@@ -91,7 +91,6 @@ class TestCli(TestCase):
                 [git_executable, "clone", url, clone_name],
                 cwd=tempdir,
                 stderr=stderr,
-                shell = True,
             )
             cls.clone_cache[url] = Path(tempdir, clone_name)
 

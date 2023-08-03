@@ -88,7 +88,7 @@ class PackageRegressionBase(TestCase):
     def regression_check(self, args, skip_sam_metadata=True):
         with tempfile.NamedTemporaryFile(delete=False) as output_template_file_sam:
             sam_command_list = self.get_command_list(output_template_file=output_template_file_sam.name, **args)
-            process = Popen(sam_command_list, stdout=PIPE, shell=True,)
+            process = Popen(sam_command_list, stdout=PIPE)
             try:
                 process.communicate(timeout=TIMEOUT)
             except TimeoutExpired:
@@ -101,7 +101,7 @@ class PackageRegressionBase(TestCase):
             aws_command_list = self.get_command_list(
                 base="aws", output_template_file=output_template_file_aws.name, **args
             )
-            process = Popen(aws_command_list, stdout=PIPE, shell=True,)
+            process = Popen(aws_command_list, stdout=PIPE)
             try:
                 process.communicate(timeout=TIMEOUT)
             except TimeoutExpired:

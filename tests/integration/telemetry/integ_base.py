@@ -59,7 +59,7 @@ class IntegBase(TestCase):
         env["__SAM_CLI_TELEMETRY_ENDPOINT_URL"] = "{}/metrics".format(TELEMETRY_ENDPOINT_URL)
 
         process = subprocess.Popen(
-            cmd_list, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, shell=True,
+            cmd_list, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env
         )
         return process
 

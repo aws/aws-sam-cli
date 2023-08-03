@@ -53,7 +53,6 @@ class TestBasicInitCommand(TestCase):
                 ],
                 stdout=PIPE,
                 stderr=PIPE,
-                shell=True,
             )
             try:
                 stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
@@ -83,8 +82,7 @@ class TestBasicInitCommand(TestCase):
                     "--no-interactive",
                     "-o",
                     temp,
-                ],
-                shell = True,
+                ]
             )
             try:
                 process.communicate(timeout=TIMEOUT)
@@ -115,7 +113,6 @@ class TestBasicInitCommand(TestCase):
                 ],
                 stdout=PIPE,
                 stderr=PIPE,
-                shell=True,
             )
             try:
                 stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
@@ -148,7 +145,6 @@ class TestBasicInitCommand(TestCase):
                 ],
                 stdout=PIPE,
                 stderr=PIPE,
-                shell=True,
             )
             try:
                 stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
@@ -181,7 +177,6 @@ class TestBasicInitCommand(TestCase):
                 ],
                 stdout=PIPE,
                 stderr=PIPE,
-                shell=True,
             )
             try:
                 stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
@@ -214,7 +209,6 @@ class TestBasicInitCommand(TestCase):
                 ],
                 stdout=PIPE,
                 stderr=PIPE,
-                shell=True,
             )
             try:
                 stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
@@ -249,7 +243,6 @@ class TestBasicInitCommand(TestCase):
                 ],
                 stdout=PIPE,
                 stderr=PIPE,
-                shell=True,
             )
             try:
                 stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
@@ -284,7 +277,6 @@ class TestBasicInitCommand(TestCase):
                 ],
                 stdout=PIPE,
                 stderr=PIPE,
-                shell=True,
             )
             try:
                 stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
@@ -319,7 +311,6 @@ class TestBasicInitCommand(TestCase):
                 ],
                 stdout=PIPE,
                 stderr=PIPE,
-                shell=True,
             )
             try:
                 stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
@@ -351,8 +342,7 @@ class TestBasicInitCommand(TestCase):
                     temp,
                     "--architecture",
                     "unknown_arch",
-                ],
-                shell=True,
+                ]
             )
             capture_output = ""
             try:
@@ -384,8 +374,7 @@ class TestBasicInitCommand(TestCase):
                     "-o",
                     temp,
                     "--tracing",
-                ],
-                shell=True,
+                ]
             )
             try:
                 process.communicate(timeout=TIMEOUT)
@@ -415,8 +404,7 @@ class TestBasicInitCommand(TestCase):
                     "-o",
                     temp,
                     "--no-tracing",
-                ],
-                shell=True,
+                ]
             )
             try:
                 process.communicate(timeout=TIMEOUT)
@@ -446,8 +434,7 @@ class TestBasicInitCommand(TestCase):
                     "-o",
                     temp,
                     "--application-insights",
-                ],
-                shell=True,
+                ]
             )
             try:
                 process.communicate(timeout=TIMEOUT)
@@ -477,8 +464,7 @@ class TestBasicInitCommand(TestCase):
                     "-o",
                     temp,
                     "--no-application-insights",
-                ],
-                shell=True,
+                ]
             )
             try:
                 process.communicate(timeout=TIMEOUT)
@@ -538,7 +524,6 @@ class TestInitForParametersCompatibility(TestCase):
                 ],
                 stdout=PIPE,
                 stderr=PIPE,
-                shell=True,
             )
             try:
                 stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
@@ -568,7 +553,6 @@ class TestInitForParametersCompatibility(TestCase):
                 ],
                 stdout=PIPE,
                 stderr=PIPE,
-                shell=True,
             )
             try:
                 stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
@@ -601,7 +585,6 @@ class TestInitForParametersCompatibility(TestCase):
                 ],
                 stdout=PIPE,
                 stderr=PIPE,
-                shell=True,
             )
             try:
                 stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
@@ -633,7 +616,6 @@ class TestInitForParametersCompatibility(TestCase):
                 ],
                 stdout=PIPE,
                 stderr=PIPE,
-                shell=True,
             )
             try:
                 stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
@@ -666,7 +648,6 @@ class TestInitForParametersCompatibility(TestCase):
                 ],
                 stdout=PIPE,
                 stderr=PIPE,
-                shell=True,
             )
             try:
                 stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
@@ -696,7 +677,6 @@ class TestInitForParametersCompatibility(TestCase):
                 ],
                 stdout=PIPE,
                 stderr=PIPE,
-                shell=True,
             )
             try:
                 stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
@@ -727,7 +707,6 @@ class TestInitForParametersCompatibility(TestCase):
                 ],
                 stdout=PIPE,
                 stderr=PIPE,
-                shell=True,
             )
             try:
                 stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
@@ -754,7 +733,6 @@ class TestInitForParametersCompatibility(TestCase):
                 ],
                 stdout=PIPE,
                 stderr=PIPE,
-                shell=True,
             )
             try:
                 stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
@@ -807,7 +785,7 @@ class TestInitWithArbitraryProject(TestCase):
             if project_name:
                 args.extend(["--name", project_name])
 
-            process = Popen(args, shell=True,)
+            process = Popen(args)
             try:
                 process.communicate(timeout=TIMEOUT)
             except TimeoutExpired:
@@ -823,7 +801,7 @@ class TestInitWithArbitraryProject(TestCase):
         with tempfile.TemporaryDirectory() as temp:
             args = [get_sam_command(), "init", "--location", str(Path("invalid", "zip", "path")), "-o", temp]
 
-            process = Popen(args, shell=True,)
+            process = Popen(args)
             try:
                 process.communicate(timeout=TIMEOUT)
             except TimeoutExpired:
@@ -847,7 +825,7 @@ class TestInitWithArbitraryProject(TestCase):
                 "-o",
                 tmp,
             ]
-            process = Popen(args, shell=True,)
+            process = Popen(args)
 
             try:
                 process.communicate(timeout=TIMEOUT)
@@ -959,7 +937,6 @@ class TestSubsequentInitCaching(TestCase):
             ],
             stdout=PIPE,
             stderr=PIPE,
-            shell=True,
         )
         try:
             stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
@@ -1000,7 +977,6 @@ class TestInitProducesSamconfigFile(TestCase):
                 ],
                 stdout=PIPE,
                 stderr=PIPE,
-                shell=True,
             )
             try:
                 stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
@@ -1036,7 +1012,6 @@ class TestInitProducesSamconfigFile(TestCase):
                 ],
                 stdout=PIPE,
                 stderr=PIPE,
-                shell=True,
             )
             try:
                 stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
@@ -1097,7 +1072,7 @@ class TestInitCommand(InitIntegBase):
     def test_graceful_exit(self):
         # Run the Base Command
         command_list = self.get_command()
-        process_execute = Popen(command_list, stdout=PIPE, stderr=PIPE, shell=True,)
+        process_execute = Popen(command_list, stdout=PIPE, stderr=PIPE)
 
         # Wait for binary to be ready before sending interrupts.
         time.sleep(self.BINARY_READY_WAIT_TIME)
