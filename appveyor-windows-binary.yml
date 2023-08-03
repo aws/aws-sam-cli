@@ -140,8 +140,8 @@ install:
     Start-Process 'C:\\Windows\\System32\\msiexec.exe' -ArgumentList '/i aws-sam-cli-installer.msi /qn /norestart' -wait -PassThru;
     Rename-Item -Path 'C:\Program Files\Amazon\AWSSAMCLI_NIGHTLY\bin\sam-nightly.cmd' -NewName 'C:\Program Files\Amazon\AWSSAMCLI_NIGHTLY\bin\sam.cmd'
   "
-  - set PATH=C:\Program Files\Amazon\AWSSAMCLI\bin\;%PATH%
-  - sam --version;
+  - 'set PATH=C:\Program Files\Amazon\AWSSAMCLI\bin\;%PATH%'
+  - 'sam --version'
 
   # Echo final Path
   - "echo %PATH%"
