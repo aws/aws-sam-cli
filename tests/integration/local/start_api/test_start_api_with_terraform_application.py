@@ -94,6 +94,7 @@ class TerraformStartApiIntegrationApplyBase(TerraformStartApiIntegrationBase):
     not CI_OVERRIDE,
     "Skip Terraform test cases unless running in CI",
 )
+@pytest.mark.flaky(reruns=3)
 @parameterized_class(
     [
         {
@@ -104,19 +105,13 @@ class TerraformStartApiIntegrationApplyBase(TerraformStartApiIntegrationBase):
             "terraform_application": "terraform-v1-api-simple",
             "testing_urls": ["hello"],
         },
-    ]
-)
-@pytest.mark.flaky(reruns=3)
-@parameterized_class(
-    [
-        {
-            "terraform_application": "terraform-v1-api-simple",
-        },
         {
             "terraform_application": "terraform-v2-api-simple",
+            "testing_urls": ["hello"],
         },
         {
             "terraform_application": "terraform-v2-api-quick-create",
+            "testing_urls": ["hello"],
         },
     ]
 )
