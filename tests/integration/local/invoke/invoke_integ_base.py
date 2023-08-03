@@ -110,7 +110,7 @@ class InvokeIntegBase(TestCase):
         return command_list
 
     def run_command(self, command_list, env=None):
-        process = Popen(command_list, stdout=PIPE, env=env)
+        process = Popen(command_list, stdout=PIPE, env=env, shell=True,)
         try:
             (stdout, stderr) = process.communicate(timeout=TIMEOUT)
             return stdout, stderr, process.returncode

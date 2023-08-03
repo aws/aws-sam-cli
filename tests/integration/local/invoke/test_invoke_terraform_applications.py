@@ -36,7 +36,9 @@ class InvokeTerraformApplicationIntegBase(InvokeIntegBase):
 
     @classmethod
     def run_command(cls, command_list, env=None, input=None):
-        process = Popen(command_list, stdout=PIPE, stderr=PIPE, stdin=PIPE, env=env, cwd=cls.terraform_application_path)
+        process = Popen(
+            command_list, stdout=PIPE, stderr=PIPE, stdin=PIPE, env=env, cwd=cls.terraform_application_path, shell=True,
+        )
         try:
             (stdout, stderr) = process.communicate(input=input, timeout=TIMEOUT)
             LOG.info("sam stdout: %s", stdout.decode("utf-8"))

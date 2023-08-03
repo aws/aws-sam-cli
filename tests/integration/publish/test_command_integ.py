@@ -112,7 +112,7 @@ class TestPublishNewApp(PublishAppIntegBase):
         template_path = self.temp_dir.joinpath("template_not_packaged.yaml")
         command_list = self.get_command_list(template_path=template_path, region=self.region_name)
 
-        process = Popen(command_list, stderr=PIPE)
+        process = Popen(command_list, stderr=PIPE, shell=True,)
         try:
             _, stderr = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
