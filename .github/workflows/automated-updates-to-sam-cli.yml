@@ -71,12 +71,6 @@ jobs:
         with:
           repository: aws/aws-sam-cli
           path: aws-sam-cli
-      
-      - uses: actions/setup-python@v4 # used for make update-reproducible-reqs below
-        with:
-          python-version: |
-            3.8
-            3.11
 
       - name: Update aws-sam-translator & commit
         run: |
@@ -90,7 +84,7 @@ jobs:
           SAM_T_PRE_VERSION=$(grep "aws-sam-translator=" requirements/base.txt)
           echo "SAM-T pre version is $SAM_T_PRE_VERSION"
           git reset --hard develop
-          sed -i "s/$SAM_T_PRE_VERSION/aws-sam-translator==$SAM_T_CUR_VERSION/g" requirements/base.txt; make update-reproducible-reqs
+          sed -i "s/$SAM_T_PRE_VERSION/aws-sam-translator==$SAM_T_CUR_VERSION/g" requirements/base.txt
           cp -r ../serverless-application-model/tests/translator/input ./tests/functional/commands/validate/lib/models
           git status
           git diff --quiet && exit 0 # exit if there is no change
@@ -129,12 +123,6 @@ jobs:
           repository: aws/aws-sam-cli
           path: aws-sam-cli
 
-      - uses: actions/setup-python@v4 # used for make update-reproducible-reqs below
-        with:
-          python-version: |
-            3.8
-            3.11
-
       - name: Upgrade aws_lambda_builders & commit
         run: |
           git config --global user.email "action@github.com"
@@ -147,7 +135,7 @@ jobs:
           BUILDERS_PRE_VERSION=$(grep "aws_lambda_builders=" requirements/base.txt)
           echo "Lambda Builders pre version is $BUILDERS_PRE_VERSION"
           git reset --hard develop
-          sed -i "s/$BUILDERS_PRE_VERSION/aws_lambda_builders==$BUILDERS_CUR_VERSION/g" requirements/base.txt; make update-reproducible-reqs
+          sed -i "s/$BUILDERS_PRE_VERSION/aws_lambda_builders==$BUILDERS_CUR_VERSION/g" requirements/base.txt
           git status
           git diff --quiet && exit 0 # exit if there is no change
           echo "is_new_lambda_builders=1" >> $GITHUB_ENV # set env variable for next step run decision
