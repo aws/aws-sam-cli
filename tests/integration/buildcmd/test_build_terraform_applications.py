@@ -57,7 +57,7 @@ class BuildTerraformApplicationIntegBase(BuildIntegBase):
         shutil.copytree(Path(self.terraform_application_path), Path(self.working_dir))
 
     def run_command(self, command_list, env=None, input=None):
-        process = Popen(command_list, stdout=PIPE, stderr=PIPE, stdin=PIPE, env=env, cwd=self.working_dir, shell=True)
+        process = Popen(command_list, stdout=PIPE, stderr=PIPE, stdin=PIPE, env=env, cwd=self.working_dir)
         try:
             (stdout, stderr) = process.communicate(input=input)
             return stdout, stderr, process.returncode

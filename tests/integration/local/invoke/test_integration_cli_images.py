@@ -56,7 +56,7 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
             "HelloWorldServerlessFunction", template_path=self.template_path, event_path=self.event_path
         )
 
-        process = Popen(command_list, stdout=PIPE, shell=True,)
+        process = Popen(command_list, stdout=PIPE)
         try:
             process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -78,7 +78,7 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
             function_name, template_path=self.template_path, event_path=self.event_path
         )
 
-        process = Popen(command_list, stdout=PIPE, shell=True,)
+        process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -94,7 +94,7 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
             "HelloWorldLambdaFunction", template_path=self.template_path, event_path=self.event_path
         )
 
-        process = Popen(command_list, stdout=PIPE, shell=True,)
+        process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -110,7 +110,7 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
             "func-name-override", template_path=self.template_path, event_path=self.event_path
         )
 
-        process = Popen(command_list, stdout=PIPE, shell=True,)
+        process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -130,7 +130,7 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
         )
 
         start = timer()
-        process = Popen(command_list, stdout=PIPE, shell=True,)
+        process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -163,7 +163,7 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
             env_var_path=self.env_var_path,
         )
 
-        process = Popen(command_list, stdout=PIPE, shell=True,)
+        process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -179,7 +179,7 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
             function_name, template_path=self.template_path, event_path=self.event_path, env_var_path=self.env_var_path
         )
 
-        process = Popen(command_list, stdout=PIPE, shell=True,)
+        process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -195,7 +195,7 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
             function_name, template_path=self.template_path, event_path=self.event_path, env_var_path=self.env_var_path
         )
 
-        process = Popen(command_list, stdout=PIPE, shell=True,)
+        process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -210,7 +210,7 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
             "WriteToStdoutFunction", template_path=self.template_path, event_path=self.event_path
         )
 
-        process = Popen(command_list, stdout=PIPE, stderr=PIPE, shell=True,)
+        process = Popen(command_list, stdout=PIPE, stderr=PIPE)
         try:
             stdout, stderr = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -229,7 +229,7 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
             "WriteToStderrFunction", template_path=self.template_path, event_path=self.event_path
         )
 
-        process = Popen(command_list, stderr=PIPE, shell=True,)
+        process = Popen(command_list, stderr=PIPE)
         try:
             _, stderr = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -243,7 +243,7 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
     @pytest.mark.flaky(reruns=3)
     def test_invoke_returns_expected_result_when_no_event_given(self):
         command_list = InvokeIntegBase.get_command_list("EchoEventFunction", template_path=self.template_path)
-        process = Popen(command_list, stdout=PIPE, shell=True,)
+        process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -264,7 +264,7 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
             parameter_overrides={"DefaultTimeout": "100"},
         )
 
-        process = Popen(command_list, stdout=PIPE, shell=True,)
+        process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -295,7 +295,7 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
             "EchoEnvWithParameters", template_path=self.template_path, event_path=self.event_path, region=custom_region
         )
 
-        process = Popen(command_list, stdout=PIPE, shell=True,)
+        process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -325,7 +325,7 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
         env["AWS_SECRET_ACCESS_KEY"] = secret
         env["AWS_SESSION_TOKEN"] = session
 
-        process = Popen(command_list, stdout=PIPE, env=env, shell=True,)
+        process = Popen(command_list, stdout=PIPE, env=env)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -350,7 +350,7 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
             docker_network="host",
         )
 
-        process = Popen(command_list, stdout=PIPE, shell=True,)
+        process = Popen(command_list, stdout=PIPE)
         try:
             process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -369,7 +369,7 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
         env = os.environ.copy()
         env["SAM_DOCKER_NETWORK"] = "non-existing-network"
 
-        process = Popen(command_list, stderr=PIPE, env=env, shell=True,)
+        process = Popen(command_list, stderr=PIPE, env=env)
         try:
             _, stderr = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -390,7 +390,7 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
         env = os.environ.copy()
         env["SAM_TEMPLATE_FILE"] = str(self.test_data_path.joinpath("invoke", "sam-template-image.yaml"))
 
-        process = Popen(command_list, stdout=PIPE, env=env, shell=True,)
+        process = Popen(command_list, stdout=PIPE, env=env)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -406,7 +406,7 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
             "ImageDoesntExistFunction", template_path=self.template_path, event_path=self.event_path
         )
 
-        process = Popen(command_list, stderr=PIPE, shell=True,)
+        process = Popen(command_list, stderr=PIPE)
         try:
             _, stderr = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -471,7 +471,7 @@ class TestDeleteOldRapidImages(InvokeIntegBase):
             "HelloWorldServerlessFunction", template_path=self.template_path, event_path=self.event_path
         )
 
-        process = Popen(command_list, stdout=PIPE, shell=True,)
+        process = Popen(command_list, stdout=PIPE)
         try:
             process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -498,7 +498,7 @@ class TestDeleteOldRapidImages(InvokeIntegBase):
             "HelloWorldServerlessFunction", template_path=self.template_path, event_path=self.event_path
         )
 
-        process = Popen(command_list, stdout=PIPE, shell=True,)
+        process = Popen(command_list, stdout=PIPE)
         try:
             process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -522,7 +522,7 @@ class TestDeleteOldRapidImages(InvokeIntegBase):
             "HelloWorldServerlessFunction", template_path=self.template_path, event_path=self.event_path
         )
 
-        process = Popen(command_list, stdout=PIPE, shell=True,)
+        process = Popen(command_list, stdout=PIPE)
         try:
             process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:

@@ -94,7 +94,7 @@ class DeployRegressionBase(TestCase):
             del args["aws_stack_name"]
 
         aws_command_list = self.get_deploy_command_list(base="aws", stack_name=aws_stack_name, **args)
-        process = Popen(aws_command_list, stdout=PIPE, shell=True,)
+        process = Popen(aws_command_list, stdout=PIPE)
         try:
             process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -103,7 +103,7 @@ class DeployRegressionBase(TestCase):
         self.assertEqual(process.returncode, aws_return_code)
 
         sam_command_list = self.get_deploy_command_list(stack_name=sam_stack_name, **args)
-        process = Popen(sam_command_list, stdout=PIPE, shell=True,)
+        process = Popen(sam_command_list, stdout=PIPE)
         try:
             process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:

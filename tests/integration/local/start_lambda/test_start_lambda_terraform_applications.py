@@ -61,7 +61,7 @@ class StartLambdaTerraformApplicationIntegBase(StartLambdaIntegBaseClass):
 
     @classmethod
     def _run_command(cls, command_list, env=None, tf_application=None):
-        process = Popen(command_list, stdout=PIPE, stderr=PIPE, env=env, cwd=tf_application, shell=True,)
+        process = Popen(command_list, stdout=PIPE, stderr=PIPE, env=env, cwd=tf_application)
         try:
             (stdout, stderr) = process.communicate(timeout=300)
             return stdout, stderr, process.returncode

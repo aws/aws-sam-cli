@@ -40,7 +40,7 @@ class TestWithDifferentLambdaRuntimeZips(InvokeIntegBase):
             function_name, template_path=self.template_path, event_path=self.events_file_path
         )
 
-        process = Popen(command_list, stdout=PIPE, shell=True,)
+        process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -59,7 +59,7 @@ class TestWithDifferentLambdaRuntimeZips(InvokeIntegBase):
 
         command_list = command_list + ["--skip-pull-image"]
 
-        process = Popen(command_list, stdout=PIPE, shell=True,)
+        process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:

@@ -32,7 +32,7 @@ class TestPackageZip(PackageIntegBase):
             s3_bucket=self.s3_bucket.name, s3_prefix=self.s3_prefix, template=template_path
         )
 
-        process = Popen(command_list, stdout=PIPE, shell=True,)
+        process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -54,7 +54,7 @@ class TestPackageZip(PackageIntegBase):
             s3_bucket=self.s3_bucket.name, s3_prefix=self.s3_prefix, template=template_path, force_upload=True
         )
 
-        process = Popen(command_list, stderr=PIPE, shell=True,)
+        process = Popen(command_list, stderr=PIPE)
         try:
             _, stderr = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -97,7 +97,7 @@ class TestPackageZip(PackageIntegBase):
             s3_bucket=self.s3_bucket.name, s3_prefix=self.s3_prefix, template_file=template_path
         )
 
-        process = Popen(command_list, stdout=PIPE, shell=True,)
+        process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -110,7 +110,7 @@ class TestPackageZip(PackageIntegBase):
     def test_package_without_required_args(self):
         command_list = PackageIntegBase.get_command_list()
 
-        process = Popen(command_list, stdout=PIPE, shell=True,)
+        process = Popen(command_list, stdout=PIPE)
         try:
             process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -150,7 +150,7 @@ class TestPackageZip(PackageIntegBase):
             s3_bucket=self.s3_bucket.name, template_file=template_path, s3_prefix=self.s3_prefix
         )
 
-        process = Popen(command_list, stdout=PIPE, shell=True,)
+        process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -199,7 +199,7 @@ class TestPackageZip(PackageIntegBase):
                 output_template_file=output_template.name,
             )
 
-            process = Popen(command_list, stdout=PIPE, shell=True,)
+            process = Popen(command_list, stdout=PIPE)
             try:
                 stdout, _ = process.communicate(timeout=TIMEOUT)
             except TimeoutExpired:
@@ -255,7 +255,7 @@ class TestPackageZip(PackageIntegBase):
                 use_json=True,
             )
 
-            process = Popen(command_list, stdout=PIPE, shell=True,)
+            process = Popen(command_list, stdout=PIPE)
             try:
                 stdout, _ = process.communicate(timeout=TIMEOUT)
             except TimeoutExpired:
@@ -313,7 +313,7 @@ class TestPackageZip(PackageIntegBase):
                     force_upload=True,
                 )
 
-                process = Popen(command_list, stdout=PIPE, shell=True,)
+                process = Popen(command_list, stdout=PIPE)
                 try:
                     stdout, _ = process.communicate(timeout=TIMEOUT)
                 except TimeoutExpired:
@@ -370,7 +370,7 @@ class TestPackageZip(PackageIntegBase):
                 kms_key_id=self.kms_key,
             )
 
-            process = Popen(command_list, stdout=PIPE, shell=True,)
+            process = Popen(command_list, stdout=PIPE)
             try:
                 stdout, _ = process.communicate(timeout=TIMEOUT)
             except TimeoutExpired:
@@ -427,7 +427,7 @@ class TestPackageZip(PackageIntegBase):
                 metadata={"integ": "yes"},
             )
 
-            process = Popen(command_list, stdout=PIPE, shell=True,)
+            process = Popen(command_list, stdout=PIPE)
             try:
                 stdout, _ = process.communicate(timeout=TIMEOUT)
             except TimeoutExpired:
@@ -482,7 +482,7 @@ class TestPackageZip(PackageIntegBase):
                 resolve_s3=True,
             )
 
-            process = Popen(command_list, stdout=PIPE, shell=True,)
+            process = Popen(command_list, stdout=PIPE)
             try:
                 stdout, _ = process.communicate(timeout=TIMEOUT)
             except TimeoutExpired:
@@ -514,7 +514,7 @@ class TestPackageZip(PackageIntegBase):
                 resolve_s3=True,
             )
 
-            process = Popen(command_list, stdout=PIPE, stderr=PIPE, shell=True,)
+            process = Popen(command_list, stdout=PIPE, stderr=PIPE)
             try:
                 _, stderr = process.communicate(timeout=TIMEOUT)
             except TimeoutExpired:
@@ -546,7 +546,7 @@ class TestPackageZip(PackageIntegBase):
             s3_bucket=self.s3_bucket.name, s3_prefix=self.s3_prefix, template=template_path
         )
 
-        process = Popen(command_list, stdout=PIPE, shell=True,)
+        process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -576,7 +576,7 @@ class TestPackageZip(PackageIntegBase):
             s3_bucket=self.s3_bucket.name, s3_prefix=self.s3_prefix, template=template_path, force_upload=True
         )
 
-        process = Popen(command_list, stdout=PIPE, stderr=PIPE, shell=True,)
+        process = Popen(command_list, stdout=PIPE, stderr=PIPE)
         try:
             _, stderr = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -622,7 +622,7 @@ class TestPackageZip(PackageIntegBase):
 
         prevdir = os.getcwd()
         os.chdir(os.path.expanduser(os.path.dirname(template_path)))
-        process = Popen(command_list, stdout=PIPE, stderr=PIPE, shell=True,)
+        process = Popen(command_list, stdout=PIPE, stderr=PIPE)
         try:
             _, stderr = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -665,7 +665,7 @@ class TestPackageZip(PackageIntegBase):
 
         prevdir = os.getcwd()
         os.chdir(os.path.expanduser(os.path.dirname(template_path)))
-        process = Popen(command_list, stdout=PIPE, stderr=PIPE, shell=True,)
+        process = Popen(command_list, stdout=PIPE, stderr=PIPE)
         try:
             _, stderr = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
@@ -698,7 +698,7 @@ class TestPackageZip(PackageIntegBase):
             s3_bucket=self.s3_bucket.name, s3_prefix=self.s3_prefix, template_file=template_path
         )
 
-        process = Popen(command_list, stdout=PIPE, shell=True,)
+        process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
