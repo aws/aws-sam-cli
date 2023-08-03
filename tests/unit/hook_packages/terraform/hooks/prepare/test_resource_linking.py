@@ -1877,6 +1877,10 @@ class TestResourceLinker(TestCase):
                     terraform_resource_type_prefix=API_GATEWAY_RESOURCE_RESOURCE_ADDRESS_PREFIX,
                     terraform_attribute_name="id",
                 ),
+                ResourcePairExceptedDestination(
+                    terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+                    terraform_attribute_name="root_resource_id",
+                ),
             ],
             terraform_link_field_name="resource_id",
             cfn_link_field_name="ResourceId",
@@ -1956,6 +1960,10 @@ class TestResourceLinker(TestCase):
                 ResourcePairExceptedDestination(
                     terraform_resource_type_prefix=API_GATEWAY_RESOURCE_RESOURCE_ADDRESS_PREFIX,
                     terraform_attribute_name="id",
+                ),
+                ResourcePairExceptedDestination(
+                    terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+                    terraform_attribute_name="root_resource_id",
                 ),
             ],
             terraform_link_field_name="resource_id",
@@ -2072,6 +2080,14 @@ class TestResourceLinker(TestCase):
                 [LogicalIdReference(value="Resource1", resource_type=TF_AWS_API_GATEWAY_RESOURCE)],
                 {"Ref": "Resource1"},
             ),
+            (
+                {
+                    "Type": "AWS::ApiGateway::Method",
+                    "Properties": {"HttpMethod": "post"},
+                },
+                [LogicalIdReference(value="api1", resource_type=TF_AWS_API_GATEWAY_REST_API)],
+                {"Fn::GetAtt": ["api1", "RootResourceId"]},
+            ),
         ]
     )
     def test_link_gateway_method_to_gateway_resource_call_back(
@@ -2108,9 +2124,17 @@ class TestResourceLinker(TestCase):
                 [LogicalIdReference(value="RestApi", resource_type=TF_AWS_API_GATEWAY_REST_API)],
                 {"Fn::GetAtt": ["RestApi", "RootResourceId"]},
             ),
+            (
+                {
+                    "Type": "AWS::ApiGateway::Resource",
+                    "Properties": {},
+                },
+                [LogicalIdReference(value="resource1", resource_type=TF_AWS_API_GATEWAY_RESOURCE)],
+                {"Ref": "resource1"},
+            ),
         ]
     )
-    def test_link_gateway_resource_to_gateway_rest_api_parent_id_call_back(
+    def test_link_gateway_resource_to_parent_resource_call_back(
         self, input_gateway_resource, logical_ids, expected_rest_api
     ):
         gateway_resource = deepcopy(input_gateway_resource)
@@ -2279,6 +2303,10 @@ class TestResourceLinker(TestCase):
                 ResourcePairExceptedDestination(
                     terraform_resource_type_prefix=API_GATEWAY_RESOURCE_RESOURCE_ADDRESS_PREFIX,
                     terraform_attribute_name="id",
+                ),
+                ResourcePairExceptedDestination(
+                    terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+                    terraform_attribute_name="root_resource_id",
                 ),
             ],
             terraform_link_field_name="resource_id",

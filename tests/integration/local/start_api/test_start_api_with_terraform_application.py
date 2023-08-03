@@ -98,7 +98,7 @@ class TerraformStartApiIntegrationApplyBase(TerraformStartApiIntegrationBase):
     [
         {
             "terraform_application": "terraform-v1-nested-apis",
-            "testing_urls": ["parent/hello", "parent"],
+            "testing_urls": ["", "parent/hello", "parent"],
         },
         {
             "terraform_application": "terraform-v1-api-simple",
@@ -185,7 +185,7 @@ class TestStartApiTerraformApplicationLimitations(TerraformStartApiIntegrationBa
     [
         {
             "terraform_application": "terraform-v1-nested-apis",
-            "testing_urls": ["parent/hello", "parent"],
+            "testing_urls": ["", "parent/hello", "parent"],
         },
         {
             "terraform_application": "terraform-v1-api-simple",
