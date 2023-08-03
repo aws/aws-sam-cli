@@ -113,6 +113,11 @@ def filter_installed_metric_requests(all_requests):
     for r in all_requests:
         data = r["data"]
         if "metrics" in data and data["metrics"] and "installed" in data["metrics"][0]:
+            # If it's a nightly release version, it will have a suffix.
+            # We can strip it for the purpose of testing telemetry
+            version = data["metrics"][0].get("installed", {}).get("samcliVersion", "")
+            if version:
+                data["metrics"][0]["installed"]["samcliVersion"] = version[: len(SAM_CLI_VERSION)]
             result.append(r)
 
     return result

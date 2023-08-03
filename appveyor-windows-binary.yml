@@ -114,7 +114,7 @@ install:
     $env:TASK_TOKEN = $test_env_var_json.taskToken;
     $env:AWS_S3_TESTING = $test_env_var_json.TestBucketName;
     $env:AWS_ECR_TESTING = $test_env_var_json.TestECRURI;
-    $env:AWS_KMS_KEY = $test_env_var_json.TestKMSKeyArn;en
+    $env:AWS_KMS_KEY = $test_env_var_json.TestKMSKeyArn;
     $env:AWS_SIGNING_PROFILE_NAME = $test_env_var_json.TestSigningProfileName;
     $env:AWS_SIGNING_PROFILE_VERSION_ARN = $test_env_var_json.TestSigningProfileARN;
   }"
@@ -125,6 +125,15 @@ install:
   - "venv\\Scripts\\activate"
   - "python --version"
 
+  # Install testing pre-reqs without installing sam-cli from source
+  - pip install -r requirements/pre-dev.txt"
+  - pip install -r requirements/dev.txt"
+  - pip install -r requirements/base.txt
+  - pytest --version
+
+  # Install aws cli
+  - "pip install awscli"
+
   # Install aws-sam-cli MSI binary
   - ps: "
     Invoke-WebRequest -Uri https://github.com/aws/aws-sam-cli/releases/download/sam-cli-nightly/AWS_SAM_CLI_64_PY3.msi -OutFile aws-sam-cli-installer.msi
@@ -133,11 +142,6 @@ install:
     Set-Alias -Name sam -Value 'C:\\Program Files\\Amazon\\AWSSAMCLI_NIGHTLY\\bin\\sam-nightly.cmd'
     sam --version
   "
-
-  - "pip install pytest"
-
-  # Install aws cli
-  - "pip install awscli"
 
   # Echo final Path
   - "echo %PATH%"
@@ -153,9 +157,6 @@ install:
 
   # claim some disk space before starting the tests
   - "docker system prune -a -f"
-  # activate virtual environment
-  - "venv\\Scripts\\activate"
-
 
 
 # Final clean up no matter success or failure
