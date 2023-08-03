@@ -513,7 +513,7 @@ class TestDelete(DeleteIntegBase):
             The name of the stack to check if it exists in Cloudformation
         """
         try:
-            _ = self.cf_client.describe_stacks(StackName=stack_name)
+            self.cf_client.describe_stacks(StackName=stack_name)
         except ClientError as ex:
             self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
 
