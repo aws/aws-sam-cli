@@ -60,7 +60,7 @@ def method_to_stack_name(method_name):
 
 def run_command(command_list, cwd=None, env=None, timeout=TIMEOUT) -> CommandResult:
     LOG.info("Running command: %s", " ".join(command_list))
-    process_execute = Popen(command_list, cwd=cwd, env=env, stdout=PIPE, stderr=PIPE)
+    process_execute = Popen(command_list, cwd=cwd, env=env, stdout=PIPE, stderr=PIPE, shell=True,)
     try:
         stdout_data, stderr_data = process_execute.communicate(timeout=timeout)
         LOG.info(f"Stdout: {stdout_data.decode('utf-8')}")
@@ -76,7 +76,7 @@ def run_command(command_list, cwd=None, env=None, timeout=TIMEOUT) -> CommandRes
 def run_command_with_input(command_list, stdin_input, timeout=TIMEOUT, cwd=None) -> CommandResult:
     LOG.info("Running command: %s", " ".join(command_list))
     LOG.info("With input: %s", stdin_input)
-    process_execute = Popen(command_list, cwd=cwd, stdout=PIPE, stderr=PIPE, stdin=PIPE)
+    process_execute = Popen(command_list, cwd=cwd, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=True,)
     try:
         stdout_data, stderr_data = process_execute.communicate(stdin_input, timeout=timeout)
         LOG.info(f"Stdout: {stdout_data.decode('utf-8')}")
@@ -106,6 +106,7 @@ def start_persistent_process(
         encoding="utf-8",
         bufsize=1,
         cwd=cwd,
+        shell=True,
     )
 
 
