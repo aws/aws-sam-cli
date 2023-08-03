@@ -12,6 +12,8 @@ from samcli.hook_packages.terraform.hooks.prepare.constants import (
     TF_AWS_LAMBDA_FUNCTION,
     TF_AWS_API_GATEWAY_REST_API,
     TF_AWS_API_GATEWAY_RESOURCE,
+    TF_AWS_API_GATEWAY_V2_INTEGRATION,
+    TF_AWS_API_GATEWAY_V2_API,
 )
 from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     GatewayAuthorizerToLambdaFunctionLocalVariablesLinkingLimitationException,
@@ -2557,10 +2559,14 @@ class TestResourceLinker(TestCase):
             source_resource_cfn_resource=routes_v2_cfn_resources,
             source_resource_tf_config=routes_v2_config_resources,
             destination_resource_tf=integrations_v2_tf_resources,
-            tf_destination_attribute_name="id",
+            expected_destinations=[
+                ResourcePairExceptedDestination(
+                    terraform_resource_type_prefix=API_GATEWAY_V2_INTEGRATION_RESOURCE_ADDRESS_PREFIX,
+                    terraform_attribute_name="id",
+                ),
+            ],
             terraform_link_field_name="target",
             cfn_link_field_name="Target",
-            terraform_resource_type_prefix=API_GATEWAY_V2_INTEGRATION_RESOURCE_ADDRESS_PREFIX,
             cfn_resource_update_call_back_function=mock_link_gateway_v2_route_to_integration_callback,
             linking_exceptions=mock_resource_linking_exceptions(),
             tf_destination_value_extractor_from_link_field_value_function=mock_integration_id_extractor_function,
@@ -2575,7 +2581,7 @@ class TestResourceLinker(TestCase):
                     "Type": "AWS::ApiGatewayV2::Route",
                     "Properties": {"Target": "invoke_arn"},
                 },
-                [LogicalIdReference("FunctionA")],
+                [LogicalIdReference(value="FunctionA", resource_type=TF_AWS_LAMBDA_FUNCTION)],
                 {"Fn::Join": ["/", ["integrations", {"Ref": "FunctionA"}]]},
             ),
             (
@@ -2599,7 +2605,7 @@ class TestResourceLinker(TestCase):
                     "Type": "AWS::ApiGatewayV2::Route",
                     "Properties": {"Target": "invoke_arn"},
                 },
-                [LogicalIdReference("Integration")],
+                [LogicalIdReference(value="Integration", resource_type=TF_AWS_API_GATEWAY_V2_INTEGRATION)],
                 {"Fn::Join": ["/", ["integrations", {"Ref": "Integration"}]]},
             ),
         ]
@@ -2640,10 +2646,14 @@ class TestResourceLinker(TestCase):
             source_resource_cfn_resource=integrations_v2_cfn_resources,
             source_resource_tf_config=integrations_v2_config_resources,
             destination_resource_tf=lambda_function_tf_resources,
-            tf_destination_attribute_name="invoke_arn",
+            expected_destinations=[
+                ResourcePairExceptedDestination(
+                    terraform_resource_type_prefix=LAMBDA_FUNCTION_RESOURCE_ADDRESS_PREFIX,
+                    terraform_attribute_name="invoke_arn",
+                ),
+            ],
             terraform_link_field_name="integration_uri",
             cfn_link_field_name="IntegrationUri",
-            terraform_resource_type_prefix=LAMBDA_FUNCTION_RESOURCE_ADDRESS_PREFIX,
             cfn_resource_update_call_back_function=mock_link_gateway_v2_integration_to_lambda_function_callback,
             linking_exceptions=mock_resource_linking_exceptions(),
         )
@@ -2657,7 +2667,7 @@ class TestResourceLinker(TestCase):
                     "Type": "AWS::ApiGatewayV2::Integration",
                     "Properties": {"IntegrationUri": "invoke_arn"},
                 },
-                [LogicalIdReference("FunctionA")],
+                [LogicalIdReference(value="FunctionA", resource_type=TF_AWS_LAMBDA_FUNCTION)],
                 {
                     "Fn::Join": [
                         "",
@@ -2729,10 +2739,14 @@ class TestResourceLinker(TestCase):
             source_resource_cfn_resource=integrations_v2_cfn_resources,
             source_resource_tf_config=integrations_v2_config_resources,
             destination_resource_tf=apis_v2_tf_resources,
-            tf_destination_attribute_name="id",
+            expected_destinations=[
+                ResourcePairExceptedDestination(
+                    terraform_resource_type_prefix=API_GATEWAY_V2_API_RESOURCE_ADDRESS_PREFIX,
+                    terraform_attribute_name="id",
+                ),
+            ],
             terraform_link_field_name="api_id",
             cfn_link_field_name="ApiId",
-            terraform_resource_type_prefix=API_GATEWAY_V2_API_RESOURCE_ADDRESS_PREFIX,
             cfn_resource_update_call_back_function=mock_link_gateway_v2_integration_to_api_callback,
             linking_exceptions=mock_resource_linking_exceptions(),
         )
@@ -2765,10 +2779,14 @@ class TestResourceLinker(TestCase):
             source_resource_cfn_resource=routes_v2_cfn_resources,
             source_resource_tf_config=routes_v2_config_resources,
             destination_resource_tf=apis_v2_tf_resources,
-            tf_destination_attribute_name="id",
+            expected_destinations=[
+                ResourcePairExceptedDestination(
+                    terraform_resource_type_prefix=API_GATEWAY_V2_API_RESOURCE_ADDRESS_PREFIX,
+                    terraform_attribute_name="id",
+                ),
+            ],
             terraform_link_field_name="api_id",
             cfn_link_field_name="ApiId",
-            terraform_resource_type_prefix=API_GATEWAY_V2_API_RESOURCE_ADDRESS_PREFIX,
             cfn_resource_update_call_back_function=mock_link_gateway_v2_route_to_api_callback,
             linking_exceptions=mock_resource_linking_exceptions(),
         )
@@ -2801,10 +2819,14 @@ class TestResourceLinker(TestCase):
             source_resource_cfn_resource=stages_v2_cfn_resources,
             source_resource_tf_config=stages_v2_config_resources,
             destination_resource_tf=apis_v2_tf_resources,
-            tf_destination_attribute_name="id",
+            expected_destinations=[
+                ResourcePairExceptedDestination(
+                    terraform_resource_type_prefix=API_GATEWAY_V2_API_RESOURCE_ADDRESS_PREFIX,
+                    terraform_attribute_name="id",
+                ),
+            ],
             terraform_link_field_name="api_id",
             cfn_link_field_name="ApiId",
-            terraform_resource_type_prefix=API_GATEWAY_V2_API_RESOURCE_ADDRESS_PREFIX,
             cfn_resource_update_call_back_function=mock_link_gateway_v2_stage_to_api_callback,
             linking_exceptions=mock_resource_linking_exceptions(),
         )
@@ -2818,7 +2840,7 @@ class TestResourceLinker(TestCase):
                     "Type": "AWS::ApiGatewayV2::Integration",
                     "Properties": {"ApiId": "api_id"},
                 },
-                [LogicalIdReference("myapi")],
+                [LogicalIdReference(value="myapi", resource_type=TF_AWS_API_GATEWAY_V2_API)],
                 {"Ref": "myapi"},
             ),
             (
@@ -2869,10 +2891,14 @@ class TestResourceLinker(TestCase):
             source_resource_cfn_resource=v2_authorizer_cfn_resources,
             source_resource_tf_config=v2_authorizer_config_resources,
             destination_resource_tf=lambda_function_resources,
-            tf_destination_attribute_name="invoke_arn",
+            expected_destinations=[
+                ResourcePairExceptedDestination(
+                    terraform_resource_type_prefix=LAMBDA_FUNCTION_RESOURCE_ADDRESS_PREFIX,
+                    terraform_attribute_name="invoke_arn",
+                ),
+            ],
             terraform_link_field_name="authorizer_uri",
             cfn_link_field_name="AuthorizerUri",
-            terraform_resource_type_prefix=LAMBDA_FUNCTION_RESOURCE_ADDRESS_PREFIX,
             cfn_resource_update_call_back_function=mock_link_gateway_authorizer_to_lambda_function_call_back,
             linking_exceptions=mock_resource_linking_exceptions(),
         )
@@ -2907,10 +2933,14 @@ class TestResourceLinker(TestCase):
             source_resource_cfn_resource=v2_authorizer_cfn_resources,
             source_resource_tf_config=v2_authorizer_config_resources,
             destination_resource_tf=v2_api_resources,
-            tf_destination_attribute_name="id",
+            expected_destinations=[
+                ResourcePairExceptedDestination(
+                    terraform_resource_type_prefix=API_GATEWAY_V2_API_RESOURCE_ADDRESS_PREFIX,
+                    terraform_attribute_name="id",
+                ),
+            ],
             terraform_link_field_name="api_id",
             cfn_link_field_name="ApiId",
-            terraform_resource_type_prefix=API_GATEWAY_V2_API_RESOURCE_ADDRESS_PREFIX,
             cfn_resource_update_call_back_function=mock_link_gateway_v2_resource_to_api_callback,
             linking_exceptions=mock_resource_linking_exceptions(),
         )
@@ -2948,10 +2978,14 @@ class TestResourceLinker(TestCase):
             source_resource_cfn_resource=api_v2_cfn_resources,
             source_resource_tf_config=expected_quick_create_resource,
             destination_resource_tf=lambda_function_tf_resources,
-            tf_destination_attribute_name="invoke_arn",
+            expected_destinations=[
+                ResourcePairExceptedDestination(
+                    terraform_resource_type_prefix=LAMBDA_FUNCTION_RESOURCE_ADDRESS_PREFIX,
+                    terraform_attribute_name="invoke_arn",
+                ),
+            ],
             terraform_link_field_name="target",
             cfn_link_field_name="Target",
-            terraform_resource_type_prefix=LAMBDA_FUNCTION_RESOURCE_ADDRESS_PREFIX,
             cfn_resource_update_call_back_function=mock_link_gateway_v2_api_to_function_callback,
             linking_exceptions=mock_resource_linking_exceptions(),
         )
@@ -2965,7 +2999,7 @@ class TestResourceLinker(TestCase):
                     "Type": "AWS::ApiGatewayV2::Api",
                     "Properties": {"Target": "functionA.invoke_arn"},
                 },
-                [LogicalIdReference("FunctionA")],
+                [LogicalIdReference(value="FunctionA", resource_type=TF_AWS_LAMBDA_FUNCTION)],
                 {
                     "Fn::Sub": "arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FunctionA.Arn}/invocations"
                 },

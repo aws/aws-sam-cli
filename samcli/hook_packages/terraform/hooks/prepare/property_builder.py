@@ -15,6 +15,11 @@ from samcli.hook_packages.terraform.hooks.prepare.constants import (
     TF_AWS_API_GATEWAY_RESOURCE,
     TF_AWS_API_GATEWAY_REST_API,
     TF_AWS_API_GATEWAY_STAGE,
+    TF_AWS_API_GATEWAY_V2_API,
+    TF_AWS_API_GATEWAY_V2_AUTHORIZER,
+    TF_AWS_API_GATEWAY_V2_INTEGRATION,
+    TF_AWS_API_GATEWAY_V2_ROUTE,
+    TF_AWS_API_GATEWAY_V2_STAGE,
     TF_AWS_LAMBDA_FUNCTION,
     TF_AWS_LAMBDA_LAYER_VERSION,
 )
@@ -45,12 +50,6 @@ from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUN
 from samcli.lib.utils.resources import AWS_LAMBDA_LAYERVERSION as CFN_AWS_LAMBDA_LAYER_VERSION
 
 LOG = logging.getLogger(__name__)
-
-TF_AWS_API_GATEWAY_V2_API = "aws_apigatewayv2_api"
-TF_AWS_API_GATEWAY_V2_ROUTE = "aws_apigatewayv2_route"
-TF_AWS_API_GATEWAY_V2_STAGE = "aws_apigatewayv2_stage"
-TF_AWS_API_GATEWAY_V2_INTEGRATION = "aws_apigatewayv2_integration"
-TF_AWS_API_GATEWAY_V2_AUTHORIZER = "aws_apigatewayv2_authorizer"
 
 
 def _build_code_property(tf_properties: dict, resource: TFResource) -> Any:

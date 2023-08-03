@@ -1931,10 +1931,14 @@ def _link_gateway_v2_route_to_integration(
         source_resource_cfn_resource=gateway_route_config_address_cfn_resources_map,
         source_resource_tf_config=gateway_route_config_resources,
         destination_resource_tf=integration_resources,
-        tf_destination_attribute_name="id",
+        expected_destinations=[
+            ResourcePairExceptedDestination(
+                terraform_resource_type_prefix=API_GATEWAY_V2_INTEGRATION_RESOURCE_ADDRESS_PREFIX,
+                terraform_attribute_name="id",
+            ),
+        ],
         terraform_link_field_name="target",
         cfn_link_field_name="Target",
-        terraform_resource_type_prefix=API_GATEWAY_V2_INTEGRATION_RESOURCE_ADDRESS_PREFIX,
         cfn_resource_update_call_back_function=_link_gateway_v2_route_to_integration_callback,
         linking_exceptions=exceptions,
         tf_destination_value_extractor_from_link_field_value_function=_extract_gateway_v2_integration_id_from_route_target_value,
@@ -2015,10 +2019,14 @@ def _link_gateway_v2_integration_to_lambda_function(
         source_resource_cfn_resource=v2_gateway_integration_config_address_cfn_resources_map,
         source_resource_tf_config=v2_gateway_integration_config_resources,
         destination_resource_tf=lambda_functions_resources,
-        tf_destination_attribute_name="invoke_arn",
+        expected_destinations=[
+            ResourcePairExceptedDestination(
+                terraform_resource_type_prefix=LAMBDA_FUNCTION_RESOURCE_ADDRESS_PREFIX,
+                terraform_attribute_name="invoke_arn",
+            ),
+        ],
         terraform_link_field_name="integration_uri",
         cfn_link_field_name="IntegrationUri",
-        terraform_resource_type_prefix=LAMBDA_FUNCTION_RESOURCE_ADDRESS_PREFIX,
         cfn_resource_update_call_back_function=_link_gateway_v2_integration_to_lambda_function_callback,
         linking_exceptions=exceptions,
     )
@@ -2083,10 +2091,14 @@ def _link_gateway_v2_integration_to_api(
         source_resource_cfn_resource=gateway_integration_config_address_cfn_resources_map,
         source_resource_tf_config=gateway_integration_config_resources,
         destination_resource_tf=api_resources,
-        tf_destination_attribute_name="id",
+        expected_destinations=[
+            ResourcePairExceptedDestination(
+                terraform_resource_type_prefix=API_GATEWAY_V2_API_RESOURCE_ADDRESS_PREFIX,
+                terraform_attribute_name="id",
+            ),
+        ],
         terraform_link_field_name="api_id",
         cfn_link_field_name="ApiId",
-        terraform_resource_type_prefix=API_GATEWAY_V2_API_RESOURCE_ADDRESS_PREFIX,
         cfn_resource_update_call_back_function=_link_gateway_v2_resource_to_api_callback,
         linking_exceptions=exceptions,
     )
@@ -2120,10 +2132,14 @@ def _link_gateway_v2_route_to_api(
         source_resource_cfn_resource=gateway_route_config_address_cfn_resources_map,
         source_resource_tf_config=gateway_route_config_resources,
         destination_resource_tf=api_resources,
-        tf_destination_attribute_name="id",
+        expected_destinations=[
+            ResourcePairExceptedDestination(
+                terraform_resource_type_prefix=API_GATEWAY_V2_API_RESOURCE_ADDRESS_PREFIX,
+                terraform_attribute_name="id",
+            ),
+        ],
         terraform_link_field_name="api_id",
         cfn_link_field_name="ApiId",
-        terraform_resource_type_prefix=API_GATEWAY_V2_API_RESOURCE_ADDRESS_PREFIX,
         cfn_resource_update_call_back_function=_link_gateway_v2_resource_to_api_callback,
         linking_exceptions=exceptions,
     )
@@ -2156,10 +2172,14 @@ def _link_gateway_v2_authorizer_to_lambda_function(
         source_resource_cfn_resource=authorizer_cfn_resources,
         source_resource_tf_config=authorizer_config_resources,
         destination_resource_tf=lamda_function_resources,
-        tf_destination_attribute_name="invoke_arn",
+        expected_destinations=[
+            ResourcePairExceptedDestination(
+                terraform_resource_type_prefix=LAMBDA_FUNCTION_RESOURCE_ADDRESS_PREFIX,
+                terraform_attribute_name="invoke_arn",
+            ),
+        ],
         terraform_link_field_name="authorizer_uri",
         cfn_link_field_name="AuthorizerUri",
-        terraform_resource_type_prefix=LAMBDA_FUNCTION_RESOURCE_ADDRESS_PREFIX,
         cfn_resource_update_call_back_function=_link_gateway_authorizer_to_lambda_function_call_back,
         linking_exceptions=exceptions,
     )
@@ -2193,10 +2213,14 @@ def _link_gateway_v2_authorizer_to_api(
         source_resource_cfn_resource=v2_authorizer_config_address_cfn_resources_map,
         source_resource_tf_config=v2_authorizer_config_resources,
         destination_resource_tf=api_resources,
-        tf_destination_attribute_name="id",
+        expected_destinations=[
+            ResourcePairExceptedDestination(
+                terraform_resource_type_prefix=API_GATEWAY_V2_API_RESOURCE_ADDRESS_PREFIX,
+                terraform_attribute_name="id",
+            ),
+        ],
         terraform_link_field_name="api_id",
         cfn_link_field_name="ApiId",
-        terraform_resource_type_prefix=API_GATEWAY_V2_API_RESOURCE_ADDRESS_PREFIX,
         cfn_resource_update_call_back_function=_link_gateway_v2_resource_to_api_callback,
         linking_exceptions=exceptions,
     )
@@ -2269,10 +2293,14 @@ def _link_gateway_v2_api_to_function(
         source_resource_cfn_resource=gateway_api_config_address_cfn_resources_map,
         source_resource_tf_config=quick_create_api_config_resources,
         destination_resource_tf=lambda_function_resources,
-        tf_destination_attribute_name="invoke_arn",
+        expected_destinations=[
+            ResourcePairExceptedDestination(
+                terraform_resource_type_prefix=LAMBDA_FUNCTION_RESOURCE_ADDRESS_PREFIX,
+                terraform_attribute_name="invoke_arn",
+            ),
+        ],
         terraform_link_field_name="target",
         cfn_link_field_name="Target",
-        terraform_resource_type_prefix=LAMBDA_FUNCTION_RESOURCE_ADDRESS_PREFIX,
         cfn_resource_update_call_back_function=_link_gateway_v2_api_to_function_callback,
         linking_exceptions=exceptions,
     )
@@ -2306,10 +2334,14 @@ def _link_gateway_v2_stage_to_api(
         source_resource_cfn_resource=gateway_stage_config_address_cfn_resources_map,
         source_resource_tf_config=gateway_stage_config_resources,
         destination_resource_tf=api_resources,
-        tf_destination_attribute_name="id",
+        expected_destinations=[
+            ResourcePairExceptedDestination(
+                terraform_resource_type_prefix=API_GATEWAY_V2_API_RESOURCE_ADDRESS_PREFIX,
+                terraform_attribute_name="id",
+            ),
+        ],
         terraform_link_field_name="api_id",
         cfn_link_field_name="ApiId",
-        terraform_resource_type_prefix=API_GATEWAY_V2_API_RESOURCE_ADDRESS_PREFIX,
         cfn_resource_update_call_back_function=_link_gateway_v2_resource_to_api_callback,
         linking_exceptions=exceptions,
     )
