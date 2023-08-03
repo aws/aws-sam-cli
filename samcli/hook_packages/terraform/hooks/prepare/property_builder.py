@@ -386,7 +386,8 @@ AWS_API_GATEWAY_INTEGRATION_RESPONSE_PROPERTY_BUILDER_MAPPING: PropertyBuilderMa
 
 AWS_API_GATEWAY_V2_API_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
     "Name": _get_property_extractor("name"),
-    "Body": _get_property_extractor("body"),
+    # "Body": _get_property_extractor("body"),
+    "Body": _get_json_body,
     "Target": _get_property_extractor("target"),
     "ProtocolType": _get_property_extractor("protocol_type"),
     "RouteKey": _get_property_extractor("route_key"),

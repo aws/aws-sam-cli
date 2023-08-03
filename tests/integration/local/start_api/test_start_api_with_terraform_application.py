@@ -141,6 +141,21 @@ class TestStartApiTerraformApplication(TerraformStartApiIntegrationBase):
             "expected_error_message": "Error: AWS SAM CLI could not process a Terraform project that uses local "
             "variables to define linked resources.",
         },
+        {
+            "terraform_application": "terraform-v2-api-simple-multi-resource-link",
+            "expected_error_message": "Error: AWS SAM CLI could not process a Terraform project that contains a source "
+            "resource that is linked to more than one destination resource.",
+        },
+        {
+            "terraform_application": "terraform-v2-api-simple-local-resource-link",
+            "expected_error_message": "Error: AWS SAM CLI could not process a Terraform project that uses local "
+            "variables to define linked resources.",
+        },
+        {
+            "terraform_application": "terraform-v2-openapi",
+            "expected_error_message": "Error: AWS SAM CLI is unable to process a Terraform project that uses an OpenAPI"
+            " specification to define the API Gateway resource.",
+        },
     ]
 )
 class TestStartApiTerraformApplicationLimitations(TerraformStartApiIntegrationBase):
@@ -188,6 +203,15 @@ class TestStartApiTerraformApplicationLimitations(TerraformStartApiIntegrationBa
         },
         {
             "terraform_application": "terraform-api-simple-local-variables-limitation",
+        },
+        {
+            "terraform_application": "terraform-v2-api-simple-multi-resource-link",
+        },
+        {
+            "terraform_application": "terraform-v2-api-simple-local-resource-link",
+        },
+        {
+            "terraform_application": "terraform-v2-openapi",
         },
     ]
 )
