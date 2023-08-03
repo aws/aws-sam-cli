@@ -94,6 +94,18 @@ class TerraformStartApiIntegrationApplyBase(TerraformStartApiIntegrationBase):
     not CI_OVERRIDE,
     "Skip Terraform test cases unless running in CI",
 )
+@parameterized_class(
+    [
+        {
+            "terraform_application": "terraform-v1-nested-apis",
+            "testing_urls": ["parent/hello", "parent"],
+        },
+        {
+            "terraform_application": "terraform-v1-api-simple",
+            "testing_urls": ["hello"],
+        },
+    ]
+)
 @pytest.mark.flaky(reruns=3)
 @parameterized_class(
     [
@@ -113,10 +125,11 @@ class TestStartApiTerraformApplication(TerraformStartApiIntegrationBase):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
     def test_successful_request(self):
-        response = requests.get(self.url + "/hello", timeout=300)
+        for url in self.testing_urls:
+            response = requests.get(f"{self.url}/{url}", timeout=300)
 
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"message": "hello world"})
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json(), {"message": "hello world"})
 
 
 @skipIf(
@@ -184,10 +197,20 @@ class TestStartApiTerraformApplicationLimitations(TerraformStartApiIntegrationBa
 @parameterized_class(
     [
         {
+            "terraform_application": "terraform-v1-nested-apis",
+            "testing_urls": ["parent/hello", "parent"],
+        },
+        {
+            "terraform_application": "terraform-v1-api-simple",
+            "testing_urls": ["hello"],
+        },
+        {
             "terraform_application": "terraform-api-simple-multiple-resources-limitation",
+            "testing_urls": ["hello"],
         },
         {
             "terraform_application": "terraform-api-simple-local-variables-limitation",
+            "testing_urls": ["hello"],
         },
     ]
 )
@@ -196,10 +219,11 @@ class TestStartApiTerraformApplicationLimitationsAfterApply(TerraformStartApiInt
         self.url = "http://127.0.0.1:{}".format(self.port)
 
     def test_successful_request(self):
-        response = requests.get(self.url + "/hello", timeout=300)
+        for url in self.testing_urls:
+            response = requests.get(f"{self.url}/{url}", timeout=300)
 
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"message": "hello world"})
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json(), {"message": "hello world"})
 
 
 @skipIf(

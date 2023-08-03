@@ -1,6 +1,6 @@
 from typing import List
 
-from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
+from samcli.hook_packages.terraform.hooks.prepare.constants import (
     TF_AWS_API_GATEWAY_AUTHORIZER,
     TF_AWS_API_GATEWAY_INTEGRATION,
     TF_AWS_API_GATEWAY_INTEGRATION_RESPONSE,
@@ -28,6 +28,7 @@ from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     _link_gateway_method_to_gateway_resource,
     _link_gateway_methods_to_gateway_rest_apis,
     _link_gateway_resources_to_gateway_rest_apis,
+    _link_gateway_resources_to_parents,
     _link_gateway_stage_to_rest_api,
     _link_gateway_v2_api_to_function,
     _link_gateway_v2_authorizer_to_api,
@@ -39,7 +40,10 @@ from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
     _link_gateway_v2_stage_to_api,
     _link_lambda_functions_to_layers,
 )
-from samcli.hook_packages.terraform.hooks.prepare.types import LinkingPairCaller
+from samcli.hook_packages.terraform.hooks.prepare.types import (
+    LinkingMultipleDestinationsOptionsCaller,
+    LinkingPairCaller,
+)
 
 RESOURCE_LINKS: List[LinkingPairCaller] = [
     LinkingPairCaller(
@@ -142,5 +146,13 @@ RESOURCE_LINKS: List[LinkingPairCaller] = [
         source=TF_AWS_API_GATEWAY_V2_STAGE,
         dest=TF_AWS_API_GATEWAY_V2_API,
         linking_func=_link_gateway_v2_stage_to_api,
+    ),
+]
+
+MULTIPLE_DESTINATIONS_RESOURCE_LINKS: List[LinkingMultipleDestinationsOptionsCaller] = [
+    LinkingMultipleDestinationsOptionsCaller(
+        source=TF_AWS_API_GATEWAY_RESOURCE,
+        destinations=[TF_AWS_API_GATEWAY_REST_API, TF_AWS_API_GATEWAY_RESOURCE],
+        linking_func=_link_gateway_resources_to_parents,
     ),
 ]
