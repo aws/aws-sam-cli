@@ -286,7 +286,7 @@ class DeleteContext:
         # ECR companion stack delete prompts, if it exists
         companion_stack = CompanionStack(self.stack_name)
 
-        ecr_companion_stack_exists = self.cf_utils.has_stack(stack_name=companion_stack.stack_name)
+        ecr_companion_stack_exists = self.cf_utils.can_delete_stack(stack_name=companion_stack.stack_name)
         if ecr_companion_stack_exists:
             LOG.debug("ECR Companion stack found for the input stack")
             self.companion_stack_name = companion_stack.stack_name
@@ -340,7 +340,7 @@ class DeleteContext:
             )
 
         if self.no_prompts or delete_stack:
-            is_deployed = self.cf_utils.has_stack(stack_name=self.stack_name)
+            is_deployed = self.cf_utils.can_delete_stack(stack_name=self.stack_name)
             # Check if the provided stack-name exists
             if is_deployed:
                 LOG.debug("Input stack is deployed, continue deleting")

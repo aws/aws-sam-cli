@@ -13,6 +13,8 @@ from samcli.commands.delete.exceptions import (
     FetchChangeSetError,
     FetchTemplateFailedError,
     NoChangeSetFoundError,
+    StackFetchError,
+    StackProtectionEnabledError,
 )
 
 LOG = logging.getLogger(__name__)
@@ -22,7 +24,7 @@ class CfnUtils:
     def __init__(self, cloudformation_client):
         self._client = cloudformation_client
 
-    def has_stack(self, stack_name: str) -> bool:
+    def can_delete_stack(self, stack_name: str) -> bool:
         """
         Checks if a CloudFormation stack with given name exists
 
@@ -38,9 +40,10 @@ class CfnUtils:
 
         Raises
         ------
-        DeleteFailedError
+        StackFetchError
             Raised when the boto call fails to get stack information
-            or when the stack is protected from deletions
+        StackProtectionEnabledError
+            Raised when the stack is protected from deletions
         """
         try:
             resp = self._client.describe_stacks(StackName=stack_name)
@@ -49,8 +52,7 @@ class CfnUtils:
 
             stack = resp["Stacks"][0]
             if stack["EnableTerminationProtection"]:
-                message = "Stack cannot be deleted while TerminationProtection is enabled."
-                raise DeleteFailedError(stack_name=stack_name, msg=message)
+                raise StackProtectionEnabledError(stack_name=stack_name)
 
             return True
 
@@ -63,13 +65,13 @@ class CfnUtils:
                 LOG.debug("Stack with id %s does not exist", stack_name)
                 return False
             LOG.error("ClientError Exception : %s", str(e))
-            raise DeleteFailedError(stack_name=stack_name, msg=str(e)) from e
+            raise StackFetchError(stack_name=stack_name, msg=str(e)) from e
         except BotoCoreError as e:
             # If there are credentials, environment errors,
             # catch that and throw a delete failed error.
 
             LOG.error("Botocore Exception : %s", str(e))
-            raise DeleteFailedError(stack_name=stack_name, msg=str(e)) from e
+            raise StackFetchError(stack_name=stack_name, msg=str(e)) from e
 
     def get_stack_template(self, stack_name: str, stage: str) -> str:
         """
@@ -119,7 +121,7 @@ class CfnUtils:
         except FetchChangeSetError as ex:
             raise FetchTemplateFailedError(stack_name=stack_name, msg=str(ex)) from ex
         except NoChangeSetFoundError as ex:
-            msg = f"Failed to find a change set for stack {stack_name} to fetch the template"
+            msg = "Failed to find a change set to fetch the template"
             raise FetchTemplateFailedError(stack_name=stack_name, msg=msg) from ex
         except Exception as e:
             # We don't know anything about this exception. Don't handle

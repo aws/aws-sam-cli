@@ -57,3 +57,20 @@ class NoChangeSetFoundError(UserException):
         message = f"Stack {stack_name} does not contain any change sets"
 
         super().__init__(message=message)
+
+
+class StackFetchError(UserException):
+    def __init__(self, stack_name, msg):
+        self.stack_name = stack_name
+        self.msg = msg
+
+        message = f"Failed to complete an API call to fetch stack information for {stack_name}: {msg}"
+        super().__init__(message=message)
+
+
+class StackProtectionEnabledError(UserException):
+    def __init__(self, stack_name):
+        self.stack_name = stack_name
+
+        message = f"Stack {stack_name} cannot be deleted while TerminationProtection is enabled."
+        super().__init__(message=message)

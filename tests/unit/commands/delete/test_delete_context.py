@@ -20,7 +20,7 @@ from samcli.commands.delete.exceptions import CfDeleteFailedStatusError
 class TestDeleteContext(TestCase):
     @patch("samcli.commands.delete.delete_context.click.echo")
     @patch("samcli.commands.delete.delete_context.click.get_current_context")
-    @patch.object(CfnUtils, "has_stack", MagicMock(return_value=(False)))
+    @patch.object(CfnUtils, "can_delete_stack", MagicMock(return_value=(False)))
     @patch("samcli.commands.delete.delete_context.get_boto_client_provider_with_config")
     def test_delete_context_stack_does_not_exist(
         self, get_boto_client_provider_mock, patched_click_get_current_context, patched_click_echo
@@ -96,7 +96,7 @@ class TestDeleteContext(TestCase):
     @patch("samcli.commands.delete.delete_context.prompt")
     @patch("samcli.commands.delete.delete_context.confirm")
     @patch("samcli.commands.delete.delete_context.click.get_current_context")
-    @patch.object(CfnUtils, "has_stack", MagicMock(return_value=(False)))
+    @patch.object(CfnUtils, "can_delete_stack", MagicMock(return_value=(False)))
     @patch("samcli.commands.delete.delete_context.get_boto_client_provider_with_config")
     def test_delete_no_user_input(
         self, get_boto_client_provider_mock, patched_click_get_current_context, patched_confirm, patched_prompt
@@ -138,7 +138,7 @@ class TestDeleteContext(TestCase):
             )
         ),
     )
-    @patch.object(CfnUtils, "has_stack", MagicMock(return_value=(True)))
+    @patch.object(CfnUtils, "can_delete_stack", MagicMock(return_value=(True)))
     @patch.object(CfnUtils, "get_stack_template", MagicMock(return_value="Hello World"))
     @patch.object(CfnUtils, "delete_stack", MagicMock())
     @patch.object(CfnUtils, "wait_for_delete", MagicMock())
@@ -160,7 +160,7 @@ class TestDeleteContext(TestCase):
         ) as delete_context:
             delete_context.run()
 
-            self.assertEqual(CfnUtils.has_stack.call_count, 2)
+            self.assertEqual(CfnUtils.can_delete_stack.call_count, 2)
             self.assertEqual(CfnUtils.get_stack_template.call_count, 2)
             self.assertEqual(CfnUtils.delete_stack.call_count, 2)
             self.assertEqual(CfnUtils.wait_for_delete.call_count, 2)
@@ -170,7 +170,7 @@ class TestDeleteContext(TestCase):
     @patch("samcli.commands.delete.delete_context.click.echo")
     @patch("samcli.commands.deploy.guided_context.click.secho")
     @patch("samcli.commands.delete.delete_context.click.get_current_context")
-    @patch.object(CfnUtils, "has_stack", MagicMock(side_effect=(True, False)))
+    @patch.object(CfnUtils, "can_delete_stack", MagicMock(side_effect=(True, False)))
     @patch.object(CfnUtils, "get_stack_template", MagicMock(return_value="Hello World"))
     @patch.object(CfnUtils, "delete_stack", MagicMock())
     @patch.object(CfnUtils, "wait_for_delete", MagicMock())
@@ -209,7 +209,7 @@ class TestDeleteContext(TestCase):
     @patch("samcli.commands.delete.delete_context.get_uploaded_s3_object_name")
     @patch("samcli.commands.delete.delete_context.confirm")
     @patch("samcli.commands.delete.delete_context.click.get_current_context")
-    @patch.object(CfnUtils, "has_stack", MagicMock(side_effect=(True, False)))
+    @patch.object(CfnUtils, "can_delete_stack", MagicMock(side_effect=(True, False)))
     @patch.object(CfnUtils, "get_stack_template", MagicMock(return_value="Hello World"))
     @patch.object(CfnUtils, "delete_stack", MagicMock())
     @patch.object(CfnUtils, "wait_for_delete", MagicMock())
@@ -271,7 +271,7 @@ class TestDeleteContext(TestCase):
     @patch("samcli.commands.delete.delete_context.get_uploaded_s3_object_name")
     @patch("samcli.commands.delete.delete_context.confirm")
     @patch("samcli.commands.delete.delete_context.click.get_current_context")
-    @patch.object(CfnUtils, "has_stack", MagicMock(side_effect=(True, False)))
+    @patch.object(CfnUtils, "can_delete_stack", MagicMock(side_effect=(True, False)))
     @patch.object(CfnUtils, "get_stack_template", MagicMock(return_value="Hello World"))
     @patch.object(CfnUtils, "delete_stack", MagicMock())
     @patch.object(CfnUtils, "wait_for_delete", MagicMock())
@@ -324,7 +324,7 @@ class TestDeleteContext(TestCase):
     @patch("samcli.commands.delete.delete_context.get_uploaded_s3_object_name")
     @patch("samcli.commands.delete.delete_context.confirm")
     @patch("samcli.commands.delete.delete_context.click.get_current_context")
-    @patch.object(CfnUtils, "has_stack", MagicMock(side_effect=(True, True)))
+    @patch.object(CfnUtils, "can_delete_stack", MagicMock(side_effect=(True, True)))
     @patch.object(CfnUtils, "get_stack_template", MagicMock(return_value="Hello World"))
     @patch.object(CfnUtils, "delete_stack", MagicMock())
     @patch.object(CfnUtils, "wait_for_delete", MagicMock())
@@ -405,7 +405,7 @@ class TestDeleteContext(TestCase):
     @patch("samcli.commands.delete.delete_context.get_uploaded_s3_object_name")
     @patch("samcli.commands.delete.delete_context.click.echo")
     @patch("samcli.commands.delete.delete_context.click.get_current_context")
-    @patch.object(CfnUtils, "has_stack", MagicMock(side_effect=(True, False)))
+    @patch.object(CfnUtils, "can_delete_stack", MagicMock(side_effect=(True, False)))
     @patch.object(CfnUtils, "get_stack_template", MagicMock(return_value="Hello World"))
     @patch.object(CfnUtils, "delete_stack", MagicMock())
     @patch.object(CfnUtils, "wait_for_delete", MagicMock())
@@ -447,7 +447,7 @@ class TestDeleteContext(TestCase):
 
     @patch("samcli.commands.delete.delete_context.get_uploaded_s3_object_name")
     @patch("samcli.commands.delete.delete_context.click.get_current_context")
-    @patch.object(CfnUtils, "has_stack", MagicMock(side_effect=(True, True)))
+    @patch.object(CfnUtils, "can_delete_stack", MagicMock(side_effect=(True, True)))
     @patch.object(CfnUtils, "get_stack_template", MagicMock(return_value="Hello World"))
     @patch.object(CfnUtils, "delete_stack", MagicMock())
     @patch.object(
@@ -485,7 +485,7 @@ class TestDeleteContext(TestCase):
 
             delete_context.run()
 
-            self.assertEqual(CfnUtils.has_stack.call_count, 2)
+            self.assertEqual(CfnUtils.can_delete_stack.call_count, 2)
             self.assertEqual(CfnUtils.get_stack_template.call_count, 2)
             self.assertEqual(CfnUtils.delete_stack.call_count, 4)
             self.assertEqual(CfnUtils.wait_for_delete.call_count, 4)

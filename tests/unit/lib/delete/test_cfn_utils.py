@@ -9,6 +9,8 @@ from samcli.commands.delete.exceptions import (
     FetchTemplateFailedError,
     CfDeleteFailedStatusError,
     NoChangeSetFoundError,
+    StackFetchError,
+    StackProtectionEnabledError,
 )
 from botocore.exceptions import ClientError, BotoCoreError, WaiterError
 
@@ -38,38 +40,38 @@ class TestCfUtils(TestCase):
 
     def test_cf_utils_has_no_stack(self):
         self.cf_utils._client.describe_stacks = MagicMock(return_value={"Stacks": []})
-        self.assertEqual(self.cf_utils.has_stack("test"), False)
+        self.assertEqual(self.cf_utils.can_delete_stack("test"), False)
 
-    def test_cf_utils_has_stack_exception_non_existent(self):
+    def test_cf_utils_can_delete_stack_exception_non_existent(self):
         self.cf_utils._client.describe_stacks = MagicMock(
             side_effect=ClientError(
                 error_response={"Error": {"Message": "Stack with id test does not exist"}},
                 operation_name="stack_status",
             )
         )
-        self.assertEqual(self.cf_utils.has_stack("test"), False)
+        self.assertEqual(self.cf_utils.can_delete_stack("test"), False)
 
-    def test_cf_utils_has_stack_exception_client_error(self):
+    def test_cf_utils_can_delete_stack_exception_client_error(self):
         self.cf_utils._client.describe_stacks = MagicMock(
             side_effect=ClientError(
                 error_response={"Error": {"Message": "Error: The security token included in the request is expired"}},
                 operation_name="stack_status",
             )
         )
-        with self.assertRaises(DeleteFailedError):
-            self.cf_utils.has_stack("test")
+        with self.assertRaises(StackFetchError):
+            self.cf_utils.can_delete_stack("test")
 
-    def test_cf_utils_has_stack_termination_protection_enabled(self):
+    def test_cf_utils_can_delete_stack_termination_protection_enabled(self):
         self.cf_utils._client.describe_stacks = MagicMock(
             return_value={"Stacks": [{"StackStatus": "CREATE_COMPLETE", "EnableTerminationProtection": True}]}
         )
-        with self.assertRaises(DeleteFailedError):
-            self.cf_utils.has_stack("test")
+        with self.assertRaises(StackProtectionEnabledError):
+            self.cf_utils.can_delete_stack("test")
 
-    def test_cf_utils_has_stack_exception_botocore(self):
+    def test_cf_utils_can_delete_stack_exception_botocore(self):
         self.cf_utils._client.describe_stacks = MagicMock(side_effect=BotoCoreError())
-        with self.assertRaises(DeleteFailedError):
-            self.cf_utils.has_stack("test")
+        with self.assertRaises(StackFetchError):
+            self.cf_utils.can_delete_stack("test")
 
     def test_cf_utils_get_stack_template_exception_client_error(self):
         self.cf_utils._client.get_template = MagicMock(
@@ -194,7 +196,7 @@ class TestCfUtils(TestCase):
             return_value={"Stacks": [{"EnableTerminationProtection": False}]}
         )
 
-        result = self.cf_utils.has_stack(MagicMock())
+        result = self.cf_utils.can_delete_stack(MagicMock())
 
         self.assertTrue(result)
 
