@@ -19,6 +19,13 @@ class InvalidResourceLinkingException(UserException):
         UserException.__init__(self, msg)
 
 
+class UnexpectedDestinationResource(InvalidResourceLinkingException):
+    """
+    Exception that will be thrown while doing terraform linking logic in case if the found destination resource is not
+    of the expected type, or the field used for linking is not the expected field.
+    """
+
+
 class ApplyLimitationException(UserException):
     def __init__(self, message):
         fmt = "{message}{line_sep}{line_sep}{apply_work_around}"
@@ -82,6 +89,20 @@ class OneGatewayResourceToRestApiLinkingLimitationException(OneResourceLinkingLi
 class GatewayResourceToGatewayRestApiLocalVariablesLinkingLimitationException(LocalVariablesLinkingLimitationException):
     """
     Exception specific for Gateway Resource linking to Rest API using locals.
+    """
+
+
+class OneGatewayResourceToParentResourceLinkingLimitationException(OneResourceLinkingLimitationException):
+    """
+    Exception specific for Gateway Resource linking to more than one Parent Resources which is either Rest API or
+    Gateway Resource
+    """
+
+
+class GatewayResourceToParentResourceLocalVariablesLinkingLimitationException(LocalVariablesLinkingLimitationException):
+    """
+    Exception specific for Gateway Resource linking to Parent Resources which is either Rest API or Gateway Resource
+    using locals.
     """
 
 
