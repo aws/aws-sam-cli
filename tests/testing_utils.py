@@ -46,6 +46,8 @@ CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".
 
 
 def get_sam_command():
+    if os.getenv("SAM_WINDOWS_BINARY_PATH"):
+        return os.getenv("SAM_WINDOWS_BINARY_PATH")
     return "samdev" if os.getenv("SAM_CLI_DEV") else "sam"
 
 
