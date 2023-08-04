@@ -789,6 +789,7 @@ class ApplicationBuilder:
         if language == "rust" and "Binary" in build_props:
             options = options if options else {}
             options["artifact_executable_name"] = build_props["Binary"]
+        options = options if options else {}
         options["function_name"] = function_name
         return options
 
