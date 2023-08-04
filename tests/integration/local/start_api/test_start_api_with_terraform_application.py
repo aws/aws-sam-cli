@@ -94,6 +94,18 @@ class TerraformStartApiIntegrationApplyBase(TerraformStartApiIntegrationBase):
     not CI_OVERRIDE,
     "Skip Terraform test cases unless running in CI",
 )
+@parameterized_class(
+    [
+        {
+            "terraform_application": "terraform-v1-nested-apis",
+            "testing_urls": ["parent/hello", "parent"],
+        },
+        {
+            "terraform_application": "terraform-v1-api-simple",
+            "testing_urls": ["hello"],
+        },
+    ]
+)
 @pytest.mark.flaky(reruns=3)
 @parameterized_class(
     [
