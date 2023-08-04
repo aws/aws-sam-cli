@@ -1106,7 +1106,7 @@ class TestInvokeContext_setup_log_file(TestCase):
         with patch("samcli.commands.local.cli_common.invoke_context.open", m):
             InvokeContext._setup_log_file(filename)
 
-        m.assert_called_with(filename, "wb")
+        m.assert_called_with(filename, "w", encoding="utf8")
 
 
 class TestInvokeContext_get_debug_context(TestCase):

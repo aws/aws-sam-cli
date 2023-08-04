@@ -7,7 +7,7 @@ import logging
 import os
 from enum import Enum
 from pathlib import Path
-from typing import IO, Any, Dict, List, Optional, Tuple, Type, cast
+from typing import Any, Dict, List, Optional, TextIO, Tuple, Type, cast
 
 from samcli.commands._utils.template import TemplateFailedParsingException, TemplateNotFoundException
 from samcli.commands.exceptions import ContainersInitializationException
@@ -21,6 +21,7 @@ from samcli.lib.utils import osutils
 from samcli.lib.utils.async_utils import AsyncContext
 from samcli.lib.utils.packagetype import ZIP
 from samcli.lib.utils.stream_writer import StreamWriter
+from samcli.local.docker.exceptions import PortAlreadyInUse
 from samcli.local.docker.lambda_image import LambdaImage
 from samcli.local.docker.manager import ContainerManager
 from samcli.local.lambdafn.runtime import LambdaRuntime, WarmLambdaRuntime
@@ -195,7 +196,7 @@ class InvokeContext:
         self._stacks: List[Stack] = None  # type: ignore
         self._env_vars_value: Optional[Dict] = None
         self._container_env_vars_value: Optional[Dict] = None
-        self._log_file_handle: Optional[IO] = None
+        self._log_file_handle: Optional[TextIO] = None
         self._debug_context: Optional[DebugContext] = None
         self._layers_downloader: Optional[LayerDownloader] = None
         self._container_manager: Optional[ContainerManager] = None
@@ -317,6 +318,8 @@ class InvokeContext:
             LOG.debug("Ctrl+C was pressed. Aborting containers initialization")
             self._clean_running_containers_and_related_resources()
             raise
+        except PortAlreadyInUse as port_inuse_ex:
+            raise port_inuse_ex
         except Exception as ex:
             LOG.error("Lambda functions containers initialization failed because of %s", ex)
             self._clean_running_containers_and_related_resources()
@@ -487,7 +490,7 @@ class InvokeContext:
             ) from ex
 
     @staticmethod
-    def _setup_log_file(log_file: Optional[str]) -> Optional[IO]:
+    def _setup_log_file(log_file: Optional[str]) -> Optional[TextIO]:
         """
         Open a log file if necessary and return the file handle. This will create a file if it does not exist
 
@@ -497,7 +500,7 @@ class InvokeContext:
         if not log_file:
             return None
 
-        return open(log_file, "wb")
+        return open(log_file, "w", encoding="utf8")
 
     @staticmethod
     def _get_debug_context(

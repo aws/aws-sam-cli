@@ -1,0 +1,13 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform:
+  - AWS::LanguageExtensions
+  - AWS::Serverless-2016-10-31
+
+Description: "Demonstration of AWS SAM CLI Issue #5254."
+
+Resources:
+
+  TestBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: "aws-sam-cli-issue-5254"
