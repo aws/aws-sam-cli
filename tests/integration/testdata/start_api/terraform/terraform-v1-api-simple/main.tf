@@ -100,7 +100,7 @@ resource "aws_api_gateway_integration" "MyDemoIntegration" {
   type             = "AWS_PROXY"
   content_handling = "CONVERT_TO_TEXT"
   uri              = aws_lambda_function.HelloWorldFunction.invoke_arn
-  integration_http_method = aws_api_gateway_method.GetMethod.http_method
+  integration_http_method = "POST"
 }
 
 resource "aws_api_gateway_integration" "MyDemoIntegrationMock" {
