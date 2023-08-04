@@ -213,6 +213,15 @@ class TestStartApiTerraformApplicationLimitations(TerraformStartApiIntegrationBa
         {
             "terraform_application": "terraform-v2-openapi",
         },
+        {
+            "terraform_application": "terraform-v1-api-simple",
+        },
+        {
+            "terraform_application": "terraform-v2-api-simple",
+        },
+        {
+            "terraform_application": "terraform-v2-api-quick-create",
+        },
     ]
 )
 class TestStartApiTerraformApplicationLimitationsAfterApply(TerraformStartApiIntegrationApplyBase):
