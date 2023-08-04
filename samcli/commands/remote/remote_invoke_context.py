@@ -242,7 +242,7 @@ class DefaultRemoteInvokeResponseConsumer(RemoteInvokeConsumer[RemoteInvokeRespo
     _stream_writer: StreamWriter
 
     def consume(self, remote_invoke_response: RemoteInvokeResponse) -> None:
-        self._stream_writer.write(cast(str, remote_invoke_response.response).encode())
+        self._stream_writer.write_bytes(cast(str, remote_invoke_response.response).encode())
 
 
 @dataclass
@@ -254,4 +254,4 @@ class DefaultRemoteInvokeLogConsumer(RemoteInvokeConsumer[RemoteInvokeLogOutput]
     _stream_writer: StreamWriter
 
     def consume(self, remote_invoke_response: RemoteInvokeLogOutput) -> None:
-        self._stream_writer.write(remote_invoke_response.log_output.encode())
+        self._stream_writer.write_bytes(remote_invoke_response.log_output.encode())
