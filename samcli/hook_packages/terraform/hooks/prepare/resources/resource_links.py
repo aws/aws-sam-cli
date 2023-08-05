@@ -156,11 +156,3 @@ MULTIPLE_DESTINATIONS_RESOURCE_LINKS: List[LinkingMultipleDestinationsOptionsCal
         linking_func=_link_gateway_resources_to_parents,
     ),
 ]
-
-MULTIPLE_DESTINATIONS_RESOURCE_LINKS: List[LinkingMultipleDestinationsOptionsCaller] = [
-    LinkingMultipleDestinationsOptionsCaller(
-        source=TF_AWS_API_GATEWAY_RESOURCE,
-        destinations=[TF_AWS_API_GATEWAY_REST_API, TF_AWS_API_GATEWAY_RESOURCE],
-        linking_func=_link_gateway_resources_to_parents,
-    ),
-]
