@@ -94,18 +94,6 @@ class TerraformStartApiIntegrationApplyBase(TerraformStartApiIntegrationBase):
     not CI_OVERRIDE,
     "Skip Terraform test cases unless running in CI",
 )
-@parameterized_class(
-    [
-        {
-            "terraform_application": "terraform-v1-nested-apis",
-            "testing_urls": ["parent/hello", "parent"],
-        },
-        {
-            "terraform_application": "terraform-v1-api-simple",
-            "testing_urls": ["hello"],
-        },
-    ]
-)
 @pytest.mark.flaky(reruns=3)
 @parameterized_class(
     [
@@ -160,6 +148,21 @@ class TestStartApiTerraformApplication(TerraformStartApiIntegrationBase):
             "terraform_application": "terraform-api-simple-local-variables-limitation",
             "expected_error_message": "Error: AWS SAM CLI could not process a Terraform project that uses local "
             "variables to define linked resources.",
+        },
+        {
+            "terraform_application": "terraform-v2-api-simple-multi-resource-link",
+            "expected_error_message": "Error: AWS SAM CLI could not process a Terraform project that contains a source "
+            "resource that is linked to more than one destination resource.",
+        },
+        {
+            "terraform_application": "terraform-v2-api-simple-local-resource-link",
+            "expected_error_message": "Error: AWS SAM CLI could not process a Terraform project that uses local "
+            "variables to define linked resources.",
+        },
+        {
+            "terraform_application": "terraform-v2-openapi",
+            "expected_error_message": "Error: AWS SAM CLI is unable to process a Terraform project that uses an OpenAPI"
+            " specification to define the API Gateway resource.",
         },
     ]
 )
@@ -217,6 +220,26 @@ class TestStartApiTerraformApplicationLimitations(TerraformStartApiIntegrationBa
         },
         {
             "terraform_application": "terraform-api-simple-local-variables-limitation",
+            "testing_urls": ["hello"],
+        },
+        {
+            "terraform_application": "terraform-v2-api-simple-multi-resource-link",
+            "testing_urls": ["hello"],
+        },
+        {
+            "terraform_application": "terraform-v2-api-simple-local-resource-link",
+            "testing_urls": ["hello"],
+        },
+        {
+            "terraform_application": "terraform-v2-openapi",
+            "testing_urls": ["hello"],
+        },
+        {
+            "terraform_application": "terraform-v2-api-simple",
+            "testing_urls": ["hello"],
+        },
+        {
+            "terraform_application": "terraform-v2-api-quick-create",
             "testing_urls": ["hello"],
         },
     ]

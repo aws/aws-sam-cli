@@ -1,6 +1,10 @@
 provider "aws" {
 }
 
+locals {
+    api_function = aws_lambda_function.HelloWorldFunction.invoke_arn
+}
+
 resource "random_uuid" "unique_id" {
     keepers = {
         my_key = "my_key"
@@ -77,6 +81,6 @@ resource "aws_apigatewayv2_integration" "example" {
   api_id                 = aws_apigatewayv2_api.my_api.id
   integration_type       = "AWS_PROXY"
   integration_method     = "POST"
-  integration_uri        = aws_lambda_function.HelloWorldFunction.invoke_arn
+  integration_uri        = local.api_function
   payload_format_version = "2.0"
 }
