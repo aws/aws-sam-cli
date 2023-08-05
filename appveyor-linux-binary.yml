@@ -72,11 +72,11 @@ install:
   - sh: "PATH=$PATH:$HOME/venv3.7/bin:$HOME/venv3.8/bin:$HOME/venv3.9/bin:$HOME/venv3.10/bin"
 
   # Install pytest
-  - sh: "python3.9 -m venv pytest"
-  - sh: "./pytest/bin/python3 -m pip install -r requirements/pre-dev.txt"
-  - sh: "./pytest/bin/python3 -m pip install -r requirements/dev.txt"
-  - sh: "./pytest/bin/python3 -m pip install -r requirements/base.txt"
-  - sh: "PATH=$(echo $PWD'/pytest/bin'):$PATH"
+  - sh: "python3.9 -m venv $HOME/pytest"
+  - sh: "$HOME/pytest/bin/python3 -m pip install -r requirements/pre-dev.txt"
+  - sh: "$HOME/pytest/bin/python3 -m pip install -r requirements/dev.txt"
+  - sh: "$HOME/pytest/bin/python3 -m pip install -r requirements/base.txt"
+  - sh: "PATH=$HOME/pytest/bin:$PATH"
   - sh: "pytest --version"
 
   # update ca-certificates which causes failures with newest golang library
