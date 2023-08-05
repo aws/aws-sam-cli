@@ -1,7 +1,6 @@
 """
 Delete a SAM stack
 """
-import json
 import logging
 from typing import Optional
 
@@ -132,6 +131,11 @@ class DeleteContext:
         self.uploaders = Uploaders(self.s3_uploader, self.ecr_uploader)
         self.cf_utils = CfnUtils(cloudformation_client)
 
+        # Set region, this is purely for logging purposes
+        # the cloudformation client is able to read from
+        # the configuration file to get the region
+        self.region = self.region or cloudformation_client.meta.config.region_name
+
     def s3_prompts(self):
         """
         Guided prompts asking user to delete s3 artifacts
@@ -218,16 +222,16 @@ class DeleteContext:
         """
         delete_ecr_companion_stack_prompt = self.ecr_companion_stack_prompts()
         if delete_ecr_companion_stack_prompt or self.no_prompts:
-            cf_ecr_companion_stack = self.cf_utils.get_stack_template(self.companion_stack_name, TEMPLATE_STAGE)
-            ecr_stack_template_str = cf_ecr_companion_stack.get("TemplateBody", None)
-            ecr_stack_template_str = json.dumps(ecr_stack_template_str, indent=4, ensure_ascii=False)
+            cf_ecr_companion_stack_template = self.cf_utils.get_stack_template(
+                self.companion_stack_name, TEMPLATE_STAGE
+            )
 
             ecr_companion_stack_template = Template(
                 template_path=None,
                 parent_dir=None,
                 uploaders=self.uploaders,
                 code_signer=None,
-                template_str=ecr_stack_template_str,
+                template_str=cf_ecr_companion_stack_template,
             )
 
             retain_repos = self.ecr_repos_prompts(ecr_companion_stack_template)
@@ -253,20 +257,16 @@ class DeleteContext:
         """
         # Fetch the template using the stack-name
         cf_template = self.cf_utils.get_stack_template(self.stack_name, TEMPLATE_STAGE)
-        template_str = cf_template.get("TemplateBody", None)
-
-        if isinstance(template_str, dict):
-            template_str = json.dumps(template_str, indent=4, ensure_ascii=False)
 
         # Get the cloudformation template name using template_str
-        self.cf_template_file_name = get_uploaded_s3_object_name(file_content=template_str, extension="template")
+        self.cf_template_file_name = get_uploaded_s3_object_name(file_content=cf_template, extension="template")
 
         template = Template(
             template_path=None,
             parent_dir=None,
             uploaders=self.uploaders,
             code_signer=None,
-            template_str=template_str,
+            template_str=cf_template,
         )
 
         # If s3 info is not available, try to obtain it from CF
@@ -286,7 +286,7 @@ class DeleteContext:
         # ECR companion stack delete prompts, if it exists
         companion_stack = CompanionStack(self.stack_name)
 
-        ecr_companion_stack_exists = self.cf_utils.has_stack(stack_name=companion_stack.stack_name)
+        ecr_companion_stack_exists = self.cf_utils.can_delete_stack(stack_name=companion_stack.stack_name)
         if ecr_companion_stack_exists:
             LOG.debug("ECR Companion stack found for the input stack")
             self.companion_stack_name = companion_stack.stack_name
@@ -340,7 +340,7 @@ class DeleteContext:
             )
 
         if self.no_prompts or delete_stack:
-            is_deployed = self.cf_utils.has_stack(stack_name=self.stack_name)
+            is_deployed = self.cf_utils.can_delete_stack(stack_name=self.stack_name)
             # Check if the provided stack-name exists
             if is_deployed:
                 LOG.debug("Input stack is deployed, continue deleting")
