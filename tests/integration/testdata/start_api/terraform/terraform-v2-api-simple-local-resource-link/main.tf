@@ -66,9 +66,15 @@ resource "aws_apigatewayv2_route" "example" {
   depends_on = [aws_apigatewayv2_integration.example]
 }
 
+resource "aws_apigatewayv2_deployment" "example" {
+  api_id      = aws_apigatewayv2_api.my_api.id
+  depends_on = [aws_apigatewayv2_integration.example, aws_apigatewayv2_route.example]
+}
+
 resource "aws_apigatewayv2_stage" "example" {
   api_id          = aws_apigatewayv2_api.my_api.id
-  name            = "example-stage"
+  deployment_id = aws_apigatewayv2_deployment.example.id
+  name            = "example-stage-${random_uuid.unique_id.result}"
 }
 
 resource "aws_apigatewayv2_integration" "example" {

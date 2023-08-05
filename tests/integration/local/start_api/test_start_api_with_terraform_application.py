@@ -224,21 +224,23 @@ class TestStartApiTerraformApplicationLimitations(TerraformStartApiIntegrationBa
         },
         {
             "terraform_application": "terraform-v2-api-simple-multi-resource-link",
+            "testing_urls": ["hello"],
         },
         {
             "terraform_application": "terraform-v2-api-simple-local-resource-link",
+            "testing_urls": ["hello"],
         },
         {
             "terraform_application": "terraform-v2-openapi",
-        },
-        {
-            "terraform_application": "terraform-v1-api-simple",
+            "testing_urls": ["hello"],
         },
         {
             "terraform_application": "terraform-v2-api-simple",
+            "testing_urls": ["hello"],
         },
         {
             "terraform_application": "terraform-v2-api-quick-create",
+            "testing_urls": ["hello"],
         },
     ]
 )
