@@ -1251,9 +1251,16 @@ def _link_gateway_resource_to_gateway_resource_call_back(
         return
 
     logical_id = referenced_gateway_resource_values[0]
-    gateway_resource_cfn_resource["Properties"]["ResourceId"] = (
-        {"Ref": logical_id.value} if isinstance(logical_id, LogicalIdReference) else logical_id.value
-    )
+    if isinstance(logical_id, LogicalIdReference):
+        if logical_id.resource_type == TF_AWS_API_GATEWAY_REST_API:
+            gateway_resource_cfn_resource["Properties"]["ResourceId"] = {
+                "Fn::GetAtt": [logical_id.value, "RootResourceId"]
+            }
+        else:
+            gateway_resource_cfn_resource["Properties"]["ResourceId"] = {"Ref": logical_id.value}
+
+    else:
+        gateway_resource_cfn_resource["Properties"]["ResourceId"] = logical_id.value
 
 
 def _link_gateway_resource_to_parent_resource_call_back(
@@ -1376,7 +1383,7 @@ def _link_gateway_stage_to_rest_api(
 def _link_gateway_method_to_gateway_resource(
     gateway_method_config_resources: Dict[str, TFResource],
     gateway_method_config_address_cfn_resources_map: Dict[str, List],
-    gateway_resources_terraform_resources: Dict[str, Dict],
+    gateway_resources_or_rest_apis_terraform_resources: Dict[str, Dict],
 ):
     """
     Iterate through all the resources and link the corresponding
@@ -1388,8 +1395,8 @@ def _link_gateway_method_to_gateway_resource(
         Dictionary of configuration Gateway Methods
     gateway_method_config_address_cfn_resources_map: Dict[str, List]
         Dictionary containing resolved configuration addresses matched up to the cfn Gateway Stage
-    gateway_resources_terraform_resources: Dict[str, Dict]
-        Dictionary of all actual terraform Rest API resources (not configuration resources).
+    gateway_resources_or_rest_apis_terraform_resources: Dict[str, Dict]
+        Dictionary of all actual terraform Rest API or gateway resource resources (not configuration resources).
         The dictionary's key is the calculated logical id for each resource.
     """
     exceptions = ResourcePairExceptions(
@@ -1399,11 +1406,15 @@ def _link_gateway_method_to_gateway_resource(
     resource_linking_pair = ResourceLinkingPair(
         source_resource_cfn_resource=gateway_method_config_address_cfn_resources_map,
         source_resource_tf_config=gateway_method_config_resources,
-        destination_resource_tf=gateway_resources_terraform_resources,
+        destination_resource_tf=gateway_resources_or_rest_apis_terraform_resources,
         expected_destinations=[
             ResourcePairExceptedDestination(
                 terraform_resource_type_prefix=API_GATEWAY_RESOURCE_RESOURCE_ADDRESS_PREFIX,
                 terraform_attribute_name="id",
+            ),
+            ResourcePairExceptedDestination(
+                terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+                terraform_attribute_name="root_resource_id",
             ),
         ],
         terraform_link_field_name="resource_id",
@@ -1458,7 +1469,7 @@ def _link_gateway_integrations_to_gateway_rest_apis(
 def _link_gateway_integrations_to_gateway_resource(
     gateway_integrations_config_resources: Dict[str, TFResource],
     gateway_integrations_config_address_cfn_resources_map: Dict[str, List],
-    gateway_resources_terraform_resources: Dict[str, Dict],
+    gateway_resources_or_rest_apis_terraform_resources: Dict[str, Dict],
 ):
     """
     Iterate through all the resources and link the corresponding
@@ -1470,9 +1481,9 @@ def _link_gateway_integrations_to_gateway_resource(
         Dictionary of configuration Gateway Integrations
     gateway_integrations_config_address_cfn_resources_map: Dict[str, List]
         Dictionary containing resolved configuration addresses matched up to the cfn Gateway Integration
-    gateway_resources_terraform_resources: Dict[str, Dict]
-        Dictionary of all actual terraform Rest API resources (not configuration resources). The dictionary's key is the
-        calculated logical id for each resource.
+    gateway_resources_or_rest_apis_terraform_resources: Dict[str, Dict]
+        Dictionary of all actual terraform Rest API or gateway resource resources (not configuration resources). The
+        dictionary's key is the calculated logical id for each resource.
     """
 
     exceptions = ResourcePairExceptions(
@@ -1482,11 +1493,15 @@ def _link_gateway_integrations_to_gateway_resource(
     resource_linking_pair = ResourceLinkingPair(
         source_resource_cfn_resource=gateway_integrations_config_address_cfn_resources_map,
         source_resource_tf_config=gateway_integrations_config_resources,
-        destination_resource_tf=gateway_resources_terraform_resources,
+        destination_resource_tf=gateway_resources_or_rest_apis_terraform_resources,
         expected_destinations=[
             ResourcePairExceptedDestination(
                 terraform_resource_type_prefix=API_GATEWAY_RESOURCE_RESOURCE_ADDRESS_PREFIX,
                 terraform_attribute_name="id",
+            ),
+            ResourcePairExceptedDestination(
+                terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+                terraform_attribute_name="root_resource_id",
             ),
         ],
         terraform_link_field_name="resource_id",
@@ -1625,10 +1640,11 @@ def _link_gateway_integration_responses_to_gateway_rest_apis(
 def _link_gateway_integration_responses_to_gateway_resource(
     gateway_integration_responses_config_resources: Dict[str, TFResource],
     gateway_integration_responses_config_address_cfn_resources_map: Dict[str, List],
-    gateway_resources_terraform_resources: Dict[str, Dict],
+    gateway_resources_or_rest_apis_terraform_resources: Dict[str, Dict],
 ):
     """
-    Iterate through all the resources and link the corresponding Gateway Resource resource to each Gateway Integration
+    Iterate through all the resour
+    ces and link the corresponding Gateway Resource resource to each Gateway Integration
     Response resource.
     Parameters
     ----------
@@ -1637,9 +1653,9 @@ def _link_gateway_integration_responses_to_gateway_resource(
     gateway_integration_responses_config_address_cfn_resources_map: Dict[str, List]
         Dictionary containing resolved configuration addresses matched up to the internal mapped cfn Gateway
         Integration Response.
-    gateway_resources_terraform_resources: Dict[str, Dict]
-        Dictionary of all actual terraform Rest API resources (not configuration resources). The dictionary's key is the
-        calculated logical id for each resource.
+    gateway_resources_or_rest_apis_terraform_resources: Dict[str, Dict]
+        Dictionary of all actual terraform Rest API or gateway resource resources (not configuration resources). The
+        dictionary's key is the calculated logical id for each resource.
     """
 
     exceptions = ResourcePairExceptions(
@@ -1649,11 +1665,15 @@ def _link_gateway_integration_responses_to_gateway_resource(
     resource_linking_pair = ResourceLinkingPair(
         source_resource_cfn_resource=gateway_integration_responses_config_address_cfn_resources_map,
         source_resource_tf_config=gateway_integration_responses_config_resources,
-        destination_resource_tf=gateway_resources_terraform_resources,
+        destination_resource_tf=gateway_resources_or_rest_apis_terraform_resources,
         expected_destinations=[
             ResourcePairExceptedDestination(
                 terraform_resource_type_prefix=API_GATEWAY_RESOURCE_RESOURCE_ADDRESS_PREFIX,
                 terraform_attribute_name="id",
+            ),
+            ResourcePairExceptedDestination(
+                terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+                terraform_attribute_name="root_resource_id",
             ),
         ],
         terraform_link_field_name="resource_id",

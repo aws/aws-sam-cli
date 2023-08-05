@@ -63,19 +63,9 @@ RESOURCE_LINKS: List[LinkingPairCaller] = [
         source=TF_AWS_API_GATEWAY_STAGE, dest=TF_AWS_API_GATEWAY_REST_API, linking_func=_link_gateway_stage_to_rest_api
     ),
     LinkingPairCaller(
-        source=TF_AWS_API_GATEWAY_METHOD,
-        dest=TF_AWS_API_GATEWAY_RESOURCE,
-        linking_func=_link_gateway_method_to_gateway_resource,
-    ),
-    LinkingPairCaller(
         source=TF_AWS_API_GATEWAY_INTEGRATION,
         dest=TF_AWS_API_GATEWAY_REST_API,
         linking_func=_link_gateway_integrations_to_gateway_rest_apis,
-    ),
-    LinkingPairCaller(
-        source=TF_AWS_API_GATEWAY_INTEGRATION,
-        dest=TF_AWS_API_GATEWAY_RESOURCE,
-        linking_func=_link_gateway_integrations_to_gateway_resource,
     ),
     LinkingPairCaller(
         source=TF_AWS_API_GATEWAY_INTEGRATION,
@@ -86,11 +76,6 @@ RESOURCE_LINKS: List[LinkingPairCaller] = [
         source=TF_AWS_API_GATEWAY_INTEGRATION_RESPONSE,
         dest=TF_AWS_API_GATEWAY_REST_API,
         linking_func=_link_gateway_integration_responses_to_gateway_rest_apis,
-    ),
-    LinkingPairCaller(
-        source=TF_AWS_API_GATEWAY_INTEGRATION_RESPONSE,
-        dest=TF_AWS_API_GATEWAY_RESOURCE,
-        linking_func=_link_gateway_integration_responses_to_gateway_resource,
     ),
     LinkingPairCaller(
         source=TF_AWS_API_GATEWAY_AUTHORIZER,
@@ -154,5 +139,20 @@ MULTIPLE_DESTINATIONS_RESOURCE_LINKS: List[LinkingMultipleDestinationsOptionsCal
         source=TF_AWS_API_GATEWAY_RESOURCE,
         destinations=[TF_AWS_API_GATEWAY_REST_API, TF_AWS_API_GATEWAY_RESOURCE],
         linking_func=_link_gateway_resources_to_parents,
+    ),
+    LinkingMultipleDestinationsOptionsCaller(
+        source=TF_AWS_API_GATEWAY_METHOD,
+        destinations=[TF_AWS_API_GATEWAY_REST_API, TF_AWS_API_GATEWAY_RESOURCE],
+        linking_func=_link_gateway_method_to_gateway_resource,
+    ),
+    LinkingMultipleDestinationsOptionsCaller(
+        source=TF_AWS_API_GATEWAY_INTEGRATION,
+        destinations=[TF_AWS_API_GATEWAY_REST_API, TF_AWS_API_GATEWAY_RESOURCE],
+        linking_func=_link_gateway_integrations_to_gateway_resource,
+    ),
+    LinkingMultipleDestinationsOptionsCaller(
+        source=TF_AWS_API_GATEWAY_INTEGRATION_RESPONSE,
+        destinations=[TF_AWS_API_GATEWAY_REST_API, TF_AWS_API_GATEWAY_RESOURCE],
+        linking_func=_link_gateway_integration_responses_to_gateway_resource,
     ),
 ]

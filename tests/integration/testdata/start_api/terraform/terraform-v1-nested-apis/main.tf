@@ -124,6 +124,13 @@ resource "aws_api_gateway_integration" "MyDemoIntegration" {
   depends_on = [aws_api_gateway_method.GetMethod]
 }
 
+resource "aws_api_gateway_method_response" "MyDemoIntegration_response_200" {
+  rest_api_id = aws_api_gateway_rest_api.MyDemoAPI.id
+  resource_id = aws_api_gateway_resource.ChildResource.id
+  http_method = aws_api_gateway_method.GetMethod.http_method
+  status_code = "200"
+}
+
 resource "aws_api_gateway_method" "ParentResource_GetMethod" {
   rest_api_id    = aws_api_gateway_rest_api.MyDemoAPI.id
   resource_id    = aws_api_gateway_resource.ParentResource.id
@@ -140,4 +147,36 @@ resource "aws_api_gateway_integration" "ParentResource_GetMethod_Integration" {
   content_handling = "CONVERT_TO_TEXT"
   uri              = aws_lambda_function.HelloWorldFunction.invoke_arn
   depends_on = [aws_api_gateway_method.ParentResource_GetMethod]
+}
+
+resource "aws_api_gateway_method_response" "ParentResource_GetMethod_Integration_response_200" {
+  rest_api_id = aws_api_gateway_rest_api.MyDemoAPI.id
+  resource_id = aws_api_gateway_resource.ParentResource.id
+  http_method = aws_api_gateway_method.ParentResource_GetMethod.http_method
+  status_code = "200"
+}
+
+resource "aws_api_gateway_method" "API_GetMethod" {
+  rest_api_id    = aws_api_gateway_rest_api.MyDemoAPI.id
+  resource_id    = aws_api_gateway_rest_api.MyDemoAPI.root_resource_id
+  http_method    = "GET"
+  authorization  = "NONE"
+}
+
+resource "aws_api_gateway_integration" "API_GetMethod_Integration" {
+  rest_api_id      = aws_api_gateway_rest_api.MyDemoAPI.id
+  resource_id      = aws_api_gateway_rest_api.MyDemoAPI.root_resource_id
+  http_method      = aws_api_gateway_method.ParentResource_GetMethod.http_method
+  integration_http_method = "POST"
+  type             = "AWS_PROXY"
+  content_handling = "CONVERT_TO_TEXT"
+  uri              = aws_lambda_function.HelloWorldFunction.invoke_arn
+  depends_on = [aws_api_gateway_method.ParentResource_GetMethod]
+}
+
+resource "aws_api_gateway_method_response" "API_GetMethod_Integration_response_200" {
+  rest_api_id = aws_api_gateway_rest_api.MyDemoAPI.id
+  resource_id = aws_api_gateway_rest_api.MyDemoAPI.root_resource_id
+  http_method = aws_api_gateway_method.ParentResource_GetMethod.http_method
+  status_code = "200"
 }
