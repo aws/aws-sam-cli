@@ -88,6 +88,12 @@ class LinkingPairCaller(NamedTuple):
     linking_func: Callable[[Dict[str, TFResource], Dict[str, List], Dict[str, Dict]], None]
 
 
+class LinkingMultipleDestinationsOptionsCaller(NamedTuple):
+    source: str
+    destinations: List[str]
+    linking_func: Callable[[Dict[str, TFResource], Dict[str, List], Dict[str, Dict[str, Dict]]], None]
+
+
 class ResourceTranslationValidator:
     """
     Base class for a validation class to be used when translating Terraform resources to a metadata file
