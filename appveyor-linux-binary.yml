@@ -69,15 +69,15 @@ install:
   - sh: "./aws_cli/bin/python -m pip install awscli"
   - sh: "PATH=$(echo $PWD'/aws_cli/bin'):$PATH"
 
+  - sh: "PATH=$PATH:$HOME/venv3.7/bin:$HOME/venv3.8/bin:$HOME/venv3.9/bin:$HOME/venv3.10/bin"
+
   # Install pytest
-  - sh: "virtualenv pytest"
+  - sh: "python3.9 -m venv pytest"
   - sh: "./pytest/bin/python3 -m pip install -r requirements/pre-dev.txt"
   - sh: "./pytest/bin/python3 -m pip install -r requirements/dev.txt"
   - sh: "./pytest/bin/python3 -m pip install -r requirements/base.txt"
   - sh: "PATH=$(echo $PWD'/pytest/bin'):$PATH"
   - sh: "pytest --version"
-  
-  - sh: "PATH=$PATH:$HOME/venv3.7/bin:$HOME/venv3.8/bin:$HOME/venv3.9/bin:$HOME/venv3.10/bin"
 
   # update ca-certificates which causes failures with newest golang library
   - sh: "sudo apt-get install --reinstall ca-certificates"
