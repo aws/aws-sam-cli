@@ -1,8 +1,7 @@
 import json
 
-from hello_world import app
-
 import pytest
+from hello_world import app
 
 
 @pytest.fixture()
