@@ -65,8 +65,7 @@ class LocalApigwService(BaseLocalService):
         static_dir: Optional[str] = None,
         port: Optional[int] = None,
         host: Optional[str] = None,
-        stderr: Optional[StreamWriter] = None,
-        disable_authorizer: Optional[bool] = False
+        stderr: Optional[StreamWriter] = None
     ):
         """
         Creates an ApiGatewayService
@@ -94,7 +93,6 @@ class LocalApigwService(BaseLocalService):
         self.static_dir = static_dir
         self._dict_of_routes: Dict[str, Route] = {}
         self.stderr = stderr
-        self.disable_authorizer = disable_authorizer
 
         self._click_session_id = None
 
@@ -642,7 +640,7 @@ class LocalApigwService(BaseLocalService):
 
         route: Route = self._get_current_route(request)
         cors_headers = Cors.cors_to_headers(self.api.cors)
-        lambda_authorizer = route.authorizer_object if not self.disable_authorizer else None
+        lambda_authorizer = route.authorizer_object
 
         # payloadFormatVersion can only support 2 values: "1.0" and "2.0"
         # so we want to do strict validation to make sure it has proper value if provided

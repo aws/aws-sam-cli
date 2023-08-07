@@ -32,10 +32,9 @@ class LocalApiService:
         self.port = port
         self.host = host
         self.static_dir = static_dir
-        self.disable_authorizer = disable_authorizer
 
         self.cwd = lambda_invoke_context.get_cwd()
-        self.api_provider = ApiProvider(lambda_invoke_context.stacks, cwd=self.cwd)
+        self.api_provider = ApiProvider(lambda_invoke_context.stacks, cwd=self.cwd, disable_authorizer=disable_authorizer)
         self.lambda_runner = lambda_invoke_context.local_lambda_runner
         self.stderr_stream = lambda_invoke_context.stderr
 

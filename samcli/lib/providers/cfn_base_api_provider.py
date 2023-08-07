@@ -29,7 +29,7 @@ MAX_AGE = "MaxAge"
 class CfnBaseApiProvider:
     RESOURCE_TYPE = "Type"
 
-    def extract_resources(self, stacks: List[Stack], collector: ApiCollector, cwd: Optional[str] = None) -> None:
+    def extract_resources(self, stacks: List[Stack], collector: ApiCollector, cwd: Optional[str] = None, disable_authorizer: Optional[bool] = False) -> None:
         """
         Extract the Route Object from a given resource and adds it to the RouteCollector.
 
@@ -54,6 +54,7 @@ class CfnBaseApiProvider:
         collector: ApiCollector,
         cwd: Optional[str] = None,
         event_type: str = Route.API,
+        disable_authorizer: Optional[bool]= False
     ) -> None:
         """
         Parse the Swagger documents and adds it to the ApiCollector.
@@ -81,16 +82,16 @@ class CfnBaseApiProvider:
         swagger = reader.read()
         parser = SwaggerParser(stack_path, swagger)
 
-        authorizers = parser.get_authorizers(event_type)
-        default_authorizer = parser.get_default_authorizer(event_type)
+        if not disable_authorizer:
+            authorizers = parser.get_authorizers(event_type)
+            default_authorizer = parser.get_default_authorizer(event_type)
+            LOG.debug("Found '%s' authorizers in resource '%s'", len(authorizers), logical_id)
+            collector.add_authorizers(logical_id, authorizers)
 
         routes = parser.get_routes(event_type)
-
         LOG.debug("Found '%s' APIs in resource '%s'", len(routes), logical_id)
-        LOG.debug("Found '%s' authorizers in resource '%s'", len(authorizers), logical_id)
 
         collector.add_routes(logical_id, routes)
-        collector.add_authorizers(logical_id, authorizers)
 
         if default_authorizer:
             collector.set_default_authorizer(logical_id, default_authorizer)
