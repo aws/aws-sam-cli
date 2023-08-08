@@ -479,17 +479,12 @@ class TestDelete(DeleteIntegBase):
             s3_bucket=self.bucket_name,
             s3_prefix=self.s3_prefix,
             force_upload=True,
-            no_execute_changeset=False,
-            confirm_changeset=True,
+            no_execute_changeset=True,
             region=self._session.region_name,
         )
 
-        # run deploy command and wait for it to ask about change set
-        deploy_process = start_persistent_process(deploy_command)
-        read_until_string(deploy_process, "Deploy this changeset? [y/N]:")
-
-        # kill the deploy process so that the stack is stuck in REVIEW_IN_PROGRESS
-        kill_process(deploy_process)
+        # run deploy command but don't execute changeset to force it in REVIEW_IN_PROGRESS
+        run_command(deploy_command)
 
         delete_command = self.get_delete_command_list(
             stack_name=stack_name, region=self._session.region_name, no_prompts=True
