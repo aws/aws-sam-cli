@@ -152,6 +152,7 @@ build_script:
   - curl -L https://github.com/aws/aws-sam-cli/releases/download/sam-cli-nightly/aws-sam-cli-linux-x86_64.zip -o aws-sam-cli-linux-x86_64.zip
   - unzip aws-sam-cli-linux-x86_64.zip -d sam-installation
   - sudo ./sam-installation/install
+  # rename `sam-nightly` binary to `sam`
   - sudo mv /usr/local/bin/sam-nightly /usr/local/bin/sam
   - sam --version
 
