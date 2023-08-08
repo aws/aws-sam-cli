@@ -11,6 +11,8 @@ from collections import namedtuple
 from subprocess import Popen, PIPE, TimeoutExpired
 from queue import Queue
 
+from samcli import __version__ as SAM_CLI_VERSION
+
 import shutil
 from uuid import uuid4
 
@@ -44,6 +46,9 @@ CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".
 
 
 def get_sam_command():
+    windows_bin_path = os.getenv("SAM_WINDOWS_BINARY_PATH")
+    if windows_bin_path:
+        return windows_bin_path
     return "samdev" if os.getenv("SAM_CLI_DEV") else "sam"
 
 
@@ -240,6 +245,19 @@ def _get_current_account_id():
     sts = boto3.client("sts")
     account_id = sts.get_caller_identity()["Account"]
     return account_id
+
+
+def strip_nightly_installer_suffix(request: dict, metric_type: str):
+    """
+    If it's a nightly release version, it will have a suffix.
+    We can strip it for the purpose of testing telemetry.
+    """
+    metrics = request.get("data", {}).get("metrics", [])
+    if not metrics:
+        return
+    version = metrics[0].get(metric_type, {}).get("samcliVersion", "")
+    if version:
+        request["data"]["metrics"][0][metric_type]["samcliVersion"] = version[: len(SAM_CLI_VERSION)]
 
 
 class UpdatableSARTemplate:
