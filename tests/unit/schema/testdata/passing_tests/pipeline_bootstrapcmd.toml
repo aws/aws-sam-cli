@@ -1,0 +1,37 @@
+version = 0.1
+
+[default.pipeline_bootstrap.parameters]
+interactive = false
+stage = "Stage"
+pipeline_user = "Pipeline user"
+pipeline_execution_role = "Pipeline execution role"
+cloudformation_execution_role = "Cloudformation execution role"
+bucket = "Bucket"
+create_image_repository = false
+image_repository = "Image repository"
+image_repositories = ["Image", "Repositories"]
+confirm_changeset = false
+permissions_provider = "iam"
+oidc_provider_url = "OIDC Provider URL"
+oidc_client_id = "OIDC Client ID"
+github_org = "Github ORG"
+github_repo = "GitHub Repo"
+deployment_branch = "Deployment branch"
+oidc_provider = "bitbucket-pipelines"
+gitlab_group = "GitLab group"
+gitlab_project = "GitLab project"
+bitbucket_repo_uuid = "BitBucket Repo UUID"
+cicd_provider = "CICD Provider"
+beta_features = false
+debug = false
+profile = "Profile"
+region = "Region"
+
+[other.pipeline_bootstrap.parameters]
+interactive = true
+create_image_repository = true
+confirm_changeset = true
+permissions_provider = "oidc"
+oidc_provider = "gitlab"
+beta_features = true
+debug = true

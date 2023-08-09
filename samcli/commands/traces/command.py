@@ -35,6 +35,13 @@ $ sam traces --tail
     multiple=True,
     help="Fetch specific trace by providing its id",
 )
+@click.option(
+    "--tail",
+    "-t",
+    is_flag=True,
+    help="Tail events. This will ignore the end time argument and continue to fetch events as they "
+    "become available.",
+)
 @common_observability_options
 @cli_framework_options
 @aws_creds_options
@@ -46,9 +53,9 @@ $ sam traces --tail
 def cli(
     ctx,
     trace_id,
+    tail,
     start_time,
     end_time,
-    tail,
     output,
     config_file,
     config_env,
@@ -56,10 +63,10 @@ def cli(
     """
     `sam traces` command entry point
     """
-    do_cli(trace_id, start_time, end_time, tail, output, ctx.region)
+    do_cli(trace_id, tail, start_time, end_time, output, ctx.region)
 
 
-def do_cli(trace_ids, start_time, end_time, tailing, output, region):
+def do_cli(trace_ids, tailing, start_time, end_time, output, region):
     """
     Implementation of the ``cli`` method
     """

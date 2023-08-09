@@ -1,0 +1,4 @@
+version = 0.1
+
+[default.local_invoke.parameters]
+debug_port = "10"

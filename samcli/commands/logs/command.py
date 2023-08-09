@@ -72,6 +72,14 @@ DESCRIPTION = """
     "https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/FilterAndPatternSyntax.html",
 )
 @click.option(
+    "--tail",
+    "-t",
+    is_flag=True,
+    help="Tail events. This will ignore the end time argument and continue to fetch events as they "
+    "become available. If option --tail is provided without a --name, one will be pulled from all "
+    "possible resources",
+)
+@click.option(
     "--include-traces",
     "-i",
     is_flag=True,
