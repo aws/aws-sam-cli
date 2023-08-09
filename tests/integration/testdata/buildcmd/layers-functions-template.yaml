@@ -65,7 +65,6 @@ Resources:
     Metadata:
       BuildMethod: !Ref LayerBuildMethod
 
-
   LayerWithMakefileNoCompatibleRuntimes:
     Type: AWS::Serverless::LayerVersion
     Properties:
