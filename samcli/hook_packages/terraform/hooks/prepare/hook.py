@@ -55,7 +55,7 @@ def prepare(params: dict) -> dict:
         output_dir_path = os.path.normpath(os.path.join(terraform_application_dir, output_dir_path))
         LOG.debug("The normalized OutputDirPath value is %s", output_dir_path)
 
-    skip_prepare_infra = params.get("SkipPrepareInfra")
+    skip_prepare_infra = params.get("SkipPrepareInfra", False)
     metadata_file_path = os.path.join(output_dir_path, TERRAFORM_METADATA_FILE)
 
     plan_file = params.get("PlanFile")
@@ -92,26 +92,7 @@ def prepare(params: dict) -> dict:
             LOG.info("Finished generating metadata file. Storing in %s", metadata_file_path)
             with open(metadata_file_path, "w+") as metadata_file:
                 json.dump(cfn_dict, metadata_file)
-        except CalledProcessError as e:
-            stderr_output = str(e.stderr)
 
-            # stderr can take on bytes or just be a plain string depending on terminal
-            if isinstance(e.stderr, bytes):
-                stderr_output = e.stderr.decode("utf-8")
-
-            # one of the subprocess.run calls resulted in non-zero exit code or some OS error
-            LOG.debug(
-                "Error running terraform command: \n" "cmd: %s \n" "stdout: %s \n" "stderr: %s \n",
-                e.cmd,
-                e.stdout,
-                stderr_output,
-            )
-
-            raise PrepareHookException(
-                f"There was an error while preparing the Terraform application.\n{stderr_output}"
-            ) from e
-        except LoadingPatternError as e:
-            raise PrepareHookException(f"Error occurred when invoking a process: {e}") from e
         except OSError as e:
             raise PrepareHookException(f"OSError: {e}") from e
 
@@ -168,29 +149,51 @@ def _generate_plan_file(skip_prepare_infra: bool, terraform_application_dir: str
         else "Initializing Terraform application"
     )
     LOG.info(log_msg)
-    invoke_subprocess_with_loading_pattern(
-        command_args={
-            "args": ["terraform", "init", "-input=false"],
-            "cwd": terraform_application_dir,
-        }
-    )
-
-    # get json output of terraform plan
-    LOG.info("Creating terraform plan and getting JSON output")
-    with osutils.tempfile_platform_independent() as temp_file:
+    try:
         invoke_subprocess_with_loading_pattern(
-            # input false to avoid SAM CLI to stuck in case if the
-            # Terraform project expects input, and customer does not provide it.
             command_args={
-                "args": ["terraform", "plan", "-out", temp_file.name, "-input=false"],
+                "args": ["terraform", "init", "-input=false"],
                 "cwd": terraform_application_dir,
             }
         )
 
-        result = run(
-            ["terraform", "show", "-json", temp_file.name],
-            check=True,
-            capture_output=True,
-            cwd=terraform_application_dir,
+        # get json output of terraform plan
+        LOG.info("Creating terraform plan and getting JSON output")
+        with osutils.tempfile_platform_independent() as temp_file:
+            invoke_subprocess_with_loading_pattern(
+                # input false to avoid SAM CLI to stuck in case if the
+                # Terraform project expects input, and customer does not provide it.
+                command_args={
+                    "args": ["terraform", "plan", "-out", temp_file.name, "-input=false"],
+                    "cwd": terraform_application_dir,
+                }
+            )
+
+            result = run(
+                ["terraform", "show", "-json", temp_file.name],
+                check=True,
+                capture_output=True,
+                cwd=terraform_application_dir,
+            )
+    except CalledProcessError as e:
+        stderr_output = str(e.stderr)
+
+        # stderr can take on bytes or just be a plain string depending on terminal
+        if isinstance(e.stderr, bytes):
+            stderr_output = e.stderr.decode("utf-8")
+
+        # one of the subprocess.run calls resulted in non-zero exit code or some OS error
+        LOG.debug(
+            "Error running terraform command: \n" "cmd: %s \n" "stdout: %s \n" "stderr: %s \n",
+            e.cmd,
+            e.stdout,
+            stderr_output,
         )
+
+        raise PrepareHookException(
+            f"There was an error while preparing the Terraform application.\n{stderr_output}"
+        ) from e
+    except LoadingPatternError as e:
+        raise PrepareHookException(f"Error occurred when invoking a process: {e}") from e
+
     return dict(json.loads(result.stdout))

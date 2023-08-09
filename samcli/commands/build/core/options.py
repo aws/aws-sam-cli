@@ -37,7 +37,7 @@ ARTIFACT_LOCATION_OPTIONS: List[str] = [
 
 TEMPLATE_OPTIONS: List[str] = ["parameter_overrides"]
 
-HOOK_OPTIONS: List[str] = ["plan_file"]
+TERRAFORM_HOOK_OPTIONS: List[str] = ["terraform_plan_file"]
 
 ALL_OPTIONS: List[str] = (
     REQUIRED_OPTIONS
@@ -49,7 +49,7 @@ ALL_OPTIONS: List[str] = (
     + EXTENSION_OPTIONS
     + CONFIGURATION_OPTION_NAMES
     + ALL_COMMON_OPTIONS
-    + HOOK_OPTIONS
+    + TERRAFORM_HOOK_OPTIONS
 )
 
 OPTIONS_INFO: Dict[str, Dict] = {
@@ -74,6 +74,6 @@ OPTIONS_INFO: Dict[str, Dict] = {
             ),
         ],
     },
-    "Hook Options": {"option_names": {opt: {"rank": idx} for idx, opt in enumerate(HOOK_OPTIONS)}},
+    "Terraform Hook Options": {"option_names": {opt: {"rank": idx} for idx, opt in enumerate(TERRAFORM_HOOK_OPTIONS)}},
 }
 add_common_options_info(OPTIONS_INFO)

@@ -86,7 +86,7 @@ class HookNameOption(click.Option):
             aws_profile = opts.get("profile")
             aws_region = opts.get("region")
             skip_prepare_infra = opts.get("skip_prepare_infra", False)
-            plan_file = opts.get("plan_file")
+            plan_file = opts.get("terraform_plan_file")
 
             metadata_file = iac_hook_wrapper.prepare(
                 output_dir_path, iac_project_path, debug, aws_profile, aws_region, skip_prepare_infra, plan_file

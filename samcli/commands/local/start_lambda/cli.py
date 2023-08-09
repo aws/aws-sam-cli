@@ -14,8 +14,8 @@ from samcli.commands._utils.option_value_processor import process_image_options
 from samcli.commands._utils.options import (
     generate_next_command_recommendation,
     hook_name_click_option,
-    plan_file_option,
     skip_prepare_infra_option,
+    terraform_plan_file_option,
 )
 from samcli.commands.local.cli_common.options import (
     invoke_common_options,
@@ -54,7 +54,7 @@ DESCRIPTION = """
     context_settings={"max_content_width": 120},
 )
 @configuration_option(provider=ConfigProvider(section="parameters"))
-@plan_file_option
+@terraform_plan_file_option
 @hook_name_click_option(
     force_prepare=False, invalid_coexist_options=["t", "template-file", "template", "parameter-overrides"]
 )
@@ -98,7 +98,7 @@ def cli(
     invoke_image,
     hook_name,
     skip_prepare_infra,
-    plan_file,
+    terraform_plan_file,
 ):
     """
     `sam local start-lambda` command entry point

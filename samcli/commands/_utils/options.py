@@ -789,14 +789,16 @@ def use_container_build_option(f):
     return use_container_build_click_option()(f)
 
 
-def plan_file_click_option():
+def terraform_plan_file_click_option():
     return click.option(
-        "--plan-file", type=click.Path(), help="Used for passing a custom plan file when executing the Terraform hook."
+        "--terraform-plan-file",
+        type=click.Path(),
+        help="Used for passing a custom plan file when executing the Terraform hook.",
     )
 
 
-def plan_file_option(f):
-    return plan_file_click_option()(f)
+def terraform_plan_file_option(f):
+    return terraform_plan_file_click_option()(f)
 
 
 def build_image_click_option(cls):

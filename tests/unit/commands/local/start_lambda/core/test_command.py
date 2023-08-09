@@ -32,7 +32,7 @@ class TestLocalStartLambdaCommand(unittest.TestCase):
             MockParams(rv=("--log-file", ""), name="log_file"),
             MockParams(rv=("--beta-features", ""), name="beta_features"),
             MockParams(rv=("--debug", ""), name="debug"),
-            MockParams(rv=("--plan-file", ""), name="plan_file"),
+            MockParams(rv=("--terraform-plan-file", ""), name="terraform_plan_file"),
         ]
 
         cmd = InvokeLambdaCommand(name="local start-api", requires_credentials=False, description=DESCRIPTION)
@@ -43,7 +43,7 @@ class TestLocalStartLambdaCommand(unittest.TestCase):
             "Container Options": [("", ""), ("--port", ""), ("", "")],
             "Description": [(cmd.description + cmd.description_addendum, "")],
             "Examples": [],
-            "Hook Options": [('', ''), ('--plan-file', ''), ('', '')],
+            "Terraform Hook Options": [("", ""), ("--terraform-plan-file", ""), ("", "")],
             "Setup": [("", ""), ("Start the local lambda endpoint.", ""), ("$sam local start-lambda\x1b[0m", "")],
             "Template Options": [("", ""), ("--parameter-overrides", ""), ("", "")],
             "Using AWS CLI": [
