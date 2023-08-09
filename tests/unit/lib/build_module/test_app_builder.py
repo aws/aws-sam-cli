@@ -601,7 +601,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             PathValidator("manifest_name"),
             "provided",
             ARM64,
-            {'build_logical_id': 'layer_name'},
+            {"build_logical_id": "layer_name"},
             None,
             None,
             is_building_layer=True,
