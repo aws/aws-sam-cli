@@ -51,6 +51,7 @@ from samcli.lib.build.exceptions import (
     BuildError,
     BuildInsideContainerError,
     UnsupportedBuilderLibraryVersionError,
+    MissingCompatibleRuntimesException,
 )
 from samcli.lib.build.workflow_config import (
     get_workflow_config,
@@ -61,6 +62,8 @@ from samcli.lib.build.workflow_config import (
 )
 
 LOG = logging.getLogger(__name__)
+
+FIRST_COMPATIBLE_RUNTIME_INDEX = 0
 
 
 class ApplicationBuildResult(NamedTuple):
@@ -546,7 +549,12 @@ class ApplicationBuilder:
                     )
                     # Only set to this value if specified workflow is makefile
                     # which will result in config language as provided
-                    build_runtime = compatible_runtimes[0]
+                    if not compatible_runtimes:
+                        raise MissingCompatibleRuntimesException(
+                            "The 'CompatibleRuntimes' field in the Layer Version configuration is "
+                            "missing and is required for building provided runtimes using a container."
+                        )
+                    build_runtime = compatible_runtimes[FIRST_COMPATIBLE_RUNTIME_INDEX]
                 global_image = self._build_images.get(None)
                 image = self._build_images.get(layer_name, global_image)
                 # pass to container only when specified workflow is supported to overwrite runtime to get image

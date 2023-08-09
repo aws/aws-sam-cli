@@ -42,6 +42,11 @@ class MissingBuildMethodException(BuildError):
         BuildError.__init__(self, "MissingBuildMethodException", msg)
 
 
+class MissingCompatibleRuntimesException(BuildError):
+    def __init__(self, msg: str) -> None:
+        BuildError.__init__(self, "MissingCompatibleRuntimesException", msg)
+
+
 class InvalidBuildGraphException(Exception):
     def __init__(self, msg: str) -> None:
         Exception.__init__(self, msg)
