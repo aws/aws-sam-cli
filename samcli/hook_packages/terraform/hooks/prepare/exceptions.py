@@ -360,6 +360,20 @@ class GatewayV2StageToGatewayV2ApiLocalVariablesLinkingLimitationException(Local
     """
 
 
+class OneGatewayV2RouteToGatewayV2AuthorizerLinkingLimitationException(OneResourceLinkingLimitationException):
+    """
+    Exception specific for Gateway V2 Route linking to more than one Gateway V2 Authorizer
+    """
+
+
+class GatewayV2RouteToGatewayV2AuthorizerLocalVariablesLinkingLimitationException(
+    LocalVariablesLinkingLimitationException
+):
+    """
+    Exception specific for Gateway V2 Route linking to Gateway V2 Authorizer using locals.
+    """
+
+
 class InvalidSamMetadataPropertiesException(UserException):
     pass
 
