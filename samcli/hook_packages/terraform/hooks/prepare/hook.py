@@ -143,7 +143,22 @@ def _update_resources_paths(cfn_resources: Dict[str, Any], terraform_application
                     resource["Properties"][attribute] = str(Path(terraform_application_dir).joinpath(original_path))
 
 
-def _generate_plan_file(skip_prepare_infra, terraform_application_dir) -> dict:
+def _generate_plan_file(skip_prepare_infra: bool, terraform_application_dir: str) -> dict:
+    """
+    Call the relevant Terraform commands to generate, load and return the Terraform plan file
+    which the AWS SAM CLI will then parse to extract the fields required to run local emulators.
+
+    Parameters
+    ----------
+    skip_prepare_infra: bool
+            Flag to skip skip prepare hook if we already have the metadata file. Default is False.
+    terraform_application_dir: str
+            The path where the hook can find the TF application.
+    Returns
+    -------
+    dict
+        The Terraform plan file in JSON format
+    """
     log_msg = (
         (
             "The option to skip infrastructure preparation was provided, but AWS SAM CLI could not find "
