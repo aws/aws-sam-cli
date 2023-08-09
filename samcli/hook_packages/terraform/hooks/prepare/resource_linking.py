@@ -24,6 +24,7 @@ from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     GatewayV2IntegrationToGatewayV2ApiLocalVariablesLinkingLimitationException,
     GatewayV2IntegrationToLambdaFunctionLocalVariablesLinkingLimitationException,
     GatewayV2RouteToGatewayV2ApiLocalVariablesLinkingLimitationException,
+    GatewayV2RouteToGatewayV2AuthorizerLocalVariablesLinkingLimitationException,
     GatewayV2RouteToGatewayV2IntegrationLocalVariablesLinkingLimitationException,
     GatewayV2StageToGatewayV2ApiLocalVariablesLinkingLimitationException,
     InvalidResourceLinkingException,
@@ -43,6 +44,7 @@ from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     OneGatewayV2IntegrationToGatewayV2ApiLinkingLimitationException,
     OneGatewayV2IntegrationToLambdaFunctionLinkingLimitationException,
     OneGatewayV2RouteToGatewayV2ApiLinkingLimitationException,
+    OneGatewayV2RouteToGatewayV2AuthorizerLinkingLimitationException,
     OneGatewayV2RouteToGatewayV2IntegrationLinkingLimitationException,
     OneGatewayV2StageToGatewayV2ApiLinkingLimitationException,
     OneLambdaFunctionResourceToApiGatewayIntegrationLinkingLimitationException,
@@ -77,6 +79,7 @@ API_GATEWAY_RESOURCE_RESOURCE_ADDRESS_PREFIX = "aws_api_gateway_resource."
 API_GATEWAY_AUTHORIZER_RESOURCE_ADDRESS_PREFIX = "aws_api_gateway_authorizer."
 API_GATEWAY_V2_INTEGRATION_RESOURCE_ADDRESS_PREFIX = "aws_apigatewayv2_integration."
 API_GATEWAY_V2_API_RESOURCE_ADDRESS_PREFIX = "aws_apigatewayv2_api."
+API_GATEWAY_V2_AUTHORIZER_RESOURCE_ADDRESS_PREFIX = "aws_apigatewayv2_authorizer."
 TERRAFORM_LOCAL_VARIABLES_ADDRESS_PREFIX = "local."
 DATA_RESOURCE_ADDRESS_PREFIX = "data."
 
@@ -2363,6 +2366,79 @@ def _link_gateway_v2_stage_to_api(
         terraform_link_field_name="api_id",
         cfn_link_field_name="ApiId",
         cfn_resource_update_call_back_function=_link_gateway_v2_resource_to_api_callback,
+        linking_exceptions=exceptions,
+    )
+    ResourceLinker(resource_linking_pair).link_resources()
+
+
+def _link_gateway_v2_route_to_authorizer_callback(
+    gateway_v2_route_cfn_resource: Dict, gateway_v2_authorizer_resources: List[ReferenceType]
+):
+    """
+    Callback function that is used by the linking algorithm to update a CFN V2 Integration Route with
+    a reference to the Gateway V2 Authorizer resource
+
+    Parameters
+    ----------
+    gateway_v2_route_cfn_resource: Dict
+        API Gateway V2 Route CFN resource
+    gateway_v2_authorizer_resources: List[ReferenceType]
+        List of referenced Gateway V2 Authorizers either as the logical id of Apis resources
+        defined in the customer project, or ID values for actual Authorizer defined
+        in customer's account. This list should always contain one element only.
+    """
+    if len(gateway_v2_authorizer_resources) > 1:
+        raise InvalidResourceLinkingException("Could not link multiple Gateway V2 Authorizers to one Gateway V2 Route")
+
+    if not gateway_v2_authorizer_resources:
+        LOG.info(
+            "Unable to find any references to Gateway V2 Authorizers, skip linking Gateway V2 Routes to Gateway V2 "
+            "Authorizers"
+        )
+        return
+
+    logical_id = gateway_v2_authorizer_resources[0]
+    gateway_v2_route_cfn_resource["Properties"]["AuthorizerId"] = (
+        {"Ref": logical_id.value} if isinstance(logical_id, LogicalIdReference) else logical_id.value
+    )
+
+
+def _link_gateway_v2_route_to_authorizer(
+    gateway_route_config_resources: Dict[str, TFResource],
+    gateway_route_config_address_cfn_resources_map: Dict[str, List],
+    authorizer_resources: Dict[str, Dict],
+):
+    """
+    Iterate through all the resources and link the corresponding
+    Gateway V2 Route resources to each Gateway V2 Authorizer
+
+    Parameters
+    ----------
+    gateway_route_config_resources: Dict[str, TFResource]
+        Dictionary of configuration Gateway Routes
+    gateway_route_config_address_cfn_resources_map: Dict[str, List]
+        Dictionary containing resolved configuration addresses matched up to the cfn Gateway Route
+    authorizer_resources: Dict[str, Dict]
+        Dictionary of all Terraform Gateway V2 Authorizer resources (not configuration resources).
+        The dictionary's key is the calculated logical id for each resource.
+    """
+    exceptions = ResourcePairExceptions(
+        multiple_resource_linking_exception=OneGatewayV2RouteToGatewayV2AuthorizerLinkingLimitationException,
+        local_variable_linking_exception=GatewayV2RouteToGatewayV2AuthorizerLocalVariablesLinkingLimitationException,
+    )
+    resource_linking_pair = ResourceLinkingPair(
+        source_resource_cfn_resource=gateway_route_config_address_cfn_resources_map,
+        source_resource_tf_config=gateway_route_config_resources,
+        destination_resource_tf=authorizer_resources,
+        expected_destinations=[
+            ResourcePairExceptedDestination(
+                terraform_resource_type_prefix=API_GATEWAY_V2_AUTHORIZER_RESOURCE_ADDRESS_PREFIX,
+                terraform_attribute_name="id",
+            ),
+        ],
+        terraform_link_field_name="authorizer_id",
+        cfn_link_field_name="AuthorizerId",
+        cfn_resource_update_call_back_function=_link_gateway_v2_route_to_authorizer_callback,
         linking_exceptions=exceptions,
     )
     ResourceLinker(resource_linking_pair).link_resources()
