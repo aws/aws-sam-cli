@@ -1,0 +1,4 @@
+version = 0.1
+
+[default.remote_invoke]
+debug = false

@@ -1,0 +1,17 @@
+version = 0.1
+
+[default.remote_invoke.parameters]
+stack_name = "Stack name"
+event = "Event"
+event_file = "Event file"
+output = "json"
+parameter = ["Parameter", "Parameter2"]
+beta_features = false
+debug = false
+profile = "Profile"
+region = "Region"
+
+[other.remote_invoke.parameters]
+output = "text"
+beta_features = false
+debug = false
