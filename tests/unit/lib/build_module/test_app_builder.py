@@ -572,9 +572,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             is_building_layer=True,
         )
 
-    @parameterized.expand([
-        ([],), (None,)
-    ])
+    @parameterized.expand([([],), (None,)])
     @patch("samcli.lib.build.app_builder.get_workflow_config")
     @patch("samcli.lib.build.app_builder.get_layer_subfolder")
     def test_must_handle_layer_build_compatible_runtimes_missing(
