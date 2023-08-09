@@ -1,0 +1,11 @@
+version = 0.1
+
+[default.pipeline_init.parameters]
+bootstrap = false
+beta_features = false
+debug = false
+
+[other.pipeline_init.parameters]
+bootstrap = true
+beta_features = true
+debug = true

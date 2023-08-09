@@ -1,0 +1,42 @@
+version = 0.1
+
+[default.sync.parameters]
+template_file = "Template file"
+code = false
+watch = false
+resource_id = "Resource ID"
+resource = "AWS::Serverless::Function"
+dependency_layer = false
+skip_deploy_sync = false
+stack_name = "Stack name"
+base_dir = "Base dir"
+use_container = false
+build_image = "Build image"
+image_repository = "Image repository"
+image_repositories = ["Image", "Repositories"]
+s3_bucket = "S3 Bucket"
+s3_prefix = "S3 Prefix"
+kms_key_id = "KMS Key ID"
+role_arn = "Role ARN"
+parameter_overrides = "Parameter overrides"
+beta_features = false
+debug = false
+profile = "Profile"
+region = "Region"
+metadata = "Metadata"
+notification_arns = ["Notification", "ARNS"]
+tags = ["Tags", "More tags"]
+capabilities = ["Some", "Capabilities"]
+
+[other.sync.parameters]
+code = true
+watch = true
+resource = "AWS::Lambda::Function"
+dependency_layer = true
+skip_deploy_sync = true
+use_container = true
+parameter_overrides = ["Parameter", "Overrides"]
+beta_features = true
+debug = true
+notification_arns = "Notification ARNS"
+capabilities = "Capabilities"
