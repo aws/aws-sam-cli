@@ -51,6 +51,7 @@ resource "aws_api_gateway_rest_api" "api" {
         x-amazon-apigateway-authtype = "custom"
         x-amazon-apigateway-authorizer = {
           type = "TOKEN"
+          identityValidationExpression = "^123$"
           authorizerUri = "arn:aws:apigateway:${data.aws_region.current.name}:lambda:path/2015-03-31/functions/${aws_lambda_function.authorizer.arn}/invocations"
         }
       }
