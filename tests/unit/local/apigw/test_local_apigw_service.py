@@ -1868,9 +1868,21 @@ class TestServiceCorsToHeaders(TestCase):
             {"Access-Control-Allow-Origin": "www.domain.com", "Access-Control-Allow-Methods": "GET,POST,OPTIONS"},
         )
 
-    def test_multiple_origins_conversion(self):
-        cors = Cors(allow_origin="https://abc,https://xyz", allow_methods=",".join(["POST", "OPTIONS"]))
+    def test_missing_request_origin(self):
+        cors = Cors(allow_origin="www.domain.com", allow_methods=",".join(["GET", "POST", "OPTIONS"]))
 
+        self.assertEqual(Cors.cors_to_headers(cors, None), {})
+        self.assertEqual(Cors.cors_to_headers(cors, ""), {})
+        self.assertEqual(Cors.cors_to_headers(cors, list()), {})
+
+    def test_missing_config_origin(self):
+        cors = Cors(allow_methods="GET")
+        self.assertEqual(Cors.cors_to_headers(cors, None), {})
+        self.assertEqual(Cors.cors_to_headers(cors, "http://abc"), {})
+
+
+class TestServiceCorsToHeadersMultiOrigin(TestCase):
+    def assert_cors(self, cors):
         headers_abc = Cors.cors_to_headers(cors, "https://abc")
         self.assertEqual(
             {
@@ -1892,12 +1904,13 @@ class TestServiceCorsToHeaders(TestCase):
         headers_unknown = Cors.cors_to_headers(cors, "https://unknown")
         self.assertEqual({}, headers_unknown)
 
-    def test_missing_request_origin(self):
-        cors = Cors(allow_origin="www.domain.com", allow_methods=",".join(["GET", "POST", "OPTIONS"]))
+    def test_multiple_origins_conversion(self):
+        cors = Cors(allow_origin=" https://abc ,https://xyz", allow_methods=",".join(["POST", "OPTIONS"]))
+        self.assert_cors(cors)
 
-        self.assertEqual(Cors.cors_to_headers(cors, None), {})
-        self.assertEqual(Cors.cors_to_headers(cors, ""), {})
-        self.assertEqual(Cors.cors_to_headers(cors, list()), {})
+    def test_multiple_origins_whitespace(self):
+        cors = Cors(allow_origin=" https://abc , https://xyz ", allow_methods=",".join(["POST", "OPTIONS"]))
+        self.assert_cors(cors)
 
 
 class TestRouteEqualsHash(TestCase):
