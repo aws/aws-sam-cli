@@ -6,7 +6,7 @@ import os
 
 import click
 
-from samcli.cli.cli_config_file import TomlProvider, configuration_option
+from samcli.cli.cli_config_file import ConfigProvider, configuration_option
 from samcli.cli.main import aws_creds_options, common_options, pass_context, print_cmdline_args
 from samcli.commands._utils.cdk_support_decorators import unsupported_command_cdk
 from samcli.commands._utils.click_mutex import ClickMutex
@@ -75,7 +75,7 @@ LOG = logging.getLogger(__name__)
     description=DESCRIPTION,
     requires_credentials=True,
 )
-@configuration_option(provider=TomlProvider(section=CONFIG_SECTION))
+@configuration_option(provider=ConfigProvider(section=CONFIG_SECTION))
 @click.option(
     "--guided",
     "-g",
@@ -154,7 +154,7 @@ LOG = logging.getLogger(__name__)
 @capabilities_option
 @aws_creds_options
 @common_options
-@image_repository_validation
+@image_repository_validation()
 @pass_context
 @track_command
 @check_newer_version

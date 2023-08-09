@@ -12,7 +12,7 @@ from samcli.local.docker.lambda_container import LambdaContainer, Runtime
 from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported
 from samcli.local.docker.lambda_image import RAPID_IMAGE_TAG_PREFIX
 
-RUNTIMES_WITH_ENTRYPOINT = [Runtime.dotnetcore31.value, Runtime.dotnet6.value, Runtime.go1x.value]
+RUNTIMES_WITH_ENTRYPOINT = [Runtime.dotnet6.value, Runtime.go1x.value]
 
 RUNTIMES_WITH_BOOTSTRAP_ENTRYPOINT = [
     Runtime.nodejs12x.value,
@@ -23,6 +23,7 @@ RUNTIMES_WITH_BOOTSTRAP_ENTRYPOINT = [
     Runtime.python38.value,
     Runtime.python39.value,
     Runtime.python310.value,
+    Runtime.python311.value,
     Runtime.dotnet6.value,
 ]
 
@@ -31,7 +32,6 @@ RUNTIMES_WITH_DEBUG_ENV_VARS_ONLY = [
     Runtime.java11.value,
     Runtime.java8.value,
     Runtime.java8al2.value,
-    Runtime.dotnetcore31.value,
     Runtime.dotnet6.value,
     Runtime.go1x.value,
 ]

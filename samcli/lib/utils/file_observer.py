@@ -2,6 +2,7 @@
 Wraps watchdog to observe file system for any change.
 """
 import logging
+import platform
 import threading
 import uuid
 from abc import ABC, abstractmethod
@@ -24,6 +25,8 @@ from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.local.lambdafn.config import FunctionConfig
 
 LOG = logging.getLogger(__name__)
+# Windows API error returned when attempting to perform I/O on closed pipe
+BROKEN_PIPE_ERROR = 109
 
 
 class ResourceObserver(ABC):
@@ -243,6 +246,44 @@ class ImageObserverException(ObserverException):
     """
 
 
+def broken_pipe_handler(func: Callable) -> Callable:
+    """
+    Decorator to handle the Windows API BROKEN_PIPE_ERROR error.
+
+    Parameters
+    ----------
+    func: Callable
+        The method to wrap around
+    """
+
+    # NOTE: As of right now, this checks for the Windows API error 109
+    # specifically. This could be abstracted to potentially utilize a
+    # callback method to further customize this.
+
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as exception:
+            # handle a pywintypes exception that gets thrown when trying to exit
+            # from a command that utilizes ImageObserver(s) in
+            # EAGER container mode (start-api, start-lambda)
+
+            # all containers would have been stopped, and deleted, however
+            # the pipes to those containers are still loaded somewhere
+
+            if not platform.system() == "Windows":
+                raise
+
+            win_error = getattr(exception, "winerror", None)
+
+            if not win_error == BROKEN_PIPE_ERROR:
+                raise
+
+            LOG.debug("Handling BROKEN_PIPE_ERROR pywintypes, exception ignored gracefully")
+
+    return wrapper
+
+
 class ImageObserver(ResourceObserver):
     """
     A class that will observe some docker images for any change.
@@ -263,6 +304,7 @@ class ImageObserver(ResourceObserver):
         self._images_observer_thread: Optional[Thread] = None
         self._lock: Lock = threading.Lock()
 
+    @broken_pipe_handler
     def _watch_images_events(self):
         for event in self.events:
             if event.get("Action", None) != "tag":

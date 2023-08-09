@@ -8,7 +8,6 @@ import shutil
 import tempfile
 from pathlib import Path
 from contextlib import contextmanager
-from samcli.lib.config.samconfig import SamConfig, DEFAULT_ENV
 
 from click.testing import CliRunner
 
@@ -16,6 +15,7 @@ from unittest import TestCase
 from unittest.mock import patch, ANY
 import logging
 
+from samcli.lib.config.samconfig import SamConfig, DEFAULT_ENV
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 
 LOG = logging.getLogger()
@@ -457,6 +457,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "localhost",
                 "127.0.0.1",
                 ("image",),
+                None,
             )
 
     @patch("samcli.commands.local.start_lambda.cli.do_cli")
@@ -1006,6 +1007,7 @@ class TestSamConfigForAllCommands(TestCase):
                 {"a": "tag1", "b": "tag with spaces"},
                 {"m1": "value1", "m2": "value2"},
                 True,
+                (),
                 "samconfig.toml",
                 "default",
                 None,

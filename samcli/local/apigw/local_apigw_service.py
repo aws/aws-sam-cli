@@ -4,7 +4,7 @@ import base64
 import json
 import logging
 from datetime import datetime
-from io import BytesIO
+from io import StringIO
 from time import time
 from typing import Any, Dict, List, Optional
 
@@ -605,7 +605,7 @@ class LocalApigwService(BaseLocalService):
         str
             A string containing the output from the Lambda function
         """
-        with BytesIO() as stdout:
+        with StringIO() as stdout:
             event_str = json.dumps(event, sort_keys=True)
             stdout_writer = StreamWriter(stdout, auto_flush=True)
 
@@ -686,7 +686,7 @@ class LocalApigwService(BaseLocalService):
 
             LOG.warning(
                 "Failed to find a Function to invoke a Lambda authorizer, verify that "
-                "this Function exists locally if it is not a remote resource."
+                "this Function is defined and exists locally in the template."
             )
         except Exception as ex:
             # re-raise the catch all exception after we track it in our telemetry

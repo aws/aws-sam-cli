@@ -3,6 +3,7 @@ Generates a Docker Image to be used for invoking a function locally
 """
 import hashlib
 import logging
+import os
 import platform
 import re
 import sys
@@ -39,6 +40,7 @@ class Runtime(Enum):
     python38 = "python3.8"
     python39 = "python3.9"
     python310 = "python3.10"
+    python311 = "python3.11"
     ruby27 = "ruby2.7"
     ruby32 = "ruby3.2"
     java8 = "java8"
@@ -46,7 +48,6 @@ class Runtime(Enum):
     java11 = "java11"
     java17 = "java17"
     go1x = "go1.x"
-    dotnetcore31 = "dotnetcore3.1"
     dotnet6 = "dotnet6"
     provided = "provided"
     providedal2 = "provided.al2"
@@ -86,7 +87,7 @@ class Runtime(Enum):
             # `provided.al2` becomes `provided:al2``
             runtime_image_tag = runtime.replace(".", ":")
         elif runtime.startswith("dotnet"):
-            # dotnetcore3.1 becomes dotnet:core3.1 and dotnet6 becomes dotnet:6
+            # dotnet6 becomes dotnet:6
             runtime_image_tag = runtime.replace("dotnet", "dotnet:")
         else:
             # This fits most runtimes format: `nameN.M` becomes `name:N.M` (python3.9 -> python:3.9)
@@ -227,7 +228,7 @@ class LambdaImage:
             or not runtime
         ):
             stream_writer = stream or StreamWriter(sys.stderr)
-            stream_writer.write("Building image...")
+            stream_writer.write_str("Building image...")
             stream_writer.flush()
             self._build_image(
                 image if image else base_image, rapid_image, downloaded_layers, architecture, stream=stream_writer
@@ -338,15 +339,15 @@ class LambdaImage:
                         platform=get_docker_platform(architecture),
                     )
                     for log in resp_stream:
-                        stream_writer.write(".")
+                        stream_writer.write_str(".")
                         stream_writer.flush()
                         if "error" in log:
-                            stream_writer.write("\n")
+                            stream_writer.write_str(os.linesep)
                             LOG.exception("Failed to build Docker Image")
                             raise ImageBuildException("Error building docker image: {}".format(log["error"]))
-                    stream_writer.write("\n")
+                    stream_writer.write_str(os.linesep)
                 except (docker.errors.BuildError, docker.errors.APIError) as ex:
-                    stream_writer.write("\n")
+                    stream_writer.write_str(os.linesep)
                     LOG.exception("Failed to build Docker Image")
                     raise ImageBuildException("Building Image failed.") from ex
         finally:

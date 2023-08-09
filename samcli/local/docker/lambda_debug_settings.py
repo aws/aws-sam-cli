@@ -93,10 +93,6 @@ class LambdaDebugSettings:
                     **_container_env_vars,
                 },
             ),
-            Runtime.dotnetcore31.value: lambda: DebugSettings(
-                entry + ["/var/runtime/bootstrap"] + debug_args_list,
-                container_env_vars={"_AWS_LAMBDA_DOTNET_DEBUGGING": "1", **_container_env_vars},
-            ),
             Runtime.dotnet6.value: lambda: DebugSettings(
                 entry + ["/var/runtime/bootstrap"] + debug_args_list,
                 container_env_vars={"_AWS_LAMBDA_DOTNET_DEBUGGING": "1", **_container_env_vars},
@@ -181,6 +177,10 @@ class LambdaDebugSettings:
             ),
             Runtime.python310.value: lambda: DebugSettings(
                 entry + ["/var/lang/bin/python3.10"] + debug_args_list + ["/var/runtime/bootstrap.py"],
+                container_env_vars=_container_env_vars,
+            ),
+            Runtime.python311.value: lambda: DebugSettings(
+                entry + ["/var/lang/bin/python3.11"] + debug_args_list + ["/var/runtime/bootstrap.py"],
                 container_env_vars=_container_env_vars,
             ),
         }

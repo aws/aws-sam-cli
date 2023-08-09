@@ -460,7 +460,9 @@ class TestApplicationBuilder_build(TestCase):
         msg = "Function name property Architectures should be a list of length 1"
         self.assertEqual(str(ex.exception), msg)
 
-    @parameterized.expand([("python2.7",), ("python3.6",), ("ruby2.5",), ("nodejs10.x",), ("dotnetcore2.1",)])
+    @parameterized.expand(
+        [("python2.7",), ("python3.6",), ("ruby2.5",), ("nodejs10.x",), ("dotnetcore2.1",), ("dotnetcore3.1",)]
+    )
     def test_deprecated_runtimes(self, runtime):
         with self.assertRaises(UnsupportedRuntimeException):
             self.builder._build_function(
@@ -1508,7 +1510,7 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
                 "DockerBuildArgs": {"a": "b"},
             }
 
-            self.docker_client_mock.api.build.return_value = [{"error": "Function building failed"}]
+            self.docker_client_mock.images.build.return_value = (Mock(), [{"error": "Function building failed"}])
 
             self.builder._build_lambda_image("Name", metadata, X86_64)
 
@@ -1528,7 +1530,7 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
                 "Bad Request", response=response_mock, explanation="Cannot locate specified Dockerfile"
             )
             self.builder._stream_lambda_image_build_logs = error_mock
-            self.docker_client_mock.api.build.return_value = []
+            self.docker_client_mock.images.build.return_value = (Mock(), [])
 
             self.builder._build_lambda_image("Name", metadata, X86_64)
 
@@ -1543,7 +1545,7 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
             error_mock = Mock()
             error_mock.side_effect = docker.errors.APIError("Bad Request", explanation="Some explanation")
             self.builder._stream_lambda_image_build_logs = error_mock
-            self.docker_client_mock.api.build.return_value = []
+            self.docker_client_mock.images.build.return_value = (Mock(), [])
 
             self.builder._build_lambda_image("Name", metadata, X86_64)
 
@@ -1555,7 +1557,7 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
             "DockerBuildArgs": {"a": "b"},
         }
 
-        self.docker_client_mock.api.build.return_value = []
+        self.docker_client_mock.images.build.return_value = (Mock(), [])
 
         result = self.builder._build_lambda_image("Name", metadata, X86_64)
 
@@ -1596,7 +1598,7 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
     def test_can_build_image_function_without_tag(self):
         metadata = {"Dockerfile": "Dockerfile", "DockerContext": "context", "DockerBuildArgs": {"a": "b"}}
 
-        self.docker_client_mock.api.build.return_value = []
+        self.docker_client_mock.images.build.return_value = (Mock(), [])
         result = self.builder._build_lambda_image("Name", metadata, X86_64)
 
         self.assertEqual(result, "name:latest")
@@ -1611,19 +1613,18 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
             "DockerBuildArgs": {"a": "b"},
         }
 
-        self.docker_client_mock.api.build.return_value = []
+        self.docker_client_mock.images.build.return_value = (Mock, [])
 
         result = self.builder._build_lambda_image("Name", metadata, X86_64)
         self.assertEqual(result, "name:Tag-debug")
         self.assertEqual(
-            self.docker_client_mock.api.build.call_args,
+            self.docker_client_mock.images.build.call_args,
             # NOTE (sriram-mv): path set to ANY to handle platform differences.
             call(
                 path=ANY,
                 dockerfile="Dockerfile",
                 tag="name:Tag-debug",
                 buildargs={"a": "b", "SAM_BUILD_MODE": "debug"},
-                decode=True,
                 platform="linux/amd64",
                 rm=True,
             ),
@@ -1640,23 +1641,30 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
             "DockerBuildTarget": "stage",
         }
 
-        self.docker_client_mock.api.build.return_value = []
+        self.docker_client_mock.images.build.return_value = (Mock(), [])
 
         result = self.builder._build_lambda_image("Name", metadata, X86_64)
         self.assertEqual(result, "name:Tag-debug")
         self.assertEqual(
-            self.docker_client_mock.api.build.call_args,
+            self.docker_client_mock.images.build.call_args,
             call(
                 path=ANY,
                 dockerfile="Dockerfile",
                 tag="name:Tag-debug",
                 buildargs={"a": "b", "SAM_BUILD_MODE": "debug"},
-                decode=True,
                 target="stage",
                 platform="linux/amd64",
                 rm=True,
             ),
         )
+
+    def test_can_raise_build_error(self):
+        self.docker_client_mock.images.build.side_effect = docker.errors.BuildError(
+            reason="Missing Dockerfile", build_log="Build failed"
+        )
+
+        with self.assertRaises(DockerBuildFailed):
+            self.builder._build_lambda_image("Name", {}, X86_64)
 
 
 class TestApplicationBuilder_build_function(TestCase):

@@ -3,7 +3,7 @@ CLI command for "package" command
 """
 import click
 
-from samcli.cli.cli_config_file import TomlProvider, configuration_option
+from samcli.cli.cli_config_file import ConfigProvider, configuration_option
 from samcli.cli.main import aws_creds_options, common_options, pass_context, print_cmdline_args
 from samcli.commands._utils.cdk_support_decorators import unsupported_command_cdk
 from samcli.commands._utils.command_exception_handler import command_exception_handler
@@ -21,6 +21,7 @@ from samcli.commands._utils.options import (
     template_click_option,
     use_json_option,
 )
+from samcli.commands.package.core.command import PackageCommand
 from samcli.lib.bootstrap.bootstrap import manage_stack
 from samcli.lib.cli_validation.image_repository_validation import image_repository_validation
 from samcli.lib.telemetry.metric import track_command, track_template_warnings
@@ -42,21 +43,31 @@ def resources_and_properties_help_string():
     )
 
 
-HELP_TEXT = (
-    """The SAM package command creates and uploads artifacts based on the package type of a given resource.
-It uploads local images to ECR for `Image` package types.
-It creates zip of your code and dependencies and uploads it to S3 for other package types.
-The command returns a copy of your template, replacing references to local artifacts
-with the AWS location where the command uploaded the artifacts.
+DESCRIPTION = """
+  Creates and uploads artifacts based on the package type of a given resource.
+  It uploads local images to ECR for `Image` package types.
+  It creates a zip of code and dependencies and uploads it to S3 for `Zip` package types. 
+  
+  A new template is returned which replaces references to local artifacts
+  with the AWS location where the command uploaded the artifacts.
+    """
 
-The following resources and their property locations are supported.
-"""
-    + resources_and_properties_help_string()
+
+@click.command(
+    "package",
+    short_help=SHORT_HELP,
+    context_settings={
+        "ignore_unknown_options": False,
+        "allow_interspersed_args": True,
+        "allow_extra_args": True,
+        "max_content_width": 120,
+    },
+    cls=PackageCommand,
+    help=SHORT_HELP,
+    description=DESCRIPTION,
+    requires_credentials=True,
 )
-
-
-@click.command("package", short_help=SHORT_HELP, help=HELP_TEXT, context_settings=dict(max_content_width=120))
-@configuration_option(provider=TomlProvider(section="parameters"))
+@configuration_option(provider=ConfigProvider(section="parameters"))
 @template_click_option(include_build=True)
 @click.option(
     "--output-template-file",
@@ -79,7 +90,7 @@ The following resources and their property locations are supported.
 @no_progressbar_option
 @common_options
 @aws_creds_options
-@image_repository_validation
+@image_repository_validation(support_resolve_image_repos=False)
 @pass_context
 @track_command
 @check_newer_version

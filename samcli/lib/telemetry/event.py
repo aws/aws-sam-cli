@@ -11,6 +11,7 @@ from uuid import UUID, uuid4
 
 from samcli.cli.context import Context
 from samcli.lib.build.workflows import ALL_CONFIGS
+from samcli.lib.config.file_manager import FILE_MANAGER_MAPPER
 from samcli.lib.telemetry.telemetry import Telemetry
 from samcli.local.common.runtime_template import INIT_RUNTIMES
 
@@ -26,6 +27,7 @@ class EventName(Enum):
     SYNC_FLOW_START = "SyncFlowStart"
     SYNC_FLOW_END = "SyncFlowEnd"
     BUILD_WORKFLOW_USED = "BuildWorkflowUsed"
+    CONFIG_FILE_EXTENSION = "SamConfigFileExtension"
 
 
 class UsedFeature(Enum):
@@ -69,6 +71,7 @@ class EventType:
         EventName.SYNC_FLOW_START: _SYNC_FLOWS,
         EventName.SYNC_FLOW_END: _SYNC_FLOWS,
         EventName.BUILD_WORKFLOW_USED: _WORKFLOWS,
+        EventName.CONFIG_FILE_EXTENSION: list(FILE_MANAGER_MAPPER.keys()),
     }
 
     @staticmethod

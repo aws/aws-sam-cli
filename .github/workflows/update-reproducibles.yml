@@ -1,0 +1,42 @@
+name: Update reproducible requirements
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - requirements/base.txt # run this GHA only if requirements file is changed
+
+jobs:
+  update-reqs:
+    permissions:
+      pull-requests: write
+      contents: write
+    if: github.repository_owner == 'aws'
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python: 3.11
+            target: update-reproducible-linux-reqs
+          - os: macos-latest
+            python: 3.8
+            target: update-reproducible-mac-reqs
+          - os: windows-latest
+            python: 3.8
+            target: update-reproducible-win-reqs
+      max-parallel: 1
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.head_ref }}
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+      - run: make ${{ matrix.target }}
+      - name: Push changes
+        run: |
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Action"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+          git commit -am "Update reproducibles: ${{ matrix.target }}" || echo "nothing to commit"
+          git push

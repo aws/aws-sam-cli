@@ -5,7 +5,7 @@ import logging
 
 import click
 
-from samcli.cli.cli_config_file import TomlProvider, configuration_option
+from samcli.cli.cli_config_file import ConfigProvider, configuration_option
 from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
 from samcli.cli.main import common_options as cli_framework_options
 from samcli.commands._utils.command_exception_handler import command_exception_handler
@@ -28,12 +28,19 @@ $ sam traces --tail
 
 
 @click.command("traces", help=HELP_TEXT, short_help="Fetch AWS X-Ray traces")
-@configuration_option(provider=TomlProvider(section="parameters"))
+@configuration_option(provider=ConfigProvider(section="parameters"))
 @click.option(
     "--trace-id",
     "-ti",
     multiple=True,
     help="Fetch specific trace by providing its id",
+)
+@click.option(
+    "--tail",
+    "-t",
+    is_flag=True,
+    help="Tail events. This will ignore the end time argument and continue to fetch events as they "
+    "become available.",
 )
 @common_observability_options
 @cli_framework_options
@@ -46,9 +53,9 @@ $ sam traces --tail
 def cli(
     ctx,
     trace_id,
+    tail,
     start_time,
     end_time,
-    tail,
     output,
     config_file,
     config_env,
@@ -56,10 +63,10 @@ def cli(
     """
     `sam traces` command entry point
     """
-    do_cli(trace_id, start_time, end_time, tail, output, ctx.region)
+    do_cli(trace_id, tail, start_time, end_time, output, ctx.region)
 
 
-def do_cli(trace_ids, start_time, end_time, tailing, output, region):
+def do_cli(trace_ids, tailing, start_time, end_time, output, region):
     """
     Implementation of the ``cli`` method
     """

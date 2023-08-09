@@ -326,7 +326,7 @@ def no_progressbar_click_option():
         default=False,
         required=False,
         is_flag=True,
-        help="Does not showcase a progress bar when uploading artifacts to s3 and pushing docker images to ECR",
+        help="Does not showcase a progress bar when uploading artifacts to S3 and pushing docker images to ECR",
     )
 
 
@@ -366,13 +366,6 @@ def common_observability_click_options():
             default=None,
             help="Fetch events up to this time. Time can be relative values like '5mins ago', 'tomorrow' or "
             "formatted timestamp like '2018-01-01 10:10:10'",
-        ),
-        click.option(
-            "--tail",
-            "-t",
-            is_flag=True,
-            help="Tail events. This will ignore the end time argument and continue to fetch events as they "
-            "become available. If option --tail without a --name will pull from all possible resources",
         ),
         click.option(
             "--output",
@@ -679,9 +672,9 @@ def resolve_s3_click_option(guided):
         required=False,
         is_flag=True,
         callback=callback,
-        help="Automatically resolve s3 bucket for non-guided deployments. "
-        "Enabling this option will also create a managed default s3 bucket for you. "
-        "If you do not provide a --s3-bucket value, the managed bucket will be used. "
+        help="Automatically resolve AWS S3 bucket for non-guided deployments. "
+        "Enabling this option will also create a managed default AWS S3 bucket for you. "
+        "If one does not provide a --s3-bucket value, the managed bucket will be used. "
         "Do not use --guided with this option.",
     )
 
@@ -796,6 +789,29 @@ def use_container_build_option(f):
     return use_container_build_click_option()(f)
 
 
+def build_image_click_option(cls):
+    return click.option(
+        "--build-image",
+        "-bi",
+        default=None,
+        multiple=True,  # Can pass in multiple build images
+        required=False,
+        help="Container image URIs for building functions/layers. "
+        "You can specify for all functions/layers with just the image URI "
+        "(--build-image public.ecr.aws/sam/build-nodejs18.x:latest). "
+        "You can specify for each individual function with "
+        "(--build-image FunctionLogicalID=public.ecr.aws/sam/build-nodejs18.x:latest). "
+        "A combination of the two can be used. If a function does not have build image specified or "
+        "an image URI for all functions, the default SAM CLI build images will be used.",
+        cls=cls,
+    )
+
+
+@parameterized_option
+def build_image_option(f, cls):
+    return build_image_click_option(cls)(f)
+
+
 def _space_separated_list_func_type(value):
     if isinstance(value, str):
         return value.split(" ")
@@ -804,7 +820,7 @@ def _space_separated_list_func_type(value):
     raise ValueError()
 
 
-_space_separated_list_func_type.__name__ = "LIST"
+_space_separated_list_func_type.__name__ = "list,string"
 
 
 def generate_next_command_recommendation(command_tuples: List[Tuple[str, str]]) -> str:

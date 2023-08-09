@@ -50,7 +50,7 @@ class TestTracesCommand(TestCase):
         given_puller = Mock()
         patched_generate_puller.return_value = given_puller
 
-        do_cli(trace_ids, start_time, end_time, tail, output, self.region)
+        do_cli(trace_ids, tail, start_time, end_time, output, self.region)
 
         patched_parse_time.assert_has_calls(
             [

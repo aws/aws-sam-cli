@@ -13,3 +13,13 @@ CFN_CODE_PROPERTIES = {
     CFN_AWS_LAMBDA_LAYER_VERSION: "Content",
 }
 COMPILED_REGULAR_EXPRESSION = re.compile(r"\[[^\[\]]*\]")
+REMOTE_DUMMY_VALUE = "<<REMOTE DUMMY VALUE - RAISE ERROR IF IT IS STILL THERE>>"
+TF_AWS_LAMBDA_FUNCTION = "aws_lambda_function"
+TF_AWS_LAMBDA_LAYER_VERSION = "aws_lambda_layer_version"
+TF_AWS_API_GATEWAY_RESOURCE = "aws_api_gateway_resource"
+TF_AWS_API_GATEWAY_REST_API = "aws_api_gateway_rest_api"
+TF_AWS_API_GATEWAY_STAGE = "aws_api_gateway_stage"
+TF_AWS_API_GATEWAY_METHOD = "aws_api_gateway_method"
+TF_AWS_API_GATEWAY_INTEGRATION = "aws_api_gateway_integration"
+TF_AWS_API_GATEWAY_AUTHORIZER = "aws_api_gateway_authorizer"
+TF_AWS_API_GATEWAY_INTEGRATION_RESPONSE = "aws_api_gateway_method_response"

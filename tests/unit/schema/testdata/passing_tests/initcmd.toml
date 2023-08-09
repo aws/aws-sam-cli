@@ -1,0 +1,37 @@
+version = 0.1
+
+[default.init.parameters]
+no_interactive = false
+architecture = "arm64"
+location = "Location"
+runtime = "python3.11"
+package_type = "Image"
+base_image = "amazon/python3.11-base"
+dependency_manager = "pip"
+output_dir = "Output dir"
+name = "Name"
+app_template = "App template"
+no_input = false
+extra_context = "Extra context"
+tracing = false
+application_insights = false
+beta_features = false
+debug = false
+
+[other.init.parameters]
+no_interactive = true
+architecture = "x86_64"
+runtime = "java11"
+package_type = "Zip"
+base_image = "amazon/java11-base"
+dependency_manager = "gradle"
+no_input = true
+tracing = true
+application_insights = true
+beta_features = true
+debug = true
+
+[onemore.init.parameters]
+runtime = "ruby3.2"
+base_image = "amazon/ruby3.2-base"
+dependency_manager = "bundler"
