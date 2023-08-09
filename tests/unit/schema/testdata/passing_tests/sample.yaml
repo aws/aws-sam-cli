@@ -1,0 +1,26 @@
+version: 0.1
+
+default:
+  global:
+    parameters:
+      stack_name: sam-app
+  build:
+    parameters:
+      cached: true
+      parallel: true
+  deploy:
+    parameters:
+      capabilities: CAPABILITY_IAM
+      confirm_changeset: true
+      resolve_s3: true
+  sync:
+    parameters:
+      watch: true
+  local_start_api:
+    parameters:
+      warm_containers: EAGER
+
+prod:
+  sync:
+    parameters:
+      watch: false

@@ -1,0 +1,39 @@
+version = 0.1
+
+[default.local_invoke.parameters]
+hook_name = "Hook name"
+skip_prepare_infra = false
+event = "Event"
+no_event = false
+template_file = "Template file"
+env_vars = "Env vars"
+parameter_overrides = "Parameter overrides"
+debug_port = 10
+debugger_path = "Debugger path"
+debug_args = "Debug args"
+container_env_vars = "Container env vars"
+docker_volume_basedir = "Docker volume basedir"
+log_file = "Log file"
+layer_cache_basedir = "Layer cache basedir"
+skip_pull_image = false
+docker_network = "Docker network"
+force_image_build = false
+shutdown = false
+container_host = "Container host"
+container_host_interface = "Container host interface"
+invoke_image = "Invoke image"
+beta_features = false
+debug = false
+profile = "Profile"
+region = "Region"
+
+[other.local_invoke.parameters]
+skip_prepare_infra = true
+no_event = true
+parameter_overrides = ["Parameter", "Overrides"]
+debug_port = 20
+skip_pull_image = true
+force_image_build = true
+shutdown = true
+beta_features = true
+debug = true
