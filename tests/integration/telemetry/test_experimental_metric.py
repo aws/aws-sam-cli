@@ -7,6 +7,7 @@ from unittest.mock import ANY
 
 from .integ_base import IntegBase, TelemetryServer
 from samcli import __version__ as SAM_CLI_VERSION
+from ...testing_utils import strip_nightly_installer_suffix
 
 
 class TestExperimentalMetric(IntegBase):
@@ -162,6 +163,7 @@ class TestExperimentalMetric(IntegBase):
             for req in all_requests:
                 if "commandRun" in req["data"]["metrics"][0]:
                     request = req  # We're only testing the commandRun metric
+            strip_nightly_installer_suffix(request, "commandRun")
             self.assertIn("Content-Type", request["headers"])
             self.assertEqual(request["headers"]["Content-Type"], "application/json")
 
@@ -216,6 +218,7 @@ class TestExperimentalMetric(IntegBase):
             # commandRun metric will be first or second, so we sort for consistency.
             all_requests.sort(key=lambda x: list(x["data"]["metrics"][0].keys())[0])
             request = all_requests[0]  # "commandRun" comes before "events"
+            strip_nightly_installer_suffix(request, "commandRun")
             self.assertIn("Content-Type", request["headers"])
             self.assertEqual(request["headers"]["Content-Type"], "application/json")
 

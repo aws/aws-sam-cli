@@ -2,8 +2,8 @@
 Client for uploading packaged artifacts to ecr
 """
 import base64
-import io
 import logging
+from io import StringIO
 from typing import Dict
 
 import botocore
@@ -94,7 +94,7 @@ class ECRUploader:
             else:
                 # we need to wait till the image got pushed to ecr, without this workaround sam sync for template
                 # contains image always fail, because the provided ecr uri is not exist.
-                _log_streamer = LogStreamer(stream=StreamWriter(stream=io.BytesIO(), auto_flush=True))
+                _log_streamer = LogStreamer(stream=StreamWriter(stream=StringIO(), auto_flush=True))
                 _log_streamer.stream_progress(push_logs)
 
         except (BuildError, APIError, LogStreamError) as ex:

@@ -1,0 +1,23 @@
+version = 0.1
+
+[default.logs.parameters]
+name = "Name"
+stack_name = "Stack name"
+filter = "Filter"
+tail = false
+include_traces = false
+cw_log_group = "CW Log Group"
+output = "json"
+end_time = "End time"
+start_time = "Start time"
+beta_features = false
+debug = false
+profile = "Profile"
+region = "Region"
+
+[other.logs.parameters]
+tail = true
+include_traces = true
+output = "text"
+beta_features = true
+debug = true

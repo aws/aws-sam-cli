@@ -8,10 +8,14 @@ from botocore.exceptions import ClientError
 from parameterized import parameterized
 
 from tests.integration.delete.delete_integ_base import DeleteIntegBase
-from tests.integration.deploy.deploy_integ_base import DeployIntegBase
-from tests.integration.package.package_integ_base import PackageIntegBase
 from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY, CommandResult
-from tests.testing_utils import run_command, run_command_with_input
+from tests.testing_utils import (
+    run_command,
+    run_command_with_input,
+    start_persistent_process,
+    read_until_string,
+    kill_process,
+)
 
 # Delete tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
 # This is to restrict package tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary
@@ -78,10 +82,7 @@ class TestDelete(DeleteIntegBase):
         self.validate_delete_process(delete_process_execute)
 
         # Check if the stack was deleted
-        try:
-            _ = self.cf_client.describe_stacks(StackName=stack_name)
-        except ClientError as ex:
-            self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
+        self._validate_stack_deleted(stack_name=stack_name)
 
         # Check for zero objects in bucket
         s3_objects_resp = self.s3_client.list_objects_v2(Bucket=self.bucket_name, Prefix=self.s3_prefix)
@@ -138,11 +139,7 @@ class TestDelete(DeleteIntegBase):
 
         delete_process_execute = run_command(delete_command_list)
         self.validate_delete_process(delete_process_execute)
-
-        try:
-            _ = self.cf_client.describe_stacks(StackName=stack_name)
-        except ClientError as ex:
-            self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
+        self._validate_stack_deleted(stack_name=stack_name)
 
         # Remove the local config file created
         if os.path.isfile(config_file_path):
@@ -173,11 +170,7 @@ class TestDelete(DeleteIntegBase):
 
         delete_process_execute = run_command(delete_command_list)
         self.validate_delete_process(delete_process_execute)
-
-        try:
-            _ = self.cf_client.describe_stacks(StackName=stack_name)
-        except ClientError as ex:
-            self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
+        self._validate_stack_deleted(stack_name=stack_name)
 
         # Remove the local config file created
         if os.path.isfile(config_file_path):
@@ -204,11 +197,7 @@ class TestDelete(DeleteIntegBase):
         delete_process_execute = run_command_with_input(delete_command_list, "y\nn\ny\n".encode())
 
         self.validate_delete_process(delete_process_execute)
-
-        try:
-            _ = self.cf_client.describe_stacks(StackName=stack_name)
-        except ClientError as ex:
-            self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
+        self._validate_stack_deleted(stack_name=stack_name)
 
         # Remove the local config file created
         if os.path.isfile(config_file_path):
@@ -232,11 +221,7 @@ class TestDelete(DeleteIntegBase):
         )
         delete_process_execute = run_command(delete_command_list)
         self.validate_delete_process(delete_process_execute)
-
-        try:
-            _ = self.cf_client.describe_stacks(StackName=stack_name)
-        except ClientError as ex:
-            self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
+        self._validate_stack_deleted(stack_name=stack_name)
 
     @parameterized.expand(
         [
@@ -270,11 +255,7 @@ class TestDelete(DeleteIntegBase):
         )
         delete_process_execute = run_command(delete_command_list)
         self.validate_delete_process(delete_process_execute)
-
-        try:
-            _ = self.cf_client.describe_stacks(StackName=stack_name)
-        except ClientError as ex:
-            self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
+        self._validate_stack_deleted(stack_name=stack_name)
 
     @parameterized.expand(
         [
@@ -310,11 +291,7 @@ class TestDelete(DeleteIntegBase):
         )
         delete_process_execute = run_command(delete_command_list)
         self.validate_delete_process(delete_process_execute)
-
-        try:
-            _ = self.cf_client.describe_stacks(StackName=stack_name)
-        except ClientError as ex:
-            self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
+        self._validate_stack_deleted(stack_name=stack_name)
 
     @parameterized.expand(
         [os.path.join("deep-nested", "template.yaml"), os.path.join("deep-nested-image", "template.yaml")]
@@ -349,11 +326,7 @@ class TestDelete(DeleteIntegBase):
         )
         delete_process_execute = run_command(delete_command_list)
         self.validate_delete_process(delete_process_execute)
-
-        try:
-            _ = self.cf_client.describe_stacks(StackName=stack_name)
-        except ClientError as ex:
-            self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
+        self._validate_stack_deleted(stack_name=stack_name)
 
     def test_delete_stack_termination_protection_enabled(self):
         template_str = """
@@ -389,11 +362,7 @@ class TestDelete(DeleteIntegBase):
 
         delete_process_execute = run_command(delete_command_list)
         self.validate_delete_process(delete_process_execute)
-
-        try:
-            _ = self.cf_client.describe_stacks(StackName=stack_name)
-        except ClientError as ex:
-            self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
+        self._validate_stack_deleted(stack_name=stack_name)
 
     def test_no_prompts_no_stack_name(self):
         delete_command_list = self.get_delete_command_list(no_prompts=True)
@@ -430,11 +399,7 @@ class TestDelete(DeleteIntegBase):
         delete_process_execute = run_command_with_input(delete_command_list, "y\ny\ny\n".encode())
 
         self.validate_delete_process(delete_process_execute)
-
-        try:
-            _ = self.cf_client.describe_stacks(StackName=stack_name)
-        except ClientError as ex:
-            self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
+        self._validate_stack_deleted(stack_name=stack_name)
 
     @parameterized.expand(
         [
@@ -469,11 +434,7 @@ class TestDelete(DeleteIntegBase):
         delete_command_list = self.get_delete_command_list(stack_name=stack_name, region=self._session.region_name)
         delete_process_execute = run_command_with_input(delete_command_list, "y\n".encode())
         self.validate_delete_process(delete_process_execute)
-
-        try:
-            _ = self.cf_client.describe_stacks(StackName=stack_name)
-        except ClientError as ex:
-            self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
+        self._validate_stack_deleted(stack_name=stack_name)
 
     @parameterized.expand(
         [
@@ -507,14 +468,49 @@ class TestDelete(DeleteIntegBase):
 
         self.validate_delete_process(delete_process_execute)
 
-        try:
-            resp = self.cf_client.describe_stacks(StackName=stack_name)
-        except ClientError as ex:
-            self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
+    def test_delete_stack_review_in_progress(self):
+        template_path = self.test_data_path.joinpath("aws-serverless-function.yaml")
+        stack_name = self._method_to_stack_name(self.id())
+
+        deploy_command = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_bucket=self.bucket_name,
+            s3_prefix=self.s3_prefix,
+            force_upload=True,
+            no_execute_changeset=True,
+            region=self._session.region_name,
+        )
+
+        # run deploy command but don't execute changeset to force it in REVIEW_IN_PROGRESS
+        run_command(deploy_command)
+
+        delete_command = self.get_delete_command_list(
+            stack_name=stack_name, region=self._session.region_name, no_prompts=True
+        )
+        delete_result = run_command(delete_command)
+
+        self.validate_delete_process(delete_result)
+        self._validate_stack_deleted(stack_name=stack_name)
 
     def validate_delete_process(self, command_result: CommandResult):
         self.assertEqual(command_result.process.returncode, 0)
         self.assertNotIn(b"Could not find and delete the S3 object with the key", command_result.stderr)
+
+    def _validate_stack_deleted(self, stack_name: str) -> None:
+        """
+        Validates that the stack is deleted from Cloudformation
+
+        Parameters
+        ----------
+        stack_name: str
+            The name of the stack to check if it exists in Cloudformation
+        """
+        try:
+            self.cf_client.describe_stacks(StackName=stack_name)
+        except ClientError as ex:
+            self.assertIn(f"Stack with id {stack_name} does not exist", str(ex))
 
     # TODO: Add 3 more tests after Auto ECR is merged to develop
     # 1. Create a stack using guided deploy of type image and delete
