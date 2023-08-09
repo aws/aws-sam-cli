@@ -63,47 +63,14 @@ def prepare(params: dict) -> dict:
     if skip_prepare_infra and os.path.exists(metadata_file_path):
         LOG.info("Skipping preparation stage, the metadata file already exists at %s", metadata_file_path)
     else:
-        log_msg = (
-            (
-                "The option to skip infrastructure preparation was provided, but AWS SAM CLI could not find "
-                f"the metadata file. Preparing anyways.{os.linesep}Initializing Terraform application"
-            )
-            if skip_prepare_infra
-            else "Initializing Terraform application"
-        )
+
         try:
             # initialize terraform application
             if not plan_file:
-                LOG.info(log_msg)
-                invoke_subprocess_with_loading_pattern(
-                    command_args={
-                        "args": ["terraform", "init", "-input=false"],
-                        "cwd": terraform_application_dir,
-                    }
-                )
-
-                # get json output of terraform plan
-                LOG.info("Creating terraform plan and getting JSON output")
-                with osutils.tempfile_platform_independent() as temp_file:
-                    invoke_subprocess_with_loading_pattern(
-                        # input false to avoid SAM CLI to stuck in case if the
-                        # Terraform project expects input, and customer does not provide it.
-                        command_args={
-                            "args": ["terraform", "plan", "-out", temp_file.name, "-input=false"],
-                            "cwd": terraform_application_dir,
-                        }
-                    )
-
-                    result = run(
-                        ["terraform", "show", "-json", temp_file.name],
-                        check=True,
-                        capture_output=True,
-                        cwd=terraform_application_dir,
-                    )
-                tf_json = json.loads(result.stdout)
+                tf_json = _generate_plan_file(skip_prepare_infra, terraform_application_dir)
             else:
                 LOG.info(f"Using provided plan file: {plan_file}")
-                with open(plan_file, 'r') as f:
+                with open(plan_file, "r") as f:
                     tf_json = json.load(f)
 
             # convert terraform to cloudformation
@@ -174,3 +141,41 @@ def _update_resources_paths(cfn_resources: Dict[str, Any], terraform_application
                 original_path = resource.get("Properties", {}).get(attribute)
                 if isinstance(original_path, str) and not os.path.isabs(original_path):
                     resource["Properties"][attribute] = str(Path(terraform_application_dir).joinpath(original_path))
+
+
+def _generate_plan_file(skip_prepare_infra, terraform_application_dir) -> dict:
+    log_msg = (
+        (
+            "The option to skip infrastructure preparation was provided, but AWS SAM CLI could not find "
+            f"the metadata file. Preparing anyways.{os.linesep}Initializing Terraform application"
+        )
+        if skip_prepare_infra
+        else "Initializing Terraform application"
+    )
+    LOG.info(log_msg)
+    invoke_subprocess_with_loading_pattern(
+        command_args={
+            "args": ["terraform", "init", "-input=false"],
+            "cwd": terraform_application_dir,
+        }
+    )
+
+    # get json output of terraform plan
+    LOG.info("Creating terraform plan and getting JSON output")
+    with osutils.tempfile_platform_independent() as temp_file:
+        invoke_subprocess_with_loading_pattern(
+            # input false to avoid SAM CLI to stuck in case if the
+            # Terraform project expects input, and customer does not provide it.
+            command_args={
+                "args": ["terraform", "plan", "-out", temp_file.name, "-input=false"],
+                "cwd": terraform_application_dir,
+            }
+        )
+
+        result = run(
+            ["terraform", "show", "-json", temp_file.name],
+            check=True,
+            capture_output=True,
+            cwd=terraform_application_dir,
+        )
+    return dict(json.loads(result.stdout))

@@ -22,6 +22,7 @@ from samcli.commands._utils.options import (
     use_container_build_option,
     build_image_option,
     hook_name_click_option,
+    plan_file_option,
 )
 from samcli.commands._utils.option_value_processor import process_env_var, process_image_options
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
@@ -70,6 +71,7 @@ DESCRIPTION = """
     context_settings={"max_content_width": 120},
 )
 @configuration_option(provider=ConfigProvider(section="parameters"))
+@plan_file_option
 @hook_name_click_option(
     force_prepare=True,
     invalid_coexist_options=["t", "template-file", "template", "parameter-overrides"],
@@ -155,6 +157,7 @@ def cli(
     hook_name: Optional[str],
     skip_prepare_infra: bool,
     mount_with,
+    plan_file,
 ) -> None:
     """
     `sam build` command entry point

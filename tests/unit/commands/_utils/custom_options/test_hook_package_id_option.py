@@ -92,7 +92,7 @@ class TestHookPackageIdOption(TestCase):
         args = []
         hook_name_option.handle_parse_result(ctx, opts, args)
         self.iac_hook_wrapper_instance_mock.prepare.assert_called_once_with(
-            os.path.join(self.cwd_path, ".aws-sam-iacs", "iacs_metadata"), self.cwd_path, False, None, None, False
+            os.path.join(self.cwd_path, ".aws-sam-iacs", "iacs_metadata"), self.cwd_path, False, None, None, False, None
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
 
@@ -129,6 +129,7 @@ class TestHookPackageIdOption(TestCase):
             "test",
             "us-east-1",
             False,
+            None,
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
 
@@ -276,6 +277,7 @@ class TestHookPackageIdOption(TestCase):
             None,
             None,
             False,
+            None,
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
 
@@ -323,6 +325,7 @@ class TestHookPackageIdOption(TestCase):
             None,
             None,
             False,
+            None,
         )
         self.assertEqual(opts.get("template_file"), metadata_path)
 
@@ -375,6 +378,7 @@ class TestHookPackageIdOption(TestCase):
             None,
             None,
             False,
+            None,
         )
         self.assertEqual(opts.get("template_file"), metadata_path)
 
@@ -410,7 +414,7 @@ class TestHookPackageIdOption(TestCase):
         args = []
         hook_name_option.handle_parse_result(ctx, opts, args)
         self.iac_hook_wrapper_instance_mock.prepare.assert_called_once_with(
-            os.path.join(self.cwd_path, ".aws-sam-iacs", "iacs_metadata"), self.cwd_path, False, None, None, False
+            os.path.join(self.cwd_path, ".aws-sam-iacs", "iacs_metadata"), self.cwd_path, False, None, None, False, None
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
 
@@ -449,7 +453,7 @@ class TestHookPackageIdOption(TestCase):
         args = []
         hook_name_option.handle_parse_result(ctx, opts, args)
         self.iac_hook_wrapper_instance_mock.prepare.assert_called_once_with(
-            os.path.join(self.cwd_path, ".aws-sam-iacs", "iacs_metadata"), self.cwd_path, False, None, None, False
+            os.path.join(self.cwd_path, ".aws-sam-iacs", "iacs_metadata"), self.cwd_path, False, None, None, False, None
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
 
@@ -525,6 +529,6 @@ class TestHookPackageIdOption(TestCase):
         args = []
         hook_name_option.handle_parse_result(ctx, opts, args)
         self.iac_hook_wrapper_instance_mock.prepare.assert_called_once_with(
-            os.path.join(self.cwd_path, ".aws-sam-iacs", "iacs_metadata"), self.cwd_path, False, None, None, False
+            os.path.join(self.cwd_path, ".aws-sam-iacs", "iacs_metadata"), self.cwd_path, False, None, None, False, None
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)

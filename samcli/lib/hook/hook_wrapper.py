@@ -51,7 +51,7 @@ class IacHookWrapper:
         aws_profile: Optional[str] = None,
         aws_region: Optional[str] = None,
         skip_prepare_infra: bool = False,
-        plan_file: str = False,
+        plan_file: Optional[str] = None,
     ) -> str:
         """
         Run the prepare hook to generate the IaC Metadata file.
@@ -70,6 +70,8 @@ class IacHookWrapper:
             AWS region to use. Default is None (use default region)
         skip_prepare_infra: bool
             Flag to skip skip prepare hook if we already have the metadata file. Default is False.
+        plan_file: Optional[str]
+            Provided plan file to use instead of generating one from the hook
 
         Returns
         -------

@@ -1,6 +1,6 @@
 """Test Terraform prepare hook"""
 from subprocess import CalledProcessError
-from unittest.mock import Mock, call, patch, MagicMock
+from unittest.mock import Mock, call, patch, MagicMock, ANY
 from parameterized import parameterized
 
 from tests.unit.hook_packages.terraform.hooks.prepare.prepare_base import PrepareHookUnitBase
@@ -352,3 +352,32 @@ class TestPrepareHook(PrepareHookUnitBase):
         prepare(self.prepare_params)
 
         run_mock.assert_not_called()
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.invoke_subprocess_with_loading_pattern")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._update_resources_paths")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.translate_to_cfn")
+    @patch("builtins.open")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.osutils.tempfile_platform_independent")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.os")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.json")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.run")
+    def test_uses_custom_plan_file(
+        self,
+        mock_subprocess_run,
+        mock_json,
+        mock_os,
+        named_temporary_file_mock,
+        mock_open,
+        mock_translate_to_cfn,
+        mock_update_resources_paths,
+        mock_subprocess_loader,
+    ):
+        self.prepare_params["PlanFile"] = "my-custom-plan.json"
+
+        file_mock = Mock()
+        mock_open.return_value.__enter__.return_value = file_mock
+
+        prepare(self.prepare_params)
+
+        mock_open.assert_has_calls([call("my-custom-plan.json", "r"), ANY])
+        mock_json.load.assert_called_once_with(file_mock)
