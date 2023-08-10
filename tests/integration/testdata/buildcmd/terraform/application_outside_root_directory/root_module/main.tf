@@ -1,7 +1,4 @@
-provider "aws" {
-  profile = "Default"
-  region = "us-east-1"
-}
+provider "aws" {}
 
 variable "HELLO_FUNCTION_SRC_CODE" {
   type    = string
