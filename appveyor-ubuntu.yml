@@ -19,6 +19,8 @@ configuration:
   - OtherTesting
 
 environment:
+  PYTHON_HOME: "$HOME/venv3.8/bin"
+  PYTHON_VERSION: '3.8'
   AWS_DEFAULT_REGION: us-east-1
   SAM_CLI_DEV: 1
   NODE_VERSION: "14.17.6"
@@ -29,17 +31,6 @@ environment:
   NOSE_PARAMETERIZED_NO_WARN: 1
   APPVEYOR_CONSOLE_DISABLE_PTY: false
   APPVEYOR_DETAILED_SHELL_LOGGING: true
-
-  matrix:
-
-    - PYTHON_HOME: "$HOME/venv3.7/bin"
-      PYTHON_VERSION: '3.7'
-
-    - PYTHON_HOME: "$HOME/venv3.8/bin"
-      PYTHON_VERSION: '3.8'
-
-    - PYTHON_HOME: "$HOME/venv3.11/bin"
-      PYTHON_VERSION: '3.11'
 
 install:
   # AppVeyor's apt-get cache might be outdated, and the package could potentially be 404.
