@@ -50,6 +50,7 @@ def enrich_resources_and_generate_makefile(
     output_directory_path: str,
     terraform_application_dir: str,
     lambda_resources_to_code_map: Dict,
+    project_root_dir: str,
 ) -> None:
     """
     Use the sam metadata resources to enrich the mapped resources and to create a Makefile with a rule for
@@ -64,9 +65,11 @@ def enrich_resources_and_generate_makefile(
     output_directory_path: str
         the output directory path to write the generated metadata and makefile
     terraform_application_dir: str
-        the terraform project root directory
+        the terraform configuration root module directory.
     lambda_resources_to_code_map: Dict
         The map between lambda resources code path, and lambda resources logical ids
+    project_root_dir: str
+        the project root directory where terraform configurations, src code, and other modules exist
     """
 
     python_command_name = _get_python_command_name()
@@ -102,6 +105,7 @@ def enrich_resources_and_generate_makefile(
                 logical_id,
                 terraform_application_dir,
                 output_directory_path,
+                project_root_dir,
             )
 
             # get makefile rule for resource
@@ -121,6 +125,7 @@ def _enrich_zip_lambda_function(
     cfn_lambda_function_logical_id: str,
     terraform_application_dir: str,
     output_directory_path: str,
+    project_root_dir: str,
 ):
     """
     Use the sam metadata resources to enrich the zip lambda function.
@@ -136,7 +141,9 @@ def _enrich_zip_lambda_function(
     output_directory_path: str
         the output directory path to write the generated metadata and makefile
     terraform_application_dir: str
-        the terraform project root directory
+        the terraform configuration root module directory.
+    project_root_dir: str
+        the project root directory where terraform configurations, src code, and other modules exist
     """
     sam_metadata_resource_address = sam_metadata_resource.get("address")
     if not sam_metadata_resource_address:
@@ -168,6 +175,7 @@ def _enrich_zip_lambda_function(
         output_directory_path,
         terraform_application_dir,
         CFN_CODE_PROPERTIES[CFN_AWS_LAMBDA_FUNCTION],
+        project_root_dir,
     )
 
 
@@ -177,6 +185,7 @@ def _enrich_image_lambda_function(
     cfn_lambda_function_logical_id: str,
     terraform_application_dir: str,
     output_directory_path: str,
+    project_root_dir: str,
 ):
     """
     Use the sam metadata resources to enrich the image lambda function.
@@ -192,7 +201,9 @@ def _enrich_image_lambda_function(
     output_directory_path: str
         the output directory path to write the generated metadata and makefile
     terraform_application_dir: str
-        the terraform project root directory
+        the terraform configuration root module directory.
+    project_root_dir: str
+        the project root directory where terraform configurations, src code, and other modules exist
     """
     sam_metadata_resource_address = sam_metadata_resource.get("address")
     if not sam_metadata_resource_address:
@@ -266,6 +277,7 @@ def _enrich_lambda_layer(
     cfn_lambda_layer_logical_id: str,
     terraform_application_dir: str,
     output_directory_path: str,
+    project_root_dir: str,
 ) -> None:
     """
     Use the sam metadata resources to enrich the lambda layer.
@@ -281,7 +293,9 @@ def _enrich_lambda_layer(
     output_directory_path: str
        the output directory path to write the generated metadata and makefile
     terraform_application_dir: str
-       the terraform project root directory
+       the terraform configuration root module directory.
+    project_root_dir: str
+        the project root directory where terraform configurations, src code, and other modules exist
     """
     sam_metadata_resource_address = sam_metadata_resource.get("address")
     if not sam_metadata_resource_address:
@@ -312,6 +326,7 @@ def _enrich_lambda_layer(
         output_directory_path,
         terraform_application_dir,
         CFN_CODE_PROPERTIES[CFN_AWS_LAMBDA_LAYER_VERSION],
+        project_root_dir,
     )
 
 
@@ -577,6 +592,7 @@ def _set_zip_metadata_resources(
     output_directory_path: str,
     terraform_application_dir: str,
     code_property: str,
+    project_root_dir: str,
 ) -> None:
     """
     Update the CloudFormation resource metadata with the enrichment properties from the TF resource
@@ -590,9 +606,11 @@ def _set_zip_metadata_resources(
     output_directory_path: str
         The directory where to find the Makefile the path to be copied into the temp dir.
     terraform_application_dir: str
-        The working directory from which to run the Makefile.
+        the terraform configuration root module directory from which to run the Makefile.
     code_property:
         The property in the configuration used to denote the code e.g. "Code" or "Content"
+    project_root_dir: str
+        the project root directory where terraform configurations, src code, and other modules exist
     """
     resource_properties = resource.get("Properties", {})
     resource_properties[code_property] = cfn_source_code_path
@@ -602,9 +620,7 @@ def _set_zip_metadata_resources(
     resource["Metadata"]["BuildMethod"] = "makefile"
     resource["Metadata"]["ContextPath"] = output_directory_path
     resource["Metadata"]["WorkingDirectory"] = terraform_application_dir
-    # currently we set the terraform project root directory that contains all the terraform artifacts as the project
-    # directory till we work on the custom hook properties, and add a property for this value.
-    resource["Metadata"]["ProjectRootDirectory"] = terraform_application_dir
+    resource["Metadata"]["ProjectRootDirectory"] = project_root_dir
 
 
 def _validate_referenced_resource_matches_sam_metadata_type(

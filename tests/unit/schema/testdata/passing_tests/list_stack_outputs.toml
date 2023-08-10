@@ -1,0 +1,14 @@
+version = 0.1
+
+[default.list_stack_outputs.parameters]
+stack_name = "Stack name"
+output = "json"
+profile = "Profile"
+region = "Region"
+beta_features = false
+debug = false
+
+[other.list_stack_outputs.parameters]
+output = "table"
+beta_features = true
+debug = true

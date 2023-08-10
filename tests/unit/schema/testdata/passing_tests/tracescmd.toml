@@ -1,0 +1,18 @@
+version = 0.1
+
+[default.traces.parameters]
+trace_id = "Trace ID"
+tail = false
+output = "json"
+end_time = "End time"
+start_time = "Start time"
+beta_features = false
+debug = false
+profile = "Profile"
+region = "Region"
+
+[other.traces.parameters]
+tail = true
+output = "text"
+beta_features = true
+debug = true

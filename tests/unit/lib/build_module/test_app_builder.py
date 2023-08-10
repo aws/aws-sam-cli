@@ -571,6 +571,43 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             is_building_layer=True,
         )
 
+    @parameterized.expand([([],), (None,)])
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    @patch("samcli.lib.build.app_builder.get_layer_subfolder")
+    def test_must_handle_layer_build_compatible_runtimes_missing(
+        self, compatible_runtimes, get_layer_subfolder_mock, osutils_mock, get_workflow_config_mock
+    ):
+        get_layer_subfolder_mock.return_value = "layer"
+        config_mock = Mock()
+        config_mock.manifest_name = "manifest_name"
+        config_mock.language = "provided"
+
+        scratch_dir = "scratch"
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value=scratch_dir)
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
+
+        get_workflow_config_mock.return_value = config_mock
+        build_function_on_container_mock = Mock()
+
+        self.builder._container_manager = Mock()
+        self.builder._build_function_on_container = build_function_on_container_mock
+        self.builder._build_layer("layer_name", "code_uri", "provided", compatible_runtimes, ARM64, "full_path")
+
+        build_function_on_container_mock.assert_called_once_with(
+            config_mock,
+            PathValidator("code_uri"),
+            PathValidator("layer"),
+            PathValidator("manifest_name"),
+            "provided",
+            ARM64,
+            {"build_logical_id": "layer_name"},
+            None,
+            None,
+            is_building_layer=True,
+            specified_workflow=None,
+        )
+
     @patch("samcli.lib.build.app_builder.get_workflow_config")
     @patch("samcli.lib.build.app_builder.osutils")
     @patch("samcli.lib.build.app_builder.get_layer_subfolder")

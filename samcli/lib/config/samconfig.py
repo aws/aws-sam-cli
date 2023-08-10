@@ -87,7 +87,7 @@ class SamConfig:
         self.document = self._read()
 
         config_content = self.document.get(env, {})
-        params = config_content.get(self._to_key(cmd_names), {}).get(section, {})
+        params = config_content.get(self.to_key(cmd_names), {}).get(section, {})
         if DEFAULT_GLOBAL_CMDNAME in config_content:
             global_params = config_content.get(DEFAULT_GLOBAL_CMDNAME, {}).get(section, {})
             global_params.update(params.copy())
@@ -116,7 +116,7 @@ class SamConfig:
         # Empty document prepare the initial structure.
         # self.document is a nested dict, we need to check each layer and add new tables, otherwise duplicated key
         # in parent layer will override the whole child layer
-        cmd_name_key = self._to_key(cmd_names)
+        cmd_name_key = self.to_key(cmd_names)
         env_content = self.document.get(env, {})
         cmd_content = env_content.get(cmd_name_key, {})
         param_content = cmd_content.get(section, {})
@@ -284,6 +284,6 @@ class SamConfig:
             raise SamConfigVersionException(f"'{VERSION_KEY}' key is not present or is in unrecognized format. ")
 
     @staticmethod
-    def _to_key(cmd_names: Iterable[str]) -> str:
+    def to_key(cmd_names: Iterable[str]) -> str:
         # construct a parsed name that is of the format: a_b_c_d
         return "_".join([cmd.replace("-", "_").replace(" ", "_") for cmd in cmd_names])

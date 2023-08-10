@@ -32,6 +32,7 @@ class TestLocalInvokeCommand(unittest.TestCase):
             MockParams(rv=("--log-file", ""), name="log_file"),
             MockParams(rv=("--beta-features", ""), name="beta_features"),
             MockParams(rv=("--debug", ""), name="debug"),
+            MockParams(rv=("--terraform-plan-file", ""), name="terraform_plan_file"),
         ]
 
         cmd = InvokeCommand(name="local invoke", requires_credentials=False, description=DESCRIPTION)
@@ -43,6 +44,7 @@ class TestLocalInvokeCommand(unittest.TestCase):
             "Description": [(cmd.description + cmd.description_addendum, "")],
             "Examples": [],
             "Extension Options": [("", ""), ("--hook_name", ""), ("", "")],
+            "Terraform Hook Options": [("", ""), ("--terraform-plan-file", ""), ("", "")],
             "Beta Options": [("", ""), ("--beta-features", ""), ("", "")],
             "Invoke default lambda function with no event": [("", ""), ("$sam local invoke\x1b[0m", "")],
             "Invoke lambda function with stdin input": [

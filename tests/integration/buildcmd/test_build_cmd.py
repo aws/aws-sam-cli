@@ -1753,6 +1753,8 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
     EXPECTED_FILES_PROJECT_MANIFEST = {"__init__.py", "main.py", "requirements.txt"}
     EXPECTED_LAYERS_FILES_PROJECT_MANIFEST = {"__init__.py", "layer.py", "numpy", "requirements.txt"}
 
+    EXPECTED_LAYERS_FILES_NO_COMPATIBLE_RUNTIMES = {"__init__.py", "layer.py", "requirements.txt"}
+
     @parameterized.expand(
         [
             ("python3.7", False, "LayerOne", "ContentUri"),
@@ -1808,6 +1810,31 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             self.EXPECTED_LAYERS_FILES_PROJECT_MANIFEST,
             "ContentUri",
             "python",
+        )
+
+    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
+    def test_build_layer_with_makefile_no_compatible_runtimes(self):
+        build_method = "makefile"
+        use_container = True
+        layer_identifier = "LayerWithMakefileNoCompatibleRuntimes"
+
+        overrides = {"LayerBuildMethod": build_method, "LayerMakeContentUri": "PyLayerMake"}
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
+        )
+
+        LOG.info("Running Command: {}".format(cmdlist))
+
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
+
+        LOG.info("Default build dir: %s", self.default_build_dir)
+        self._verify_built_artifact(
+            self.default_build_dir,
+            layer_identifier,
+            self.EXPECTED_LAYERS_FILES_NO_COMPATIBLE_RUNTIMES,
+            "ContentUri",
+            "random",
         )
 
     @parameterized.expand([("python3.7", False, "LayerTwo"), ("python3.7", "use_container", "LayerTwo")])

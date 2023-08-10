@@ -1,0 +1,14 @@
+version = 0.1
+
+[default.validate.parameters]
+template_file = "Template file"
+profile = "Profile"
+region = "Region"
+beta_features = false
+debug = false
+lint = false
+
+[other.validate.parameters]
+beta_features = true
+debug = true
+lint = true
