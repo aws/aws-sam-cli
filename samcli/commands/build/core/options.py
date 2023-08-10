@@ -37,7 +37,7 @@ ARTIFACT_LOCATION_OPTIONS: List[str] = [
 
 TEMPLATE_OPTIONS: List[str] = ["parameter_overrides"]
 
-TERRAFORM_HOOK_OPTIONS: List[str] = ["terraform_plan_file"]
+TERRAFORM_HOOK_OPTIONS: List[str] = ["terraform_plan_file", "terraform_project_root_path"]
 
 ALL_OPTIONS: List[str] = (
     REQUIRED_OPTIONS
