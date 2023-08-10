@@ -83,7 +83,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         ]
 
         for tf_json in tf_jsons:
-            translated_cfn_dict = translate_to_cfn(tf_json, self.output_dir, self.project_root)
+            translated_cfn_dict = translate_to_cfn(tf_json, self.output_dir, self.app_root, self.project_root)
             self.assertEqual(translated_cfn_dict, expected_empty_cfn_dict)
             mock_enrich_resources_and_generate_makefile.assert_not_called()
 
@@ -128,7 +128,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
             {TF_AWS_API_GATEWAY_REST_API: mock_validator},
         ):
             translated_cfn_dict = translate_to_cfn(
-                self.tf_json_with_root_module_only, self.output_dir, self.project_root
+                self.tf_json_with_root_module_only, self.output_dir, self.app_root, self.project_root
             )
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_root_module_only)
         mock_enrich_resources_and_generate_makefile.assert_not_called()
@@ -186,7 +186,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
             }
         }
 
-        translate_to_cfn(tf_json_with_root_module_contains_s3_object, self.output_dir, self.project_root)
+        translate_to_cfn(tf_json_with_root_module_contains_s3_object, self.output_dir, self.app_root, self.project_root)
         mock_resolve_resource_attribute.assert_has_calls([call(resource_mock, "bucket"), call(resource_mock, "key")])
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._handle_linking")
@@ -218,7 +218,9 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         resources_mock.__contains__.return_value = True
         mock_build_module.return_value = root_module
         checksum_mock.return_value = self.mock_logical_id_hash
-        translated_cfn_dict = translate_to_cfn(self.tf_json_with_child_modules, self.output_dir, self.project_root)
+        translated_cfn_dict = translate_to_cfn(
+            self.tf_json_with_child_modules, self.output_dir, self.app_root, self.project_root
+        )
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_child_modules)
         mock_enrich_resources_and_generate_makefile.assert_not_called()
         mock_handle_linking.assert_called_once()
@@ -292,7 +294,10 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         }
 
         translated_cfn_dict = translate_to_cfn(
-            self.tf_json_with_root_module_with_sam_metadata_resources, self.output_dir, self.project_root
+            self.tf_json_with_root_module_with_sam_metadata_resources,
+            self.output_dir,
+            self.app_root,
+            self.project_root,
         )
 
         expected_arguments_in_call = (
@@ -315,8 +320,9 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
             ],
             translated_cfn_dict["Resources"],
             self.output_dir,
-            self.project_root,
+            self.app_root,
             {},
+            self.project_root,
         )
 
         mock_enrich_resources_and_generate_makefile.assert_called_once_with(*expected_arguments_in_call)
@@ -406,7 +412,10 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         mock_build_module.return_value = root_module
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = translate_to_cfn(
-            self.tf_json_with_child_modules_with_sam_metadata_resource, self.output_dir, self.project_root
+            self.tf_json_with_child_modules_with_sam_metadata_resource,
+            self.output_dir,
+            self.app_root,
+            self.project_root,
         )
 
         expected_arguments_in_call = (
@@ -443,8 +452,9 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
             ],
             translated_cfn_dict["Resources"],
             self.output_dir,
-            self.project_root,
+            self.app_root,
             {},
+            self.project_root,
         )
 
         mock_enrich_resources_and_generate_makefile.assert_called_once_with(*expected_arguments_in_call)
@@ -480,7 +490,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         mock_build_module.return_value = root_module
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = translate_to_cfn(
-            self.tf_json_with_unsupported_provider, self.output_dir, self.project_root
+            self.tf_json_with_unsupported_provider, self.output_dir, self.app_root, self.project_root
         )
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_unsupported_provider)
         mock_enrich_resources_and_generate_makefile.assert_not_called()
@@ -516,7 +526,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         mock_build_module.return_value = root_module
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = translate_to_cfn(
-            self.tf_json_with_unsupported_resource_type, self.output_dir, self.project_root
+            self.tf_json_with_unsupported_resource_type, self.output_dir, self.app_root, self.project_root
         )
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_unsupported_resource_type)
         mock_enrich_resources_and_generate_makefile.assert_not_called()
@@ -552,7 +562,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         mock_build_module.return_value = root_module
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = translate_to_cfn(
-            self.tf_json_with_child_modules_and_s3_source_mapping, self.output_dir, self.project_root
+            self.tf_json_with_child_modules_and_s3_source_mapping, self.output_dir, self.app_root, self.project_root
         )
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_child_modules_and_s3_source_mapping)
         mock_enrich_resources_and_generate_makefile.assert_not_called()

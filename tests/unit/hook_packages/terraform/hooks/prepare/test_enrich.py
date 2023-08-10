@@ -101,7 +101,7 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
                 "BuildMethod": "makefile",
                 "ContextPath": "/output/dir",
                 "WorkingDirectory": "/terraform/project/root",
-                "ProjectRootDirectory": "/terraform/project/root",
+                "ProjectRootDirectory": "/project/root",
             },
         }
         expected_zip_function_2 = {
@@ -116,7 +116,7 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
                 "BuildMethod": "makefile",
                 "ContextPath": "/output/dir",
                 "WorkingDirectory": "/terraform/project/root",
-                "ProjectRootDirectory": "/terraform/project/root",
+                "ProjectRootDirectory": "/project/root",
             },
         }
 
@@ -129,7 +129,12 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
         mock_generate_makefile_rule_for_lambda_resource.side_effect = makefile_rules
 
         enrich_resources_and_generate_makefile(
-            sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root", {}
+            sam_metadata_resources,
+            cfn_resources,
+            "/output/dir",
+            "/terraform/project/root",
+            {},
+            "/project/root",
         )
         self.assertEqual(cfn_resources, expected_cfn_resources)
 
@@ -201,7 +206,7 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
                 "BuildMethod": "makefile",
                 "ContextPath": "/output/dir",
                 "WorkingDirectory": "/terraform/project/root",
-                "ProjectRootDirectory": "/terraform/project/root",
+                "ProjectRootDirectory": "/project/root",
             },
         }
 
@@ -213,7 +218,12 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
         mock_generate_makefile_rule_for_lambda_resource.side_effect = makefile_rules
 
         enrich_resources_and_generate_makefile(
-            sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root", {}
+            sam_metadata_resources,
+            cfn_resources,
+            "/output/dir",
+            "/terraform/project/root",
+            {},
+            "/project/root",
         )
         self.assertEqual(cfn_resources, expected_cfn_resources)
 
@@ -297,7 +307,12 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
         mock_generate_makefile_rule_for_lambda_resource.side_effect = makefile_rules
 
         enrich_resources_and_generate_makefile(
-            sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root", {}
+            sam_metadata_resources,
+            cfn_resources,
+            "/output/dir",
+            "/terraform/project/root",
+            {},
+            "/project/root",
         )
         mock_enrich_zip_lambda_function.assert_has_calls(
             [
@@ -307,6 +322,7 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
                     "logical_id1",
                     "/terraform/project/root",
                     "/output/dir",
+                    "/project/root",
                 ),
                 call(
                     self.tf_lambda_function_resource_zip_2_sam_metadata,
@@ -314,6 +330,7 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
                     "logical_id2",
                     "/terraform/project/root",
                     "/output/dir",
+                    "/project/root",
                 ),
             ]
         )
@@ -380,6 +397,7 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
             "logical_id1",
             "/terraform/project/root",
             "/output/dir",
+            "/terraform/project/root",
         )
         self.assertEqual(zip_function_1, expected_zip_function_1)
 
@@ -429,6 +447,7 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
             "logical_id1",
             "/terraform/project/root",
             "/output/dir",
+            "/terraform/project/root",
         )
         self.assertEqual(lambda_layer_1, expected_lambda_layer_1)
 
@@ -510,7 +529,7 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
         mock_generate_makefile_rule_for_lambda_resource.side_effect = makefile_rules
 
         enrich_resources_and_generate_makefile(
-            sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root", {}
+            sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root", {}, "/project/root"
         )
         self.assertEqual(cfn_resources, expected_cfn_resources)
 
@@ -587,6 +606,7 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
             "logical_id1",
             "/terraform/project/root",
             "/output/dir",
+            "/terraform/project/root",
         )
         self.assertEqual(image_function_1, expected_image_function_1)
 
@@ -648,7 +668,12 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
         mock_generate_makefile_rule_for_lambda_resource.side_effect = makefile_rules
 
         enrich_resources_and_generate_makefile(
-            sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root", {}
+            sam_metadata_resources,
+            cfn_resources,
+            "/output/dir",
+            "/terraform/project/root",
+            {},
+            "/project/root",
         )
         mock_enrich_image_lambda_function.assert_called_once_with(
             self.tf_image_package_type_lambda_function_resource_sam_metadata,
@@ -656,6 +681,7 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
             "logical_id1",
             "/terraform/project/root",
             "/output/dir",
+            "/project/root",
         )
         mock_enrich_zip_lambda_function.assert_not_called()
 
@@ -734,7 +760,12 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
             "string for the lambda function docker build arguments.",
         ):
             _enrich_image_lambda_function(
-                sam_metadata_resource, image_function_1, "logical_id1", "/terraform/project/root", "/output/dir"
+                sam_metadata_resource,
+                image_function_1,
+                "logical_id1",
+                "/terraform/project/root",
+                "/output/dir",
+                "/terraform/project/root",
             )
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._get_python_command_name")
@@ -789,7 +820,12 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
             "these values [ZIP_LAMBDA_FUNCTION, IMAGE_LAMBDA_FUNCTION]",
         ):
             enrich_resources_and_generate_makefile(
-                sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root", {}
+                sam_metadata_resources,
+                cfn_resources,
+                "/output/dir",
+                "/terraform/project/root",
+                {},
+                "/project/root",
             )
 
     def test_validate_referenced_layer_resource_matches_sam_metadata_type_valid_types(self):

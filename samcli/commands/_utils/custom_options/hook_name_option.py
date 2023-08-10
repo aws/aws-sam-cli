@@ -86,9 +86,20 @@ class HookNameOption(click.Option):
             aws_profile = opts.get("profile")
             aws_region = opts.get("region")
             skip_prepare_infra = opts.get("skip_prepare_infra", False)
+            plan_file = opts.get("terraform_plan_file")
+            project_root_dir = opts.get(
+                "terraform_project_root_path",
+            )
 
             metadata_file = iac_hook_wrapper.prepare(
-                output_dir_path, iac_project_path, debug, aws_profile, aws_region, skip_prepare_infra
+                output_dir_path,
+                iac_project_path,
+                debug,
+                aws_profile,
+                aws_region,
+                skip_prepare_infra,
+                plan_file,
+                project_root_dir,
             )
 
             LOG.info("Prepare hook completed and metadata file generated at: %s", metadata_file)
@@ -109,6 +120,23 @@ def _validate_build_command_parameters(command_name, opts):
     # add this validation here to avoid running hook prepare and there is issue
     if command_name == "build" and opts.get("use_container") and not opts.get("build_image"):
         raise click.UsageError("Missing required parameter --build-image.")
+
+    # validate that terraform-project-root-path is a parent path of the current directory, or it is a relative path
+    project_root_dir = opts.get("terraform_project_root_path")
+    if (
+        command_name == "build"
+        and project_root_dir
+        and os.path.isabs(project_root_dir)
+        and not os.getcwd().startswith(project_root_dir)
+    ):
+        LOG.debug(
+            f"the provided path {project_root_dir} as terraform project path is not a parent of the current directory "
+            f"{os.getcwd()}"
+        )
+        raise click.UsageError(
+            f"{project_root_dir} is not a valid value for Terraform Project Root Path. It should be a parent of the "
+            f"current directory that contains the root module of the terraform project."
+        )
 
 
 def _check_experimental_flag(hook_name, command_name, opts, default_map):
