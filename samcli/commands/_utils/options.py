@@ -789,10 +789,32 @@ def use_container_build_option(f):
     return use_container_build_click_option()(f)
 
 
+def terraform_plan_file_callback(ctx, param, provided_value):
+    """
+    Callback for --terraform-plan-file to check if --hook-name is also specified
+
+    Parameters
+    ----------
+    ctx: click.core.Context
+        Click context
+    param: click.Option
+        Parameter properties
+    provided_value: bool
+        True if option was provided
+    """
+    is_option_provided = provided_value or ctx.default_map.get("terraform_plan_file")
+    is_hook_provided = ctx.params.get("hook_name") or ctx.default_map.get("hook_name")
+
+    if is_option_provided and not is_hook_provided:
+        raise click.BadOptionUsage(option_name=param.name, ctx=ctx, message="Missing option --hook-name")
+
+
 def terraform_plan_file_click_option():
     return click.option(
         "--terraform-plan-file",
         type=click.Path(),
+        required=False,
+        callback=terraform_plan_file_callback,
         help="Used for passing a custom plan file when executing the Terraform hook.",
     )
 
