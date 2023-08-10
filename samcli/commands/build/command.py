@@ -23,6 +23,7 @@ from samcli.commands._utils.options import (
     build_image_option,
     hook_name_click_option,
     terraform_plan_file_option,
+    terraform_project_root_path_option,
 )
 from samcli.commands._utils.option_value_processor import process_env_var, process_image_options
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
@@ -72,6 +73,7 @@ DESCRIPTION = """
 )
 @configuration_option(provider=ConfigProvider(section="parameters"))
 @terraform_plan_file_option
+@terraform_project_root_path_option
 @hook_name_click_option(
     force_prepare=True,
     invalid_coexist_options=["t", "template-file", "template", "parameter-overrides"],
@@ -157,7 +159,8 @@ def cli(
     hook_name: Optional[str],
     skip_prepare_infra: bool,
     mount_with,
-    terraform_plan_file,
+    terraform_plan_file: Optional[str],
+    terraform_project_root_path: Optional[str],
 ) -> None:
     """
     `sam build` command entry point

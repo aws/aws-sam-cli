@@ -823,6 +823,41 @@ def terraform_plan_file_option(f):
     return terraform_plan_file_click_option()(f)
 
 
+def terraform_project_root_path_callback(ctx, param, provided_value):
+    """
+    Callback for --terraform-project-root-path to check if --hook-name is also specified
+
+    Parameters
+    ----------
+    ctx: click.core.Context
+        Click context
+    param: click.Option
+        Parameter properties
+    provided_value: bool
+        True if option was provided
+    """
+    is_option_provided = provided_value or ctx.default_map.get("terraform_project_root_path")
+    is_hook_provided = ctx.params.get("hook_name") or ctx.default_map.get("hook_name")
+
+    if is_option_provided and not is_hook_provided:
+        raise click.BadOptionUsage(option_name=param.name, ctx=ctx, message="Missing option --hook-name")
+
+
+def terraform_project_root_path_click_option():
+    return click.option(
+        "--terraform-project-root-path",
+        type=click.Path(),
+        required=False,
+        callback=terraform_project_root_path_callback,
+        help="Used for passing the Terraform project root directory path. Current directory will be used as a default "
+        "value, if this parameter is not provided.",
+    )
+
+
+def terraform_project_root_path_option(f):
+    return terraform_project_root_path_click_option()(f)
+
+
 def build_image_click_option(cls):
     return click.option(
         "--build-image",

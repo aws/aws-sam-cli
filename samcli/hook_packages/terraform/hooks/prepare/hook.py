@@ -42,13 +42,20 @@ def prepare(params: dict) -> dict:
     output_dir_path = params.get("OutputDirPath")
 
     terraform_application_dir = params.get("IACProjectPath", os.getcwd())
+    project_root_dir = params.get("ProjectRootDir", terraform_application_dir)
+
     if not output_dir_path:
         raise PrepareHookException("OutputDirPath was not supplied")
 
-    LOG.debug("Normalize the project root directory path %s", terraform_application_dir)
+    LOG.debug("Normalize the terraform application root module directory path %s", terraform_application_dir)
     if not os.path.isabs(terraform_application_dir):
         terraform_application_dir = os.path.normpath(os.path.join(os.getcwd(), terraform_application_dir))
-        LOG.debug("The normalized project root directory path %s", terraform_application_dir)
+        LOG.debug("The normalized terraform application root module directory path %s", terraform_application_dir)
+
+    LOG.debug("Normalize the project root directory path %s", project_root_dir)
+    if not os.path.isabs(project_root_dir):
+        project_root_dir = os.path.normpath(os.path.join(os.getcwd(), project_root_dir))
+        LOG.debug("The normalized project root directory path %s", project_root_dir)
 
     LOG.debug("Normalize the OutputDirPath %s", output_dir_path)
     if not os.path.isabs(output_dir_path):
@@ -75,7 +82,7 @@ def prepare(params: dict) -> dict:
 
             # convert terraform to cloudformation
             LOG.info("Generating metadata file")
-            cfn_dict = translate_to_cfn(tf_json, output_dir_path, terraform_application_dir)
+            cfn_dict = translate_to_cfn(tf_json, output_dir_path, terraform_application_dir, project_root_dir)
 
             if cfn_dict.get("Resources"):
                 _update_resources_paths(cfn_dict.get("Resources"), terraform_application_dir)  # type: ignore

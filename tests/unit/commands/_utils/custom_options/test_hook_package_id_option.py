@@ -92,7 +92,14 @@ class TestHookPackageIdOption(TestCase):
         args = []
         hook_name_option.handle_parse_result(ctx, opts, args)
         self.iac_hook_wrapper_instance_mock.prepare.assert_called_once_with(
-            os.path.join(self.cwd_path, ".aws-sam-iacs", "iacs_metadata"), self.cwd_path, False, None, None, False, None
+            os.path.join(self.cwd_path, ".aws-sam-iacs", "iacs_metadata"),
+            self.cwd_path,
+            False,
+            None,
+            None,
+            False,
+            None,
+            None,
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
 
@@ -119,6 +126,7 @@ class TestHookPackageIdOption(TestCase):
             "debug": True,
             "profile": "test",
             "region": "us-east-1",
+            "terraform_project_root_path": "/path/path",
         }
         args = []
         hook_name_option.handle_parse_result(ctx, opts, args)
@@ -130,6 +138,7 @@ class TestHookPackageIdOption(TestCase):
             "us-east-1",
             False,
             None,
+            "/path/path",
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
 
@@ -278,6 +287,7 @@ class TestHookPackageIdOption(TestCase):
             None,
             False,
             None,
+            None,
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
 
@@ -325,6 +335,7 @@ class TestHookPackageIdOption(TestCase):
             None,
             None,
             False,
+            None,
             None,
         )
         self.assertEqual(opts.get("template_file"), metadata_path)
@@ -379,6 +390,7 @@ class TestHookPackageIdOption(TestCase):
             None,
             False,
             None,
+            None,
         )
         self.assertEqual(opts.get("template_file"), metadata_path)
 
@@ -414,7 +426,14 @@ class TestHookPackageIdOption(TestCase):
         args = []
         hook_name_option.handle_parse_result(ctx, opts, args)
         self.iac_hook_wrapper_instance_mock.prepare.assert_called_once_with(
-            os.path.join(self.cwd_path, ".aws-sam-iacs", "iacs_metadata"), self.cwd_path, False, None, None, False, None
+            os.path.join(self.cwd_path, ".aws-sam-iacs", "iacs_metadata"),
+            self.cwd_path,
+            False,
+            None,
+            None,
+            False,
+            None,
+            None,
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
 
@@ -453,7 +472,14 @@ class TestHookPackageIdOption(TestCase):
         args = []
         hook_name_option.handle_parse_result(ctx, opts, args)
         self.iac_hook_wrapper_instance_mock.prepare.assert_called_once_with(
-            os.path.join(self.cwd_path, ".aws-sam-iacs", "iacs_metadata"), self.cwd_path, False, None, None, False, None
+            os.path.join(self.cwd_path, ".aws-sam-iacs", "iacs_metadata"),
+            self.cwd_path,
+            False,
+            None,
+            None,
+            False,
+            None,
+            None,
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
 
@@ -498,6 +524,138 @@ class TestHookPackageIdOption(TestCase):
     @patch("samcli.commands._utils.custom_options.hook_name_option.update_experimental_context")
     @patch("samcli.commands._utils.custom_options.hook_name_option.prompt_experimental")
     @patch("samcli.commands._utils.custom_options.hook_name_option.os.getcwd")
+    @patch("samcli.commands._utils.custom_options.hook_name_option.IacHookWrapper")
+    def test_invalid_parameter_hook_with_invalid_project_root_directory(
+        self,
+        iac_hook_wrapper_mock,
+        getcwd_mock,
+        prompt_experimental_mock,
+        update_experimental_context_mock,
+    ):
+        iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
+        prompt_experimental_mock.return_value = True
+
+        getcwd_mock.return_value = self.cwd_path
+
+        hook_name_option = HookNameOption(
+            param_decls=(self.name, self.opt),
+            force_prepare=False,
+            invalid_coexist_options=self.invalid_coexist_options,
+        )
+        ctx = MagicMock()
+        ctx.command.name = "build"
+        opts = {
+            "hook_name": self.terraform,
+            "terraform_project_root_path": "/abs/path",
+        }
+
+        args = []
+        with self.assertRaisesRegex(
+            click.UsageError,
+            "/abs/path is not a valid value for Terraform Project Root Path. It should be a parent of "
+            "the current directory that contains the root module of the terraform project.",
+        ):
+            hook_name_option.handle_parse_result(ctx, opts, args)
+
+    @patch("samcli.commands._utils.custom_options.hook_name_option.update_experimental_context")
+    @patch("samcli.commands._utils.custom_options.hook_name_option.prompt_experimental")
+    @patch("samcli.commands._utils.custom_options.hook_name_option.os.getcwd")
+    @patch("samcli.commands._utils.custom_options.hook_name_option.os.path.exists")
+    @patch("samcli.commands._utils.custom_options.hook_name_option.os.path.isabs")
+    @patch("samcli.commands._utils.custom_options.hook_name_option.IacHookWrapper")
+    def test_valid_parameter_hook_with_valid_absolute_project_root_directory(
+        self,
+        iac_hook_wrapper_mock,
+        path_isabs_mock,
+        path_exists_mock,
+        getcwd_mock,
+        prompt_experimental_mock,
+        update_experimental_context_mock,
+    ):
+        iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
+        prompt_experimental_mock.return_value = True
+
+        getcwd_mock.return_value = self.cwd_path
+
+        path_isabs_mock.return_value = True
+        path_exists_mock.return_value = False
+
+        hook_name_option = HookNameOption(
+            param_decls=(self.name, self.opt),
+            force_prepare=False,
+            invalid_coexist_options=self.invalid_coexist_options,
+        )
+        ctx = MagicMock()
+        ctx.command.name = "build"
+        opts = {
+            "hook_name": self.terraform,
+            "terraform_project_root_path": "path",
+        }
+        args = []
+        hook_name_option.handle_parse_result(ctx, opts, args)
+        self.iac_hook_wrapper_instance_mock.prepare.assert_called_once_with(
+            os.path.join(self.cwd_path, ".aws-sam-iacs", "iacs_metadata"),
+            self.cwd_path,
+            False,
+            None,
+            None,
+            False,
+            None,
+            "path",
+        )
+        self.assertEqual(opts.get("template_file"), self.metadata_path)
+
+    @patch("samcli.commands._utils.custom_options.hook_name_option.update_experimental_context")
+    @patch("samcli.commands._utils.custom_options.hook_name_option.prompt_experimental")
+    @patch("samcli.commands._utils.custom_options.hook_name_option.os.getcwd")
+    @patch("samcli.commands._utils.custom_options.hook_name_option.os.path.exists")
+    @patch("samcli.commands._utils.custom_options.hook_name_option.os.path.isabs")
+    @patch("samcli.commands._utils.custom_options.hook_name_option.IacHookWrapper")
+    def test_valid_parameter_hook_with_valid_relative_project_root_directory(
+        self,
+        iac_hook_wrapper_mock,
+        path_isabs_mock,
+        path_exists_mock,
+        getcwd_mock,
+        prompt_experimental_mock,
+        update_experimental_context_mock,
+    ):
+        iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
+        prompt_experimental_mock.return_value = True
+
+        getcwd_mock.return_value = self.cwd_path
+
+        path_isabs_mock.return_value = False
+        path_exists_mock.return_value = False
+
+        hook_name_option = HookNameOption(
+            param_decls=(self.name, self.opt),
+            force_prepare=False,
+            invalid_coexist_options=self.invalid_coexist_options,
+        )
+        ctx = MagicMock()
+        ctx.command.name = "build"
+        opts = {
+            "hook_name": self.terraform,
+            "terraform_project_root_path": "./..",
+        }
+        args = []
+        hook_name_option.handle_parse_result(ctx, opts, args)
+        self.iac_hook_wrapper_instance_mock.prepare.assert_called_once_with(
+            os.path.join(self.cwd_path, ".aws-sam-iacs", "iacs_metadata"),
+            self.cwd_path,
+            False,
+            None,
+            None,
+            False,
+            None,
+            "./..",
+        )
+        self.assertEqual(opts.get("template_file"), self.metadata_path)
+
+    @patch("samcli.commands._utils.custom_options.hook_name_option.update_experimental_context")
+    @patch("samcli.commands._utils.custom_options.hook_name_option.prompt_experimental")
+    @patch("samcli.commands._utils.custom_options.hook_name_option.os.getcwd")
     @patch("samcli.commands._utils.custom_options.hook_name_option.os.path.exists")
     @patch("samcli.commands._utils.custom_options.hook_name_option.IacHookWrapper")
     def test_valid_hook_package_with_use_container_false_and_no_build_image(
@@ -529,6 +687,13 @@ class TestHookPackageIdOption(TestCase):
         args = []
         hook_name_option.handle_parse_result(ctx, opts, args)
         self.iac_hook_wrapper_instance_mock.prepare.assert_called_once_with(
-            os.path.join(self.cwd_path, ".aws-sam-iacs", "iacs_metadata"), self.cwd_path, False, None, None, False, None
+            os.path.join(self.cwd_path, ".aws-sam-iacs", "iacs_metadata"),
+            self.cwd_path,
+            False,
+            None,
+            None,
+            False,
+            None,
+            None,
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
