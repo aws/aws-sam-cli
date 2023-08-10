@@ -706,9 +706,9 @@ requests==2.31.0 \
     #   aws-sam-cli (setup.py)
     #   cookiecutter
     #   docker
-rich==13.4.2 \
-    --hash=sha256:8f87bc7ee54675732fa66a05ebfe489e27264caeeff3728c945d25971b6485ec \
-    --hash=sha256:d653d6bccede5844304c605d5aac802c7cf9621efd700b46c7ec2b51ea914898
+rich==13.5.2 \
+    --hash=sha256:146a90b3b6b47cac4a73c12866a499e9817426423f57c5a66949c086191a8808 \
+    --hash=sha256:fb9d6c0a0f643c99eed3875b5377a184132ba9be4d61516a55273d3554d75a39
     # via aws-sam-cli (setup.py)
 ruamel-yaml==0.17.32 \
     --hash=sha256:23cd2ed620231677564646b0c6a89d138b6822a0d78656df7abda5879ec4f447 \
