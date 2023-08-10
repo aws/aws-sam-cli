@@ -93,6 +93,28 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
     )
     @parameterized.expand(functions)
     @pytest.mark.flaky(reruns=3)
+    def test_invoke_function_custom_plan(self, function_name):
+        local_invoke_command_list = InvokeIntegBase.get_command_list(
+            function_to_invoke=function_name,
+            hook_name="terraform",
+            beta_features=True,
+            terraform_plan_file="custom-plan.json",
+        )
+        stdout, _, return_code = self.run_command(local_invoke_command_list)
+
+        # Get the response without the sam-cli prompts that proceed it
+        response = json.loads(stdout.decode("utf-8").split("\n")[-1])
+        expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\": \\"hello world\\"}"}')
+
+        self.assertEqual(return_code, 0)
+        self.assertEqual(response, expected_response)
+
+    @skipIf(
+        not CI_OVERRIDE,
+        "Skip Terraform test cases unless running in CI",
+    )
+    @parameterized.expand(functions)
+    @pytest.mark.flaky(reruns=3)
     def test_invoke_terraform_with_beta_feature_option_in_samconfig_toml(self, function_name):
         samconfig_toml_path = Path(self.terraform_application_path).joinpath("samconfig.toml")
         samconfig_lines = [

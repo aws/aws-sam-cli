@@ -65,7 +65,7 @@ class BuildTerraformApplicationIntegBase(BuildIntegBase):
             process.kill()
             raise
 
-    def _verify_invoke_built_function(self, function_logical_id, overrides, expected_result):
+    def _verify_invoke_built_function(self, function_logical_id, overrides, expected_result, plan_file=None):
         LOG.info("Invoking built function '{}'".format(function_logical_id))
 
         cmdlist = [
@@ -84,6 +84,9 @@ class BuildTerraformApplicationIntegBase(BuildIntegBase):
                 "--parameter-overrides",
                 overrides,
             ]
+
+        if plan_file:
+            cmdlist += ["--terraform-plan-file", plan_file]
 
         LOG.info("Running invoke Command: {}".format(cmdlist))
 

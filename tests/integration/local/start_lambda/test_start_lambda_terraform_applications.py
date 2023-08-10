@@ -114,6 +114,51 @@ class TestLocalStartLambdaTerraformApplicationWithoutBuild(StartLambdaTerraformA
         self.assertEqual(response.get("StatusCode"), 200)
 
 
+class TestLocalStartLambdaTerraformApplicationWithoutBuildCustomPlanFile(StartLambdaTerraformApplicationIntegBase):
+    terraform_application = "/testdata/invoke/terraform/simple_application_no_building_logic"
+    template_path = None
+    hook_name = "terraform"
+    beta_features = True
+    terraform_plan_file = "custom-plan.json"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+        self.lambda_client = boto3.client(
+            "lambda",
+            endpoint_url=self.url,
+            region_name="us-east-1",
+            use_ssl=False,
+            verify=False,
+            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
+        )
+
+    functions = [
+        "s3_lambda_function",
+        "aws_lambda_function.s3_lambda",
+        "root_lambda",
+        "aws_lambda_function.root_lambda",
+        "level1_lambda_function",
+        "module.level1_lambda.aws_lambda_function.this",
+        "level2_lambda_function",
+        "module.level1_lambda.module.level2_lambda.aws_lambda_function.this",
+    ]
+
+    # @skipIf(
+    #     not CI_OVERRIDE,
+    #     "Skip Terraform test cases unless running in CI",
+    # )
+    @parameterized.expand(functions)
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_function(self, function_name):
+        response = self.lambda_client.invoke(FunctionName=function_name)
+
+        response_body = json.loads(response.get("Payload").read().decode("utf-8"))
+        expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\": \\"hello world\\"}"}')
+
+        self.assertEqual(response_body, expected_response)
+        self.assertEqual(response.get("StatusCode"), 200)
+
+
 @skipIf(
     (not RUN_BY_CANARY and not CI_OVERRIDE),
     "Skip Terraform test cases unless running in CI",

@@ -84,6 +84,7 @@ class BuildIntegBase(TestCase):
         build_in_source=None,
         mount_with=None,
         config_file=None,
+        terraform_plan_file=None,
     ):
         command_list = [self.cmd, "build"]
 
@@ -149,6 +150,9 @@ class BuildIntegBase(TestCase):
 
         if config_file is not None:
             command_list += ["--config-file", config_file]
+
+        if terraform_plan_file:
+            command_list += ["--terraform-plan-file", terraform_plan_file]
 
         return command_list
 
