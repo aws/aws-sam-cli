@@ -52,7 +52,7 @@ def prepare(params: dict) -> dict:
         terraform_application_dir = os.path.normpath(os.path.join(os.getcwd(), terraform_application_dir))
         LOG.debug("The normalized terraform application root module directory path %s", terraform_application_dir)
 
-    LOG.debug("Normalize the project root directory path %s", terraform_application_dir)
+    LOG.debug("Normalize the project root directory path %s", project_root_dir)
     if not os.path.isabs(project_root_dir):
         project_root_dir = os.path.normpath(os.path.join(os.getcwd(), project_root_dir))
         LOG.debug("The normalized project root directory path %s", project_root_dir)
