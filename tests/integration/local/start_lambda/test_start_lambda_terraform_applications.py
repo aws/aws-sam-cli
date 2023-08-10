@@ -143,10 +143,10 @@ class TestLocalStartLambdaTerraformApplicationWithoutBuildCustomPlanFile(StartLa
         "module.level1_lambda.module.level2_lambda.aws_lambda_function.this",
     ]
 
-    # @skipIf(
-    #     not CI_OVERRIDE,
-    #     "Skip Terraform test cases unless running in CI",
-    # )
+    @skipIf(
+        not CI_OVERRIDE,
+        "Skip Terraform test cases unless running in CI",
+    )
     @parameterized.expand(functions)
     @pytest.mark.flaky(reruns=3)
     def test_invoke_function(self, function_name):

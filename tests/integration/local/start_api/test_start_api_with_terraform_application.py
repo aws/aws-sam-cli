@@ -122,6 +122,10 @@ class TestStartApiTerraformApplication(TerraformStartApiIntegrationBase):
             self.assertEqual(response.json(), {"message": "hello world"})
 
 
+@skipIf(
+    not CI_OVERRIDE,
+    "Skip Terraform test cases unless running in CI",
+)
 @pytest.mark.flaky(reruns=3)
 class TestStartApiTerraformApplicationCustomPlanFile(TerraformStartApiIntegrationBase):
     terraform_application = "terraform-v1-api-simple"
