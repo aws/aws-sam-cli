@@ -1573,16 +1573,19 @@ class TestServiceCorsSwaggerRequestsWithHttpApi(StartApiIntegBaseClass):
         """
         This tests that the Cors headers are added to OPTIONS responses
         """
-        response = requests.options(self.url + "/httpapi-echobase64eventbody", headers={"Origin": "https://abc"}, timeout=300)
+        response = requests.options(
+            self.url + "/httpapi-echobase64eventbody", headers={"Origin": "https://abc"}, timeout=300
+        )
         self.assert_cors(response)
 
     def test_cors_swagger_get_httpapi(self):
         """
         This tests that the Cors headers are added to _other_ method requests
         """
-        response = requests.get(self.url + "/httpapi-echobase64eventbody", headers={"Origin": "https://abc"}, timeout=300)
+        response = requests.get(
+            self.url + "/httpapi-echobase64eventbody", headers={"Origin": "https://abc"}, timeout=300
+        )
         self.assert_cors(response)
-
 
 
 class TestServiceCorsComplexHttpApi(StartApiIntegBaseClass):
@@ -1622,7 +1625,9 @@ class TestServiceCorsComplexHttpApi(StartApiIntegBaseClass):
         This tests that the Cors headers are added to OPTIONS responses
         """
         self.assert_presence(requests.options(self.url, headers={"Origin": "https://abc"}, timeout=300), "https://abc")
-        self.assert_presence(requests.options(self.url, headers={"Origin": "http://xyz:3000"}, timeout=300), "http://xyz:3000")
+        self.assert_presence(
+            requests.options(self.url, headers={"Origin": "http://xyz:3000"}, timeout=300), "http://xyz:3000"
+        )
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -1631,7 +1636,9 @@ class TestServiceCorsComplexHttpApi(StartApiIntegBaseClass):
         This tests that the Cors headers are added to POST responses
         """
         self.assert_presence(requests.post(self.url, headers={"Origin": "https://abc"}, timeout=300), "https://abc")
-        self.assert_presence(requests.post(self.url, headers={"Origin": "http://xyz:3000"}, timeout=300), "http://xyz:3000")
+        self.assert_presence(
+            requests.post(self.url, headers={"Origin": "http://xyz:3000"}, timeout=300), "http://xyz:3000"
+        )
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -1704,6 +1711,7 @@ class TestServiceCorsGlobalRequests(StartApiIntegBaseClass):
         self.assertEqual(response.headers.get("Access-Control-Allow-Methods"), ",".join(sorted(Route.ANY_HTTP_METHODS)))
         self.assertEqual(response.headers.get("Access-Control-Allow-Credentials"), None)
         self.assertEqual(response.headers.get("Access-Control-Max-Age"), None)
+
 
 class TestStartApiWithCloudFormationStage(StartApiIntegBaseClass):
     """
@@ -1966,7 +1974,9 @@ class TestCFNTemplateQuickCreatedHttpApiWithDefaultRoute(StartApiIntegBaseClass)
         """
         This tests that the Cors headers are added to option requests in the swagger template
         """
-        response = requests.options(self.url + "/anypath/anypath", headers={"Origin": "https://example.com"}, timeout=300)
+        response = requests.options(
+            self.url + "/anypath/anypath", headers={"Origin": "https://example.com"}, timeout=300
+        )
 
         self.assertEqual(response.status_code, 200)
 
