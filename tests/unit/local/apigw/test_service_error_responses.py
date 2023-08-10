@@ -16,7 +16,7 @@ class TestServiceErrorResponses(TestCase):
         self.assertEqual(response, {"Some Response"})
 
         jsonify_patch.assert_called_with({"message": "Internal server error"})
-        make_response_patch.assert_called_with({"json": "Response"}, 502)
+        make_response_patch.assert_called_with({"json": "Response"}, 500)
 
     @patch("samcli.local.apigw.service_error_responses.make_response")
     @patch("samcli.local.apigw.service_error_responses.jsonify")
