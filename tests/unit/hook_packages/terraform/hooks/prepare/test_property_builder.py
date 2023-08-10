@@ -5,13 +5,13 @@ from parameterized import parameterized
 
 from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     _build_code_property,
-    REMOTE_DUMMY_VALUE,
     _get_json_body,
     _get_property_extractor,
     _build_lambda_function_environment_property,
     _build_lambda_function_image_config_property,
     _check_image_config_value,
 )
+from samcli.hook_packages.terraform.hooks.prepare.constants import REMOTE_DUMMY_VALUE
 
 from samcli.lib.hook.exceptions import PrepareHookException
 from tests.unit.hook_packages.terraform.hooks.prepare.prepare_base import PrepareHookUnitBase

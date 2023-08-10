@@ -1,6 +1,6 @@
 """Test Terraform prepare hook"""
 from subprocess import CalledProcessError
-from unittest.mock import Mock, call, patch, MagicMock
+from unittest.mock import Mock, call, patch, MagicMock, ANY
 from parameterized import parameterized
 
 from tests.unit.hook_packages.terraform.hooks.prepare.prepare_base import PrepareHookUnitBase
@@ -95,7 +95,101 @@ class TestPrepareHook(PrepareHookUnitBase):
             ]
         )
         mock_translate_to_cfn.assert_called_once_with(
-            self.tf_json_with_child_modules_and_s3_source_mapping, output_dir_path, "iac/project/path"
+            self.tf_json_with_child_modules_and_s3_source_mapping,
+            output_dir_path,
+            "iac/project/path",
+            "iac/project/path",
+        )
+        mock_json.dump.assert_called_once_with(mock_cfn_dict, mock_metadata_file)
+        mock_update_resources_paths.assert_called_once_with(mock_cfn_dict_resources, "iac/project/path")
+        self.assertEqual(expected_prepare_output_dict, iac_prepare_output)
+
+    @parameterized.expand(
+        [
+            (False, False),
+            (False, True),
+            (True, False),
+        ]
+    )
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.invoke_subprocess_with_loading_pattern")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._update_resources_paths")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.translate_to_cfn")
+    @patch("builtins.open")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.osutils.tempfile_platform_independent")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.os")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.json")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.run")
+    def test_prepare_with_project_root_dir_param(
+        self,
+        skip_option,
+        path_exists,
+        mock_subprocess_run,
+        mock_json,
+        mock_os,
+        named_temporary_file_mock,
+        mock_open,
+        mock_translate_to_cfn,
+        mock_update_resources_paths,
+        mock_subprocess_loader,
+    ):
+        tf_plan_filename = "tf_plan"
+        output_dir_path = self.prepare_params.get("OutputDirPath")
+        metadata_file_path = f"{output_dir_path}/template.json"
+        mock_cfn_dict = MagicMock()
+        mock_metadata_file = Mock()
+        mock_cfn_dict_resources = Mock()
+        mock_cfn_dict.get.return_value = mock_cfn_dict_resources
+
+        mock_path = Mock()
+        mock_isabs = Mock()
+        mock_path.isabs = mock_isabs
+        mock_os.path = mock_path
+        mock_isabs.return_value = True
+
+        named_temporary_file_mock.return_value.__enter__.return_value.name = tf_plan_filename
+        mock_json.loads.return_value = self.tf_json_with_child_modules_and_s3_source_mapping
+        mock_translate_to_cfn.return_value = mock_cfn_dict
+        mock_os.path.exists.side_effect = [path_exists, True]
+        mock_os.path.join.return_value = metadata_file_path
+        mock_open.return_value.__enter__.return_value = mock_metadata_file
+
+        self.prepare_params["SkipPrepareInfra"] = skip_option
+        self.prepare_params["ProjectRootDir"] = "/project/root/dir"
+
+        expected_prepare_output_dict = {"iac_applications": {"MainApplication": {"metadata_file": metadata_file_path}}}
+        iac_prepare_output = prepare(self.prepare_params)
+
+        mock_subprocess_loader.assert_has_calls(
+            [
+                call(
+                    command_args={
+                        "args": ["terraform", "init", "-input=false"],
+                        "cwd": "iac/project/path",
+                    }
+                ),
+                call(
+                    command_args={
+                        "args": ["terraform", "plan", "-out", tf_plan_filename, "-input=false"],
+                        "cwd": "iac/project/path",
+                    }
+                ),
+            ]
+        )
+        mock_subprocess_run.assert_has_calls(
+            [
+                call(
+                    ["terraform", "show", "-json", tf_plan_filename],
+                    check=True,
+                    capture_output=True,
+                    cwd="iac/project/path",
+                ),
+            ]
+        )
+        mock_translate_to_cfn.assert_called_once_with(
+            self.tf_json_with_child_modules_and_s3_source_mapping,
+            output_dir_path,
+            "iac/project/path",
+            "/project/root/dir",
         )
         mock_json.dump.assert_called_once_with(mock_cfn_dict, mock_metadata_file)
         mock_update_resources_paths.assert_called_once_with(mock_cfn_dict_resources, "iac/project/path")
@@ -141,10 +235,12 @@ class TestPrepareHook(PrepareHookUnitBase):
         mock_isabs.return_value = False
         mock_join.side_effect = [
             "/current/dir/iac/project/path",
+            "/current/dir/iac/project/path",
             f"/current/dir/iac/project/path/{output_dir_path}",
             f"/current/dir/iac/project/path/{output_dir_path}/template.json",
         ]
         mock_normpath.side_effect = [
+            "/current/dir/iac/project/path",
             "/current/dir/iac/project/path",
             f"/current/dir/iac/project/path/{output_dir_path}",
         ]
@@ -188,6 +284,7 @@ class TestPrepareHook(PrepareHookUnitBase):
         mock_translate_to_cfn.assert_called_once_with(
             self.tf_json_with_child_modules_and_s3_source_mapping,
             f"/current/dir/iac/project/path/{output_dir_path}",
+            "/current/dir/iac/project/path",
             "/current/dir/iac/project/path",
         )
         mock_json.dump.assert_called_once_with(mock_cfn_dict, mock_metadata_file)
@@ -352,3 +449,32 @@ class TestPrepareHook(PrepareHookUnitBase):
         prepare(self.prepare_params)
 
         run_mock.assert_not_called()
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.invoke_subprocess_with_loading_pattern")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._update_resources_paths")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.translate_to_cfn")
+    @patch("builtins.open")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.osutils.tempfile_platform_independent")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.os")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.json")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.run")
+    def test_uses_custom_plan_file(
+        self,
+        mock_subprocess_run,
+        mock_json,
+        mock_os,
+        named_temporary_file_mock,
+        mock_open,
+        mock_translate_to_cfn,
+        mock_update_resources_paths,
+        mock_subprocess_loader,
+    ):
+        self.prepare_params["PlanFile"] = "my-custom-plan.json"
+
+        file_mock = Mock()
+        mock_open.return_value.__enter__.return_value = file_mock
+
+        prepare(self.prepare_params)
+
+        mock_open.assert_has_calls([call("my-custom-plan.json", "r"), ANY])
+        mock_json.load.assert_called_once_with(file_mock)

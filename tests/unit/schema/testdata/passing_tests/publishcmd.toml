@@ -1,0 +1,13 @@
+version = 0.1
+
+[default.publish.parameters]
+template_file = "Template file"
+semantic_version = "Semantic version"
+profile = "Profile"
+region = "Region"
+beta_features = false
+debug = false
+
+[other.publish.parameters]
+beta_features = true
+debug = true

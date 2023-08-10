@@ -10,6 +10,7 @@ from unittest import TestCase
 import boto3
 
 from samcli.yamlhelper import yaml_parse
+from tests.testing_utils import get_sam_command
 
 S3_SLEEP = 3
 TIMEOUT = 300
@@ -40,8 +41,8 @@ class PackageRegressionBase(TestCase):
 
     def base_command(self, base):
         command = [base]
-        if os.getenv("SAM_CLI_DEV") and base == "sam":
-            command = ["samdev"]
+        if base == "sam":
+            command = [get_sam_command()]
         elif base == "aws":
             command = [base, "cloudformation"]
 

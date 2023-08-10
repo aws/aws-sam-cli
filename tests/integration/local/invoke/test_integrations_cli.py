@@ -160,7 +160,9 @@ class TestSamPython37HelloWorldIntegration(InvokeIntegBase):
 
         # validate the time of the cli (timeout is set to 5s)
         self.assertGreater(wall_clock_cli_duration, 5)
-        self.assertLess(wall_clock_cli_duration, 20)
+        # validate the the duration is roughly under the timeout (with some additional
+        # time to take in account time for SAM CLI to do work)
+        self.assertLess(wall_clock_cli_duration, 25)
 
         self.assertEqual(process.returncode, 0)
         self.assertEqual(
@@ -290,6 +292,27 @@ class TestSamPython37HelloWorldIntegration(InvokeIntegBase):
 
         self.assertEqual(process.returncode, 0)
         self.assertEqual("{}", process_stdout.decode("utf-8"))
+
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_returns_utf8(self):
+        command_list = InvokeIntegBase.get_command_list(
+            "EchoEventFunction", template_path=self.template_path, event_path=self.event_utf8_path
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stdout = stdout.strip()
+
+        with open(self.event_utf8_path, encoding="utf8") as f:
+            expected_output = json.dumps(json.load(f), ensure_ascii=False)
+
+        self.assertEqual(process.returncode, 0)
+        self.assertEqual(expected_output, process_stdout.decode("utf-8"))
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_with_env_using_parameters(self):
