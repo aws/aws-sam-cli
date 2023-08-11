@@ -417,6 +417,7 @@ class TestBuildGoFunctionAndKeepPermissions(BuildTerraformApplicationIntegBase):
             expected_result="{'message': 'Hello World'}",
         )
 
+
 @skipIf(
     (not RUN_BY_CANARY and not CI_OVERRIDE),
     "Skip Terraform test cases unless running in CI",
