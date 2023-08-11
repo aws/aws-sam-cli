@@ -412,14 +412,43 @@ class TestBuildGoFunctionAndKeepPermissions(BuildTerraformApplicationIntegBase):
     (not RUN_BY_CANARY and not CI_OVERRIDE),
     "Skip Terraform test cases unless running in CI",
 )
+@parameterized_class(
+    ("build_in_container",),
+    [
+        (False,),
+        (True,),
+    ],
+)
 class TestBuildTerraformApplicationsSourceCodeAndModulesAreNotInRootModuleDirectory(BuildTerraformApplicationIntegBase):
     terraform_application = Path("terraform/application_outside_root_directory")
+
+    terraform_application = (
+        Path("terraform/application_outside_root_directory")
+        if not IS_WINDOWS
+        else Path("terraform/application_outside_root_directory_windows")
+    )
 
     functions = [
         ("aws_lambda_function.function1", "hello world 1"),
         ("module.function2.aws_lambda_function.this", "hello world 1"),
-        ("module.function7.aws_lambda_function.this[0]", "hello world 1"),
     ]
+
+    @classmethod
+    def setUpClass(cls):
+        if IS_WINDOWS and cls.build_in_container:
+            # we use this TF project to test sam build in container on windows as we need to run a linux bash script for
+            # build, and also we need to remove the Serverless TF functions from this project.
+            # that is why we need to use a new project and not one of the existing linux or windows projects
+            cls.terraform_application = "terraform/application_outside_root_directory_windows_container"
+        if not IS_WINDOWS:
+            # The following functions are defined using serverless tf module, and since Serverless TF has some issue
+            # while executing `terraform plan` in windows, we removed these function from the TF projects we used in
+            # testing on Windows, and only test them on linux.
+            # check the Serverless TF issue https://github.com/terraform-aws-modules/terraform-aws-lambda/issues/142
+            cls.functions += [
+                ("module.function7.aws_lambda_function.this[0]", "hello world 1"),
+            ]
+        super().setUpClass()
 
     def setUp(self):
         super().setUp()
