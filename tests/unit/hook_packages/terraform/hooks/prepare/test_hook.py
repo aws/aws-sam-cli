@@ -5,8 +5,13 @@ from parameterized import parameterized
 
 from tests.unit.hook_packages.terraform.hooks.prepare.prepare_base import PrepareHookUnitBase
 
-from samcli.hook_packages.terraform.hooks.prepare.hook import prepare, _update_resources_paths
-from samcli.lib.hook.exceptions import PrepareHookException
+from samcli.hook_packages.terraform.hooks.prepare.hook import (
+    prepare,
+    _update_resources_paths,
+    TF_CLOUD_EXCEPTION_MESSAGE,
+    TF_CLOUD_HELP_MESSAGE,
+)
+from samcli.lib.hook.exceptions import PrepareHookException, TerraformCloudException
 from samcli.lib.utils.subprocess_utils import LoadingPatternError
 
 
@@ -478,3 +483,12 @@ class TestPrepareHook(PrepareHookUnitBase):
 
         mock_open.assert_has_calls([call("my-custom-plan.json", "r"), ANY])
         mock_json.load.assert_called_once_with(file_mock)
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.invoke_subprocess_with_loading_pattern")
+    def test_prints_tf_cloud_help_message(self, mock_subprocess_loader):
+        mock_subprocess_loader.side_effect = [LoadingPatternError(TF_CLOUD_EXCEPTION_MESSAGE)]
+
+        with self.assertRaises(TerraformCloudException) as ex:
+            prepare(self.prepare_params)
+
+        self.assertEqual(ex.exception.message, TF_CLOUD_HELP_MESSAGE)
