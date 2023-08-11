@@ -211,7 +211,7 @@ class LambdaImage:
                 )
                 image_not_found = True
             else:
-                raise DockerDistributionAPIError("Error: " + str(e)) from e
+                raise DockerDistributionAPIError(str(e)) from e
 
         # If building a new rapid image, delete older rapid images
         if image_not_found and rapid_image == f"{image_repo}:{tag_prefix}{RAPID_IMAGE_TAG_PREFIX}-{architecture}":
