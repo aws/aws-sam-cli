@@ -12,7 +12,7 @@ types-pywin32==306.0.0.3
 types-PyYAML==6.0.12
 types-chevron==0.14.2.4
 types-psutil==5.9.5.12
-types-setuptools==65.4.0.0
+types-setuptools==68.0.0.3
 types-Pygments==2.15.0.2 
 types-colorama==0.4.15.12
 types-dateparser==1.1.4.10
