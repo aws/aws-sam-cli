@@ -132,16 +132,6 @@ class TestBuildTerraformApplicationsWithInvalidOptions(BuildTerraformApplication
         self.assertEqual(return_code, 0)
         self.assertRegex(stderr.strip().decode("utf-8"), "Terraform Support beta feature is not enabled.")
 
-    def test_exit_failed_project_root_dir_no_hooks_custom_plan_file(self):
-        cmdlist = self.get_command_list(beta_features=True, terraform_plan_file="/path")
-        _, stderr, return_code = self.run_command(cmdlist)
-        process_stderr = stderr.strip()
-        self.assertRegex(
-            process_stderr.decode("utf-8"),
-            "Error: Missing option --hook-name",
-        )
-        self.assertNotEqual(return_code, 0)
-
 
 @skipIf(
     (not RUN_BY_CANARY and not CI_OVERRIDE),
@@ -466,56 +456,6 @@ class TestBuildTerraformApplicationsSourceCodeAndModulesAreNotInRootModuleDirect
         self.assertIn(Colored().yellow(experimental_warning), stderr.decode("utf-8"))
         LOG.info("sam build stdout: %s", stdout.decode("utf-8"))
         LOG.info("sam build stderr: %s", stderr.decode("utf-8"))
-        self.assertEqual(return_code, 0)
-
-        self._verify_invoke_built_function(
-            function_logical_id=function_identifier,
-            overrides=None,
-            expected_result={"statusCode": 200, "body": expected_output},
-        )
-
-
-@skipIf(
-    (not RUN_BY_CANARY and not CI_OVERRIDE),
-    "Skip Terraform test cases unless running in CI",
-)
-@parameterized_class(
-    ("build_in_container",),
-    [
-        (False,),
-        (True,),
-    ],
-)
-class TestBuildTerraformApplicationsCustomPlanFile(BuildTerraformApplicationIntegBase):
-    terraform_application = Path("terraform/zip_based_lambda_functions_local_backend")
-
-    functions = [
-        ("function2", "hello world 2"),
-        ("function1", "hello world 1"),
-        ("module.level1_lambda.aws_lambda_function.this", "[]"),
-        ("module.level1_lambda.module.level2_lambda.aws_lambda_function.this", "[]"),
-        ("my_level1_lambda", "[]"),
-        ("my_level2_lambda", "[]"),
-    ]
-
-    @parameterized.expand(functions)
-    def test_custom_plan_file(self, function_identifier, expected_output):
-        command_list_parameters = {
-            "beta_features": True,
-            "hook_name": "terraform",
-            "function_identifier": function_identifier,
-            "terraform_plan_file": "custom-plan.json",
-        }
-
-        if self.build_in_container:
-            command_list_parameters["use_container"] = True
-            command_list_parameters["build_image"] = self.docker_tag
-
-        build_cmd_list = self.get_command_list(**command_list_parameters)
-        LOG.info("command list: %s", build_cmd_list)
-
-        _, stderr, return_code = self.run_command(build_cmd_list)
-        LOG.info(stderr)
         self.assertEqual(return_code, 0)
 
         self._verify_invoke_built_function(

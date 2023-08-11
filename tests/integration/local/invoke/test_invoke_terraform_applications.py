@@ -109,6 +109,16 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
         self.assertEqual(return_code, 0)
         self.assertEqual(response, expected_response)
 
+    def test_exit_failed_project_root_dir_no_hooks_custom_plan_file(self):
+        cmdlist = self.get_command_list(beta_features=True, terraform_plan_file="/path", function_to_invoke="")
+        _, stderr, return_code = self.run_command(cmdlist)
+        process_stderr = stderr.strip()
+        self.assertRegex(
+            process_stderr.decode("utf-8"),
+            "Error: Missing option --hook-name",
+        )
+        self.assertNotEqual(return_code, 0)
+
     @skipIf(
         not CI_OVERRIDE,
         "Skip Terraform test cases unless running in CI",
