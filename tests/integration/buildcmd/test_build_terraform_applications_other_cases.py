@@ -479,7 +479,9 @@ class TestBuildTerraformApplicationsSourceCodeAndModulesAreNotInRootModuleDirect
     (not RUN_BY_CANARY and not CI_OVERRIDE),
     "Skip Terraform test cases unless running in CI",
 )
-class TestBuildTerraformApplicationsSourceCodeAndModulesAreNotInRootModuleDirectoryGetParametersFromSamConfig(BuildTerraformApplicationIntegBase):
+class TestBuildTerraformApplicationsSourceCodeAndModulesAreNotInRootModuleDirectoryGetParametersFromSamConfig(
+    BuildTerraformApplicationIntegBase
+):
     terraform_application = Path("terraform/application_outside_root_directory")
 
     functions = [
