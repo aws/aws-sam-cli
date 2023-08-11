@@ -420,8 +420,6 @@ class TestBuildGoFunctionAndKeepPermissions(BuildTerraformApplicationIntegBase):
     ],
 )
 class TestBuildTerraformApplicationsSourceCodeAndModulesAreNotInRootModuleDirectory(BuildTerraformApplicationIntegBase):
-    terraform_application = Path("terraform/application_outside_root_directory")
-
     terraform_application = (
         Path("terraform/application_outside_root_directory")
         if not IS_WINDOWS
