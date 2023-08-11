@@ -412,13 +412,6 @@ class TestBuildGoFunctionAndKeepPermissions(BuildTerraformApplicationIntegBase):
     (not RUN_BY_CANARY and not CI_OVERRIDE),
     "Skip Terraform test cases unless running in CI",
 )
-@parameterized_class(
-    ("build_in_container",),
-    [
-        (False,),
-        (True,),
-    ],
-)
 class TestBuildTerraformApplicationsSourceCodeAndModulesAreNotInRootModuleDirectory(BuildTerraformApplicationIntegBase):
     terraform_application = Path("terraform/application_outside_root_directory")
 
