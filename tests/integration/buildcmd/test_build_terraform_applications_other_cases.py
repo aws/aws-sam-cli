@@ -132,7 +132,7 @@ class TestBuildTerraformApplicationsWithInvalidOptions(BuildTerraformApplication
         self.assertEqual(return_code, 0)
         self.assertRegex(stderr.strip().decode("utf-8"), "Terraform Support beta feature is not enabled.")
 
-    def test_exit_failed_project_root_dir_no_hooks(self):
+    def test_exit_failed_project_root_dir_no_hooks_custom_plan_file(self):
         cmdlist = self.get_command_list(beta_features=True, terraform_plan_file="/path")
         _, stderr, return_code = self.run_command(cmdlist)
         process_stderr = stderr.strip()
