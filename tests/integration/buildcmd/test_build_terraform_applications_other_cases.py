@@ -466,6 +466,13 @@ class TestBuildTerraformApplicationsSourceCodeAndModulesAreNotInRootModuleDirect
         self.assertIn(Colored().yellow(experimental_warning), stderr.decode("utf-8"))
         LOG.info("sam build stdout: %s", stdout.decode("utf-8"))
         LOG.info("sam build stderr: %s", stderr.decode("utf-8"))
+        self.assertEqual(return_code, 0)
+
+        self._verify_invoke_built_function(
+            function_logical_id=function_identifier,
+            overrides=None,
+            expected_result={"statusCode": 200, "body": expected_output},
+        )
 
 
 @skipIf(
