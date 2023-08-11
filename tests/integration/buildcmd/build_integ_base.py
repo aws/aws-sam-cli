@@ -85,6 +85,7 @@ class BuildIntegBase(TestCase):
         mount_with=None,
         config_file=None,
         terraform_plan_file=None,
+        project_root_dir=None,
     ):
         command_list = [self.cmd, "build"]
 
@@ -153,6 +154,9 @@ class BuildIntegBase(TestCase):
 
         if terraform_plan_file:
             command_list += ["--terraform-plan-file", terraform_plan_file]
+
+        if project_root_dir is not None:
+            command_list += ["--terraform-project-root-path", project_root_dir]
 
         return command_list
 
