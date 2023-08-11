@@ -86,6 +86,7 @@ class TestHookPackageIdOption(TestCase):
             invalid_coexist_options=self.invalid_coexist_options,
         )
         ctx = MagicMock()
+        ctx.default_map = {}
         opts = {
             "hook_name": self.terraform,
         }
@@ -121,12 +122,15 @@ class TestHookPackageIdOption(TestCase):
             invalid_coexist_options=self.invalid_coexist_options,
         )
         ctx = MagicMock()
+        ctx.default_map = {}
         opts = {
             "hook_name": self.terraform,
             "debug": True,
             "profile": "test",
             "region": "us-east-1",
             "terraform_project_root_path": "/path/path",
+            "skip_prepare_infra": True,
+            "terraform_plan_file": "/path/plan/file",
         }
         args = []
         hook_name_option.handle_parse_result(ctx, opts, args)
@@ -136,8 +140,50 @@ class TestHookPackageIdOption(TestCase):
             True,
             "test",
             "us-east-1",
-            False,
-            None,
+            True,
+            "/path/plan/file",
+            "/path/path",
+        )
+        self.assertEqual(opts.get("template_file"), self.metadata_path)
+
+    @patch("samcli.commands._utils.custom_options.hook_name_option.update_experimental_context")
+    @patch("samcli.commands._utils.custom_options.hook_name_option.prompt_experimental")
+    @patch("samcli.commands._utils.custom_options.hook_name_option.os.getcwd")
+    @patch("samcli.commands._utils.custom_options.hook_name_option.IacHookWrapper")
+    def test_valid_hook_package_with_other_options_from_sam_config(
+        self, iac_hook_wrapper_mock, getcwd_mock, prompt_experimental_mock, update_experimental_context_mock
+    ):
+        iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
+        prompt_experimental_mock.return_value = True
+
+        getcwd_mock.return_value = self.cwd_path
+
+        hook_name_option = HookNameOption(
+            param_decls=(self.name, self.opt),
+            force_prepare=True,
+            invalid_coexist_options=self.invalid_coexist_options,
+        )
+        ctx = MagicMock()
+        ctx.default_map = {
+            "hook_name": self.terraform,
+            "debug": True,
+            "profile": "test",
+            "region": "us-east-1",
+            "terraform_project_root_path": "/path/path",
+            "skip_prepare_infra": True,
+            "terraform_plan_file": "/path/plan/file",
+        }
+        opts = {}
+        args = []
+        hook_name_option.handle_parse_result(ctx, opts, args)
+        self.iac_hook_wrapper_instance_mock.prepare.assert_called_once_with(
+            os.path.join(self.cwd_path, ".aws-sam-iacs", "iacs_metadata"),
+            self.cwd_path,
+            True,
+            "test",
+            "us-east-1",
+            True,
+            "/path/plan/file",
             "/path/path",
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
@@ -272,6 +318,7 @@ class TestHookPackageIdOption(TestCase):
             invalid_coexist_options=self.invalid_coexist_options,
         )
         ctx = MagicMock()
+        ctx.default_map = {}
         opts = {
             "hook_name": self.terraform,
             "beta_features": True,
@@ -420,6 +467,7 @@ class TestHookPackageIdOption(TestCase):
             invalid_coexist_options=self.invalid_coexist_options,
         )
         ctx = MagicMock()
+        ctx.default_map = {}
         opts = {
             "hook_name": self.terraform,
         }
@@ -463,6 +511,7 @@ class TestHookPackageIdOption(TestCase):
             invalid_coexist_options=self.invalid_coexist_options,
         )
         ctx = MagicMock()
+        ctx.default_map = {}
         ctx.command.name = "build"
         opts = {
             "hook_name": self.terraform,
@@ -586,6 +635,7 @@ class TestHookPackageIdOption(TestCase):
             invalid_coexist_options=self.invalid_coexist_options,
         )
         ctx = MagicMock()
+        ctx.default_map = {}
         ctx.command.name = "build"
         opts = {
             "hook_name": self.terraform,
@@ -634,6 +684,7 @@ class TestHookPackageIdOption(TestCase):
             invalid_coexist_options=self.invalid_coexist_options,
         )
         ctx = MagicMock()
+        ctx.default_map = {}
         ctx.command.name = "build"
         opts = {
             "hook_name": self.terraform,
@@ -679,6 +730,7 @@ class TestHookPackageIdOption(TestCase):
             invalid_coexist_options=self.invalid_coexist_options,
         )
         ctx = MagicMock()
+        ctx.default_map = {}
         ctx.command.name = "build"
         opts = {
             "hook_name": self.terraform,
