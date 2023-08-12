@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 from typing import Set
 from unittest import skipIf
+from uuid import uuid4
 
 import jmespath
 import docker
@@ -47,6 +48,39 @@ LOG = logging.getLogger(__name__)
 
 # SAR tests require credentials. This is to skip running the test where credentials are not available.
 SKIP_SAR_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
+
+
+@skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
+class TestBuildingImageTypeLambdaDockerFileFailures(BuildIntegBase):
+    template = "template_image.yaml"
+
+    def test_with_invalid_dockerfile_location(self):
+        overrides = {
+            "Runtime": "3.10",
+            "Handler": "handler",
+            "DockerFile": "ThisDockerfileDoesNotExist",
+            "Tag": uuid4().hex,
+        }
+        cmdlist = self.get_command_list(parameter_overrides=overrides)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        # confirm build failed
+        self.assertEqual(command_result.process.returncode, 1)
+        self.assertIn("Cannot locate specified Dockerfile", command_result.stderr.decode())
+
+    def test_with_invalid_dockerfile_definition(self):
+        overrides = {
+            "Runtime": "3.10",
+            "Handler": "handler",
+            "DockerFile": "InvalidDockerfile",
+            "Tag": uuid4().hex,
+        }
+        cmdlist = self.get_command_list(parameter_overrides=overrides)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        # confirm build failed
+        self.assertEqual(command_result.process.returncode, 1)
+        self.assertIn("COPY requires at least two arguments", command_result.stderr.decode())
 
 
 @skipIf(
@@ -240,6 +274,40 @@ class TestBuildCommand_PythonFunctions_ImagesWithSharedCode(BuildIntegBase):
             _num_of_containers_before_build, _num_of_containers_after_build, "Intermediate containers are not removed"
         )
 
+    @parameterized.expand(
+        [
+            ("feature_phi\\Dockerfile", {"phi": "1.62"}),
+            ("feature_pi\\Dockerfile", {"pi": "3.14"}),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    @skipIf(not IS_WINDOWS, "Skipping passing Windows path for dockerfile path on non Windows platform")
+    def test_windows_dockerfile_present_sub_dir(self, dockerfile, expected):
+        _tag = f"{random.randint(1, 100)}"
+        overrides = {
+            "Runtime": "3.9",
+            "Handler": "main.handler",
+            "DockerFile": dockerfile,
+            "Tag": _tag,
+        }
+        cmdlist = self.get_command_list(use_container=False, parameter_overrides=overrides)
+
+        LOG.info("Running Command: ")
+        LOG.info(cmdlist)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
+
+        self._verify_image_build_artifact(
+            self.built_template,
+            self.FUNCTION_LOGICAL_ID_IMAGE,
+            "ImageUri",
+            f"{self.FUNCTION_LOGICAL_ID_IMAGE.lower()}:{_tag}",
+        )
+
+        self._verify_invoke_built_function(
+            self.built_template, self.FUNCTION_LOGICAL_ID_IMAGE, self._make_parameter_override_arg(overrides), expected
+        )
+
 
 @skipIf(
     # Hits public ECR pull limitation, move it to canary tests
@@ -406,6 +474,7 @@ class TestSkipBuildingFlaggedFunctions(BuildIntegPythonBase):
         ("template.yaml", "Function", True, "python3.8", "Python", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.9", "Python", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.10", "Python", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.11", "Python", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.7", "PythonPEP600", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.8", "PythonPEP600", False, "CodeUri"),
     ],
@@ -445,6 +514,7 @@ class TestBuildCommand_PythonFunctions_WithoutDocker(BuildIntegPythonBase):
         ("template.yaml", "Function", True, "python3.8", "Python", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.9", "Python", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.10", "Python", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.11", "Python", False, "CodeUri"),
     ],
 )
 class TestBuildCommand_PythonFunctions_WithDocker(BuildIntegPythonBase):
@@ -508,6 +578,47 @@ class TestBuildCommand_PythonFunctions_CDK(TestBuildCommand_PythonFunctions_With
             do_override=self.overrides,
             check_function_only=self.check_function_only,
         )
+
+
+@skipIf(
+    # Hits public ECR pull limitation, move it to canary tests
+    SKIP_DOCKER_TESTS,
+    "Skip build tests that requires Docker in CI environment",
+)
+@parameterized_class(
+    (
+        "template",
+        "FUNCTION_LOGICAL_ID",
+        "overrides",
+        "use_container",
+        "prop",
+    ),
+    [
+        (
+            "cdk_v2_synthesized_template_image_function_shared_code.json",
+            "TestLambdaFunctionC089708A",
+            False,
+            False,
+            "Code.ImageUri",
+        ),
+    ],
+)
+class TestBuildCommandCDKPythonImageFunctionSharedCode(BuildIntegPythonBase):
+    @pytest.mark.flaky(reruns=3)
+    def test_cdk_app_with_default_requirements(self):
+        expected = "Hello World"
+        cmdlist = self.get_command_list(use_container=self.use_container)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
+
+        self._verify_image_build_artifact(
+            self.built_template,
+            self.FUNCTION_LOGICAL_ID,
+            self.prop,
+            f"{self.FUNCTION_LOGICAL_ID.lower()}:latest",
+        )
+
+        self._verify_invoke_built_function(self.built_template, self.FUNCTION_LOGICAL_ID, {}, expected)
 
 
 class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPythonBase):
@@ -1223,15 +1334,13 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
 
     @parameterized.expand(
         [
-            ("dotnetcore3.1", "Dotnetcore3.1", None),
             ("dotnet6", "Dotnet6", None),
-            ("dotnetcore3.1", "Dotnetcore3.1", "debug"),
             ("dotnet6", "Dotnet6", "debug"),
             ("provided.al2", "Dotnet7", None),
         ]
     )
     @pytest.mark.flaky(reruns=3)
-    def test_dotnetcore_in_process(self, runtime, code_uri, mode, architecture="x86_64"):
+    def test_dotnet_in_process(self, runtime, code_uri, mode, architecture="x86_64"):
         # dotnet7 requires docker to build the function
         if code_uri == "Dotnet7" and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
@@ -1294,9 +1403,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
 
     @parameterized.expand(
         [
-            ("dotnetcore3.1", "Dotnetcore3.1", None),
             ("dotnet6", "Dotnet6", None),
-            ("dotnetcore3.1", "Dotnetcore3.1", "debug"),
             ("dotnet6", "Dotnet6", "debug"),
             # force to run tests on arm64 machines may cause dotnet7 test failing
             # because Native AOT Lambda functions require the host and lambda architectures to match
@@ -1305,7 +1412,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     @pytest.mark.flaky(reruns=3)
-    def test_dotnetcore_in_container_mount_with_write_explicit(self, runtime, code_uri, mode, architecture="x86_64"):
+    def test_dotnet_in_container_mount_with_write_explicit(self, runtime, code_uri, mode, architecture="x86_64"):
         overrides = {
             "Runtime": runtime,
             "CodeUri": code_uri,
@@ -1368,9 +1475,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
 
     @parameterized.expand(
         [
-            ("dotnetcore3.1", "Dotnetcore3.1", None),
             ("dotnet6", "Dotnet6", None),
-            ("dotnetcore3.1", "Dotnetcore3.1", "debug"),
             ("dotnet6", "Dotnet6", "debug"),
             # force to run tests on arm64 machines may cause dotnet7 test failing
             # because Native AOT Lambda functions require the host and lambda architectures to match
@@ -1379,7 +1484,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     @pytest.mark.flaky(reruns=3)
-    def test_dotnetcore_in_container_mount_with_write_interactive(
+    def test_dotnet_in_container_mount_with_write_interactive(
         self,
         runtime,
         code_uri,
@@ -1444,7 +1549,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         )
         self.verify_docker_container_cleanedup(runtime)
 
-    @parameterized.expand([("dotnetcore3.1", "Dotnetcore3.1"), ("dotnet6", "Dotnet6")])
+    @parameterized.expand([("dotnet6", "Dotnet6")])
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     @pytest.mark.flaky(reruns=3)
     def test_must_fail_on_container_mount_without_write_interactive(self, runtime, code_uri):
@@ -1648,6 +1753,8 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
     EXPECTED_FILES_PROJECT_MANIFEST = {"__init__.py", "main.py", "requirements.txt"}
     EXPECTED_LAYERS_FILES_PROJECT_MANIFEST = {"__init__.py", "layer.py", "numpy", "requirements.txt"}
 
+    EXPECTED_LAYERS_FILES_NO_COMPATIBLE_RUNTIMES = {"__init__.py", "layer.py", "requirements.txt"}
+
     @parameterized.expand(
         [
             ("python3.7", False, "LayerOne", "ContentUri"),
@@ -1703,6 +1810,31 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             self.EXPECTED_LAYERS_FILES_PROJECT_MANIFEST,
             "ContentUri",
             "python",
+        )
+
+    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
+    def test_build_layer_with_makefile_no_compatible_runtimes(self):
+        build_method = "makefile"
+        use_container = True
+        layer_identifier = "LayerWithMakefileNoCompatibleRuntimes"
+
+        overrides = {"LayerBuildMethod": build_method, "LayerMakeContentUri": "PyLayerMake"}
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
+        )
+
+        LOG.info("Running Command: {}".format(cmdlist))
+
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
+
+        LOG.info("Default build dir: %s", self.default_build_dir)
+        self._verify_built_artifact(
+            self.default_build_dir,
+            layer_identifier,
+            self.EXPECTED_LAYERS_FILES_NO_COMPATIBLE_RUNTIMES,
+            "ContentUri",
+            "random",
         )
 
     @parameterized.expand([("python3.7", False, "LayerTwo"), ("python3.7", "use_container", "LayerTwo")])
@@ -2047,13 +2179,6 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
             # in process
             (
                 False,
-                "Dotnetcore3.1",
-                "HelloWorld::HelloWorld.FirstFunction::FunctionHandler",
-                "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
-                "dotnetcore3.1",
-            ),
-            (
-                False,
                 "Dotnet6",
                 "HelloWorld::HelloWorld.FirstFunction::FunctionHandler",
                 "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
@@ -2177,13 +2302,6 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
     @parameterized.expand(
         [
             # in process
-            (
-                False,
-                "Dotnetcore3.1",
-                "HelloWorld::HelloWorld.FirstFunction::FunctionHandler",
-                "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
-                "dotnetcore3.1",
-            ),
             (
                 False,
                 "Dotnet6",
@@ -2366,13 +2484,6 @@ class TestParallelBuilds(DedupBuildIntegBase):
     @parameterized.expand(
         [
             # in process
-            (
-                False,
-                "Dotnetcore3.1",
-                "HelloWorld::HelloWorld.FirstFunction::FunctionHandler",
-                "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
-                "dotnetcore3.1",
-            ),
             (
                 False,
                 "Dotnet6",

@@ -1,0 +1,97 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: A hello world application that creates multiple resources used for inteting remote invoke command.
+
+Resources:
+  HelloWorldServerlessFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.default_handler
+      Runtime: python3.9
+      CodeUri: ./lambda-fns
+      Timeout: 5
+
+  EchoEventFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.echo_event
+      Runtime: python3.9
+      CodeUri: ./lambda-fns
+      Timeout: 5
+
+  EchoClientContextData:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.echo_client_context_data
+      Runtime: python3.9
+      CodeUri: ./lambda-fns
+      Timeout: 5
+
+  EchoCustomEnvVarFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.custom_env_var_echo_handler
+      Runtime: python3.9
+      CodeUri: ./lambda-fns
+      Environment:
+        Variables:
+          CustomEnvVar: "MyOtherVar"
+      Timeout: 5
+
+  WriteToStderrFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.write_to_stderr
+      Runtime: python3.9
+      CodeUri: ./lambda-fns
+      Timeout: 5
+
+  RaiseExceptionFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.raise_exception
+      Runtime: python3.9
+      CodeUri: ./lambda-fns
+      Timeout: 5
+  
+  StateMachineExecutionFails:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      DefinitionUri: ./state-machines/execution-fails-state-machine-definition.asl.json
+
+  StockPriceGuideStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      DefinitionUri: ./state-machines/stock-trader-state-machine-definition.asl.json
+      DefinitionSubstitutions:
+        StockActionRecommenderFunction: !GetAtt StockActionRecommenderFunction.Arn
+        StockSellerFunctionArn: !GetAtt StockSellerFunction.Arn
+        StockBuyerFunctionArn: !GetAtt StockBuyerFunction.Arn
+      Policies: # Find out more about SAM policy templates: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-policy-templates.html
+        - LambdaInvokePolicy:
+            FunctionName: !Ref StockActionRecommenderFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref StockSellerFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref StockBuyerFunction
+  
+  StockActionRecommenderFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-function.html
+    Properties:
+      CodeUri: lambda-fns/
+      Handler: main.stock_transaction_recommender
+      Runtime: python3.9
+
+  StockSellerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda-fns/
+      Handler: main.stock_seller
+      Runtime: python3.9
+
+  StockBuyerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda-fns/
+      Handler: main.stock_buyer
+      Runtime: python3.9

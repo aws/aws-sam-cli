@@ -10,7 +10,7 @@ from botocore.exceptions import ClientError
 from parameterized import parameterized
 
 from samcli.lib.bootstrap.bootstrap import SAM_CLI_STACK_NAME
-from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME
+from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME, SamConfig
 from tests.integration.deploy.deploy_integ_base import DeployIntegBase
 from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY, UpdatableSARTemplate
 
@@ -613,6 +613,13 @@ to create a managed default bucket, or run sam deploy --guided",
         # Deploy should succeed with a managed stack
         self.assertEqual(deploy_process_execute.process.returncode, 0)
         self.stacks.append({"name": SAM_CLI_STACK_NAME})
+        # Verify the contents in samconfig
+        config = SamConfig(self.test_data_path)
+        deploy_config_params = config.document["default"]["deploy"]["parameters"]
+        self.assertEqual(deploy_config_params["stack_name"], stack_name)
+        self.assertTrue(deploy_config_params["resolve_s3"])
+        self.assertEqual(deploy_config_params["region"], "us-east-1")
+        self.assertEqual(deploy_config_params["capabilities"], "CAPABILITY_IAM")
         # Remove samconfig.toml
         os.remove(self.test_data_path.joinpath(DEFAULT_CONFIG_FILE_NAME))
 
@@ -627,7 +634,7 @@ to create a managed default bucket, or run sam deploy --guided",
         deploy_command_list = self.get_deploy_command_list(template_file=template_path, guided=True)
 
         deploy_process_execute = self.run_command_with_input(
-            deploy_command_list, f"{stack_name}\n\n\n\n\ny\n\n\ny\n\n\n\n".encode()
+            deploy_command_list, f"{stack_name}\n\n\n\n\ny\n\n\n\n\n\n\n".encode()
         )
 
         # Deploy should succeed with a managed stack
@@ -637,6 +644,10 @@ to create a managed default bucket, or run sam deploy --guided",
         companion_stack_name = self._stack_name_to_companion_stack(stack_name)
         self._assert_companion_stack(self.cfn_client, companion_stack_name)
         self._assert_companion_stack_content(self.ecr_client, companion_stack_name)
+
+        # Verify the contents in samconfig
+        config = SamConfig(self.test_data_path)
+        self._assert_deploy_samconfig_parameters(config, stack_name=stack_name)
 
         # Remove samconfig.toml
         os.remove(self.test_data_path.joinpath(DEFAULT_CONFIG_FILE_NAME))
@@ -669,6 +680,9 @@ to create a managed default bucket, or run sam deploy --guided",
             self.fail("Companion stack was created. This should not happen with specifying image repos.")
 
         self.stacks.append({"name": SAM_CLI_STACK_NAME})
+        # Verify the contents in samconfig
+        config = SamConfig(self.test_data_path)
+        self._assert_deploy_samconfig_parameters(config, stack_name=stack_name)
         # Remove samconfig.toml
         os.remove(self.test_data_path.joinpath(DEFAULT_CONFIG_FILE_NAME))
 
@@ -690,6 +704,11 @@ to create a managed default bucket, or run sam deploy --guided",
         # Deploy should succeed with a managed stack
         self.assertEqual(deploy_process_execute.process.returncode, 0)
         self.stacks.append({"name": SAM_CLI_STACK_NAME})
+        # Verify the contents in samconfig
+        config = SamConfig(self.test_data_path)
+        self._assert_deploy_samconfig_parameters(
+            config, stack_name=stack_name, parameter_overrides='Parameter="SuppliedParameter"'
+        )
         # Remove samconfig.toml
         os.remove(self.test_data_path.joinpath(DEFAULT_CONFIG_FILE_NAME))
 
@@ -710,6 +729,14 @@ to create a managed default bucket, or run sam deploy --guided",
         # Deploy should succeed with a managed stack
         self.assertEqual(deploy_process_execute.process.returncode, 0)
         self.stacks.append({"name": SAM_CLI_STACK_NAME})
+        # Verify the contents in samconfig
+        config = SamConfig(self.test_data_path)
+        self._assert_deploy_samconfig_parameters(
+            config,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM CAPABILITY_NAMED_IAM",
+            parameter_overrides='Parameter="SuppliedParameter"',
+        )
         # Remove samconfig.toml
         os.remove(self.test_data_path.joinpath(DEFAULT_CONFIG_FILE_NAME))
 
@@ -731,6 +758,11 @@ to create a managed default bucket, or run sam deploy --guided",
         # Deploy should succeed with a managed stack
         self.assertEqual(deploy_process_execute.process.returncode, 0)
         self.stacks.append({"name": SAM_CLI_STACK_NAME})
+        # Verify the contents in samconfig
+        config = SamConfig(self.test_data_path)
+        self._assert_deploy_samconfig_parameters(
+            config, stack_name=stack_name, parameter_overrides='Parameter="SuppliedParameter"'
+        )
         # Remove samconfig.toml
         os.remove(self.test_data_path.joinpath(DEFAULT_CONFIG_FILE_NAME))
 
@@ -752,6 +784,11 @@ to create a managed default bucket, or run sam deploy --guided",
         # Deploy should succeed with a managed stack
         self.assertEqual(deploy_process_execute.process.returncode, 0)
         self.stacks.append({"name": SAM_CLI_STACK_NAME})
+        # Verify the contents in samconfig
+        config = SamConfig(self.test_data_path)
+        self._assert_deploy_samconfig_parameters(
+            config, stack_name=stack_name, confirm_changeset=True, parameter_overrides='Parameter="SuppliedParameter"'
+        )
         # Remove samconfig.toml
         os.remove(self.test_data_path.joinpath(DEFAULT_CONFIG_FILE_NAME))
 
@@ -789,7 +826,11 @@ to create a managed default bucket, or run sam deploy --guided",
 
         deploy_process_execute = self.run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 1)
-        self.assertIn("Error reading configuration: Unexpected character", str(deploy_process_execute.stderr))
+        self.assertIn(
+            "Unexpected character: 'm' at line 2 col 11",
+            str(deploy_process_execute.stderr),
+            "Should notify user of the parsing error.",
+        )
 
     @parameterized.expand([("aws-serverless-function.yaml", "samconfig-tags-list.toml")])
     def test_deploy_with_valid_config_tags_list(self, template_file, config_file):

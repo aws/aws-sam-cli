@@ -16,7 +16,7 @@ _lambda_images_templates = os.path.join(_init_path, "lib", "init", "image_templa
 RUNTIME_DEP_TEMPLATE_MAPPING = {
     "python": [
         {
-            "runtimes": ["python3.10", "python3.9", "python3.8", "python3.7"],
+            "runtimes": ["python3.11", "python3.10", "python3.9", "python3.8", "python3.7"],
             "dependency_manager": "pip",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-python"),
             "build": True,
@@ -40,7 +40,7 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
     ],
     "dotnet": [
         {
-            "runtimes": ["dotnet6", "dotnetcore3.1"],
+            "runtimes": ["dotnet6"],
             "dependency_manager": "cli-package",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-dotnet"),
             "build": True,
@@ -83,22 +83,23 @@ def get_local_lambda_images_location(mapping, runtime):
     return os.path.join(_lambda_images_templates, runtime, dir_name + "-lambda-image")
 
 
-SUPPORTED_DEP_MANAGERS: List[str] = list(
-    set(
-        {
-            c.get("dependency_manager")  # type: ignore
-            for c in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values())))
-            if c.get("dependency_manager")
-        }
+SUPPORTED_DEP_MANAGERS: List[str] = sorted(
+    list(
+        set(
+            {
+                c.get("dependency_manager")  # type: ignore
+                for c in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values())))
+                if c.get("dependency_manager")
+            }
+        )
     )
 )
 
 # When adding new Lambda runtimes, please update SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING
 # Runtimes are ordered in alphabetical fashion with reverse version order (latest versions first)
 INIT_RUNTIMES = [
-    # dotnetcore runtimes in descending order
+    # dotnet runtimes in descending order
     "dotnet6",
-    "dotnetcore3.1",
     "go1.x",
     # java runtimes in descending order
     "java17",
@@ -114,6 +115,7 @@ INIT_RUNTIMES = [
     "provided.al2",
     "provided",
     # python runtimes in descending order
+    "python3.11",
     "python3.10",
     "python3.9",
     "python3.8",
@@ -126,7 +128,6 @@ INIT_RUNTIMES = [
 
 LAMBDA_IMAGES_RUNTIMES_MAP = {
     "dotnet6": "amazon/dotnet6-base",
-    "dotnetcore3.1": "amazon/dotnetcore3.1-base",
     "go1.x": "amazon/go1.x-base",
     "go (provided.al2)": "amazon/go-provided.al2-base",
     "java17": "amazon/java17-base",
@@ -137,6 +138,7 @@ LAMBDA_IMAGES_RUNTIMES_MAP = {
     "nodejs16.x": "amazon/nodejs16.x-base",
     "nodejs14.x": "amazon/nodejs14.x-base",
     "nodejs12.x": "amazon/nodejs12.x-base",
+    "python3.11": "amazon/python3.11-base",
     "python3.10": "amazon/python3.10-base",
     "python3.9": "amazon/python3.9-base",
     "python3.8": "amazon/python3.8-base",
@@ -145,7 +147,7 @@ LAMBDA_IMAGES_RUNTIMES_MAP = {
     "ruby2.7": "amazon/ruby2.7-base",
 }
 
-LAMBDA_IMAGES_RUNTIMES: List = list(set(LAMBDA_IMAGES_RUNTIMES_MAP.values()))
+LAMBDA_IMAGES_RUNTIMES: List = sorted(list(set(LAMBDA_IMAGES_RUNTIMES_MAP.values())))
 
 # Schemas Code lang is a MINIMUM supported version
 # - this is why later Lambda runtimes can be mapped to earlier Schemas Code Languages
@@ -158,7 +160,8 @@ SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING = {
     "python3.8": "Python36",
     "python3.9": "Python36",
     "python3.10": "Python36",
-    "dotnet6": "dotnetcore3.1",
+    "python3.11": "Python36",
+    "dotnet6": "dotnet6",
     "go1.x": "Go1",
 }
 

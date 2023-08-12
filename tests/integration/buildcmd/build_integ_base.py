@@ -83,6 +83,8 @@ class BuildIntegBase(TestCase):
         beta_features=None,
         build_in_source=None,
         mount_with=None,
+        config_file=None,
+        project_root_dir=None,
     ):
         command_list = [self.cmd, "build"]
 
@@ -145,6 +147,12 @@ class BuildIntegBase(TestCase):
 
         if build_in_source is not None:
             command_list += ["--build-in-source"] if build_in_source else ["--no-build-in-source"]
+
+        if config_file is not None:
+            command_list += ["--config-file", config_file]
+
+        if project_root_dir is not None:
+            command_list += ["--terraform-project-root-path", project_root_dir]
 
         return command_list
 

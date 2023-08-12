@@ -162,7 +162,7 @@ class LocalLambdaInvokeService(BaseLocalService):
 
         request_data = request_data.decode("utf-8")
 
-        stdout_stream = io.BytesIO()
+        stdout_stream = io.StringIO()
         stdout_stream_writer = StreamWriter(stdout_stream, auto_flush=True)
 
         try:

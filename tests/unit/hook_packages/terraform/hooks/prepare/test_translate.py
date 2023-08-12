@@ -1,33 +1,37 @@
 """Test Terraform prepare translate"""
 import copy
+from unittest import TestCase
 from unittest.mock import Mock, call, patch, MagicMock, ANY
-from samcli.lib.utils.colors import Colored
+from samcli.lib.utils.colors import Colored, Colors
 
 from tests.unit.hook_packages.terraform.hooks.prepare.prepare_base import PrepareHookUnitBase
 from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING,
-    REMOTE_DUMMY_VALUE,
     AWS_API_GATEWAY_RESOURCE_PROPERTY_BUILDER_MAPPING,
     AWS_API_GATEWAY_REST_API_PROPERTY_BUILDER_MAPPING,
     AWS_API_GATEWAY_STAGE_PROPERTY_BUILDER_MAPPING,
-    TF_AWS_API_GATEWAY_REST_API,
     AWS_API_GATEWAY_METHOD_PROPERTY_BUILDER_MAPPING,
+    AWS_API_GATEWAY_INTEGRATION_PROPERTY_BUILDER_MAPPING,
+    AWS_API_GATEWAY_AUTHORIZER_PROPERTY_BUILDER_MAPPING,
+    AWS_API_GATEWAY_INTEGRATION_RESPONSE_PROPERTY_BUILDER_MAPPING,
+)
+from samcli.hook_packages.terraform.hooks.prepare.constants import (
+    REMOTE_DUMMY_VALUE,
     TF_AWS_LAMBDA_FUNCTION,
     TF_AWS_LAMBDA_LAYER_VERSION,
-    TF_AWS_API_GATEWAY_METHOD,
     TF_AWS_API_GATEWAY_RESOURCE,
+    TF_AWS_API_GATEWAY_REST_API,
     TF_AWS_API_GATEWAY_STAGE,
+    TF_AWS_API_GATEWAY_METHOD,
     TF_AWS_API_GATEWAY_INTEGRATION,
-    AWS_API_GATEWAY_INTEGRATION_PROPERTY_BUILDER_MAPPING,
     TF_AWS_API_GATEWAY_AUTHORIZER,
-    AWS_API_GATEWAY_AUTHORIZER_PROPERTY_BUILDER_MAPPING,
     TF_AWS_API_GATEWAY_INTEGRATION_RESPONSE,
-    AWS_API_GATEWAY_INTEGRATION_RESPONSE_PROPERTY_BUILDER_MAPPING,
 )
 from samcli.hook_packages.terraform.hooks.prepare.types import (
     SamMetadataResource,
     LinkingPairCaller,
     ResourceProperties,
+    LinkingMultipleDestinationsOptionsCaller,
 )
 from samcli.hook_packages.terraform.hooks.prepare.translate import (
     _check_unresolvable_values,
@@ -74,7 +78,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         ]
 
         for tf_json in tf_jsons:
-            translated_cfn_dict = translate_to_cfn(tf_json, self.output_dir, self.project_root)
+            translated_cfn_dict = translate_to_cfn(tf_json, self.output_dir, self.app_root, self.project_root)
             self.assertEqual(translated_cfn_dict, expected_empty_cfn_dict)
             mock_enrich_resources_and_generate_makefile.assert_not_called()
 
@@ -119,7 +123,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
             {TF_AWS_API_GATEWAY_REST_API: mock_validator},
         ):
             translated_cfn_dict = translate_to_cfn(
-                self.tf_json_with_root_module_only, self.output_dir, self.project_root
+                self.tf_json_with_root_module_only, self.output_dir, self.app_root, self.project_root
             )
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_root_module_only)
         mock_enrich_resources_and_generate_makefile.assert_not_called()
@@ -177,7 +181,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
             }
         }
 
-        translate_to_cfn(tf_json_with_root_module_contains_s3_object, self.output_dir, self.project_root)
+        translate_to_cfn(tf_json_with_root_module_contains_s3_object, self.output_dir, self.app_root, self.project_root)
         mock_resolve_resource_attribute.assert_has_calls([call(resource_mock, "bucket"), call(resource_mock, "key")])
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._handle_linking")
@@ -209,7 +213,9 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         resources_mock.__contains__.return_value = True
         mock_build_module.return_value = root_module
         checksum_mock.return_value = self.mock_logical_id_hash
-        translated_cfn_dict = translate_to_cfn(self.tf_json_with_child_modules, self.output_dir, self.project_root)
+        translated_cfn_dict = translate_to_cfn(
+            self.tf_json_with_child_modules, self.output_dir, self.app_root, self.project_root
+        )
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_child_modules)
         mock_enrich_resources_and_generate_makefile.assert_not_called()
         mock_handle_linking.assert_called_once()
@@ -283,7 +289,10 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         }
 
         translated_cfn_dict = translate_to_cfn(
-            self.tf_json_with_root_module_with_sam_metadata_resources, self.output_dir, self.project_root
+            self.tf_json_with_root_module_with_sam_metadata_resources,
+            self.output_dir,
+            self.app_root,
+            self.project_root,
         )
 
         expected_arguments_in_call = (
@@ -306,8 +315,9 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
             ],
             translated_cfn_dict["Resources"],
             self.output_dir,
-            self.project_root,
+            self.app_root,
             {},
+            self.project_root,
         )
 
         mock_enrich_resources_and_generate_makefile.assert_called_once_with(*expected_arguments_in_call)
@@ -397,7 +407,10 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         mock_build_module.return_value = root_module
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = translate_to_cfn(
-            self.tf_json_with_child_modules_with_sam_metadata_resource, self.output_dir, self.project_root
+            self.tf_json_with_child_modules_with_sam_metadata_resource,
+            self.output_dir,
+            self.app_root,
+            self.project_root,
         )
 
         expected_arguments_in_call = (
@@ -434,8 +447,9 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
             ],
             translated_cfn_dict["Resources"],
             self.output_dir,
-            self.project_root,
+            self.app_root,
             {},
+            self.project_root,
         )
 
         mock_enrich_resources_and_generate_makefile.assert_called_once_with(*expected_arguments_in_call)
@@ -471,7 +485,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         mock_build_module.return_value = root_module
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = translate_to_cfn(
-            self.tf_json_with_unsupported_provider, self.output_dir, self.project_root
+            self.tf_json_with_unsupported_provider, self.output_dir, self.app_root, self.project_root
         )
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_unsupported_provider)
         mock_enrich_resources_and_generate_makefile.assert_not_called()
@@ -507,7 +521,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         mock_build_module.return_value = root_module
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = translate_to_cfn(
-            self.tf_json_with_unsupported_resource_type, self.output_dir, self.project_root
+            self.tf_json_with_unsupported_resource_type, self.output_dir, self.app_root, self.project_root
         )
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_unsupported_resource_type)
         mock_enrich_resources_and_generate_makefile.assert_not_called()
@@ -543,7 +557,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         mock_build_module.return_value = root_module
         checksum_mock.return_value = self.mock_logical_id_hash
         translated_cfn_dict = translate_to_cfn(
-            self.tf_json_with_child_modules_and_s3_source_mapping, self.output_dir, self.project_root
+            self.tf_json_with_child_modules_and_s3_source_mapping, self.output_dir, self.app_root, self.project_root
         )
         self.assertEqual(translated_cfn_dict, self.expected_cfn_with_child_modules_and_s3_source_mapping)
         mock_enrich_resources_and_generate_makefile.assert_not_called()
@@ -967,9 +981,16 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
     def test_handle_linking(self):
         linking_mock_function_a = Mock()
         linking_mock_function_b = Mock()
+        linking_mock_function_c = Mock()
         mock_resource_links = [
             LinkingPairCaller("resource_a", "resource_b", linking_mock_function_a),
             LinkingPairCaller("resource_b", "resource_a", linking_mock_function_b),
+        ]
+
+        mock_multiple_destinations_resource_links = [
+            LinkingMultipleDestinationsOptionsCaller(
+                "resource_c", ["resource_c", "resource_d"], linking_mock_function_c
+            ),
         ]
 
         resource_a = ResourceProperties()
@@ -982,19 +1003,44 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         resource_b.terraform_resources = Mock()
         resource_b.terraform_config = Mock()
 
+        resource_c = ResourceProperties()
+        resource_c.cfn_resources = Mock()
+        resource_c.terraform_resources = {"res_c_logical_id": Mock()}
+        resource_c.terraform_config = Mock()
+
+        resource_d = ResourceProperties()
+        resource_d.cfn_resources = Mock()
+        resource_d.terraform_resources = {"res_d_logical_id": Mock()}
+        resource_d.terraform_config = Mock()
+
         resource_property_mapping = {
             "resource_a": resource_a,
             "resource_b": resource_b,
+            "resource_c": resource_c,
+            "resource_d": resource_d,
         }
 
         with patch("samcli.hook_packages.terraform.hooks.prepare.translate.RESOURCE_LINKS", mock_resource_links):
-            _handle_linking(resource_property_mapping)
+            with patch(
+                "samcli.hook_packages.terraform.hooks.prepare.translate.MULTIPLE_DESTINATIONS_RESOURCE_LINKS",
+                mock_multiple_destinations_resource_links,
+            ):
+                _handle_linking(resource_property_mapping)
 
         linking_mock_function_a.assert_called_once_with(
             resource_a.terraform_config, resource_a.cfn_resources, resource_b.terraform_resources
         )
         linking_mock_function_b.assert_called_once_with(
             resource_b.terraform_config, resource_b.cfn_resources, resource_a.terraform_resources
+        )
+
+        linking_mock_function_c.assert_called_once_with(
+            resource_c.terraform_config,
+            resource_c.cfn_resources,
+            {
+                **resource_c.terraform_resources,
+                **resource_d.terraform_resources,
+            },
         )
 
     def test_get_s3_object_hash(self):
@@ -1112,7 +1158,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
         self.assertEqual(translated_cfn_properties, self.expected_internal_apigw_integration_response_properties)
 
 
-class TestUnresolvableAttributeCheck:
+class TestUnresolvableAttributeCheck(TestCase):
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.RESOURCE_TRANSLATOR_MAPPING")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.LOG")
     def test_module_contains_unresolvables(self, log_mock, mapping_mock):
@@ -1136,5 +1182,9 @@ class TestUnresolvableAttributeCheck:
         _check_unresolvable_values(module, tf_module)
 
         log_mock.warning.assert_called_with(
-            Colored().yellow("\nUnresolvable attributes discovered in project, run terraform apply to resolve them.\n")
+            Colored().color_log(
+                msg="\nUnresolvable attributes discovered in project, run terraform apply to resolve them.\n",
+                color=Colors.WARNING,
+            ),
+            extra=dict(markup=True),
         )

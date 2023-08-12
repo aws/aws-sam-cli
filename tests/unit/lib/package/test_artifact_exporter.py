@@ -19,7 +19,6 @@ from samcli.lib.package.permissions import (
     AdditiveFilePermissionPermissionMapper,
     AdditiveDirPermissionPermissionMapper,
 )
-from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.uploaders import Destination
 from samcli.lib.package.utils import zip_folder, make_zip, make_zip_with_lambda_permissions, make_zip_with_permissions
 from samcli.lib.utils.packagetype import ZIP, IMAGE
@@ -292,51 +291,6 @@ class TestArtifactExporter(unittest.TestCase):
 
     def _assert_is_invalid_s3_url(self, url):
         self.assertFalse(is_s3_protocol_url(url), "{0} should be valid".format(url))
-
-    def test_parse_s3_url(self):
-        valid = [
-            {"url": "s3://foo/bar", "result": {"Bucket": "foo", "Key": "bar"}},
-            {"url": "s3://foo/bar/cat/dog", "result": {"Bucket": "foo", "Key": "bar/cat/dog"}},
-            {
-                "url": "s3://foo/bar/baz?versionId=abc&param1=val1&param2=val2",
-                "result": {"Bucket": "foo", "Key": "bar/baz", "VersionId": "abc"},
-            },
-            {
-                # VersionId is not returned if there are more than one versionId
-                # keys in query parameter
-                "url": "s3://foo/bar/baz?versionId=abc&versionId=123",
-                "result": {"Bucket": "foo", "Key": "bar/baz"},
-            },
-            {
-                # Path style url
-                "url": "https://s3-eu-west-1.amazonaws.com/bucket/key",
-                "result": {"Bucket": "bucket", "Key": "key"},
-            },
-            {
-                # Path style url
-                "url": "https://s3.us-east-1.amazonaws.com/bucket/key",
-                "result": {"Bucket": "bucket", "Key": "key"},
-            },
-        ]
-
-        invalid = [
-            # For purposes of exporter, we need S3 URLs to point to an object
-            # and not a bucket
-            "s3://foo",
-            "https://www.amazon.com",
-            "https://s3.us-east-1.amazonaws.com",
-        ]
-
-        for config in valid:
-            result = S3Uploader.parse_s3_url(
-                config["url"], bucket_name_property="Bucket", object_key_property="Key", version_property="VersionId"
-            )
-
-            self.assertEqual(result, config["result"])
-
-        for url in invalid:
-            with self.assertRaises(ValueError):
-                S3Uploader.parse_s3_url(url)
 
     def test_is_local_file(self):
         with tempfile.NamedTemporaryFile() as handle:

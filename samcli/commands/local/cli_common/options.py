@@ -231,7 +231,7 @@ def warm_containers_common_options(f):
         click.option(
             "--debug-function",
             help="Optional. Specifies the Lambda Function logicalId to apply debug options to when"
-            " --warm-containers is specified.  This parameter applies to --debug-port, --debugger-path,"
+            " --warm-containers is specified. This parameter applies to --debug-port, --debugger-path,"
             " and --debug-args.",
             type=click.STRING,
             multiple=False,

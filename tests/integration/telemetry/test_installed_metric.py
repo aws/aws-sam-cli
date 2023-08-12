@@ -3,6 +3,7 @@ import platform
 from unittest.mock import ANY
 from .integ_base import IntegBase, TelemetryServer, EXPECTED_TELEMETRY_PROMPT
 from samcli import __version__ as SAM_CLI_VERSION
+from ...testing_utils import strip_nightly_installer_suffix
 
 
 class TestSendInstalledMetric(IntegBase):
@@ -24,12 +25,15 @@ class TestSendInstalledMetric(IntegBase):
             self.assertIn(EXPECTED_TELEMETRY_PROMPT, stderrdata.decode())
 
             all_requests = server.get_all_requests()
-            self.assertEqual(2, len(all_requests), "There should be exactly two metrics request")
+            self.assertEqual(
+                3, len(all_requests), "There should be exactly three metrics request"
+            )  # 3 = 2 expected + events
 
             # First one is usually the installed metric
             requests = filter_installed_metric_requests(all_requests)
             self.assertEqual(1, len(requests), "There should be only one 'installed' metric")
             request = requests[0]
+            strip_nightly_installer_suffix(request, "installed")
             self.assertIn("Content-Type", request["headers"])
             self.assertEqual(request["headers"]["Content-Type"], "application/json")
 

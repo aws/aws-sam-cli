@@ -26,6 +26,7 @@ from samcli.lib.package.permissions import (
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.utils.hash import dir_checksum
 from samcli.lib.utils.resources import LAMBDA_LOCAL_RESOURCES
+from samcli.lib.utils.s3 import parse_s3_url
 
 LOG = logging.getLogger(__name__)
 
@@ -68,7 +69,7 @@ def is_s3_protocol_url(url):
     Check whether url is a valid path in the form of "s3://..."
     """
     try:
-        S3Uploader.parse_s3_url(url)
+        parse_s3_url(url)
         return True
     except ValueError:
         return False

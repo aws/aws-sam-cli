@@ -424,7 +424,7 @@ class TestSyncWatchUseContainer(TestSyncWatchBase):
 
 
 class TestSyncWatchInfraUseContainer(TestSyncWatchUseContainer):
-    template_before = f"infra/template-python-before.yaml"
+    template_before = "infra/template-python-before.yaml"
 
     @classmethod
     def setUpClass(cls):
@@ -776,3 +776,43 @@ class TestSyncWatchAutoSkipInfra(SyncIntegBase):
 
         state_machine = self.stack_resources.get(AWS_STEPFUNCTIONS_STATEMACHINE)[0]
         self.assertEqual(self._get_sfn_response(state_machine), '"World 2"')
+
+
+class TestSyncWatchInfraWithInvalidTemplate(TestSyncWatchBase):
+    dependency_layer = False
+    template_before = "infra/template-python-function-only.yaml"
+
+    def run_initial_infra_validation(self) -> None:
+        self.stack_resources = self._get_stacks(self.stack_name)
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            lambda_response = json.loads(self._get_lambda_response(lambda_function))
+            self.assertEqual(lambda_response.get("message"), "Hello world!")
+
+    def test_sync_watch_infra(self):
+        # keep a copy of valid template
+        self.update_file(
+            self.test_data_path.joinpath(f"infra/template-python-function-only.yaml"),
+            self.test_data_path.joinpath(f"infra/template-python-function-only-copy.yaml"),
+        )
+
+        # update template with invalid one
+        self.update_file(
+            self.test_data_path.joinpath(f"infra/template-python-function-only-invalid.yaml"),
+            self.test_data_path.joinpath(f"infra/template-python-function-only.yaml"),
+        )
+
+        # we can't read the string from the output since error is thrown really fast, and we can't catch it on time.
+        # instead we are sleeping 5s here to wait for error to happen so that we can move forward. Without this 5s
+        # it again moves files so fast, and it doesn't have the affect we needed
+        time.sleep(5)
+
+        # update it back to valid template
+        self.update_file(
+            self.test_data_path.joinpath(f"infra/template-python-function-only-copy.yaml"),
+            self.test_data_path.joinpath(f"infra/template-python-function-only.yaml"),
+        )
+        read_until_string(self.watch_process, "Infra sync completed.", timeout=600)
+
+        # Updated Infra Validation
+        self.run_initial_infra_validation()

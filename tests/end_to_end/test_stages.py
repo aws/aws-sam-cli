@@ -12,6 +12,7 @@ import os
 
 from samcli.cli.global_config import GlobalConfig
 from filelock import FileLock
+from samcli.lib.utils.s3 import parse_s3_url
 from tests.end_to_end.end_to_end_context import EndToEndTestContext
 from tests.testing_utils import CommandResult, run_command, run_command_with_input
 
@@ -64,21 +65,6 @@ class DefaultInitStage(EndToEndBaseStage):
             pass
 
 
-class DefaultRemoteInvokeStage(EndToEndBaseStage):
-    def __init__(self, validator, test_context, stack_name):
-        super().__init__(validator, test_context)
-        self.stack_name = stack_name
-        self.lambda_client = boto3.client("lambda")
-        self.resource = boto3.resource("cloudformation")
-
-    def run_stage(self) -> CommandResult:
-        lambda_output = self.lambda_client.invoke(FunctionName=self._get_lambda_physical_id())
-        return CommandResult(lambda_output, "", "")
-
-    def _get_lambda_physical_id(self):
-        return self.resource.StackResource(self.stack_name, "HelloWorldFunction").physical_resource_id
-
-
 class DefaultDeleteStage(EndToEndBaseStage):
     def __init__(self, validator, test_context, command_list, stack_name):
         super().__init__(validator, test_context, command_list)
@@ -117,7 +103,7 @@ class PackageDownloadZipFunctionStage(EndToEndBaseStage):
         )
 
         if zipped_fn_s3_loc:
-            s3_info = S3Uploader.parse_s3_url(zipped_fn_s3_loc)
+            s3_info = parse_s3_url(zipped_fn_s3_loc)
             self.s3_client.download_file(s3_info["Bucket"], s3_info["Key"], str(zip_file_path))
 
             with zipfile.ZipFile(zip_file_path, "r") as zip_refzip:

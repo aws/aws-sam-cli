@@ -17,6 +17,8 @@ TEMPLATE_OPTIONS: List[str] = [
     "parameter_overrides",
 ]
 
+EXTENSION_OPTIONS: List[str] = ["hook_name", "skip_prepare_infra"]
+
 CONTAINER_OPTION_NAMES: List[str] = [
     "host",
     "port",
@@ -46,6 +48,8 @@ ARTIFACT_LOCATION_OPTIONS: List[str] = [
     "static_dir",
 ]
 
+TERRAFORM_HOOK_OPTIONS: List[str] = ["terraform_plan_file"]
+
 ALL_OPTIONS: List[str] = (
     REQUIRED_OPTIONS
     + TEMPLATE_OPTIONS
@@ -54,6 +58,8 @@ ALL_OPTIONS: List[str] = (
     + ARTIFACT_LOCATION_OPTIONS
     + CONFIGURATION_OPTION_NAMES
     + ALL_COMMON_OPTIONS
+    + EXTENSION_OPTIONS
+    + TERRAFORM_HOOK_OPTIONS
 )
 
 OPTIONS_INFO: Dict[str, Dict] = {
@@ -66,6 +72,7 @@ OPTIONS_INFO: Dict[str, Dict] = {
     "Artifact Location Options": {
         "option_names": {opt: {"rank": idx} for idx, opt in enumerate(ARTIFACT_LOCATION_OPTIONS)}
     },
+    "Extension Options": {"option_names": {opt: {"rank": idx} for idx, opt in enumerate(EXTENSION_OPTIONS)}},
     "Configuration Options": {
         "option_names": {opt: {"rank": idx} for idx, opt in enumerate(CONFIGURATION_OPTION_NAMES)},
         "extras": [
@@ -76,6 +83,7 @@ OPTIONS_INFO: Dict[str, Dict] = {
             ),
         ],
     },
+    "Terraform Hook Options": {"option_names": {opt: {"rank": idx} for idx, opt in enumerate(TERRAFORM_HOOK_OPTIONS)}},
 }
 
 add_common_options_info(OPTIONS_INFO)

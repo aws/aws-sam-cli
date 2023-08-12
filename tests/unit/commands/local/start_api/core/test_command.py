@@ -28,9 +28,11 @@ class TestLocalStartAPICommand(unittest.TestCase):
             MockParams(rv=("--parameter-overrides", ""), name="parameter_overrides"),
             MockParams(rv=("--host", ""), name="host"),
             MockParams(rv=("--config-file", ""), name="config_file"),
+            MockParams(rv=("--hook_name", ""), name="hook_name"),
             MockParams(rv=("--beta-features", ""), name="beta_features"),
             MockParams(rv=("--log-file", ""), name="log_file"),
             MockParams(rv=("--debug", ""), name="debug"),
+            MockParams(rv=("--terraform-plan-file", ""), name="terraform_plan_file"),
         ]
 
         cmd = InvokeAPICommand(name="local start-api", requires_credentials=False, description=DESCRIPTION)
@@ -41,6 +43,8 @@ class TestLocalStartAPICommand(unittest.TestCase):
             "Container Options": [("", ""), ("--host", ""), ("", "")],
             "Description": [(cmd.description + cmd.description_addendum, "")],
             "Examples": [("", ""), ("$sam local start-api\x1b[0m", "")],
+            "Extension Options": [("", ""), ("--hook_name", ""), ("", "")],
+            "Terraform Hook Options": [("", ""), ("--terraform-plan-file", ""), ("", "")],
             "Other Options": [("", ""), ("--debug", ""), ("", "")],
             "Beta Options": [("", ""), ("--beta-features", ""), ("", "")],
             "Required Options": [("", ""), ("--template-file", ""), ("", "")],

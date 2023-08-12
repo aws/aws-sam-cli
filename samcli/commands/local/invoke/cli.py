@@ -6,18 +6,18 @@ import logging
 
 import click
 
-from samcli.cli.cli_config_file import TomlProvider, configuration_option
+from samcli.cli.cli_config_file import ConfigProvider, configuration_option
 from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
 from samcli.cli.main import common_options as cli_framework_options
 from samcli.commands._utils.experimental import ExperimentalFlag, is_experimental_enabled
 from samcli.commands._utils.option_value_processor import process_image_options
-from samcli.commands._utils.options import hook_name_click_option, skip_prepare_infra_option
+from samcli.commands._utils.options import hook_name_click_option, skip_prepare_infra_option, terraform_plan_file_option
 from samcli.commands.local.cli_common.options import invoke_common_options, local_common_options
 from samcli.commands.local.invoke.core.command import InvokeCommand
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.version_checker import check_newer_version
-from samcli.local.docker.exceptions import ContainerNotStartableException
+from samcli.local.docker.exceptions import ContainerNotStartableException, PortAlreadyInUse
 
 LOG = logging.getLogger(__name__)
 
@@ -43,7 +43,8 @@ STDIN_FILE_NAME = "-"
     short_help=HELP_TEXT,
     context_settings={"max_content_width": 120},
 )
-@configuration_option(provider=TomlProvider(section="parameters"))
+@configuration_option(provider=ConfigProvider(section="parameters"))
+@terraform_plan_file_option
 @hook_name_click_option(
     force_prepare=False, invalid_coexist_options=["t", "template-file", "template", "parameter-overrides"]
 )
@@ -91,6 +92,7 @@ def cli(
     invoke_image,
     hook_name,
     skip_prepare_infra,
+    terraform_plan_file,
 ):
     """
     `sam local invoke` command entry point
@@ -218,6 +220,7 @@ def do_cli(  # pylint: disable=R0914
         InvalidIntermediateImageError,
         DebuggingNotSupported,
         NoPrivilegeException,
+        PortAlreadyInUse,
     ) as ex:
         raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
     except DockerImagePullFailedException as ex:

@@ -460,7 +460,9 @@ class TestApplicationBuilder_build(TestCase):
         msg = "Function name property Architectures should be a list of length 1"
         self.assertEqual(str(ex.exception), msg)
 
-    @parameterized.expand([("python2.7",), ("python3.6",), ("ruby2.5",), ("nodejs10.x",), ("dotnetcore2.1",)])
+    @parameterized.expand(
+        [("python2.7",), ("python3.6",), ("ruby2.5",), ("nodejs10.x",), ("dotnetcore2.1",), ("dotnetcore3.1",)]
+    )
     def test_deprecated_runtimes(self, runtime):
         with self.assertRaises(UnsupportedRuntimeException):
             self.builder._build_function(
@@ -567,6 +569,43 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             True,
             True,
             is_building_layer=True,
+        )
+
+    @parameterized.expand([([],), (None,)])
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    @patch("samcli.lib.build.app_builder.get_layer_subfolder")
+    def test_must_handle_layer_build_compatible_runtimes_missing(
+        self, compatible_runtimes, get_layer_subfolder_mock, osutils_mock, get_workflow_config_mock
+    ):
+        get_layer_subfolder_mock.return_value = "layer"
+        config_mock = Mock()
+        config_mock.manifest_name = "manifest_name"
+        config_mock.language = "provided"
+
+        scratch_dir = "scratch"
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value=scratch_dir)
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
+
+        get_workflow_config_mock.return_value = config_mock
+        build_function_on_container_mock = Mock()
+
+        self.builder._container_manager = Mock()
+        self.builder._build_function_on_container = build_function_on_container_mock
+        self.builder._build_layer("layer_name", "code_uri", "provided", compatible_runtimes, ARM64, "full_path")
+
+        build_function_on_container_mock.assert_called_once_with(
+            config_mock,
+            PathValidator("code_uri"),
+            PathValidator("layer"),
+            PathValidator("manifest_name"),
+            "provided",
+            ARM64,
+            {"build_logical_id": "layer_name"},
+            None,
+            None,
+            is_building_layer=True,
+            specified_workflow=None,
         )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
@@ -1508,7 +1547,7 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
                 "DockerBuildArgs": {"a": "b"},
             }
 
-            self.docker_client_mock.api.build.return_value = [{"error": "Function building failed"}]
+            self.docker_client_mock.images.build.return_value = (Mock(), [{"error": "Function building failed"}])
 
             self.builder._build_lambda_image("Name", metadata, X86_64)
 
@@ -1528,7 +1567,7 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
                 "Bad Request", response=response_mock, explanation="Cannot locate specified Dockerfile"
             )
             self.builder._stream_lambda_image_build_logs = error_mock
-            self.docker_client_mock.api.build.return_value = []
+            self.docker_client_mock.images.build.return_value = (Mock(), [])
 
             self.builder._build_lambda_image("Name", metadata, X86_64)
 
@@ -1543,7 +1582,7 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
             error_mock = Mock()
             error_mock.side_effect = docker.errors.APIError("Bad Request", explanation="Some explanation")
             self.builder._stream_lambda_image_build_logs = error_mock
-            self.docker_client_mock.api.build.return_value = []
+            self.docker_client_mock.images.build.return_value = (Mock(), [])
 
             self.builder._build_lambda_image("Name", metadata, X86_64)
 
@@ -1555,7 +1594,7 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
             "DockerBuildArgs": {"a": "b"},
         }
 
-        self.docker_client_mock.api.build.return_value = []
+        self.docker_client_mock.images.build.return_value = (Mock(), [])
 
         result = self.builder._build_lambda_image("Name", metadata, X86_64)
 
@@ -1596,7 +1635,7 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
     def test_can_build_image_function_without_tag(self):
         metadata = {"Dockerfile": "Dockerfile", "DockerContext": "context", "DockerBuildArgs": {"a": "b"}}
 
-        self.docker_client_mock.api.build.return_value = []
+        self.docker_client_mock.images.build.return_value = (Mock(), [])
         result = self.builder._build_lambda_image("Name", metadata, X86_64)
 
         self.assertEqual(result, "name:latest")
@@ -1611,19 +1650,18 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
             "DockerBuildArgs": {"a": "b"},
         }
 
-        self.docker_client_mock.api.build.return_value = []
+        self.docker_client_mock.images.build.return_value = (Mock, [])
 
         result = self.builder._build_lambda_image("Name", metadata, X86_64)
         self.assertEqual(result, "name:Tag-debug")
         self.assertEqual(
-            self.docker_client_mock.api.build.call_args,
+            self.docker_client_mock.images.build.call_args,
             # NOTE (sriram-mv): path set to ANY to handle platform differences.
             call(
                 path=ANY,
                 dockerfile="Dockerfile",
                 tag="name:Tag-debug",
                 buildargs={"a": "b", "SAM_BUILD_MODE": "debug"},
-                decode=True,
                 platform="linux/amd64",
                 rm=True,
             ),
@@ -1640,23 +1678,30 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
             "DockerBuildTarget": "stage",
         }
 
-        self.docker_client_mock.api.build.return_value = []
+        self.docker_client_mock.images.build.return_value = (Mock(), [])
 
         result = self.builder._build_lambda_image("Name", metadata, X86_64)
         self.assertEqual(result, "name:Tag-debug")
         self.assertEqual(
-            self.docker_client_mock.api.build.call_args,
+            self.docker_client_mock.images.build.call_args,
             call(
                 path=ANY,
                 dockerfile="Dockerfile",
                 tag="name:Tag-debug",
                 buildargs={"a": "b", "SAM_BUILD_MODE": "debug"},
-                decode=True,
                 target="stage",
                 platform="linux/amd64",
                 rm=True,
             ),
         )
+
+    def test_can_raise_build_error(self):
+        self.docker_client_mock.images.build.side_effect = docker.errors.BuildError(
+            reason="Missing Dockerfile", build_log="Build failed"
+        )
+
+        with self.assertRaises(DockerBuildFailed):
+            self.builder._build_lambda_image("Name", {}, X86_64)
 
 
 class TestApplicationBuilder_build_function(TestCase):

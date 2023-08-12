@@ -12,23 +12,19 @@ class GetUploadedS3ObjectNameUtils(unittest.TestCase):
         self.file_content = MagicMock()
         self.file_path = MagicMock()
 
-    @patch("samcli.lib.package.local_files_utils.mktempfile")
-    @patch("samcli.lib.package.local_files_utils.file_checksum")
-    def test_get_uploaded_s3_object_name_with_only_file_content(self, mock_file_checksum, mock_mktempfile):
-        mock_file_checksum.return_value = self.file_hash_value
+    @patch("samcli.lib.package.local_files_utils.str_checksum")
+    def test_get_uploaded_s3_object_name_with_only_file_content(self, mock_str_checksum):
+        mock_str_checksum.return_value = self.file_hash_value
         res = get_uploaded_s3_object_name(file_content=self.file_content)
         self.assertEqual(res, self.file_hash_value)
-        mock_mktempfile.assert_called_once()
-        mock_file_checksum.assert_called_once()
+        mock_str_checksum.assert_called_once()
 
-    @patch("samcli.lib.package.local_files_utils.mktempfile")
-    @patch("samcli.lib.package.local_files_utils.file_checksum")
-    def test_get_uploaded_s3_object_name_with_file_content_and_extension(self, mock_file_checksum, mock_mktempfile):
-        mock_file_checksum.return_value = self.file_hash_value
+    @patch("samcli.lib.package.local_files_utils.str_checksum")
+    def test_get_uploaded_s3_object_name_with_file_content_and_extension(self, mock_str_checksum):
+        mock_str_checksum.return_value = self.file_hash_value
         res = get_uploaded_s3_object_name(file_content=self.file_content, extension=self.extension)
         self.assertEqual(res, f"{self.file_hash_value}.{self.extension}")
-        mock_mktempfile.assert_called_once()
-        mock_file_checksum.assert_called_once()
+        mock_str_checksum.assert_called_once()
 
     @patch("samcli.lib.package.local_files_utils.mktempfile")
     @patch("samcli.lib.package.local_files_utils.file_checksum")

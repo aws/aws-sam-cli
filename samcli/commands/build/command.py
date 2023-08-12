@@ -20,13 +20,16 @@ from samcli.commands._utils.options import (
     manifest_option,
     cached_option,
     use_container_build_option,
+    build_image_option,
     hook_name_click_option,
+    terraform_plan_file_option,
+    terraform_project_root_path_option,
 )
 from samcli.commands._utils.option_value_processor import process_env_var, process_image_options
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.commands.build.core.command import BuildCommand
 from samcli.lib.telemetry.metric import track_command
-from samcli.cli.cli_config_file import configuration_option, TomlProvider
+from samcli.cli.cli_config_file import configuration_option, ConfigProvider
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.commands.build.click_container import ContainerOptions
 from samcli.commands.build.utils import MountMode
@@ -50,11 +53,11 @@ DESCRIPTION = """
   \b
   Supported Runtimes
   ------------------
-  1. Python 3.7, 3.8, 3.9, 3.10 using PIP\n
+  1. Python 3.7, 3.8, 3.9, 3.10, 3.11 using PIP\n
   2. Nodejs 18.x, 16.x, 14.x, 12.x using NPM\n
   3. Ruby 2.7, 3.2 using Bundler\n
   4. Java 8, Java 11, Java 17 using Gradle and Maven\n
-  5. Dotnetcore 3.1, Dotnet6 using Dotnet CLI (without --use-container)\n
+  5. Dotnet6 using Dotnet CLI (without --use-container)\n
   6. Go 1.x using Go Modules (without --use-container)\n
 """
 
@@ -68,7 +71,8 @@ DESCRIPTION = """
     short_help=HELP_TEXT,
     context_settings={"max_content_width": 120},
 )
-@configuration_option(provider=TomlProvider(section="parameters"))
+@configuration_option(provider=ConfigProvider(section="parameters"))
+@terraform_project_root_path_option
 @hook_name_click_option(
     force_prepare=True,
     invalid_coexist_options=["t", "template-file", "template", "parameter-overrides"],
@@ -82,7 +86,7 @@ DESCRIPTION = """
     multiple=True,  # Can pass in multiple env vars
     required=False,
     help="Environment variables to be passed into build containers"
-    "Resource format (FuncName.VarName=Value) or Global format (VarName=Value)."
+    "\nResource format (FuncName.VarName=Value) or Global format (VarName=Value)."
     "\n\n Example: --container-env-var Func1.VAR1=value1 --container-env-var VAR2=value2",
     cls=ContainerOptions,
 )
@@ -94,21 +98,7 @@ DESCRIPTION = """
     help="Environment variables json file (e.g., env_vars.json) to be passed to build containers.",
     cls=ContainerOptions,
 )
-@click.option(
-    "--build-image",
-    "-bi",
-    default=None,
-    multiple=True,  # Can pass in multiple build images
-    required=False,
-    help="Container image URIs for building functions/layers. "
-    "You can specify for all functions/layers with just the image URI "
-    "(--build-image public.ecr.aws/sam/build-nodejs18.x:latest). "
-    "You can specify for each individual function with "
-    "(--build-image FunctionLogicalID=public.ecr.aws/sam/build-nodejs18.x:latest). "
-    "A combination of the two can be used. If a function does not have build image specified or "
-    "an image URI for all functions, the default SAM CLI build images will be used.",
-    cls=ContainerOptions,
-)
+@build_image_option(cls=ContainerOptions)
 @click.option(
     "--exclude",
     "-x",
@@ -168,6 +158,7 @@ def cli(
     hook_name: Optional[str],
     skip_prepare_infra: bool,
     mount_with,
+    terraform_project_root_path: Optional[str],
 ) -> None:
     """
     `sam build` command entry point

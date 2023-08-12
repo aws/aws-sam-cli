@@ -62,6 +62,8 @@ from samcli.lib.build.workflow_config import (
 
 LOG = logging.getLogger(__name__)
 
+FIRST_COMPATIBLE_RUNTIME_INDEX = 0
+
 
 class ApplicationBuildResult(NamedTuple):
     """
@@ -404,17 +406,21 @@ class ApplicationBuilder:
 
         build_args = {
             "path": str(docker_context_dir),
-            "dockerfile": dockerfile,
+            "dockerfile": str(pathlib.Path(dockerfile).as_posix()),
             "tag": docker_tag,
             "buildargs": docker_build_args,
-            "decode": True,
             "platform": get_docker_platform(architecture),
             "rm": True,
         }
         if docker_build_target:
             build_args["target"] = cast(str, docker_build_target)
 
-        build_logs = self._docker_client.api.build(**build_args)
+        try:
+            (build_image, build_logs) = self._docker_client.images.build(**build_args)
+            LOG.debug("%s image is built for %s function", build_image, function_name)
+        except docker.errors.BuildError as ex:
+            LOG.error("Failed building function %s", function_name)
+            raise DockerBuildFailed(str(ex)) from ex
 
         # The Docker-py low level api will stream logs back but if an exception is raised by the api
         # this is raised when accessing the generator. So we need to wrap accessing build_logs in a try: except.
@@ -542,7 +548,9 @@ class ApplicationBuilder:
                     )
                     # Only set to this value if specified workflow is makefile
                     # which will result in config language as provided
-                    build_runtime = compatible_runtimes[0]
+                    build_runtime = (
+                        compatible_runtimes[FIRST_COMPATIBLE_RUNTIME_INDEX] if compatible_runtimes else config.language
+                    )
                 global_image = self._build_images.get(None)
                 image = self._build_images.get(layer_name, global_image)
                 # pass to container only when specified workflow is supported to overwrite runtime to get image

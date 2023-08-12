@@ -33,6 +33,7 @@ class TestBuildCommand(unittest.TestCase):
             MockParams(rv=("--parameter-overrides", ""), name="parameter_overrides"),
             MockParams(rv=("--beta-features", ""), name="beta_features"),
             MockParams(rv=("--template-file", ""), name="template_file"),
+            MockParams(rv=("--terraform-project-root-path", ""), name="terraform_project_root_path"),
         ]
 
         cmd = BuildCommand(name="sync", requires_credentials=False, description=DESCRIPTION)
@@ -41,6 +42,7 @@ class TestBuildCommand(unittest.TestCase):
             "Container Options": [("", ""), ("--use-container", ""), ("", "")],
             "Configuration Options": [("", ""), ("--config-file", ""), ("", "")],
             "Extension Options": [("", ""), ("--hook-name", ""), ("", "")],
+            "Terraform Hook Options": [("", ""), ("--terraform-project-root-path", ""), ("", "")],
             "Build Strategy Options": [("", ""), ("--parallel", ""), ("", "")],
             "Artifact Location Options": [("", ""), ("--build-dir", ""), ("", "")],
             "Template Options": [("", ""), ("--parameter-overrides", ""), ("", "")],

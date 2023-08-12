@@ -1022,3 +1022,21 @@ class TestSwaggerParser_get_lambda_identity_sources(TestCase):
 
         with self.assertRaises(InvalidSecurityDefinition):
             parser._get_lambda_identity_sources(Mock(), "request", Route.API, properties, auth_properties)
+
+
+class TestGetDocumentVersion(TestCase):
+    @parameterized.expand(
+        [
+            ({"swagger": "2.0"}, "2.0"),
+            ({"swagger": 2.0}, "2.0"),
+            ({"openapi": "3.0"}, "3.0"),
+            ({"openapi": 3.0}, "3.0"),
+            ({"not valid": 3.0}, ""),
+            ({}, ""),
+        ]
+    )
+    def test_get_document_version(self, swagger_doc, expected_output):
+        parser = SwaggerParser(Mock(), swagger_doc)
+        output = parser._get_document_version()
+
+        self.assertEqual(output, expected_output)

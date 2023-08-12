@@ -1,8 +1,23 @@
 """
 Terraform prepare property builder
 """
+import logging
+from json import loads
+from json.decoder import JSONDecodeError
 from typing import Any, Dict, Optional
 
+from samcli.hook_packages.terraform.hooks.prepare.constants import (
+    REMOTE_DUMMY_VALUE,
+    TF_AWS_API_GATEWAY_AUTHORIZER,
+    TF_AWS_API_GATEWAY_INTEGRATION,
+    TF_AWS_API_GATEWAY_INTEGRATION_RESPONSE,
+    TF_AWS_API_GATEWAY_METHOD,
+    TF_AWS_API_GATEWAY_RESOURCE,
+    TF_AWS_API_GATEWAY_REST_API,
+    TF_AWS_API_GATEWAY_STAGE,
+    TF_AWS_LAMBDA_FUNCTION,
+    TF_AWS_LAMBDA_LAYER_VERSION,
+)
 from samcli.hook_packages.terraform.hooks.prepare.resource_linking import _resolve_resource_attribute
 from samcli.hook_packages.terraform.hooks.prepare.resources.internal import (
     INTERNAL_API_GATEWAY_INTEGRATION,
@@ -24,17 +39,7 @@ from samcli.lib.utils.resources import AWS_APIGATEWAY_STAGE as CFN_AWS_APIGATEWA
 from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION
 from samcli.lib.utils.resources import AWS_LAMBDA_LAYERVERSION as CFN_AWS_LAMBDA_LAYER_VERSION
 
-REMOTE_DUMMY_VALUE = "<<REMOTE DUMMY VALUE - RAISE ERROR IF IT IS STILL THERE>>"
-TF_AWS_LAMBDA_FUNCTION = "aws_lambda_function"
-TF_AWS_LAMBDA_LAYER_VERSION = "aws_lambda_layer_version"
-
-TF_AWS_API_GATEWAY_RESOURCE = "aws_api_gateway_resource"
-TF_AWS_API_GATEWAY_REST_API = "aws_api_gateway_rest_api"
-TF_AWS_API_GATEWAY_STAGE = "aws_api_gateway_stage"
-TF_AWS_API_GATEWAY_METHOD = "aws_api_gateway_method"
-TF_AWS_API_GATEWAY_INTEGRATION = "aws_api_gateway_integration"
-TF_AWS_API_GATEWAY_AUTHORIZER = "aws_api_gateway_authorizer"
-TF_AWS_API_GATEWAY_INTEGRATION_RESPONSE = "aws_api_gateway_method_response"
+LOG = logging.getLogger(__name__)
 
 
 def _build_code_property(tf_properties: dict, resource: TFResource) -> Any:
@@ -211,6 +216,35 @@ def _check_image_config_value(image_config: Any) -> bool:
     return True
 
 
+def _get_json_body(tf_properties: dict, resource: TFResource) -> Any:
+    """
+    Gets the JSON formatted body value from the API Gateway if there is one
+
+    Parameters
+    ----------
+    tf_properties: dict
+        Properties of the terraform AWS Lambda function resource
+    resource: TFResource
+        Configuration terraform resource
+
+    Returns
+    -------
+    Any
+        Returns a dictonary if there is a valid body to parse, otherwise return original value
+    """
+    body = tf_properties.get("body")
+
+    if isinstance(body, str):
+        try:
+            return loads(body)
+        except JSONDecodeError:
+            pass
+
+    LOG.debug(f"Failed to load JSON body for API Gateway body, returning original value: '{body}'")
+
+    return body
+
+
 AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
     "FunctionName": _get_property_extractor("function_name"),
     "Architectures": _get_property_extractor("architectures"),
@@ -234,7 +268,7 @@ AWS_LAMBDA_LAYER_VERSION_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
 
 AWS_API_GATEWAY_REST_API_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
     "Name": _get_property_extractor("name"),
-    "Body": _get_property_extractor("body"),
+    "Body": _get_json_body,
     "Parameters": _get_property_extractor("parameters"),
     "BinaryMediaTypes": _get_property_extractor("binary_media_types"),
 }
