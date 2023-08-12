@@ -35,6 +35,7 @@ class TestCli(TestCase):
         self.shutdown = True
         self.region_name = "region"
         self.profile = "profile"
+        self.disable_authorizer = False
 
         self.warm_containers = None
         self.debug_function = None
@@ -65,6 +66,7 @@ class TestCli(TestCase):
 
         self.warm_containers = None
         self.debug_function = None
+        self.disable_authorizer = False
 
         self.call_cli()
 
@@ -94,7 +96,11 @@ class TestCli(TestCase):
         )
 
         local_api_service_mock.assert_called_with(
-            lambda_invoke_context=context_mock, port=self.port, host=self.host, static_dir=self.static_dir
+            lambda_invoke_context=context_mock, 
+            port=self.port, 
+            host=self.host, 
+            static_dir=self.static_dir, 
+            disable_authorizer=self.disable_authorizer
         )
 
         service_mock.start.assert_called_with()
@@ -213,4 +219,5 @@ class TestCli(TestCase):
             container_host_interface=self.container_host_interface,
             invoke_image=self.invoke_image,
             hook_name=self.hook_name,
+            disable_authorizer=self.disable_authorizer
         )

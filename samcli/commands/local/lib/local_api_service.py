@@ -27,6 +27,7 @@ class LocalApiService:
         :param int port: Port to listen on
         :param string host: Local hostname or IP address to bind to
         :param string static_dir: Optional, directory from which static files will be mounted
+        :param bool disable_authorizer: Optional, flag for disabling the parsing of lambda authorizers
         """
 
         self.port = port
