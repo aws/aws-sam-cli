@@ -77,6 +77,8 @@ class CfnBaseApiProvider:
             Optional working directory with respect to which we will resolve relative path to Swagger file
         event_type : str
             The event type, 'Api' or 'HttpApi', see samcli/local/apigw/local_apigw_service.py:35
+        disable_authorizer : bool
+            A flag to disable extraction of authorizers
         """
         reader = SwaggerReader(definition_body=body, definition_uri=uri, working_dir=cwd)
         swagger = reader.read()
@@ -88,13 +90,14 @@ class CfnBaseApiProvider:
             LOG.debug("Found '%s' authorizers in resource '%s'", len(authorizers), logical_id)
             collector.add_authorizers(logical_id, authorizers)
 
+            if default_authorizer:
+                collector.set_default_authorizer(logical_id, default_authorizer)
+
         routes = parser.get_routes(event_type)
         LOG.debug("Found '%s' APIs in resource '%s'", len(routes), logical_id)
 
         collector.add_routes(logical_id, routes)
 
-        if default_authorizer:
-            collector.set_default_authorizer(logical_id, default_authorizer)
 
         collector.add_binary_media_types(logical_id, parser.get_binary_media_types())  # Binary media from swagger
         collector.add_binary_media_types(logical_id, binary_media)  # Binary media specified on resource in template

@@ -65,7 +65,7 @@ DESCRIPTION = """
     "--disable-authorizer",
     is_flag=True,
     default=False,
-    help="Disable custom authorizer from being invoked. This is useful for local testing."
+    help="Disable custom Lambda Authorizers from being parsed and invoked."
 )
 @invoke_common_options
 @warm_containers_common_options

@@ -269,7 +269,7 @@ class CfnApiProvider(CfnBaseApiProvider):
         logical_id: str,
         method_resource: Dict,
         collector: ApiCollector,
-        disable_authorizer: Optional[bool] = None
+        disable_authorizer: Optional[bool] = False
     ) -> None:
         """
         Extract APIs from AWS::ApiGateway::Method and work backwards up the tree to resolve and find the true path.
@@ -290,6 +290,9 @@ class CfnApiProvider(CfnBaseApiProvider):
 
         collector : ApiCollector
             Instance of the API collector that where we will save the API information
+        
+        disable_authorizer bool
+            Flag to disable extraction of authorizer
         """
 
         properties = method_resource.get("Properties", {})

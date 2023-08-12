@@ -122,7 +122,7 @@ class SamApiProvider(CfnBaseApiProvider):
         auth = properties.get(SamApiProvider._AUTH, {})
         if not auth or disable_authorizer:
             LOG.debug(
-                "authorizer not found or disabled, returning early"
+                "Authorizer not found or disabled, returning early"
             )
             return
 
@@ -298,7 +298,7 @@ class SamApiProvider(CfnBaseApiProvider):
         collector.add_authorizers(logical_id, authorizers)
 
     def _extract_from_serverless_http(
-        self, stack_path: str, logical_id: str, api_resource: Dict, collector: ApiCollector, cwd: Optional[str] = None, disable_authorizer: bool = False
+        self, stack_path: str, logical_id: str, api_resource: Dict, collector: ApiCollector, cwd: Optional[str] = None, disable_authorizer: Optional[bool] = False
     ) -> None:
         """
         Extract APIs from AWS::Serverless::HttpApi resource by reading and parsing Swagger documents.
