@@ -20,6 +20,7 @@ LOG = logging.getLogger(__name__)
 class TerraformStartApiIntegrationBase(StartApiIntegBaseClass):
     run_command_timeout = 300
     terraform_application: Optional[str] = None
+    terraform_plan_file: Optional[str] = None
 
     @classmethod
     def setUpClass(cls):
@@ -27,6 +28,8 @@ class TerraformStartApiIntegrationBase(StartApiIntegBaseClass):
         cls.template_path = ""
         cls.build_before_invoke = False
         cls.command_list = [command, "local", "start-api", "--hook-name", "terraform", "--beta-features"]
+        if cls.terraform_plan_file:
+            cls.command_list += ["--terraform-plan-file", cls.terraform_plan_file]
         cls.test_data_path = Path(cls.get_integ_dir()) / "testdata" / "start_api"
         cls.project_directory = cls.test_data_path / "terraform" / cls.terraform_application
         super(TerraformStartApiIntegrationBase, cls).setUpClass()
@@ -108,6 +111,26 @@ class TerraformStartApiIntegrationApplyBase(TerraformStartApiIntegrationBase):
 )
 @pytest.mark.flaky(reruns=3)
 class TestStartApiTerraformApplication(TerraformStartApiIntegrationBase):
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    def test_successful_request(self):
+        for url in self.testing_urls:
+            response = requests.get(f"{self.url}/{url}", timeout=300)
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json(), {"message": "hello world"})
+
+
+@skipIf(
+    not CI_OVERRIDE,
+    "Skip Terraform test cases unless running in CI",
+)
+@pytest.mark.flaky(reruns=3)
+class TestStartApiTerraformApplicationCustomPlanFile(TerraformStartApiIntegrationBase):
+    terraform_application = "terraform-v1-api-simple"
+    terraform_plan_file = "custom-plan.json"
+
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 

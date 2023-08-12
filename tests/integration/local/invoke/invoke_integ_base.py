@@ -42,6 +42,7 @@ class InvokeIntegBase(TestCase):
         invoke_image=None,
         hook_name=None,
         beta_features=None,
+        terraform_plan_file=None,
     ):
         command_list = [get_sam_command(), "local", "invoke", function_to_invoke]
 
@@ -83,6 +84,9 @@ class InvokeIntegBase(TestCase):
 
         if beta_features is not None:
             command_list = command_list + ["--beta-features" if beta_features else "--no-beta-features"]
+
+        if terraform_plan_file:
+            command_list += ["--terraform-plan-file", terraform_plan_file]
 
         return command_list
 
