@@ -20,7 +20,7 @@ watchdog==2.1.2
 rich~=13.4.2
 pyopenssl~=23.2.0
 # Pin to <4.18 to until SAM-T no longer uses RefResolver
-jsonschema<4.18
+jsonschema<4.20
 
 # Needed for supporting Protocol in Python 3.7, Protocol class became public with python3.8
 typing_extensions>=4.4.0,<5
