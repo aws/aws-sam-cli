@@ -439,6 +439,64 @@ class TestBuildTerraformApplicationsSourceCodeAndModulesAreNotInRootModuleDirect
             "function_identifier": function_identifier,
             "project_root_dir": "./..",
         }
+        if self.build_in_container:
+            command_list_parameters["use_container"] = True
+            command_list_parameters["build_image"] = self.docker_tag
+        build_cmd_list = self.get_command_list(**command_list_parameters)
+        LOG.info("command list: %s", build_cmd_list)
+        stdout, stderr, return_code = self.run_command(build_cmd_list)
+        terraform_beta_feature_prompted_text = (
+            f"Supporting Terraform applications is a beta feature.{os.linesep}"
+            f"Please confirm if you would like to proceed using AWS SAM CLI with terraform application.{os.linesep}"
+            "You can also enable this beta feature with 'sam build --beta-features'."
+        )
+        experimental_warning = (
+            f"{os.linesep}Experimental features are enabled for this session.{os.linesep}"
+            f"Visit the docs page to learn more about the AWS Beta terms "
+            f"https://aws.amazon.com/service-terms/.{os.linesep}"
+        )
+        self.assertNotRegex(stdout.decode("utf-8"), terraform_beta_feature_prompted_text)
+        self.assertIn(Colored().yellow(experimental_warning), stderr.decode("utf-8"))
+        LOG.info("sam build stdout: %s", stdout.decode("utf-8"))
+        LOG.info("sam build stderr: %s", stderr.decode("utf-8"))
+        self.assertEqual(return_code, 0)
+
+        self._verify_invoke_built_function(
+            function_logical_id=function_identifier,
+            overrides=None,
+            expected_result={"statusCode": 200, "body": expected_output},
+        )
+
+
+@skipIf(
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
+    "Skip Terraform test cases unless running in CI",
+)
+class TestBuildTerraformApplicationsSourceCodeAndModulesAreNotInRootModuleDirectoryGetParametersFromSamConfig(
+    BuildTerraformApplicationIntegBase
+):
+    terraform_application = Path("terraform/application_outside_root_directory")
+
+    functions = [
+        ("aws_lambda_function.function1", "hello world 1"),
+    ]
+
+    def setUp(self):
+        super().setUp()
+        self.project_dir = self.working_dir
+        self.working_dir = f"{self.working_dir}/root_module"
+
+    def tearDown(self):
+        if self.project_dir:
+            self.working_dir = self.project_dir
+        super().tearDown()
+
+    @parameterized.expand(functions)
+    def test_build_and_invoke_lambda_functions(self, function_identifier, expected_output):
+        command_list_parameters = {
+            "config_file": "input_samconfig.yaml",
+            "function_identifier": function_identifier,
+        }
         build_cmd_list = self.get_command_list(**command_list_parameters)
         LOG.info("command list: %s", build_cmd_list)
         stdout, stderr, return_code = self.run_command(build_cmd_list)
