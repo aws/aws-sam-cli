@@ -14,7 +14,6 @@ attrs==23.1.0 \
     # via
     #   jschema-to-python
     #   jsonschema
-    #   referencing
     #   sarif-om
 aws-lambda-builders==1.36.0 \
     --hash=sha256:00ce31612a62dc8fa1a2dcd087648d125b6274ff8b18799d3ebe5bb4824f3e96 \
