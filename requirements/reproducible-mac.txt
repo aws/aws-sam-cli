@@ -14,7 +14,6 @@ attrs==23.1.0 \
     # via
     #   jschema-to-python
     #   jsonschema
-    #   referencing
     #   sarif-om
 aws-lambda-builders==1.36.0 \
     --hash=sha256:00ce31612a62dc8fa1a2dcd087648d125b6274ff8b18799d3ebe5bb4824f3e96 \
@@ -286,9 +285,7 @@ importlib-metadata==6.8.0 \
 importlib-resources==6.0.0 \
     --hash=sha256:4cf94875a8368bd89531a756df9a9ebe1f150e0f885030b461237bc7f2d905f2 \
     --hash=sha256:d952faee11004c045f785bb5636e8f885bed30dc3c940d5d42798a2a4541c185
-    # via
-    #   jsonschema
-    #   jsonschema-specifications
+    # via jsonschema
 itsdangerous==2.1.2 \
     --hash=sha256:2c2349112351b88699d8d4b6b075022c0808887cb7ad10069318a8b0bc88db44 \
     --hash=sha256:5dbbc68b317e5e42f327f9021763545dc3fc3bfe22e6deb96aaf1fc38874156a
