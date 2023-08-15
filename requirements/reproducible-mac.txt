@@ -421,9 +421,9 @@ mypy-boto3-iam==1.28.16 \
     --hash=sha256:1416df5e838be7cc8b65def4721097faf691f8f0c65f58fe417d18b9e6b8de61 \
     --hash=sha256:8ef9ef9a9fabcc1058a46bbd6b1408960a70d72e45a024862676e5a896c446b3
     # via boto3-stubs
-mypy-boto3-lambda==1.28.16 \
-    --hash=sha256:c1b688c1ea7cbb9b79b8a1dcaaa7459791ae7ebc608490251f58a07edb31170c \
-    --hash=sha256:c7c647139e6710da694aba4a644f69f4a06c6e43419168d69cc57f3dc6e5e607
+mypy-boto3-lambda==1.28.19 \
+    --hash=sha256:88582f8ca71bd7a6bbcf8b05155476f0a9dea79630a4da36d367482925241710 \
+    --hash=sha256:955b7702f02f2037ba4c058f6dcebfcce50090ac13c9d031a0052fa9136ec59e
     # via boto3-stubs
 mypy-boto3-s3==1.28.16 \
     --hash=sha256:4e55fdad729b6e6f45211e354bd1a0a745a565fe9d1e462737f775c28849cfb5 \

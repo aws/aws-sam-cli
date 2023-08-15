@@ -85,8 +85,7 @@ class CfnParameterOverridesType(click.ParamType):
 
     ordered_pattern_match = [_pattern_1, _pattern_2]
 
-    # NOTE(TheSriram): name needs to be added to click.ParamType requires it.
-    name = ""
+    name = "string,list"
 
     def convert(self, value, param, ctx):
         result = {}
@@ -140,8 +139,7 @@ class CfnMetadataType(click.ParamType):
 
     _pattern = r"(?:{key}={value})".format(key=PARAM_AND_METADATA_KEY_REGEX, value=VALUE_REGEX_COMMA_DELIM)
 
-    # NOTE(TheSriram): name needs to be added to click.ParamType requires it.
-    name = ""
+    name = "string"
 
     def convert(self, value, param, ctx):
         result = {}
@@ -196,8 +194,7 @@ class CfnTags(click.ParamType):
 
     _pattern = r"{tag}={tag}".format(tag=_generate_match_regex(match_pattern=TAG_REGEX, delim=" "))
 
-    # NOTE(TheSriram): name needs to be added to click.ParamType requires it.
-    name = ""
+    name = "list"
 
     def convert(self, value, param, ctx):
         result = {}
@@ -301,8 +298,7 @@ class SigningProfilesOptionType(click.ParamType):
 
     pattern = r"(?:(?: )([A-Za-z0-9\"]+)=(\"(?:\\.|[^\"\\]+)*\"|(?:\\.|[^ \"\\]+)+))"
 
-    # Note: this is required, otherwise it is failing when running help
-    name = ""
+    name = "string"
 
     def convert(self, value, param, ctx):
         """
@@ -393,7 +389,7 @@ class ImageRepositoryType(click.ParamType):
 
     # Transformation callback function checks if the received option value is a valid ECR url.
     transformer = Transformer(converter=click.STRING, transformation=is_ecr_url)
-    name = ""
+    name = "string"
 
     def convert(self, value, param, ctx):
         """
@@ -410,7 +406,7 @@ class ImageRepositoriesType(click.ParamType):
     Custom Parameter Type for Multi valued Image Repositories option.
     """
 
-    name = ""
+    name = "list"
     KEY_VALUE_PAIR_LENGTH = 2
 
     def convert(self, value, param, ctx):
@@ -431,7 +427,7 @@ class RemoteInvokeBotoApiParameterType(click.ParamType):
     Custom Parameter Type for Multi valued Boto API parameter option of remote invoke command.
     """
 
-    name = ""
+    name = "list"
     MIN_KEY_VALUE_PAIR_LENGTH = 2
 
     def convert(self, value, param, ctx):

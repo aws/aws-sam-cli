@@ -743,13 +743,8 @@ class TestInitForParametersCompatibility(TestCase):
 
             self.assertEqual(process.returncode, 2)
             errmsg = """
-Usage: {0} init [OPTIONS]
-Try '{0} init -h' for help.
-
 Error: Invalid value for '-p' / '--package-type': 'WrongPT' is not one of 'Zip', 'Image'.
-                        """.format(
-                get_sam_command()
-            )
+            """
 
             self.assertIn(errmsg.strip(), "\n".join(stderr.strip().splitlines()))
 

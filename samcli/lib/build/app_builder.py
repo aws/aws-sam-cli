@@ -62,6 +62,8 @@ from samcli.lib.build.workflow_config import (
 
 LOG = logging.getLogger(__name__)
 
+FIRST_COMPATIBLE_RUNTIME_INDEX = 0
+
 
 class ApplicationBuildResult(NamedTuple):
     """
@@ -546,7 +548,9 @@ class ApplicationBuilder:
                     )
                     # Only set to this value if specified workflow is makefile
                     # which will result in config language as provided
-                    build_runtime = compatible_runtimes[0]
+                    build_runtime = (
+                        compatible_runtimes[FIRST_COMPATIBLE_RUNTIME_INDEX] if compatible_runtimes else config.language
+                    )
                 global_image = self._build_images.get(None)
                 image = self._build_images.get(layer_name, global_image)
                 # pass to container only when specified workflow is supported to overwrite runtime to get image

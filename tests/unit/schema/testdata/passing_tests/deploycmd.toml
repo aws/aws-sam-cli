@@ -1,0 +1,50 @@
+version = 0.1
+
+[default.deploy.parameters]
+guided = false
+template_file = "Template file"
+no_execute_changeset = false
+fail_on_empty_changeset = false
+confirm_changeset = false
+disable_rollback = false
+on_failure = "DELETE"
+stack_name = "Stack name"
+s3_bucket = "S3 Bucket"
+image_repository = "Image repository"
+image_repositories = ["Image", "Repositories"]
+force_upload = false
+s3_prefix = "S3 Prefix"
+kms_key_id = "KMS Key ID"
+role_arn = "Role ARN"
+use_json = false
+resolve_s3 = false
+resolve_image_repos = false
+metadata = "Metadata"
+notification_arns = "Notification ARNS"
+tags = ["Tags", "More tags", "Even more tags"]
+parameter_overrides = "Parameter overrides"
+signing_profiles = "Signing profiles"
+no_progressbar = false
+capabilities = "Capabilities"
+profile = "Profile"
+region = "Region"
+beta_features = false
+debug = false
+
+[other.deploy.parameters]
+guided = true
+no_execute_changeset = true
+fail_on_empty_changeset = true
+confirm_changeset = true
+disable_rollback = true
+on_failure = "ROLLBACK"
+force_upload = true
+use_json = true
+resolve_s3 = true
+resolve_image_repos = true
+notification_arns = ["Notification", "ARNS"]
+parameter_overrides = ["Parameter", "Overrides"]
+no_progressbar = true
+capabilities = ["Capabilities", "More capabilities"]
+beta_features = true
+debug = true
