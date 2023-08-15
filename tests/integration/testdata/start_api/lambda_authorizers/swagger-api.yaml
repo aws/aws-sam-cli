@@ -46,6 +46,14 @@ Resources:
               identityValidationExpression: !Ref ValidationString
               authorizerUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AuthorizerFunction.Arn}/invocations
         paths:
+          "/":
+            get:
+              security:
+                - ApiKeyAuthRequest: []
+              x-amazon-apigateway-integration:
+                httpMethod: GET
+                type: aws_proxy
+                uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${HelloWorldFunction.Arn}/invocations
           "/requestauthorizerswaggerrequest":
             get:
               security:
