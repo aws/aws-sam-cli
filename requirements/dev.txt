@@ -9,7 +9,7 @@ pytest-cov==4.1.0
 # here we fix its version and upgrade it manually in the future
 mypy==1.4.1
 types-pywin32==306.0.0.3
-types-PyYAML==6.0.12
+types-PyYAML==6.0.12.11
 types-chevron==0.14.2.4
 types-psutil==5.9.5.16
 types-setuptools==68.0.0.3
