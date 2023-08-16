@@ -47,6 +47,21 @@ class TestSamPython37HelloWorldIntegration(InvokeIntegBase):
 
         self.assertEqual(process.returncode, 0)
 
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_no_response_returncode_is_zero(self):
+        command_list = InvokeIntegBase.get_command_list(
+            "NoResponseServerlessFunction", template_path=self.template_path, event_path=self.event_path
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        self.assertEqual(process.returncode, 0)
+
     # https://github.com/aws/aws-sam-cli/issues/2494
     @pytest.mark.flaky(reruns=3)
     def test_invoke_with_utf8_event(self):
