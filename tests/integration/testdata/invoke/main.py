@@ -56,3 +56,7 @@ def execute_git(event, context):
     assert return_code == 0
 
     return "git init passed"
+
+
+def no_response(event, context):
+    print("lambda called")
