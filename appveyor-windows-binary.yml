@@ -301,6 +301,10 @@ for:
         - configuration: LocalIntegTesting
 
     test_script:
+      # install Terraform CLI
+      - "choco install terraform"
+      - "terraform -version"
+
       - ps: "pytest -vv tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-local.json"
 
   # End-to-end testing
