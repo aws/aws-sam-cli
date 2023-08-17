@@ -433,9 +433,9 @@ mypy-boto3-schemas==1.28.16 \
     --hash=sha256:4f4b4fc784452b5186ab31199e4cb5546d314f3fc666cb698c960ba89e33448e \
     --hash=sha256:7898f9624af46be956bd8e1dffc6fc01d6e2141e067444156bddd2c412ef8084
     # via boto3-stubs
-mypy-boto3-secretsmanager==1.28.16 \
-    --hash=sha256:05508c3a96d96e482e5aff21b508319a1911e6662aea5be96aa7f7089b8dbfd4 \
-    --hash=sha256:07f443b31d2114ac363cfbdbc5f4b97934ca48fb99734bbd06d5c39bce244b83
+mypy-boto3-secretsmanager==1.28.24 \
+    --hash=sha256:13461d8d2891ec0e430437dbb71c0879ee431ddfedb6b21c265878642faeb2a7 \
+    --hash=sha256:e224809e28d99c1360bfe6428e8b567bb4a43c38a71263eba0ff4de7fa321142
     # via boto3-stubs
 mypy-boto3-signer==1.28.16 \
     --hash=sha256:78d9bacf72b865221c6d11a946a0d6aad3b14904475c886fafd08cd1dd54c5d7 \
