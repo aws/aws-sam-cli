@@ -69,7 +69,7 @@ install:
   - sh: "./aws_cli/bin/python -m pip install awscli"
   - sh: "PATH=$(echo $PWD'/aws_cli/bin'):$PATH"
 
-  - sh: "PATH=$PATH:$HOME/venv3.7/bin:$HOME/venv3.8/bin:$HOME/venv3.9/bin:$HOME/venv3.10/bin"
+  - sh: "PATH=$PATH:$HOME/venv3.7/bin:$HOME/venv3.8/bin:$HOME/venv3.9/bin:$HOME/venv3.10/bin:$HOME/venv3.11/bin"
 
   # Install pytest
   - sh: "python3.9 -m venv $HOME/pytest"
@@ -307,6 +307,14 @@ for:
         - configuration: LocalIntegTesting
 
     test_script:
+      # install Terraform
+      - sh: "sudo apt update --allow-releaseinfo-change"
+      - sh: "TER_VER=`curl -s https://api.github.com/repos/hashicorp/terraform/releases/latest | grep tag_name | cut -d: -f2 | tr -d \\\"\\,\\v | awk '{$1=$1};1'`"
+      - sh: "wget https://releases.hashicorp.com/terraform/${TER_VER}/terraform_${TER_VER}_linux_amd64.zip -P /tmp"
+      - sh: "sudo unzip -d /opt/terraform /tmp/terraform_${TER_VER}_linux_amd64.zip"
+      - sh: "sudo mv /opt/terraform/terraform /usr/local/bin/"
+      - sh: "terraform -version"
+
       - sh: "pytest -vv tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-local.json"
 
   # End-to-end testing
