@@ -527,8 +527,8 @@ class LambdaImage:
             Image digest, including `sha256:` prefix
         """
         image_info = self.docker_client.images.get(image_name)
-        full_digest: str = image_info.attrs.get("RepoDigests", [None])[0]
         try:
+            full_digest: str = image_info.attrs.get("RepoDigests", [None])[0]
             return full_digest.split("@")[1]
         except (AttributeError, IndexError):
             return None
