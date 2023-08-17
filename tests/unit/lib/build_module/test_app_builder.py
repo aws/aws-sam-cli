@@ -1703,6 +1703,36 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
         with self.assertRaises(DockerBuildFailed):
             self.builder._build_lambda_image("Name", {}, X86_64)
 
+    def test_docker_network_specified_build_lambda_image(self):
+        metadata = {
+            "Dockerfile": "Dockerfile",
+            "DockerContext": "context",
+            "DockerTag": "Tag",
+            "DockerBuildArgs": {"a": "b"},
+        }
+
+        network_name = "foo"
+
+        self.builder._container_manager = Mock()
+        self.builder._container_manager.docker_network_id = network_name
+
+        self.docker_client_mock.images.build.return_value = (Mock(), [])
+
+        self.builder._build_lambda_image("FunctionName", metadata, X86_64)
+
+        self.assertEqual(
+            self.docker_client_mock.images.build.call_args,
+            call(
+                path=ANY,
+                dockerfile="Dockerfile",
+                tag="functionname:Tag",
+                buildargs={"a": "b"},
+                platform="linux/amd64",
+                rm=True,
+                network_mode=network_name,
+            ),
+        )
+
 
 class TestApplicationBuilder_build_function(TestCase):
     def setUp(self):

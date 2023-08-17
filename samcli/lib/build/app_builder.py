@@ -412,8 +412,12 @@ class ApplicationBuilder:
             "platform": get_docker_platform(architecture),
             "rm": True,
         }
+
         if docker_build_target:
             build_args["target"] = cast(str, docker_build_target)
+
+        if self._container_manager and self._container_manager.docker_network_id:
+            build_args["network_mode"] = cast(str, self._container_manager.docker_network_id)
 
         try:
             (build_image, build_logs) = self._docker_client.images.build(**build_args)
