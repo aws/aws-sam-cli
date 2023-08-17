@@ -523,18 +523,15 @@ class TestSamConfigForAllCommands(TestCase):
             )
 
     @patch("samcli.lib.cli_validation.image_repository_validation._is_all_image_funcs_provided")
-    @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format")
     @patch("samcli.commands._utils.options.get_template_artifacts_format")
     @patch("samcli.commands.package.command.do_cli")
     def test_package(
         self,
         do_cli_mock,
         get_template_artifacts_format_mock,
-        cli_validation_artifacts_format_mock,
         is_all_image_funcs_provided_mock,
     ):
         is_all_image_funcs_provided_mock.return_value = True
-        cli_validation_artifacts_format_mock.return_value = [ZIP]
         get_template_artifacts_format_mock.return_value = [ZIP]
         config_values = {
             "template_file": "mytemplate.yaml",
@@ -611,14 +608,12 @@ class TestSamConfigForAllCommands(TestCase):
 
             self.assertIsNotNone(result.exception)
 
-    @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format")
     @patch("samcli.commands._utils.template.get_template_artifacts_format")
     @patch("samcli.commands._utils.options.get_template_artifacts_format")
     @patch("samcli.commands.deploy.command.do_cli")
-    def test_deploy(self, do_cli_mock, template_artifacts_mock1, template_artifacts_mock2, template_artifacts_mock3):
+    def test_deploy(self, do_cli_mock, template_artifacts_mock1, template_artifacts_mock2):
         template_artifacts_mock1.return_value = [ZIP]
         template_artifacts_mock2.return_value = [ZIP]
-        template_artifacts_mock3.return_value = [ZIP]
         config_values = {
             "template_file": "mytemplate.yaml",
             "stack_name": "mystack",
@@ -722,16 +717,14 @@ class TestSamConfigForAllCommands(TestCase):
             result = runner.invoke(cli, [])
             self.assertIsNotNone(result.exception)
 
-    @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format")
     @patch("samcli.commands._utils.options.get_template_artifacts_format")
     @patch("samcli.commands._utils.template.get_template_artifacts_format")
     @patch("samcli.commands.deploy.command.do_cli")
     def test_deploy_different_parameter_override_format(
-        self, do_cli_mock, template_artifacts_mock1, template_artifacts_mock2, template_artifacts_mock3
+        self, do_cli_mock, template_artifacts_mock1, template_artifacts_mock2
     ):
         template_artifacts_mock1.return_value = [ZIP]
         template_artifacts_mock2.return_value = [ZIP]
-        template_artifacts_mock3.return_value = [ZIP]
 
         config_values = {
             "template_file": "mytemplate.yaml",
@@ -928,7 +921,6 @@ class TestSamConfigForAllCommands(TestCase):
 
     @patch("samcli.commands._utils.experimental.is_experimental_enabled")
     @patch("samcli.lib.cli_validation.image_repository_validation._is_all_image_funcs_provided")
-    @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format")
     @patch("samcli.commands._utils.template.get_template_artifacts_format")
     @patch("samcli.commands._utils.options.get_template_artifacts_format")
     @patch("samcli.commands.sync.command.do_cli")
@@ -937,13 +929,11 @@ class TestSamConfigForAllCommands(TestCase):
         do_cli_mock,
         template_artifacts_mock1,
         template_artifacts_mock2,
-        template_artifacts_mock3,
         is_all_image_funcs_provided_mock,
         experimental_mock,
     ):
         template_artifacts_mock1.return_value = [ZIP]
         template_artifacts_mock2.return_value = [ZIP]
-        template_artifacts_mock3.return_value = [ZIP]
         is_all_image_funcs_provided_mock.return_value = True
         experimental_mock.return_value = True
 

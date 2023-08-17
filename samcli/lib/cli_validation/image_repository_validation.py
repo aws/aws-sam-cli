@@ -5,7 +5,6 @@ This is to be run last after all CLI options have been processed.
 import click
 
 from samcli.commands._utils.option_validator import Validator
-from samcli.commands._utils.template import get_template_artifacts_format
 from samcli.lib.providers.provider import (
     ResourceIdentifier,
     get_resource_full_path_by_id,
@@ -49,16 +48,6 @@ def image_repository_validation(support_resolve_image_repos=True):
                 or ctx.params.get("template", False)
             )
 
-            # Check if `--image-repository`, `--image-repositories`, or `--resolve-image-repos` are required by
-            # looking for resources that have an IMAGE based packagetype.
-
-            required = any(
-                [
-                    _template_artifact == IMAGE
-                    for _template_artifact in get_template_artifacts_format(template_file=template_file)
-                ]
-            )
-
             available_options = "'--image-repositories', '--image-repository'"
             if support_resolve_image_repos:
                 available_options += ", '--resolve-image-repos'"
@@ -84,16 +73,6 @@ def image_repository_validation(support_resolve_image_repos=True):
                 ),
                 Validator(
                     validation_function=lambda: not guided
-                    and not (image_repository or image_repositories or resolve_image_repos)
-                    and required,
-                    exception=click.BadOptionUsage(
-                        option_name="--image-repositories",
-                        ctx=ctx,
-                        message=f"Missing option {available_options}",
-                    ),
-                ),
-                Validator(
-                    validation_function=lambda: not guided
                     and (
                         image_repositories
                         and not resolve_image_repos
@@ -101,6 +80,17 @@ def image_repository_validation(support_resolve_image_repos=True):
                     ),
                     exception=click.BadOptionUsage(
                         option_name="--image-repositories", ctx=ctx, message=image_repos_error_msg
+                    ),
+                ),
+                Validator(
+                    validation_function=lambda: not guided
+                    and not image_repositories
+                    and not _is_all_image_funcs_provided(template_file, {}, parameters_overrides)
+                    and not (image_repository or resolve_image_repos),
+                    exception=click.BadOptionUsage(
+                        option_name="--image-repositories",
+                        ctx=ctx,
+                        message=f"Missing option {available_options}",
                     ),
                 ),
             ]

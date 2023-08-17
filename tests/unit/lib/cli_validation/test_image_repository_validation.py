@@ -33,11 +33,10 @@ class TestImageRepositoryValidation(TestCase):
 
     @patch("samcli.lib.cli_validation.image_repository_validation.click")
     @patch("samcli.lib.cli_validation.image_repository_validation._is_all_image_funcs_provided")
-    @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format")
-    def test_image_repository_validation_success_ZIP(
-        self, mock_artifacts, is_all_image_funcs_provided_mock, mock_click
+    def test_image_repository_validation_success_no_image_repository_required(
+        self, is_all_image_funcs_provided_mock, mock_click
     ):
-        mock_artifacts.return_value = [ZIP]
+
         is_all_image_funcs_provided_mock.return_value = True
         mock_context = MagicMock()
         mock_context.params.get.side_effect = [False, False, False, False, False, None, MagicMock()]
@@ -47,12 +46,11 @@ class TestImageRepositoryValidation(TestCase):
 
     @patch("samcli.lib.cli_validation.image_repository_validation.click")
     @patch("samcli.lib.cli_validation.image_repository_validation._is_all_image_funcs_provided")
-    @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format")
     def test_image_repository_validation_success_IMAGE_image_repository(
-        self, mock_artifacts, is_all_image_funcs_provided_mock, mock_click
+        self, is_all_image_funcs_provided_mock, mock_click
     ):
-        mock_artifacts.return_value = [IMAGE]
-        is_all_image_funcs_provided_mock.return_value = True
+
+        is_all_image_funcs_provided_mock.return_value = False
         mock_context = MagicMock()
         mock_context.params.get.side_effect = [
             False,
@@ -69,11 +67,10 @@ class TestImageRepositoryValidation(TestCase):
 
     @patch("samcli.lib.cli_validation.image_repository_validation.click")
     @patch("samcli.lib.cli_validation.image_repository_validation._is_all_image_funcs_provided")
-    @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format")
     def test_image_repository_validation_success_IMAGE_image_repositories(
-        self, mock_artifacts, is_all_image_funcs_provided_mock, mock_click
+        self, is_all_image_funcs_provided_mock, mock_click
     ):
-        mock_artifacts.return_value = [IMAGE]
+
         is_all_image_funcs_provided_mock.return_value = True
         mock_context = MagicMock()
         mock_context.params.get.side_effect = [
@@ -90,12 +87,11 @@ class TestImageRepositoryValidation(TestCase):
 
     @patch("samcli.lib.cli_validation.image_repository_validation.click")
     @patch("samcli.lib.cli_validation.image_repository_validation._is_all_image_funcs_provided")
-    @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format")
     def test_image_repository_validation_failure_IMAGE_image_repositories_and_image_repository(
-        self, mock_artifacts, is_all_image_funcs_provided_mock, mock_click
+        self, is_all_image_funcs_provided_mock, mock_click
     ):
         mock_click.BadOptionUsage = click.BadOptionUsage
-        mock_artifacts.return_value = [IMAGE]
+
         is_all_image_funcs_provided_mock.return_value = True
         mock_context = MagicMock()
         mock_context.params.get.side_effect = [
@@ -124,12 +120,11 @@ class TestImageRepositoryValidation(TestCase):
 
     @patch("samcli.lib.cli_validation.image_repository_validation.click")
     @patch("samcli.lib.cli_validation.image_repository_validation._is_all_image_funcs_provided")
-    @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format")
     def test_image_repository_validation_failure_IMAGE_image_repositories_incomplete(
-        self, mock_artifacts, is_all_image_funcs_provided_mock, mock_click
+        self, is_all_image_funcs_provided_mock, mock_click
     ):
         mock_click.BadOptionUsage = click.BadOptionUsage
-        mock_artifacts.return_value = [IMAGE]
+
         is_all_image_funcs_provided_mock.return_value = False
         mock_context = MagicMock()
         mock_context.params.get.side_effect = [
@@ -149,12 +144,11 @@ class TestImageRepositoryValidation(TestCase):
 
     @patch("samcli.lib.cli_validation.image_repository_validation.click")
     @patch("samcli.lib.cli_validation.image_repository_validation._is_all_image_funcs_provided")
-    @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format")
-    def test_image_repository_validation_failure_IMAGE_missing_image_repositories(
-        self, mock_artifacts, is_all_image_funcs_provided_mock, mock_click
+    def test_image_repository_validation_failure_IMAGE_no_image_repository_with_no_all_image_func_provided(
+        self, is_all_image_funcs_provided_mock, mock_click
     ):
         mock_click.BadOptionUsage = click.BadOptionUsage
-        mock_artifacts.return_value = [IMAGE]
+
         is_all_image_funcs_provided_mock.return_value = False
         mock_context = MagicMock()
         mock_context.params.get.side_effect = [False, False, False, None, False, None, MagicMock()]
@@ -175,13 +169,37 @@ class TestImageRepositoryValidation(TestCase):
 
     @patch("samcli.lib.cli_validation.image_repository_validation.click")
     @patch("samcli.lib.cli_validation.image_repository_validation._is_all_image_funcs_provided")
-    @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format")
+    def test_image_repository_validation_failure_IMAGE_missing_image_repositories(
+        self, is_all_image_funcs_provided_mock, mock_click
+    ):
+        mock_click.BadOptionUsage = click.BadOptionUsage
+
+        is_all_image_funcs_provided_mock.return_value = False
+        mock_context = MagicMock()
+        mock_context.params.get.side_effect = [False, False, False, None, False, None, MagicMock()]
+        mock_click.get_current_context.return_value = mock_context
+
+        with self.assertRaises(click.BadOptionUsage) as ex:
+            self.foobar()
+        if self.support_resolve_image_repos:
+            self.assertIn(
+                "Missing option '--image-repositories', '--image-repository', '--resolve-image-repos'",
+                ex.exception.message,
+            )
+        else:
+            self.assertIn(
+                "Missing option '--image-repositories', '--image-repository'",
+                ex.exception.message,
+            )
+
+    @patch("samcli.lib.cli_validation.image_repository_validation.click")
+    @patch("samcli.lib.cli_validation.image_repository_validation._is_all_image_funcs_provided")
     def test_image_repository_validation_success_missing_image_repositories_guided(
-        self, mock_artifacts, is_all_image_funcs_provided_mock, mock_click
+        self, is_all_image_funcs_provided_mock, mock_click
     ):
         # Guided allows for filling of the image repository values.
         mock_click.BadOptionUsage = click.BadOptionUsage
-        mock_artifacts.return_value = [IMAGE]
+
         is_all_image_funcs_provided_mock.return_value = False
         mock_context = MagicMock()
         mock_context.params.get.side_effect = [True, True, False, None, False, None, MagicMock()]
