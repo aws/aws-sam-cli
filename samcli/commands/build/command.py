@@ -72,7 +72,6 @@ DESCRIPTION = """
     context_settings={"max_content_width": 120},
 )
 @configuration_option(provider=ConfigProvider(section="parameters"))
-@terraform_plan_file_option
 @terraform_project_root_path_option
 @hook_name_click_option(
     force_prepare=True,
@@ -159,7 +158,6 @@ def cli(
     hook_name: Optional[str],
     skip_prepare_infra: bool,
     mount_with,
-    terraform_plan_file: Optional[str],
     terraform_project_root_path: Optional[str],
 ) -> None:
     """
