@@ -12,7 +12,7 @@ from typing import Any, Dict
 
 from samcli.hook_packages.terraform.hooks.prepare.constants import CFN_CODE_PROPERTIES
 from samcli.hook_packages.terraform.hooks.prepare.translate import translate_to_cfn
-from samcli.lib.hook.exceptions import PrepareHookException
+from samcli.lib.hook.exceptions import PrepareHookException, TerraformCloudException
 from samcli.lib.utils import osutils
 from samcli.lib.utils.subprocess_utils import LoadingPatternError, invoke_subprocess_with_loading_pattern
 
@@ -23,6 +23,14 @@ HOOK_METADATA_KEY = "AWS::SAM::Hook"
 TERRAFORM_HOOK_METADATA = {
     "HookName": "terraform",
 }
+
+TF_CLOUD_EXCEPTION_MESSAGE = "Terraform Cloud does not support saving the generated execution plan"
+TF_CLOUD_HELP_MESSAGE = (
+    "Terraform Cloud does not currently support generating local plan "
+    "files that AWS SAM CLI uses to parse the Terraform project.\n"
+    "To use AWS SAM CLI with Terraform Cloud applications, provide "
+    "a plan file using the --terraform-plan-file flag."
+)
 
 
 def prepare(params: dict) -> dict:
@@ -201,6 +209,9 @@ def _generate_plan_file(skip_prepare_infra: bool, terraform_application_dir: str
             f"There was an error while preparing the Terraform application.\n{stderr_output}"
         ) from e
     except LoadingPatternError as e:
-        raise PrepareHookException(f"Error occurred when invoking a process: {e}") from e
+        if TF_CLOUD_EXCEPTION_MESSAGE in e.message:
+            # TODO: Add link to TF Cloud documentation when that is ready
+            raise TerraformCloudException(TF_CLOUD_HELP_MESSAGE)
+        raise PrepareHookException(f"Error occurred when invoking a process:\n{e}") from e
 
     return dict(json.loads(result.stdout))

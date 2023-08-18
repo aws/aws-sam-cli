@@ -7,7 +7,7 @@ import sys
 from concurrent.futures.thread import ThreadPoolExecutor
 from subprocess import PIPE, Popen
 from time import sleep
-from typing import IO, Any, AnyStr, Callable, Dict, Optional, Union
+from typing import Any, AnyStr, Callable, Dict, Optional, Union
 
 from samcli.commands.exceptions import UserException
 from samcli.lib.utils.stream_writer import StreamWriter
@@ -65,11 +65,15 @@ def invoke_subprocess_with_loading_pattern(
     """
     stream_writer = stream_writer or StreamWriter(sys.stderr)
     process_output = ""
+    process_stderr = ""
 
+    # Default stdout to PIPE if not specified so
+    # that output isn't printed along with dots
     if not command_args.get("stdout"):
-        # Default stdout to PIPE if not specified so
-        # that output isn't printed along with dots
         command_args["stdout"] = PIPE
+
+    if not command_args.get("stderr"):
+        command_args["stderr"] = PIPE
 
     try:
         keep_printing = LOG.getEffectiveLevel() >= logging.INFO
@@ -93,17 +97,23 @@ def invoke_subprocess_with_loading_pattern(
                             LOG.debug(decoded_line)
                         process_output += decoded_line
 
+                if process.stderr:
+                    for line in process.stderr:
+                        # Since we typically log standard error back, we preserve
+                        # the whitespace so that it is formatted correctly
+                        decoded_line = _check_and_process_bytes(line, preserve_whitespace=True)
+                        process_stderr += decoded_line
+
                 return_code = process.wait()
                 keep_printing = False
 
                 stream_writer.write_str(os.linesep)
                 stream_writer.flush()
-                process_stderr = _check_and_convert_stream_to_string(process.stderr)
 
                 if return_code:
                     raise LoadingPatternError(
                         f"The process {command_args.get('args', [])} returned a "
-                        f"non-zero exit code {process.returncode}. {process_stderr}"
+                        f"non-zero exit code {process.returncode}.\n{process_stderr}"
                     )
 
     except (OSError, ValueError) as e:
@@ -112,15 +122,10 @@ def invoke_subprocess_with_loading_pattern(
     return process_output
 
 
-def _check_and_convert_stream_to_string(stream: Optional[IO[AnyStr]]) -> str:
-    stream_as_str = ""
-    if stream:
-        byte_stream = stream.read()
-        stream_as_str = _check_and_process_bytes(byte_stream)
-    return stream_as_str
-
-
-def _check_and_process_bytes(check_value: AnyStr) -> str:
+def _check_and_process_bytes(check_value: AnyStr, preserve_whitespace=False) -> str:
     if isinstance(check_value, bytes):
-        return check_value.decode("utf-8").strip()
+        decoded_value = check_value.decode("utf-8")
+        if preserve_whitespace:
+            return decoded_value
+        return decoded_value.strip()
     return check_value
