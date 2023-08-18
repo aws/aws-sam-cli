@@ -75,7 +75,7 @@ class StaticFolderWrapper:
         """
         self._observer = observer
         self._path_handler = path_handler
-        self._watch = initial_watch
+        self._watch: Optional[ObservedWatch] = initial_watch
 
     def _on_parent_change(self, _: FileSystemEvent) -> None:
         """Callback for changes detected in the parent folder"""
@@ -108,11 +108,11 @@ class StaticFolderWrapper:
             ignore_directories=False,
             case_sensitive=True,
         )
-        parent_folder_handler.on_any_event = self._on_parent_change
+        parent_folder_handler.on_any_event = self._on_parent_change  # type: ignore
         return PathHandler(path=parent_dir_path, event_handler=parent_folder_handler)
 
 
-class HandlerObserver(Observer):  # pylint: disable=too-many-ancestors
+class HandlerObserver(Observer):  # type: ignore
     """
     Extended WatchDog Observer that takes in a single PathHandler object.
     """
@@ -152,7 +152,7 @@ class HandlerObserver(Observer):  # pylint: disable=too-many-ancestors
             ObservedWatch corresponding to the PathHandler.
             If static_folder is True, the parent folder watch will be returned instead.
         """
-        watch = self.schedule(path_handler.event_handler, str(path_handler.path), path_handler.recursive)
+        watch: ObservedWatch = self.schedule(path_handler.event_handler, str(path_handler.path), path_handler.recursive)
         if path_handler.static_folder:
             static_wrapper = StaticFolderWrapper(self, watch, path_handler)
             parent_path_handler = static_wrapper.get_dir_parent_path_handler()
