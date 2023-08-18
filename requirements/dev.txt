@@ -10,7 +10,7 @@ pytest-cov==4.1.0
 mypy==1.4.1
 types-pywin32==306.0.0.4
 types-PyYAML==6.0.12.11
-types-chevron==0.14.2.4
+types-chevron==0.14.2.5
 types-psutil==5.9.5.16
 types-setuptools==68.0.0.3
 types-Pygments==2.15.0.2 
