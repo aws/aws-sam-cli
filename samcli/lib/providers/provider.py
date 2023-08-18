@@ -488,6 +488,8 @@ class Cors(_CorsTuple):
         ----------
         cors list(samcli.commands.local.lib.provider.Cors)
             CORS configuration objcet
+        request_origin str
+            Origin of the request, e.g. https://example.com:8080
         Returns
         -------
             Dictionary with CORS headers
