@@ -16,7 +16,7 @@ types-setuptools==68.1.0.0
 types-Pygments==2.15.0.2 
 types-colorama==0.4.15.12
 types-dateparser==1.1.4.10
-types-docutils==0.20.0.1
+types-docutils==0.20.0.3
 types-jsonschema==4.17.0.10
 types-pyOpenSSL==23.2.0.2
 types-requests==2.31.0.2
