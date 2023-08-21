@@ -244,7 +244,7 @@ class TestCliConfiguration(TestCase):
 
         provider.assert_called_with(None, "default", ["local", "generate-event", "alexa-skills-kit", "intent-answer"])
 
-    def test_save_command_line_args(self):
+    def _setup_mock_samconfig(self):
         mock_flush = MagicMock()
         mock_config_file = {}
 
@@ -253,7 +253,10 @@ class TestCliConfiguration(TestCase):
 
         mock_put = MagicMock()
         mock_put.side_effect = mock_put_func
-        mock_samconfig = MagicMock(flush=mock_flush, put=mock_put)
+        return MagicMock(flush=mock_flush, put=mock_put), mock_config_file
+
+    def test_dont_save_command_line_args_if_flag_not_set(self):
+        mock_samconfig, _ = self._setup_mock_samconfig()
 
         # Doesn't run if flag is not set
         mock_context = MockContext(info_name="sam", parent=None, params={})
@@ -262,7 +265,8 @@ class TestCliConfiguration(TestCase):
 
         mock_samconfig.flush.assert_not_called()
 
-        # Runs if flag IS set
+    def test_save_command_line_args(self):
+        mock_samconfig, mock_config_file = self._setup_mock_samconfig()
         mock_context = MockContext(info_name="sam", parent=None)
         self.ctx.parent = mock_context
         self.ctx.info_name = "command"

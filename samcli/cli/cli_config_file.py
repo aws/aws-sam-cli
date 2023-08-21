@@ -257,6 +257,7 @@ def save_command_line_args_to_config(
         "config_env",
     ]
 
+    saved_params = {}
     for param_name, param_source in ctx._parameter_source.items():
         if param_name in params_to_exclude:
             continue  # don't save certain params
@@ -266,8 +267,15 @@ def save_command_line_args_to_config(
         # if param was passed via command line, save to file
         param_value = ctx.params.get(param_name, None)
         if param_value is None:
+            LOG.debug(f"Parameter {param_name} was not saved, as its value is None.")
             continue  # no value given, ignore
         config_file.put(cmd_names, "parameters", param_name, param_value, config_env_name)
+        saved_params.update({param_name: param_value})
+
+    LOG.debug(
+        f"Saved parameters to config file '{config_file.filepath.name}' "
+        f"under environment {config_env_name}: {saved_params}"
+    )
 
     config_file.flush()
 
