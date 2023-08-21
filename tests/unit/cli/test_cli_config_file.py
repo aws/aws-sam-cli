@@ -255,6 +255,15 @@ class TestCliConfiguration(TestCase):
         mock_put.side_effect = mock_put_func
         return MagicMock(flush=mock_flush, put=mock_put), mock_config_file
 
+    def _setup_context(self, params: dict, parameter_source: dict):
+        mock_context = MockContext(info_name="sam", parent=None)
+        mock_self_ctx = MagicMock()
+        mock_self_ctx.parent = mock_context
+        mock_self_ctx.info_name = "command"
+        mock_self_ctx.params = params
+        mock_self_ctx._parameter_source = parameter_source
+        return mock_self_ctx
+
     def test_dont_save_command_line_args_if_flag_not_set(self):
         mock_samconfig, _ = self._setup_mock_samconfig()
 
@@ -267,23 +276,18 @@ class TestCliConfiguration(TestCase):
 
     def test_save_command_line_args(self):
         mock_samconfig, mock_config_file = self._setup_mock_samconfig()
-        mock_context = MockContext(info_name="sam", parent=None)
-        self.ctx.parent = mock_context
-        self.ctx.info_name = "command"
-        self.ctx.params = {
-            "save_params": True,
-            "config_file": "samconfig.toml",
-            "some_param": "value",
-            "some_other_param": "other_value",
-            "none_param": None,
-        }
-        self.ctx._parameter_source = {
-            "save_params": ParameterSource.COMMANDLINE,
-            "config_file": ParameterSource.COMMANDLINE,
-            "some_param": ParameterSource.COMMANDLINE,
-            "some_other_param": ParameterSource.DEFAULT_MAP,
-            "none_param": ParameterSource.COMMANDLINE,
-        }
+        self.ctx = self._setup_context(
+            params={
+                "save_params": True,
+                "config_file": "samconfig.toml",  # member of "params_to_exclude", shouldn't be saved
+                "some_param": "value",
+            },
+            parameter_source={
+                "save_params": ParameterSource.COMMANDLINE,
+                "config_file": ParameterSource.COMMANDLINE,
+                "some_param": ParameterSource.COMMANDLINE,
+            },
+        )
 
         save_command_line_args_to_config(self.ctx, ["command"], "default", mock_samconfig)
 
@@ -299,6 +303,63 @@ class TestCliConfiguration(TestCase):
         self.assertNotIn("config_file", params.keys(), "Excluded member should not be saved to config")
         self.assertIn("some_param", params.keys(), "Param key should be saved to config file")
         self.assertIn("value", params.values(), "Param value should be saved to config file")
-        self.assertNotIn("some_other_param", params.keys(), "Param not passed in via COMMANDLINE should not be saved")
-        self.assertNotIn("none_param", params.keys(), "Param with None value should not be saved")
         mock_samconfig.flush.assert_called_once()  # everything should be flushed to config file
+
+    def test_dont_save_arguments_not_from_command_line(self):
+        mock_samconfig, mock_config_file = self._setup_mock_samconfig()
+        self.ctx = self._setup_context(
+            params={
+                "save_params": True,
+                "param_from_commandline": "value",
+                "param_not_from_commandline": "other_value",
+            },
+            parameter_source={
+                "save_params": ParameterSource.COMMANDLINE,
+                "param_from_commandline": ParameterSource.COMMANDLINE,
+                "param_not_from_commandline": ParameterSource.DEFAULT_MAP,
+            },
+        )
+
+        save_command_line_args_to_config(self.ctx, ["command"], "default", mock_samconfig)
+
+        self.assertIn(
+            "parameters",
+            mock_config_file.get("default", {}).get("command", {}).keys(),
+            "Parameters should be nested in config file",
+        )
+
+        params = mock_config_file["default"]["command"]["parameters"]
+
+        self.assertIn("param_from_commandline", params.keys(), "Param from COMMANDLINE should be saved to config file")
+        self.assertNotIn(
+            "param_not_from_commandline", params.keys(), "Param not passed in via COMMANDLINE should not be saved"
+        )
+
+    def test_dont_save_command_line_args_if_value_is_none(self):
+        mock_samconfig, mock_config_file = self._setup_mock_samconfig()
+        self.ctx = self._setup_context(
+            params={
+                "save_params": True,
+                "some_param": "value",
+                "none_param": None,
+            },
+            parameter_source={
+                "save_params": ParameterSource.COMMANDLINE,
+                "some_param": ParameterSource.COMMANDLINE,
+                "none_param": ParameterSource.COMMANDLINE,
+            },
+        )
+
+        save_command_line_args_to_config(self.ctx, ["command"], "default", mock_samconfig)
+
+        self.assertIn(
+            "parameters",
+            mock_config_file.get("default", {}).get("command", {}).keys(),
+            "Parameters should be nested in config file",
+        )
+
+        params = mock_config_file["default"]["command"]["parameters"]
+
+        self.assertNotIn("save_params", params.keys(), "--save-params should not be saved to config")
+        self.assertNotIn("none_param", params.keys(), "Param with None value should not be saved to config")
+        self.assertNotIn(None, params.values(), "None value should not be saved to config")
