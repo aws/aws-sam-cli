@@ -166,8 +166,8 @@ def invoke_common_options(f):
             click.option(
                 "--container-env-vars",
                 type=click.Path(exists=True),
-                help="JSON file containing environment variables to be set within the container "
-                "environment when used in a debugging session locally.",
+                help="JSON file containing additional environment variables to be set within the container when "
+                "used in a debugging session locally.",
             ),
             click.option(
                 "--docker-volume-basedir",
