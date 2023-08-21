@@ -6,7 +6,7 @@ import logging
 
 import click
 
-from samcli.cli.cli_config_file import ConfigProvider, configuration_option
+from samcli.cli.cli_config_file import ConfigProvider, configuration_option, save_params_option
 from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
 from samcli.cli.main import common_options as cli_framework_options
 from samcli.commands._utils.experimental import ExperimentalFlag, is_experimental_enabled
@@ -65,6 +65,7 @@ DESCRIPTION = """
 @local_common_options
 @cli_framework_options
 @aws_creds_options
+@save_params_option
 @pass_context
 @track_command
 @check_newer_version
@@ -88,6 +89,7 @@ def cli(
     skip_pull_image,
     force_image_build,
     parameter_overrides,
+    save_params,
     config_file,
     config_env,
     warm_containers,

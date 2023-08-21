@@ -6,7 +6,7 @@ import logging
 
 import click
 
-from samcli.cli.cli_config_file import ConfigProvider, configuration_option
+from samcli.cli.cli_config_file import ConfigProvider, configuration_option, save_params_option
 from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
 from samcli.cli.main import common_options as cli_framework_options
 from samcli.commands._utils.experimental import ExperimentalFlag, is_experimental_enabled
@@ -62,6 +62,7 @@ STDIN_FILE_NAME = "-"
 @cli_framework_options
 @aws_creds_options
 @click.argument("function_logical_id", required=False)
+@save_params_option
 @pass_context
 @track_command  # pylint: disable=R0914
 @check_newer_version
@@ -85,6 +86,7 @@ def cli(
     force_image_build,
     shutdown,
     parameter_overrides,
+    save_params,
     config_file,
     config_env,
     container_host,
