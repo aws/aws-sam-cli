@@ -61,9 +61,9 @@ boto3-stubs[apigateway,cloudformation,ecr,iam,lambda,s3,schemas,secretsmanager,s
     --hash=sha256:0b24bdd6c15232560e4a70dc7d577c7e00c53d875b68109734c189503ad13eff \
     --hash=sha256:7b64389d5a478bb17e941816d63026d1ca418a3802120cf7d285b23bb764cb41
     # via aws-sam-cli (setup.py)
-botocore==1.31.27 \
-    --hash=sha256:13af1588023750c9bc66d202bb5a934c9412a7dc52587532264ab725c42c2c50 \
-    --hash=sha256:739d09e13751e3b9b0f341b5ffe5bf8d0452b8769d435c4084ee88739d42b7f7
+botocore==1.31.30 \
+    --hash=sha256:269f20dcadd8dfd0c26d0e6fbceb84814ff6638ff3aafcc5324b9fb9949a7051 \
+    --hash=sha256:3cf6a9d7621b897c9ff23cd02113826141b3dd3d7e90273b661efc4dc05f84e2
     # via
     #   boto3
     #   s3transfer
