@@ -1,0 +1,42 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+  MyHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: foo
+      CorsConfiguration:
+        AllowCredentials: true
+        AllowHeaders:
+          - "Accept"
+          - "My-Custom-Header"
+        ExposeHeaders:
+          - "Content-Encoding"
+          - "Another-Custom-Header"
+        AllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - PATCH
+          - OPTIONS
+        AllowOrigins:
+          - https://abc
+          - http://xyz:3000
+        MaxAge: 3600
+
+  TestFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.echo_base64_event_body
+      Runtime: python3.9
+      CodeUri: .
+      Timeout: 600
+      Events:
+        HttpEventGet:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MyHttpApi
+            Path: /test
+            Method: post
