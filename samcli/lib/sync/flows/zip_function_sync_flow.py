@@ -87,10 +87,10 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
     def gather_resources(self) -> None:
         """Build function and ZIP it into a temp file in self._zip_file"""
         if self._application_build_result:
-            LOG.debug("Using pre-built resources for function {}", self._function_identifier)
+            LOG.debug("Using pre-built resources for function %s", self._function_identifier)
             self._use_prebuilt_resources(self._application_build_result)
         else:
-            LOG.debug("Building function from scratch {}", self._function_identifier)
+            LOG.debug("Building function from scratch %s", self._function_identifier)
             self._build_resources_from_scratch()
 
         zip_file_path = os.path.join(tempfile.gettempdir(), "data-" + uuid.uuid4().hex)

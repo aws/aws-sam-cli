@@ -54,7 +54,7 @@ def _unquote_wrapped_quotes(value):
     Unquoted string
     """
 
-    if value and ((value[0] == value[-1] == '"') or (value[0] == value[-1] == "'")):
+    if value and value[0] in ('"', "'") and value[-1] in ('"', "'"):
         value = value[1:-1]
 
     return value.replace("\\ ", " ").replace('\\"', '"').replace("\\'", "'")
