@@ -27,7 +27,7 @@ class TerraformStartApiIntegrationBase(StartApiIntegBaseClass):
         command = get_sam_command()
         cls.template_path = ""
         cls.build_before_invoke = False
-        cls.command_list = [command, "local", "start-api", "--hook-name", "terraform", "--beta-features"]
+        cls.command_list = [command, "local", "start-api", "--hook-name", "terraform"]
         if cls.terraform_plan_file:
             cls.command_list += ["--terraform-plan-file", cls.terraform_plan_file]
         cls.test_data_path = Path(cls.get_integ_dir()) / "testdata" / "start_api"
@@ -199,7 +199,6 @@ class TestStartApiTerraformApplicationLimitations(TerraformStartApiIntegrationBa
             "start-api",
             "--hook-name",
             "terraform",
-            "--beta-features",
             "-p",
             str(random_port()),
         ]

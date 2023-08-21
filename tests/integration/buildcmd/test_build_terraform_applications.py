@@ -15,7 +15,6 @@ import docker
 
 from parameterized import parameterized, parameterized_class
 
-from samcli.lib.utils.colors import Colored
 from tests.integration.buildcmd.build_integ_base import BuildIntegBase
 from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS, RUN_BY_CANARY
 
@@ -76,7 +75,6 @@ class BuildTerraformApplicationIntegBase(BuildIntegBase):
             "--no-event",
             "--hook-name",
             "terraform",
-            "--beta-features",
         ]
 
         if overrides:
@@ -243,7 +241,6 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(Bu
     @parameterized.expand(functions)
     def test_build_and_invoke_lambda_functions(self, function_identifier, expected_output, should_override_code):
         command_list_parameters = {
-            "beta_features": True,
             "hook_name": "terraform",
             "function_identifier": function_identifier,
         }
@@ -260,18 +257,6 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(Bu
         if should_override_code:
             environment_variables["TF_VAR_HELLO_FUNCTION_SRC_CODE"] = "./artifacts/HelloWorldFunction2"
         stdout, stderr, return_code = self.run_command(build_cmd_list, env=environment_variables)
-        terraform_beta_feature_prompted_text = (
-            f"Supporting Terraform applications is a beta feature.{os.linesep}"
-            f"Please confirm if you would like to proceed using AWS SAM CLI with terraform application.{os.linesep}"
-            "You can also enable this beta feature with 'sam build --beta-features'."
-        )
-        experimental_warning = (
-            f"{os.linesep}Experimental features are enabled for this session.{os.linesep}"
-            f"Visit the docs page to learn more about the AWS Beta terms "
-            f"https://aws.amazon.com/service-terms/.{os.linesep}"
-        )
-        self.assertNotRegex(stdout.decode("utf-8"), terraform_beta_feature_prompted_text)
-        self.assertIn(Colored().yellow(experimental_warning), stderr.decode("utf-8"))
         LOG.info("sam build stdout: %s", stdout.decode("utf-8"))
         LOG.info("sam build stderr: %s", stderr.decode("utf-8"))
         self.assertEqual(return_code, 0)
@@ -374,7 +359,6 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(Build
     @parameterized.expand(functions)
     def test_build_and_invoke_lambda_functions(self, function_identifier, expected_output, should_override_code):
         command_list_parameters = {
-            "beta_features": True,
             "hook_name": "terraform",
             "function_identifier": function_identifier,
         }
