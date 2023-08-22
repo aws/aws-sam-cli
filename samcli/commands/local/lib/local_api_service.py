@@ -67,7 +67,6 @@ class LocalApiService:
             port=self.port,
             host=self.host,
             stderr=self.stderr_stream,
-            disable_authorizer=self.disable_authorizer,
         )
 
         service.create()
