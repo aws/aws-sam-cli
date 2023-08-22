@@ -3,6 +3,11 @@ from unittest.mock import patch, Mock
 
 from parameterized import parameterized
 
+from botocore.exceptions import (
+    ProfileNotFound,
+    NoCredentialsError,
+    NoRegionError,
+)
 from samcli.commands.remote.invoke.cli import do_cli
 from samcli.lib.remote_invoke.remote_invoke_executors import RemoteInvokeOutputFormat
 from samcli.lib.remote_invoke.exceptions import (
@@ -85,8 +90,8 @@ class TestRemoteInvokeCliCommand(TestCase):
             config_env=self.config_env,
         )
 
-        patched_get_boto_client_provider_with_config.assert_called_with(region_name=self.region)
-        patched_get_boto_resource_provider_with_config.assert_called_with(region_name=self.region)
+        patched_get_boto_client_provider_with_config.assert_called_with(region_name=self.region, profile=self.profile)
+        patched_get_boto_resource_provider_with_config.assert_called_with(region_name=self.region, profile=self.profile)
 
         mock_remote_invoke_context.assert_called_with(
             boto_client_provider=given_client_provider,
@@ -106,6 +111,9 @@ class TestRemoteInvokeCliCommand(TestCase):
             (InvalideBotoResponseException,),
             (ErrorBotoApiCallException,),
             (InvalidResourceBotoParameterException,),
+            (ProfileNotFound,),
+            (NoCredentialsError,),
+            (NoRegionError,),
         ]
     )
     @patch("samcli.commands.remote.remote_invoke_context.RemoteInvokeContext")

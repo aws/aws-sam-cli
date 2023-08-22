@@ -117,6 +117,12 @@ def do_cli(
     """
     Implementation of the ``cli`` method
     """
+    from botocore.exceptions import (
+        NoCredentialsError,
+        NoRegionError,
+        ProfileNotFound,
+    )
+
     from samcli.commands.exceptions import UserException
     from samcli.commands.remote.remote_invoke_context import RemoteInvokeContext
     from samcli.lib.remote_invoke.exceptions import (
@@ -127,9 +133,9 @@ def do_cli(
     from samcli.lib.remote_invoke.remote_invoke_executors import RemoteInvokeExecutionInfo
     from samcli.lib.utils.boto_utils import get_boto_client_provider_with_config, get_boto_resource_provider_with_config
 
-    boto_client_provider = get_boto_client_provider_with_config(region_name=region, profile=profile)
-    boto_resource_provider = get_boto_resource_provider_with_config(region_name=region, profile=profile)
     try:
+        boto_client_provider = get_boto_client_provider_with_config(region_name=region, profile=profile)
+        boto_resource_provider = get_boto_resource_provider_with_config(region_name=region, profile=profile)
         with RemoteInvokeContext(
             boto_client_provider=boto_client_provider,
             boto_resource_provider=boto_resource_provider,
@@ -142,5 +148,12 @@ def do_cli(
             )
 
             remote_invoke_context.run(remote_invoke_input=remote_invoke_input)
-    except (ErrorBotoApiCallException, InvalideBotoResponseException, InvalidResourceBotoParameterException) as ex:
+    except (
+        ErrorBotoApiCallException,
+        InvalideBotoResponseException,
+        InvalidResourceBotoParameterException,
+        ProfileNotFound,
+        NoCredentialsError,
+        NoRegionError,
+    ) as ex:
         raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
