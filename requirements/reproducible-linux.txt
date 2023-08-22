@@ -759,9 +759,9 @@ types-awscrt==0.19.0 \
     # via
     #   botocore-stubs
     #   types-s3transfer
-types-s3transfer==0.6.1 \
-    --hash=sha256:6d1ac1dedac750d570428362acdf60fdd4f277b0788855c3894d3226756b2bfb \
-    --hash=sha256:75ac1d7143d58c1e6af467cfd4a96c67ee058a3adf7c249d9309999e1f5f41e4
+types-s3transfer==0.6.2 \
+    --hash=sha256:1068877b6e59be5226fa3006ae64371ac9d5bc590dfdbd9c66fd0a075d3254ac \
+    --hash=sha256:4ba9b483796fdcd026aa162ee03bdcedd2bf7d08e9387c820dcdd158b0102057
     # via boto3-stubs
 typing-extensions==4.7.1 \
     --hash=sha256:440d5dd3af93b060174bf433bccd69b0babc3b15b1a8dca43789fd7f61514b36 \
