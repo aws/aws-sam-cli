@@ -1,5 +1,5 @@
 from unittest import TestCase
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, Mock
 import os
 
 import click
@@ -798,5 +798,5 @@ class TestHookPackageIdOption(TestCase):
     @patch("samcli.commands._utils.custom_options.hook_name_option.EventTracker")
     def test_record_hook_telemetry(self, event_tracker_mock):
         opts = {"terraform_plan_file": "my_plan.json"}
-        record_hook_telemetry(opts)
+        record_hook_telemetry(opts, Mock())
         event_tracker_mock.track_event.assert_called_once_with("HookConfigurationsUsed", "TerraformPlanFile")

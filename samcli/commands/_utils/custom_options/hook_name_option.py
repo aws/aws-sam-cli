@@ -71,7 +71,7 @@ class HookNameOption(click.Option):
             c = Context.get_current_context()
             c.exception = ex
         finally:
-            record_hook_telemetry(opts)
+            record_hook_telemetry(opts, ctx)
 
         return super().handle_parse_result(ctx, opts, args)
 
@@ -223,7 +223,7 @@ def _read_parameter_value(param_name, opts, ctx, default_value=None):
     return opts.get(param_name, ctx.default_map.get(param_name, default_value))
 
 
-def record_hook_telemetry(opts: Mapping[str, Any]):
+def record_hook_telemetry(opts: Mapping[str, Any], ctx: click.Context):
     """
     Emit metrics related to hooks based on the options passed into the command
 
@@ -231,6 +231,9 @@ def record_hook_telemetry(opts: Mapping[str, Any]):
     ----------
     opts: Mapping[str, Any]
         Mapping between a command line option and its value
+    ctx: Context
+        Command context properties
     """
-    if PLAN_FILE_OPTION in opts and opts.get(PLAN_FILE_OPTION) is not None:
+    plan_file_param = _read_parameter_value(PLAN_FILE_OPTION, opts, ctx)
+    if plan_file_param:
         EventTracker.track_event(EventName.HOOK_CONFIGURATIONS_USED.value, "TerraformPlanFile")
