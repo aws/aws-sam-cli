@@ -234,9 +234,14 @@ def _generate_plan_file(skip_prepare_infra: bool, terraform_application_dir: str
     return dict(json.loads(result.stdout))
 
 
-def _validate_environment_variables():
+def _validate_environment_variables() -> None:
     """
     Validate that the Terraform environment variables do not contain blocked arguments.
+
+    Raises
+    ------
+    UnallowedEnvironmentVariableArgumentException
+        Raised when a Terraform related environment variable contains a blocked value
     """
     for env_var in TF_ENVIRONMENT_VARIABLES:
         env_value = os.environ.get(env_var, "")
