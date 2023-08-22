@@ -1,0 +1,17 @@
+version = 0.1
+
+[default.list_resources.parameters]
+parameter_overrides = "Parameter overrides"
+stack_name = "Stack name"
+output = "json"
+template_file = "Template file"
+profile = "Profile"
+region = "Region"
+beta_features = false
+debug = false
+
+[other.list_resources.parameters]
+parameter_overrides = ["Parameter", "Overrides"]
+output = "table"
+beta_features = true
+debug = true

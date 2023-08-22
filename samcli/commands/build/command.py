@@ -8,7 +8,6 @@ from typing import List, Optional, Dict, Tuple
 import click
 
 from samcli.cli.context import Context
-from samcli.commands._utils.experimental import ExperimentalFlag, is_experimental_enabled
 from samcli.commands._utils.options import (
     skip_prepare_infra_option,
     template_option_without_build,
@@ -22,6 +21,8 @@ from samcli.commands._utils.options import (
     use_container_build_option,
     build_image_option,
     hook_name_click_option,
+    terraform_plan_file_option,
+    terraform_project_root_path_option,
 )
 from samcli.commands._utils.option_value_processor import process_env_var, process_image_options
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
@@ -70,6 +71,7 @@ DESCRIPTION = """
     context_settings={"max_content_width": 120},
 )
 @configuration_option(provider=ConfigProvider(section="parameters"))
+@terraform_project_root_path_option
 @hook_name_click_option(
     force_prepare=True,
     invalid_coexist_options=["t", "template-file", "template", "parameter-overrides"],
@@ -83,7 +85,7 @@ DESCRIPTION = """
     multiple=True,  # Can pass in multiple env vars
     required=False,
     help="Environment variables to be passed into build containers"
-    "Resource format (FuncName.VarName=Value) or Global format (VarName=Value)."
+    "\nResource format (FuncName.VarName=Value) or Global format (VarName=Value)."
     "\n\n Example: --container-env-var Func1.VAR1=value1 --container-env-var VAR2=value2",
     cls=ContainerOptions,
 )
@@ -155,6 +157,7 @@ def cli(
     hook_name: Optional[str],
     skip_prepare_infra: bool,
     mount_with,
+    terraform_project_root_path: Optional[str],
 ) -> None:
     """
     `sam build` command entry point
@@ -216,13 +219,6 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     """
     Implementation of the ``cli`` method
     """
-    if (
-        hook_name
-        and ExperimentalFlag.IaCsSupport.get(hook_name) is not None
-        and not is_experimental_enabled(ExperimentalFlag.IaCsSupport[hook_name])
-    ):
-        LOG.info("Terraform Support beta feature is not enabled.")
-        return
 
     from samcli.commands.build.build_context import BuildContext
 

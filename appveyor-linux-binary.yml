@@ -1,0 +1,337 @@
+version: 1.0.{build}
+image:
+  - Ubuntu2004
+
+configuration:
+  - BuildIntegTesting
+  - LocalZipTerraformBuildIntegTesting
+  - LocalZipTerraformBuildInContainerIntegTesting
+  - S3ZipTerraformBuildIntegTesting
+  - S3ZipTerraformBuildInContainerIntegTesting
+  - OtherTerraformBuildIntegTesting
+  - DeployIntegTesting
+  - PackageIntegTesting
+  - DeleteIntegTesting
+  - SyncIntegTesting
+  - LocalIntegTesting
+  - EndToEndTesting
+  # other Integration testing, Dev, regression and smoke testing
+  - OtherTesting
+
+environment:
+  PYTHON_HOME: "$HOME/venv3.11/bin"
+  PYTHON_VERSION: '3.11'
+  AWS_DEFAULT_REGION: us-east-1
+  NODE_VERSION: "14.17.6"
+  AWS_S3: 'AWS_S3_TESTING'
+  AWS_ECR: 'AWS_ECR_TESTING'
+  CARGO_LAMBDA_VERSION: "v0.17.1"
+  PYTHON_ARCH: '64'
+  NOSE_PARAMETERIZED_NO_WARN: 1
+  APPVEYOR_CONSOLE_DISABLE_PTY: false
+  APPVEYOR_DETAILED_SHELL_LOGGING: true
+
+
+install:
+  # AppVeyor's apt-get cache might be outdated, and the package could potentially be 404.
+  - sh: "sudo apt-get update --allow-releaseinfo-change"
+
+  - sh: "gvm use go1.19"
+  - sh: "echo $PATH"
+  - sh: "ls /usr/"
+  # install latest maven which is compatible with jdk17
+  - sh: "sudo apt-get -y remove maven"
+  - sh: "wget https://dlcdn.apache.org/maven/maven-3/3.8.8/binaries/apache-maven-3.8.8-bin.zip -P /tmp"
+  - sh: "sudo unzip -d /opt/mvn /tmp/apache-maven-*.zip"
+  - sh: "PATH=/opt/mvn/apache-maven-3.8.8/bin:$PATH"
+  - sh: "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64"
+  - sh: "PATH=$JAVA_HOME/bin:$PATH"
+  - sh: "javac -version"
+  - sh: "java -version"
+  - sh: "mvn --version"
+
+  - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
+  - sh: "rvm use 2.7.2"
+  - sh: "docker info"
+  - sh: "docker version"
+  - sh: "nvm install ${NODE_VERSION}"
+  - sh: "npm install npm@7.24.2 -g"
+  - sh: "npm -v"
+
+  # Install latest gradle
+  - sh: "sudo apt-get -y remove gradle"
+  - sh: "wget https://services.gradle.org/distributions/gradle-7.3.1-bin.zip -P /tmp"
+  - sh: "sudo unzip -d /opt/gradle /tmp/gradle-*.zip"
+  - sh: "PATH=/opt/gradle/gradle-7.3.1/bin:$PATH"
+
+  # Install AWS CLI
+  - sh: "virtualenv aws_cli"
+  - sh: "./aws_cli/bin/python -m pip install awscli"
+  - sh: "PATH=$(echo $PWD'/aws_cli/bin'):$PATH"
+
+  - sh: "PATH=$PATH:$HOME/venv3.7/bin:$HOME/venv3.8/bin:$HOME/venv3.9/bin:$HOME/venv3.10/bin:$HOME/venv3.11/bin"
+
+  # Install pytest
+  - sh: "python3.9 -m venv $HOME/pytest"
+  - sh: "$HOME/pytest/bin/python3 -m pip install -r requirements/pre-dev.txt"
+  - sh: "$HOME/pytest/bin/python3 -m pip install -r requirements/dev.txt"
+  - sh: "$HOME/pytest/bin/python3 -m pip install -r requirements/base.txt"
+  - sh: "PATH=$HOME/pytest/bin:$PATH"
+  - sh: "pytest --version"
+
+  # update ca-certificates which causes failures with newest golang library
+  - sh: "sudo apt-get install --reinstall ca-certificates"
+
+  # get testing env vars
+  - sh: "sudo apt install -y jq"
+
+  # install Rust
+  - sh: "curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL https://sh.rustup.rs | sh -s -- --default-toolchain none -y > /dev/null 2>&1"
+  - sh: "source $HOME/.cargo/env"
+  - sh: "rustup toolchain install stable --profile minimal --no-self-update"
+  - sh: "rustup default stable"
+  - sh: "rustup target add x86_64-unknown-linux-gnu --toolchain stable"
+  - sh: "rustup target add aarch64-unknown-linux-gnu --toolchain stable"
+  - sh: "pip install cargo-lambda==$CARGO_LAMBDA_VERSION"
+  - sh: "rustc -V"
+  - sh: "cargo -V"
+  - sh: "cargo lambda -V"
+
+  - sh: "python3.9 -m venv .venv_env_vars"
+  - sh: ".venv_env_vars/bin/pip install boto3"
+  - sh: "test_env_var=$(.venv_env_vars/bin/python tests/get_testing_resources.py)"
+  - sh: '
+    if [ $? -ne 0 ]; then
+      echo "get_testing_resources failed. Failed to acquire credentials or test resources.";
+      false;
+    fi
+  '
+
+  - sh: 'export CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID'
+  - sh: 'export CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY'
+  - sh: 'export CI_ACCESS_ROLE_AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN'
+
+  - sh: 'export AWS_ACCESS_KEY_ID=$(echo "$test_env_var" | jq -j ".accessKeyID")'
+  - sh: 'export AWS_SECRET_ACCESS_KEY=$(echo "$test_env_var" | jq -j ".secretAccessKey")'
+  - sh: 'export AWS_SESSION_TOKEN=$(echo "$test_env_var" | jq -j ".sessionToken")'
+  - sh: 'export TASK_TOKEN=$(echo "$test_env_var" | jq -j ".taskToken")'
+  - sh: 'export AWS_S3_TESTING=$(echo "$test_env_var" | jq -j ".TestBucketName")'
+  - sh: 'export AWS_ECR_TESTING=$(echo "$test_env_var" | jq -j ".TestECRURI")'
+  - sh: 'export AWS_KMS_KEY=$(echo "$test_env_var" | jq -j ".TestKMSKeyArn")'
+  - sh: 'export AWS_SIGNING_PROFILE_NAME=$(echo "$test_env_var" | jq -j ".TestSigningProfileName")'
+  - sh: 'export AWS_SIGNING_PROFILE_VERSION_ARN=$(echo "$test_env_var" | jq -j ".TestSigningProfileARN")'
+
+  # required for RIE with arm64 in linux
+  - sh: "
+    if [[ -n $BY_CANARY ]] && [[ -n $DOCKER_USER ]] && [[ -n $DOCKER_PASS ]];
+      then echo Logging in Docker Hub; echo $DOCKER_PASS | docker login --username $DOCKER_USER --password-stdin registry-1.docker.io;
+    fi"
+  - sh: "
+    if [[ -n $BY_CANARY ]] && [[ -n $DOCKER_USER ]] && [[ -n $DOCKER_PASS ]];
+      then echo Logging in Docker Hub; echo $DOCKER_PASS | docker login --username $DOCKER_USER --password-stdin;
+    fi"
+  - sh: "docker run --rm --privileged multiarch/qemu-user-static --reset -p yes"
+
+
+  # Runs only in Linux, logging Public ECR when running canary and cred is available
+  - sh: "
+    if [[ -n $BY_CANARY ]];
+      then echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
+    fi"
+
+
+build_script:
+  - curl -L https://github.com/aws/aws-sam-cli/releases/download/sam-cli-nightly/aws-sam-cli-linux-x86_64.zip -o aws-sam-cli-linux-x86_64.zip
+  - unzip aws-sam-cli-linux-x86_64.zip -d sam-installation
+  - sudo ./sam-installation/install
+  # rename `sam-nightly` binary to `sam`
+  - sudo mv /usr/local/bin/sam-nightly /usr/local/bin/sam
+  - sam --version
+
+# Final clean up no matter success or failure
+on_finish:
+  # Upload test reports as artifacts
+  - sh: find "$APPVEYOR_BUILD_FOLDER" -type f -name 'TEST_REPORT-*.json' -print0 | xargs -0 -I '{}' appveyor PushArtifact '{}'
+  - sh: >
+      AWS_ACCESS_KEY_ID=$TEST_REPORT_S3_BUCKET_ACCESS_KEY_ID
+      AWS_SECRET_ACCESS_KEY=$TEST_REPORT_S3_BUCKET_SECRET_ACCESS_KEY
+      AWS_SESSION_TOKEN=$TEST_REPORT_S3_BUCKET_SESSION_TOKEN
+      aws s3 cp "$APPVEYOR_BUILD_FOLDER" "s3://$TEST_REPORT_S3_BUCKET_NAME/appveyor/$APPVEYOR_PROJECT_SLUG/$APPVEYOR_BUILD_ID/$APPVEYOR_JOB_ID/" --recursive --exclude "*" --include "TEST_REPORT-*.json" --region us-west-2
+
+  # notify task success
+  - sh: 'export AWS_ACCESS_KEY_ID=$CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID'
+  - sh: 'export AWS_SECRET_ACCESS_KEY=$CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY'
+  - sh: 'export AWS_SESSION_TOKEN=$CI_ACCESS_ROLE_AWS_SESSION_TOKEN'
+
+  - sh: 'aws stepfunctions send-task-success --task-token "$TASK_TOKEN" --task-output "{}" --region us-west-2'
+
+for:
+  # Integ testing build
+  -
+    matrix:
+      only:
+        - configuration: BuildIntegTesting
+
+    test_script:
+      - sh: "pytest -vv tests/integration/buildcmd --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+
+      # Set JAVA_HOME to java11
+      - sh: "JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64"
+      - sh: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java11_in_process --json-report --json-report-file=TEST_REPORT-integration-buildcmd-java11.json"
+
+  # Local ZIP  Terraform Build integ testing
+  -
+    matrix:
+      only:
+        - configuration: LocalZipTerraformBuildIntegTesting
+
+    test_script:
+      # install Terraform
+      - sh: "sudo apt update --allow-releaseinfo-change"
+      - sh: "TER_VER=`curl -s https://api.github.com/repos/hashicorp/terraform/releases/latest | grep tag_name | cut -d: -f2 | tr -d \\\"\\,\\v | awk '{$1=$1};1'`"
+      - sh: "wget https://releases.hashicorp.com/terraform/${TER_VER}/terraform_${TER_VER}_linux_amd64.zip -P /tmp"
+      - sh: "sudo unzip -d /opt/terraform /tmp/terraform_${TER_VER}_linux_amd64.zip"
+      - sh: "sudo mv /opt/terraform/terraform /usr/local/bin/"
+      - sh: "terraform -version"
+
+      - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend_0 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+
+  # Local ZIP  Terraform Build In Container  integ testing
+  -
+    matrix:
+      only:
+        - configuration: LocalZipTerraformBuildInContainerIntegTesting
+
+    test_script:
+      # install Terraform
+      - sh: "sudo apt update --allow-releaseinfo-change"
+      - sh: "TER_VER=`curl -s https://api.github.com/repos/hashicorp/terraform/releases/latest | grep tag_name | cut -d: -f2 | tr -d \\\"\\,\\v | awk '{$1=$1};1'`"
+      - sh: "wget https://releases.hashicorp.com/terraform/${TER_VER}/terraform_${TER_VER}_linux_amd64.zip -P /tmp"
+      - sh: "sudo unzip -d /opt/terraform /tmp/terraform_${TER_VER}_linux_amd64.zip"
+      - sh: "sudo mv /opt/terraform/terraform /usr/local/bin/"
+      - sh: "terraform -version"
+
+      - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend_1 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+
+  # S3 ZIP  Terraform Build integ testing
+  -
+    matrix:
+      only:
+        - configuration: S3ZipTerraformBuildIntegTesting
+
+    test_script:
+      # install Terraform
+      - sh: "sudo apt update --allow-releaseinfo-change"
+      - sh: "TER_VER=`curl -s https://api.github.com/repos/hashicorp/terraform/releases/latest | grep tag_name | cut -d: -f2 | tr -d \\\"\\,\\v | awk '{$1=$1};1'`"
+      - sh: "wget https://releases.hashicorp.com/terraform/${TER_VER}/terraform_${TER_VER}_linux_amd64.zip -P /tmp"
+      - sh: "sudo unzip -d /opt/terraform /tmp/terraform_${TER_VER}_linux_amd64.zip"
+      - sh: "sudo mv /opt/terraform/terraform /usr/local/bin/"
+      - sh: "terraform -version"
+
+      - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend_0 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+
+  # S3 ZIP  Terraform Build In Container integ testing
+  -
+    matrix:
+      only:
+        - configuration: S3ZipTerraformBuildInContainerIntegTesting
+
+    test_script:
+      # install Terraform
+      - sh: "sudo apt update --allow-releaseinfo-change"
+      - sh: "TER_VER=`curl -s https://api.github.com/repos/hashicorp/terraform/releases/latest | grep tag_name | cut -d: -f2 | tr -d \\\"\\,\\v | awk '{$1=$1};1'`"
+      - sh: "wget https://releases.hashicorp.com/terraform/${TER_VER}/terraform_${TER_VER}_linux_amd64.zip -P /tmp"
+      - sh: "sudo unzip -d /opt/terraform /tmp/terraform_${TER_VER}_linux_amd64.zip"
+      - sh: "sudo mv /opt/terraform/terraform /usr/local/bin/"
+      - sh: "terraform -version"
+
+      - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend_1 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+
+  # Other Terraform Build In Container integ testing
+  -
+    matrix:
+      only:
+        - configuration: OtherTerraformBuildIntegTesting
+
+    test_script:
+      # install Terraform
+      - sh: "sudo apt update --allow-releaseinfo-change"
+      - sh: "TER_VER=`curl -s https://api.github.com/repos/hashicorp/terraform/releases/latest | grep tag_name | cut -d: -f2 | tr -d \\\"\\,\\v | awk '{$1=$1};1'`"
+      - sh: "wget https://releases.hashicorp.com/terraform/${TER_VER}/terraform_${TER_VER}_linux_amd64.zip -P /tmp"
+      - sh: "sudo unzip -d /opt/terraform /tmp/terraform_${TER_VER}_linux_amd64.zip"
+      - sh: "sudo mv /opt/terraform/terraform /usr/local/bin/"
+      - sh: "terraform -version"
+
+      - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+
+  # Integ testing deploy
+  -
+    matrix:
+      only:
+        - configuration: DeployIntegTesting
+
+    test_script:
+      - sh: "pytest -vv tests/integration/deploy -n 4 --reruns 4 --dist=loadgroup --json-report --json-report-file=TEST_REPORT-integration-deploy.json"
+
+  # Integ testing package
+  -
+    matrix:
+      only:
+        - configuration: PackageIntegTesting
+
+    test_script:
+      - sh: "pytest -vv tests/integration/package -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-package.json"
+
+  # Integ testing delete
+  -
+    matrix:
+      only:
+        - configuration: DeleteIntegTesting
+
+    test_script:
+      - sh: "pytest -vv tests/integration/delete -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-delete.json"
+
+  # Integ testing sync
+  -
+    matrix:
+      only:
+        - configuration: SyncIntegTesting
+
+    test_script:
+      - sh: "pytest -vv tests/integration/sync -n 3 --reruns 3 --dist loadscope --json-report --json-report-file=TEST_REPORT-integration-sync.json"
+
+  # Integ testing local
+  -
+    matrix:
+      only:
+        - configuration: LocalIntegTesting
+
+    test_script:
+      # install Terraform
+      - sh: "sudo apt update --allow-releaseinfo-change"
+      - sh: "TER_VER=`curl -s https://api.github.com/repos/hashicorp/terraform/releases/latest | grep tag_name | cut -d: -f2 | tr -d \\\"\\,\\v | awk '{$1=$1};1'`"
+      - sh: "wget https://releases.hashicorp.com/terraform/${TER_VER}/terraform_${TER_VER}_linux_amd64.zip -P /tmp"
+      - sh: "sudo unzip -d /opt/terraform /tmp/terraform_${TER_VER}_linux_amd64.zip"
+      - sh: "sudo mv /opt/terraform/terraform /usr/local/bin/"
+      - sh: "terraform -version"
+
+      - sh: "pytest -vv tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-local.json"
+
+  # End-to-end testing
+  -
+    matrix:
+      only:
+        - configuration: EndToEndTesting
+
+    test_script:
+      - sh: "pytest -vv -n 4 --reruns 5 --dist loadscope tests/end_to_end --json-report --json-report-file=TEST_REPORT-end-to-end.json"
+
+  # Other testing
+  -
+    matrix:
+      only:
+        - configuration: OtherTesting
+
+    test_script:
+      - sh: "pytest -vv -n 4 --reruns 4 --dist loadgroup tests/integration --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-others.json"
+      - sh: "pytest -vv tests/regression --json-report --json-report-file=TEST_REPORT-regression.json"

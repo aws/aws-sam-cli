@@ -35,6 +35,14 @@ Resources:
       CodeUri: .
       Timeout: 600
 
+  NoResponseServerlessFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.no_response
+      Runtime: python3.9
+      CodeUri: .
+      Timeout: 600
+
   HelloWorldLambdaFunction:
     Type: AWS::Lambda::Function
     Properties:

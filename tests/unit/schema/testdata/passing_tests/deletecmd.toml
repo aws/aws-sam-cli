@@ -1,0 +1,16 @@
+version = 0.1
+
+[default.delete.parameters]
+stack_name = "Stack name"
+no_prompts = false
+s3_bucket = "S3 Bucket"
+s3_prefix = "S3 Prefix"
+profile = "Profile"
+region = "Region"
+beta_features = false
+debug = false
+
+[other.delete.parameters]
+no_prompts = true
+beta_features = true
+debug = true

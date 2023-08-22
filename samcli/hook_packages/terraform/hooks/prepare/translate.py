@@ -9,16 +9,17 @@ from typing import Any, Dict, Iterator, List, Tuple, Type, Union
 
 from samcli.hook_packages.terraform.hooks.prepare.constants import (
     CFN_CODE_PROPERTIES,
-    SAM_METADATA_RESOURCE_NAME_ATTRIBUTE,
-)
-from samcli.hook_packages.terraform.hooks.prepare.enrich import enrich_resources_and_generate_makefile
-from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     REMOTE_DUMMY_VALUE,
-    RESOURCE_TRANSLATOR_MAPPING,
+    SAM_METADATA_RESOURCE_NAME_ATTRIBUTE,
     TF_AWS_API_GATEWAY_INTEGRATION,
     TF_AWS_API_GATEWAY_INTEGRATION_RESPONSE,
     TF_AWS_API_GATEWAY_METHOD,
     TF_AWS_API_GATEWAY_REST_API,
+    TF_AWS_API_GATEWAY_V2_API,
+)
+from samcli.hook_packages.terraform.hooks.prepare.enrich import enrich_resources_and_generate_makefile
+from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
+    RESOURCE_TRANSLATOR_MAPPING,
     PropertyBuilderMapping,
 )
 from samcli.hook_packages.terraform.hooks.prepare.resource_linking import (
@@ -31,7 +32,10 @@ from samcli.hook_packages.terraform.hooks.prepare.resources.apigw import (
     add_integrations_to_methods,
 )
 from samcli.hook_packages.terraform.hooks.prepare.resources.internal import INTERNAL_PREFIX
-from samcli.hook_packages.terraform.hooks.prepare.resources.resource_links import RESOURCE_LINKS
+from samcli.hook_packages.terraform.hooks.prepare.resources.resource_links import (
+    MULTIPLE_DESTINATIONS_RESOURCE_LINKS,
+    RESOURCE_LINKS,
+)
 from samcli.hook_packages.terraform.hooks.prepare.resources.resource_properties import get_resource_property_mapping
 from samcli.hook_packages.terraform.hooks.prepare.types import (
     CodeResourceProperties,
@@ -65,6 +69,7 @@ LOG = logging.getLogger(__name__)
 
 TRANSLATION_VALIDATORS: Dict[str, Type[ResourceTranslationValidator]] = {
     TF_AWS_API_GATEWAY_REST_API: RESTAPITranslationValidator,
+    TF_AWS_API_GATEWAY_V2_API: RESTAPITranslationValidator,
 }
 
 
@@ -145,7 +150,9 @@ def _check_unresolvable_values(root_module: dict, root_tf_module: TFModule) -> N
                     return
 
 
-def translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_application_dir: str) -> dict:
+def translate_to_cfn(
+    tf_json: dict, output_directory_path: str, terraform_application_dir: str, project_root_dir: str
+) -> dict:
     """
     Translates the json output of a terraform show into CloudFormation
 
@@ -156,7 +163,9 @@ def translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_applic
     output_directory_path: str
         the string path to write the metadata file and makefile
     terraform_application_dir: str
-        the terraform project root directory
+        the terraform configuration root module directory.
+    project_root_dir: str
+        the project root directory where terraform configurations, src code, and other modules exist
 
     Returns
     -------
@@ -328,6 +337,7 @@ def translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_applic
             output_directory_path,
             terraform_application_dir,
             lambda_resources_to_code_map,
+            project_root_dir,
         )
     else:
         LOG.debug("There is no sam metadata resources, no enrichment or Makefile is required")
@@ -339,11 +349,25 @@ def translate_to_cfn(tf_json: dict, output_directory_path: str, terraform_applic
 
 
 def _handle_linking(resource_property_mapping: Dict[str, ResourceProperties]) -> None:
-    for links in RESOURCE_LINKS:
-        links.linking_func(
-            resource_property_mapping[links.source].terraform_config,
-            resource_property_mapping[links.source].cfn_resources,
-            resource_property_mapping[links.dest].terraform_resources,
+    for link in RESOURCE_LINKS:
+        link.linking_func(
+            resource_property_mapping[link.source].terraform_config,
+            resource_property_mapping[link.source].cfn_resources,
+            resource_property_mapping[link.dest].terraform_resources,
+        )
+
+    for multiple_destinations_link in MULTIPLE_DESTINATIONS_RESOURCE_LINKS:
+        destinations: Dict[str, Dict] = {}
+        for dest_resource_type in multiple_destinations_link.destinations:
+            destinations = {
+                **destinations,
+                **resource_property_mapping[dest_resource_type].terraform_resources,
+            }
+
+        multiple_destinations_link.linking_func(
+            resource_property_mapping[multiple_destinations_link.source].terraform_config,
+            resource_property_mapping[multiple_destinations_link.source].cfn_resources,
+            destinations,
         )
 
 

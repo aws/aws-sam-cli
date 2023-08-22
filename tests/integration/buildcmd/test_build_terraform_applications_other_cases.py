@@ -43,7 +43,7 @@ class TestBuildTerraformApplicationsWithInvalidOptions(BuildTerraformApplication
         self.assertNotEqual(return_code, 0)
 
     def test_exit_failed_use_container_no_build_image_hooks(self):
-        cmdlist = self.get_command_list(beta_features=True, hook_name="terraform", use_container=True)
+        cmdlist = self.get_command_list(hook_name="terraform", use_container=True)
         _, stderr, return_code = self.run_command(cmdlist)
         process_stderr = stderr.strip()
         self.assertRegex(
@@ -52,8 +52,29 @@ class TestBuildTerraformApplicationsWithInvalidOptions(BuildTerraformApplication
         )
         self.assertNotEqual(return_code, 0)
 
+    def test_exit_failed_project_root_dir_no_hooks(self):
+        cmdlist = self.get_command_list(project_root_dir="/path")
+        _, stderr, return_code = self.run_command(cmdlist)
+        process_stderr = stderr.strip()
+        self.assertRegex(
+            process_stderr.decode("utf-8"),
+            "Error: Missing option --hook-name",
+        )
+        self.assertNotEqual(return_code, 0)
+
+    def test_exit_failed_project_root_dir_not_parent_of_current_directory(self):
+        cmdlist = self.get_command_list(hook_name="terraform", project_root_dir="/path")
+        _, stderr, return_code = self.run_command(cmdlist)
+        process_stderr = stderr.strip()
+        self.assertRegex(
+            process_stderr.decode("utf-8"),
+            "Error: /path is not a valid value for Terraform Project Root Path. It should "
+            "be a parent of the current directory that contains the root module of the terraform project.",
+        )
+        self.assertNotEqual(return_code, 0)
+
     def test_exit_failed_use_container_short_format_no_build_image_hooks(self):
-        cmdlist = self.get_command_list(beta_features=True, hook_name="terraform")
+        cmdlist = self.get_command_list(hook_name="terraform")
         cmdlist += ["-u"]
         _, stderr, return_code = self.run_command(cmdlist)
         process_stderr = stderr.strip()
@@ -62,53 +83,6 @@ class TestBuildTerraformApplicationsWithInvalidOptions(BuildTerraformApplication
             "Error: Missing required parameter --build-image.",
         )
         self.assertNotEqual(return_code, 0)
-
-    def test_exit_success_no_beta_feature_flags_hooks(self):
-        cmdlist = self.get_command_list(beta_features=None, hook_name="terraform")
-        stdout, stderr, return_code = self.run_command(cmdlist, input=b"N\n\n")
-        terraform_beta_feature_prompted_text = (
-            f"Supporting Terraform applications is a beta feature.{os.linesep}"
-            f"Please confirm if you would like to proceed using AWS SAM CLI with terraform application.{os.linesep}"
-            "You can also enable this beta feature with 'sam build --beta-features'."
-        )
-        self.assertRegex(stdout.decode("utf-8"), terraform_beta_feature_prompted_text)
-        self.assertEqual(return_code, 0)
-        self.assertRegex(stderr.strip().decode("utf-8"), "Terraform Support beta feature is not enabled.")
-
-    def test_exit_success_no_beta_features_flags_supplied_hooks(self):
-        cmdlist = self.get_command_list(beta_features=False, hook_name="terraform")
-        _, stderr, return_code = self.run_command(cmdlist)
-        self.assertEqual(return_code, 0)
-        self.assertRegex(stderr.strip().decode("utf-8"), "Terraform Support beta feature is not enabled.")
-
-    def test_build_terraform_with_no_beta_feature_option_in_samconfig_toml(self):
-        samconfig_toml_path = Path(self.working_dir).joinpath("samconfig.toml")
-        samconfig_lines = [
-            bytes("version = 0.1" + os.linesep, "utf-8"),
-            bytes("[default.global.parameters]" + os.linesep, "utf-8"),
-            bytes("beta_features = false" + os.linesep, "utf-8"),
-        ]
-        with open(samconfig_toml_path, "wb") as file:
-            file.writelines(samconfig_lines)
-
-        cmdlist = self.get_command_list(hook_name="terraform")
-        _, stderr, return_code = self.run_command(cmdlist)
-        self.assertEqual(return_code, 0)
-        self.assertRegex(stderr.strip().decode("utf-8"), "Terraform Support beta feature is not enabled.")
-        # delete the samconfig file
-        try:
-            os.remove(samconfig_toml_path)
-        except FileNotFoundError:
-            pass
-
-    def test_build_terraform_with_no_beta_feature_option_as_environment_variable(self):
-        environment_variables = os.environ.copy()
-        environment_variables["SAM_CLI_BETA_TERRAFORM_SUPPORT"] = "False"
-
-        build_command_list = self.get_command_list(hook_name="terraform")
-        _, stderr, return_code = self.run_command(build_command_list, env=environment_variables)
-        self.assertEqual(return_code, 0)
-        self.assertRegex(stderr.strip().decode("utf-8"), "Terraform Support beta feature is not enabled.")
 
 
 @skipIf(
@@ -120,9 +94,7 @@ class TestInvalidTerraformApplicationThatReferToS3BucketNotCreatedYet(BuildTerra
 
     def test_invoke_function(self):
         function_identifier = "aws_lambda_function.function"
-        build_cmd_list = self.get_command_list(
-            beta_features=True, hook_name="terraform", function_identifier=function_identifier
-        )
+        build_cmd_list = self.get_command_list(hook_name="terraform", function_identifier=function_identifier)
 
         LOG.info("command list: %s", build_cmd_list)
         environment_variables = os.environ.copy()
@@ -153,7 +125,6 @@ class TestInvalidBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backen
 
     def test_build_no_s3_config(self):
         command_list_parameters = {
-            "beta_features": True,
             "hook_name": "terraform",
         }
         build_cmd_list = self.get_command_list(**command_list_parameters)
@@ -184,9 +155,7 @@ class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndLocalBackend(
 
     @parameterized.expand(functions)
     def test_build_and_invoke_lambda_functions(self, function_identifier):
-        build_cmd_list = self.get_command_list(
-            beta_features=True, hook_name="terraform", function_identifier=function_identifier
-        )
+        build_cmd_list = self.get_command_list(hook_name="terraform", function_identifier=function_identifier)
         LOG.info("command list: %s", build_cmd_list)
         _, stderr, return_code = self.run_command(build_cmd_list)
         LOG.info(stderr)
@@ -226,9 +195,7 @@ class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndS3Backend(
 
     @parameterized.expand(functions)
     def test_build_and_invoke_lambda_functions(self, function_identifier):
-        build_cmd_list = self.get_command_list(
-            beta_features=True, hook_name="terraform", function_identifier=function_identifier
-        )
+        build_cmd_list = self.get_command_list(hook_name="terraform", function_identifier=function_identifier)
         LOG.info("command list: %s", build_cmd_list)
         _, stderr, return_code = self.run_command(build_cmd_list)
         LOG.info(stderr)
@@ -290,7 +257,7 @@ class TestUnsupportedCases(BuildTerraformApplicationIntegBase):
 
         self.terraform_application_path = Path(self.terraform_application_path) / app
         shutil.copytree(Path(self.terraform_application_path), Path(self.working_dir))
-        build_cmd_list = self.get_command_list(beta_features=True, hook_name="terraform")
+        build_cmd_list = self.get_command_list(hook_name="terraform")
         LOG.info("command list: %s", build_cmd_list)
         _, stderr, return_code = self.run_command(build_cmd_list)
         LOG.info(stderr)
@@ -348,7 +315,7 @@ class TestUnsupportedCasesAfterApply(BuildTerraformApplicationIntegBase):
         self.assertEqual(return_code, 0)
 
     def test_unsupported_cases_runs_after_apply(self):
-        build_cmd_list = self.get_command_list(beta_features=True, hook_name="terraform")
+        build_cmd_list = self.get_command_list(hook_name="terraform")
         LOG.info("command list: %s", build_cmd_list)
         _, _, return_code = self.run_command(build_cmd_list)
         self.assertEqual(return_code, 0)
@@ -368,9 +335,7 @@ class TestBuildGoFunctionAndKeepPermissions(BuildTerraformApplicationIntegBase):
 
     def test_invoke_function(self):
         function_identifier = "hello-world-function"
-        build_cmd_list = self.get_command_list(
-            beta_features=True, hook_name="terraform", function_identifier=function_identifier
-        )
+        build_cmd_list = self.get_command_list(hook_name="terraform", function_identifier=function_identifier)
 
         LOG.info("command list: %s", build_cmd_list)
         environment_variables = os.environ.copy()
@@ -383,4 +348,121 @@ class TestBuildGoFunctionAndKeepPermissions(BuildTerraformApplicationIntegBase):
             function_logical_id=function_identifier,
             overrides=None,
             expected_result="{'message': 'Hello World'}",
+        )
+
+
+@skipIf(
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
+    "Skip Terraform test cases unless running in CI",
+)
+@parameterized_class(
+    ("build_in_container",),
+    [
+        (False,),
+        (True,),
+    ],
+)
+class TestBuildTerraformApplicationsSourceCodeAndModulesAreNotInRootModuleDirectory(BuildTerraformApplicationIntegBase):
+    terraform_application = (
+        Path("terraform/application_outside_root_directory")
+        if not IS_WINDOWS
+        else Path("terraform/application_outside_root_directory_windows")
+    )
+
+    functions = [
+        ("aws_lambda_function.function1", "hello world 1"),
+        ("module.function2.aws_lambda_function.this", "hello world 1"),
+    ]
+
+    @classmethod
+    def setUpClass(cls):
+        if IS_WINDOWS and cls.build_in_container:
+            # we use this TF project to test sam build in container on windows as we need to run a linux bash script for
+            # build, and also we need to remove the Serverless TF functions from this project.
+            # that is why we need to use a new project and not one of the existing linux or windows projects
+            cls.terraform_application = "terraform/application_outside_root_directory_windows_container"
+        if not IS_WINDOWS:
+            # The following functions are defined using serverless tf module, and since Serverless TF has some issue
+            # while executing `terraform plan` in windows, we removed these function from the TF projects we used in
+            # testing on Windows, and only test them on linux.
+            # check the Serverless TF issue https://github.com/terraform-aws-modules/terraform-aws-lambda/issues/142
+            cls.functions += [
+                ("module.function7.aws_lambda_function.this[0]", "hello world 1"),
+            ]
+        super().setUpClass()
+
+    def setUp(self):
+        super().setUp()
+        self.project_dir = self.working_dir
+        self.working_dir = f"{self.working_dir}/root_module"
+
+    def tearDown(self):
+        if self.project_dir:
+            self.working_dir = self.project_dir
+        super().tearDown()
+
+    @parameterized.expand(functions)
+    def test_build_and_invoke_lambda_functions(self, function_identifier, expected_output):
+        command_list_parameters = {
+            "hook_name": "terraform",
+            "function_identifier": function_identifier,
+            "project_root_dir": "./..",
+        }
+        if self.build_in_container:
+            command_list_parameters["use_container"] = True
+            command_list_parameters["build_image"] = self.docker_tag
+        build_cmd_list = self.get_command_list(**command_list_parameters)
+        LOG.info("command list: %s", build_cmd_list)
+        stdout, stderr, return_code = self.run_command(build_cmd_list)
+        LOG.info("sam build stdout: %s", stdout.decode("utf-8"))
+        LOG.info("sam build stderr: %s", stderr.decode("utf-8"))
+        self.assertEqual(return_code, 0)
+
+        self._verify_invoke_built_function(
+            function_logical_id=function_identifier,
+            overrides=None,
+            expected_result={"statusCode": 200, "body": expected_output},
+        )
+
+
+@skipIf(
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
+    "Skip Terraform test cases unless running in CI",
+)
+class TestBuildTerraformApplicationsSourceCodeAndModulesAreNotInRootModuleDirectoryGetParametersFromSamConfig(
+    BuildTerraformApplicationIntegBase
+):
+    terraform_application = Path("terraform/application_outside_root_directory")
+
+    functions = [
+        ("aws_lambda_function.function1", "hello world 1"),
+    ]
+
+    def setUp(self):
+        super().setUp()
+        self.project_dir = self.working_dir
+        self.working_dir = f"{self.working_dir}/root_module"
+
+    def tearDown(self):
+        if self.project_dir:
+            self.working_dir = self.project_dir
+        super().tearDown()
+
+    @parameterized.expand(functions)
+    def test_build_and_invoke_lambda_functions(self, function_identifier, expected_output):
+        command_list_parameters = {
+            "config_file": "input_samconfig.yaml",
+            "function_identifier": function_identifier,
+        }
+        build_cmd_list = self.get_command_list(**command_list_parameters)
+        LOG.info("command list: %s", build_cmd_list)
+        stdout, stderr, return_code = self.run_command(build_cmd_list)
+        LOG.info("sam build stdout: %s", stdout.decode("utf-8"))
+        LOG.info("sam build stderr: %s", stderr.decode("utf-8"))
+        self.assertEqual(return_code, 0)
+
+        self._verify_invoke_built_function(
+            function_logical_id=function_identifier,
+            overrides=None,
+            expected_result={"statusCode": 200, "body": expected_output},
         )

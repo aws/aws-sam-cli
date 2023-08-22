@@ -1,0 +1,26 @@
+# version = 0.1
+
+[default]
+[default.global]
+[default.global.parameters]
+stack_name = "sam-app"
+
+[default.build.parameters]
+cached = true
+parallel = true
+
+[default.deploy.parameters]
+capabilities = "CAPABILITY_IAM"
+confirm_changeset = true
+resolve_s3 = true
+
+[default.sync.parameters]
+watch = true
+
+[default.local_start_api.parameters]
+warm_containers = "EAGER"
+
+[prod]
+[prod.sync]
+[prod.sync.parameters]
+watch = false

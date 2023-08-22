@@ -1,8 +1,6 @@
 """
 Tests container manager
 """
-
-import io
 import importlib
 from unittest import TestCase
 from unittest.mock import Mock, patch, MagicMock, ANY, call
@@ -218,17 +216,29 @@ class TestContainerManager_pull_image(TestCase):
         self.manager = ContainerManager(docker_client=self.mock_docker_client)
 
     def test_must_pull_and_print_progress_dots(self):
-        stream = io.StringIO()
+        stream = Mock()
         pull_result = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]
         self.mock_docker_client.api.pull.return_value = pull_result
-        expected_stream_output = "\nFetching {}:latest Docker container image...{}\n".format(
-            self.image_name, "." * len(pull_result)  # Progress bar will print one dot per response from pull API
-        )
+        expected_stream_calls = [
+            call(f"\nFetching {self.image_name}:latest Docker container image..."),
+            call("."),
+            call("."),
+            call("."),
+            call("."),
+            call("."),
+            call("."),
+            call("."),
+            call("."),
+            call("."),
+            call("."),
+            call("\n"),
+        ]
 
         self.manager.pull_image(self.image_name, stream=stream)
 
         self.mock_docker_client.api.pull.assert_called_with(self.image_name, stream=True, decode=True, tag="latest")
-        self.assertEqual(stream.getvalue(), expected_stream_output)
+
+        stream.write_str.assert_has_calls(expected_stream_calls)
 
     def test_must_raise_if_image_not_found(self):
         msg = "some error"

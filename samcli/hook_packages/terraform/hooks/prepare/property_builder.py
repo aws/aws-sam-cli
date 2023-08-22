@@ -6,6 +6,23 @@ from json import loads
 from json.decoder import JSONDecodeError
 from typing import Any, Dict, Optional
 
+from samcli.hook_packages.terraform.hooks.prepare.constants import (
+    REMOTE_DUMMY_VALUE,
+    TF_AWS_API_GATEWAY_AUTHORIZER,
+    TF_AWS_API_GATEWAY_INTEGRATION,
+    TF_AWS_API_GATEWAY_INTEGRATION_RESPONSE,
+    TF_AWS_API_GATEWAY_METHOD,
+    TF_AWS_API_GATEWAY_RESOURCE,
+    TF_AWS_API_GATEWAY_REST_API,
+    TF_AWS_API_GATEWAY_STAGE,
+    TF_AWS_API_GATEWAY_V2_API,
+    TF_AWS_API_GATEWAY_V2_AUTHORIZER,
+    TF_AWS_API_GATEWAY_V2_INTEGRATION,
+    TF_AWS_API_GATEWAY_V2_ROUTE,
+    TF_AWS_API_GATEWAY_V2_STAGE,
+    TF_AWS_LAMBDA_FUNCTION,
+    TF_AWS_LAMBDA_LAYER_VERSION,
+)
 from samcli.hook_packages.terraform.hooks.prepare.resource_linking import _resolve_resource_attribute
 from samcli.hook_packages.terraform.hooks.prepare.resources.internal import (
     INTERNAL_API_GATEWAY_INTEGRATION,
@@ -25,6 +42,7 @@ from samcli.lib.utils.resources import AWS_APIGATEWAY_RESOURCE as CFN_AWS_APIGAT
 from samcli.lib.utils.resources import AWS_APIGATEWAY_RESTAPI as CFN_AWS_APIGATEWAY_RESTAPI
 from samcli.lib.utils.resources import AWS_APIGATEWAY_STAGE as CFN_AWS_APIGATEWAY_STAGE
 from samcli.lib.utils.resources import AWS_APIGATEWAY_V2_API as CFN_AWS_APIGATEWAY_V2_API
+from samcli.lib.utils.resources import AWS_APIGATEWAY_V2_AUTHORIZER as CFN_AWS_APIGATEWAY_V2_AUTHORIZER
 from samcli.lib.utils.resources import AWS_APIGATEWAY_V2_INTEGRATION as CFN_AWS_APIGATEWAY_V2_INTEGRATION
 from samcli.lib.utils.resources import AWS_APIGATEWAY_V2_ROUTE as CFN_AWS_APIGATEWAY_V2_ROUTE
 from samcli.lib.utils.resources import AWS_APIGATEWAY_V2_STAGE as CFN_AWS_APIGATEWAY_V2_STAGE
@@ -32,23 +50,6 @@ from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUN
 from samcli.lib.utils.resources import AWS_LAMBDA_LAYERVERSION as CFN_AWS_LAMBDA_LAYER_VERSION
 
 LOG = logging.getLogger(__name__)
-
-REMOTE_DUMMY_VALUE = "<<REMOTE DUMMY VALUE - RAISE ERROR IF IT IS STILL THERE>>"
-TF_AWS_LAMBDA_FUNCTION = "aws_lambda_function"
-TF_AWS_LAMBDA_LAYER_VERSION = "aws_lambda_layer_version"
-
-TF_AWS_API_GATEWAY_RESOURCE = "aws_api_gateway_resource"
-TF_AWS_API_GATEWAY_REST_API = "aws_api_gateway_rest_api"
-TF_AWS_API_GATEWAY_STAGE = "aws_api_gateway_stage"
-TF_AWS_API_GATEWAY_METHOD = "aws_api_gateway_method"
-TF_AWS_API_GATEWAY_INTEGRATION = "aws_api_gateway_integration"
-TF_AWS_API_GATEWAY_AUTHORIZER = "aws_api_gateway_authorizer"
-TF_AWS_API_GATEWAY_INTEGRATION_RESPONSE = "aws_api_gateway_method_response"
-
-TF_AWS_API_GATEWAY_V2_API = "aws_apigatewayv2_api"
-TF_AWS_API_GATEWAY_V2_ROUTE = "aws_apigatewayv2_route"
-TF_AWS_API_GATEWAY_V2_STAGE = "aws_apigatewayv2_stage"
-TF_AWS_API_GATEWAY_V2_INTEGRATION = "aws_apigatewayv2_integration"
 
 
 def _build_code_property(tf_properties: dict, resource: TFResource) -> Any:
@@ -384,7 +385,7 @@ AWS_API_GATEWAY_INTEGRATION_RESPONSE_PROPERTY_BUILDER_MAPPING: PropertyBuilderMa
 
 AWS_API_GATEWAY_V2_API_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
     "Name": _get_property_extractor("name"),
-    "Body": _get_property_extractor("body"),
+    "Body": _get_json_body,
     "Target": _get_property_extractor("target"),
     "ProtocolType": _get_property_extractor("protocol_type"),
     "RouteKey": _get_property_extractor("route_key"),
@@ -410,6 +411,16 @@ AWS_API_GATEWAY_V2_INTEGRATION_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping 
     "IntegrationMethod": _get_property_extractor("integration_method"),
     "IntegrationUri": _get_property_extractor("integration_uri"),
     "PayloadFormatVersion": _get_property_extractor("payload_format_version"),
+}
+
+AWS_API_GATEWAY_V2_AUTHORIZER_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
+    "ApiId": _get_property_extractor("api_id"),
+    "AuthorizerType": _get_property_extractor("authorizer_type"),
+    "AuthorizerUri": _get_property_extractor("authorizer_uri"),
+    "Name": _get_property_extractor("name"),
+    "AuthorizerPayloadFormatVersion": _get_property_extractor("authorizer_payload_format_version"),
+    "IdentitySource": _get_property_extractor("identity_sources"),
+    "EnableSimpleResponses": _get_property_extractor("enable_simple_responses"),
 }
 
 RESOURCE_TRANSLATOR_MAPPING: Dict[str, ResourceTranslator] = {
@@ -449,5 +460,8 @@ RESOURCE_TRANSLATOR_MAPPING: Dict[str, ResourceTranslator] = {
     ),
     TF_AWS_API_GATEWAY_V2_INTEGRATION: ResourceTranslator(
         CFN_AWS_APIGATEWAY_V2_INTEGRATION, AWS_API_GATEWAY_V2_INTEGRATION_PROPERTY_BUILDER_MAPPING
+    ),
+    TF_AWS_API_GATEWAY_V2_AUTHORIZER: ResourceTranslator(
+        CFN_AWS_APIGATEWAY_V2_AUTHORIZER, AWS_API_GATEWAY_V2_AUTHORIZER_PROPERTY_BUILDER_MAPPING
     ),
 }

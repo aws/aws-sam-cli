@@ -4,7 +4,7 @@ import base64
 import json
 import logging
 from datetime import datetime
-from io import BytesIO
+from io import StringIO
 from time import time
 from typing import Any, Dict, List, Optional
 
@@ -605,7 +605,7 @@ class LocalApigwService(BaseLocalService):
         str
             A string containing the output from the Lambda function
         """
-        with BytesIO() as stdout:
+        with StringIO() as stdout:
             event_str = json.dumps(event, sort_keys=True)
             stdout_writer = StreamWriter(stdout, auto_flush=True)
 
@@ -639,7 +639,10 @@ class LocalApigwService(BaseLocalService):
         """
 
         route: Route = self._get_current_route(request)
-        cors_headers = Cors.cors_to_headers(self.api.cors)
+
+        request_origin = request.headers.get("Origin")
+        cors_headers = Cors.cors_to_headers(self.api.cors, request_origin)
+
         lambda_authorizer = route.authorizer_object
 
         # payloadFormatVersion can only support 2 values: "1.0" and "2.0"
@@ -736,6 +739,9 @@ class LocalApigwService(BaseLocalService):
         except LambdaResponseParseException as ex:
             LOG.error("Invalid lambda response received: %s", ex)
             return ServiceErrorResponses.lambda_failure_response()
+
+        # Add CORS headers to the response
+        headers.update(cors_headers)
 
         return self.service_response(body, headers, status_code)
 

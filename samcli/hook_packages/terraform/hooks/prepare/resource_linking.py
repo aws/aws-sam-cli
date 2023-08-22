@@ -7,6 +7,7 @@ import re
 from dataclasses import dataclass
 from typing import Callable, Dict, List, Optional, Type, Union
 
+from samcli.hook_packages.terraform.hooks.prepare.constants import TF_AWS_API_GATEWAY_REST_API
 from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     FunctionLayerLocalVariablesLinkingLimitationException,
     GatewayAuthorizerToLambdaFunctionLocalVariablesLinkingLimitationException,
@@ -16,10 +17,14 @@ from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     GatewayResourceToApiGatewayIntegrationResponseLocalVariablesLinkingLimitationException,
     GatewayResourceToApiGatewayMethodLocalVariablesLinkingLimitationException,
     GatewayResourceToGatewayRestApiLocalVariablesLinkingLimitationException,
+    GatewayResourceToParentResourceLocalVariablesLinkingLimitationException,
     GatewayV2ApiToLambdaFunctionLocalVariablesLinkingLimitationException,
+    GatewayV2AuthorizerToGatewayV2ApiLocalVariablesLinkingLimitationException,
+    GatewayV2AuthorizerToLambdaFunctionLocalVariablesLinkingLimitationException,
     GatewayV2IntegrationToGatewayV2ApiLocalVariablesLinkingLimitationException,
     GatewayV2IntegrationToLambdaFunctionLocalVariablesLinkingLimitationException,
     GatewayV2RouteToGatewayV2ApiLocalVariablesLinkingLimitationException,
+    GatewayV2RouteToGatewayV2AuthorizerLocalVariablesLinkingLimitationException,
     GatewayV2RouteToGatewayV2IntegrationLocalVariablesLinkingLimitationException,
     GatewayV2StageToGatewayV2ApiLocalVariablesLinkingLimitationException,
     InvalidResourceLinkingException,
@@ -31,11 +36,15 @@ from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     OneGatewayResourceToApiGatewayIntegrationLinkingLimitationException,
     OneGatewayResourceToApiGatewayIntegrationResponseLinkingLimitationException,
     OneGatewayResourceToApiGatewayMethodLinkingLimitationException,
+    OneGatewayResourceToParentResourceLinkingLimitationException,
     OneGatewayResourceToRestApiLinkingLimitationException,
     OneGatewayV2ApiToLambdaFunctionLinkingLimitationException,
+    OneGatewayV2AuthorizerToGatewayV2ApiLinkingLimitationException,
+    OneGatewayV2AuthorizerToLambdaFunctionLinkingLimitationException,
     OneGatewayV2IntegrationToGatewayV2ApiLinkingLimitationException,
     OneGatewayV2IntegrationToLambdaFunctionLinkingLimitationException,
     OneGatewayV2RouteToGatewayV2ApiLinkingLimitationException,
+    OneGatewayV2RouteToGatewayV2AuthorizerLinkingLimitationException,
     OneGatewayV2RouteToGatewayV2IntegrationLinkingLimitationException,
     OneGatewayV2StageToGatewayV2ApiLinkingLimitationException,
     OneLambdaFunctionResourceToApiGatewayIntegrationLinkingLimitationException,
@@ -49,6 +58,7 @@ from samcli.hook_packages.terraform.hooks.prepare.exceptions import (
     RestApiToApiGatewayIntegrationResponseLocalVariablesLinkingLimitationException,
     RestApiToApiGatewayMethodLocalVariablesLinkingLimitationException,
     RestApiToApiGatewayStageLocalVariablesLinkingLimitationException,
+    UnexpectedDestinationResource,
 )
 from samcli.hook_packages.terraform.hooks.prepare.resources.apigw import INVOKE_ARN_FORMAT
 from samcli.hook_packages.terraform.hooks.prepare.types import (
@@ -67,8 +77,9 @@ LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX = "aws_lambda_layer_version."
 API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX = "aws_api_gateway_rest_api."
 API_GATEWAY_RESOURCE_RESOURCE_ADDRESS_PREFIX = "aws_api_gateway_resource."
 API_GATEWAY_AUTHORIZER_RESOURCE_ADDRESS_PREFIX = "aws_api_gateway_authorizer."
-API_GATEWAY_V2_INTEGRATION_RESOURCE_ADDRESS_PREFIX = "aws_apigatewayv2_integration"
-API_GATEWAY_V2_API_RESOURCE_ADDRESS_PREFIX = "aws_apigatewayv2_api"
+API_GATEWAY_V2_INTEGRATION_RESOURCE_ADDRESS_PREFIX = "aws_apigatewayv2_integration."
+API_GATEWAY_V2_API_RESOURCE_ADDRESS_PREFIX = "aws_apigatewayv2_api."
+API_GATEWAY_V2_AUTHORIZER_RESOURCE_ADDRESS_PREFIX = "aws_apigatewayv2_authorizer."
 TERRAFORM_LOCAL_VARIABLES_ADDRESS_PREFIX = "local."
 DATA_RESOURCE_ADDRESS_PREFIX = "data."
 
@@ -119,6 +130,7 @@ class LogicalIdReference(ReferenceType):
     for the destination resources defined in the customer TF project.
     """
 
+    resource_type: str
     value: str
 
 
@@ -129,14 +141,19 @@ class ResourcePairExceptions:
 
 
 @dataclass
+class ResourcePairExceptedDestination:
+    terraform_resource_type_prefix: str
+    terraform_attribute_name: str
+
+
+@dataclass
 class ResourceLinkingPair:
     source_resource_cfn_resource: Dict[str, List]
     source_resource_tf_config: Dict[str, TFResource]
     destination_resource_tf: Dict[str, Dict]
-    tf_destination_attribute_name: str  # arn or id
+    expected_destinations: List[ResourcePairExceptedDestination]
     terraform_link_field_name: str
     cfn_link_field_name: str
-    terraform_resource_type_prefix: str
     cfn_resource_update_call_back_function: Callable[[Dict, List[ReferenceType]], None]
     linking_exceptions: ResourcePairExceptions
     # function to extract the terraform destination value from the linking field value
@@ -314,22 +331,36 @@ class ResourceLinker:
         ]
 
         # build map between the destination linking field property values, and resources' logical ids
+        expected_destinations_map = {
+            expected_destination.terraform_resource_type_prefix: expected_destination.terraform_attribute_name
+            for expected_destination in self._resource_pair.expected_destinations
+        }
         child_resources_linking_attributes_logical_id_mapping = {}
         for logical_id, destination_resource in self._resource_pair.destination_resource_tf.items():
-            linking_attribute_value = destination_resource.get("values", {}).get(
-                self._resource_pair.tf_destination_attribute_name
-            )
+            destination_attribute = expected_destinations_map.get(f"{destination_resource.get('type', '')}.", "")
+            linking_attribute_value = destination_resource.get("values", {}).get(destination_attribute)
             if linking_attribute_value:
-                child_resources_linking_attributes_logical_id_mapping[linking_attribute_value] = logical_id
+                child_resources_linking_attributes_logical_id_mapping[linking_attribute_value] = (
+                    logical_id,
+                    destination_resource.get("type", {}),
+                )
 
         LOG.debug(
-            "The map between destination resources linking field %s, and resources logical ids is %s",
-            self._resource_pair.tf_destination_attribute_name,
+            "The map between destination resources linking fields %s, and resources logical ids is %s",
+            ", ".join(
+                [
+                    expected_destination.terraform_attribute_name
+                    for expected_destination in self._resource_pair.expected_destinations
+                ]
+            ),
             child_resources_linking_attributes_logical_id_mapping,
         )
 
         dest_resources = [
-            LogicalIdReference(child_resources_linking_attributes_logical_id_mapping[value])
+            LogicalIdReference(
+                value=child_resources_linking_attributes_logical_id_mapping[value][0],
+                resource_type=child_resources_linking_attributes_logical_id_mapping[value][1],
+            )
             if value in child_resources_linking_attributes_logical_id_mapping
             else ExistingResourceReference(value)
             for value in values
@@ -431,64 +462,74 @@ class ResourceLinker:
             )
 
         # Valid destination resource
-        if resolved_destination_resource.value.startswith(self._resource_pair.terraform_resource_type_prefix):
-            LOG.debug("Process the destination resource %s", resolved_destination_resource.value)
-            if not resolved_destination_resource.value.endswith(self._resource_pair.tf_destination_attribute_name):
-                LOG.debug(
-                    "The used property in reference %s is not an ARN property", resolved_destination_resource.value
-                )
-                raise InvalidResourceLinkingException(
-                    f"Could not use the value {resolved_destination_resource.value} as a "
-                    f"destination resource for the source resource "
-                    f"{source_tf_resource.full_address}. The source resource "
-                    f"value should refer to valid destination resource ARN property."
-                )
+        for expected_destination in self._resource_pair.expected_destinations:
+            if resolved_destination_resource.value.startswith(expected_destination.terraform_resource_type_prefix):
+                LOG.debug("Process the destination resource %s", resolved_destination_resource.value)
+                if not resolved_destination_resource.value.endswith(expected_destination.terraform_attribute_name):
+                    LOG.debug(
+                        "The used property in reference %s is not an %s property",
+                        resolved_destination_resource.value,
+                        expected_destination.terraform_attribute_name,
+                    )
+                    continue
 
-            # we need to the resource name by removing the attribute part from the reference value
-            # as an example the reference will be look like aws_layer_version.layer1.arn
-            # and the attribute name is `arn`, we need to remove the last 4 characters `.arn`
-            # which is the length of the linking attribute `arn` in our example adding one for the `.` character
-            tf_dest_res_name = resolved_destination_resource.value[
-                len(self._resource_pair.terraform_resource_type_prefix) : -len(
-                    self._resource_pair.tf_destination_attribute_name
-                )
-                - 1
-            ]
-            if resolved_destination_resource.module_address:
-                tf_dest_resource_full_address = (
-                    f"{resolved_destination_resource.module_address}."
-                    f"{self._resource_pair.terraform_resource_type_prefix}"
-                    f"{tf_dest_res_name}"
-                )
-            else:
-                tf_dest_resource_full_address = (
-                    f"{self._resource_pair.terraform_resource_type_prefix}{tf_dest_res_name}"
-                )
-            cfn_dest_resource_logical_id = build_cfn_logical_id(tf_dest_resource_full_address)
-            LOG.debug(
-                "The logical id of the resource referred by %s is %s",
-                resolved_destination_resource.value,
-                cfn_dest_resource_logical_id,
-            )
-
-            # validate that the found dest resource is in mapped dest resources, which means that it is created.
-            # The resource can be defined in the TF plan configuration, but will not be created.
-            dest_resources: List[ReferenceType] = []
-            if cfn_dest_resource_logical_id in self._resource_pair.destination_resource_tf:
+                # we need to the resource name by removing the attribute part from the reference value
+                # as an example the reference will be look like aws_layer_version.layer1.arn
+                # and the attribute name is `arn`, we need to remove the last 4 characters `.arn`
+                # which is the length of the linking attribute `arn` in our example adding one for the `.` character
+                tf_dest_res_name = resolved_destination_resource.value[
+                    len(expected_destination.terraform_resource_type_prefix) : -len(
+                        expected_destination.terraform_attribute_name
+                    )
+                    - 1
+                ]
+                if resolved_destination_resource.module_address:
+                    tf_dest_resource_full_address = (
+                        f"{resolved_destination_resource.module_address}."
+                        f"{expected_destination.terraform_resource_type_prefix}"
+                        f"{tf_dest_res_name}"
+                    )
+                else:
+                    tf_dest_resource_full_address = (
+                        f"{expected_destination.terraform_resource_type_prefix}{tf_dest_res_name}"
+                    )
+                cfn_dest_resource_logical_id = build_cfn_logical_id(tf_dest_resource_full_address)
                 LOG.debug(
-                    "The resource referred by %s can be found in the mapped destination resources",
+                    "The logical id of the resource referred by %s is %s",
                     resolved_destination_resource.value,
+                    cfn_dest_resource_logical_id,
                 )
-                dest_resources.append(LogicalIdReference(cfn_dest_resource_logical_id))
-            return dest_resources
+
+                # validate that the found dest resource is in mapped dest resources, which means that it is created.
+                # The resource can be defined in the TF plan configuration, but will not be created.
+                dest_resources: List[ReferenceType] = []
+                if cfn_dest_resource_logical_id in self._resource_pair.destination_resource_tf:
+                    LOG.debug(
+                        "The resource referred by %s can be found in the mapped destination resources",
+                        resolved_destination_resource.value,
+                    )
+                    dest_resources.append(
+                        LogicalIdReference(
+                            value=cfn_dest_resource_logical_id,
+                            resource_type=self._resource_pair.destination_resource_tf[cfn_dest_resource_logical_id].get(
+                                "type", ""
+                            ),
+                        )
+                    )
+                return dest_resources
         # it means the source resource is referring to a wrong destination resource type
         LOG.debug(
             "The used reference %s is not the correct destination resource type.", resolved_destination_resource.value
         )
-        raise InvalidResourceLinkingException(
+        expected_destinations_strings = [
+            f"destination resource type {expected_destination.terraform_resource_type_prefix} using "
+            f"{expected_destination.terraform_attribute_name} property"
+            for expected_destination in self._resource_pair.expected_destinations
+        ]
+        raise UnexpectedDestinationResource(
             f"Could not use the value {resolved_destination_resource.value} as a destination for the source resource "
-            f"{source_tf_resource.full_address}. The source resource value should refer to valid destination ARN "
-            f"property."
+            f"{source_tf_resource.full_address}. The expected destination resources should be of "
+            f"{', '.join(expected_destinations_strings)}."
         )
 
 
@@ -1053,38 +1094,70 @@ def _link_gateway_resources_to_gateway_rest_apis(
         Dictionary of all actual terraform Rest API resources (not configuration resources). The dictionary's key is the
         calculated logical id for each resource.
     """
-    resource_linking_pairs = [
-        ResourceLinkingPair(
-            source_resource_cfn_resource=gateway_resources_cfn_resources,
-            source_resource_tf_config=gateway_resources_tf_configs,
-            destination_resource_tf=rest_apis_terraform_resources,
-            tf_destination_attribute_name="id",
-            terraform_link_field_name="rest_api_id",
-            cfn_link_field_name="RestApiId",
-            terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
-            cfn_resource_update_call_back_function=_link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back,
-            linking_exceptions=ResourcePairExceptions(
-                multiple_resource_linking_exception=OneGatewayResourceToRestApiLinkingLimitationException,
-                local_variable_linking_exception=GatewayResourceToGatewayRestApiLocalVariablesLinkingLimitationException,
+    resource_linking_pair = ResourceLinkingPair(
+        source_resource_cfn_resource=gateway_resources_cfn_resources,
+        source_resource_tf_config=gateway_resources_tf_configs,
+        destination_resource_tf=rest_apis_terraform_resources,
+        expected_destinations=[
+            ResourcePairExceptedDestination(
+                terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+                terraform_attribute_name="id",
             ),
+        ],
+        terraform_link_field_name="rest_api_id",
+        cfn_link_field_name="RestApiId",
+        cfn_resource_update_call_back_function=_link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back,
+        linking_exceptions=ResourcePairExceptions(
+            multiple_resource_linking_exception=OneGatewayResourceToRestApiLinkingLimitationException,
+            local_variable_linking_exception=GatewayResourceToGatewayRestApiLocalVariablesLinkingLimitationException,
         ),
-        ResourceLinkingPair(
-            source_resource_cfn_resource=gateway_resources_cfn_resources,
-            source_resource_tf_config=gateway_resources_tf_configs,
-            destination_resource_tf=rest_apis_terraform_resources,
-            tf_destination_attribute_name="root_resource_id",
-            terraform_link_field_name="parent_id",
-            cfn_link_field_name="ResourceId",
-            terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
-            cfn_resource_update_call_back_function=_link_gateway_resource_to_gateway_rest_apis_parent_id_call_back,
-            linking_exceptions=ResourcePairExceptions(
-                multiple_resource_linking_exception=OneGatewayResourceToRestApiLinkingLimitationException,
-                local_variable_linking_exception=GatewayResourceToGatewayRestApiLocalVariablesLinkingLimitationException,
+    )
+    ResourceLinker(resource_linking_pair).link_resources()
+
+
+def _link_gateway_resources_to_parents(
+    gateway_resources_tf_configs: Dict[str, TFResource],
+    gateway_resources_cfn_resources: Dict[str, List],
+    multiple_destination_options_terraform_resources: Dict[str, Dict],
+):
+    """
+    Iterate through all the resources and link them to the corresponding parent resource. Parent resource can either be
+     a Rest API resource or another API Resource resource.
+
+    Parameters
+    ----------
+    gateway_resources_tf_configs: Dict[str, TFResource]
+        Dictionary of configuration Gateway Resource resources
+    gateway_resources_cfn_resources: Dict[str, List]
+        Dictionary containing resolved configuration addresses matched up to the cfn Gateway Resource
+    multiple_destination_options_terraform_resources: Dict[str, Dict]
+        Dictionary of all actual terraform Rest API resources or Gateway Resources. The dictionary's key is the
+        calculated logical id for each resource.
+    """
+
+    resource_linking_pair = ResourceLinkingPair(
+        source_resource_cfn_resource=gateway_resources_cfn_resources,
+        source_resource_tf_config=gateway_resources_tf_configs,
+        destination_resource_tf=multiple_destination_options_terraform_resources,
+        expected_destinations=[
+            ResourcePairExceptedDestination(
+                terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+                terraform_attribute_name="root_resource_id",
             ),
+            ResourcePairExceptedDestination(
+                terraform_resource_type_prefix=API_GATEWAY_RESOURCE_RESOURCE_ADDRESS_PREFIX,
+                terraform_attribute_name="id",
+            ),
+        ],
+        terraform_link_field_name="parent_id",
+        cfn_link_field_name="ParentId",
+        cfn_resource_update_call_back_function=_link_gateway_resource_to_parent_resource_call_back,
+        linking_exceptions=ResourcePairExceptions(
+            multiple_resource_linking_exception=OneGatewayResourceToParentResourceLinkingLimitationException,
+            local_variable_linking_exception=GatewayResourceToParentResourceLocalVariablesLinkingLimitationException,
         ),
-    ]
-    for resource_linking_pair in resource_linking_pairs:
-        ResourceLinker(resource_linking_pair).link_resources()
+    )
+    ResourceLinker(resource_linking_pair).link_resources()
 
 
 def _link_lambda_functions_to_layers(
@@ -1113,10 +1186,14 @@ def _link_lambda_functions_to_layers(
         source_resource_cfn_resource=lambda_funcs_conf_cfn_resources,
         source_resource_tf_config=lambda_config_funcs_conf_cfn_resources,
         destination_resource_tf=lambda_layers_terraform_resources,
-        tf_destination_attribute_name="arn",
+        expected_destinations=[
+            ResourcePairExceptedDestination(
+                terraform_resource_type_prefix=LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX,
+                terraform_attribute_name="arn",
+            ),
+        ],
         terraform_link_field_name="layers",
         cfn_link_field_name="Layers",
-        terraform_resource_type_prefix=LAMBDA_LAYER_RESOURCE_ADDRESS_PREFIX,
         cfn_resource_update_call_back_function=_link_lambda_functions_to_layers_call_back,
         linking_exceptions=exceptions,
     )
@@ -1177,41 +1254,52 @@ def _link_gateway_resource_to_gateway_resource_call_back(
         return
 
     logical_id = referenced_gateway_resource_values[0]
-    gateway_resource_cfn_resource["Properties"]["ResourceId"] = (
-        {"Ref": logical_id.value} if isinstance(logical_id, LogicalIdReference) else logical_id.value
-    )
+    if isinstance(logical_id, LogicalIdReference):
+        if logical_id.resource_type == TF_AWS_API_GATEWAY_REST_API:
+            gateway_resource_cfn_resource["Properties"]["ResourceId"] = {
+                "Fn::GetAtt": [logical_id.value, "RootResourceId"]
+            }
+        else:
+            gateway_resource_cfn_resource["Properties"]["ResourceId"] = {"Ref": logical_id.value}
+
+    else:
+        gateway_resource_cfn_resource["Properties"]["ResourceId"] = logical_id.value
 
 
-def _link_gateway_resource_to_gateway_rest_apis_parent_id_call_back(
-    gateway_cfn_resource: Dict, referenced_rest_apis_values: List[ReferenceType]
+def _link_gateway_resource_to_parent_resource_call_back(
+    gateway_resource_cfn_resource: Dict, referenced_parent_resources_values: List[ReferenceType]
 ) -> None:
     """
-    Callback function that used by the linking algorithm to update an Api Gateway Resource CFN Resource with
-    a reference to the Rest Api resource.
+    Callback function that is used by the linking algorithm to update an Api Gateway resource CFN with a reference to
+    the parent resource which either rest api or gateway resource.
 
     Parameters
     ----------
-    gateway_cfn_resource: Dict
-        API Gateway Method CFN resource
-    referenced_rest_apis_values: List[ReferenceType]
-        List of referenced REST API either as the logical id of REST API resource defined in the customer project, or
-        ARN values for actual REST API resource defined in customer's account. This list should always contain one
-        element only.
+    gateway_resource_cfn_resource: Dict
+        API Gateway resource CFN resource
+    referenced_parent_resources_values: List[ReferenceType]
+        List of referenced parent resources either as the logical id of resource defined in the customer project,
+        or ARN values for actual parent resource defined in customer's account. This list should always contain
+        one element only.
     """
-    # if the destination rest api list contains more than one element, so we have an issue in our linking logic
-    if len(referenced_rest_apis_values) > 1:
-        raise InvalidResourceLinkingException("Could not link multiple Rest APIs to one Gateway resource")
+    if len(referenced_parent_resources_values) > 1:
+        raise InvalidResourceLinkingException("Could not link multiple parent Resources to one Gateway resource")
 
-    if not referenced_rest_apis_values:
-        LOG.info("Unable to find any references to Rest APIs, skip linking Rest API to Gateway resource")
+    if not referenced_parent_resources_values:
+        LOG.info("Unable to find any references to the parent resource, skip linking Gateway resources")
         return
 
-    logical_id = referenced_rest_apis_values[0]
-    gateway_cfn_resource["Properties"]["ParentId"] = (
-        {"Fn::GetAtt": [logical_id.value, "RootResourceId"]}
-        if isinstance(logical_id, LogicalIdReference)
-        else logical_id.value
-    )
+    logical_id = referenced_parent_resources_values[0]
+    if isinstance(logical_id, LogicalIdReference):
+        if logical_id.resource_type == TF_AWS_API_GATEWAY_REST_API:
+            gateway_resource_cfn_resource["Properties"]["ParentId"] = {
+                "Fn::GetAtt": [logical_id.value, "RootResourceId"]
+            }
+        else:
+            gateway_resource_cfn_resource["Properties"]["ParentId"] = {"Ref": logical_id.value}
+
+    else:
+        gateway_resource_cfn_resource["Properties"]["ParentId"] = logical_id.value
 
 
 def _link_gateway_methods_to_gateway_rest_apis(
@@ -1241,10 +1329,14 @@ def _link_gateway_methods_to_gateway_rest_apis(
         source_resource_cfn_resource=gateway_methods_config_address_cfn_resources_map,
         source_resource_tf_config=gateway_methods_config_resources,
         destination_resource_tf=rest_apis_terraform_resources,
-        tf_destination_attribute_name="id",
+        expected_destinations=[
+            ResourcePairExceptedDestination(
+                terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+                terraform_attribute_name="id",
+            ),
+        ],
         terraform_link_field_name="rest_api_id",
         cfn_link_field_name="RestApiId",
-        terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
         cfn_resource_update_call_back_function=_link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back,
         linking_exceptions=exceptions,
     )
@@ -1277,10 +1369,14 @@ def _link_gateway_stage_to_rest_api(
         source_resource_cfn_resource=gateway_stages_config_address_cfn_resources_map,
         source_resource_tf_config=gateway_stages_config_resources,
         destination_resource_tf=rest_apis_terraform_resources,
-        tf_destination_attribute_name="id",
+        expected_destinations=[
+            ResourcePairExceptedDestination(
+                terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+                terraform_attribute_name="id",
+            ),
+        ],
         terraform_link_field_name="rest_api_id",
         cfn_link_field_name="RestApiId",
-        terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
         cfn_resource_update_call_back_function=_link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back,
         linking_exceptions=exceptions,
     )
@@ -1290,7 +1386,7 @@ def _link_gateway_stage_to_rest_api(
 def _link_gateway_method_to_gateway_resource(
     gateway_method_config_resources: Dict[str, TFResource],
     gateway_method_config_address_cfn_resources_map: Dict[str, List],
-    gateway_resources_terraform_resources: Dict[str, Dict],
+    gateway_resources_or_rest_apis_terraform_resources: Dict[str, Dict],
 ):
     """
     Iterate through all the resources and link the corresponding
@@ -1302,8 +1398,8 @@ def _link_gateway_method_to_gateway_resource(
         Dictionary of configuration Gateway Methods
     gateway_method_config_address_cfn_resources_map: Dict[str, List]
         Dictionary containing resolved configuration addresses matched up to the cfn Gateway Stage
-    gateway_resources_terraform_resources: Dict[str, Dict]
-        Dictionary of all actual terraform Rest API resources (not configuration resources).
+    gateway_resources_or_rest_apis_terraform_resources: Dict[str, Dict]
+        Dictionary of all actual terraform Rest API or gateway resource resources (not configuration resources).
         The dictionary's key is the calculated logical id for each resource.
     """
     exceptions = ResourcePairExceptions(
@@ -1313,11 +1409,19 @@ def _link_gateway_method_to_gateway_resource(
     resource_linking_pair = ResourceLinkingPair(
         source_resource_cfn_resource=gateway_method_config_address_cfn_resources_map,
         source_resource_tf_config=gateway_method_config_resources,
-        destination_resource_tf=gateway_resources_terraform_resources,
-        tf_destination_attribute_name="id",
+        destination_resource_tf=gateway_resources_or_rest_apis_terraform_resources,
+        expected_destinations=[
+            ResourcePairExceptedDestination(
+                terraform_resource_type_prefix=API_GATEWAY_RESOURCE_RESOURCE_ADDRESS_PREFIX,
+                terraform_attribute_name="id",
+            ),
+            ResourcePairExceptedDestination(
+                terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+                terraform_attribute_name="root_resource_id",
+            ),
+        ],
         terraform_link_field_name="resource_id",
         cfn_link_field_name="ResourceId",
-        terraform_resource_type_prefix=API_GATEWAY_RESOURCE_RESOURCE_ADDRESS_PREFIX,
         cfn_resource_update_call_back_function=_link_gateway_resource_to_gateway_resource_call_back,
         linking_exceptions=exceptions,
     )
@@ -1351,10 +1455,14 @@ def _link_gateway_integrations_to_gateway_rest_apis(
         source_resource_cfn_resource=gateway_integrations_config_address_cfn_resources_map,
         source_resource_tf_config=gateway_integrations_config_resources,
         destination_resource_tf=rest_apis_terraform_resources,
-        tf_destination_attribute_name="id",
+        expected_destinations=[
+            ResourcePairExceptedDestination(
+                terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+                terraform_attribute_name="id",
+            ),
+        ],
         terraform_link_field_name="rest_api_id",
         cfn_link_field_name="RestApiId",
-        terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
         cfn_resource_update_call_back_function=_link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back,
         linking_exceptions=exceptions,
     )
@@ -1364,7 +1472,7 @@ def _link_gateway_integrations_to_gateway_rest_apis(
 def _link_gateway_integrations_to_gateway_resource(
     gateway_integrations_config_resources: Dict[str, TFResource],
     gateway_integrations_config_address_cfn_resources_map: Dict[str, List],
-    gateway_resources_terraform_resources: Dict[str, Dict],
+    gateway_resources_or_rest_apis_terraform_resources: Dict[str, Dict],
 ):
     """
     Iterate through all the resources and link the corresponding
@@ -1376,9 +1484,9 @@ def _link_gateway_integrations_to_gateway_resource(
         Dictionary of configuration Gateway Integrations
     gateway_integrations_config_address_cfn_resources_map: Dict[str, List]
         Dictionary containing resolved configuration addresses matched up to the cfn Gateway Integration
-    gateway_resources_terraform_resources: Dict[str, Dict]
-        Dictionary of all actual terraform Rest API resources (not configuration resources). The dictionary's key is the
-        calculated logical id for each resource.
+    gateway_resources_or_rest_apis_terraform_resources: Dict[str, Dict]
+        Dictionary of all actual terraform Rest API or gateway resource resources (not configuration resources). The
+        dictionary's key is the calculated logical id for each resource.
     """
 
     exceptions = ResourcePairExceptions(
@@ -1388,11 +1496,19 @@ def _link_gateway_integrations_to_gateway_resource(
     resource_linking_pair = ResourceLinkingPair(
         source_resource_cfn_resource=gateway_integrations_config_address_cfn_resources_map,
         source_resource_tf_config=gateway_integrations_config_resources,
-        destination_resource_tf=gateway_resources_terraform_resources,
-        tf_destination_attribute_name="id",
+        destination_resource_tf=gateway_resources_or_rest_apis_terraform_resources,
+        expected_destinations=[
+            ResourcePairExceptedDestination(
+                terraform_resource_type_prefix=API_GATEWAY_RESOURCE_RESOURCE_ADDRESS_PREFIX,
+                terraform_attribute_name="id",
+            ),
+            ResourcePairExceptedDestination(
+                terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+                terraform_attribute_name="root_resource_id",
+            ),
+        ],
         terraform_link_field_name="resource_id",
         cfn_link_field_name="ResourceId",
-        terraform_resource_type_prefix=API_GATEWAY_RESOURCE_RESOURCE_ADDRESS_PREFIX,
         cfn_resource_update_call_back_function=_link_gateway_resource_to_gateway_resource_call_back,
         linking_exceptions=exceptions,
     )
@@ -1467,10 +1583,14 @@ def _link_gateway_integrations_to_function_resource(
         source_resource_cfn_resource=gateway_integrations_config_address_cfn_resources_map,
         source_resource_tf_config=aws_proxy_integrations_config_resources,
         destination_resource_tf=lambda_function_terraform_resources,
-        tf_destination_attribute_name="invoke_arn",
+        expected_destinations=[
+            ResourcePairExceptedDestination(
+                terraform_resource_type_prefix=LAMBDA_FUNCTION_RESOURCE_ADDRESS_PREFIX,
+                terraform_attribute_name="invoke_arn",
+            ),
+        ],
         terraform_link_field_name="uri",
         cfn_link_field_name="Uri",
-        terraform_resource_type_prefix=LAMBDA_FUNCTION_RESOURCE_ADDRESS_PREFIX,
         cfn_resource_update_call_back_function=_link_gateway_integration_to_function_call_back,
         linking_exceptions=exceptions,
     )
@@ -1506,10 +1626,14 @@ def _link_gateway_integration_responses_to_gateway_rest_apis(
         source_resource_cfn_resource=gateway_integration_responses_config_address_cfn_resources_map,
         source_resource_tf_config=gateway_integration_responses_config_resources,
         destination_resource_tf=rest_apis_terraform_resources,
-        tf_destination_attribute_name="id",
+        expected_destinations=[
+            ResourcePairExceptedDestination(
+                terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+                terraform_attribute_name="id",
+            ),
+        ],
         terraform_link_field_name="rest_api_id",
         cfn_link_field_name="RestApiId",
-        terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
         cfn_resource_update_call_back_function=_link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back,
         linking_exceptions=exceptions,
     )
@@ -1519,10 +1643,11 @@ def _link_gateway_integration_responses_to_gateway_rest_apis(
 def _link_gateway_integration_responses_to_gateway_resource(
     gateway_integration_responses_config_resources: Dict[str, TFResource],
     gateway_integration_responses_config_address_cfn_resources_map: Dict[str, List],
-    gateway_resources_terraform_resources: Dict[str, Dict],
+    gateway_resources_or_rest_apis_terraform_resources: Dict[str, Dict],
 ):
     """
-    Iterate through all the resources and link the corresponding Gateway Resource resource to each Gateway Integration
+    Iterate through all the resour
+    ces and link the corresponding Gateway Resource resource to each Gateway Integration
     Response resource.
     Parameters
     ----------
@@ -1531,9 +1656,9 @@ def _link_gateway_integration_responses_to_gateway_resource(
     gateway_integration_responses_config_address_cfn_resources_map: Dict[str, List]
         Dictionary containing resolved configuration addresses matched up to the internal mapped cfn Gateway
         Integration Response.
-    gateway_resources_terraform_resources: Dict[str, Dict]
-        Dictionary of all actual terraform Rest API resources (not configuration resources). The dictionary's key is the
-        calculated logical id for each resource.
+    gateway_resources_or_rest_apis_terraform_resources: Dict[str, Dict]
+        Dictionary of all actual terraform Rest API or gateway resource resources (not configuration resources). The
+        dictionary's key is the calculated logical id for each resource.
     """
 
     exceptions = ResourcePairExceptions(
@@ -1543,11 +1668,19 @@ def _link_gateway_integration_responses_to_gateway_resource(
     resource_linking_pair = ResourceLinkingPair(
         source_resource_cfn_resource=gateway_integration_responses_config_address_cfn_resources_map,
         source_resource_tf_config=gateway_integration_responses_config_resources,
-        destination_resource_tf=gateway_resources_terraform_resources,
-        tf_destination_attribute_name="id",
+        destination_resource_tf=gateway_resources_or_rest_apis_terraform_resources,
+        expected_destinations=[
+            ResourcePairExceptedDestination(
+                terraform_resource_type_prefix=API_GATEWAY_RESOURCE_RESOURCE_ADDRESS_PREFIX,
+                terraform_attribute_name="id",
+            ),
+            ResourcePairExceptedDestination(
+                terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+                terraform_attribute_name="root_resource_id",
+            ),
+        ],
         terraform_link_field_name="resource_id",
         cfn_link_field_name="ResourceId",
-        terraform_resource_type_prefix=API_GATEWAY_RESOURCE_RESOURCE_ADDRESS_PREFIX,
         cfn_resource_update_call_back_function=_link_gateway_resource_to_gateway_resource_call_back,
         linking_exceptions=exceptions,
     )
@@ -1613,10 +1746,14 @@ def _link_gateway_authorizer_to_lambda_function(
         source_resource_cfn_resource=authorizer_cfn_resources,
         source_resource_tf_config=authorizer_config_resources,
         destination_resource_tf=lamda_function_resources,
-        tf_destination_attribute_name="invoke_arn",
+        expected_destinations=[
+            ResourcePairExceptedDestination(
+                terraform_resource_type_prefix=LAMBDA_FUNCTION_RESOURCE_ADDRESS_PREFIX,
+                terraform_attribute_name="invoke_arn",
+            ),
+        ],
         terraform_link_field_name="authorizer_uri",
         cfn_link_field_name="AuthorizerUri",
-        terraform_resource_type_prefix=LAMBDA_FUNCTION_RESOURCE_ADDRESS_PREFIX,
         cfn_resource_update_call_back_function=_link_gateway_authorizer_to_lambda_function_call_back,
         linking_exceptions=exceptions,
     )
@@ -1649,10 +1786,14 @@ def _link_gateway_authorizer_to_rest_api(
         source_resource_cfn_resource=authorizer_cfn_resources,
         source_resource_tf_config=authorizer_config_resources,
         destination_resource_tf=rest_api_resource,
-        tf_destination_attribute_name="id",
+        expected_destinations=[
+            ResourcePairExceptedDestination(
+                terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
+                terraform_attribute_name="id",
+            ),
+        ],
         terraform_link_field_name="rest_api_id",
         cfn_link_field_name="RestApiId",
-        terraform_resource_type_prefix=API_GATEWAY_REST_API_RESOURCE_ADDRESS_PREFIX,
         cfn_resource_update_call_back_function=_link_gateway_resource_to_gateway_rest_apis_rest_api_id_call_back,
         linking_exceptions=exceptions,
     )
@@ -1715,10 +1856,14 @@ def _link_gateway_method_to_gateway_authorizer(
         source_resource_cfn_resource=gateway_method_config_address_cfn_resources_map,
         source_resource_tf_config=gateway_method_config_resources,
         destination_resource_tf=authorizer_resources,
-        tf_destination_attribute_name="id",
+        expected_destinations=[
+            ResourcePairExceptedDestination(
+                terraform_resource_type_prefix=API_GATEWAY_AUTHORIZER_RESOURCE_ADDRESS_PREFIX,
+                terraform_attribute_name="id",
+            ),
+        ],
         terraform_link_field_name="authorizer_id",
         cfn_link_field_name="AuthorizerId",
-        terraform_resource_type_prefix=API_GATEWAY_AUTHORIZER_RESOURCE_ADDRESS_PREFIX,
         cfn_resource_update_call_back_function=_link_gateway_method_to_gateway_authorizer_call_back,
         linking_exceptions=exceptions,
     )
@@ -1809,10 +1954,14 @@ def _link_gateway_v2_route_to_integration(
         source_resource_cfn_resource=gateway_route_config_address_cfn_resources_map,
         source_resource_tf_config=gateway_route_config_resources,
         destination_resource_tf=integration_resources,
-        tf_destination_attribute_name="id",
+        expected_destinations=[
+            ResourcePairExceptedDestination(
+                terraform_resource_type_prefix=API_GATEWAY_V2_INTEGRATION_RESOURCE_ADDRESS_PREFIX,
+                terraform_attribute_name="id",
+            ),
+        ],
         terraform_link_field_name="target",
         cfn_link_field_name="Target",
-        terraform_resource_type_prefix=API_GATEWAY_V2_INTEGRATION_RESOURCE_ADDRESS_PREFIX,
         cfn_resource_update_call_back_function=_link_gateway_v2_route_to_integration_callback,
         linking_exceptions=exceptions,
         tf_destination_value_extractor_from_link_field_value_function=_extract_gateway_v2_integration_id_from_route_target_value,
@@ -1893,10 +2042,14 @@ def _link_gateway_v2_integration_to_lambda_function(
         source_resource_cfn_resource=v2_gateway_integration_config_address_cfn_resources_map,
         source_resource_tf_config=v2_gateway_integration_config_resources,
         destination_resource_tf=lambda_functions_resources,
-        tf_destination_attribute_name="invoke_arn",
+        expected_destinations=[
+            ResourcePairExceptedDestination(
+                terraform_resource_type_prefix=LAMBDA_FUNCTION_RESOURCE_ADDRESS_PREFIX,
+                terraform_attribute_name="invoke_arn",
+            ),
+        ],
         terraform_link_field_name="integration_uri",
         cfn_link_field_name="IntegrationUri",
-        terraform_resource_type_prefix=LAMBDA_FUNCTION_RESOURCE_ADDRESS_PREFIX,
         cfn_resource_update_call_back_function=_link_gateway_v2_integration_to_lambda_function_callback,
         linking_exceptions=exceptions,
     )
@@ -1961,10 +2114,14 @@ def _link_gateway_v2_integration_to_api(
         source_resource_cfn_resource=gateway_integration_config_address_cfn_resources_map,
         source_resource_tf_config=gateway_integration_config_resources,
         destination_resource_tf=api_resources,
-        tf_destination_attribute_name="id",
+        expected_destinations=[
+            ResourcePairExceptedDestination(
+                terraform_resource_type_prefix=API_GATEWAY_V2_API_RESOURCE_ADDRESS_PREFIX,
+                terraform_attribute_name="id",
+            ),
+        ],
         terraform_link_field_name="api_id",
         cfn_link_field_name="ApiId",
-        terraform_resource_type_prefix=API_GATEWAY_V2_API_RESOURCE_ADDRESS_PREFIX,
         cfn_resource_update_call_back_function=_link_gateway_v2_resource_to_api_callback,
         linking_exceptions=exceptions,
     )
@@ -1998,10 +2155,95 @@ def _link_gateway_v2_route_to_api(
         source_resource_cfn_resource=gateway_route_config_address_cfn_resources_map,
         source_resource_tf_config=gateway_route_config_resources,
         destination_resource_tf=api_resources,
-        tf_destination_attribute_name="id",
+        expected_destinations=[
+            ResourcePairExceptedDestination(
+                terraform_resource_type_prefix=API_GATEWAY_V2_API_RESOURCE_ADDRESS_PREFIX,
+                terraform_attribute_name="id",
+            ),
+        ],
         terraform_link_field_name="api_id",
         cfn_link_field_name="ApiId",
-        terraform_resource_type_prefix=API_GATEWAY_V2_API_RESOURCE_ADDRESS_PREFIX,
+        cfn_resource_update_call_back_function=_link_gateway_v2_resource_to_api_callback,
+        linking_exceptions=exceptions,
+    )
+    ResourceLinker(resource_linking_pair).link_resources()
+
+
+def _link_gateway_v2_authorizer_to_lambda_function(
+    authorizer_config_resources: Dict[str, TFResource],
+    authorizer_cfn_resources: Dict[str, List],
+    lamda_function_resources: Dict[str, Dict],
+) -> None:
+    """
+    Iterate through all the resources and link the corresponding V2 Authorizer to each Lambda Function
+
+    Parameters
+    ----------
+    authorizer_config_resources: Dict[str, TFResource]
+        Dictionary of configuration Authorizer resources
+    authorizer_cfn_resources: Dict[str, List]
+        Dictionary containing resolved configuration address of CFN Authorizer resources
+    lamda_function_resources: Dict[str, Dict]
+        Dictionary of Terraform Lambda Function resources (not configuration resources). The dictionary's key is the
+        calculated logical id for each resource
+    """
+    exceptions = ResourcePairExceptions(
+        multiple_resource_linking_exception=OneGatewayV2AuthorizerToLambdaFunctionLinkingLimitationException,
+        local_variable_linking_exception=GatewayV2AuthorizerToLambdaFunctionLocalVariablesLinkingLimitationException,
+    )
+    resource_linking_pair = ResourceLinkingPair(
+        source_resource_cfn_resource=authorizer_cfn_resources,
+        source_resource_tf_config=authorizer_config_resources,
+        destination_resource_tf=lamda_function_resources,
+        expected_destinations=[
+            ResourcePairExceptedDestination(
+                terraform_resource_type_prefix=LAMBDA_FUNCTION_RESOURCE_ADDRESS_PREFIX,
+                terraform_attribute_name="invoke_arn",
+            ),
+        ],
+        terraform_link_field_name="authorizer_uri",
+        cfn_link_field_name="AuthorizerUri",
+        cfn_resource_update_call_back_function=_link_gateway_authorizer_to_lambda_function_call_back,
+        linking_exceptions=exceptions,
+    )
+    ResourceLinker(resource_linking_pair).link_resources()
+
+
+def _link_gateway_v2_authorizer_to_api(
+    v2_authorizer_config_resources: Dict[str, TFResource],
+    v2_authorizer_config_address_cfn_resources_map: Dict[str, List],
+    api_resources: Dict[str, Dict],
+) -> None:
+    """
+    Iterate through all the resources and link the corresponding
+    Gateway V2 Authorizer resources to each Gateway V2 Api
+
+    Parameters
+    ----------
+    v2_authorizer_config_resources: Dict[str, TFResource]
+        Dictionary of configuration Gateway V2 Authorizers
+    v2_authorizer_config_address_cfn_resources_map: Dict[str, List]
+        Dictionary containing resolved configuration addresses matched up to the cfn Gateway V2 Authorizer
+    api_resources: Dict[str, Dict]
+        Dictionary of all Terraform Gateway V2 Api resources (not configuration resources).
+        The dictionary's key is the calculated logical id for each resource.
+    """
+    exceptions = ResourcePairExceptions(
+        multiple_resource_linking_exception=OneGatewayV2AuthorizerToGatewayV2ApiLinkingLimitationException,
+        local_variable_linking_exception=GatewayV2AuthorizerToGatewayV2ApiLocalVariablesLinkingLimitationException,
+    )
+    resource_linking_pair = ResourceLinkingPair(
+        source_resource_cfn_resource=v2_authorizer_config_address_cfn_resources_map,
+        source_resource_tf_config=v2_authorizer_config_resources,
+        destination_resource_tf=api_resources,
+        expected_destinations=[
+            ResourcePairExceptedDestination(
+                terraform_resource_type_prefix=API_GATEWAY_V2_API_RESOURCE_ADDRESS_PREFIX,
+                terraform_attribute_name="id",
+            ),
+        ],
+        terraform_link_field_name="api_id",
+        cfn_link_field_name="ApiId",
         cfn_resource_update_call_back_function=_link_gateway_v2_resource_to_api_callback,
         linking_exceptions=exceptions,
     )
@@ -2074,10 +2316,14 @@ def _link_gateway_v2_api_to_function(
         source_resource_cfn_resource=gateway_api_config_address_cfn_resources_map,
         source_resource_tf_config=quick_create_api_config_resources,
         destination_resource_tf=lambda_function_resources,
-        tf_destination_attribute_name="invoke_arn",
+        expected_destinations=[
+            ResourcePairExceptedDestination(
+                terraform_resource_type_prefix=LAMBDA_FUNCTION_RESOURCE_ADDRESS_PREFIX,
+                terraform_attribute_name="invoke_arn",
+            ),
+        ],
         terraform_link_field_name="target",
         cfn_link_field_name="Target",
-        terraform_resource_type_prefix=LAMBDA_FUNCTION_RESOURCE_ADDRESS_PREFIX,
         cfn_resource_update_call_back_function=_link_gateway_v2_api_to_function_callback,
         linking_exceptions=exceptions,
     )
@@ -2111,11 +2357,88 @@ def _link_gateway_v2_stage_to_api(
         source_resource_cfn_resource=gateway_stage_config_address_cfn_resources_map,
         source_resource_tf_config=gateway_stage_config_resources,
         destination_resource_tf=api_resources,
-        tf_destination_attribute_name="id",
+        expected_destinations=[
+            ResourcePairExceptedDestination(
+                terraform_resource_type_prefix=API_GATEWAY_V2_API_RESOURCE_ADDRESS_PREFIX,
+                terraform_attribute_name="id",
+            ),
+        ],
         terraform_link_field_name="api_id",
         cfn_link_field_name="ApiId",
-        terraform_resource_type_prefix=API_GATEWAY_V2_API_RESOURCE_ADDRESS_PREFIX,
         cfn_resource_update_call_back_function=_link_gateway_v2_resource_to_api_callback,
+        linking_exceptions=exceptions,
+    )
+    ResourceLinker(resource_linking_pair).link_resources()
+
+
+def _link_gateway_v2_route_to_authorizer_callback(
+    gateway_v2_route_cfn_resource: Dict, gateway_v2_authorizer_resources: List[ReferenceType]
+):
+    """
+    Callback function that is used by the linking algorithm to update a CFN V2 Integration Route with
+    a reference to the Gateway V2 Authorizer resource
+
+    Parameters
+    ----------
+    gateway_v2_route_cfn_resource: Dict
+        API Gateway V2 Route CFN resource
+    gateway_v2_authorizer_resources: List[ReferenceType]
+        List of referenced Gateway V2 Authorizers either as the logical id of Apis resources
+        defined in the customer project, or ID values for actual Authorizer defined
+        in customer's account. This list should always contain one element only.
+    """
+    if len(gateway_v2_authorizer_resources) > 1:
+        raise InvalidResourceLinkingException("Could not link multiple Gateway V2 Authorizers to one Gateway V2 Route")
+
+    if not gateway_v2_authorizer_resources:
+        LOG.info(
+            "Unable to find any references to Gateway V2 Authorizers, skip linking Gateway V2 Routes to Gateway V2 "
+            "Authorizers"
+        )
+        return
+
+    logical_id = gateway_v2_authorizer_resources[0]
+    gateway_v2_route_cfn_resource["Properties"]["AuthorizerId"] = (
+        {"Ref": logical_id.value} if isinstance(logical_id, LogicalIdReference) else logical_id.value
+    )
+
+
+def _link_gateway_v2_route_to_authorizer(
+    gateway_route_config_resources: Dict[str, TFResource],
+    gateway_route_config_address_cfn_resources_map: Dict[str, List],
+    authorizer_resources: Dict[str, Dict],
+):
+    """
+    Iterate through all the resources and link the corresponding
+    Gateway V2 Route resources to each Gateway V2 Authorizer
+
+    Parameters
+    ----------
+    gateway_route_config_resources: Dict[str, TFResource]
+        Dictionary of configuration Gateway Routes
+    gateway_route_config_address_cfn_resources_map: Dict[str, List]
+        Dictionary containing resolved configuration addresses matched up to the cfn Gateway Route
+    authorizer_resources: Dict[str, Dict]
+        Dictionary of all Terraform Gateway V2 Authorizer resources (not configuration resources).
+        The dictionary's key is the calculated logical id for each resource.
+    """
+    exceptions = ResourcePairExceptions(
+        multiple_resource_linking_exception=OneGatewayV2RouteToGatewayV2AuthorizerLinkingLimitationException,
+        local_variable_linking_exception=GatewayV2RouteToGatewayV2AuthorizerLocalVariablesLinkingLimitationException,
+    )
+    resource_linking_pair = ResourceLinkingPair(
+        source_resource_cfn_resource=gateway_route_config_address_cfn_resources_map,
+        source_resource_tf_config=gateway_route_config_resources,
+        destination_resource_tf=authorizer_resources,
+        expected_destinations=[
+            ResourcePairExceptedDestination(
+                terraform_resource_type_prefix=API_GATEWAY_V2_AUTHORIZER_RESOURCE_ADDRESS_PREFIX,
+                terraform_attribute_name="id",
+            ),
+        ],
+        terraform_link_field_name="authorizer_id",
+        cfn_link_field_name="AuthorizerId",
+        cfn_resource_update_call_back_function=_link_gateway_v2_route_to_authorizer_callback,
         linking_exceptions=exceptions,
     )
     ResourceLinker(resource_linking_pair).link_resources()

@@ -20,13 +20,16 @@ LOG = logging.getLogger(__name__)
 class TerraformStartApiIntegrationBase(StartApiIntegBaseClass):
     run_command_timeout = 300
     terraform_application: Optional[str] = None
+    terraform_plan_file: Optional[str] = None
 
     @classmethod
     def setUpClass(cls):
         command = get_sam_command()
         cls.template_path = ""
         cls.build_before_invoke = False
-        cls.command_list = [command, "local", "start-api", "--hook-name", "terraform", "--beta-features"]
+        cls.command_list = [command, "local", "start-api", "--hook-name", "terraform"]
+        if cls.terraform_plan_file:
+            cls.command_list += ["--terraform-plan-file", cls.terraform_plan_file]
         cls.test_data_path = Path(cls.get_integ_dir()) / "testdata" / "start_api"
         cls.project_directory = cls.test_data_path / "terraform" / cls.terraform_application
         super(TerraformStartApiIntegrationBase, cls).setUpClass()
@@ -95,17 +98,56 @@ class TerraformStartApiIntegrationApplyBase(TerraformStartApiIntegrationBase):
     "Skip Terraform test cases unless running in CI",
 )
 @pytest.mark.flaky(reruns=3)
+@parameterized_class(
+    [
+        {
+            "terraform_application": "terraform-v1-nested-apis",
+            "testing_urls": ["", "parent/hello", "parent"],
+        },
+        {
+            "terraform_application": "terraform-v1-api-simple",
+            "testing_urls": ["hello"],
+        },
+        {
+            "terraform_application": "terraform-v2-api-simple",
+            "testing_urls": ["hello"],
+        },
+        {
+            "terraform_application": "terraform-v2-api-quick-create",
+            "testing_urls": ["hello"],
+        },
+    ]
+)
 class TestStartApiTerraformApplication(TerraformStartApiIntegrationBase):
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    def test_successful_request(self):
+        for url in self.testing_urls:
+            response = requests.get(f"{self.url}/{url}", timeout=300)
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json(), {"message": "hello world"})
+
+
+@skipIf(
+    not CI_OVERRIDE,
+    "Skip Terraform test cases unless running in CI",
+)
+@pytest.mark.flaky(reruns=3)
+class TestStartApiTerraformApplicationCustomPlanFile(TerraformStartApiIntegrationBase):
     terraform_application = "terraform-v1-api-simple"
+    terraform_plan_file = "custom-plan.json"
 
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
     def test_successful_request(self):
-        response = requests.get(self.url + "/hello", timeout=300)
+        for url in self.testing_urls:
+            response = requests.get(f"{self.url}/{url}", timeout=300)
 
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"message": "hello world"})
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json(), {"message": "hello world"})
 
 
 @skipIf(
@@ -130,6 +172,21 @@ class TestStartApiTerraformApplication(TerraformStartApiIntegrationBase):
             "expected_error_message": "Error: AWS SAM CLI could not process a Terraform project that uses local "
             "variables to define linked resources.",
         },
+        {
+            "terraform_application": "terraform-v2-api-simple-multi-resource-link",
+            "expected_error_message": "Error: AWS SAM CLI could not process a Terraform project that contains a source "
+            "resource that is linked to more than one destination resource.",
+        },
+        {
+            "terraform_application": "terraform-v2-api-simple-local-resource-link",
+            "expected_error_message": "Error: AWS SAM CLI could not process a Terraform project that uses local "
+            "variables to define linked resources.",
+        },
+        {
+            "terraform_application": "terraform-v2-openapi",
+            "expected_error_message": "Error: AWS SAM CLI is unable to process a Terraform project that uses an OpenAPI"
+            " specification to define the API Gateway resource.",
+        },
     ]
 )
 class TestStartApiTerraformApplicationLimitations(TerraformStartApiIntegrationBase):
@@ -142,7 +199,6 @@ class TestStartApiTerraformApplicationLimitations(TerraformStartApiIntegrationBa
             "start-api",
             "--hook-name",
             "terraform",
-            "--beta-features",
             "-p",
             str(random_port()),
         ]
@@ -173,10 +229,40 @@ class TestStartApiTerraformApplicationLimitations(TerraformStartApiIntegrationBa
 @parameterized_class(
     [
         {
+            "terraform_application": "terraform-v1-nested-apis",
+            "testing_urls": ["", "parent/hello", "parent"],
+        },
+        {
+            "terraform_application": "terraform-v1-api-simple",
+            "testing_urls": ["hello"],
+        },
+        {
             "terraform_application": "terraform-api-simple-multiple-resources-limitation",
+            "testing_urls": ["hello"],
         },
         {
             "terraform_application": "terraform-api-simple-local-variables-limitation",
+            "testing_urls": ["hello"],
+        },
+        {
+            "terraform_application": "terraform-v2-api-simple-multi-resource-link",
+            "testing_urls": ["hello"],
+        },
+        {
+            "terraform_application": "terraform-v2-api-simple-local-resource-link",
+            "testing_urls": ["hello"],
+        },
+        {
+            "terraform_application": "terraform-v2-openapi",
+            "testing_urls": ["hello"],
+        },
+        {
+            "terraform_application": "terraform-v2-api-simple",
+            "testing_urls": ["hello"],
+        },
+        {
+            "terraform_application": "terraform-v2-api-quick-create",
+            "testing_urls": ["hello"],
         },
     ]
 )
@@ -185,32 +271,43 @@ class TestStartApiTerraformApplicationLimitationsAfterApply(TerraformStartApiInt
         self.url = "http://127.0.0.1:{}".format(self.port)
 
     def test_successful_request(self):
-        response = requests.get(self.url + "/hello", timeout=300)
+        for url in self.testing_urls:
+            response = requests.get(f"{self.url}/{url}", timeout=300)
 
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"message": "hello world"})
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json(), {"message": "hello world"})
 
 
 @skipIf(
     not CI_OVERRIDE,
     "Skip Terraform test cases unless running in CI",
 )
+@parameterized_class(
+    [
+        {
+            "terraform_application": "v1-lambda-authorizer",
+            "gateway_version": "v1",
+        },
+        {
+            "terraform_application": "v2-lambda-authorizer",
+            "gateway_version": "v2",
+        },
+    ]
+)
 @pytest.mark.flaky(reruns=3)
-class TestStartApiTerraformApplicationV1LambdaAuthorizers(TerraformStartApiIntegrationBase):
-    terraform_application = "v1-lambda-authorizer"
-
+class TestStartApiTerraformApplicationLambdaAuthorizers(TerraformStartApiIntegrationBase):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
     @parameterized.expand(
         [
-            ("/hello", {"headers": {"myheader": "123"}}),
-            ("/hello-request", {"headers": {"myheader": "123"}, "params": {"mystring": "456"}}),
-            ("/hello-request-empty", {}),
-            ("/hello-request-empty", {"headers": {"foo": "bar"}}),
+            ("/hello", {"headers": {"myheader": "123"}}, ["v1", "v2"]),
+            ("/hello-request", {"headers": {"myheader": "123"}, "params": {"mystring": "456"}}, ["v1", "v2"]),
         ]
     )
-    def test_invoke_authorizer(self, endpoint, parameters):
+    def test_invoke_authorizer(self, endpoint, parameters, applicable_gateway_versions):
+        if self.gateway_version not in applicable_gateway_versions:
+            self.skipTest(f"This test case is not supported for {self.gateway_version} api gateway")
         response = requests.get(self.url + endpoint, timeout=300, **parameters)
 
         self.assertEqual(response.status_code, 200)
@@ -218,16 +315,20 @@ class TestStartApiTerraformApplicationV1LambdaAuthorizers(TerraformStartApiInteg
 
     @parameterized.expand(
         [
-            ("/hello", {"headers": {"blank": "invalid"}}),
-            ("/hello-request", {"headers": {"blank": "invalid"}, "params": {"blank": "invalid"}}),
+            ("/hello", {"headers": {"blank": "invalid"}}, ["v1", "v2"]),
+            ("/hello-request", {"headers": {"blank": "invalid"}, "params": {"blank": "invalid"}}, ["v1", "v2"]),
         ]
     )
-    def test_missing_authorizer_identity_source(self, endpoint, parameters):
+    def test_missing_authorizer_identity_source(self, endpoint, parameters, applicable_gateway_versions):
+        if self.gateway_version not in applicable_gateway_versions:
+            self.skipTest(f"This test case is not supported for {self.gateway_version} api gateway")
         response = requests.get(self.url + endpoint, timeout=300, **parameters)
 
         self.assertEqual(response.status_code, 401)
 
     def test_fails_token_header_validation_authorizer(self):
+        if self.gateway_version not in ["v1"]:
+            self.skipTest(f"This test case is not supported for {self.gateway_version} api gateway")
         response = requests.get(self.url + "/hello", timeout=300, headers={"myheader": "not valid"})
 
         self.assertEqual(response.status_code, 401)
@@ -237,20 +338,40 @@ class TestStartApiTerraformApplicationV1LambdaAuthorizers(TerraformStartApiInteg
     not CI_OVERRIDE,
     "Skip Terraform test cases unless running in CI",
 )
+@parameterized_class(
+    [
+        {
+            "terraform_application": "v1-lambda-authorizer",
+            "gateway_version": "v1",
+        },
+        {
+            "terraform_application": "lambda-auth-openapi",
+            "gateway_version": "v1",
+        },
+        {
+            "terraform_application": "terraform-v2-auth-openapi",
+            "gateway_version": "v2",
+        },
+        {
+            "terraform_application": "v2-lambda-authorizer",
+            "gateway_version": "v2",
+        },
+    ]
+)
 @pytest.mark.flaky(reruns=3)
-class TestStartApiTerraformApplicationOpenApiAuthorizer(TerraformStartApiIntegrationApplyBase):
-    terraform_application = "lambda-auth-openapi"
-
+class TestStartApiTerraformApplicationAuthorizerAfterApply(TerraformStartApiIntegrationApplyBase):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
     @parameterized.expand(
         [
-            ("/hello", {"headers": {"myheader": "123"}}),
-            ("/hello-request", {"headers": {"myheader": "123"}, "params": {"mystring": "456"}}),
+            ("/hello", {"headers": {"myheader": "123"}}, ["v1", "v2"]),
+            ("/hello-request", {"headers": {"myheader": "123"}, "params": {"mystring": "456"}}, ["v1", "v2"]),
         ]
     )
-    def test_successful_request(self, endpoint, params):
+    def test_successful_request(self, endpoint, params, applicable_gateway_versions):
+        if self.gateway_version not in applicable_gateway_versions:
+            self.skipTest(f"This test case is not supported for {self.gateway_version} api gateway")
         response = requests.get(self.url + endpoint, timeout=300, **params)
 
         self.assertEqual(response.status_code, 200)
@@ -258,11 +379,20 @@ class TestStartApiTerraformApplicationOpenApiAuthorizer(TerraformStartApiIntegra
 
     @parameterized.expand(
         [
-            ("/hello", {"headers": {"missin": "123"}}),
-            ("/hello-request", {"headers": {"notcorrect": "123"}, "params": {"abcde": "456"}}),
+            ("/hello", {"headers": {"missin": "123"}}, ["v1", "v2"]),
+            ("/hello-request", {"headers": {"notcorrect": "123"}, "params": {"abcde": "456"}}, ["v1", "v2"]),
         ]
     )
-    def test_missing_identity_sources(self, endpoint, params):
+    def test_missing_identity_sources(self, endpoint, params, applicable_gateway_versions):
+        if self.gateway_version not in applicable_gateway_versions:
+            self.skipTest(f"This test case is not supported for {self.gateway_version} api gateway")
         response = requests.get(self.url + endpoint, timeout=300, **params)
+
+        self.assertEqual(response.status_code, 401)
+
+    def test_fails_token_header_validation_authorizer(self):
+        if self.gateway_version not in ["v1"]:
+            self.skipTest(f"This test case is not supported for {self.gateway_version} api gateway")
+        response = requests.get(self.url + "/hello", timeout=300, headers={"myheader": "not valid"})
 
         self.assertEqual(response.status_code, 401)

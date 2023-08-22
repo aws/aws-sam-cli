@@ -15,11 +15,8 @@ import pytest
 from docker.errors import APIError
 from parameterized import parameterized, parameterized_class
 
-from samcli.commands._utils.experimental import EXPERIMENTAL_WARNING
-from samcli.lib.utils.colors import Colored
 from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase, TIMEOUT
 from tests.integration.local.invoke.layer_utils import LayerUtils
-from tests.integration.local.start_lambda.start_lambda_api_integ_base import StartLambdaIntegBaseClass
 from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS, RUNNING_ON_CI, RUN_BY_CANARY
 
 LOG = logging.getLogger(__name__)
@@ -76,7 +73,7 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
     @pytest.mark.flaky(reruns=3)
     def test_invoke_function(self, function_name):
         local_invoke_command_list = InvokeIntegBase.get_command_list(
-            function_to_invoke=function_name, hook_name="terraform", beta_features=True
+            function_to_invoke=function_name, hook_name="terraform"
         )
         stdout, _, return_code = self.run_command(local_invoke_command_list)
 
@@ -93,18 +90,11 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
     )
     @parameterized.expand(functions)
     @pytest.mark.flaky(reruns=3)
-    def test_invoke_terraform_with_beta_feature_option_in_samconfig_toml(self, function_name):
-        samconfig_toml_path = Path(self.terraform_application_path).joinpath("samconfig.toml")
-        samconfig_lines = [
-            bytes("version = 0.1" + os.linesep, "utf-8"),
-            bytes("[default.global.parameters]" + os.linesep, "utf-8"),
-            bytes("beta_features = true" + os.linesep, "utf-8"),
-        ]
-        with open(samconfig_toml_path, "wb") as file:
-            file.writelines(samconfig_lines)
-
+    def test_invoke_function_custom_plan(self, function_name):
         local_invoke_command_list = InvokeIntegBase.get_command_list(
-            function_to_invoke=function_name, hook_name="terraform"
+            function_to_invoke=function_name,
+            hook_name="terraform",
+            terraform_plan_file="custom-plan.json",
         )
         stdout, _, return_code = self.run_command(local_invoke_command_list)
 
@@ -114,109 +104,16 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
 
         self.assertEqual(return_code, 0)
         self.assertEqual(response, expected_response)
-        # delete the samconfig file
-        try:
-            os.remove(samconfig_toml_path)
-        except FileNotFoundError:
-            pass
 
-    @skipIf(
-        not CI_OVERRIDE,
-        "Skip Terraform test cases unless running in CI",
-    )
-    @parameterized.expand(functions)
-    @pytest.mark.flaky(reruns=3)
-    def test_invoke_terraform_with_beta_feature_option_as_environment_variable(self, function_name):
-        environment_variables = os.environ.copy()
-        environment_variables["SAM_CLI_BETA_TERRAFORM_SUPPORT"] = "1"
-
-        local_invoke_command_list = InvokeIntegBase.get_command_list(
-            function_to_invoke=function_name, hook_name="terraform"
-        )
-        stdout, _, return_code = self.run_command(local_invoke_command_list, env=environment_variables)
-
-        # Get the response without the sam-cli prompts that proceed it
-        response = json.loads(stdout.decode("utf-8").split("\n")[-1])
-        expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\": \\"hello world\\"}"}')
-
-        self.assertEqual(return_code, 0)
-        self.assertEqual(response, expected_response)
-
-    @skipIf(
-        not CI_OVERRIDE,
-        "Skip Terraform test cases unless running in CI",
-    )
-    @pytest.mark.flaky(reruns=3)
-    def test_invoke_function_get_experimental_prompted(self):
-        local_invoke_command_list = InvokeIntegBase.get_command_list(
-            function_to_invoke="s3_lambda_function", hook_name="terraform"
-        )
-        stdout, stderr, return_code = self.run_command(local_invoke_command_list, input=b"Y\n\n")
-
-        terraform_beta_feature_prompted_text = (
-            "Supporting Terraform applications is a beta feature.\n"
-            "Please confirm if you would like to proceed using AWS SAM CLI with terraform application.\n"
-            "You can also enable this beta feature with 'sam local invoke --beta-features'."
-        )
-        self.assertRegex(stdout.decode("utf-8"), terraform_beta_feature_prompted_text)
-        self.assertRegex(stderr.decode("utf-8"), EXPERIMENTAL_WARNING)
-
-        response = json.loads(stdout.decode("utf-8").split("\n")[2][85:].strip())
-        expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\": \\"hello world\\"}"}')
-
-        self.assertEqual(return_code, 0)
-        self.assertEqual(response, expected_response)
-
-    @skipIf(
-        not CI_OVERRIDE,
-        "Skip Terraform test cases unless running in CI",
-    )
-    @pytest.mark.flaky(reruns=3)
-    def test_invoke_function_with_beta_feature_expect_warning_message(self):
-        local_invoke_command_list = InvokeIntegBase.get_command_list(
-            function_to_invoke="s3_lambda_function", hook_name="terraform", beta_features=True
-        )
-        stdout, stderr, return_code = self.run_command(local_invoke_command_list)
-
-        terraform_beta_feature_prompted_text = (
-            "Supporting Terraform applications is a beta feature.\n"
-            "Please confirm if you would like to proceed using AWS SAM CLI with terraform application.\n"
-            "You can also enable this beta feature with 'sam local invoke --beta-features'."
-        )
-        self.assertNotRegex(stdout.decode("utf-8"), terraform_beta_feature_prompted_text)
-        self.assertTrue(Colored().yellow(EXPERIMENTAL_WARNING) in stderr.decode("utf-8"))
-
-        response = json.loads(stdout.decode("utf-8").split("\n")[-1])
-        expected_response = json.loads('{"statusCode":200,"body":"{\\"message\\": \\"hello world\\"}"}')
-
-        self.assertEqual(return_code, 0)
-        self.assertEqual(response, expected_response)
-
-    @skipIf(
-        not CI_OVERRIDE,
-        "Skip Terraform test cases unless running in CI",
-    )
-    @pytest.mark.flaky(reruns=3)
-    def test_invoke_function_get_experimental_prompted_input_no(self):
-        local_invoke_command_list = InvokeIntegBase.get_command_list(
-            function_to_invoke="s3_lambda_function", hook_name="terraform"
-        )
-        stdout, stderr, return_code = self.run_command(local_invoke_command_list, input=b"N\n\n")
-
-        terraform_beta_feature_prompted_text = (
-            "Supporting Terraform applications is a beta feature.\n"
-            "Please confirm if you would like to proceed using AWS SAM CLI with terraform application.\n"
-            "You can also enable this beta feature with 'sam local invoke --beta-features'."
-        )
-        self.assertRegex(stdout.decode("utf-8"), terraform_beta_feature_prompted_text)
-
+    def test_exit_failed_project_root_dir_no_hooks_custom_plan_file(self):
+        cmdlist = self.get_command_list(terraform_plan_file="/path", function_to_invoke="")
+        _, stderr, return_code = self.run_command(cmdlist)
         process_stderr = stderr.strip()
         self.assertRegex(
             process_stderr.decode("utf-8"),
-            "Terraform Support beta feature is not enabled.",
+            "Error: Missing option --hook-name",
         )
-
-        self.assertEqual(return_code, 0)
+        self.assertNotEqual(return_code, 0)
 
     def test_invalid_hook_name(self):
         local_invoke_command_list = InvokeIntegBase.get_command_list("func", hook_name="tf")
@@ -228,58 +125,6 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
             "Error: Invalid value: tf is not a valid hook name.",
         )
         self.assertNotEqual(return_code, 0)
-
-    def test_invoke_terraform_with_no_beta_feature_option(self):
-        local_invoke_command_list = InvokeIntegBase.get_command_list(
-            function_to_invoke="func", hook_name="terraform", beta_features=False
-        )
-        _, stderr, return_code = self.run_command(local_invoke_command_list)
-
-        process_stderr = stderr.strip()
-        self.assertRegex(
-            process_stderr.decode("utf-8"),
-            "Terraform Support beta feature is not enabled.",
-        )
-        self.assertEqual(return_code, 0)
-
-    def test_invoke_terraform_with_no_beta_feature_option_in_samconfig_toml(self):
-        samconfig_toml_path = Path(self.terraform_application_path).joinpath("samconfig.toml")
-        samconfig_lines = [
-            bytes("version = 0.1" + os.linesep, "utf-8"),
-            bytes("[default.global.parameters]" + os.linesep, "utf-8"),
-            bytes("beta_features = false" + os.linesep, "utf-8"),
-        ]
-        with open(samconfig_toml_path, "wb") as file:
-            file.writelines(samconfig_lines)
-
-        local_invoke_command_list = InvokeIntegBase.get_command_list(function_to_invoke="func", hook_name="terraform")
-        _, stderr, return_code = self.run_command(local_invoke_command_list)
-
-        process_stderr = stderr.strip()
-        self.assertRegex(
-            process_stderr.decode("utf-8"),
-            "Terraform Support beta feature is not enabled.",
-        )
-        self.assertEqual(return_code, 0)
-        # delete the samconfig file
-        try:
-            os.remove(samconfig_toml_path)
-        except FileNotFoundError:
-            pass
-
-    def test_invoke_terraform_with_no_beta_feature_option_as_environment_variable(self):
-        environment_variables = os.environ.copy()
-        environment_variables["SAM_CLI_BETA_TERRAFORM_SUPPORT"] = "False"
-
-        local_invoke_command_list = InvokeIntegBase.get_command_list(function_to_invoke="func", hook_name="terraform")
-        _, stderr, return_code = self.run_command(local_invoke_command_list, env=environment_variables)
-
-        process_stderr = stderr.strip()
-        self.assertRegex(
-            process_stderr.decode("utf-8"),
-            "Terraform Support beta feature is not enabled.",
-        )
-        self.assertEqual(return_code, 0)
 
     def test_invalid_coexist_parameters(self):
         local_invoke_command_list = InvokeIntegBase.get_command_list(
@@ -442,7 +287,7 @@ class TestInvokeTerraformApplicationWithLayersWithoutBuild(InvokeTerraformApplic
     @pytest.mark.flaky(reruns=3)
     def test_invoke_function(self, function_name, expected_output):
         local_invoke_command_list = InvokeIntegBase.get_command_list(
-            function_to_invoke=function_name, hook_name="terraform", beta_features=True
+            function_to_invoke=function_name, hook_name="terraform"
         )
         stdout, _, return_code = self.run_command(local_invoke_command_list, env=self._add_tf_project_variables())
 
@@ -474,7 +319,7 @@ class TestInvalidTerraformApplicationThatReferToS3BucketNotCreatedYet(InvokeTerr
     def test_invoke_function(self):
         function_name = "aws_lambda_function.function"
         local_invoke_command_list = InvokeIntegBase.get_command_list(
-            function_to_invoke=function_name, hook_name="terraform", beta_features=True
+            function_to_invoke=function_name, hook_name="terraform"
         )
         _, stderr, return_code = self.run_command(local_invoke_command_list)
         process_stderr = stderr.strip()
@@ -534,7 +379,6 @@ class TestInvokeTerraformApplicationWithLocalImageUri(InvokeTerraformApplication
             function_to_invoke=function_name,
             hook_name="terraform",
             event_path=self.event_path,
-            beta_features=True,
         )
         stdout, _, return_code = self.run_command(local_invoke_command_list)
 
