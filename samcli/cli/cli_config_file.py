@@ -272,9 +272,9 @@ def save_command_line_args_to_config(
         config_file.put(cmd_names, "parameters", param_name, param_value, config_env_name)
         saved_params.update({param_name: param_value})
 
-    LOG.debug(
+    LOG.info(
         f"Saved parameters to config file '{config_file.filepath.name}' "
-        f"under environment {config_env_name}: {saved_params}"
+        f"under environment '{config_env_name}': {saved_params}"
     )
 
     config_file.flush()
