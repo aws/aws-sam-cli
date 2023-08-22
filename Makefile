@@ -53,7 +53,7 @@ format: black
 	ruff samcli --fix
 
 schema:
-	PYTHONPATH="${PYTHONPATH}:." python schema/make_schema.py
+	python -m schema.make_schema
 
 # Verifications to run before sending a pull request
 pr: init dev schema black-check
