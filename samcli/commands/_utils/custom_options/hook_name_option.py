@@ -4,6 +4,7 @@ Custom Click options for hook name
 
 import logging
 import os
+from typing import Any, Mapping
 
 import click
 
@@ -18,8 +19,11 @@ from samcli.commands._utils.experimental import (
 )
 from samcli.lib.hook.exceptions import InvalidHookWrapperException
 from samcli.lib.hook.hook_wrapper import IacHookWrapper, get_available_hook_packages_ids
+from samcli.lib.telemetry.event import EventName, EventTracker
 
 LOG = logging.getLogger(__name__)
+
+PLAN_FILE_OPTION = "terraform_plan_file"
 
 
 class HookNameOption(click.Option):
@@ -66,6 +70,8 @@ class HookNameOption(click.Option):
             # capture exceptions from prepare hook to emit in track_command
             c = Context.get_current_context()
             c.exception = ex
+        finally:
+            record_hook_telemetry(opts)
 
         return super().handle_parse_result(ctx, opts, args)
 
@@ -215,3 +221,16 @@ def _read_parameter_value(param_name, opts, ctx, default_value=None):
     Read SAM CLI parameter value either from the parameters list or from the samconfig values
     """
     return opts.get(param_name, ctx.default_map.get(param_name, default_value))
+
+
+def record_hook_telemetry(opts: Mapping[str, Any]):
+    """
+    Emit metrics related to hooks based on the options passed into the command
+
+    Parameters
+    ----------
+    opts: Mapping[str, Any]
+        Mapping between a command line option and its value
+    """
+    if PLAN_FILE_OPTION in opts and opts.get(PLAN_FILE_OPTION) is not None:
+        EventTracker.track_event(EventName.HOOK_CONFIGURATIONS_USED.value, "TerraformPlanFile")
