@@ -28,6 +28,7 @@ class EventName(Enum):
     SYNC_FLOW_END = "SyncFlowEnd"
     BUILD_WORKFLOW_USED = "BuildWorkflowUsed"
     CONFIG_FILE_EXTENSION = "SamConfigFileExtension"
+    HOOK_CONFIGURATIONS_USED = "HookConfigurationsUsed"
 
 
 class UsedFeature(Enum):
@@ -61,6 +62,10 @@ class EventType:
     ]
     _WORKFLOWS = [f"{config.language}-{config.dependency_manager}" for config in ALL_CONFIGS]
 
+    _HOOK_CONFIGURATIONS = [
+        "TerraformPlanFile",
+    ]
+
     _event_values = {  # Contains allowable values for Events
         EventName.USED_FEATURE: [event.value for event in UsedFeature],
         EventName.BUILD_FUNCTION_RUNTIME: INIT_RUNTIMES,
@@ -72,6 +77,7 @@ class EventType:
         EventName.SYNC_FLOW_END: _SYNC_FLOWS,
         EventName.BUILD_WORKFLOW_USED: _WORKFLOWS,
         EventName.CONFIG_FILE_EXTENSION: list(FILE_MANAGER_MAPPER.keys()),
+        EventName.HOOK_CONFIGURATIONS_USED: _HOOK_CONFIGURATIONS,
     }
 
     @staticmethod
@@ -148,6 +154,7 @@ class EventTracker:
     _events: List[Event] = []
     _event_lock = threading.Lock()
     _session_id: Optional[str] = None
+    _command_name: Optional[str] = None
 
     MAX_EVENTS: int = 50  # Maximum number of events to store before sending
 
@@ -205,8 +212,9 @@ class EventTracker:
                     Event(event_name, event_value, thread_id=thread_id, exception_name=exception_name)
                 )
 
-                # Get the session ID (needed for multithreading sending)
-                EventTracker._set_session_id()
+                # Get properties from the click context (needed for multithreading sending)
+                EventTracker._set_context_property("_session_id", "session_id")
+                EventTracker._set_context_property("_command_name", "command_path")
 
                 if len(EventTracker._events) >= EventTracker.MAX_EVENTS:
                     should_send = True
@@ -235,17 +243,27 @@ class EventTracker:
         return send_thread
 
     @staticmethod
-    def _set_session_id() -> None:
+    def _set_context_property(event_prop: str, context_prop: str) -> None:
         """
-        Get the session ID from click and save it locally.
+        Set a click context property in the event so that it is emitted when the metric is sent.
+        This is required since the event is sent in a separate thread and no longer has access
+        to the click context that the command was initially called with. As a workaround, we set
+        the property here first so that it's available when calling the metrics endpoint.
+
+        Parameters
+        ----------
+        event_prop: str
+            Property name to be stored in the event and consumed when emitting the metric
+        context_prop: str
+            Property name for the target property from the context object
         """
-        if not EventTracker._session_id:
+        if not getattr(EventTracker, event_prop):
             try:
                 ctx = Context.get_current_context()
                 if ctx:
-                    EventTracker._session_id = ctx.session_id
+                    setattr(EventTracker, event_prop, getattr(ctx, context_prop))
             except RuntimeError:
-                LOG.debug("EventTracker: Unable to obtain session ID")
+                LOG.debug("EventTracker: Unable to obtain %s", context_prop)
 
     @staticmethod
     def _send_events_in_thread():
@@ -264,6 +282,7 @@ class EventTracker:
         telemetry = Telemetry()
         metric = Metric("events")
         metric.add_data("sessionId", EventTracker._session_id)
+        metric.add_data("commandName", EventTracker._command_name)
         metric.add_data("metricSpecificAttributes", msa)
         telemetry.emit(metric)
 
