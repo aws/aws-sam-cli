@@ -309,7 +309,7 @@ def save_params_option(func):
     return click.option(
         "--save-params",
         is_flag=True,
-        help="Save the terminal-provided parameters to the configuration file.",
+        help="Save the parameters provided via the command line to the configuration file.",
     )(save_params(func))
 
 
