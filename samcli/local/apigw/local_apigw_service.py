@@ -641,7 +641,7 @@ class LocalApigwService(BaseLocalService):
         route: Route = self._get_current_route(request)
 
         request_origin = request.headers.get("Origin")
-        cors_headers = Cors.cors_to_headers(self.api.cors, request_origin)
+        cors_headers = Cors.cors_to_headers(self.api.cors, request_origin, route.event_type)
 
         lambda_authorizer = route.authorizer_object
 
