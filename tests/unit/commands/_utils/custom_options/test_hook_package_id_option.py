@@ -1,10 +1,10 @@
 from unittest import TestCase
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, Mock
 import os
 
 import click
 
-from samcli.commands._utils.custom_options.hook_name_option import HookNameOption
+from samcli.commands._utils.custom_options.hook_name_option import HookNameOption, record_hook_telemetry
 from samcli.lib.hook.exceptions import InvalidHookWrapperException
 
 
@@ -68,9 +68,12 @@ class TestHookPackageIdOption(TestCase):
             f"Parameters hook-name, and {','.join(self.invalid_coexist_options)} cannot be used together",
         )
 
+    @patch("samcli.commands._utils.custom_options.hook_name_option.record_hook_telemetry")
     @patch("samcli.commands._utils.custom_options.hook_name_option.os.getcwd")
     @patch("samcli.commands._utils.custom_options.hook_name_option.IacHookWrapper")
-    def test_valid_hook_package_with_only_hook_id_option(self, iac_hook_wrapper_mock, getcwd_mock):
+    def test_valid_hook_package_with_only_hook_id_option(
+        self, iac_hook_wrapper_mock, getcwd_mock, record_hook_telemetry_mock
+    ):
         iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
 
         getcwd_mock.return_value = self.cwd_path
@@ -99,9 +102,12 @@ class TestHookPackageIdOption(TestCase):
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
 
+    @patch("samcli.commands._utils.custom_options.hook_name_option.record_hook_telemetry")
     @patch("samcli.commands._utils.custom_options.hook_name_option.os.getcwd")
     @patch("samcli.commands._utils.custom_options.hook_name_option.IacHookWrapper")
-    def test_valid_hook_package_with_other_options(self, iac_hook_wrapper_mock, getcwd_mock):
+    def test_valid_hook_package_with_other_options(
+        self, iac_hook_wrapper_mock, getcwd_mock, record_hook_telemetry_mock
+    ):
         iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
 
         getcwd_mock.return_value = self.cwd_path
@@ -135,10 +141,14 @@ class TestHookPackageIdOption(TestCase):
             "/path/path",
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
+        record_hook_telemetry_mock.assert_called_once()
 
+    @patch("samcli.commands._utils.custom_options.hook_name_option.record_hook_telemetry")
     @patch("samcli.commands._utils.custom_options.hook_name_option.os.getcwd")
     @patch("samcli.commands._utils.custom_options.hook_name_option.IacHookWrapper")
-    def test_valid_hook_package_with_other_options_from_sam_config(self, iac_hook_wrapper_mock, getcwd_mock):
+    def test_valid_hook_package_with_other_options_from_sam_config(
+        self, iac_hook_wrapper_mock, getcwd_mock, record_hook_telemetry_mock
+    ):
         iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
 
         getcwd_mock.return_value = self.cwd_path
@@ -173,6 +183,7 @@ class TestHookPackageIdOption(TestCase):
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
 
+    @patch("samcli.commands._utils.custom_options.hook_name_option.record_hook_telemetry")
     @patch("samcli.commands._utils.custom_options.hook_name_option.os.getcwd")
     @patch("samcli.commands._utils.custom_options.hook_name_option.os.path.exists")
     @patch("samcli.commands._utils.custom_options.hook_name_option.IacHookWrapper")
@@ -181,6 +192,7 @@ class TestHookPackageIdOption(TestCase):
         iac_hook_wrapper_mock,
         path_exists_mock,
         getcwd_mock,
+        record_hook_telemetry_mock,
     ):
         iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
 
@@ -202,6 +214,7 @@ class TestHookPackageIdOption(TestCase):
         self.iac_hook_wrapper_instance_mock.prepare.assert_not_called()
         self.assertEqual(opts.get("template_file"), None)
 
+    @patch("samcli.commands._utils.custom_options.hook_name_option.record_hook_telemetry")
     @patch("samcli.commands._utils.custom_options.hook_name_option.os.getcwd")
     @patch("samcli.commands._utils.custom_options.hook_name_option.os.path.exists")
     @patch("samcli.commands._utils.custom_options.hook_name_option.IacHookWrapper")
@@ -210,6 +223,7 @@ class TestHookPackageIdOption(TestCase):
         iac_hook_wrapper_mock,
         path_exists_mock,
         getcwd_mock,
+        record_hook_telemetry_mock,
     ):
         iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
 
@@ -241,6 +255,7 @@ class TestHookPackageIdOption(TestCase):
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
 
+    @patch("samcli.commands._utils.custom_options.hook_name_option.record_hook_telemetry")
     @patch("samcli.commands._utils.custom_options.hook_name_option.os.getcwd")
     @patch("samcli.commands._utils.custom_options.hook_name_option.os.path.exists")
     @patch("samcli.commands._utils.custom_options.hook_name_option.IacHookWrapper")
@@ -249,6 +264,7 @@ class TestHookPackageIdOption(TestCase):
         iac_hook_wrapper_mock,
         path_exists_mock,
         getcwd_mock,
+        record_hook_telemetry_mock,
     ):
         iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
 
@@ -283,6 +299,7 @@ class TestHookPackageIdOption(TestCase):
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
 
+    @patch("samcli.commands._utils.custom_options.hook_name_option.record_hook_telemetry")
     @patch("samcli.commands._utils.custom_options.hook_name_option.os.getcwd")
     @patch("samcli.commands._utils.custom_options.hook_name_option.os.path.exists")
     @patch("samcli.commands._utils.custom_options.hook_name_option.IacHookWrapper")
@@ -291,6 +308,7 @@ class TestHookPackageIdOption(TestCase):
         iac_hook_wrapper_mock,
         path_exists_mock,
         getcwd_mock,
+        record_hook_telemetry_mock,
     ):
         iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
 
@@ -316,12 +334,14 @@ class TestHookPackageIdOption(TestCase):
         ):
             hook_name_option.handle_parse_result(ctx, opts, args)
 
+    @patch("samcli.commands._utils.custom_options.hook_name_option.record_hook_telemetry")
     @patch("samcli.commands._utils.custom_options.hook_name_option.os.getcwd")
     @patch("samcli.commands._utils.custom_options.hook_name_option.IacHookWrapper")
     def test_invalid_parameter_hook_with_invalid_project_root_directory(
         self,
         iac_hook_wrapper_mock,
         getcwd_mock,
+        record_hook_telemetry_mock,
     ):
         iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
 
@@ -347,6 +367,7 @@ class TestHookPackageIdOption(TestCase):
         ):
             hook_name_option.handle_parse_result(ctx, opts, args)
 
+    @patch("samcli.commands._utils.custom_options.hook_name_option.record_hook_telemetry")
     @patch("samcli.commands._utils.custom_options.hook_name_option.os.getcwd")
     @patch("samcli.commands._utils.custom_options.hook_name_option.os.path.exists")
     @patch("samcli.commands._utils.custom_options.hook_name_option.os.path.isabs")
@@ -357,6 +378,7 @@ class TestHookPackageIdOption(TestCase):
         path_isabs_mock,
         path_exists_mock,
         getcwd_mock,
+        record_hook_telemetry_mock,
     ):
         iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
 
@@ -391,6 +413,7 @@ class TestHookPackageIdOption(TestCase):
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
 
+    @patch("samcli.commands._utils.custom_options.hook_name_option.record_hook_telemetry")
     @patch("samcli.commands._utils.custom_options.hook_name_option.os.getcwd")
     @patch("samcli.commands._utils.custom_options.hook_name_option.os.path.exists")
     @patch("samcli.commands._utils.custom_options.hook_name_option.os.path.isabs")
@@ -401,6 +424,7 @@ class TestHookPackageIdOption(TestCase):
         path_isabs_mock,
         path_exists_mock,
         getcwd_mock,
+        record_hook_telemetry_mock,
     ):
         iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
 
@@ -435,6 +459,7 @@ class TestHookPackageIdOption(TestCase):
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
 
+    @patch("samcli.commands._utils.custom_options.hook_name_option.record_hook_telemetry")
     @patch("samcli.commands._utils.custom_options.hook_name_option.os.getcwd")
     @patch("samcli.commands._utils.custom_options.hook_name_option.os.path.exists")
     @patch("samcli.commands._utils.custom_options.hook_name_option.IacHookWrapper")
@@ -443,6 +468,7 @@ class TestHookPackageIdOption(TestCase):
         iac_hook_wrapper_mock,
         path_exists_mock,
         getcwd_mock,
+        record_hook_telemetry_mock,
     ):
         iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
 
@@ -475,3 +501,9 @@ class TestHookPackageIdOption(TestCase):
             None,
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
+
+    @patch("samcli.commands._utils.custom_options.hook_name_option.EventTracker")
+    def test_record_hook_telemetry(self, event_tracker_mock):
+        opts = {"terraform_plan_file": "my_plan.json"}
+        record_hook_telemetry(opts, Mock())
+        event_tracker_mock.track_event.assert_called_once_with("HookConfigurationsUsed", "TerraformPlanFile")

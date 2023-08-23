@@ -24,3 +24,7 @@ class PrepareHookException(UserException):
 
 class TerraformCloudException(UserException):
     pass
+
+
+class UnallowedEnvironmentVariableArgumentException(UserException):
+    pass
