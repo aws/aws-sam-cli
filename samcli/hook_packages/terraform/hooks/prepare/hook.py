@@ -12,7 +12,11 @@ from typing import Any, Dict
 
 from samcli.hook_packages.terraform.hooks.prepare.constants import CFN_CODE_PROPERTIES
 from samcli.hook_packages.terraform.hooks.prepare.translate import translate_to_cfn
-from samcli.lib.hook.exceptions import PrepareHookException, TerraformCloudException
+from samcli.lib.hook.exceptions import (
+    PrepareHookException,
+    TerraformCloudException,
+    UnallowedEnvironmentVariableArgumentException,
+)
 from samcli.lib.utils import osutils
 from samcli.lib.utils.subprocess_utils import LoadingPatternError, invoke_subprocess_with_loading_pattern
 
@@ -31,6 +35,17 @@ TF_CLOUD_HELP_MESSAGE = (
     "To use AWS SAM CLI with Terraform Cloud applications, provide "
     "a plan file using the --terraform-plan-file flag."
 )
+
+TF_BLOCKED_ARGUMENTS = [
+    "-target",
+    "-destroy",
+]
+TF_ENVIRONMENT_VARIABLE_DELIM = "="
+TF_ENVIRONMENT_VARIABLES = [
+    "TF_CLI_ARGS",
+    "TF_CLI_ARGS_plan",
+    "TF_CLI_ARGS_apply",
+]
 
 
 def prepare(params: dict) -> dict:
@@ -54,6 +69,8 @@ def prepare(params: dict) -> dict:
 
     if not output_dir_path:
         raise PrepareHookException("OutputDirPath was not supplied")
+
+    _validate_environment_variables()
 
     LOG.debug("Normalize the terraform application root module directory path %s", terraform_application_dir)
     if not os.path.isabs(terraform_application_dir):
@@ -215,3 +232,36 @@ def _generate_plan_file(skip_prepare_infra: bool, terraform_application_dir: str
         raise PrepareHookException(f"Error occurred when invoking a process:\n{e}") from e
 
     return dict(json.loads(result.stdout))
+
+
+def _validate_environment_variables() -> None:
+    """
+    Validate that the Terraform environment variables do not contain blocked arguments.
+
+    Raises
+    ------
+    UnallowedEnvironmentVariableArgumentException
+        Raised when a Terraform related environment variable contains a blocked value
+    """
+    for env_var in TF_ENVIRONMENT_VARIABLES:
+        env_value = os.environ.get(env_var, "")
+
+        trimmed_arguments = []
+        # get all trimmed arguments in a list and split on delim
+        # eg.
+        # "-foo=bar -hello" => ["-foo", "-hello"]
+        for argument in env_value.split(" "):
+            cleaned_argument = argument.strip()
+            cleaned_argument = cleaned_argument.split(TF_ENVIRONMENT_VARIABLE_DELIM)[0]
+
+            trimmed_arguments.append(cleaned_argument)
+
+        if any([argument in TF_BLOCKED_ARGUMENTS for argument in trimmed_arguments]):
+            message = (
+                "Environment variable '%s' contains a blocked argument, please validate it does not contain: %s"
+                % (
+                    env_var,
+                    TF_BLOCKED_ARGUMENTS,
+                )
+            )
+            raise UnallowedEnvironmentVariableArgumentException(message)

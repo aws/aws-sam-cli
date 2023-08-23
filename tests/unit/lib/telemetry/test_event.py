@@ -7,6 +7,9 @@ import threading
 from typing import List, Tuple
 from unittest import TestCase
 from unittest.mock import ANY, Mock, patch
+
+from parameterized import parameterized
+
 from samcli.cli.context import Context
 from uuid import UUID, uuid4
 
@@ -163,6 +166,7 @@ class TestEventTracker(TestCase):
             "ci": ANY,
             "pyversion": ANY,
             "samcliVersion": ANY,
+            "commandName": ANY,
             "metricSpecificAttributes": {
                 "events": [
                     {
@@ -212,9 +216,43 @@ class TestEventTracker(TestCase):
         context_mock.return_value = mock
 
         EventTracker._session_id = None
-        EventTracker._set_session_id()
+        EventTracker._set_context_property("_session_id", "session_id")
 
         self.assertEqual(EventTracker._session_id, "123")
+
+    @patch("samcli.cli.context.Context.get_current_context")
+    def test_command_name_set(self, context_mock):
+        mock = Mock()
+        mock.command_path = "sam cool command"
+        context_mock.return_value = mock
+
+        EventTracker._command_name = None
+        EventTracker._set_context_property("_command_name", "command_path")
+
+        self.assertEqual(EventTracker._command_name, "sam cool command")
+
+    @patch("samcli.cli.context.Context.get_current_context")
+    def test_set_context_properties(self, context_mock):
+        event_prop = "event_prop"
+        context_prop = "context_prop"
+        context_value = "context_value"
+
+        mock = Mock()
+        setattr(mock, context_prop, context_value)
+        context_mock.return_value = mock
+
+        setattr(EventTracker, event_prop, None)
+        EventTracker._set_context_property(event_prop, context_prop)
+
+        self.assertEqual(getattr(EventTracker, event_prop), context_value)
+
+    @patch("samcli.lib.telemetry.event.LOG")
+    @patch("samcli.cli.context.Context.get_current_context")
+    def test_throws_handles_context_not_read(self, context_mock, log_mock):
+        context_mock.side_effect = RuntimeError("Failed")
+        EventTracker._command_name = None
+        EventTracker._set_context_property("_command_name", "command_path")
+        log_mock.debug.assert_called_once_with("EventTracker: Unable to obtain %s", "command_path")
 
 
 class TestTrackLongEvent(TestCase):
