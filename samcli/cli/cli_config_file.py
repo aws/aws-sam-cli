@@ -272,13 +272,12 @@ def save_command_line_args_to_config(
         config_file.put(cmd_names, "parameters", param_name, param_value, config_env_name)
         saved_params.update({param_name: param_value})
 
+    config_file.flush()
+
     LOG.info(
         f"Saved parameters to config file '{config_file.filepath.name}' "
         f"under environment '{config_env_name}': {saved_params}"
     )
-
-    config_file.flush()
-
 
 def save_params(func):
     """Decorator for saving provided parameters to a config file, if the flag is set."""
