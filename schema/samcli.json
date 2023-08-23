@@ -454,7 +454,7 @@
                 "container_env_vars": {
                   "title": "container_env_vars",
                   "type": "string",
-                  "description": "JSON file containing environment variables to be set within the container environment"
+                  "description": "JSON file containing additional environment variables to be set within the container when used in a debugging session locally."
                 },
                 "docker_volume_basedir": {
                   "title": "docker_volume_basedir",
@@ -622,7 +622,7 @@
                 "container_env_vars": {
                   "title": "container_env_vars",
                   "type": "string",
-                  "description": "JSON file containing environment variables to be set within the container environment"
+                  "description": "JSON file containing additional environment variables to be set within the container when used in a debugging session locally."
                 },
                 "docker_volume_basedir": {
                   "title": "docker_volume_basedir",
@@ -813,7 +813,7 @@
                 "container_env_vars": {
                   "title": "container_env_vars",
                   "type": "string",
-                  "description": "JSON file containing environment variables to be set within the container environment"
+                  "description": "JSON file containing additional environment variables to be set within the container when used in a debugging session locally."
                 },
                 "docker_volume_basedir": {
                   "title": "docker_volume_basedir",
