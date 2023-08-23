@@ -279,6 +279,7 @@ def save_command_line_args_to_config(
         f"under environment '{config_env_name}': {saved_params}"
     )
 
+
 def save_params(func):
     """Decorator for saving provided parameters to a config file, if the flag is set."""
 
