@@ -466,3 +466,37 @@ class TestBuildTerraformApplicationsSourceCodeAndModulesAreNotInRootModuleDirect
             overrides=None,
             expected_result={"statusCode": 200, "body": expected_output},
         )
+
+
+@skipIf(
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
+    "Skip Terraform test cases unless running in CI",
+)
+class TestBuildTerraformApplicationsWithBlockedEnvironVariables(BuildTerraformApplicationIntegBase):
+    terraform_application = Path("terraform/simple_application")
+
+    @parameterized.expand(
+        [
+            ("TF_CLI_ARGS", "-destroy"),
+            ("TF_CLI_ARGS", "-target=some.module"),
+            ("TF_CLI_ARGS_plan", "-destroy"),
+            ("TF_CLI_ARGS_plan", "-target=some.module"),
+            ("TF_CLI_ARGS_apply", "-destroy"),
+            ("TF_CLI_ARGS_apply", "-target=some.module"),
+        ]
+    )
+    def test_blocked_env_variables(self, env_name, env_value):
+        cmdlist = self.get_command_list(hook_name="terraform", beta_features=True)
+
+        env_variables = os.environ.copy()
+        env_variables[env_name] = env_value
+
+        _, stderr, return_code = self.run_command(cmdlist, env=env_variables)
+
+        process_stderr = stderr.strip()
+        self.assertRegex(
+            process_stderr.decode("utf-8"),
+            "Error: Environment variable '%s' contains a blocked argument, please validate it does not contain: ['-destroy', '-target']"
+            % env_name,
+        )
+        self.assertNotEqual(return_code, 0)
