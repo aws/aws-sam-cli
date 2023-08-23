@@ -8,8 +8,8 @@ Resources:
       Handler: main
       Runtime: go1.x
       CodeUri: ./go1.x/main.zip
-      MemorySize: 512
-      Timeout: 300
+      MemorySize: 1024
+      Timeout: 900
 
   Java8Function:
     Type: AWS::Serverless::Function
@@ -17,8 +17,8 @@ Resources:
       Handler: helloworld.App::handleRequest
       Runtime: java8
       CodeUri: ./java8/target/HelloWorld-1.0.jar
-      MemorySize: 512
-      Timeout: 300
+      MemorySize: 1024
+      Timeout: 900
 
   CustomBashFunction:
     Type: AWS::Serverless::Function
