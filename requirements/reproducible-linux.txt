@@ -756,9 +756,7 @@ tomlkit==0.11.8 \
 types-awscrt==0.19.0 \
     --hash=sha256:0e31d7ba44e1898af37d224b94d28ffaef19baf89bb18ea2599de9ac0910a07f \
     --hash=sha256:eaef60422cf716b4ae216f164b74d679c82b0d9c53db380a37deb29ae5579b1b
-    # via
-    #   botocore-stubs
-    #   types-s3transfer
+    # via botocore-stubs
 types-s3transfer==0.6.2 \
     --hash=sha256:1068877b6e59be5226fa3006ae64371ac9d5bc590dfdbd9c66fd0a075d3254ac \
     --hash=sha256:4ba9b483796fdcd026aa162ee03bdcedd2bf7d08e9387c820dcdd158b0102057
