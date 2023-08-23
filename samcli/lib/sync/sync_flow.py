@@ -422,10 +422,10 @@ def get_definition_path(
     """
     definition_field_names = RESOURCES_WITH_LOCAL_PATHS.get(resource.get("Type", ""))
     if not definition_field_names:
-        LOG.error("Couldn't find definition field name for resource {}", identifier)
+        LOG.error("Couldn't find definition field name for resource %s", identifier)
         return None
     definition_field_name = definition_field_names[0]
-    LOG.debug("Found definition field name as {}", definition_field_name)
+    LOG.debug("Found definition field name as %s", definition_field_name)
 
     properties = resource.get("Properties", {})
     definition_file = properties.get(definition_field_name)
