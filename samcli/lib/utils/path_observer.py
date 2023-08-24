@@ -1,18 +1,22 @@
 """
 HandlerObserver and its helper classes.
 """
+import logging
 import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, List, Optional
 
 from watchdog.events import (
+    EVENT_TYPE_OPENED,
     FileSystemEvent,
     FileSystemEventHandler,
     RegexMatchingEventHandler,
 )
 from watchdog.observers import Observer
 from watchdog.observers.api import DEFAULT_OBSERVER_TIMEOUT, ObservedWatch
+
+LOG = logging.getLogger(__name__)
 
 
 @dataclass
@@ -77,8 +81,18 @@ class StaticFolderWrapper:
         self._path_handler = path_handler
         self._watch: Optional[ObservedWatch] = initial_watch
 
-    def _on_parent_change(self, _: FileSystemEvent) -> None:
-        """Callback for changes detected in the parent folder"""
+    def _on_parent_change(self, event: FileSystemEvent) -> None:
+        """
+        Callback for changes detected in the parent folder
+
+        Parameters
+        ----------
+        event: FileSystemEvent
+            event
+        """
+        if event.event_type == EVENT_TYPE_OPENED:
+            LOG.debug("Ignoring file system OPENED event.")
+            return
 
         # When folder is being watched but the folder does not exist
         if self._watch and not self._path_handler.path.exists():

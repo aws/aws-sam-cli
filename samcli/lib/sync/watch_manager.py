@@ -313,19 +313,25 @@ class WatchManager:
             Callback function
         """
 
-        def on_code_change(event: FileSystemEvent) -> None:
+        def on_code_change(event: Optional[FileSystemEvent] = None) -> None:
             """
             Custom event handling to create a new sync flow if a file was modified.
 
             Parameters
             ----------
-            event: FileSystemEvent
+            event: Optional[FileSystemEvent]
                 The event that triggered the change
             """
-            if event.event_type == EVENT_TYPE_OPENED:
+            if event and event.event_type == EVENT_TYPE_OPENED:
                 # Ignore all file opened events since this event is
                 # added in addition to a create or modified event,
                 # causing an infinite loop of sync flow creations
+                LOG.debug("Ignoring file system OPENED event")
+                return
+
+            # sync flow factory should always exist, but guarding just incase
+            if not self._sync_flow_factory:
+                LOG.debug("Sync flow factory not defined, skipping trigger")
                 return
 
             sync_flow = self._sync_flow_factory.create_sync_flow(resource_id)
