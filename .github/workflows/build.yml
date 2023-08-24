@@ -242,7 +242,10 @@ jobs:
         run: make init
       - name: Stop Docker Linux
         if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: sudo systemctl stop docker
+        run: |
+          : sudo systemctl stop docker
+          sudo systemctl disable docker.service
+          sudo systemctl disable docker.socket
       - name: Stop Docker Windows
         if: ${{ matrix.os == 'windows-latest' }}
         shell: pwsh
