@@ -808,9 +808,9 @@ werkzeug==2.3.7 \
     --hash=sha256:2b8c0e447b4b9dbcc85dd97b6eeb4dcbaf6c8b6c3be0bd654e25553e0a2157d8 \
     --hash=sha256:effc12dba7f3bd72e605ce49807bbe692bd729c3bb122a3b91747a6ae77df528
     # via flask
-wheel==0.41.1 \
-    --hash=sha256:12b911f083e876e10c595779709f8a88a59f45aacc646492a67fe9ef796c1b47 \
-    --hash=sha256:473219bd4cbedc62cea0cb309089b593e47c15c4a2531015f94e4e3b9a0f6981
+wheel==0.41.2 \
+    --hash=sha256:0c5ac5ff2afb79ac23ab82bab027a0be7b5dbcf2e54dc50efe4bf507de1f7985 \
+    --hash=sha256:75909db2664838d015e3d9139004ee16711748a52c8f336b52882266540215d8
     # via aws-lambda-builders
 
 # The following packages are considered to be unsafe in a requirements file:
