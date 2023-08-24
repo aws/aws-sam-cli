@@ -11,7 +11,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from time import time, sleep
 
 import pytest
-from parameterized import parameterized_class
+from parameterized import parameterized_class, parameterized
 
 from samcli.commands.local.cli_common.invoke_context import ContainersInitializationMode
 from samcli.local.apigw.route import Route
@@ -1510,7 +1510,14 @@ class TestOptionsHandler(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 204)
 
 
-class TestServiceCorsSwaggerRequests(StartApiIntegBaseClass):
+def _create_request_params(origin):
+    params = {"timeout": 300}
+    if origin:
+        params["headers"] = {"Origin": origin}
+    return params
+
+
+class TestServiceCorsSwaggerRequestsWithRestAPI(StartApiIntegBaseClass):
     """
     Test to check that the correct headers are being added with Cors with swagger code
     """
@@ -1531,20 +1538,22 @@ class TestServiceCorsSwaggerRequests(StartApiIntegBaseClass):
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
-    def test_cors_swagger_options(self):
+    @parameterized.expand(["https://abc", None])
+    def test_cors_swagger_options(self, origin):
         """
         This tests that the Cors headers are added to OPTIONS responses
         """
-        response = requests.options(self.url + "/echobase64eventbody", headers={"Origin": "https://abc"}, timeout=300)
+        response = requests.options(self.url + "/echobase64eventbody", **_create_request_params(origin))
         self.assert_cors(response)
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
-    def test_cors_swagger_get(self):
+    @parameterized.expand(["https://abc", None])
+    def test_cors_swagger_get(self, origin):
         """
         This tests that the Cors headers are added to _other_ method responses
         """
-        response = requests.get(self.url + "/echobase64eventbody", headers={"Origin": "https://abc"}, timeout=300)
+        response = requests.get(self.url + "/echobase64eventbody", **_create_request_params(origin))
         self.assert_cors(response)
 
 
@@ -1665,47 +1674,14 @@ class TestServiceCorsGlobalRequests(StartApiIntegBaseClass):
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
-    def test_cors_global(self):
+    @parameterized.expand(["https://abc", None])
+    def test_cors_global(self, origin):
         """
         This tests that the Cors headers are added to OPTIONS response when the global property is set
         """
-        response = requests.options(self.url + "/echobase64eventbody", headers={"Origin": "https://abc"}, timeout=300)
+        response = requests.options(self.url + "/echobase64eventbody", **_create_request_params(origin))
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.headers.get("Access-Control-Allow-Origin"), "*")
-        self.assertEqual(response.headers.get("Access-Control-Allow-Headers"), None)
-        self.assertEqual(response.headers.get("Access-Control-Allow-Methods"), ",".join(sorted(Route.ANY_HTTP_METHODS)))
-        self.assertEqual(response.headers.get("Access-Control-Allow-Credentials"), None)
-        self.assertEqual(response.headers.get("Access-Control-Max-Age"), None)
-
-    @pytest.mark.flaky(reruns=3)
-    @pytest.mark.timeout(timeout=600, method="thread")
-    def test_cors_global_get(self):
-        """
-        This tests that the Cors headers are NOT added to GET response when origin is not present in the request
-        """
-        response = requests.get(self.url + "/onlysetstatuscode", timeout=300)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.content.decode("utf-8"), "")
-        self.assertEqual(response.headers.get("Content-Type"), "application/json")
-        self.assertEqual(response.headers.get("Access-Control-Allow-Origin"), None)
-        self.assertEqual(response.headers.get("Access-Control-Allow-Headers"), None)
-        self.assertEqual(response.headers.get("Access-Control-Allow-Methods"), None)
-        self.assertEqual(response.headers.get("Access-Control-Allow-Credentials"), None)
-        self.assertEqual(response.headers.get("Access-Control-Max-Age"), None)
-
-    @pytest.mark.flaky(reruns=3)
-    @pytest.mark.timeout(timeout=600, method="thread")
-    def test_cors_global_get_present_origin(self):
-        """
-        This tests that the Cors headers are added to GET response when the global property is set and origin is present
-        """
-        response = requests.get(self.url + "/onlysetstatuscode", headers={"Origin": "https://abc"}, timeout=300)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.content.decode("utf-8"), "")
-        self.assertEqual(response.headers.get("Content-Type"), "application/json")
         self.assertEqual(response.headers.get("Access-Control-Allow-Origin"), "*")
         self.assertEqual(response.headers.get("Access-Control-Allow-Headers"), None)
         self.assertEqual(response.headers.get("Access-Control-Allow-Methods"), ",".join(sorted(Route.ANY_HTTP_METHODS)))
