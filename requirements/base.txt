@@ -6,7 +6,7 @@ boto3>=1.26.109,==1.*
 jmespath~=1.0.1
 ruamel_yaml~=0.17.32
 PyYAML~=6.0,>=6.0.1
-cookiecutter~=2.1.1
+cookiecutter~=2.3.0
 aws-sam-translator==1.73.0
 #docker minor version updates can include breaking changes. Auto update micro version only.
 docker~=6.1.0
