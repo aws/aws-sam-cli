@@ -87,38 +87,33 @@ class TestSamConfigWithBuild(BuildIntegBase):
         new_template_location = Path(self.working_dir, "template.yaml")
         new_template_location.write_text(Path(self.template_path).read_text())
         config_contents = Path(self.test_data_path, configs[".toml"]).read_text()
-        new_path = Path(self.working_dir, "samconfig.toml")
-        new_path.write_text(config_contents)
-        self.assertTrue(new_path.exists(), "File samconfig.toml should have been created in cwd")
+        new_config_path = Path(self.working_dir, "samconfig.toml")
+        new_config_path.write_text(config_contents)
+        self.assertTrue(new_config_path.exists(), "File samconfig.toml should have been created in cwd")
 
         # do the test
-        try:
-            self.template_path = str(Path(self.working_dir, "template.yaml"))
-            cmdlist = self.get_command_list(
-                config_file=str(new_path), save_params=True, build_dir="new_dir", parallel=True
-            )
-            command_result = run_command(cmdlist, cwd=self.working_dir)
-            stdout = str(command_result[1])
+        self.template_path = str(Path(self.working_dir, "template.yaml"))
+        cmdlist = self.get_command_list(
+            config_file=str(new_config_path), save_params=True, build_dir="new_dir", parallel=True
+        )
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        stdout = str(command_result[1])
 
-            self.assertEqual(command_result.process.returncode, 0, "Build should succeed")
-            self.assertIn(
-                f"Built Artifacts  : new_dir",
-                stdout,
-                f"Build template should use provided build_dir",
-            )
+        self.assertEqual(command_result.process.returncode, 0, "Build should succeed")
+        self.assertIn(
+            f"Built Artifacts  : new_dir",
+            stdout,
+            f"Build template should use provided build_dir",
+        )
 
-            samconfig = SamConfig(self.working_dir, "samconfig.toml")
-            params = samconfig.document.get("default", {}).get("build", {}).get("parameters", {})
-            self.assertNotEqual(params, {}, "samconfig.toml was not parsed correctly")
-            self.assertIn("parallel", params.keys(), "New key-value pair should be written to config file")
-            self.assertTrue(
-                params.get("build_dir", None) == "new_dir",
-                "New value for existing key build_dir should overwrite old value",
-            )
-        finally:
-            # remove temp dir
-            config_path = Path(self.working_dir, "samconfig.toml")
-            os.remove(config_path)
+        samconfig = SamConfig(self.working_dir, "samconfig.toml")
+        params = samconfig.document.get("default", {}).get("build", {}).get("parameters", {})
+        self.assertNotEqual(params, {}, "samconfig.toml was not parsed correctly")
+        self.assertIn("parallel", params.keys(), "New key-value pair should be written to config file")
+        self.assertTrue(
+            params.get("build_dir", None) == "new_dir",
+            "New value for existing key build_dir should overwrite old value",
+        )
 
 
 @parameterized_class(
