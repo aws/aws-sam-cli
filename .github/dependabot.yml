@@ -16,13 +16,24 @@ updates:
     directory: "/requirements"
     schedule:
       interval: "daily"
-    target-branch: "develop"
+    target-branch: "grouped_dependabot"
     commit-message:
       prefix: chore
       include: scope
     reviewers:
       -  aws/serverless-application-experience-sbt
     open-pull-requests-limit: 10
+    groups:
+      boto-stubs:
+        patterns:
+        - "boto3-stubs*"
+        - "botocore-stubs"
+      types:
+        patterns:
+        - "types-*"
+      mypy:
+        patterns:
+        - "mypy-boto3-*"
     ignore:
       # Ignored intentionally since we have a GHA that updates to more
       # completely
