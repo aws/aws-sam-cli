@@ -600,4 +600,3 @@ class TestTerraformHandlesExceptionFromBinary(BuildTerraformApplicationIntegBase
         self.assertEqual(return_code, 1)
         self.assertIn(err_message, err_string)
         self.assertNotIn(stack_trace_error, err_string)
-
