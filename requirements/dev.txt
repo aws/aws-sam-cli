@@ -20,7 +20,7 @@ types-docutils==0.20.0.2
 types-jsonschema==4.17.0.10
 types-pyOpenSSL==23.2.0.1
 types-requests==2.31.0.2
-types-urllib3==1.26.25.14
+types-urllib3==1.26.25.13
 
 # Test requirements
 pytest~=7.4.0
