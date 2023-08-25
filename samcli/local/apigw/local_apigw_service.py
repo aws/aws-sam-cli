@@ -706,7 +706,7 @@ class LocalApigwService(BaseLocalService):
             )
 
             if lambda_authorizer_exception:
-                LOG.error("Lambda authorizer failed to invoke successfully: %s", lambda_authorizer_exception.message)
+                LOG.error("Lambda authorizer failed to invoke successfully: %s", str(lambda_authorizer_exception))
 
             if auth_service_error:
                 return auth_service_error
