@@ -19,7 +19,7 @@ class LoadingPatternError(UserException):
     def __init__(self, ex):
         self.ex = ex
         message_fmt = f"Failed to execute the subprocess. {ex}"
-        super().__init__(message=message_fmt.format(ex=self.ex))
+        super().__init__(message=message_fmt)
 
 
 def default_loading_pattern(stream_writer: Optional[StreamWriter] = None, loading_pattern_rate: float = 0.5) -> None:
