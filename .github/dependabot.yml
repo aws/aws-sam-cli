@@ -8,8 +8,8 @@ updates:
     commit-message:
       prefix: chore
       include: scope
-    # reviewers:
-    #   - aws/serverless-application-experience-sbt
+    reviewers:
+      - aws/serverless-application-experience-sbt
     open-pull-requests-limit: 10
 
   - package-ecosystem: "pip"
@@ -20,8 +20,8 @@ updates:
     commit-message:
       prefix: chore
       include: scope
-    # reviewers:
-    #   -  aws/serverless-application-experience-sbt
+    reviewers:
+      -  aws/serverless-application-experience-sbt
     open-pull-requests-limit: 10
     groups:
       boto-stubs:
@@ -38,6 +38,8 @@ updates:
         patterns:
         - "pytest-*"
         exclude-patterns:
+        # ignore metadata and json-report since newer versions conflict
+        # as of writing this
         - "pytest-metadata"
         - "pytest-json-report"
     ignore:
