@@ -37,7 +37,7 @@ updates:
       pytest:
         patterns:
         - "pytest-*"
-        exclude:
+        exclude-patterns:
         - "pytest-metadata"
         - "pytest-json-report"
     ignore:
