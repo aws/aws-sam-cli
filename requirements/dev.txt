@@ -8,19 +8,19 @@ pytest-cov==4.1.0
 # mypy adds new rules in new minor versions, which could cause our PR check to fail
 # here we fix its version and upgrade it manually in the future
 mypy==1.4.1
-types-pywin32==306.0.0.3
-types-PyYAML==6.0.12.10
-types-chevron==0.14.2.4
-types-psutil==5.9.5.15
+types-pywin32==306.0.0.4
+types-PyYAML==6.0.12.11
+types-chevron==0.14.2.5
+types-psutil==5.9.5.16
 types-setuptools==68.1.0.0
 types-Pygments==2.16.0.0 
-types-colorama==0.4.15.11
+types-colorama==0.4.15.12
 types-dateparser==1.1.4.10
-types-docutils==0.20.0.2
+types-docutils==0.20.0.3
 types-jsonschema==4.17.0.10
-types-pyOpenSSL==23.2.0.1
+types-pyOpenSSL==23.2.0.2
 types-requests==2.31.0.2
-types-urllib3==1.26.25.13
+types-urllib3==1.26.25.14
 
 # Test requirements
 pytest~=7.4.0
