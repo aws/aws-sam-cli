@@ -2,7 +2,7 @@ chevron~=0.12
 click~=8.1
 Flask<2.4
 #Need to add latest lambda changes which will return invoke mode details
-boto3>=1.26.109,==1.*
+boto3==1.*
 jmespath~=1.0.1
 ruamel_yaml~=0.17.32
 PyYAML~=6.0,>=6.0.1
