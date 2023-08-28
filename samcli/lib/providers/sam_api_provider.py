@@ -46,7 +46,13 @@ class SamApiProvider(CfnBaseApiProvider):
     _API_IDENTITY_SOURCE_PREFIX = "method."
     _HTTP_IDENTITY_SOURCE_PREFIX = "$"
 
-    def extract_resources(self, stacks: List[Stack], collector: ApiCollector, cwd: Optional[str] = None, disable_authorizer: bool = False) -> None:
+    def extract_resources(
+        self,
+        stacks: List[Stack],
+        collector: ApiCollector,
+        cwd: Optional[str] = None,
+        disable_authorizer: Optional[bool] = False,
+    ) -> None:
         """
         Extract the Route Object from a given resource and adds it to the RouteCollector.
 
@@ -69,14 +75,27 @@ class SamApiProvider(CfnBaseApiProvider):
                 if resource_type == AWS_SERVERLESS_FUNCTION:
                     self._extract_routes_from_function(stack.stack_path, logical_id, resource, collector)
                 if resource_type == AWS_SERVERLESS_API:
-                    self._extract_from_serverless_api(stack.stack_path, logical_id, resource, collector, cwd=cwd, disable_authorizer=disable_authorizer)
+                    self._extract_from_serverless_api(
+                        stack.stack_path,
+                        logical_id,
+                        resource,
+                        collector,
+                        cwd=cwd,
+                        disable_authorizer=disable_authorizer,
+                    )
                 if resource_type == AWS_SERVERLESS_HTTPAPI:
                     self._extract_from_serverless_http(stack.stack_path, logical_id, resource, collector, cwd=cwd)
 
         collector.routes = self.merge_routes(collector)
 
     def _extract_from_serverless_api(
-        self, stack_path: str, logical_id: str, api_resource: Dict, collector: ApiCollector, cwd: Optional[str] = None, disable_authorizer: bool = False
+        self,
+        stack_path: str,
+        logical_id: str,
+        api_resource: Dict,
+        collector: ApiCollector,
+        cwd: Optional[str] = None,
+        disable_authorizer: Optional[bool] = False,
     ) -> None:
         """
         Extract APIs from AWS::Serverless::Api resource by reading and parsing Swagger documents. The result is added
@@ -114,16 +133,16 @@ class SamApiProvider(CfnBaseApiProvider):
                 "Skipping resource '%s'. Swagger document not found in DefinitionBody and DefinitionUri", logical_id
             )
             return
-        CfnBaseApiProvider.extract_swagger_route(stack_path, logical_id, body, uri, binary_media, collector, cwd=cwd, disable_authorizer=disable_authorizer)
+        CfnBaseApiProvider.extract_swagger_route(
+            stack_path, logical_id, body, uri, binary_media, collector, cwd=cwd, disable_authorizer=disable_authorizer
+        )
         collector.stage_name = stage_name
         collector.stage_variables = stage_variables
         collector.cors = cors
 
         auth = properties.get(SamApiProvider._AUTH, {})
         if not auth or disable_authorizer:
-            LOG.debug(
-                "Authorizer not found or disabled, returning early"
-            )
+            LOG.debug("Authorizer not found or disabled, returning early")
             return
 
         default_authorizer = auth.get(SamApiProvider._DEFAULT_AUTHORIZER)
@@ -298,7 +317,13 @@ class SamApiProvider(CfnBaseApiProvider):
         collector.add_authorizers(logical_id, authorizers)
 
     def _extract_from_serverless_http(
-        self, stack_path: str, logical_id: str, api_resource: Dict, collector: ApiCollector, cwd: Optional[str] = None, disable_authorizer: Optional[bool] = False
+        self,
+        stack_path: str,
+        logical_id: str,
+        api_resource: Dict,
+        collector: ApiCollector,
+        cwd: Optional[str] = None,
+        disable_authorizer: Optional[bool] = False,
     ) -> None:
         """
         Extract APIs from AWS::Serverless::HttpApi resource by reading and parsing Swagger documents.
@@ -344,9 +369,7 @@ class SamApiProvider(CfnBaseApiProvider):
 
         auth = properties.get(SamApiProvider._AUTH, {})
         if not auth and not disable_authorizer:
-            LOG.debug(
-                "authorizer not found or disabled, returning early"
-            )
+            LOG.debug("authorizer not found or disabled, returning early")
             return
 
         default_authorizer = auth.get(SamApiProvider._DEFAULT_AUTHORIZER)

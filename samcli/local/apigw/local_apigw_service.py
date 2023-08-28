@@ -65,7 +65,7 @@ class LocalApigwService(BaseLocalService):
         static_dir: Optional[str] = None,
         port: Optional[int] = None,
         host: Optional[str] = None,
-        stderr: Optional[StreamWriter] = None
+        stderr: Optional[StreamWriter] = None,
     ):
         """
         Creates an ApiGatewayService

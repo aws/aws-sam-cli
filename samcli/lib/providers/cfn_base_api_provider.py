@@ -29,7 +29,13 @@ MAX_AGE = "MaxAge"
 class CfnBaseApiProvider:
     RESOURCE_TYPE = "Type"
 
-    def extract_resources(self, stacks: List[Stack], collector: ApiCollector, cwd: Optional[str] = None, disable_authorizer: Optional[bool] = False) -> None:
+    def extract_resources(
+        self,
+        stacks: List[Stack],
+        collector: ApiCollector,
+        cwd: Optional[str] = None,
+        disable_authorizer: Optional[bool] = False,
+    ) -> None:
         """
         Extract the Route Object from a given resource and adds it to the RouteCollector.
 
@@ -54,7 +60,7 @@ class CfnBaseApiProvider:
         collector: ApiCollector,
         cwd: Optional[str] = None,
         event_type: str = Route.API,
-        disable_authorizer: Optional[bool]= False
+        disable_authorizer: Optional[bool] = False,
     ) -> None:
         """
         Parse the Swagger documents and adds it to the ApiCollector.
@@ -97,7 +103,6 @@ class CfnBaseApiProvider:
         LOG.debug("Found '%s' APIs in resource '%s'", len(routes), logical_id)
 
         collector.add_routes(logical_id, routes)
-
 
         collector.add_binary_media_types(logical_id, parser.get_binary_media_types())  # Binary media from swagger
         collector.add_binary_media_types(logical_id, binary_media)  # Binary media specified on resource in template

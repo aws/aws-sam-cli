@@ -76,7 +76,7 @@ DESCRIPTION = """
     "--disable-authorizer",
     is_flag=True,
     default=False,
-    help="Disable custom Lambda Authorizers from being parsed and invoked."
+    help="Disable custom Lambda Authorizers from being parsed and invoked.",
 )
 @invoke_common_options
 @warm_containers_common_options
@@ -233,8 +233,13 @@ def do_cli(  # pylint: disable=R0914
             container_host_interface=container_host_interface,
             invoke_images=processed_invoke_images,
         ) as invoke_context:
-            service = LocalApiService(lambda_invoke_context=invoke_context, port=port, host=host, static_dir=static_dir,
-                                      disable_authorizer=disable_authorizer)
+            service = LocalApiService(
+                lambda_invoke_context=invoke_context,
+                port=port,
+                host=host,
+                static_dir=static_dir,
+                disable_authorizer=disable_authorizer,
+            )
             service.start()
             if not hook_name:
                 command_suggestions = generate_next_command_recommendation(

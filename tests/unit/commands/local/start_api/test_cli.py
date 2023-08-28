@@ -96,11 +96,11 @@ class TestCli(TestCase):
         )
 
         local_api_service_mock.assert_called_with(
-            lambda_invoke_context=context_mock, 
-            port=self.port, 
-            host=self.host, 
-            static_dir=self.static_dir, 
-            disable_authorizer=self.disable_authorizer
+            lambda_invoke_context=context_mock,
+            port=self.port,
+            host=self.host,
+            static_dir=self.static_dir,
+            disable_authorizer=self.disable_authorizer,
         )
 
         service_mock.start.assert_called_with()
@@ -219,5 +219,5 @@ class TestCli(TestCase):
             container_host_interface=self.container_host_interface,
             invoke_image=self.invoke_image,
             hook_name=self.hook_name,
-            disable_authorizer=self.disable_authorizer
+            disable_authorizer=self.disable_authorizer,
         )
