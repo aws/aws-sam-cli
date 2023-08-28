@@ -11,7 +11,6 @@ from werkzeug.datastructures import Headers
 from samcli.lib.providers.provider import Api
 from samcli.lib.providers.provider import Cors
 from samcli.lib.telemetry.event import EventName, EventTracker, UsedFeature
-from samcli.local.apigw.event_constructor import construct_v1_event, construct_v2_event_http
 from samcli.local.apigw.authorizers.lambda_authorizer import LambdaAuthorizer
 from samcli.local.apigw.route import Route
 from samcli.local.apigw.local_apigw_service import (
@@ -86,6 +85,9 @@ class TestApiGatewayService(TestCase):
         self.http_service = LocalApigwService(
             self.http, self.lambda_runner, port=3000, host="127.0.0.1", stderr=self.stderr
         )
+
+        self.ctx = flask.Flask("test_app").test_request_context()
+        self.ctx.push()
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     @patch("samcli.local.apigw.local_apigw_service.construct_v1_event")
@@ -1841,12 +1843,12 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
 
 
 class TestServiceCorsToHeaders(TestCase):
-    def test_basic_conversion(self):
+    @parameterized.expand([Route.HTTP, Route.API])
+    def test_basic_conversion_per_event_type(self, event_type):
         cors = Cors(
             allow_origin="*", allow_methods=",".join(["POST", "OPTIONS"]), allow_headers="UPGRADE-HEADER", max_age=6
         )
-        headers = Cors.cors_to_headers(cors)
-
+        headers = Cors.cors_to_headers(cors, "https://abc", event_type)
         self.assertEqual(
             headers,
             {
@@ -1859,12 +1861,94 @@ class TestServiceCorsToHeaders(TestCase):
 
     def test_empty_elements(self):
         cors = Cors(allow_origin="www.domain.com", allow_methods=",".join(["GET", "POST", "OPTIONS"]))
-        headers = Cors.cors_to_headers(cors)
+        headers = Cors.cors_to_headers(cors, "www.domain.com", Route.HTTP)
 
         self.assertEqual(
             headers,
             {"Access-Control-Allow-Origin": "www.domain.com", "Access-Control-Allow-Methods": "GET,POST,OPTIONS"},
         )
+
+    def test_missing_request_origin(self):
+        cors = Cors(allow_origin="www.domain.com", allow_methods=",".join(["GET", "POST", "OPTIONS"]))
+
+        self.assertEqual(Cors.cors_to_headers(cors, None, Route.HTTP), {})
+        self.assertEqual(Cors.cors_to_headers(cors, "", Route.HTTP), {})
+        self.assertEqual(Cors.cors_to_headers(cors, list(), Route.HTTP), {})
+
+    def test_missing_config_origin(self):
+        cors = Cors(allow_methods="GET")
+        self.assertEqual(Cors.cors_to_headers(cors, None, Route.HTTP), {})
+        self.assertEqual(Cors.cors_to_headers(cors, "http://abc", Route.HTTP), {})
+
+
+class TestServiceCorsToHeadersMultiOrigin(TestCase):
+    def assert_cors(self, cors):
+        headers_abc = Cors.cors_to_headers(cors, "https://abc", Route.HTTP)
+        self.assertEqual(
+            {
+                "Access-Control-Allow-Origin": "https://abc",
+                "Access-Control-Allow-Methods": "POST,OPTIONS",
+            },
+            headers_abc,
+        )
+
+        headers_xyz = Cors.cors_to_headers(cors, "https://xyz", Route.HTTP)
+        self.assertEqual(
+            {
+                "Access-Control-Allow-Origin": "https://xyz",
+                "Access-Control-Allow-Methods": "POST,OPTIONS",
+            },
+            headers_xyz,
+        )
+
+        headers_unknown = Cors.cors_to_headers(cors, "https://unknown", Route.HTTP)
+        self.assertEqual({}, headers_unknown)
+
+    def test_multiple_origins_conversion(self):
+        cors = Cors(allow_origin=" https://abc ,https://xyz", allow_methods=",".join(["POST", "OPTIONS"]))
+        self.assert_cors(cors)
+
+    def test_multiple_origins_whitespace(self):
+        cors = Cors(allow_origin=" https://abc , https://xyz ", allow_methods=",".join(["POST", "OPTIONS"]))
+        self.assert_cors(cors)
+
+
+class TestRestServiceCorsToHeadersMultiOrigin(TestCase):
+    def assert_cors(self, cors, origins):
+        headers_abc = Cors.cors_to_headers(cors, "https://abc", Route.API)
+        self.assertEqual(
+            {
+                "Access-Control-Allow-Origin": origins,
+                "Access-Control-Allow-Methods": "POST,OPTIONS",
+            },
+            headers_abc,
+        )
+
+        headers_xyz = Cors.cors_to_headers(cors, "https://xyz", Route.API)
+        self.assertEqual(
+            {
+                "Access-Control-Allow-Origin": origins,
+                "Access-Control-Allow-Methods": "POST,OPTIONS",
+            },
+            headers_xyz,
+        )
+
+        headers_unknown = Cors.cors_to_headers(cors, "https://unknown", Route.API)
+        self.assertEqual(
+            {
+                "Access-Control-Allow-Origin": origins,
+                "Access-Control-Allow-Methods": "POST,OPTIONS",
+            },
+            headers_unknown,
+        )
+
+    def test_multiple_origins_conversion(self):
+        cors = Cors(allow_origin=" https://abc ,https://xyz", allow_methods=",".join(["POST", "OPTIONS"]))
+        self.assert_cors(cors, " https://abc ,https://xyz")
+
+    def test_multiple_origins_whitespace(self):
+        cors = Cors(allow_origin=" https://abc , https://xyz ", allow_methods=",".join(["POST", "OPTIONS"]))
+        self.assert_cors(cors, " https://abc , https://xyz ")
 
 
 class TestRouteEqualsHash(TestCase):

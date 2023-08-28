@@ -10,6 +10,7 @@ from parameterized import parameterized_class
 @parameterized_class(
     ("template_path", "endpoint", "parameter_overrides"),
     [
+        ("/testdata/start_api/lambda_authorizers/swagger-api.yaml", "", {}),
         ("/testdata/start_api/lambda_authorizers/swagger-api.yaml", "requestauthorizerswaggertoken", {}),
         (
             "/testdata/start_api/lambda_authorizers/swagger-api.yaml",
