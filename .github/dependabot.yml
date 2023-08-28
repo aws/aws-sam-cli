@@ -24,9 +24,11 @@ updates:
       -  aws/serverless-application-experience-sbt
     open-pull-requests-limit: 10
     groups:
-      boto-stubs:
+      boto:
         patterns:
+        - "boto3"
         - "boto3-stubs*"
+        - "botocore"
         - "botocore-stubs"
       types:
         patterns:
