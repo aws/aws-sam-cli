@@ -30,12 +30,10 @@ updates:
         - "boto3-stubs*"
         - "botocore"
         - "botocore-stubs"
+        - "mypy-boto3-*"
       types:
         patterns:
         - "types-*"
-      mypy:
-        patterns:
-        - "mypy-boto3-*"
       pytest:
         patterns:
         - "pytest-*"
