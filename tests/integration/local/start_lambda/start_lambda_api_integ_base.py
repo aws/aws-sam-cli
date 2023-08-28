@@ -32,6 +32,7 @@ class StartLambdaIntegBaseClass(TestCase):
     integration_dir = str(Path(__file__).resolve().parents[2])
     invoke_image: Optional[List] = None
     hook_name: Optional[str] = None
+    terraform_plan_file: Optional[str] = None
     beta_features: Optional[bool] = None
     collect_start_lambda_process_output: bool = False
 
@@ -101,6 +102,7 @@ class StartLambdaIntegBaseClass(TestCase):
         invoke_image=None,
         hook_name=None,
         beta_features=None,
+        terraform_plan_file=None,
     ):
         command_list = [get_sam_command(), "local", "start-lambda"]
 
@@ -129,6 +131,9 @@ class StartLambdaIntegBaseClass(TestCase):
         if beta_features is not None:
             command_list += ["--beta-features" if beta_features else "--no-beta-features"]
 
+        if terraform_plan_file:
+            command_list += ["--terraform-plan-file", terraform_plan_file]
+
         return command_list
 
     @classmethod
@@ -142,6 +147,7 @@ class StartLambdaIntegBaseClass(TestCase):
             invoke_image=cls.invoke_image,
             hook_name=cls.hook_name,
             beta_features=cls.beta_features,
+            terraform_plan_file=cls.terraform_plan_file,
         )
 
         cls.start_lambda_process = Popen(command_list, stderr=PIPE, stdin=PIPE, env=env, cwd=cls.working_dir)

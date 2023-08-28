@@ -331,7 +331,7 @@ class Container:
             data=event.encode("utf-8"),
             timeout=(self.RAPID_CONNECTION_TIMEOUT, None),
         )
-        return json.dumps(json.loads(resp.content), ensure_ascii=False)
+        return json.dumps(json.loads(resp.content), ensure_ascii=False) if resp.content else ""
 
     def wait_for_result(self, full_path, event, stdout, stderr, start_timer=None):
         # NOTE(sriram-mv): Let logging happen in its own thread, so that a http request can be sent.

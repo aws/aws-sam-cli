@@ -417,10 +417,30 @@ class TestLambdaAuthorizer(TestCase):
                 },
                 True,
             ),
+            (  # Wildcard authorizes root url
+                {
+                    "principalId": "123",
+                    "policyDocument": {
+                        "Statement": [
+                            {
+                                "Action": ["execute-api:Invoke"],
+                                "Effect": "Allow",
+                                "Resource": "arn:aws:execute-api:us-east-1:123456789012:1234567890/prod/*/*",
+                            }
+                        ]
+                    },
+                },
+                True,
+                "arn:aws:execute-api:us-east-1:123456789012:1234567890/prod/GET/",
+            ),
         ]
     )
-    def test_validate_is_resource_authorized(self, response, expected_result):
-        method_arn = "arn:aws:execute-api:us-east-1:123456789012:1234567890/prod/GET/hello"
+    def test_validate_is_resource_authorized(
+        self,
+        response,
+        expected_result,
+        method_arn="arn:aws:execute-api:us-east-1:123456789012:1234567890/prod/GET/hello",
+    ):
 
         auth = LambdaAuthorizer(
             "my auth",

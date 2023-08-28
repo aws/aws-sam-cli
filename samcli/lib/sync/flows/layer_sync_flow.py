@@ -251,10 +251,10 @@ class LayerSyncFlow(AbstractLayerSyncFlow):
     def gather_resources(self) -> None:
         """Build layer and ZIP it into a temp file in self._zip_file"""
         if self._application_build_result:
-            LOG.debug("Using pre-built resources for layer {}", self._layer_identifier)
+            LOG.debug("Using pre-built resources for layer %s", self._layer_identifier)
             self._use_prebuilt_resources(self._application_build_result)
         else:
-            LOG.debug("Building layer from scratch {}", self._layer_identifier)
+            LOG.debug("Building layer from scratch %s", self._layer_identifier)
             self._build_resources_from_scratch()
 
         zip_file_path = os.path.join(tempfile.gettempdir(), f"data-{uuid.uuid4().hex}")
