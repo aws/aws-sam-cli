@@ -53,7 +53,7 @@ class ServiceErrorResponses:
         """
         response_data = jsonify(ServiceErrorResponses._LAMBDA_FAILURE)
         return make_response(response_data, ServiceErrorResponses.HTTP_STATUS_CODE_502)
-    
+
     @staticmethod
     def lambda_body_failure_response(*args):
         """
