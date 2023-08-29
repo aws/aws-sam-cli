@@ -211,7 +211,7 @@ class LambdaImage:
                 )
                 image_not_found = True
             else:
-                raise DockerDistributionAPIError("Unknown API error received from docker") from e
+                raise DockerDistributionAPIError(str(e)) from e
 
         # If building a new rapid image, delete older rapid images
         if image_not_found and rapid_image == f"{image_repo}:{tag_prefix}{RAPID_IMAGE_TAG_PREFIX}-{architecture}":
@@ -527,8 +527,8 @@ class LambdaImage:
             Image digest, including `sha256:` prefix
         """
         image_info = self.docker_client.images.get(image_name)
-        full_digest: str = image_info.attrs.get("RepoDigests", [None])[0]
         try:
+            full_digest: str = image_info.attrs.get("RepoDigests", [None])[0]
             return full_digest.split("@")[1]
         except (AttributeError, IndexError):
             return None

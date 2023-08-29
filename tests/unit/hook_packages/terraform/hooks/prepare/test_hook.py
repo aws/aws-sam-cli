@@ -5,8 +5,19 @@ from parameterized import parameterized
 
 from tests.unit.hook_packages.terraform.hooks.prepare.prepare_base import PrepareHookUnitBase
 
-from samcli.hook_packages.terraform.hooks.prepare.hook import prepare, _update_resources_paths
-from samcli.lib.hook.exceptions import PrepareHookException
+from samcli.hook_packages.terraform.hooks.prepare.hook import (
+    TF_ENVIRONMENT_VARIABLES,
+    _validate_environment_variables,
+    prepare,
+    _update_resources_paths,
+    TF_CLOUD_EXCEPTION_MESSAGE,
+    TF_CLOUD_HELP_MESSAGE,
+)
+from samcli.lib.hook.exceptions import (
+    PrepareHookException,
+    TerraformCloudException,
+    UnallowedEnvironmentVariableArgumentException,
+)
 from samcli.lib.utils.subprocess_utils import LoadingPatternError
 
 
@@ -478,3 +489,47 @@ class TestPrepareHook(PrepareHookUnitBase):
 
         mock_open.assert_has_calls([call("my-custom-plan.json", "r"), ANY])
         mock_json.load.assert_called_once_with(file_mock)
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.invoke_subprocess_with_loading_pattern")
+    def test_prints_tf_cloud_help_message(self, mock_subprocess_loader):
+        mock_subprocess_loader.side_effect = [LoadingPatternError(TF_CLOUD_EXCEPTION_MESSAGE)]
+
+        with self.assertRaises(TerraformCloudException) as ex:
+            prepare(self.prepare_params)
+
+        self.assertEqual(ex.exception.message, TF_CLOUD_HELP_MESSAGE)
+
+    @parameterized.expand(
+        [
+            ("-destroy",),
+            ("-target=my.module.resource",),
+            ("-destroy -target=my.module.resource",),
+            ("-target=my.module.resource -destroy",),
+        ]
+    )
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.os")
+    def test_environment_variable_check_fails(self, argument, get_mock):
+        get_mock.environ.get.return_value = argument
+
+        with self.assertRaises(UnallowedEnvironmentVariableArgumentException):
+            _validate_environment_variables()
+
+    @parameterized.expand(
+        [
+            ("-not-actually-argument",),
+            ("something",),
+            ("",),
+        ]
+    )
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook.os")
+    def test_environment_variable_check_passes(self, argument, get_mock):
+        get_mock.environ.get.return_value = argument
+
+        _validate_environment_variables()
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.hook._validate_environment_variables")
+    def test_prepare_method_fails_environment_variables(self, validate_mock):
+        validate_mock.side_effect = [UnallowedEnvironmentVariableArgumentException("message")]
+
+        with self.assertRaises(UnallowedEnvironmentVariableArgumentException):
+            prepare(self.prepare_params)

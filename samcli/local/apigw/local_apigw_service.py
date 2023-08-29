@@ -641,7 +641,10 @@ class LocalApigwService(BaseLocalService):
         """
 
         route: Route = self._get_current_route(request)
-        cors_headers = Cors.cors_to_headers(self.api.cors)
+
+        request_origin = request.headers.get("Origin")
+        cors_headers = Cors.cors_to_headers(self.api.cors, request_origin, route.event_type)
+
         lambda_authorizer = route.authorizer_object
 
         # payloadFormatVersion can only support 2 values: "1.0" and "2.0"
@@ -671,8 +674,8 @@ class LocalApigwService(BaseLocalService):
             LOG.error("UnicodeDecodeError while processing HTTP request: %s", error)
             return ServiceErrorResponses.lambda_failure_response()
 
+        lambda_authorizer_exception = None
         try:
-            lambda_authorizer_exception = None
             auth_service_error = None
 
             if lambda_authorizer:
@@ -705,7 +708,7 @@ class LocalApigwService(BaseLocalService):
             )
 
             if lambda_authorizer_exception:
-                LOG.error("Lambda authorizer failed to invoke successfully: %s", exception_name)
+                LOG.error("Lambda authorizer failed to invoke successfully: %s", str(lambda_authorizer_exception))
 
             if auth_service_error:
                 return auth_service_error
@@ -740,6 +743,9 @@ class LocalApigwService(BaseLocalService):
         except LambdaResponseParseException as ex:
             LOG.error("Invalid lambda response received: %s", ex)
             return ServiceErrorResponses.lambda_failure_response()
+
+        # Add CORS headers to the response
+        headers.update(cors_headers)
 
         return self.service_response(body, headers, status_code)
 

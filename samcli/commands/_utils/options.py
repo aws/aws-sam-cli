@@ -731,7 +731,7 @@ def skip_prepare_infra_click_option():
     Click option to skip the hook preparation stage
     """
     return click.option(
-        "--skip-prepare-infra",
+        "--skip-prepare-infra/--prepare-infra",
         is_flag=True,
         required=False,
         callback=skip_prepare_infra_callback,

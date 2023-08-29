@@ -56,6 +56,16 @@ from zip import unzip  # type: ignore
 LOG = logging.getLogger(__name__)
 
 TF_BACKEND_OVERRIDE_FILENAME = "z_samcli_backend_override"
+TF_BLOCKED_ARGUMENTS = [
+    "-target",
+    "-destroy",
+]
+TF_ENVIRONMENT_VARIABLE_DELIM = "="
+TF_ENVIRONMENT_VARIABLES = [
+    "TF_CLI_ARGS",
+    "TF_CLI_ARGS_plan",
+    "TF_CLI_ARGS_apply",
+]
 
 
 class ResolverException(Exception):
@@ -276,6 +286,31 @@ def create_backend_override():
         cli_exit()
 
 
+def validate_environment_variables():
+    """
+    Validate that the Terraform environment variables do not contain blocked arguments.
+    """
+    for env_var in TF_ENVIRONMENT_VARIABLES:
+        env_value = os.environ.get(env_var, "")
+
+        trimmed_arguments = []
+        # get all trimmed arguments in a list and split on delim
+        # eg.
+        # "-foo=bar -hello" => ["-foo", "-hello"]
+        for argument in env_value.split(" "):
+            cleaned_argument = argument.strip()
+            cleaned_argument = cleaned_argument.split(TF_ENVIRONMENT_VARIABLE_DELIM)[0]
+
+            trimmed_arguments.append(cleaned_argument)
+
+        if any([argument in TF_BLOCKED_ARGUMENTS for argument in trimmed_arguments]):
+            LOG.error(
+                "Environment variable '%s' contains "
+                "a blocked argument, please validate it does not contain: %s" % (env_var, TF_BLOCKED_ARGUMENTS)
+            )
+            cli_exit()
+
+
 if __name__ == "__main__":
     # Gather inputs and clean them
     argparser = argparse.ArgumentParser(
@@ -313,6 +348,9 @@ if __name__ == "__main__":
     expression = arguments.expression
     target = arguments.target
     json_str = arguments.json
+
+    # validate environment variables do not contain blocked arguments
+    validate_environment_variables()
 
     if target and json_str:
         LOG.error("Provide either --target or --json. Do not provide both.")

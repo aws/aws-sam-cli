@@ -355,7 +355,7 @@ class LambdaAuthorizer(Authorizer):
 
     def _is_resource_authorized(self, response: dict, method_arn: str) -> bool:
         """
-        Validate the if the current method ARN is actually authorized
+        Validate if the current method ARN is actually authorized
 
         Parameters
         ----------
@@ -387,7 +387,7 @@ class LambdaAuthorizer(Authorizer):
 
             for resource_arn in resource_list:
                 # form a regular expression from the possible wildcard resource ARN
-                regex_method_arn = resource_arn.replace("*", ".+").replace("?", ".")
+                regex_method_arn = resource_arn.replace("*", ".*").replace("?", ".")
                 regex_method_arn += "$"
 
                 if re.match(regex_method_arn, method_arn):
