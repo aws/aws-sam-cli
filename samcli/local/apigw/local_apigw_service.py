@@ -612,7 +612,7 @@ class LocalApigwService(BaseLocalService):
             self.lambda_runner.invoke(lambda_function_name, event_str, stdout=stdout_writer, stderr=self.stderr)
             lambda_response, is_lambda_user_error_response = LambdaOutputParser.get_lambda_output(stdout)
             if is_lambda_user_error_response:
-                raise LambdaResponseParseException 
+                raise LambdaResponseParseException
 
         return lambda_response
 

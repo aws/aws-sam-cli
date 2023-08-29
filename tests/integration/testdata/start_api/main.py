@@ -73,6 +73,8 @@ def invalid_v2_respose_returned(event, context):
 def invalid_hash_response(event, context):
     return {"foo": "bar"}
 
+def invalid_body_response(event, context):
+    return {"errorType": "Error", "errorMessage": ""}
 
 def base64_response(event, context):
 

@@ -442,6 +442,18 @@ class TestServiceWithHttpApi(StartApiIntegBaseClass):
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
+    def test_invalid_lambda_json_body_response(self):
+        """
+        Patch Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
+        """
+        response = requests.get(self.url + "/invalidresponsebody", timeout=300)
+
+        self.assertEqual(response.status_code, 502)
+        self.assertEqual(response.json(), {"message": "Internal server error"})
+        self.assertEqual(response.raw.version, 11)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
     def test_calling_proxy_endpoint(self):
         response = requests.get(self.url + "/proxypath/this/is/some/path", timeout=300)
 
