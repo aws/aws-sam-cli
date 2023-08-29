@@ -1,10 +1,10 @@
 from unittest import TestCase
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, Mock
 import os
 
 import click
 
-from samcli.commands._utils.custom_options.hook_name_option import HookNameOption
+from samcli.commands._utils.custom_options.hook_name_option import HookNameOption, record_hook_telemetry
 from samcli.lib.hook.exceptions import InvalidHookWrapperException
 
 
@@ -68,12 +68,18 @@ class TestHookPackageIdOption(TestCase):
             f"Parameters hook-name, and {','.join(self.invalid_coexist_options)} cannot be used together",
         )
 
+    @patch("samcli.commands._utils.custom_options.hook_name_option.record_hook_telemetry")
     @patch("samcli.commands._utils.custom_options.hook_name_option.update_experimental_context")
     @patch("samcli.commands._utils.custom_options.hook_name_option.prompt_experimental")
     @patch("samcli.commands._utils.custom_options.hook_name_option.os.getcwd")
     @patch("samcli.commands._utils.custom_options.hook_name_option.IacHookWrapper")
     def test_valid_hook_package_with_only_hook_id_option(
-        self, iac_hook_wrapper_mock, getcwd_mock, prompt_experimental_mock, update_experimental_context_mock
+        self,
+        iac_hook_wrapper_mock,
+        getcwd_mock,
+        prompt_experimental_mock,
+        update_experimental_context_mock,
+        record_hook_telemetry_mock,
     ):
         iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
         prompt_experimental_mock.return_value = True
@@ -86,22 +92,36 @@ class TestHookPackageIdOption(TestCase):
             invalid_coexist_options=self.invalid_coexist_options,
         )
         ctx = MagicMock()
+        ctx.default_map = {}
         opts = {
             "hook_name": self.terraform,
         }
         args = []
         hook_name_option.handle_parse_result(ctx, opts, args)
         self.iac_hook_wrapper_instance_mock.prepare.assert_called_once_with(
-            os.path.join(self.cwd_path, ".aws-sam-iacs", "iacs_metadata"), self.cwd_path, False, None, None, False
+            os.path.join(self.cwd_path, ".aws-sam-iacs", "iacs_metadata"),
+            self.cwd_path,
+            False,
+            None,
+            None,
+            False,
+            None,
+            None,
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
 
+    @patch("samcli.commands._utils.custom_options.hook_name_option.record_hook_telemetry")
     @patch("samcli.commands._utils.custom_options.hook_name_option.update_experimental_context")
     @patch("samcli.commands._utils.custom_options.hook_name_option.prompt_experimental")
     @patch("samcli.commands._utils.custom_options.hook_name_option.os.getcwd")
     @patch("samcli.commands._utils.custom_options.hook_name_option.IacHookWrapper")
     def test_valid_hook_package_with_other_options(
-        self, iac_hook_wrapper_mock, getcwd_mock, prompt_experimental_mock, update_experimental_context_mock
+        self,
+        iac_hook_wrapper_mock,
+        getcwd_mock,
+        prompt_experimental_mock,
+        update_experimental_context_mock,
+        record_hook_telemetry_mock,
     ):
         iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
         prompt_experimental_mock.return_value = True
@@ -114,11 +134,15 @@ class TestHookPackageIdOption(TestCase):
             invalid_coexist_options=self.invalid_coexist_options,
         )
         ctx = MagicMock()
+        ctx.default_map = {}
         opts = {
             "hook_name": self.terraform,
             "debug": True,
             "profile": "test",
             "region": "us-east-1",
+            "terraform_project_root_path": "/path/path",
+            "skip_prepare_infra": True,
+            "terraform_plan_file": "/path/plan/file",
         }
         args = []
         hook_name_option.handle_parse_result(ctx, opts, args)
@@ -128,10 +152,62 @@ class TestHookPackageIdOption(TestCase):
             True,
             "test",
             "us-east-1",
-            False,
+            True,
+            "/path/plan/file",
+            "/path/path",
+        )
+        self.assertEqual(opts.get("template_file"), self.metadata_path)
+        record_hook_telemetry_mock.assert_called_once()
+
+    @patch("samcli.commands._utils.custom_options.hook_name_option.record_hook_telemetry")
+    @patch("samcli.commands._utils.custom_options.hook_name_option.update_experimental_context")
+    @patch("samcli.commands._utils.custom_options.hook_name_option.prompt_experimental")
+    @patch("samcli.commands._utils.custom_options.hook_name_option.os.getcwd")
+    @patch("samcli.commands._utils.custom_options.hook_name_option.IacHookWrapper")
+    def test_valid_hook_package_with_other_options_from_sam_config(
+        self,
+        iac_hook_wrapper_mock,
+        getcwd_mock,
+        prompt_experimental_mock,
+        update_experimental_context_mock,
+        record_hook_telemetry_mock,
+    ):
+        iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
+        prompt_experimental_mock.return_value = True
+
+        getcwd_mock.return_value = self.cwd_path
+
+        hook_name_option = HookNameOption(
+            param_decls=(self.name, self.opt),
+            force_prepare=True,
+            invalid_coexist_options=self.invalid_coexist_options,
+        )
+        ctx = MagicMock()
+        ctx.default_map = {
+            "hook_name": self.terraform,
+            "debug": True,
+            "profile": "test",
+            "region": "us-east-1",
+            "terraform_project_root_path": "/path/path",
+            "skip_prepare_infra": True,
+            "terraform_plan_file": "/path/plan/file",
+        }
+        opts = {}
+        args = []
+        hook_name_option.handle_parse_result(ctx, opts, args)
+        self.iac_hook_wrapper_instance_mock.prepare.assert_called_once_with(
+            os.path.join(self.cwd_path, ".aws-sam-iacs", "iacs_metadata"),
+            self.cwd_path,
+            True,
+            "test",
+            "us-east-1",
+            True,
+            "/path/plan/file",
+            "/path/path",
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
 
+    @patch("samcli.commands._utils.custom_options.hook_name_option.record_hook_telemetry")
     @patch("samcli.commands._utils.custom_options.hook_name_option.update_experimental_context")
     @patch("samcli.commands._utils.custom_options.hook_name_option.prompt_experimental")
     @patch("samcli.commands._utils.custom_options.hook_name_option.os.getcwd")
@@ -144,6 +220,7 @@ class TestHookPackageIdOption(TestCase):
         getcwd_mock,
         prompt_experimental_mock,
         update_experimental_context_mock,
+        record_hook_telemetry_mock,
     ):
         iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
         prompt_experimental_mock.return_value = True
@@ -166,6 +243,7 @@ class TestHookPackageIdOption(TestCase):
         self.iac_hook_wrapper_instance_mock.prepare.assert_not_called()
         self.assertEqual(opts.get("template_file"), None)
 
+    @patch("samcli.commands._utils.custom_options.hook_name_option.record_hook_telemetry")
     @patch("samcli.commands._utils.custom_options.hook_name_option.GlobalConfig")
     @patch("samcli.commands._utils.custom_options.hook_name_option.update_experimental_context")
     @patch("samcli.commands._utils.custom_options.hook_name_option.prompt_experimental")
@@ -180,6 +258,7 @@ class TestHookPackageIdOption(TestCase):
         prompt_experimental_mock,
         update_experimental_context_mock,
         global_config_mock,
+        record_hook_telemetry_mock,
     ):
         iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
         prompt_experimental_mock.return_value = False
@@ -204,6 +283,7 @@ class TestHookPackageIdOption(TestCase):
         self.iac_hook_wrapper_instance_mock.prepare.assert_not_called()
         self.assertEqual(opts.get("template_file"), None)
 
+    @patch("samcli.commands._utils.custom_options.hook_name_option.record_hook_telemetry")
     @patch("samcli.commands._utils.custom_options.hook_name_option.update_experimental_context")
     @patch("samcli.commands._utils.custom_options.hook_name_option.prompt_experimental")
     @patch("samcli.commands._utils.custom_options.hook_name_option.os.getcwd")
@@ -216,6 +296,7 @@ class TestHookPackageIdOption(TestCase):
         getcwd_mock,
         prompt_experimental_mock,
         update_experimental_context_mock,
+        record_hook_telemetry_mock,
     ):
         iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
         prompt_experimental_mock.return_value = False
@@ -238,6 +319,7 @@ class TestHookPackageIdOption(TestCase):
         self.iac_hook_wrapper_instance_mock.prepare.assert_not_called()
         self.assertEqual(opts.get("template_file"), None)
 
+    @patch("samcli.commands._utils.custom_options.hook_name_option.record_hook_telemetry")
     @patch("samcli.commands._utils.custom_options.hook_name_option.update_experimental_context")
     @patch("samcli.commands._utils.custom_options.hook_name_option.prompt_experimental")
     @patch("samcli.commands._utils.custom_options.hook_name_option.os.getcwd")
@@ -250,6 +332,7 @@ class TestHookPackageIdOption(TestCase):
         getcwd_mock,
         prompt_experimental_mock,
         update_experimental_context_mock,
+        record_hook_telemetry_mock,
     ):
         iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
         prompt_experimental_mock.return_value = False
@@ -262,6 +345,7 @@ class TestHookPackageIdOption(TestCase):
             invalid_coexist_options=self.invalid_coexist_options,
         )
         ctx = MagicMock()
+        ctx.default_map = {}
         opts = {
             "hook_name": self.terraform,
             "beta_features": True,
@@ -276,9 +360,12 @@ class TestHookPackageIdOption(TestCase):
             None,
             None,
             False,
+            None,
+            None,
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
 
+    @patch("samcli.commands._utils.custom_options.hook_name_option.record_hook_telemetry")
     @patch("samcli.commands._utils.custom_options.hook_name_option.update_experimental_context")
     @patch("samcli.commands._utils.custom_options.hook_name_option.prompt_experimental")
     @patch("samcli.commands._utils.custom_options.hook_name_option.os.getcwd")
@@ -291,6 +378,7 @@ class TestHookPackageIdOption(TestCase):
         getcwd_mock,
         prompt_experimental_mock,
         update_experimental_context_mock,
+        record_hook_telemetry_mock,
     ):
         metadata_path = "path/metadata.json"
         cwd_path = "path/current"
@@ -323,9 +411,12 @@ class TestHookPackageIdOption(TestCase):
             None,
             None,
             False,
+            None,
+            None,
         )
         self.assertEqual(opts.get("template_file"), metadata_path)
 
+    @patch("samcli.commands._utils.custom_options.hook_name_option.record_hook_telemetry")
     @patch("samcli.commands._utils.custom_options.hook_name_option.GlobalConfig")
     @patch("samcli.commands._utils.custom_options.hook_name_option.update_experimental_context")
     @patch("samcli.commands._utils.custom_options.hook_name_option.prompt_experimental")
@@ -340,6 +431,7 @@ class TestHookPackageIdOption(TestCase):
         prompt_experimental_mock,
         update_experimental_context_mock,
         global_config_mock,
+        record_hook_telemetry_mock,
     ):
         metadata_path = "path/metadata.json"
         cwd_path = "path/current"
@@ -375,9 +467,12 @@ class TestHookPackageIdOption(TestCase):
             None,
             None,
             False,
+            None,
+            None,
         )
         self.assertEqual(opts.get("template_file"), metadata_path)
 
+    @patch("samcli.commands._utils.custom_options.hook_name_option.record_hook_telemetry")
     @patch("samcli.commands._utils.custom_options.hook_name_option.update_experimental_context")
     @patch("samcli.commands._utils.custom_options.hook_name_option.prompt_experimental")
     @patch("samcli.commands._utils.custom_options.hook_name_option.os.getcwd")
@@ -390,6 +485,7 @@ class TestHookPackageIdOption(TestCase):
         getcwd_mock,
         prompt_experimental_mock,
         update_experimental_context_mock,
+        record_hook_telemetry_mock,
     ):
         iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
         prompt_experimental_mock.return_value = True
@@ -404,16 +500,25 @@ class TestHookPackageIdOption(TestCase):
             invalid_coexist_options=self.invalid_coexist_options,
         )
         ctx = MagicMock()
+        ctx.default_map = {}
         opts = {
             "hook_name": self.terraform,
         }
         args = []
         hook_name_option.handle_parse_result(ctx, opts, args)
         self.iac_hook_wrapper_instance_mock.prepare.assert_called_once_with(
-            os.path.join(self.cwd_path, ".aws-sam-iacs", "iacs_metadata"), self.cwd_path, False, None, None, False
+            os.path.join(self.cwd_path, ".aws-sam-iacs", "iacs_metadata"),
+            self.cwd_path,
+            False,
+            None,
+            None,
+            False,
+            None,
+            None,
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
 
+    @patch("samcli.commands._utils.custom_options.hook_name_option.record_hook_telemetry")
     @patch("samcli.commands._utils.custom_options.hook_name_option.update_experimental_context")
     @patch("samcli.commands._utils.custom_options.hook_name_option.prompt_experimental")
     @patch("samcli.commands._utils.custom_options.hook_name_option.os.getcwd")
@@ -426,6 +531,7 @@ class TestHookPackageIdOption(TestCase):
         getcwd_mock,
         prompt_experimental_mock,
         update_experimental_context_mock,
+        record_hook_telemetry_mock,
     ):
         iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
         prompt_experimental_mock.return_value = True
@@ -440,6 +546,7 @@ class TestHookPackageIdOption(TestCase):
             invalid_coexist_options=self.invalid_coexist_options,
         )
         ctx = MagicMock()
+        ctx.default_map = {}
         ctx.command.name = "build"
         opts = {
             "hook_name": self.terraform,
@@ -449,10 +556,18 @@ class TestHookPackageIdOption(TestCase):
         args = []
         hook_name_option.handle_parse_result(ctx, opts, args)
         self.iac_hook_wrapper_instance_mock.prepare.assert_called_once_with(
-            os.path.join(self.cwd_path, ".aws-sam-iacs", "iacs_metadata"), self.cwd_path, False, None, None, False
+            os.path.join(self.cwd_path, ".aws-sam-iacs", "iacs_metadata"),
+            self.cwd_path,
+            False,
+            None,
+            None,
+            False,
+            None,
+            None,
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
 
+    @patch("samcli.commands._utils.custom_options.hook_name_option.record_hook_telemetry")
     @patch("samcli.commands._utils.custom_options.hook_name_option.update_experimental_context")
     @patch("samcli.commands._utils.custom_options.hook_name_option.prompt_experimental")
     @patch("samcli.commands._utils.custom_options.hook_name_option.os.getcwd")
@@ -465,6 +580,7 @@ class TestHookPackageIdOption(TestCase):
         getcwd_mock,
         prompt_experimental_mock,
         update_experimental_context_mock,
+        record_hook_telemetry_mock,
     ):
         iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
         prompt_experimental_mock.return_value = True
@@ -491,6 +607,147 @@ class TestHookPackageIdOption(TestCase):
         ):
             hook_name_option.handle_parse_result(ctx, opts, args)
 
+    @patch("samcli.commands._utils.custom_options.hook_name_option.record_hook_telemetry")
+    @patch("samcli.commands._utils.custom_options.hook_name_option.update_experimental_context")
+    @patch("samcli.commands._utils.custom_options.hook_name_option.prompt_experimental")
+    @patch("samcli.commands._utils.custom_options.hook_name_option.os.getcwd")
+    @patch("samcli.commands._utils.custom_options.hook_name_option.IacHookWrapper")
+    def test_invalid_parameter_hook_with_invalid_project_root_directory(
+        self,
+        iac_hook_wrapper_mock,
+        getcwd_mock,
+        prompt_experimental_mock,
+        update_experimental_context_mock,
+        record_hook_telemetry_mock,
+    ):
+        iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
+        prompt_experimental_mock.return_value = True
+
+        getcwd_mock.return_value = self.cwd_path
+
+        hook_name_option = HookNameOption(
+            param_decls=(self.name, self.opt),
+            force_prepare=False,
+            invalid_coexist_options=self.invalid_coexist_options,
+        )
+        ctx = MagicMock()
+        ctx.command.name = "build"
+        opts = {
+            "hook_name": self.terraform,
+            "terraform_project_root_path": "/abs/path",
+        }
+
+        args = []
+        with self.assertRaisesRegex(
+            click.UsageError,
+            "/abs/path is not a valid value for Terraform Project Root Path. It should be a parent of "
+            "the current directory that contains the root module of the terraform project.",
+        ):
+            hook_name_option.handle_parse_result(ctx, opts, args)
+
+    @patch("samcli.commands._utils.custom_options.hook_name_option.record_hook_telemetry")
+    @patch("samcli.commands._utils.custom_options.hook_name_option.update_experimental_context")
+    @patch("samcli.commands._utils.custom_options.hook_name_option.prompt_experimental")
+    @patch("samcli.commands._utils.custom_options.hook_name_option.os.getcwd")
+    @patch("samcli.commands._utils.custom_options.hook_name_option.os.path.exists")
+    @patch("samcli.commands._utils.custom_options.hook_name_option.os.path.isabs")
+    @patch("samcli.commands._utils.custom_options.hook_name_option.IacHookWrapper")
+    def test_valid_parameter_hook_with_valid_absolute_project_root_directory(
+        self,
+        iac_hook_wrapper_mock,
+        path_isabs_mock,
+        path_exists_mock,
+        getcwd_mock,
+        prompt_experimental_mock,
+        update_experimental_context_mock,
+        record_hook_telemetry_mock,
+    ):
+        iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
+        prompt_experimental_mock.return_value = True
+
+        getcwd_mock.return_value = self.cwd_path
+
+        path_isabs_mock.return_value = True
+        path_exists_mock.return_value = False
+
+        hook_name_option = HookNameOption(
+            param_decls=(self.name, self.opt),
+            force_prepare=False,
+            invalid_coexist_options=self.invalid_coexist_options,
+        )
+        ctx = MagicMock()
+        ctx.default_map = {}
+        ctx.command.name = "build"
+        opts = {
+            "hook_name": self.terraform,
+            "terraform_project_root_path": "path",
+        }
+        args = []
+        hook_name_option.handle_parse_result(ctx, opts, args)
+        self.iac_hook_wrapper_instance_mock.prepare.assert_called_once_with(
+            os.path.join(self.cwd_path, ".aws-sam-iacs", "iacs_metadata"),
+            self.cwd_path,
+            False,
+            None,
+            None,
+            False,
+            None,
+            "path",
+        )
+        self.assertEqual(opts.get("template_file"), self.metadata_path)
+
+    @patch("samcli.commands._utils.custom_options.hook_name_option.record_hook_telemetry")
+    @patch("samcli.commands._utils.custom_options.hook_name_option.update_experimental_context")
+    @patch("samcli.commands._utils.custom_options.hook_name_option.prompt_experimental")
+    @patch("samcli.commands._utils.custom_options.hook_name_option.os.getcwd")
+    @patch("samcli.commands._utils.custom_options.hook_name_option.os.path.exists")
+    @patch("samcli.commands._utils.custom_options.hook_name_option.os.path.isabs")
+    @patch("samcli.commands._utils.custom_options.hook_name_option.IacHookWrapper")
+    def test_valid_parameter_hook_with_valid_relative_project_root_directory(
+        self,
+        iac_hook_wrapper_mock,
+        path_isabs_mock,
+        path_exists_mock,
+        getcwd_mock,
+        prompt_experimental_mock,
+        update_experimental_context_mock,
+        record_hook_telemetry_mock,
+    ):
+        iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
+        prompt_experimental_mock.return_value = True
+
+        getcwd_mock.return_value = self.cwd_path
+
+        path_isabs_mock.return_value = False
+        path_exists_mock.return_value = False
+
+        hook_name_option = HookNameOption(
+            param_decls=(self.name, self.opt),
+            force_prepare=False,
+            invalid_coexist_options=self.invalid_coexist_options,
+        )
+        ctx = MagicMock()
+        ctx.default_map = {}
+        ctx.command.name = "build"
+        opts = {
+            "hook_name": self.terraform,
+            "terraform_project_root_path": "./..",
+        }
+        args = []
+        hook_name_option.handle_parse_result(ctx, opts, args)
+        self.iac_hook_wrapper_instance_mock.prepare.assert_called_once_with(
+            os.path.join(self.cwd_path, ".aws-sam-iacs", "iacs_metadata"),
+            self.cwd_path,
+            False,
+            None,
+            None,
+            False,
+            None,
+            "./..",
+        )
+        self.assertEqual(opts.get("template_file"), self.metadata_path)
+
+    @patch("samcli.commands._utils.custom_options.hook_name_option.record_hook_telemetry")
     @patch("samcli.commands._utils.custom_options.hook_name_option.update_experimental_context")
     @patch("samcli.commands._utils.custom_options.hook_name_option.prompt_experimental")
     @patch("samcli.commands._utils.custom_options.hook_name_option.os.getcwd")
@@ -503,6 +760,7 @@ class TestHookPackageIdOption(TestCase):
         getcwd_mock,
         prompt_experimental_mock,
         update_experimental_context_mock,
+        record_hook_telemetry_mock,
     ):
         iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
         prompt_experimental_mock.return_value = True
@@ -517,6 +775,7 @@ class TestHookPackageIdOption(TestCase):
             invalid_coexist_options=self.invalid_coexist_options,
         )
         ctx = MagicMock()
+        ctx.default_map = {}
         ctx.command.name = "build"
         opts = {
             "hook_name": self.terraform,
@@ -525,6 +784,19 @@ class TestHookPackageIdOption(TestCase):
         args = []
         hook_name_option.handle_parse_result(ctx, opts, args)
         self.iac_hook_wrapper_instance_mock.prepare.assert_called_once_with(
-            os.path.join(self.cwd_path, ".aws-sam-iacs", "iacs_metadata"), self.cwd_path, False, None, None, False
+            os.path.join(self.cwd_path, ".aws-sam-iacs", "iacs_metadata"),
+            self.cwd_path,
+            False,
+            None,
+            None,
+            False,
+            None,
+            None,
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
+
+    @patch("samcli.commands._utils.custom_options.hook_name_option.EventTracker")
+    def test_record_hook_telemetry(self, event_tracker_mock):
+        opts = {"terraform_plan_file": "my_plan.json"}
+        record_hook_telemetry(opts, Mock())
+        event_tracker_mock.track_event.assert_called_once_with("HookConfigurationsUsed", "TerraformPlanFile")

@@ -64,3 +64,11 @@ Resources:
         - python3.7
     Metadata:
       BuildMethod: !Ref LayerBuildMethod
+
+  LayerWithMakefileNoCompatibleRuntimes:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      Description: Layer four
+      ContentUri: !Ref LayerMakeContentUri
+    Metadata:
+      BuildMethod: !Ref LayerBuildMethod

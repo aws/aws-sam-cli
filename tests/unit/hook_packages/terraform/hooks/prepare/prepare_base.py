@@ -22,6 +22,7 @@ from samcli.hook_packages.terraform.hooks.prepare.resources.internal import (
 class PrepareHookUnitBase(TestCase):
     def setUp(self) -> None:
         self.output_dir = "/output/dir"
+        self.app_root = "/app/root"
         self.project_root = "/project/root"
 
         self.mock_logical_id_hash = "12AB34CD"

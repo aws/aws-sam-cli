@@ -8,7 +8,7 @@ import os
 import posixpath
 from collections import namedtuple
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Dict, Iterator, List, NamedTuple, Optional, Set, Union, cast
+from typing import Any, Dict, Iterator, List, NamedTuple, Optional, Set, Union, cast
 
 from samcli.commands.local.cli_common.user_exceptions import (
     InvalidFunctionPropertyType,
@@ -23,10 +23,7 @@ from samcli.lib.samlib.resource_metadata_normalizer import (
 )
 from samcli.lib.utils.architecture import X86_64
 from samcli.lib.utils.packagetype import IMAGE
-
-if TYPE_CHECKING:  # pragma: no cover
-    # avoid circular import, https://docs.python.org/3/library/typing.html#typing.TYPE_CHECKING
-    from samcli.local.apigw.route import Route
+from samcli.local.apigw.route import Route
 
 LOG = logging.getLogger(__name__)
 
@@ -481,26 +478,64 @@ _CorsTuple.__new__.__defaults__ = (
 
 class Cors(_CorsTuple):
     @staticmethod
-    def cors_to_headers(cors: Optional["Cors"]) -> Dict[str, Union[int, str]]:
+    def cors_to_headers(
+        cors: Optional["Cors"], request_origin: Optional[str], event_type: str
+    ) -> Dict[str, Union[int, str]]:
         """
         Convert CORS object to headers dictionary
         Parameters
         ----------
         cors list(samcli.commands.local.lib.provider.Cors)
             CORS configuration objcet
+        request_origin str
+            Origin of the request, e.g. https://example.com:8080
+        event_type str
+            The type of the APIGateway resource that contain the route, either Api, or HttpApi
         Returns
         -------
             Dictionary with CORS headers
         """
         if not cors:
             return {}
-        headers = {
-            CORS_ORIGIN_HEADER: cors.allow_origin,
-            CORS_METHODS_HEADER: cors.allow_methods,
-            CORS_HEADERS_HEADER: cors.allow_headers,
-            CORS_CREDENTIALS_HEADER: cors.allow_credentials,
-            CORS_MAX_AGE_HEADER: cors.max_age,
-        }
+
+        if event_type == Route.API:
+            # the CORS behaviour in Rest API gateway is to return whatever defined in the ResponseParameters of
+            # the method integration resource
+            headers = {
+                CORS_ORIGIN_HEADER: cors.allow_origin,
+                CORS_METHODS_HEADER: cors.allow_methods,
+                CORS_HEADERS_HEADER: cors.allow_headers,
+                CORS_CREDENTIALS_HEADER: cors.allow_credentials,
+                CORS_MAX_AGE_HEADER: cors.max_age,
+            }
+        else:
+            # Resource processing start here.
+            # The following code is based on the following spec:
+            # https://www.w3.org/TR/2020/SPSD-cors-20200602/#resource-processing-model
+
+            if not request_origin:
+                return {}
+
+            # cors.allow_origin can be either a single origin or comma separated list of origins
+            allowed_origins = cors.allow_origin.split(",") if cors.allow_origin else list()
+            allowed_origins = [origin.strip() for origin in allowed_origins]
+
+            matched_origin = None
+            if "*" in allowed_origins:
+                matched_origin = "*"
+            elif request_origin in allowed_origins:
+                matched_origin = request_origin
+
+            if matched_origin is None:
+                return {}
+
+            headers = {
+                CORS_ORIGIN_HEADER: matched_origin,
+                CORS_METHODS_HEADER: cors.allow_methods,
+                CORS_HEADERS_HEADER: cors.allow_headers,
+                CORS_CREDENTIALS_HEADER: cors.allow_credentials,
+                CORS_MAX_AGE_HEADER: cors.max_age,
+            }
         # Filters out items in the headers dictionary that isn't empty.
         # This is required because the flask Headers dict will send an invalid 'None' string
         return {h_key: h_value for h_key, h_value in headers.items() if h_value is not None}

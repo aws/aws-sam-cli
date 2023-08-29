@@ -82,10 +82,10 @@ class ImageFunctionSyncFlow(FunctionSyncFlow):
     def gather_resources(self) -> None:
         """Build function image and save it in self._image_name"""
         if self._application_build_result:
-            LOG.debug("Using pre-built resources for function {}", self._function_identifier)
+            LOG.debug("Using pre-built resources for function %s", self._function_identifier)
             self._use_prebuilt_resources(self._application_build_result)
         else:
-            LOG.debug("Building function from scratch {}", self._function_identifier)
+            LOG.debug("Building function from scratch %s", self._function_identifier)
             self._build_resources_from_scratch()
 
         if self._image_name:

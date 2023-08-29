@@ -19,6 +19,8 @@ configuration:
   - OtherTesting
 
 environment:
+  PYTHON_HOME: "$HOME/venv3.8/bin"
+  PYTHON_VERSION: '3.8'
   AWS_DEFAULT_REGION: us-east-1
   SAM_CLI_DEV: 1
   NODE_VERSION: "14.17.6"
@@ -29,17 +31,6 @@ environment:
   NOSE_PARAMETERIZED_NO_WARN: 1
   APPVEYOR_CONSOLE_DISABLE_PTY: false
   APPVEYOR_DETAILED_SHELL_LOGGING: true
-
-  matrix:
-
-    - PYTHON_HOME: "$HOME/venv3.7/bin"
-      PYTHON_VERSION: '3.7'
-
-    - PYTHON_HOME: "$HOME/venv3.8/bin"
-      PYTHON_VERSION: '3.8'
-
-    - PYTHON_HOME: "$HOME/venv3.11/bin"
-      PYTHON_VERSION: '3.11'
 
 install:
   # AppVeyor's apt-get cache might be outdated, and the package could potentially be 404.
@@ -78,21 +69,13 @@ install:
   - sh: "./aws_cli/bin/python -m pip install awscli"
   - sh: "PATH=$(echo $PWD'/aws_cli/bin'):$PATH"
 
-  - sh: "PATH=$PATH:$HOME/venv3.7/bin:$HOME/venv3.8/bin:$HOME/venv3.9/bin:$HOME/venv3.10/bin"
+  - sh: "PATH=$PATH:$HOME/venv3.7/bin:$HOME/venv3.8/bin:$HOME/venv3.9/bin:$HOME/venv3.10/bin:$HOME/venv3.11/bin"
 
   # update ca-certificates which causes failures with newest golang library
   - sh: "sudo apt-get install --reinstall ca-certificates"
 
   # get testing env vars
   - sh: "sudo apt install -y jq"
-
-  # install Terraform
-  - sh: "sudo apt update --allow-releaseinfo-change"
-  - sh: "TER_VER=`curl -s https://api.github.com/repos/hashicorp/terraform/releases/latest | grep tag_name | cut -d: -f2 | tr -d \\\"\\,\\v | awk '{$1=$1};1'`"
-  - sh: "wget https://releases.hashicorp.com/terraform/${TER_VER}/terraform_${TER_VER}_linux_amd64.zip -P /tmp"
-  - sh: "sudo unzip -d /opt/terraform /tmp/terraform_${TER_VER}_linux_amd64.zip"
-  - sh: "sudo mv /opt/terraform/terraform /usr/local/bin/"
-  - sh: "terraform -version"
 
   # install Rust
   - sh: "curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL https://sh.rustup.rs | sh -s -- --default-toolchain none -y > /dev/null 2>&1"
@@ -191,6 +174,14 @@ for:
         - configuration: LocalZipTerraformBuildIntegTesting
 
     test_script:
+      # install Terraform
+      - sh: "sudo apt update --allow-releaseinfo-change"
+      - sh: "TER_VER=`curl -s https://api.github.com/repos/hashicorp/terraform/releases/latest | grep tag_name | cut -d: -f2 | tr -d \\\"\\,\\v | awk '{$1=$1};1'`"
+      - sh: "wget https://releases.hashicorp.com/terraform/${TER_VER}/terraform_${TER_VER}_linux_amd64.zip -P /tmp"
+      - sh: "sudo unzip -d /opt/terraform /tmp/terraform_${TER_VER}_linux_amd64.zip"
+      - sh: "sudo mv /opt/terraform/terraform /usr/local/bin/"
+      - sh: "terraform -version"
+
       - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend_0 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
   # Local ZIP  Terraform Build In Container  integ testing
@@ -200,6 +191,14 @@ for:
         - configuration: LocalZipTerraformBuildInContainerIntegTesting
 
     test_script:
+      # install Terraform
+      - sh: "sudo apt update --allow-releaseinfo-change"
+      - sh: "TER_VER=`curl -s https://api.github.com/repos/hashicorp/terraform/releases/latest | grep tag_name | cut -d: -f2 | tr -d \\\"\\,\\v | awk '{$1=$1};1'`"
+      - sh: "wget https://releases.hashicorp.com/terraform/${TER_VER}/terraform_${TER_VER}_linux_amd64.zip -P /tmp"
+      - sh: "sudo unzip -d /opt/terraform /tmp/terraform_${TER_VER}_linux_amd64.zip"
+      - sh: "sudo mv /opt/terraform/terraform /usr/local/bin/"
+      - sh: "terraform -version"
+
       - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend_1 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
   # S3 ZIP  Terraform Build integ testing
@@ -209,6 +208,14 @@ for:
         - configuration: S3ZipTerraformBuildIntegTesting
 
     test_script:
+      # install Terraform
+      - sh: "sudo apt update --allow-releaseinfo-change"
+      - sh: "TER_VER=`curl -s https://api.github.com/repos/hashicorp/terraform/releases/latest | grep tag_name | cut -d: -f2 | tr -d \\\"\\,\\v | awk '{$1=$1};1'`"
+      - sh: "wget https://releases.hashicorp.com/terraform/${TER_VER}/terraform_${TER_VER}_linux_amd64.zip -P /tmp"
+      - sh: "sudo unzip -d /opt/terraform /tmp/terraform_${TER_VER}_linux_amd64.zip"
+      - sh: "sudo mv /opt/terraform/terraform /usr/local/bin/"
+      - sh: "terraform -version"
+
       - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend_0 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
   # S3 ZIP  Terraform Build In Container integ testing
@@ -218,6 +225,14 @@ for:
         - configuration: S3ZipTerraformBuildInContainerIntegTesting
 
     test_script:
+      # install Terraform
+      - sh: "sudo apt update --allow-releaseinfo-change"
+      - sh: "TER_VER=`curl -s https://api.github.com/repos/hashicorp/terraform/releases/latest | grep tag_name | cut -d: -f2 | tr -d \\\"\\,\\v | awk '{$1=$1};1'`"
+      - sh: "wget https://releases.hashicorp.com/terraform/${TER_VER}/terraform_${TER_VER}_linux_amd64.zip -P /tmp"
+      - sh: "sudo unzip -d /opt/terraform /tmp/terraform_${TER_VER}_linux_amd64.zip"
+      - sh: "sudo mv /opt/terraform/terraform /usr/local/bin/"
+      - sh: "terraform -version"
+
       - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend_1 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
   # Other Terraform Build In Container integ testing
@@ -227,6 +242,14 @@ for:
         - configuration: OtherTerraformBuildIntegTesting
 
     test_script:
+      # install Terraform
+      - sh: "sudo apt update --allow-releaseinfo-change"
+      - sh: "TER_VER=`curl -s https://api.github.com/repos/hashicorp/terraform/releases/latest | grep tag_name | cut -d: -f2 | tr -d \\\"\\,\\v | awk '{$1=$1};1'`"
+      - sh: "wget https://releases.hashicorp.com/terraform/${TER_VER}/terraform_${TER_VER}_linux_amd64.zip -P /tmp"
+      - sh: "sudo unzip -d /opt/terraform /tmp/terraform_${TER_VER}_linux_amd64.zip"
+      - sh: "sudo mv /opt/terraform/terraform /usr/local/bin/"
+      - sh: "terraform -version"
+
       - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
   # Integ testing deploy
@@ -272,6 +295,14 @@ for:
         - configuration: LocalIntegTesting
 
     test_script:
+      # install Terraform
+      - sh: "sudo apt update --allow-releaseinfo-change"
+      - sh: "TER_VER=`curl -s https://api.github.com/repos/hashicorp/terraform/releases/latest | grep tag_name | cut -d: -f2 | tr -d \\\"\\,\\v | awk '{$1=$1};1'`"
+      - sh: "wget https://releases.hashicorp.com/terraform/${TER_VER}/terraform_${TER_VER}_linux_amd64.zip -P /tmp"
+      - sh: "sudo unzip -d /opt/terraform /tmp/terraform_${TER_VER}_linux_amd64.zip"
+      - sh: "sudo mv /opt/terraform/terraform /usr/local/bin/"
+      - sh: "terraform -version"
+
       - sh: "pytest -vv tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-local.json"
 
   # End-to-end testing

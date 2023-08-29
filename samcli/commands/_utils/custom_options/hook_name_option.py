@@ -4,6 +4,7 @@ Custom Click options for hook name
 
 import logging
 import os
+from typing import Any, Mapping
 
 import click
 
@@ -18,8 +19,11 @@ from samcli.commands._utils.experimental import (
 )
 from samcli.lib.hook.exceptions import InvalidHookWrapperException
 from samcli.lib.hook.hook_wrapper import IacHookWrapper, get_available_hook_packages_ids
+from samcli.lib.telemetry.event import EventName, EventTracker
 
 LOG = logging.getLogger(__name__)
+
+PLAN_FILE_OPTION = "terraform_plan_file"
 
 
 class HookNameOption(click.Option):
@@ -61,15 +65,17 @@ class HookNameOption(click.Option):
             return super().handle_parse_result(ctx, opts, args)
 
         try:
-            self._call_prepare_hook(iac_hook_wrapper, opts)
+            self._call_prepare_hook(iac_hook_wrapper, opts, ctx)
         except Exception as ex:
             # capture exceptions from prepare hook to emit in track_command
             c = Context.get_current_context()
             c.exception = ex
+        finally:
+            record_hook_telemetry(opts, ctx)
 
         return super().handle_parse_result(ctx, opts, args)
 
-    def _call_prepare_hook(self, iac_hook_wrapper, opts):
+    def _call_prepare_hook(self, iac_hook_wrapper, opts, ctx):
         # call prepare hook
         built_template_path = DEFAULT_BUILT_TEMPLATE_PATH
         if not self._force_prepare and os.path.exists(built_template_path):
@@ -82,13 +88,22 @@ class HookNameOption(click.Option):
             if not os.path.exists(output_dir_path):
                 os.makedirs(output_dir_path, exist_ok=True)
 
-            debug = opts.get("debug", False)
-            aws_profile = opts.get("profile")
-            aws_region = opts.get("region")
-            skip_prepare_infra = opts.get("skip_prepare_infra", False)
+            debug = _read_parameter_value("debug", opts, ctx, False)
+            aws_profile = _read_parameter_value("profile", opts, ctx)
+            aws_region = _read_parameter_value("region", opts, ctx)
+            skip_prepare_infra = _read_parameter_value("skip_prepare_infra", opts, ctx, False)
+            plan_file = _read_parameter_value("terraform_plan_file", opts, ctx)
+            project_root_dir = _read_parameter_value("terraform_project_root_path", opts, ctx)
 
             metadata_file = iac_hook_wrapper.prepare(
-                output_dir_path, iac_project_path, debug, aws_profile, aws_region, skip_prepare_infra
+                output_dir_path,
+                iac_project_path,
+                debug,
+                aws_profile,
+                aws_region,
+                skip_prepare_infra,
+                plan_file,
+                project_root_dir,
             )
 
             LOG.info("Prepare hook completed and metadata file generated at: %s", metadata_file)
@@ -109,6 +124,23 @@ def _validate_build_command_parameters(command_name, opts):
     # add this validation here to avoid running hook prepare and there is issue
     if command_name == "build" and opts.get("use_container") and not opts.get("build_image"):
         raise click.UsageError("Missing required parameter --build-image.")
+
+    # validate that terraform-project-root-path is a parent path of the current directory, or it is a relative path
+    project_root_dir = opts.get("terraform_project_root_path")
+    if (
+        command_name == "build"
+        and project_root_dir
+        and os.path.isabs(project_root_dir)
+        and not os.getcwd().startswith(project_root_dir)
+    ):
+        LOG.debug(
+            f"the provided path {project_root_dir} as terraform project path is not a parent of the current directory "
+            f"{os.getcwd()}"
+        )
+        raise click.UsageError(
+            f"{project_root_dir} is not a valid value for Terraform Project Root Path. It should be a parent of the "
+            f"current directory that contains the root module of the terraform project."
+        )
 
 
 def _check_experimental_flag(hook_name, command_name, opts, default_map):
@@ -182,3 +214,26 @@ def _get_iac_support_experimental_prompt_message(hook_name: str, command: str) -
         )
     }
     return supported_iacs_messages.get(hook_name, "")
+
+
+def _read_parameter_value(param_name, opts, ctx, default_value=None):
+    """
+    Read SAM CLI parameter value either from the parameters list or from the samconfig values
+    """
+    return opts.get(param_name, ctx.default_map.get(param_name, default_value))
+
+
+def record_hook_telemetry(opts: Mapping[str, Any], ctx: click.Context):
+    """
+    Emit metrics related to hooks based on the options passed into the command
+
+    Parameters
+    ----------
+    opts: Mapping[str, Any]
+        Mapping between a command line option and its value
+    ctx: Context
+        Command context properties
+    """
+    plan_file_param = _read_parameter_value(PLAN_FILE_OPTION, opts, ctx)
+    if plan_file_param:
+        EventTracker.track_event(EventName.HOOK_CONFIGURATIONS_USED.value, "TerraformPlanFile")

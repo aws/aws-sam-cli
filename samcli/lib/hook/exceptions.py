@@ -20,3 +20,11 @@ class InvalidHookPackageConfigException(UserException):
 
 class PrepareHookException(UserException):
     pass
+
+
+class TerraformCloudException(UserException):
+    pass
+
+
+class UnallowedEnvironmentVariableArgumentException(UserException):
+    pass
