@@ -164,11 +164,11 @@ class TestHookPackageIdOption(TestCase):
     @patch("samcli.commands._utils.custom_options.hook_name_option.os.getcwd")
     @patch("samcli.commands._utils.custom_options.hook_name_option.IacHookWrapper")
     def test_skips_hook_package_with_help_option(
-            self,
-            iac_hook_wrapper_mock,
-            getcwd_mock,
-            prompt_experimental_mock,
-            record_hook_telemetry_mock,
+        self,
+        iac_hook_wrapper_mock,
+        getcwd_mock,
+        prompt_experimental_mock,
+        record_hook_telemetry_mock,
     ):
         iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
         prompt_experimental_mock.return_value = True
