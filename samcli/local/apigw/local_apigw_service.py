@@ -724,7 +724,7 @@ class LocalApigwService(BaseLocalService):
                 "Inline code is not supported for sam local commands. Please write your code in a separate file."
             )
         except LambdaResponseParseException:
-            endpoint_service_error = ServiceErrorResponses.lambda_failure_response()
+            endpoint_service_error = ServiceErrorResponses.lambda_body_failure_response()
 
         if endpoint_service_error:
             return endpoint_service_error

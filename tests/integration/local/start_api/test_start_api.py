@@ -608,7 +608,7 @@ class TestServiceWithHttpApi(StartApiIntegBaseClass):
     def test_invalid_lambda_json_body_response(self):
         response = requests.get(self.url + "/invalidresponsebody", timeout=300)
 
-        self.assertEqual(response.status_code, 502)
+        self.assertEqual(response.status_code, 500)
         self.assertEqual(response.json(), {"message": "Internal server error"})
         self.assertEqual(response.raw.version, 11)
 
