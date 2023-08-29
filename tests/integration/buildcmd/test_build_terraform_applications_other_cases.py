@@ -500,3 +500,21 @@ class TestBuildTerraformApplicationsWithBlockedEnvironVariables(BuildTerraformAp
             % env_name,
         )
         self.assertNotEqual(return_code, 0)
+
+
+@skipIf(
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
+    "Skip Terraform test cases unless running in CI",
+)
+class TestTerraformHandlesExceptionFromBinary(BuildTerraformApplicationIntegBase):
+    terraform_application = Path("terraform/broken_tf")
+
+    def test_subprocess_handler(self):
+        err_message = "Terraform encountered problems during initialisation"
+        stack_trace_error = "unexpected error was encountered while executing 'sam build'"
+        cmdlist = self.get_command_list(hook_name="terraform", beta_features=True)
+        _, stderr, return_code = self.run_command(cmdlist)
+        err_string = stderr.decode("utf-8").strip()
+        self.assertEqual(return_code, 1)
+        self.assertIn(err_message, err_string)
+        self.assertNotIn(stack_trace_error, err_string)
