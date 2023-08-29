@@ -160,6 +160,38 @@ class TestHookPackageIdOption(TestCase):
         record_hook_telemetry_mock.assert_called_once()
 
     @patch("samcli.commands._utils.custom_options.hook_name_option.record_hook_telemetry")
+    @patch("samcli.commands._utils.custom_options.hook_name_option.prompt_experimental")
+    @patch("samcli.commands._utils.custom_options.hook_name_option.os.getcwd")
+    @patch("samcli.commands._utils.custom_options.hook_name_option.IacHookWrapper")
+    def test_skips_hook_package_with_help_option(
+            self,
+            iac_hook_wrapper_mock,
+            getcwd_mock,
+            prompt_experimental_mock,
+            record_hook_telemetry_mock,
+    ):
+        iac_hook_wrapper_mock.return_value = self.iac_hook_wrapper_instance_mock
+        prompt_experimental_mock.return_value = True
+
+        getcwd_mock.return_value = self.cwd_path
+
+        hook_name_option = HookNameOption(
+            param_decls=(self.name, self.opt),
+            force_prepare=True,
+            invalid_coexist_options=self.invalid_coexist_options,
+        )
+        ctx = MagicMock()
+        ctx.default_map = {}
+        opts = {
+            "hook_name": self.terraform,
+            "help": True,
+        }
+        args = []
+        hook_name_option.handle_parse_result(ctx, opts, args)
+        self.iac_hook_wrapper_instance_mock.prepare.assert_not_called()
+        record_hook_telemetry_mock.assert_not_called()
+
+    @patch("samcli.commands._utils.custom_options.hook_name_option.record_hook_telemetry")
     @patch("samcli.commands._utils.custom_options.hook_name_option.update_experimental_context")
     @patch("samcli.commands._utils.custom_options.hook_name_option.prompt_experimental")
     @patch("samcli.commands._utils.custom_options.hook_name_option.os.getcwd")

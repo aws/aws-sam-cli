@@ -35,13 +35,19 @@ class HookNameOption(click.Option):
 
     def __init__(self, *args, **kwargs):
         self.hook_name_option_name = "hook_name"
+        self.help_option_name = "help"
         self._force_prepare = kwargs.pop("force_prepare", True)
         self._invalid_coexist_options = kwargs.pop("invalid_coexist_options", [])
         super().__init__(*args, **kwargs)
 
     def handle_parse_result(self, ctx, opts, args):
         opt_name = self.hook_name_option_name.replace("_", "-")
-        if self.hook_name_option_name not in opts and self.hook_name_option_name not in ctx.default_map:
+        if (
+            self.hook_name_option_name not in opts
+            and self.hook_name_option_name not in ctx.default_map
+            or self.help_option_name in opts
+            or self.help_option_name in ctx.default_map
+        ):
             return super().handle_parse_result(ctx, opts, args)
         command_name = ctx.command.name
         if command_name in ["invoke", "start-lambda", "start-api"]:
