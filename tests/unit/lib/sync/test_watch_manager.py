@@ -353,6 +353,28 @@ class TestWatchManager(TestCase):
 
         self.executor.add_delayed_sync_flow.assert_any_call(flow1, dedup=True, wait_time=ANY)
 
+    def test_on_code_change_wrapper_opened_event_not_called(self):
+        flow1 = MagicMock()
+        resource_id_mock = MagicMock()
+        factory_mock = MagicMock()
+        event_mock = MagicMock()
+        event_mock.event_type = "opened"
+
+        self.watch_manager._sync_flow_factory = factory_mock
+        factory_mock.create_sync_flow.return_value = flow1
+
+        self.watch_manager._on_code_change_wrapper(resource_id_mock)(event_mock)
+
+        factory_mock.create_sync_flow.assert_not_called()
+
+    def test_on_code_change_wrapper_missing_factory_sync_not_called(self):
+        resource_id_mock = MagicMock()
+
+        self.watch_manager._sync_flow_factory = None
+        self.watch_manager._on_code_change_wrapper(resource_id_mock)()
+
+        self.executor.add_delayed_sync_flow.assert_not_called()
+
     def test_watch_sync_flow_exception_handler_missing_physical(self):
         sync_flow = MagicMock()
         sync_flow_exception = MagicMock(spec=SyncFlowException)

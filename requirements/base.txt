@@ -14,7 +14,7 @@ dateparser~=1.1
 requests~=2.31.0
 aws_lambda_builders==1.36.0
 tomlkit==0.11.8
-watchdog==2.1.2
+watchdog==3.0.0
 rich~=13.5.2
 pyopenssl~=23.2.0
 # Pin to <4.18 to until SAM-T no longer uses RefResolver

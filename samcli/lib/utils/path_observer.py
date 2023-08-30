@@ -1,18 +1,22 @@
 """
 HandlerObserver and its helper classes.
 """
+import logging
 import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, List, Optional
 
 from watchdog.events import (
+    EVENT_TYPE_OPENED,
     FileSystemEvent,
     FileSystemEventHandler,
     RegexMatchingEventHandler,
 )
 from watchdog.observers import Observer
 from watchdog.observers.api import DEFAULT_OBSERVER_TIMEOUT, ObservedWatch
+
+LOG = logging.getLogger(__name__)
 
 
 @dataclass
@@ -75,10 +79,20 @@ class StaticFolderWrapper:
         """
         self._observer = observer
         self._path_handler = path_handler
-        self._watch = initial_watch
+        self._watch: Optional[ObservedWatch] = initial_watch
 
-    def _on_parent_change(self, _: FileSystemEvent) -> None:
-        """Callback for changes detected in the parent folder"""
+    def _on_parent_change(self, event: FileSystemEvent) -> None:
+        """
+        Callback for changes detected in the parent folder
+
+        Parameters
+        ----------
+        event: FileSystemEvent
+            event
+        """
+        if event.event_type == EVENT_TYPE_OPENED:
+            LOG.debug("Ignoring file system OPENED event.")
+            return
 
         # When folder is being watched but the folder does not exist
         if self._watch and not self._path_handler.path.exists():
@@ -108,11 +122,11 @@ class StaticFolderWrapper:
             ignore_directories=False,
             case_sensitive=True,
         )
-        parent_folder_handler.on_any_event = self._on_parent_change
+        parent_folder_handler.on_any_event = self._on_parent_change  # type: ignore
         return PathHandler(path=parent_dir_path, event_handler=parent_folder_handler)
 
 
-class HandlerObserver(Observer):  # pylint: disable=too-many-ancestors
+class HandlerObserver(Observer):  # type: ignore
     """
     Extended WatchDog Observer that takes in a single PathHandler object.
     """
@@ -152,7 +166,7 @@ class HandlerObserver(Observer):  # pylint: disable=too-many-ancestors
             ObservedWatch corresponding to the PathHandler.
             If static_folder is True, the parent folder watch will be returned instead.
         """
-        watch = self.schedule(path_handler.event_handler, str(path_handler.path), path_handler.recursive)
+        watch: ObservedWatch = self.schedule(path_handler.event_handler, str(path_handler.path), path_handler.recursive)
         if path_handler.static_folder:
             static_wrapper = StaticFolderWrapper(self, watch, path_handler)
             parent_path_handler = static_wrapper.get_dir_parent_path_handler()
