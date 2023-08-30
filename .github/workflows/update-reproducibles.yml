@@ -27,8 +27,6 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
-        with:
-          ref: ${{ github.head_ref }}
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
