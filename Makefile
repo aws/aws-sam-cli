@@ -52,8 +52,8 @@ black-check:
 format: black
 	ruff samcli --fix
 
-schema: 
-	python schema/make_schema.py
+schema:
+	python -m schema.make_schema
 
 # Verifications to run before sending a pull request
 pr: init dev schema black-check
