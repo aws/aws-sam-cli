@@ -43,15 +43,15 @@ boto3-stubs[apigateway,cloudformation,ecr,iam,lambda,s3,schemas,secretsmanager,s
     --hash=sha256:8c4dfdddb423b85f3f33b5ca2b4c48271e668fd71cb5ffa25644606bbf11d4ae \
     --hash=sha256:99f6e25bf958eb501415307a42bb54ef5634f28a7520d6465c5a74673a58cb83
     # via aws-sam-cli (setup.py)
-botocore==1.31.31 \
-    --hash=sha256:1eef14ae98e8662e43f7cf6d993c732793def02644e2d489c5171d3b9269e900 \
-    --hash=sha256:950a49c5286fe1f6d72cfbe2910b9ddbdfbb907975ddc41cf38ac9709b4d1291
+botocore==1.31.34 \
+    --hash=sha256:23ba9e3a8b4c0e5966bbe2db62edb27f61e16b846f153f22aefda7b3c05c7942 \
+    --hash=sha256:456ef8eb458db35b8643eb10e652ed50750d13e5af431593471b2c705c34b5db
     # via
     #   boto3
     #   s3transfer
-botocore-stubs==1.31.32 \
-    --hash=sha256:1388a81ac6bfb4d63ea97d3216e3e12dcd3965dce09eebc86e530b474401872c \
-    --hash=sha256:8b2879788ea7ba6fc5a3d2d6cfb331323f111ebe24959bbefafecb6ea194541a
+botocore-stubs==1.31.34 \
+    --hash=sha256:1e90061fc3abcc19f56464a8a65a1eb8289a521b7d322beff05079ca78d7baf5 \
+    --hash=sha256:ec742f86636acf27872200987fe2068ba5fb9266ce04170a90ea26b698e15654
     # via boto3-stubs
 certifi==2023.7.22 \
     --hash=sha256:539cc1d13202e33ca466e88b2807e29f4c13049d6d87031a3c110744495cb082 \
@@ -808,9 +808,9 @@ werkzeug==2.3.7 \
     --hash=sha256:2b8c0e447b4b9dbcc85dd97b6eeb4dcbaf6c8b6c3be0bd654e25553e0a2157d8 \
     --hash=sha256:effc12dba7f3bd72e605ce49807bbe692bd729c3bb122a3b91747a6ae77df528
     # via flask
-wheel==0.41.1 \
-    --hash=sha256:12b911f083e876e10c595779709f8a88a59f45aacc646492a67fe9ef796c1b47 \
-    --hash=sha256:473219bd4cbedc62cea0cb309089b593e47c15c4a2531015f94e4e3b9a0f6981
+wheel==0.41.2 \
+    --hash=sha256:0c5ac5ff2afb79ac23ab82bab027a0be7b5dbcf2e54dc50efe4bf507de1f7985 \
+    --hash=sha256:75909db2664838d015e3d9139004ee16711748a52c8f336b52882266540215d8
     # via aws-lambda-builders
 
 # The following packages are considered to be unsafe in a requirements file:
