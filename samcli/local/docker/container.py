@@ -247,19 +247,21 @@ class Container:
 
         with os.scandir(self._host_dir) as directory_iterator:
             for file in directory_iterator:
-                if file.is_symlink():
-                    host_resolved_path = os.path.realpath(file.path)
-                    container_full_path = pathlib.Path(self._working_dir, file.name).as_posix()
+                if not file.is_symlink():
+                    continue
+            
+                host_resolved_path = os.path.realpath(file.path)
+                container_full_path = pathlib.Path(self._working_dir, file.name).as_posix()
 
-                    additional_volumes[host_resolved_path] = {
-                        "bind": container_full_path,
-                        "mode": mount_mode,
-                    }
+                additional_volumes[host_resolved_path] = {
+                    "bind": container_full_path,
+                    "mode": mount_mode,
+                }
 
-                    LOG.info(
-                        "Mounting resolved symlink (%s -> %s) as %s:%s, inside runtime container"
-                        % (file.path, host_resolved_path, container_full_path, mount_mode)
-                    )
+                LOG.info(
+                    "Mounting resolved symlink (%s -> %s) as %s:%s, inside runtime container"
+                    % (file.path, host_resolved_path, container_full_path, mount_mode)
+                )
 
         return additional_volumes
 
