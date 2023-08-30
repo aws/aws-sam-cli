@@ -767,6 +767,19 @@ typing-extensions==4.7.1 \
     # via
     #   aws-sam-cli (setup.py)
     #   aws-sam-translator
+    #   boto3-stubs
+    #   mypy-boto3-apigateway
+    #   mypy-boto3-cloudformation
+    #   mypy-boto3-ecr
+    #   mypy-boto3-iam
+    #   mypy-boto3-lambda
+    #   mypy-boto3-s3
+    #   mypy-boto3-schemas
+    #   mypy-boto3-secretsmanager
+    #   mypy-boto3-signer
+    #   mypy-boto3-stepfunctions
+    #   mypy-boto3-sts
+    #   mypy-boto3-xray
     #   pydantic
 tzlocal==5.0.1 \
     --hash=sha256:46eb99ad4bdb71f3f72b7d24f4267753e240944ecfc16f25d2719ba89827a803 \
