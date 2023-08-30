@@ -1,6 +1,6 @@
 {
     "invocationId": "invocationIdExample",
-    "deliverySteamArn": "arn:{{{partition}}}:kinesis:EXAMPLE",
+    "deliveryStreamArn": "arn:{{{partition}}}:kinesis:EXAMPLE",
     "region": "{{{region}}}",
     "records": [
         {
