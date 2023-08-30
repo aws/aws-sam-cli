@@ -249,7 +249,7 @@ class Container:
             for file in directory_iterator:
                 if not file.is_symlink():
                     continue
-            
+
                 host_resolved_path = os.path.realpath(file.path)
                 container_full_path = pathlib.Path(self._working_dir, file.name).as_posix()
 
