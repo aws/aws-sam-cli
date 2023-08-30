@@ -118,7 +118,6 @@ class TestLocalStartLambdaTerraformApplicationWithoutBuildCustomPlanFile(StartLa
     terraform_application = "/testdata/invoke/terraform/simple_application_no_building_logic"
     template_path = None
     hook_name = "terraform"
-    beta_features = True
     terraform_plan_file = "custom-plan.json"
 
     def setUp(self):
