@@ -23,7 +23,8 @@ class TestInvokeContainerMountsResolvedLinks(InvokeIntegBase):
     def tearDown(self):
         try:
             shutil.rmtree(self.test_project_folder)
-        except: pass
+        except:
+            pass
 
     def test_successful_invoke(self):
         command = self.get_command_list(template_path=self.template_path, function_to_invoke="PrintLinkedFile")
