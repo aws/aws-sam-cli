@@ -33,12 +33,12 @@ from samcli.lib.build.exceptions import (
 )
 from samcli.lib.build.workflow_config import UnsupportedRuntimeException
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
-from samcli.lib.providers.provider import ResourcesToBuildCollector, Stack, Function, LayerVersion
+from samcli.lib.providers.provider import ResourcesToBuildCollector, Stack, LayerVersion
 from samcli.lib.providers.sam_api_provider import SamApiProvider
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.providers.sam_layer_provider import SamLayerProvider
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
-from samcli.lib.telemetry.event import EventTracker
+from samcli.lib.telemetry.event import EventTracker, UsedFeature, EventName
 from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
 from samcli.local.docker.manager import ContainerManager
 from samcli.local.lambdafn.exceptions import (
@@ -232,12 +232,14 @@ class BuildContext:
     def get_resources_to_build(self):
         return self.resources_to_build
 
-    def run(self):
+    def run(self) -> None:
         """Runs the building process by creating an ApplicationBuilder."""
         if self._is_sam_template():
             SamApiProvider.check_implicit_api_resource_ids(self.stacks)
 
         self._stacks = self._handle_build_pre_processing()
+
+        caught_exception = None
 
         try:
             # boolean value indicates if mount with write or not, defaults to READ ONLY
@@ -276,7 +278,7 @@ class BuildContext:
             self._check_rust_cargo_experimental_flag()
 
             for f in self.get_resources_to_build().functions:
-                EventTracker.track_event("BuildFunctionRuntime", f.runtime)
+                EventTracker.track_event(EventName.BUILD_FUNCTION_RUNTIME, f.runtime)
 
             self._build_result = builder.build()
 
@@ -306,6 +308,8 @@ class BuildContext:
 
                 click.secho(msg, fg="yellow")
         except FunctionNotFound as function_not_found_ex:
+            caught_exception = function_not_found_ex
+
             raise UserException(
                 str(function_not_found_ex), wrapped_from=function_not_found_ex.__class__.__name__
             ) from function_not_found_ex
@@ -317,6 +321,8 @@ class BuildContext:
             InvalidBuildGraphException,
             ResourceNotFound,
         ) as ex:
+            caught_exception = ex
+
             click.secho("\nBuild Failed", fg="red")
 
             # Some Exceptions have a deeper wrapped exception that needs to be surfaced
@@ -324,6 +330,10 @@ class BuildContext:
             deep_wrap = getattr(ex, "wrapped_from", None)
             wrapped_from = deep_wrap if deep_wrap else ex.__class__.__name__
             raise UserException(str(ex), wrapped_from=wrapped_from) from ex
+        finally:
+            if self.build_in_source:
+                exception_name = type(caught_exception).__name__ if caught_exception else None
+                EventTracker.track_event(EventName.USED_FEATURE, UsedFeature.BUILD_IN_SOURCE, exception_name)
 
     def _is_sam_template(self) -> bool:
         """Check if a given template is a SAM template"""
