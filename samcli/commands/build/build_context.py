@@ -239,7 +239,7 @@ class BuildContext:
 
         self._stacks = self._handle_build_pre_processing()
 
-        caught_exception = None
+        caught_exception: Optional[Exception] = None
 
         try:
             # boolean value indicates if mount with write or not, defaults to READ ONLY
@@ -278,7 +278,7 @@ class BuildContext:
             self._check_rust_cargo_experimental_flag()
 
             for f in self.get_resources_to_build().functions:
-                EventTracker.track_event(EventName.BUILD_FUNCTION_RUNTIME, f.runtime)
+                EventTracker.track_event(EventName.BUILD_FUNCTION_RUNTIME.value, f.runtime)
 
             self._build_result = builder.build()
 
@@ -333,7 +333,9 @@ class BuildContext:
         finally:
             if self.build_in_source:
                 exception_name = type(caught_exception).__name__ if caught_exception else None
-                EventTracker.track_event(EventName.USED_FEATURE, UsedFeature.BUILD_IN_SOURCE, exception_name)
+                EventTracker.track_event(
+                    EventName.USED_FEATURE.value, UsedFeature.BUILD_IN_SOURCE.value, exception_name
+                )
 
     def _is_sam_template(self) -> bool:
         """Check if a given template is a SAM template"""

@@ -1273,7 +1273,9 @@ class TestBuildContext_run(TestCase):
         with self.assertRaises(UserException):
             context.run()
 
-        mock_track_event.assert_called_with(EventName.USED_FEATURE, UsedFeature.BUILD_IN_SOURCE, "FunctionNotFound")
+        mock_track_event.assert_called_with(
+            EventName.USED_FEATURE.value, UsedFeature.BUILD_IN_SOURCE.value, "FunctionNotFound"
+        )
 
 
 class TestBuildContext_is_sam_template(TestCase):
