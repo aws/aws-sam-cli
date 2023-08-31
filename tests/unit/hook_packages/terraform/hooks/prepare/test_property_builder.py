@@ -10,6 +10,7 @@ from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     _build_lambda_function_environment_property,
     _build_lambda_function_image_config_property,
     _check_image_config_value,
+    _get_cors_v2_api,
 )
 from samcli.hook_packages.terraform.hooks.prepare.constants import REMOTE_DUMMY_VALUE
 
@@ -214,3 +215,35 @@ class TestTerraformPropBuilder(PrepareHookUnitBase):
         result = _get_json_body({"body": invalid_value}, Mock())
 
         self.assertEqual(result, invalid_value)
+
+    @parameterized.expand(
+        [
+            (
+                {
+                    "cors_configuration": [
+                        {
+                            "allow_credentials": True,
+                            "allow_headers": ["Content-Type"],
+                            "allow_methods": ["GET", "OPTIONS", "POST"],
+                            "allow_origins": ["my-origin.com"],
+                            "expose_headers": None,
+                            "max_age": 500,
+                        }
+                    ],
+                },
+                {
+                    "AllowCredentials": True,
+                    "AllowHeaders": ["Content-Type"],
+                    "AllowMethods": ["GET", "OPTIONS", "POST"],
+                    "AllowOrigins": ["my-origin.com"],
+                    "MaxAge": 500,
+                },
+            ),
+            ({"cors_configuration": None}, None),
+            ({"cors_configuration": []}, None),
+            ({"cors_configuration": [{"allow_credentials": True}]}, {"AllowCredentials": True}),
+        ]
+    )
+    def test_get_cors_v2_api(self, tf_properties, expected):
+        response = _get_cors_v2_api(tf_properties, Mock())
+        self.assertEqual(response, expected)
