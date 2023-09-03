@@ -64,6 +64,8 @@ class SamApiProvider(CfnBaseApiProvider):
             Instance of the API collector that where we will save the API information
         cwd : str
             Optional working directory with respect to which we will resolve relative path to Swagger file
+        disable_authorzer : bool
+            Optional flag to disable collection of lambda authorizers
         """
         # AWS::Serverless::Function is currently included when parsing of Apis because when SamBaseProvider is run on
         # the template we are creating the implicit apis due to plugins that translate it in the SAM repo,
@@ -118,6 +120,8 @@ class SamApiProvider(CfnBaseApiProvider):
         cwd : str
             Optional working directory with respect to which we will resolve relative path to Swagger file
 
+        disable_authorizer : bool
+            Optional flag to disable the collection of lambda authorizers
         """
 
         properties = api_resource.get("Properties", {})
@@ -346,6 +350,8 @@ class SamApiProvider(CfnBaseApiProvider):
         cwd : str
             Optional working directory with respect to which we will resolve relative path to Swagger file
 
+        disable_authorizer : bool
+            Optional flag to disable the collection of lambda authorizers
         """
 
         properties = api_resource.get("Properties", {})

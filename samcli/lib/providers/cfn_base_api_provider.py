@@ -47,6 +47,8 @@ class CfnBaseApiProvider:
             Instance of the API collector that where we will save the API information
         cwd : str
             Optional working directory with respect to which we will resolve relative path to Swagger file
+        disable_authorizer : bool
+            Optional flag to disable collection of lambda authorizers
         """
         raise NotImplementedError("not implemented")
 

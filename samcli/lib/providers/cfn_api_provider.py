@@ -69,6 +69,9 @@ class CfnApiProvider(CfnBaseApiProvider):
 
         cwd : str
             Optional working directory with respect to which we will resolve relative path to Swagger file
+
+        disable_authorizer : bool
+            Optional flag to disable collection of lambda authorizers
         """
 
         for stack in stacks:
@@ -396,6 +399,8 @@ class CfnApiProvider(CfnBaseApiProvider):
             Instance of the API collector that where we will save the API information
         cwd : Optional[str]
             An optional string to override the current working directory
+        disable_authorizer : Optional[bool]
+            Optional flag to disable collection of lambda authorizers
         """
         properties = api_resource.get("Properties", {})
         body = properties.get("Body")
@@ -462,6 +467,9 @@ class CfnApiProvider(CfnBaseApiProvider):
 
         collector : ApiCollector
             Instance of the API collector that where we will save the API information
+        
+        disable_authorizer : Optional[bool]
+            Optional flag to disable collection of lambda authorizers
         """
 
         properties = route_resource.get("Properties", {})
