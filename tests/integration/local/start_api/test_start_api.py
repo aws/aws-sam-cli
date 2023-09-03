@@ -3179,3 +3179,17 @@ class TestWarmContainersRemoteLayersLazyInvoke(WarmContainersWithRemoteLayersBas
         response = requests.get(self.url + "/", timeout=300)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content.decode("utf-8"), '"Layer1"')
+
+class TestDisableAuthorizer(StartApiIntegBaseClass):
+    # integration test for scenario: 'sam local start-api --disable-authorizer'
+    template_path = "/testdata/start_api/lambda_authorizers/serverless-api-props.yaml"
+    disable_authorizer = True
+
+    @pytest.mark.timeout(timeout=600, method="thread")
+    @pytest.mark.flaky(reruns=3)
+    def test_disable_authorizers(self):
+        response = requests.get(self.url + "/", timeout=300)
+        # The invocation should skip the authorizer and go direct to the hello world lambda handler
+        self.assertEqual(response.content.decode("utf-8"), "Hello World")
+
+

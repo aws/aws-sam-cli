@@ -27,6 +27,7 @@ class StartApiIntegBaseClass(TestCase):
     integration_dir = str(Path(__file__).resolve().parents[2])
     invoke_image: Optional[List] = None
     layer_cache_base_dir: Optional[str] = None
+    disable_authorizer: Optional[bool] = False
 
     build_before_invoke = False
     build_overrides: Optional[Dict[str, str]] = None
@@ -102,6 +103,9 @@ class StartApiIntegBaseClass(TestCase):
         if cls.invoke_image:
             for image in cls.invoke_image:
                 command_list += ["--invoke-image", image]
+
+        if cls.disable_authorizer:
+            command_list += "--disable_authorizer "
 
         cls.start_api_process = (
             Popen(command_list, stderr=PIPE, stdout=PIPE)
