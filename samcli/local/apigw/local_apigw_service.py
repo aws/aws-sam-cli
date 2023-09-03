@@ -610,7 +610,9 @@ class LocalApigwService(BaseLocalService):
             stdout_writer = StreamWriter(stdout, auto_flush=True)
 
             self.lambda_runner.invoke(lambda_function_name, event_str, stdout=stdout_writer, stderr=self.stderr)
-            lambda_response, _ = LambdaOutputParser.get_lambda_output(stdout)
+            lambda_response, is_lambda_user_error_response = LambdaOutputParser.get_lambda_output(stdout)
+            if is_lambda_user_error_response:
+                raise LambdaResponseParseException
 
         return lambda_response
 
@@ -721,6 +723,8 @@ class LocalApigwService(BaseLocalService):
             endpoint_service_error = ServiceErrorResponses.not_implemented_locally(
                 "Inline code is not supported for sam local commands. Please write your code in a separate file."
             )
+        except LambdaResponseParseException:
+            endpoint_service_error = ServiceErrorResponses.lambda_body_failure_response()
 
         if endpoint_service_error:
             return endpoint_service_error

@@ -28,12 +28,17 @@ TERRAFORM_HOOK_METADATA = {
     "HookName": "terraform",
 }
 
+TF_CLOUD_LINK = (
+    "https://docs.aws.amazon.com/serverless-application-model/latest"
+    "/developerguide/gs-terraform-support.html#gs-terraform-support-cloud"
+)
 TF_CLOUD_EXCEPTION_MESSAGE = "Terraform Cloud does not support saving the generated execution plan"
 TF_CLOUD_HELP_MESSAGE = (
     "Terraform Cloud does not currently support generating local plan "
     "files that AWS SAM CLI uses to parse the Terraform project.\n"
     "To use AWS SAM CLI with Terraform Cloud applications, provide "
-    "a plan file using the --terraform-plan-file flag."
+    "a plan file using the --terraform-plan-file flag.\n\n"
+    f"For more information, follow the link: {TF_CLOUD_LINK}"
 )
 
 TF_BLOCKED_ARGUMENTS = [
@@ -227,7 +232,6 @@ def _generate_plan_file(skip_prepare_infra: bool, terraform_application_dir: str
         ) from e
     except LoadingPatternError as e:
         if TF_CLOUD_EXCEPTION_MESSAGE in e.message:
-            # TODO: Add link to TF Cloud documentation when that is ready
             raise TerraformCloudException(TF_CLOUD_HELP_MESSAGE)
         raise PrepareHookException(f"Error occurred when invoking a process:\n{e}") from e
 
