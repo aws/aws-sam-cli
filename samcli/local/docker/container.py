@@ -210,7 +210,6 @@ class Container:
             kwargs["mem_limit"] = "{}m".format(self._memory_limit_mb)
 
         real_container = self.docker_client.containers.create(self._image, **kwargs)
-        LOG.debug("container: %s, kwargs: %s", self._image, kwargs)
         self.id = real_container.id
 
         self._logs_thread = None
