@@ -141,9 +141,9 @@ cffi==1.15.1 \
     --hash=sha256:fa6693661a4c91757f4412306191b6dc88c1703f780c8234035eac011922bc01 \
     --hash=sha256:fcd131dd944808b5bdb38e6f5b53013c5aa4f334c5cad0c72742f6eba4b73db0
     # via cryptography
-cfn-lint==0.79.7 \
-    --hash=sha256:05d819e47f74f4d4862b874b0cc911b4ff9773862601ffec8a4f8791df0eab3a \
-    --hash=sha256:fcdc195a89810482af93a335b57500fc928111998d8389087f85fd59155fc904
+cfn-lint==0.79.9 \
+    --hash=sha256:e151194ca5b4994d68593f4b0fd3cda3bb28edea2023528ca34ecf82b914eec1 \
+    --hash=sha256:fb8a5fc674ce39469a66d37de19130f4b31fbe4685a19b65ec51c8c8f35e8990
     # via aws-sam-cli (setup.py)
 chardet==5.2.0 \
     --hash=sha256:1b3b6ff479a8c414bc3fa2c0852995695c4a026dcd6d0633b2dd092ca39c1cf7 \
@@ -561,9 +561,9 @@ python-slugify==8.0.1 \
     --hash=sha256:70ca6ea68fe63ecc8fa4fcf00ae651fc8a5d02d93dcd12ae6d4fc7ca46c4d395 \
     --hash=sha256:ce0d46ddb668b3be82f4ed5e503dbc33dd815d83e2eb6824211310d3fb172a27
     # via cookiecutter
-pytz==2023.3 \
-    --hash=sha256:1d8ce29db189191fb55338ee6d0387d82ab59f3d00eac103412d64e0ebd0c588 \
-    --hash=sha256:a151b3abb88eda1d4e34a9814df37de2a80e301e68ba0fd856fb9b46bfbbbffb
+pytz==2023.3.post1 \
+    --hash=sha256:7b4fddbeb94a1eba4b557da24f19fdf9db575192544270a9101d8509f9f43d7b \
+    --hash=sha256:ce42d816b81b68506614c11e8937d3aa9e41007ceb50bfdcb0749b921bf646c7
     # via dateparser
 pyyaml==6.0.1 \
     --hash=sha256:062582fca9fabdd2c8b54a3ef1c978d786e0f6b3a1510e0ac93ef59e0ddae2bc \

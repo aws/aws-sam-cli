@@ -142,7 +142,6 @@ def do_cli(
             stack_name=stack_name,
             resource_id=resource_id,
         ) as remote_invoke_context:
-
             remote_invoke_input = RemoteInvokeExecutionInfo(
                 payload=event, payload_file=event_file, parameters=parameter, output_format=output
             )
