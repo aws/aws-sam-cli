@@ -7,6 +7,8 @@ import time
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional, Set
 
+from watchdog.events import EVENT_TYPE_OPENED, FileSystemEvent
+
 from samcli.lib.providers.exceptions import InvalidTemplateFile, MissingCodeUri, MissingLocalDefinition
 from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_all_resource_ids
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
@@ -311,7 +313,27 @@ class WatchManager:
             Callback function
         """
 
-        def on_code_change(_=None):
+        def on_code_change(event: Optional[FileSystemEvent] = None) -> None:
+            """
+            Custom event handling to create a new sync flow if a file was modified.
+
+            Parameters
+            ----------
+            event: Optional[FileSystemEvent]
+                The event that triggered the change
+            """
+            if event and event.event_type == EVENT_TYPE_OPENED:
+                # Ignore all file opened events since this event is
+                # added in addition to a create or modified event,
+                # causing an infinite loop of sync flow creations
+                LOG.debug("Ignoring file system OPENED event")
+                return
+
+            # sync flow factory should always exist, but guarding just incase
+            if not self._sync_flow_factory:
+                LOG.debug("Sync flow factory not defined, skipping trigger")
+                return
+
             sync_flow = self._sync_flow_factory.create_sync_flow(resource_id)
             if sync_flow and not self._waiting_infra_sync:
                 self._sync_flow_executor.add_delayed_sync_flow(sync_flow, dedup=True, wait_time=DEFAULT_WAIT_TIME)

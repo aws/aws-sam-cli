@@ -384,8 +384,8 @@ class FileObserver_on_change(TestCase):
     @patch("samcli.lib.utils.file_observer.calculate_checksum")
     def test_modification_event_got_fired_for_path_got_deleted(self, calculate_checksum_mock, PathMock):
         event = Mock()
-        event.event_type == "deleted"
-        event.src_path = "parent_path1/path1/sub_path"
+        event.event_type = "deleted"
+        event.src_path = "parent_path1/path1"
 
         path_mock = Mock()
         PathMock.return_value = path_mock
