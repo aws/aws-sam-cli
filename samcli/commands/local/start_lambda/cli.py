@@ -3,6 +3,7 @@ CLI command for "local start-lambda" command
 """
 
 import logging
+from ssl import SSLError
 
 import click
 
@@ -98,6 +99,8 @@ def cli(
     hook_name,
     skip_prepare_infra,
     terraform_plan_file,
+    ssl_cert_file,
+    ssl_key_file,
 ):
     """
     `sam local start-lambda` command entry point
@@ -128,6 +131,8 @@ def cli(
         container_host_interface,
         invoke_image,
         hook_name,
+        ssl_cert_file,
+        ssl_key_file,
     )  # pragma: no cover
 
 
@@ -155,6 +160,8 @@ def do_cli(  # pylint: disable=R0914
     container_host_interface,
     invoke_image,
     hook_name,
+    ssl_cert_file,
+    ssl_key_file,
 ):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
@@ -200,7 +207,10 @@ def do_cli(  # pylint: disable=R0914
             container_host_interface=container_host_interface,
             invoke_images=processed_invoke_images,
         ) as invoke_context:
-            service = LocalLambdaService(lambda_invoke_context=invoke_context, port=port, host=host)
+            ssl_context = (ssl_cert_file, ssl_key_file) if ssl_cert_file else None
+            service = LocalLambdaService(
+                lambda_invoke_context=invoke_context, port=port, host=host, ssl_context=ssl_context
+            )
             service.start()
             command_suggestions = generate_next_command_recommendation(
                 [
@@ -222,3 +232,10 @@ def do_cli(  # pylint: disable=R0914
         raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
     except ContainerNotStartableException as ex:
         raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
+    except SSLError as ex:
+        error_message = (
+            "SSL key file must be present if certificate is present"
+            if ssl_key_file is None
+            else "Invalid certificate and/or key file"
+        )
+        raise UserException(f"SSL Error: {error_message}", wrapped_from=ex.__class__.__name__) from ex

@@ -30,7 +30,7 @@ class FunctionNamePathConverter(BaseConverter):
 
 
 class LocalLambdaInvokeService(BaseLocalService):
-    def __init__(self, lambda_runner, port, host, stderr=None):
+    def __init__(self, lambda_runner, port, host, stderr=None, ssl_context=None):
         """
         Creates a Local Lambda Service that will only response to invoking a function
 
@@ -45,7 +45,7 @@ class LocalLambdaInvokeService(BaseLocalService):
         stderr io.BaseIO
             Optional stream where the stderr from Docker container should be written to
         """
-        super().__init__(lambda_runner.is_debugging(), port=port, host=host)
+        super().__init__(lambda_runner.is_debugging(), port=port, host=host, ssl_context=ssl_context)
         self.lambda_runner = lambda_runner
         self.stderr = stderr
 

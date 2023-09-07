@@ -18,7 +18,7 @@ class LocalApiService:
     Lambda function.
     """
 
-    def __init__(self, lambda_invoke_context, port, host, static_dir):
+    def __init__(self, lambda_invoke_context, port, host, static_dir, ssl_context):
         """
         Initialize the local API service.
 
@@ -27,11 +27,14 @@ class LocalApiService:
         :param int port: Port to listen on
         :param string host: Local hostname or IP address to bind to
         :param string static_dir: Optional, directory from which static files will be mounted
+        :param tuple(string, string) ssl_context: Optional, path to ssl certificate and key files to start service
+            in https
         """
 
         self.port = port
         self.host = host
         self.static_dir = static_dir
+        self.ssl_context = ssl_context
 
         self.cwd = lambda_invoke_context.get_cwd()
         self.api_provider = ApiProvider(lambda_invoke_context.stacks, cwd=self.cwd)
@@ -62,6 +65,7 @@ class LocalApiService:
             static_dir=static_dir_path,
             port=self.port,
             host=self.host,
+            ssl_context=self.ssl_context,
             stderr=self.stderr_stream,
         )
 

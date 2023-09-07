@@ -120,6 +120,8 @@ def service_common_options(port):
             click.option(
                 "--port", "-p", default=port, help="Local port number to listen on (default: '{}')".format(str(port))
             ),
+            click.option("--ssl-cert-file", default=None, help="Path to SSL certificate file (default: None)"),
+            click.option("--ssl-key-file", default=None, help="Path to SSL key file (default: None)"),
         ]
 
         # Reverse the list to maintain ordering of options in help text printed with --help

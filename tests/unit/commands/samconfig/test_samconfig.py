@@ -458,6 +458,8 @@ class TestSamConfigForAllCommands(TestCase):
                 "127.0.0.1",
                 ("image",),
                 None,
+                None,
+                None,
             )
 
     @patch("samcli.commands.local.start_lambda.cli.do_cli")
@@ -519,6 +521,8 @@ class TestSamConfigForAllCommands(TestCase):
                 "localhost",
                 "127.0.0.1",
                 ("image",),
+                None,
+                None,
                 None,
             )
 
@@ -1097,6 +1101,10 @@ class TestSamConfigWithOverrides(TestCase):
                     "localhost",
                     "--container-host-interface",
                     "127.0.0.1",
+                    "--ssl-cert-file",
+                    "/path/to/cert",
+                    "--ssl-key-file",
+                    "/path/to/key",
                 ],
             )
 
@@ -1130,6 +1138,8 @@ class TestSamConfigWithOverrides(TestCase):
                 "127.0.0.1",
                 ("image",),
                 None,
+                "/path/to/cert",
+                "/path/to/key",
             )
 
     @patch("samcli.commands.local.start_lambda.cli.do_cli")
@@ -1191,6 +1201,10 @@ class TestSamConfigWithOverrides(TestCase):
                     # Parameter overrides is exclusively provided through CLI args and not config
                     "--parameter-overrides",
                     "A=123 C=D E=F12! G=H",
+                    "--ssl-cert-file",
+                    "/path/to/cert",
+                    "--ssl-key-file",
+                    "/path/to/key",
                 ],
             )
 
@@ -1224,6 +1238,8 @@ class TestSamConfigWithOverrides(TestCase):
                 "127.0.0.1",
                 ("image",),
                 None,
+                "/path/to/cert",
+                "/path/to/key",
             )
 
     @patch("samcli.commands.validate.validate.do_cli")

@@ -14,7 +14,7 @@ class LocalLambdaService:
     that are defined in a SAM file.
     """
 
-    def __init__(self, lambda_invoke_context, port, host):
+    def __init__(self, lambda_invoke_context, port, host, ssl_context):
         """
         Initialize the Local Lambda Invoke service.
 
@@ -26,6 +26,7 @@ class LocalLambdaService:
 
         self.port = port
         self.host = host
+        self.ssl_context = ssl_context
         self.lambda_runner = lambda_invoke_context.local_lambda_runner
         self.stderr_stream = lambda_invoke_context.stderr
 
@@ -43,7 +44,11 @@ class LocalLambdaService:
         # to the console or a log file. stderr from Docker container contains runtime logs and output of print
         # statements from the Lambda function
         service = LocalLambdaInvokeService(
-            lambda_runner=self.lambda_runner, port=self.port, host=self.host, stderr=self.stderr_stream
+            lambda_runner=self.lambda_runner,
+            port=self.port,
+            host=self.host,
+            ssl_context=self.ssl_context,
+            stderr=self.stderr_stream,
         )
 
         service.create()

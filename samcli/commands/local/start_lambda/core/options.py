@@ -20,6 +20,8 @@ TEMPLATE_OPTIONS: List[str] = [
 CONTAINER_OPTION_NAMES: List[str] = [
     "host",
     "port",
+    "ssl_cert_file",
+    "ssl_key_file",
     "env_vars",
     "warm_containers",
     "container_env_vars",

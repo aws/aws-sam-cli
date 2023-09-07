@@ -3,6 +3,7 @@ CLI command for "local start-api" command
 """
 
 import logging
+from ssl import SSLError
 
 import click
 
@@ -111,6 +112,8 @@ def cli(
     hook_name,
     skip_prepare_infra,
     terraform_plan_file,
+    ssl_cert_file,
+    ssl_key_file,
 ):
     """
     `sam local start-api` command entry point
@@ -142,6 +145,8 @@ def cli(
         container_host_interface,
         invoke_image,
         hook_name,
+        ssl_cert_file,
+        ssl_key_file,
     )  # pragma: no cover
 
 
@@ -170,6 +175,8 @@ def do_cli(  # pylint: disable=R0914
     container_host_interface,
     invoke_image,
     hook_name,
+    ssl_cert_file,
+    ssl_key_file,
 ):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
@@ -215,7 +222,14 @@ def do_cli(  # pylint: disable=R0914
             container_host_interface=container_host_interface,
             invoke_images=processed_invoke_images,
         ) as invoke_context:
-            service = LocalApiService(lambda_invoke_context=invoke_context, port=port, host=host, static_dir=static_dir)
+            ssl_context = (ssl_cert_file, ssl_key_file) if ssl_cert_file else None
+            service = LocalApiService(
+                lambda_invoke_context=invoke_context,
+                port=port,
+                host=host,
+                static_dir=static_dir,
+                ssl_context=ssl_context,
+            )
             service.start()
             if not hook_name:
                 command_suggestions = generate_next_command_recommendation(
@@ -226,7 +240,13 @@ def do_cli(  # pylint: disable=R0914
                     ]
                 )
                 click.secho(command_suggestions, fg="yellow")
-
+    except SSLError as ex:
+        error_message = (
+            "SSL key file must be present if certificate is present"
+            if ssl_key_file is None
+            else "Invalid certificate and/or key file"
+        )
+        raise UserException(f"SSL Error: {error_message}", wrapped_from=ex.__class__.__name__) from ex
     except NoApisDefined as ex:
         raise UserException(
             "Template does not have any APIs connected to Lambda functions", wrapped_from=ex.__class__.__name__

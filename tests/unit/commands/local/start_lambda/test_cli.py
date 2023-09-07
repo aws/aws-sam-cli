@@ -39,6 +39,8 @@ class TestCli(TestCase):
 
         self.host = "host"
         self.port = 123
+        self.ssl_cert_file = None
+        self.ssl_key_file = None
 
         self.container_host = "localhost"
         self.container_host_interface = "127.0.0.1"
@@ -84,7 +86,9 @@ class TestCli(TestCase):
             invoke_images={},
         )
 
-        local_lambda_service_mock.assert_called_with(lambda_invoke_context=context_mock, port=self.port, host=self.host)
+        local_lambda_service_mock.assert_called_with(
+            lambda_invoke_context=context_mock, port=self.port, host=self.host, ssl_context=None
+        )
 
         service_mock.start.assert_called_with()
 
@@ -182,4 +186,6 @@ class TestCli(TestCase):
             container_host_interface=self.container_host_interface,
             invoke_image=self.invoke_image,
             hook_name=self.hook_name,
+            ssl_cert_file=self.ssl_cert_file,
+            ssl_key_file=self.ssl_key_file,
         )
