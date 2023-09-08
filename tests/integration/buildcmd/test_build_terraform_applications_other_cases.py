@@ -355,6 +355,35 @@ class TestBuildGoFunctionAndKeepPermissions(BuildTerraformApplicationIntegBase):
     (not RUN_BY_CANARY and not CI_OVERRIDE),
     "Skip Terraform test cases unless running in CI",
 )
+class TestBuildTerraformDoNotHangIncaseOfTerraformErrors(BuildTerraformApplicationIntegBase):
+    terraform_application = Path("terraform/application_contains_syntax_error")
+
+    @parameterized.expand([True, False])
+    def test_build_lambda_functions(self, debug_flag):
+        command_list_parameters = {
+            "hook_name": "terraform",
+            "function_identifier": "aws_lambda_function.function1",
+            "debug": debug_flag,
+        }
+        build_cmd_list = self.get_command_list(**command_list_parameters)
+        LOG.info("command list: %s", build_cmd_list)
+        stdout, stderr, return_code = self.run_command(build_cmd_list, timeout=600)
+        LOG.info("sam build stdout: %s", stdout.decode("utf-8"))
+        LOG.info("sam build stderr: %s", stderr.decode("utf-8"))
+        self.assertEqual(return_code, 1)
+        self.assertTrue(
+            "Failed to execute the subprocess. The process ['terraform', 'plan', '-out', " in stderr.decode("utf-8")
+        )
+
+        self.assertTrue(
+            "Error: Invalid resource type" in stderr.decode("utf-8")
+        )
+
+
+@skipIf(
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
+    "Skip Terraform test cases unless running in CI",
+)
 @parameterized_class(
     ("build_in_container",),
     [
@@ -362,7 +391,7 @@ class TestBuildGoFunctionAndKeepPermissions(BuildTerraformApplicationIntegBase):
         (True,),
     ],
 )
-class TestBuildTerraformApplicationsSourceCodeAndModulesAreNotInRootModuleDirectory(BuildTerraformApplicationIntegBase):
+class TestBuildTerraformNestedDirectories(BuildTerraformApplicationIntegBase):
     terraform_application = (
         Path("terraform/application_outside_root_directory")
         if not IS_WINDOWS
@@ -429,10 +458,12 @@ class TestBuildTerraformApplicationsSourceCodeAndModulesAreNotInRootModuleDirect
     (not RUN_BY_CANARY and not CI_OVERRIDE),
     "Skip Terraform test cases unless running in CI",
 )
-class TestBuildTerraformApplicationsSourceCodeAndModulesAreNotInRootModuleDirectoryGetParametersFromSamConfig(
-    BuildTerraformApplicationIntegBase
-):
-    terraform_application = Path("terraform/application_outside_root_directory")
+class TestBuildTerraformApplicationsNestedDirectoriesGetParametersFromSamConfig(BuildTerraformApplicationIntegBase):
+    terraform_application = (
+        Path("terraform/application_outside_root_directory")
+        if not IS_WINDOWS
+        else Path("terraform/application_outside_root_directory_windows")
+    )
 
     functions = [
         ("aws_lambda_function.function1", "hello world 1"),

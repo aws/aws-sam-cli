@@ -36,7 +36,9 @@ class TestSubprocessUtils(TestCase):
         mock_stream_writer = Mock()
         patched_check_and_process_byes.side_effect = [f"Line 1{os.linesep}", "Line 2"]
         actual_output = invoke_subprocess_with_loading_pattern({"args": ["ls"]}, mock_pattern, mock_stream_writer)
-        patched_check_and_process_byes.assert_has_calls([call(f"Line 1{os.linesep}"), call("Line 2")])
+        patched_check_and_process_byes.assert_has_calls(
+            [call(f"Line 1{os.linesep}", preserve_whitespace=False), call("Line 2", preserve_whitespace=False)]
+        )
         mock_pattern.assert_not_called()
         self.assertEqual(actual_output, expected_output)
 

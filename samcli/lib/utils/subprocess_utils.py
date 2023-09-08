@@ -3,15 +3,19 @@ Utils for invoking subprocess calls
 """
 import logging
 import os
+import platform
 import sys
 from concurrent.futures.thread import ThreadPoolExecutor
-from subprocess import PIPE, Popen
+from subprocess import PIPE, STDOUT, Popen
 from time import sleep
 from typing import Any, AnyStr, Callable, Dict, Optional, Union
 
 from samcli.commands.exceptions import UserException
 from samcli.lib.utils.stream_writer import StreamWriter
 
+TERRAFORM_ERROR_PREFIX = [27, 91, 51, 49]
+
+IS_WINDOWS = platform.system().lower() != "windows"
 LOG = logging.getLogger(__name__)
 
 
@@ -73,7 +77,7 @@ def invoke_subprocess_with_loading_pattern(
         command_args["stdout"] = PIPE
 
     if not command_args.get("stderr"):
-        command_args["stderr"] = PIPE
+        command_args["stderr"] = PIPE if IS_WINDOWS else STDOUT
 
     try:
         keep_printing = LOG.getEffectiveLevel() >= logging.INFO
@@ -92,10 +96,18 @@ def invoke_subprocess_with_loading_pattern(
                     # we read from subprocess stdout to avoid the deadlock process.wait function
                     # for more detail check this python bug https://bugs.python.org/issue1256
                     for line in process.stdout:
-                        decoded_line = _check_and_process_bytes(line)
+                        is_error = (
+                            IS_WINDOWS
+                            and len(line) >= len(TERRAFORM_ERROR_PREFIX)
+                            and [c for c in line[0:4]] == TERRAFORM_ERROR_PREFIX
+                        )
+                        decoded_line = _check_and_process_bytes(line, preserve_whitespace=is_error)
                         if LOG.getEffectiveLevel() < logging.INFO:
                             LOG.debug(decoded_line)
-                        process_output += decoded_line
+                        if not is_error:
+                            process_output += decoded_line
+                        else:
+                            process_stderr += decoded_line
 
                 if process.stderr:
                     for line in process.stderr:
