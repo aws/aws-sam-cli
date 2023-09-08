@@ -375,9 +375,7 @@ class TestBuildTerraformDoNotHangIncaseOfTerraformErrors(BuildTerraformApplicati
             "Failed to execute the subprocess. The process ['terraform', 'plan', '-out', " in stderr.decode("utf-8")
         )
 
-        self.assertTrue(
-            "Error: Invalid resource type" in stderr.decode("utf-8")
-        )
+        self.assertTrue("Error: Invalid resource type" in stderr.decode("utf-8"))
 
 
 @skipIf(
