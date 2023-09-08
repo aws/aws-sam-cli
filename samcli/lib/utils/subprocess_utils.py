@@ -15,7 +15,7 @@ from samcli.lib.utils.stream_writer import StreamWriter
 
 TERRAFORM_ERROR_PREFIX = [27, 91, 51, 49]
 
-IS_NOT_WINDOWS = platform.system().lower() != "windows"
+IS_WINDOWS = platform.system().lower() == "windows"
 LOG = logging.getLogger(__name__)
 
 
@@ -77,7 +77,7 @@ def invoke_subprocess_with_loading_pattern(
         command_args["stdout"] = PIPE
 
     if not command_args.get("stderr"):
-        command_args["stderr"] = PIPE if IS_NOT_WINDOWS else STDOUT
+        command_args["stderr"] = STDOUT if IS_WINDOWS else PIPE
 
     try:
         keep_printing = LOG.getEffectiveLevel() >= logging.INFO
@@ -97,9 +97,9 @@ def invoke_subprocess_with_loading_pattern(
                     # for more detail check this python bug https://bugs.python.org/issue1256
                     for line in process.stdout:
                         is_error = (
-                            not IS_NOT_WINDOWS
+                            IS_WINDOWS
                             and len(line) >= len(TERRAFORM_ERROR_PREFIX)
-                            and [c for c in line[0:4]] == TERRAFORM_ERROR_PREFIX
+                            and line[0:4] == bytes(TERRAFORM_ERROR_PREFIX)
                         )
                         decoded_line = _check_and_process_bytes(line, preserve_whitespace=is_error)
                         if LOG.getEffectiveLevel() < logging.INFO:
