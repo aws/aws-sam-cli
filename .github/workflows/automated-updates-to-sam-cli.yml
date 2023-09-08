@@ -14,13 +14,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout App Templates
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: aws/aws-sam-cli-app-templates
           path: aws-sam-cli-app-templates
 
       - name: Checkout SAM CLI
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: aws/aws-sam-cli
           path: aws-sam-cli
@@ -59,7 +59,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout SAM
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: aws/serverless-application-model
           path: serverless-application-model
@@ -67,7 +67,7 @@ jobs:
           fetch-depth: 0
       
       - name: Checkout SAM CLI
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: aws/aws-sam-cli
           path: aws-sam-cli
@@ -110,7 +110,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Lambda Builders
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: aws/aws-lambda-builders
           path: aws-lambda-builders
@@ -118,7 +118,7 @@ jobs:
           fetch-depth: 0
 
       - name: Checkout SAM CLI
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: aws/aws-sam-cli
           path: aws-sam-cli
