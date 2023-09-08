@@ -355,36 +355,6 @@ class TestBuildGoFunctionAndKeepPermissions(BuildTerraformApplicationIntegBase):
     (not RUN_BY_CANARY and not CI_OVERRIDE),
     "Skip Terraform test cases unless running in CI",
 )
-class TestBuildTerraformDoNotHangIncaseOfTerraformErrors(BuildTerraformApplicationIntegBase):
-    terraform_application = Path("terraform/application_contains_syntax_error")
-
-    @parameterized.expand([True, False])
-    def test_build_lambda_functions(self, debug_flag):
-        command_list_parameters = {
-            "hook_name": "terraform",
-            "function_identifier": "aws_lambda_function.function1",
-            "debug": debug_flag,
-        }
-        build_cmd_list = self.get_command_list(**command_list_parameters)
-        LOG.info("command list: %s", build_cmd_list)
-        # add time out, so if the process hangs, the testing will not hang, but the sam command will be timed out.
-        # terraform plan command should fail within seconds, as there is an error in syntax, but we will wait for 5 mins
-        # in case if terraform init takes time.
-        stdout, stderr, return_code = self.run_command(build_cmd_list, timeout=300)
-        LOG.info("sam build stdout: %s", stdout.decode("utf-8"))
-        LOG.info("sam build stderr: %s", stderr.decode("utf-8"))
-        self.assertEqual(return_code, 1)
-        self.assertTrue(
-            "Failed to execute the subprocess. The process ['terraform', 'plan', '-out', " in stderr.decode("utf-8")
-        )
-
-        self.assertTrue("Error: Invalid resource type" in stderr.decode("utf-8"))
-
-
-@skipIf(
-    (not RUN_BY_CANARY and not CI_OVERRIDE),
-    "Skip Terraform test cases unless running in CI",
-)
 @parameterized_class(
     ("build_in_container",),
     [
@@ -541,12 +511,25 @@ class TestBuildTerraformApplicationsWithBlockedEnvironVariables(BuildTerraformAp
 class TestTerraformHandlesExceptionFromBinary(BuildTerraformApplicationIntegBase):
     terraform_application = Path("terraform/broken_tf")
 
-    def test_subprocess_handler(self):
-        err_message = "Terraform encountered problems during initialisation"
+    @parameterized.expand([True, False])
+    def test_subprocess_handler(self, debug_flag):
+        err_message = (
+            "Failed to execute the subprocess. The process ['terraform', 'init', '-input=false'] returned a non-zero "
+            "exit code 1."
+        )
+        terraform_error_message = "Error: Unclosed configuration block"
         stack_trace_error = "unexpected error was encountered while executing 'sam build'"
-        cmdlist = self.get_command_list(hook_name="terraform", beta_features=True)
-        _, stderr, return_code = self.run_command(cmdlist)
+        cmdlist = self.get_command_list(
+            hook_name="terraform",
+            debug=debug_flag,
+        )
+        # add time out, so if the process hangs, the testing will not hang, but the sam command will be timed out.
+        # terraform plan command should fail within seconds, as there is an error in syntax, but we will wait for 5 mins
+        # in case if terraform init takes time.
+        _, stderr, return_code = self.run_command(cmdlist, timeout=300)
         err_string = stderr.decode("utf-8").strip()
+        LOG.info("sam build stderr: %s", err_string)
         self.assertEqual(return_code, 1)
         self.assertIn(err_message, err_string)
+        self.assertIn(terraform_error_message, err_string)
         self.assertNotIn(stack_trace_error, err_string)
