@@ -457,7 +457,7 @@ class TestResourceMetadataNormalizer(TestCase):
         self.assertEqual("new path", template_data["Resources"]["Function1"]["Properties"]["Code"])
         self.assertEqual("Function1", template_data["Resources"]["Function1"]["Metadata"]["SamResourceId"])
 
-    def test_referenced_data(self):
+    def test_with_referenced_metadata(self):
         input_template = """
         Resources:
           FirstFunction:
@@ -487,9 +487,6 @@ class TestResourceMetadataNormalizer(TestCase):
         """
         template_dict = yaml_parse(input_template)
         ResourceMetadataNormalizer.normalize(template_dict)
-
-        def _extract_sam_resource_id(template, resource_id):
-            return template.get("Resources", {}).get(resource_id, {}).get("Metadata", {}).get("SamResourceId")
 
         self.assertEqual(
             template_dict.get("Resources", {}).get("FirstFunction", {}).get("Metadata", {}).get("SamResourceId"),
