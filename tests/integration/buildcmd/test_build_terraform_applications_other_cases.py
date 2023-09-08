@@ -367,7 +367,10 @@ class TestBuildTerraformDoNotHangIncaseOfTerraformErrors(BuildTerraformApplicati
         }
         build_cmd_list = self.get_command_list(**command_list_parameters)
         LOG.info("command list: %s", build_cmd_list)
-        stdout, stderr, return_code = self.run_command(build_cmd_list, timeout=600)
+        # add time out, so if the process hangs, the testing will not hang, but the sam command will be timed out.
+        # terraform plan command should fail within seconds, as there is an error in syntax, but we will wait for 5 mins
+        # in case if terraform init takes time.
+        stdout, stderr, return_code = self.run_command(build_cmd_list, timeout=300)
         LOG.info("sam build stdout: %s", stdout.decode("utf-8"))
         LOG.info("sam build stderr: %s", stderr.decode("utf-8"))
         self.assertEqual(return_code, 1)
