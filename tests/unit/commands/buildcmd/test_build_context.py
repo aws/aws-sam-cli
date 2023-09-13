@@ -18,6 +18,7 @@ from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
 from samcli.lib.build.bundler import EsbuildBundlerManager
 from samcli.lib.build.workflow_config import UnsupportedRuntimeException
 from samcli.lib.providers.provider import Function, get_function_build_info
+from samcli.lib.telemetry.event import EventName, UsedFeature
 from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.local.lambdafn.exceptions import FunctionNotFound
@@ -1244,6 +1245,37 @@ class TestBuildContext_run(TestCase):
                 build_context.run()
 
         self.assertEqual(str(ctx.exception), "Function Not Found")
+
+    @patch("samcli.commands.build.build_context.BuildContext._is_sam_template")
+    @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
+    @patch("samcli.commands.build.build_context.BuildContext._check_exclude_warning")
+    @patch("samcli.commands.build.build_context.BuildContext._check_rust_cargo_experimental_flag")
+    @patch("samcli.lib.build.app_builder.ApplicationBuilder.build")
+    @patch("samcli.lib.telemetry.event.EventTracker.track_event")
+    def test_build_in_source_event_sent(
+        self, mock_track_event, mock_builder, mock_rust, mock_warning, mock_get_resources, mock_is_sam_template
+    ):
+        mock_builder.side_effect = [FunctionNotFound()]
+
+        context = BuildContext(
+            resource_identifier="",
+            template_file="template_file",
+            base_dir="base_dir",
+            build_dir="build_dir",
+            cache_dir="cache_dir",
+            cached=False,
+            clean=False,
+            parallel=False,
+            mode="mode",
+            build_in_source=True,
+        )
+
+        with self.assertRaises(UserException):
+            context.run()
+
+        mock_track_event.assert_called_with(
+            EventName.USED_FEATURE.value, UsedFeature.BUILD_IN_SOURCE.value, "FunctionNotFound"
+        )
 
 
 class TestBuildContext_is_sam_template(TestCase):
