@@ -15,6 +15,7 @@ from samcli.hook_packages.terraform.hooks.prepare.constants import (
     TF_AWS_API_GATEWAY_INTEGRATION_RESPONSE,
     TF_AWS_API_GATEWAY_METHOD,
     TF_AWS_API_GATEWAY_REST_API,
+    TF_AWS_API_GATEWAY_V2_API,
 )
 from samcli.hook_packages.terraform.hooks.prepare.enrich import enrich_resources_and_generate_makefile
 from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
@@ -68,6 +69,7 @@ LOG = logging.getLogger(__name__)
 
 TRANSLATION_VALIDATORS: Dict[str, Type[ResourceTranslationValidator]] = {
     TF_AWS_API_GATEWAY_REST_API: RESTAPITranslationValidator,
+    TF_AWS_API_GATEWAY_V2_API: RESTAPITranslationValidator,
 }
 
 

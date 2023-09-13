@@ -9,14 +9,7 @@ from typing import Any, Mapping
 import click
 
 from samcli.cli.context import Context
-from samcli.cli.global_config import GlobalConfig
 from samcli.commands._utils.constants import DEFAULT_BUILT_TEMPLATE_PATH
-from samcli.commands._utils.experimental import (
-    ExperimentalFlag,
-    prompt_experimental,
-    set_experimental,
-    update_experimental_context,
-)
 from samcli.lib.hook.exceptions import InvalidHookWrapperException
 from samcli.lib.hook.hook_wrapper import IacHookWrapper, get_available_hook_packages_ids
 from samcli.lib.telemetry.event import EventName, EventTracker
@@ -35,13 +28,19 @@ class HookNameOption(click.Option):
 
     def __init__(self, *args, **kwargs):
         self.hook_name_option_name = "hook_name"
+        self.help_option_name = "help"
         self._force_prepare = kwargs.pop("force_prepare", True)
         self._invalid_coexist_options = kwargs.pop("invalid_coexist_options", [])
         super().__init__(*args, **kwargs)
 
     def handle_parse_result(self, ctx, opts, args):
         opt_name = self.hook_name_option_name.replace("_", "-")
-        if self.hook_name_option_name not in opts and self.hook_name_option_name not in ctx.default_map:
+        if (
+            self.hook_name_option_name not in opts
+            and self.hook_name_option_name not in ctx.default_map
+            or self.help_option_name in opts
+            or self.help_option_name in ctx.default_map
+        ):
             return super().handle_parse_result(ctx, opts, args)
         command_name = ctx.command.name
         if command_name in ["invoke", "start-lambda", "start-api"]:
@@ -60,9 +59,6 @@ class HookNameOption(click.Option):
         self._validate_coexist_options(opt_name, opts)
 
         _validate_build_command_parameters(command_name, opts)
-
-        if not _check_experimental_flag(hook_name, command_name, opts, ctx.default_map):
-            return super().handle_parse_result(ctx, opts, args)
 
         try:
             self._call_prepare_hook(iac_hook_wrapper, opts, ctx)
@@ -141,79 +137,6 @@ def _validate_build_command_parameters(command_name, opts):
             f"{project_root_dir} is not a valid value for Terraform Project Root Path. It should be a parent of the "
             f"current directory that contains the root module of the terraform project."
         )
-
-
-def _check_experimental_flag(hook_name, command_name, opts, default_map):
-    # check beta-feature
-    experimental_entry = ExperimentalFlag.IaCsSupport.get(hook_name)
-    beta_features = _get_customer_input_beta_features_option(default_map, experimental_entry, opts)
-
-    # check if beta feature flag is required for a specific hook package
-    # The IaCs support experimental flag map will contain only the beta IaCs. In case we support the external
-    # hooks, we need to first know that the hook package is an external, and to handle the beta feature of it
-    # using different approach
-    if beta_features is None and experimental_entry is not None:
-        iac_support_message = _get_iac_support_experimental_prompt_message(hook_name, command_name)
-        if not prompt_experimental(experimental_entry, iac_support_message):
-            LOG.debug("Experimental flag is disabled and prepare hook is not run")
-            return False
-    elif not beta_features:
-        LOG.debug("--beta-features flag is disabled and prepare hook is not run")
-        return False
-    elif beta_features:
-        LOG.debug("--beta-features flag is enabled, enabling experimental flag.")
-        set_experimental(experimental_entry, True)
-        update_experimental_context()
-    return True
-
-
-def _get_customer_input_beta_features_option(default_map, experimental_entry, opts):
-    # Get the beta-features flag value from the command parameters if provided.
-    beta_features = opts.get("beta_features")
-    if beta_features is not None:
-        return beta_features
-
-    # Get the beta-features flag value from the SamConfig file if provided.
-    beta_features = default_map.get("beta_features")
-    if beta_features is not None:
-        return beta_features
-
-    # Get the beta-features flag value from the environment variables.
-    if experimental_entry:
-        gc = GlobalConfig()
-        beta_features = gc.get_value(experimental_entry, default=None, value_type=bool, is_flag=True)
-        if beta_features is not None:
-            return beta_features
-        return gc.get_value(ExperimentalFlag.All, default=None, value_type=bool, is_flag=True)
-
-    return None
-
-
-def _get_iac_support_experimental_prompt_message(hook_name: str, command: str) -> str:
-    """
-    return the customer prompt message for a specific hook package.
-
-    Parameters
-    ----------
-    hook_name: str
-        the hook name to determine what is the supported iac
-
-    command: str
-        the current sam command
-    Returns
-    -------
-    str
-        the customer prompt message for a specific IaC.
-    """
-
-    supported_iacs_messages = {
-        "terraform": (
-            "Supporting Terraform applications is a beta feature.\n"
-            "Please confirm if you would like to proceed using AWS SAM CLI with terraform application.\n"
-            f"You can also enable this beta feature with 'sam {command} --beta-features'."
-        )
-    }
-    return supported_iacs_messages.get(hook_name, "")
 
 
 def _read_parameter_value(param_name, opts, ctx, default_value=None):

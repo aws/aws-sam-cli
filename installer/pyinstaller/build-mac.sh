@@ -71,8 +71,21 @@ echo "Copying Source"
 cp -r ../[!.]* ./src
 cp -r ./src/* ./output/aws-sam-cli-src
 
-echo "Removing CI Scripts"
+echo "Removing CI Scripts and other files/direcories not needed"
 rm -vf ./output/aws-sam-cli-src/appveyor*.yml
+rm -rf ./output/aws-sam-cli-src/tests
+rm -rf ./output/aws-sam-cli-src/designs
+rm -rf ./output/aws-sam-cli-src/docs
+rm -rf ./output/aws-sam-cli-src/media
+rm -rf ./output/aws-sam-cli-src/schema
+rm -rf ./output/aws-sam-cli-src/Make.ps1
+rm -rf ./output/aws-sam-cli-src/CODEOWNERS
+rm -rf ./output/aws-sam-cli-src/CODE_OF_CONDUCT.md
+rm -rf ./output/aws-sam-cli-src/CONTRIBUTING.md
+rm -rf ./output/aws-sam-cli-src/DESIGN.md
+rm -rf ./output/aws-sam-cli-src/Makefile
+rm -rf ./output/aws-sam-cli-src/mypy.ini
+rm -rf ./output/aws-sam-cli-src/pytest.ini
 
 echo "Installing Python"
 curl "https://www.python.org/ftp/python/${python_version}/Python-${python_version}.tgz" --output python.tgz

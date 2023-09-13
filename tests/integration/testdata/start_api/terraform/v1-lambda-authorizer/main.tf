@@ -1,5 +1,11 @@
 provider "aws" {}
 
+resource "random_uuid" "unique_id" {
+    keepers = {
+        my_key = "my_key"
+    }
+}
+
 resource "aws_api_gateway_authorizer" "header_authorizer" {
   name = "header_authorizer"
   rest_api_id = aws_api_gateway_rest_api.api.id
@@ -18,18 +24,9 @@ resource "aws_api_gateway_authorizer" "request_authorizer" {
   type = "REQUEST"
 }
 
-resource "aws_api_gateway_authorizer" "request_authorizer_empty" {
-  name = "request_authorizer"
-  rest_api_id = aws_api_gateway_rest_api.api.id
-  authorizer_uri = aws_lambda_function.authorizer.invoke_arn
-  authorizer_credentials = aws_iam_role.invocation_role.arn
-  identity_source = ""
-  type = "REQUEST"
-}
-
 resource "aws_lambda_function" "authorizer" {
   filename = "lambda-functions.zip"
-  function_name = "authorizer"
+  function_name = "authorizer-${random_uuid.unique_id.result}"
   role = aws_iam_role.invocation_role.arn
   handler = "handlers.auth_handler"
   runtime = "python3.8"
@@ -38,7 +35,7 @@ resource "aws_lambda_function" "authorizer" {
 
 resource "aws_lambda_function" "hello_endpoint" {
   filename = "lambda-functions.zip"
-  function_name = "hello_lambda"
+  function_name = "hello_lambda-${random_uuid.unique_id.result}"
   role = aws_iam_role.invocation_role.arn
   handler = "handlers.hello_handler"
   runtime = "python3.8"
@@ -61,14 +58,6 @@ resource "aws_api_gateway_method" "get_hello_request" {
   authorization = "CUSTOM"
 }
 
-resource "aws_api_gateway_method" "get_hello_request_empty" {
-  rest_api_id = aws_api_gateway_rest_api.api.id
-  resource_id = aws_api_gateway_resource.hello_resource_request_empty.id
-  http_method = "GET"
-  authorizer_id = aws_api_gateway_authorizer.request_authorizer_empty.id
-  authorization = "CUSTOM"
-}
-
 resource "aws_api_gateway_resource" "hello_resource" {
   rest_api_id = aws_api_gateway_rest_api.api.id
   parent_id = aws_api_gateway_rest_api.api.root_resource_id
@@ -81,16 +70,11 @@ resource "aws_api_gateway_resource" "hello_resource_request" {
   path_part = "hello-request"
 }
 
-resource "aws_api_gateway_resource" "hello_resource_request_empty" {
-  rest_api_id = aws_api_gateway_rest_api.api.id
-  parent_id = aws_api_gateway_rest_api.api.root_resource_id
-  path_part = "hello-request-empty"
-}
-
 resource "aws_api_gateway_integration" "MyDemoIntegration" {
   rest_api_id = aws_api_gateway_rest_api.api.id
   resource_id = aws_api_gateway_resource.hello_resource.id
   http_method = aws_api_gateway_method.get_hello.http_method
+  integration_http_method = "POST"
   type = "AWS_PROXY"
   content_handling = "CONVERT_TO_TEXT"
   uri = aws_lambda_function.hello_endpoint.invoke_arn
@@ -100,26 +84,18 @@ resource "aws_api_gateway_integration" "MyDemoIntegrationRequest" {
   rest_api_id = aws_api_gateway_rest_api.api.id
   resource_id = aws_api_gateway_resource.hello_resource_request.id
   http_method = aws_api_gateway_method.get_hello_request.http_method
-  type = "AWS_PROXY"
-  content_handling = "CONVERT_TO_TEXT"
-  uri = aws_lambda_function.hello_endpoint.invoke_arn
-}
-
-resource "aws_api_gateway_integration" "MyDemoIntegrationRequestEmpty" {
-  rest_api_id = aws_api_gateway_rest_api.api.id
-  resource_id = aws_api_gateway_resource.hello_resource_request_empty.id
-  http_method = aws_api_gateway_method.get_hello_request_empty.http_method
+  integration_http_method = "POST"
   type = "AWS_PROXY"
   content_handling = "CONVERT_TO_TEXT"
   uri = aws_lambda_function.hello_endpoint.invoke_arn
 }
 
 resource "aws_api_gateway_rest_api" "api" {
-  name = "api"
+  name = "api-${random_uuid.unique_id.result}"
 }
 
 resource "aws_iam_role" "invocation_role" {
-  name = "iam_lambda"
+  name = "iam_lambda-${random_uuid.unique_id.result}"
   path = "/"
   assume_role_policy = <<EOF
 {

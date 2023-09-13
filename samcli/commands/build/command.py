@@ -8,7 +8,6 @@ from typing import List, Optional, Dict, Tuple
 import click
 
 from samcli.cli.context import Context
-from samcli.commands._utils.experimental import ExperimentalFlag, is_experimental_enabled
 from samcli.commands._utils.options import (
     skip_prepare_infra_option,
     template_option_without_build,
@@ -222,13 +221,6 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     """
     Implementation of the ``cli`` method
     """
-    if (
-        hook_name
-        and ExperimentalFlag.IaCsSupport.get(hook_name) is not None
-        and not is_experimental_enabled(ExperimentalFlag.IaCsSupport[hook_name])
-    ):
-        LOG.info("Terraform Support beta feature is not enabled.")
-        return
 
     from samcli.commands.build.build_context import BuildContext
 

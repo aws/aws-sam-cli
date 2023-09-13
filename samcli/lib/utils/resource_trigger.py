@@ -138,7 +138,7 @@ class TemplateTrigger(ResourceTrigger):
 
     def get_path_handlers(self) -> List[PathHandler]:
         file_path_handler = ResourceTrigger.get_single_file_path_handler(Path(self._template_file))
-        file_path_handler.event_handler.on_any_event = self._validator_wrapper
+        file_path_handler.event_handler.on_any_event = self._validator_wrapper  # type: ignore
         return [file_path_handler]
 
 
@@ -246,7 +246,7 @@ class LambdaFunctionCodeTrigger(CodeResourceTrigger):
         )
         dir_path_handler.self_create = self._on_code_change
         dir_path_handler.self_delete = self._on_code_change
-        dir_path_handler.event_handler.on_any_event = self._on_code_change
+        dir_path_handler.event_handler.on_any_event = self._on_code_change  # type: ignore
         return [dir_path_handler]
 
 
@@ -314,7 +314,7 @@ class LambdaLayerCodeTrigger(CodeResourceTrigger):
         )
         dir_path_handler.self_create = self._on_code_change
         dir_path_handler.self_delete = self._on_code_change
-        dir_path_handler.event_handler.on_any_event = self._on_code_change
+        dir_path_handler.event_handler.on_any_event = self._on_code_change  # type: ignore
         return [dir_path_handler]
 
 
@@ -385,5 +385,5 @@ class DefinitionCodeTrigger(CodeResourceTrigger):
             A single PathHandler for watching the definition file.
         """
         file_path_handler = ResourceTrigger.get_single_file_path_handler(self.base_dir.joinpath(self._definition_file))
-        file_path_handler.event_handler.on_any_event = self._validator_wrapper
+        file_path_handler.event_handler.on_any_event = self._validator_wrapper  # type: ignore
         return [file_path_handler]

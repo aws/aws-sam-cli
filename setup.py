@@ -51,7 +51,7 @@ setup(
     author_email="aws-sam-developers@amazon.com",
     url="https://github.com/aws/aws-sam-cli",
     license="Apache License 2.0",
-    packages=find_packages(exclude=["tests.*", "tests", "installer.*", "installer"]),
+    packages=find_packages(exclude=["tests.*", "tests", "installer.*", "installer", "schema.*", "schema"]),
     keywords="AWS SAM CLI",
     # Support Python 3.7 or greater
     python_requires=">=3.7, <=4.0, !=4.0",
