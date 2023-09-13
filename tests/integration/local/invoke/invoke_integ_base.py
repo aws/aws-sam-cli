@@ -91,11 +91,7 @@ class InvokeIntegBase(TestCase):
         return command_list
 
     def get_build_command_list(
-        self,
-        template_path=None,
-        cached=None,
-        parallel=None,
-        use_container=None,
+        self, template_path=None, cached=None, parallel=None, use_container=None, build_dir=None
     ):
         command_list = [self.cmd, "build"]
 
@@ -110,6 +106,9 @@ class InvokeIntegBase(TestCase):
 
         if use_container:
             command_list = command_list + ["-u"]
+
+        if build_dir:
+            command_list = command_list + ["-b", build_dir]
 
         return command_list
 
