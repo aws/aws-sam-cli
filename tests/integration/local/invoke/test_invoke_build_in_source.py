@@ -9,7 +9,7 @@ from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase
 
 
 @skip("Skipping build in source tests until feature can be enabled")
-class TestInvokeBuildInSource(InvokeIntegBase):
+class TestInvokeBuildInSourceSymlinkedModules(InvokeIntegBase):
     def setUp(self):
         self.project_folder_path = Path(self.test_data_path, "invoke", "build-in-source")
         self.test_project_folder = tempfile.mkdtemp()
