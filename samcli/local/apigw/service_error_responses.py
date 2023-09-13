@@ -10,6 +10,7 @@ class ServiceErrorResponses:
     _MISSING_LAMBDA_AUTH_IDENTITY_SOURCES = {"message": "Unauthorized"}
     _LAMBDA_AUTHORIZER_NOT_AUTHORIZED = {"message": "User is not authorized to access this resource"}
 
+    HTTP_STATUS_CODE_500 = 500
     HTTP_STATUS_CODE_501 = 501
     HTTP_STATUS_CODE_502 = 502
     HTTP_STATUS_CODE_403 = 403
@@ -52,6 +53,16 @@ class ServiceErrorResponses:
         """
         response_data = jsonify(ServiceErrorResponses._LAMBDA_FAILURE)
         return make_response(response_data, ServiceErrorResponses.HTTP_STATUS_CODE_502)
+
+    @staticmethod
+    def lambda_body_failure_response(*args):
+        """
+        Helper function to create a Lambda Body Failure Response
+
+        :return: A Flask Response
+        """
+        response_data = jsonify(ServiceErrorResponses._LAMBDA_FAILURE)
+        return make_response(response_data, ServiceErrorResponses.HTTP_STATUS_CODE_500)
 
     @staticmethod
     def not_implemented_locally(message):

@@ -103,7 +103,7 @@ class TestHandlerObserver(TestCase):
 
         schedule_mock = MagicMock()
         schedule_mock.return_value = watch
-        self.observer.schedule = schedule_mock
+        self.observer.schedule = schedule_mock  # type: ignore
 
         result = self.observer.schedule_handler(bundle)
 
@@ -131,7 +131,7 @@ class TestHandlerObserver(TestCase):
 
         schedule_mock = MagicMock()
         schedule_mock.side_effect = [watch, parent_watch]
-        self.observer.schedule = schedule_mock
+        self.observer.schedule = schedule_mock  # type: ignore
 
         wrapper = MagicMock()
         wrapper_mock.return_value = wrapper

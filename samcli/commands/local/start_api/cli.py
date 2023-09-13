@@ -9,7 +9,6 @@ import click
 from samcli.cli.cli_config_file import ConfigProvider, configuration_option, save_params_option
 from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
 from samcli.cli.main import common_options as cli_framework_options
-from samcli.commands._utils.experimental import ExperimentalFlag, is_experimental_enabled
 from samcli.commands._utils.option_value_processor import process_image_options
 from samcli.commands._utils.options import (
     generate_next_command_recommendation,
@@ -187,14 +186,6 @@ def do_cli(  # pylint: disable=R0914
     from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported
 
     LOG.debug("local start-api command is called")
-
-    if (
-        hook_name
-        and ExperimentalFlag.IaCsSupport.get(hook_name) is not None
-        and not is_experimental_enabled(ExperimentalFlag.IaCsSupport.get(hook_name))
-    ):
-        LOG.info("Terraform Support beta feature is not enabled.")
-        return
 
     processed_invoke_images = process_image_options(invoke_image)
 

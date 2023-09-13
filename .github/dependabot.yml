@@ -23,6 +23,25 @@ updates:
     reviewers:
       -  aws/serverless-application-experience-sbt
     open-pull-requests-limit: 10
+    groups:
+      boto:
+        patterns:
+        - "boto3"
+        - "boto3-stubs*"
+        - "botocore"
+        - "botocore-stubs"
+        - "mypy-boto3-*"
+      types:
+        patterns:
+        - "types-*"
+      pytest:
+        patterns:
+        - "pytest-*"
+        exclude-patterns:
+        # ignore metadata and json-report since newer versions conflict
+        # as of writing this
+        - "pytest-metadata"
+        - "pytest-json-report"
     ignore:
       # Ignored intentionally since we have a GHA that updates to more
       # completely

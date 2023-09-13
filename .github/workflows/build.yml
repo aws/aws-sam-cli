@@ -58,7 +58,7 @@ jobs:
           - "3.9"
           - "3.11"
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python }}
@@ -74,7 +74,7 @@ jobs:
       contents: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         name: Install Python 3.11
         with:
@@ -129,7 +129,7 @@ jobs:
           #- "validate"
           - "docs"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           # set last version as the one in matrix to make it default
@@ -207,7 +207,7 @@ jobs:
           - "3.9"
           - "3.11"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
@@ -228,7 +228,7 @@ jobs:
           - ubuntu-latest
           - windows-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           # These are the versions of Python that correspond to the supported Lambda runtimes
@@ -238,11 +238,12 @@ jobs:
             3.9
             3.8
             3.7
-      - name: Init samdev
-        run: make init
       - name: Stop Docker Linux
         if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: sudo systemctl stop docker
+        run: |
+          : sudo systemctl stop docker
+          sudo systemctl stop docker.service
+          sudo systemctl stop docker.socket
       - name: Stop Docker Windows
         if: ${{ matrix.os == 'windows-latest' }}
         shell: pwsh
@@ -254,5 +255,7 @@ jobs:
       - name: Report failure
         if: steps.run-docker-info.outcome == 'success'
         run: exit 1
+      - name: Init samdev
+        run: make init
       - name: Run tests without Docker
         run: pytest -vv tests/integration/buildcmd/test_build_cmd.py -k TestBuildCommand_PythonFunctions_WithoutDocker

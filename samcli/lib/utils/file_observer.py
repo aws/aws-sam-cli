@@ -14,7 +14,13 @@ import docker
 from docker import DockerClient
 from docker.errors import ImageNotFound
 from docker.types import CancellableStream
-from watchdog.events import FileSystemEvent, FileSystemEventHandler, PatternMatchingEventHandler
+from watchdog.events import (
+    EVENT_TYPE_DELETED,
+    EVENT_TYPE_OPENED,
+    FileSystemEvent,
+    FileSystemEventHandler,
+    PatternMatchingEventHandler,
+)
 from watchdog.observers import Observer
 from watchdog.observers.api import BaseObserver, ObservedWatch
 
@@ -425,8 +431,8 @@ class SingletonFileObserver(metaclass=Singleton):
             patterns=["*"], ignore_patterns=[], ignore_directories=False
         )
 
-        self._code_modification_handler.on_modified = self.on_change
-        self._code_deletion_handler.on_deleted = self.on_change
+        self._code_modification_handler.on_modified = self.on_change  # type: ignore
+        self._code_deletion_handler.on_deleted = self.on_change  # type: ignore
         self._watch_lock = threading.Lock()
         self._lock: Lock = threading.Lock()
 
@@ -442,9 +448,13 @@ class SingletonFileObserver(metaclass=Singleton):
             Determines that there is a change happened to some file/dir in the observed paths
         """
         with self._watch_lock:
+            if event.event_type == EVENT_TYPE_OPENED:
+                LOG.debug("Ignoring file system OPENED event")
+                return
+
             LOG.debug("a %s change got detected in path %s", event.event_type, event.src_path)
             for group, _observed_paths in self._observed_paths_per_group.items():
-                if event.event_type == "deleted":
+                if event.event_type == EVENT_TYPE_DELETED:
                     observed_paths = [
                         path
                         for path in _observed_paths

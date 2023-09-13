@@ -204,6 +204,20 @@ Resources:
             Method: GET
             Path: /writetostdout
 
+  InValidResponseBodyFromLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.invalid_body_response
+      Runtime: python3.9
+      CodeUri: .
+      Timeout: 600
+      Events:
+        InvalidResponseReturned:
+          Type: HttpApi
+          Properties:
+            Method: GET
+            Path: /invalidresponsebody
+
   ValidV2ResponseHashFromLambdaFunction:
     Type: AWS::Serverless::Function
     Properties:
