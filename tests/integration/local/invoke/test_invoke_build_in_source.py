@@ -3,7 +3,7 @@ import shutil
 import tempfile
 import os
 
-from pytest import skip
+from unittest import skip
 from samcli.lib.utils import osutils
 from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase
 
@@ -26,7 +26,7 @@ class TestInvokeBuildInSourceSymlinkedModules(InvokeIntegBase):
         except:
             pass
 
-    def _validate_modules_linked(self) -> None:
+    def _validate_modules_linked(self):
         node_modules = Path(self.build_dir, "PrintLocalDep", "node_modules")
         local_dep = Path(node_modules, "local-dep")
 
