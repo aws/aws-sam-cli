@@ -1,11 +1,13 @@
 """
 Unit test for Container class
 """
-import docker
-from docker.errors import NotFound, APIError
+import json
 from unittest import TestCase
 from unittest.mock import MagicMock, Mock, call, patch, ANY
+from parameterized import parameterized
 
+import docker
+from docker.errors import NotFound, APIError
 from requests import RequestException
 
 from samcli.lib.utils.packagetype import IMAGE
@@ -582,9 +584,22 @@ class TestContainer_wait_for_result(TestCase):
         self.socket_mock = Mock()
         self.socket_mock.connect_ex.return_value = 0
 
+    @parameterized.expand(
+        [
+            (
+                True,
+                b'{"hello":"world"}',
+            ),
+            (
+                False,
+                b"non-json-deserializable",
+            ),
+            (False, b""),
+        ]
+    )
     @patch("socket.socket")
     @patch("samcli.local.docker.container.requests")
-    def test_wait_for_result_no_error(self, mock_requests, patched_socket):
+    def test_wait_for_result_no_error(self, response_deserializable, rie_response, mock_requests, patched_socket):
         self.container.is_created.return_value = True
 
         real_container_mock = Mock()
@@ -595,9 +610,11 @@ class TestContainer_wait_for_result(TestCase):
         self.container._write_container_output = Mock()
 
         stdout_mock = Mock()
+        stdout_mock.write_str = Mock()
+        stdout_mock.write_bytes = Mock()
         stderr_mock = Mock()
         response = Mock()
-        response.content = b'{"hello":"world"}'
+        response.content = rie_response
         mock_requests.post.return_value = response
 
         patched_socket.return_value = self.socket_mock
@@ -624,6 +641,10 @@ class TestContainer_wait_for_result(TestCase):
             data=b"{}",
             timeout=(self.container.RAPID_CONNECTION_TIMEOUT, None),
         )
+        if response_deserializable:
+            stdout_mock.write_str.assert_called_with(json.dumps(json.loads(rie_response), ensure_ascii=False))
+        else:
+            stdout_mock.write_bytes.assert_called_with(rie_response)
 
     @patch("socket.socket")
     @patch("samcli.local.docker.container.requests")

@@ -57,12 +57,22 @@ class TestSyncWatchBase(SyncIntegBase):
     parameter_overrides: Dict[str, str] = {}
 
     def setUp(self):
+        # set up clean testing folder
+        self.test_data_path = Path(tempfile.mkdtemp())
+        original_test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "sync")
+
+        shutil.rmtree(self.test_data_path)
+        shutil.copytree(original_test_data_path, self.test_data_path)
+
         self.s3_prefix = uuid.uuid4().hex
         self.stack_name = self._method_to_stack_name(self.id())
         super().setUp()
         self._setup_verify_infra()
 
     def tearDown(self):
+        # clean up the old testing folder
+        shutil.rmtree(self.test_data_path, ignore_errors=True)
+
         kill_process(self.watch_process)
         for stack in self.stacks:
             # because of the termination protection, do not delete aws-sam-cli-managed-default stack
