@@ -27,7 +27,7 @@ CONFIGURATION_OPTION_NAMES: List[str] = ["config_env", "config_file"]
 
 EXTENSION_OPTIONS: List[str] = ["hook_name", "skip_prepare_infra"]
 
-BUILD_STRATEGY_OPTIONS: List[str] = ["parallel", "exclude", "manifest", "cached"]
+BUILD_STRATEGY_OPTIONS: List[str] = ["parallel", "exclude", "manifest", "cached", "build_in_source"]
 
 ARTIFACT_LOCATION_OPTIONS: List[str] = [
     "build_dir",

@@ -906,3 +906,17 @@ Commands you can use next
 """
     command_list_txt = "\n".join(f"[*] {description}: {command}" for description, command in command_tuples)
     return template.format(command_list_txt)
+
+
+def build_in_source_click_option():
+    return click.option(
+        "--build-in-source",
+        required=False,
+        is_flag=True,
+        help="sample help text here",
+        callback=None,
+    )
+
+
+def build_in_source_option(f):
+    return build_in_source_click_option()(f)
