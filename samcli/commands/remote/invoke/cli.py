@@ -4,7 +4,7 @@ from io import TextIOWrapper
 
 import click
 
-from samcli.cli.cli_config_file import ConfigProvider, configuration_option
+from samcli.cli.cli_config_file import ConfigProvider, configuration_option, save_params_option
 from samcli.cli.context import Context
 from samcli.cli.main import aws_creds_options, common_options, pass_context, print_cmdline_args
 from samcli.cli.types import RemoteInvokeOutputFormatType
@@ -68,6 +68,7 @@ DESCRIPTION = """
 @event_and_event_file_options_validation
 @common_options
 @aws_creds_options
+@save_params_option
 @pass_context
 @track_command
 @check_newer_version
@@ -81,6 +82,7 @@ def cli(
     event_file: TextIOWrapper,
     output: RemoteInvokeOutputFormat,
     parameter: dict,
+    save_params: bool,
     config_file: str,
     config_env: str,
 ) -> None:

@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 
 import click
 
-from samcli.cli.cli_config_file import ConfigProvider, configuration_option
+from samcli.cli.cli_config_file import ConfigProvider, configuration_option, save_params_option
 from samcli.cli.main import aws_creds_options, common_options, pass_context, print_cmdline_args
 from samcli.commands._utils.click_mutex import ClickMutex
 from samcli.commands._utils.command_exception_handler import command_exception_handler
@@ -174,6 +174,7 @@ OPENID_CONNECT = "OpenID Connect (OIDC)"
 )
 @common_options
 @aws_creds_options
+@save_params_option
 @pass_context
 @track_command
 @check_newer_version
@@ -203,6 +204,7 @@ def cli(
     gitlab_project: Optional[str],
     bitbucket_repo_uuid: Optional[str],
     cicd_provider: Optional[str],
+    save_params: bool,
 ) -> None:
     """
     `sam pipeline bootstrap` command entry point
