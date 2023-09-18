@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, List, Optional, Set, Tuple
 
 import click
 
-from samcli.cli.cli_config_file import ConfigProvider, configuration_option
+from samcli.cli.cli_config_file import ConfigProvider, configuration_option, save_params_option
 from samcli.cli.context import Context
 from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
 from samcli.cli.main import common_options as cli_framework_options
@@ -172,6 +172,7 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 @notification_arns_option
 @tags_option
 @capabilities_option(default=DEFAULT_CAPABILITIES)  # pylint: disable=E1120
+@save_params_option
 @pass_context
 @track_command
 @track_long_event("SyncUsed", "Start", "SyncUsed", "End")
@@ -204,6 +205,7 @@ def cli(
     tags: dict,
     metadata: dict,
     use_container: bool,
+    save_params: bool,
     config_file: str,
     config_env: str,
     build_image: Optional[Tuple[str]],

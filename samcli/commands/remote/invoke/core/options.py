@@ -3,7 +3,7 @@ Remote Invoke Command Options related Datastructures for formatting.
 """
 from typing import Dict, List
 
-from samcli.cli.core.options import ALL_COMMON_OPTIONS, add_common_options_info
+from samcli.cli.core.options import ALL_COMMON_OPTIONS, SAVE_PARAMS_OPTIONS, add_common_options_info
 from samcli.cli.row_modifiers import RowDefinition
 
 # NOTE: The ordering of the option lists matter, they are the order
@@ -17,7 +17,7 @@ ADDITIONAL_OPTIONS: List[str] = ["parameter", "output"]
 
 AWS_CREDENTIAL_OPTION_NAMES: List[str] = ["region", "profile"]
 
-CONFIGURATION_OPTION_NAMES: List[str] = ["config_env", "config_file"]
+CONFIGURATION_OPTION_NAMES: List[str] = ["config_env", "config_file"] + SAVE_PARAMS_OPTIONS
 
 OTHER_OPTIONS: List[str] = ["debug"]
 
