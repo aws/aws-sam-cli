@@ -157,7 +157,7 @@ class TestSamConfigForAllCommands(TestCase):
                 ("",),
                 ("",),
                 None,
-                None,
+                False,
                 "READ",
             )
 
@@ -217,7 +217,7 @@ class TestSamConfigForAllCommands(TestCase):
                 ("",),
                 ("",),
                 None,
-                None,
+                False,
                 "READ",
             )
 
@@ -274,7 +274,7 @@ class TestSamConfigForAllCommands(TestCase):
                 (),
                 (),
                 None,
-                None,
+                False,
                 "READ",
             )
 
@@ -330,7 +330,7 @@ class TestSamConfigForAllCommands(TestCase):
                 ("Function1=image_1", "image_2"),
                 (),
                 None,
-                None,
+                False,
                 "READ",
             )
 
@@ -1010,7 +1010,7 @@ class TestSamConfigForAllCommands(TestCase):
                 (),
                 "samconfig.toml",
                 "default",
-                None,
+                False,
             )
 
 

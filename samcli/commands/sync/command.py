@@ -159,6 +159,7 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 @stack_name_option(required=True)  # pylint: disable=E1120
 @base_dir_option
 @use_container_build_option
+@build_in_source_option
 @build_image_option(cls=ContainerOptions)
 @image_repository_option
 @image_repositories_option
@@ -177,7 +178,6 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 @track_command
 @track_long_event("SyncUsed", "Start", "SyncUsed", "End")
 @image_repository_validation(support_resolve_image_repos=False)
-@build_in_source_option
 @track_template_warnings([CodeDeployWarning.__name__, CodeDeployConditionWarning.__name__])
 @check_newer_version
 @print_cmdline_args
@@ -209,7 +209,7 @@ def cli(
     config_file: str,
     config_env: str,
     build_image: Optional[Tuple[str]],
-    build_in_source: bool,
+    in_source: Optional[bool],
 ) -> None:
     """
     `sam sync` command entry point
@@ -245,7 +245,7 @@ def cli(
         build_image,
         config_file,
         config_env,
-        build_in_source,
+        in_source,
     )  # pragma: no cover
 
 

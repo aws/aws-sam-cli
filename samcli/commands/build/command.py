@@ -72,7 +72,6 @@ DESCRIPTION = """
     context_settings={"max_content_width": 120},
 )
 @configuration_option(provider=ConfigProvider(section="parameters"))
-@build_in_source_option
 @terraform_project_root_path_option
 @hook_name_click_option(
     force_prepare=True,
@@ -80,6 +79,7 @@ DESCRIPTION = """
 )
 @skip_prepare_infra_option
 @use_container_build_option
+@build_in_source_option
 @click.option(
     "--container-env-var",
     "-e",
@@ -160,7 +160,7 @@ def cli(
     skip_prepare_infra: bool,
     mount_with: str,
     terraform_project_root_path: Optional[str],
-    build_in_source: bool,
+    in_source: Optional[bool],
 ) -> None:
     """
     `sam build` command entry point
@@ -190,7 +190,7 @@ def cli(
         build_image,
         exclude,
         hook_name,
-        build_in_source,
+        in_source,
         mount_with,
     )  # pragma: no cover
 
