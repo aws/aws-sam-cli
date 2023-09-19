@@ -4,7 +4,7 @@ Sets up the cli for resources
 
 import click
 
-from samcli.cli.cli_config_file import ConfigProvider, configuration_option
+from samcli.cli.cli_config_file import ConfigProvider, configuration_option, save_params_option
 from samcli.cli.main import aws_creds_options, common_options, pass_context, print_cmdline_args
 from samcli.commands._utils.command_exception_handler import command_exception_handler
 from samcli.commands._utils.options import parameter_override_option, template_option_without_build
@@ -27,12 +27,13 @@ resource will be mapped to the logical ID of each resource.
 @template_option_without_build
 @aws_creds_options
 @common_options
+@save_params_option
 @pass_context
 @track_command
 @check_newer_version
 @print_cmdline_args
 @command_exception_handler
-def cli(self, parameter_overrides, stack_name, output, template_file, config_file, config_env):
+def cli(self, parameter_overrides, stack_name, output, template_file, save_params, config_file, config_env):
     """
     `sam list resources` command entry point
     """

@@ -14,7 +14,7 @@ types-pywin32==306.0.0.4
 types-PyYAML==6.0.12.11
 types-chevron==0.14.2.5
 types-psutil==5.9.5.16
-types-setuptools==68.1.0.1
+types-setuptools==68.2.0.0
 types-Pygments==2.16.0.0 
 types-colorama==0.4.15.12
 types-dateparser==1.1.4.10
@@ -25,7 +25,7 @@ types-requests==2.31.0.2
 types-urllib3==1.26.25.14
 
 # Test requirements
-pytest~=7.4.1
+pytest~=7.4.2
 parameterized==0.9.0
 pytest-xdist==3.3.1
 pytest-forked==1.6.0
@@ -35,9 +35,9 @@ pytest-rerunfailures==12.0
 pytest-metadata==2.0.4
 pytest-json-report==1.5.0
 filelock==3.12.2; python_version < "3.8"
-filelock==3.12.3; python_version >= "3.8"
+filelock==3.12.4; python_version >= "3.8"
 
 # formatter
 black==22.6.0; python_version < "3.8"
-black==23.7.0; python_version >= "3.8"
+black==23.9.1; python_version >= "3.8"
 psutil==5.9.5
