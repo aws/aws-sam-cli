@@ -226,16 +226,11 @@ class Container:
 
         return self.id
 
-    def _create_mapped_symlink_files(self, mount_mode: str) -> Dict[str, Dict[str, str]]:
+    def _create_mapped_symlink_files(self) -> Dict[str, Dict[str, str]]:
         """
         Resolves any top level symlinked files and folders that are found on the
         host directory and creates additional bind mounts to correctly map them
         inside of the container.
-
-        Parameters
-        ----------
-        mount_mode: str
-            The mode to mount the file or directory
 
         Returns
         -------
@@ -243,6 +238,7 @@ class Container:
             A dictonary representing the resolved file or directory and the bound path
             on the container
         """
+        mount_mode = "ro,delegated"
         additional_volumes = {}
 
         with os.scandir(self._host_dir) as directory_iterator:
