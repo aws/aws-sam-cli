@@ -85,7 +85,7 @@ class BuildTerraformApplicationIntegBase(BuildIntegBase):
 
         LOG.info("Running invoke Command: {}".format(cmdlist))
 
-        stdout, stderr, _ = self.run_command(cmdlist, timeout=600)
+        stdout, stderr, _ = self.run_command(cmdlist)
 
         process_stdout = stdout.decode("utf-8")
         LOG.info("sam local invoke stdout: %s", stdout.decode("utf-8"))

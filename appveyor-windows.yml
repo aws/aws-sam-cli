@@ -73,6 +73,7 @@ install:
   - "echo %PYTHON_HOME%"
   - "echo %PATH%"
   - "python --version"
+  - ps: "Install-Package -Name docker -ProviderName DockerMsftProvider -Verbose -Update"
   - "docker info"
   - "docker version"
 
