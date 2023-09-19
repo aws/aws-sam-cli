@@ -159,7 +159,7 @@ class Container:
                     "bind": self._working_dir,
                     "mode": mount_mode,
                 },
-                **self._create_mapped_symlink_files(mount_mode=mount_mode),
+                **self._create_mapped_symlink_files(),
             }
 
         kwargs = {
