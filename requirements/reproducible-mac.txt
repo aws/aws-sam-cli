@@ -692,7 +692,8 @@ requests==2.31.0 \
 rich==13.5.3 \
     --hash=sha256:87b43e0543149efa1253f485cd845bb7ee54df16c9617b8a893650ab84b4acb6 \
     --hash=sha256:9257b468badc3d347e146a4faa268ff229039d4c2d176ab0cffb4c4fbc73d5d9
-    # via aws-sam-cli (setup.py)
+    # via
+    #   aws-sam-cli (setup.py)
     #   cookiecutter
 rpds-py==0.10.3 \
     --hash=sha256:015de2ce2af1586ff5dc873e804434185199a15f7d96920ce67e50604592cae9 \
