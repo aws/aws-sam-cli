@@ -11,7 +11,7 @@ annotated-types==0.5.0 \
 arrow==1.2.3 \
     --hash=sha256:3934b30ca1b9f292376d9db15b19446088d12ec58629bc3f0da28fd55fb633a1 \
     --hash=sha256:5a49ab92e3b7b71d96cd6bfcc4df14efefc9dfa96ea19045815914a6ab6b1fe2
-    # via jinja2-time
+    # via cookiecutter
 attrs==23.1.0 \
     --hash=sha256:1f28b4522cdc2fb4256ac1a020c78acf9cba2c6b461ccd2c126f3aa8e8335d04 \
     --hash=sha256:6279836d581513a26f1bf235f9acd333bc9115683f14f7e8fae46c98fc50e015
@@ -224,9 +224,9 @@ click==8.1.7 \
     #   aws-sam-cli (setup.py)
     #   cookiecutter
     #   flask
-cookiecutter==2.1.1 \
-    --hash=sha256:9f3ab027cec4f70916e28f03470bdb41e637a3ad354b4d65c765d93aad160022 \
-    --hash=sha256:f3982be8d9c53dac1261864013fdec7f83afd2e42ede6f6dd069c5e149c540d5
+cookiecutter==2.3.0 \
+    --hash=sha256:7e87944757c6e9f8729cf89a4139b6a35ab4d6dcbc6ae3e7d6360d44ad3ad383 \
+    --hash=sha256:942a794981747f6d7f439d6e49d39dc91a9a641283614160c93c474c72c29621
     # via aws-sam-cli (setup.py)
 cryptography==41.0.4 \
     --hash=sha256:004b6ccc95943f6a9ad3142cfabcc769d7ee38a3f60fb0dddbfb431f818c3a67 \
@@ -279,11 +279,6 @@ jinja2==3.1.2 \
     # via
     #   cookiecutter
     #   flask
-    #   jinja2-time
-jinja2-time==0.2.0 \
-    --hash=sha256:d14eaa4d315e7688daa4969f616f226614350c48730bfa1692d2caebd8c90d40 \
-    --hash=sha256:d3eab6605e3ec8b7a0863df09cc1d23714908fa61aa6986a845c20ba488b4efa
-    # via cookiecutter
 jmespath==1.0.1 \
     --hash=sha256:02e2e4cc71b5bcab88332eebf907519190dd9e6e82107fa7f83b1003a6252980 \
     --hash=sha256:90261b206d6defd58fdd5e85f478bf633a2901798906be2ad389150c5c60edbe
@@ -743,7 +738,9 @@ requests==2.31.0 \
 rich==13.5.3 \
     --hash=sha256:87b43e0543149efa1253f485cd845bb7ee54df16c9617b8a893650ab84b4acb6 \
     --hash=sha256:9257b468badc3d347e146a4faa268ff229039d4c2d176ab0cffb4c4fbc73d5d9
-    # via aws-sam-cli (setup.py)
+    # via
+    #   aws-sam-cli (setup.py)
+    #   cookiecutter
 rpds-py==0.10.3 \
     --hash=sha256:015de2ce2af1586ff5dc873e804434185199a15f7d96920ce67e50604592cae9 \
     --hash=sha256:061c3ff1f51ecec256e916cf71cc01f9975af8fb3af9b94d3c0cc8702cfea637 \
