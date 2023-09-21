@@ -469,6 +469,7 @@ class Container:
 
     @staticmethod
     def _handle_data_writing(output_stream: Union[StreamWriter, io.BytesIO, io.TextIOWrapper], output_data: bytes):
+        output_data = output_data.decode("utf-8").replace("\r", os.linesep).encode("utf-8")
         if isinstance(output_stream, StreamWriter):
             output_stream.write_bytes(output_data)
             output_stream.flush()
