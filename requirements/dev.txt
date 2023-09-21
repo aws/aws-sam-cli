@@ -21,7 +21,7 @@ types-dateparser==1.1.4.10
 types-docutils==0.20.0.3
 types-jsonschema==4.17.0.10
 types-pyOpenSSL==23.2.0.2
-types-requests==2.31.0.2
+types-requests==2.31.0.3
 types-urllib3==1.26.25.14
 
 # Test requirements
