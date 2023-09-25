@@ -472,7 +472,7 @@ class TestSkipBuildingFlaggedFunctions(BuildIntegPythonBase):
     [
         ("template.yaml", "Function", True, "python3.7", "Python", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.8", "Python", False, "CodeUri"),
-        # ("template.yaml", "Function", True, "python3.9", "Python", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.9", "Python", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.10", "Python", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.11", "Python", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.7", "PythonPEP600", False, "CodeUri"),
@@ -488,6 +488,9 @@ class TestBuildCommand_PythonFunctions_WithoutDocker(BuildIntegPythonBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_with_default_requirements(self):
+        if IS_WINDOWS and self.runtime == "python3.9":
+            self.skipTest("Skipping python3.9 tests on Windows until GHA issue is resolved.")
+
         self._test_with_default_requirements(
             self.runtime,
             self.codeuri,
