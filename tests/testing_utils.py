@@ -27,6 +27,7 @@ RUNNING_TEST_FOR_MASTER_ON_CI = (
 )
 CI_OVERRIDE = os.environ.get("APPVEYOR_CI_OVERRIDE", False) or os.environ.get("CI_OVERRIDE", False)
 RUN_BY_CANARY = os.environ.get("BY_CANARY", False)
+RUN_ON_GITHUB_ACTIONS = os.environ.get("RUNNING_ON_GITHUB_ACTIONS", False)
 
 # Tests require docker suffers from Docker Hub request limit
 SKIP_DOCKER_TESTS = RUNNING_ON_CI and not RUN_BY_CANARY

@@ -96,6 +96,7 @@ jobs:
       SAM_CLI_DEV: "1"
       CARGO_LAMBDA_VERSION: 0.17.1
       CI: true
+      RUNNING_ON_GITHUB_ACTIONS: "1"
     defaults:
       run:
         shell: bash
@@ -222,6 +223,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       SAM_CLI_DEV: "1"
+      RUNNING_ON_GITHUB_ACTIONS: "1"
     strategy:
       matrix:
         os:
