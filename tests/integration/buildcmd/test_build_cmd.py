@@ -27,7 +27,7 @@ from tests.testing_utils import (
     SKIP_DOCKER_BUILD,
     SKIP_DOCKER_MESSAGE,
     run_command_with_input,
-    UpdatableSARTemplate,
+    UpdatableSARTemplate, RUNNING_ON_GITHUB_ACTIONS,
 )
 from .build_integ_base import (
     BuildIntegBase,
@@ -488,7 +488,7 @@ class TestBuildCommand_PythonFunctions_WithoutDocker(BuildIntegPythonBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_with_default_requirements(self):
-        if IS_WINDOWS and self.runtime == "python3.9" and CI_OVERRIDE:
+        if IS_WINDOWS and self.runtime == "python3.9" and RUNNING_ON_GITHUB_ACTIONS:
             self.skipTest("Skipping python3.9 tests on Windows until GHA issue is resolved.")
 
         self._test_with_default_requirements(
