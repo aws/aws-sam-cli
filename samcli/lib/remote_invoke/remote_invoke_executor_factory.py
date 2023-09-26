@@ -199,7 +199,7 @@ class RemoteInvokeExecutorFactory:
         Parameters
         ----------
         cfn_resource_summary: CloudFormationResourceSummary
-            Information about the Step Function resource
+            Information about the SQS resource
         remote_invoke_output_format: RemoteInvokeOutputFormat
             Response output format that will be used for remote invoke execution
         response_consumer: RemoteInvokeConsumer[RemoteInvokeResponse]
