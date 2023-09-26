@@ -48,7 +48,7 @@ class BuildIntegBase(TestCase):
         # is also deleted after every test run
         self.scratch_dir = str(Path(__file__).resolve().parent.joinpath(str(uuid.uuid4()).replace("-", "")[:10]))
         shutil.rmtree(self.scratch_dir, ignore_errors=True)
-        os.mkdir(self.scratch_dir)
+        os.makedirs(self.scratch_dir)
 
         self.working_dir = tempfile.mkdtemp(dir=self.scratch_dir)
         self.custom_build_dir = tempfile.mkdtemp(dir=self.scratch_dir)
@@ -173,7 +173,7 @@ class BuildIntegBase(TestCase):
         if IS_WINDOWS:
             time.sleep(1)
         docker_client = docker.from_env()
-        containers = docker_client.containers.list(all=True)
+        containers = docker_client.containers.list(all=True, filters={"status": "exited"})
         return len(containers)
 
     def verify_pulled_image(self, runtime, architecture=X86_64):
@@ -345,6 +345,8 @@ class BuildIntegEsbuildBase(BuildIntegBase):
     def _test_with_default_package_json(
         self, runtime, use_container, code_uri, expected_files, handler, architecture=None, build_in_source=None
     ):
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
+            self.skipTest(SKIP_DOCKER_MESSAGE)
         overrides = self.get_override(runtime, code_uri, architecture, handler)
         manifest_path = str(Path(self.test_data_path, self.MANIFEST_PATH)) if self.MANIFEST_PATH else None
         cmdlist = self.get_command_list(
@@ -439,6 +441,8 @@ class BuildIntegNodeBase(BuildIntegBase):
     MANIFEST_PATH: Optional[str] = None
 
     def _test_with_default_package_json(self, runtime, use_container, relative_path, architecture=None):
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
+            self.skipTest(SKIP_DOCKER_MESSAGE)
         overrides = self.get_override(runtime, self.CODE_URI, architecture, "main.lambdaHandler")
         manifest_path = str(Path(self.test_data_path, self.MANIFEST_PATH)) if self.MANIFEST_PATH else None
         cmdlist = self.get_command_list(
@@ -748,7 +752,10 @@ class BuildIntegPythonBase(BuildIntegBase):
         self.assertEqual(actual_files, expected_files)
 
     def _get_python_version(self):
-        return "python{}.{}".format(sys.version_info.major, sys.version_info.minor)
+        """
+        This method is used to override python version of some of the tests which is run with Makefile
+        """
+        return "python3.10"
 
 
 class BuildIntegProvidedBase(BuildIntegBase):
