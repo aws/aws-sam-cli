@@ -39,7 +39,7 @@ ADDITIONAL_OPTIONS: List[str] = [
     "resource_id",
     "resource",
     "base_dir",
-    "in_source",
+    "build_in_source",
 ]
 OTHER_OPTIONS: List[str] = ["debug", "help"]
 

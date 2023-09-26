@@ -209,7 +209,7 @@ def cli(
     config_file: str,
     config_env: str,
     build_image: Optional[Tuple[str]],
-    in_source: Optional[bool],
+    build_in_source: Optional[bool],
 ) -> None:
     """
     `sam sync` command entry point
@@ -245,7 +245,7 @@ def cli(
         build_image,
         config_file,
         config_env,
-        in_source,
+        build_in_source,
     )  # pragma: no cover
 
 

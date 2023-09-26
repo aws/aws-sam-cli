@@ -160,7 +160,7 @@ def cli(
     skip_prepare_infra: bool,
     mount_with: str,
     terraform_project_root_path: Optional[str],
-    in_source: Optional[bool],
+    build_in_source: Optional[bool],
 ) -> None:
     """
     `sam build` command entry point
@@ -190,7 +190,7 @@ def cli(
         build_image,
         exclude,
         hook_name,
-        in_source,
+        build_in_source,
         mount_with,
     )  # pragma: no cover
 

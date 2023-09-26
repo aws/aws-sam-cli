@@ -920,10 +920,11 @@ Commands you can use next
 
 def build_in_source_click_option():
     return click.option(
-        "--in-source",
+        "--build-in-source/--no-build-in-source",
         required=False,
         is_flag=True,
-        help="<TODO: fill out help text>",
+        help="Opts in to build project in the source folder. The following workflows support "
+        f"building in source: {SUPPORTED_BUILD_IN_SOURCE_WORKFLOWS}",
         cls=ClickMutex,
         incompatible_params=["use_container"],
     )
