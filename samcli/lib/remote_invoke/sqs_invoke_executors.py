@@ -1,7 +1,9 @@
 """
 Remote invoke executor implementation for SQS
 """
+import json
 import logging
+from json.decoder import JSONDecodeError
 from typing import cast
 
 from botocore.exceptions import ClientError, ParamValidationError
@@ -21,6 +23,9 @@ from samcli.lib.remote_invoke.remote_invoke_executors import (
 LOG = logging.getLogger(__name__)
 QUEUE_URL = "QueueUrl"
 MESSAGE_BODY = "MessageBody"
+DELAY_SECONDS = "DelaySeconds"
+MESSAGE_ATTRIBUTES = "MessageAttributes"
+MESSAGE_SYSTEM_ATTRIBUTES = "MessageSystemAttributes"
 
 
 class SqsSendMessageExecutor(BotoActionExecutor):
@@ -49,15 +54,22 @@ class SqsSendMessageExecutor(BotoActionExecutor):
         parameters: dict
             Boto parameters provided as input
         """
-        for parameter_key, parameter_value in parameters.items():
-            if parameter_key == QUEUE_URL:
-                LOG.warning("QueueUrl is defined using the value provided for resource_id argument.")
-            elif parameter_key == MESSAGE_BODY:
-                LOG.warning(
-                    "MessageBody is defined using the value provided for either --event or --event-file options."
-                )
-            else:
-                self.request_parameters[parameter_key] = parameter_value
+        try:
+            for parameter_key, parameter_value in parameters.items():
+                if parameter_key == QUEUE_URL:
+                    LOG.warning("QueueUrl is defined using the value provided for resource_id argument.")
+                elif parameter_key == MESSAGE_BODY:
+                    LOG.warning(
+                        "MessageBody is defined using the value provided for either --event or --event-file options."
+                    )
+                elif parameter_key == DELAY_SECONDS:
+                    self.request_parameters[parameter_key] = int(parameter_value)
+                elif parameter_key in {MESSAGE_ATTRIBUTES, MESSAGE_SYSTEM_ATTRIBUTES}:
+                    self.request_parameters[parameter_key] = json.loads(parameter_value)
+                else:
+                    self.request_parameters[parameter_key] = parameter_value
+        except (ValueError, JSONDecodeError) as err:
+            raise InvalidResourceBotoParameterException(f"Invalid value provided for parameter {parameter_key}", err)
 
     def _execute_action(self, payload: str) -> RemoteInvokeIterableResponseType:
         """

@@ -62,12 +62,33 @@ class TestSqsSendMessageExecutor(TestCase):
                 {"MessageGroupId": "mockMessageGroupId", "MessageDeduplicationId": "mockMessageDedupId"},
             ),
             (
-                {"MessageAttributes": "{}", "MessageSystemAttributes": "{}"},
-                {"MessageAttributes": "{}", "MessageSystemAttributes": "{}"},
+                {
+                    "MessageAttributes": '{\
+                        "City": {"DataType": "String", "StringValue": "Any City"},\
+                        "Greeting": {"DataType": "Binary", "BinaryValue": "Hello, World!"},\
+                        "Population": {"DataType": "Number", "StringValue": "1250800"}\
+                    }',
+                    "MessageSystemAttributes": '{\
+                        "AWSTraceHeader": {"DataType": "String", "StringValue": "Root=1-5759e988-bd862e3fe1be46a994272793;"}\
+                    }',
+                },
+                {
+                    "MessageAttributes": {
+                        "City": {"DataType": "String", "StringValue": "Any City"},
+                        "Greeting": {"DataType": "Binary", "BinaryValue": "Hello, World!"},
+                        "Population": {"DataType": "Number", "StringValue": "1250800"},
+                    },
+                    "MessageSystemAttributes": {
+                        "AWSTraceHeader": {
+                            "DataType": "String",
+                            "StringValue": "Root=1-5759e988-bd862e3fe1be46a994272793;",
+                        }
+                    },
+                },
             ),
             (
                 {"MessageBody": "mock message body", "QueueUrl": "mock-queue-url", "DelaySeconds": "3"},
-                {"DelaySeconds": "3"},
+                {"DelaySeconds": 3},
             ),
             (
                 {"invalidParameterKey": "invalidParameterValue"},
@@ -78,6 +99,22 @@ class TestSqsSendMessageExecutor(TestCase):
     def test_validate_action_parameters(self, parameters, expected_boto_parameters):
         self.sqs_send_message_executor.validate_action_parameters(parameters)
         self.assertEqual(self.sqs_send_message_executor.request_parameters, expected_boto_parameters)
+
+    @parameterized.expand(
+        [
+            (
+                {"MessageBody": "mock message body", "QueueUrl": "mock-queue-url", "DelaySeconds": "non-int-value"},
+                InvalidResourceBotoParameterException,
+            ),
+            (
+                {"MessageAttributes": "[invalid-json-string]", "MessageGroupId": "mockMessageGroupId"},
+                InvalidResourceBotoParameterException,
+            ),
+        ]
+    )
+    def test_validate_action_parameters_errors(self, parameters, expected_err):
+        with self.assertRaises(expected_err):
+            self.sqs_send_message_executor.validate_action_parameters(parameters)
 
     @parameterized.expand(
         [
