@@ -104,8 +104,11 @@ class SqsSendMessageExecutor(BotoActionExecutor):
                 # Create an object with MD5OfMessageBody and MessageId fields, and write to stdout
                 md5_of_message_body = send_message_response.get("MD5OfMessageBody", "")
                 message_id = send_message_response.get("MessageId", "")
+                md5_of_message_attributes = send_message_response.get("MD5OfMessageAttributes", "")
                 if md5_of_message_body and message_id:
                     output_data = {"MD5OfMessageBody": md5_of_message_body, "MessageId": message_id}
+                    if md5_of_message_attributes:
+                        output_data["MD5OfMessageAttributes"] = md5_of_message_attributes
                     yield RemoteInvokeResponse(output_data)
                     return
         except ParamValidationError as param_val_ex:

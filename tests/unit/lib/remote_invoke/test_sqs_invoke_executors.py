@@ -30,19 +30,23 @@ class TestSqsSendMessageExecutor(TestCase):
         given_input_message = "hello world"
         mock_md5_message_body = "5eb63bbbe01eeed093cb22bb8f5acdc3"
         mock_message_id = "2941492a-5847-4ebb-a8a3-58c07ce9f198"
+        mock_md5_message_attributes = "5eb63bbbe01eeed093cb22bb8f5acdc3"
         mock_text_response = {
             "MD5OfMessageBody": mock_md5_message_body,
             "MessageId": mock_message_id,
+            "MD5OfMessageAttributes": mock_md5_message_attributes,
         }
 
         mock_json_response = {
             "MD5OfMessageBody": mock_md5_message_body,
             "MessageId": mock_message_id,
+            "MD5OfMessageAttributes": mock_md5_message_attributes,
             "ResponseMetadata": {},
         }
         self.sqs_client.send_message.return_value = {
             "MD5OfMessageBody": mock_md5_message_body,
             "MessageId": mock_message_id,
+            "MD5OfMessageAttributes": mock_md5_message_attributes,
             "ResponseMetadata": {},
         }
         self.sqs_send_message_executor.validate_action_parameters({})
