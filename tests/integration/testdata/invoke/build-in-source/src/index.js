@@ -1,0 +1,5 @@
+const localDep = require("local-dep");
+
+exports.handler = async (event, context) => {
+    return localDep.exported();
+}
