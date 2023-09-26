@@ -11,7 +11,7 @@ pytest-cov==4.1.0
 mypy==1.4.1; python_version < "3.8"
 mypy==1.5.1; python_version >= "3.8"
 types-pywin32==306.0.0.4
-types-PyYAML==6.0.12.11
+types-PyYAML==6.0.12.12
 types-chevron==0.14.2.5
 types-psutil==5.9.5.16
 types-setuptools==68.2.0.0
@@ -19,9 +19,9 @@ types-Pygments==2.16.0.0
 types-colorama==0.4.15.12
 types-dateparser==1.1.4.10
 types-docutils==0.20.0.3
-types-jsonschema==4.17.0.10
+types-jsonschema==4.19.0.3
 types-pyOpenSSL==23.2.0.2
-types-requests==2.31.0.2
+types-requests==2.31.0.5
 types-urllib3==1.26.25.14
 
 # Test requirements
