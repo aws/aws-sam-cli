@@ -1,0 +1,111 @@
+from unittest import TestCase
+from unittest.mock import patch, Mock
+
+from parameterized import parameterized, parameterized_class
+from samcli.lib.remote_invoke.sqs_invoke_executors import (
+    RemoteInvokeOutputFormat,
+    SqsSendMessageExecutor,
+    ParamValidationError,
+    InvalidResourceBotoParameterException,
+    ErrorBotoApiCallException,
+    ClientError,
+    get_queue_url_from_arn,
+)
+from samcli.lib.remote_invoke.remote_invoke_executors import RemoteInvokeResponse
+
+
+@parameterized_class(
+    "output",
+    [[RemoteInvokeOutputFormat.TEXT], [RemoteInvokeOutputFormat.JSON]],
+)
+class TestSqsSendMessageExecutor(TestCase):
+    output: RemoteInvokeOutputFormat
+
+    def setUp(self) -> None:
+        self.sqs_client = Mock()
+        self.sqs_url = "https://sqs.us-east-1.amazonaws.com/12345678910/mock-queue-name"
+        self.sqs_send_message_executor = SqsSendMessageExecutor(self.sqs_client, self.sqs_url, self.output)
+
+    def test_execute_action_successful(self):
+        given_input_message = "hello world"
+        mock_md5_message_body = "5eb63bbbe01eeed093cb22bb8f5acdc3"
+        mock_message_id = "2941492a-5847-4ebb-a8a3-58c07ce9f198"
+        mock_text_response = {
+            "MD5OfMessageBody": mock_md5_message_body,
+            "MessageId": mock_message_id,
+        }
+
+        mock_json_response = {
+            "MD5OfMessageBody": mock_md5_message_body,
+            "MessageId": mock_message_id,
+            "ResponseMetadata": {},
+        }
+        self.sqs_client.send_message.return_value = {
+            "MD5OfMessageBody": mock_md5_message_body,
+            "MessageId": mock_message_id,
+            "ResponseMetadata": {},
+        }
+        self.sqs_send_message_executor.validate_action_parameters({})
+        result = self.sqs_send_message_executor._execute_action(given_input_message)
+        if self.output == RemoteInvokeOutputFormat.JSON:
+            self.assertEqual(list(result), [RemoteInvokeResponse(mock_json_response)])
+        else:
+            self.assertEqual(list(result), [RemoteInvokeResponse(mock_text_response)])
+
+        self.sqs_client.send_message.assert_called_with(MessageBody=given_input_message, QueueUrl=self.sqs_url)
+
+    @parameterized.expand(
+        [
+            ({}, {}),
+            (
+                {"MessageGroupId": "mockMessageGroupId", "MessageDeduplicationId": "mockMessageDedupId"},
+                {"MessageGroupId": "mockMessageGroupId", "MessageDeduplicationId": "mockMessageDedupId"},
+            ),
+            (
+                {"MessageAttributes": "{}", "MessageSystemAttributes": "{}"},
+                {"MessageAttributes": "{}", "MessageSystemAttributes": "{}"},
+            ),
+            (
+                {"MessageBody": "mock message body", "QueueUrl": "mock-queue-url", "DelaySeconds": "3"},
+                {"DelaySeconds": "3"},
+            ),
+            (
+                {"invalidParameterKey": "invalidParameterValue"},
+                {"invalidParameterKey": "invalidParameterValue"},
+            ),
+        ]
+    )
+    def test_validate_action_parameters(self, parameters, expected_boto_parameters):
+        self.sqs_send_message_executor.validate_action_parameters(parameters)
+        self.assertEqual(self.sqs_send_message_executor.request_parameters, expected_boto_parameters)
+
+    @parameterized.expand(
+        [
+            (ParamValidationError(report="Invalid parameters"), InvalidResourceBotoParameterException),
+            (
+                ClientError(error_response={"Error": {"Code": "MockException"}}, operation_name="send_message"),
+                ErrorBotoApiCallException,
+            ),
+        ]
+    )
+    def test_execute_action_send_message_throws_boto_errors(self, boto_error, expected_error_thrown):
+        given_input_message = "hello world"
+        self.sqs_client.send_message.side_effect = boto_error
+        with self.assertRaises(expected_error_thrown):
+            self.sqs_send_message_executor.validate_action_parameters({})
+            for _ in self.sqs_send_message_executor._execute_action(given_input_message):
+                pass
+
+
+class TestSQSInvokeExecutorUtilities(TestCase):
+    def test_get_queue_url_from_arn_successful(self):
+        given_sqs_client = Mock()
+        expected_result = "mock-queue-url"
+        given_sqs_client.get_queue_url.return_value = {"QueueUrl": expected_result}
+        self.assertEqual(get_queue_url_from_arn(given_sqs_client, "mock-queue-name"), expected_result)
+
+    def test_get_queue_url_from_arn_fails(self):
+        given_sqs_client = Mock()
+        given_sqs_client.get_queue_url.side_effect = ClientError({}, "operation")
+        with self.assertRaises(ErrorBotoApiCallException):
+            get_queue_url_from_arn(given_sqs_client, "mock-queue-name")
