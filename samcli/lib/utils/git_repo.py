@@ -93,7 +93,8 @@ class GitRepo:
                 LOG.warning("Unable to find executable %s", executable, exc_info=ex)
 
         raise GitExecutableNotFoundException(
-            f"This command requires git but we couldn't find the executable, was looking with following names: {executables}"
+            "This command requires git but we couldn't find the executable, "
+            f"was looking with following names: {executables}"
         )
 
     def clone(self, clone_dir: Path, clone_name: str, replace_existing: bool = False, commit: str = "") -> Path:
