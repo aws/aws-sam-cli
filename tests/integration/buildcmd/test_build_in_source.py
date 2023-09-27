@@ -10,6 +10,7 @@ from tests.integration.buildcmd.build_integ_base import BuildIntegProvidedBase, 
 LOG = logging.getLogger(__name__)
 
 
+@skip("Building in source option is not exposed yet. Stop skipping once it is.")
 class TestBuildCommand_BuildInSource_Makefile(BuildIntegProvidedBase):
     template = "template.yaml"
     is_nested_parent = False
@@ -49,6 +50,7 @@ class TestBuildCommand_BuildInSource_Makefile(BuildIntegProvidedBase):
         )
 
 
+@skip("Building in source option is not exposed yet. Stop skipping once it is.")
 class TestBuildCommand_BuildInSource_Esbuild(BuildIntegEsbuildBase):
     is_nested_parent = False
 
