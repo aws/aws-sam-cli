@@ -40,6 +40,18 @@ class SqsSendMessageTextOutput:
     MessageId: str
     MD5OfMessageAttributes: Optional[str] = None
 
+    def get_output_response_dict(self) -> dict:
+        """
+        Returns a dict of existing dataclass fields.
+
+        Returns
+        -------
+        dict
+            Returns the dict of the fields that will be used as the output response for
+            text format output.
+        """
+        return asdict(self, dict_factory=lambda x: {k: v for (k, v) in x if v is not None})
+
 
 class SqsSendMessageExecutor(BotoActionExecutor):
     """
@@ -123,11 +135,8 @@ class SqsSendMessageExecutor(BotoActionExecutor):
                     MessageId=send_message_response["MessageId"],
                     MD5OfMessageAttributes=send_message_response.get("MD5OfMessageAttributes"),
                 )
-                output_data = asdict(
-                    send_message_text_output, dict_factory=lambda x: {k: v for (k, v) in x if v is not None}
-                )
+                output_data = send_message_text_output.get_output_response_dict()
                 yield RemoteInvokeResponse(output_data)
-                return
         except ParamValidationError as param_val_ex:
             raise InvalidResourceBotoParameterException(
                 f"Invalid parameter key provided."

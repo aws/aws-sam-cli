@@ -30,6 +30,33 @@ class TestSqsSendMessageTextOutput(TestCase):
         self.assertEqual(text_output.MessageId, message_id)
         self.assertEqual(text_output.MD5OfMessageAttributes, md5_of_message_attrs)
 
+    @parameterized.expand(
+        [
+            (
+                "mock-md5-message-body",
+                "mock-message-id",
+                "mock-md5-message-attributes",
+                {
+                    "MD5OfMessageBody": "mock-md5-message-body",
+                    "MessageId": "mock-message-id",
+                    "MD5OfMessageAttributes": "mock-md5-message-attributes",
+                },
+            ),
+            (
+                "mock-md5-message-body",
+                "mock-message-id",
+                None,
+                {"MD5OfMessageBody": "mock-md5-message-body", "MessageId": "mock-message-id"},
+            ),
+        ]
+    )
+    def test_get_output_response_dict(self, md5_of_message_body, message_id, md5_of_message_attrs, expected_output):
+        text_output = SqsSendMessageTextOutput(
+            MD5OfMessageBody=md5_of_message_body, MessageId=message_id, MD5OfMessageAttributes=md5_of_message_attrs
+        )
+        output_response_dict = text_output.get_output_response_dict()
+        self.assertEqual(output_response_dict, expected_output)
+
 
 @parameterized_class(
     "output",
