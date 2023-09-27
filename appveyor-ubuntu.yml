@@ -260,10 +260,10 @@ for:
   -
     matrix:
       only:
-        - configuration: DeployIntegTesting
+        - configuration: AllTerraformBuildTests
 
     test_script:
-      - sh: "pytest -vv tests/integration/deploy -n 4 --reruns 4 --dist=loadgroup --json-report --json-report-file=TEST_REPORT-integration-deploy.json"
+      - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
   # Integ testing package
   -
