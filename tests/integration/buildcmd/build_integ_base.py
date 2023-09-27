@@ -255,7 +255,7 @@ class BuildIntegBase(TestCase):
 
 class BuildIntegRubyBase(BuildIntegBase):
     EXPECTED_FILES_PROJECT_MANIFEST = {"app.rb"}
-    EXPECTED_RUBY_GEM = "aws-record"
+    EXPECTED_RUBY_GEM = "aws-sigv4"
 
     FUNCTION_LOGICAL_ID = "Function"
 
