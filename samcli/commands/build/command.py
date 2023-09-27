@@ -75,7 +75,7 @@ DESCRIPTION = """
 @terraform_project_root_path_option
 @hook_name_click_option(
     force_prepare=True,
-    invalid_coexist_options=["t", "template-file", "template", "parameter-overrides"],
+    invalid_coexist_options=["t", "template-file", "template", "parameter-overrides", "build-in-source"],
 )
 @skip_prepare_infra_option
 @use_container_build_option

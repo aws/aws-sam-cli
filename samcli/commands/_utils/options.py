@@ -926,7 +926,7 @@ def build_in_source_click_option():
         help="Opts in to build project in the source folder. The following workflows support "
         f"building in source: {SUPPORTED_BUILD_IN_SOURCE_WORKFLOWS}",
         cls=ClickMutex,
-        incompatible_params=["use_container"],
+        incompatible_params=["use_container", "hook_name"],
     )
 
 
