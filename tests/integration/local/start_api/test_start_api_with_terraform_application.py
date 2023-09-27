@@ -138,6 +138,7 @@ class TestStartApiTerraformApplication(TerraformStartApiIntegrationBase):
 class TestStartApiTerraformApplicationCustomPlanFile(TerraformStartApiIntegrationBase):
     terraform_application = "terraform-v1-api-simple"
     terraform_plan_file = "custom-plan.json"
+    testing_urls = ["hello"]
 
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)

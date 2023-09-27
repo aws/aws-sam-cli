@@ -29,7 +29,7 @@ from samcli.commands._utils.option_value_processor import process_env_var, proce
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.commands.build.core.command import BuildCommand
 from samcli.lib.telemetry.metric import track_command
-from samcli.cli.cli_config_file import configuration_option, ConfigProvider
+from samcli.cli.cli_config_file import configuration_option, ConfigProvider, save_params_option
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.commands.build.click_container import ContainerOptions
 from samcli.commands.build.utils import MountMode
@@ -131,6 +131,7 @@ DESCRIPTION = """
 @cli_framework_options
 @aws_creds_options
 @click.argument("resource_logical_id", required=False)
+@save_params_option
 @pass_context
 @track_command
 @check_newer_version
@@ -156,6 +157,7 @@ def cli(
     parameter_overrides: dict,
     config_file: str,
     config_env: str,
+    save_params: bool,
     hook_name: Optional[str],
     skip_prepare_infra: bool,
     mount_with: str,

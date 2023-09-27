@@ -3,15 +3,20 @@ Utils for invoking subprocess calls
 """
 import logging
 import os
+import platform
 import sys
 from concurrent.futures.thread import ThreadPoolExecutor
-from subprocess import PIPE, Popen
+from subprocess import PIPE, STDOUT, Popen
 from time import sleep
 from typing import Any, AnyStr, Callable, Dict, Optional, Union
 
 from samcli.commands.exceptions import UserException
 from samcli.lib.utils.stream_writer import StreamWriter
 
+# These are the bytes that used as a prefix for a some string to color them in red to show errors.
+TERRAFORM_ERROR_PREFIX = [27, 91, 51, 49]
+
+IS_WINDOWS = platform.system().lower() == "windows"
 LOG = logging.getLogger(__name__)
 
 
@@ -43,6 +48,7 @@ def invoke_subprocess_with_loading_pattern(
     command_args: Dict[str, Any],
     loading_pattern: Callable[[StreamWriter], None] = default_loading_pattern,
     stream_writer: Optional[StreamWriter] = None,
+    is_running_terraform_command: Optional[bool] = None,
 ) -> Optional[Union[str, bytes]]:
     """
     Wrapper for Popen to asynchronously invoke a subprocess while
@@ -57,6 +63,9 @@ def invoke_subprocess_with_loading_pattern(
         A function generating a pattern to the given stream
     stream_writer: Optional[StreamWriter]
         The stream to which to write the pattern
+    is_running_terraform_command: Optional[bool]
+        Flag to refer if the subprocess is for Terraform commands. This flag is used to help reading the subprocess
+        errors in case of windows.
 
     Returns
     -------
@@ -73,7 +82,7 @@ def invoke_subprocess_with_loading_pattern(
         command_args["stdout"] = PIPE
 
     if not command_args.get("stderr"):
-        command_args["stderr"] = PIPE
+        command_args["stderr"] = STDOUT if IS_WINDOWS else PIPE
 
     try:
         keep_printing = LOG.getEffectiveLevel() >= logging.INFO
@@ -82,7 +91,7 @@ def invoke_subprocess_with_loading_pattern(
             while keep_printing:
                 loading_pattern(stream_writer)
 
-        # Popen is async as opposed to run so we can print while we wait
+        # Popen is async as opposed to run, so we can print while we wait
         with Popen(**command_args) as process:
             with ThreadPoolExecutor() as executor:
                 executor.submit(_print_loading_pattern)
@@ -92,10 +101,19 @@ def invoke_subprocess_with_loading_pattern(
                     # we read from subprocess stdout to avoid the deadlock process.wait function
                     # for more detail check this python bug https://bugs.python.org/issue1256
                     for line in process.stdout:
-                        decoded_line = _check_and_process_bytes(line)
+                        is_error = (
+                            is_running_terraform_command
+                            and IS_WINDOWS
+                            and len(line) >= len(TERRAFORM_ERROR_PREFIX)
+                            and line[0:4] == bytes(TERRAFORM_ERROR_PREFIX)
+                        )
+                        decoded_line = _check_and_process_bytes(line, preserve_whitespace=is_error)
                         if LOG.getEffectiveLevel() < logging.INFO:
                             LOG.debug(decoded_line)
-                        process_output += decoded_line
+                        if not is_error:
+                            process_output += decoded_line
+                        else:
+                            process_stderr += decoded_line
 
                 if process.stderr:
                     for line in process.stderr:

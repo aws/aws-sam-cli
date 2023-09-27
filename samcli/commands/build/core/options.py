@@ -4,7 +4,7 @@ Build Command Options related Datastructures for formatting.
 from typing import Dict, List
 
 from samcli.cli.row_modifiers import RowDefinition
-from samcli.cli.core.options import ALL_COMMON_OPTIONS, add_common_options_info
+from samcli.cli.core.options import ALL_COMMON_OPTIONS, SAVE_PARAMS_OPTIONS, add_common_options_info
 
 # NOTE(sriram-mv): The ordering of the option lists matter, they are the order
 # in which options will be displayed.
@@ -23,7 +23,7 @@ CONTAINER_OPTION_NAMES: List[str] = [
     "docker_network",
 ]
 
-CONFIGURATION_OPTION_NAMES: List[str] = ["config_env", "config_file"]
+CONFIGURATION_OPTION_NAMES: List[str] = ["config_env", "config_file"] + SAVE_PARAMS_OPTIONS
 
 EXTENSION_OPTIONS: List[str] = ["hook_name", "skip_prepare_infra"]
 
