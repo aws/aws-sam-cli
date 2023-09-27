@@ -261,10 +261,10 @@ for:
   #Integ testing deploy
   - matrix:
       only:
-        - configuration: DeployIntegTesting
+        - configuration: AllTerraformTests
 
     test_script:
-      - ps: "pytest -vv tests/integration/deploy -n 4 --reruns 4 --dist=loadgroup --json-report --json-report-file=TEST_REPORT-integration-deploy.json"
+      - ps: "pytest -vv tests/integration/buildcmd/test_build_terraform_applications.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
   # Integ testing package
   - matrix:
