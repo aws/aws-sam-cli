@@ -4,21 +4,21 @@ from unittest import skipIf
 import pytest
 from parameterized import parameterized, parameterized_class
 
-from tests.integration.buildcmd.build_integ_base import BuildIntegJavaBase, BuildIntegProvidedBase
-from tests.integration.buildcmd.test_build_cmd import (
-    TestBuildCommand_PythonFunctions_With_Specified_Architecture,
-    TestBuildCommand_EsbuildFunctions,
-    TestBuildCommand_EsbuildFunctions_With_External_Manifest,
-    TestBuildCommand_NodeFunctions_With_Specified_Architecture,
-    TestBuildCommand_RubyFunctions_With_Architecture,
-    TestBuildCommand_Go_Modules_With_Specified_Architecture,
+from tests.integration.buildcmd.build_integ_base import (
+    BuildIntegEsbuildBase,
+    BuildIntegGoBase, 
+    BuildIntegJavaBase,
+    BuildIntegNodeBase, 
+    BuildIntegProvidedBase, 
+    BuildIntegPythonBase,
+    BuildIntegRubyBase
 )
 from tests.testing_utils import SKIP_DOCKER_TESTS, SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE, CI_OVERRIDE, IS_WINDOWS
 
 
-class TestBuildCommand_PythonFunctions_With_Specified_Architecture_arm64(
-    TestBuildCommand_PythonFunctions_With_Specified_Architecture
-):
+class TestBuildCommand_PythonFunctions_With_Specified_Architecture_arm64(BuildIntegPythonBase):
+    template = "template_with_architecture.yaml"
+
     @parameterized.expand(
         [
             ("python3.8", "Python", False, "arm64"),
@@ -33,7 +33,9 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture_arm64(
         )
 
 
-class TestBuildCommand_EsbuildFunctions_arm64(TestBuildCommand_EsbuildFunctions):
+class TestBuildCommand_EsbuildFunctions_arm64(BuildIntegEsbuildBase):
+    template = "template_with_metadata_esbuild.yaml"
+
     @parameterized.expand(
         [
             ("nodejs12.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", False, "arm64"),
@@ -56,9 +58,10 @@ class TestBuildCommand_EsbuildFunctions_arm64(TestBuildCommand_EsbuildFunctions)
         self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, architecture)
 
 
-class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(
-    TestBuildCommand_EsbuildFunctions_With_External_Manifest
-):
+class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(BuildIntegEsbuildBase):
+    template = "template_with_metadata_esbuild.yaml"
+    MANIFEST_PATH = "Esbuild/npm_manifest/package.json"
+
     @parameterized.expand(
         [
             (
@@ -102,9 +105,9 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(
         self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, architecture)
 
 
-class TestBuildCommand_NodeFunctions_With_Specified_Architecture_arm64(
-    TestBuildCommand_NodeFunctions_With_Specified_Architecture
-):
+class TestBuildCommand_NodeFunctions_With_Specified_Architecture_arm64(BuildIntegNodeBase):
+    template = "template_with_architecture.yaml"
+
     @parameterized.expand(
         [
             ("nodejs12.x", False, "arm64"),
@@ -122,7 +125,9 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture_arm64(
         self._test_with_default_package_json(runtime, use_container, self.test_data_path, architecture)
 
 
-class TestBuildCommand_RubyFunctions_With_Architecture_arm64(TestBuildCommand_RubyFunctions_With_Architecture):
+class TestBuildCommand_RubyFunctions_With_Architecture_arm64(BuildIntegRubyBase):
+    template = "template_with_architecture.yaml"
+
     @parameterized.expand([("ruby2.7", "arm64"), ("ruby3.2", "arm64")])
     #@pytest.mark.flaky(reruns=3)
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
@@ -397,9 +402,9 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
         )
 
 
-class TestBuildCommand_Go_Modules_With_Specified_Architecture_arm64(
-    TestBuildCommand_Go_Modules_With_Specified_Architecture
-):
+class TestBuildCommand_Go_Modules_With_Specified_Architecture_arm64(BuildIntegGoBase):
+    template = "template_with_architecture.yaml"
+
     @parameterized.expand(
         [
             ("go1.x", "Go", None, "arm64"),
