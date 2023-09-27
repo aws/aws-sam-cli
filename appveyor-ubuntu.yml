@@ -9,7 +9,7 @@ configuration:
   - S3ZipTerraformBuildIntegTesting
   - S3ZipTerraformBuildInContainerIntegTesting
   - OtherTerraformBuildIntegTesting
-  - DeployIntegTesting
+  - AllTerraformBuildTests
   - PackageIntegTesting
   - DeleteIntegTesting
   - SyncIntegTesting

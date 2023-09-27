@@ -11,7 +11,7 @@ configuration:
   - S3ZipTerraformBuildIntegTesting
   - S3ZipTerraformBuildInContainerIntegTesting
   - OtherTerraformBuildIntegTesting
-  - DeployIntegTesting
+  - AllTerraformBuildTests
   - PackageIntegTesting
   - DeleteIntegTesting
   - SyncIntegTesting
@@ -261,7 +261,7 @@ for:
   #Integ testing deploy
   - matrix:
       only:
-        - configuration: AllTerraformTests
+        - configuration: AllTerraformBuildTests
 
     test_script:
       - ps: "pytest -vv tests/integration/buildcmd/test_build_terraform_applications.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
