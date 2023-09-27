@@ -264,6 +264,10 @@ for:
         - configuration: AllTerraformBuildTests
 
     test_script:
+      # install Terraform CLI
+      - "choco install terraform"
+      - "terraform -version"
+
       - ps: "pytest -vv tests/integration/buildcmd/test_build_terraform_applications.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
   # Integ testing package
