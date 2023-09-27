@@ -86,6 +86,7 @@ class BuildIntegBase(TestCase):
         config_file=None,
         save_params=False,
         project_root_dir=None,
+        skip_prepare_infra=None,
     ):
         command_list = [self.cmd, "build"]
 
@@ -157,6 +158,9 @@ class BuildIntegBase(TestCase):
 
         if project_root_dir is not None:
             command_list += ["--terraform-project-root-path", project_root_dir]
+
+        if skip_prepare_infra is True:
+            command_list += ["--skip-prepare-infra"]
 
         return command_list
 
