@@ -1,5 +1,5 @@
 """
-Exceptions that is used by remote invoke command
+Exceptions that are used by remote invoke or remote test-events commands
 """
 from samcli.commands.exceptions import UserException
 
@@ -25,4 +25,28 @@ class ResourceNotSupportedForRemoteInvoke(UserException):
 
 
 class InvalidStackNameProvidedForRemoteInvoke(UserException):
+    pass
+
+
+class DuplicateEventName(UserException):
+    pass
+
+
+class EventTooLarge(UserException):
+    pass
+
+
+class InvalidSchema(UserException):
+    pass
+
+
+class InvalidEventOutputFile(UserException):
+    pass
+
+
+class ResourceNotSupportedForTestEvents(UserException):
+    pass
+
+
+class IllFormedEventData(UserException):
     pass
