@@ -485,9 +485,9 @@ pycparser==2.21 \
     --hash=sha256:8ee45429555515e1f6b185e78100aea234072576aa43ab53aefcae078162fca9 \
     --hash=sha256:e644fdec12f7872f86c58ff790da456218b10f863970249516d60a5eaca77206
     # via cffi
-pydantic==2.3.0 \
-    --hash=sha256:1607cc106602284cd4a00882986570472f193fde9cb1259bceeaedb26aa79a6d \
-    --hash=sha256:45b5e446c6dfaad9444819a293b921a40e1db1aa61ea08aede0522529ce90e81
+pydantic==2.4.1 \
+    --hash=sha256:2b2240c8d54bb8f84b88e061fac1bdfa1761c2859c367f9d3afe0ec2966deddc \
+    --hash=sha256:b172505886028e4356868d617d2d1a776d7af1625d1313450fd51bdd19d9d61f
     # via aws-sam-translator
 pydantic-core==2.6.3 \
     --hash=sha256:002d0ea50e17ed982c2d65b480bd975fc41086a5a2f9c924ef8fc54419d1dea3 \
