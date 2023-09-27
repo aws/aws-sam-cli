@@ -140,6 +140,7 @@ class TestInvalidBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backen
     "Skip Terraform test cases unless running in CI",
 )
 class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndLocalBackend(BuildTerraformApplicationIntegBase):
+    function_identifier = "aws_lambda_function.function_with_non_image_uri"
     terraform_application = Path("terraform/image_based_lambda_functions_local_backend")
     functions = [
         "aws_lambda_function.function_with_non_image_uri",
@@ -155,7 +156,9 @@ class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndLocalBackend(
 
     @parameterized.expand(functions)
     def test_build_and_invoke_lambda_functions(self, function_identifier):
-        build_cmd_list = self.get_command_list(hook_name="terraform", function_identifier=function_identifier)
+        build_cmd_list = self.get_command_list(
+            hook_name="terraform", function_identifier=function_identifier, skip_prepare_infra=True
+        )
         LOG.info("command list: %s", build_cmd_list)
         _, stderr, return_code = self.run_command(build_cmd_list)
         LOG.info(stderr)
@@ -180,6 +183,7 @@ class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndLocalBackend(
 class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndS3Backend(
     BuildTerraformApplicationS3BackendIntegBase
 ):
+    function_identifier = "aws_lambda_function.function_with_non_image_uri"
     terraform_application = Path("terraform/image_based_lambda_functions_s3_backend")
     functions = [
         "aws_lambda_function.function_with_non_image_uri",
@@ -195,7 +199,9 @@ class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndS3Backend(
 
     @parameterized.expand(functions)
     def test_build_and_invoke_lambda_functions(self, function_identifier):
-        build_cmd_list = self.get_command_list(hook_name="terraform", function_identifier=function_identifier)
+        build_cmd_list = self.get_command_list(
+            hook_name="terraform", function_identifier=function_identifier, skip_prepare_infra=True
+        )
         LOG.info("command list: %s", build_cmd_list)
         _, stderr, return_code = self.run_command(build_cmd_list)
         LOG.info(stderr)
