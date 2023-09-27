@@ -73,7 +73,7 @@ class TestBuildCommand_BuildInSource_Esbuild(BuildIntegEsbuildBase):
     )
     @pytest.mark.flaky(reruns=3)
     def test_builds_successfully_without_local_dependencies(self, build_in_source, dependencies_expected_in_source):
-        self.template_path = os.path.join(self.test_data_path, "template_with_metadata_esbuild.yaml")
+        self.template_path = os.path.join(self.test_data_path, "template_with_metadata.yaml")
         codeuri = os.path.join(self.test_data_path, "Esbuild", "Node")
         self.source_directories = [codeuri]
 
@@ -92,7 +92,7 @@ class TestBuildCommand_BuildInSource_Esbuild(BuildIntegEsbuildBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_builds_successfully_with_local_dependency(self):
-        self.template_path = os.path.join(self.test_data_path, "template_with_metadata_esbuild.yaml")
+        self.template_path = os.path.join(self.test_data_path, "template_with_metadata.yaml")
         codeuri = os.path.join(self.test_data_path, "Esbuild", "NodeWithLocalDependency")
         self.source_directories = [codeuri]
         runtime = "nodejs16.x"
