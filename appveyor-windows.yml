@@ -6,19 +6,20 @@ clone_folder: C:\source
 
 configuration:
   - BuildIntegTesting
-  - LocalZipTerraformBuildIntegTesting
-  - LocalZipTerraformBuildInContainerIntegTesting
-  - S3ZipTerraformBuildIntegTesting
-  - S3ZipTerraformBuildInContainerIntegTesting
-  - OtherTerraformBuildIntegTesting
-  - DeployIntegTesting
-  - PackageIntegTesting
-  - DeleteIntegTesting
-  - SyncIntegTesting
-  - LocalIntegTesting
-  - EndToEndTesting
-  # other Integration testing, Dev, regression and smoke testing
-  - OtherTesting
+  - BuildIntegTestingArm64
+  # - LocalZipTerraformBuildIntegTesting
+  # - LocalZipTerraformBuildInContainerIntegTesting
+  # - S3ZipTerraformBuildIntegTesting
+  # - S3ZipTerraformBuildInContainerIntegTesting
+  # - OtherTerraformBuildIntegTesting
+  # - DeployIntegTesting
+  # - PackageIntegTesting
+  # - DeleteIntegTesting
+  # - SyncIntegTesting
+  # - LocalIntegTesting
+  # - EndToEndTesting
+  # # other Integration testing, Dev, regression and smoke testing
+  # - OtherTesting
 
 environment:
   AWS_DEFAULT_REGION: us-east-1
@@ -169,7 +170,7 @@ on_finish:
 
 
 for:
-  #Integ testing build, regression
+  #Integ testing build
   - matrix:
       only:
         - configuration: BuildIntegTesting
@@ -192,7 +193,16 @@ for:
       - cargo lambda -V
 
     test_script:
-      - ps: "pytest -vv tests/integration/buildcmd --ignore tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+      - ps: "pytest -vv -n 2 tests/integration/buildcmd --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+  
+  #Integ testing build arm64
+  - matrix:
+      only:
+        - configuration: BuildIntegTestingArm64
+
+    test_script:
+      - ps: "pytest -vv tests/integration/buildcmd/test_build_cmd_arm64.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64.json"
+
 
   # Local ZIP  Terraform Build integ testing
   - matrix:
