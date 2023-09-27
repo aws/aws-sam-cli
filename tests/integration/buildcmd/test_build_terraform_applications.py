@@ -1,3 +1,4 @@
+import datetime
 import os
 import logging
 import shutil
@@ -19,6 +20,7 @@ from parameterized import parameterized, parameterized_class
 
 from tests.integration.buildcmd.build_integ_base import BuildIntegBase
 from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS, RUN_BY_CANARY
+from tests.testing_utils import run_command as static_run_command
 
 LOG = logging.getLogger(__name__)
 S3_SLEEP = 3
@@ -95,7 +97,7 @@ class BuildTerraformApplicationIntegBase(BuildIntegBase):
         _, stderr, return_code = self.run_command(
             build_cmd_list, override_dir=self.terraform_application_execution_path, env=environment_variables
         )
-        LOG.info(stderr)
+        LOG.info(stderr.decode("utf-8"))
         self.assertEqual(return_code, 0)
 
     def _verify_invoke_built_function(self, function_logical_id, overrides, expected_result):
@@ -152,8 +154,25 @@ class BuildTerraformApplicationS3BackendIntegBase(BuildTerraformApplicationInteg
         if not cls.pre_created_bucket:
             cls.s3_bucket.create()
             time.sleep(S3_SLEEP)
-
         super().setUpClass()
+        cls.initialize_s3_backend()
+
+    @classmethod
+    def initialize_s3_backend(cls):
+        cls.backend_key = f"terraform-backend/{str(uuid.uuid4())}"
+        cls.backendconfig_path = str(Path(cls.terraform_application_execution_path) / "backend.conf")
+        with open(cls.backendconfig_path, "w") as f:
+            f.write(f'bucket="{cls.bucket_name}"\n')
+            f.write(f'key="{cls.backend_key}"\n')
+            f.write(f'region="{cls.region_name}"')
+
+        # We have to init the terraform project with specifying the S3 backend first
+        _, stderr, _ = static_run_command(
+            ["terraform", "init", f"-backend-config={cls.backendconfig_path}", "-reconfigure", "-input=false"],
+            cwd=cls.terraform_application_execution_path
+        )
+        if stderr:
+            LOG.info(stderr)
 
     @classmethod
     def tearDownClass(cls):
@@ -165,19 +184,6 @@ class BuildTerraformApplicationS3BackendIntegBase(BuildTerraformApplicationInteg
 
     def setUp(self):
         super().setUp()
-        self.backend_key = f"terraform-backend/{str(uuid.uuid4())}"
-        self.backendconfig_path = str(Path(self.working_dir) / "backend.conf")
-        with open(self.backendconfig_path, "w") as f:
-            f.write(f'bucket="{self.bucket_name}"\n')
-            f.write(f'key="{self.backend_key}"\n')
-            f.write(f'region="{self.region_name}"')
-
-        # We have to init the terraform project with specifying the S3 backend first
-        _, stderr, _ = self.run_command(
-            ["terraform", "init", f"-backend-config={self.backendconfig_path}", "-reconfigure", "-input=false"]
-        )
-        if stderr:
-            LOG.info(stderr)
 
     def tearDown(self):
         """Clean up the terraform state file on S3 and remove the backendconfg locally"""
@@ -202,6 +208,7 @@ class BuildTerraformApplicationS3BackendIntegBase(BuildTerraformApplicationInteg
         (True,),
     ],
 )
+@pytest.mark.xdist_group(name="zip_lambda_local_backend_override")
 class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackendWithOverride(
     BuildTerraformApplicationIntegBase
 ):
@@ -297,6 +304,7 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackendWit
         (True,),
     ],
 )
+@pytest.mark.xdist_group(name="zip_lambda_local_backend")
 class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(BuildTerraformApplicationIntegBase):
     function_identifier = "function9"
     terraform_application = (
@@ -388,6 +396,7 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(Bu
         (True,),
     ],
 )
+@pytest.mark.xdist_group(name="zip_lambda_s3_backend")
 class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3BackendWithOverride(
     BuildTerraformApplicationS3BackendIntegBase
 ):
@@ -481,6 +490,7 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3BackendWithOv
         (True,),
     ],
 )
+@pytest.mark.xdist_group(name="zip_lambda_s3_backend_override")
 class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(BuildTerraformApplicationS3BackendIntegBase):
     function_identifier = "function9"
     terraform_application = (
@@ -549,8 +559,10 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(Build
             command_list_parameters["build_image"] = self.docker_tag
         build_cmd_list = self.get_command_list(**command_list_parameters)
         LOG.info("command list: %s", build_cmd_list)
+        start = time.time()
         _, stderr, return_code = self.run_command(build_cmd_list)
-        LOG.info(stderr)
+        end = time.time()
+        LOG.info(f"END: {end}, DURATION {end - start}")
         self.assertEqual(return_code, 0)
 
         self._verify_invoke_built_function(
