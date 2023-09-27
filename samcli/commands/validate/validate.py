@@ -8,7 +8,7 @@ import click
 from botocore.exceptions import NoCredentialsError
 from samtranslator.translator.arn_generator import NoRegionFound
 
-from samcli.cli.cli_config_file import ConfigProvider, configuration_option
+from samcli.cli.cli_config_file import ConfigProvider, configuration_option, save_params_option
 from samcli.cli.context import Context
 from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
 from samcli.cli.main import common_options as cli_framework_options
@@ -46,13 +46,14 @@ DESCRIPTION = """
     "Create a cfnlintrc config file to specify additional parameters. "
     "For more information, see: https://github.com/aws-cloudformation/cfn-lint",
 )
+@save_params_option
 @pass_context
 @track_command
 @check_newer_version
 @print_cmdline_args
 @unsupported_command_cdk(alternative_command="cdk doctor")
 @command_exception_handler
-def cli(ctx, template_file, config_file, config_env, lint):
+def cli(ctx, template_file, config_file, config_env, lint, save_params):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
     do_cli(ctx, template_file, lint)  # pragma: no cover
