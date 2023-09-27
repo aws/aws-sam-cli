@@ -30,11 +30,14 @@ class BuildTerraformApplicationIntegBase(BuildIntegBase):
     build_in_container = False
     function_identifier = None
     override = False
+    terraform_application_execution_path = None
 
     @classmethod
     def setUpClass(cls):
         super(BuildTerraformApplicationIntegBase, cls).setUpClass()
         cls.terraform_application_path = str(Path(cls.test_data_path, cls.terraform_application))
+        cls.terraform_application_execution_path = str(Path(__file__).resolve().parent.joinpath(str(uuid.uuid4()).replace("-", "")[:10]))
+        shutil.copytree(Path(cls.terraform_application_path), Path(cls.terraform_application_execution_path))
         if cls.build_in_container:
             cls.client = docker.from_env()
             cls.image_name = "sam-terraform-python-build"
@@ -57,7 +60,7 @@ class BuildTerraformApplicationIntegBase(BuildIntegBase):
     def setUp(self):
         super().setUp()
         shutil.rmtree(Path(self.working_dir))
-        shutil.copytree(Path(self.terraform_application_path), Path(self.working_dir))
+        shutil.copytree(Path(self.terraform_application_execution_path), Path(self.working_dir))
 
     def run_command(self, command_list, env=None, input=None, timeout=None, override_dir=None):
         running_dir = override_dir if override_dir else self.working_dir
@@ -90,7 +93,7 @@ class BuildTerraformApplicationIntegBase(BuildIntegBase):
 
         build_cmd_list = self.get_command_list(**command_list_parameters)
         _, stderr, return_code = self.run_command(
-            build_cmd_list, override_dir=self.terraform_application_path, env=environment_variables
+            build_cmd_list, override_dir=self.terraform_application_execution_path, env=environment_variables
         )
         LOG.info(stderr)
         self.assertEqual(return_code, 0)
@@ -122,6 +125,13 @@ class BuildTerraformApplicationIntegBase(BuildIntegBase):
         LOG.info("sam local invoke stdout: %s", stdout.decode("utf-8"))
         LOG.info("sam local invoke stderr: %s", stderr.decode("utf-8"))
         self.assertEqual(json.loads(process_stdout), expected_result)
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.terraform_application_execution_path and shutil.rmtree(cls.terraform_application_execution_path, ignore_errors=True)
+
+    def tearDown(self):
+        super(BuildTerraformApplicationIntegBase, self).tearDown()
 
 
 class BuildTerraformApplicationS3BackendIntegBase(BuildTerraformApplicationIntegBase):
@@ -195,7 +205,7 @@ class BuildTerraformApplicationS3BackendIntegBase(BuildTerraformApplicationInteg
 class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackendWithOverride(
     BuildTerraformApplicationIntegBase
 ):
-    function_identifier = "module.function7.aws_lambda_function.this[0]"
+    function_identifier = "function9"
     override = True
     terraform_application = (
         Path("terraform/zip_based_lambda_functions_local_backend")
@@ -288,7 +298,7 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackendWit
     ],
 )
 class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(BuildTerraformApplicationIntegBase):
-    function_identifier = "module.function7.aws_lambda_function.this[0]"
+    function_identifier = "function9"
     terraform_application = (
         Path("terraform/zip_based_lambda_functions_local_backend")
         if not IS_WINDOWS
@@ -381,7 +391,7 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(Bu
 class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3BackendWithOverride(
     BuildTerraformApplicationS3BackendIntegBase
 ):
-    function_identifier = "module.function7.aws_lambda_function.this[0]"
+    function_identifier = "function9"
     override = True
     terraform_application = (
         Path("terraform/zip_based_lambda_functions_s3_backend")
@@ -472,7 +482,7 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3BackendWithOv
     ],
 )
 class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(BuildTerraformApplicationS3BackendIntegBase):
-    function_identifier = "module.function7.aws_lambda_function.this[0]"
+    function_identifier = "function9"
     terraform_application = (
         Path("terraform/zip_based_lambda_functions_s3_backend")
         if not IS_WINDOWS
