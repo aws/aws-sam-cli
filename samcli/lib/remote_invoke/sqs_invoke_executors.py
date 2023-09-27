@@ -3,8 +3,9 @@ Remote invoke executor implementation for SQS
 """
 import json
 import logging
+from dataclasses import asdict, dataclass
 from json.decoder import JSONDecodeError
-from typing import cast
+from typing import Optional, cast
 
 from botocore.exceptions import ClientError, ParamValidationError
 from mypy_boto3_sqs import SQSClient
@@ -26,6 +27,18 @@ MESSAGE_BODY = "MessageBody"
 DELAY_SECONDS = "DelaySeconds"
 MESSAGE_ATTRIBUTES = "MessageAttributes"
 MESSAGE_SYSTEM_ATTRIBUTES = "MessageSystemAttributes"
+
+
+@dataclass
+class SqsSendMessageTextOutput:
+    """
+    Dataclass that stores send_message boto3 API fields used to create
+    text output.
+    """
+
+    MD5OfMessageBody: str
+    MessageId: str
+    MD5OfMessageAttributes: Optional[str] = None
 
 
 class SqsSendMessageExecutor(BotoActionExecutor):
@@ -65,6 +78,8 @@ class SqsSendMessageExecutor(BotoActionExecutor):
                 elif parameter_key == DELAY_SECONDS:
                     self.request_parameters[parameter_key] = int(parameter_value)
                 elif parameter_key in {MESSAGE_ATTRIBUTES, MESSAGE_SYSTEM_ATTRIBUTES}:
+                    # Load these parameters as dict which is the format required for the send_message boto3 API
+                    # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sqs/client/send_message.html
                     self.request_parameters[parameter_key] = json.loads(parameter_value)
                 else:
                     self.request_parameters[parameter_key] = parameter_value
@@ -89,6 +104,7 @@ class SqsSendMessageExecutor(BotoActionExecutor):
             self.request_parameters[MESSAGE_BODY] = payload
         else:
             self.request_parameters[MESSAGE_BODY] = "{}"
+            LOG.debug("Input event not found, sending a message with MessageBody {}")
         self.request_parameters[QUEUE_URL] = self._queue_url
         LOG.debug(
             "Calling sqs_client.send_message with QueueUrl:%s, MessageBody:%s",
@@ -102,15 +118,16 @@ class SqsSendMessageExecutor(BotoActionExecutor):
                 yield RemoteInvokeResponse(send_message_response)
             if self._remote_output_format == RemoteInvokeOutputFormat.TEXT:
                 # Create an object with MD5OfMessageBody and MessageId fields, and write to stdout
-                md5_of_message_body = send_message_response.get("MD5OfMessageBody", "")
-                message_id = send_message_response.get("MessageId", "")
-                md5_of_message_attributes = send_message_response.get("MD5OfMessageAttributes", "")
-                if md5_of_message_body and message_id:
-                    output_data = {"MD5OfMessageBody": md5_of_message_body, "MessageId": message_id}
-                    if md5_of_message_attributes:
-                        output_data["MD5OfMessageAttributes"] = md5_of_message_attributes
-                    yield RemoteInvokeResponse(output_data)
-                    return
+                send_message_text_output = SqsSendMessageTextOutput(
+                    MD5OfMessageBody=send_message_response["MD5OfMessageBody"],
+                    MessageId=send_message_response["MessageId"],
+                    MD5OfMessageAttributes=send_message_response.get("MD5OfMessageAttributes"),
+                )
+                output_data = asdict(
+                    send_message_text_output, dict_factory=lambda x: {k: v for (k, v) in x if v is not None}
+                )
+                yield RemoteInvokeResponse(output_data)
+                return
         except ParamValidationError as param_val_ex:
             raise InvalidResourceBotoParameterException(
                 f"Invalid parameter key provided."

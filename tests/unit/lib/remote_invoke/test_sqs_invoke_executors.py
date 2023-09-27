@@ -9,9 +9,26 @@ from samcli.lib.remote_invoke.sqs_invoke_executors import (
     InvalidResourceBotoParameterException,
     ErrorBotoApiCallException,
     ClientError,
+    SqsSendMessageTextOutput,
     get_queue_url_from_arn,
 )
 from samcli.lib.remote_invoke.remote_invoke_executors import RemoteInvokeResponse
+
+
+class TestSqsSendMessageTextOutput(TestCase):
+    @parameterized.expand(
+        [
+            ("mock-md5-message-body", "mock-message-id", "mock-md5-message-attributes"),
+            ("mock-md5-message-body", "mock-message-id", None),
+        ]
+    )
+    def test_sqs_send_message_text_output(self, md5_of_message_body, message_id, md5_of_message_attrs):
+        text_output = SqsSendMessageTextOutput(
+            MD5OfMessageBody=md5_of_message_body, MessageId=message_id, MD5OfMessageAttributes=md5_of_message_attrs
+        )
+        self.assertEqual(text_output.MD5OfMessageBody, md5_of_message_body)
+        self.assertEqual(text_output.MessageId, message_id)
+        self.assertEqual(text_output.MD5OfMessageAttributes, md5_of_message_attrs)
 
 
 @parameterized_class(
