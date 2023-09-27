@@ -80,7 +80,8 @@ class BuildTerraformApplicationIntegBase(BuildIntegBase):
             # This doesn't make sense for all tests that inherit this base class, skip for those
             return
 
-        command_list_parameters = {"function_identifier": self.function_identifier, "hook_name": "terraform"}
+        # command_list_parameters = {"function_identifier": self.function_identifier, "hook_name": "terraform"}
+        command_list_parameters = {"parallel": True, "hook_name": "terraform"}
         if self.build_in_container:
             command_list_parameters["use_container"] = True
             command_list_parameters["build_image"] = self.docker_tag
@@ -262,29 +263,29 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackendWit
 
     @parameterized.expand(functions)
     def test_build_and_invoke_lambda_functions(self, function_identifier, expected_output):
-        command_list_parameters = {
-            "hook_name": "terraform",
-            "function_identifier": function_identifier,
-            "skip_prepare_infra": True,
-        }
-        if self.build_in_container:
-            command_list_parameters["use_container"] = True
-            command_list_parameters["build_image"] = self.docker_tag
-            if self.override:
-                command_list_parameters[
-                    "container_env_var"
-                ] = "TF_VAR_HELLO_FUNCTION_SRC_CODE=./artifacts/HelloWorldFunction2"
-
-        environment_variables = os.environ.copy()
-        if self.override:
-            environment_variables["TF_VAR_HELLO_FUNCTION_SRC_CODE"] = "./artifacts/HelloWorldFunction2"
-
-        build_cmd_list = self.get_command_list(**command_list_parameters)
-        LOG.info("command list: %s", build_cmd_list)
-        stdout, stderr, return_code = self.run_command(build_cmd_list, env=environment_variables)
-        LOG.info("sam build stdout: %s", stdout.decode("utf-8"))
-        LOG.info("sam build stderr: %s", stderr.decode("utf-8"))
-        self.assertEqual(return_code, 0)
+        # command_list_parameters = {
+        #     "hook_name": "terraform",
+        #     "function_identifier": function_identifier,
+        #     "skip_prepare_infra": True,
+        # }
+        # if self.build_in_container:
+        #     command_list_parameters["use_container"] = True
+        #     command_list_parameters["build_image"] = self.docker_tag
+        #     if self.override:
+        #         command_list_parameters[
+        #             "container_env_var"
+        #         ] = "TF_VAR_HELLO_FUNCTION_SRC_CODE=./artifacts/HelloWorldFunction2"
+        #
+        # environment_variables = os.environ.copy()
+        # if self.override:
+        #     environment_variables["TF_VAR_HELLO_FUNCTION_SRC_CODE"] = "./artifacts/HelloWorldFunction2"
+        #
+        # build_cmd_list = self.get_command_list(**command_list_parameters)
+        # LOG.info("command list: %s", build_cmd_list)
+        # stdout, stderr, return_code = self.run_command(build_cmd_list, env=environment_variables)
+        # LOG.info("sam build stdout: %s", stdout.decode("utf-8"))
+        # LOG.info("sam build stderr: %s", stderr.decode("utf-8"))
+        # self.assertEqual(return_code, 0)
 
         self._verify_invoke_built_function(
             function_logical_id=function_identifier,
@@ -315,26 +316,26 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(Bu
     functions = [
         ("module.function9.aws_lambda_function.this[0]", "hello world 9"),
         ("function9", "hello world 9"),
-        # ("aws_lambda_function.function6", "hello world 6"),
-        # ("function6", "hello world 6"),
-        # ("aws_lambda_function.function5", "hello world 5"),
-        # ("function5", "hello world 5"),
-        # ("aws_lambda_function.function4", "hello world 4"),
-        # ("function4", "hello world 4"),
-        # ("aws_lambda_function.function3", "hello world 3"),
-        # ("function3", "hello world 3"),
-        # ("module.function2.aws_lambda_function.this", "hello world 2"),
-        # ("function2", "hello world 2"),
-        # ("aws_lambda_function.function1", "hello world 1"),
-        # ("function1", "hello world 1"),
-        # ("aws_lambda_function.from_localfile", "[]"),
-        # ("aws_lambda_function.from_s3", "[]"),
-        # ("module.level1_lambda.aws_lambda_function.this", "[]"),
-        # ("module.level1_lambda.module.level2_lambda.aws_lambda_function.this", "[]"),
-        # ("my_function_from_localfile", "[]"),
-        # ("my_function_from_s3", "[]"),
-        # ("my_level1_lambda", "[]"),
-        # ("my_level2_lambda", "[]"),
+        ("aws_lambda_function.function6", "hello world 6"),
+        ("function6", "hello world 6"),
+        ("aws_lambda_function.function5", "hello world 5"),
+        ("function5", "hello world 5"),
+        ("aws_lambda_function.function4", "hello world 4"),
+        ("function4", "hello world 4"),
+        ("aws_lambda_function.function3", "hello world 3"),
+        ("function3", "hello world 3"),
+        ("module.function2.aws_lambda_function.this", "hello world 2"),
+        ("function2", "hello world 2"),
+        ("aws_lambda_function.function1", "hello world 1"),
+        ("function1", "hello world 1"),
+        ("aws_lambda_function.from_localfile", "[]"),
+        ("aws_lambda_function.from_s3", "[]"),
+        ("module.level1_lambda.aws_lambda_function.this", "[]"),
+        ("module.level1_lambda.module.level2_lambda.aws_lambda_function.this", "[]"),
+        ("my_function_from_localfile", "[]"),
+        ("my_function_from_s3", "[]"),
+        ("my_level1_lambda", "[]"),
+        ("my_level2_lambda", "[]"),
     ]
 
     @classmethod
@@ -363,20 +364,20 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(Bu
 
     @parameterized.expand(functions)
     def test_build_and_invoke_lambda_functions(self, function_identifier, expected_output):
-        command_list_parameters = {
-            "hook_name": "terraform",
-            "function_identifier": function_identifier,
-            "skip_prepare_infra": True,
-        }
-        if self.build_in_container:
-            command_list_parameters["use_container"] = True
-            command_list_parameters["build_image"] = self.docker_tag
-        build_cmd_list = self.get_command_list(**command_list_parameters)
-        LOG.info("command list: %s", build_cmd_list)
-        stdout, stderr, return_code = self.run_command(build_cmd_list)
-        LOG.info("sam build stdout: %s", stdout.decode("utf-8"))
-        LOG.info("sam build stderr: %s", stderr.decode("utf-8"))
-        self.assertEqual(return_code, 0)
+        # command_list_parameters = {
+        #     "hook_name": "terraform",
+        #     "function_identifier": function_identifier,
+        #     "skip_prepare_infra": True,
+        # }
+        # if self.build_in_container:
+        #     command_list_parameters["use_container"] = True
+        #     command_list_parameters["build_image"] = self.docker_tag
+        # build_cmd_list = self.get_command_list(**command_list_parameters)
+        # LOG.info("command list: %s", build_cmd_list)
+        # stdout, stderr, return_code = self.run_command(build_cmd_list)
+        # LOG.info("sam build stdout: %s", stdout.decode("utf-8"))
+        # LOG.info("sam build stderr: %s", stderr.decode("utf-8"))
+        # self.assertEqual(return_code, 0)
 
         self._verify_invoke_built_function(
             function_logical_id=function_identifier,
@@ -450,26 +451,26 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3BackendWithOv
 
     @parameterized.expand(functions)
     def test_build_and_invoke_lambda_functions(self, function_identifier, expected_output):
-        command_list_parameters = {
-            "hook_name": "terraform",
-            "function_identifier": function_identifier,
-            "skip_prepare_infra": True,
-        }
-        if self.build_in_container:
-            command_list_parameters["use_container"] = True
-            command_list_parameters["build_image"] = self.docker_tag
-            if self.override:
-                command_list_parameters[
-                    "container_env_var"
-                ] = "TF_VAR_HELLO_FUNCTION_SRC_CODE=./artifacts/HelloWorldFunction2"
-        build_cmd_list = self.get_command_list(**command_list_parameters)
-        LOG.info("command list: %s", build_cmd_list)
-        environment_variables = os.environ.copy()
-        if self.override:
-            environment_variables["TF_VAR_HELLO_FUNCTION_SRC_CODE"] = "./artifacts/HelloWorldFunction2"
-        _, stderr, return_code = self.run_command(build_cmd_list, env=environment_variables)
-        LOG.info(stderr)
-        self.assertEqual(return_code, 0)
+        # command_list_parameters = {
+        #     "hook_name": "terraform",
+        #     "function_identifier": function_identifier,
+        #     "skip_prepare_infra": True,
+        # }
+        # if self.build_in_container:
+        #     command_list_parameters["use_container"] = True
+        #     command_list_parameters["build_image"] = self.docker_tag
+        #     if self.override:
+        #         command_list_parameters[
+        #             "container_env_var"
+        #         ] = "TF_VAR_HELLO_FUNCTION_SRC_CODE=./artifacts/HelloWorldFunction2"
+        # build_cmd_list = self.get_command_list(**command_list_parameters)
+        # LOG.info("command list: %s", build_cmd_list)
+        # environment_variables = os.environ.copy()
+        # if self.override:
+        #     environment_variables["TF_VAR_HELLO_FUNCTION_SRC_CODE"] = "./artifacts/HelloWorldFunction2"
+        # _, stderr, return_code = self.run_command(build_cmd_list, env=environment_variables)
+        # LOG.info(stderr)
+        # self.assertEqual(return_code, 0)
 
         self._verify_invoke_built_function(
             function_logical_id=function_identifier,
@@ -549,21 +550,21 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(Build
 
     @parameterized.expand(functions)
     def test_build_and_invoke_lambda_functions(self, function_identifier, expected_output):
-        command_list_parameters = {
-            "hook_name": "terraform",
-            "function_identifier": function_identifier,
-            "skip_prepare_infra": True,
-        }
-        if self.build_in_container:
-            command_list_parameters["use_container"] = True
-            command_list_parameters["build_image"] = self.docker_tag
-        build_cmd_list = self.get_command_list(**command_list_parameters)
-        LOG.info("command list: %s", build_cmd_list)
-        start = time.time()
-        _, stderr, return_code = self.run_command(build_cmd_list)
-        end = time.time()
-        LOG.info(f"END: {end}, DURATION {end - start}")
-        self.assertEqual(return_code, 0)
+        # command_list_parameters = {
+        #     "hook_name": "terraform",
+        #     "function_identifier": function_identifier,
+        #     "skip_prepare_infra": True,
+        # }
+        # if self.build_in_container:
+        #     command_list_parameters["use_container"] = True
+        #     command_list_parameters["build_image"] = self.docker_tag
+        # build_cmd_list = self.get_command_list(**command_list_parameters)
+        # LOG.info("command list: %s", build_cmd_list)
+        # start = time.time()
+        # _, stderr, return_code = self.run_command(build_cmd_list)
+        # end = time.time()
+        # LOG.info(f"END: {end}, DURATION {end - start}")
+        # self.assertEqual(return_code, 0)
 
         self._verify_invoke_built_function(
             function_logical_id=function_identifier,
