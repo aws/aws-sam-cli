@@ -19,6 +19,7 @@ from samcli.cli.types import (
     RemoteInvokeBotoApiParameterType,
     SigningProfilesOptionType,
 )
+from samcli.commands._utils.click_mutex import ClickMutex
 from samcli.commands._utils.constants import (
     DEFAULT_BUILD_DIR,
     DEFAULT_BUILT_TEMPLATE_PATH,
@@ -33,8 +34,17 @@ from samcli.commands._utils.template import TemplateNotFoundException, get_templ
 from samcli.lib.hook.hook_wrapper import get_available_hook_packages_ids
 from samcli.lib.observability.util import OutputOption
 from samcli.lib.utils.packagetype import IMAGE, ZIP
+from samcli.local.docker.lambda_image import Runtime
 
 _TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml|json]"
+SUPPORTED_BUILD_IN_SOURCE_WORKFLOWS = [
+    Runtime.nodejs12x.value,
+    Runtime.nodejs14x.value,
+    Runtime.nodejs16x.value,
+    Runtime.nodejs18x.value,
+    "Makefile",
+    "esbuild",
+]
 
 LOG = logging.getLogger(__name__)
 
@@ -906,3 +916,19 @@ Commands you can use next
 """
     command_list_txt = "\n".join(f"[*] {description}: {command}" for description, command in command_tuples)
     return template.format(command_list_txt)
+
+
+def build_in_source_click_option():
+    return click.option(
+        "--build-in-source/--no-build-in-source",
+        required=False,
+        is_flag=True,
+        help="Opts in to build project in the source folder. The following workflows support "
+        f"building in source: {SUPPORTED_BUILD_IN_SOURCE_WORKFLOWS}",
+        cls=ClickMutex,
+        incompatible_params=["use_container", "hook_name"],
+    )
+
+
+def build_in_source_option(f):
+    return build_in_source_click_option()(f)

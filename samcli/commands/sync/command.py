@@ -22,6 +22,7 @@ from samcli.commands._utils.option_value_processor import process_image_options
 from samcli.commands._utils.options import (
     base_dir_option,
     build_image_option,
+    build_in_source_option,
     capabilities_option,
     image_repositories_option,
     image_repository_option,
@@ -158,6 +159,7 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 @stack_name_option(required=True)  # pylint: disable=E1120
 @base_dir_option
 @use_container_build_option
+@build_in_source_option
 @build_image_option(cls=ContainerOptions)
 @image_repository_option
 @image_repositories_option
@@ -209,6 +211,7 @@ def cli(
     config_file: str,
     config_env: str,
     build_image: Optional[Tuple[str]],
+    build_in_source: Optional[bool],
 ) -> None:
     """
     `sam sync` command entry point
@@ -244,7 +247,7 @@ def cli(
         build_image,
         config_file,
         config_env,
-        None,  # TODO: replace with build_in_source once it's added as a click option
+        build_in_source,
     )  # pragma: no cover
 
 
