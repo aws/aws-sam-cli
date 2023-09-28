@@ -187,6 +187,138 @@ class TestSFNPriorityInvoke(RemoteInvokeIntegBase):
         self.assertEqual([], get_xrays_response["Traces"])
 
 
+@skip("Skip remote invoke SQS integration tests")
+@pytest.mark.xdist_group(name="sam_remote_invoke_sqs_resource_priority")
+class TestSQSPriorityInvoke(RemoteInvokeIntegBase):
+    template = Path("template-sqs-priority.yaml")
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.stack_name = f"{cls.__name__}-{uuid.uuid4().hex}"
+        cls.create_resources_and_boto_clients()
+        cls.sqs_queue_url = cls.stack_resource_summaries["MySQSQueue"].physical_resource_id
+
+    def test_invoke_empty_event_provided(self):
+        command_list = self.get_command_list(stack_name=self.stack_name)
+        expected_message_body = "{}"
+
+        remote_invoke_result = run_command(command_list)
+        self.assertEqual(0, remote_invoke_result.process.returncode)
+        remote_invoke_result_stdout = json.loads(remote_invoke_result.stdout.strip().decode())
+        self.assertIn("MD5OfMessageBody", remote_invoke_result_stdout)
+        self.assertIn("MessageId", remote_invoke_result_stdout)
+
+        received_message_response = self.sqs_client.receive_message(
+            QueueUrl=self.sqs_queue_url, MaxNumberOfMessages=1
+        ).get("Messages")
+        self.assertEqual(len(received_message_response), 1)
+        received_message = received_message_response[0]
+        self.assertEqual(expected_message_body, received_message.get("Body"))
+        self.assertEqual(received_message["MessageId"], remote_invoke_result_stdout["MessageId"])
+
+    @parameterized.expand([('{"foo": "bar"}'), ("Hello World"), ("<heading>Reminder</heading>")])
+    def test_invoke_with_event_provided(self, event):
+        command_list = self.get_command_list(
+            stack_name=self.stack_name,
+            event=event,
+        )
+
+        remote_invoke_result = run_command(command_list)
+        self.assertEqual(0, remote_invoke_result.process.returncode)
+        remote_invoke_result_stdout = json.loads(remote_invoke_result.stdout.strip().decode())
+        self.assertIn("MD5OfMessageBody", remote_invoke_result_stdout)
+        self.assertIn("MessageId", remote_invoke_result_stdout)
+
+        received_message_response = self.sqs_client.receive_message(
+            QueueUrl=self.sqs_queue_url, MaxNumberOfMessages=1
+        ).get("Messages")
+        self.assertEqual(len(received_message_response), 1)
+        received_message = received_message_response[0]
+        self.assertEqual(event, received_message.get("Body"))
+        self.assertEqual(received_message["MessageId"], remote_invoke_result_stdout["MessageId"])
+
+    def test_invoke_with_event_file_provided(self):
+        event_file_path = str(self.events_folder_path.joinpath("default_event.json"))
+        command_list = self.get_command_list(stack_name=self.stack_name, event_file=event_file_path)
+
+        remote_invoke_result = run_command(command_list)
+        self.assertEqual(0, remote_invoke_result.process.returncode)
+        remote_invoke_result_stdout = json.loads(remote_invoke_result.stdout.strip().decode())
+        self.assertIn("MD5OfMessageBody", remote_invoke_result_stdout)
+        self.assertIn("MessageId", remote_invoke_result_stdout)
+
+        received_message_response = self.sqs_client.receive_message(
+            QueueUrl=self.sqs_queue_url, MaxNumberOfMessages=1
+        ).get("Messages")
+        self.assertEqual(len(received_message_response), 1)
+        received_message = received_message_response[0]
+        self.assertEqual(received_message["MessageId"], remote_invoke_result_stdout["MessageId"])
+        with open(event_file_path, "r") as f:
+            expected_message = f.read()
+            self.assertEqual(expected_message, received_message.get("Body"))
+
+    def test_invoke_with_physical_id_provided_as_resource_id(self):
+        event = '{"foo": "bar"}'
+        command_list = self.get_command_list(
+            resource_id=self.sqs_queue_url,
+            event=event,
+        )
+
+        remote_invoke_result = run_command(command_list)
+        self.assertEqual(0, remote_invoke_result.process.returncode)
+        remote_invoke_result_stdout = json.loads(remote_invoke_result.stdout.strip().decode())
+        self.assertIn("MD5OfMessageBody", remote_invoke_result_stdout)
+        self.assertIn("MessageId", remote_invoke_result_stdout)
+
+        received_message_response = self.sqs_client.receive_message(
+            QueueUrl=self.sqs_queue_url, MaxNumberOfMessages=1
+        ).get("Messages")
+        self.assertEqual(len(received_message_response), 1)
+        received_message = received_message_response[0]
+        self.assertEqual(event, received_message.get("Body"))
+        self.assertEqual(received_message["MessageId"], remote_invoke_result_stdout["MessageId"])
+
+    def test_invoke_boto_parameters(self):
+        given_message = "Hello World"
+        message_attributes = {
+            "City": {"DataType": "String", "StringValue": "Any City"},
+            "Population": {"DataType": "Number", "StringValue": "1250800"},
+        }
+        command_list = self.get_command_list(
+            stack_name=self.stack_name,
+            event=given_message,
+            parameter_list=[
+                (
+                    "MessageAttributes",
+                    json.dumps(message_attributes),
+                ),
+                ("DelaySeconds", "1"),
+                ("MessageSystemAttributes", "{}"),
+            ],
+            output="json",
+        )
+
+        remote_invoke_result = run_command(command_list)
+        self.assertEqual(0, remote_invoke_result.process.returncode)
+        remote_invoke_result_stdout = json.loads(remote_invoke_result.stdout.strip().decode())
+        self.assertIn("MD5OfMessageBody", remote_invoke_result_stdout)
+        self.assertIn("MessageId", remote_invoke_result_stdout)
+        self.assertIn("MD5OfMessageAttributes", remote_invoke_result_stdout)
+        self.assertIn("ResponseMetadata", remote_invoke_result_stdout)
+
+        time.sleep(1)  # Required as DelaySeconds is set to 1 and message cannot be received before this.
+        received_message_response = self.sqs_client.receive_message(
+            QueueUrl=self.sqs_queue_url, MaxNumberOfMessages=1, MessageAttributeNames=["All"]
+        ).get("Messages")
+
+        self.assertEqual(len(received_message_response), 1)
+        received_message = received_message_response[0]
+        self.assertEqual(received_message["MessageId"], remote_invoke_result_stdout["MessageId"])
+        self.assertEqual(received_message.get("Body"), given_message)
+        self.assertEqual(received_message.get("MessageAttributes"), message_attributes)
+
+
 @pytest.mark.xdist_group(name="sam_remote_invoke_multiple_resources")
 class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
     template = Path("template-multiple-resources.yaml")
@@ -361,6 +493,112 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
 
         self.assertEqual(0, remote_invoke_result.process.returncode)
         self.assertIn(expected_response, remote_invoke_stderr)
+
+    def test_sqs_invoke_with_resource_id_and_stack_name(self):
+        resource_id = "MySQSQueue"
+        if self.stack_resource_summaries[resource_id].resource_type not in self.supported_resources:
+            pytest.skip("Skip remote invoke SQS integration tests as resource is not supported")
+        given_message = "Hello world"
+        sqs_queue_url = self.stack_resource_summaries[resource_id].physical_resource_id
+
+        command_list = self.get_command_list(
+            resource_id=resource_id,
+            stack_name=self.stack_name,
+            event=given_message,
+        )
+
+        remote_invoke_result = run_command(command_list)
+        self.assertEqual(0, remote_invoke_result.process.returncode)
+        remote_invoke_result_stdout = json.loads(remote_invoke_result.stdout.strip().decode())
+        self.assertIn("MD5OfMessageBody", remote_invoke_result_stdout)
+        self.assertIn("MessageId", remote_invoke_result_stdout)
+
+        received_message_response = self.sqs_client.receive_message(QueueUrl=sqs_queue_url, MaxNumberOfMessages=1).get(
+            "Messages"
+        )
+        self.assertEqual(len(received_message_response), 1)
+        received_message = received_message_response[0]
+        self.assertEqual(given_message, received_message.get("Body"))
+        self.assertEqual(received_message["MessageId"], remote_invoke_result_stdout["MessageId"])
+
+    def test_sqs_invoke_with_resource_id_provided_as_arn(self):
+        resource_logical_id = "MySQSQueue"
+        if self.stack_resource_summaries[resource_logical_id].resource_type not in self.supported_resources:
+            pytest.skip("Skip remote invoke SQS integration tests as resource is not supported")
+
+        output = self.cfn_client.describe_stacks(StackName=self.stack_name)
+        sqs_queue_arn = None
+        sqs_queue_url = self.stack_resource_summaries[resource_logical_id].physical_resource_id
+        for detail in output["Stacks"][0]["Outputs"]:
+            if detail["OutputKey"] == "MySQSQueueArn":
+                sqs_queue_arn = detail["OutputValue"]
+
+        if self.stack_resource_summaries[resource_logical_id].resource_type not in self.supported_resources:
+            pytest.skip("Skip remote invoke SQS integration tests as resource is not supported")
+
+        given_message = "Hello world"
+
+        command_list = self.get_command_list(
+            resource_id=sqs_queue_arn,
+            event=given_message,
+        )
+
+        remote_invoke_result = run_command(command_list)
+        self.assertEqual(0, remote_invoke_result.process.returncode)
+        remote_invoke_result_stdout = json.loads(remote_invoke_result.stdout.strip().decode())
+        self.assertIn("MD5OfMessageBody", remote_invoke_result_stdout)
+        self.assertIn("MessageId", remote_invoke_result_stdout)
+
+        received_message_response = self.sqs_client.receive_message(QueueUrl=sqs_queue_url, MaxNumberOfMessages=1).get(
+            "Messages"
+        )
+        self.assertEqual(len(received_message_response), 1)
+        received_message = received_message_response[0]
+        self.assertEqual(given_message, received_message.get("Body"))
+        self.assertEqual(received_message["MessageId"], remote_invoke_result_stdout["MessageId"])
+
+    def test_invoke_boto_parameters_fifo_queue(self):
+        given_message = "Hello World"
+        resource_logical_id = "MyFIFOSQSQueue"
+        if self.stack_resource_summaries[resource_logical_id].resource_type not in self.supported_resources:
+            pytest.skip("Skip remote invoke SQS integration tests as resource is not supported")
+
+        sqs_queue_url = self.stack_resource_summaries[resource_logical_id].physical_resource_id
+        command_list = self.get_command_list(
+            stack_name=self.stack_name,
+            resource_id=resource_logical_id,
+            event=given_message,
+            parameter_list=[
+                ("MessageGroupId", "test-message-group"),
+                ("MessageDeduplicationId", "test-dedup-id"),
+            ],
+            output="json",
+        )
+
+        remote_invoke_result = run_command(command_list)
+        self.assertEqual(0, remote_invoke_result.process.returncode)
+
+        remote_invoke_result_stdout = json.loads(remote_invoke_result.stdout.strip().decode())
+        self.assertIn("MD5OfMessageBody", remote_invoke_result_stdout)
+        self.assertIn("MessageId", remote_invoke_result_stdout)
+        self.assertIn("ResponseMetadata", remote_invoke_result_stdout)
+
+        received_message_response = self.sqs_client.receive_message(QueueUrl=sqs_queue_url, MaxNumberOfMessages=1).get(
+            "Messages"
+        )
+
+        self.assertEqual(len(received_message_response), 1)
+        received_message = received_message_response[0]
+        self.assertEqual(received_message["MessageId"], remote_invoke_result_stdout["MessageId"])
+        self.assertEqual(received_message.get("Body"), given_message)
+
+        # Send the same message again to test dedup
+        remote_invoke_result = run_command(command_list)
+        self.assertEqual(0, remote_invoke_result.process.returncode)
+
+        remote_invoke_result_stdout = json.loads(remote_invoke_result.stdout.strip().decode())
+        # Message id will be the same as it got deduped and a new message was not created
+        self.assertEqual(received_message["MessageId"], remote_invoke_result_stdout["MessageId"])
 
 
 @pytest.mark.xdist_group(name="sam_remote_invoke_nested_resources")
