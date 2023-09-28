@@ -6,7 +6,7 @@ import logging
 import boto3
 import click
 
-from samcli.cli.cli_config_file import ConfigProvider, configuration_option
+from samcli.cli.cli_config_file import ConfigProvider, configuration_option, save_params_option
 from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
 from samcli.cli.main import common_options as cli_framework_options
 from samcli.commands._utils.command_exception_handler import command_exception_handler
@@ -49,6 +49,7 @@ SEMANTIC_VERSION = "SemanticVersion"
 @click.option("--semantic-version", help=SEMANTIC_VERSION_HELP)
 @aws_creds_options
 @cli_framework_options
+@save_params_option
 @pass_context
 @track_command
 @check_newer_version
@@ -58,6 +59,7 @@ def cli(
     ctx,
     template_file,
     semantic_version,
+    save_params,
     config_file,
     config_env,
 ):

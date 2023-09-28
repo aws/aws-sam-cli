@@ -55,10 +55,10 @@ class BuildTerraformApplicationIntegBase(BuildIntegBase):
         shutil.rmtree(Path(self.working_dir))
         shutil.copytree(Path(self.terraform_application_path), Path(self.working_dir))
 
-    def run_command(self, command_list, env=None, input=None):
+    def run_command(self, command_list, env=None, input=None, timeout=None):
         process = Popen(command_list, stdout=PIPE, stderr=PIPE, stdin=PIPE, env=env, cwd=self.working_dir)
         try:
-            (stdout, stderr) = process.communicate(input=input)
+            (stdout, stderr) = process.communicate(input=input, timeout=timeout)
             return stdout, stderr, process.returncode
         except TimeoutExpired:
             process.kill()

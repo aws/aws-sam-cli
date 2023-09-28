@@ -441,7 +441,6 @@ class TestLambdaAuthorizer(TestCase):
         expected_result,
         method_arn="arn:aws:execute-api:us-east-1:123456789012:1234567890/prod/GET/hello",
     ):
-
         auth = LambdaAuthorizer(
             "my auth",
             Mock(),

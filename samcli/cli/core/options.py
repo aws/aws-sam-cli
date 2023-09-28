@@ -10,6 +10,8 @@ OTHER_OPTIONS: List[str] = ["debug", "help"]
 
 ALL_COMMON_OPTIONS: List[str] = BETA_OPTIONS + OTHER_OPTIONS
 
+SAVE_PARAMS_OPTIONS: List[str] = ["save_params"]
+
 OPTIONS_INFO: Dict[str, Dict] = {
     "Beta Options": {"option_names": {opt: {"rank": idx} for idx, opt in enumerate(BETA_OPTIONS)}},
     "Other Options": {"option_names": {opt: {"rank": idx} for idx, opt in enumerate(OTHER_OPTIONS)}},

@@ -230,6 +230,89 @@ def get_ctx_defaults(
     return provider(config_file, config_env_name, get_cmd_names(cmd_name, ctx))
 
 
+def save_command_line_args_to_config(
+    ctx: click.Context, cmd_names: List[str], config_env_name: str, config_file: SamConfig
+):
+    """Save the provided command line arguments to the provided config file.
+
+    Parameters
+    ----------
+    ctx: click.Context
+        Click context of the current session.
+    cmd_names: List[str]
+        List of representing the entire command. Ex: ["local", "generate-event", "s3", "put"]
+    config_env_name: str
+        Name of the config environment the command is being executed under. It will also serve as the environment that
+        the parameters are saved under.
+    config_file: SamConfig
+        Object representing the SamConfig file being read for this execution. It will also be the file to which the
+        parameters will be written.
+    """
+    if not ctx.params.get("save_params", False):
+        return  # only save params if flag is set
+
+    params_to_exclude = [
+        "save_params",  # don't save the provided save-params
+        "config_file",  # don't save config specs to prevent confusion
+        "config_env",
+    ]
+
+    saved_params = {}
+    for param_name, param_source in ctx._parameter_source.items():
+        if param_name in params_to_exclude:
+            continue  # don't save certain params
+        if param_source != ParameterSource.COMMANDLINE:
+            continue  # only parse params retrieved through CLI
+
+        # if param was passed via command line, save to file
+        param_value = ctx.params.get(param_name, None)
+        if param_value is None:
+            LOG.debug(f"Parameter {param_name} was not saved, as its value is None.")
+            continue  # no value given, ignore
+        config_file.put(cmd_names, "parameters", param_name, param_value, config_env_name)
+        saved_params.update({param_name: param_value})
+
+    config_file.flush()
+
+    LOG.info(
+        f"Saved parameters to config file '{config_file.filepath.name}' "
+        f"under environment '{config_env_name}': {saved_params}"
+    )
+
+
+def save_params(func):
+    """Decorator for saving provided parameters to a config file, if the flag is set."""
+
+    def wrapper(*args, **kwargs):
+        ctx = click.get_current_context()
+        cmd_names = get_cmd_names(ctx.info_name, ctx)
+
+        save_command_line_args_to_config(
+            ctx=ctx,
+            cmd_names=cmd_names,
+            config_env_name=ctx.params.get("config_env", None),
+            config_file=SamConfig(getattr(ctx, "samconfig_dir", os.getcwd()), ctx.params.get("config_file", None)),
+        )
+
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+def save_params_option(func):
+    """Composite decorator to add --save-params flag to a command.
+
+    When used, this command should be placed as the LAST of the click option/argument decorators to preserve the flow
+    of execution. The decorator itself will add the --save-params option, and, if provided, save the provided commands
+    from the terminal to the config file.
+    """
+    return click.option(
+        "--save-params",
+        is_flag=True,
+        help="Save the parameters provided via the command line to the configuration file.",
+    )(save_params(func))
+
+
 def configuration_option(*param_decls, **attrs):
     # pylint does not understand the docstring with the presence of **attrs
     # pylint: disable=missing-param-doc,differing-param-doc

@@ -13,6 +13,9 @@ datas = (
     )[0]
     + hooks.collect_all("jschema_to_python", include_py_files=False)[0]
     + hooks.collect_all("cfnlint", include_py_files=True)[0]
+    # cookiecutter 2.2.3 added the version in a file called VERSION.txt which needs to be added
+    # for sam init to run cookiecutter using pyinstaller https://github.com/cookiecutter/cookiecutter/releases/tag/2.2.3
+    + hooks.collect_all("cookiecutter", include_py_files=False)[0]
     # Collect ONLY data files.
     + hooks.collect_data_files("samcli")
     + hooks.collect_data_files("samtranslator")

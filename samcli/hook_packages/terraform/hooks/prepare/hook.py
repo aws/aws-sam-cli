@@ -100,7 +100,6 @@ def prepare(params: dict) -> dict:
     if skip_prepare_infra and os.path.exists(metadata_file_path):
         LOG.info("Skipping preparation stage, the metadata file already exists at %s", metadata_file_path)
     else:
-
         try:
             # initialize terraform application
             if not plan_file:
@@ -191,7 +190,8 @@ def _generate_plan_file(skip_prepare_infra: bool, terraform_application_dir: str
             command_args={
                 "args": ["terraform", "init", "-input=false"],
                 "cwd": terraform_application_dir,
-            }
+            },
+            is_running_terraform_command=True,
         )
 
         # get json output of terraform plan
@@ -203,7 +203,8 @@ def _generate_plan_file(skip_prepare_infra: bool, terraform_application_dir: str
                 command_args={
                     "args": ["terraform", "plan", "-out", temp_file.name, "-input=false"],
                     "cwd": terraform_application_dir,
-                }
+                },
+                is_running_terraform_command=True,
             )
 
             result = run(

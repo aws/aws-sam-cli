@@ -58,7 +58,7 @@ jobs:
           - "3.9"
           - "3.11"
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python }}
@@ -74,7 +74,7 @@ jobs:
       contents: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         name: Install Python 3.11
         with:
@@ -129,7 +129,7 @@ jobs:
           #- "validate"
           - "docs"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           # set last version as the one in matrix to make it default
@@ -207,7 +207,7 @@ jobs:
           - "3.9"
           - "3.11"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
@@ -222,13 +222,14 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       SAM_CLI_DEV: "1"
+      CI: true
     strategy:
       matrix:
         os:
           - ubuntu-latest
           - windows-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           # These are the versions of Python that correspond to the supported Lambda runtimes
