@@ -24,6 +24,8 @@ from samcli.lib.remote_invoke.remote_invoke_executors import (
     RemoteInvokeResponse,
 )
 from samcli.lib.remote_invoke.sqs_invoke_executors import get_queue_url_from_arn
+from samcli.lib.schemas.schemas_api_caller import SchemasApiCaller
+from samcli.lib.shared_test_events.lambda_shared_test_event import LambdaSharedTestEvent
 from samcli.lib.utils import osutils
 from samcli.lib.utils.arn_utils import ARNParts, InvalidArnValue
 from samcli.lib.utils.boto_utils import BotoProviderType, get_client_error_code
@@ -81,25 +83,41 @@ class RemoteInvokeContext:
             RemoteInvokeExecutionInfo which contains the payload and other information that will be required during
             the invocation
         """
-        if not self._resource_summary:
-            raise AmbiguousResourceForRemoteInvoke(
-                f"Can't find resource information from stack name ({self._stack_name}) "
-                f"and resource id ({self._resource_id})"
-            )
+        if not self.resource_summary:
+            raise self.missing_resource_exception()
 
         remote_invoke_executor_factory = RemoteInvokeExecutorFactory(self._boto_client_provider)
         remote_invoke_executor = remote_invoke_executor_factory.create_remote_invoke_executor(
-            self._resource_summary,
+            self.resource_summary,
             remote_invoke_input.output_format,
             DefaultRemoteInvokeResponseConsumer(self.stdout),
             DefaultRemoteInvokeLogConsumer(self.stderr),
         )
         if not remote_invoke_executor:
             raise ResourceNotSupportedForRemoteInvoke(
-                f"Resource type {self._resource_summary.resource_type} is not supported for remote invoke."
+                f"Resource type {self.resource_summary.resource_type} is not supported for remote invoke."
             )
 
         remote_invoke_executor.execute(remote_invoke_input)
+
+    @property
+    def resource_summary(self):
+        if not self._resource_summary:
+            self._populate_resource_summary()
+        return self._resource_summary
+
+    def missing_resource_exception(self):
+        return AmbiguousResourceForRemoteInvoke(
+            f"Can't find resource information from stack name ({self._stack_name}) "
+            f"and resource id ({self._resource_id})"
+        )
+
+    def get_lambda_shared_test_event_provider(self):
+        schemas_client = self._boto_client_provider("schemas")
+        lambda_client = self._boto_client_provider("lambda")
+        api_caller = SchemasApiCaller(schemas_client)
+        lambda_test_event = LambdaSharedTestEvent(api_caller, lambda_client)
+        return lambda_test_event
 
     def _populate_resource_summary(self) -> None:
         """
