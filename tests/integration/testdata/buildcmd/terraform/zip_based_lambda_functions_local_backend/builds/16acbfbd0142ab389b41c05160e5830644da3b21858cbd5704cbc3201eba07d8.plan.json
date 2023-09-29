@@ -1,0 +1,1 @@
+{"filename": "builds/16acbfbd0142ab389b41c05160e5830644da3b21858cbd5704cbc3201eba07d8.zip", "runtime": "python3.8", "artifacts_dir": "builds", "build_plan": [["pip", "python3.8", "./artifacts/layer10/requirements.txt", "python", null], ["zip", "./artifacts/layer10", "python"]]}
