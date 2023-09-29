@@ -32,17 +32,7 @@ class RemoteTestEventIntegBase(TestCase):
     @classmethod
     def tearDownClass(cls):
         # Delete remaining test events if there were not deleted during tests
-        for _, resource in cls.stack_resource_summaries.items():
-            if resource.resource_type == AWS_LAMBDA_FUNCTION:
-                schema_name = f"_{resource.physical_resource_id}-schema"
-                try:
-                    cls.schemas_client.delete_schema(
-                        RegistryName=LAMBDA_TEST_EVENT_REGISTRY,
-                        SchemaName=schema_name,
-                    )
-                    LOG.info("Deleted lingering schema for test events: %s", schema_name)
-                except Exception as e:  # Ignore if it doesn't exist (it was correctly deleted during tests)
-                    pass
+        cls.delete_all_test_events()
         # Delete the deployed stack
         cls.cfn_client.delete_stack(StackName=cls.stack_name)
 
@@ -58,6 +48,24 @@ class RemoteTestEventIntegBase(TestCase):
         cls.lambda_client = boto_client_provider("lambda")
         cls.cfn_client = boto_client_provider("cloudformation")
         cls.schemas_client = boto_client_provider("schemas")
+
+    @classmethod
+    def delete_all_test_events(cls, logical_id=None):
+        for _, resource in cls.stack_resource_summaries.items():
+            if resource.resource_type == AWS_LAMBDA_FUNCTION:
+                # If a logical id is passed, delete only that one
+                if logical_id and logical_id != resource.logical_resource_id:
+                    continue
+                schema_name = f"_{resource.physical_resource_id}-schema"
+                try:
+                    cls.schemas_client.delete_schema(
+                        RegistryName=LAMBDA_TEST_EVENT_REGISTRY,
+                        SchemaName=schema_name,
+                    )
+                    LOG.info("Deleted lingering schema for test events: %s", schema_name)
+                except Exception as e:  # Ignore if it doesn't exist (it was correctly deleted during tests)
+                    LOG.debug("No events deleted (this is good) %s", e)
+                    pass
 
     @staticmethod
     def get_command_list(
