@@ -26,29 +26,6 @@ LOG = logging.getLogger(__name__)
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
-@parameterized_class(
-    ("template", "code_uri", "binary", "expected_invoke_result"),
-    [
-        (
-            "template_build_method_rust_single_function.yaml",
-            "Rust/single-function",
-            None,
-            {"req_id": "34", "msg": "Hello World"},
-        ),
-        (
-            "template_build_method_rust_binary.yaml",
-            "Rust/multi-binaries",
-            "function_a",
-            {"req_id": "63", "msg": "Hello FunctionA"},
-        ),
-        (
-            "template_build_method_rust_binary.yaml",
-            "Rust/multi-binaries",
-            "function_b",
-            {"req_id": "99", "msg": "Hello FunctionB"},
-        ),
-    ],
-)
 class TestBuildCommand_Rust(BuildIntegRustBase):
 
     @parameterized.expand(

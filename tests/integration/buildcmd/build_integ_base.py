@@ -14,6 +14,8 @@ import docker
 import jmespath
 from pathlib import Path
 
+from parameterized import parameterized_class
+
 from samcli.commands.build.utils import MountMode
 from samcli.lib.utils import osutils
 from samcli.lib.utils.architecture import X86_64, has_runtime_multi_arch_image
@@ -989,6 +991,29 @@ class IntrinsicIntegBase(BuildIntegBase):
                 self.assertEqual(0, process_execute.process.returncode)
 
 
+@parameterized_class(
+    ("template", "code_uri", "binary", "expected_invoke_result"),
+    [
+        (
+            "template_build_method_rust_single_function.yaml",
+            "Rust/single-function",
+            None,
+            {"req_id": "34", "msg": "Hello World"},
+        ),
+        (
+            "template_build_method_rust_binary.yaml",
+            "Rust/multi-binaries",
+            "function_a",
+            {"req_id": "63", "msg": "Hello FunctionA"},
+        ),
+        (
+            "template_build_method_rust_binary.yaml",
+            "Rust/multi-binaries",
+            "function_b",
+            {"req_id": "99", "msg": "Hello FunctionB"},
+        ),
+    ],
+)
 class BuildIntegRustBase(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
     EXPECTED_FILES_PROJECT_MANIFEST = {"bootstrap"}

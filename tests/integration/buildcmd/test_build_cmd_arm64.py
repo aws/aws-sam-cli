@@ -12,8 +12,14 @@ from tests.integration.buildcmd.build_integ_base import (
     BuildIntegPythonBase,
     BuildIntegRubyBase, BuildIntegRustBase
 )
-from tests.testing_utils import SKIP_DOCKER_TESTS, SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE, CI_OVERRIDE, IS_WINDOWS, \
-    RUNNING_ON_CI
+from tests.testing_utils import (
+    SKIP_DOCKER_TESTS,
+    SKIP_DOCKER_BUILD,
+    SKIP_DOCKER_MESSAGE,
+    CI_OVERRIDE,
+    IS_WINDOWS,
+    RUNNING_ON_CI,
+)
 
 
 class TestBuildCommand_PythonFunctions_With_Specified_Architecture_arm64(BuildIntegPythonBase):
@@ -428,29 +434,6 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture_arm64(Build
 @skipIf(
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
-)
-@parameterized_class(
-    ("template", "code_uri", "binary", "expected_invoke_result"),
-    [
-        (
-            "template_build_method_rust_single_function.yaml",
-            "Rust/single-function",
-            None,
-            {"req_id": "34", "msg": "Hello World"},
-        ),
-        (
-            "template_build_method_rust_binary.yaml",
-            "Rust/multi-binaries",
-            "function_a",
-            {"req_id": "63", "msg": "Hello FunctionA"},
-        ),
-        (
-            "template_build_method_rust_binary.yaml",
-            "Rust/multi-binaries",
-            "function_b",
-            {"req_id": "99", "msg": "Hello FunctionB"},
-        ),
-    ],
 )
 class TestBuildCommand_Rust_arm64(BuildIntegRustBase):
 
