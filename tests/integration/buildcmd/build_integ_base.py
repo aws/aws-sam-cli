@@ -993,6 +993,18 @@ class BuildIntegRustBase(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
     EXPECTED_FILES_PROJECT_MANIFEST = {"bootstrap"}
 
+    def setUp(self):
+        super().setUp()
+        # Copy source code to working_dir to allow tests run in parallel, as Cargo Lambda generates artifacts in source code dir
+        osutils.copytree(
+            Path(self.template_path).parent.joinpath(self.code_uri),
+            Path(self.working_dir).joinpath(self.code_uri),
+        )
+        # copy template path
+        tmp_template_path = Path(self.working_dir).joinpath(self.template)
+        shutil.copyfile(Path(self.template_path), tmp_template_path)
+        self.template_path = str(tmp_template_path)
+
     def _test_with_rust_cargo_lambda(
         self,
         runtime,
@@ -1004,6 +1016,8 @@ class BuildIntegRustBase(BuildIntegBase):
         use_container=False,
         expected_invoke_result=None,
     ):
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
+            self.skipTest(SKIP_DOCKER_MESSAGE)
         overrides = self.get_override(runtime, code_uri, architecture, handler)
         if binary:
             overrides["Binary"] = binary
