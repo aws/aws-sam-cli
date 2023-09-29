@@ -238,8 +238,6 @@ class BuildIntegBase(TestCase):
                 overrides,
             ]
 
-        LOG.info("Running invoke Command: {}".format(cmdlist))
-
         process_execute = run_command(cmdlist)
         process_execute.process.wait()
 
@@ -263,8 +261,6 @@ class BuildIntegRubyBase(BuildIntegBase):
         overrides = self.get_override(runtime, code_uri, architecture, "ignored")
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
-        LOG.info("Running Command:")
-        LOG.info(cmdlist)
         run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(
@@ -355,8 +351,6 @@ class BuildIntegEsbuildBase(BuildIntegBase):
             build_in_source=build_in_source,
             manifest_path=manifest_path,
         )
-
-        LOG.info("Running Command: {}".format(cmdlist))
         run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(
@@ -382,7 +376,6 @@ class BuildIntegEsbuildBase(BuildIntegBase):
         overrides = self.get_override(**overrides)
         cmdlist = self.get_command_list(parameter_overrides=overrides)
 
-        LOG.info("Running Command: {}".format(cmdlist))
         run_command(cmdlist, cwd=self.working_dir)
 
         expected = {"body": '{"message":"hello world!"}', "statusCode": 200}
@@ -449,7 +442,6 @@ class BuildIntegNodeBase(BuildIntegBase):
             use_container=use_container, parameter_overrides=overrides, manifest_path=manifest_path
         )
 
-        LOG.info("Running Command: {}".format(cmdlist))
         run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(
@@ -520,8 +512,6 @@ class BuildIntegGoBase(BuildIntegBase):
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
         # Need to pass GOPATH ENV variable to match the test directory when running build
-
-        LOG.info("Running Command: {}".format(cmdlist))
         LOG.info("Running with SAM_BUILD_MODE={}".format(mode))
 
         newenv = os.environ.copy()
@@ -597,8 +587,6 @@ class BuildIntegJavaBase(BuildIntegBase):
         cmdlist += ["--skip-pull-image"]
         if code_path == self.USING_GRADLEW_PATH and use_container and IS_WINDOWS:
             osutils.convert_to_unix_line_ending(os.path.join(self.test_data_path, self.USING_GRADLEW_PATH, "gradlew"))
-
-        LOG.info("Running Command: {}".format(cmdlist))
         run_command(cmdlist, cwd=self.working_dir, timeout=900)
 
         self._verify_built_artifact(
@@ -687,7 +675,6 @@ class BuildIntegPythonBase(BuildIntegBase):
         overrides = self.get_override(runtime, codeuri, architecture, "main.handler") if do_override else None
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
-        LOG.info("Running Command: {}".format(cmdlist))
         run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(
@@ -781,7 +768,6 @@ class BuildIntegProvidedBase(BuildIntegBase):
             build_in_source=build_in_source,
         )
 
-        LOG.info("Running Command: {}".format(cmdlist))
         # Built using Makefile for a python project.
         run_command(cmdlist, cwd=self.working_dir)
 
