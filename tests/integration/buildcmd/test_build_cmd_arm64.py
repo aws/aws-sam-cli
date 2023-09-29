@@ -10,7 +10,7 @@ from tests.integration.buildcmd.build_integ_base import (
     BuildIntegNodeBase,
     BuildIntegProvidedBase,
     BuildIntegPythonBase,
-    BuildIntegRubyBase, BuildIntegRustBase
+    BuildIntegRubyBase, BuildIntegRustBase, rust_parameterized_class
 )
 from tests.testing_utils import (
     SKIP_DOCKER_TESTS,
@@ -435,6 +435,7 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture_arm64(Build
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
+@rust_parameterized_class
 class TestBuildCommand_Rust_arm64(BuildIntegRustBase):
 
     @parameterized.expand(

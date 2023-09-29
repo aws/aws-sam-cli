@@ -991,29 +991,35 @@ class IntrinsicIntegBase(BuildIntegBase):
                 self.assertEqual(0, process_execute.process.returncode)
 
 
-@parameterized_class(
-    ("template", "code_uri", "binary", "expected_invoke_result"),
-    [
-        (
-            "template_build_method_rust_single_function.yaml",
-            "Rust/single-function",
-            None,
-            {"req_id": "34", "msg": "Hello World"},
-        ),
-        (
-            "template_build_method_rust_binary.yaml",
-            "Rust/multi-binaries",
-            "function_a",
-            {"req_id": "63", "msg": "Hello FunctionA"},
-        ),
-        (
-            "template_build_method_rust_binary.yaml",
-            "Rust/multi-binaries",
-            "function_b",
-            {"req_id": "99", "msg": "Hello FunctionB"},
-        ),
-    ],
-)
+def rust_parameterized_class(cls):
+    """
+    common class parameterize for rust integration tests
+    """
+    cls = parameterized_class(
+        ("template", "code_uri", "binary", "expected_invoke_result"),
+        [
+            (
+                "template_build_method_rust_single_function.yaml",
+                "Rust/single-function",
+                None,
+                {"req_id": "34", "msg": "Hello World"},
+            ),
+            (
+                "template_build_method_rust_binary.yaml",
+                "Rust/multi-binaries",
+                "function_a",
+                {"req_id": "63", "msg": "Hello FunctionA"},
+            ),
+            (
+                "template_build_method_rust_binary.yaml",
+                "Rust/multi-binaries",
+                "function_b",
+                {"req_id": "99", "msg": "Hello FunctionB"},
+            ),
+        ]
+    )(cls)
+    return cls
+
 class BuildIntegRustBase(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
     EXPECTED_FILES_PROJECT_MANIFEST = {"bootstrap"}

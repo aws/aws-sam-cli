@@ -5,18 +5,15 @@ Integration test cases for `sam build` for Rust (cargo-lambda)
 import logging
 from unittest import skipIf
 
-from parameterized import parameterized, parameterized_class
+from parameterized import parameterized
 
 from tests.testing_utils import (
     IS_WINDOWS,
     RUNNING_ON_CI,
     CI_OVERRIDE,
-    SKIP_DOCKER_TESTS,
-    SKIP_DOCKER_BUILD,
-    SKIP_DOCKER_MESSAGE,
 )
 from .build_integ_base import (
-    BuildIntegRustBase,
+    BuildIntegRustBase, rust_parameterized_class,
 )
 
 LOG = logging.getLogger(__name__)
@@ -26,6 +23,7 @@ LOG = logging.getLogger(__name__)
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
+@rust_parameterized_class
 class TestBuildCommand_Rust(BuildIntegRustBase):
 
     @parameterized.expand(
