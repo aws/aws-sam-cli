@@ -24,9 +24,9 @@ aws-lambda-builders==1.38.0 \
     --hash=sha256:c0ea144878e1a802b6face83c3342d0af02e2cbe9d083fc6cce547c2bd5bcc20 \
     --hash=sha256:f9009838b5c238b64ab92c4f32110444c92bd51d6c735e652d850f6b3b8f9ec2
     # via aws-sam-cli (setup.py)
-aws-sam-translator==1.75.0 \
-    --hash=sha256:02bad7636356438b439c8e0ef0195618e3b7b67b6dfbf675b1627d6fd84b2910 \
-    --hash=sha256:18c83abcae594de084947befb9c80f689f8b99ece2d38729d27a9cea634da15c
+aws-sam-translator==1.76.0 \
+    --hash=sha256:6d0d68071071bd54c11ec69346a5a52db22cc316bfa2cb6f827a36a9348bbf00 \
+    --hash=sha256:782ed1502d1a84a4912827da168edb133da9f8a5a7d5701cff7eede80ead1dca
     # via
     #   aws-sam-cli (setup.py)
     #   cfn-lint
@@ -62,7 +62,7 @@ boto3==1.28.55 \
     # via
     #   aws-sam-cli (setup.py)
     #   aws-sam-translator
-boto3-stubs[apigateway,cloudformation,ecr,iam,lambda,s3,schemas,secretsmanager,signer,stepfunctions,sts,xray]==1.28.55 \
+boto3-stubs[apigateway,cloudformation,ecr,iam,lambda,s3,schemas,secretsmanager,signer,sqs,stepfunctions,sts,xray]==1.28.55 \
     --hash=sha256:5121b26e4c4bb8adc7ac1a19dd27d3bfe236b18bec2ace5f987b9df6e2511cd3 \
     --hash=sha256:530437c949b35e70613667d50c04ff3a41512ad03c3295851cc2c58a7309928d
     # via aws-sam-cli (setup.py)
@@ -450,6 +450,10 @@ mypy-boto3-secretsmanager==1.28.36 \
 mypy-boto3-signer==1.28.36 \
     --hash=sha256:152fc0f05eda925e3ac10aa10bff2d2a9f85431e883e8103fc8463d888f347e0 \
     --hash=sha256:e008e2f4bf8023aea207d35a8ae57de9879fba8109d2cf813ddb0ebbf5300e93
+    # via boto3-stubs
+mypy-boto3-sqs==1.28.36 \
+    --hash=sha256:8457aa9f2a6da44e8543e547597773f67a04e517f6a398989117cf1fa3f70d6e \
+    --hash=sha256:d9c159e020f0ef225a6d5850a3673e8b236327243ba5ffe0d13762ae4fdc0e21
     # via boto3-stubs
 mypy-boto3-stepfunctions==1.28.36 \
     --hash=sha256:3b88c34db51ea3158d7944d3d6f5bd67b823d21d9b09e79a7ce37d36c4a69cf2 \
@@ -989,6 +993,7 @@ typing-extensions==4.8.0 \
     #   mypy-boto3-schemas
     #   mypy-boto3-secretsmanager
     #   mypy-boto3-signer
+    #   mypy-boto3-sqs
     #   mypy-boto3-stepfunctions
     #   mypy-boto3-sts
     #   mypy-boto3-xray

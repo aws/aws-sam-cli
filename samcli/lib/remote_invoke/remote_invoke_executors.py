@@ -47,6 +47,36 @@ class RemoteInvokeOutputFormat(Enum):
     JSON = "json"
 
 
+class RemoteInvokeEventType(Enum):
+    """
+    Types of events to call remote invoke
+    """
+
+    FILE = "file"
+    NO_EVENT = "no_event"
+    REMOTE_EVENT = "remote_event"
+    TEXT = "text"
+
+    @classmethod
+    def get_event_type(
+        cls,
+        event: Optional[str] = None,
+        event_file: Optional[TextIOWrapper] = None,
+        test_event_name: Optional[str] = None,
+    ) -> str:
+        if test_event_name:
+            return cls.REMOTE_EVENT.value
+        if event_file:
+            return cls.FILE.value
+        if event:
+            return cls.TEXT.value
+        return cls.NO_EVENT.value
+
+    @classmethod
+    def get_possible_values(cls):
+        return [e.value for e in cls]
+
+
 class RemoteInvokeExecutionInfo:
     """
     Keeps request and response information about remote invoke execution

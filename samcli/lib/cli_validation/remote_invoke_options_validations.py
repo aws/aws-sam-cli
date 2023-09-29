@@ -33,17 +33,20 @@ def event_and_event_file_options_validation(func):
 
         event = ctx.params.get("event")
         event_file = ctx.params.get("event_file")
+        test_event_name = ctx.params.get("test_event_name")
+
+        def more_than_one():
+            return (event and event_file) or (event and test_event_name) or (event_file and test_event_name)
 
         validator = Validator(
-            validation_function=lambda: event and event_file,
+            validation_function=more_than_one,
             exception=click.BadOptionUsage(
                 option_name="--event-file",
                 ctx=ctx,
-                message="Both '--event-file' and '--event' cannot be provided. "
-                "Please check that you don't have both specified in the command or in a configuration file",
+                message="Only one of '--event-file', '--event' and '--test-event-name' can be provided. "
+                "Please check that you don't have more than one specified in the command or in a configuration file",
             ),
         )
-
         validator.validate()
 
         # If "-" is provided for --event-file, click uses it as a special file to refer to stdin.

@@ -20,6 +20,7 @@ from samcli.lib.remote_invoke.remote_invoke_executors import (
     RemoteInvokeResponse,
     ResponseObjectToJsonStringMapper,
 )
+from samcli.lib.remote_invoke.sqs_invoke_executors import SqsSendMessageExecutor
 from samcli.lib.remote_invoke.stepfunctions_invoke_executors import (
     SfnDescribeExecutionResponseConverter,
     StepFunctionsStartExecutionExecutor,
@@ -180,6 +181,44 @@ class RemoteInvokeExecutorFactory:
             response_mappers=mappers,
             boto_action_executor=StepFunctionsStartExecutionExecutor(
                 sfn_client, cfn_resource_summary.physical_resource_id, remote_invoke_output_format
+            ),
+            response_consumer=response_consumer,
+            log_consumer=log_consumer,
+        )
+
+    def _create_sqs_boto_executor(
+        self,
+        cfn_resource_summary: CloudFormationResourceSummary,
+        remote_invoke_output_format: RemoteInvokeOutputFormat,
+        response_consumer: RemoteInvokeConsumer[RemoteInvokeResponse],
+        log_consumer: RemoteInvokeConsumer[RemoteInvokeLogOutput],
+    ) -> RemoteInvokeExecutor:
+        """Creates a remote invoke executor for SQS resource type based on
+        the boto action being called.
+
+        Parameters
+        ----------
+        cfn_resource_summary: CloudFormationResourceSummary
+            Information about the SQS resource
+        remote_invoke_output_format: RemoteInvokeOutputFormat
+            Response output format that will be used for remote invoke execution
+        response_consumer: RemoteInvokeConsumer[RemoteInvokeResponse]
+            Consumer instance which can process RemoteInvokeResponse events
+        log_consumer: RemoteInvokeConsumer[RemoteInvokeLogOutput]
+            Consumer instance which can process RemoteInvokeLogOutput events
+
+        Returns
+        -------
+        RemoteInvokeExecutor
+            Returns the Executor created for SQS
+        """
+        LOG.info("Sending message to SQS queue %s", cfn_resource_summary.logical_resource_id)
+        sqs_client = self._boto_client_provider("sqs")
+        return RemoteInvokeExecutor(
+            request_mappers=[],
+            response_mappers=[ResponseObjectToJsonStringMapper()],
+            boto_action_executor=SqsSendMessageExecutor(
+                sqs_client, cfn_resource_summary.physical_resource_id, remote_invoke_output_format
             ),
             response_consumer=response_consumer,
             log_consumer=log_consumer,
