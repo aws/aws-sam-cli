@@ -29,9 +29,9 @@ class BuildTerraformApplicationIntegBase(BuildIntegBase):
     terraform_application: Optional[Path] = None
     template = None
     build_in_container = False
-    function_identifier = None
-    override = False
-    terraform_application_execution_path = None
+    function_identifier: Optional[str] = None
+    override: bool = False
+    terraform_application_execution_path: str = ""
 
     @classmethod
     def setUpClass(cls):
@@ -106,7 +106,7 @@ class BuildTerraformApplicationIntegBase(BuildIntegBase):
         LOG.info("Successfully validated template produced is same as expected")
 
     @staticmethod
-    def clean_template(template):
+    def clean_template(template: dict):
         # Some fields contain absolute paths that will differ across environments
         # We need to clean those fields up before we can compare the templates
         resources = template.get("Resources", {})
@@ -123,7 +123,7 @@ class BuildTerraformApplicationIntegBase(BuildIntegBase):
                 BuildTerraformApplicationIntegBase.remove_field(metadata, "DockerContext")
 
     @staticmethod
-    def remove_field(section, field):
+    def remove_field(section: dict, field: str):
         section_field = section.get(field)
         if section_field:
             section[field] = ""
@@ -167,9 +167,7 @@ class BuildTerraformApplicationIntegBase(BuildIntegBase):
 
     @classmethod
     def tearDownClass(cls) -> None:
-        cls.terraform_application_execution_path and shutil.rmtree(
-            cls.terraform_application_execution_path, ignore_errors=True
-        )
+        shutil.rmtree(cls.terraform_application_execution_path, ignore_errors=True)
 
     def tearDown(self):
         super(BuildTerraformApplicationIntegBase, self).tearDown()
