@@ -26,8 +26,3 @@ cd ${current}
 mv "${build_path}/tmp_building/${output_name}/${output_name}" "${build_path}/$output_name"
 rm -rf ${build_path}/tmp_building/${output_name}
 rm -rf ${build_path}/tmp_building
-
-#cd ${build_path}
-#mkdir "path"
-#zip -r ${output_name} .
-#rm -rf "path"

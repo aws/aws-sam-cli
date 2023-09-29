@@ -1,1 +1,0 @@
-{"filename": "builds/a014687779c3df120f209a19150b2681839be9f0fad8f1a90ae0cf633a294938.zip", "runtime": "python3.8", "artifacts_dir": "builds", "build_plan": [["pip", "python3.8", "./artifacts/HelloWorldFunction/requirements.txt", null, null], ["zip", "./artifacts/HelloWorldFunction", null]]}
