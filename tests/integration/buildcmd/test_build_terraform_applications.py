@@ -31,16 +31,12 @@ class BuildTerraformApplicationIntegBase(BuildIntegBase):
     build_in_container = False
     function_identifier: Optional[str] = None
     override: bool = False
-    terraform_application_execution_path: str = ""
+    s3_backend = False
 
     @classmethod
     def setUpClass(cls):
         super(BuildTerraformApplicationIntegBase, cls).setUpClass()
         cls.terraform_application_path = str(Path(cls.test_data_path, cls.terraform_application))
-        cls.terraform_application_execution_path = str(
-            Path(__file__).resolve().parent.joinpath(str(uuid.uuid4()).replace("-", "")[:10])
-        )
-        shutil.copytree(Path(cls.terraform_application_path), Path(cls.terraform_application_execution_path))
         if cls.build_in_container:
             cls.client = docker.from_env()
             cls.image_name = "sam-terraform-python-build"
@@ -60,18 +56,20 @@ class BuildTerraformApplicationIntegBase(BuildIntegBase):
             ):
                 LOG.info(log)
 
-    def run_command(self, command_list, env=None, input=None, timeout=None):
-        process = Popen(
-            command_list, stdout=PIPE, stderr=PIPE, stdin=PIPE, env=env, cwd=self.terraform_application_execution_path
-        )
-        try:
-            (stdout, stderr) = process.communicate(input=input, timeout=timeout)
-            return stdout, stderr, process.returncode
-        except TimeoutExpired:
-            process.kill()
-            raise
+    def setUp(self):
+        super().setUp()
+        shutil.rmtree(Path(self.working_dir))
+        shutil.copytree(Path(self.terraform_application_path), Path(self.working_dir))
+        if not self.s3_backend:
+            self.build_with_prepare_hook()
 
-    @pytest.fixture(scope="class", autouse=True)
+    def tearDown(self):
+        super(BuildTerraformApplicationIntegBase, self).tearDown()
+
+    def run_command(self, command_list, env=None, timeout=None):
+        command_result = static_run_command(command_list, env=env, cwd=self.working_dir, timeout=timeout)
+        return command_result.stdout, command_result.stderr, command_result.process.returncode
+
     def build_with_prepare_hook(self):
         if not self.function_identifier:
             # This doesn't make sense for all tests that inherit this base class, skip for those
@@ -96,8 +94,8 @@ class BuildTerraformApplicationIntegBase(BuildIntegBase):
         self.assertEqual(return_code, 0)
 
     def validate_metadata_file(self):
-        build_template_path = Path(self.terraform_application_execution_path) / ".aws-sam" / "build" / "template.yaml"
-        expected_template_path = Path(self.terraform_application_execution_path) / "expected.template.yaml"
+        build_template_path = Path(self.working_dir) / ".aws-sam" / "build" / "template.yaml"
+        expected_template_path = Path(self.working_dir) / "expected.template.yaml"
         build_template = self.read_template(build_template_path)
         expected_template = self.read_template(expected_template_path)
         self.clean_template(build_template)
@@ -165,19 +163,6 @@ class BuildTerraformApplicationIntegBase(BuildIntegBase):
         LOG.info("sam local invoke stderr: %s", stderr.decode("utf-8"))
         self.assertEqual(json.loads(process_stdout), expected_result)
 
-    def setUp(self):
-        super().setUp()
-        self.working_dir = self.terraform_application_execution_path
-        shutil.rmtree(Path(self.working_dir))
-        shutil.copytree(Path(self.terraform_application_path), Path(self.working_dir))
-
-    @classmethod
-    def tearDownClass(cls) -> None:
-        shutil.rmtree(cls.terraform_application_execution_path, ignore_errors=True)
-
-    def tearDown(self):
-        super(BuildTerraformApplicationIntegBase, self).tearDown()
-
 
 class BuildTerraformApplicationS3BackendIntegBase(BuildTerraformApplicationIntegBase):
     @classmethod
@@ -198,24 +183,6 @@ class BuildTerraformApplicationS3BackendIntegBase(BuildTerraformApplicationInteg
             cls.s3_bucket.create()
             time.sleep(S3_SLEEP)
         super().setUpClass()
-        cls.initialize_s3_backend()
-
-    @classmethod
-    def initialize_s3_backend(cls):
-        cls.backend_key = f"terraform-backend/{str(uuid.uuid4())}"
-        cls.backendconfig_path = str(Path(cls.terraform_application_execution_path) / "backend.conf")
-        with open(cls.backendconfig_path, "w") as f:
-            f.write(f'bucket="{cls.bucket_name}"\n')
-            f.write(f'key="{cls.backend_key}"\n')
-            f.write(f'region="{cls.region_name}"')
-
-        # We have to init the terraform project with specifying the S3 backend first
-        _, stderr, _ = static_run_command(
-            ["terraform", "init", f"-backend-config={cls.backendconfig_path}", "-reconfigure", "-input=false"],
-            cwd=cls.terraform_application_execution_path,
-        )
-        if stderr:
-            LOG.info(stderr)
 
     @classmethod
     def tearDownClass(cls):
@@ -227,6 +194,20 @@ class BuildTerraformApplicationS3BackendIntegBase(BuildTerraformApplicationInteg
 
     def setUp(self):
         super().setUp()
+        self.backend_key = f"terraform-backend/{str(uuid.uuid4())}"
+        self.backendconfig_path = str(Path(self.working_dir) / "backend.conf")
+        with open(self.backendconfig_path, "w") as f:
+            f.write(f'bucket="{self.bucket_name}"\n')
+            f.write(f'key="{self.backend_key}"\n')
+            f.write(f'region="{self.region_name}"')
+
+        # We have to init the terraform project with specifying the S3 backend first
+        _, stderr, _ = self.run_command(
+            ["terraform", "init", f"-backend-config={self.backendconfig_path}", "-reconfigure", "-input=false"]
+        )
+        if stderr:
+            LOG.info(stderr.decode("utf-8"))
+        self.build_with_prepare_hook()
 
     def tearDown(self):
         """Clean up the terraform state file on S3 and remove the backendconfg locally"""
@@ -336,6 +317,7 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3BackendWithOv
 ):
     function_identifier = "function9"
     override = True
+    s3_backend = True
     terraform_application = (
         Path("terraform/zip_based_lambda_functions_s3_backend")
         if not IS_WINDOWS
@@ -374,6 +356,7 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3BackendWithOv
 @pytest.mark.xdist_group(name="zip_lambda_s3_backend_override")
 class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(BuildTerraformApplicationS3BackendIntegBase):
     function_identifier = "function9"
+    s3_backend = True
     terraform_application = (
         Path("terraform/zip_based_lambda_functions_s3_backend")
         if not IS_WINDOWS
@@ -428,6 +411,7 @@ class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndS3Backend(
     BuildTerraformApplicationS3BackendIntegBase
 ):
     function_identifier = "aws_lambda_function.function_with_non_image_uri"
+    s3_backend = True
     terraform_application = Path("terraform/image_based_lambda_functions_s3_backend")
 
     def test_build_and_invoke_lambda_functions(self):
