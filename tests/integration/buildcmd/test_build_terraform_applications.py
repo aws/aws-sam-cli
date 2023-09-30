@@ -165,6 +165,12 @@ class BuildTerraformApplicationIntegBase(BuildIntegBase):
         LOG.info("sam local invoke stderr: %s", stderr.decode("utf-8"))
         self.assertEqual(json.loads(process_stdout), expected_result)
 
+    def setUp(self):
+        super().setUp()
+        self.working_dir = self.terraform_application_execution_path
+        shutil.rmtree(Path(self.working_dir))
+        shutil.copytree(Path(self.terraform_application_path), Path(self.working_dir))
+
     @classmethod
     def tearDownClass(cls) -> None:
         shutil.rmtree(cls.terraform_application_execution_path, ignore_errors=True)
