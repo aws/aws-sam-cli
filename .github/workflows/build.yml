@@ -167,7 +167,8 @@ jobs:
             curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL "https://sh.rustup.rs" | sh -s -- --default-toolchain none -y
             echo "${CARGO_HOME:-$HOME/.cargo}/bin" >> $GITHUB_PATH
           fi
-          rustup toolchain install stable --profile minimal --no-self-update && rustup default stable
+          rustup toolchain install stable --profile minimal --no-self-update
+          rustup default stable
           pip install cargo-lambda==$CARGO_LAMBDA_VERSION
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
