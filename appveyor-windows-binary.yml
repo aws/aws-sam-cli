@@ -6,6 +6,7 @@ clone_folder: C:\source
 
 configuration:
   - BuildIntegTesting
+  - BuildIntegTestingArm64
   - AllTerraformBuildTesting
   - DeployIntegTesting
   - PackageIntegTesting
@@ -66,7 +67,7 @@ install:
 
   # Make sure the temp directory exists for Python to use.
   - ps: "mkdir -Force C:\\tmp"
-  - 'set PATH=%PYTHON_HOME%;C:\Ruby27-x64\bin;%PATH%;C:\Python37-x64;C:\Python39-x64;C:\Python310-x64;C:\Python311-x64'
+  - 'set PATH=%PYTHON_HOME%;C:\Ruby32-x64\bin;%PATH%;C:\Python37-x64;C:\Python39-x64;C:\Python310-x64;C:\Python311-x64'
   - "echo %PYTHON_HOME%"
   - "echo %PATH%"
   - "python --version"
@@ -197,7 +198,15 @@ for:
       - cargo lambda -V
 
     test_script:
-      - ps: "pytest -vv tests/integration/buildcmd --ignore tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+      - ps: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+
+  #Integ testing build arm64
+  - matrix:
+      only:
+        - configuration: BuildIntegTestingArm64
+
+    test_script:
+      - ps: "pytest -vv --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64.json"
 
   #Integ testing Terraform build
   - matrix:

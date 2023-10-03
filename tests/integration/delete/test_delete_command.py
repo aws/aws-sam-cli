@@ -494,6 +494,27 @@ class TestDelete(DeleteIntegBase):
         self.validate_delete_process(delete_result)
         self._validate_stack_deleted(stack_name=stack_name)
 
+    def test_delete_stack_with_companion_ecr_stack(self):
+        test_folder = self.delete_test_data_path.joinpath("companion-ecr")
+
+        stack_name = self._method_to_stack_name(self.id())
+
+        build_command = self.get_minimal_build_command_list()
+        deploy_command = self.get_deploy_command_list(stack_name=stack_name)
+        delete_command = self.get_delete_command_list(stack_name=stack_name)
+
+        run_command(build_command, cwd=test_folder)
+        run_command(deploy_command, cwd=test_folder)
+        result = run_command_with_input(delete_command, "y\ny\ny\n".encode(), cwd=test_folder)
+
+        self.validate_delete_process(result)
+        self._validate_stack_deleted(stack_name=stack_name)
+
+        output = str(result.stdout)
+
+        self.assertIn("Deleting ECR Companion Stack", output)
+        self.assertIn("Deleting ECR repository", output)
+
     def validate_delete_process(self, command_result: CommandResult):
         self.assertEqual(command_result.process.returncode, 0)
         self.assertNotIn(b"Could not find and delete the S3 object with the key", command_result.stderr)
