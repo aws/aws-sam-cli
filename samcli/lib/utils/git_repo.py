@@ -12,6 +12,7 @@ from pathlib import Path
 from subprocess import check_output
 from typing import Optional
 
+from samcli.commands.exceptions import UserException
 from samcli.lib.utils import osutils
 from samcli.lib.utils.osutils import rmtree_callback
 
@@ -33,6 +34,12 @@ class CloneRepoUnstableStateException(CloneRepoException):
 class ManifestNotFoundException(Exception):
     """
     Exception class when request Manifest file return 404.
+    """
+
+
+class GitExecutableNotFoundException(UserException):
+    """
+    Used to thrown when git executable not found in the system
     """
 
 
@@ -83,9 +90,12 @@ class GitRepo:
                     # No exception. Let's pick this
                     return executable
             except OSError as ex:
-                LOG.debug("Unable to find executable %s", executable, exc_info=ex)
+                LOG.warning("Unable to find executable %s", executable, exc_info=ex)
 
-        raise OSError("Cannot find git, was looking at executables: {}".format(executables))
+        raise GitExecutableNotFoundException(
+            "This command requires git but we couldn't find the executable, "
+            f"was looking with following names: {executables}"
+        )
 
     def clone(self, clone_dir: Path, clone_name: str, replace_existing: bool = False, commit: str = "") -> Path:
         """

@@ -15,6 +15,7 @@ from samcli.commands.remote.exceptions import (
     ResourceNotSupportedForRemoteInvoke,
     UnsupportedServiceForRemoteInvoke,
 )
+from samcli.lib.remote_invoke.exceptions import ErrorBotoApiCallException
 from samcli.lib.remote_invoke.remote_invoke_executor_factory import RemoteInvokeExecutorFactory
 from samcli.lib.remote_invoke.remote_invoke_executors import (
     RemoteInvokeConsumer,
@@ -22,6 +23,9 @@ from samcli.lib.remote_invoke.remote_invoke_executors import (
     RemoteInvokeLogOutput,
     RemoteInvokeResponse,
 )
+from samcli.lib.remote_invoke.sqs_invoke_executors import get_queue_url_from_arn
+from samcli.lib.schemas.schemas_api_caller import SchemasApiCaller
+from samcli.lib.shared_test_events.lambda_shared_test_event import LambdaSharedTestEvent
 from samcli.lib.utils import osutils
 from samcli.lib.utils.arn_utils import ARNParts, InvalidArnValue
 from samcli.lib.utils.boto_utils import BotoProviderType, get_client_error_code
@@ -31,7 +35,7 @@ from samcli.lib.utils.cloudformation import (
     get_resource_summary,
     get_resource_summary_from_physical_id,
 )
-from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION
+from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION, AWS_SQS_QUEUE
 from samcli.lib.utils.stream_writer import StreamWriter
 
 LOG = logging.getLogger(__name__)
@@ -79,25 +83,41 @@ class RemoteInvokeContext:
             RemoteInvokeExecutionInfo which contains the payload and other information that will be required during
             the invocation
         """
-        if not self._resource_summary:
-            raise AmbiguousResourceForRemoteInvoke(
-                f"Can't find resource information from stack name ({self._stack_name}) "
-                f"and resource id ({self._resource_id})"
-            )
+        if not self.resource_summary:
+            raise self.missing_resource_exception()
 
         remote_invoke_executor_factory = RemoteInvokeExecutorFactory(self._boto_client_provider)
         remote_invoke_executor = remote_invoke_executor_factory.create_remote_invoke_executor(
-            self._resource_summary,
+            self.resource_summary,
             remote_invoke_input.output_format,
             DefaultRemoteInvokeResponseConsumer(self.stdout),
             DefaultRemoteInvokeLogConsumer(self.stderr),
         )
         if not remote_invoke_executor:
             raise ResourceNotSupportedForRemoteInvoke(
-                f"Resource type {self._resource_summary.resource_type} is not supported for remote invoke."
+                f"Resource type {self.resource_summary.resource_type} is not supported for remote invoke."
             )
 
         remote_invoke_executor.execute(remote_invoke_input)
+
+    @property
+    def resource_summary(self):
+        if not self._resource_summary:
+            self._populate_resource_summary()
+        return self._resource_summary
+
+    def missing_resource_exception(self):
+        return AmbiguousResourceForRemoteInvoke(
+            f"Can't find resource information from stack name ({self._stack_name}) "
+            f"and resource id ({self._resource_id})"
+        )
+
+    def get_lambda_shared_test_event_provider(self):
+        schemas_client = self._boto_client_provider("schemas")
+        lambda_client = self._boto_client_provider("lambda")
+        api_caller = SchemasApiCaller(schemas_client)
+        lambda_test_event = LambdaSharedTestEvent(api_caller, lambda_client)
+        return lambda_test_event
 
     def _populate_resource_summary(self) -> None:
         """
@@ -189,6 +209,12 @@ class RemoteInvokeContext:
                     f"please use an ARN for following services, {SUPPORTED_SERVICES}"
                 )
 
+            if SUPPORTED_SERVICES.get(service_from_arn) == AWS_SQS_QUEUE:
+                # SQS queue_url is used for calling boto3 API calls
+                # Note (hnnasit): Add unit test after AWS_SQS_QUEUE is added to SUPPORTED_SERVICES
+                sqs_client = self._boto_client_provider("sqs")
+                resource_id = get_queue_url_from_arn(sqs_client, resource_arn.resource_id)
+
             return CloudFormationResourceSummary(
                 cast(str, SUPPORTED_SERVICES.get(service_from_arn)),
                 resource_id,
@@ -205,6 +231,11 @@ class RemoteInvokeContext:
                     f"Please provide full resource ARN or --stack-name to resolve the ambiguity."
                 )
             return resource_summary
+        except ErrorBotoApiCallException:
+            raise AmbiguousResourceForRemoteInvoke(
+                f"Can't find exact resource information with given {self._resource_id}. "
+                f"Please provide the correct ARN or --stack-name to resolve the ambiguity."
+            )
 
     @property
     def stdout(self) -> StreamWriter:
