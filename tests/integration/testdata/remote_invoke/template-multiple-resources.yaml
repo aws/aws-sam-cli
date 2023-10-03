@@ -95,3 +95,15 @@ Resources:
       CodeUri: lambda-fns/
       Handler: main.stock_buyer
       Runtime: python3.9
+  
+  MySQSQueue:
+    Type: AWS::SQS::Queue
+
+  MyFIFOSQSQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      FifoQueue: true
+
+Outputs:
+  MySQSQueueArn:
+    Value: !GetAtt MySQSQueue.Arn
