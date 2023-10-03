@@ -88,7 +88,7 @@ jobs:
         shell: bash
 
   integration-tests:
-    name: Integration Tests / ${{ matrix.os }} / ${{ matrix.python }} / ${{ matrix.tests_folder }}
+    name: Integ/${{ matrix.os }}/${{ matrix.python }}/${{ matrix.tests_folder }}
     if: github.repository_owner == 'aws'
     runs-on: ${{ matrix.os }}
     env:
@@ -110,24 +110,24 @@ jobs:
           - "3.8"
           - "3.9"
         # folders that is commented below requires credentials, no need to spare time to run them
-        tests_folder:
-          - "buildcmd"
+        tests_config:
+          - "-n 2 --reruns 3 tests/integration/buildcmd"
           #- "delete"
           #- "deploy"
-          - "init"
+          - "tests/integration/init"
           #- "list"
-          - "local"
+          - "tests/integration/local"
           #- "logs"
           #- "package"
-          - "pipeline"
+          - "tests/integration/pipeline"
           #- "publish"
-          - "root"
-          - "scripts"
+          - "tests/integration/root"
+          - "tests/integration/scripts"
           #- "sync"
-          - "telemetry"
+          - "tests/integration/telemetry"
           #- "traces"
           #- "validate"
-          - "docs"
+          - "tests/integration/docs"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
@@ -181,8 +181,8 @@ jobs:
 
       - name: Init samdev
         run: make init
-      - name: Run integration tests for ${{ matrix.tests_folder }}
-        run: pytest -vv tests/integration/${{ matrix.tests_folder }}
+      - name: Run integration tests for ${{ matrix.tests_config }}
+        run: pytest -vv ${{ matrix.tests_config }}
 
   smoke-and-functional-tests:
     name: Functional & Smoke Tests / ${{ matrix.os }} / ${{ matrix.python }}
