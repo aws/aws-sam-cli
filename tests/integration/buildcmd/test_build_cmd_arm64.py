@@ -3,7 +3,7 @@ from unittest import skipIf
 
 from parameterized import parameterized, parameterized_class
 
-from lib.utils.architecture import ARM64
+from samcli.lib.utils.architecture import ARM64
 from tests.integration.buildcmd.build_integ_base import (
     BuildIntegEsbuildBase,
     BuildIntegGoBase,
