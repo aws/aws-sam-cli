@@ -447,9 +447,9 @@ mypy-boto3-stepfunctions==1.28.36 \
     --hash=sha256:3b88c34db51ea3158d7944d3d6f5bd67b823d21d9b09e79a7ce37d36c4a69cf2 \
     --hash=sha256:8c794e98abc5ca23ef13e351f46bb849de634baca6f35286e31e58dede40b687
     # via boto3-stubs
-mypy-boto3-sts==1.28.37 \
-    --hash=sha256:24106ff30ecfe7ad0538657bbd00b6009418a5382b323cac46e0e26c1f5d50fb \
-    --hash=sha256:54d64ca695ab90a51c68ac1e67ff9eae7ec69f926649e320a3b90ed1ec841a95
+mypy-boto3-sts==1.28.58 \
+    --hash=sha256:9bb44163aed4efa5d1f82084ea18c0cd5e6622dca62798c487e9604d9bb45c77 \
+    --hash=sha256:beffec705f1f0b449da3c1f52ac7658627bb289aecec1a4408266479c46e053b
     # via boto3-stubs
 mypy-boto3-xray==1.28.47 \
     --hash=sha256:3af3f00c48fd379fe264ab4050f5fcb1dba8a404a8cd8b0b08aa3ec70860b2d0 \
