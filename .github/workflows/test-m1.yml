@@ -1,0 +1,7 @@
+name: test-m1-action
+on: [push]
+jobs:
+  test:
+    runs-on: macos-latest-large
+    steps:
+      - run: docker info
