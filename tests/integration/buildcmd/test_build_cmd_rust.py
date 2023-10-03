@@ -13,7 +13,8 @@ from tests.testing_utils import (
     CI_OVERRIDE,
 )
 from .build_integ_base import (
-    BuildIntegRustBase, rust_parameterized_class,
+    BuildIntegRustBase,
+    rust_parameterized_class,
 )
 
 LOG = logging.getLogger(__name__)
@@ -25,7 +26,6 @@ LOG = logging.getLogger(__name__)
 )
 @rust_parameterized_class
 class TestBuildCommand_Rust(BuildIntegRustBase):
-
     @parameterized.expand(
         [
             ("x86_64", None, False),

@@ -11,7 +11,9 @@ from tests.integration.buildcmd.build_integ_base import (
     BuildIntegNodeBase,
     BuildIntegProvidedBase,
     BuildIntegPythonBase,
-    BuildIntegRubyBase, BuildIntegRustBase, rust_parameterized_class
+    BuildIntegRubyBase,
+    BuildIntegRustBase,
+    rust_parameterized_class,
 )
 from tests.testing_utils import (
     SKIP_DOCKER_TESTS,
@@ -34,9 +36,7 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture_arm64(BuildIn
         ]
     )
     def test_with_default_requirements(self, runtime, codeuri, use_container):
-        self._test_with_default_requirements(
-            runtime, codeuri, use_container, self.test_data_path, architecture=ARM64
-        )
+        self._test_with_default_requirements(runtime, codeuri, use_container, self.test_data_path, architecture=ARM64)
 
 
 class TestBuildCommand_EsbuildFunctions_arm64(BuildIntegEsbuildBase):
@@ -56,9 +56,7 @@ class TestBuildCommand_EsbuildFunctions_arm64(BuildIntegEsbuildBase):
             ),
         ]
     )
-    def test_building_default_package_json(
-        self, runtime, code_uri, expected_files, handler, use_container
-    ):
+    def test_building_default_package_json(self, runtime, code_uri, expected_files, handler, use_container):
         self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, ARM64)
 
 
@@ -98,9 +96,7 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(BuildIntegE
             ),
         ]
     )
-    def test_building_default_package_json(
-        self, runtime, code_uri, expected_files, handler, use_container
-    ):
+    def test_building_default_package_json(self, runtime, code_uri, expected_files, handler, use_container):
         self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, ARM64)
 
 
@@ -319,7 +315,12 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
                 EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 EXPECTED_GRADLE_DEPENDENCIES,
             ),
-            ("java11", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES,),
+            (
+                "java11",
+                USING_MAVEN_PATH,
+                EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                EXPECTED_MAVEN_DEPENDENCIES,
+            ),
         ]
     )
     def test_building_java11_in_process_with_arm_architecture(
@@ -355,7 +356,12 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
                 EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 EXPECTED_GRADLE_DEPENDENCIES,
             ),
-            ("java17", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES,),
+            (
+                "java17",
+                USING_MAVEN_PATH,
+                EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                EXPECTED_MAVEN_DEPENDENCIES,
+            ),
         ]
     )
     def test_building_java17_in_process_with_arm_architecture(
@@ -377,8 +383,16 @@ class TestBuildCommand_Go_Modules_With_Specified_Architecture_arm64(BuildIntegGo
 
     @parameterized.expand(
         [
-            ("go1.x", "Go", None,),
-            ("go1.x", "Go", "debug",),
+            (
+                "go1.x",
+                "Go",
+                None,
+            ),
+            (
+                "go1.x",
+                "Go",
+                "debug",
+            ),
         ]
     )
     def test_building_go(self, runtime, code_uri, mode):
@@ -395,10 +409,26 @@ class TestBuildCommand_Go_Modules_With_Specified_Architecture_arm64(BuildIntegGo
 class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture_arm64(BuildIntegProvidedBase):
     @parameterized.expand(
         [
-            ("provided", False, None,),
-            ("provided", "use_container", "Makefile-container",),
-            ("provided.al2", False, None,),
-            ("provided.al2", "use_container", "Makefile-container",),
+            (
+                "provided",
+                False,
+                None,
+            ),
+            (
+                "provided",
+                "use_container",
+                "Makefile-container",
+            ),
+            (
+                "provided.al2",
+                False,
+                None,
+            ),
+            (
+                "provided.al2",
+                "use_container",
+                "Makefile-container",
+            ),
         ]
     )
     def test_building_Makefile(self, runtime, use_container, manifest):
@@ -411,7 +441,6 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture_arm64(Build
 )
 @rust_parameterized_class
 class TestBuildCommand_Rust_arm64(BuildIntegRustBase):
-
     @parameterized.expand(
         [
             (None, False),
@@ -428,4 +457,3 @@ class TestBuildCommand_Rust_arm64(BuildIntegRustBase):
             expected_invoke_result=self.expected_invoke_result,
             use_container=use_container,
         )
-

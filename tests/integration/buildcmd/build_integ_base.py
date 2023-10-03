@@ -1016,9 +1016,10 @@ def rust_parameterized_class(cls):
                 "function_b",
                 {"req_id": "99", "msg": "Hello FunctionB"},
             ),
-        ]
+        ],
     )(cls)
     return cls
+
 
 class BuildIntegRustBase(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
