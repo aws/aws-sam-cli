@@ -1,7 +1,11 @@
 name: test-m1-action
-on: [push]
+on:
+  pull_request:
+    branches:
+      - develop
 jobs:
   test:
+    name: test-m1-runner
     runs-on: macos-latest-large
     steps:
       - run: docker info
