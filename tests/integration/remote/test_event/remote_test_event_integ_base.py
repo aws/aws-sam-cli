@@ -35,6 +35,7 @@ class RemoteTestEventIntegBase(TestCase):
         cls.delete_all_test_events()
         # Delete the deployed stack
         cls.cfn_client.delete_stack(StackName=cls.stack_name)
+        cls.schemas_client.delete_registry(RegistryName=LAMBDA_TEST_EVENT_REGISTRY)
 
     @classmethod
     def create_resources_and_boto_clients(cls):
