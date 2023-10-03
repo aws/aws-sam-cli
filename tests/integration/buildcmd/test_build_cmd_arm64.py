@@ -3,6 +3,7 @@ from unittest import skipIf
 
 from parameterized import parameterized, parameterized_class
 
+from lib.utils.architecture import ARM64
 from tests.integration.buildcmd.build_integ_base import (
     BuildIntegEsbuildBase,
     BuildIntegGoBase,
@@ -27,14 +28,14 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture_arm64(BuildIn
 
     @parameterized.expand(
         [
-            ("python3.8", "Python", False, "arm64"),
-            ("python3.8", "PythonPEP600", False, "arm64"),
-            ("python3.8", "Python", "use_container", "arm64"),
+            ("python3.8", "Python", False),
+            ("python3.8", "PythonPEP600", False),
+            ("python3.8", "Python", "use_container"),
         ]
     )
-    def test_with_default_requirements(self, runtime, codeuri, use_container, architecture):
+    def test_with_default_requirements(self, runtime, codeuri, use_container):
         self._test_with_default_requirements(
-            runtime, codeuri, use_container, self.test_data_path, architecture=architecture
+            runtime, codeuri, use_container, self.test_data_path, architecture=ARM64
         )
 
 
@@ -43,23 +44,22 @@ class TestBuildCommand_EsbuildFunctions_arm64(BuildIntegEsbuildBase):
 
     @parameterized.expand(
         [
-            ("nodejs12.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", False, "arm64"),
-            ("nodejs12.x", "Esbuild/TypeScript", {"app.js", "app.js.map"}, "app.lambdaHandler", False, "arm64"),
-            ("nodejs12.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", "use_container", "arm64"),
+            ("nodejs12.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", False),
+            ("nodejs12.x", "Esbuild/TypeScript", {"app.js", "app.js.map"}, "app.lambdaHandler", False),
+            ("nodejs12.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", "use_container"),
             (
                 "nodejs12.x",
                 "Esbuild/TypeScript",
                 {"app.js", "app.js.map"},
                 "app.lambdaHandler",
                 "use_container",
-                "arm64",
             ),
         ]
     )
     def test_building_default_package_json(
-        self, runtime, code_uri, expected_files, handler, use_container, architecture
+        self, runtime, code_uri, expected_files, handler, use_container
     ):
-        self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, architecture)
+        self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, ARM64)
 
 
 class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(BuildIntegEsbuildBase):
@@ -74,7 +74,6 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(BuildIntegE
                 {"main.js", "main.js.map"},
                 "main.lambdaHandler",
                 False,
-                "arm64",
             ),
             (
                 "nodejs18.x",
@@ -82,7 +81,6 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(BuildIntegE
                 {"main.js", "main.js.map"},
                 "main.lambdaHandler",
                 False,
-                "arm64",
             ),
             (
                 "nodejs16.x",
@@ -90,7 +88,6 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(BuildIntegE
                 {"app.js", "app.js.map"},
                 "app.lambdaHandler",
                 False,
-                "arm64",
             ),
             (
                 "nodejs18.x",
@@ -98,14 +95,13 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(BuildIntegE
                 {"app.js", "app.js.map"},
                 "app.lambdaHandler",
                 False,
-                "arm64",
             ),
         ]
     )
     def test_building_default_package_json(
-        self, runtime, code_uri, expected_files, handler, use_container, architecture
+        self, runtime, code_uri, expected_files, handler, use_container
     ):
-        self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, architecture)
+        self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, ARM64)
 
 
 class TestBuildCommand_NodeFunctions_With_Specified_Architecture_arm64(BuildIntegNodeBase):
@@ -113,31 +109,31 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture_arm64(BuildInte
 
     @parameterized.expand(
         [
-            ("nodejs12.x", False, "arm64"),
-            ("nodejs14.x", False, "arm64"),
-            ("nodejs16.x", False, "arm64"),
-            ("nodejs18.x", False, "arm64"),
-            ("nodejs12.x", "use_container", "arm64"),
-            ("nodejs14.x", "use_container", "arm64"),
-            ("nodejs16.x", "use_container", "arm64"),
-            ("nodejs18.x", "use_container", "arm64"),
+            ("nodejs12.x", False),
+            ("nodejs14.x", False),
+            ("nodejs16.x", False),
+            ("nodejs18.x", False),
+            ("nodejs12.x", "use_container"),
+            ("nodejs14.x", "use_container"),
+            ("nodejs16.x", "use_container"),
+            ("nodejs18.x", "use_container"),
         ]
     )
-    def test_building_default_package_json(self, runtime, use_container, architecture):
-        self._test_with_default_package_json(runtime, use_container, self.test_data_path, architecture)
+    def test_building_default_package_json(self, runtime, use_container):
+        self._test_with_default_package_json(runtime, use_container, self.test_data_path, ARM64)
 
 
 class TestBuildCommand_RubyFunctions_With_Architecture_arm64(BuildIntegRubyBase):
     template = "template_with_architecture.yaml"
 
-    @parameterized.expand([("ruby2.7", "arm64", "Ruby"), ("ruby3.2", "arm64", "Ruby32")])
+    @parameterized.expand([("ruby2.7", "Ruby"), ("ruby3.2", "Ruby32")])
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
-    def test_building_ruby_in_container_with_specified_architecture(self, runtime, architecture, code_uri):
-        self._test_with_default_gemfile(runtime, "use_container", code_uri, self.test_data_path, architecture)
+    def test_building_ruby_in_container_with_specified_architecture(self, runtime, code_uri):
+        self._test_with_default_gemfile(runtime, "use_container", code_uri, self.test_data_path, ARM64)
 
-    @parameterized.expand([("ruby2.7", "arm64", "Ruby"), ("ruby3.2", "arm64", "Ruby32")])
-    def test_building_ruby_in_process_with_specified_architecture(self, runtime, architecture, code_uri):
-        self._test_with_default_gemfile(runtime, False, code_uri, self.test_data_path, architecture)
+    @parameterized.expand([("ruby2.7", "Ruby"), ("ruby3.2", "Ruby32")])
+    def test_building_ruby_in_process_with_specified_architecture(self, runtime, code_uri):
+        self._test_with_default_gemfile(runtime, False, code_uri, self.test_data_path, ARM64)
 
 
 @skipIf(
@@ -168,7 +164,6 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
                 USING_GRADLE_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 EXPECTED_GRADLE_DEPENDENCIES,
-                "arm64",
             ),
             (
                 "java8.al2",
@@ -176,7 +171,6 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
                 USING_GRADLEW_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 EXPECTED_GRADLE_DEPENDENCIES,
-                "arm64",
             ),
             (
                 "java8.al2",
@@ -184,7 +178,6 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
                 USING_GRADLE_KOTLIN_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 EXPECTED_GRADLE_DEPENDENCIES,
-                "arm64",
             ),
             (
                 "java8.al2",
@@ -192,7 +185,6 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
                 USING_MAVEN_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
                 EXPECTED_MAVEN_DEPENDENCIES,
-                "arm64",
             ),
             (
                 "java11",
@@ -200,7 +192,6 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
                 USING_GRADLE_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 EXPECTED_GRADLE_DEPENDENCIES,
-                "arm64",
             ),
             (
                 "java11",
@@ -208,7 +199,6 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
                 USING_GRADLEW_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 EXPECTED_GRADLE_DEPENDENCIES,
-                "arm64",
             ),
             (
                 "java11",
@@ -216,7 +206,6 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
                 USING_GRADLE_KOTLIN_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 EXPECTED_GRADLE_DEPENDENCIES,
-                "arm64",
             ),
             (
                 "java11",
@@ -224,7 +213,6 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
                 USING_MAVEN_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
                 EXPECTED_MAVEN_DEPENDENCIES,
-                "arm64",
             ),
             (
                 "java17",
@@ -232,7 +220,6 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
                 USING_GRADLE_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 EXPECTED_GRADLE_DEPENDENCIES,
-                "arm64",
             ),
             (
                 "java17",
@@ -240,7 +227,6 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
                 USING_GRADLEW_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 EXPECTED_GRADLE_DEPENDENCIES,
-                "arm64",
             ),
             (
                 "java17",
@@ -248,7 +234,6 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
                 USING_GRADLE_KOTLIN_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 EXPECTED_GRADLE_DEPENDENCIES,
-                "arm64",
             ),
             (
                 "java17",
@@ -256,13 +241,12 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
                 USING_MAVEN_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
                 EXPECTED_MAVEN_DEPENDENCIES,
-                "arm64",
             ),
         ]
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_building_java_in_container_with_arm64_architecture(
-        self, runtime, runtime_version, code_path, expected_files, expected_dependencies, architecture
+        self, runtime, runtime_version, code_path, expected_files, expected_dependencies
     ):
         self._test_with_building_java(
             runtime,
@@ -271,7 +255,7 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
             expected_dependencies,
             "use_container",
             self.test_data_path,
-            architecture,
+            ARM64,
         )
 
     @parameterized.expand(
@@ -281,33 +265,29 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
                 USING_GRADLE_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 EXPECTED_GRADLE_DEPENDENCIES,
-                "arm64",
             ),
             (
                 "java8.al2",
                 USING_GRADLEW_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 EXPECTED_GRADLE_DEPENDENCIES,
-                "arm64",
             ),
             (
                 "java8.al2",
                 USING_GRADLE_KOTLIN_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 EXPECTED_GRADLE_DEPENDENCIES,
-                "arm64",
             ),
             (
                 "java8.al2",
                 USING_MAVEN_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
                 EXPECTED_MAVEN_DEPENDENCIES,
-                "arm64",
             ),
         ]
     )
     def test_building_java8_in_process_with_arm_architecture(
-        self, runtime, code_path, expected_files, expected_dependencies, architecture
+        self, runtime, code_path, expected_files, expected_dependencies
     ):
         self._test_with_building_java(
             runtime,
@@ -316,7 +296,7 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
             expected_dependencies,
             False,
             self.test_data_path,
-            architecture,
+            ARM64,
         )
 
     @parameterized.expand(
@@ -326,27 +306,24 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
                 USING_GRADLE_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 EXPECTED_GRADLE_DEPENDENCIES,
-                "arm64",
             ),
             (
                 "java11",
                 USING_GRADLEW_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 EXPECTED_GRADLE_DEPENDENCIES,
-                "arm64",
             ),
             (
                 "java11",
                 USING_GRADLE_KOTLIN_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 EXPECTED_GRADLE_DEPENDENCIES,
-                "arm64",
             ),
-            ("java11", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES, "arm64"),
+            ("java11", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES,),
         ]
     )
     def test_building_java11_in_process_with_arm_architecture(
-        self, runtime, code_path, expected_files, expected_dependencies, architecture
+        self, runtime, code_path, expected_files, expected_dependencies
     ):
         self._test_with_building_java(
             runtime,
@@ -355,7 +332,7 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
             expected_dependencies,
             False,
             self.test_data_path,
-            architecture,
+            ARM64,
         )
 
     @parameterized.expand(
@@ -365,27 +342,24 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
                 USING_GRADLE_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 EXPECTED_GRADLE_DEPENDENCIES,
-                "arm64",
             ),
             (
                 "java17",
                 USING_GRADLEW_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 EXPECTED_GRADLE_DEPENDENCIES,
-                "arm64",
             ),
             (
                 "java17",
                 USING_GRADLE_KOTLIN_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 EXPECTED_GRADLE_DEPENDENCIES,
-                "arm64",
             ),
-            ("java17", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES, "arm64"),
+            ("java17", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES,),
         ]
     )
     def test_building_java17_in_process_with_arm_architecture(
-        self, runtime, code_path, expected_files, expected_dependencies, architecture
+        self, runtime, code_path, expected_files, expected_dependencies
     ):
         self._test_with_building_java(
             runtime,
@@ -394,7 +368,7 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
             expected_dependencies,
             False,
             self.test_data_path,
-            architecture,
+            ARM64,
         )
 
 
@@ -403,12 +377,12 @@ class TestBuildCommand_Go_Modules_With_Specified_Architecture_arm64(BuildIntegGo
 
     @parameterized.expand(
         [
-            ("go1.x", "Go", None, "arm64"),
-            ("go1.x", "Go", "debug", "arm64"),
+            ("go1.x", "Go", None,),
+            ("go1.x", "Go", "debug",),
         ]
     )
-    def test_building_go(self, runtime, code_uri, mode, architecture):
-        self._test_with_go(runtime, code_uri, mode, self.test_data_path, architecture)
+    def test_building_go(self, runtime, code_uri, mode):
+        self._test_with_go(runtime, code_uri, mode, self.test_data_path, ARM64)
 
 
 @parameterized_class(
@@ -421,14 +395,14 @@ class TestBuildCommand_Go_Modules_With_Specified_Architecture_arm64(BuildIntegGo
 class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture_arm64(BuildIntegProvidedBase):
     @parameterized.expand(
         [
-            ("provided", False, None, "arm64"),
-            ("provided", "use_container", "Makefile-container", "arm64"),
-            ("provided.al2", False, None, "arm64"),
-            ("provided.al2", "use_container", "Makefile-container", "arm64"),
+            ("provided", False, None,),
+            ("provided", "use_container", "Makefile-container",),
+            ("provided.al2", False, None,),
+            ("provided.al2", "use_container", "Makefile-container",),
         ]
     )
-    def test_building_Makefile(self, runtime, use_container, manifest, architecture):
-        self._test_with_Makefile(runtime, use_container, manifest, architecture)
+    def test_building_Makefile(self, runtime, use_container, manifest):
+        self._test_with_Makefile(runtime, use_container, manifest, ARM64)
 
 
 @skipIf(
@@ -440,16 +414,16 @@ class TestBuildCommand_Rust_arm64(BuildIntegRustBase):
 
     @parameterized.expand(
         [
-            ("arm64", None, False),
-            ("arm64", "debug", False),
+            (None, False),
+            ("debug", False),
         ]
     )
-    def test_build(self, architecture, build_mode, use_container):
+    def test_build(self, build_mode, use_container):
         self._test_with_rust_cargo_lambda(
             runtime="provided.al2",
             code_uri=self.code_uri,
             binary=self.binary,
-            architecture=architecture,
+            architecture=ARM64,
             build_mode=build_mode,
             expected_invoke_result=self.expected_invoke_result,
             use_container=use_container,

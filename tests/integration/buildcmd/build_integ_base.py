@@ -48,7 +48,7 @@ class BuildIntegBase(TestCase):
         # location that is shared in Docker. Most temp directories are not shared. Therefore we are
         # using a scratch space within the test folder that is .gitignored. Contents of this folder
         # is also deleted after every test run
-        self.scratch_dir = str(Path(__file__).resolve().parent.joinpath(str(uuid.uuid4()).replace("-", "")[:10]))
+        self.scratch_dir = str(Path(__file__).resolve().parent.joinpath("tmp", str(uuid.uuid4()).replace("-", "")[:10]))
         shutil.rmtree(self.scratch_dir, ignore_errors=True)
         os.makedirs(self.scratch_dir)
 
