@@ -21,9 +21,10 @@ types-dateparser==1.1.4.10
 types-docutils==0.20.0.3
 # typing for jsonschema is no longer updated for python3.7
 types-jsonschema==4.17.0.10; python_version < "3.8"
-types-jsonschema==4.19.0.3; python_version >="3.8"
+types-jsonschema==4.19.0.3; python_version >= "3.8"
 types-pyOpenSSL==23.2.0.2
-types-requests==2.31.0.7
+# pinning requests to 2.31.0.6 since .7 requires urllib3>2.x
+types-requests==2.31.0.6
 types-urllib3==1.26.25.14
 
 # Test requirements
