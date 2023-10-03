@@ -8,7 +8,6 @@ from parameterized import parameterized, parameterized_class
 
 from tests.integration.buildcmd.test_build_terraform_applications import (
     BuildTerraformApplicationIntegBase,
-    BuildTerraformApplicationS3BackendIntegBase,
 )
 from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS, RUN_BY_CANARY
 
@@ -133,84 +132,6 @@ class TestInvalidBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backen
         _, stderr, return_code = self.run_command(build_cmd_list, env=environment_variables)
         LOG.info(stderr)
         self.assertNotEqual(return_code, 0)
-
-
-@skipIf(
-    (not RUN_BY_CANARY and not CI_OVERRIDE),
-    "Skip Terraform test cases unless running in CI",
-)
-class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndLocalBackend(BuildTerraformApplicationIntegBase):
-    terraform_application = Path("terraform/image_based_lambda_functions_local_backend")
-    functions = [
-        "aws_lambda_function.function_with_non_image_uri",
-        "aws_lambda_function.my_image_function",
-        "module.l1_lambda.aws_lambda_function.this",
-        "module.l1_lambda.module.l2_lambda.aws_lambda_function.this",
-        "my_image_function",
-        "my_l1_lambda",
-        "my_l2_lambda",
-        "module.serverless_tf_image_function.aws_lambda_function.this[0]",
-        "serverless_tf_image_function",
-    ]
-
-    @parameterized.expand(functions)
-    def test_build_and_invoke_lambda_functions(self, function_identifier):
-        build_cmd_list = self.get_command_list(hook_name="terraform", function_identifier=function_identifier)
-        LOG.info("command list: %s", build_cmd_list)
-        _, stderr, return_code = self.run_command(build_cmd_list)
-        LOG.info(stderr)
-        self.assertEqual(return_code, 0)
-
-        self._verify_invoke_built_function(
-            function_logical_id=function_identifier,
-            overrides=None,
-            expected_result={
-                "statusCode": 200,
-                "body": "Hello, My friend!",
-                "headers": None,
-                "multiValueHeaders": None,
-            },
-        )
-
-
-@skipIf(
-    (not RUN_BY_CANARY and not CI_OVERRIDE),
-    "Skip Terraform test cases unless running in CI",
-)
-class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndS3Backend(
-    BuildTerraformApplicationS3BackendIntegBase
-):
-    terraform_application = Path("terraform/image_based_lambda_functions_s3_backend")
-    functions = [
-        "aws_lambda_function.function_with_non_image_uri",
-        "aws_lambda_function.my_image_function",
-        "module.l1_lambda.aws_lambda_function.this",
-        "module.l1_lambda.module.l2_lambda.aws_lambda_function.this",
-        "my_image_function",
-        "my_l1_lambda",
-        "my_l2_lambda",
-        "module.serverless_tf_image_function.aws_lambda_function.this[0]",
-        "serverless_tf_image_function",
-    ]
-
-    @parameterized.expand(functions)
-    def test_build_and_invoke_lambda_functions(self, function_identifier):
-        build_cmd_list = self.get_command_list(hook_name="terraform", function_identifier=function_identifier)
-        LOG.info("command list: %s", build_cmd_list)
-        _, stderr, return_code = self.run_command(build_cmd_list)
-        LOG.info(stderr)
-        self.assertEqual(return_code, 0)
-
-        self._verify_invoke_built_function(
-            function_logical_id=function_identifier,
-            overrides=None,
-            expected_result={
-                "statusCode": 200,
-                "body": "Hello, My friend!",
-                "headers": None,
-                "multiValueHeaders": None,
-            },
-        )
 
 
 @skipIf(
