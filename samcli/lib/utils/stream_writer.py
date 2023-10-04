@@ -30,9 +30,9 @@ class StreamWriter:
         Parameters
         ----------
         output bytes-like object
-            Bytes to write into buffer
+            Bytes to write
         """
-        self._stream.buffer.write(output)
+        self._stream.buffer(output.decode("utf8"))
 
         if self._auto_flush:
             self._stream.flush()
