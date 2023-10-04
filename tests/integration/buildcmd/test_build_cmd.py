@@ -1967,6 +1967,8 @@ class TestBuildCommand_ProvidedFunctions(BuildIntegProvidedBase):
             ("provided", "use_container", "Makefile-container"),
             ("provided.al2", False, None),
             ("provided.al2", "use_container", "Makefile-container"),
+            ("provided.al2023", False, None),
+            ("provided.al2023", "use_container", "Makefile-container"),
         ]
     )
     @pytest.mark.flaky(reruns=3)
@@ -1992,10 +1994,14 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture(BuildIntegP
             ("provided", "use_container", "Makefile-container", "x86_64"),
             ("provided.al2", False, None, "x86_64"),
             ("provided.al2", "use_container", "Makefile-container", "x86_64"),
+            ("provided.al2023", False, None, "x86_64"),
+            ("provided.al2023", "use_container", "Makefile-container", "x86_64"),
             ("provided", False, None, "arm64"),
             ("provided", "use_container", "Makefile-container", "arm64"),
             ("provided.al2", False, None, "arm64"),
             ("provided.al2", "use_container", "Makefile-container", "arm64"),
+            ("provided.al2023", False, None, "arm64"),
+            ("provided.al2023", "use_container", "Makefile-container", "arm64"),
         ]
     )
     @pytest.mark.flaky(reruns=3)
@@ -2026,6 +2032,7 @@ class TestBuildCommand_ProvidedFunctionsWithCustomMetadata(BuildIntegProvidedBas
         [
             ("provided", False, None),
             ("provided.al2", False, None),
+            ("provided.al2023", False, None),
         ]
     )
     @pytest.mark.flaky(reruns=3)
