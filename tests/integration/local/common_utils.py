@@ -1,11 +1,15 @@
 # Common utils between local tests
 import logging
+import os
 import random
 import time
 
 LOG = logging.getLogger(__name__)
 
 START_WAIT_TIME_SECONDS = 300
+
+PYTEST_WORKER_COUNT = os.environ.get("PYTEST_XDIST_WORKER_COUNT", 4)
+PYTEST_WORKER_ID = os.environ.get("PYTEST_XDIST_WORKER", 0)
 
 
 class InvalidAddressException(Exception):
@@ -34,5 +38,15 @@ def wait_for_local_process(process, port, collect_output=False) -> str:
     return output
 
 
+def get_pytest_worker_id():
+    return int(PYTEST_WORKER_ID[2:])
+
+
 def random_port():
-    return random.randint(30000, 40000)
+    start_port = 30000
+    end_port = 40000
+
+    port_window = (end_port - start_port) / PYTEST_WORKER_COUNT
+    port_worker_start = int(start_port + (get_pytest_worker_id() * port_window))
+    port_worker_end = int(port_worker_start + port_window)
+    return random.randint(port_worker_start, port_worker_end)
