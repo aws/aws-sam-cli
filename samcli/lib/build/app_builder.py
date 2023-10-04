@@ -857,8 +857,9 @@ class ApplicationBuilder:
             dependency_manager=config.dependency_manager,
             application_framework=config.application_framework,
         )
-
-        runtime = runtime.replace(".al2", "")
+        
+        if runtime.startswith("provided"):
+            runtime = "provided"
 
         try:
             builder.build(
