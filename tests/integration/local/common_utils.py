@@ -8,7 +8,7 @@ LOG = logging.getLogger(__name__)
 
 START_WAIT_TIME_SECONDS = 300
 
-PYTEST_WORKER_COUNT = os.environ.get("PYTEST_XDIST_WORKER_COUNT", 4)
+PYTEST_WORKER_COUNT = int(os.environ.get("PYTEST_XDIST_WORKER_COUNT", 4))
 PYTEST_WORKER_ID = os.environ.get("PYTEST_XDIST_WORKER", 0)
 
 
