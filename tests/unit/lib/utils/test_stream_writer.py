@@ -50,3 +50,11 @@ class TestStreamWriter(TestCase):
             writer.write_str(line)
             flush_mock.assert_called_once_with()
             flush_mock.reset_mock()
+
+    def test_write_bytes_with_string_io(self):
+        stream = io.StringIO()
+        writer = StreamWriter(stream)
+
+        writer.write_bytes(b"something")
+
+        self.assertEqual("something", stream.getvalue())
