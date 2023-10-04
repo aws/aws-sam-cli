@@ -261,3 +261,16 @@ class TestCfUtils(TestCase):
 
         with self.assertRaises(FetchTemplateFailedError):
             self.cf_utils.get_stack_template(MagicMock(), MagicMock())
+
+    @parameterized.expand(
+        [
+            ({"hello": "world"}, '{"hello": "world"}'),
+            ("hello world", "hello world"),
+        ]
+    )
+    def test_cf_utils_get_stack_template_returns_correct_string(self, template_response, expected_string):
+        self.cf_utils._client.get_template = MagicMock()
+        self.cf_utils._client.get_template.return_value = {"TemplateBody": template_response}
+
+        output_template = self.cf_utils.get_stack_template("test", "Original")
+        self.assertEqual(output_template, expected_string)

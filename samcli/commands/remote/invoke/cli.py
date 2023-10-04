@@ -16,6 +16,7 @@ from samcli.lib.cli_validation.remote_invoke_options_validations import (
     stack_name_or_resource_id_atleast_one_option_validation,
 )
 from samcli.lib.remote_invoke.remote_invoke_executors import RemoteInvokeOutputFormat
+from samcli.lib.telemetry.event import EventTracker
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.version_checker import check_newer_version
 
@@ -57,6 +58,10 @@ DESCRIPTION = """
     help="The file that contains the event that will be sent to the resource.",
 )
 @click.option(
+    "--test-event-name",
+    help="Name of the remote test event to send to the resource",
+)
+@click.option(
     "--output",
     help="Output the results from the command in a given output format. "
     "The text format prints a readable AWS API response. The json format prints the full AWS API response.",
@@ -81,6 +86,7 @@ def cli(
     event: str,
     event_file: TextIOWrapper,
     output: RemoteInvokeOutputFormat,
+    test_event_name: str,
     parameter: dict,
     save_params: bool,
     config_file: str,
@@ -97,6 +103,7 @@ def cli(
         event_file,
         output,
         parameter,
+        test_event_name,
         ctx.region,
         ctx.profile,
         config_file,
@@ -111,6 +118,7 @@ def do_cli(
     event_file: TextIOWrapper,
     output: RemoteInvokeOutputFormat,
     parameter: dict,
+    test_event_name: str,
     region: str,
     profile: str,
     config_file: str,
@@ -132,7 +140,7 @@ def do_cli(
         InvalideBotoResponseException,
         InvalidResourceBotoParameterException,
     )
-    from samcli.lib.remote_invoke.remote_invoke_executors import RemoteInvokeExecutionInfo
+    from samcli.lib.remote_invoke.remote_invoke_executors import RemoteInvokeEventType, RemoteInvokeExecutionInfo
     from samcli.lib.utils.boto_utils import get_boto_client_provider_with_config, get_boto_resource_provider_with_config
 
     try:
@@ -144,6 +152,19 @@ def do_cli(
             stack_name=stack_name,
             resource_id=resource_id,
         ) as remote_invoke_context:
+            if test_event_name:
+                lambda_test_event = remote_invoke_context.get_lambda_shared_test_event_provider()
+                LOG.debug("Retrieving remote event %s", test_event_name)
+                event = lambda_test_event.get_event(test_event_name, remote_invoke_context.resource_summary)
+                LOG.debug("Remote event contents: %s", event)
+
+            event_type = RemoteInvokeEventType.get_event_type(
+                event=event,
+                event_file=event_file,
+                test_event_name=test_event_name,
+            )
+            EventTracker.track_event("RemoteInvokeEventType", event_type)
+
             remote_invoke_input = RemoteInvokeExecutionInfo(
                 payload=event, payload_file=event_file, parameters=parameter, output_format=output
             )

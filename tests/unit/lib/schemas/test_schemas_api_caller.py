@@ -1,15 +1,17 @@
 import io
 import tempfile
 
-from unittest.mock import Mock, call
+
+from unittest.mock import Mock
 from unittest import TestCase
 
 import botocore
-from botocore.exceptions import WaiterError
+from botocore.exceptions import WaiterError, ClientError
 
 from samcli.lib.schemas.schemas_constants import DEFAULT_EVENT_SOURCE, DEFAULT_EVENT_DETAIL_TYPE
 from samcli.commands.exceptions import SchemasApiException
 from samcli.commands.local.cli_common.user_exceptions import ResourceNotFound, NotAvailableInRegion
+from samcli.commands.remote.exceptions import DuplicateEventName
 from samcli.lib.schemas.schemas_api_caller import SchemasApiCaller
 
 
@@ -503,3 +505,159 @@ class TestSchemasCommand(TestCase):
             "AWS doc for Schemas supported regions."
         )
         self.assertEqual(str(ctx.exception), msg)
+
+    def test_discover_schema(self):
+        event_contents = '{"key1": "value1"}'
+        schema_type = "OpenApi3"
+        schemas_api_caller = SchemasApiCaller(self.client)
+        self.client.get_discovered_schema.return_value = {"Content": "Discovered Schema"}
+
+        discover_schema_response = schemas_api_caller.discover_schema(event_contents, schema_type)
+        self.assertEqual(discover_schema_response, "Discovered Schema")
+        self.client.get_discovered_schema.assert_called_once_with(Events=[event_contents], Type=schema_type)
+
+    def test_create_schema(self):
+        schema_contents = '{"key1": "value1"}'
+        schema_type = "OpenApi3"
+        registry_name = "registry1"
+        schema_name = "schema1"
+        schemas_api_caller = SchemasApiCaller(self.client)
+
+        create_schema_response = schemas_api_caller.create_schema(
+            schema_contents, registry_name, schema_name, schema_type
+        )
+        self.assertTrue(create_schema_response)
+        self.client.create_schema.assert_called_once_with(
+            Content=schema_contents, RegistryName=registry_name, SchemaName=schema_name, Type=schema_type
+        )
+
+    def test_update_schema(self):
+        schema_contents = '{"key1": "value1"}'
+        schema_type = "OpenApi3"
+        registry_name = "registry1"
+        schema_name = "schema1"
+        schemas_api_caller = SchemasApiCaller(self.client)
+
+        update_schema_response = schemas_api_caller.update_schema(
+            schema_contents, registry_name, schema_name, schema_type
+        )
+        self.assertTrue(update_schema_response)
+        self.client.update_schema.assert_called_once_with(
+            Content=schema_contents, RegistryName=registry_name, SchemaName=schema_name, Type=schema_type
+        )
+
+    def test_get_schema(self):
+        schema_name = "schema1"
+        registry_name = "registry1"
+        schemas_api_caller = SchemasApiCaller(self.client)
+        self.client.describe_schema.return_value = {"Content": "Schema contents"}
+
+        get_schema_response = schemas_api_caller.get_schema(registry_name, schema_name)
+        self.assertEqual(get_schema_response, "Schema contents")
+        self.client.describe_schema.assert_called_once_with(
+            RegistryName=registry_name,
+            SchemaName=schema_name,
+        )
+
+    def test_check_registry_exists(self):
+        registry_name = "registry1"
+        schemas_api_caller = SchemasApiCaller(self.client)
+        self.client.describe_registry.return_value = "Registry"
+
+        get_registry_exists = schemas_api_caller.check_registry_exists(registry_name)
+        self.assertTrue(get_registry_exists)
+        self.client.describe_registry.assert_called_once_with(
+            RegistryName=registry_name,
+        )
+
+    def test_check_registry_not_exists(self):
+        registry_name = "registry1"
+        schemas_api_caller = SchemasApiCaller(self.client)
+        self.client.describe_registry.side_effect = self.not_found_exception()
+
+        get_registry_exists = schemas_api_caller.check_registry_exists(registry_name)
+        self.assertFalse(get_registry_exists)
+        self.client.describe_registry.assert_called_once_with(
+            RegistryName=registry_name,
+        )
+
+    def test_create_registry(self):
+        registry_name = "registry1"
+        schemas_api_caller = SchemasApiCaller(self.client)
+
+        create_registry_response = schemas_api_caller.create_registry(registry_name)
+        self.assertTrue(create_registry_response)
+        self.client.create_registry.assert_called_once_with(
+            RegistryName=registry_name,
+        )
+
+    def test_create_registry_if_already_exists(self):
+        registry_name = "registry1"
+        schemas_api_caller = SchemasApiCaller(self.client)
+        self.client.create_registry.side_effect = ClientError({"Error": {"Code": "ConflictException"}}, "create")
+
+        create_registry_response = schemas_api_caller.create_registry(registry_name)
+        self.assertFalse(create_registry_response)
+        self.client.create_registry.assert_called_once_with(
+            RegistryName=registry_name,
+        )
+
+    def test_delete_schema(self):
+        schema_name = "schema1"
+        registry_name = "registry1"
+        schemas_api_caller = SchemasApiCaller(self.client)
+
+        get_schema_response = schemas_api_caller.delete_schema(registry_name, schema_name)
+        self.assertTrue(get_schema_response)
+        self.client.delete_schema.assert_called_once_with(
+            RegistryName=registry_name,
+            SchemaName=schema_name,
+        )
+
+    def test_delete_schema_doesnt_exist(self):
+        schema_name = "schema1"
+        registry_name = "registry1"
+        schemas_api_caller = SchemasApiCaller(self.client)
+        self.client.delete_schema.side_effect = self.not_found_exception()
+
+        deleted = schemas_api_caller.delete_schema(registry_name, schema_name)
+        self.assertFalse(deleted)
+
+    def test_delete_version(self):
+        schema_name = "schema1"
+        registry_name = "registry1"
+        version_number = "33"
+        schemas_api_caller = SchemasApiCaller(self.client)
+
+        delete_version_response = schemas_api_caller.delete_version(registry_name, schema_name, version_number)
+        self.assertTrue(delete_version_response)
+        self.client.delete_schema_version.assert_called_once_with(
+            RegistryName=registry_name,
+            SchemaName=schema_name,
+            SchemaVersion=version_number,
+        )
+
+    def test_delete_version_with_error(self):
+        schema_name = "schema1"
+        registry_name = "registry1"
+        version_number = "33"
+        schemas_api_caller = SchemasApiCaller(self.client)
+        boto_error = ClientError({}, "delete")  # generic exception
+        self.client.delete_schema_version.side_effect = boto_error
+
+        with self.assertRaises(Exception) as ctx:
+            schemas_api_caller.delete_version(registry_name, schema_name, version_number)
+        self.assertEqual(ctx.exception, boto_error)
+
+    def test_delete_version_doesnt_exist(self):
+        schema_name = "schema1"
+        registry_name = "registry1"
+        version_number = "33"
+        schemas_api_caller = SchemasApiCaller(self.client)
+        self.client.delete_schema_version.side_effect = self.not_found_exception()
+
+        deleted = schemas_api_caller.delete_version(registry_name, schema_name, version_number)
+        self.assertFalse(deleted)
+
+    def not_found_exception(self):
+        return ClientError({"Error": {"Code": "NotFoundException"}}, "operation")
