@@ -39,7 +39,10 @@ def wait_for_local_process(process, port, collect_output=False) -> str:
 
 
 def get_pytest_worker_id():
-    return int(PYTEST_WORKER_ID[2:])
+    try:
+        return int(PYTEST_WORKER_ID[2:])
+    except TypeError:
+        return 0
 
 
 def random_port():
