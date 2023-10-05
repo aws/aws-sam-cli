@@ -3,6 +3,8 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from time import time, sleep
 import json
+
+import docker
 from parameterized import parameterized, parameterized_class
 
 import pytest
@@ -320,9 +322,14 @@ class TestWarmContainersBaseClass(StartLambdaIntegBaseClass):
     def count_running_containers(self):
         running_containers = 0
         for container in self.docker_client.containers.list():
-            _, output = container.exec_run(["bash", "-c", "'printenv'"])
-            if f"MODE={self.mode_env_variable}" in str(output):
-                running_containers += 1
+            try:
+                _, output = container.exec_run(["bash", "-c", "'printenv'"])
+                if f"MODE={self.mode_env_variable}" in str(output):
+                    running_containers += 1
+            except docker.errors.NotFound:
+                # running tests in parallel might might cause this issue since this container in the loop
+                # might be created by other tests and might be at the removal step now
+                pass
         return running_containers
 
 
