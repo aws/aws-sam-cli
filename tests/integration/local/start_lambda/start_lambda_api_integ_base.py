@@ -51,7 +51,7 @@ class StartLambdaIntegBaseClass(TestCase):
         shutil.rmtree(scratch_dir, ignore_errors=True)
         os.makedirs(scratch_dir)
         copytree(str(Path(cls.integration_dir).joinpath("testdata")), str(scratch_dir))
-        cls.integration_dir = scratch_dir.parent
+        cls.integration_dir = str(scratch_dir.parent)
 
         cls.template = cls.integration_dir + cls.template_path
         cls.working_dir = str(Path(cls.template).resolve().parents[0])
