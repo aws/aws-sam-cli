@@ -73,9 +73,13 @@ class TestLambdaBuildContainer_init(TestCase):
 
 class TestLambdaBuildContainer_make_request(TestCase):
     @parameterized.expand(itertools.product([True, False], [[], ["exp1", "exp2"]]))
+    @patch("samcli.local.docker.lambda_build_container.patch_runtime")
     @patch("samcli.local.docker.lambda_build_container.get_enabled_experimental_flags")
-    def test_must_make_request_object_string(self, is_building_layer, experimental_flags, patched_experimental_flags):
+    def test_must_make_request_object_string(
+        self, is_building_layer, experimental_flags, patched_experimental_flags, patch_runtime_mock
+    ):
         patched_experimental_flags.return_value = experimental_flags
+        patch_runtime_mock.return_value = "runtime"
 
         container_dirs = {
             "base_dir": "base_dir",
@@ -132,6 +136,7 @@ class TestLambdaBuildContainer_make_request(TestCase):
                 },
             },
         )
+        patch_runtime_mock.assert_called_with("runtime")
 
 
 class TestLambdaBuildContainer_get_container_dirs(TestCase):
