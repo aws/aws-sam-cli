@@ -14,7 +14,7 @@ class TestPatchRuntime(TestCase):
             ("dotnet6", "dotnet6"),
             ("provided", "provided"),
             ("provided.al2", "provided"),
-            ("provided.al2023", "provided.al2023"),
+            ("provided.al2023", "provided"),
         ]
     )
     def test_patch_runtime(self, runtime, expect):
