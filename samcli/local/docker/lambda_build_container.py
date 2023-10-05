@@ -10,8 +10,8 @@ from typing import List
 from uuid import uuid4
 
 from samcli.commands._utils.experimental import get_enabled_experimental_flags
-from samcli.local.docker.container import Container
 from samcli.lib.utils.lambda_builders import patch_runtime
+from samcli.local.docker.container import Container
 
 LOG = logging.getLogger(__name__)
 
