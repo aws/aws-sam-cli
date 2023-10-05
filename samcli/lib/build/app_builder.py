@@ -40,9 +40,10 @@ from samcli.lib.utils.colors import Colored, Colors
 from samcli.lib.utils import osutils
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.stream_writer import StreamWriter
+from samcli.local.docker.exceptions import ContainerNotStartableException
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from samcli.local.docker.utils import is_docker_reachable, get_docker_platform
-from samcli.local.docker.manager import ContainerManager
+from samcli.local.docker.manager import ContainerManager, DockerImagePullFailedException
 from samcli.commands._utils.experimental import get_enabled_experimental_flags
 from samcli.lib.build.exceptions import (
     DockerConnectionError,
@@ -960,6 +961,10 @@ class ApplicationBuilder:
             # "/." is a Docker thing that instructions the copy command to download contents of the folder only
             result_dir_in_container = response["result"]["artifacts_dir"] + "/."
             container.copy(result_dir_in_container, artifacts_dir)
+
+        except DockerImagePullFailedException as ex:
+            raise BuildInsideContainerError(ex)
+
         finally:
             self._container_manager.stop(container)
 
