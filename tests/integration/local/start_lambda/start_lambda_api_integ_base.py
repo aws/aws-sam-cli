@@ -1,5 +1,6 @@
 import shutil
 import uuid
+from shutil import rmtree
 from typing import Optional, Dict, List
 from unittest import TestCase, skipIf
 import threading
@@ -11,6 +12,7 @@ from pathlib import Path
 import docker
 from docker.errors import APIError
 
+from samcli.lib.utils.osutils import copytree
 from tests.integration.local.common_utils import random_port, InvalidAddressException, wait_for_local_process
 from tests.testing_utils import (
     SKIP_DOCKER_TESTS,
@@ -45,6 +47,12 @@ class StartLambdaIntegBaseClass(TestCase):
     def setUpClass(cls):
         # This is the directory for tests/integration which will be used to file the testdata
         # files for integ tests
+        scratch_dir = str(Path(__file__).resolve().parent.joinpath(".tmp", str(uuid.uuid4()).replace("-", "")[:10]))
+        shutil.rmtree(scratch_dir, ignore_errors=True)
+        os.makedirs(scratch_dir)
+        copytree(str(Path(cls.integration_dir).joinpath("testdata")), scratch_dir)
+        cls.integration_dir = scratch_dir
+
         cls.template = cls.integration_dir + cls.template_path
         cls.working_dir = str(Path(cls.template).resolve().parents[0])
         cls.env_var_path = cls.integration_dir + "/testdata/invoke/vars.json"
@@ -179,6 +187,7 @@ class StartLambdaIntegBaseClass(TestCase):
         # After all the tests run, we need to kill the start_lambda process.
         cls.stop_reading_thread = True
         kill_process(cls.start_lambda_process)
+        rmtree(cls.integration_dir)
 
 
 class WatchWarmContainersIntegBaseClass(StartLambdaIntegBaseClass):
