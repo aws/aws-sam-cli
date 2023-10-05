@@ -313,7 +313,7 @@ class TestWarmContainersBaseClass(StartLambdaIntegBaseClass):
     def count_running_containers(self):
         running_containers = 0
         for container in self.docker_client.containers.list():
-            LOG.info(f"Container: {container}")
+            LOG.info(f"Container: {container.__dict__}")
             _, output = container.exec_run(["bash", "-c", "'printenv'"])
             if f"MODE={self.mode_env_variable}" in str(output):
                 running_containers += 1
