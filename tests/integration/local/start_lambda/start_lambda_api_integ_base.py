@@ -199,16 +199,15 @@ class WatchWarmContainersIntegBaseClass(StartLambdaIntegBaseClass):
     @classmethod
     def setUpClass(cls):
         cls.temp_path = str(uuid.uuid4()).replace("-", "")[:10]
-        working_dir = str(Path(cls.integration_dir).resolve().joinpath(cls.temp_path))
+        working_dir = Path(cls.integration_dir).resolve().joinpath("testdata", ".tmp", cls.temp_path)
         if Path(working_dir).resolve().exists():
             shutil.rmtree(working_dir, ignore_errors=True)
-        os.mkdir(working_dir)
-        os.mkdir(Path(cls.integration_dir).resolve().joinpath(cls.temp_path).joinpath("dir"))
-        cls.template_path = f"/{cls.temp_path}/template.yaml"
-        cls.code_path = f"/{cls.temp_path}/main.py"
-        cls.code_path2 = f"/{cls.temp_path}/dir/main2.py"
-        cls.docker_file_path = f"/{cls.temp_path}/Dockerfile"
-        cls.docker_file_path2 = f"/{cls.temp_path}/Dockerfile2"
+        os.makedirs(working_dir.joinpath("dir"))
+        cls.template_path = f"/testdata/.tmp/{cls.temp_path}/template.yaml"
+        cls.code_path = f"/testdata/.tmp/{cls.temp_path}/main.py"
+        cls.code_path2 = f"/testdata/.tmp/{cls.temp_path}/dir/main2.py"
+        cls.docker_file_path = f"/testdata/.tmp/{cls.temp_path}/Dockerfile"
+        cls.docker_file_path2 = f"/testdata/.tmp/{cls.temp_path}/Dockerfile2"
 
         if cls.template_content:
             cls._write_file_content(cls.template_path, cls.template_content)
