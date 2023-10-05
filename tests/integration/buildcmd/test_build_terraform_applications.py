@@ -12,11 +12,14 @@ from unittest import skipIf
 
 import boto3
 import docker
+import pytest
 
-from parameterized import parameterized, parameterized_class
+from parameterized import parameterized_class
 
+from samcli.yamlhelper import yaml_parse
 from tests.integration.buildcmd.build_integ_base import BuildIntegBase
 from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS, RUN_BY_CANARY
+from tests.testing_utils import run_command as static_run_command
 
 LOG = logging.getLogger(__name__)
 S3_SLEEP = 3
@@ -26,6 +29,9 @@ class BuildTerraformApplicationIntegBase(BuildIntegBase):
     terraform_application: Optional[Path] = None
     template = None
     build_in_container = False
+    function_identifier: Optional[str] = None
+    override: bool = False
+    s3_backend = False
 
     @classmethod
     def setUpClass(cls):
@@ -54,15 +60,80 @@ class BuildTerraformApplicationIntegBase(BuildIntegBase):
         super().setUp()
         shutil.rmtree(Path(self.working_dir))
         shutil.copytree(Path(self.terraform_application_path), Path(self.working_dir))
+        if not self.s3_backend:
+            self.build_with_prepare_hook()
 
-    def run_command(self, command_list, env=None, input=None, timeout=None):
-        process = Popen(command_list, stdout=PIPE, stderr=PIPE, stdin=PIPE, env=env, cwd=self.working_dir)
+    def tearDown(self):
+        super(BuildTerraformApplicationIntegBase, self).tearDown()
+
+    def run_command(self, command_list, env=None, timeout=None):
+        command_result = static_run_command(command_list, env=env, cwd=self.working_dir, timeout=timeout)
+        return command_result.stdout, command_result.stderr, command_result.process.returncode
+
+    def build_with_prepare_hook(self):
+        if not self.function_identifier:
+            # This doesn't make sense for all tests that inherit this base class, skip for those
+            return
+
+        command_list_parameters = {"function_identifier": self.function_identifier, "hook_name": "terraform"}
+        if self.build_in_container:
+            command_list_parameters["use_container"] = True
+            command_list_parameters["build_image"] = self.docker_tag
+            if self.override:
+                command_list_parameters[
+                    "container_env_var"
+                ] = "TF_VAR_HELLO_FUNCTION_SRC_CODE=./artifacts/HelloWorldFunction2"
+
+        environment_variables = os.environ.copy()
+        if self.override:
+            environment_variables["TF_VAR_HELLO_FUNCTION_SRC_CODE"] = "./artifacts/HelloWorldFunction2"
+
+        build_cmd_list = self.get_command_list(**command_list_parameters)
+        _, stderr, return_code = self.run_command(build_cmd_list, env=environment_variables)
+        LOG.info(stderr.decode("utf-8"))
+        self.assertEqual(return_code, 0)
+
+    def validate_metadata_file(self):
+        build_template_path = Path(self.working_dir) / ".aws-sam" / "build" / "template.yaml"
+        expected_template_path = Path(self.working_dir) / "expected.template.yaml"
+        build_template = self.read_template(build_template_path)
+        expected_template = self.read_template(expected_template_path)
+        self.clean_template(build_template)
+        self.clean_template(expected_template)
+        self.assertEqual(build_template, expected_template)
+        LOG.info("Successfully validated template produced is same as expected")
+
+    @staticmethod
+    def clean_template(template: dict):
+        # Some fields contain absolute paths that will differ across environments
+        # We need to clean those fields up before we can compare the templates
+        resources = template.get("Resources", {})
+        for _, resource in resources.items():
+            properties = resource.get("Properties", {})
+            metadata = resource.get("Metadata", {})
+            if properties:
+                BuildTerraformApplicationIntegBase.remove_field(properties, "Code")
+                BuildTerraformApplicationIntegBase.remove_field(properties, "Content")
+            if metadata:
+                BuildTerraformApplicationIntegBase.remove_field(metadata, "ContextPath")
+                BuildTerraformApplicationIntegBase.remove_field(metadata, "WorkingDirectory")
+                BuildTerraformApplicationIntegBase.remove_field(metadata, "ProjectRootDirectory")
+                BuildTerraformApplicationIntegBase.remove_field(metadata, "DockerContext")
+
+    @staticmethod
+    def remove_field(section: dict, field: str):
+        section_field = section.get(field)
+        if section_field:
+            section[field] = ""
+
+    @staticmethod
+    def read_template(path: Path):
         try:
-            (stdout, stderr) = process.communicate(input=input, timeout=timeout)
-            return stdout, stderr, process.returncode
-        except TimeoutExpired:
-            process.kill()
-            raise
+            with open(path, "r") as f:
+                template_dict = yaml_parse(f.read())
+                return template_dict
+        except OSError:
+            raise AssertionError(f"Failed to read generated metadata file in: {path}")
 
     def _verify_invoke_built_function(self, function_logical_id, overrides, expected_result):
         LOG.info("Invoking built function '{}'".format(function_logical_id))
@@ -111,7 +182,6 @@ class BuildTerraformApplicationS3BackendIntegBase(BuildTerraformApplicationInteg
         if not cls.pre_created_bucket:
             cls.s3_bucket.create()
             time.sleep(S3_SLEEP)
-
         super().setUpClass()
 
     @classmethod
@@ -136,7 +206,8 @@ class BuildTerraformApplicationS3BackendIntegBase(BuildTerraformApplicationInteg
             ["terraform", "init", f"-backend-config={self.backendconfig_path}", "-reconfigure", "-input=false"]
         )
         if stderr:
-            LOG.info(stderr)
+            LOG.info(stderr.decode("utf-8"))
+        self.build_with_prepare_hook()
 
     def tearDown(self):
         """Clean up the terraform state file on S3 and remove the backendconfg locally"""
@@ -161,50 +232,17 @@ class BuildTerraformApplicationS3BackendIntegBase(BuildTerraformApplicationInteg
         (True,),
     ],
 )
-class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(BuildTerraformApplicationIntegBase):
+@pytest.mark.xdist_group(name="zip_lambda_local_backend_override")
+class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackendWithOverride(
+    BuildTerraformApplicationIntegBase
+):
+    function_identifier = "function9"
+    override = True
     terraform_application = (
         Path("terraform/zip_based_lambda_functions_local_backend")
         if not IS_WINDOWS
         else Path("terraform/zip_based_lambda_functions_local_backend_windows")
     )
-    functions = [
-        ("module.function9.aws_lambda_function.this[0]", "hello world 9 - override version", True),
-        ("function9", "hello world 9 - override version", True),
-        ("module.function9.aws_lambda_function.this[0]", "hello world 9", False),
-        ("function9", "hello world 9", False),
-        ("aws_lambda_function.function6", "hello world 6 - override version", True),
-        ("function6", "hello world 6 - override version", True),
-        ("aws_lambda_function.function6", "hello world 6", False),
-        ("function6", "hello world 6", False),
-        ("aws_lambda_function.function5", "hello world 5 - override version", True),
-        ("function5", "hello world 5 - override version", True),
-        ("aws_lambda_function.function5", "hello world 5", False),
-        ("function5", "hello world 5", False),
-        ("aws_lambda_function.function4", "hello world 4 - override version", True),
-        ("function4", "hello world 4 - override version", True),
-        ("aws_lambda_function.function4", "hello world 4", False),
-        ("function4", "hello world 4", False),
-        ("aws_lambda_function.function3", "hello world 3 - override version", True),
-        ("function3", "hello world 3 - override version", True),
-        ("aws_lambda_function.function3", "hello world 3", False),
-        ("function3", "hello world 3", False),
-        ("module.function2.aws_lambda_function.this", "hello world 2 - override version", True),
-        ("function2", "hello world 2 - override version", True),
-        ("aws_lambda_function.function1", "hello world 1 - override version", True),
-        ("function1", "hello world 1 - override version", True),
-        ("module.function2.aws_lambda_function.this", "hello world 2", False),
-        ("function2", "hello world 2", False),
-        ("aws_lambda_function.function1", "hello world 1", False),
-        ("function1", "hello world 1", False),
-        ("aws_lambda_function.from_localfile", "[]", False),
-        ("aws_lambda_function.from_s3", "[]", False),
-        ("module.level1_lambda.aws_lambda_function.this", "[]", False),
-        ("module.level1_lambda.module.level2_lambda.aws_lambda_function.this", "[]", False),
-        ("my_function_from_localfile", "[]", False),
-        ("my_function_from_s3", "[]", False),
-        ("my_level1_lambda", "[]", False),
-        ("my_level2_lambda", "[]", False),
-    ]
 
     @classmethod
     def setUpClass(cls):
@@ -213,58 +251,14 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(Bu
             # build, and also we need to remove the Serverless TF functions from this project.
             # that is why we need to use a new project and not one of the existing linux or windows projects
             cls.terraform_application = "terraform/zip_based_lambda_functions_local_backend_container_windows"
-        if not IS_WINDOWS:
-            # The following functions are defined using serverless tf module, and since Serverless TF has some issue
-            # while executing `terraform plan` in windows, we removed these function from the TF projects we used in
-            # testing on Windows, and only test them on linux.
-            # check the Serverless TF issue https://github.com/terraform-aws-modules/terraform-aws-lambda/issues/142
-            cls.functions += [
-                ("module.function7.aws_lambda_function.this[0]", "hello world 7 - override version", True),
-                ("function7", "hello world 7 - override version", True),
-                ("module.function7.aws_lambda_function.this[0]", "hello world 7", False),
-                ("function7", "hello world 7", False),
-                ("module.function8.aws_lambda_function.this[0]", "hello world 8 - override version", True),
-                ("function8", "hello world 8 - override version", True),
-                ("module.function8.aws_lambda_function.this[0]", "hello world 8", False),
-                ("function8", "hello world 8", False),
-                ("module.function10.aws_lambda_function.this[0]", "hello world 10 - override version", True),
-                ("function10", "hello world 10 - override version", True),
-                ("module.function10.aws_lambda_function.this[0]", "hello world 10", False),
-                ("function10", "hello world 10", False),
-                ("module.function11.aws_lambda_function.this[0]", "hello world 11 - override version", True),
-                ("function11", "hello world 11 - override version", True),
-                ("module.function11.aws_lambda_function.this[0]", "hello world 11", False),
-                ("function11", "hello world 11", False),
-            ]
         super().setUpClass()
 
-    @parameterized.expand(functions)
-    def test_build_and_invoke_lambda_functions(self, function_identifier, expected_output, should_override_code):
-        command_list_parameters = {
-            "hook_name": "terraform",
-            "function_identifier": function_identifier,
-        }
-        if self.build_in_container:
-            command_list_parameters["use_container"] = True
-            command_list_parameters["build_image"] = self.docker_tag
-            if should_override_code:
-                command_list_parameters[
-                    "container_env_var"
-                ] = "TF_VAR_HELLO_FUNCTION_SRC_CODE=./artifacts/HelloWorldFunction2"
-        build_cmd_list = self.get_command_list(**command_list_parameters)
-        LOG.info("command list: %s", build_cmd_list)
-        environment_variables = os.environ.copy()
-        if should_override_code:
-            environment_variables["TF_VAR_HELLO_FUNCTION_SRC_CODE"] = "./artifacts/HelloWorldFunction2"
-        stdout, stderr, return_code = self.run_command(build_cmd_list, env=environment_variables)
-        LOG.info("sam build stdout: %s", stdout.decode("utf-8"))
-        LOG.info("sam build stderr: %s", stderr.decode("utf-8"))
-        self.assertEqual(return_code, 0)
-
+    def test_build_and_invoke_lambda_functions(self):
+        self.validate_metadata_file()
         self._verify_invoke_built_function(
-            function_logical_id=function_identifier,
+            function_logical_id=self.function_identifier,
             overrides=None,
-            expected_result={"statusCode": 200, "body": expected_output},
+            expected_result={"statusCode": 200, "body": "hello world 9 - override version"},
         )
 
 
@@ -279,50 +273,56 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(Bu
         (True,),
     ],
 )
-class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(BuildTerraformApplicationS3BackendIntegBase):
+@pytest.mark.xdist_group(name="zip_lambda_local_backend")
+class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(BuildTerraformApplicationIntegBase):
+    function_identifier = "function9"
+    terraform_application = (
+        Path("terraform/zip_based_lambda_functions_local_backend")
+        if not IS_WINDOWS
+        else Path("terraform/zip_based_lambda_functions_local_backend_windows")
+    )
+
+    @classmethod
+    def setUpClass(cls):
+        if IS_WINDOWS and cls.build_in_container:
+            # we use this TF project to test sam build in container on windows as we need to run a linux bash script for
+            # build, and also we need to remove the Serverless TF functions from this project.
+            # that is why we need to use a new project and not one of the existing linux or windows projects
+            cls.terraform_application = "terraform/zip_based_lambda_functions_local_backend_container_windows"
+        super().setUpClass()
+
+    def test_build_and_invoke_lambda_functions(self):
+        self.validate_metadata_file()
+        self._verify_invoke_built_function(
+            function_logical_id=self.function_identifier,
+            overrides=None,
+            expected_result={"statusCode": 200, "body": "hello world 9"},
+        )
+
+
+@skipIf(
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
+    "Skip Terraform test cases unless running in CI",
+)
+@parameterized_class(
+    ("build_in_container",),
+    [
+        (False,),
+        (True,),
+    ],
+)
+@pytest.mark.xdist_group(name="zip_lambda_s3_backend")
+class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3BackendWithOverride(
+    BuildTerraformApplicationS3BackendIntegBase
+):
+    function_identifier = "function9"
+    override = True
+    s3_backend = True
     terraform_application = (
         Path("terraform/zip_based_lambda_functions_s3_backend")
         if not IS_WINDOWS
         else Path("terraform/zip_based_lambda_functions_s3_backend_windows")
     )
-    functions = [
-        ("module.function9.aws_lambda_function.this[0]", "hello world 9 - override version", True),
-        ("function9", "hello world 9 - override version", True),
-        ("module.function9.aws_lambda_function.this[0]", "hello world 9", False),
-        ("function9", "hello world 9", False),
-        ("aws_lambda_function.function5", "hello world 5 - override version", True),
-        ("function5", "hello world 5 - override version", True),
-        ("aws_lambda_function.function5", "hello world 5", False),
-        ("function5", "hello world 5", False),
-        ("aws_lambda_function.function6", "hello world 6 - override version", True),
-        ("function6", "hello world 6 - override version", True),
-        ("aws_lambda_function.function6", "hello world 6", False),
-        ("function6", "hello world 6", False),
-        ("aws_lambda_function.function4", "hello world 4 - override version", True),
-        ("function4", "hello world 4 - override version", True),
-        ("aws_lambda_function.function4", "hello world 4", False),
-        ("function4", "hello world 4", False),
-        ("aws_lambda_function.function3", "hello world 3 - override version", True),
-        ("function3", "hello world 3 - override version", True),
-        ("aws_lambda_function.function3", "hello world 3", False),
-        ("function3", "hello world 3", False),
-        ("module.function2.aws_lambda_function.this", "hello world 2 - override version", True),
-        ("function2", "hello world 2 - override version", True),
-        ("aws_lambda_function.function1", "hello world 1 - override version", True),
-        ("function1", "hello world 1 - override version", True),
-        ("module.function2.aws_lambda_function.this", "hello world 2", False),
-        ("function2", "hello world 2", False),
-        ("aws_lambda_function.function1", "hello world 1", False),
-        ("function1", "hello world 1", False),
-        ("aws_lambda_function.from_localfile", "[]", False),
-        ("aws_lambda_function.from_s3", "[]", False),
-        ("module.level1_lambda.aws_lambda_function.this", "[]", False),
-        ("module.level1_lambda.module.level2_lambda.aws_lambda_function.this", "[]", False),
-        ("my_function_from_localfile", "[]", False),
-        ("my_function_from_s3", "[]", False),
-        ("my_level1_lambda", "[]", False),
-        ("my_level2_lambda", "[]", False),
-    ]
 
     @classmethod
     def setUpClass(cls):
@@ -331,55 +331,98 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(Build
             # build, and also we need to remove the Serverless TF functions from this project.
             # that is why we need to use a new project and not one of the existing linux or windows projects
             cls.terraform_application = "terraform/zip_based_lambda_functions_s3_backend_container_windows"
-        if not IS_WINDOWS:
-            # The following functions are defined using serverless tf module, and since Serverless TF has some issue
-            # while executing `terraform plan` in windows, we removed these function from the TF projects we used in
-            # testing on Windows, and only test them on linux.
-            # check the Serverless TF issue https://github.com/terraform-aws-modules/terraform-aws-lambda/issues/142
-            cls.functions += [
-                ("module.function7.aws_lambda_function.this[0]", "hello world 7 - override version", True),
-                ("function7", "hello world 7 - override version", True),
-                ("module.function7.aws_lambda_function.this[0]", "hello world 7", False),
-                ("function7", "hello world 7", False),
-                ("module.function8.aws_lambda_function.this[0]", "hello world 8 - override version", True),
-                ("function8", "hello world 8 - override version", True),
-                ("module.function8.aws_lambda_function.this[0]", "hello world 8", False),
-                ("function8", "hello world 8", False),
-                ("module.function10.aws_lambda_function.this[0]", "hello world 10 - override version", True),
-                ("function10", "hello world 10 - override version", True),
-                ("module.function10.aws_lambda_function.this[0]", "hello world 10", False),
-                ("function10", "hello world 10", False),
-                ("module.function11.aws_lambda_function.this[0]", "hello world 11 - override version", True),
-                ("function11", "hello world 11 - override version", True),
-                ("module.function11.aws_lambda_function.this[0]", "hello world 11", False),
-                ("function11", "hello world 11", False),
-            ]
         super().setUpClass()
 
-    @parameterized.expand(functions)
-    def test_build_and_invoke_lambda_functions(self, function_identifier, expected_output, should_override_code):
-        command_list_parameters = {
-            "hook_name": "terraform",
-            "function_identifier": function_identifier,
-        }
-        if self.build_in_container:
-            command_list_parameters["use_container"] = True
-            command_list_parameters["build_image"] = self.docker_tag
-            if should_override_code:
-                command_list_parameters[
-                    "container_env_var"
-                ] = "TF_VAR_HELLO_FUNCTION_SRC_CODE=./artifacts/HelloWorldFunction2"
-        build_cmd_list = self.get_command_list(**command_list_parameters)
-        LOG.info("command list: %s", build_cmd_list)
-        environment_variables = os.environ.copy()
-        if should_override_code:
-            environment_variables["TF_VAR_HELLO_FUNCTION_SRC_CODE"] = "./artifacts/HelloWorldFunction2"
-        _, stderr, return_code = self.run_command(build_cmd_list, env=environment_variables)
-        LOG.info(stderr)
-        self.assertEqual(return_code, 0)
-
+    def test_build_and_invoke_lambda_functions(self):
+        self.validate_metadata_file()
         self._verify_invoke_built_function(
-            function_logical_id=function_identifier,
+            function_logical_id=self.function_identifier,
             overrides=None,
-            expected_result={"statusCode": 200, "body": expected_output},
+            expected_result={"statusCode": 200, "body": "hello world 9 - override version"},
+        )
+
+
+@skipIf(
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
+    "Skip Terraform test cases unless running in CI",
+)
+@parameterized_class(
+    ("build_in_container",),
+    [
+        (False,),
+        (True,),
+    ],
+)
+@pytest.mark.xdist_group(name="zip_lambda_s3_backend_override")
+class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(BuildTerraformApplicationS3BackendIntegBase):
+    function_identifier = "function9"
+    s3_backend = True
+    terraform_application = (
+        Path("terraform/zip_based_lambda_functions_s3_backend")
+        if not IS_WINDOWS
+        else Path("terraform/zip_based_lambda_functions_s3_backend_windows")
+    )
+
+    @classmethod
+    def setUpClass(cls):
+        if IS_WINDOWS and cls.build_in_container:
+            # we use this TF project to test sam build in container on windows as we need to run a linux bash script for
+            # build, and also we need to remove the Serverless TF functions from this project.
+            # that is why we need to use a new project and not one of the existing linux or windows projects
+            cls.terraform_application = "terraform/zip_based_lambda_functions_s3_backend_container_windows"
+        super().setUpClass()
+
+    def test_build_and_invoke_lambda_functions(self):
+        self.validate_metadata_file()
+        self._verify_invoke_built_function(
+            function_logical_id=self.function_identifier,
+            overrides=None,
+            expected_result={"statusCode": 200, "body": "hello world 9"},
+        )
+
+
+@skipIf(
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
+    "Skip Terraform test cases unless running in CI",
+)
+class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndLocalBackend(BuildTerraformApplicationIntegBase):
+    function_identifier = "aws_lambda_function.function_with_non_image_uri"
+    terraform_application = Path("terraform/image_based_lambda_functions_local_backend")
+
+    def test_build_and_invoke_lambda_functions(self):
+        self.validate_metadata_file()
+        self._verify_invoke_built_function(
+            function_logical_id=self.function_identifier,
+            overrides=None,
+            expected_result={
+                "statusCode": 200,
+                "body": "Hello, My friend!",
+                "headers": None,
+                "multiValueHeaders": None,
+            },
+        )
+
+
+@skipIf(
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
+    "Skip Terraform test cases unless running in CI",
+)
+class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndS3Backend(
+    BuildTerraformApplicationS3BackendIntegBase
+):
+    function_identifier = "aws_lambda_function.function_with_non_image_uri"
+    s3_backend = True
+    terraform_application = Path("terraform/image_based_lambda_functions_s3_backend")
+
+    def test_build_and_invoke_lambda_functions(self):
+        self.validate_metadata_file()
+        self._verify_invoke_built_function(
+            function_logical_id=self.function_identifier,
+            overrides=None,
+            expected_result={
+                "statusCode": 200,
+                "body": "Hello, My friend!",
+                "headers": None,
+                "multiValueHeaders": None,
+            },
         )

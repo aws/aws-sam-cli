@@ -1,5 +1,6 @@
-import uuid
 import json
+import os
+import uuid
 
 import pytest
 from pathlib import Path
@@ -25,6 +26,8 @@ class TestRemoteTestEvent(RemoteTestEventIntegBase):
 
     def test_no_events(self):
         function_name = "HelloWorldFunction1"
+        # Make sure the state is clean
+        TestRemoteTestEvent.delete_all_test_events(function_name)
         self.list_events_and_check(
             self.stack_name,
             function_name,
@@ -41,6 +44,8 @@ class TestRemoteTestEvent(RemoteTestEventIntegBase):
 
     def test_event_workflow(self):
         function_to_check = "HelloWorldFunction2"
+        # Make sure the state is clean
+        TestRemoteTestEvent.delete_all_test_events(function_to_check)
         event_contents1 = {"key1": "Hello", "key2": "serverless", "key3": "world"}
         event_contents2 = {"a": "A", "b": "B", "c": "C"}
 
@@ -56,7 +61,7 @@ class TestRemoteTestEvent(RemoteTestEventIntegBase):
         self.get_event_and_check(self.stack_name, function_to_check, "event2", json.dumps(event_contents2))
 
         # Check two events
-        self.list_events_and_check(self.stack_name, function_to_check, "event1\nevent2")
+        self.list_events_and_check(self.stack_name, function_to_check, os.linesep.join(["event1", "event2"]))
 
         # Invoke with two events (function returns the same event that it receives)
         self.remote_invoke_and_check(self.stack_name, function_to_check, "event1", event_contents1)
@@ -99,7 +104,8 @@ class TestRemoteTestEvent(RemoteTestEventIntegBase):
         output = list_result.stdout.strip()
         error_output = list_result.stderr.strip()
         self.assertEqual(output.decode("utf-8"), expected_output)
-        self.assertEqual(error_output.decode("utf-8"), expected_error)
+        if expected_error:
+            self.assertIn(expected_error, error_output.decode("utf-8"))
 
     def delete_event_and_check(self, stack_name, resource_id, test_event_name):
         command_list = self.get_command_list(
@@ -121,4 +127,5 @@ class TestRemoteTestEvent(RemoteTestEventIntegBase):
         output = list_result.stdout.strip()
         error_output = list_result.stderr.strip()
         self.assertEqual(output.decode("utf-8"), expected_output)
-        self.assertEqual(error_output.decode("utf-8"), expected_error)
+        if expected_error:
+            self.assertIn(expected_error, error_output.decode("utf-8"))

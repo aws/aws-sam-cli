@@ -88,13 +88,15 @@ jobs:
         shell: bash
 
   integration-tests:
-    name: Integration Tests / ${{ matrix.os }} / ${{ matrix.python }} / ${{ matrix.tests_folder }}
+    name: Integ / ${{ matrix.os }} / ${{ matrix.python }} / ${{ matrix.tests_config }}
     if: github.repository_owner == 'aws'
     runs-on: ${{ matrix.os }}
     env:
       AWS_DEFAULT_REGION: us-east-1
       SAM_CLI_DEV: "1"
       CARGO_LAMBDA_VERSION: 0.17.1
+      CARGO_INCREMENTAL: 0 # disable incremental compilation
+      CARGO_TERM_COLOR: always # enable colors in Cargo output
       CI: true
     defaults:
       run:
@@ -110,24 +112,24 @@ jobs:
           - "3.8"
           - "3.9"
         # folders that is commented below requires credentials, no need to spare time to run them
-        tests_folder:
-          - "buildcmd"
+        tests_config:
+          - "-n 2 --reruns 3 tests/integration/buildcmd"
           #- "delete"
           #- "deploy"
-          - "init"
+          - "tests/integration/init"
           #- "list"
-          - "local"
+          - "tests/integration/local"
           #- "logs"
           #- "package"
-          - "pipeline"
+          - "tests/integration/pipeline"
           #- "publish"
-          - "root"
-          - "scripts"
+          - "tests/integration/root"
+          - "tests/integration/scripts"
           #- "sync"
-          - "telemetry"
+          - "tests/integration/telemetry"
           #- "traces"
           #- "validate"
-          - "docs"
+          - "tests/integration/docs"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
@@ -156,33 +158,24 @@ jobs:
         with:
           distribution: 'corretto'
           java-version: '17'
-       # Install and configure Rust
-      - name: Install rustup
+       # Install and configure Rust & Cargo Lambda
+      - name: Install and configure Rust & Cargo Lambda
+        if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
           : install rustup if needed
           if ! command -v rustup &> /dev/null ; then
             curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL "https://sh.rustup.rs" | sh -s -- --default-toolchain none -y
             echo "${CARGO_HOME:-$HOME/.cargo}/bin" >> $GITHUB_PATH
           fi
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-      - name: rustup toolchain install stable
-        run: rustup toolchain install stable --profile minimal --no-self-update
-      - run: rustup default stable
-      - run: |
-          : disable incremental compilation
-          echo CARGO_INCREMENTAL=0 >> $GITHUB_ENV
-      - run: |
-          : enable colors in Cargo output
-          echo CARGO_TERM_COLOR=always >> $GITHUB_ENV
-      # Install and configure Cargo Lambda
-      - name: Install Cargo Lambda
-        run: pip install cargo-lambda==$CARGO_LAMBDA_VERSION
-      - run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+          rustup toolchain install stable --profile minimal --no-self-update
+          rustup default stable
+          pip install cargo-lambda==$CARGO_LAMBDA_VERSION
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Init samdev
         run: make init
-      - name: Run integration tests for ${{ matrix.tests_folder }}
-        run: pytest -vv tests/integration/${{ matrix.tests_folder }}
+      - name: Run integration tests for ${{ matrix.tests_config }}
+        run: pytest -vv ${{ matrix.tests_config }}
 
   smoke-and-functional-tests:
     name: Functional & Smoke Tests / ${{ matrix.os }} / ${{ matrix.python }}

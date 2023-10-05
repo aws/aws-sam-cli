@@ -58,6 +58,7 @@ class RemoteInvokeIntegBase(TestCase):
         cls.lambda_client = boto_client_provider("lambda")
         cls.stepfunctions_client = boto_client_provider("stepfunctions")
         cls.xray_client = boto_client_provider("xray")
+        cls.sqs_client = boto_client_provider("sqs")
 
     @staticmethod
     def get_command_list(
