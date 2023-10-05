@@ -2126,6 +2126,13 @@ class TestCFNTemplateHttpApiWithSwaggerBody(StartApiIntegBaseClass):
 
 
 class TestWarmContainersBaseClass(StartApiIntegBaseClass):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.mode_env_variable = str(uuid.uuid4())
+        cls.parameter_overrides = {"ModeEnvVariable": cls.mode_env_variable}
+        super().setUpClass(cls)
+
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
@@ -2147,8 +2154,6 @@ class TestWarmContainersBaseClass(StartApiIntegBaseClass):
 )
 class TestWarmContainers(TestWarmContainersBaseClass):
     container_mode = ContainersInitializationMode.EAGER.value
-    mode_env_variable = str(uuid.uuid4())
-    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -2167,8 +2172,6 @@ class TestWarmContainers(TestWarmContainersBaseClass):
 )
 class TestWarmContainersInitialization(TestWarmContainersBaseClass):
     container_mode = ContainersInitializationMode.EAGER.value
-    mode_env_variable = str(uuid.uuid4())
-    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -2187,8 +2190,6 @@ class TestWarmContainersInitialization(TestWarmContainersBaseClass):
 )
 class TestWarmContainersMultipleInvoke(TestWarmContainersBaseClass):
     container_mode = ContainersInitializationMode.EAGER.value
-    mode_env_variable = str(uuid.uuid4())
-    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -2210,8 +2211,6 @@ class TestWarmContainersMultipleInvoke(TestWarmContainersBaseClass):
 )
 class TestLazyContainers(TestWarmContainersBaseClass):
     container_mode = ContainersInitializationMode.LAZY.value
-    mode_env_variable = str(uuid.uuid4())
-    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -2230,8 +2229,6 @@ class TestLazyContainers(TestWarmContainersBaseClass):
 )
 class TestLazyContainersInitialization(TestWarmContainersBaseClass):
     container_mode = ContainersInitializationMode.LAZY.value
-    mode_env_variable = str(uuid.uuid4())
-    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -2251,8 +2248,6 @@ class TestLazyContainersInitialization(TestWarmContainersBaseClass):
 )
 class TestLazyContainersMultipleInvoke(TestWarmContainersBaseClass):
     container_mode = ContainersInitializationMode.LAZY.value
-    mode_env_variable = str(uuid.uuid4())
-    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -3149,8 +3144,6 @@ class WarmContainersWithRemoteLayersBase(TestWarmContainersBaseClass):
 class TestWarmContainersRemoteLayers(WarmContainersWithRemoteLayersBase):
     template_path = "/testdata/start_api/template-warm-containers-layers.yaml"
     container_mode = ContainersInitializationMode.EAGER.value
-    mode_env_variable = str(uuid.uuid4())
-    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -3170,8 +3163,6 @@ class TestWarmContainersRemoteLayers(WarmContainersWithRemoteLayersBase):
 class TestWarmContainersRemoteLayersLazyInvoke(WarmContainersWithRemoteLayersBase):
     template_path = "/testdata/start_api/template-warm-containers-layers.yaml"
     container_mode = ContainersInitializationMode.LAZY.value
-    mode_env_variable = str(uuid.uuid4())
-    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
