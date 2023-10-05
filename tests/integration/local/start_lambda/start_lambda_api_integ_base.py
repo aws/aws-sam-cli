@@ -47,11 +47,11 @@ class StartLambdaIntegBaseClass(TestCase):
     def setUpClass(cls):
         # This is the directory for tests/integration which will be used to file the testdata
         # files for integ tests
-        scratch_dir = str(Path(__file__).resolve().parent.joinpath(".tmp", str(uuid.uuid4()).replace("-", "")[:10], "testdata"))
+        scratch_dir = Path(__file__).resolve().parent.joinpath(".tmp", str(uuid.uuid4()).replace("-", "")[:10], "testdata")
         shutil.rmtree(scratch_dir, ignore_errors=True)
         os.makedirs(scratch_dir)
-        copytree(str(Path(cls.integration_dir).joinpath("testdata")), scratch_dir)
-        cls.integration_dir = scratch_dir
+        copytree(str(Path(cls.integration_dir).joinpath("testdata")), str(scratch_dir))
+        cls.integration_dir = scratch_dir.parent
 
         cls.template = cls.integration_dir + cls.template_path
         cls.working_dir = str(Path(cls.template).resolve().parents[0])
