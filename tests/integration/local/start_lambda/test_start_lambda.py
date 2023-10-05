@@ -304,7 +304,7 @@ class TestWarmContainersBaseClass(StartLambdaIntegBaseClass):
     def setUpClass(cls):
         cls.mode_env_variable = str(uuid.uuid4())
         cls.parameter_overrides = {"ModeEnvVariable": cls.mode_env_variable}
-        super().setUpClass(cls)
+        super().setUpClass()
 
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
