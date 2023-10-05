@@ -326,7 +326,7 @@ class TestWarmContainersBaseClass(StartLambdaIntegBaseClass):
                 _, output = container.exec_run(["bash", "-c", "'printenv'"])
                 if f"MODE={self.mode_env_variable}" in str(output):
                     running_containers += 1
-            except docker.errors.NotFound:
+            except (docker.errors.NotFound, docker.errors.APIError):
                 # running tests in parallel might might cause this issue since this container in the loop
                 # might be created by other tests and might be at the removal step now
                 pass
