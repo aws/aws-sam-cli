@@ -168,8 +168,7 @@ class LambdaImage:
                 # Gets the ECR image format like `python:3.7` or `nodejs:16-x86_64`
                 runtime_only_number = re.split("[:-]", runtime_image_tag)[1]
                 tag_prefix = f"{runtime_only_number}-"
-                # base_image = f"{self._INVOKE_REPO_PREFIX}/{runtime_image_tag}"
-                base_image = f"{self._INVOKE_REPO_PREFIX}/provided:al2023-preview-x86_64"
+                base_image = f"{self._INVOKE_REPO_PREFIX}/{runtime_image_tag}"
 
         if not base_image:
             raise InvalidIntermediateImageError(f"Invalid PackageType, PackageType needs to be one of [{ZIP}, {IMAGE}]")
