@@ -336,7 +336,7 @@ class BuildIntegRubyBase(BuildIntegBase):
         self.assertTrue(any([True if self.EXPECTED_RUBY_GEM in gem else False for gem in os.listdir(str(gem_path))]))
 
 
-@pytest.mark.esbuild
+@pytest.mark.nodejs
 class BuildIntegEsbuildBase(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
     # Everything should be minifed to one line and a second line for the sourcemap mapping

@@ -10,6 +10,7 @@ from uuid import uuid4
 
 import jmespath
 import docker
+import pytest
 from parameterized import parameterized, parameterized_class
 
 from samcli.commands.build.utils import MountMode
@@ -966,6 +967,7 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
         )
 
 
+@pytest.mark.dotnet
 class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
     EXPECTED_FILES_PROJECT_MANIFEST = {
