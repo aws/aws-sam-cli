@@ -89,6 +89,7 @@ class TestBuildingImageTypeLambdaDockerFileFailures(BuildIntegBase):
     (not RUN_BY_CANARY and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
+@pytest.mark.python
 class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
     template = "template_image.yaml"
 
@@ -107,8 +108,6 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
         }
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
-        LOG.info("Running Command: ")
-        LOG.info(cmdlist)
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command_result.process.returncode, 0)
 
@@ -135,8 +134,6 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
         }
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
-        LOG.info("Running Command: ")
-        LOG.info(cmdlist)
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command_result.process.returncode, 0)
 
@@ -161,9 +158,6 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
             "Tag": _tag,
         }
         cmdlist = self.get_command_list(use_container=False, parameter_overrides=overrides)
-
-        LOG.info("Running Command: ")
-        LOG.info(cmdlist)
 
         _num_of_containers_before_build = self.get_number_of_created_containers()
         command_result = run_command(cmdlist, cwd=self.working_dir)
@@ -192,6 +186,7 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
     (not RUN_BY_CANARY and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
+@pytest.mark.python
 class TestBuildCommand_PythonFunctions_ImagesWithSharedCode(BuildIntegBase):
     template = "template_images_with_shared_code.yaml"
 
@@ -215,8 +210,6 @@ class TestBuildCommand_PythonFunctions_ImagesWithSharedCode(BuildIntegBase):
         }
         cmdlist = self.get_command_list(use_container=False, parameter_overrides=overrides)
 
-        LOG.info("Running Command: ")
-        LOG.info(cmdlist)
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command_result.process.returncode, 0)
 
@@ -246,9 +239,6 @@ class TestBuildCommand_PythonFunctions_ImagesWithSharedCode(BuildIntegBase):
             "Tag": _tag,
         }
         cmdlist = self.get_command_list(use_container=False, parameter_overrides=overrides)
-
-        LOG.info("Running Command: ")
-        LOG.info(cmdlist)
 
         _num_of_containers_before_build = self.get_number_of_created_containers()
         command_result = run_command(cmdlist, cwd=self.working_dir)
@@ -287,8 +277,6 @@ class TestBuildCommand_PythonFunctions_ImagesWithSharedCode(BuildIntegBase):
         }
         cmdlist = self.get_command_list(use_container=False, parameter_overrides=overrides)
 
-        LOG.info("Running Command: ")
-        LOG.info(cmdlist)
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command_result.process.returncode, 0)
 
@@ -338,8 +326,6 @@ class TestSkipBuildingFunctionsWithLocalImageUri(BuildIntegBase):
         }
         cmdlist = self.get_command_list(parameter_overrides=overrides)
 
-        LOG.info("Running Command: ")
-        LOG.info(cmdlist)
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command_result.process.returncode, 0)
 
@@ -418,7 +404,6 @@ class TestSkipBuildingFlaggedFunctions(BuildIntegPythonBase):
     ):
         cmdlist = self.get_command_list()
 
-        LOG.info("Running Command: {}".format(cmdlist))
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command_result.process.returncode, 0)
 
@@ -638,8 +623,6 @@ class TestBuildCommand_ErrorCases(BuildIntegBase):
         overrides = {"Runtime": "unsupportedpython", "CodeUri": "Python"}
         cmdlist = self.get_command_list(parameter_overrides=overrides)
 
-        LOG.info("Running Command: {}".format(cmdlist))
-        LOG.info(cmdlist)
         process_execute = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(1, process_execute.process.returncode)
 
@@ -1006,8 +989,6 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
             self.template_path = self.template_path.replace("template.yaml", "template_build_method_dotnet_7.yaml")
 
         cmdlist = self.get_command_list(use_container=False, parameter_overrides=overrides)
-
-        LOG.info("Running Command: {}".format(cmdlist))
         LOG.info("Running with SAM_BUILD_MODE={}".format(mode))
 
         newenv = os.environ.copy()
@@ -1079,7 +1060,6 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         cmdlist += ["--container-env-var", "DOTNET_CLI_HOME=/tmp/dotnet"]
         cmdlist += ["--container-env-var", "XDG_DATA_HOME=/tmp/xdg"]
 
-        LOG.info("Running Command: {}".format(cmdlist))
         LOG.info("Running with SAM_BUILD_MODE={}".format(mode))
 
         newenv = os.environ.copy()
@@ -1156,7 +1136,6 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         cmdlist += ["--container-env-var", "DOTNET_CLI_HOME=/tmp/dotnet"]
         cmdlist += ["--container-env-var", "XDG_DATA_HOME=/tmp/xdg"]
 
-        LOG.info("Running Command: {}".format(cmdlist))
         LOG.info("Running with SAM_BUILD_MODE={}".format(mode))
 
         # mock user input to mount with write
@@ -1209,7 +1188,6 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         }
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
-        LOG.info("Running Command: {}".format(cmdlist))
         # mock user input to not allow mounting with write
         user_click_confirm_input = "N"
         process_execute = run_command_with_input(cmdlist, user_click_confirm_input.encode())
@@ -1261,7 +1239,6 @@ class TestBuildCommand_Go_Modules_With_Specified_Architecture(BuildIntegGoBase):
         overrides = {"Runtime": runtime, "CodeUri": code_uri, "Handler": "hello-world", "Architectures": architecture}
         cmdlist = self.get_command_list(parameter_overrides=overrides)
 
-        LOG.info("Running Command: {}".format(cmdlist))
         process_execute = run_command(cmdlist, cwd=self.working_dir)
 
         # Must error out, because container builds are not supported
@@ -1305,7 +1282,6 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
             use_container=use_container, parameter_overrides=overrides, function_identifier=function_identifier
         )
 
-        LOG.info("Running Command: {}".format(cmdlist))
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command_result.process.returncode, 0)
 
@@ -1365,7 +1341,6 @@ class TestBuildCommand_ExcludeResources(BuildIntegBase):
             parameter_overrides=overrides, function_identifier=function_identifier, exclude=excluded_resources
         )
 
-        LOG.info("Running Command: {}".format(cmdlist))
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command_result.process.returncode, 0)
 
@@ -1412,8 +1387,6 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
         )
 
-        LOG.info("Running Command: {}".format(cmdlist))
-
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command_result.process.returncode, 0)
 
@@ -1438,8 +1411,6 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
         )
 
-        LOG.info("Running Command: {}".format(cmdlist))
-
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command_result.process.returncode, 0)
 
@@ -1463,8 +1434,6 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
         )
 
-        LOG.info("Running Command: {}".format(cmdlist))
-
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command_result.process.returncode, 0)
 
@@ -1487,8 +1456,6 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
         )
 
-        LOG.info("Running Command: {}".format(cmdlist))
-
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command_result.process.returncode, 1)
         self.assertFalse(self.default_build_dir.joinpath(layer_identifier).exists())
@@ -1507,8 +1474,6 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             "Handler": "main.handler",
         }
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
-
-        LOG.info("Running Command: {}".format(cmdlist))
 
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command_result.process.returncode, 0)
@@ -1545,8 +1510,6 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         cmdlist = self.get_command_list(
             use_container=use_container, parameter_overrides=overrides, function_identifier="FunctionOne"
         )
-
-        LOG.info("Running Command: {}".format(cmdlist))
 
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command_result.process.returncode, 0)
@@ -2013,7 +1976,6 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
             use_container=True, parameter_overrides=overrides, cached=True, container_env_var="FOO=BAR"
         )
 
-        LOG.info("Running Command (cache should be invalid): %s", cmdlist)
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command_result.process.returncode, 0)
         self.assertTrue(
@@ -2021,7 +1983,7 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
             in command_result.stderr.decode("utf-8")
         )
 
-        LOG.info("Re-Running Command (valid cache should exist): %s", cmdlist)
+        LOG.info("Re-Running Command (valid cache should exist)")
         command_result_with_cache = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command_result_with_cache.process.returncode, 0)
 
@@ -2075,13 +2037,13 @@ class TestRepeatedBuildHitsCache(BuildIntegBase):
             else (cache_invalid_output_no_container, cache_valid_output_no_container)
         )
 
-        LOG.info("Running Command (cache should be invalid): %s", cmdlist)
+        LOG.info("Running Command (cache should be invalid)")
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command_result.process.returncode, 0)
         self.assertTrue(cache_invalid_output in command_result.stderr.decode("utf-8"))
         self.assertFalse(cache_valid_output in command_result.stderr.decode("utf-8"))
 
-        LOG.info("Re-Running Command (valid cache should exist): %s", cmdlist)
+        LOG.info("Re-Running Command (valid cache should exist)")
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command_result.process.returncode, 0)
         self.assertFalse(cache_invalid_output in command_result.stderr.decode("utf-8"))
@@ -2195,7 +2157,6 @@ class TestBuildWithInlineCode(BuildIntegBase):
 
         cmdlist = self.get_command_list(use_container=use_container)
 
-        LOG.info("Running Command: {}".format(cmdlist))
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command_result.process.returncode, 0)
 
@@ -2245,7 +2206,6 @@ class TestBuildWithJsonContainerEnvVars(BuildIntegBase):
             use_container=use_container, container_env_var_file=self.get_env_file(env_vars_file)
         )
 
-        LOG.info("Running Command: {}".format(cmdlist))
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command_result.process.returncode, 0)
 
@@ -2294,7 +2254,6 @@ class TestBuildWithInlineContainerEnvVars(BuildIntegBase):
 
         cmdlist = self.get_command_list(use_container=use_container, container_env_var=inline_env_var)
 
-        LOG.info("Running Command: {}".format(cmdlist))
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command_result.process.returncode, 0)
 
