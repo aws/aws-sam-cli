@@ -23,20 +23,6 @@ class StreamWriter:
     def stream(self) -> TextIO:
         return self._stream
 
-    def write_bytes(self, output: Union[bytes, bytearray]):
-        """
-        Writes specified text to the underlying stream
-
-        Parameters
-        ----------
-        output bytes-like object
-            Bytes to write
-        """
-        self._stream.write(output.decode("utf8"))
-
-        if self._auto_flush:
-            self._stream.flush()
-
     def write_str(self, output: str):
         """
         Writes specified text to the underlying stream
