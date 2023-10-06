@@ -322,16 +322,18 @@ class TestWarmContainersBaseClass(StartLambdaIntegBaseClass):
     def count_running_containers(self):
         running_containers = 0
         for container in self.docker_client.containers.list():
-            try:
-                LOG.info(container.__dict__)
-                _, output = container.exec_run(["bash", "-c", "'printenv'"])
-                if f"MODE={self.mode_env_variable}" in str(output):
-                    running_containers += 1
-            except (docker.errors.NotFound, docker.errors.APIError) as ex:
-                # running tests in parallel might might cause this issue since this container in the loop
-                # might be created by other tests and might be at the removal step now
-                LOG.error("Failed to ping container %s for test %s", container.id, self.id(), exc_info=ex)
-                pass
+            if container.attrs.get("State", {}).get("Status", "") == "Running" and \
+                    container.attrs.get("Config", {}).get("Env", {}).get("MODE", "") == self.mode_env_variable:
+                running_containers += 1
+            # try:
+            #     _, output = container.exec_run(["bash", "-c", "'printenv'"])
+            #     if f"MODE={self.mode_env_variable}" in str(output):
+            #         running_containers += 1
+            # except (docker.errors.NotFound, docker.errors.APIError) as ex:
+            #     # running tests in parallel might might cause this issue since this container in the loop
+            #     # might be created by other tests and might be at the removal step now
+            #     LOG.error("Failed to ping container %s for test %s", container.id, self.id(), exc_info=ex)
+            #     pass
         return running_containers
 
 
