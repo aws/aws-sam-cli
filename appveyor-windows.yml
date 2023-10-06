@@ -21,7 +21,7 @@ configuration:
   - BuildIntegTestingArm64Java
   - BuildIntegTestingArm64Golang
   - BuildIntegTestingArm64Nodejs
-  - BuildIntegTestingArm64Rust
+  - BuildIntegTestingArm64Ruby
 #  - AllTerraformBuildTesting
 #  - DeployIntegTesting
 #  - PackageIntegTesting
