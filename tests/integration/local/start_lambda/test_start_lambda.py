@@ -390,8 +390,6 @@ class TestWarmContainersMultipleInvoke(TestWarmContainersBaseClass):
         initiated_containers = self.count_running_containers()
 
         # validate that no new containers got created
-        LOG.info(self.mode_env_variable)
-        self.assertEqual(1, 2)
         self.assertEqual(initiated_containers, initiated_containers_before_invoking_any_function)
 
 
