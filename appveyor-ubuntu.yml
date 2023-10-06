@@ -4,22 +4,9 @@ image:
 
 configuration:
   - BuildIntegTesting
-  - BuildIntegTestingRuby
-  - BuildIntegTestingNodejs
-  - BuildIntegTestingGolang
-  - BuildIntegTestingJava
-  - BuildIntegTestingPython
-  - BuildIntegTestingProvided
-  - BuildIntegTestingRust
-  - BuildIntegTestingDotnet
-  - BuildIntegTestingArm64Dotnet
-  - BuildIntegTestingArm64Rust
-  - BuildIntegTestingArm64Provided
-  - BuildIntegTestingArm64Python
+  - BuildIntegTestingJavaPythonProvided
+  - BuildIntegTestingArm64
   - BuildIntegTestingArm64Java
-  - BuildIntegTestingArm64Golang
-  - BuildIntegTestingArm64Nodejs
-  - BuildIntegTestingArm64Ruby
 #  - AllTerraformBuildTesting
 #  - DeployIntegTesting
 #  - PackageIntegTesting
@@ -173,96 +160,23 @@ for:
         - configuration: BuildIntegTesting
 
     test_script:
-      - sh: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'not nodejs and not rust and not java and not python and not ruby and not provided and not dotnet' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+      - sh: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'not java and not python and not provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
   - matrix:
       only:
-        - configuration: BuildIntegTestingRust
+        - configuration: BuildIntegTestingJavaPythonProvided
 
     test_script:
-      - sh: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'rust' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+      - sh: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'java or python or provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
-  - matrix:
-      only:
-        - configuration: BuildIntegTestingProvided
-
-    test_script:
-      - sh: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
-
-  - matrix:
-      only:
-        - configuration: BuildIntegTestingPython
-
-    test_script:
-      - sh: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'python' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
-
-  - matrix:
-      only:
-        - configuration: BuildIntegTestingJava
-
-    test_script:
-      - sh: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'java' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
-
-  - matrix:
-      only:
-        - configuration: BuildIntegTestingGolang
-
-    test_script:
-      - sh: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'golang' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
-
-  - matrix:
-      only:
-        - configuration: BuildIntegTestingNodejs
-
-    test_script:
-      - sh: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'nodejs' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
-
-  - matrix:
-      only:
-        - configuration: BuildIntegTestingRuby
-
-    test_script:
-      - sh: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'ruby' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
-
-  - matrix:
-      only:
-        - configuration: BuildIntegTestingDotnet
-
-    test_script:
-      - sh: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'dotnet' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
-
-
-
-  
   # Integ testing build arm64 functions
   - 
     matrix:
       only:
-        - configuration: BuildIntegTestingArm64Dotnet
+        - configuration: BuildIntegTestingArm64
 
     test_script:
-      - sh: "pytest -vv --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'dotnet' --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64.json"
-
-  - matrix:
-      only:
-        - configuration: BuildIntegTestingArm64Rust
-
-    test_script:
-      - sh: "pytest -vv --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'rust' --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64.json"
-
-  - matrix:
-      only:
-        - configuration: BuildIntegTestingArm64Provided
-
-    test_script:
-      - sh: "pytest -vv --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'provided' --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64.json"
-
-  - matrix:
-      only:
-        - configuration: BuildIntegTestingArm64Python
-
-    test_script:
-      - sh: "pytest -vv --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'python' --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64.json"
+      - sh: "pytest -vv --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'not java' --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64.json"
 
   - matrix:
       only:
@@ -270,28 +184,6 @@ for:
 
     test_script:
       - sh: "pytest -vv --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'java' --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64.json"
-
-  - matrix:
-      only:
-        - configuration: BuildIntegTestingArm64Golang
-
-    test_script:
-      - sh: "pytest -vv --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'golang' --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64.json"
-
-  - matrix:
-      only:
-        - configuration: BuildIntegTestingArm64Nodejs
-
-    test_script:
-      - sh: "pytest -vv --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'nodejs' --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64.json"
-
-  - matrix:
-      only:
-        - configuration: BuildIntegTestingArm64Ruby
-
-    test_script:
-      - sh: "pytest -vv --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'ruby' --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64.json"
-
 
   # Integ testing Terraform build
   -

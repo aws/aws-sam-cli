@@ -1029,7 +1029,7 @@ def rust_parameterized_class(cls):
     return cls
 
 
-@pytest.mark.rust
+@pytest.mark.provided
 class BuildIntegRustBase(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
     EXPECTED_FILES_PROJECT_MANIFEST = {"bootstrap"}

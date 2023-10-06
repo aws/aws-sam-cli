@@ -6,22 +6,8 @@ clone_folder: C:\source
 
 configuration:
   - BuildIntegTesting
-  - BuildIntegTestingRuby
-  - BuildIntegTestingNodejs
-  - BuildIntegTestingGolang
-  - BuildIntegTestingJava
-  - BuildIntegTestingPython
-  - BuildIntegTestingProvided
-  - BuildIntegTestingRust
-  - BuildIntegTestingDotnet
-  - BuildIntegTestingArm64Dotnet
-  - BuildIntegTestingArm64Rust
-  - BuildIntegTestingArm64Provided
-  - BuildIntegTestingArm64Python
-  - BuildIntegTestingArm64Java
-  - BuildIntegTestingArm64Golang
-  - BuildIntegTestingArm64Nodejs
-  - BuildIntegTestingArm64Ruby
+  - BuildIntegTestingJavaPythonProvided
+  - BuildIntegTestingArm64
 #  - AllTerraformBuildTesting
 #  - DeployIntegTesting
 #  - PackageIntegTesting
@@ -184,95 +170,14 @@ for:
   #Integ testing build
   - matrix:
       only:
-        - configuration: BuildIntegTestingRust
-
-    build_script:
-      # install Rust in build_script to not override the default "install" actions
-      - appveyor-retry appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
-      - rustup-init.exe -y --default-host x86_64-pc-windows-msvc --default-toolchain stable
-      - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
-      - set RUST_BACKTRACE=1
-      - rustup toolchain install stable --profile minimal --no-self-update
-      - rustup default stable
-      - rustup target add x86_64-unknown-linux-gnu --toolchain stable
-      - rustup target add aarch64-unknown-linux-gnu --toolchain stable
-      - ps: "choco install zig"
-      - ps: Invoke-WebRequest -Uri https://github.com/cargo-lambda/cargo-lambda/releases/download/$env:CARGO_LAMBDA_VERSION/cargo-lambda-$env:CARGO_LAMBDA_VERSION.windows-x64.zip -OutFile C:\Users\appveyor\cargo-lambda.zip
-      - ps: Expand-Archive -DestinationPath C:\Users\appveyor\.cargo\bin C:\Users\appveyor\cargo-lambda.zip
-      - rustc -V
-      - cargo -V
-      - cargo lambda -V
-
-    test_script:
-      - ps: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'rust' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
-
-  - matrix:
-      only:
         - configuration: BuildIntegTesting
 
     test_script:
-      - ps: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'not nodejs and not rust and not java and not python and not ruby and not provided and not dotnet' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+      - ps: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'not java and not python and not provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
   - matrix:
       only:
-        - configuration: BuildIntegTestingProvided
-
-    test_script:
-      - ps: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
-
-  - matrix:
-      only:
-        - configuration: BuildIntegTestingPython
-
-    test_script:
-      - ps: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'python' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
-
-  - matrix:
-      only:
-        - configuration: BuildIntegTestingJava
-
-    test_script:
-      - ps: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'java' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
-
-  - matrix:
-      only:
-        - configuration: BuildIntegTestingGolang
-
-    test_script:
-      - ps: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'golang' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
-
-  - matrix:
-      only:
-        - configuration: BuildIntegTestingNodejs
-
-    test_script:
-      - ps: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'nodejs' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
-
-  - matrix:
-      only:
-        - configuration: BuildIntegTestingRuby
-
-    test_script:
-      - ps: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'ruby' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
-
-  - matrix:
-      only:
-        - configuration: BuildIntegTestingDotnet
-
-    test_script:
-      - ps: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'dotnet' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
-  
-  #Integ testing build arm64
-  - matrix:
-      only:
-        - configuration: BuildIntegTestingArm64Dotnet
-
-    test_script:
-      - ps: "pytest -vv --reruns 3 -m 'dotnet' tests/integration/buildcmd/test_build_cmd_arm64.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64.json"
-
-  - matrix:
-      only:
-        - configuration: BuildIntegTestingArm64Rust
+        - configuration: BuildIntegTestingJavaPythonProvided
 
     build_script:
       # install Rust in build_script to not override the default "install" actions
@@ -292,50 +197,32 @@ for:
       - cargo lambda -V
 
     test_script:
-      - ps: "pytest -vv --reruns 3 -m 'rust' tests/integration/buildcmd/test_build_cmd_arm64.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64.json"
+      - ps: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'java or python or provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
+  #Integ testing build arm64
   - matrix:
       only:
-        - configuration: BuildIntegTestingArm64Provided
+        - configuration: BuildIntegTestingArm64
+
+    build_script:
+      # install Rust in build_script to not override the default "install" actions
+      - appveyor-retry appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
+      - rustup-init.exe -y --default-host x86_64-pc-windows-msvc --default-toolchain stable
+      - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
+      - set RUST_BACKTRACE=1
+      - rustup toolchain install stable --profile minimal --no-self-update
+      - rustup default stable
+      - rustup target add x86_64-unknown-linux-gnu --toolchain stable
+      - rustup target add aarch64-unknown-linux-gnu --toolchain stable
+      - ps: "choco install zig"
+      - ps: Invoke-WebRequest -Uri https://github.com/cargo-lambda/cargo-lambda/releases/download/$env:CARGO_LAMBDA_VERSION/cargo-lambda-$env:CARGO_LAMBDA_VERSION.windows-x64.zip -OutFile C:\Users\appveyor\cargo-lambda.zip
+      - ps: Expand-Archive -DestinationPath C:\Users\appveyor\.cargo\bin C:\Users\appveyor\cargo-lambda.zip
+      - rustc -V
+      - cargo -V
+      - cargo lambda -V
 
     test_script:
-      - ps: "pytest -vv --reruns 3 -m 'provided' tests/integration/buildcmd/test_build_cmd_arm64.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64.json"
-
-  - matrix:
-      only:
-        - configuration: BuildIntegTestingArm64Python
-
-    test_script:
-      - ps: "pytest -vv --reruns 3 -m 'python' tests/integration/buildcmd/test_build_cmd_arm64.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64.json"
-
-  - matrix:
-      only:
-        - configuration: BuildIntegTestingArm64Java
-
-    test_script:
-      - ps: "pytest -vv --reruns 3 -m 'java' tests/integration/buildcmd/test_build_cmd_arm64.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64.json"
-
-  - matrix:
-      only:
-        - configuration: BuildIntegTestingArm64Golang
-
-    test_script:
-      - ps: "pytest -vv --reruns 3 -m 'golang' tests/integration/buildcmd/test_build_cmd_arm64.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64.json"
-
-  - matrix:
-      only:
-        - configuration: BuildIntegTestingArm64Nodejs
-
-    test_script:
-      - ps: "pytest -vv --reruns 3 -m 'nodejs' tests/integration/buildcmd/test_build_cmd_arm64.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64.json"
-
-  - matrix:
-      only:
-        - configuration: BuildIntegTestingArm64Ruby
-
-    test_script:
-      - ps: "pytest -vv --reruns 3 -m 'ruby' tests/integration/buildcmd/test_build_cmd_arm64.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64.json"
-
+      - ps: "pytest -vv --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64.json"
 
   #Integ testing Terraform build
   - matrix:
