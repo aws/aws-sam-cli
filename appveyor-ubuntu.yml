@@ -9,8 +9,7 @@ configuration:
   - BuildIntegTestingArm64Java
   - AllTerraformBuildTesting
   - DeployIntegTesting
-  - PackageIntegTesting
-  - DeleteIntegTesting
+  - PackageAndDeleteIntegTesting
   - SyncIntegTesting
   - LocalIntegTesting
   - EndToEndTesting
@@ -167,7 +166,7 @@ for:
         - configuration: BuildIntegTestingJavaPythonProvided
 
     test_script:
-      - sh: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'java or python or provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+      - sh: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'java or python or provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd-java-python-provided.json"
 
   # Integ testing build arm64 functions
   - 
@@ -183,7 +182,7 @@ for:
         - configuration: BuildIntegTestingArm64Java
 
     test_script:
-      - sh: "pytest -vv --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'java' --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64.json"
+      - sh: "pytest -vv --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'java' --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64-java.json"
 
   # Integ testing Terraform build
   -
@@ -212,23 +211,14 @@ for:
     test_script:
       - sh: "pytest -vv tests/integration/deploy -n 4 --reruns 4 --dist=loadgroup --json-report --json-report-file=TEST_REPORT-integration-deploy.json"
 
-  # Integ testing package
+  # Integ testing package & delete
   -
     matrix:
       only:
-        - configuration: PackageIntegTesting
+        - configuration: PackageAndDeleteIntegTesting
 
     test_script:
-      - sh: "pytest -vv tests/integration/package -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-package.json"
-
-  # Integ testing delete
-  -
-    matrix:
-      only:
-        - configuration: DeleteIntegTesting
-
-    test_script:
-      - sh: "pytest -vv tests/integration/delete -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-delete.json"
+      - sh: "pytest -vv tests/integration/package tests/integration/delete -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-package-delete.json"
 
   # Integ testing sync
   -
