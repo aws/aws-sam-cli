@@ -7,15 +7,15 @@ configuration:
   - BuildIntegTestingJavaPythonProvided
   - BuildIntegTestingArm64
   - BuildIntegTestingArm64Java
-#  - AllTerraformBuildTesting
-#  - DeployIntegTesting
-#  - PackageIntegTesting
-#  - DeleteIntegTesting
-#  - SyncIntegTesting
-#  - LocalIntegTesting
-#  - EndToEndTesting
-#  # other Integration testing, Dev, regression and smoke testing
-#  - OtherTesting
+  - AllTerraformBuildTesting
+  - DeployIntegTesting
+  - PackageIntegTesting
+  - DeleteIntegTesting
+  - SyncIntegTesting
+  - LocalIntegTesting
+  - EndToEndTesting
+  # other Integration testing, Dev, regression and smoke testing
+  - OtherTesting
 
 environment:
   PYTHON_HOME: "$HOME/venv3.8/bin"

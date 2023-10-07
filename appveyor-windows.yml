@@ -8,15 +8,15 @@ configuration:
   - BuildIntegTesting
   - BuildIntegTestingJavaPythonProvided
   - BuildIntegTestingArm64
-#  - AllTerraformBuildTesting
-#  - DeployIntegTesting
-#  - PackageIntegTesting
-#  - DeleteIntegTesting
-#  - SyncIntegTesting
-#  - LocalIntegTesting
-#  - EndToEndTesting
-#  # other Integration testing, Dev, regression and smoke testing
-#  - OtherTesting
+  - AllTerraformBuildTesting
+  - DeployIntegTesting
+  - PackageIntegTesting
+  - DeleteIntegTesting
+  - SyncIntegTesting
+  - LocalIntegTesting
+  - EndToEndTesting
+  # other Integration testing, Dev, regression and smoke testing
+  - OtherTesting
 
 environment:
   AWS_DEFAULT_REGION: us-east-1
