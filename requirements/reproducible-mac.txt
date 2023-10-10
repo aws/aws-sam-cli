@@ -62,7 +62,7 @@ boto3==1.28.58 \
     # via
     #   aws-sam-cli (setup.py)
     #   aws-sam-translator
-boto3-stubs[apigateway,cloudformation,ecr,iam,lambda,s3,schemas,secretsmanager,signer,sqs,stepfunctions,sts,xray]==1.28.58 \
+boto3-stubs[apigateway,cloudformation,ecr,iam,kinesis,lambda,s3,schemas,secretsmanager,signer,sqs,stepfunctions,sts,xray]==1.28.58 \
     --hash=sha256:2d0c4f77e4610bf5bacf6fc136ecaa4266804e2e003d51d07fc176748db53907 \
     --hash=sha256:a1ebd2673e4acba6f9929f341bcc5163e3faf1fe484534e06ea709e41cdb1627
     # via aws-sam-cli (setup.py)
@@ -414,6 +414,10 @@ mypy-boto3-ecr==1.28.45 \
 mypy-boto3-iam==1.28.37 \
     --hash=sha256:39bd5b8b9a48cb47d909d45c13c713c099c2f84719612a0a848d7a0497c6fcf4 \
     --hash=sha256:a5ed8c70c610f2ae7ee4a32ecf87c42824bfeb1e8a8c6347d888c73383d2c61f
+    # via boto3-stubs
+mypy-boto3-kinesis==1.28.36 \
+    --hash=sha256:43713c0ce8f63b2cbd181132e71371031bd90eac250aef7357b239d4da6b8504 \
+    --hash=sha256:ab37194c4f69fead34f1ba12dfa520ad6c1aed9236316df453e9f3c873f2420a
     # via boto3-stubs
 mypy-boto3-lambda==1.28.36 \
     --hash=sha256:70498e6ff6bfd60b758553d27fadf691ba169572faca01c2bd457da0b48b9cff \
@@ -956,6 +960,7 @@ typing-extensions==4.8.0 \
     #   mypy-boto3-cloudformation
     #   mypy-boto3-ecr
     #   mypy-boto3-iam
+    #   mypy-boto3-kinesis
     #   mypy-boto3-lambda
     #   mypy-boto3-s3
     #   mypy-boto3-schemas
