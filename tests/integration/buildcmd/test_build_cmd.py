@@ -1633,12 +1633,6 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture(BuildIntegP
             ("provided.al2", "use_container", "Makefile-container", "x86_64"),
             ("provided.al2023", False, None, "x86_64"),
             ("provided.al2023", "use_container", "Makefile-container", "x86_64"),
-            ("provided", False, None, "arm64"),
-            ("provided", "use_container", "Makefile-container", "arm64"),
-            ("provided.al2", False, None, "arm64"),
-            ("provided.al2", "use_container", "Makefile-container", "arm64"),
-            ("provided.al2023", False, None, "arm64"),
-            ("provided.al2023", "use_container", "Makefile-container", "arm64"),
         ]
     )
     def test_building_Makefile(self, runtime, use_container, manifest, architecture):

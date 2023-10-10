@@ -4,4 +4,4 @@ But deployment of them would probably fail until their GA date
 """
 from typing import Set
 
-PREVIEW_RUNTIMES: Set[str] = {"provided.al2023"}
+PREVIEW_RUNTIMES: Set[str] = {}
