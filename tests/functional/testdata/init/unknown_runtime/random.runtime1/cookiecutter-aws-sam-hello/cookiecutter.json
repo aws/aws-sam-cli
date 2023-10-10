@@ -2,6 +2,6 @@
     "project_name": "Name of the project",
     "runtime": "unknown",
     "architectures": {
-        "value": []
+        "value": ["x86_64", "arm64"]
     }
 }

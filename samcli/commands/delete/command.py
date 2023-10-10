@@ -7,6 +7,7 @@ from typing import Optional
 
 import click
 
+from samcli.cli.cli_config_file import save_params_option
 from samcli.cli.main import aws_creds_options, common_options, pass_context, print_cmdline_args
 from samcli.commands._utils.command_exception_handler import command_exception_handler
 from samcli.lib.telemetry.metric import track_command
@@ -82,12 +83,22 @@ LOG = logging.getLogger(__name__)
 )
 @aws_creds_options
 @common_options
+@save_params_option
 @pass_context
 @track_command
 @check_newer_version
 @print_cmdline_args
 @command_exception_handler
-def cli(ctx, stack_name: str, config_file: str, config_env: str, no_prompts: bool, s3_bucket: str, s3_prefix: str):
+def cli(
+    ctx,
+    stack_name: str,
+    config_file: str,
+    config_env: str,
+    no_prompts: bool,
+    s3_bucket: str,
+    s3_prefix: str,
+    save_params: bool,
+):
     """
     `sam delete` command entry point
     """

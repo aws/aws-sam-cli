@@ -35,7 +35,6 @@ class RemoteInvokeIntegBase(TestCase):
 
     @staticmethod
     def remote_invoke_deploy_stack(stack_name, template_path):
-
         deploy_cmd = DeployIntegBase.get_deploy_command_list(
             stack_name=stack_name,
             template_file=template_path,
@@ -59,6 +58,7 @@ class RemoteInvokeIntegBase(TestCase):
         cls.lambda_client = boto_client_provider("lambda")
         cls.stepfunctions_client = boto_client_provider("stepfunctions")
         cls.xray_client = boto_client_provider("xray")
+        cls.sqs_client = boto_client_provider("sqs")
 
     @staticmethod
     def get_command_list(
@@ -90,7 +90,7 @@ class RemoteInvokeIntegBase(TestCase):
             command_list = command_list + ["--output", output]
 
         if parameter_list:
-            for (parameter, value) in parameter_list:
+            for parameter, value in parameter_list:
                 command_list = command_list + ["--parameter", f"{parameter}={value}"]
 
         if region:

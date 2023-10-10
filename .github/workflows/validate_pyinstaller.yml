@@ -17,6 +17,9 @@ jobs:
     strategy:
       fail-fast: false
     steps:
+      # we need to keep checkout as v3 otherwise it doesn't work with manylinux image above
+      # due to glibc requirement from github actions 
+      # see example failure: https://github.com/aws/aws-sam-cli/actions/runs/6102715182/job/16561754862?pr=5887
       - uses: actions/checkout@v3
       - name: Set up Go
         uses: actions/setup-go@v4
@@ -45,7 +48,7 @@ jobs:
     strategy:
       fail-fast: false
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: "3.7"

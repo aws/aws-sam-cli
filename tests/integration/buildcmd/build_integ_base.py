@@ -14,6 +14,8 @@ import docker
 import jmespath
 from pathlib import Path
 
+from parameterized import parameterized_class
+
 from samcli.commands.build.utils import MountMode
 from samcli.lib.utils import osutils
 from samcli.lib.utils.architecture import X86_64, has_runtime_multi_arch_image
@@ -46,9 +48,9 @@ class BuildIntegBase(TestCase):
         # location that is shared in Docker. Most temp directories are not shared. Therefore we are
         # using a scratch space within the test folder that is .gitignored. Contents of this folder
         # is also deleted after every test run
-        self.scratch_dir = str(Path(__file__).resolve().parent.joinpath(str(uuid.uuid4()).replace("-", "")[:10]))
+        self.scratch_dir = str(Path(__file__).resolve().parent.joinpath("tmp", str(uuid.uuid4()).replace("-", "")[:10]))
         shutil.rmtree(self.scratch_dir, ignore_errors=True)
-        os.mkdir(self.scratch_dir)
+        os.makedirs(self.scratch_dir)
 
         self.working_dir = tempfile.mkdtemp(dir=self.scratch_dir)
         self.custom_build_dir = tempfile.mkdtemp(dir=self.scratch_dir)
@@ -84,6 +86,7 @@ class BuildIntegBase(TestCase):
         build_in_source=None,
         mount_with=None,
         config_file=None,
+        save_params=False,
         project_root_dir=None,
     ):
         command_list = [self.cmd, "build"]
@@ -151,6 +154,9 @@ class BuildIntegBase(TestCase):
         if config_file is not None:
             command_list += ["--config-file", config_file]
 
+        if save_params:
+            command_list += ["--save-params"]
+
         if project_root_dir is not None:
             command_list += ["--terraform-project-root-path", project_root_dir]
 
@@ -169,7 +175,7 @@ class BuildIntegBase(TestCase):
         if IS_WINDOWS:
             time.sleep(1)
         docker_client = docker.from_env()
-        containers = docker_client.containers.list(all=True)
+        containers = docker_client.containers.list(all=True, filters={"status": "exited"})
         return len(containers)
 
     def verify_pulled_image(self, runtime, architecture=X86_64):
@@ -234,8 +240,6 @@ class BuildIntegBase(TestCase):
                 overrides,
             ]
 
-        LOG.info("Running invoke Command: {}".format(cmdlist))
-
         process_execute = run_command(cmdlist)
         process_execute.process.wait()
 
@@ -251,7 +255,7 @@ class BuildIntegBase(TestCase):
 
 class BuildIntegRubyBase(BuildIntegBase):
     EXPECTED_FILES_PROJECT_MANIFEST = {"app.rb"}
-    EXPECTED_RUBY_GEM = "aws-record"
+    EXPECTED_RUBY_GEM = "aws-eventstream"
 
     FUNCTION_LOGICAL_ID = "Function"
 
@@ -259,8 +263,6 @@ class BuildIntegRubyBase(BuildIntegBase):
         overrides = self.get_override(runtime, code_uri, architecture, "ignored")
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
-        LOG.info("Running Command:")
-        LOG.info(cmdlist)
         run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(
@@ -341,6 +343,8 @@ class BuildIntegEsbuildBase(BuildIntegBase):
     def _test_with_default_package_json(
         self, runtime, use_container, code_uri, expected_files, handler, architecture=None, build_in_source=None
     ):
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
+            self.skipTest(SKIP_DOCKER_MESSAGE)
         overrides = self.get_override(runtime, code_uri, architecture, handler)
         manifest_path = str(Path(self.test_data_path, self.MANIFEST_PATH)) if self.MANIFEST_PATH else None
         cmdlist = self.get_command_list(
@@ -349,8 +353,6 @@ class BuildIntegEsbuildBase(BuildIntegBase):
             build_in_source=build_in_source,
             manifest_path=manifest_path,
         )
-
-        LOG.info("Running Command: {}".format(cmdlist))
         run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(
@@ -376,7 +378,6 @@ class BuildIntegEsbuildBase(BuildIntegBase):
         overrides = self.get_override(**overrides)
         cmdlist = self.get_command_list(parameter_overrides=overrides)
 
-        LOG.info("Running Command: {}".format(cmdlist))
         run_command(cmdlist, cwd=self.working_dir)
 
         expected = {"body": '{"message":"hello world!"}', "statusCode": 200}
@@ -435,13 +436,14 @@ class BuildIntegNodeBase(BuildIntegBase):
     MANIFEST_PATH: Optional[str] = None
 
     def _test_with_default_package_json(self, runtime, use_container, relative_path, architecture=None):
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
+            self.skipTest(SKIP_DOCKER_MESSAGE)
         overrides = self.get_override(runtime, self.CODE_URI, architecture, "main.lambdaHandler")
         manifest_path = str(Path(self.test_data_path, self.MANIFEST_PATH)) if self.MANIFEST_PATH else None
         cmdlist = self.get_command_list(
             use_container=use_container, parameter_overrides=overrides, manifest_path=manifest_path
         )
 
-        LOG.info("Running Command: {}".format(cmdlist))
         run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(
@@ -512,8 +514,6 @@ class BuildIntegGoBase(BuildIntegBase):
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
         # Need to pass GOPATH ENV variable to match the test directory when running build
-
-        LOG.info("Running Command: {}".format(cmdlist))
         LOG.info("Running with SAM_BUILD_MODE={}".format(mode))
 
         newenv = os.environ.copy()
@@ -589,8 +589,6 @@ class BuildIntegJavaBase(BuildIntegBase):
         cmdlist += ["--skip-pull-image"]
         if code_path == self.USING_GRADLEW_PATH and use_container and IS_WINDOWS:
             osutils.convert_to_unix_line_ending(os.path.join(self.test_data_path, self.USING_GRADLEW_PATH, "gradlew"))
-
-        LOG.info("Running Command: {}".format(cmdlist))
         run_command(cmdlist, cwd=self.working_dir, timeout=900)
 
         self._verify_built_artifact(
@@ -679,7 +677,6 @@ class BuildIntegPythonBase(BuildIntegBase):
         overrides = self.get_override(runtime, codeuri, architecture, "main.handler") if do_override else None
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
-        LOG.info("Running Command: {}".format(cmdlist))
         run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(
@@ -744,7 +741,10 @@ class BuildIntegPythonBase(BuildIntegBase):
         self.assertEqual(actual_files, expected_files)
 
     def _get_python_version(self):
-        return "python{}.{}".format(sys.version_info.major, sys.version_info.minor)
+        """
+        This method is used to override python version of some of the tests which is run with Makefile
+        """
+        return "python3.10"
 
 
 class BuildIntegProvidedBase(BuildIntegBase):
@@ -770,7 +770,6 @@ class BuildIntegProvidedBase(BuildIntegBase):
             build_in_source=build_in_source,
         )
 
-        LOG.info("Running Command: {}".format(cmdlist))
         # Built using Makefile for a python project.
         run_command(cmdlist, cwd=self.working_dir)
 
@@ -992,9 +991,51 @@ class IntrinsicIntegBase(BuildIntegBase):
                 self.assertEqual(0, process_execute.process.returncode)
 
 
+def rust_parameterized_class(cls):
+    """
+    common class parameterize for rust integration tests
+    """
+    cls = parameterized_class(
+        ("template", "code_uri", "binary", "expected_invoke_result"),
+        [
+            (
+                "template_build_method_rust_single_function.yaml",
+                "Rust/single-function",
+                None,
+                {"req_id": "34", "msg": "Hello World"},
+            ),
+            (
+                "template_build_method_rust_binary.yaml",
+                "Rust/multi-binaries",
+                "function_a",
+                {"req_id": "63", "msg": "Hello FunctionA"},
+            ),
+            (
+                "template_build_method_rust_binary.yaml",
+                "Rust/multi-binaries",
+                "function_b",
+                {"req_id": "99", "msg": "Hello FunctionB"},
+            ),
+        ],
+    )(cls)
+    return cls
+
+
 class BuildIntegRustBase(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
     EXPECTED_FILES_PROJECT_MANIFEST = {"bootstrap"}
+
+    def setUp(self):
+        super().setUp()
+        # Copy source code to working_dir to allow tests run in parallel, as Cargo Lambda generates artifacts in source code dir
+        osutils.copytree(
+            Path(self.template_path).parent.joinpath(self.code_uri),
+            Path(self.working_dir).joinpath(self.code_uri),
+        )
+        # copy template path
+        tmp_template_path = Path(self.working_dir).joinpath(self.template)
+        shutil.copyfile(Path(self.template_path), tmp_template_path)
+        self.template_path = str(tmp_template_path)
 
     def _test_with_rust_cargo_lambda(
         self,
@@ -1007,6 +1048,8 @@ class BuildIntegRustBase(BuildIntegBase):
         use_container=False,
         expected_invoke_result=None,
     ):
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
+            self.skipTest(SKIP_DOCKER_MESSAGE)
         overrides = self.get_override(runtime, code_uri, architecture, handler)
         if binary:
             overrides["Binary"] = binary
