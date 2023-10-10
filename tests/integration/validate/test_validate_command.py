@@ -142,6 +142,7 @@ class TestValidate(TestCase):
             "nodejs18.x",
             "provided",
             "provided.al2",
+            "provided.al2023",
             "python3.7",
             "python3.8",
             "python3.9",
