@@ -1570,8 +1570,6 @@ class TestBuildCommand_ProvidedFunctions(BuildIntegProvidedBase):
             ("provided", "use_container", "Makefile-container"),
             ("provided.al2", False, None),
             ("provided.al2", "use_container", "Makefile-container"),
-            ("provided.al2023", False, None),
-            ("provided.al2023", "use_container", "Makefile-container"),
         ]
     )
     def test_building_Makefile(self, runtime, use_container, manifest):
@@ -1596,8 +1594,6 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture(BuildIntegP
             ("provided", "use_container", "Makefile-container", "x86_64"),
             ("provided.al2", False, None, "x86_64"),
             ("provided.al2", "use_container", "Makefile-container", "x86_64"),
-            ("provided.al2023", False, None, "x86_64"),
-            ("provided.al2023", "use_container", "Makefile-container", "x86_64"),
         ]
     )
     def test_building_Makefile(self, runtime, use_container, manifest, architecture):
@@ -1625,7 +1621,6 @@ class TestBuildCommand_ProvidedFunctionsWithCustomMetadata(BuildIntegProvidedBas
         [
             ("provided", False, None),
             ("provided.al2", False, None),
-            ("provided.al2023", False, None),
         ]
     )
     def test_building_Makefile(self, runtime, use_container, manifest):
