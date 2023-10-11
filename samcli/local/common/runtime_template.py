@@ -32,7 +32,7 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
     ],
     "nodejs": [
         {
-            "runtimes": ["nodejs18.x", "nodejs16.x", "nodejs14.x", "nodejs12.x"],
+            "runtimes": ["nodejs20.x", "nodejs18.x", "nodejs16.x", "nodejs14.x", "nodejs12.x"],
             "dependency_manager": "npm",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-nodejs"),
             "build": True,
@@ -107,6 +107,7 @@ INIT_RUNTIMES = [
     "java8.al2",
     "java8",
     # nodejs runtimes in descending order
+    "nodejs20.x",
     "nodejs18.x",
     "nodejs16.x",
     "nodejs14.x",
@@ -134,6 +135,7 @@ LAMBDA_IMAGES_RUNTIMES_MAP = {
     "java11": "amazon/java11-base",
     "java8.al2": "amazon/java8.al2-base",
     "java8": "amazon/java8-base",
+    "nodejs20.x": "amazon/nodejs20.x-base",
     "nodejs18.x": "amazon/nodejs18.x-base",
     "nodejs16.x": "amazon/nodejs16.x-base",
     "nodejs14.x": "amazon/nodejs14.x-base",

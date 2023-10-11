@@ -668,10 +668,12 @@ class TestBuildCommand_NodeFunctions(BuildIntegNodeBase):
             ("nodejs14.x", False),
             ("nodejs16.x", False),
             ("nodejs18.x", False),
+            ("nodejs20.x", False),
             ("nodejs12.x", "use_container"),
             ("nodejs14.x", "use_container"),
             ("nodejs16.x", "use_container"),
             ("nodejs18.x", "use_container"),
+            ("nodejs20.x", "use_container"),
         ]
     )
     @pytest.mark.flaky(reruns=3)
@@ -691,6 +693,7 @@ class TestBuildCommand_NodeFunctions_With_External_Manifest(BuildIntegNodeBase):
             ("nodejs14.x",),
             ("nodejs16.x",),
             ("nodejs18.x",),
+            ("nodejs20.x",),
         ]
     )
     @pytest.mark.flaky(reruns=3)
@@ -767,6 +770,14 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest(BuildIntegEsbuild
                 "arm64",
             ),
             (
+                "nodejs20.x",
+                "Esbuild/Node_without_manifest",
+                {"main.js", "main.js.map"},
+                "main.lambdaHandler",
+                False,
+                "arm64",
+            ),
+            (
                 "nodejs14.x",
                 "Esbuild/TypeScript_without_manifest",
                 {"app.js", "app.js.map"},
@@ -784,6 +795,14 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest(BuildIntegEsbuild
             ),
             (
                 "nodejs18.x",
+                "Esbuild/TypeScript_without_manifest",
+                {"app.js", "app.js.map"},
+                "app.lambdaHandler",
+                False,
+                "arm64",
+            ),
+            (
+                "nodejs20.x",
                 "Esbuild/TypeScript_without_manifest",
                 {"app.js", "app.js.map"},
                 "app.lambdaHandler",
@@ -817,8 +836,10 @@ class TestBuildCommand_EsbuildFunctionProperties(BuildIntegEsbuildBase):
         [
             ("nodejs16.x", "../Esbuild/TypeScript", "app.lambdaHandler", "x86_64"),
             ("nodejs18.x", "../Esbuild/TypeScript", "app.lambdaHandler", "x86_64"),
+            ("nodejs20.x", "../Esbuild/TypeScript", "app.lambdaHandler", "x86_64"),
             ("nodejs16.x", "../Esbuild/TypeScript", "nested/function/app.lambdaHandler", "x86_64"),
             ("nodejs18.x", "../Esbuild/TypeScript", "nested/function/app.lambdaHandler", "x86_64"),
+            ("nodejs20.x", "../Esbuild/TypeScript", "nested/function/app.lambdaHandler", "x86_64"),
         ]
     )
     @pytest.mark.flaky(reruns=3)
@@ -841,18 +862,22 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture(BuildIntegNodeB
             ("nodejs14.x", False, "x86_64"),
             ("nodejs16.x", False, "x86_64"),
             ("nodejs18.x", False, "x86_64"),
+            ("nodejs20.x", False, "x86_64"),
             ("nodejs12.x", "use_container", "x86_64"),
             ("nodejs14.x", "use_container", "x86_64"),
             ("nodejs16.x", "use_container", "x86_64"),
             ("nodejs18.x", "use_container", "x86_64"),
+            ("nodejs20.x", "use_container", "x86_64"),
             ("nodejs12.x", False, "arm64"),
             ("nodejs14.x", False, "arm64"),
             ("nodejs16.x", False, "arm64"),
             ("nodejs18.x", False, "arm64"),
+            ("nodejs20.x", False, "arm64"),
             ("nodejs12.x", "use_container", "arm64"),
             ("nodejs14.x", "use_container", "arm64"),
             ("nodejs16.x", "use_container", "arm64"),
             ("nodejs18.x", "use_container", "arm64"),
+            ("nodejs20.x", "use_container", "arm64"),
         ]
     )
     @pytest.mark.flaky(reruns=3)
