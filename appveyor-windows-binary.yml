@@ -6,6 +6,7 @@ clone_folder: C:\source
 
 configuration:
   - BuildIntegTesting
+  - BuildIntegTestingJavaPythonProvided
   - BuildIntegTestingArm64
   - AllTerraformBuildTesting
   - DeployIntegTesting
@@ -175,10 +176,17 @@ on_finish:
 
 
 for:
-  #Integ testing build, regression
+  #Integ testing build
   - matrix:
       only:
         - configuration: BuildIntegTesting
+
+    test_script:
+      - ps: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'not java and not python and not provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+
+  - matrix:
+      only:
+        - configuration: BuildIntegTestingJavaPythonProvided
 
     build_script:
       # install Rust in build_script to not override the default "install" actions
@@ -198,7 +206,7 @@ for:
       - cargo lambda -V
 
     test_script:
-      - ps: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+      - ps: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'java or python or provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
   #Integ testing build arm64
   - matrix:

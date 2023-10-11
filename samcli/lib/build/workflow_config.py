@@ -201,6 +201,7 @@ def get_workflow_config(
         ),
         "provided": BasicWorkflowSelector(PROVIDED_MAKE_CONFIG),
         "provided.al2": BasicWorkflowSelector(PROVIDED_MAKE_CONFIG),
+        "provided.al2023": BasicWorkflowSelector(PROVIDED_MAKE_CONFIG),
     }
 
     selectors_by_builder = {
