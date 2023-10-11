@@ -65,6 +65,11 @@ def local_common_options(f):
             "Use 0.0.0.0 to bind to all interfaces.",
         ),
         click.option(
+            "--add-host",
+            multiple=True,
+            help="Utilize hostname to IP mapping via docker --add-host flag. Can be multiple."
+        ),
+        click.option(
             "--invoke-image",
             "-ii",
             default=None,

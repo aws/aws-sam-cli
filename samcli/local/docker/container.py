@@ -77,6 +77,7 @@ class Container:
         container_host_interface="127.0.0.1",
         mount_with_write: bool = False,
         host_tmp_dir: Optional[str] = None,
+        extra_hosts: Optional[dict] = None
     ):
         """
         Initializes the class with given configuration. This does not automatically create or run the container.
@@ -98,6 +99,7 @@ class Container:
         :param bool mount_with_write: Optional. Mount source code directory with write permissions when
             building on container
         :param string host_tmp_dir: Optional. Temporary directory on the host when mounting with write permissions.
+        :param dict extra_hosts: Optional. Dict of hostname to IP resolutions
         """
 
         self._image = image
@@ -112,6 +114,7 @@ class Container:
         self._container_opts = container_opts
         self._additional_volumes = additional_volumes
         self._logs_thread = None
+        self._extra_hosts = extra_hosts
 
         # Use the given Docker client or create new one
         self.docker_client = docker_client or docker.from_env(version=DOCKER_MIN_API_VERSION)
@@ -208,6 +211,9 @@ class Container:
         if self._memory_limit_mb:
             # Ex: 128m => 128MB
             kwargs["mem_limit"] = "{}m".format(self._memory_limit_mb)
+
+        if self._extra_hosts:
+            kwargs["extra_hosts"] = self._extra_hosts
 
         real_container = self.docker_client.containers.create(self._image, **kwargs)
         self.id = real_container.id
