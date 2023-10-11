@@ -141,6 +141,7 @@ install:
   - sh: "docker tag amazon/aws-sam-cli-build-image-java11:x86_64 public.ecr.aws/sam/build-java11:latest-x86_64"
   - sh: "docker tag amazon/aws-sam-cli-build-image-java8.al2:arm64 public.ecr.aws/sam/build-java8.al2:latest-arm64"
   - sh: "docker tag amazon/aws-sam-cli-build-image-java8.al2:x86_64 public.ecr.aws/sam/build-java8.al2:latest-x86_64"
+  - sh: "cd .."
 
 
 build_script:
