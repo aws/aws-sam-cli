@@ -3,9 +3,9 @@ image:
   - Ubuntu2004
 
 configuration:
-#  - BuildIntegTesting
+  - BuildIntegTesting
   - BuildIntegTestingJavaPythonProvided
-#  - BuildIntegTestingArm64
+  - BuildIntegTestingArm64
   - BuildIntegTestingArm64Java
 #  - AllTerraformBuildTesting
 #  - DeployIntegTesting
