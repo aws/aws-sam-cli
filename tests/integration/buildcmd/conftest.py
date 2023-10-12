@@ -1,4 +1,6 @@
+import logging
 
+LOG = logging.getLogger(__name__)
 
 def pytest_sessionstart(session):
-    print(session)
+    LOG.info(session)
