@@ -130,18 +130,18 @@ install:
     fi"
 
   # build images locally
-  - sh: "git clone https://github.com/mndeveci/aws-sam-build-images.git"
-  - sh: "cd aws-sam-build-images && git checkout prebuild_gradle_jars"
-  - sh: "SAM_CLI_VERSION=1.98.0 RUNTIME=java17 make build-multi-arch"
-  - sh: "SAM_CLI_VERSION=1.98.0 RUNTIME=java11 make build-multi-arch"
-  - sh: "SAM_CLI_VERSION=1.98.0 RUNTIME=java8_al2 make build-multi-arch"
-  - sh: "docker tag amazon/aws-sam-cli-build-image-java17:arm64 public.ecr.aws/sam/build-java17:latest-arm64"
-  - sh: "docker tag amazon/aws-sam-cli-build-image-java17:x86_64 public.ecr.aws/sam/build-java17:latest-x86_64"
-  - sh: "docker tag amazon/aws-sam-cli-build-image-java11:arm64 public.ecr.aws/sam/build-java11:latest-arm64"
-  - sh: "docker tag amazon/aws-sam-cli-build-image-java11:x86_64 public.ecr.aws/sam/build-java11:latest-x86_64"
-  - sh: "docker tag amazon/aws-sam-cli-build-image-java8.al2:arm64 public.ecr.aws/sam/build-java8.al2:latest-arm64"
-  - sh: "docker tag amazon/aws-sam-cli-build-image-java8.al2:x86_64 public.ecr.aws/sam/build-java8.al2:latest-x86_64"
-  - sh: "cd .."
+#  - sh: "git clone https://github.com/mndeveci/aws-sam-build-images.git"
+#  - sh: "cd aws-sam-build-images && git checkout prebuild_gradle_jars"
+#  - sh: "SAM_CLI_VERSION=1.98.0 RUNTIME=java17 make build-multi-arch"
+#  - sh: "SAM_CLI_VERSION=1.98.0 RUNTIME=java11 make build-multi-arch"
+#  - sh: "SAM_CLI_VERSION=1.98.0 RUNTIME=java8_al2 make build-multi-arch"
+#  - sh: "docker tag amazon/aws-sam-cli-build-image-java17:arm64 public.ecr.aws/sam/build-java17:latest-arm64"
+#  - sh: "docker tag amazon/aws-sam-cli-build-image-java17:x86_64 public.ecr.aws/sam/build-java17:latest-x86_64"
+#  - sh: "docker tag amazon/aws-sam-cli-build-image-java11:arm64 public.ecr.aws/sam/build-java11:latest-arm64"
+#  - sh: "docker tag amazon/aws-sam-cli-build-image-java11:x86_64 public.ecr.aws/sam/build-java11:latest-x86_64"
+#  - sh: "docker tag amazon/aws-sam-cli-build-image-java8.al2:arm64 public.ecr.aws/sam/build-java8.al2:latest-arm64"
+#  - sh: "docker tag amazon/aws-sam-cli-build-image-java8.al2:x86_64 public.ecr.aws/sam/build-java8.al2:latest-x86_64"
+#  - sh: "cd .."
 
 
 build_script:

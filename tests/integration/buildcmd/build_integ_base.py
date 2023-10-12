@@ -242,7 +242,6 @@ class BuildIntegBase(TestCase):
             ]
 
         process_execute = run_command(cmdlist)
-        process_execute.process.wait()
 
         process_stdout = process_execute.stdout.decode("utf-8")
         self.assertEqual(json.loads(process_stdout), expected_result)
