@@ -217,7 +217,7 @@ class RemoteInvokeContext:
 
             if SUPPORTED_SERVICES.get(service_from_arn) == AWS_KINESIS_STREAM:
                 # Note (hnnasit): Add unit test after AWS_KINESIS_STREAM is added to SUPPORTED_SERVICES
-                # StreamName extraced from arn is used as resource_id.
+                # StreamName extracted from arn is used as resource_id.
                 resource_id = resource_arn.resource_id
 
             return CloudFormationResourceSummary(
