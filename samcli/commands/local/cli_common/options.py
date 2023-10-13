@@ -66,6 +66,7 @@ def local_common_options(f):
         ),
         click.option(
             "--add-host",
+            default=None,
             multiple=True,
             help="Utilize hostname to IP mapping via docker --add-host flag. Can be multiple."
         ),

@@ -96,6 +96,7 @@ def cli(
     debug_function,
     container_host,
     container_host_interface,
+    add_host,
     invoke_image,
     hook_name,
     skip_prepare_infra,
@@ -128,6 +129,7 @@ def cli(
         debug_function,
         container_host,
         container_host_interface,
+        add_host,
         invoke_image,
         hook_name,
     )  # pragma: no cover

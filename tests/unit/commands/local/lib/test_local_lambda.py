@@ -569,6 +569,7 @@ class TestLocalLambda_invoke(TestCase):
             stderr=stderr,
             container_host=None,
             container_host_interface=None,
+            extra_hosts=None,
         )
 
     @patch("samcli.commands.local.lib.local_lambda.validate_architecture_runtime")
@@ -594,6 +595,7 @@ class TestLocalLambda_invoke(TestCase):
             stderr=stderr,
             container_host=None,
             container_host_interface=None,
+            extra_hosts=None,
         )
 
     @patch("samcli.commands.local.lib.local_lambda.validate_architecture_runtime")
@@ -677,6 +679,7 @@ class TestLocalLambda_invoke(TestCase):
             stderr=stderr,
             container_host=None,
             container_host_interface=None,
+            extra_hosts=None,
         )
 
     def test_must_raise_if_imageuri_not_found(self):
@@ -756,6 +759,7 @@ class TestLocalLambda_invoke_with_container_host_option(TestCase):
             stderr=stderr,
             container_host="localhost",
             container_host_interface="127.0.0.1",
+            extra_hosts=None,
         )
 
 

@@ -36,6 +36,7 @@ CONTAINER_OPTION_NAMES: List[str] = [
     "shutdown",
     "container_host",
     "container_host_interface",
+    "add_host",
     "invoke_image",
 ]
 
