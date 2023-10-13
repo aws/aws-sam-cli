@@ -244,9 +244,11 @@ class BuildIntegBase(TestCase):
         for i in range(5):
             process_execute = run_command(cmdlist)
             process_stdout = process_execute.stdout.decode("utf-8")
-            LOG.info("Local invoke output: %s", process_stdout)
+            process_stderr = process_execute.stderr.decode("utf-8")
+            LOG.info("Local invoke stdout: %s", process_stdout)
+            LOG.info("Local invoke stderr: %s", process_stderr)
 
-            if "timed out after" in process_stdout:
+            if "timed out after" in process_stderr:
                 LOG.info("Function timed out, retrying")
                 continue
 
