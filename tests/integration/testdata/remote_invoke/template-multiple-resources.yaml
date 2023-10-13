@@ -103,7 +103,16 @@ Resources:
     Type: AWS::SQS::Queue
     Properties:
       FifoQueue: true
+  
+  # Define an AWS Kinesis Data Stream
+  KinesisStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      ShardCount: 3
 
 Outputs:
   MySQSQueueArn:
     Value: !GetAtt MySQSQueue.Arn
+  KinesisStreamArn:
+    Description: Kinesis Data Stream name
+    Value: !GetAtt KinesisStream.Arn
