@@ -75,7 +75,7 @@ class SamApiProvider(CfnBaseApiProvider):
             for logical_id, resource in stack.resources.items():
                 resource_type = resource.get(CfnBaseApiProvider.RESOURCE_TYPE)
                 if resource_type == AWS_SERVERLESS_FUNCTION:
-                    self._extract_routes_from_function(stack.stack_path, logical_id, resource, collector)
+                    self._extract_routes_from_function(stack.stack_path, logical_id, resource, collector, disable_authorizer=disable_authorizer)
                 if resource_type == AWS_SERVERLESS_API:
                     self._extract_from_serverless_api(
                         stack.stack_path,
@@ -86,7 +86,7 @@ class SamApiProvider(CfnBaseApiProvider):
                         disable_authorizer=disable_authorizer,
                     )
                 if resource_type == AWS_SERVERLESS_HTTPAPI:
-                    self._extract_from_serverless_http(stack.stack_path, logical_id, resource, collector, cwd=cwd)
+                    self._extract_from_serverless_http(stack.stack_path, logical_id, resource, collector, cwd=cwd, disable_authorizer=disable_authorizer)
 
         collector.routes = self.merge_routes(collector)
 
@@ -385,7 +385,7 @@ class SamApiProvider(CfnBaseApiProvider):
         self._extract_authorizers_from_props(logical_id, auth, collector, Route.HTTP)
 
     def _extract_routes_from_function(
-        self, stack_path: str, logical_id: str, function_resource: Dict, collector: ApiCollector
+        self, stack_path: str, logical_id: str, function_resource: Dict, collector: ApiCollector, disable_authorizer: bool = False
     ) -> None:
         """
         Fetches a list of routes configured for this SAM Function resource.
@@ -403,14 +403,17 @@ class SamApiProvider(CfnBaseApiProvider):
 
         collector: samcli.lib.providers.api_collector.ApiCollector
             Instance of the API collector that where we will save the API information
+        
+        disable_authorizer : bool
+            Optional flag to disable the extraction of authorizers
         """
 
         resource_properties = function_resource.get("Properties", {})
         serverless_function_events = resource_properties.get(self._FUNCTION_EVENT, {})
-        self.extract_routes_from_events(stack_path, logical_id, serverless_function_events, collector)
+        self.extract_routes_from_events(stack_path, logical_id, serverless_function_events, collector, disable_authorizer=disable_authorizer)
 
     def extract_routes_from_events(
-        self, stack_path: str, function_logical_id: str, serverless_function_events: Dict, collector: ApiCollector
+        self, stack_path: str, function_logical_id: str, serverless_function_events: Dict, collector: ApiCollector, disable_authorizer: bool = False
     ) -> None:
         """
         Given an AWS::Serverless::Function Event Dictionary, extract out all 'route' events and store  within the
@@ -429,13 +432,16 @@ class SamApiProvider(CfnBaseApiProvider):
 
         collector: samcli.lib.providers.api_collector.ApiCollector
             Instance of the Route collector that where we will save the route information
+        
+        disable_authorizer : bool
+            Optional flag to disable extraction of authorizers
         """
         count = 0
         for _, event in serverless_function_events.items():
             event_type = event.get(self._EVENT_TYPE)
             if event_type in [self._EVENT_TYPE_API, self._EVENT_TYPE_HTTP_API]:
                 route_resource_id, route = self._convert_event_route(
-                    stack_path, function_logical_id, event.get("Properties"), event.get(SamApiProvider._EVENT_TYPE)
+                    stack_path, function_logical_id, event.get("Properties"), event.get(SamApiProvider._EVENT_TYPE), disable_authorizer=disable_authorizer
                 )
                 collector.add_routes(route_resource_id, [route])
                 count += 1
@@ -444,7 +450,7 @@ class SamApiProvider(CfnBaseApiProvider):
 
     @staticmethod
     def _convert_event_route(
-        stack_path: str, lambda_logical_id: str, event_properties: Dict, event_type: str
+        stack_path: str, lambda_logical_id: str, event_properties: Dict, event_type: str, disable_authorizer: bool = False
     ) -> Tuple[str, Route]:
         """
         Converts a AWS::Serverless::Function's Event Property to an Route configuration usable by the provider.
@@ -453,6 +459,7 @@ class SamApiProvider(CfnBaseApiProvider):
         :param str lambda_logical_id: Logical Id of the AWS::Serverless::Function
         :param dict event_properties: Dictionary of the Event's Property
         :param event_type: The event type, 'Api' or 'HttpApi', see samcli/local/apigw/local_apigw_service.py:35
+        :param disable_authorizer: Optional flag to disable the extraction of authorizer
         :return tuple: tuple of route resource name and route
         """
         path = cast(str, event_properties.get(SamApiProvider._EVENT_PATH))
@@ -486,7 +493,7 @@ class SamApiProvider(CfnBaseApiProvider):
 
         # Find Authorizer
         authorizer_name = event_properties.get(SamApiProvider._AUTH, {}).get(SamApiProvider._AUTHORIZER, None)
-        if authorizer_name == "NONE":
+        if authorizer_name == "NONE" or disable_authorizer:
             # do not use any authorizers
             use_default_authorizer = False
             authorizer_name = None
