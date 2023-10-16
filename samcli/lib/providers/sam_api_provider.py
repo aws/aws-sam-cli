@@ -367,14 +367,14 @@ class SamApiProvider(CfnBaseApiProvider):
             )
             return
         CfnBaseApiProvider.extract_swagger_route(
-            stack_path, logical_id, body, uri, None, collector, cwd=cwd, event_type=Route.HTTP
+            stack_path, logical_id, body, uri, None, collector, cwd=cwd, event_type=Route.HTTP, disable_authorizer=disable_authorizer
         )
         collector.stage_name = stage_name
         collector.stage_variables = stage_variables
         collector.cors = cors
 
         auth = properties.get(SamApiProvider._AUTH, {})
-        if not auth and not disable_authorizer:
+        if not auth or disable_authorizer:
             LOG.debug("authorizer not found or disabled, returning early")
             return
 
