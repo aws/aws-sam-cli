@@ -10,7 +10,6 @@ from tests.integration.buildcmd.build_integ_base import BuildIntegProvidedBase, 
 LOG = logging.getLogger(__name__)
 
 
-@skip("Building in source option is not exposed yet. Stop skipping once it is.")
 class TestBuildCommand_BuildInSource_Makefile(BuildIntegProvidedBase):
     template = "template.yaml"
     is_nested_parent = False
@@ -50,9 +49,9 @@ class TestBuildCommand_BuildInSource_Makefile(BuildIntegProvidedBase):
         )
 
 
-@skip("Building in source option is not exposed yet. Stop skipping once it is.")
 class TestBuildCommand_BuildInSource_Esbuild(BuildIntegEsbuildBase):
     is_nested_parent = False
+    template = "template_with_metadata_esbuild.yaml"
 
     def setUp(self):
         super().setUp()
@@ -73,7 +72,6 @@ class TestBuildCommand_BuildInSource_Esbuild(BuildIntegEsbuildBase):
     )
     @pytest.mark.flaky(reruns=3)
     def test_builds_successfully_without_local_dependencies(self, build_in_source, dependencies_expected_in_source):
-        self.template_path = os.path.join(self.test_data_path, "template_with_metadata.yaml")
         codeuri = os.path.join(self.test_data_path, "Esbuild", "Node")
         self.source_directories = [codeuri]
 
@@ -92,7 +90,6 @@ class TestBuildCommand_BuildInSource_Esbuild(BuildIntegEsbuildBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_builds_successfully_with_local_dependency(self):
-        self.template_path = os.path.join(self.test_data_path, "template_with_metadata.yaml")
         codeuri = os.path.join(self.test_data_path, "Esbuild", "NodeWithLocalDependency")
         self.source_directories = [codeuri]
         runtime = "nodejs16.x"
