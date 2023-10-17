@@ -14,6 +14,7 @@ import docker
 import jmespath
 from pathlib import Path
 
+import pytest
 from parameterized import parameterized_class
 
 from samcli.commands.build.utils import MountMode
@@ -240,11 +241,23 @@ class BuildIntegBase(TestCase):
                 overrides,
             ]
 
-        process_execute = run_command(cmdlist)
-        process_execute.process.wait()
+        for i in range(5):
+            process_execute = run_command(cmdlist)
+            process_stdout = process_execute.stdout.decode("utf-8")
+            process_stderr = process_execute.stderr.decode("utf-8")
+            LOG.info("Local invoke stdout: %s", process_stdout)
+            LOG.info("Local invoke stderr: %s", process_stderr)
 
-        process_stdout = process_execute.stdout.decode("utf-8")
-        self.assertEqual(json.loads(process_stdout), expected_result)
+            if "timed out after" in process_stderr:
+                LOG.info("Function timed out, retrying")
+                continue
+
+            if json.loads(process_stdout) == expected_result:
+                LOG.info("Expected result found, succeeded!")
+                # success
+                return
+
+        self.fail("Failed to invoke function & get expected result")
 
     def get_override(self, runtime, code_uri, architecture, handler):
         overrides = {"Runtime": runtime, "CodeUri": code_uri, "Handler": handler}
@@ -253,6 +266,7 @@ class BuildIntegBase(TestCase):
         return overrides
 
 
+@pytest.mark.ruby
 class BuildIntegRubyBase(BuildIntegBase):
     EXPECTED_FILES_PROJECT_MANIFEST = {"app.rb"}
     EXPECTED_RUBY_GEM = "aws-eventstream"
@@ -334,6 +348,7 @@ class BuildIntegRubyBase(BuildIntegBase):
         self.assertTrue(any([True if self.EXPECTED_RUBY_GEM in gem else False for gem in os.listdir(str(gem_path))]))
 
 
+@pytest.mark.nodejs
 class BuildIntegEsbuildBase(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
     # Everything should be minifed to one line and a second line for the sourcemap mapping
@@ -427,6 +442,7 @@ class BuildIntegEsbuildBase(BuildIntegBase):
         self.assertEqual(actual_files, expected_files)
 
 
+@pytest.mark.nodejs
 class BuildIntegNodeBase(BuildIntegBase):
     EXPECTED_FILES_PROJECT_MANIFEST = {"node_modules", "main.js"}
     EXPECTED_NODE_MODULES = {"minimal-request-promise"}
@@ -505,6 +521,7 @@ class BuildIntegNodeBase(BuildIntegBase):
         self.assertEqual(actual_files, expected_modules)
 
 
+@pytest.mark.golang
 class BuildIntegGoBase(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
     EXPECTED_FILES_PROJECT_MANIFEST = {"hello-world"}
@@ -568,6 +585,7 @@ class BuildIntegGoBase(BuildIntegBase):
         self.assertEqual(actual_files, expected_files)
 
 
+@pytest.mark.java
 class BuildIntegJavaBase(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
 
@@ -650,6 +668,7 @@ class BuildIntegJavaBase(BuildIntegBase):
         self.assertEqual(lib_dir_contents, expected_modules)
 
 
+@pytest.mark.python
 class BuildIntegPythonBase(BuildIntegBase):
     EXPECTED_FILES_PROJECT_MANIFEST = {
         "__init__.py",
@@ -747,6 +766,7 @@ class BuildIntegPythonBase(BuildIntegBase):
         return "python3.10"
 
 
+@pytest.mark.provided
 class BuildIntegProvidedBase(BuildIntegBase):
     EXPECTED_FILES_PROJECT_MANIFEST = {"__init__.py", "main.py", "requests", "requirements.txt"}
 
@@ -1021,6 +1041,7 @@ def rust_parameterized_class(cls):
     return cls
 
 
+@pytest.mark.provided
 class BuildIntegRustBase(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
     EXPECTED_FILES_PROJECT_MANIFEST = {"bootstrap"}

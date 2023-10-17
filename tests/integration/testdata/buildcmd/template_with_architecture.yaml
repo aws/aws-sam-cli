@@ -19,7 +19,7 @@ Resources:
       Handler: !Ref Handler
       Runtime: !Ref Runtime
       CodeUri: !Ref CodeUri
-      Timeout: 600
+      Timeout: 60
       Architectures:
         - !Ref Architectures
 
