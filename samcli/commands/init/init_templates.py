@@ -284,7 +284,7 @@ class InitTemplates:
             response = requests.get(MANIFEST_URL, timeout=10)
             body = response.text
             # if the commit is not exist then MANIFEST_URL will be invalid, fall back to use manifest in latest commit
-            if response.status_code == Status.NOT_FOUND:
+            if response.status_code == Status.NOT_FOUND.value:
                 LOG.warning(
                     "Request to MANIFEST_URL: %s failed, the commit hash in this url maybe invalid, "
                     "Using manifest.json in the latest commit instead.",
