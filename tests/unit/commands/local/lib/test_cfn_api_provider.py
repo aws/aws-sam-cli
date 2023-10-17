@@ -1187,30 +1187,42 @@ class TestApiGatewayMethodCorsSettings(TestCase):
         self.assertIsNone(provider.api.cors)
 
 class TestExtractResourcesWithDisableAuthorizerFlag(TestCase):
+    @parameterized.expand([
+        ("when enabled doesn't extract authorizer", True),
+        ("when disabled extracts authorizer", False),
+    ])
     @patch("samcli.lib.providers.cfn_api_provider.CfnApiProvider._get_route_function_name")
-    def test_extract_resources_apigw_v2_route(self, mock_get_route_function_name: Mock):
+    def test_extract_resources_apigw_v2_route(self, _, disable_authorizer, mock_get_route_function_name: Mock):
         template = {
             "Resources": {
                 "MyRoute": {
                     "Type": "AWS::ApiGatewayV2::Route",
                     "Properties": {
-                        "ApiId": {
-                            "Ref": "APIGatewayV2"
-                        },
+                        "ApiId": "MockApiId",
                         "AuthorizationType": "CUSTOM",
                         "RouteKey": "Get /Test",
-                        "Target": "DummyTarget"
+                        "Target": "DummyTarget",
+                        "AuthorizerId": "AuthorizerId",
+                        "OperationName": "MockOperation"
+
                     }
                 },
             }
         }
         mock_get_route_function_name.return_value = ("Dummy", "Values")
-
         provider = CfnApiProvider()
         mock_collector = Mock()
         mock_collector.add_routes = Mock()
-        provider._extract_cfn_gateway_v2_route(stack_path="stack_path", resources={}, logical_id="MyRoute", route_resource=template["Resources"]["MyRoute"], collector=mock_collector, disable_authorizer=True)
-        assert mock_collector.add_routes.call_args.args[1][0].authorizer_name is None
+        provider._extract_cfn_gateway_v2_route(stack_path="stack_path", resources={}, logical_id="MyRoute", route_resource=template["Resources"]["MyRoute"], collector=mock_collector, disable_authorizer=disable_authorizer)
+
+        if disable_authorizer:
+            route = mock_collector.add_routes.call_args[0][1][0]
+            assert route.authorizer_name is None
+        
+        if not disable_authorizer:
+            mock_collector.add_routes.assert_called()
+            route = mock_collector.add_routes.call_args[0][1][0]
+            assert route.authorizer_name is "AuthorizerId"
 
     @patch("samcli.lib.providers.cfn_api_provider.CfnApiProvider._extract_cfn_gateway_v2_authorizer")
     @patch("samcli.lib.providers.cfn_api_provider.CfnApiProvider._extract_cloud_formation_authorizer")
