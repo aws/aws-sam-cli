@@ -20,9 +20,9 @@ attrs==23.1.0 \
     #   jsonschema
     #   referencing
     #   sarif-om
-aws-lambda-builders==1.39.0 \
-    --hash=sha256:45d705464520a1c43ab292110f6a46d1cfc95453c733a3ae54fa3e235e9623c5 \
-    --hash=sha256:95ac99c2843cd280a93facef16473731c09766b9994955ad4129ceda0c32ccde
+aws-lambda-builders==1.40.0 \
+    --hash=sha256:660b1d284320172beca39971b2932549d1ae642aa94500bcf70b612771957480 \
+    --hash=sha256:a48f083f750d62d5a5cf0bac1fe224682b5ed83dd821d794802c791ec22e077b
     # via aws-sam-cli (setup.py)
 aws-sam-translator==1.77.0 \
     --hash=sha256:987513f653d3ca5cb8ce073653a1d66c80ca25a12d28600e763d22b8ebc82144 \
@@ -47,7 +47,9 @@ boto3==1.28.62 \
 boto3-stubs[apigateway,cloudformation,ecr,iam,kinesis,lambda,s3,schemas,secretsmanager,signer,sqs,stepfunctions,sts,xray]==1.28.62 \
     --hash=sha256:22a08e27d2ede1849dd0d75e8501099240b34bd70adb606584a2af2e12f3a22b \
     --hash=sha256:f5ae08d2abae7709fff3e7cacea66c41cb43236527cfaf3975e506c6c67439a0
-    # via aws-sam-cli (setup.py)
+    # via
+    #   aws-sam-cli (setup.py)
+    #   boto3-stubs
 botocore==1.31.62 \
     --hash=sha256:272b78ac65256b6294cb9cdb0ac484d447ad3a85642e33cb6a3b1b8afee15a4c \
     --hash=sha256:be792d806afc064694a2d0b9b25779f3ca0c1584b29a35ac32e67f0064ddb8b7
