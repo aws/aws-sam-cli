@@ -47,6 +47,7 @@ class Runtime(Enum):
     java8al2 = "java8.al2"
     java11 = "java11"
     java17 = "java17"
+    java21 = "java21"
     go1x = "go1.x"
     dotnet6 = "dotnet6"
     provided = "provided"

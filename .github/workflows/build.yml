@@ -157,7 +157,7 @@ jobs:
       - uses: actions/setup-java@v3
         with:
           distribution: 'corretto'
-          java-version: '17'
+          java-version: '21'
        # Install and configure Rust & Cargo Lambda
       - name: Install and configure Rust & Cargo Lambda
         if: ${{ matrix.os == 'ubuntu-latest' }}
