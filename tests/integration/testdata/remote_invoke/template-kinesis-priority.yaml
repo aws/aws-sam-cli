@@ -1,0 +1,16 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: AWS Kinesis Data Stream
+
+Resources:
+  # Define an AWS Kinesis Data Stream
+  KinesisStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      ShardCount: 1
+            
+Outputs:
+  # Kinesis Data Stream name
+  KinesisStream:
+    Description: Kinesis Data Stream name
+    Value: !Ref KinesisStream

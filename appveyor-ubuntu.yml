@@ -4,10 +4,12 @@ image:
 
 configuration:
   - BuildIntegTesting
+  - BuildIntegTestingJavaPythonProvided
+  - BuildIntegTestingArm64
+  - BuildIntegTestingArm64Java
   - AllTerraformBuildTesting
   - DeployIntegTesting
-  - PackageIntegTesting
-  - DeleteIntegTesting
+  - PackageAndDeleteIntegTesting
   - SyncIntegTesting
   - LocalIntegTesting
   - EndToEndTesting
@@ -47,7 +49,7 @@ install:
   - sh: "mvn --version"
 
   - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
-  - sh: "rvm use 2.7.2"
+  - sh: "rvm use 3.2.2"
   - sh: "docker info"
   - sh: "docker version"
   - sh: "nvm install ${NODE_VERSION}"
@@ -157,11 +159,30 @@ for:
         - configuration: BuildIntegTesting
 
     test_script:
-      - sh: "pytest -vv tests/integration/buildcmd --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+      - sh: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'not java and not python and not provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
-      # Set JAVA_HOME to java11
-      - sh: "JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64"
-      - sh: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java11_in_process --json-report --json-report-file=TEST_REPORT-integration-buildcmd-java11.json"
+  - matrix:
+      only:
+        - configuration: BuildIntegTestingJavaPythonProvided
+
+    test_script:
+      - sh: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'java or python or provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd-java-python-provided.json"
+
+  # Integ testing build arm64 functions
+  - 
+    matrix:
+      only:
+        - configuration: BuildIntegTestingArm64
+
+    test_script:
+      - sh: "pytest -vv --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'not java' --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64.json"
+
+  - matrix:
+      only:
+        - configuration: BuildIntegTestingArm64Java
+
+    test_script:
+      - sh: "pytest -vv --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'java' --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64-java.json"
 
   # Integ testing Terraform build
   -
@@ -190,23 +211,14 @@ for:
     test_script:
       - sh: "pytest -vv tests/integration/deploy -n 4 --reruns 4 --dist=loadgroup --json-report --json-report-file=TEST_REPORT-integration-deploy.json"
 
-  # Integ testing package
+  # Integ testing package & delete
   -
     matrix:
       only:
-        - configuration: PackageIntegTesting
+        - configuration: PackageAndDeleteIntegTesting
 
     test_script:
-      - sh: "pytest -vv tests/integration/package -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-package.json"
-
-  # Integ testing delete
-  -
-    matrix:
-      only:
-        - configuration: DeleteIntegTesting
-
-    test_script:
-      - sh: "pytest -vv tests/integration/delete -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-delete.json"
+      - sh: "pytest -vv tests/integration/package tests/integration/delete -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-package-delete.json"
 
   # Integ testing sync
   -

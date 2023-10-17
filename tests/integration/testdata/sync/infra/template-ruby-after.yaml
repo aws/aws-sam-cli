@@ -17,7 +17,7 @@ Resources:
       AutoPublishAlias: Hello1Alias
       CodeUri: after/Ruby/function/
       Handler: app.lambda_handler
-      Runtime: ruby2.7
+      Runtime: ruby3.2
       Architectures:
         - x86_64
       Layers:
@@ -30,6 +30,6 @@ Resources:
       Description: Hello World Ruby Layer
       ContentUri: after/Ruby/layer/
       CompatibleRuntimes:
-        - ruby2.7
+        - ruby3.2
     Metadata:
-      BuildMethod: ruby2.7
+      BuildMethod: ruby3.2
