@@ -29,7 +29,7 @@ class ApiProvider(AbstractApiProvider):
             List of stacks apis are extracted from
         cwd : str
             Optional working directory with respect to which we will resolve relative path to Swagger file
-        disable_authorizer : str
+        disable_authorizer : Optional[bool]
             Optional flag to disable the collection of lambda authorizers
         """
         self.stacks = stacks
