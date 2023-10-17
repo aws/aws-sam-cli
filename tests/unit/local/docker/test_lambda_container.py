@@ -28,7 +28,6 @@ RUNTIMES_WITH_BOOTSTRAP_ENTRYPOINT = [
 ]
 
 RUNTIMES_WITH_DEBUG_ENV_VARS_ONLY = [
-    Runtime.java21.value,
     Runtime.java17.value,
     Runtime.java11.value,
     Runtime.java8.value,

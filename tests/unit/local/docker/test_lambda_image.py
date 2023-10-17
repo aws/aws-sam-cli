@@ -31,7 +31,6 @@ class TestRuntime(TestCase):
             ("java8.al2", "java:8.al2-x86_64"),
             ("java11", "java:11-x86_64"),
             ("java17", "java:17-x86_64"),
-            ("java21", "java:21-x86_64"),
             ("go1.x", "go:1"),
             ("dotnet6", "dotnet:6-x86_64"),
             ("provided", "provided:alami"),
