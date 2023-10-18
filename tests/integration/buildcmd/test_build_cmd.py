@@ -2438,9 +2438,11 @@ class TestBuildWithNestedStacks3LevelWithSymlink(NestedBuildIntegBase):
         if SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
-        cmdlist = self.get_command_list(use_container=True, cached=True, parallel=True)
+        cmdlist = self.get_command_list(
+            use_container=True, cached=True, parallel=True, build_dir=str(self.default_build_dir)
+        )
 
-        command_result = run_command(cmdlist, cwd=self.working_dir)
+        command_result = run_command(cmdlist, cwd=self.scratch_dir)
 
         function_full_paths = [
             "FunctionA",
