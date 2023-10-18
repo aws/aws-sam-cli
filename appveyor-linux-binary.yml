@@ -4,11 +4,10 @@ image:
 
 configuration:
   - BuildIntegTesting
-  - LocalZipTerraformBuildIntegTesting
-  - LocalZipTerraformBuildInContainerIntegTesting
-  - S3ZipTerraformBuildIntegTesting
-  - S3ZipTerraformBuildInContainerIntegTesting
-  - OtherTerraformBuildIntegTesting
+  - BuildIntegTestingJavaPythonProvided
+  - BuildIntegTestingArm64
+  - BuildIntegTestingArm64Java
+  - AllTerraformBuildTesting
   - DeployIntegTesting
   - PackageIntegTesting
   - DeleteIntegTesting
@@ -51,7 +50,7 @@ install:
   - sh: "mvn --version"
 
   - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
-  - sh: "rvm use 2.7.2"
+  - sh: "rvm use 3.2.2"
   - sh: "docker info"
   - sh: "docker version"
   - sh: "nvm install ${NODE_VERSION}"
@@ -173,17 +172,35 @@ for:
         - configuration: BuildIntegTesting
 
     test_script:
-      - sh: "pytest -vv tests/integration/buildcmd --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+      - sh: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'not java and not python and not provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
-      # Set JAVA_HOME to java11
-      - sh: "JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64"
-      - sh: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java11_in_process --json-report --json-report-file=TEST_REPORT-integration-buildcmd-java11.json"
+  - matrix:
+      only:
+        - configuration: BuildIntegTestingJavaPythonProvided
 
-  # Local ZIP  Terraform Build integ testing
+    test_script:
+      - sh: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'java or python or provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd-java-python-provided.json"
+
+  # Integ testing build arm64 functions
+  - matrix:
+      only:
+        - configuration: BuildIntegTestingArm64
+
+    test_script:
+      - sh: "pytest -vv --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'not java' --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64.json"
+
+  - matrix:
+      only:
+        - configuration: BuildIntegTestingArm64Java
+
+    test_script:
+      - sh: "pytest -vv --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'java' --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64-java.json"
+
+  # Integ testing Terraform build
   -
     matrix:
       only:
-        - configuration: LocalZipTerraformBuildIntegTesting
+        - configuration: AllTerraformBuildTesting
 
     test_script:
       # install Terraform
@@ -194,74 +211,7 @@ for:
       - sh: "sudo mv /opt/terraform/terraform /usr/local/bin/"
       - sh: "terraform -version"
 
-      - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend_0 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
-
-  # Local ZIP  Terraform Build In Container  integ testing
-  -
-    matrix:
-      only:
-        - configuration: LocalZipTerraformBuildInContainerIntegTesting
-
-    test_script:
-      # install Terraform
-      - sh: "sudo apt update --allow-releaseinfo-change"
-      - sh: "TER_VER=`curl -s https://api.github.com/repos/hashicorp/terraform/releases/latest | grep tag_name | cut -d: -f2 | tr -d \\\"\\,\\v | awk '{$1=$1};1'`"
-      - sh: "wget https://releases.hashicorp.com/terraform/${TER_VER}/terraform_${TER_VER}_linux_amd64.zip -P /tmp"
-      - sh: "sudo unzip -d /opt/terraform /tmp/terraform_${TER_VER}_linux_amd64.zip"
-      - sh: "sudo mv /opt/terraform/terraform /usr/local/bin/"
-      - sh: "terraform -version"
-
-      - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend_1 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
-
-  # S3 ZIP  Terraform Build integ testing
-  -
-    matrix:
-      only:
-        - configuration: S3ZipTerraformBuildIntegTesting
-
-    test_script:
-      # install Terraform
-      - sh: "sudo apt update --allow-releaseinfo-change"
-      - sh: "TER_VER=`curl -s https://api.github.com/repos/hashicorp/terraform/releases/latest | grep tag_name | cut -d: -f2 | tr -d \\\"\\,\\v | awk '{$1=$1};1'`"
-      - sh: "wget https://releases.hashicorp.com/terraform/${TER_VER}/terraform_${TER_VER}_linux_amd64.zip -P /tmp"
-      - sh: "sudo unzip -d /opt/terraform /tmp/terraform_${TER_VER}_linux_amd64.zip"
-      - sh: "sudo mv /opt/terraform/terraform /usr/local/bin/"
-      - sh: "terraform -version"
-
-      - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend_0 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
-
-  # S3 ZIP  Terraform Build In Container integ testing
-  -
-    matrix:
-      only:
-        - configuration: S3ZipTerraformBuildInContainerIntegTesting
-
-    test_script:
-      # install Terraform
-      - sh: "sudo apt update --allow-releaseinfo-change"
-      - sh: "TER_VER=`curl -s https://api.github.com/repos/hashicorp/terraform/releases/latest | grep tag_name | cut -d: -f2 | tr -d \\\"\\,\\v | awk '{$1=$1};1'`"
-      - sh: "wget https://releases.hashicorp.com/terraform/${TER_VER}/terraform_${TER_VER}_linux_amd64.zip -P /tmp"
-      - sh: "sudo unzip -d /opt/terraform /tmp/terraform_${TER_VER}_linux_amd64.zip"
-      - sh: "sudo mv /opt/terraform/terraform /usr/local/bin/"
-      - sh: "terraform -version"
-
-      - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications.py::TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend_1 --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
-
-  # Other Terraform Build In Container integ testing
-  -
-    matrix:
-      only:
-        - configuration: OtherTerraformBuildIntegTesting
-
-    test_script:
-      # install Terraform
-      - sh: "sudo apt update --allow-releaseinfo-change"
-      - sh: "TER_VER=`curl -s https://api.github.com/repos/hashicorp/terraform/releases/latest | grep tag_name | cut -d: -f2 | tr -d \\\"\\,\\v | awk '{$1=$1};1'`"
-      - sh: "wget https://releases.hashicorp.com/terraform/${TER_VER}/terraform_${TER_VER}_linux_amd64.zip -P /tmp"
-      - sh: "sudo unzip -d /opt/terraform /tmp/terraform_${TER_VER}_linux_amd64.zip"
-      - sh: "sudo mv /opt/terraform/terraform /usr/local/bin/"
-      - sh: "terraform -version"
-
+      - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
       - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
   # Integ testing deploy

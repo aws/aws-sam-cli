@@ -1,5 +1,6 @@
-import uuid
 import json
+import os
+import uuid
 
 import pytest
 from pathlib import Path
@@ -60,7 +61,7 @@ class TestRemoteTestEvent(RemoteTestEventIntegBase):
         self.get_event_and_check(self.stack_name, function_to_check, "event2", json.dumps(event_contents2))
 
         # Check two events
-        self.list_events_and_check(self.stack_name, function_to_check, "event1\nevent2")
+        self.list_events_and_check(self.stack_name, function_to_check, os.linesep.join(["event1", "event2"]))
 
         # Invoke with two events (function returns the same event that it receives)
         self.remote_invoke_and_check(self.stack_name, function_to_check, "event1", event_contents1)
