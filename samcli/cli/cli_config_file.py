@@ -147,6 +147,10 @@ def handle_parse_options(resolved_config: dict) -> None:
                 allow_multiple = options_map[config_name].multiple
                 if allow_multiple and not isinstance(config_value, list):
                     resolved_config[config_name] = [config_value]
+                    LOG.debug(
+                        f"Adjusting value of {config_name} to be a list "
+                        f"since this option is defined with 'multiple=True'"
+                    )
             except (AttributeError, KeyError):
                 LOG.debug(f"Unable to parse option: {config_name}. Leaving option as inputted")
 
