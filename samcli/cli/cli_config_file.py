@@ -102,7 +102,8 @@ class ConfigProvider:
             # NOTE(TheSriram): change from tomlkit table type to normal dictionary,
             # so that click defaults work out of the box.
             resolved_config = dict(samconfig.get_all(self.cmd_names, self.section, env=config_env).items())
-            LOG.debug("Configuration values successfully loaded.")
+            handle_parse_options(resolved_config)
+            LOG.debug("Configuration values successvfully loaded.")
             LOG.debug("Configuration values are: %s", resolved_config)
 
         except KeyError as ex:
@@ -121,6 +122,51 @@ class ConfigProvider:
             raise ConfigException(f"Error reading configuration: {ex}") from ex
 
         return resolved_config
+
+
+def handle_parse_options(resolved_config: dict) -> None:
+    """
+    Click does some handling of options to convert them to the intended types.
+    When injecting the options to click through a samconfig, we should do a similar
+    parsing of the options to ensure we pass the intended type.
+
+    E.g. if multiple is defined in the click option but only a single value is passed,
+    handle it the same way click does by converting it to a list first.
+
+    Mutates the resolved_config object
+
+    Parameters
+    ----------
+    resolved_config: dict
+        Configuration options extracted from the configuration file
+    """
+    options_map = get_options_map()
+    for config_name, config_value in resolved_config.items():
+        if config_name in options_map:
+            try:
+                allow_multiple = options_map[config_name].multiple
+                if allow_multiple and not isinstance(config_value, list):
+                    resolved_config[config_name] = [config_value]
+            except (AttributeError, KeyError):
+                LOG.debug(f"Unable to parse option: {config_name}. Leaving option as inputted")
+
+
+def get_options_map() -> dict:
+    """
+    Attempt to get all of the options that exist for a command.
+    Return a mapping from each option name to that options' properties.
+
+    Returns
+    -------
+    Optional[dict]
+        Dict of command options if successful, None otherwise
+    """
+    try:
+        command_options = click.get_current_context().command.params
+        return {command_option.name: command_option for command_option in command_options}
+    except AttributeError:
+        LOG.debug("Unable to get parameters from click context.")
+        return {}
 
 
 def configuration_callback(
