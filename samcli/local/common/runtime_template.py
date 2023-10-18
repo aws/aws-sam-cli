@@ -56,13 +56,13 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
     ],
     "java": [
         {
-            "runtimes": ["java11", "java8", "java8.al2", "java17"],
+            "runtimes": ["java11", "java8", "java8.al2", "java17", "java21"],
             "dependency_manager": "maven",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-java-maven"),
             "build": True,
         },
         {
-            "runtimes": ["java11", "java8", "java8.al2", "java17"],
+            "runtimes": ["java11", "java8", "java8.al2", "java17", "java21"],
             "dependency_manager": "gradle",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-java-gradle"),
             "build": True,
@@ -102,6 +102,7 @@ INIT_RUNTIMES = [
     "dotnet6",
     "go1.x",
     # java runtimes in descending order
+    "java21",
     "java17",
     "java11",
     "java8.al2",
@@ -130,6 +131,7 @@ LAMBDA_IMAGES_RUNTIMES_MAP = {
     "dotnet6": "amazon/dotnet6-base",
     "go1.x": "amazon/go1.x-base",
     "go (provided.al2)": "amazon/go-provided.al2-base",
+    "java21": "amazon/java21-base",
     "java17": "amazon/java17-base",
     "java11": "amazon/java11-base",
     "java8.al2": "amazon/java8.al2-base",
@@ -156,6 +158,7 @@ SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING = {
     "java8.al2": "Java8",
     "java11": "Java8",
     "java17": "Java17",
+    "java21": "Java21",
     "python3.7": "Python36",
     "python3.8": "Python36",
     "python3.9": "Python36",
