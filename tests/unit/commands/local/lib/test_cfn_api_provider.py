@@ -1224,9 +1224,13 @@ class TestExtractResourcesWithDisableAuthorizerFlag(TestCase):
             route = mock_collector.add_routes.call_args[0][1][0]
             assert route.authorizer_name is "AuthorizerId"
 
+    @parameterized.expand([
+        ("when disable authorizer flag is enabled", True),
+        ("when disable authorizer flag is disabled", False)
+    ])
     @patch("samcli.lib.providers.cfn_api_provider.CfnApiProvider._extract_cfn_gateway_v2_authorizer")
     @patch("samcli.lib.providers.cfn_api_provider.CfnApiProvider._extract_cloud_formation_authorizer")
-    def test_extract_resources_skips_authorizer_resource(self, mock_extract_cfn_gateway_v2_authorizer: Mock, mock_extract_cloud_formation_authorizer: Mock):
+    def test_extract_resources_skips_authorizer_resource(self, _, disable_authorizer, mock_extract_cfn_gateway_v2_authorizer: Mock, mock_extract_cloud_formation_authorizer: Mock):
         template = {
             "Resources": {
                 "AuthorizerV2": {
@@ -1249,13 +1253,14 @@ class TestExtractResourcesWithDisableAuthorizerFlag(TestCase):
         }
         provider = CfnApiProvider()
         mock_collector = Mock()
-
-        provider.extract_resources(stacks=make_mock_stacks_from_template(template), collector=mock_collector, disable_authorizer=True)
-        mock_extract_cfn_gateway_v2_authorizer.assert_not_called() # This should not be called if disable_authorizers == True
-        mock_extract_cloud_formation_authorizer.assert_not_called()
-        provider.extract_resources(stacks=make_mock_stacks_from_template(template), collector=mock_collector, disable_authorizer=False)
-        mock_extract_cfn_gateway_v2_authorizer.assert_called_once() # Testing inverse
-        mock_extract_cloud_formation_authorizer.assert_called_once()
+        provider.extract_resources(stacks=make_mock_stacks_from_template(template), collector=mock_collector, disable_authorizer=disable_authorizer)
+        
+        if disable_authorizer:
+            mock_extract_cfn_gateway_v2_authorizer.assert_not_called() # This should not be called if disable_authorizers == True
+            mock_extract_cloud_formation_authorizer.assert_not_called()
+        if not disable_authorizer:
+            mock_extract_cfn_gateway_v2_authorizer.assert_called_once() # Testing inverse
+            mock_extract_cloud_formation_authorizer.assert_called_once()
     
     def test_extract_api_gateway_method(self):
         template = {
