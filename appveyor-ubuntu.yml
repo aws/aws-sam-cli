@@ -13,7 +13,7 @@ configuration:
   - LocalInvokeIntegTesting
   - LocalStartIntegTesting
   # other Integration testing, Dev, regression and smoke testing
-  - OtherTesting
+  - OtherAndEndToEndTesting
 
 environment:
   PYTHON_HOME: "$HOME/venv3.8/bin"
@@ -208,7 +208,7 @@ for:
         - configuration: PackageAndDeleteAndDeployIntegTesting
 
     test_script:
-      - sh: "pytest -vv tests/integration/package tests/integration/delete tests/integration/deploy -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-package-delete.json"
+      - sh: "pytest -vv tests/integration/package tests/integration/delete tests/integration/deploy --dist=loadgroup -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-package-delete-deploy.json"
 
   # Integ testing sync
   -
@@ -257,7 +257,7 @@ for:
   -
     matrix:
       only:
-        - configuration: OtherTesting
+        - configuration: OtherAndEndToEndTesting
 
     test_script:
       - sh: "pytest -vv -n 4 --reruns 4 --dist loadgroup tests/integration --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-others.json"

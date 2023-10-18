@@ -15,7 +15,7 @@ configuration:
   - LocalStartApiIntegTesting
   - LocalStartLambdaIntegTesting
   # other Integration testing, Dev, regression and smoke testing
-  - OtherTesting
+  - OtherAndEndToEndTesting
 
 environment:
   AWS_DEFAULT_REGION: us-east-1
@@ -236,13 +236,13 @@ for:
       - ps: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
       - ps: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
-  # Integ testing package & delete
+  # Integ testing package, delete and deploy
   - matrix:
       only:
         - configuration: PackageAndDeleteAndDeployIntegTesting
 
     test_script:
-      - ps: "pytest -vv tests/integration/package tests/integration/delete tests/integration/deploy -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-package-delete.json"
+      - ps: "pytest -vv tests/integration/package tests/integration/delete tests/integration/deploy --dist=loadgroup -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-package-delete.json"
 
   # Integ testing sync
   - matrix:
@@ -291,7 +291,7 @@ for:
   #Other testing
   - matrix:
       only:
-        - configuration: OtherTesting
+        - configuration: OtherAndEndToEndTesting
 
     test_script:
       - ps: "pytest -vv -n 4 --reruns 4 --dist loadgroup tests/integration --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-others.json"
