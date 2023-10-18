@@ -2,6 +2,7 @@
 Delete Cloudformation stacks and s3 files
 """
 
+import json
 import logging
 from typing import List, Optional
 
@@ -109,6 +110,11 @@ class CfnUtils:
                         StackName=stack_name, TemplateStage=stage, ChangeSetName=change_set_name
                     )
                     template = resp.get("TemplateBody", "")
+
+            # template variable can be of type string or of type dict which does not return
+            # nicely as a string, so it is dumped instead
+            if isinstance(template, dict):
+                return json.dumps(template)
 
             return str(template)
 

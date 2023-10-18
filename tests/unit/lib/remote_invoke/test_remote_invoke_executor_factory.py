@@ -231,3 +231,48 @@ class TestRemoteInvokeExecutorFactory(TestCase):
             response_consumer=given_response_consumer,
             log_consumer=given_log_consumer,
         )
+
+    @parameterized.expand(itertools.product([RemoteInvokeOutputFormat.JSON, RemoteInvokeOutputFormat.TEXT]))
+    @patch("samcli.lib.remote_invoke.remote_invoke_executor_factory.KinesisPutDataExecutor")
+    @patch("samcli.lib.remote_invoke.remote_invoke_executor_factory.DefaultConvertToJSON")
+    @patch("samcli.lib.remote_invoke.remote_invoke_executor_factory.ResponseObjectToJsonStringMapper")
+    @patch("samcli.lib.remote_invoke.remote_invoke_executor_factory.RemoteInvokeExecutor")
+    def test_create_kinesis_boto_executor(
+        self,
+        remote_invoke_output_format,
+        patched_remote_invoke_executor,
+        patched_object_to_json_converter,
+        patched_convert_to_default_json,
+        patched_kinesis_invoke_executor,
+    ):
+        given_physical_resource_id = "mock-stream-name"
+        given_cfn_resource_summary = Mock(physical_resource_id=given_physical_resource_id)
+
+        given_kinesis_client = Mock()
+        self.boto_client_provider_mock.return_value = given_kinesis_client
+
+        given_remote_invoke_executor = Mock()
+        patched_remote_invoke_executor.return_value = given_remote_invoke_executor
+
+        given_response_consumer = Mock()
+        given_log_consumer = Mock()
+        kinesis_executor = self.remote_invoke_executor_factory._create_kinesis_boto_executor(
+            given_cfn_resource_summary, remote_invoke_output_format, given_response_consumer, given_log_consumer
+        )
+
+        self.assertEqual(kinesis_executor, given_remote_invoke_executor)
+        self.boto_client_provider_mock.assert_called_with("kinesis")
+        patched_convert_to_default_json.assert_called_once()
+
+        patched_object_to_json_converter.assert_called_once()
+        patched_kinesis_invoke_executor.assert_called_with(
+            given_kinesis_client, given_physical_resource_id, remote_invoke_output_format
+        )
+
+        patched_remote_invoke_executor.assert_called_with(
+            request_mappers=[patched_convert_to_default_json()],
+            response_mappers=[patched_object_to_json_converter()],
+            boto_action_executor=patched_kinesis_invoke_executor(),
+            response_consumer=given_response_consumer,
+            log_consumer=given_log_consumer,
+        )
