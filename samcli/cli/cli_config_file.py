@@ -103,7 +103,7 @@ class ConfigProvider:
             # so that click defaults work out of the box.
             resolved_config = dict(samconfig.get_all(self.cmd_names, self.section, env=config_env).items())
             handle_parse_options(resolved_config)
-            LOG.debug("Configuration values successvfully loaded.")
+            LOG.debug("Configuration values successfully loaded.")
             LOG.debug("Configuration values are: %s", resolved_config)
 
         except KeyError as ex:
