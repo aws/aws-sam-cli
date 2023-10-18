@@ -158,7 +158,7 @@ def get_options_map() -> dict:
 
     Returns
     -------
-    Optional[dict]
+    dict
         Dict of command options if successful, None otherwise
     """
     try:
