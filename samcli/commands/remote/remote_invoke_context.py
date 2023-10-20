@@ -35,7 +35,7 @@ from samcli.lib.utils.cloudformation import (
     get_resource_summary,
     get_resource_summary_from_physical_id,
 )
-from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION, AWS_SQS_QUEUE
+from samcli.lib.utils.resources import AWS_KINESIS_STREAM, AWS_LAMBDA_FUNCTION, AWS_SQS_QUEUE
 from samcli.lib.utils.stream_writer import StreamWriter
 
 LOG = logging.getLogger(__name__)
@@ -214,6 +214,11 @@ class RemoteInvokeContext:
                 # Note (hnnasit): Add unit test after AWS_SQS_QUEUE is added to SUPPORTED_SERVICES
                 sqs_client = self._boto_client_provider("sqs")
                 resource_id = get_queue_url_from_arn(sqs_client, resource_arn.resource_id)
+
+            if SUPPORTED_SERVICES.get(service_from_arn) == AWS_KINESIS_STREAM:
+                # Note (hnnasit): Add unit test after AWS_KINESIS_STREAM is added to SUPPORTED_SERVICES
+                # StreamName extracted from arn is used as resource_id.
+                resource_id = resource_arn.resource_id
 
             return CloudFormationResourceSummary(
                 cast(str, SUPPORTED_SERVICES.get(service_from_arn)),
