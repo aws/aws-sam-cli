@@ -1,7 +1,9 @@
 import os
 import tempfile
+from dataclasses import dataclass
 
 from pathlib import Path
+from typing import List, Optional
 from unittest import TestCase, skipIf
 from unittest.mock import MagicMock, patch
 
@@ -15,6 +17,7 @@ from samcli.cli.cli_config_file import (
     configuration_callback,
     get_ctx_defaults,
     save_command_line_args_to_config,
+    handle_parse_options,
 )
 from samcli.lib.config.exceptions import SamConfigFileReadException, SamConfigVersionException
 from samcli.lib.config.samconfig import DEFAULT_ENV
@@ -38,7 +41,8 @@ class TestConfigProvider(TestCase):
         self.parameters = "parameters"
         self.cmd_name = "topic"
 
-    def test_toml_valid_with_section(self):
+    @patch("samcli.cli.cli_config_file.handle_parse_options")
+    def test_toml_valid_with_section(self, mock_handle_parse_options):
         config_dir = tempfile.gettempdir()
         config_path = Path(config_dir, "samconfig.toml")
         config_path.write_text("version=0.1\n[config_env.topic.parameters]\nword='clarity'\n")
@@ -363,3 +367,87 @@ class TestCliConfiguration(TestCase):
         self.assertNotIn("save_params", params.keys(), "--save-params should not be saved to config")
         self.assertNotIn("none_param", params.keys(), "Param with None value should not be saved to config")
         self.assertNotIn(None, params.values(), "None value should not be saved to config")
+
+
+@dataclass
+class MockParam:
+    multiple: Optional[bool]
+    name: Optional[str]
+
+
+@dataclass
+class MockCommand:
+    params: List[MockParam]
+
+
+@dataclass
+class MockCommandContext:
+    command: MockCommand
+
+
+class TestHandleParseOptions(TestCase):
+    @patch("samcli.cli.cli_config_file.click")
+    def test_succeeds_updating_option(self, mock_click):
+        mock_param = MockParam(multiple=True, name="debug_port")
+        mock_command = MockCommand(params=[mock_param])
+        mock_context = MockCommandContext(command=mock_command)
+        mock_click.get_current_context.return_value = mock_context
+        resolved_config = {"debug_port": 5858}
+        handle_parse_options(resolved_config)
+        self.assertEqual(resolved_config, {"debug_port": [5858]})
+
+    @patch("samcli.cli.cli_config_file.click")
+    def test_doesnt_update_not_needed_options(self, mock_click):
+        mock_param = MockParam(multiple=True, name="debug_port")
+        mock_command = MockCommand(params=[mock_param])
+        mock_context = MockCommandContext(command=mock_command)
+        mock_click.get_current_context.return_value = mock_context
+        resolved_config = {"debug_port": [5858]}
+        handle_parse_options(resolved_config)
+        self.assertEqual(resolved_config, {"debug_port": [5858]})
+
+    @patch("samcli.cli.cli_config_file.click")
+    def test_doesnt_update_multiple_false(self, mock_click):
+        mock_param = MockParam(multiple=False, name="debug_port")
+        mock_command = MockCommand(params=[mock_param])
+        mock_context = MockCommandContext(command=mock_command)
+        mock_click.get_current_context.return_value = mock_context
+        resolved_config = {"debug_port": 5858}
+        handle_parse_options(resolved_config)
+        self.assertEqual(resolved_config, {"debug_port": 5858})
+
+    @patch("samcli.cli.cli_config_file.click")
+    def test_doesnt_update_not_found(self, mock_click):
+        mock_param = MockParam(multiple=False, name="debug_port")
+        mock_command = MockCommand(params=[mock_param])
+        mock_context = MockCommandContext(command=mock_command)
+        mock_click.get_current_context.return_value = mock_context
+        resolved_config = {"other_option": "hello"}
+        handle_parse_options(resolved_config)
+        self.assertEqual(resolved_config, {"other_option": "hello"})
+
+    @patch("samcli.cli.cli_config_file.LOG")
+    @patch("samcli.cli.cli_config_file.click")
+    def test_handles_invalid_param_name(self, mock_click, mock_log):
+        mock_param = None
+        mock_command = MockCommand(params=[mock_param])
+        mock_context = MockCommandContext(command=mock_command)
+        mock_click.get_current_context.return_value = mock_context
+        resolved_config = {"other_option": "hello"}
+        handle_parse_options(resolved_config)
+        self.assertEqual(resolved_config, {"other_option": "hello"})
+        mock_log.debug.assert_called_once_with("Unable to get parameters from click context.")
+
+    @patch("samcli.cli.cli_config_file.get_options_map")
+    @patch("samcli.cli.cli_config_file.LOG")
+    @patch("samcli.cli.cli_config_file.click")
+    def test_handles_invalid_param_multiple(self, mock_click, mock_log, mock_get_options_map):
+        mock_param = None
+        mock_command = MockCommand(params=[mock_param])
+        mock_context = MockCommandContext(command=mock_command)
+        mock_click.get_current_context.return_value = mock_context
+        resolved_config = {"other_option": "hello"}
+        mock_get_options_map.return_value = {"other_option": "option"}
+        handle_parse_options(resolved_config)
+        self.assertEqual(resolved_config, {"other_option": "hello"})
+        mock_log.debug.assert_called_once_with("Unable to parse option: other_option. Leaving option as inputted")
