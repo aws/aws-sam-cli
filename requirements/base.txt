@@ -6,7 +6,7 @@ jmespath~=1.0.1
 ruamel_yaml~=0.17.35
 PyYAML~=6.0,>=6.0.1
 cookiecutter~=2.3.1
-aws-sam-translator==1.77.0
+aws-sam-translator==1.78.0
 #docker minor version updates can include breaking changes. Auto update micro version only.
 docker~=6.1.0
 dateparser~=1.1
@@ -25,7 +25,7 @@ typing_extensions>=4.4.0,<5
 # NOTE: regex is not a direct dependency of SAM CLI, exclude version 2021.10.8 due to not working on M1 Mac - https://github.com/mrabarnett/mrab-regex/issues/399
 regex!=2021.10.8
 # NOTE: tzlocal is not a direct dependency of SAM CLI, but pin to 3.0 as 4.0 break appveyor jobs
-tzlocal==5.0.1
+tzlocal==5.1
 
 #Adding cfn-lint dependency for SAM validate
 cfn-lint~=0.81.0
