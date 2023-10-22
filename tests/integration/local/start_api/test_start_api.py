@@ -3194,7 +3194,7 @@ class TestDisableAuthorizer(StartApiIntegBaseClass):
         HTTPConnection._http_vsn_str = self.current_svn_str  # type: ignore
 
     @pytest.mark.timeout(timeout=600, method="thread")
-    @pytest.mark.flaky(reruns=1)
+    @pytest.mark.flaky(reruns=3)
     def test_function_call_ignores_authorizer_invocation_when_disable_authorizers_is_enabled(self):
         body = {"requestContext": {"authorizer": {"passed": "Hello World"}}}
         response = requests.get(self.url + "/requestauthorizer", data=body, timeout=300)

@@ -411,7 +411,7 @@ class SamApiProvider(CfnBaseApiProvider):
         logical_id: str, 
         function_resource: Dict, 
         collector: ApiCollector, 
-        disable_authorizer: bool = False
+        disable_authorizer: Optional[bool] = False
     ) -> None:
         """
         Fetches a list of routes configured for this SAM Function resource.
@@ -450,7 +450,7 @@ class SamApiProvider(CfnBaseApiProvider):
         function_logical_id: str, 
         serverless_function_events: Dict, 
         collector: ApiCollector, 
-        disable_authorizer: bool = False
+        disable_authorizer: Optional[bool] = False
     ) -> None:
         """
         Given an AWS::Serverless::Function Event Dictionary, extract out all 'route' events and store  within the
@@ -495,7 +495,7 @@ class SamApiProvider(CfnBaseApiProvider):
         lambda_logical_id: str, 
         event_properties: Dict, 
         event_type: str, 
-        disable_authorizer: bool = False
+        disable_authorizer: Optional[bool] = False
     ) -> Tuple[str, Route]:
         """
         Converts a AWS::Serverless::Function's Event Property to an Route configuration usable by the provider.
