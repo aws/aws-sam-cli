@@ -1195,3 +1195,25 @@ class TestInvokeFunctionWithInlineCode(InvokeIntegBase):
             raise
 
         self.assertEqual(process.returncode, 1)
+
+
+class TestInvokeFunctionWithError(InvokeIntegBase):
+    template = Path("template.yml")
+
+    def test_function_exception(self):
+        command_list = InvokeIntegBase.get_command_list(
+            function_to_invoke="RaiseExceptionFunction", template_path=self.template_path
+        )
+
+        expected_stack_trace = (
+            f"[ERROR] Exception: Lambda is raising an exception{os.linesep}"
+            f"Traceback (most recent call last):{os.linesep}"
+            f'\xa0\xa0File "/var/task/main.py", line 51, in raise_exception{os.linesep}'
+            f'\xa0\xa0\xa0\xa0raise Exception("Lambda is raising an exception")'
+        )
+
+        result = run_command(command_list)
+        stderr = result.stderr.decode("utf-8").strip()
+
+        self.assertEqual(result.process.returncode, 0)
+        self.assertIn(expected_stack_trace, stderr)

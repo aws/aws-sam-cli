@@ -64,7 +64,7 @@ class CompanionStackManager:
         except NoRegionError as ex:
             raise RegionError(
                 "Error Setting Up Managed Stack Client: Unable to resolve a region. "
-                "Please provide a region via the --region parameter or by the AWS_REGION environment variable."
+                "Please provide a region via the --region parameter or by the AWS_DEFAULT_REGION environment variable."
             ) from ex
 
     def set_functions(

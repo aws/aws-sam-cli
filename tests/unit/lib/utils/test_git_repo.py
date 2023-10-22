@@ -3,7 +3,13 @@ from pathlib import Path
 from unittest import TestCase
 from unittest.mock import patch, MagicMock, ANY, call
 import os
-from samcli.lib.utils.git_repo import GitRepo, rmtree_callback, CloneRepoException, CloneRepoUnstableStateException
+from samcli.lib.utils.git_repo import (
+    GitRepo,
+    rmtree_callback,
+    CloneRepoException,
+    CloneRepoUnstableStateException,
+    GitExecutableNotFoundException,
+)
 
 REPO_URL = "REPO URL"
 REPO_NAME = "REPO NAME"
@@ -44,7 +50,7 @@ class TestGitRepo(TestCase):
     @patch("samcli.lib.utils.git_repo.subprocess.Popen")
     def test_git_executable_fails(self, mock_popen):
         mock_popen.side_effect = OSError("fail")
-        with self.assertRaises(OSError):
+        with self.assertRaises(GitExecutableNotFoundException):
             self.repo.git_executable()
 
     @patch("samcli.lib.utils.git_repo.Path.exists")

@@ -28,6 +28,7 @@ class StartApiIntegBaseClass(TestCase):
     invoke_image: Optional[List] = None
     layer_cache_base_dir: Optional[str] = None
     disable_authorizer: Optional[bool] = False
+    config_file: Optional[str] = None
 
     build_before_invoke = False
     build_overrides: Optional[Dict[str, str]] = None
@@ -106,6 +107,9 @@ class StartApiIntegBaseClass(TestCase):
 
         if cls.disable_authorizer:
             command_list += ["--disable-authorizer"]
+
+        if cls.config_file:
+            command_list += ["--config-file", cls.config_file]
 
         cls.start_api_process = (
             Popen(command_list, stderr=PIPE, stdout=PIPE)

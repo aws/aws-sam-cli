@@ -3202,3 +3202,18 @@ class TestDisableAuthorizer(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
 
 
+
+class TestStartApiDebugPortsConfigFile(StartApiIntegBaseClass):
+    template_path = "/testdata/start_api/serverless-sample-output.yaml"
+    config_file = "debug-config.toml"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_starts_process_successfully(self):
+        response = requests.get(self.url + "/hello-world", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})

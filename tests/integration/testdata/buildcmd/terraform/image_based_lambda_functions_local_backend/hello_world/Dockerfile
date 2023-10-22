@@ -7,7 +7,7 @@ COPY go.mod go.sum main.go ./
 
 RUN go build -o ../bin
 
-FROM public.ecr.aws/lambda/go:1
+FROM public.ecr.aws/lambda/go:1.2023.08.02.10
 
 COPY --from=build-image /go/bin/ /var/task/
 

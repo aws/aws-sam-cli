@@ -22,7 +22,6 @@ walk_modules(samcli, samcli_modules)
 
 SAM_CLI_HIDDEN_IMPORTS = list(samcli_modules) + [
     "cookiecutter.extensions",
-    "jinja2_time",
     "text_unidecode",
     "samtranslator",
     # default hidden import 'pkg_resources.py2_warn' is added

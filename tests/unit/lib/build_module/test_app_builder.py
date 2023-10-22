@@ -28,6 +28,7 @@ from samcli.lib.telemetry.event import EventName, EventTracker
 from samcli.lib.utils.architecture import X86_64, ARM64
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.stream_writer import StreamWriter
+from samcli.local.docker.manager import DockerImagePullFailedException
 from tests.unit.lib.build_module.test_build_graph import generate_function
 
 
@@ -2723,6 +2724,26 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
 
         self.assertEqual(str(ctx.exception), msg)
         self.container_manager.stop.assert_called_with(container_mock)
+
+    @patch("samcli.lib.build.app_builder.LambdaBuildContainer")
+    def test_must_raise_on_image_not_found(self, LambdaBuildContainerMock):
+        config = Mock()
+
+        container_mock = LambdaBuildContainerMock.return_value = Mock()
+        container_mock.image = "image name"
+
+        self.container_manager.run.side_effect = DockerImagePullFailedException(
+            f"Could not find {container_mock.image} image locally and failed to pull it from docker."
+        )
+
+        with self.assertRaises(BuildInsideContainerError) as ctx:
+            self.builder._build_function_on_container(
+                config, "source_dir", "artifacts_dir", "scratch_dir", "manifest_path", "runtime", X86_64, {}
+            )
+
+        msg = f"Could not find {container_mock.image} image locally and failed to pull it from docker."
+
+        self.assertEqual(str(ctx.exception), msg)
 
     def test_must_raise_on_docker_not_running(self):
         config = Mock()
