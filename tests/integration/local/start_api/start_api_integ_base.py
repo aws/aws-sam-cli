@@ -105,7 +105,7 @@ class StartApiIntegBaseClass(TestCase):
                 command_list += ["--invoke-image", image]
 
         if cls.disable_authorizer:
-            command_list += "--disable_authorizer "
+            command_list += ["--disable-authorizer"]
 
         cls.start_api_process = (
             Popen(command_list, stderr=PIPE, stdout=PIPE)

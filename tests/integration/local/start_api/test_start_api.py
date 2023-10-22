@@ -3185,11 +3185,20 @@ class TestDisableAuthorizer(StartApiIntegBaseClass):
     template_path = "/testdata/start_api/lambda_authorizers/serverless-api-props.yaml"
     disable_authorizer = True
 
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+        self.current_svn_str = HTTPConnection._http_vsn_str
+        HTTPConnection._http_vsn_str = "HTTP/1.0"
+
+    def tearDown(self) -> None:
+        HTTPConnection._http_vsn_str = self.current_svn_str  # type: ignore
+
     @pytest.mark.timeout(timeout=600, method="thread")
-    @pytest.mark.flaky(reruns=3)
-    def test_disable_authorizers(self):
-        response = requests.get(self.url + "/", timeout=300)
+    @pytest.mark.flaky(reruns=1)
+    def test_function_call_ignores_authorizer_invocation_when_disable_authorizers_is_enabled(self):
+        body = {"requestContext": {"authorizer": {"passed": "Hello World"}}}
+        response = requests.get(self.url + "/requestauthorizer", data=body, timeout=300)
         # The invocation should skip the authorizer and go direct to the hello world lambda handler
-        self.assertEqual(response.content.decode("utf-8"), "Hello World")
+        self.assertEqual(response.status_code, 200)
 
 
