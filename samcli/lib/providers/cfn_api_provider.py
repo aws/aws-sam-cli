@@ -467,7 +467,7 @@ class CfnApiProvider(CfnBaseApiProvider):
 
         collector : ApiCollector
             Instance of the API collector that where we will save the API information
-        
+
         disable_authorizer : Optional[bool]
             Optional flag to disable collection of lambda authorizers
         """

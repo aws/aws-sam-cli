@@ -3180,6 +3180,7 @@ class TestWarmContainersRemoteLayersLazyInvoke(WarmContainersWithRemoteLayersBas
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content.decode("utf-8"), '"Layer1"')
 
+
 class TestDisableAuthorizer(StartApiIntegBaseClass):
     # integration test for scenario: 'sam local start-api --disable-authorizer'
     template_path = "/testdata/start_api/lambda_authorizers/serverless-api-props.yaml"
@@ -3200,7 +3201,6 @@ class TestDisableAuthorizer(StartApiIntegBaseClass):
         response = requests.get(self.url + "/requestauthorizer", data=body, timeout=300)
         # The invocation should skip the authorizer and go direct to the hello world lambda handler
         self.assertEqual(response.status_code, 200)
-
 
 
 class TestStartApiDebugPortsConfigFile(StartApiIntegBaseClass):
