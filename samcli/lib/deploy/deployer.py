@@ -39,7 +39,7 @@ from samcli.lib.package.local_files_utils import get_uploaded_s3_object_name, mk
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.utils.colors import Colored, Colors
 from samcli.lib.utils.s3 import parse_s3_url
-from samcli.lib.utils.time import utc_to_timestamp
+from samcli.lib.utils.time import to_datetime, utc_to_timestamp
 
 LOG = logging.getLogger(__name__)
 
@@ -384,6 +384,7 @@ class Deployer:
         while stack_change_in_progress and retry_attempts <= self.max_attempts:
             try:
                 # Only sleep if there have been no retry_attempts
+                LOG.debug("Trail # %d to get the stack %s create events", retry_attempts, stack_name)
                 time.sleep(0 if retry_attempts else self.client_sleep)
                 paginator = self._client.get_paginator("describe_stack_events")
                 response_iterator = paginator.paginate(StackName=stack_name)
@@ -393,8 +394,14 @@ class Deployer:
 
                 for event_items in response_iterator:
                     for event in event_items["StackEvents"]:
+                        LOG.debug("Stack Event: %s", event)
                         # Skip already shown old event entries or former deployments
                         if utc_to_timestamp(event["Timestamp"]) <= time_stamp_marker:
+                            LOG.debug(
+                                "Skip previous event as time_stamp_marker: %s is after the event time stamp: %s",
+                                to_datetime(time_stamp_marker),
+                                event["Timestamp"],
+                            )
                             break
                         if event["EventId"] not in events:
                             events.add(event["EventId"])
@@ -402,9 +409,10 @@ class Deployer:
                             # Pushing in front reverse the order to display older events first
                             new_events.appendleft(event)
                     else:  # go to next loop (page of events) if not break from inside loop
+                        LOG.debug("Still in describe_stack_events loop, got to next page")
                         continue
                     break  # reached here only if break from inner loop!
-
+                LOG.debug("Exit from the describe event loop")
                 # Override timestamp marker with latest event (last in deque)
                 if len(new_events) > 0:
                     time_stamp_marker = utc_to_timestamp(new_events[-1]["Timestamp"])
@@ -429,6 +437,12 @@ class Deployer:
                     if self._is_root_stack_event(new_event) and self._check_stack_not_in_progress(
                         new_event["ResourceStatus"]
                     ):
+                        LOG.debug(
+                            "Stack %s is not in progress. Its status is %s, and event is %s",
+                            stack_name,
+                            new_event["ResourceStatus"],
+                            new_event,
+                        )
                         stack_change_in_progress = False
                         break
 
@@ -439,7 +453,10 @@ class Deployer:
                     "Stack with id {0} does not exist".format(stack_name) in str(ex)
                     and on_failure == FailureMode.DELETE
                 ):
+                    LOG.debug("Stack %s does not exist", stack_name)
                     return
+
+                LOG.debug("Trial # %d failed due to exception %s", retry_attempts, str(ex))
 
                 retry_attempts = retry_attempts + 1
                 if retry_attempts > self.max_attempts:
