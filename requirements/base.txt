@@ -1,6 +1,6 @@
 chevron~=0.12
 click~=8.1
-Flask<2.4
+Flask<3.1
 boto3>=1.26.109,<2
 jmespath~=1.0.1
 ruamel_yaml~=0.17.35
