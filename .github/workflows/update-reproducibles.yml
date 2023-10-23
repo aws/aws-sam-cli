@@ -3,7 +3,11 @@ on:
   pull_request:
     branches: [develop]
     paths:
-      - requirements/base.txt # run this GHA only if requirements file is changed
+      # run this GHA if the following files have changed
+      - requirements/base.txt
+      - requirements/reproducible-linux.txt
+      - requirements/reproducible-mac.txt
+      - requirements/reproducible-win.txt
 
 jobs:
   update-reqs:
