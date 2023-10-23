@@ -347,10 +347,11 @@ class Deployer:
         except botocore.exceptions.ClientError as ex:
             raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
 
-    def get_last_event_time(self, stack_name):
+    def get_last_event_time(self, stack_name, default_time=time.time()):
         """
-        Finds the last event time stamp thats present for the stack, if not get the current time
+        Finds the last event time stamp that presents for the stack, if not return the default_time
         :param stack_name: Name or ID of the stack
+        :param default_time: the default unix epoch time to be returned in case if the stack provided does not exist
         :return: unix epoch
         """
         try:
@@ -358,7 +359,7 @@ class Deployer:
                 self._client.describe_stack_events(StackName=stack_name)["StackEvents"][0]["Timestamp"]
             )
         except KeyError:
-            return time.time()
+            return default_time
 
     @pprint_column_names(
         format_string=DESCRIBE_STACK_EVENTS_FORMAT_STRING,
@@ -483,6 +484,7 @@ class Deployer:
         stack_operation: str,
         disable_rollback: bool,
         on_failure: FailureMode = FailureMode.ROLLBACK,
+        time_stamp_marker: float = 0,
     ) -> None:
         """
         Wait for stack operation to execute and return when execution completes.
@@ -498,6 +500,8 @@ class Deployer:
             Preserves the state of previously provisioned resources when an operation fails
         on_failure : FailureMode
             The action to take when the operation fails
+        time_stamp_marker:
+            last event time on the stack to start streaming events from.
         """
         sys.stdout.write(
             "\n{} - Waiting for stack create/update "
@@ -505,7 +509,7 @@ class Deployer:
         )
         sys.stdout.flush()
 
-        self.describe_stack_events(stack_name, time.time() * 1000, on_failure)
+        self.describe_stack_events(stack_name, time_stamp_marker, on_failure)
 
         # Pick the right waiter
         if stack_operation == "CREATE":
@@ -641,9 +645,13 @@ class Deployer:
 
             if exists:
                 kwargs["DisableRollback"] = disable_rollback  # type: ignore
-
+                # get the latest stack event, and use 0 in case if the stack does not exist
+                marker_time = self.get_last_event_time(stack_name, 0)
+                print(f">>>>>>> {marker_time}")
                 result = self.update_stack(**kwargs)
-                self.wait_for_execute(stack_name, "UPDATE", disable_rollback, on_failure=on_failure)
+                self.wait_for_execute(
+                    stack_name, "UPDATE", disable_rollback, on_failure=on_failure, time_stamp_marker=marker_time
+                )
                 msg = "\nStack update succeeded. Sync infra completed.\n"
             else:
                 # Pass string representation of enum
@@ -718,8 +726,10 @@ class Deployer:
             if current_state == "UPDATE_FAILED":
                 LOG.info("Stack %s failed to update, rolling back stack to previous state...", stack_name)
 
+                # get the latest stack event
+                marker_time = self.get_last_event_time(stack_name, 0)
                 self._client.rollback_stack(**kwargs)
-                self.describe_stack_events(stack_name, time.time() * 1000, FailureMode.DELETE)
+                self.describe_stack_events(stack_name, marker_time, FailureMode.DELETE)
                 self._rollback_wait(stack_name)
 
                 current_state = self._get_stack_status(stack_name)
@@ -729,13 +739,15 @@ class Deployer:
             if current_state in failed_states:
                 LOG.info("Stack %s failed to create/update correctly, deleting stack", stack_name)
 
+                # get the latest stack event
+                marker_time = self.get_last_event_time(stack_name, 0)
                 self._client.delete_stack(**kwargs)
 
                 # only a stack that failed to create will have stack events, deleting
                 # from a ROLLBACK_COMPLETE state will not return anything
                 # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/cloudformation.html#CloudFormation.Client.delete_stack
                 if current_state == "CREATE_FAILED":
-                    self.describe_stack_events(stack_name, time.time() * 1000, FailureMode.DELETE)
+                    self.describe_stack_events(stack_name, marker_time, FailureMode.DELETE)
 
                 waiter = self._client.get_waiter("stack_delete_complete")
                 waiter.wait(StackName=stack_name, WaiterConfig={"Delay": 30, "MaxAttempts": 120})
