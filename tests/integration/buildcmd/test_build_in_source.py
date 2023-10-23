@@ -146,7 +146,7 @@ class TestBuildCommand_BuildInSource_Nodejs(BuildIntegNodeBase):
             (None, False),  # use default for workflow (don't build in source)
         ]
     )
-    # @pytest.mark.flaky(reruns=3)
+    @pytest.mark.flaky(reruns=3)
     def test_builds_successfully_without_local_dependencies(self, build_in_source, dependencies_expected_in_source):
         self.codeuri_path = Path(self.test_data_path, "Node")
         self.source_directories = [str(self.codeuri_path)]
@@ -161,7 +161,7 @@ class TestBuildCommand_BuildInSource_Nodejs(BuildIntegNodeBase):
         # check whether dependencies were installed in source dir
         self.validate_node_modules_folder(dependencies_expected_in_source)
 
-    # @pytest.mark.flaky(reruns=3)
+    @pytest.mark.flaky(reruns=3)
     def test_builds_successfully_with_local_dependency(self):
         codeuri_folder = Path("Esbuild", "NodeWithLocalDependency")
 
