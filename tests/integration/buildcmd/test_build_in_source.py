@@ -1,11 +1,16 @@
 import os
+from pathlib import Path
 import shutil
 import pytest
 import logging
-from unittest import skip
 from parameterized import parameterized
 
-from tests.integration.buildcmd.build_integ_base import BuildIntegProvidedBase, BuildIntegEsbuildBase
+from tests.integration.buildcmd.build_integ_base import (
+    BuildIntegNodeBase,
+    BuildIntegProvidedBase,
+    BuildIntegEsbuildBase,
+)
+from tests.testing_utils import run_command
 
 LOG = logging.getLogger(__name__)
 
@@ -107,3 +112,71 @@ class TestBuildCommand_BuildInSource_Esbuild(BuildIntegEsbuildBase):
 
         # check whether dependencies were installed in source dir
         self.assertEqual(os.path.isdir(os.path.join(codeuri, "node_modules")), True)
+
+
+class TestBuildCommand_BuildInSource_Nodejs(BuildIntegNodeBase):
+    is_nested_parent = False
+    template = "template.yaml"
+
+    def setUp(self):
+        super().setUp()
+        self.source_directories = []
+
+    def tearDown(self):
+        super().tearDown()
+        # clean up dependencies installed in source directories
+        for source in self.source_directories:
+            shutil.rmtree(Path(source, "node_modules"), ignore_errors=True)
+
+    def validate_node_modules_folder(self, expected_result: bool):
+        source_node_modules = Path(self.codeuri_path, "node_modules")
+
+        self.assertEqual(source_node_modules.is_dir(), expected_result, "node_modules not found in source folder")
+
+    def validate_node_modules_linked(self):
+        built_node_modules = Path(self.default_build_dir, "Function", "node_modules")
+
+        self.assertEqual(built_node_modules.is_dir(), True, "node_modules not found in artifact folder")
+        self.assertEqual(built_node_modules.is_symlink(), True, "node_modules not a symlink in artifact folder")
+
+    @parameterized.expand(
+        [
+            (True, True),  # build in source
+            (False, False),  # don't build in source
+            (None, False),  # use default for workflow (don't build in source)
+        ]
+    )
+    # @pytest.mark.flaky(reruns=3)
+    def test_builds_successfully_without_local_dependencies(self, build_in_source, dependencies_expected_in_source):
+        self.codeuri_path = Path(self.test_data_path, "Node")
+        self.source_directories = [str(self.codeuri_path)]
+
+        overrides = self.get_override(
+            runtime="nodejs16.x", code_uri=self.CODE_URI, architecture="x86_64", handler="main.lambdaHandler"
+        )
+        command_list = self.get_command_list(build_in_source=build_in_source, parameter_overrides=overrides)
+
+        run_command(command_list, self.working_dir)
+
+        # check whether dependencies were installed in source dir
+        self.validate_node_modules_folder(dependencies_expected_in_source)
+
+    # @pytest.mark.flaky(reruns=3)
+    def test_builds_successfully_with_local_dependency(self):
+        codeuri_folder = Path("Esbuild", "NodeWithLocalDependency")
+
+        self.codeuri_path = Path(self.test_data_path, codeuri_folder)
+        self.CODE_URI = str(codeuri_folder)
+
+        self.source_directories = [str(self.codeuri_path)]
+
+        overrides = self.get_override(
+            runtime="nodejs16.x", code_uri=self.CODE_URI, architecture="x86_64", handler="main.lambdaHandler"
+        )
+        command_list = self.get_command_list(build_in_source=True, parameter_overrides=overrides)
+
+        run_command(command_list, self.working_dir)
+
+        # check whether dependencies were installed in source dir
+        self.validate_node_modules_folder(True)
+        self.validate_node_modules_linked()
