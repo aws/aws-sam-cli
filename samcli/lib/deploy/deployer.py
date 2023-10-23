@@ -647,7 +647,6 @@ class Deployer:
                 kwargs["DisableRollback"] = disable_rollback  # type: ignore
                 # get the latest stack event, and use 0 in case if the stack does not exist
                 marker_time = self.get_last_event_time(stack_name, 0)
-                print(f">>>>>>> {marker_time}")
                 result = self.update_stack(**kwargs)
                 self.wait_for_execute(
                     stack_name, "UPDATE", disable_rollback, on_failure=on_failure, time_stamp_marker=marker_time
