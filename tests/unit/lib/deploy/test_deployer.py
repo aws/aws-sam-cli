@@ -420,10 +420,11 @@ class TestDeployer(CustomTestCase):
         self.assertEqual(self.deployer.get_last_event_time("test"), utc_to_timestamp(timestamp))
 
     def test_get_last_event_time_unknown_last_time(self):
-        current_timestamp = datetime.utcnow()
+        time_float = time.time()
+        current_timestamp = to_datetime(time_float * 1000)
         self.deployer._client.describe_stack_events = MagicMock(side_effect=KeyError)
         # Convert to milliseconds from seconds
-        last_stack_event_timestamp = to_datetime(self.deployer.get_last_event_time("test") * 1000)
+        last_stack_event_timestamp = to_datetime(self.deployer.get_last_event_time("test", time_float) * 1000)
         self.assertEqual(last_stack_event_timestamp.year, current_timestamp.year)
         self.assertEqual(last_stack_event_timestamp.month, current_timestamp.month)
         self.assertEqual(last_stack_event_timestamp.day, current_timestamp.day)
@@ -1384,7 +1385,7 @@ class TestDeployer(CustomTestCase):
 
         self.assertEqual(self.deployer._client.rollback_stack.call_count, 1)
         self.assertEqual(self.deployer._client.delete_stack.call_count, 1)
-        self.assertEqual(self.deployer._client.describe_stack_events.call_count, 0)
+        self.assertEqual(self.deployer._client.describe_stack_events.call_count, 2)
 
     def test_rollback_invalid_stack_name(self):
         self.deployer._client.describe_stacks = MagicMock(
