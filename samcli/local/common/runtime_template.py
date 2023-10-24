@@ -153,12 +153,13 @@ LAMBDA_IMAGES_RUNTIMES: List = sorted(list(set(LAMBDA_IMAGES_RUNTIMES_MAP.values
 
 # Schemas Code lang is a MINIMUM supported version
 # - this is why later Lambda runtimes can be mapped to earlier Schemas Code Languages
+# event schema registry supports only java8, python3.6, dotnet6, and Go1 for code binding
 SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING = {
     "java8": "Java8",
     "java8.al2": "Java8",
     "java11": "Java8",
-    "java17": "Java17",
-    "java21": "Java21",
+    "java17": "Java8",
+    "java21": "Java8",
     "python3.7": "Python36",
     "python3.8": "Python36",
     "python3.9": "Python36",
