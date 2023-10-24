@@ -136,9 +136,9 @@ cffi==1.16.0 \
     --hash=sha256:fa3a0128b152627161ce47201262d3140edb5a5c3da88d73a1b790a959126956 \
     --hash=sha256:fcc8eb6d5902bb1cf6dc4f187ee3ea80a1eba0a89aba40a5cb20a5087d961357
     # via cryptography
-cfn-lint==0.81.0 \
-    --hash=sha256:532cbfe076fa8b68e70ec67743e9086169ef6d15be3306cae8aa57b38994fd8f \
-    --hash=sha256:8f34392412ffe6213aa0897d469133123c2d8ad576a9cdafbc1f7b630f98d597
+cfn-lint==0.83.0 \
+    --hash=sha256:212251e17322c630506ff02117ff53586037bec3a7161f7cb081c7afde9fd2ca \
+    --hash=sha256:e2f8d763d1cec9f9cbed58b0461b04c8c294199844d65a35e42ed3400314f181
     # via aws-sam-cli (setup.py)
 chardet==5.2.0 \
     --hash=sha256:1b3b6ff479a8c414bc3fa2c0852995695c4a026dcd6d0633b2dd092ca39c1cf7 \
@@ -1038,9 +1038,9 @@ watchdog==3.0.0 \
     --hash=sha256:d00e6be486affb5781468457b21a6cbe848c33ef43f9ea4a73b4882e5f188a44 \
     --hash=sha256:d429c2430c93b7903914e4db9a966c7f2b068dd2ebdd2fa9b9ce094c7d459f33
     # via aws-sam-cli (setup.py)
-websocket-client==1.6.3 \
-    --hash=sha256:3aad25d31284266bcfcfd1fd8a743f63282305a364b8d0948a43bd606acc652f \
-    --hash=sha256:6cfc30d051ebabb73a5fa246efdcc14c8fbebbd0330f8984ac3bb6d9edd2ad03
+websocket-client==1.6.4 \
+    --hash=sha256:084072e0a7f5f347ef2ac3d8698a5e0b4ffbfcab607628cadabc650fc9a83a24 \
+    --hash=sha256:b3324019b3c28572086c4a319f91d1dcd44e6e11cd340232978c684a7650d0df
     # via docker
 werkzeug==3.0.0 \
     --hash=sha256:3ffff4dcc32db52ef3cc94dff3000a3c2846890f3a5a51800a27b909c5e770f0 \
