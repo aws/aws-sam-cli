@@ -241,11 +241,23 @@ class BuildIntegBase(TestCase):
                 overrides,
             ]
 
-        process_execute = run_command(cmdlist)
-        process_execute.process.wait()
+        for i in range(5):
+            process_execute = run_command(cmdlist)
+            process_stdout = process_execute.stdout.decode("utf-8")
+            process_stderr = process_execute.stderr.decode("utf-8")
+            LOG.info("Local invoke stdout: %s", process_stdout)
+            LOG.info("Local invoke stderr: %s", process_stderr)
 
-        process_stdout = process_execute.stdout.decode("utf-8")
-        self.assertEqual(json.loads(process_stdout), expected_result)
+            if "timed out after" in process_stderr:
+                LOG.info("Function timed out, retrying")
+                continue
+
+            if json.loads(process_stdout) == expected_result:
+                LOG.info("Expected result found, succeeded!")
+                # success
+                return
+
+        self.fail("Failed to invoke function & get expected result")
 
     def get_override(self, runtime, code_uri, architecture, handler):
         overrides = {"Runtime": runtime, "CodeUri": code_uri, "Handler": handler}

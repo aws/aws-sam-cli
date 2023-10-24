@@ -9,14 +9,13 @@ configuration:
   - BuildIntegTestingJavaPythonProvided
   - BuildIntegTestingArm64
   - AllTerraformBuildTesting
-  - DeployIntegTesting
-  - PackageIntegTesting
-  - DeleteIntegTesting
+  - PackageAndDeleteAndDeployIntegTesting
   - SyncIntegTesting
-  - LocalIntegTesting
-  - EndToEndTesting
+  - LocalInvokeIntegTesting
+  - LocalStartApiIntegTesting
+  - LocalStartLambdaIntegTesting
   # other Integration testing, Dev, regression and smoke testing
-  - OtherTesting
+  - OtherAndEndToEndTesting
 
 environment:
   AWS_DEFAULT_REGION: us-east-1
@@ -213,6 +212,23 @@ for:
       only:
         - configuration: BuildIntegTestingArm64
 
+    build_script:
+      # install Rust in build_script to not override the default "install" actions
+      - appveyor-retry appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
+      - rustup-init.exe -y --default-host x86_64-pc-windows-msvc --default-toolchain stable
+      - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
+      - set RUST_BACKTRACE=1
+      - rustup toolchain install stable --profile minimal --no-self-update
+      - rustup default stable
+      - rustup target add x86_64-unknown-linux-gnu --toolchain stable
+      - rustup target add aarch64-unknown-linux-gnu --toolchain stable
+      - ps: "choco install zig"
+      - ps: Invoke-WebRequest -Uri https://github.com/cargo-lambda/cargo-lambda/releases/download/$env:CARGO_LAMBDA_VERSION/cargo-lambda-$env:CARGO_LAMBDA_VERSION.windows-x64.zip -OutFile C:\Users\appveyor\cargo-lambda.zip
+      - ps: Expand-Archive -DestinationPath C:\Users\appveyor\.cargo\bin C:\Users\appveyor\cargo-lambda.zip
+      - rustc -V
+      - cargo -V
+      - cargo lambda -V
+
     test_script:
       - ps: "pytest -vv --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64.json"
 
@@ -229,29 +245,13 @@ for:
       - ps: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
       - ps: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
-  #Integ testing deploy
+  # Integ testing package, delete and deploy
   - matrix:
       only:
-        - configuration: DeployIntegTesting
+        - configuration: PackageAndDeleteAndDeployIntegTesting
 
     test_script:
-      - ps: "pytest -vv tests/integration/deploy -n 4 --reruns 4 --dist=loadgroup --json-report --json-report-file=TEST_REPORT-integration-deploy.json"
-
-  # Integ testing package
-  - matrix:
-      only:
-        - configuration: PackageIntegTesting
-
-    test_script:
-      - ps: "pytest -vv tests/integration/package -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-package.json"
-
-  # Integ testing delete
-  - matrix:
-      only:
-        - configuration: DeleteIntegTesting
-
-    test_script:
-      - ps: "pytest -vv tests/integration/delete -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-delete.json"
+      - ps: "pytest -vv tests/integration/package tests/integration/delete tests/integration/deploy --dist=loadgroup -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-package-delete.json"
 
   # Integ testing sync
   - matrix:
@@ -261,33 +261,49 @@ for:
     test_script:
       - ps: "pytest -vv tests/integration/sync -n 3 --reruns 3 --dist loadscope --json-report --json-report-file=TEST_REPORT-integration-sync.json"
 
-  #Integ testing local
+  #Integ testing local invoke and generate event
   - matrix:
       only:
-        - configuration: LocalIntegTesting
+        - configuration: LocalInvokeIntegTesting
 
     test_script:
       # install Terraform CLI
       - "choco install terraform"
       - "terraform -version"
 
-      - ps: "pytest -vv tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-local.json"
+      - ps: "pytest -vv tests/integration/local/invoke tests/integration/local/generate_event --json-report --json-report-file=TEST_REPORT-integration-local.json"
 
-  # End-to-end testing
+  #Integ testing local start-api
   - matrix:
       only:
-        - configuration: EndToEndTesting
+        - configuration: LocalStartApiIntegTesting
 
     test_script:
-      - ps: "pytest -vv -n 4 --reruns 5 --dist loadscope tests/end_to_end --json-report --json-report-file=TEST_REPORT-end-to-end.json"
+      # install Terraform CLI
+      - "choco install terraform"
+      - "terraform -version"
+
+      - ps: "pytest -vv tests/integration/local/start_api --json-report --json-report-file=TEST_REPORT-integration-local-api.json"
+
+  #Integ testing local start-lambda
+  - matrix:
+      only:
+        - configuration: LocalStartLambdaIntegTesting
+
+    test_script:
+      # install Terraform CLI
+      - "choco install terraform"
+      - "terraform -version"
+
+      - ps: "pytest -vv tests/integration/local/start_lambda --json-report --json-report-file=TEST_REPORT-integration-local-lambda.json"
 
   #Other testing
   - matrix:
       only:
-        - configuration: OtherTesting
+        - configuration: OtherAndEndToEndTesting
 
     test_script:
-      - ps: "pytest -vv -n 4 --reruns 4 --dist loadgroup tests/integration --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-others.json"
+      - ps: "pytest -vv -n 4 --reruns 4 --dist loadgroup tests/integration tests/end_to_end --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-others.json"
       - ps: "pytest -vv tests/regression --json-report --json-report-file=TEST_REPORT-regression.json"
 # Uncomment for RDP
 # on_finish:
