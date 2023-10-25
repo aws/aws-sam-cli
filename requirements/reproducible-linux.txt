@@ -24,9 +24,9 @@ aws-lambda-builders==1.40.0 \
     --hash=sha256:660b1d284320172beca39971b2932549d1ae642aa94500bcf70b612771957480 \
     --hash=sha256:a48f083f750d62d5a5cf0bac1fe224682b5ed83dd821d794802c791ec22e077b
     # via aws-sam-cli (setup.py)
-aws-sam-translator==1.78.0 \
-    --hash=sha256:9c4ce6682db770ecd3f7a9dffe228d47e67dc834656f713efb492c3f1b80d9b5 \
-    --hash=sha256:a3c405a9c8716e88515479ba1365cd405390abea3058ec51ddaff6acd9f564bd
+aws-sam-translator==1.79.0 \
+    --hash=sha256:6f0c6bbcebcc98c4f98dc238352a06b0befe7fb72535cca75712fffff4873875 \
+    --hash=sha256:990f3043d00b6fd801b38ad780ecd058c315b7581b2e43fc013c9b6253f876e8
     # via
     #   aws-sam-cli (setup.py)
     #   cfn-lint
@@ -38,27 +38,27 @@ blinker==1.6.3 \
     --hash=sha256:152090d27c1c5c722ee7e48504b02d76502811ce02e1523553b4cf8c8b3d3a8d \
     --hash=sha256:296320d6c28b006eb5e32d4712202dbcdcbf5dc482da298c2f44881c43884aaa
     # via flask
-boto3==1.28.68 \
-    --hash=sha256:0da96244df4771a8ee70b742c42759a440fdb9c8b7850584db7c5daf10e824e1 \
-    --hash=sha256:cbc76ed54278be8cdc44ce6ee1980296f764fdff72c6bbe668169c07d4ca08f0
+boto3==1.28.69 \
+    --hash=sha256:2dd93e5c530334fbc74a662f269fa8bfc4c3b7321f9dbe2d53f7c8e57fe5f6dd \
+    --hash=sha256:beefa8e8e1cf5f904dd95736f3516508f6a0cf396ff46aa166a136107cc2ff51
     # via
     #   aws-sam-cli (setup.py)
     #   aws-sam-translator
-boto3-stubs[apigateway,cloudformation,ecr,iam,kinesis,lambda,s3,schemas,secretsmanager,signer,sqs,stepfunctions,sts,xray]==1.28.68 \
-    --hash=sha256:110d7aa0d64bae06b2af2db6d1c06f2d94ceabff6349dd81695c5a8238898429 \
-    --hash=sha256:7681e82388d4afc091dc3e33db159c426ce9ce416f204bcd0b993322b44191a6
+boto3-stubs[apigateway,cloudformation,ecr,iam,kinesis,lambda,s3,schemas,secretsmanager,signer,sqs,stepfunctions,sts,xray]==1.28.69 \
+    --hash=sha256:2bfabb4a3a18b7fe73fedfe8f2d29aac35fecfb37037b9e8991ae48531c6cf3b \
+    --hash=sha256:cb3d773bb3efb6699d3df7714a0ae44dd47bbb3a70a7eee8b850eb260176ae83
     # via
     #   aws-sam-cli (setup.py)
     #   boto3-stubs
-botocore==1.31.68 \
-    --hash=sha256:0813f02d00e46051364d9b5d5e697a90e988b336b87e949888c1444a59b8ba59 \
-    --hash=sha256:7b7065c502f5faa6cc2aa4b42b5fa34e5c0cd171e2952d6a9aeb26bfd44a54c3
+botocore==1.31.70 \
+    --hash=sha256:049bbf526c95b6169f59617a5ff1b0061cb7a0e44992b8c27c6955832b383988 \
+    --hash=sha256:5f49def4ec2e4216dd0195d23d9811027d02ee6c8a37b031e2b2fe38e8c77ddc
     # via
     #   boto3
     #   s3transfer
-botocore-stubs==1.31.68 \
-    --hash=sha256:1039d8b5bef71a048b08274e16c6aeee5582929c8c7eeb24991c2141d692434a \
-    --hash=sha256:f9997a6855820b1cb97fb9af1026ae1ff5a6af0503ae6cdedd76aa19f0d7adb2
+botocore-stubs==1.31.69 \
+    --hash=sha256:35fde75fab9bb276fc613d169ce38bf46516182c66adf3fe2b7a24860f9d9c4a \
+    --hash=sha256:6e538bb5f55e7c85adb52b0d53dab6453a739b9eacce58e13460f894ddee7633
     # via boto3-stubs
 certifi==2023.7.22 \
     --hash=sha256:539cc1d13202e33ca466e88b2807e29f4c13049d6d87031a3c110744495cb082 \
