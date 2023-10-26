@@ -25,10 +25,10 @@ environment:
   TMPDIR: "%TEMP%"
   TMP: "%TEMP%"
 
-  # MSI Installers only use Py3.8. It is sufficient to test with this version here.
-  PYTHON_HOME: "C:\\Python38-x64"
-  PYTHON_SCRIPTS: "C:\\Python38-x64\\Scripts"
-  PYTHON_EXE: "C:\\Python38-x64\\python.exe"
+  # MSI Installers only use Py3.11. It is sufficient to test with this version here.
+  PYTHON_HOME: "C:\\Python311-x64"
+  PYTHON_SCRIPTS: "C:\\Python311-x64\\Scripts"
+  PYTHON_EXE: "C:\\Python311-x64\\python.exe"
   PYTHON_ARCH: "64"
   HOME: 'C:\Users\appveyor'
   HOMEDRIVE: "C:"
@@ -67,7 +67,7 @@ install:
 
   # Make sure the temp directory exists for Python to use.
   - ps: "mkdir -Force C:\\tmp"
-  - 'set PATH=%PYTHON_HOME%;C:\Ruby32-x64\bin;%PATH%;C:\Python37-x64;C:\Python39-x64;C:\Python310-x64;C:\Python311-x64'
+  - 'set PATH=%PYTHON_HOME%;C:\Ruby32-x64\bin;%PATH%;C:\Python37-x64;C:\Python39-x64;C:\Python310-x64;C:\Python38-x64'
   - "echo %PYTHON_HOME%"
   - "echo %PATH%"
   - "python --version"
