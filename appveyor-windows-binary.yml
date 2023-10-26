@@ -130,7 +130,7 @@ install:
 
   # Install aws-sam-cli MSI binary
   - ps: "
-    Invoke-WebRequest -Uri https://github.com/hnnasit/aws-sam-cli/releases/download/sam-cli/AWS_SAM_CLI_64_PY3.msi -OutFile aws-sam-cli-installer.msi;
+    Invoke-WebRequest -Uri https://github.com/hnnasit/aws-sam-cli/releases/download/v1.99.0/AWS_SAM_CLI_PY3.msi -OutFile aws-sam-cli-installer.msi;
     Start-Process 'C:\\Windows\\System32\\msiexec.exe' -ArgumentList '/i aws-sam-cli-installer.msi /qn /norestart' -wait -PassThru;
   "
   - 'set PATH=C:\Program Files\Amazon\AWSSAMCLI\bin\;%PATH%'
