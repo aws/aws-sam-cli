@@ -21,7 +21,8 @@ concurrency:
 jobs:
   run-workflow:
     name: PR Workflow
-    if: github.repository_owner == 'aws'
+    # calling success() and failure() is required for this WF to run all the time
+    if: github.repository_owner == 'aws' && (success() || failure())
     runs-on: ubuntu-latest
     needs:
       - make-pr
