@@ -25,10 +25,10 @@ environment:
   TMPDIR: "%TEMP%"
   TMP: "%TEMP%"
 
-  # MSI Installers only use Py3.8. It is sufficient to test with this version here.
-  PYTHON_HOME: "C:\\Python38-x64"
-  PYTHON_SCRIPTS: "C:\\Python38-x64\\Scripts"
-  PYTHON_EXE: "C:\\Python38-x64\\python.exe"
+  # MSI Installers only use Py3.11. It is sufficient to test with this version here.
+  PYTHON_HOME: "C:\\Python311-x64"
+  PYTHON_SCRIPTS: "C:\\Python311-x64\\Scripts"
+  PYTHON_EXE: "C:\\Python311-x64\\python.exe"
   PYTHON_ARCH: "64"
   HOME: 'C:\Users\appveyor'
   HOMEDRIVE: "C:"
@@ -38,7 +38,7 @@ environment:
   AWS_ECR: "AWS_ECR_TESTING"
   APPVEYOR_CONSOLE_DISABLE_PTY: true
 
-  SAM_WINDOWS_BINARY_PATH: "C:\\Program Files\\Amazon\\AWSSAMCLI\\bin\\sam.cmd"
+  SAM_WINDOWS_BINARY_PATH: "C:\\Program Files\\Amazon\\AWSSAMCLI_NIGHTLY\\bin\\sam-nightly.cmd"
 
 init:
   # Uncomment this for RDP
@@ -67,7 +67,7 @@ install:
 
   # Make sure the temp directory exists for Python to use.
   - ps: "mkdir -Force C:\\tmp"
-  - 'set PATH=%PYTHON_HOME%;C:\Ruby32-x64\bin;%PATH%;C:\Python37-x64;C:\Python39-x64;C:\Python310-x64;C:\Python311-x64'
+  - 'set PATH=%PYTHON_HOME%;C:\Ruby32-x64\bin;%PATH%;C:\Python37-x64;C:\Python39-x64;C:\Python310-x64;C:\Python38-x64'
   - "echo %PYTHON_HOME%"
   - "echo %PATH%"
   - "python --version"
@@ -130,11 +130,11 @@ install:
 
   # Install aws-sam-cli MSI binary
   - ps: "
-    Invoke-WebRequest -Uri https://github.com/hnnasit/aws-sam-cli/releases/download/v1.99.0/AWS_SAM_CLI_PY3.msi -OutFile aws-sam-cli-installer.msi;
+    Invoke-WebRequest -Uri https://github.com/aws/aws-sam-cli/releases/download/sam-cli-nightly/AWS_SAM_CLI_64_PY3.msi -OutFile aws-sam-cli-installer.msi;
     Start-Process 'C:\\Windows\\System32\\msiexec.exe' -ArgumentList '/i aws-sam-cli-installer.msi /qn /norestart' -wait -PassThru;
   "
-  - 'set PATH=C:\Program Files\Amazon\AWSSAMCLI\bin\;%PATH%'
-  - 'sam --version'
+  - 'set PATH=C:\Program Files\Amazon\AWSSAMCLI_NIGHTLY\bin\;%PATH%'
+  - 'sam-nightly --version'
 
   # Echo final Path
   - "echo %PATH%"
