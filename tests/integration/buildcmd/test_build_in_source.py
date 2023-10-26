@@ -22,24 +22,22 @@ class TestBuildCommand_BuildInSource_Makefile(BuildIntegProvidedBase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.code_uri = "provided_create_new_file"
-        cls.code_uri_path = os.path.join(cls.test_data_path, cls.code_uri)
-        cls.file_created_from_make_command = "file-created-from-make-command.txt"
 
     def setUp(self):
         super().setUp()
 
+        self.code_uri = "provided_create_new_file"
+        test_data_code_uri = Path(self.test_data_path, self.code_uri)
+        self.file_created_from_make_command = "file-created-from-make-command.txt"
+
         scratch_code_uri_path = Path(self.working_dir, self.code_uri)
+        self.code_uri_path = str(scratch_code_uri_path)
 
         # copy source code into temporary directory and update code uri to that scratch dir
-        shutil.copytree(self.code_uri_path, scratch_code_uri_path, dirs_exist_ok=True)
-        self.code_uri_path = str(scratch_code_uri_path)
+        shutil.copytree(test_data_code_uri, scratch_code_uri_path, dirs_exist_ok=True)
 
     def tearDown(self):
         super().tearDown()
-        new_file_in_codeuri_path = os.path.join(self.code_uri_path, self.file_created_from_make_command)
-        if os.path.isfile(new_file_in_codeuri_path):
-            os.remove(new_file_in_codeuri_path)
 
     @parameterized.expand(
         [
@@ -54,7 +52,7 @@ class TestBuildCommand_BuildInSource_Makefile(BuildIntegProvidedBase):
             runtime="provided.al2",
             use_container=False,
             manifest=None,
-            code_uri=self.code_uri,
+            code_uri=self.code_uri_path,
             build_in_source=build_in_source,
         )
 
@@ -124,6 +122,8 @@ class TestBuildCommand_BuildInSource_Nodejs(BuildIntegNodeBase):
     def setUp(self):
         super().setUp()
 
+        shutil.copytree(Path(self.test_data_path, "Esbuild"), self.working_dir, dirs_exist_ok=True, symlinks=True)
+
     def tearDown(self):
         super().tearDown()
 
@@ -146,11 +146,7 @@ class TestBuildCommand_BuildInSource_Nodejs(BuildIntegNodeBase):
     )
     @pytest.mark.flaky(reruns=3)
     def test_builds_successfully_without_local_dependencies(self, build_in_source, expected_built_in_source):
-        code_uri = "Node"
-        source_path = Path(self.test_data_path, code_uri)
-        self.codeuri_path = Path(self.working_dir, code_uri)
-
-        shutil.copytree(source_path, self.codeuri_path, dirs_exist_ok=True, symlinks=True)
+        self.codeuri_path = Path(self.working_dir, "Node")
 
         overrides = self.get_override(
             runtime="nodejs18.x", code_uri=self.codeuri_path, architecture="x86_64", handler="main.lambdaHandler"
@@ -162,14 +158,10 @@ class TestBuildCommand_BuildInSource_Nodejs(BuildIntegNodeBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_builds_successfully_with_local_dependency(self):
-        codeuri_folder = Path("Esbuild", "NodeWithLocalDependency")
-
-        shutil.copytree(Path(self.test_data_path, "Esbuild"), self.working_dir, dirs_exist_ok=True)
-        self.codeuri_path = Path(self.test_data_path, codeuri_folder)
-        self.CODE_URI = str(codeuri_folder)
+        self.codeuri_path = Path(self.working_dir, "NodeWithLocalDependency")
 
         overrides = self.get_override(
-            runtime="nodejs18.x", code_uri=self.CODE_URI, architecture="x86_64", handler="main.lambdaHandler"
+            runtime="nodejs18.x", code_uri=self.codeuri_path, architecture="x86_64", handler="main.lambdaHandler"
         )
         command_list = self.get_command_list(build_in_source=True, parameter_overrides=overrides)
 
