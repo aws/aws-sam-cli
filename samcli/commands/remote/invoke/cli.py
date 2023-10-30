@@ -18,6 +18,7 @@ from samcli.lib.cli_validation.remote_invoke_options_validations import (
 from samcli.lib.remote_invoke.remote_invoke_executors import RemoteInvokeOutputFormat
 from samcli.lib.telemetry.event import EventTracker
 from samcli.lib.telemetry.metric import track_command
+from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION
 from samcli.lib.utils.version_checker import check_newer_version
 
 LOG = logging.getLogger(__name__)
@@ -30,7 +31,8 @@ SHORT_HELP = "Invoke a deployed resource in the cloud"
 DESCRIPTION = """
   Invoke or send an event to resources in the cloud.
   An event body can be passed using either -e (--event) or --event-file parameter.
-  Returned response will be written to stdout. Lambda logs will be written to stderr.
+  Returned response will be written to stdout. Lambda logs and Step Function execution
+  errors will be written to stderr.
 """
 
 
@@ -50,7 +52,8 @@ DESCRIPTION = """
     "--event",
     "-e",
     help="The event that will be sent to the resource. The target parameter will depend on the resource type. "
-    "For instance: 'Payload' for Lambda which can be passed as a JSON string",
+    "For instance: 'Payload' for Lambda which can be passed as a JSON string, 'Input' for Step Functions, "
+    "'MessageBody' for SQS, and 'Data' for Kinesis data streams.",
 )
 @click.option(
     "--event-file",
@@ -152,11 +155,14 @@ def do_cli(
             stack_name=stack_name,
             resource_id=resource_id,
         ) as remote_invoke_context:
-            if test_event_name:
+            if test_event_name and remote_invoke_context.resource_summary.resource_type == AWS_LAMBDA_FUNCTION:
                 lambda_test_event = remote_invoke_context.get_lambda_shared_test_event_provider()
                 LOG.debug("Retrieving remote event %s", test_event_name)
                 event = lambda_test_event.get_event(test_event_name, remote_invoke_context.resource_summary)
                 LOG.debug("Remote event contents: %s", event)
+            elif test_event_name:
+                LOG.info("Note: remote event is only supported for AWS Lambda Function resource.")
+                test_event_name = ""
 
             event_type = RemoteInvokeEventType.get_event_type(
                 event=event,
