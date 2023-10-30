@@ -4,7 +4,6 @@ import shutil
 import pytest
 import logging
 import json
-from unittest import skip
 from parameterized import parameterized, parameterized_class
 
 from tests.integration.sync.sync_integ_base import SyncIntegBase
@@ -15,7 +14,6 @@ from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION
 LOG = logging.getLogger(__name__)
 
 
-@skip("Building in source option is not exposed yet. Stop skipping once it is.")
 class TestSyncInfra_BuildInSource_Makefile(SyncIntegBase):
     dependency_layer = False
 
@@ -30,9 +28,6 @@ class TestSyncInfra_BuildInSource_Makefile(SyncIntegBase):
 
     def tearDown(self):
         super().tearDown()
-        for path in self.new_files_in_source:
-            if os.path.isfile(path):
-                os.remove(path)
 
     @parameterized.expand(
         [
@@ -57,7 +52,7 @@ class TestSyncInfra_BuildInSource_Makefile(SyncIntegBase):
             tags="integ=true clarity=yes foo_bar=baz",
             build_in_source=build_in_source,
         )
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
         self.assertIn("Sync infra completed.", str(sync_process_execute.stderr))
 
@@ -74,7 +69,6 @@ class TestSyncInfra_BuildInSource_Makefile(SyncIntegBase):
             )
 
 
-@skip("Building in source option is not exposed yet. Stop skipping once it is.")
 class TestSyncCode_BuildInSource_Makefile(TestSyncCodeBase):
     dependency_layer = False
     folder = "code"
@@ -87,13 +81,10 @@ class TestSyncCode_BuildInSource_Makefile(TestSyncCodeBase):
             Path("makefile_layer_create_new_file", "file-created-from-makefile-layer.txt"),
         ]
         # When running tests, TestSyncCodeBase copies the source onto a temp directory
-        self.new_files_in_source = [TestSyncCodeBase.temp_dir.joinpath(path) for path in paths]
+        self.new_files_in_source = [Path(self.test_data_path, self.folder, "before", path) for path in paths]
 
     def tearDown(self):
         super().tearDown()
-        for path in self.new_files_in_source:
-            if os.path.isfile(path):
-                os.remove(path)
 
     @parameterized.expand(
         [
@@ -105,11 +96,10 @@ class TestSyncCode_BuildInSource_Makefile(TestSyncCodeBase):
     def test_sync_code_builds_and_deploys_successfully(self, build_in_source, new_file_should_be_in_source):
         # update layer to trigger rebuild
         layer_path = "makefile_layer_create_new_file"
-        shutil.rmtree(TestSyncCodeBase.temp_dir.joinpath(layer_path), ignore_errors=True)
-        shutil.copytree(
-            self.test_data_path.joinpath(self.folder).joinpath("after").joinpath(layer_path),
-            TestSyncCodeBase.temp_dir.joinpath(layer_path),
-        )
+        code_uri = Path(self.test_data_path, self.folder)
+
+        shutil.rmtree(Path(code_uri, "before", layer_path), ignore_errors=True)
+        shutil.copytree(Path(code_uri, "after", layer_path), Path(code_uri, "before", layer_path))
 
         # Run code sync
         sync_command_list = self.get_sync_command_list(
@@ -123,7 +113,7 @@ class TestSyncCode_BuildInSource_Makefile(TestSyncCodeBase):
             tags="integ=true clarity=yes foo_bar=baz",
             build_in_source=build_in_source,
         )
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
 
         # check whether the new files were created in the source directory
@@ -139,7 +129,6 @@ class TestSyncCode_BuildInSource_Makefile(TestSyncCodeBase):
             )
 
 
-@skip("Building in source option is not exposed yet. Stop skipping once it is.")
 @parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
 class TestSyncInfra_BuildInSource_Esbuild(SyncIntegBase):
     def setUp(self):
@@ -148,9 +137,6 @@ class TestSyncInfra_BuildInSource_Esbuild(SyncIntegBase):
 
     def tearDown(self):
         super().tearDown()
-        # clean up dependencies installed in source directories
-        for path in self.source_dependencies_paths:
-            shutil.rmtree(path, ignore_errors=True)
 
     @parameterized.expand(
         [
@@ -182,7 +168,7 @@ class TestSyncInfra_BuildInSource_Esbuild(SyncIntegBase):
             tags="integ=true clarity=yes foo_bar=baz",
             build_in_source=build_in_source,
         )
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
         self.assertIn("Sync infra completed.", str(sync_process_execute.stderr))
 
@@ -232,7 +218,6 @@ class TestSyncInfra_BuildInSource_Esbuild(SyncIntegBase):
             self.assertEqual(lambda_response.get("message"), "hello world")
 
 
-@skip("Building in source option is not exposed yet. Stop skipping once it is.")
 @parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
 class TestSyncCode_BuildInSource_Esbuild(TestSyncCodeBase):
     dependency_layer = False
@@ -241,13 +226,9 @@ class TestSyncCode_BuildInSource_Esbuild(TestSyncCodeBase):
 
     def setUp(self):
         super().setUp()
-        self.source_dependencies_paths = []
 
     def tearDown(self):
         super().tearDown()
-        # clean up dependencies installed in source directories
-        for path in self.source_dependencies_paths:
-            shutil.rmtree(path, ignore_errors=True)
 
     @parameterized.expand(
         [
@@ -259,7 +240,9 @@ class TestSyncCode_BuildInSource_Esbuild(TestSyncCodeBase):
     def test_sync_code_builds_successfully_without_local_dependencies(
         self, build_in_source, dependencies_expected_in_source
     ):
-        self.source_dependencies_paths = [TestSyncCodeBase.temp_dir.joinpath("esbuild_function", "node_modules")]
+        source_dependencies_paths = [
+            Path.joinpath(self.test_data_path, self.folder, "before", "esbuild_function", "node_modules")
+        ]
 
         # Run code sync
         sync_command_list = self.get_sync_command_list(
@@ -273,11 +256,11 @@ class TestSyncCode_BuildInSource_Esbuild(TestSyncCodeBase):
             tags="integ=true clarity=yes foo_bar=baz",
             build_in_source=build_in_source,
         )
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
 
         # check whether dependencies were installed in the source directory
-        for path in self.source_dependencies_paths:
+        for path in source_dependencies_paths:
             self.assertEqual(os.path.isdir(path), dependencies_expected_in_source)
 
         stack_resources = self._get_stacks(TestSyncCodeBase.stack_name)
@@ -288,7 +271,7 @@ class TestSyncCode_BuildInSource_Esbuild(TestSyncCodeBase):
 
     def test_sync_code_builds_successfully_with_local_dependencies(self):
         codeuri = "esbuild_function_with_local_dependency"
-        self.source_dependencies_paths = [TestSyncCodeBase.temp_dir.joinpath(codeuri, "node_modules")]
+        source_dependencies_paths = [Path(self.test_data_path, self.folder, "before", codeuri, "node_modules")]
 
         # Run code sync
         sync_command_list = self.get_sync_command_list(
@@ -307,7 +290,7 @@ class TestSyncCode_BuildInSource_Esbuild(TestSyncCodeBase):
         self.assertEqual(sync_process_execute.process.returncode, 0)
 
         # check whether dependencies were installed in the source directory
-        for path in self.source_dependencies_paths:
+        for path in source_dependencies_paths:
             self.assertEqual(os.path.isdir(path), True)
 
         stack_resources = self._get_stacks(TestSyncCodeBase.stack_name)
