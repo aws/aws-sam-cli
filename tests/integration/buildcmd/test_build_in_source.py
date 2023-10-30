@@ -1,9 +1,9 @@
 import os
 from pathlib import Path
-import shutil
 import pytest
 import logging
 from parameterized import parameterized
+from samcli.lib.utils import osutils
 
 from tests.integration.buildcmd.build_integ_base import (
     BuildIntegNodeBase,
@@ -34,7 +34,7 @@ class TestBuildCommand_BuildInSource_Makefile(BuildIntegProvidedBase):
         self.code_uri_path = str(scratch_code_uri_path)
 
         # copy source code into temporary directory and update code uri to that scratch dir
-        shutil.copytree(test_data_code_uri, scratch_code_uri_path, dirs_exist_ok=True)
+        osutils.copytree(test_data_code_uri, scratch_code_uri_path)
 
     def tearDown(self):
         super().tearDown()
@@ -69,7 +69,7 @@ class TestBuildCommand_BuildInSource_Esbuild(BuildIntegEsbuildBase):
         super().setUp()
 
         source_files_path = Path(self.test_data_path, "Esbuild")
-        shutil.copytree(source_files_path, self.working_dir, dirs_exist_ok=True)
+        osutils.copytree(source_files_path, self.working_dir)
 
     @parameterized.expand(
         [
@@ -122,7 +122,7 @@ class TestBuildCommand_BuildInSource_Nodejs(BuildIntegNodeBase):
     def setUp(self):
         super().setUp()
 
-        shutil.copytree(Path(self.test_data_path, "Esbuild"), self.working_dir, dirs_exist_ok=True, symlinks=True)
+        osutils.copytree(Path(self.test_data_path, "Esbuild"), self.working_dir)
 
     def tearDown(self):
         super().tearDown()
