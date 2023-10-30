@@ -157,6 +157,7 @@ def do_cli(  # pylint: disable=R0914
     debug_function,
     container_host,
     container_host_interface,
+    add_host,
     invoke_image,
     hook_name,
 ):
@@ -202,6 +203,7 @@ def do_cli(  # pylint: disable=R0914
             shutdown=shutdown,
             container_host=container_host,
             container_host_interface=container_host_interface,
+            add_host=add_host,
             invoke_images=processed_invoke_images,
         ) as invoke_context:
             service = LocalLambdaService(lambda_invoke_context=invoke_context, port=port, host=host)
