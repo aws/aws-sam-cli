@@ -8,13 +8,12 @@ configuration:
   - BuildIntegTestingArm64
   - BuildIntegTestingArm64Java
   - AllTerraformBuildTesting
-  - DeployIntegTesting
-  - PackageAndDeleteIntegTesting
+  - PackageAndDeleteAndDeployIntegTesting
   - SyncIntegTesting
-  - LocalIntegTesting
-  - EndToEndTesting
+  - LocalInvokeIntegTesting
+  - LocalStartIntegTesting
   # other Integration testing, Dev, regression and smoke testing
-  - OtherTesting
+  - OtherAndEndToEndTesting
 
 environment:
   PYTHON_HOME: "$HOME/venv3.8/bin"
@@ -202,23 +201,14 @@ for:
       - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
       - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
-  # Integ testing deploy
-  -
-    matrix:
-      only:
-        - configuration: DeployIntegTesting
-
-    test_script:
-      - sh: "pytest -vv tests/integration/deploy -n 4 --reruns 4 --dist=loadgroup --json-report --json-report-file=TEST_REPORT-integration-deploy.json"
-
   # Integ testing package & delete
   -
     matrix:
       only:
-        - configuration: PackageAndDeleteIntegTesting
+        - configuration: PackageAndDeleteAndDeployIntegTesting
 
     test_script:
-      - sh: "pytest -vv tests/integration/package tests/integration/delete -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-package-delete.json"
+      - sh: "pytest -vv tests/integration/package tests/integration/delete tests/integration/deploy --dist=loadgroup -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-package-delete-deploy.json"
 
   # Integ testing sync
   -
@@ -233,7 +223,7 @@ for:
   -
     matrix:
       only:
-        - configuration: LocalIntegTesting
+        - configuration: LocalInvokeIntegTesting
 
     test_script:
       # install Terraform
@@ -244,23 +234,31 @@ for:
       - sh: "sudo mv /opt/terraform/terraform /usr/local/bin/"
       - sh: "terraform -version"
 
-      - sh: "pytest -vv tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-local.json"
+      - sh: "pytest -vv tests/integration/local/invoke tests/integration/local/generate_event --json-report --json-report-file=TEST_REPORT-integration-local.json"
 
-  # End-to-end testing
+  # Integ testing local
   -
     matrix:
       only:
-        - configuration: EndToEndTesting
+        - configuration: LocalStartIntegTesting
 
     test_script:
-      - sh: "pytest -vv -n 4 --reruns 5 --dist loadscope tests/end_to_end --json-report --json-report-file=TEST_REPORT-end-to-end.json"
+      # install Terraform
+      - sh: "sudo apt update --allow-releaseinfo-change"
+      - sh: "TER_VER=`curl -s https://api.github.com/repos/hashicorp/terraform/releases/latest | grep tag_name | cut -d: -f2 | tr -d \\\"\\,\\v | awk '{$1=$1};1'`"
+      - sh: "wget https://releases.hashicorp.com/terraform/${TER_VER}/terraform_${TER_VER}_linux_amd64.zip -P /tmp"
+      - sh: "sudo unzip -d /opt/terraform /tmp/terraform_${TER_VER}_linux_amd64.zip"
+      - sh: "sudo mv /opt/terraform/terraform /usr/local/bin/"
+      - sh: "terraform -version"
+
+      - sh: "pytest -vv tests/integration/local/start_api tests/integration/local/start_lambda --json-report --json-report-file=TEST_REPORT-integration-local-start.json"
 
   # Other testing
   -
     matrix:
       only:
-        - configuration: OtherTesting
+        - configuration: OtherAndEndToEndTesting
 
     test_script:
-      - sh: "pytest -vv -n 4 --reruns 4 --dist loadgroup tests/integration --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-others.json"
+      - sh: "pytest -vv -n 4 --reruns 4 --dist loadgroup tests/integration tests/end_to_end --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-others.json"
       - sh: "pytest -vv tests/regression --json-report --json-report-file=TEST_REPORT-regression.json"

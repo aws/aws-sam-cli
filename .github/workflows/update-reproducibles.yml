@@ -3,7 +3,11 @@ on:
   pull_request:
     branches: [develop]
     paths:
-      - requirements/base.txt # run this GHA only if requirements file is changed
+      # run this GHA if the following files have changed
+      - requirements/base.txt
+      - requirements/reproducible-linux.txt
+      - requirements/reproducible-mac.txt
+      - requirements/reproducible-win.txt
 
 jobs:
   update-reqs:
@@ -21,7 +25,7 @@ jobs:
             python: 3.8
             target: update-reproducible-mac-reqs
           - os: windows-latest
-            python: 3.8
+            python: 3.11
             target: update-reproducible-win-reqs
       max-parallel: 1
     runs-on: ${{ matrix.os }}

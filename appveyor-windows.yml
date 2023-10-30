@@ -9,13 +9,13 @@ configuration:
   - BuildIntegTestingJavaPythonProvided
   - BuildIntegTestingArm64
   - AllTerraformBuildTesting
-  - DeployIntegTesting
-  - PackageAndDeleteIntegTesting
+  - PackageAndDeleteAndDeployIntegTesting
   - SyncIntegTesting
-  - LocalIntegTesting
-  - EndToEndTesting
+  - LocalInvokeIntegTesting
+  - LocalStartApiIntegTesting
+  - LocalStartLambdaIntegTesting
   # other Integration testing, Dev, regression and smoke testing
-  - OtherTesting
+  - OtherAndEndToEndTesting
 
 environment:
   AWS_DEFAULT_REGION: us-east-1
@@ -236,13 +236,13 @@ for:
       - ps: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
       - ps: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
-  # Integ testing package & delete
+  # Integ testing package, delete and deploy
   - matrix:
       only:
-        - configuration: PackageAndDeleteIntegTesting
+        - configuration: PackageAndDeleteAndDeployIntegTesting
 
     test_script:
-      - ps: "pytest -vv tests/integration/package tests/integration/delete -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-package-delete.json"
+      - ps: "pytest -vv tests/integration/package tests/integration/delete tests/integration/deploy --dist=loadgroup -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-package-delete.json"
 
   # Integ testing sync
   - matrix:
@@ -252,33 +252,49 @@ for:
     test_script:
       - ps: "pytest -vv tests/integration/sync -n 3 --reruns 3 --dist loadscope --json-report --json-report-file=TEST_REPORT-integration-sync.json"
 
-  #Integ testing local
+  #Integ testing local invoke and generate event
   - matrix:
       only:
-        - configuration: LocalIntegTesting
+        - configuration: LocalInvokeIntegTesting
 
     test_script:
       # install Terraform CLI
       - "choco install terraform"
       - "terraform -version"
 
-      - ps: "pytest -vv tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-local.json"
+      - ps: "pytest -vv tests/integration/local/invoke tests/integration/local/generate_event --json-report --json-report-file=TEST_REPORT-integration-local.json"
 
-  # End-to-end testing
+  #Integ testing local start-api
   - matrix:
       only:
-        - configuration: EndToEndTesting
+        - configuration: LocalStartApiIntegTesting
 
     test_script:
-      - ps: "pytest -vv -n 4 --reruns 5 --dist loadscope tests/end_to_end --json-report --json-report-file=TEST_REPORT-end-to-end.json"
+      # install Terraform CLI
+      - "choco install terraform"
+      - "terraform -version"
+
+      - ps: "pytest -vv tests/integration/local/start_api --json-report --json-report-file=TEST_REPORT-integration-local-api.json"
+
+  #Integ testing local start-lambda
+  - matrix:
+      only:
+        - configuration: LocalStartLambdaIntegTesting
+
+    test_script:
+      # install Terraform CLI
+      - "choco install terraform"
+      - "terraform -version"
+
+      - ps: "pytest -vv tests/integration/local/start_lambda --json-report --json-report-file=TEST_REPORT-integration-local-lambda.json"
 
   #Other testing
   - matrix:
       only:
-        - configuration: OtherTesting
+        - configuration: OtherAndEndToEndTesting
 
     test_script:
-      - ps: "pytest -vv -n 4 --reruns 4 --dist loadgroup tests/integration --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-others.json"
+      - ps: "pytest -vv -n 4 --reruns 4 --dist loadgroup tests/integration tests/end_to_end --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-others.json"
       - ps: "pytest -vv tests/regression --json-report --json-report-file=TEST_REPORT-regression.json"
 # Uncomment for RDP
 # on_finish:
