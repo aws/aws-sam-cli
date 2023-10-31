@@ -961,9 +961,9 @@ typing-extensions==4.8.0 \
     #   mypy-boto3-xray
     #   pydantic
     #   pydantic-core
-tzlocal==5.1 \
-    --hash=sha256:2938498395d5f6a898ab8009555cb37a4d360913ad375d4747ef16826b03ef23 \
-    --hash=sha256:a5ccb2365b295ed964e0a98ad076fe10c495591e75505d34f154d60a7f1ed722
+tzlocal==5.2 \
+    --hash=sha256:49816ef2fe65ea8ac19d19aa7a1ae0551c834303d5014c6d5a62e4cbda8047b8 \
+    --hash=sha256:8d399205578f1a9342816409cc1e46a93ebd5755e39ea2d85334bea911bf0e6e
     # via
     #   aws-sam-cli (setup.py)
     #   dateparser
