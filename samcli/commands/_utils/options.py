@@ -587,13 +587,22 @@ def remote_invoke_parameter_click_option():
         type=RemoteInvokeBotoApiParameterType(),
         callback=remote_invoke_boto_parameter_callback,
         required=False,
-        help="Additional parameters that can be passed to invoke the resource.\n"
-        "The following additional parameters can be used to invoke a lambda resource and get a buffered response: "
-        "InvocationType='Event'|'RequestResponse'|'DryRun', LogType='None'|'Tail', "
-        "ClientContext='base64-encoded string' Qualifier='string'. "
-        "The following additional parameters can be used to invoke a lambda resource with response streaming: "
-        "InvocationType='RequestResponse'|'DryRun', LogType='None'|'Tail', "
-        "ClientContext='base64-encoded string', Qualifier='string'.",
+        help="Additional parameters that can be passed"
+        " to invoke the resource.\n\n"
+        "Lambda Function(Buffered stream): The following additional parameters can be used to invoke a lambda resource"
+        " and get a buffered response: InvocationType='Event'|'RequestResponse'|'DryRun', LogType='None'|'Tail', "
+        "ClientContext='base64-encoded string' Qualifier='string'.\n\n"
+        "Lambda Function(Response stream): The following additional parameters can be used to invoke a lambda resource"
+        " with response streaming: InvocationType='RequestResponse'|'DryRun', LogType='None'|'Tail', "
+        "ClientContext='base64-encoded string', Qualifier='string'.\n\n"
+        "Step Functions: The following additional parameters can be used to start a state machine execution: "
+        "name='string', traceHeader='string'\n\n"
+        "SQS Queue: The following additional parameters can be used to send a message to an SQS queue: "
+        "DelaySeconds=integer, MessageAttributes='json string', MessageSystemAttributes='json string',"
+        " MessageDeduplicationId='string', MessageGroupId='string'\n\n"
+        "Kinesis Data Stream: The following additional parameters can be used to put a record"
+        " in the kinesis data stream: PartitionKey='string', ExplicitHashKey='string',"
+        " SequenceNumberForOrdering='string', StreamARN='string' ",
     )
 
 
