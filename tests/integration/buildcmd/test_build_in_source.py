@@ -18,7 +18,7 @@ LOG = logging.getLogger(__name__)
 class TestBuildCommand_BuildInSource_Makefile(BuildIntegProvidedBase):
     template = "template.yaml"
     is_nested_parent = False
-    
+
     def setUp(self):
         super().setUp()
 
