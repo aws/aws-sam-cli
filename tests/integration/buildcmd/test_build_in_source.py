@@ -18,11 +18,7 @@ LOG = logging.getLogger(__name__)
 class TestBuildCommand_BuildInSource_Makefile(BuildIntegProvidedBase):
     template = "template.yaml"
     is_nested_parent = False
-
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-
+    
     def setUp(self):
         super().setUp()
 
@@ -35,9 +31,6 @@ class TestBuildCommand_BuildInSource_Makefile(BuildIntegProvidedBase):
 
         # copy source code into temporary directory and update code uri to that scratch dir
         osutils.copytree(test_data_code_uri, scratch_code_uri_path)
-
-    def tearDown(self):
-        super().tearDown()
 
     @parameterized.expand(
         [
