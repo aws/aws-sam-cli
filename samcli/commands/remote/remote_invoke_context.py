@@ -174,7 +174,7 @@ class RemoteInvokeContext:
         and returns its information if stack has only one resource from that type (including nested stacks)
         """
         LOG.debug(
-            "Trying to get single resource with %s type in % stack since no resource id is provided",
+            "Trying to get single resource with %s type in %s stack since no resource id is provided",
             RESOURCES_PRIORITY_ORDER,
             self._stack_name,
         )
