@@ -6,18 +6,19 @@ Resources:
       Handler: index.handler
       Timeout: 10  # in case eb has delay
       InlineCode: |
-        const AWS = require('aws-sdk');
+        const { DynamoDBDocument } = require('@aws-sdk/lib-dynamodb');
+        const { DynamoDB } = require('@aws-sdk/client-dynamodb');
         const { SQS } = require('@aws-sdk/client-sqs');
 
         exports.handler = async (event) => {
           console.log(JSON.stringify(event));
-          const docClient = new AWS.DynamoDB.DocumentClient();
+          const docClient = DynamoDBDocument.from(new DynamoDB());
           const response = await docClient.put({ 
             TableName: process.env.TABLE_NAME, 
             Item: {
               Id: 'TestInput1234'
             }
-          }).promise();
+          });
 
           const data = await new SQS().receiveMessage({
             QueueUrl: process.env.VERIFICATION_QUEUE_URL,

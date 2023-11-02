@@ -19,11 +19,13 @@ Resources:
       Handler: index.handler
       Code:
         ZipFile: |
-          const AWS = require('aws-sdk');
+          const { DynamoDBDocument } = require('@aws-sdk/lib-dynamodb');
+          const { DynamoDB } = require('@aws-sdk/client-dynamodb');
+
           exports.handler = async (event) => {
             console.log(JSON.stringify(event));
-            const docClient = new AWS.DynamoDB.DocumentClient();
-            await docClient.scan({ TableName: process.env.TABLE_NAME, }).promise();
+            const docClient = DynamoDBDocument.from(new DynamoDB());
+            await docClient.scan({ TableName: process.env.TABLE_NAME, });
           };
       Environment:
         Variables:
@@ -35,11 +37,13 @@ Resources:
       Runtime: nodejs18.x
       Handler: index.handler
       InlineCode: |
-        const AWS = require('aws-sdk');
+        const { DynamoDBDocument } = require('@aws-sdk/lib-dynamodb');
+        const { DynamoDB } = require('@aws-sdk/client-dynamodb');
+
         exports.handler = async (event) => {
           console.log(JSON.stringify(event));
-          const docClient = new AWS.DynamoDB.DocumentClient();
-          await docClient.scan({ TableName: process.env.TABLE_NAME, }).promise();
+          const docClient = DynamoDBDocument.from(new DynamoDB());
+          await docClient.scan({ TableName: process.env.TABLE_NAME, });
         };
       Environment:
         Variables:
