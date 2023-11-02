@@ -48,7 +48,6 @@ Resources:
       Runtime: nodejs18.x
       Handler: index.handler
       InlineCode: |
-        const AWS = require('aws-sdk');
         exports.handler = async (event) => {
           console.log(JSON.stringify(event));
         };
@@ -83,7 +82,6 @@ Resources:
       Handler: index.handler
       Code:
         ZipFile: |
-          const AWS = require('aws-sdk');
           exports.handler = async (event) => {
             console.log(JSON.stringify(event));
           };
