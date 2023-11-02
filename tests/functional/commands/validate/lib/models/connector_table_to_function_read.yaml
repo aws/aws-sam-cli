@@ -7,6 +7,8 @@ Resources:
       Timeout: 10  # in case eb has delay
       InlineCode: |
         const AWS = require('aws-sdk');
+        const { SQS } = require('@aws-sdk/client-sqs');
+
         exports.handler = async (event) => {
           console.log(JSON.stringify(event));
           const docClient = new AWS.DynamoDB.DocumentClient();
@@ -17,10 +19,10 @@ Resources:
             }
           }).promise();
 
-          const data = await new AWS.SQS().receiveMessage({
+          const data = await new SQS().receiveMessage({
             QueueUrl: process.env.VERIFICATION_QUEUE_URL,
             WaitTimeSeconds: 5,
-          }).promise();
+          });
           if (data.Messages.length == 0) {
             throw 'No messages in the queue!';
           }
@@ -39,13 +41,14 @@ Resources:
       Runtime: nodejs18.x
       Handler: index.handler
       InlineCode: |
-        const AWS = require('aws-sdk');
+        const { SQS } = require('@aws-sdk/client-sqs');
+
         exports.handler = async (event) => {
-          const sqs = new AWS.SQS();
+          const sqs = new SQS();
           await sqs.sendMessage({
             QueueUrl: process.env.VERIFICATION_QUEUE_URL,
             MessageBody: "test"
-          }).promise();
+          });
         };
       Environment:
         Variables:
