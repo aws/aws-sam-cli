@@ -31,6 +31,11 @@ SHORT_HELP = "Invoke a deployed resource in the cloud"
 DESCRIPTION = """
   Invoke or send an event to resources in the cloud.
   An event body can be passed using either -e (--event) or --event-file parameter.
+  
+  This command can be used to invoke a Lambda Function and get the output payload, start a State Machine execution
+  and wait for the output of the final step, send a message to SQS Queue, or put a data record to
+  Kinesis Data Streams.
+
   Returned response will be written to stdout. Lambda logs and Step Function execution
   errors will be written to stderr.
 """
