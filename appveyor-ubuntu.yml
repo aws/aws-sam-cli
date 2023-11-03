@@ -52,7 +52,7 @@ install:
   - sh: "docker info"
   - sh: "docker version"
   - sh: "nvm install ${NODE_VERSION}"
-  - sh: "npm install npm@7.24.2 -g"
+  - sh: "npm install npm@10.2.3 -g"
   - sh: "npm -v"
 
   # Install latest gradle
