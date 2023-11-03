@@ -247,9 +247,9 @@ click==8.1.7 \
     #   aws-sam-cli (setup.py)
     #   cookiecutter
     #   flask
-cookiecutter==2.3.1 \
-    --hash=sha256:42aa1d27368f58be600d13e56d5d2177684f8f69a40d9cbad84851ba44f842de \
-    --hash=sha256:a583118324edb95e01da3c8468209c2d5562e4553009866b1d891c50e72b2373
+cookiecutter==2.4.0 \
+    --hash=sha256:6d1494e66a784f23324df9d593f3e43af3db4f4b926b9e49e6ff060169fc042a \
+    --hash=sha256:8344663028abc08ec09b912e663636a97e1775bffe973425ec0107431acd390e
     # via aws-sam-cli (setup.py)
 cryptography==41.0.5 \
     --hash=sha256:0c327cac00f082013c7c9fb6c46b7cc9fa3c288ca702c74773968173bda421bf \
