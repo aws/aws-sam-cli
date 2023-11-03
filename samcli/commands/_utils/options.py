@@ -589,7 +589,7 @@ def remote_invoke_parameter_click_option():
         required=False,
         help="Additional parameters that can be passed"
         " to invoke the resource.\n\n"
-        "Lambda Function(Buffered stream): The following additional parameters can be used to invoke a lambda resource"
+        "Lambda Function (Buffered stream): The following additional parameters can be used to invoke a lambda resource"
         " and get a buffered response: InvocationType='Event'|'RequestResponse'|'DryRun', LogType='None'|'Tail', "
         "ClientContext='base64-encoded string' Qualifier='string'.\n\n"
         "Lambda Function(Response stream): The following additional parameters can be used to invoke a lambda resource"
