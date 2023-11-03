@@ -482,63 +482,6 @@ class TestBuildGraph(TestCase):
             self.assertEqual(len(build_definitions[1].functions), 1)
             self.assertEqual(build_definitions[1].functions[0], function2)
 
-    def test_functions_with_only_different_handlers_added_to_build_graph(self):
-        with osutils.mkdir_temp() as temp_base_dir:
-            build_dir = Path(temp_base_dir, ".aws-sam", "build")
-            build_dir.mkdir(parents=True)
-
-            build_graph_path = Path(build_dir.parent, "build.toml")
-            build_graph_path.write_text(TestBuildGraph.BUILD_GRAPH_CONTENTS)
-
-            build_graph = BuildGraph(str(build_dir))
-
-            build_definition1 = FunctionBuildDefinition(
-                TestBuildGraph.RUNTIME,
-                TestBuildGraph.CODEURI,
-                TestBuildGraph.ZIP,
-                TestBuildGraph.ARCHITECTURE_FIELD,
-                TestBuildGraph.METADATA,
-                TestBuildGraph.HANDLER,
-                TestBuildGraph.SOURCE_HASH,
-                TestBuildGraph.MANIFEST_HASH,
-                TestBuildGraph.ENV_VARS,
-            )
-            function1 = generate_function(
-                runtime=TestBuildGraph.RUNTIME,
-                codeuri=TestBuildGraph.CODEURI,
-                metadata=TestBuildGraph.METADATA,
-            )
-            build_graph.put_function_build_definition(build_definition1, function1)
-
-            build_definitions = build_graph.get_function_build_definitions()
-            self.assertEqual(len(build_definitions), 1)
-            self.assertEqual(len(build_definitions[0].functions), 1)
-            self.assertEqual(build_definitions[0].functions[0], function1)
-            self.assertEqual(build_definitions[0].uuid, TestBuildGraph.UUID)
-
-            build_definition2 = FunctionBuildDefinition(
-                TestBuildGraph.RUNTIME,
-                TestBuildGraph.CODEURI,
-                TestBuildGraph.ZIP,
-                TestBuildGraph.ARCHITECTURE_FIELD,
-                TestBuildGraph.METADATA,
-                "different.handler",
-                TestBuildGraph.SOURCE_HASH,
-                TestBuildGraph.MANIFEST_HASH,
-                TestBuildGraph.ENV_VARS,
-            )
-            function2 = generate_function(
-                runtime=TestBuildGraph.RUNTIME,
-                codeuri=TestBuildGraph.CODEURI,
-                metadata=TestBuildGraph.METADATA,
-            )
-            build_graph.put_function_build_definition(build_definition2, function2)
-
-            build_definitions = build_graph.get_function_build_definitions()
-            self.assertEqual(len(build_definitions), 2)
-            self.assertEqual(len(build_definitions[1].functions), 1)
-            self.assertEqual(build_definitions[1].functions[0], function2)
-
     def test_layers_should_be_added_existing_build_graph(self):
         with osutils.mkdir_temp() as temp_base_dir:
             build_dir = Path(temp_base_dir, ".aws-sam", "build")
@@ -1033,3 +976,28 @@ class TestBuildDefinition(TestCase):
         copied_build_definitions = copy.deepcopy(build_definitions)
 
         self.assertEqual(copied_build_definitions, build_definitions)
+
+    def test_go_runtime_different_handlers_are_not_equal(self):
+        build_graph = BuildGraph("build/path")
+        metadata = {}
+        build_definition1 = FunctionBuildDefinition(
+            "go1.x", "codeuri", ZIP, ARM64, metadata, "handler", "source_hash", "manifest_hash"
+        )
+        function1 = generate_function(
+            runtime="go1.x", codeuri=TestBuildGraph.CODEURI, metadata=metadata, handler="handler"
+        )
+        build_definition2 = FunctionBuildDefinition(
+            "go1.x", "codeuri", ZIP, ARM64, metadata, "handler.new", "source_hash", "manifest_hash"
+        )
+        function2 = generate_function(
+            runtime="go1.x", codeuri=TestBuildGraph.CODEURI, metadata=metadata, handler="handler.new"
+        )
+        build_graph.put_function_build_definition(build_definition1, function1)
+        build_graph.put_function_build_definition(build_definition2, function2)
+
+        build_definitions = build_graph.get_function_build_definitions()
+
+        self.assertNotEqual(build_definition1, build_definition2)
+        self.assertEqual(len(build_definitions), 2)
+        self.assertEqual(len(build_definition1.functions), 1)
+        self.assertEqual(len(build_definition2.functions), 1)
