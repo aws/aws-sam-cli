@@ -199,13 +199,13 @@ class RemoteInvokeContext:
                     if resource_summary.resource_type == resource_type:
                         resource_type_count += 1
                         single_resource_summary = resource_summary
-                    if resource_type_count > 1:
-                        raise AmbiguousResourceForRemoteInvoke(
-                            f"{self._stack_name} contains more than one resource that could be used with remote invoke,"
-                            f" please provide resource_id argument to resolve ambiguity."
-                        )
                 if resource_type_count == 1 and single_resource_summary:
                     return single_resource_summary
+                elif resource_type_count > 1:
+                    raise AmbiguousResourceForRemoteInvoke(
+                        f"{self._stack_name} contains more than one resource that could be used with remote invoke,"
+                        f" please provide resource_id argument to resolve ambiguity."
+                    )
 
         # fail if no resource summary found with given types
         raise NoResourceFoundForRemoteInvoke(
