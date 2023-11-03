@@ -684,4 +684,5 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
             and self.metadata == other.metadata
             and self.env_vars == other.env_vars
             and self.architecture == other.architecture
+            and self.handler == other.handler
         )
