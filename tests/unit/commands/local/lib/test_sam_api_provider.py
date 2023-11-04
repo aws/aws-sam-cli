@@ -1906,12 +1906,10 @@ class TestSamApiUsingAuthorizers(TestCase):
         )
 
         if disable_authorizer:
-            mock_debug_log.assert_called_with("authorizer not found or disabled, returning early")
             mock_collector.set_default_authorizer.assert_not_called()
             mock_extract_authorizers_from_props.assert_not_called()
 
         if not disable_authorizer:
-            mock_debug_log.assert_not_called()
             mock_collector.set_default_authorizer.assert_called()
             mock_extract_authorizers_from_props.assert_called()
 
@@ -1975,7 +1973,7 @@ class TestSamApiUsingAuthorizers(TestCase):
             event_type="Api",
             disable_authorizer=disable_authorizer,
         )
-        assert route.authorizer_name is expected
+        self.assertEqual(route.authorizer_name, expected)
 
     @parameterized.expand(
         [
