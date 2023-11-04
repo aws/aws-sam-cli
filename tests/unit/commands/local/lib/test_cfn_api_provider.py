@@ -1226,12 +1226,12 @@ class TestExtractResourcesWithDisableAuthorizerFlag(TestCase):
 
         if disable_authorizer:
             route = mock_collector.add_routes.call_args[0][1][0]
-            assert route.authorizer_name is None
+            self.assertIsNone(route.authorizer_name)
 
         if not disable_authorizer:
             mock_collector.add_routes.assert_called()
             route = mock_collector.add_routes.call_args[0][1][0]
-            assert route.authorizer_name is "AuthorizerId"
+            self.assertEqual(route.authorizerName, "AuthorizerId")
 
     @parameterized.expand(
         [("when disable authorizer flag is enabled", True), ("when disable authorizer flag is disabled", False)]
@@ -1266,13 +1266,14 @@ class TestExtractResourcesWithDisableAuthorizerFlag(TestCase):
         )
 
         if disable_authorizer:
-            mock_extract_cfn_gateway_v2_authorizer.assert_not_called()  # This should not be called if disable_authorizers == True
+            mock_extract_cfn_gateway_v2_authorizer.assert_not_called()
             mock_extract_cloud_formation_authorizer.assert_not_called()
         if not disable_authorizer:
             mock_extract_cfn_gateway_v2_authorizer.assert_called_once()  # Testing inverse
             mock_extract_cloud_formation_authorizer.assert_called_once()
 
-    def test_extract_api_gateway_method(self):
+    @parameterized.expand([("when enabled does not extract authorizer", True), ("when disabled extracts authorizer", False)])
+    def test_extract_api_gateway_method(self, disable_authorizer):
         template = {
             "MyMethod": {
                 "Type": "AWS::ApiGateway::Method",
@@ -1294,18 +1295,15 @@ class TestExtractResourcesWithDisableAuthorizerFlag(TestCase):
             logical_id="MyMethod",
             method_resource=template["MyMethod"],
             collector=mock_collector,
-            disable_authorizer=True,
+            disable_authorizer=disable_authorizer,
         )
-        assert mock_collector.add_routes.call_args.args[1][0].authorizer_name is None
-        provider._extract_cloud_formation_method(
-            stack_path="",
-            resources={},
-            logical_id="MyMethod",
-            method_resource=template["MyMethod"],
-            collector=mock_collector,
-            disable_authorizer=False,
-        )
-        assert mock_collector.add_routes.call_args.args[1][0].authorizer_name is "AuthorizerId"
+
+        route = mock_collector.add_routes.call_args.args[1][0]
+
+        if disable_authorizer:
+            self.assertIsNone(route.authorizer_name)
+        if not disable_authorizer:
+            self.assertEqual(route.authorizer_name, "AuthorizerId")
 
 
 class TestCollectLambdaAuthorizersWithApiGatewayV1Resources(TestCase):
