@@ -1231,7 +1231,7 @@ class TestExtractResourcesWithDisableAuthorizerFlag(TestCase):
         if not disable_authorizer:
             mock_collector.add_routes.assert_called()
             route = mock_collector.add_routes.call_args[0][1][0]
-            self.assertEqual(route.authorizerName, "AuthorizerId")
+            self.assertEqual(route.authorizer_name, "AuthorizerId")
 
     @parameterized.expand(
         [("when disable authorizer flag is enabled", True), ("when disable authorizer flag is disabled", False)]
@@ -1273,7 +1273,7 @@ class TestExtractResourcesWithDisableAuthorizerFlag(TestCase):
             mock_extract_cloud_formation_authorizer.assert_called_once()
 
     @parameterized.expand([("when enabled does not extract authorizer", True), ("when disabled extracts authorizer", False)])
-    def test_extract_api_gateway_method(self, disable_authorizer):
+    def test_extract_api_gateway_method(self, _, disable_authorizer):
         template = {
             "MyMethod": {
                 "Type": "AWS::ApiGateway::Method",
