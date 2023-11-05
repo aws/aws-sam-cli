@@ -39,7 +39,7 @@ from samcli.lib.package.local_files_utils import get_uploaded_s3_object_name, mk
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.utils.colors import Colored, Colors
 from samcli.lib.utils.s3 import parse_s3_url
-from samcli.lib.utils.time import utc_to_timestamp
+from samcli.lib.utils.time import to_datetime, utc_to_timestamp
 
 LOG = logging.getLogger(__name__)
 
@@ -347,10 +347,11 @@ class Deployer:
         except botocore.exceptions.ClientError as ex:
             raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
 
-    def get_last_event_time(self, stack_name):
+    def get_last_event_time(self, stack_name, default_time=time.time()):
         """
-        Finds the last event time stamp thats present for the stack, if not get the current time
+        Finds the last event time stamp that presents for the stack, if not return the default_time
         :param stack_name: Name or ID of the stack
+        :param default_time: the default unix epoch time to be returned in case if the stack provided does not exist
         :return: unix epoch
         """
         try:
@@ -358,7 +359,7 @@ class Deployer:
                 self._client.describe_stack_events(StackName=stack_name)["StackEvents"][0]["Timestamp"]
             )
         except KeyError:
-            return time.time()
+            return default_time
 
     @pprint_column_names(
         format_string=DESCRIBE_STACK_EVENTS_FORMAT_STRING,
@@ -384,6 +385,7 @@ class Deployer:
         while stack_change_in_progress and retry_attempts <= self.max_attempts:
             try:
                 # Only sleep if there have been no retry_attempts
+                LOG.debug("Trial # %d to get the stack %s create events", retry_attempts, stack_name)
                 time.sleep(0 if retry_attempts else self.client_sleep)
                 paginator = self._client.get_paginator("describe_stack_events")
                 response_iterator = paginator.paginate(StackName=stack_name)
@@ -393,8 +395,14 @@ class Deployer:
 
                 for event_items in response_iterator:
                     for event in event_items["StackEvents"]:
+                        LOG.debug("Stack Event: %s", event)
                         # Skip already shown old event entries or former deployments
                         if utc_to_timestamp(event["Timestamp"]) <= time_stamp_marker:
+                            LOG.debug(
+                                "Skip previous event as time_stamp_marker: %s is after the event time stamp: %s",
+                                to_datetime(time_stamp_marker),
+                                event["Timestamp"],
+                            )
                             break
                         if event["EventId"] not in events:
                             events.add(event["EventId"])
@@ -402,9 +410,10 @@ class Deployer:
                             # Pushing in front reverse the order to display older events first
                             new_events.appendleft(event)
                     else:  # go to next loop (page of events) if not break from inside loop
+                        LOG.debug("Still in describe_stack_events loop, got to next page")
                         continue
                     break  # reached here only if break from inner loop!
-
+                LOG.debug("Exit from the describe event loop")
                 # Override timestamp marker with latest event (last in deque)
                 if len(new_events) > 0:
                     time_stamp_marker = utc_to_timestamp(new_events[-1]["Timestamp"])
@@ -429,6 +438,12 @@ class Deployer:
                     if self._is_root_stack_event(new_event) and self._check_stack_not_in_progress(
                         new_event["ResourceStatus"]
                     ):
+                        LOG.debug(
+                            "Stack %s is not in progress. Its status is %s, and event is %s",
+                            stack_name,
+                            new_event["ResourceStatus"],
+                            new_event,
+                        )
                         stack_change_in_progress = False
                         break
 
@@ -439,7 +454,10 @@ class Deployer:
                     "Stack with id {0} does not exist".format(stack_name) in str(ex)
                     and on_failure == FailureMode.DELETE
                 ):
+                    LOG.debug("Stack %s does not exist", stack_name)
                     return
+
+                LOG.debug("Trial # %d failed due to exception %s", retry_attempts, str(ex))
 
                 retry_attempts = retry_attempts + 1
                 if retry_attempts > self.max_attempts:
@@ -466,6 +484,7 @@ class Deployer:
         stack_operation: str,
         disable_rollback: bool,
         on_failure: FailureMode = FailureMode.ROLLBACK,
+        time_stamp_marker: float = 0,
     ) -> None:
         """
         Wait for stack operation to execute and return when execution completes.
@@ -481,6 +500,8 @@ class Deployer:
             Preserves the state of previously provisioned resources when an operation fails
         on_failure : FailureMode
             The action to take when the operation fails
+        time_stamp_marker:
+            last event time on the stack to start streaming events from.
         """
         sys.stdout.write(
             "\n{} - Waiting for stack create/update "
@@ -488,7 +509,7 @@ class Deployer:
         )
         sys.stdout.flush()
 
-        self.describe_stack_events(stack_name, time.time() * 1000, on_failure)
+        self.describe_stack_events(stack_name, time_stamp_marker, on_failure)
 
         # Pick the right waiter
         if stack_operation == "CREATE":
@@ -624,9 +645,12 @@ class Deployer:
 
             if exists:
                 kwargs["DisableRollback"] = disable_rollback  # type: ignore
-
+                # get the latest stack event, and use 0 in case if the stack does not exist
+                marker_time = self.get_last_event_time(stack_name, 0)
                 result = self.update_stack(**kwargs)
-                self.wait_for_execute(stack_name, "UPDATE", disable_rollback, on_failure=on_failure)
+                self.wait_for_execute(
+                    stack_name, "UPDATE", disable_rollback, on_failure=on_failure, time_stamp_marker=marker_time
+                )
                 msg = "\nStack update succeeded. Sync infra completed.\n"
             else:
                 # Pass string representation of enum
@@ -701,8 +725,10 @@ class Deployer:
             if current_state == "UPDATE_FAILED":
                 LOG.info("Stack %s failed to update, rolling back stack to previous state...", stack_name)
 
+                # get the latest stack event
+                marker_time = self.get_last_event_time(stack_name, 0)
                 self._client.rollback_stack(**kwargs)
-                self.describe_stack_events(stack_name, time.time() * 1000, FailureMode.DELETE)
+                self.describe_stack_events(stack_name, marker_time, FailureMode.DELETE)
                 self._rollback_wait(stack_name)
 
                 current_state = self._get_stack_status(stack_name)
@@ -712,13 +738,15 @@ class Deployer:
             if current_state in failed_states:
                 LOG.info("Stack %s failed to create/update correctly, deleting stack", stack_name)
 
+                # get the latest stack event
+                marker_time = self.get_last_event_time(stack_name, 0)
                 self._client.delete_stack(**kwargs)
 
                 # only a stack that failed to create will have stack events, deleting
                 # from a ROLLBACK_COMPLETE state will not return anything
                 # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/cloudformation.html#CloudFormation.Client.delete_stack
                 if current_state == "CREATE_FAILED":
-                    self.describe_stack_events(stack_name, time.time() * 1000, FailureMode.DELETE)
+                    self.describe_stack_events(stack_name, marker_time, FailureMode.DELETE)
 
                 waiter = self._client.get_waiter("stack_delete_complete")
                 waiter.wait(StackName=stack_name, WaiterConfig={"Delay": 30, "MaxAttempts": 120})

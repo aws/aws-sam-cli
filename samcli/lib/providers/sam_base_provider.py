@@ -145,7 +145,7 @@ class SamBaseProvider:
         return cast(Optional[str], resource_properties.get(code_property_key, dict()).get("ImageUri", None))
 
     @staticmethod
-    def _extract_sam_function_imageuri(resource_properties: Dict, code_property_key: str) -> Optional[str]:
+    def _extract_sam_function_imageuri(resource_properties: Dict[str, str], code_property_key: str) -> Optional[str]:
         """
         Extracts the Serverless Function ImageUri from the Resource Properties
 
@@ -161,7 +161,7 @@ class SamBaseProvider:
         str
             Representing the local imageuri
         """
-        return resource_properties.get(code_property_key, None)
+        return resource_properties.get(code_property_key)
 
     @staticmethod
     def get_template(
