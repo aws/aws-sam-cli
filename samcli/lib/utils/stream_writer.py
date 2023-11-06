@@ -1,7 +1,7 @@
 """
 This class acts like a wrapper around output streams to provide any flexibility with output we need
 """
-from typing import TextIO, Union
+from typing import TextIO
 
 
 class StreamWriter:
