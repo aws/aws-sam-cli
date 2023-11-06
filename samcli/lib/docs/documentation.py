@@ -4,7 +4,7 @@ Library housing the logic for handling AWS SAM CLI documentation pages
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict
+from typing import Dict
 
 from samcli.lib.docs.browser_configuration import BrowserConfiguration
 
@@ -58,7 +58,7 @@ class Documentation:
         return Documentation.load().get(self.command, LANDING_PAGE)
 
     @staticmethod
-    def load() -> Dict[str, Any]:
+    def load() -> Dict[str, str]:
         """
         Opens the configuration file and returns the contents
 
