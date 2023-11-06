@@ -25,7 +25,7 @@ jobs:
             python: 3.8
             target: update-reproducible-mac-reqs
           - os: windows-latest
-            python: 3.8
+            python: 3.11
             target: update-reproducible-win-reqs
       max-parallel: 1
     runs-on: ${{ matrix.os }}
