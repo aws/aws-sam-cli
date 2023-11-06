@@ -473,16 +473,16 @@ class Container:
         # with carriage returns from the RIE. If these are left in the string then only the last line after
         # the carriage return will be printed instead of the entire stack trace. Encode the string after cleaning
         # to be printed by the correct output stream
-        output_data = output_data.decode("utf-8").replace("\r", os.linesep)
+        output_str = output_data.decode("utf-8").replace("\r", os.linesep)
         if isinstance(output_stream, StreamWriter):
-            output_stream.write_str(output_data)
+            output_stream.write_str(output_str)
             output_stream.flush()
 
         if isinstance(output_stream, io.BytesIO):
-            output_stream.write(output_data.encode("utf-8"))
+            output_stream.write(output_str.encode("utf-8"))
 
         if isinstance(output_stream, io.TextIOWrapper):
-            output_stream.buffer.write(output_data.encode("utf-8"))
+            output_stream.buffer.write(output_str.encode("utf-8"))
 
     @property
     def network_id(self):
