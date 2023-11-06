@@ -32,4 +32,5 @@ SAM_CLI_HIDDEN_IMPORTS = list(samcli_modules) + [
     "dateparser",
     "jsonschema",
     "cfnlint",
+    "networkx.generators",
 ]
