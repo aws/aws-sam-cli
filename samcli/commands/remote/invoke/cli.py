@@ -160,7 +160,11 @@ def do_cli(
             stack_name=stack_name,
             resource_id=resource_id,
         ) as remote_invoke_context:
-            if test_event_name and remote_invoke_context.resource_summary.resource_type == AWS_LAMBDA_FUNCTION:
+            if (
+                test_event_name
+                and remote_invoke_context.resource_summary
+                and remote_invoke_context.resource_summary.resource_type == AWS_LAMBDA_FUNCTION
+            ):
                 lambda_test_event = remote_invoke_context.get_lambda_shared_test_event_provider()
                 LOG.debug("Retrieving remote event %s", test_event_name)
                 event = lambda_test_event.get_event(test_event_name, remote_invoke_context.resource_summary)
