@@ -129,6 +129,8 @@ jobs:
           #- "validate"
           - "tests/integration/docs"
     steps:
+      - name: Fail in purpose
+        run: exit 1
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
