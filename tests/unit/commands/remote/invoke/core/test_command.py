@@ -114,6 +114,12 @@ class TestRemoteInvokeCommand(unittest.TestCase):
                     "",
                 ),
             ],
+            "Send a message to a FIFO SQS Queue": [
+                (
+                    "$sam remote invoke --stack-name mock-stack MySQSQueue -e hello-world --parameter MessageGroupId=mock-message-group --parameter MessageDeduplicationId=mock-dedup-id\x1b[0m",
+                    "",
+                ),
+            ],
             "Kinesis Data Stream": [],
             "Put a record using the data provided as event": [
                 ('$sam remote invoke --stack-name mock-stack MyKinesisStream -e \'{"message": "hello!"}\'\x1b[0m', ""),

@@ -236,6 +236,23 @@ class RemoteInvokeCommand(CoreCommand):
                             ),
                         ]
                     )
+
+                with formatter.indented_section(
+                    name="Send a message to a FIFO SQS Queue",
+                    extra_indents=1,
+                ):
+                    formatter.write_rd(
+                        [
+                            RowDefinition(
+                                name=style(
+                                    f"${ctx.command_path} --stack-name mock-stack MySQSQueue -e hello-world"
+                                    f" --parameter MessageGroupId=mock-message-group"
+                                    f" --parameter MessageDeduplicationId=mock-dedup-id"
+                                ),
+                                extra_row_modifiers=[ShowcaseRowModifier()],
+                            ),
+                        ]
+                    )
             with formatter.indented_section(name="Kinesis Data Stream", extra_indents=1):
                 with formatter.indented_section(
                     name="Put a record using the data provided as event",
