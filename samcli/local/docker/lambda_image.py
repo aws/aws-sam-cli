@@ -51,6 +51,7 @@ class Runtime(Enum):
     dotnet6 = "dotnet6"
     provided = "provided"
     providedal2 = "provided.al2"
+    providedal2023 = "provided.al2023"
 
     @classmethod
     def has_value(cls, value):

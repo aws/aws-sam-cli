@@ -112,6 +112,7 @@ INIT_RUNTIMES = [
     "nodejs14.x",
     "nodejs12.x",
     # custom runtime in descending order
+    "provided.al2023",
     "provided.al2",
     "provided",
     # python runtimes in descending order
@@ -130,6 +131,7 @@ LAMBDA_IMAGES_RUNTIMES_MAP = {
     "dotnet6": "amazon/dotnet6-base",
     "go1.x": "amazon/go1.x-base",
     "go (provided.al2)": "amazon/go-provided.al2-base",
+    "go (provided.al2023)": "amazon/go-provided.al2023-base",
     "java17": "amazon/java17-base",
     "java11": "amazon/java11-base",
     "java8.al2": "amazon/java8.al2-base",
@@ -165,7 +167,7 @@ SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING = {
     "go1.x": "Go1",
 }
 
-PROVIDED_RUNTIMES = ["provided.al2", "provided"]
+PROVIDED_RUNTIMES = ["provided.al2023", "provided.al2", "provided"]
 
 
 def is_custom_runtime(runtime):

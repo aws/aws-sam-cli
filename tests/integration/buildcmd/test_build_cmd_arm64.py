@@ -429,6 +429,16 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture_arm64(Build
                 "use_container",
                 "Makefile-container",
             ),
+            (
+                "provided.al2023",
+                False,
+                None,
+            ),
+            (
+                "provided.al2023",
+                "use_container",
+                "Makefile-container",
+            ),
         ]
     )
     def test_building_Makefile(self, runtime, use_container, manifest):
