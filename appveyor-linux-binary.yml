@@ -4,16 +4,16 @@ image:
 
 configuration:
   - BuildIntegTesting
-  - BuildIntegTestingJavaPythonProvided
+  # - BuildIntegTestingJavaPythonProvided
   - BuildIntegTestingArm64
   - BuildIntegTestingArm64Java
-  - AllTerraformBuildTesting
-  - PackageAndDeleteAndDeployIntegTesting
-  - SyncIntegTesting
-  - LocalInvokeIntegTesting
-  - LocalStartIntegTesting
-  # other Integration testing, Dev, regression and smoke testing
-  - OtherAndEndToEndTesting
+  # - AllTerraformBuildTesting
+  # - PackageAndDeleteAndDeployIntegTesting
+  # - SyncIntegTesting
+  # - LocalInvokeIntegTesting
+  # - LocalStartIntegTesting
+  # # other Integration testing, Dev, regression and smoke testing
+  # - OtherAndEndToEndTesting
 
 environment:
   PYTHON_HOME: "$HOME/venv3.11/bin"
@@ -48,7 +48,8 @@ install:
   - sh: "mvn --version"
 
   - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
-  - sh: "rvm use 3.2.2"
+  - sh: "rvm reset && rvm use 3.2.2" # need to run rvm reset to fix path issues
+  - sh: "ruby --version && exit 1"
   - sh: "docker info"
   - sh: "docker version"
   - sh: "nvm install ${NODE_VERSION}"
