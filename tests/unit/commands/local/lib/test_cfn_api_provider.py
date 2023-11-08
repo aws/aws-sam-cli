@@ -1272,7 +1272,9 @@ class TestExtractResourcesWithDisableAuthorizerFlag(TestCase):
             mock_extract_cfn_gateway_v2_authorizer.assert_called_once()  # Testing inverse
             mock_extract_cloud_formation_authorizer.assert_called_once()
 
-    @parameterized.expand([("when enabled does not extract authorizer", True), ("when disabled extracts authorizer", False)])
+    @parameterized.expand(
+        [("when enabled does not extract authorizer", True), ("when disabled extracts authorizer", False)]
+    )
     def test_extract_api_gateway_method(self, _, disable_authorizer):
         template = {
             "MyMethod": {
