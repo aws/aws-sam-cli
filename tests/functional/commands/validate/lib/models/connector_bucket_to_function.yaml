@@ -2,10 +2,9 @@ Resources:
   Function:
     Type: AWS::Serverless::Function
     Properties:
-      Runtime: nodejs14.x
+      Runtime: nodejs18.x
       Handler: index.handler
       InlineCode: |
-        const AWS = require('aws-sdk');
         exports.handler = async (event) => {
           console.log("function")
         };
