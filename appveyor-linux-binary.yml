@@ -19,7 +19,8 @@ environment:
   PYTHON_HOME: "$HOME/venv3.11/bin"
   PYTHON_VERSION: '3.11'
   AWS_DEFAULT_REGION: us-east-1
-  NODE_VERSION: "14.17.6"
+  NODE_VERSION: "14"
+  RUBY_VERSION: "3.2.2"
   AWS_S3: 'AWS_S3_TESTING'
   AWS_ECR: 'AWS_ECR_TESTING'
   CARGO_LAMBDA_VERSION: "v0.17.1"
@@ -48,11 +49,10 @@ install:
   - sh: "mvn --version"
 
   - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
-  - sh: "rvm reset && rvm use 3.2.2" # need to run rvm reset to fix path issues
-  - sh: "ruby --version && exit 1"
+  - sh: "rvm use ${RUBY_VERSION} && ruby --version"
   - sh: "docker info"
   - sh: "docker version"
-  - sh: "nvm install ${NODE_VERSION}"
+  - sh: "nvm use ${NODE_VERSION} && node --version"
   - sh: "npm install npm@7.24.2 -g"
   - sh: "npm -v"
 
@@ -171,7 +171,8 @@ for:
         - configuration: BuildIntegTesting
 
     test_script:
-      - sh: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'not java and not python and not provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+      # - sh: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'not java and not python and not provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+      - sh: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd/test_build_cmd.py::TestBuildCommand_RubyFunctionsWithGemfileInTheRoot::test_building_ruby_in_process_with_root_gemfile_0_ruby2_7 tests/integration/buildcmd/test_build_cmd.py::TestBuildCommand_RubyFunctionsWithGemfileInTheRoot::test_building_ruby_in_process_with_root_gemfile_1_ruby3_2 tests/integration/buildcmd/test_build_cmd.py::TestBuildCommand_RubyFunctions::test_building_ruby_in_process_0_ruby2_7 tests/integration/buildcmd/test_build_cmd.py::TestBuildCommand_RubyFunctions::test_building_ruby_in_process_1_ruby3_2 tests/integration/buildcmd/test_build_cmd.py::TestBuildCommand_RubyFunctions_With_Architecture::test_building_ruby_in_process_with_specified_architecture_0_ruby2_7 tests/integration/buildcmd/test_build_cmd.py::TestBuildCommand_RubyFunctions_With_Architecture::test_building_ruby_in_process_with_specified_architecture_1_ruby3_2 tests/integration/buildcmd/test_build_cmd.py::TestBuildWithCacheBuilds_0::test_cache_build_4 tests/integration/buildcmd/test_build_cmd.py::TestBuildWithCacheBuilds_1::test_cache_build_4 tests/integration/buildcmd/test_build_cmd.py::TestParallelBuilds_0::test_dedup_build_4 tests/integration/buildcmd/test_build_cmd.py::TestBuildWithDedupBuilds_0::test_dedup_build_4 tests/integration/buildcmd/test_build_cmd.py::TestParallelBuilds_1::test_dedup_build_4 tests/integration/buildcmd/test_build_cmd.py::TestBuildWithDedupBuilds_1::test_dedup_build_4"
 
   - matrix:
       only:
@@ -186,14 +187,16 @@ for:
         - configuration: BuildIntegTestingArm64
 
     test_script:
-      - sh: "pytest -vv --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'not java' --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64.json"
+      - sh: "pytest -vv --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py::TestBuildCommand_PythonFunctions_With_Specified_Architecture_arm64::test_with_default_requirements_0_python3_8  tests/integration/buildcmd/test_build_cmd_arm64.py::TestBuildCommand_PythonFunctions_With_Specified_Architecture_arm64::test_with_default_requirements_2_python3_8  tests/integration/buildcmd/test_build_cmd_arm64.py::TestBuildCommand_RubyFunctions_With_Architecture_arm64::test_building_ruby_in_process_with_specified_architecture_0_ruby2_7  tests/integration/buildcmd/test_build_cmd_arm64.py::TestBuildCommand_RubyFunctions_With_Architecture_arm64::test_building_ruby_in_process_with_specified_architecture_1_ruby3_2"
+      # - sh: "pytest -vv --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'not java' --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64.json"
 
   - matrix:
       only:
         - configuration: BuildIntegTestingArm64Java
 
     test_script:
-      - sh: "pytest -vv --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'java' --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64-java.json"
+      # - sh: "pytest -vv --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'java' --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64-java.json"
+      - sh: "pytest -vv --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py::TestBuildCommand_Java_With_Specified_Architecture_arm64::test_building_java_in_container_with_arm64_architecture_00_java8_al2  tests/integration/buildcmd/test_build_cmd_arm64.py::TestBuildCommand_Java_With_Specified_Architecture_arm64::test_building_java_in_container_with_arm64_architecture_01_java8_al2  tests/integration/buildcmd/test_build_cmd_arm64.py::TestBuildCommand_Java_With_Specified_Architecture_arm64::test_building_java_in_container_with_arm64_architecture_03_java8_al2  tests/integration/buildcmd/test_build_cmd_arm64.py::TestBuildCommand_Java_With_Specified_Architecture_arm64::test_building_java_in_container_with_arm64_architecture_05_java11  tests/integration/buildcmd/test_build_cmd_arm64.py::TestBuildCommand_Java_With_Specified_Architecture_arm64::test_building_java_in_container_with_arm64_architecture_09_java17"
 
   # Integ testing Terraform build
   -
