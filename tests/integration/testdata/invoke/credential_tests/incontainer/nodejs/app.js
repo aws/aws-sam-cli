@@ -1,6 +1,4 @@
-const {
-    STS
-} = require("@aws-sdk/client-sts");
+const { STS } = require('@aws-sdk/client-sts');
 let sts = new STS();
 
 exports.lambdaHandler = async (event, context) => {
