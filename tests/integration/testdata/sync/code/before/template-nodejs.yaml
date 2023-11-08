@@ -11,7 +11,7 @@ Resources:
     Properties:
       CodeUri: nodejs_function/
       Handler: app.lambdaHandler
-      Runtime: nodejs16.x
+      Runtime: nodejs18.x
       Tracing: Active
 
   HelloWorldApi:
