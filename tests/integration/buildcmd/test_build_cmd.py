@@ -1793,7 +1793,7 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
             "FunctionRuntime": runtime,
         }
         cmdlist = self.get_command_list(
-            use_container=use_container, parameter_overrides=overrides, beta_features=self.beta_features
+            use_container=use_container, parameter_overrides=overrides, beta_features=self.beta_features, debug=True
         )
 
         # Built using `native` python-pip builder for a python project.
