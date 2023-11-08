@@ -40,7 +40,7 @@ install:
   # install latest maven which is compatible with jdk17
   - sh: "sudo apt-get -y remove maven"
   - sh: "wget https://dlcdn.apache.org/maven/maven-3/3.8.8/binaries/apache-maven-3.8.8-bin.zip -P /tmp"
-  - sh: "sudo unzip -d /opt/mvn /tmp/apache-maven-*.zip"
+  - sh: "sudo unzip -q -d /opt/mvn /tmp/apache-maven-*.zip"
   - sh: "PATH=/opt/mvn/apache-maven-3.8.8/bin:$PATH"
   - sh: "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64"
   - sh: "PATH=$JAVA_HOME/bin:$PATH"
@@ -59,7 +59,7 @@ install:
   # Install latest gradle
   - sh: "sudo apt-get -y remove gradle"
   - sh: "wget https://services.gradle.org/distributions/gradle-7.3.1-bin.zip -P /tmp"
-  - sh: "sudo unzip -d /opt/gradle /tmp/gradle-*.zip"
+  - sh: "sudo unzip -q -d /opt/gradle /tmp/gradle-*.zip"
   - sh: "PATH=/opt/gradle/gradle-7.3.1/bin:$PATH"
 
   # Install AWS CLI
@@ -140,7 +140,7 @@ install:
 
 build_script:
   - curl -L https://github.com/aws/aws-sam-cli/releases/download/sam-cli-nightly/aws-sam-cli-linux-x86_64.zip -o aws-sam-cli-linux-x86_64.zip
-  - unzip aws-sam-cli-linux-x86_64.zip -d sam-installation
+  - unzip -q aws-sam-cli-linux-x86_64.zip -d sam-installation
   - sudo ./sam-installation/install
   # rename `sam-nightly` binary to `sam`
   - sudo mv /usr/local/bin/sam-nightly /usr/local/bin/sam
@@ -209,7 +209,7 @@ for:
       - sh: "sudo apt update --allow-releaseinfo-change"
       - sh: "TER_VER=`curl -s https://api.github.com/repos/hashicorp/terraform/releases/latest | grep tag_name | cut -d: -f2 | tr -d \\\"\\,\\v | awk '{$1=$1};1'`"
       - sh: "wget https://releases.hashicorp.com/terraform/${TER_VER}/terraform_${TER_VER}_linux_amd64.zip -P /tmp"
-      - sh: "sudo unzip -d /opt/terraform /tmp/terraform_${TER_VER}_linux_amd64.zip"
+      - sh: "sudo unzip -q -d /opt/terraform /tmp/terraform_${TER_VER}_linux_amd64.zip"
       - sh: "sudo mv /opt/terraform/terraform /usr/local/bin/"
       - sh: "terraform -version"
 
@@ -245,7 +245,7 @@ for:
       - sh: "sudo apt update --allow-releaseinfo-change"
       - sh: "TER_VER=`curl -s https://api.github.com/repos/hashicorp/terraform/releases/latest | grep tag_name | cut -d: -f2 | tr -d \\\"\\,\\v | awk '{$1=$1};1'`"
       - sh: "wget https://releases.hashicorp.com/terraform/${TER_VER}/terraform_${TER_VER}_linux_amd64.zip -P /tmp"
-      - sh: "sudo unzip -d /opt/terraform /tmp/terraform_${TER_VER}_linux_amd64.zip"
+      - sh: "sudo unzip -q -d /opt/terraform /tmp/terraform_${TER_VER}_linux_amd64.zip"
       - sh: "sudo mv /opt/terraform/terraform /usr/local/bin/"
       - sh: "terraform -version"
 
