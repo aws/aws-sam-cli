@@ -184,7 +184,7 @@ class LambdaContainer(Container):
                 # eg. `/opt` + `nodejs`
                 container_bind_path = Path(LambdaImage._LAYERS_DIR, layer_folder)
 
-                mappings = LambdaContainer._create_mapped_symlink_files(
+                mappings = LambdaContainer.create_mapped_symlink_files(
                     str(artifact_layer_path), str(container_bind_path)
                 )
                 layer_mappings.update(mappings)

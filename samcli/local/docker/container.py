@@ -159,7 +159,7 @@ class Container:
                     "bind": self._working_dir,
                     "mode": mount_mode,
                 },
-                **Container._create_mapped_symlink_files(self._host_dir, self._working_dir),
+                **Container.create_mapped_symlink_files(self._host_dir, self._working_dir),
             }
 
         kwargs = {
@@ -227,7 +227,7 @@ class Container:
         return self.id
 
     @staticmethod
-    def _create_mapped_symlink_files(search_directory: str, bind_directory: str) -> Dict[str, Dict[str, str]]:
+    def create_mapped_symlink_files(search_directory: str, bind_directory: str) -> Dict[str, Dict[str, str]]:
         """
         Resolves any top level symlinked files and folders that are found on the
         host directory and creates additional bind mounts to correctly map them

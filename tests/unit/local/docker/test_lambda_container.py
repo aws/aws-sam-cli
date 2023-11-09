@@ -634,7 +634,7 @@ class TestLambdaContainer_resolve_layers(TestCase):
 
         self.assertEqual(result, {})
 
-    @patch.object(LambdaContainer, "_create_mapped_symlink_files")
+    @patch.object(LambdaContainer, "create_mapped_symlink_files")
     def test_returns_no_mounts_no_links(self, create_map_mock):
         create_map_mock.return_value = {}
 
@@ -644,7 +644,7 @@ class TestLambdaContainer_resolve_layers(TestCase):
         create_map_mock.assert_called_once()
         self.assertEqual(result, {})
 
-    @patch.object(LambdaContainer, "_create_mapped_symlink_files")
+    @patch.object(LambdaContainer, "create_mapped_symlink_files")
     def test_returns_mounts(self, create_map_mock):
         code_uri = "some/path"
         runtime = "nodejs18.x"
