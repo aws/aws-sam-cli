@@ -3,15 +3,15 @@ import shutil
 import tempfile
 import os
 
-from unittest import skip
 from samcli.lib.utils import osutils
 from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase
 
 
-@skip("Skipping build in source tests until feature can be enabled")
-class TestInvokeBuildInSourceSymlinkedModules(InvokeIntegBase):
+class BuildInSourceInvokeBase(InvokeIntegBase):
+    project_test_folder: str
+
     def setUp(self):
-        self.project_folder_path = Path(self.test_data_path, "invoke", "build-in-source")
+        self.project_folder_path = Path(self.test_data_path, "invoke", self.project_test_folder)
         self.test_project_folder = tempfile.mkdtemp()
         self.build_dir = Path(self.test_project_folder, ".aws-sam", "build")
 
@@ -26,6 +26,9 @@ class TestInvokeBuildInSourceSymlinkedModules(InvokeIntegBase):
         except:
             pass
 
+class TestInvokeBuildInSourceSymlinkedModules(BuildInSourceInvokeBase):
+    project_test_folder = "build-in-source"
+
     def _validate_modules_linked(self):
         node_modules = Path(self.build_dir, "PrintLocalDep", "node_modules")
         local_dep = Path(node_modules, "local-dep")
@@ -37,8 +40,7 @@ class TestInvokeBuildInSourceSymlinkedModules(InvokeIntegBase):
         self.assertEqual(os.path.islink(local_dep), False)
 
     def test_successful_invoke(self):
-        build_command = self.get_build_command_list(template_path=self.template_path, build_dir=self.build_dir)
-        print(build_command)
+        build_command = self.get_build_command_list(template_path=self.template_path, build_dir=self.build_dir, build_in_source=True)
         _, _, exit_code = self.run_command(build_command)
 
         self.assertEqual(exit_code, 0)
@@ -51,3 +53,27 @@ class TestInvokeBuildInSourceSymlinkedModules(InvokeIntegBase):
 
         self.assertEqual(exit_code, 0)
         self.assertEqual(stdout.decode("utf-8"), "123")
+
+
+class TestInvokeBuildInSourceSymlinkedLayers(BuildInSourceInvokeBase):
+    project_test_folder = str(Path("build-in-source", "layer_symlink"))
+
+    def test_successful_invoke(self):
+        build_command = self.get_build_command_list(template_path=self.template_path, build_dir=self.build_dir, build_in_source=True)
+
+        _, _, exit_code = self.run_command(build_command, cwd=self.test_project_folder)
+
+        self.assertEqual(exit_code, 0)
+
+        # check if layers is symlinked
+        layer_artifact_node_folder = Path(self.build_dir, "MyLayer", "nodejs", "node_modules")
+        self.assertEqual(os.path.islink(layer_artifact_node_folder), True)
+
+        invoke_command = self.get_command_list(
+            template_path=self.built_template_path, function_to_invoke="HelloWorldFunction"
+        )
+        invoke_command.append("--debug")
+        stdout, _, exit_code = self.run_command(invoke_command, cwd=self.test_project_folder)
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(stdout.decode("utf-8"), '{"statusCode": 200, "body": "foo bar"}')
