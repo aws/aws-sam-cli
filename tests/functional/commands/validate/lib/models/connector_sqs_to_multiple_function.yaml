@@ -5,16 +5,17 @@ Resources:
   InvokedFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Runtime: nodejs14.x
+      Runtime: nodejs18.x
       Handler: index.handler
       InlineCode: |
-        const AWS = require('aws-sdk');
+        const { SQS } = require('@aws-sdk/client-sqs');
+
         exports.handler = async (event) => {
-          const sqs = new AWS.SQS();
+          const sqs = new SQS();
           await sqs.sendMessage({
             QueueUrl: process.env.VERIFICATION_QUEUE_URL,
             MessageBody: "test"
-          }).promise();
+          });
         };
       Environment:
         Variables:
@@ -26,16 +27,17 @@ Resources:
   InvokedFunction2:
     Type: AWS::Serverless::Function
     Properties:
-      Runtime: nodejs14.x
+      Runtime: nodejs18.x
       Handler: index.handler
       InlineCode: |
-        const AWS = require('aws-sdk');
+        const { SQS } = require('@aws-sdk/client-sqs');
+
         exports.handler = async (event) => {
-          const sqs = new AWS.SQS();
+          const sqs = new SQS();
           await sqs.sendMessage({
             QueueUrl: process.env.VERIFICATION_QUEUE_URL,
             MessageBody: "test"
-          }).promise();
+          });
         };
       Environment:
         Variables:
