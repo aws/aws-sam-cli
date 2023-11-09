@@ -2,8 +2,11 @@
 Represents Lambda runtime containers.
 """
 import logging
-from typing import List
+from pathlib import Path
+from typing import Dict, List
 
+from samcli.lib.build.workflow_config import LAYER_SUBFOLDERS
+from samcli.lib.providers.provider import LayerVersion
 from samcli.lib.utils.packagetype import IMAGE
 from samcli.local.docker.lambda_debug_settings import LambdaDebugSettings
 
@@ -99,6 +102,7 @@ class LambdaContainer(Container):
         entry, container_env_vars = LambdaContainer._get_debug_settings(runtime, debug_options)
         additional_options = LambdaContainer._get_additional_options(runtime, debug_options)
         additional_volumes = LambdaContainer._get_additional_volumes(runtime, debug_options)
+        layer_volume_mounts = LambdaContainer._get_layer_folder_mounts(layers)
 
         _work_dir = self._WORKING_DIR
         _entrypoint = None
@@ -133,10 +137,59 @@ class LambdaContainer(Container):
             entrypoint=_entrypoint if _entrypoint else entry,
             env_vars=env_vars,
             container_opts=additional_options,
-            additional_volumes=additional_volumes,
+            additional_volumes={**additional_volumes, **layer_volume_mounts},
             container_host=container_host,
             container_host_interface=container_host_interface,
         )
+
+    @staticmethod
+    def _get_layer_folder_mounts(layers: List[LayerVersion]) -> Dict[str, Dict[str, str]]:
+        """
+        Searches the code uri of the Layer to resolve any root level symlinks before
+        the container is created
+
+        Paramters
+        ---------
+        layers: List[LayerVersion]
+            A list of layers to check for any symlinks
+
+        Returns
+        -------
+        Dict[str, Dict[str, str]]
+            A dictonary representing the resolved file or directory and the bound path
+            on the container
+        """
+        layer_mappings: Dict[str, Dict[str, str]] = {}
+
+        for layer in layers:
+            # layer.compatible_runtimes can return None
+            for runtime in layer.compatible_runtimes or []:
+                layer_folder = LAYER_SUBFOLDERS[runtime] if runtime in LAYER_SUBFOLDERS else None
+
+                # unsupported runtime for layers
+                if not layer_folder:
+                    LOG.debug("Skipping symlink check for layer %s, unsupported runtime (%s)", layer.layer_id, runtime)
+                    continue
+
+                # not locally built layer
+                if not layer.codeuri:
+                    LOG.debug(
+                        "Skipping symlink check for layer %s, layer does not have locally defined resources",
+                        layer.layer_id,
+                    )
+                    continue
+
+                # eg. `.aws-sam/build/MyLayer` + `nodejs`
+                artifact_layer_path = Path(layer.codeuri, layer_folder)
+                # eg. `/opt` + `nodejs`
+                container_bind_path = Path(LambdaImage._LAYERS_DIR, layer_folder)
+
+                mappings = LambdaContainer._create_mapped_symlink_files(
+                    str(artifact_layer_path), str(container_bind_path)
+                )
+                layer_mappings.update(mappings)
+
+        return layer_mappings
 
     @staticmethod
     def _get_exposed_ports(debug_options):

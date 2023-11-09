@@ -997,7 +997,7 @@ class TestContainer_create_mapped_symlink_files(TestCase):
         mock_context.__enter__ = Mock(return_value=[self.mock_regular_file])
         mock_scandir.return_value = mock_context
 
-        volumes = self.container._create_mapped_symlink_files()
+        volumes = Container._create_mapped_symlink_files("mock_host_dir", "mock_container_dir")
 
         self.assertEqual(volumes, {})
 
@@ -1017,6 +1017,6 @@ class TestContainer_create_mapped_symlink_files(TestCase):
         mock_context.__enter__ = Mock(return_value=[self.mock_symlinked_file])
         mock_scandir.return_value = mock_context
 
-        volumes = self.container._create_mapped_symlink_files()
+        volumes = Container._create_mapped_symlink_files("mock_host_dir", "mock_container_dir")
 
         self.assertEqual(volumes, {host_path: {"bind": container_path, "mode": ANY}})
