@@ -77,7 +77,6 @@ class TestInvokeBuildInSourceSymlinkedLayers(BuildInSourceInvokeBase):
         invoke_command = self.get_command_list(
             template_path=self.built_template_path, function_to_invoke="HelloWorldFunction"
         )
-        invoke_command.append("--debug")
         stdout, _, exit_code = self.run_command(invoke_command, cwd=self.test_project_folder)
 
         self.assertEqual(exit_code, 0)
