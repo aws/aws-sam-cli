@@ -2,6 +2,7 @@
 Unit test for Lambda container management
 """
 
+from pathlib import Path
 from unittest import TestCase
 from unittest.mock import patch, Mock
 from parameterized import parameterized, param
@@ -650,8 +651,8 @@ class TestLambdaContainer_resolve_layers(TestCase):
         runtime = "nodejs18.x"
         layer_folder = "nodejs"
 
-        expected_local_path = f"{code_uri}/{layer_folder}"
-        expected_container_path = f"/opt/{layer_folder}"
+        expected_local_path = str(Path(code_uri, layer_folder))
+        expected_container_path = str(Path("/opt", layer_folder))
 
         layer = LayerVersion("a:b:c", codeuri=code_uri, compatible_runtimes=[runtime])
         LambdaContainer._get_layer_folder_mounts([layer])
