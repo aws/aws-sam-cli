@@ -164,7 +164,7 @@ class LambdaContainer(Container):
         for layer in layers:
             # layer.compatible_runtimes can return None
             for runtime in layer.compatible_runtimes or []:
-                layer_folder = LAYER_SUBFOLDERS[runtime] if runtime in LAYER_SUBFOLDERS else None
+                layer_folder = LAYER_SUBFOLDERS.get(runtime)
 
                 # unsupported runtime for layers
                 if not layer_folder:
