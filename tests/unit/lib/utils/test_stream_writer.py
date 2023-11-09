@@ -16,9 +16,9 @@ class TestStreamWriter(TestCase):
         stream_mock = Mock()
 
         writer = StreamWriter(stream_mock)
-        writer.write_bytes(buffer)
+        writer.write_str(buffer.decode("utf-8"))
 
-        stream_mock.buffer.write.assert_called_once_with(buffer)
+        stream_mock.write.assert_called_once_with(buffer.decode("utf-8"))
 
     def test_must_flush_underlying_stream(self):
         stream_mock = Mock()
