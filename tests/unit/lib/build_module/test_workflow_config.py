@@ -69,7 +69,7 @@ class Test_get_workflow_config(TestCase):
         result = get_workflow_config(runtime, self.code_dir, self.project_dir, specified_workflow)
         self.assertTrue(result.must_mount_with_write_in_container)
 
-    @parameterized.expand([("provided.al2",)])
+    @parameterized.expand([("provided.al2",), ("provided.al2023",)])
     def test_must_work_for_provided_with_build_method_rustcargolambda(self, runtime):
         result = get_workflow_config(runtime, self.code_dir, self.project_dir, specified_workflow="rust-cargolambda")
         self.assertEqual(result.language, "rust")
