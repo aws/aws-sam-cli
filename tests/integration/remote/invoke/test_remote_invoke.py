@@ -119,7 +119,6 @@ class TestSingleLambdaInvoke(RemoteInvokeIntegBase):
         self.assertEqual(remote_invoke_result_stdout["StatusCode"], 200)
 
 
-@skip("Skip remote invoke Step function integration tests")
 @pytest.mark.xdist_group(name="sam_remote_invoke_sfn_resource_priority")
 class TestSFNPriorityInvoke(RemoteInvokeIntegBase):
     template = Path("template-step-function-priority.yaml")
@@ -188,7 +187,6 @@ class TestSFNPriorityInvoke(RemoteInvokeIntegBase):
         self.assertEqual([], get_xrays_response["Traces"])
 
 
-@skip("Skip remote invoke SQS integration tests")
 @pytest.mark.xdist_group(name="sam_remote_invoke_sqs_resource_priority")
 class TestSQSPriorityInvoke(RemoteInvokeIntegBase):
     template = Path("template-sqs-priority.yaml")
@@ -320,7 +318,6 @@ class TestSQSPriorityInvoke(RemoteInvokeIntegBase):
         self.assertEqual(received_message.get("MessageAttributes"), message_attributes)
 
 
-@skip("Skip remote invoke Kinesis integration tests")
 @pytest.mark.xdist_group(name="sam_remote_invoke_kinesis_resource_priority")
 class TestKinesisPriorityInvoke(RemoteInvokeIntegBase):
     template = Path("template-kinesis-priority.yaml")
@@ -480,9 +477,6 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
         ]
     )
     def test_invoke_with_only_event_provided(self, resource_id, event, expected_response):
-        if self.stack_resource_summaries[resource_id].resource_type not in self.supported_resources:
-            pytest.skip("Skip remote invoke Step function integration tests as resource is not supported")
-
         command_list = self.get_command_list(
             stack_name=self.stack_name,
             resource_id=resource_id,
@@ -567,8 +561,6 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
 
     def test_sfn_invoke_with_resource_id_provided_as_arn(self):
         resource_id = "StockPriceGuideStateMachine"
-        if self.stack_resource_summaries[resource_id].resource_type not in self.supported_resources:
-            pytest.skip("Skip remote invoke Step function integration tests as resource is not supported")
         expected_response = {"balance": 320}
         state_machine_arn = self.stack_resource_summaries[resource_id].physical_resource_id
 
@@ -584,8 +576,6 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
 
     def test_sfn_invoke_boto_parameters(self):
         resource_id = "StockPriceGuideStateMachine"
-        if self.stack_resource_summaries[resource_id].resource_type not in self.supported_resources:
-            pytest.skip("Skip remote invoke Step function integration tests as resource is not supported")
         expected_response = {"balance": 320}
         name = "custom-execution-name"
         command_list = self.get_command_list(
@@ -603,8 +593,6 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
 
     def test_sfn_invoke_execution_fails(self):
         resource_id = "StateMachineExecutionFails"
-        if self.stack_resource_summaries[resource_id].resource_type not in self.supported_resources:
-            pytest.skip("Skip remote invoke Step function integration tests as resource is not supported")
         expected_response = "The execution failed due to the error: MockError and cause: Mock Invalid response."
         command_list = self.get_command_list(
             stack_name=self.stack_name,
@@ -620,8 +608,6 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
 
     def test_sqs_invoke_with_resource_id_and_stack_name(self):
         resource_id = "MySQSQueue"
-        if self.stack_resource_summaries[resource_id].resource_type not in self.supported_resources:
-            pytest.skip("Skip remote invoke SQS integration tests as resource is not supported")
         given_message = "Hello world"
         sqs_queue_url = self.stack_resource_summaries[resource_id].physical_resource_id
 
@@ -647,8 +633,6 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
 
     def test_sqs_invoke_with_resource_id_provided_as_arn(self):
         resource_logical_id = "MySQSQueue"
-        if self.stack_resource_summaries[resource_logical_id].resource_type not in self.supported_resources:
-            pytest.skip("Skip remote invoke SQS integration tests as resource is not supported")
 
         output = self.cfn_client.describe_stacks(StackName=self.stack_name)
         sqs_queue_arn = None
@@ -656,9 +640,6 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
         for detail in output["Stacks"][0]["Outputs"]:
             if detail["OutputKey"] == "MySQSQueueArn":
                 sqs_queue_arn = detail["OutputValue"]
-
-        if self.stack_resource_summaries[resource_logical_id].resource_type not in self.supported_resources:
-            pytest.skip("Skip remote invoke SQS integration tests as resource is not supported")
 
         given_message = "Hello world"
 
@@ -684,8 +665,6 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
     def test_sqs_invoke_boto_parameters_fifo_queue(self):
         given_message = "Hello World"
         resource_logical_id = "MyFIFOSQSQueue"
-        if self.stack_resource_summaries[resource_logical_id].resource_type not in self.supported_resources:
-            pytest.skip("Skip remote invoke SQS integration tests as resource is not supported")
 
         sqs_queue_url = self.stack_resource_summaries[resource_logical_id].physical_resource_id
         command_list = self.get_command_list(
@@ -726,8 +705,6 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
 
     def test_kinesis_invoke_with_resource_id_and_stack_name(self):
         resource_logical_id = "KinesisStream"
-        if self.stack_resource_summaries[resource_logical_id].resource_type not in self.supported_resources:
-            pytest.skip("Skip remote invoke Kinesis integration tests as resource is not supported")
         event = '{"foo": "bar"}'
         stream_name = self.stack_resource_summaries[resource_logical_id].physical_resource_id
 
@@ -753,8 +730,6 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
 
     def test_kinesis_invoke_with_resource_id_provided_as_arn(self):
         resource_logical_id = "KinesisStream"
-        if self.stack_resource_summaries[resource_logical_id].resource_type not in self.supported_resources:
-            pytest.skip("Skip remote invoke Kinesis integration tests as resource is not supported")
 
         stream_name = self.stack_resource_summaries[resource_logical_id].physical_resource_id
         output = self.cfn_client.describe_stacks(StackName=self.stack_name)
@@ -787,8 +762,6 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
         # ExplicitHashKey can be used to specify the shard to put the record to if the hashkey provided is
         # between the start and end range of that shard's hash key range.
         resource_logical_id = "KinesisStream"
-        if self.stack_resource_summaries[resource_logical_id].resource_type not in self.supported_resources:
-            pytest.skip("Skip remote invoke Kinesis integration tests as resource is not supported")
         stream_name = self.stack_resource_summaries[resource_logical_id].physical_resource_id
 
         describe_stream_response = self.kinesis_client.describe_stream(StreamName=stream_name)
@@ -843,8 +816,6 @@ class TestNestedTemplateResourcesInvoke(RemoteInvokeIntegBase):
         ]
     )
     def test_invoke_empty_event_provided(self, resource_id, expected_response):
-        if self.stack_resource_summaries[resource_id].resource_type not in self.supported_resources:
-            pytest.skip("Skip remote invoke Step function integration tests as resource is not supported")
         command_list = self.get_command_list(stack_name=self.stack_name, resource_id=resource_id)
 
         remote_invoke_result = run_command(command_list)
@@ -859,8 +830,6 @@ class TestNestedTemplateResourcesInvoke(RemoteInvokeIntegBase):
         ]
     )
     def test_invoke_with_event_provided(self, resource_id, event, expected_response):
-        if self.stack_resource_summaries[resource_id].resource_type not in self.supported_resources:
-            pytest.skip("Skip remote invoke Step function integration tests as resource is not supported")
         command_list = self.get_command_list(
             stack_name=self.stack_name,
             resource_id=resource_id,
