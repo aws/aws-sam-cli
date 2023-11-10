@@ -2502,16 +2502,23 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
         EventTracker.clear_trackers()
 
     @parameterized.expand([([],), (["ExpFlag1", "ExpFlag2"],)])
+    @patch("samcli.lib.build.app_builder.patch_runtime")
     @patch("samcli.lib.telemetry.event.EventType.get_accepted_values")
     @patch("samcli.lib.build.app_builder.LambdaBuilder")
     @patch("samcli.lib.build.app_builder.get_enabled_experimental_flags")
     def test_must_use_lambda_builder(
-        self, experimental_flags, experimental_flags_mock, lambda_builder_mock, event_mock
+        self,
+        experimental_flags,
+        experimental_flags_mock,
+        lambda_builder_mock,
+        event_mock,
+        patch_runtime_mock,
     ):
         experimental_flags_mock.return_value = experimental_flags
         config_mock = Mock()
         builder_instance_mock = lambda_builder_mock.return_value = Mock()
         event_mock.return_value = ["runtime"]
+        patch_runtime_mock.return_value = "runtime"
 
         result = self.builder._build_function_in_process(
             config_mock,
@@ -2552,6 +2559,8 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
             experimental_flags=experimental_flags,
             build_in_source=False,
         )
+        
+        patch_runtime_mock.assert_called_with("runtime")
 
     @patch("samcli.lib.build.app_builder.LambdaBuilder")
     def test_must_raise_on_error(self, lambda_builder_mock):
