@@ -139,6 +139,7 @@ class TestLambdaBuildContainer_make_request(TestCase):
 
         patch_runtime_mock.assert_called_with("runtime")
 
+
 class TestLambdaBuildContainer_get_container_dirs(TestCase):
     def test_must_return_dirs(self):
         source_dir = "source"

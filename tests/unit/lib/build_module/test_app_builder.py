@@ -2559,7 +2559,7 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
             experimental_flags=experimental_flags,
             build_in_source=False,
         )
-        
+
         patch_runtime_mock.assert_called_with("runtime")
 
     @patch("samcli.lib.build.app_builder.LambdaBuilder")
