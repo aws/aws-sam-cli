@@ -110,7 +110,6 @@ class TestTomlFileManager(TestCase):
 
 
 class TestYamlFileManager(TestCase):
-
     yaml = YAML()
 
     def test_read_yaml(self):

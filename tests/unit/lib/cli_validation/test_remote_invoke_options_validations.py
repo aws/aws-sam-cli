@@ -71,7 +71,47 @@ class TestEventFileValidation(TestCase):
         with self.assertRaises(BadOptionUsage) as ex:
             event_and_event_file_options_validation(mock_func)()
 
-        self.assertIn("Both '--event-file' and '--event' cannot be provided.", ex.exception.message)
+        self.assertIn(
+            "Only one of '--event-file', '--event' and '--test-event-name' can be provided.", ex.exception.message
+        )
+
+        mock_func.assert_not_called()
+
+    @patch("samcli.lib.cli_validation.remote_invoke_options_validations.click.get_current_context")
+    def test_event_and_remote_event_params(self, patched_click_context):
+        mock_func = Mock()
+        mocked_context = Mock()
+        patched_click_context.return_value = mocked_context
+
+        mocked_context.params.get.side_effect = (
+            lambda key: "event_content" if key in ("event", "test_event_name") else None
+        )
+
+        with self.assertRaises(BadOptionUsage) as ex:
+            event_and_event_file_options_validation(mock_func)()
+
+        self.assertIn(
+            "Only one of '--event-file', '--event' and '--test-event-name' can be provided.", ex.exception.message
+        )
+
+        mock_func.assert_not_called()
+
+    @patch("samcli.lib.cli_validation.remote_invoke_options_validations.click.get_current_context")
+    def test_event_file_and_remote_event_params(self, patched_click_context):
+        mock_func = Mock()
+        mocked_context = Mock()
+        patched_click_context.return_value = mocked_context
+
+        mocked_context.params.get.side_effect = (
+            lambda key: "event_content" if key in ("event_file", "test_event_name") else None
+        )
+
+        with self.assertRaises(BadOptionUsage) as ex:
+            event_and_event_file_options_validation(mock_func)()
+
+        self.assertIn(
+            "Only one of '--event-file', '--event' and '--test-event-name' can be provided.", ex.exception.message
+        )
 
         mock_func.assert_not_called()
 

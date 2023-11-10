@@ -34,6 +34,7 @@ SUPPORTED_RUNTIMES: Dict[str, List[str]] = {
     "dotnet6": [ARM64, X86_64],
     "provided": [X86_64],
     "provided.al2": [ARM64, X86_64],
+    "provided.al2023": [ARM64, X86_64],
 }
 
 

@@ -52,6 +52,7 @@ class Runtime(Enum):
     dotnet6 = "dotnet6"
     provided = "provided"
     providedal2 = "provided.al2"
+    providedal2023 = "provided.al2023"
 
     @classmethod
     def has_value(cls, value):
@@ -169,6 +170,11 @@ class LambdaImage:
                 runtime_only_number = re.split("[:-]", runtime_image_tag)[1]
                 tag_prefix = f"{runtime_only_number}-"
                 base_image = f"{self._INVOKE_REPO_PREFIX}/{runtime_image_tag}"
+
+                # Temporarily add a version tag to the emulation image so that we don't pull a broken image
+                if platform.system().lower() == "windows" and runtime in [Runtime.go1x.value, Runtime.java8.value]:
+                    LOG.info("Falling back to a previous version of the emulation image")
+                    base_image = f"{base_image}.2023.08.02.10"
 
         if not base_image:
             raise InvalidIntermediateImageError(f"Invalid PackageType, PackageType needs to be one of [{ZIP}, {IMAGE}]")

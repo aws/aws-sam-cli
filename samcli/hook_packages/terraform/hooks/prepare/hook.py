@@ -28,12 +28,17 @@ TERRAFORM_HOOK_METADATA = {
     "HookName": "terraform",
 }
 
+TF_CLOUD_LINK = (
+    "https://docs.aws.amazon.com/serverless-application-model/latest"
+    "/developerguide/gs-terraform-support.html#gs-terraform-support-cloud"
+)
 TF_CLOUD_EXCEPTION_MESSAGE = "Terraform Cloud does not support saving the generated execution plan"
 TF_CLOUD_HELP_MESSAGE = (
     "Terraform Cloud does not currently support generating local plan "
     "files that AWS SAM CLI uses to parse the Terraform project.\n"
     "To use AWS SAM CLI with Terraform Cloud applications, provide "
-    "a plan file using the --terraform-plan-file flag."
+    "a plan file using the --terraform-plan-file flag.\n\n"
+    f"For more information, follow the link: {TF_CLOUD_LINK}"
 )
 
 TF_BLOCKED_ARGUMENTS = [
@@ -95,7 +100,6 @@ def prepare(params: dict) -> dict:
     if skip_prepare_infra and os.path.exists(metadata_file_path):
         LOG.info("Skipping preparation stage, the metadata file already exists at %s", metadata_file_path)
     else:
-
         try:
             # initialize terraform application
             if not plan_file:
@@ -186,7 +190,8 @@ def _generate_plan_file(skip_prepare_infra: bool, terraform_application_dir: str
             command_args={
                 "args": ["terraform", "init", "-input=false"],
                 "cwd": terraform_application_dir,
-            }
+            },
+            is_running_terraform_command=True,
         )
 
         # get json output of terraform plan
@@ -198,7 +203,8 @@ def _generate_plan_file(skip_prepare_infra: bool, terraform_application_dir: str
                 command_args={
                     "args": ["terraform", "plan", "-out", temp_file.name, "-input=false"],
                     "cwd": terraform_application_dir,
-                }
+                },
+                is_running_terraform_command=True,
             )
 
             result = run(
@@ -227,7 +233,6 @@ def _generate_plan_file(skip_prepare_infra: bool, terraform_application_dir: str
         ) from e
     except LoadingPatternError as e:
         if TF_CLOUD_EXCEPTION_MESSAGE in e.message:
-            # TODO: Add link to TF Cloud documentation when that is ready
             raise TerraformCloudException(TF_CLOUD_HELP_MESSAGE)
         raise PrepareHookException(f"Error occurred when invoking a process:\n{e}") from e
 
