@@ -10,7 +10,7 @@ class TestPatchRuntime(TestCase):
     @parameterized.expand(
         [
             ("nodejs14.x", "nodejs14.x"),
-            ("java8.al2", "java8.al2"),
+            ("java8.al2", "java8"),
             ("dotnet6", "dotnet6"),
             ("provided", "provided"),
             ("provided.al2", "provided"),
