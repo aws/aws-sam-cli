@@ -13,6 +13,8 @@ from tests.testing_utils import run_command
 from pathlib import Path
 import pytest
 
+SQS_WAIT_TIME_SECONDS = 20
+
 
 @pytest.mark.xdist_group(name="sam_remote_invoke_single_lambda_resource")
 class TestSingleLambdaInvoke(RemoteInvokeIntegBase):
@@ -209,7 +211,7 @@ class TestSQSPriorityInvoke(RemoteInvokeIntegBase):
         self.assertIn("MessageId", remote_invoke_result_stdout)
 
         received_message_response = self.sqs_client.receive_message(
-            QueueUrl=self.sqs_queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=20
+            QueueUrl=self.sqs_queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=SQS_WAIT_TIME_SECONDS
         ).get("Messages")
         self.assertEqual(len(received_message_response), 1)
         received_message = received_message_response[0]
@@ -231,7 +233,7 @@ class TestSQSPriorityInvoke(RemoteInvokeIntegBase):
         self.assertIn("MessageId", remote_invoke_result_stdout)
 
         received_message_response = self.sqs_client.receive_message(
-            QueueUrl=self.sqs_queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=20
+            QueueUrl=self.sqs_queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=SQS_WAIT_TIME_SECONDS
         ).get("Messages")
         self.assertEqual(len(received_message_response), 1)
         received_message = received_message_response[0]
@@ -250,7 +252,7 @@ class TestSQSPriorityInvoke(RemoteInvokeIntegBase):
         self.assertIn("MessageId", remote_invoke_result_stdout)
 
         received_message_response = self.sqs_client.receive_message(
-            QueueUrl=self.sqs_queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=20
+            QueueUrl=self.sqs_queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=SQS_WAIT_TIME_SECONDS
         ).get("Messages")
         self.assertEqual(len(received_message_response), 1)
         received_message = received_message_response[0]
@@ -274,7 +276,7 @@ class TestSQSPriorityInvoke(RemoteInvokeIntegBase):
         self.assertIn("MessageId", remote_invoke_result_stdout)
 
         received_message_response = self.sqs_client.receive_message(
-            QueueUrl=self.sqs_queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=20
+            QueueUrl=self.sqs_queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=SQS_WAIT_TIME_SECONDS
         ).get("Messages")
         self.assertEqual(len(received_message_response), 1)
         received_message = received_message_response[0]
@@ -312,7 +314,10 @@ class TestSQSPriorityInvoke(RemoteInvokeIntegBase):
 
         time.sleep(1)  # Required as DelaySeconds is set to 1 and message cannot be received before this.
         received_message_response = self.sqs_client.receive_message(
-            QueueUrl=self.sqs_queue_url, MaxNumberOfMessages=1, MessageAttributeNames=["All"], WaitTimeSeconds=20
+            QueueUrl=self.sqs_queue_url,
+            MaxNumberOfMessages=1,
+            MessageAttributeNames=["All"],
+            WaitTimeSeconds=SQS_WAIT_TIME_SECONDS,
         ).get("Messages")
 
         self.assertEqual(len(received_message_response), 1)
@@ -629,7 +634,7 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
         self.assertIn("MessageId", remote_invoke_result_stdout)
 
         received_message_response = self.sqs_client.receive_message(
-            QueueUrl=sqs_queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=20
+            QueueUrl=sqs_queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=SQS_WAIT_TIME_SECONDS
         ).get("Messages")
         self.assertEqual(len(received_message_response), 1)
         received_message = received_message_response[0]
@@ -661,7 +666,7 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
         self.assertIn("MessageId", remote_invoke_result_stdout)
 
         received_message_response = self.sqs_client.receive_message(
-            QueueUrl=sqs_queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=20
+            QueueUrl=sqs_queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=SQS_WAIT_TIME_SECONDS
         ).get("Messages")
         self.assertEqual(len(received_message_response), 1)
         received_message = received_message_response[0]
@@ -694,7 +699,7 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
         self.assertIn("ResponseMetadata", remote_invoke_result_stdout)
 
         received_message_response = self.sqs_client.receive_message(
-            QueueUrl=sqs_queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=20
+            QueueUrl=sqs_queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=SQS_WAIT_TIME_SECONDS
         ).get("Messages")
 
         self.assertEqual(len(received_message_response), 1)
