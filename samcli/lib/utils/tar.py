@@ -5,22 +5,31 @@ Tarball Archive utility
 import os
 import tarfile
 from contextlib import contextmanager
+from pathlib import Path
 from tempfile import TemporaryFile
-from typing import IO, Optional, Union
+from typing import IO, Callable, Dict, Optional, Union
 
 
 @contextmanager
-def create_tarball(tar_paths, tar_filter=None, mode="w"):
+def create_tarball(
+    tar_paths: Dict[Union[str, Path], str],
+    tar_filter: Callable[[tarfile.TarInfo], Union[None, tarfile.TarInfo]] = None,
+    mode: str = "w",
+    dereference: bool = False,
+):
     """
     Context Manger that creates the tarball of the Docker Context to use for building the image
 
     Parameters
     ----------
-    tar_paths dict(str, str)
+    tar_paths: Dict[Union[str, Path], str]
         Key representing a full path to the file or directory and the Value representing the path within the tarball
-
-    mode str
+    tar_filter: Callable[[tarfile.TarInfo], Union[None, tarfile.TarInfo]]
+        A method that modifies the tar file entry before adding it to the archive. Default to `None`
+    mode: str
         The mode in which the tarfile is opened. Defaults to "w".
+    dereference: bool = False
+        Pass `True` to resolve symlinks before adding to archive. Otherwise, adds the symlink itself to the archive
 
     Yields
     ------
@@ -29,7 +38,7 @@ def create_tarball(tar_paths, tar_filter=None, mode="w"):
     """
     tarballfile = TemporaryFile()
 
-    with tarfile.open(fileobj=tarballfile, mode=mode) as archive:
+    with tarfile.open(fileobj=tarballfile, mode=mode, dereference=dereference) as archive:
         for path_on_system, path_in_tarball in tar_paths.items():
             archive.add(path_on_system, arcname=path_in_tarball, filter=tar_filter)
 
