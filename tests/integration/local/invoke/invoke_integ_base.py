@@ -91,7 +91,13 @@ class InvokeIntegBase(TestCase):
         return command_list
 
     def get_build_command_list(
-        self, template_path=None, cached=None, parallel=None, use_container=None, build_dir=None, build_in_source=None,
+        self,
+        template_path=None,
+        cached=None,
+        parallel=None,
+        use_container=None,
+        build_dir=None,
+        build_in_source=None,
     ):
         command_list = [self.cmd, "build"]
 
