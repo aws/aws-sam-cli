@@ -159,7 +159,7 @@ class Container:
                     "bind": self._working_dir,
                     "mode": mount_mode,
                 },
-                **Container.create_mapped_symlink_files(self._host_dir, self._working_dir),
+                **self._create_mapped_symlink_files(),
             }
 
         kwargs = {
@@ -226,19 +226,11 @@ class Container:
 
         return self.id
 
-    @staticmethod
-    def create_mapped_symlink_files(search_directory: str, bind_directory: str) -> Dict[str, Dict[str, str]]:
+    def _create_mapped_symlink_files(self) -> Dict[str, Dict[str, str]]:
         """
         Resolves any top level symlinked files and folders that are found on the
         host directory and creates additional bind mounts to correctly map them
         inside of the container.
-
-        Parameters
-        ----------
-        search_directory: str
-            The folder to walk the root level of to search for symlinks
-        bind_directory: str
-            The folder inside of the container to resolve the symlink for
 
         Returns
         -------
@@ -249,13 +241,13 @@ class Container:
         mount_mode = "ro,delegated"
         additional_volumes = {}
 
-        with os.scandir(search_directory) as directory_iterator:
+        with os.scandir(self._host_dir) as directory_iterator:
             for file in directory_iterator:
                 if not file.is_symlink():
                     continue
 
                 host_resolved_path = os.path.realpath(file.path)
-                container_full_path = pathlib.Path(bind_directory, file.name).as_posix()
+                container_full_path = pathlib.Path(self._working_dir, file.name).as_posix()
 
                 additional_volumes[host_resolved_path] = {
                     "bind": container_full_path,

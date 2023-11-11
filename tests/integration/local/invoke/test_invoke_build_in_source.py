@@ -26,7 +26,6 @@ class BuildInSourceInvokeBase(InvokeIntegBase):
         except:
             pass
 
-
 class TestInvokeBuildInSourceSymlinkedModules(BuildInSourceInvokeBase):
     project_test_folder = "build-in-source"
 
@@ -41,9 +40,7 @@ class TestInvokeBuildInSourceSymlinkedModules(BuildInSourceInvokeBase):
         self.assertEqual(os.path.islink(local_dep), False)
 
     def test_successful_invoke(self):
-        build_command = self.get_build_command_list(
-            template_path=self.template_path, build_dir=self.build_dir, build_in_source=True
-        )
+        build_command = self.get_build_command_list(template_path=self.template_path, build_dir=self.build_dir, build_in_source=True)
         _, _, exit_code = self.run_command(build_command)
 
         self.assertEqual(exit_code, 0)
@@ -62,9 +59,7 @@ class TestInvokeBuildInSourceSymlinkedLayers(BuildInSourceInvokeBase):
     project_test_folder = str(Path("build-in-source", "layer_symlink"))
 
     def test_successful_invoke(self):
-        build_command = self.get_build_command_list(
-            template_path=self.template_path, build_dir=self.build_dir, build_in_source=True
-        )
+        build_command = self.get_build_command_list(template_path=self.template_path, build_dir=self.build_dir, build_in_source=True)
 
         _, _, exit_code = self.run_command(build_command, cwd=self.test_project_folder)
 
@@ -77,6 +72,7 @@ class TestInvokeBuildInSourceSymlinkedLayers(BuildInSourceInvokeBase):
         invoke_command = self.get_command_list(
             template_path=self.built_template_path, function_to_invoke="HelloWorldFunction"
         )
+        invoke_command.append("--debug")
         stdout, _, exit_code = self.run_command(invoke_command, cwd=self.test_project_folder)
 
         self.assertEqual(exit_code, 0)

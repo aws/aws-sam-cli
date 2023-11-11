@@ -2,14 +2,11 @@
 Unit test for Lambda container management
 """
 
-from pathlib import Path
 from unittest import TestCase
 from unittest.mock import patch, Mock
 from parameterized import parameterized, param
 
 from samcli.commands.local.lib.debug_context import DebugContext
-from samcli.lib.build.workflow_config import LAYER_SUBFOLDERS
-from samcli.lib.providers.provider import LayerVersion
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.local.docker.lambda_container import LambdaContainer, Runtime
 from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported
@@ -617,44 +614,3 @@ class TestLambdaContainer_get_additional_volumes(TestCase):
         result = LambdaContainer._get_additional_volumes(runtime, debug_options)
         print(result)
         self.assertEqual(result, expected)
-
-
-class TestLambdaContainer_resolve_layers(TestCase):
-    @parameterized.expand(
-        [
-            ([],),  # no layers
-            ([LayerVersion("a:b:c", codeuri=None, compatible_runtimes=["nodejs18.x"])],),  # no codeuri
-            ([LayerVersion("a:b:c", codeuri="codeuri")],),  # no runtime
-            (
-                [LayerVersion("a:b:c", codeuri="codeuri", compatible_runtimes=["hello world"])],
-            ),  # unsupported/invalid runtime
-        ]
-    )
-    def test_returns_no_mounts_invalid_layer(self, layer):
-        result = LambdaContainer._get_layer_folder_mounts(layer)
-
-        self.assertEqual(result, {})
-
-    @patch.object(LambdaContainer, "create_mapped_symlink_files")
-    def test_returns_no_mounts_no_links(self, create_map_mock):
-        create_map_mock.return_value = {}
-
-        layer = LayerVersion("a:b:c", codeuri="some/path", compatible_runtimes=["nodejs18.x"])
-        result = LambdaContainer._get_layer_folder_mounts([layer])
-
-        create_map_mock.assert_called_once()
-        self.assertEqual(result, {})
-
-    @patch.object(LambdaContainer, "create_mapped_symlink_files")
-    def test_returns_mounts(self, create_map_mock):
-        code_uri = "some/path"
-        runtime = "nodejs18.x"
-        layer_folder = "nodejs"
-
-        expected_local_path = str(Path(code_uri, layer_folder))
-        expected_container_path = str(Path("/opt", layer_folder))
-
-        layer = LayerVersion("a:b:c", codeuri=code_uri, compatible_runtimes=[runtime])
-        LambdaContainer._get_layer_folder_mounts([layer])
-
-        create_map_mock.assert_called_once_with(expected_local_path, expected_container_path)

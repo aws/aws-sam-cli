@@ -81,7 +81,7 @@ class TestContainer_create(TestCase):
         self.mock_docker_client.networks = Mock()
         self.mock_docker_client.networks.get = Mock()
 
-    @patch("samcli.local.docker.container.Container.create_mapped_symlink_files")
+    @patch("samcli.local.docker.container.Container._create_mapped_symlink_files")
     def test_must_create_container_with_required_values(self, mock_resolve_symlinks):
         """
         Create a container with only required values. Optional values are not provided
@@ -120,7 +120,7 @@ class TestContainer_create(TestCase):
         )
         self.mock_docker_client.networks.get.assert_not_called()
 
-    @patch("samcli.local.docker.container.Container.create_mapped_symlink_files")
+    @patch("samcli.local.docker.container.Container._create_mapped_symlink_files")
     def test_must_create_container_including_all_optional_values(self, mock_resolve_symlinks):
         """
         Create a container with required and optional values.
@@ -176,7 +176,7 @@ class TestContainer_create(TestCase):
         self.mock_docker_client.networks.get.assert_not_called()
 
     @patch("samcli.local.docker.utils.os")
-    @patch("samcli.local.docker.container.Container.create_mapped_symlink_files")
+    @patch("samcli.local.docker.container.Container._create_mapped_symlink_files")
     def test_must_create_container_translate_volume_path(self, mock_resolve_symlinks, os_mock):
         """
         Create a container with required and optional values, with windows style volume mount.
@@ -236,7 +236,7 @@ class TestContainer_create(TestCase):
         )
         self.mock_docker_client.networks.get.assert_not_called()
 
-    @patch("samcli.local.docker.container.Container.create_mapped_symlink_files")
+    @patch("samcli.local.docker.container.Container._create_mapped_symlink_files")
     def test_must_connect_to_network_on_create(self, mock_resolve_symlinks):
         """
         Create a container with only required values. Optional values are not provided
@@ -275,7 +275,7 @@ class TestContainer_create(TestCase):
         self.mock_docker_client.networks.get.assert_called_with(network_id)
         network_mock.connect.assert_called_with(container_id)
 
-    @patch("samcli.local.docker.container.Container.create_mapped_symlink_files")
+    @patch("samcli.local.docker.container.Container._create_mapped_symlink_files")
     def test_must_connect_to_host_network_on_create(self, mock_resolve_symlinks):
         """
         Create a container with only required values. Optional values are not provided
@@ -981,7 +981,7 @@ class TestContainer_is_running(TestCase):
         self.assertTrue(self.container.is_created())
 
 
-class TestContainercreate_mapped_symlink_files(TestCase):
+class TestContainer_create_mapped_symlink_files(TestCase):
     def setUp(self):
         self.container = Container(Mock(), Mock(), Mock(), Mock(), docker_client=Mock())
 
@@ -997,7 +997,7 @@ class TestContainercreate_mapped_symlink_files(TestCase):
         mock_context.__enter__ = Mock(return_value=[self.mock_regular_file])
         mock_scandir.return_value = mock_context
 
-        volumes = Container.create_mapped_symlink_files("mock_host_dir", "mock_container_dir")
+        volumes = self.container._create_mapped_symlink_files()
 
         self.assertEqual(volumes, {})
 
@@ -1017,6 +1017,6 @@ class TestContainercreate_mapped_symlink_files(TestCase):
         mock_context.__enter__ = Mock(return_value=[self.mock_symlinked_file])
         mock_scandir.return_value = mock_context
 
-        volumes = Container.create_mapped_symlink_files("mock_host_dir", "mock_container_dir")
+        volumes = self.container._create_mapped_symlink_files()
 
         self.assertEqual(volumes, {host_path: {"bind": container_path, "mode": ANY}})

@@ -24,30 +24,6 @@ from samcli.lib.telemetry.event import EventTracker
 
 LOG = logging.getLogger(__name__)
 
-LAYER_SUBFOLDERS = {
-    "python3.7": "python",
-    "python3.8": "python",
-    "python3.9": "python",
-    "python3.10": "python",
-    "python3.11": "python",
-    "nodejs4.3": "nodejs",
-    "nodejs6.10": "nodejs",
-    "nodejs8.10": "nodejs",
-    "nodejs12.x": "nodejs",
-    "nodejs14.x": "nodejs",
-    "nodejs16.x": "nodejs",
-    "nodejs18.x": "nodejs",
-    "ruby2.7": "ruby/lib",
-    "ruby3.2": "ruby/lib",
-    "java8": "java",
-    "java11": "java",
-    "java8.al2": "java",
-    "java17": "java",
-    "dotnet6": "dotnet",
-    # User is responsible for creating subfolder in these workflows
-    "makefile": "",
-}
-
 
 class UnsupportedRuntimeException(Exception):
     pass
@@ -108,10 +84,34 @@ def get_selector(
 
 
 def get_layer_subfolder(build_workflow: str) -> str:
-    if build_workflow not in LAYER_SUBFOLDERS:
+    subfolders_by_runtime = {
+        "python3.7": "python",
+        "python3.8": "python",
+        "python3.9": "python",
+        "python3.10": "python",
+        "python3.11": "python",
+        "nodejs4.3": "nodejs",
+        "nodejs6.10": "nodejs",
+        "nodejs8.10": "nodejs",
+        "nodejs12.x": "nodejs",
+        "nodejs14.x": "nodejs",
+        "nodejs16.x": "nodejs",
+        "nodejs18.x": "nodejs",
+        "ruby2.7": "ruby/lib",
+        "ruby3.2": "ruby/lib",
+        "java8": "java",
+        "java11": "java",
+        "java8.al2": "java",
+        "java17": "java",
+        "dotnet6": "dotnet",
+        # User is responsible for creating subfolder in these workflows
+        "makefile": "",
+    }
+
+    if build_workflow not in subfolders_by_runtime:
         raise UnsupportedRuntimeException("'{}' runtime is not supported for layers".format(build_workflow))
 
-    return LAYER_SUBFOLDERS[build_workflow]
+    return subfolders_by_runtime[build_workflow]
 
 
 def get_workflow_config(
