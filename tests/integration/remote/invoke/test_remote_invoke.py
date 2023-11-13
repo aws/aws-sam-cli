@@ -13,6 +13,8 @@ from tests.testing_utils import run_command
 from pathlib import Path
 import pytest
 
+SQS_WAIT_TIME_SECONDS = 20
+
 
 @pytest.mark.xdist_group(name="sam_remote_invoke_single_lambda_resource")
 class TestSingleLambdaInvoke(RemoteInvokeIntegBase):
@@ -209,12 +211,13 @@ class TestSQSPriorityInvoke(RemoteInvokeIntegBase):
         self.assertIn("MessageId", remote_invoke_result_stdout)
 
         received_message_response = self.sqs_client.receive_message(
-            QueueUrl=self.sqs_queue_url, MaxNumberOfMessages=1
+            QueueUrl=self.sqs_queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=SQS_WAIT_TIME_SECONDS
         ).get("Messages")
         self.assertEqual(len(received_message_response), 1)
         received_message = received_message_response[0]
         self.assertEqual(expected_message_body, received_message.get("Body"))
         self.assertEqual(received_message["MessageId"], remote_invoke_result_stdout["MessageId"])
+        self.sqs_client.delete_message(QueueUrl=self.sqs_queue_url, ReceiptHandle=received_message["ReceiptHandle"])
 
     @parameterized.expand([('{"foo": "bar"}'), ("Hello World"), ("<heading>Reminder</heading>")])
     def test_invoke_with_event_provided(self, event):
@@ -230,12 +233,13 @@ class TestSQSPriorityInvoke(RemoteInvokeIntegBase):
         self.assertIn("MessageId", remote_invoke_result_stdout)
 
         received_message_response = self.sqs_client.receive_message(
-            QueueUrl=self.sqs_queue_url, MaxNumberOfMessages=1
+            QueueUrl=self.sqs_queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=SQS_WAIT_TIME_SECONDS
         ).get("Messages")
         self.assertEqual(len(received_message_response), 1)
         received_message = received_message_response[0]
         self.assertEqual(event, received_message.get("Body"))
         self.assertEqual(received_message["MessageId"], remote_invoke_result_stdout["MessageId"])
+        self.sqs_client.delete_message(QueueUrl=self.sqs_queue_url, ReceiptHandle=received_message["ReceiptHandle"])
 
     def test_invoke_with_event_file_provided(self):
         event_file_path = str(self.events_folder_path.joinpath("default_event.json"))
@@ -248,7 +252,7 @@ class TestSQSPriorityInvoke(RemoteInvokeIntegBase):
         self.assertIn("MessageId", remote_invoke_result_stdout)
 
         received_message_response = self.sqs_client.receive_message(
-            QueueUrl=self.sqs_queue_url, MaxNumberOfMessages=1
+            QueueUrl=self.sqs_queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=SQS_WAIT_TIME_SECONDS
         ).get("Messages")
         self.assertEqual(len(received_message_response), 1)
         received_message = received_message_response[0]
@@ -256,6 +260,7 @@ class TestSQSPriorityInvoke(RemoteInvokeIntegBase):
         with open(event_file_path, "r") as f:
             expected_message = f.read()
             self.assertEqual(expected_message, received_message.get("Body"))
+        self.sqs_client.delete_message(QueueUrl=self.sqs_queue_url, ReceiptHandle=received_message["ReceiptHandle"])
 
     def test_invoke_with_physical_id_provided_as_resource_id(self):
         event = '{"foo": "bar"}'
@@ -271,12 +276,13 @@ class TestSQSPriorityInvoke(RemoteInvokeIntegBase):
         self.assertIn("MessageId", remote_invoke_result_stdout)
 
         received_message_response = self.sqs_client.receive_message(
-            QueueUrl=self.sqs_queue_url, MaxNumberOfMessages=1
+            QueueUrl=self.sqs_queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=SQS_WAIT_TIME_SECONDS
         ).get("Messages")
         self.assertEqual(len(received_message_response), 1)
         received_message = received_message_response[0]
         self.assertEqual(event, received_message.get("Body"))
         self.assertEqual(received_message["MessageId"], remote_invoke_result_stdout["MessageId"])
+        self.sqs_client.delete_message(QueueUrl=self.sqs_queue_url, ReceiptHandle=received_message["ReceiptHandle"])
 
     def test_invoke_boto_parameters(self):
         given_message = "Hello World"
@@ -308,7 +314,10 @@ class TestSQSPriorityInvoke(RemoteInvokeIntegBase):
 
         time.sleep(1)  # Required as DelaySeconds is set to 1 and message cannot be received before this.
         received_message_response = self.sqs_client.receive_message(
-            QueueUrl=self.sqs_queue_url, MaxNumberOfMessages=1, MessageAttributeNames=["All"]
+            QueueUrl=self.sqs_queue_url,
+            MaxNumberOfMessages=1,
+            MessageAttributeNames=["All"],
+            WaitTimeSeconds=SQS_WAIT_TIME_SECONDS,
         ).get("Messages")
 
         self.assertEqual(len(received_message_response), 1)
@@ -316,6 +325,7 @@ class TestSQSPriorityInvoke(RemoteInvokeIntegBase):
         self.assertEqual(received_message["MessageId"], remote_invoke_result_stdout["MessageId"])
         self.assertEqual(received_message.get("Body"), given_message)
         self.assertEqual(received_message.get("MessageAttributes"), message_attributes)
+        self.sqs_client.delete_message(QueueUrl=self.sqs_queue_url, ReceiptHandle=received_message["ReceiptHandle"])
 
 
 @pytest.mark.xdist_group(name="sam_remote_invoke_kinesis_resource_priority")
@@ -623,13 +633,14 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
         self.assertIn("MD5OfMessageBody", remote_invoke_result_stdout)
         self.assertIn("MessageId", remote_invoke_result_stdout)
 
-        received_message_response = self.sqs_client.receive_message(QueueUrl=sqs_queue_url, MaxNumberOfMessages=1).get(
-            "Messages"
-        )
+        received_message_response = self.sqs_client.receive_message(
+            QueueUrl=sqs_queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=SQS_WAIT_TIME_SECONDS
+        ).get("Messages")
         self.assertEqual(len(received_message_response), 1)
         received_message = received_message_response[0]
         self.assertEqual(given_message, received_message.get("Body"))
         self.assertEqual(received_message["MessageId"], remote_invoke_result_stdout["MessageId"])
+        self.sqs_client.delete_message(QueueUrl=sqs_queue_url, ReceiptHandle=received_message["ReceiptHandle"])
 
     def test_sqs_invoke_with_resource_id_provided_as_arn(self):
         resource_logical_id = "MySQSQueue"
@@ -654,13 +665,14 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
         self.assertIn("MD5OfMessageBody", remote_invoke_result_stdout)
         self.assertIn("MessageId", remote_invoke_result_stdout)
 
-        received_message_response = self.sqs_client.receive_message(QueueUrl=sqs_queue_url, MaxNumberOfMessages=1).get(
-            "Messages"
-        )
+        received_message_response = self.sqs_client.receive_message(
+            QueueUrl=sqs_queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=SQS_WAIT_TIME_SECONDS
+        ).get("Messages")
         self.assertEqual(len(received_message_response), 1)
         received_message = received_message_response[0]
         self.assertEqual(given_message, received_message.get("Body"))
         self.assertEqual(received_message["MessageId"], remote_invoke_result_stdout["MessageId"])
+        self.sqs_client.delete_message(QueueUrl=sqs_queue_url, ReceiptHandle=received_message["ReceiptHandle"])
 
     def test_sqs_invoke_boto_parameters_fifo_queue(self):
         given_message = "Hello World"
@@ -686,9 +698,9 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
         self.assertIn("MessageId", remote_invoke_result_stdout)
         self.assertIn("ResponseMetadata", remote_invoke_result_stdout)
 
-        received_message_response = self.sqs_client.receive_message(QueueUrl=sqs_queue_url, MaxNumberOfMessages=1).get(
-            "Messages"
-        )
+        received_message_response = self.sqs_client.receive_message(
+            QueueUrl=sqs_queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=SQS_WAIT_TIME_SECONDS
+        ).get("Messages")
 
         self.assertEqual(len(received_message_response), 1)
         received_message = received_message_response[0]
@@ -702,6 +714,7 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
         remote_invoke_result_stdout = json.loads(remote_invoke_result.stdout.strip().decode())
         # Message id will be the same as it got deduped and a new message was not created
         self.assertEqual(received_message["MessageId"], remote_invoke_result_stdout["MessageId"])
+        self.sqs_client.delete_message(QueueUrl=sqs_queue_url, ReceiptHandle=received_message["ReceiptHandle"])
 
     def test_kinesis_invoke_with_resource_id_and_stack_name(self):
         resource_logical_id = "KinesisStream"
