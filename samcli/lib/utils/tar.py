@@ -13,7 +13,7 @@ from typing import IO, Callable, Dict, Optional, Union
 @contextmanager
 def create_tarball(
     tar_paths: Dict[Union[str, Path], str],
-    tar_filter: Callable[[tarfile.TarInfo], Union[None, tarfile.TarInfo]] = None,
+    tar_filter: Optional[Callable[[tarfile.TarInfo], Union[None, tarfile.TarInfo]]] = None,
     mode: str = "w",
     dereference: bool = False,
 ):
@@ -24,11 +24,11 @@ def create_tarball(
     ----------
     tar_paths: Dict[Union[str, Path], str]
         Key representing a full path to the file or directory and the Value representing the path within the tarball
-    tar_filter: Callable[[tarfile.TarInfo], Union[None, tarfile.TarInfo]]
+    tar_filter: Optional[Callable[[tarfile.TarInfo], Union[None, tarfile.TarInfo]]]
         A method that modifies the tar file entry before adding it to the archive. Default to `None`
     mode: str
         The mode in which the tarfile is opened. Defaults to "w".
-    dereference: bool = False
+    dereference: bool
         Pass `True` to resolve symlinks before adding to archive. Otherwise, adds the symlink itself to the archive
 
     Yields
