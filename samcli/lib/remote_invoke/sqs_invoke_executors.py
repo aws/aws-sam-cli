@@ -121,7 +121,7 @@ class SqsSendMessageExecutor(BotoActionExecutor):
         LOG.debug(
             "Calling sqs_client.send_message with QueueUrl:%s, MessageBody:%s",
             self.request_parameters[QUEUE_URL],
-            payload,
+            self.request_parameters[MESSAGE_BODY],
         )
         try:
             send_message_response = cast(dict, self._sqs_client.send_message(**self.request_parameters))
