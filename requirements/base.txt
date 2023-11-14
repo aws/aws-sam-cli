@@ -3,19 +3,19 @@ click~=8.1
 Flask<3.1
 boto3>=1.26.109,<2
 jmespath~=1.0.1
-ruamel_yaml~=0.17.35
+ruamel_yaml~=0.18.5
 PyYAML~=6.0,>=6.0.1
-cookiecutter~=2.3.1
-aws-sam-translator==1.78.0
+cookiecutter~=2.4.0
+aws-sam-translator==1.79.0
 #docker minor version updates can include breaking changes. Auto update micro version only.
 docker~=6.1.0
 dateparser~=1.1
 requests~=2.31.0
-aws_lambda_builders==1.40.0
-tomlkit==0.12.1
+aws_lambda_builders==1.41.0
+tomlkit==0.12.2
 watchdog==3.0.0
 rich~=13.6.0
-pyopenssl~=23.2.0
+pyopenssl~=23.3.0
 # Pin to <4.18 to until SAM-T no longer uses RefResolver
 jsonschema<4.20
 
@@ -25,10 +25,10 @@ typing_extensions>=4.4.0,<5
 # NOTE: regex is not a direct dependency of SAM CLI, exclude version 2021.10.8 due to not working on M1 Mac - https://github.com/mrabarnett/mrab-regex/issues/399
 regex!=2021.10.8
 # NOTE: tzlocal is not a direct dependency of SAM CLI, but pin to 3.0 as 4.0 break appveyor jobs
-tzlocal==5.1
+tzlocal==5.2
 
 #Adding cfn-lint dependency for SAM validate
-cfn-lint~=0.81.0
+cfn-lint~=0.83.1
 
 # Type checking boto3 objects
-boto3-stubs[apigateway,cloudformation,ecr,iam,lambda,s3,schemas,secretsmanager,signer,stepfunctions,sts,xray,sqs,kinesis]==1.28.68
+boto3-stubs[apigateway,cloudformation,ecr,iam,lambda,s3,schemas,secretsmanager,signer,stepfunctions,sts,xray,sqs,kinesis]==1.28.80
