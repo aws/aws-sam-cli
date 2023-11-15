@@ -8,7 +8,6 @@ from typing import List, Optional, Dict, Tuple
 import click
 
 from samcli.cli.context import Context
-from samcli.commands._utils.experimental import ExperimentalFlag, is_experimental_enabled
 from samcli.commands._utils.options import (
     skip_prepare_infra_option,
     template_option_without_build,
@@ -29,7 +28,7 @@ from samcli.commands._utils.option_value_processor import process_env_var, proce
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
 from samcli.commands.build.core.command import BuildCommand
 from samcli.lib.telemetry.metric import track_command
-from samcli.cli.cli_config_file import configuration_option, ConfigProvider
+from samcli.cli.cli_config_file import configuration_option, ConfigProvider, save_params_option
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.commands.build.click_container import ContainerOptions
 from samcli.commands.build.utils import MountMode
@@ -54,7 +53,7 @@ DESCRIPTION = """
   Supported Runtimes
   ------------------
   1. Python 3.7, 3.8, 3.9, 3.10, 3.11, 3.12 using PIP\n
-  2. Nodejs 18.x, 16.x, 14.x, 12.x using NPM\n
+  2. Nodejs 20.x, 18.x, 16.x, 14.x, 12.x using NPM\n
   3. Ruby 2.7, 3.2 using Bundler\n
   4. Java 8, Java 11, Java 17 using Gradle and Maven\n
   5. Dotnet6 using Dotnet CLI (without --use-container)\n
@@ -130,6 +129,7 @@ DESCRIPTION = """
 @cli_framework_options
 @aws_creds_options
 @click.argument("resource_logical_id", required=False)
+@save_params_option
 @pass_context
 @track_command
 @check_newer_version
@@ -155,6 +155,7 @@ def cli(
     parameter_overrides: dict,
     config_file: str,
     config_env: str,
+    save_params: bool,
     hook_name: Optional[str],
     skip_prepare_infra: bool,
     mount_with,
@@ -220,13 +221,6 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     """
     Implementation of the ``cli`` method
     """
-    if (
-        hook_name
-        and ExperimentalFlag.IaCsSupport.get(hook_name) is not None
-        and not is_experimental_enabled(ExperimentalFlag.IaCsSupport[hook_name])
-    ):
-        LOG.info("Terraform Support beta feature is not enabled.")
-        return
 
     from samcli.commands.build.build_context import BuildContext
 

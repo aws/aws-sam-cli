@@ -3,7 +3,7 @@ Invoke Start API Command Options related Datastructures for formatting.
 """
 from typing import Dict, List
 
-from samcli.cli.core.options import ALL_COMMON_OPTIONS, add_common_options_info
+from samcli.cli.core.options import ALL_COMMON_OPTIONS, SAVE_PARAMS_OPTIONS, add_common_options_info
 from samcli.cli.row_modifiers import RowDefinition
 
 # NOTE(sriram-mv): The ordering of the option lists matter, they are the order
@@ -39,7 +39,7 @@ CONTAINER_OPTION_NAMES: List[str] = [
     "invoke_image",
 ]
 
-CONFIGURATION_OPTION_NAMES: List[str] = ["config_env", "config_file"]
+CONFIGURATION_OPTION_NAMES: List[str] = ["config_env", "config_file"] + SAVE_PARAMS_OPTIONS
 
 ARTIFACT_LOCATION_OPTIONS: List[str] = [
     "log_file",

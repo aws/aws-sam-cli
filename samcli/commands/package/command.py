@@ -3,7 +3,7 @@ CLI command for "package" command
 """
 import click
 
-from samcli.cli.cli_config_file import ConfigProvider, configuration_option
+from samcli.cli.cli_config_file import ConfigProvider, configuration_option, save_params_option
 from samcli.cli.main import aws_creds_options, common_options, pass_context, print_cmdline_args
 from samcli.commands._utils.cdk_support_decorators import unsupported_command_cdk
 from samcli.commands._utils.command_exception_handler import command_exception_handler
@@ -90,6 +90,7 @@ DESCRIPTION = """
 @no_progressbar_option
 @common_options
 @aws_creds_options
+@save_params_option
 @image_repository_validation(support_resolve_image_repos=False)
 @pass_context
 @track_command
@@ -113,6 +114,7 @@ def cli(
     metadata,
     signing_profiles,
     resolve_s3,
+    save_params,
     config_file,
     config_env,
 ):

@@ -838,7 +838,7 @@ class TestInteractiveInit(TestCase):
         # 1: AWS Quick Start Templates
         # 1: Hello World Example
         # N: Use the most popular runtime and package type? (Python and zip) [y/N]
-        # 12: nodejs16.x
+        # 13: nodejs18.x
         # 1: Zip
         # 1: Hello World Example
         # N: Would you like to enable X-Ray tracing on the function(s) in your application?  [y/N]
@@ -847,7 +847,7 @@ class TestInteractiveInit(TestCase):
 1
 1
 N
-12
+13
 1
 1
 N
@@ -863,7 +863,7 @@ sam-interactive-init-app
             self.assertTrue(expected_output_folder.exists)
             self.assertTrue(expected_output_folder.is_dir())
             self.assertTrue(Path(expected_output_folder, "hello-world").is_dir())
-            self.assertTrue(Path(expected_output_folder, "hello-world", "app.js").is_file())
+            self.assertTrue(Path(expected_output_folder, "hello-world", "app.mjs").is_file())
 
     def test_interactive_init_default_runtime(self):
         user_input = """

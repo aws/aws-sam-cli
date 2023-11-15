@@ -1,4 +1,4 @@
-from subprocess import DEVNULL, PIPE
+from subprocess import DEVNULL, PIPE, STDOUT
 
 import logging
 from io import StringIO
@@ -18,6 +18,7 @@ from samcli.lib.utils.subprocess_utils import (
     LoadingPatternError,
     _check_and_process_bytes,
 )
+from tests.testing_utils import IS_WINDOWS
 
 
 class TestSubprocessUtils(TestCase):
@@ -35,8 +36,10 @@ class TestSubprocessUtils(TestCase):
         mock_pattern = Mock()
         mock_stream_writer = Mock()
         patched_check_and_process_byes.side_effect = [f"Line 1{os.linesep}", "Line 2"]
-        actual_output = invoke_subprocess_with_loading_pattern({"args": ["ls"]}, mock_pattern, mock_stream_writer)
-        patched_check_and_process_byes.assert_has_calls([call(f"Line 1{os.linesep}"), call("Line 2")])
+        actual_output = invoke_subprocess_with_loading_pattern({"args": ["ls"]}, mock_pattern, mock_stream_writer, True)
+        patched_check_and_process_byes.assert_has_calls(
+            [call(f"Line 1{os.linesep}", preserve_whitespace=False), call("Line 2", preserve_whitespace=False)]
+        )
         mock_pattern.assert_not_called()
         self.assertEqual(actual_output, expected_output)
 
@@ -54,7 +57,7 @@ class TestSubprocessUtils(TestCase):
         patched_Popen.return_value.__enter__.return_value = mock_process
         patched_log.getEffectiveLevel.return_value = logging.INFO
         invoke_subprocess_with_loading_pattern({"args": ["ls"], "stdout": DEVNULL}, mock_pattern, mock_stream_writer)
-        patched_Popen.assert_called_once_with(args=["ls"], stdout=DEVNULL, stderr=PIPE)
+        patched_Popen.assert_called_once_with(args=["ls"], stdout=DEVNULL, stderr=PIPE if not IS_WINDOWS else STDOUT)
 
     @patch("samcli.lib.utils.subprocess_utils.Popen")
     def test_loader_raises_exception_non_zero_exit_code(self, patched_Popen):

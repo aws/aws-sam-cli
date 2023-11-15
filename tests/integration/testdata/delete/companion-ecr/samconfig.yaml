@@ -1,0 +1,9 @@
+version: 0.1
+default:
+  deploy:
+    parameters:
+      resolve_image_repos: true
+      resolve_s3: true
+      confirm_changeset: false
+      capabilities:
+        - "CAPABILITY_IAM"

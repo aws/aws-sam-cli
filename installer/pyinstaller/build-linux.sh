@@ -54,6 +54,7 @@ rm -rf ./output/aws-sam-cli-src/tests
 rm -rf ./output/aws-sam-cli-src/designs
 rm -rf ./output/aws-sam-cli-src/docs
 rm -rf ./output/aws-sam-cli-src/media
+rm -rf ./output/aws-sam-cli-src/schema
 rm -rf ./output/aws-sam-cli-src/Make.ps1
 rm -rf ./output/aws-sam-cli-src/CODEOWNERS
 rm -rf ./output/aws-sam-cli-src/CODE_OF_CONDUCT.md

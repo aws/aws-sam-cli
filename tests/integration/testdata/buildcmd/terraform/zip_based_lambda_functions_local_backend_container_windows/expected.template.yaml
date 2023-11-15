@@ -1,0 +1,319 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  AwsLambdaFunctionFromLocalfileAB7B07CA:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: my_function_from_localfile
+      Code: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/src/list_books
+      Handler: index.lambda_handler
+      PackageType: Zip
+      Runtime: python3.8
+      Timeout: 300
+      MemorySize: 128
+    Metadata:
+      SamResourceId: aws_lambda_function.from_localfile
+      SkipBuild: false
+      BuildMethod: makefile
+      ContextPath: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/.aws-sam-iacs/iacs_metadata
+      WorkingDirectory: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows
+      ProjectRootDirectory: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows
+  AwsLambdaFunctionFromS3FA64A4BC:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: my_function_from_s3
+      Code: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/src/list_books
+      Handler: index.lambda_handler
+      PackageType: Zip
+      Runtime: python3.8
+      Timeout: 300
+      MemorySize: 128
+    Metadata:
+      SamResourceId: aws_lambda_function.from_s3
+      SkipBuild: false
+      BuildMethod: makefile
+      ContextPath: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/.aws-sam-iacs/iacs_metadata
+      WorkingDirectory: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows
+      ProjectRootDirectory: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows
+  AwsLambdaFunctionFunction1E896AC29:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: function1
+      Code: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/artifacts/HelloWorldFunction
+      Handler: app.lambda_handler
+      PackageType: Zip
+      Runtime: python3.8
+      Timeout: 300
+      MemorySize: 128
+      Layers:
+      - Ref: AwsLambdaLayerVersionLayer1059BA9722
+    Metadata:
+      SamResourceId: aws_lambda_function.function1
+      SkipBuild: false
+      BuildMethod: makefile
+      ContextPath: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/.aws-sam-iacs/iacs_metadata
+      WorkingDirectory: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows
+      ProjectRootDirectory: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows
+  AwsLambdaFunctionFunction30A54C7A0:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: function3
+      Code: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/artifacts/HelloWorldFunction
+      Handler: app.lambda_handler
+      PackageType: Zip
+      Runtime: python3.8
+      Timeout: 300
+      MemorySize: 128
+      Layers:
+      - Ref: AwsLambdaLayerVersionLayer3MyIdxA86F0303
+    Metadata:
+      SamResourceId: aws_lambda_function.function3
+      SkipBuild: false
+      BuildMethod: makefile
+      ContextPath: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/.aws-sam-iacs/iacs_metadata
+      WorkingDirectory: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows
+      ProjectRootDirectory: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows
+  AwsLambdaFunctionFunction4B3EC35D5:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: function4
+      Code: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/artifacts/HelloWorldFunction
+      Handler: app.lambda_handler
+      PackageType: Zip
+      Runtime: python3.8
+      Timeout: 300
+      MemorySize: 128
+      Layers:
+      - Ref: AwsLambdaLayerVersionLayer4F50CB057
+    Metadata:
+      SamResourceId: aws_lambda_function.function4
+      SkipBuild: false
+      BuildMethod: makefile
+      ContextPath: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/.aws-sam-iacs/iacs_metadata
+      WorkingDirectory: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows
+      ProjectRootDirectory: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows
+  AwsLambdaFunctionFunction567B02721:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: function5
+      Code: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/artifacts/HelloWorldFunction
+      Handler: app.lambda_handler
+      PackageType: Zip
+      Runtime: python3.8
+      Timeout: 300
+      MemorySize: 128
+      Layers:
+      - Ref: AwsLambdaLayerVersionLayer5FEFAD499
+    Metadata:
+      SamResourceId: aws_lambda_function.function5
+      SkipBuild: false
+      BuildMethod: makefile
+      ContextPath: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/.aws-sam-iacs/iacs_metadata
+      WorkingDirectory: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows
+      ProjectRootDirectory: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows
+  AwsLambdaFunctionFunction6D58009F0:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: function6
+      Code: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/artifacts/HelloWorldFunction
+      Handler: app.lambda_handler
+      PackageType: Zip
+      Runtime: python3.8
+      Timeout: 300
+      MemorySize: 128
+      Layers:
+      - Ref: AwsLambdaLayerVersionLayer61D0C6707
+    Metadata:
+      SamResourceId: aws_lambda_function.function6
+      SkipBuild: false
+      BuildMethod: makefile
+      ContextPath: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/.aws-sam-iacs/iacs_metadata
+      WorkingDirectory: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows
+      ProjectRootDirectory: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows
+  AwsLambdaLayerVersionFromLocal1020C27A:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      LayerName: my_layer
+      CompatibleRuntimes:
+      - python3.8
+      - python3.9
+      Content: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/my_layer_code
+    Metadata:
+      SamResourceId: aws_lambda_layer_version.from_local
+      SkipBuild: false
+      BuildMethod: makefile
+      ContextPath: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/.aws-sam-iacs/iacs_metadata
+      WorkingDirectory: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows
+      ProjectRootDirectory: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows
+  AwsLambdaLayerVersionLayer1059BA9722:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      LayerName: lambda_layer1
+      CompatibleRuntimes:
+      - python3.8
+      Content: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/artifacts/layer1
+    Metadata:
+      SamResourceId: aws_lambda_layer_version.layer1[0]
+      SkipBuild: false
+      BuildMethod: makefile
+      ContextPath: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/.aws-sam-iacs/iacs_metadata
+      WorkingDirectory: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows
+      ProjectRootDirectory: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows
+  AwsLambdaLayerVersionLayer3MyIdxA86F0303:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      LayerName: lambda_layer3
+      CompatibleRuntimes:
+      - python3.8
+      Content: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/artifacts/layer3
+    Metadata:
+      SamResourceId: aws_lambda_layer_version.layer3["my_idx"]
+      SkipBuild: false
+      BuildMethod: makefile
+      ContextPath: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/.aws-sam-iacs/iacs_metadata
+      WorkingDirectory: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows
+      ProjectRootDirectory: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows
+  AwsLambdaLayerVersionLayer4F50CB057:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      LayerName: lambda_layer4
+      CompatibleRuntimes:
+      - python3.8
+      Content: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/artifacts/layer4
+    Metadata:
+      SamResourceId: aws_lambda_layer_version.layer4
+      SkipBuild: false
+      BuildMethod: makefile
+      ContextPath: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/.aws-sam-iacs/iacs_metadata
+      WorkingDirectory: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows
+      ProjectRootDirectory: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows
+  AwsLambdaLayerVersionLayer5FEFAD499:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      LayerName: lambda_layer5
+      CompatibleRuntimes:
+      - python3.8
+      Content: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/artifacts/layer5
+    Metadata:
+      SamResourceId: aws_lambda_layer_version.layer5
+      SkipBuild: false
+      BuildMethod: makefile
+      ContextPath: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/.aws-sam-iacs/iacs_metadata
+      WorkingDirectory: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows
+      ProjectRootDirectory: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows
+  AwsLambdaLayerVersionLayer61D0C6707:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      LayerName: lambda_layer6
+      CompatibleRuntimes:
+      - python3.8
+      Content: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/artifacts/layer6
+    Metadata:
+      SamResourceId: aws_lambda_layer_version.layer6
+      SkipBuild: false
+      BuildMethod: makefile
+      ContextPath: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/.aws-sam-iacs/iacs_metadata
+      WorkingDirectory: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows
+      ProjectRootDirectory: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows
+  ModuleFunction2AwsLambdaFunctionThis6697C0C3:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: function2
+      Code: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/artifacts/HelloWorldFunction
+      Handler: app.lambda_handler
+      PackageType: Zip
+      Runtime: python3.8
+      Timeout: 300
+      MemorySize: 128
+      Layers:
+      - Ref: ModuleLayer2AwsLambdaLayerVersionLayer60C80792
+    Metadata:
+      SamResourceId: module.function2.aws_lambda_function.this
+      SkipBuild: false
+      BuildMethod: makefile
+      ContextPath: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/.aws-sam-iacs/iacs_metadata
+      WorkingDirectory: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows
+      ProjectRootDirectory: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows
+  ModuleFunction9AwsLambdaFunctionThis0B50511AC:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: function9
+      Code: ModuleFunction9AwsLambdaFunctionThis0B50511AC
+      Handler: app.lambda_handler
+      PackageType: Zip
+      Runtime: python3.8
+      Timeout: 300
+      MemorySize: 128
+      Layers:
+      - Ref: ModuleLayer9AwsLambdaLayerVersionThis0DC055E13
+    Metadata:
+      BuildMethod: makefile
+      ContextPath: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/.aws-sam-iacs/iacs_metadata
+      ProjectRootDirectory: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows
+      SamResourceId: module.function9.aws_lambda_function.this[0]
+      SkipBuild: false
+      WorkingDirectory: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows
+  ModuleLayer2AwsLambdaLayerVersionLayer60C80792:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      LayerName: lambda_layer2
+      CompatibleRuntimes:
+      - python3.8
+      Content: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/artifacts/layer2
+    Metadata:
+      SamResourceId: module.layer2.aws_lambda_layer_version.layer
+      SkipBuild: false
+      BuildMethod: makefile
+      ContextPath: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/.aws-sam-iacs/iacs_metadata
+      WorkingDirectory: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows
+      ProjectRootDirectory: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows
+  ModuleLayer9AwsLambdaLayerVersionThis0DC055E13:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      LayerName: lambda_layer9
+      CompatibleRuntimes:
+      - python3.8
+      Content: ModuleLayer9AwsLambdaLayerVersionThis0DC055E13
+    Metadata:
+      BuildMethod: makefile
+      ContextPath: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/.aws-sam-iacs/iacs_metadata
+      ProjectRootDirectory: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows
+      SamResourceId: module.layer9.aws_lambda_layer_version.this[0]
+      SkipBuild: false
+      WorkingDirectory: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows
+  ModuleLevel1LambdaAwsLambdaFunctionThis3C50012D:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: my_level1_lambda
+      Code: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/src/list_books
+      Handler: index.lambda_handler
+      PackageType: Zip
+      Runtime: python3.8
+      Timeout: 300
+      MemorySize: 128
+    Metadata:
+      SamResourceId: module.level1_lambda.aws_lambda_function.this
+      SkipBuild: false
+      BuildMethod: makefile
+      ContextPath: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/.aws-sam-iacs/iacs_metadata
+      WorkingDirectory: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows
+      ProjectRootDirectory: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows
+  ModuleLevel1LambdaModuleLevel2LambdaAwsLambdaFunctionThisE3D4D0C8:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: my_level2_lambda
+      Code: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/src/list_books
+      Handler: index.lambda_handler
+      PackageType: Zip
+      Runtime: python3.8
+      Timeout: 300
+      MemorySize: 128
+    Metadata:
+      SamResourceId: module.level1_lambda.module.level2_lambda.aws_lambda_function.this
+      SkipBuild: false
+      BuildMethod: makefile
+      ContextPath: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/.aws-sam-iacs/iacs_metadata
+      WorkingDirectory: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows
+      ProjectRootDirectory: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows
+Metadata:
+  AWS::SAM::Hook:
+    HookName: terraform
