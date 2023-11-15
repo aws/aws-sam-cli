@@ -36,6 +36,7 @@ class Runtime(Enum):
     nodejs14x = "nodejs14.x"
     nodejs16x = "nodejs16.x"
     nodejs18x = "nodejs18.x"
+    nodejs20x = "nodejs20.x"
     python37 = "python3.7"
     python38 = "python3.8"
     python39 = "python3.9"
@@ -51,6 +52,7 @@ class Runtime(Enum):
     dotnet6 = "dotnet6"
     provided = "provided"
     providedal2 = "provided.al2"
+    providedal2023 = "provided.al2023"
 
     @classmethod
     def has_value(cls, value):

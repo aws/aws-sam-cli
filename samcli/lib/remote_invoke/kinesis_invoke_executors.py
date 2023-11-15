@@ -109,7 +109,7 @@ class KinesisPutDataExecutor(BotoActionExecutor):
         LOG.debug(
             "Calling kinesis_client.put_record with StreamName:%s, Data:%s",
             self.request_parameters[STREAM_NAME],
-            payload,
+            self.request_parameters[DATA],
         )
         try:
             put_record_response = cast(dict, self._kinesis_client.put_record(**self.request_parameters))

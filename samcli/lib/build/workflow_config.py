@@ -97,6 +97,7 @@ def get_layer_subfolder(build_workflow: str) -> str:
         "nodejs14.x": "nodejs",
         "nodejs16.x": "nodejs",
         "nodejs18.x": "nodejs",
+        "nodejs20.x": "nodejs",
         "ruby2.7": "ruby/lib",
         "ruby3.2": "ruby/lib",
         "java8": "java",
@@ -161,6 +162,7 @@ def get_workflow_config(
         "nodejs14.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "nodejs16.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "nodejs18.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
+        "nodejs20.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "ruby2.7": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
         "ruby3.2": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
         "dotnet6": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
@@ -201,6 +203,7 @@ def get_workflow_config(
         ),
         "provided": BasicWorkflowSelector(PROVIDED_MAKE_CONFIG),
         "provided.al2": BasicWorkflowSelector(PROVIDED_MAKE_CONFIG),
+        "provided.al2023": BasicWorkflowSelector(PROVIDED_MAKE_CONFIG),
     }
 
     selectors_by_builder = {
