@@ -11,7 +11,7 @@ from unittest.mock import patch
 from parameterized import parameterized
 
 from samcli.lib.utils.architecture import X86_64, ARM64
-from samcli.local.docker.lambda_build_container import LambdaBuildContainer
+from samcli.local.docker.lambda_build_container import LambdaBuildContainer, InvalidArchitectureForImage
 
 
 class TestLambdaBuildContainer_init(TestCase):
@@ -216,6 +216,10 @@ class TestLambdaBuildContainer_get_image_tag(TestCase):
     )
     def test_must_get_image_tag(self, architecture, expected_image_tag):
         self.assertEqual(expected_image_tag, LambdaBuildContainer.get_image_tag(architecture))
+
+    def test_must_raise_an_error_for_invalid_architecture(self):
+        with self.assertRaises(InvalidArchitectureForImage):
+            LambdaBuildContainer.get_image_tag("invalid-architecture")
 
 
 class TestLambdaBuildContainer_get_entrypoint(TestCase):
