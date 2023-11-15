@@ -91,7 +91,13 @@ class InvokeIntegBase(TestCase):
         return command_list
 
     def get_build_command_list(
-        self, template_path=None, cached=None, parallel=None, use_container=None, build_dir=None
+        self,
+        template_path=None,
+        cached=None,
+        parallel=None,
+        use_container=None,
+        build_dir=None,
+        build_in_source=None,
     ):
         command_list = [self.cmd, "build"]
 
@@ -110,10 +116,13 @@ class InvokeIntegBase(TestCase):
         if build_dir:
             command_list = command_list + ["-b", build_dir]
 
+        if build_in_source:
+            command_list = command_list + ["--build-in-source"]
+
         return command_list
 
-    def run_command(self, command_list, env=None):
-        process = Popen(command_list, stdout=PIPE, env=env)
+    def run_command(self, command_list, env=None, cwd=None):
+        process = Popen(command_list, stdout=PIPE, env=env, cwd=cwd)
         try:
             (stdout, stderr) = process.communicate(timeout=TIMEOUT)
             return stdout, stderr, process.returncode
