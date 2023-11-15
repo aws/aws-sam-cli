@@ -111,6 +111,8 @@ class Function(NamedTuple):
     stack_path: str = ""
     # Configuration for runtime management. Includes the fields `UpdateRuntimeOn` and `RuntimeVersionArn` (optional).
     runtime_management_config: Optional[Dict] = None
+    # LoggingConfig for Advanced logging
+    logging_config: Optional[Dict] = None
 
     @property
     def full_path(self) -> str:
