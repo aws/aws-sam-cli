@@ -476,6 +476,68 @@ class TestBasicInitCommand(TestCase):
             self.assertTrue(Path(temp, "sam-app").is_dir())
             self._assert_template_with_cfn_lint(Path(temp, "sam-app"))
 
+    def test_init_command_passes_with_structured_logging(self):
+        with tempfile.TemporaryDirectory() as temp:
+            process = Popen(
+                [
+                    get_sam_command(),
+                    "init",
+                    "--runtime",
+                    "nodejs14.x",
+                    "--dependency-manager",
+                    "npm",
+                    "--app-template",
+                    "hello-world",
+                    "--name",
+                    "sam-app",
+                    "--no-interactive",
+                    "-o",
+                    temp,
+                    "--tracing",
+                    "--structured-logging",
+                ]
+            )
+            try:
+                process.communicate(timeout=TIMEOUT)
+            except TimeoutExpired:
+                process.kill()
+                raise
+
+            self.assertEqual(process.returncode, 0)
+            self.assertTrue(Path(temp, "sam-app").is_dir())
+            self._assert_template_with_cfn_lint(Path(temp, "sam-app"))
+
+    def test_init_command_passes_with_no_structured_logging(self):
+        with tempfile.TemporaryDirectory() as temp:
+            process = Popen(
+                [
+                    get_sam_command(),
+                    "init",
+                    "--runtime",
+                    "nodejs14.x",
+                    "--dependency-manager",
+                    "npm",
+                    "--app-template",
+                    "hello-world",
+                    "--name",
+                    "sam-app",
+                    "--no-interactive",
+                    "-o",
+                    temp,
+                    "--no-tracing",
+                    "--no-structured-logging",
+                ]
+            )
+            try:
+                process.communicate(timeout=TIMEOUT)
+            except TimeoutExpired:
+                process.kill()
+                raise
+
+            self.assertEqual(process.returncode, 0)
+            self.assertTrue(Path(temp, "sam-app").is_dir())
+            self._assert_template_with_cfn_lint(Path(temp, "sam-app"))
+
     def _assert_template_with_cfn_lint(self, cwd):
         """Assert if the generated project passes cfn-lint"""
         cmd_list = [
@@ -843,6 +905,7 @@ class TestInteractiveInit(TestCase):
         # 1: Hello World Example
         # N: Would you like to enable X-Ray tracing on the function(s) in your application?  [y/N]
         # Y: Would you like to enable monitoring using Cloudwatch Application Insights? [y/N]
+        # Y: Would you like to set Structured Logging in JSON format on your Lambda functions? [y/N]
         user_input = """
 1
 1
@@ -851,6 +914,7 @@ N
 1
 1
 N
+Y
 Y
 sam-interactive-init-app
         """
@@ -870,6 +934,7 @@ sam-interactive-init-app
 1
 1
 Y
+N
 N
 N
 sam-interactive-init-app-default-runtime
