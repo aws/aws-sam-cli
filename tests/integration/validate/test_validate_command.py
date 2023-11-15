@@ -140,6 +140,7 @@ class TestValidate(TestCase):
             "nodejs14.x",
             "nodejs16.x",
             "nodejs18.x",
+            "nodejs20.x",
             "provided",
             "provided.al2",
             "provided.al2023",
