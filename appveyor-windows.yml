@@ -53,6 +53,8 @@ cache:
   - C:\ProgramData\chocolatey\lib -> appveyor.yml
 
 install:
+  # upgrade chocolately
+  - choco upgrade chocolatey
   # setup make
   - "choco install make"
   # setup Java, Maven and Gradle
