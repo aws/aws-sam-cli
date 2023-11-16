@@ -41,8 +41,6 @@ install:
   - sh: PATH=$JAVA_HOME/bin:$PATH
   - sh: java --version
   - sh: javac --version
-  - sh: echo $PATH
-  - sh: exit 1
 
   - sh: "gvm use go1.19"
   - sh: "echo $PATH"
@@ -52,10 +50,6 @@ install:
   - sh: "wget https://dlcdn.apache.org/maven/maven-3/3.8.8/binaries/apache-maven-3.8.8-bin.zip -P /tmp"
   - sh: "sudo unzip -d /opt/mvn /tmp/apache-maven-*.zip"
   - sh: "PATH=/opt/mvn/apache-maven-3.8.8/bin:$PATH"
-  - sh: "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64"
-  - sh: "PATH=$JAVA_HOME/bin:$PATH"
-  - sh: "javac -version"
-  - sh: "java -version"
   - sh: "mvn --version"
 
   - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
@@ -71,6 +65,7 @@ install:
   - sh: "wget https://services.gradle.org/distributions/gradle-7.3.1-bin.zip -P /tmp"
   - sh: "sudo unzip -d /opt/gradle /tmp/gradle-*.zip"
   - sh: "PATH=/opt/gradle/gradle-7.3.1/bin:$PATH"
+  - sh: "gradle --version"
 
   # Install AWS CLI
   - sh: "virtualenv aws_cli"
