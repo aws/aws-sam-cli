@@ -20,7 +20,7 @@ Resources:
                       - "||"
                       - Ref: AssetParametersd993ee10bdd2d5f2054086eb58ff286f13672de94811036fc40c647e0e1b17c7S3VersionKeyF3B3F55C
       Handler: app.lambdaFunctionNameHandler
-      Runtime: nodejs12.x
+      Runtime: nodejs18.x
     Metadata:
       aws:cdk:path: ApiCorsIssueStack/LambdaWithFunctionName/Resource
       aws:asset:path: ../lambda_code
