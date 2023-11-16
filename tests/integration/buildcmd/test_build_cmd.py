@@ -452,6 +452,7 @@ class TestSkipBuildingFlaggedFunctions(BuildIntegPythonBase):
         ("template.yaml", "Function", True, "python3.9", "Python", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.10", "Python", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.11", "Python", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.12", "Python", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.7", "PythonPEP600", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.8", "PythonPEP600", False, "CodeUri"),
     ],
@@ -491,6 +492,7 @@ class TestBuildCommand_PythonFunctions_WithoutDocker(BuildIntegPythonBase):
         ("template.yaml", "Function", True, "python3.9", "Python", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.10", "Python", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.11", "Python", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.12", "Python", False, "CodeUri"),
     ],
 )
 class TestBuildCommand_PythonFunctions_WithDocker(BuildIntegPythonBase):
@@ -601,11 +603,23 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPyt
         [
             ("python3.7", "Python", False, "x86_64"),
             ("python3.8", "Python", False, "x86_64"),
+            ("python3.9", "Python", False, "x86_64"),
+            ("python3.10", "Python", False, "x86_64"),
+            ("python3.11", "Python", False, "x86_64"),
+            ("python3.12", "Python", False, "x86_64"),
             # numpy 1.20.3 (in PythonPEP600/requirements.txt) only support python 3.7+
             ("python3.7", "PythonPEP600", False, "x86_64"),
             ("python3.8", "PythonPEP600", False, "x86_64"),
+            ("python3.9", "PythonPEP600", False, "x86_64"),
+            ("python3.10", "PythonPEP600", False, "x86_64"),
+            ("python3.11", "PythonPEP600", False, "x86_64"),
+            ("python3.12", "PythonPEP600", False, "x86_64"),
             ("python3.7", "Python", "use_container", "x86_64"),
             ("python3.8", "Python", "use_container", "x86_64"),
+            ("python3.9", "Python", "use_container", "x86_64"),
+            ("python3.10", "Python", "use_container", "x86_64"),
+            ("python3.11", "Python", "use_container", "x86_64"),
+            ("python3.12", "Python", "use_container", "x86_64"),
         ]
     )
     def test_with_default_requirements(self, runtime, codeuri, use_container, architecture):

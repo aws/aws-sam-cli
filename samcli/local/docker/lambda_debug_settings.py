@@ -207,6 +207,10 @@ class LambdaDebugSettings:
                 entry + ["/var/lang/bin/python3.11"] + debug_args_list + ["/var/runtime/bootstrap.py"],
                 container_env_vars=_container_env_vars,
             ),
+            Runtime.python312.value: lambda: DebugSettings(
+                entry + ["/var/lang/bin/python3.12"] + debug_args_list + ["/var/runtime/bootstrap.py"],
+                container_env_vars=_container_env_vars,
+            ),
         }
         try:
             return entrypoint_mapping[runtime]()

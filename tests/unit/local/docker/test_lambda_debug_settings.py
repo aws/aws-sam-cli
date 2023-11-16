@@ -23,6 +23,7 @@ _DEBUG_RUNTIMES = [
     Runtime.python39,
     Runtime.python310,
     Runtime.python311,
+    Runtime.python312,
 ]
 
 
