@@ -62,9 +62,8 @@ install:
   - refreshenv
   - java --version
   - javac --version
-  - "choco install gradle -y --force"
-  - "javac -version"
-  - "java -version"
+  - choco uninstall gradle
+  - choco install gradle
   - "gradle -v"
   - "mvn --version"
 
