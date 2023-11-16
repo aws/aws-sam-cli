@@ -60,6 +60,7 @@ class TestInteractiveFlow(TestCase):
             no_input=False,
             tracing=False,
             application_insights=False,
+            structured_logging=False,
         )
         output_files = list(self.output_dir.rglob("*"))
         self.assertEqual(len(output_files), 9)

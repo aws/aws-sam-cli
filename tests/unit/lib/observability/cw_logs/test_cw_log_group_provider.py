@@ -7,9 +7,32 @@ from samcli.lib.observability.cw_logs.cw_log_group_provider import LogGroupProvi
 
 
 class TestLogGroupProvider_for_lambda_function(TestCase):
-    def test_must_return_log_group_name(self):
+    def test_must_return_default_log_group_name(self):
         expected = "/aws/lambda/my_function_name"
-        result = LogGroupProvider.for_lambda_function("my_function_name")
+        given_client_provider = Mock()
+        given_client_provider("Lambda").get_function_configuration.return_value = {}
+
+        result = LogGroupProvider.for_lambda_function(given_client_provider, "my_function_name")
+
+        self.assertEqual(expected, result)
+
+    def test_must_return_custom_log_group_name(self):
+        expected = "my_log_group"
+        given_client_provider = Mock()
+        given_client_provider("Lambda").get_function_configuration.return_value = {
+            "LoggingConfig": {"LogGroup": "my_log_group"}
+        }
+
+        result = LogGroupProvider.for_lambda_function(given_client_provider, "my_function_name")
+
+        self.assertEqual(expected, result)
+
+    def test_must_return_default_log_group_name_with_exception_raised(self):
+        expected = "/aws/lambda/my_function_name"
+        given_client_provider = Mock()
+        given_client_provider("Lambda").get_function_configuration.side_effect = Exception()
+
+        result = LogGroupProvider.for_lambda_function(given_client_provider, "my_function_name")
 
         self.assertEqual(expected, result)
 

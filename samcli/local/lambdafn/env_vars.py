@@ -44,6 +44,7 @@ class EnvironmentVariables:
         function_memory=None,
         function_timeout=None,
         function_handler=None,
+        function_logging_config=None,
         variables=None,
         shell_env_values=None,
         override_values=None,
@@ -58,6 +59,7 @@ class EnvironmentVariables:
         :param integer function_memory: Memory size of the function in megabytes
         :param integer function_timeout: Function's timeout in seconds
         :param string function_handler: Handler of the function
+        :param string function_logging_config: Logging Config for the function
         :param dict variables: Optional. Dict whose key is the environment variable names and value is the default
             values for the variable.
         :param dict shell_env_values: Optional. Dict containing values for the variables grabbed from the shell's
@@ -79,6 +81,7 @@ class EnvironmentVariables:
         self.shell_env_values = shell_env_values or {}
         self.override_values = override_values or {}
         self.aws_creds = aws_creds or {}
+        self.logging_config = function_logging_config or {}
 
     def resolve(self):
         """
@@ -178,6 +181,17 @@ class EnvironmentVariables:
         # Session Token should be added **only** if the input creds have a token and the value is not empty.
         if self.aws_creds.get("sessiontoken"):
             result["AWS_SESSION_TOKEN"] = self.aws_creds.get("sessiontoken")
+
+        # Add the ApplicationLogLevel as a env variable and also update the function's LogGroup name
+        log_group = self.logging_config.get("LogGroup")
+        if log_group:
+            result["AWS_LAMBDA_LOG_GROUP_NAME"] = log_group
+
+        log_format = self.logging_config.get("LogFormat")
+        if log_format:
+            result["AWS_LAMBDA_LOG_FORMAT"] = log_format
+            if log_format == "JSON":
+                result["AWS_LAMBDA_LOG_LEVEL"] = self.logging_config.get("ApplicationLogLevel", "INFO")
 
         return result
 
