@@ -1569,11 +1569,11 @@ class TestBuildCommand_ProvidedFunctions(BuildIntegProvidedBase):
     @parameterized.expand(
         [
             ("provided", False, None),
-            ("provided", "use_container", "Makefile-container"),
+            ("provided", "use_container", "Makefile"),
             ("provided.al2", False, None),
-            ("provided.al2", "use_container", "Makefile-container"),
+            ("provided.al2", "use_container", "Makefile"),
             ("provided.al2023", False, None),
-            ("provided.al2023", "use_container", "Makefile-container"),
+            ("provided.al2023", "use_container", "Makefile"),
         ]
     )
     def test_building_Makefile(self, runtime, use_container, manifest):
@@ -1595,11 +1595,11 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture(BuildIntegP
     @parameterized.expand(
         [
             ("provided", False, None, "x86_64"),
-            ("provided", "use_container", "Makefile-container", "x86_64"),
+            ("provided", "use_container", "Makefile", "x86_64"),
             ("provided.al2", False, None, "x86_64"),
-            ("provided.al2", "use_container", "Makefile-container", "x86_64"),
+            ("provided.al2", "use_container", "Makefile", "x86_64"),
             ("provided.al2023", False, None, "x86_64"),
-            ("provided.al2023", "use_container", "Makefile-container", "x86_64"),
+            ("provided.al2023", "use_container", "Makefile", "x86_64"),
         ]
     )
     def test_building_Makefile(self, runtime, use_container, manifest, architecture):
@@ -1646,7 +1646,7 @@ class TestBuildWithBuildMethod(BuildIntegBase):
 
     FUNCTION_LOGICAL_ID = "Function"
 
-    @parameterized.expand([(False, None, "makefile"), ("use_container", "Makefile-container", "makefile")])
+    @parameterized.expand([(False, None, "makefile"), ("use_container", "Makefile", "makefile")])
     def test_with_makefile_builder_specified_python_runtime(self, use_container, manifest, build_method):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)

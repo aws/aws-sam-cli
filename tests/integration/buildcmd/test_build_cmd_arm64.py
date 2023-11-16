@@ -433,7 +433,7 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture_arm64(Build
             (
                 "provided",
                 "use_container",
-                "Makefile-container",
+                "Makefile",
             ),
             (
                 "provided.al2",
@@ -443,7 +443,7 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture_arm64(Build
             (
                 "provided.al2",
                 "use_container",
-                "Makefile-container",
+                "Makefile",
             ),
             (
                 "provided.al2023",
@@ -453,7 +453,7 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture_arm64(Build
             (
                 "provided.al2023",
                 "use_container",
-                "Makefile-container",
+                "Makefile",
             ),
         ]
     )
@@ -469,13 +469,17 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture_arm64(Build
 class TestBuildCommand_Rust_arm64(BuildIntegRustBase):
     @parameterized.expand(
         [
-            (None, False),
-            ("debug", False),
+            ("provided", None, False),
+            ("provided", "debug", False),
+            ("provided.al2", None, False),
+            ("provided.al2", "debug", False),
+            ("provided.al2023", None, False),
+            ("provided.al2023", "debug", False),
         ]
     )
-    def test_build(self, build_mode, use_container):
+    def test_build(self, runtime, build_mode, use_container):
         self._test_with_rust_cargo_lambda(
-            runtime="provided.al2",
+            runtime=runtime,
             code_uri=self.code_uri,
             binary=self.binary,
             architecture=ARM64,
