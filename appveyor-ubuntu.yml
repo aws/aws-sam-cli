@@ -41,6 +41,7 @@ install:
   - sh: sudo update-alternatives --config java
   - sh: java --version
   - sh: javac --version
+  - sh: echo $PATH
   - sh: exit 1
 
   - sh: "gvm use go1.19"
