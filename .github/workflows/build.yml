@@ -173,9 +173,18 @@ jobs:
           pip install cargo-lambda==$CARGO_LAMBDA_VERSION
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Upgrade pip in Python3.12
-        run: python3.12 -m ensurepip --upgrade 
-        shell: bash
+      - name: Upgrade pip in Python3.12 (Linux)
+        run: |
+          python3.12 -m pip install pip --upgrade 
+          python3.12 -m pip install setuptools --upgrade
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+
+      - name: Upgrade pip in Python3.12 (Windows)
+        run: |
+          py -3.12 -m pip install pip --upgrade 
+          py -3.12 -m pip install setuptools --upgrade
+        if: ${{ matrix.os == 'windows-latest' }}
+
 
       - name: Init samdev
         run: make init
@@ -243,13 +252,20 @@ jobs:
           : sudo systemctl stop docker
           sudo systemctl stop docker.service
           sudo systemctl stop docker.socket
-      - name: Upgrade pip in Python3.12
-        run: python3.12 -m ensurepip --upgrade 
-        shell: bash
       - name: Stop Docker Windows
         if: ${{ matrix.os == 'windows-latest' }}
         shell: pwsh
         run: stop-service docker
+      - name: Upgrade pip in Python3.12 (Linux)
+        run: |
+          python3.12 -m pip install pip --upgrade 
+          python3.12 -m pip install setuptools --upgrade
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+      - name: Upgrade pip in Python3.12 (Windows)
+        run: |
+          py -3.12 -m pip install pip --upgrade 
+          py -3.12 -m pip install setuptools --upgrade
+        if: ${{ matrix.os == 'windows-latest' }}
       - name: Check Docker not Running
         run: docker info
         id: run-docker-info
