@@ -90,6 +90,7 @@ def get_layer_subfolder(build_workflow: str) -> str:
         "python3.9": "python",
         "python3.10": "python",
         "python3.11": "python",
+        "python3.12": "python",
         "nodejs4.3": "nodejs",
         "nodejs6.10": "nodejs",
         "nodejs8.10": "nodejs",
@@ -104,6 +105,7 @@ def get_layer_subfolder(build_workflow: str) -> str:
         "java11": "java",
         "java8.al2": "java",
         "java17": "java",
+        "java21": "java",
         "dotnet6": "dotnet",
         # User is responsible for creating subfolder in these workflows
         "makefile": "",
@@ -158,6 +160,7 @@ def get_workflow_config(
         "python3.9": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
         "python3.10": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
         "python3.11": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
+        "python3.12": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
         "nodejs12.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "nodejs14.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "nodejs16.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
@@ -194,6 +197,14 @@ def get_workflow_config(
             ]
         ),
         "java17": ManifestWorkflowSelector(
+            [
+                # Gradle builder needs custom executable paths to find `gradlew` binary
+                JAVA_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
+                JAVA_KOTLIN_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
+                JAVA_MAVEN_CONFIG,
+            ]
+        ),
+        "java21": ManifestWorkflowSelector(
             [
                 # Gradle builder needs custom executable paths to find `gradlew` binary
                 JAVA_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),

@@ -15,6 +15,7 @@ from samcli.lib.init.default_samconfig import DefaultSamconfig
 from samcli.lib.init.template_modifiers.application_insights_template_modifier import (
     ApplicationInsightsTemplateModifier,
 )
+from samcli.lib.init.template_modifiers.structured_logging_template_modifier import StructuredLoggingTemplateModifier
 from samcli.lib.init.template_modifiers.xray_tracing_template_modifier import XRayTracingTemplateModifier
 from samcli.lib.telemetry.event import EventName, EventTracker, UsedFeature
 from samcli.lib.utils import osutils
@@ -38,6 +39,7 @@ def generate_project(
     extra_context=None,
     tracing=False,
     application_insights=False,
+    structured_logging=False,
 ):
     """Generates project using cookiecutter and options given
 
@@ -70,6 +72,8 @@ def generate_project(
         Enable or disable X-Ray Tracing
     application_insights: Optional[str]
             Enable or disable AppInsights Monitoring
+    structured_logging: Optional[bool]
+        boolean value to determine if Json structured logging should be enabled or not
 
     Raises
     ------
@@ -132,6 +136,8 @@ def generate_project(
 
     _enable_application_insights(application_insights, output_dir, name)
 
+    _enable_structured_logging(structured_logging, output_dir, name)
+
     _create_default_samconfig(package_type, output_dir, name)
 
 
@@ -148,6 +154,13 @@ def _enable_application_insights(application_insights: bool, output_dir: str, na
         template_modifier = ApplicationInsightsTemplateModifier(template_file_path)
         template_modifier.modify_template()
         EventTracker.track_event(EventName.USED_FEATURE.value, UsedFeature.INIT_WITH_APPLICATION_INSIGHTS.value)
+
+
+def _enable_structured_logging(structured_logging, output_dir, name):
+    if structured_logging:
+        template_file_path = f"{output_dir}/{name}/template.yaml"
+        template_modifier = StructuredLoggingTemplateModifier(template_file_path)
+        template_modifier.modify_template()
 
 
 def _create_default_samconfig(package_type: str, output_dir: str, name: str) -> None:
