@@ -173,6 +173,9 @@ jobs:
           pip install cargo-lambda==$CARGO_LAMBDA_VERSION
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
+      - name: Upgrade pip in Python3.12
+        run: python3.12 -m ensurepip --upgrade 
+
       - name: Init samdev
         run: make init
       - name: Run integration tests for ${{ matrix.tests_config }}
@@ -239,6 +242,8 @@ jobs:
           : sudo systemctl stop docker
           sudo systemctl stop docker.service
           sudo systemctl stop docker.socket
+      - name: Upgrade pip in Python3.12
+        run: python3.12 -m ensurepip --upgrade 
       - name: Stop Docker Windows
         if: ${{ matrix.os == 'windows-latest' }}
         shell: pwsh
