@@ -20,9 +20,9 @@ attrs==23.1.0 \
     #   jsonschema
     #   referencing
     #   sarif-om
-aws-lambda-builders==1.41.0 \
-    --hash=sha256:b26280609269696d4c7ebe6ea208de5d02a8e4f14711ceac265510e28de65258 \
-    --hash=sha256:d48d0d9b704319cdb6bb19918a72bf6c06fd3a7012848f6bcc4b906d5686db17
+aws-lambda-builders==1.42.0 \
+    --hash=sha256:c0d3c4e1d9d663ccc9d13470487958fd4cc0918610786a454759b8d383a10043 \
+    --hash=sha256:f2d6dc0ca6cb454d4419b8df1e2a5b4dc4973484a16b809bdb8e00620f95e6af
     # via aws-sam-cli (setup.py)
 aws-sam-translator==1.79.0 \
     --hash=sha256:6f0c6bbcebcc98c4f98dc238352a06b0befe7fb72535cca75712fffff4873875 \
