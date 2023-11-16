@@ -55,6 +55,8 @@ cache:
 install:
   - # install jdk21
   - choco install correttojdk --version=21.0.0
+  - java --version
+  - javac --version
   - exit 1
 
   # setup make
