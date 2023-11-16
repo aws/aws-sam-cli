@@ -253,6 +253,7 @@ class TestLocalLambda_make_env_vars(TestCase):
             function_url_config=None,
             runtime_management_config=None,
             function_build_info=FunctionBuildInfo.BuildableZip,
+            logging_config={"LogFormat": "JSON"},
         )
 
         self.local_lambda.env_vars_values = env_vars_values
@@ -264,6 +265,7 @@ class TestLocalLambda_make_env_vars(TestCase):
             function.memory,
             function.timeout,
             function.handler,
+            function.logging_config,
             variables={"var1": "value1"},
             shell_env_values=os_environ,
             override_values=expected_override_value,
@@ -362,6 +364,7 @@ class TestLocalLambda_make_env_vars(TestCase):
             function.memory,
             function.timeout,
             function.handler,
+            None,
             variables=None,
             shell_env_values=os_environ,
             override_values={},

@@ -226,6 +226,11 @@ def non_interactive_validation(func):
     default=None,
     help="Enable CloudWatch Application Insights monitoring for application.",
 )
+@click.option(
+    "--structured-logging/--no-structured-logging",
+    default=None,
+    help="Enable Structured Logging for application.",
+)
 @common_options
 @save_params_option
 @non_interactive_validation
@@ -249,6 +254,7 @@ def cli(
     extra_context,
     tracing,
     application_insights,
+    structured_logging,
     save_params,
     config_file,
     config_env,
@@ -273,6 +279,7 @@ def cli(
         extra_context,
         tracing,
         application_insights,
+        structured_logging,
     )  # pragma: no cover
 
 
@@ -294,6 +301,7 @@ def do_cli(
     extra_context,
     tracing,
     application_insights,
+    structured_logging,
 ):
     """
     Implementation of the ``cli`` method
@@ -346,6 +354,7 @@ def do_cli(
             extra_context,
             tracing,
             application_insights,
+            structured_logging,
         )
     else:
         if not (pt_explicit or runtime or dependency_manager or base_image or architecture):
@@ -366,6 +375,7 @@ def do_cli(
             no_input,
             tracing,
             application_insights,
+            structured_logging,
         )
 
 
