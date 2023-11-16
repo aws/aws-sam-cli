@@ -33,18 +33,23 @@ install:
   # AppVeyor's apt-get cache might be outdated, and the package could potentially be 404.
   - sh: "sudo apt-get update --allow-releaseinfo-change"
 
+  # install coretto 21
+  - sh: wget -O - https://apt.corretto.aws/corretto.key | sudo gpg --dearmor -o /usr/share/keyrings/corretto-keyring.gpg
+  - sh: echo "deb [signed-by=/usr/share/keyrings/corretto-keyring.gpg] https://apt.corretto.aws stable main" | sudo tee /etc/apt/sources.list.d/corretto.list
+  - sh: sudo apt-get update; sudo apt-get install -y java-21-amazon-corretto-jdk
+  - sh: JAVA_HOME=/usr/lib/jvm/java-21-amazon-corretto
+  - sh: PATH=$JAVA_HOME/bin:$PATH
+  - sh: java --version
+  - sh: javac --version
+
   - sh: "gvm use go1.19"
   - sh: "echo $PATH"
   - sh: "ls /usr/"
   # install latest maven which is compatible with jdk17
   - sh: "sudo apt-get -y remove maven"
-  - sh: "wget https://dlcdn.apache.org/maven/maven-3/3.8.8/binaries/apache-maven-3.8.8-bin.zip -P /tmp"
+  - sh: "wget https://dlcdn.apache.org/maven/maven-3/3.9.5/binaries/apache-maven-3.9.5-bin.zip -P /tmp"
   - sh: "sudo unzip -d /opt/mvn /tmp/apache-maven-*.zip"
-  - sh: "PATH=/opt/mvn/apache-maven-3.8.8/bin:$PATH"
-  - sh: "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64"
-  - sh: "PATH=$JAVA_HOME/bin:$PATH"
-  - sh: "javac -version"
-  - sh: "java -version"
+  - sh: "PATH=/opt/mvn/apache-maven-3.9.5/bin:$PATH"
   - sh: "mvn --version"
 
   - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
@@ -57,9 +62,10 @@ install:
 
   # Install latest gradle
   - sh: "sudo apt-get -y remove gradle"
-  - sh: "wget https://services.gradle.org/distributions/gradle-7.3.1-bin.zip -P /tmp"
+  - sh: "wget https://services.gradle.org/distributions/gradle-8.4-bin.zip -P /tmp"
   - sh: "sudo unzip -d /opt/gradle /tmp/gradle-*.zip"
-  - sh: "PATH=/opt/gradle/gradle-7.3.1/bin:$PATH"
+  - sh: "PATH=/opt/gradle/gradle-8.4/bin:$PATH"
+  - sh: "gradle --version"
 
   # Install AWS CLI
   - sh: "virtualenv aws_cli"
