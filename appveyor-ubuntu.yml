@@ -37,8 +37,8 @@ install:
   - sh: wget -O - https://apt.corretto.aws/corretto.key | sudo gpg --dearmor -o /usr/share/keyrings/corretto-keyring.gpg
   - sh: echo "deb [signed-by=/usr/share/keyrings/corretto-keyring.gpg] https://apt.corretto.aws stable main" | sudo tee /etc/apt/sources.list.d/corretto.list
   - sh: sudo apt-get update; sudo apt-get install -y java-21-amazon-corretto-jdk
-  - sh: sudo update-alternatives --config javac
-  - sh: sudo update-alternatives --config java
+  - sh: JAVA_HOME=/usr/lib/jvm/java-21-amazon-corretto
+  - sh: PATH=$JAVA_HOME/bin:$PATH
   - sh: java --version
   - sh: javac --version
   - sh: echo $PATH
