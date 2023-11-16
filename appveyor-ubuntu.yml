@@ -47,9 +47,9 @@ install:
   - sh: "ls /usr/"
   # install latest maven which is compatible with jdk17
   - sh: "sudo apt-get -y remove maven"
-  - sh: "wget https://dlcdn.apache.org/maven/maven-3/3.8.8/binaries/apache-maven-3.8.8-bin.zip -P /tmp"
+  - sh: "wget https://dlcdn.apache.org/maven/maven-3/3.9.5/binaries/apache-maven-3.9.5-bin.zip -P /tmp"
   - sh: "sudo unzip -d /opt/mvn /tmp/apache-maven-*.zip"
-  - sh: "PATH=/opt/mvn/apache-maven-3.8.8/bin:$PATH"
+  - sh: "PATH=/opt/mvn/apache-maven-3.9.5/bin:$PATH"
   - sh: "mvn --version"
 
   - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
@@ -62,9 +62,9 @@ install:
 
   # Install latest gradle
   - sh: "sudo apt-get -y remove gradle"
-  - sh: "wget https://services.gradle.org/distributions/gradle-7.3.1-bin.zip -P /tmp"
+  - sh: "wget https://services.gradle.org/distributions/gradle-8.4-bin.zip -P /tmp"
   - sh: "sudo unzip -d /opt/gradle /tmp/gradle-*.zip"
-  - sh: "PATH=/opt/gradle/gradle-7.3.1/bin:$PATH"
+  - sh: "PATH=/opt/gradle/gradle-8.4/bin:$PATH"
   - sh: "gradle --version"
 
   # Install AWS CLI
