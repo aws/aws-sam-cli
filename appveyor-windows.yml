@@ -53,6 +53,11 @@ cache:
   - C:\ProgramData\chocolatey\lib -> appveyor.yml
 
 install:
+  # check python3.12
+  - dir C:\Python312-x64
+  - dir C:\Python311-x64
+  - exit 1
+
   # setup make
   - "choco install make"
   # setup Java, Maven and Gradle
@@ -63,11 +68,6 @@ install:
   - "java -version"
   - "gradle -v"
   - "mvn --version"
-
-  # install python3.12
-  - dir C:\Python312-x64
-  - dir C:\Python311-x64
-  - exit 1
 
   # Make sure the temp directory exists for Python to use.
   - ps: "mkdir -Force C:\\tmp"
