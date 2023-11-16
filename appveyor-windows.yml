@@ -53,8 +53,8 @@ cache:
   - C:\ProgramData\chocolatey\lib -> appveyor.yml
 
 install:
-  # check python3.12
-  - dir C:\Program Files\Java\jdk21
+  - # install jdk21
+  - choco install correttojdk --version=21.0.0
   - exit 1
 
   # setup make
