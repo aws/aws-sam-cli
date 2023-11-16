@@ -2,25 +2,28 @@ Resources:
   TriggerFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Runtime: nodejs14.x
+      Runtime: nodejs18.x
       Handler: index.handler
       Timeout: 10  # in case eb has delay
       InlineCode: |
-        const AWS = require('aws-sdk');
+        const { DynamoDBDocument } = require('@aws-sdk/lib-dynamodb');
+        const { DynamoDB } = require('@aws-sdk/client-dynamodb');
+        const { SQS } = require('@aws-sdk/client-sqs');
+
         exports.handler = async (event) => {
           console.log(JSON.stringify(event));
-          const docClient = new AWS.DynamoDB.DocumentClient();
+          const docClient = DynamoDBDocument.from(new DynamoDB());
           const response = await docClient.put({ 
             TableName: process.env.TABLE_NAME, 
             Item: {
               Id: 'TestInput1234'
             }
-          }).promise();
+          });
 
-          const data = await new AWS.SQS().receiveMessage({
+          const data = await new SQS().receiveMessage({
             QueueUrl: process.env.VERIFICATION_QUEUE_URL,
             WaitTimeSeconds: 5,
-          }).promise();
+          });
           if (data.Messages.length == 0) {
             throw 'No messages in the queue!';
           }
@@ -36,16 +39,17 @@ Resources:
   InvokedFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Runtime: nodejs14.x
+      Runtime: nodejs18.x
       Handler: index.handler
       InlineCode: |
-        const AWS = require('aws-sdk');
+        const { SQS } = require('@aws-sdk/client-sqs');
+
         exports.handler = async (event) => {
-          const sqs = new AWS.SQS();
+          const sqs = new SQS();
           await sqs.sendMessage({
             QueueUrl: process.env.VERIFICATION_QUEUE_URL,
             MessageBody: "test"
-          }).promise();
+          });
         };
       Environment:
         Variables:

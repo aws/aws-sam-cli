@@ -61,9 +61,9 @@ class StepFunctionsStartExecutionExecutor(BotoActionExecutor):
             Boto parameters provided as input
         """
         for parameter_key, parameter_value in parameters.items():
-            if parameter_key == "stateMachineArn":
+            if parameter_key == STATE_MACHINE_ARN:
                 LOG.warning("stateMachineArn is defined using the value provided for resource_id argument.")
-            elif parameter_key == "input":
+            elif parameter_key == INPUT:
                 LOG.warning("input is defined using the value provided for either --event or --event-file options.")
             else:
                 self.request_parameters[parameter_key] = parameter_value
