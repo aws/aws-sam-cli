@@ -141,6 +141,7 @@ jobs:
             3.9
             3.10
             3.11
+            3.12
             ${{ matrix.python }}
       - uses: actions/setup-go@v4
         with:
@@ -231,6 +232,7 @@ jobs:
             3.9
             3.10
             3.11
+            3.12
       - name: Stop Docker Linux
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
