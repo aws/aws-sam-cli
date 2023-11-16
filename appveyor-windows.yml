@@ -65,8 +65,6 @@ install:
   - "mvn --version"
 
   # install python3.12
-  - mkdir C:\Python312-x64
-  - choco install python312 --params "/InstallDir:C:\Python312-x64"
   - dir C:\Python312-x64
   - dir C:\Python311-x64
   - exit 1
