@@ -13,15 +13,18 @@ class TestEnvironmentVariables_init(TestCase):
         memory = 123
         timeout = 10
         handler = "handler"
+        logging_config = {"logFormat": "JSON"}
 
         environ = EnvironmentVariables()
         environ.memory = memory
         environ.timeout = timeout
         environ.handler = handler
+        environ.logging_config = logging_config
 
         self.assertEqual(environ.memory, memory)
         self.assertEqual(environ.timeout, timeout)
         self.assertEqual(environ.handler, handler)
+        self.assertEqual(environ.logging_config, logging_config)
 
     def test_must_initialize_values_with_required_values(self):
         memory = 123
@@ -330,6 +333,101 @@ class TestEnvironmentVariables_get_aws_variables(TestCase):
         }
 
         environ = EnvironmentVariables(self.name, self.memory, self.timeout, self.handler, aws_creds=creds)
+        self.assertEqual(expected, environ._get_aws_variables())
+
+    def test_must_work_with_text_logformat(self):
+        expected = {
+            "AWS_SAM_LOCAL": "true",
+            "AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "1024",
+            "AWS_LAMBDA_FUNCTION_TIMEOUT": "123",
+            "AWS_LAMBDA_FUNCTION_HANDLER": "handler",
+            "AWS_LAMBDA_FUNCTION_NAME": self.name,
+            "AWS_LAMBDA_FUNCTION_VERSION": "$LATEST",
+            "AWS_LAMBDA_LOG_GROUP_NAME": f"aws/lambda/{self.name}",
+            "AWS_LAMBDA_LOG_STREAM_NAME": "$LATEST",
+            "AWS_ACCOUNT_ID": "123456789012",
+            # Default values assigned to these variables
+            "AWS_REGION": "us-east-1",
+            "AWS_DEFAULT_REGION": "us-east-1",
+            "AWS_ACCESS_KEY_ID": "defaultkey",
+            "AWS_SECRET_ACCESS_KEY": "defaultsecret",
+            "AWS_LAMBDA_LOG_FORMAT": "Text",
+        }
+
+        logging_config = {"LogFormat": "Text"}
+        environ = EnvironmentVariables(self.name, self.memory, self.timeout, self.handler, logging_config)
+        self.assertEqual(expected, environ._get_aws_variables())
+
+    def test_must_work_with_default_json_logging_config(self):
+        expected = {
+            "AWS_SAM_LOCAL": "true",
+            "AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "1024",
+            "AWS_LAMBDA_FUNCTION_TIMEOUT": "123",
+            "AWS_LAMBDA_FUNCTION_HANDLER": "handler",
+            "AWS_LAMBDA_FUNCTION_NAME": self.name,
+            "AWS_LAMBDA_FUNCTION_VERSION": "$LATEST",
+            "AWS_LAMBDA_LOG_GROUP_NAME": f"aws/lambda/{self.name}",
+            "AWS_LAMBDA_LOG_STREAM_NAME": "$LATEST",
+            "AWS_ACCOUNT_ID": "123456789012",
+            # Default values assigned to these variables
+            "AWS_REGION": "us-east-1",
+            "AWS_DEFAULT_REGION": "us-east-1",
+            "AWS_ACCESS_KEY_ID": "defaultkey",
+            "AWS_SECRET_ACCESS_KEY": "defaultsecret",
+            "AWS_LAMBDA_LOG_LEVEL": "INFO",
+            "AWS_LAMBDA_LOG_FORMAT": "JSON",
+        }
+
+        logging_config = {"LogFormat": "JSON"}
+        environ = EnvironmentVariables(self.name, self.memory, self.timeout, self.handler, logging_config)
+        self.assertEqual(expected, environ._get_aws_variables())
+
+    def test_must_work_with_set_application_log_level(self):
+        expected = {
+            "AWS_SAM_LOCAL": "true",
+            "AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "1024",
+            "AWS_LAMBDA_FUNCTION_TIMEOUT": "123",
+            "AWS_LAMBDA_FUNCTION_HANDLER": "handler",
+            "AWS_LAMBDA_FUNCTION_NAME": self.name,
+            "AWS_LAMBDA_FUNCTION_VERSION": "$LATEST",
+            "AWS_LAMBDA_LOG_GROUP_NAME": f"aws/lambda/{self.name}",
+            "AWS_LAMBDA_LOG_STREAM_NAME": "$LATEST",
+            "AWS_ACCOUNT_ID": "123456789012",
+            # Default values assigned to these variables
+            "AWS_REGION": "us-east-1",
+            "AWS_DEFAULT_REGION": "us-east-1",
+            "AWS_ACCESS_KEY_ID": "defaultkey",
+            "AWS_SECRET_ACCESS_KEY": "defaultsecret",
+            "AWS_LAMBDA_LOG_LEVEL": "TRACE",
+            "AWS_LAMBDA_LOG_FORMAT": "JSON",
+        }
+
+        logging_config = {"LogFormat": "JSON", "ApplicationLogLevel": "TRACE"}
+        environ = EnvironmentVariables(self.name, self.memory, self.timeout, self.handler, logging_config)
+        self.assertEqual(expected, environ._get_aws_variables())
+
+    def test_must_work_with_custom_log_group_name(self):
+        expected = {
+            "AWS_SAM_LOCAL": "true",
+            "AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "1024",
+            "AWS_LAMBDA_FUNCTION_TIMEOUT": "123",
+            "AWS_LAMBDA_FUNCTION_HANDLER": "handler",
+            "AWS_LAMBDA_FUNCTION_NAME": self.name,
+            "AWS_LAMBDA_FUNCTION_VERSION": "$LATEST",
+            "AWS_LAMBDA_LOG_GROUP_NAME": "myCustomLogGroup",
+            "AWS_LAMBDA_LOG_STREAM_NAME": "$LATEST",
+            "AWS_ACCOUNT_ID": "123456789012",
+            # Default values assigned to these variables
+            "AWS_REGION": "us-east-1",
+            "AWS_DEFAULT_REGION": "us-east-1",
+            "AWS_ACCESS_KEY_ID": "defaultkey",
+            "AWS_SECRET_ACCESS_KEY": "defaultsecret",
+            "AWS_LAMBDA_LOG_LEVEL": "TRACE",
+            "AWS_LAMBDA_LOG_FORMAT": "JSON",
+        }
+
+        logging_config = {"LogFormat": "JSON", "ApplicationLogLevel": "TRACE", "LogGroup": "myCustomLogGroup"}
+        environ = EnvironmentVariables(self.name, self.memory, self.timeout, self.handler, logging_config)
         self.assertEqual(expected, environ._get_aws_variables())
 
 

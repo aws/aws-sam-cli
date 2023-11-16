@@ -53,6 +53,7 @@ def do_interactive(
     no_input,
     tracing,
     application_insights,
+    structured_logging,
 ):
     """
     Implementation of the ``cli`` method when --interactive is provided.
@@ -80,6 +81,7 @@ def do_interactive(
         location_opt_choice,
         tracing,
         application_insights,
+        structured_logging,
     )
 
 
@@ -98,6 +100,7 @@ def generate_application(
     location_opt_choice,
     tracing,
     application_insights,
+    structured_logging,
 ):  # pylint: disable=too-many-arguments
     """
     The method holds the decision logic for generating an application
@@ -132,6 +135,8 @@ def generate_application(
         boolen value to determine if X-Ray tracing show be activated or not
     application_insights : bool
         boolean value to determine if AppInsights monitoring should be enabled or not
+    structured_logging: bool
+        boolean value to determine if Json structured logging should be enabled or not
     """
     if location_opt_choice == "1":
         _generate_from_use_case(
@@ -147,6 +152,7 @@ def generate_application(
             architecture,
             tracing,
             application_insights,
+            structured_logging,
         )
 
     else:
@@ -160,12 +166,22 @@ def generate_application(
             no_input,
             tracing,
             application_insights,
+            structured_logging,
         )
 
 
 # pylint: disable=too-many-statements
 def _generate_from_location(
-    location, package_type, runtime, dependency_manager, output_dir, name, no_input, tracing, application_insights
+    location,
+    package_type,
+    runtime,
+    dependency_manager,
+    output_dir,
+    name,
+    no_input,
+    tracing,
+    application_insights,
+    structured_logging,
 ):
     location = click.prompt("\nTemplate location (git, mercurial, http(s), zip, path)", type=str)
     summary_msg = """
@@ -189,6 +205,7 @@ Output Directory: {output_dir}
         None,
         tracing,
         application_insights,
+        structured_logging,
     )
 
 
@@ -206,6 +223,7 @@ def _generate_from_use_case(
     architecture: Optional[str],
     tracing: Optional[bool],
     application_insights: Optional[bool],
+    structured_logging: Optional[bool],
 ) -> None:
     templates = InitTemplates()
     runtime_or_base_image = runtime if runtime else base_image
@@ -235,6 +253,9 @@ def _generate_from_use_case(
 
     if application_insights is None:
         application_insights = prompt_user_to_enable_application_insights()
+
+    if structured_logging is None:
+        structured_logging = prompt_user_to_enable_structured_logging()
 
     app_template = template_chosen["appTemplate"]
     base_image = (
@@ -292,6 +313,7 @@ def _generate_from_use_case(
         extra_context,
         tracing,
         application_insights,
+        structured_logging,
     )
     # executing event_bridge logic if call is for Schema dynamic template
     if is_dynamic_schemas_template:
@@ -422,6 +444,23 @@ def prompt_user_to_enable_application_insights():
             "/appinsights-what-is.html#appinsights-pricing"
         )
         click.echo(f"AppInsights monitoring may incur additional cost. View {pricing_link} for more details")
+        return True
+    return False
+
+
+def prompt_user_to_enable_structured_logging():
+    """
+    Prompt user to choose if structured loggingConfig should activated
+    for their functions in the SAM template and vice versa
+    """
+    if click.confirm("\nWould you like to set Structured Logging in JSON format on your Lambda functions? "):
+        doc_link = (
+            "https://docs.aws.amazon.com/lambda/latest/dg/"
+            "monitoring-cloudwatchlogs.html#monitoring-cloudwatchlogs-pricing"
+        )
+        click.echo(
+            f"Structured Logging in JSON format might incur an additional cost. View {doc_link} for more details"
+        )
         return True
     return False
 
