@@ -175,6 +175,7 @@ jobs:
 
       - name: Upgrade pip in Python3.12
         run: python3.12 -m ensurepip --upgrade 
+        shell: bash
 
       - name: Init samdev
         run: make init
@@ -244,6 +245,7 @@ jobs:
           sudo systemctl stop docker.socket
       - name: Upgrade pip in Python3.12
         run: python3.12 -m ensurepip --upgrade 
+        shell: bash
       - name: Stop Docker Windows
         if: ${{ matrix.os == 'windows-latest' }}
         shell: pwsh
