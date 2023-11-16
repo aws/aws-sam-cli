@@ -606,7 +606,6 @@ class TestContainer_wait_for_result(TestCase):
 
         stdout_mock = Mock()
         stdout_mock.write_str = Mock()
-        stdout_mock.write_bytes = Mock()
         stderr_mock = Mock()
         response = Mock()
         response.content = rie_response
@@ -639,7 +638,7 @@ class TestContainer_wait_for_result(TestCase):
         if response_deserializable:
             stdout_mock.write_str.assert_called_with(json.dumps(json.loads(rie_response), ensure_ascii=False))
         else:
-            stdout_mock.write_bytes.assert_called_with(rie_response)
+            stdout_mock.write_str.assert_called_with(rie_response.decode("utf-8"))
 
     @patch("socket.socket")
     @patch("samcli.local.docker.container.requests")
@@ -752,8 +751,8 @@ class TestContainer_wait_for_result(TestCase):
             raise ValueError("The pipe has been ended.")
 
         Container._write_container_output(_output_iterator(), stdout_mock, stderr_mock)
-        stdout_mock.assert_has_calls([call.write_bytes(b"Hello")])
-        stderr_mock.assert_has_calls([call.write_bytes(b"World")])
+        stdout_mock.assert_has_calls([call.write_str("Hello")])
+        stderr_mock.assert_has_calls([call.write_str("World")])
 
 
 class TestContainer_wait_for_logs(TestCase):
@@ -815,25 +814,25 @@ class TestContainer_write_container_output(TestCase):
 
         Container._write_container_output(self.output_itr, stdout=self.stdout_mock, stderr=self.stderr_mock)
 
-        self.stdout_mock.write_bytes.assert_has_calls([call(b"stdout1"), call(b"stdout2")])
+        self.stdout_mock.write_str.assert_has_calls([call("stdout1"), call("stdout2")])
 
-        self.stderr_mock.write_bytes.assert_has_calls([call(b"stderr1"), call(b"stderr2")])
+        self.stderr_mock.write_str.assert_has_calls([call("stderr1"), call("stderr2")])
 
     def test_must_write_only_stderr(self):
         # All the invalid frames must be ignored
 
         Container._write_container_output(self.output_itr, stdout=None, stderr=self.stderr_mock)
 
-        self.stdout_mock.write_bytes.assert_not_called()
+        self.stdout_mock.write_str.assert_not_called()
 
-        self.stderr_mock.write_bytes.assert_has_calls([call(b"stderr1"), call(b"stderr2")])
+        self.stderr_mock.write_str.assert_has_calls([call("stderr1"), call("stderr2")])
 
     def test_must_write_only_stdout(self):
         Container._write_container_output(self.output_itr, stdout=self.stdout_mock, stderr=None)
 
-        self.stdout_mock.write_bytes.assert_has_calls([call(b"stdout1"), call(b"stdout2")])
+        self.stdout_mock.write_str.assert_has_calls([call("stdout1"), call("stdout2")])
 
-        self.stderr_mock.write_bytes.assert_not_called()  # stderr must never be called
+        self.stderr_mock.write_str.assert_not_called()  # stderr must never be called
 
 
 class TestContainer_wait_for_socket_connection(TestCase):

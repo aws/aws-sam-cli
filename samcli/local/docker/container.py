@@ -365,7 +365,7 @@ class Container:
         if isinstance(response, str):
             stdout.write_str(response)
         elif isinstance(response, bytes):
-            stdout.write_bytes(response)
+            stdout.write_str(response.decode("utf-8"))
         stdout.flush()
         stderr.write_str("\n")
         stderr.flush()
@@ -469,15 +469,20 @@ class Container:
 
     @staticmethod
     def _handle_data_writing(output_stream: Union[StreamWriter, io.BytesIO, io.TextIOWrapper], output_data: bytes):
+        # Decode the output and strip the string of carriage return characters. Stack traces are returned
+        # with carriage returns from the RIE. If these are left in the string then only the last line after
+        # the carriage return will be printed instead of the entire stack trace. Encode the string after cleaning
+        # to be printed by the correct output stream
+        output_str = output_data.decode("utf-8").replace("\r", os.linesep)
         if isinstance(output_stream, StreamWriter):
-            output_stream.write_bytes(output_data)
+            output_stream.write_str(output_str)
             output_stream.flush()
 
         if isinstance(output_stream, io.BytesIO):
-            output_stream.write(output_data)
+            output_stream.write(output_str.encode("utf-8"))
 
         if isinstance(output_stream, io.TextIOWrapper):
-            output_stream.buffer.write(output_data)
+            output_stream.buffer.write(output_str.encode("utf-8"))
 
     @property
     def network_id(self):

@@ -1,0 +1,72 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  AwsLambdaFunctionFunctionWithNonImageUri52090958:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: function_with_non_image_uri
+      PackageType: Image
+      Timeout: 300
+      MemorySize: 128
+      Code:
+        ImageUri: awslambdafunctionfunctionwithnonimageuri52090958:latest
+    Metadata:
+      DockerContext: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/image_based_lambda_functions_local_backend/hello_world
+      DockerTag: latest
+      Dockerfile: Dockerfile
+      SamResourceId: aws_lambda_function.function_with_non_image_uri
+      SkipBuild: false
+  AwsLambdaFunctionMyImageFunctionC5BA0B8A:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: my_image_function
+      PackageType: Image
+      Timeout: 300
+      MemorySize: 128
+    Metadata:
+      SamResourceId: aws_lambda_function.my_image_function
+      SkipBuild: false
+      DockerContext: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/image_based_lambda_functions_local_backend/hello_world
+      Dockerfile: Dockerfile
+      DockerTag: latest
+  ModuleL1LambdaAwsLambdaFunctionThis2858F066:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: my_l1_lambda
+      PackageType: Image
+      Timeout: 300
+      MemorySize: 128
+    Metadata:
+      SamResourceId: module.l1_lambda.aws_lambda_function.this
+      SkipBuild: false
+      DockerContext: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/image_based_lambda_functions_local_backend/hello_world
+      Dockerfile: Dockerfile
+      DockerTag: latest
+  ModuleServerlessTfImageFunctionAwsLambdaFunctionThis0273ECBC9:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: serverless_tf_image_function
+      PackageType: Image
+      Timeout: 300
+      MemorySize: 128
+    Metadata:
+      SamResourceId: module.serverless_tf_image_function.aws_lambda_function.this[0]
+      SkipBuild: false
+      DockerContext: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/image_based_lambda_functions_local_backend/hello_world
+      Dockerfile: Dockerfile
+      DockerTag: latest
+  ModuleL1LambdaModuleL2LambdaAwsLambdaFunctionThisB0CE1210:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: my_l2_lambda
+      PackageType: Image
+      Timeout: 300
+      MemorySize: 128
+    Metadata:
+      SamResourceId: module.l1_lambda.module.l2_lambda.aws_lambda_function.this
+      SkipBuild: false
+      DockerContext: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/image_based_lambda_functions_local_backend/hello_world
+      Dockerfile: Dockerfile
+      DockerTag: latest
+Metadata:
+  AWS::SAM::Hook:
+    HookName: terraform

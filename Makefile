@@ -79,7 +79,7 @@ update-reproducible-mac-reqs:
 update-reproducible-win-reqs:
 	python -m venv venv-update-reproducible-win
 	.\venv-update-reproducible-win\Scripts\activate
-	pip install --upgrade pip-tools pip
+	python.exe -m pip install --upgrade pip-tools pip
 	pip install -r requirements\base.txt
 	pip-compile --generate-hashes --allow-unsafe -o requirements\reproducible-win.txt
 

@@ -11,7 +11,7 @@ from samcli.cli.row_modifiers import RowDefinition
 
 INFRASTRUCTURE_OPTION_NAMES: List[str] = ["stack_name"]
 
-INPUT_EVENT_OPTIONS: List[str] = ["event", "event_file"]
+INPUT_EVENT_OPTIONS: List[str] = ["event", "event_file", "test_event_name"]
 
 ADDITIONAL_OPTIONS: List[str] = ["parameter", "output"]
 
