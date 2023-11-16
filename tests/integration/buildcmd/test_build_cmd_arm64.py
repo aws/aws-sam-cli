@@ -35,13 +35,11 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture_arm64(BuildIn
             ("python3.10", "Python", False),
             ("python3.11", "Python", False),
             ("python3.12", "Python", False),
-
             ("python3.8", "PythonPEP600", False),
             ("python3.9", "PythonPEP600", False),
             ("python3.10", "PythonPEP600", False),
             ("python3.11", "PythonPEP600", False),
             ("python3.12", "PythonPEP600", False),
-
             ("python3.8", "Python", "use_container"),
             ("python3.9", "Python", "use_container"),
             ("python3.10", "Python", "use_container"),
