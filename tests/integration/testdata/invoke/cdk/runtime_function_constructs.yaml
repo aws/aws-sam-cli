@@ -144,7 +144,7 @@ Resources:
         Variables:
           AWS_NODEJS_CONNECTION_REUSE_ENABLED: "1"
       Handler: index.handler
-      Runtime: nodejs14.x
+      Runtime: nodejs18.x
     DependsOn:
       - NodejsFunctionServiceRole92FAD13F
     Metadata:

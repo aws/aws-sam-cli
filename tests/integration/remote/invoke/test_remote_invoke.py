@@ -13,6 +13,8 @@ from tests.testing_utils import run_command
 from pathlib import Path
 import pytest
 
+SQS_WAIT_TIME_SECONDS = 20
+
 
 @pytest.mark.xdist_group(name="sam_remote_invoke_single_lambda_resource")
 class TestSingleLambdaInvoke(RemoteInvokeIntegBase):
@@ -119,7 +121,6 @@ class TestSingleLambdaInvoke(RemoteInvokeIntegBase):
         self.assertEqual(remote_invoke_result_stdout["StatusCode"], 200)
 
 
-@skip("Skip remote invoke Step function integration tests")
 @pytest.mark.xdist_group(name="sam_remote_invoke_sfn_resource_priority")
 class TestSFNPriorityInvoke(RemoteInvokeIntegBase):
     template = Path("template-step-function-priority.yaml")
@@ -188,7 +189,6 @@ class TestSFNPriorityInvoke(RemoteInvokeIntegBase):
         self.assertEqual([], get_xrays_response["Traces"])
 
 
-@skip("Skip remote invoke SQS integration tests")
 @pytest.mark.xdist_group(name="sam_remote_invoke_sqs_resource_priority")
 class TestSQSPriorityInvoke(RemoteInvokeIntegBase):
     template = Path("template-sqs-priority.yaml")
@@ -211,12 +211,13 @@ class TestSQSPriorityInvoke(RemoteInvokeIntegBase):
         self.assertIn("MessageId", remote_invoke_result_stdout)
 
         received_message_response = self.sqs_client.receive_message(
-            QueueUrl=self.sqs_queue_url, MaxNumberOfMessages=1
+            QueueUrl=self.sqs_queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=SQS_WAIT_TIME_SECONDS
         ).get("Messages")
         self.assertEqual(len(received_message_response), 1)
         received_message = received_message_response[0]
         self.assertEqual(expected_message_body, received_message.get("Body"))
         self.assertEqual(received_message["MessageId"], remote_invoke_result_stdout["MessageId"])
+        self.sqs_client.delete_message(QueueUrl=self.sqs_queue_url, ReceiptHandle=received_message["ReceiptHandle"])
 
     @parameterized.expand([('{"foo": "bar"}'), ("Hello World"), ("<heading>Reminder</heading>")])
     def test_invoke_with_event_provided(self, event):
@@ -232,12 +233,13 @@ class TestSQSPriorityInvoke(RemoteInvokeIntegBase):
         self.assertIn("MessageId", remote_invoke_result_stdout)
 
         received_message_response = self.sqs_client.receive_message(
-            QueueUrl=self.sqs_queue_url, MaxNumberOfMessages=1
+            QueueUrl=self.sqs_queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=SQS_WAIT_TIME_SECONDS
         ).get("Messages")
         self.assertEqual(len(received_message_response), 1)
         received_message = received_message_response[0]
         self.assertEqual(event, received_message.get("Body"))
         self.assertEqual(received_message["MessageId"], remote_invoke_result_stdout["MessageId"])
+        self.sqs_client.delete_message(QueueUrl=self.sqs_queue_url, ReceiptHandle=received_message["ReceiptHandle"])
 
     def test_invoke_with_event_file_provided(self):
         event_file_path = str(self.events_folder_path.joinpath("default_event.json"))
@@ -250,7 +252,7 @@ class TestSQSPriorityInvoke(RemoteInvokeIntegBase):
         self.assertIn("MessageId", remote_invoke_result_stdout)
 
         received_message_response = self.sqs_client.receive_message(
-            QueueUrl=self.sqs_queue_url, MaxNumberOfMessages=1
+            QueueUrl=self.sqs_queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=SQS_WAIT_TIME_SECONDS
         ).get("Messages")
         self.assertEqual(len(received_message_response), 1)
         received_message = received_message_response[0]
@@ -258,6 +260,7 @@ class TestSQSPriorityInvoke(RemoteInvokeIntegBase):
         with open(event_file_path, "r") as f:
             expected_message = f.read()
             self.assertEqual(expected_message, received_message.get("Body"))
+        self.sqs_client.delete_message(QueueUrl=self.sqs_queue_url, ReceiptHandle=received_message["ReceiptHandle"])
 
     def test_invoke_with_physical_id_provided_as_resource_id(self):
         event = '{"foo": "bar"}'
@@ -273,12 +276,13 @@ class TestSQSPriorityInvoke(RemoteInvokeIntegBase):
         self.assertIn("MessageId", remote_invoke_result_stdout)
 
         received_message_response = self.sqs_client.receive_message(
-            QueueUrl=self.sqs_queue_url, MaxNumberOfMessages=1
+            QueueUrl=self.sqs_queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=SQS_WAIT_TIME_SECONDS
         ).get("Messages")
         self.assertEqual(len(received_message_response), 1)
         received_message = received_message_response[0]
         self.assertEqual(event, received_message.get("Body"))
         self.assertEqual(received_message["MessageId"], remote_invoke_result_stdout["MessageId"])
+        self.sqs_client.delete_message(QueueUrl=self.sqs_queue_url, ReceiptHandle=received_message["ReceiptHandle"])
 
     def test_invoke_boto_parameters(self):
         given_message = "Hello World"
@@ -310,7 +314,10 @@ class TestSQSPriorityInvoke(RemoteInvokeIntegBase):
 
         time.sleep(1)  # Required as DelaySeconds is set to 1 and message cannot be received before this.
         received_message_response = self.sqs_client.receive_message(
-            QueueUrl=self.sqs_queue_url, MaxNumberOfMessages=1, MessageAttributeNames=["All"]
+            QueueUrl=self.sqs_queue_url,
+            MaxNumberOfMessages=1,
+            MessageAttributeNames=["All"],
+            WaitTimeSeconds=SQS_WAIT_TIME_SECONDS,
         ).get("Messages")
 
         self.assertEqual(len(received_message_response), 1)
@@ -318,9 +325,9 @@ class TestSQSPriorityInvoke(RemoteInvokeIntegBase):
         self.assertEqual(received_message["MessageId"], remote_invoke_result_stdout["MessageId"])
         self.assertEqual(received_message.get("Body"), given_message)
         self.assertEqual(received_message.get("MessageAttributes"), message_attributes)
+        self.sqs_client.delete_message(QueueUrl=self.sqs_queue_url, ReceiptHandle=received_message["ReceiptHandle"])
 
 
-@skip("Skip remote invoke Kinesis integration tests")
 @pytest.mark.xdist_group(name="sam_remote_invoke_kinesis_resource_priority")
 class TestKinesisPriorityInvoke(RemoteInvokeIntegBase):
     template = Path("template-kinesis-priority.yaml")
@@ -480,9 +487,6 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
         ]
     )
     def test_invoke_with_only_event_provided(self, resource_id, event, expected_response):
-        if self.stack_resource_summaries[resource_id].resource_type not in self.supported_resources:
-            pytest.skip("Skip remote invoke Step function integration tests as resource is not supported")
-
         command_list = self.get_command_list(
             stack_name=self.stack_name,
             resource_id=resource_id,
@@ -567,8 +571,6 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
 
     def test_sfn_invoke_with_resource_id_provided_as_arn(self):
         resource_id = "StockPriceGuideStateMachine"
-        if self.stack_resource_summaries[resource_id].resource_type not in self.supported_resources:
-            pytest.skip("Skip remote invoke Step function integration tests as resource is not supported")
         expected_response = {"balance": 320}
         state_machine_arn = self.stack_resource_summaries[resource_id].physical_resource_id
 
@@ -584,8 +586,6 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
 
     def test_sfn_invoke_boto_parameters(self):
         resource_id = "StockPriceGuideStateMachine"
-        if self.stack_resource_summaries[resource_id].resource_type not in self.supported_resources:
-            pytest.skip("Skip remote invoke Step function integration tests as resource is not supported")
         expected_response = {"balance": 320}
         name = "custom-execution-name"
         command_list = self.get_command_list(
@@ -603,8 +603,6 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
 
     def test_sfn_invoke_execution_fails(self):
         resource_id = "StateMachineExecutionFails"
-        if self.stack_resource_summaries[resource_id].resource_type not in self.supported_resources:
-            pytest.skip("Skip remote invoke Step function integration tests as resource is not supported")
         expected_response = "The execution failed due to the error: MockError and cause: Mock Invalid response."
         command_list = self.get_command_list(
             stack_name=self.stack_name,
@@ -620,8 +618,6 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
 
     def test_sqs_invoke_with_resource_id_and_stack_name(self):
         resource_id = "MySQSQueue"
-        if self.stack_resource_summaries[resource_id].resource_type not in self.supported_resources:
-            pytest.skip("Skip remote invoke SQS integration tests as resource is not supported")
         given_message = "Hello world"
         sqs_queue_url = self.stack_resource_summaries[resource_id].physical_resource_id
 
@@ -637,18 +633,17 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
         self.assertIn("MD5OfMessageBody", remote_invoke_result_stdout)
         self.assertIn("MessageId", remote_invoke_result_stdout)
 
-        received_message_response = self.sqs_client.receive_message(QueueUrl=sqs_queue_url, MaxNumberOfMessages=1).get(
-            "Messages"
-        )
+        received_message_response = self.sqs_client.receive_message(
+            QueueUrl=sqs_queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=SQS_WAIT_TIME_SECONDS
+        ).get("Messages")
         self.assertEqual(len(received_message_response), 1)
         received_message = received_message_response[0]
         self.assertEqual(given_message, received_message.get("Body"))
         self.assertEqual(received_message["MessageId"], remote_invoke_result_stdout["MessageId"])
+        self.sqs_client.delete_message(QueueUrl=sqs_queue_url, ReceiptHandle=received_message["ReceiptHandle"])
 
     def test_sqs_invoke_with_resource_id_provided_as_arn(self):
         resource_logical_id = "MySQSQueue"
-        if self.stack_resource_summaries[resource_logical_id].resource_type not in self.supported_resources:
-            pytest.skip("Skip remote invoke SQS integration tests as resource is not supported")
 
         output = self.cfn_client.describe_stacks(StackName=self.stack_name)
         sqs_queue_arn = None
@@ -656,9 +651,6 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
         for detail in output["Stacks"][0]["Outputs"]:
             if detail["OutputKey"] == "MySQSQueueArn":
                 sqs_queue_arn = detail["OutputValue"]
-
-        if self.stack_resource_summaries[resource_logical_id].resource_type not in self.supported_resources:
-            pytest.skip("Skip remote invoke SQS integration tests as resource is not supported")
 
         given_message = "Hello world"
 
@@ -673,19 +665,18 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
         self.assertIn("MD5OfMessageBody", remote_invoke_result_stdout)
         self.assertIn("MessageId", remote_invoke_result_stdout)
 
-        received_message_response = self.sqs_client.receive_message(QueueUrl=sqs_queue_url, MaxNumberOfMessages=1).get(
-            "Messages"
-        )
+        received_message_response = self.sqs_client.receive_message(
+            QueueUrl=sqs_queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=SQS_WAIT_TIME_SECONDS
+        ).get("Messages")
         self.assertEqual(len(received_message_response), 1)
         received_message = received_message_response[0]
         self.assertEqual(given_message, received_message.get("Body"))
         self.assertEqual(received_message["MessageId"], remote_invoke_result_stdout["MessageId"])
+        self.sqs_client.delete_message(QueueUrl=sqs_queue_url, ReceiptHandle=received_message["ReceiptHandle"])
 
     def test_sqs_invoke_boto_parameters_fifo_queue(self):
         given_message = "Hello World"
         resource_logical_id = "MyFIFOSQSQueue"
-        if self.stack_resource_summaries[resource_logical_id].resource_type not in self.supported_resources:
-            pytest.skip("Skip remote invoke SQS integration tests as resource is not supported")
 
         sqs_queue_url = self.stack_resource_summaries[resource_logical_id].physical_resource_id
         command_list = self.get_command_list(
@@ -707,9 +698,9 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
         self.assertIn("MessageId", remote_invoke_result_stdout)
         self.assertIn("ResponseMetadata", remote_invoke_result_stdout)
 
-        received_message_response = self.sqs_client.receive_message(QueueUrl=sqs_queue_url, MaxNumberOfMessages=1).get(
-            "Messages"
-        )
+        received_message_response = self.sqs_client.receive_message(
+            QueueUrl=sqs_queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=SQS_WAIT_TIME_SECONDS
+        ).get("Messages")
 
         self.assertEqual(len(received_message_response), 1)
         received_message = received_message_response[0]
@@ -723,11 +714,10 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
         remote_invoke_result_stdout = json.loads(remote_invoke_result.stdout.strip().decode())
         # Message id will be the same as it got deduped and a new message was not created
         self.assertEqual(received_message["MessageId"], remote_invoke_result_stdout["MessageId"])
+        self.sqs_client.delete_message(QueueUrl=sqs_queue_url, ReceiptHandle=received_message["ReceiptHandle"])
 
     def test_kinesis_invoke_with_resource_id_and_stack_name(self):
         resource_logical_id = "KinesisStream"
-        if self.stack_resource_summaries[resource_logical_id].resource_type not in self.supported_resources:
-            pytest.skip("Skip remote invoke Kinesis integration tests as resource is not supported")
         event = '{"foo": "bar"}'
         stream_name = self.stack_resource_summaries[resource_logical_id].physical_resource_id
 
@@ -753,8 +743,6 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
 
     def test_kinesis_invoke_with_resource_id_provided_as_arn(self):
         resource_logical_id = "KinesisStream"
-        if self.stack_resource_summaries[resource_logical_id].resource_type not in self.supported_resources:
-            pytest.skip("Skip remote invoke Kinesis integration tests as resource is not supported")
 
         stream_name = self.stack_resource_summaries[resource_logical_id].physical_resource_id
         output = self.cfn_client.describe_stacks(StackName=self.stack_name)
@@ -787,8 +775,6 @@ class TestMultipleResourcesInvoke(RemoteInvokeIntegBase):
         # ExplicitHashKey can be used to specify the shard to put the record to if the hashkey provided is
         # between the start and end range of that shard's hash key range.
         resource_logical_id = "KinesisStream"
-        if self.stack_resource_summaries[resource_logical_id].resource_type not in self.supported_resources:
-            pytest.skip("Skip remote invoke Kinesis integration tests as resource is not supported")
         stream_name = self.stack_resource_summaries[resource_logical_id].physical_resource_id
 
         describe_stream_response = self.kinesis_client.describe_stream(StreamName=stream_name)
@@ -843,8 +829,6 @@ class TestNestedTemplateResourcesInvoke(RemoteInvokeIntegBase):
         ]
     )
     def test_invoke_empty_event_provided(self, resource_id, expected_response):
-        if self.stack_resource_summaries[resource_id].resource_type not in self.supported_resources:
-            pytest.skip("Skip remote invoke Step function integration tests as resource is not supported")
         command_list = self.get_command_list(stack_name=self.stack_name, resource_id=resource_id)
 
         remote_invoke_result = run_command(command_list)
@@ -859,8 +843,6 @@ class TestNestedTemplateResourcesInvoke(RemoteInvokeIntegBase):
         ]
     )
     def test_invoke_with_event_provided(self, resource_id, event, expected_response):
-        if self.stack_resource_summaries[resource_id].resource_type not in self.supported_resources:
-            pytest.skip("Skip remote invoke Step function integration tests as resource is not supported")
         command_list = self.get_command_list(
             stack_name=self.stack_name,
             resource_id=resource_id,

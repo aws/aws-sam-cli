@@ -35,6 +35,7 @@ class TestRuntime(TestCase):
             ("dotnet6", "dotnet:6-x86_64"),
             ("provided", "provided:alami"),
             ("provided.al2", "provided:al2-x86_64"),
+            ("provided.al2023", "provided:al2023-x86_64"),
         ]
     )
     def test_image_name_tag(self, runtime, image_tag):

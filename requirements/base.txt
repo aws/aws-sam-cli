@@ -11,7 +11,7 @@ aws-sam-translator==1.79.0
 docker~=6.1.0
 dateparser~=1.1
 requests~=2.31.0
-aws_lambda_builders==1.40.0
+aws_lambda_builders==1.41.0
 tomlkit==0.12.2
 watchdog==3.0.0
 rich~=13.6.0
@@ -31,4 +31,4 @@ tzlocal==5.2
 cfn-lint~=0.83.1
 
 # Type checking boto3 objects
-boto3-stubs[apigateway,cloudformation,ecr,iam,lambda,s3,schemas,secretsmanager,signer,stepfunctions,sts,xray,sqs,kinesis]==1.28.78
+boto3-stubs[apigateway,cloudformation,ecr,iam,lambda,s3,schemas,secretsmanager,signer,stepfunctions,sts,xray,sqs,kinesis]==1.29.0

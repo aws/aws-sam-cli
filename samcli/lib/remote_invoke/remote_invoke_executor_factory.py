@@ -27,7 +27,12 @@ from samcli.lib.remote_invoke.stepfunctions_invoke_executors import (
     StepFunctionsStartExecutionExecutor,
 )
 from samcli.lib.utils.cloudformation import CloudFormationResourceSummary
-from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION
+from samcli.lib.utils.resources import (
+    AWS_KINESIS_STREAM,
+    AWS_LAMBDA_FUNCTION,
+    AWS_SQS_QUEUE,
+    AWS_STEPFUNCTIONS_STATEMACHINE,
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -276,4 +281,9 @@ class RemoteInvokeExecutorFactory:
             ],
             RemoteInvokeExecutor,
         ],
-    ] = {AWS_LAMBDA_FUNCTION: _create_lambda_boto_executor}
+    ] = {
+        AWS_LAMBDA_FUNCTION: _create_lambda_boto_executor,
+        AWS_STEPFUNCTIONS_STATEMACHINE: _create_stepfunctions_boto_executor,
+        AWS_SQS_QUEUE: _create_sqs_boto_executor,
+        AWS_KINESIS_STREAM: _create_kinesis_boto_executor,
+    }
