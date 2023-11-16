@@ -133,6 +133,7 @@ class TestValidate(TestCase):
         supported_runtimes = [
             "dotnet6",
             "go1.x",
+            "java21",
             "java17",
             "java11",
             "java8",
@@ -140,6 +141,7 @@ class TestValidate(TestCase):
             "nodejs14.x",
             "nodejs16.x",
             "nodejs18.x",
+            "nodejs20.x",
             "provided",
             "provided.al2",
             "provided.al2023",

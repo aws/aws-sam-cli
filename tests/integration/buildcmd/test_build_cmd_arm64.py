@@ -31,8 +31,20 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture_arm64(BuildIn
     @parameterized.expand(
         [
             ("python3.8", "Python", False),
+            ("python3.9", "Python", False),
+            ("python3.10", "Python", False),
+            ("python3.11", "Python", False),
+            ("python3.12", "Python", False),
             ("python3.8", "PythonPEP600", False),
+            ("python3.9", "PythonPEP600", False),
+            ("python3.10", "PythonPEP600", False),
+            ("python3.11", "PythonPEP600", False),
+            ("python3.12", "PythonPEP600", False),
             ("python3.8", "Python", "use_container"),
+            ("python3.9", "Python", "use_container"),
+            ("python3.10", "Python", "use_container"),
+            ("python3.11", "Python", "use_container"),
+            ("python3.12", "Python", "use_container"),
         ]
     )
     def test_with_default_requirements(self, runtime, codeuri, use_container):
@@ -81,6 +93,13 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(BuildIntegE
                 False,
             ),
             (
+                "nodejs20.x",
+                "Esbuild/Node_without_manifest",
+                {"main.js", "main.js.map"},
+                "main.lambdaHandler",
+                False,
+            ),
+            (
                 "nodejs16.x",
                 "Esbuild/TypeScript_without_manifest",
                 {"app.js", "app.js.map"},
@@ -89,6 +108,13 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(BuildIntegE
             ),
             (
                 "nodejs18.x",
+                "Esbuild/TypeScript_without_manifest",
+                {"app.js", "app.js.map"},
+                "app.lambdaHandler",
+                False,
+            ),
+            (
+                "nodejs20.x",
                 "Esbuild/TypeScript_without_manifest",
                 {"app.js", "app.js.map"},
                 "app.lambdaHandler",
@@ -109,10 +135,12 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture_arm64(BuildInte
             ("nodejs14.x", False),
             ("nodejs16.x", False),
             ("nodejs18.x", False),
+            ("nodejs20.x", False),
             ("nodejs12.x", "use_container"),
             ("nodejs14.x", "use_container"),
             ("nodejs16.x", "use_container"),
             ("nodejs18.x", "use_container"),
+            ("nodejs20.x", "use_container"),
         ]
     )
     def test_building_default_package_json(self, runtime, use_container):
@@ -238,6 +266,34 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
                 EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
                 EXPECTED_MAVEN_DEPENDENCIES,
             ),
+            (
+                "java21",
+                "21",
+                USING_GRADLE_PATH,
+                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java21",
+                "21",
+                USING_GRADLEW_PATH,
+                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java21",
+                "21",
+                USING_GRADLE_KOTLIN_PATH,
+                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java21",
+                "21",
+                USING_MAVEN_PATH,
+                EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                EXPECTED_MAVEN_DEPENDENCIES,
+            ),
         ]
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
@@ -258,118 +314,124 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
         [
             (
                 "java8.al2",
+                "8",
                 USING_GRADLE_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 EXPECTED_GRADLE_DEPENDENCIES,
             ),
             (
                 "java8.al2",
+                "8",
                 USING_GRADLEW_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 EXPECTED_GRADLE_DEPENDENCIES,
             ),
             (
                 "java8.al2",
+                "8",
                 USING_GRADLE_KOTLIN_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 EXPECTED_GRADLE_DEPENDENCIES,
             ),
             (
                 "java8.al2",
+                "8",
                 USING_MAVEN_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
                 EXPECTED_MAVEN_DEPENDENCIES,
             ),
-        ]
-    )
-    def test_building_java8_in_process_with_arm_architecture(
-        self, runtime, code_path, expected_files, expected_dependencies
-    ):
-        self._test_with_building_java(
-            runtime,
-            os.path.join(code_path, "8"),
-            expected_files,
-            expected_dependencies,
-            False,
-            self.test_data_path,
-            ARM64,
-        )
-
-    @parameterized.expand(
-        [
             (
                 "java11",
+                "11",
                 USING_GRADLE_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 EXPECTED_GRADLE_DEPENDENCIES,
             ),
             (
                 "java11",
+                "11",
                 USING_GRADLEW_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 EXPECTED_GRADLE_DEPENDENCIES,
             ),
             (
                 "java11",
+                "11",
                 USING_GRADLE_KOTLIN_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 EXPECTED_GRADLE_DEPENDENCIES,
             ),
             (
                 "java11",
+                "11",
                 USING_MAVEN_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
                 EXPECTED_MAVEN_DEPENDENCIES,
             ),
-        ]
-    )
-    def test_building_java11_in_process_with_arm_architecture(
-        self, runtime, code_path, expected_files, expected_dependencies
-    ):
-        self._test_with_building_java(
-            runtime,
-            os.path.join(code_path, "11"),
-            expected_files,
-            expected_dependencies,
-            False,
-            self.test_data_path,
-            ARM64,
-        )
-
-    @parameterized.expand(
-        [
             (
                 "java17",
+                "17",
                 USING_GRADLE_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 EXPECTED_GRADLE_DEPENDENCIES,
             ),
             (
                 "java17",
+                "17",
                 USING_GRADLEW_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 EXPECTED_GRADLE_DEPENDENCIES,
             ),
             (
                 "java17",
+                "17",
                 USING_GRADLE_KOTLIN_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 EXPECTED_GRADLE_DEPENDENCIES,
             ),
             (
                 "java17",
+                "17",
+                USING_MAVEN_PATH,
+                EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                EXPECTED_MAVEN_DEPENDENCIES,
+            ),
+            (
+                "java21",
+                "21",
+                USING_GRADLE_PATH,
+                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java21",
+                "21",
+                USING_GRADLEW_PATH,
+                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java21",
+                "21",
+                USING_GRADLE_KOTLIN_PATH,
+                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java21",
+                "21",
                 USING_MAVEN_PATH,
                 EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
                 EXPECTED_MAVEN_DEPENDENCIES,
             ),
         ]
     )
-    def test_building_java17_in_process_with_arm_architecture(
-        self, runtime, code_path, expected_files, expected_dependencies
+    def test_building_java_in_process_with_arm_architecture(
+        self, runtime, runtime_version, code_path, expected_files, expected_dependencies
     ):
         self._test_with_building_java(
             runtime,
-            os.path.join(code_path, "17"),
+            os.path.join(code_path, runtime_version),
             expected_files,
             expected_dependencies,
             False,
