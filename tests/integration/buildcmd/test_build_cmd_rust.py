@@ -28,13 +28,17 @@ LOG = logging.getLogger(__name__)
 class TestBuildCommand_Rust(BuildIntegRustBase):
     @parameterized.expand(
         [
-            ("x86_64", None, False),
-            ("x86_64", "debug", False),
+            ("provided", "x86_64", None, False),
+            ("provided", "x86_64", "debug", False),
+            ("provided.al2", "x86_64", None, False),
+            ("provided.al2", "x86_64", "debug", False),
+            ("provided.al2023", "x86_64", None, False),
+            ("provided.al2023", "x86_64", "debug", False),
         ]
     )
-    def test_build(self, architecture, build_mode, use_container):
+    def test_build(self, runtime, architecture, build_mode, use_container):
         self._test_with_rust_cargo_lambda(
-            runtime="provided.al2",
+            runtime=runtime,
             code_uri=self.code_uri,
             binary=self.binary,
             architecture=architecture,
