@@ -55,7 +55,7 @@ cache:
 install:
   - # install jdk21
   - choco install correttojdk --version=21.0.0
-  - ps: get-content C:\ProgramData\chocolatey\logs\chocolatey.log
+  - refreshenv
   - java --version
   - javac --version
   - exit 1
