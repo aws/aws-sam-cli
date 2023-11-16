@@ -24,9 +24,9 @@ aws-lambda-builders==1.42.0 \
     --hash=sha256:c0d3c4e1d9d663ccc9d13470487958fd4cc0918610786a454759b8d383a10043 \
     --hash=sha256:f2d6dc0ca6cb454d4419b8df1e2a5b4dc4973484a16b809bdb8e00620f95e6af
     # via aws-sam-cli (setup.py)
-aws-sam-translator==1.79.0 \
-    --hash=sha256:6f0c6bbcebcc98c4f98dc238352a06b0befe7fb72535cca75712fffff4873875 \
-    --hash=sha256:990f3043d00b6fd801b38ad780ecd058c315b7581b2e43fc013c9b6253f876e8
+aws-sam-translator==1.80.0 \
+    --hash=sha256:36afb8b802af0180a35efa68a8ab19d5d929d0a6a649a0101e8a4f8e1f05681f \
+    --hash=sha256:f00215f9314cef1bbbdbd7520e3b0c75a76b88bdc3f0dedb6a2c69a12e904b12
     # via
     #   aws-sam-cli (setup.py)
     #   cfn-lint
@@ -452,9 +452,9 @@ packaging==23.2 \
     --hash=sha256:048fb0e9405036518eaaf48a55953c750c11e1a1b68e0dd1a9d62ed0c092cfc5 \
     --hash=sha256:8c491190033a9af7e1d931d0b5dacc2ef47509b34dd0de67ed209b5203fc88c7
     # via docker
-pbr==5.11.1 \
-    --hash=sha256:567f09558bae2b3ab53cb3c1e2e33e726ff3338e7bae3db5dc954b3a44eef12b \
-    --hash=sha256:aefc51675b0b533d56bb5fd1c8c6c0522fe31896679882e1c4c63d5e4a0fccb3
+pbr==6.0.0 \
+    --hash=sha256:4a7317d5e3b17a3dccb6a8cfe67dab65b20551404c52c8ed41279fa4f0cb4cda \
+    --hash=sha256:d1377122a5a00e2f940ee482999518efe16d745d423a670c27773dfbc3c9a7d9
     # via
     #   jschema-to-python
     #   sarif-om
