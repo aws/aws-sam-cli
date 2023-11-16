@@ -24,7 +24,7 @@ class LogGroupProvider:
     def for_resource(boto_client_provider: BotoProviderType, resource_type: str, name: str) -> Optional[str]:
         log_group = None
         if resource_type == AWS_LAMBDA_FUNCTION:
-            log_group = LogGroupProvider.for_lambda_function(name)
+            log_group = LogGroupProvider.for_lambda_function(boto_client_provider, name)
         elif resource_type == AWS_APIGATEWAY_RESTAPI:
             log_group = LogGroupProvider.for_apigw_rest_api(name)
         elif resource_type == AWS_APIGATEWAY_V2_API:
@@ -35,12 +35,14 @@ class LogGroupProvider:
         return log_group
 
     @staticmethod
-    def for_lambda_function(function_name: str) -> str:
+    def for_lambda_function(boto_client_provider: BotoProviderType, function_name: str) -> str:
         """
         Returns the CloudWatch Log Group Name created by default for the AWS Lambda function with given name
 
         Parameters
         ----------
+        boto_client_provider: BotoProviderType
+            Boto client provider which contains region and other configurations
         function_name : str
             Name of the Lambda function
 
@@ -49,7 +51,16 @@ class LogGroupProvider:
         str
             Default Log Group name used by this function
         """
-        return "/aws/lambda/{}".format(function_name)
+        log_group_name = ""
+        try:
+            function_configuration = boto_client_provider("lambda").get_function_configuration(function_name)
+            logging_config = function_configuration.get("LoggingConfig")
+            if logging_config:
+                log_group_name = logging_config.get("LogGroup")
+        except Exception as ex:
+            LOG.debug("Could not retrive function configuration for function (%s):  (%s)", function_name, str(ex))
+
+        return log_group_name if bool(log_group_name) else f"/aws/lambda/{function_name}"
 
     @staticmethod
     def for_apigw_rest_api(rest_api_id: str, stage: str = "Prod") -> str:
