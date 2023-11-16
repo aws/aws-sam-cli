@@ -54,6 +54,9 @@ cache:
   - C:\ProgramData\chocolatey\lib -> appveyor.yml
 
 install:
+  # install jdk21
+  - choco install correttojdk --version=21.0.0
+  - exit 1
   # setup make
   - "choco install make"
   # setup Java, Maven and Gradle
