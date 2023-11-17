@@ -7,7 +7,7 @@ Resources:
     Properties:
       CodeUri: s3://sam-demo-bucket/thumbnails.zip
       Handler: index.generate_thumbails
-      Runtime: nodejs12.x
+      Runtime: nodejs18.x
       Events:
         ImageBucket:
           Type: S3
