@@ -28,6 +28,7 @@ from samcli.local.docker.utils import NoFreePortsError, find_free_port, to_posix
 LOG = logging.getLogger(__name__)
 
 CONTAINER_CONNECTION_TIMEOUT = float(os.environ.get("SAM_CLI_CONTAINER_CONNECTION_TIMEOUT", 20))
+DEFAULT_CONTAINER_HOST_INTERFACE = "127.0.0.1"
 
 
 class ContainerResponseException(Exception):
@@ -74,7 +75,7 @@ class Container:
         container_opts=None,
         additional_volumes=None,
         container_host="localhost",
-        container_host_interface="127.0.0.1",
+        container_host_interface=DEFAULT_CONTAINER_HOST_INTERFACE,
         mount_with_write: bool = False,
         host_tmp_dir: Optional[str] = None,
     ):
