@@ -55,7 +55,7 @@ Resources:
       CodeUri:
         Bucket: <%REPO_BUCKET%>
         Key: 2a2aff54-276a-41c4-9b28-827b44403bfe
-      Runtime: nodejs8.10
+      Runtime: nodejs18.x
       Events:
         AccessLogsUploadedEvent:
           Type: S3
@@ -111,7 +111,7 @@ Resources:
       CodeUri:
         Bucket: <%REPO_BUCKET%>
         Key: 2a2aff54-276a-41c4-9b28-827b44403bfe
-      Runtime: nodejs8.10
+      Runtime: nodejs18.x
       Events:
         HourlyEvt:
           Type: Schedule
@@ -406,7 +406,7 @@ Resources:
       CodeUri:
         Bucket: <%REPO_BUCKET%>
         Key: 2a2aff54-276a-41c4-9b28-827b44403bfe
-      Runtime: nodejs8.10
+      Runtime: nodejs18.x
       Events:
         HourlyEvt:
           Type: Schedule
