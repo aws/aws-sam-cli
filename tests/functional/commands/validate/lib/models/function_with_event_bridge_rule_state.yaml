@@ -14,7 +14,7 @@ Resources:
           return 'Hello from Lambda!';
         };
       Handler: index.handler
-      Runtime: nodejs16.x
+      Runtime: nodejs18.x
       Events:
         TestEventBridgeRule:
           Type: EventBridgeRule
