@@ -1,10 +1,10 @@
-let AWS = require('aws-sdk');
-let sts = new AWS.STS();
+const { STS } = require('@aws-sdk/client-sts');
+let sts = new STS();
 
 exports.lambdaHandler = async (event, context) => {
     let response;
     try {
-        const sts_response = await sts.getCallerIdentity().promise();
+        const sts_response = await sts.getCallerIdentity();
 
         response = {
             'statusCode': 200,
