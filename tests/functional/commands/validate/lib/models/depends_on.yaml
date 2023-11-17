@@ -7,7 +7,7 @@ Resources:
     Properties:
       CodeUri: s3://sam-demo-bucket/code.zip
       Handler: index.handler
-      Runtime: nodejs12.x
+      Runtime: nodejs18.x
       Events:
         MyApi:
           Type: Api
