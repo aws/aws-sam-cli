@@ -44,9 +44,9 @@ install:
 
   # install Python3.12
   - sh: sudo add-apt-repository ppa:deadsnakes/ppa
-  - sh: sudo apt update
-  - sh: sudo apt install python3.12
+  - sh: sudo apt update; sudo apt install -y python3.12
   - sh: python3.12 -V
+  - sh: python3.12 -m venv $HOME/venv3.12
 
   - sh: "gvm use go1.19"
   - sh: "echo $PATH"
