@@ -42,6 +42,12 @@ install:
   - sh: java --version
   - sh: javac --version
 
+  # install Python3.12
+  - sh: sudo add-apt-repository ppa:deadsnakes/ppa
+  - sh: sudo apt update
+  - sh: sudo apt install python3.12
+  - sh: python3.12 -V
+
   - sh: "gvm use go1.19"
   - sh: "echo $PATH"
   - sh: "ls /usr/"
