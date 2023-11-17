@@ -73,6 +73,7 @@ install:
   - "echo %PYTHON_HOME%"
   - "echo %PATH%"
   - "python --version"
+  - "choco upgrade docker-engine"
   - "docker info"
   - "docker version"
 
