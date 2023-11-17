@@ -1,7 +1,7 @@
 """CLI command for "sync" command."""
 import logging
 import os
-from typing import TYPE_CHECKING, List, Optional, Set, Tuple
+from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple
 
 import click
 
@@ -17,6 +17,7 @@ from samcli.commands._utils.constants import (
     DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER,
     DEFAULT_CACHE_DIR,
 )
+from samcli.commands._utils.custom_options.option_nargs import OptionNargs
 from samcli.commands._utils.custom_options.replace_help_option import ReplaceHelpSummaryOption
 from samcli.commands._utils.option_value_processor import process_image_options
 from samcli.commands._utils.options import (
@@ -105,6 +106,34 @@ DEFAULT_TEMPLATE_NAME = "template.yaml"
 DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 
 
+class WatchExcludeType(click.ParamType):
+    name = "list,string"
+
+    EXPECTED_KEY_VALUE_LENGTH = 2
+    DELIMITER = "="
+
+    def convert(self, values: List[str], param: OptionNargs, ctx: click.Context) -> Dict[str, List[str]]:
+        """
+        TODO: write doc string
+        """
+        resource_exclude_mappings: Dict[str, List[str]] = {}
+
+        for exclude in values:
+            mapping_pair = exclude.split(self.DELIMITER)
+
+            if len(mapping_pair) != self.EXPECTED_KEY_VALUE_LENGTH:
+                return
+
+            resource_id, excluded_path = mapping_pair
+
+            current_excludes = resource_exclude_mappings.get(resource_id, [])
+            current_excludes.append(excluded_path)
+
+            resource_exclude_mappings[resource_id] = current_excludes
+
+        return resource_exclude_mappings
+
+
 # TODO(sriram-mv): Move context settings to be global such as width.
 @click.command(
     "sync",
@@ -156,6 +185,7 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
     help="This option will skip the initial infrastructure deployment if it is not required"
     " by comparing the local template with the template deployed in cloud.",
 )
+@click.option("--watch-exclude", help="TODO: write help text", cls=OptionNargs, type=WatchExcludeType())
 @stack_name_option(required=True)  # pylint: disable=E1120
 @base_dir_option
 @use_container_build_option
@@ -212,6 +242,7 @@ def cli(
     config_env: str,
     build_image: Optional[Tuple[str]],
     build_in_source: Optional[bool],
+    watch_exclude: Optional[Dict[str, List[str]]],
 ) -> None:
     """
     `sam sync` command entry point
@@ -248,6 +279,7 @@ def cli(
         config_file,
         config_env,
         build_in_source,
+        watch_exclude,
     )  # pragma: no cover
 
 
@@ -280,6 +312,7 @@ def do_cli(
     config_file: str,
     config_env: str,
     build_in_source: Optional[bool],
+    watch_exclude: Optional[Dict[str, List[str]]],
 ) -> None:
     """
     Implementation of the ``cli`` method
@@ -393,6 +426,8 @@ def do_cli(
                         dependency_layer, build_context.build_dir, build_context.cache_dir, skip_deploy_sync
                     ) as sync_context:
                         if watch:
+                            watch_excludes_filter = watch_exclude or {}
+
                             execute_watch(
                                 template=template_file,
                                 build_context=build_context,
@@ -401,6 +436,7 @@ def do_cli(
                                 sync_context=sync_context,
                                 auto_dependency_layer=dependency_layer,
                                 disable_infra_syncs=code,
+                                watch_exclude=watch_excludes_filter,
                             )
                         elif code:
                             execute_code_sync(
@@ -519,6 +555,7 @@ def execute_watch(
     sync_context: "SyncContext",
     auto_dependency_layer: bool,
     disable_infra_syncs: bool,
+    watch_exclude: Dict[str, List[str]],
 ):
     """Start sync watch execution
 
@@ -550,6 +587,7 @@ def execute_watch(
         sync_context,
         auto_dependency_layer,
         disable_infra_syncs,
+        watch_exclude,
     )
     watch_manager.start()
 

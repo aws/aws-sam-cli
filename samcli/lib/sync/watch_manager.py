@@ -5,7 +5,7 @@ import logging
 import threading
 import time
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Optional, Set
+from typing import TYPE_CHECKING, Dict, List, Optional, Set
 
 from watchdog.events import EVENT_TYPE_OPENED, FileSystemEvent
 
@@ -57,6 +57,7 @@ class WatchManager:
         sync_context: "SyncContext",
         auto_dependency_layer: bool,
         disable_infra_syncs: bool,
+        watch_exclude: Dict[str, List[str]],
     ):
         """Manager for sync watch execution logic.
         This manager will observe template and its code resources.
@@ -91,6 +92,8 @@ class WatchManager:
 
         self._waiting_infra_sync = False
         self._color = Colored()
+
+        self._watch_exclude = watch_exclude
 
     def queue_infra_sync(self) -> None:
         """Queue up an infra structure sync.
@@ -132,7 +135,10 @@ class WatchManager:
         resource_ids = get_all_resource_ids(self._stacks)
         for resource_id in resource_ids:
             try:
-                trigger = self._trigger_factory.create_trigger(resource_id, self._on_code_change_wrapper(resource_id))
+                additional_excludes = self._watch_exclude.get(resource_id, [])
+                trigger = self._trigger_factory.create_trigger(
+                    resource_id, self._on_code_change_wrapper(resource_id), additional_excludes
+                )
             except (MissingCodeUri, MissingLocalDefinition):
                 LOG.warning(
                     self._color.color_log(
