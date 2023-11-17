@@ -130,7 +130,9 @@ class Container:
         self._host_tmp_dir = host_tmp_dir
 
         try:
-            self.rapid_port_host = find_free_port(start=self._start_port_range, end=self._end_port_range)
+            self.rapid_port_host = find_free_port(
+                network_interface=self._container_host_interface, start=self._start_port_range, end=self._end_port_range
+            )
         except NoFreePortsError as ex:
             raise ContainerNotStartableException(str(ex)) from ex
 

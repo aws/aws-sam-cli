@@ -51,7 +51,7 @@ def to_posix_path(code_path):
     )
 
 
-def find_free_port(start=5000, end=9000):
+def find_free_port(network_interface="127.0.0.1", start=5000, end=9000):
     """
     Utility function which scans through a port range in a randomized manner
     and finds the first free port a socket can bind to.
@@ -62,7 +62,7 @@ def find_free_port(start=5000, end=9000):
     for port in port_range:
         try:
             s = socket.socket()
-            s.bind(("", port))
+            s.bind((network_interface, port))
             s.close()
             return port
         except OSError:
