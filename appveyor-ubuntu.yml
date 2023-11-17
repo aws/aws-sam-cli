@@ -44,7 +44,7 @@ install:
 
   # install Python3.12
   - sh: sudo add-apt-repository ppa:deadsnakes/ppa
-  - sh: sudo apt update; sudo apt install -y python3.12 python3.12-venv
+  - sh: sudo apt update; sudo apt install -y python3.12 python3.12-venv python3.12-distutils
   - sh: python3.12 -V
   - sh: python3.12 -m pip install --upgrade pip
   - sh: python3.12 -m venv $HOME/venv3.12
