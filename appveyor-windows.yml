@@ -74,6 +74,7 @@ install:
   - "echo %PATH%"
   - "python --version"
   - "choco upgrade docker-engine"
+  - ps: "Restart-Service docker"
   - "docker info"
   - "docker version"
 
