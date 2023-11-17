@@ -20,7 +20,7 @@ Resources:
     Properties:
       CodeUri: s3://sam-demo-bucket/todo_list.zip
       Handler: index.restapi
-      Runtime: nodejs12.x
+      Runtime: nodejs18.x
       Policies: AmazonDynamoDBFullAccess
       Events:
         Basic: # integration exists
