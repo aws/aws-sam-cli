@@ -76,6 +76,8 @@ install:
   - "choco upgrade docker-engine"
   - sc config docker binpath= "\"C:\Program Files\docker\dockerd.exe\" --run-service -H tcp://0.0.0.0:2375"
   - ps: "Restart-Service docker"
+  # Switch to Docker Linux containers
+  - ps: Switch-DockerLinux
   - "docker info"
   - "docker version"
 
@@ -88,9 +90,6 @@ install:
 
   # Install AWS CLI Globally via pip3
   - "pip install awscli"
-
-  # Switch to Docker Linux containers
-  - ps: Switch-DockerLinux
 
   # Check for git executable
   - "git --version"
