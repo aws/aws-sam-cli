@@ -51,7 +51,7 @@ def to_posix_path(code_path):
     )
 
 
-def find_free_port(network_interface: str, start: int=5000, end: int=9000) -> int:
+def find_free_port(network_interface: str, start: int = 5000, end: int = 9000) -> int:
     """
     Utility function which scans through a port range in a randomized manner
     and finds the first free port a socket can bind to.
