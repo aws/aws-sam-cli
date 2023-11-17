@@ -16,5 +16,5 @@ Resources:
             SkillId: amzn1.ask.skill.12345678-1234-1234-1234-123456789
       Handler: index.handler
       MemorySize: 1024
-      Runtime: nodejs12.x
+      Runtime: nodejs18.x
       Timeout: 3

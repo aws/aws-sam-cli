@@ -473,6 +473,7 @@ class SamFunctionProvider(SamBaseProvider):
             function_url_config=resource_properties.get("FunctionUrlConfig"),
             runtime_management_config=resource_properties.get("RuntimeManagementConfig"),
             function_build_info=function_build_info,
+            logging_config=resource_properties.get("LoggingConfig"),
         )
 
     @staticmethod
