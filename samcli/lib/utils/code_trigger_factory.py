@@ -44,7 +44,7 @@ class CodeTriggerFactory(ResourceTypeBasedFactory[CodeResourceTrigger]):  # pyli
         resource_type: str,
         resource: Dict[str, Any],
         on_code_change: Callable,
-        watch_exclude,
+        watch_exclude: List[str],
     ):
         package_type = resource.get("Properties", dict()).get("PackageType", ZIP)
         if package_type == ZIP:
@@ -59,7 +59,7 @@ class CodeTriggerFactory(ResourceTypeBasedFactory[CodeResourceTrigger]):  # pyli
         resource_type: str,
         resource: Dict[str, Any],
         on_code_change: Callable,
-        watch_exclude,
+        watch_exclude: List[str],
     ):
         return LambdaLayerCodeTrigger(resource_identifier, self._stacks, self.base_dir, on_code_change, watch_exclude)
 
@@ -69,12 +69,13 @@ class CodeTriggerFactory(ResourceTypeBasedFactory[CodeResourceTrigger]):  # pyli
         resource_type: str,
         resource: Dict[str, Any],
         on_code_change: Callable,
-        watch_exclude,
+        watch_exclude: List[str],
     ):
         return DefinitionCodeTrigger(resource_identifier, resource_type, self._stacks, self.base_dir, on_code_change)
 
     GeneratorFunction = Callable[
-        ["CodeTriggerFactory", ResourceIdentifier, str, Dict[str, Any], Callable], Optional[CodeResourceTrigger]
+        ["CodeTriggerFactory", ResourceIdentifier, str, Dict[str, Any], Callable, List[str]],
+        Optional[CodeResourceTrigger],
     ]
     GENERATOR_MAPPING: Dict[str, GeneratorFunction] = {
         AWS_LAMBDA_FUNCTION: _create_lambda_trigger,

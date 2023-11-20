@@ -135,7 +135,7 @@ class WatchManager:
         resource_ids = get_all_resource_ids(self._stacks)
         for resource_id in resource_ids:
             try:
-                additional_excludes = self._watch_exclude.get(resource_id, [])
+                additional_excludes = self._watch_exclude.get(resource_id.resource_iac_id, [])
                 trigger = self._trigger_factory.create_trigger(
                     resource_id, self._on_code_change_wrapper(resource_id), additional_excludes
                 )

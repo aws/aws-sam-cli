@@ -17,7 +17,6 @@ from samcli.commands._utils.constants import (
     DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER,
     DEFAULT_CACHE_DIR,
 )
-from samcli.commands._utils.custom_options.option_nargs import OptionNargs
 from samcli.commands._utils.custom_options.replace_help_option import ReplaceHelpSummaryOption
 from samcli.commands._utils.option_value_processor import process_image_options
 from samcli.commands._utils.options import (
@@ -105,33 +104,30 @@ SHORT_HELP = "Sync an AWS SAM project to AWS."
 DEFAULT_TEMPLATE_NAME = "template.yaml"
 DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 
+WATCH_EXCLUDE_EXPECTED_KEY_VALUE = 2
+WATCH_EXCLUDE_DELIMITER = "="
 
-class WatchExcludeType(click.ParamType):
-    name = "list,string"
 
-    EXPECTED_KEY_VALUE_LENGTH = 2
-    DELIMITER = "="
+def parse_exclude_mapping(ctx: click.Context, param: click.Option, values: Tuple[str]) -> Dict[str, List[str]]:
+    """
+    TODO: write doc string
+    """
+    resource_exclude_mappings: Dict[str, List[str]] = {}
 
-    def convert(self, values: List[str], param: OptionNargs, ctx: click.Context) -> Dict[str, List[str]]:
-        """
-        TODO: write doc string
-        """
-        resource_exclude_mappings: Dict[str, List[str]] = {}
+    for exclude in values:
+        mapping_pair = exclude.split(WATCH_EXCLUDE_DELIMITER)
 
-        for exclude in values:
-            mapping_pair = exclude.split(self.DELIMITER)
+        if len(mapping_pair) != WATCH_EXCLUDE_EXPECTED_KEY_VALUE:
+            raise
 
-            if len(mapping_pair) != self.EXPECTED_KEY_VALUE_LENGTH:
-                return
+        resource_id, excluded_path = mapping_pair
 
-            resource_id, excluded_path = mapping_pair
+        current_excludes = resource_exclude_mappings.get(resource_id, [])
+        current_excludes.append(excluded_path)
 
-            current_excludes = resource_exclude_mappings.get(resource_id, [])
-            current_excludes.append(excluded_path)
+        resource_exclude_mappings[resource_id] = current_excludes
 
-            resource_exclude_mappings[resource_id] = current_excludes
-
-        return resource_exclude_mappings
+    return resource_exclude_mappings
 
 
 # TODO(sriram-mv): Move context settings to be global such as width.
@@ -185,7 +181,9 @@ class WatchExcludeType(click.ParamType):
     help="This option will skip the initial infrastructure deployment if it is not required"
     " by comparing the local template with the template deployed in cloud.",
 )
-@click.option("--watch-exclude", help="TODO: write help text", cls=OptionNargs, type=WatchExcludeType())
+@click.option(
+    "--watch-exclude", help="TODO: write help text", multiple=True, type=click.STRING, callback=parse_exclude_mapping
+)
 @stack_name_option(required=True)  # pylint: disable=E1120
 @base_dir_option
 @use_container_build_option

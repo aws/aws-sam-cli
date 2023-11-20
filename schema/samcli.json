@@ -1575,14 +1575,8 @@
                 },
                 "watch_exclude": {
                   "title": "watch_exclude",
-                  "type": [
-                    "array",
-                    "string"
-                  ],
-                  "description": "TODO: write help text",
-                  "items": {
-                    "type": "string"
-                  }
+                  "type": "string",
+                  "description": "TODO: write help text"
                 },
                 "stack_name": {
                   "title": "stack_name",

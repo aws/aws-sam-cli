@@ -1012,6 +1012,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "samconfig.toml",
                 "default",
                 False,
+                {},
             )
 
 

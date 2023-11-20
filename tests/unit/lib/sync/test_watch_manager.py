@@ -32,6 +32,7 @@ class TestWatchManager(TestCase):
             self.sync_context,
             False,
             False,
+            {},
         )
 
     def tearDown(self) -> None:
@@ -92,8 +93,8 @@ class TestWatchManager(TestCase):
 
         self.watch_manager._add_code_triggers()
 
-        trigger_factory.create_trigger.assert_any_call(resource_ids[0], on_code_change_wrapper_mock.return_value)
-        trigger_factory.create_trigger.assert_any_call(resource_ids[1], on_code_change_wrapper_mock.return_value)
+        trigger_factory.create_trigger.assert_any_call(resource_ids[0], on_code_change_wrapper_mock.return_value, [])
+        trigger_factory.create_trigger.assert_any_call(resource_ids[1], on_code_change_wrapper_mock.return_value, [])
 
         on_code_change_wrapper_mock.assert_any_call(resource_ids[0])
         on_code_change_wrapper_mock.assert_any_call(resource_ids[1])

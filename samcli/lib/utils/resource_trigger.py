@@ -183,9 +183,9 @@ class CodeResourceTrigger(ResourceTrigger):
         self._on_code_change = on_code_change
         self.base_dir = base_dir
 
-        # TODO: format `additional_ignores` items as regex
-        additional_ignores = watch_exclude or []
-        self._watch_exclude = [*DEFAULT_WATCH_IGNORED_RESOURCES, *additional_ignores]
+        self._watch_exclude = [*DEFAULT_WATCH_IGNORED_RESOURCES]
+        for exclude in watch_exclude or []:
+            self._watch_exclude.append(f"^.*{exclude}.*$")
 
 
 class LambdaFunctionCodeTrigger(CodeResourceTrigger):
