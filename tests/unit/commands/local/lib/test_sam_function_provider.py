@@ -1530,7 +1530,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
 
     def test_must_skip_non_existent_properties(self):
         name = "myname"
-        properties = {"CodeUri": "/usr/local"}
+        properties = {"CodeUri": "/usr/local", "Handler": "FakeHandler"}
 
         expected = Function(
             function_id="myname",
@@ -1539,7 +1539,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             runtime=None,
             memory=None,
             timeout=None,
-            handler=None,
+            handler="FakeHandler",
             codeuri="/usr/local",
             environment=None,
             rolearn=None,
@@ -1563,7 +1563,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
 
     def test_must_default_missing_code_uri(self):
         name = "myname"
-        properties = {"Runtime": "myruntime"}
+        properties = {"Runtime": "myruntime", "Handler": "FakeHandler"}
 
         result = SamFunctionProvider._convert_sam_function_resource(STACK, name, properties, [])
         self.assertEqual(result.codeuri, ".")  # Default value
@@ -1655,7 +1655,8 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             "CodeUri": {
                 # CodeUri is some dictionary
                 "a": "b"
-            }
+            },
+            "Handler": "FakeHandler",
         }
 
         result = SamFunctionProvider._convert_sam_function_resource(STACK, name, properties, [])
@@ -1748,7 +1749,7 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
 
     def test_must_skip_non_existent_properties(self):
         name = "myname"
-        properties = {"Code": {"Bucket": "bucket"}}
+        properties = {"Code": {"Bucket": "bucket"}, "Handler": "FakeHandler"}
 
         expected = Function(
             function_id="myname",
@@ -1757,7 +1758,7 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
             runtime=None,
             memory=None,
             timeout=None,
-            handler=None,
+            handler="FakeHandler",
             codeuri=".",
             environment=None,
             rolearn=None,
