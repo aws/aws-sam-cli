@@ -36,40 +36,106 @@ class TestRemoteInvokeCommand(unittest.TestCase):
         expected_output = {
             "Description": [(cmd.description + cmd.description_addendum, "")],
             "Examples": [],
+            "Lambda Functions": [],
             "Invoke default lambda function with empty event": [
-                ("", ""),
                 ("$sam remote invoke --stack-name hello-world\x1b[0m", ""),
             ],
             "Invoke default lambda function with event passed as text input": [
-                ("", ""),
                 ('$sam remote invoke --stack-name hello-world -e \'{"message": "hello!"}\'\x1b[0m', ""),
             ],
             "Invoke named lambda function with an event file": [
-                ("", ""),
                 ("$sam remote invoke --stack-name hello-world HelloWorldFunction --event-file event.json\x1b[0m", ""),
             ],
-            "Invoke lambda function with event as stdin input": [
-                ("", ""),
+            "Invoke function with event as stdin input": [
                 ('$ echo \'{"message": "hello!"}\' | sam remote invoke HelloWorldFunction --event-file -\x1b[0m', ""),
             ],
-            "Invoke lambda function using lambda ARN and get the full AWS API response": [
-                ("", ""),
+            "Invoke function using lambda ARN and get the full AWS API response": [
                 (
                     "$sam remote invoke arn:aws:lambda:us-west-2:123456789012:function:my-function -e <> --output json\x1b[0m",
                     "",
                 ),
             ],
-            "Asynchronously invoke lambda function with additional boto parameters": [
-                ("", ""),
+            "Asynchronously invoke function with additional boto parameters": [
                 (
                     "$sam remote invoke HelloWorldFunction -e <> --parameter InvocationType=Event --parameter Qualifier=MyQualifier\x1b[0m",
                     "",
                 ),
             ],
-            "Dry invoke a lambda function to validate parameter values and user/role permissions": [
-                ("", ""),
+            "Dry invoke a function to validate parameter values and user/role permissions": [
                 (
                     "$sam remote invoke HelloWorldFunction -e <> --output json --parameter InvocationType=DryRun\x1b[0m",
+                    "",
+                ),
+            ],
+            "Step Functions": [],
+            "Start execution with event passed as text input": [
+                (
+                    '$sam remote invoke --stack-name mock-stack StockTradingStateMachine -e \'{"message": "hello!"}\'\x1b[0m',
+                    "",
+                ),
+            ],
+            "Start execution using its physical-id or ARN with an execution name parameter": [
+                (
+                    "$sam remote invoke arn:aws:states:us-east-1:123456789012:stateMachine:MySFN -e <> --parameter name=mock-execution-name\x1b[0m",
+                    "",
+                ),
+            ],
+            "Start execution with an event file and get the full AWS API response": [
+                (
+                    "$sam remote invoke --stack-name mock-stack StockTradingStateMachine --event-file event.json --output json\x1b[0m",
+                    "",
+                ),
+            ],
+            "Start execution with event as stdin input and pass the X-ray trace header to the execution": [
+                (
+                    '$ echo \'{"message": "hello!"}\' | $sam remote invoke --stack-name mock-stack StockTradingStateMachine --parameter traceHeader=<>\x1b[0m',
+                    "",
+                ),
+            ],
+            "SQS Queue": [],
+            "Send a message with the MessageBody passed as event": [
+                ("$sam remote invoke --stack-name mock-stack MySQSQueue -e hello-world\x1b[0m", ""),
+            ],
+            "Send a message using its physical-id and pass event using --event-file": [
+                (
+                    "$sam remote invoke https://sqs.us-east-1.amazonaws.com/12345678910/QueueName --event-file event.json\x1b[0m",
+                    "",
+                ),
+            ],
+            "Send a message using its ARN and delay the specified message": [
+                (
+                    "$sam remote invoke arn:aws:sqs:region:account_id:queue_name -e hello-world --parameter DelaySeconds=10\x1b[0m",
+                    "",
+                ),
+            ],
+            "Send a message along with message attributes and get the full AWS API response": [
+                (
+                    '$sam remote invoke --stack-name mock-stack MySQSQueue -e hello-world --output json --parameter MessageAttributes=\'{"City": {"DataType": "String", "StringValue": "City"}}\'\x1b[0m',
+                    "",
+                ),
+            ],
+            "Send a message to a FIFO SQS Queue": [
+                (
+                    "$sam remote invoke --stack-name mock-stack MySQSQueue -e hello-world --parameter MessageGroupId=mock-message-group --parameter MessageDeduplicationId=mock-dedup-id\x1b[0m",
+                    "",
+                ),
+            ],
+            "Kinesis Data Stream": [],
+            "Put a record using the data provided as event": [
+                ('$sam remote invoke --stack-name mock-stack MyKinesisStream -e \'{"message": "hello!"}\'\x1b[0m', ""),
+            ],
+            "Put a record using its physical-id and pass event using --event-file": [
+                ("$sam remote invoke MyKinesisStreamName --event-file event.json\x1b[0m", ""),
+            ],
+            "Put a record using its ARN and override the key hash": [
+                (
+                    "$sam remote invoke arn:aws:kinesis:us-east-2:123456789012:stream/mystream --event-file event.json --parameter ExplicitHashKey=<>\x1b[0m",
+                    "",
+                ),
+            ],
+            "Put a record with a sequence number for ordering with a PartitionKey": [
+                (
+                    "$sam remote invoke MyKinesisStreamName --event hello-world --parameter SequenceNumberForOrdering=<> --parameter PartitionKey=<>\x1b[0m",
                     "",
                 ),
             ],

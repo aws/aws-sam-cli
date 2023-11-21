@@ -8,7 +8,6 @@ import samcli.vendor.serverlessrepo.parser as parser
 
 
 class TestParser(TestCase):
-
     yaml_with_tags = """
     Resource:
         Key1: !Ref Something

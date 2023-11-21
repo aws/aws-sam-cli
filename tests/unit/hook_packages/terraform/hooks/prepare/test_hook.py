@@ -85,13 +85,15 @@ class TestPrepareHook(PrepareHookUnitBase):
                     command_args={
                         "args": ["terraform", "init", "-input=false"],
                         "cwd": "iac/project/path",
-                    }
+                    },
+                    is_running_terraform_command=True,
                 ),
                 call(
                     command_args={
                         "args": ["terraform", "plan", "-out", tf_plan_filename, "-input=false"],
                         "cwd": "iac/project/path",
-                    }
+                    },
+                    is_running_terraform_command=True,
                 ),
             ]
         )
@@ -176,13 +178,15 @@ class TestPrepareHook(PrepareHookUnitBase):
                     command_args={
                         "args": ["terraform", "init", "-input=false"],
                         "cwd": "iac/project/path",
-                    }
+                    },
+                    is_running_terraform_command=True,
                 ),
                 call(
                     command_args={
                         "args": ["terraform", "plan", "-out", tf_plan_filename, "-input=false"],
                         "cwd": "iac/project/path",
-                    }
+                    },
+                    is_running_terraform_command=True,
                 ),
             ]
         )
@@ -272,13 +276,15 @@ class TestPrepareHook(PrepareHookUnitBase):
                     command_args={
                         "args": ["terraform", "init", "-input=false"],
                         "cwd": "/current/dir/iac/project/path",
-                    }
+                    },
+                    is_running_terraform_command=True,
                 ),
                 call(
                     command_args={
                         "args": ["terraform", "plan", "-out", tf_plan_filename, "-input=false"],
                         "cwd": "/current/dir/iac/project/path",
-                    }
+                    },
+                    is_running_terraform_command=True,
                 ),
             ]
         )

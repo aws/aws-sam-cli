@@ -254,6 +254,126 @@ class GatewayMethodToGatewayAuthorizerLocalVariablesLinkingLimitationException(
     """
 
 
+class OneGatewayV2RouteToGatewayV2IntegrationLinkingLimitationException(OneResourceLinkingLimitationException):
+    """
+    Exception specific for Gateway V2 Route linking to more than one Gateway V2 Integration
+    """
+
+
+class GatewayV2RouteToGatewayV2IntegrationLocalVariablesLinkingLimitationException(
+    LocalVariablesLinkingLimitationException
+):
+    """
+    Exception specific for Gateway V2 Route linking to Gateway V2 Integration using locals.
+    """
+
+
+class OneGatewayV2IntegrationToLambdaFunctionLinkingLimitationException(OneResourceLinkingLimitationException):
+    """
+    Exception specific for Gateway V2 Integration linking to more than one Lambda function
+    """
+
+
+class GatewayV2IntegrationToLambdaFunctionLocalVariablesLinkingLimitationException(
+    LocalVariablesLinkingLimitationException
+):
+    """
+    Exception specific for Gateway V2 Integration linking to Lambda Function using locals.
+    """
+
+
+class OneGatewayV2IntegrationToGatewayV2ApiLinkingLimitationException(OneResourceLinkingLimitationException):
+    """
+    Exception specific for Gateway V2 Integration linking to more than one Gateway V2 API
+    """
+
+
+class GatewayV2IntegrationToGatewayV2ApiLocalVariablesLinkingLimitationException(
+    LocalVariablesLinkingLimitationException
+):
+    """
+    Exception specific for Gateway V2 Integration linking to Gateway V2 API using locals.
+    """
+
+
+class OneGatewayV2RouteToGatewayV2ApiLinkingLimitationException(OneResourceLinkingLimitationException):
+    """
+    Exception specific for Gateway V2 Route linking to more than one Gateway V2 API
+    """
+
+
+class GatewayV2RouteToGatewayV2ApiLocalVariablesLinkingLimitationException(LocalVariablesLinkingLimitationException):
+    """
+    Exception specific for Gateway V2 Route linking to Gateway V2 API using locals.
+    """
+
+
+class OneGatewayV2AuthorizerToLambdaFunctionLinkingLimitationException(OneResourceLinkingLimitationException):
+    """
+    Exception specific for Gateway V2 Authorizer linking to more than one Lambda Function
+    """
+
+
+class GatewayV2AuthorizerToLambdaFunctionLocalVariablesLinkingLimitationException(
+    LocalVariablesLinkingLimitationException
+):
+    """
+    Exception specific for Gateway V2 Authorizer linking to Lambda Function using locals.
+    """
+
+
+class OneGatewayV2AuthorizerToGatewayV2ApiLinkingLimitationException(OneResourceLinkingLimitationException):
+    """
+    Exception specific for Gateway V2 Authorizer linking to more than one Gateway V2 API
+    """
+
+
+class GatewayV2AuthorizerToGatewayV2ApiLocalVariablesLinkingLimitationException(
+    LocalVariablesLinkingLimitationException
+):
+    """
+    Exception specific for Gateway V2 Authorizer linking to Gateway V2 API using locals.
+    """
+
+
+class OneGatewayV2ApiToLambdaFunctionLinkingLimitationException(OneResourceLinkingLimitationException):
+    """
+    Exception specific for Gateway V2 API linking to more than one Lambda Function
+    """
+
+
+class GatewayV2ApiToLambdaFunctionLocalVariablesLinkingLimitationException(LocalVariablesLinkingLimitationException):
+    """
+    Exception specific for Gateway V2 API linking to Lambda Function using locals.
+    """
+
+
+class OneGatewayV2StageToGatewayV2ApiLinkingLimitationException(OneResourceLinkingLimitationException):
+    """
+    Exception specific for Gateway V2 Stage linking to more than one Gateway V2 API
+    """
+
+
+class GatewayV2StageToGatewayV2ApiLocalVariablesLinkingLimitationException(LocalVariablesLinkingLimitationException):
+    """
+    Exception specific for Gateway V2 Stage linking to Gateway V2 API using locals.
+    """
+
+
+class OneGatewayV2RouteToGatewayV2AuthorizerLinkingLimitationException(OneResourceLinkingLimitationException):
+    """
+    Exception specific for Gateway V2 Route linking to more than one Gateway V2 Authorizer
+    """
+
+
+class GatewayV2RouteToGatewayV2AuthorizerLocalVariablesLinkingLimitationException(
+    LocalVariablesLinkingLimitationException
+):
+    """
+    Exception specific for Gateway V2 Route linking to Gateway V2 Authorizer using locals.
+    """
+
+
 class InvalidSamMetadataPropertiesException(UserException):
     pass
 

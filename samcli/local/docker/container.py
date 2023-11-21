@@ -321,7 +321,7 @@ class Container:
             raise ex
 
     @retry(exc=requests.exceptions.RequestException, exc_raise=ContainerResponseException)
-    def wait_for_http_response(self, name, event, stdout) -> str:
+    def wait_for_http_response(self, name, event, stdout) -> Union[str, bytes]:
         # TODO(sriram-mv): `aws-lambda-rie` is in a mode where the function_name is always "function"
         # NOTE(sriram-mv): There is a connection timeout set on the http call to `aws-lambda-rie`, however there is not
         # a read time out for the response received from the server.
@@ -331,7 +331,11 @@ class Container:
             data=event.encode("utf-8"),
             timeout=(self.RAPID_CONNECTION_TIMEOUT, None),
         )
-        return json.dumps(json.loads(resp.content), ensure_ascii=False) if resp.content else ""
+        try:
+            return json.dumps(json.loads(resp.content), ensure_ascii=False)
+        except json.JSONDecodeError:
+            LOG.debug("Failed to deserialize response from RIE, returning the raw response as is")
+            return resp.content
 
     def wait_for_result(self, full_path, event, stdout, stderr, start_timer=None):
         # NOTE(sriram-mv): Let logging happen in its own thread, so that a http request can be sent.
@@ -358,8 +362,13 @@ class Container:
         # NOTE(jfuss): Adding a sleep after we get a response from the contianer but before we
         # we write the response to ensure the last thing written to stdout is the container response
         time.sleep(1)
-        stdout.write_str(response)
+        if isinstance(response, str):
+            stdout.write_str(response)
+        elif isinstance(response, bytes):
+            stdout.write_str(response.decode("utf-8"))
         stdout.flush()
+        stderr.write_str("\n")
+        stderr.flush()
 
     def wait_for_logs(
         self,
@@ -460,15 +469,20 @@ class Container:
 
     @staticmethod
     def _handle_data_writing(output_stream: Union[StreamWriter, io.BytesIO, io.TextIOWrapper], output_data: bytes):
+        # Decode the output and strip the string of carriage return characters. Stack traces are returned
+        # with carriage returns from the RIE. If these are left in the string then only the last line after
+        # the carriage return will be printed instead of the entire stack trace. Encode the string after cleaning
+        # to be printed by the correct output stream
+        output_str = output_data.decode("utf-8").replace("\r", os.linesep)
         if isinstance(output_stream, StreamWriter):
-            output_stream.write_bytes(output_data)
+            output_stream.write_str(output_str)
             output_stream.flush()
 
         if isinstance(output_stream, io.BytesIO):
-            output_stream.write(output_data)
+            output_stream.write(output_str.encode("utf-8"))
 
         if isinstance(output_stream, io.TextIOWrapper):
-            output_stream.buffer.write(output_data)
+            output_stream.buffer.write(output_str.encode("utf-8"))
 
     @property
     def network_id(self):

@@ -6,10 +6,9 @@ import logging
 
 import click
 
-from samcli.cli.cli_config_file import ConfigProvider, configuration_option
+from samcli.cli.cli_config_file import ConfigProvider, configuration_option, save_params_option
 from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
 from samcli.cli.main import common_options as cli_framework_options
-from samcli.commands._utils.experimental import ExperimentalFlag, is_experimental_enabled
 from samcli.commands._utils.option_value_processor import process_image_options
 from samcli.commands._utils.options import (
     generate_next_command_recommendation,
@@ -72,11 +71,18 @@ DESCRIPTION = """
     default="public",
     help="Any static assets (e.g. CSS/Javascript/HTML) files located in this directory " "will be presented at /",
 )
+@click.option(
+    "--disable-authorizer",
+    is_flag=True,
+    default=False,
+    help="Disable custom Lambda Authorizers from being parsed and invoked.",
+)
 @invoke_common_options
 @warm_containers_common_options
 @local_common_options
 @cli_framework_options
 @aws_creds_options  # pylint: disable=R0914
+@save_params_option
 @pass_context
 @track_command
 @check_newer_version
@@ -87,6 +93,7 @@ def cli(
     host,
     port,
     static_dir,
+    disable_authorizer,
     # Common Options for Lambda Invoke
     template_file,
     env_vars,
@@ -101,6 +108,7 @@ def cli(
     skip_pull_image,
     force_image_build,
     parameter_overrides,
+    save_params,
     config_file,
     config_env,
     warm_containers,
@@ -122,6 +130,7 @@ def cli(
         ctx,
         host,
         port,
+        disable_authorizer,
         static_dir,
         template_file,
         env_vars,
@@ -150,6 +159,7 @@ def do_cli(  # pylint: disable=R0914
     ctx,
     host,
     port,
+    disable_authorizer,
     static_dir,
     template,
     env_vars,
@@ -186,14 +196,6 @@ def do_cli(  # pylint: disable=R0914
 
     LOG.debug("local start-api command is called")
 
-    if (
-        hook_name
-        and ExperimentalFlag.IaCsSupport.get(hook_name) is not None
-        and not is_experimental_enabled(ExperimentalFlag.IaCsSupport.get(hook_name))
-    ):
-        LOG.info("Terraform Support beta feature is not enabled.")
-        return
-
     processed_invoke_images = process_image_options(invoke_image)
 
     # Pass all inputs to setup necessary context to invoke function locally.
@@ -224,7 +226,13 @@ def do_cli(  # pylint: disable=R0914
             container_host_interface=container_host_interface,
             invoke_images=processed_invoke_images,
         ) as invoke_context:
-            service = LocalApiService(lambda_invoke_context=invoke_context, port=port, host=host, static_dir=static_dir)
+            service = LocalApiService(
+                lambda_invoke_context=invoke_context,
+                port=port,
+                host=host,
+                static_dir=static_dir,
+                disable_authorizer=disable_authorizer,
+            )
             service.start()
             if not hook_name:
                 command_suggestions = generate_next_command_recommendation(

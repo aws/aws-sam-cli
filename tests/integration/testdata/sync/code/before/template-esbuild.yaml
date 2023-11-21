@@ -16,7 +16,7 @@ Resources:
     Properties:
       CodeUri: !Ref CodeUri
       Handler: app.lambdaHandler
-      Runtime: nodejs16.x
+      Runtime: nodejs18.x
     Metadata:
       BuildMethod: esbuild
       BuildProperties:

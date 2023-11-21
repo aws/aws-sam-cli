@@ -36,21 +36,25 @@ class Runtime(Enum):
     nodejs14x = "nodejs14.x"
     nodejs16x = "nodejs16.x"
     nodejs18x = "nodejs18.x"
+    nodejs20x = "nodejs20.x"
     python37 = "python3.7"
     python38 = "python3.8"
     python39 = "python3.9"
     python310 = "python3.10"
     python311 = "python3.11"
+    python312 = "python3.12"
     ruby27 = "ruby2.7"
     ruby32 = "ruby3.2"
     java8 = "java8"
     java8al2 = "java8.al2"
     java11 = "java11"
     java17 = "java17"
+    java21 = "java21"
     go1x = "go1.x"
     dotnet6 = "dotnet6"
     provided = "provided"
     providedal2 = "provided.al2"
+    providedal2023 = "provided.al2023"
 
     @classmethod
     def has_value(cls, value):
@@ -168,6 +172,11 @@ class LambdaImage:
                 runtime_only_number = re.split("[:-]", runtime_image_tag)[1]
                 tag_prefix = f"{runtime_only_number}-"
                 base_image = f"{self._INVOKE_REPO_PREFIX}/{runtime_image_tag}"
+
+                # Temporarily add a version tag to the emulation image so that we don't pull a broken image
+                if platform.system().lower() == "windows" and runtime in [Runtime.go1x.value, Runtime.java8.value]:
+                    LOG.info("Falling back to a previous version of the emulation image")
+                    base_image = f"{base_image}.2023.08.02.10"
 
         if not base_image:
             raise InvalidIntermediateImageError(f"Invalid PackageType, PackageType needs to be one of [{ZIP}, {IMAGE}]")
