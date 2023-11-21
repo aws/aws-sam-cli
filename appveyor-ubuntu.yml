@@ -33,11 +33,6 @@ install:
   # AppVeyor's apt-get cache might be outdated, and the package could potentially be 404.
   - sh: "sudo apt-get update --allow-releaseinfo-change"
 
-  # install jdk8 since it is not available in Ubuntu2204 image
-  - sh: wget -O - https://apt.corretto.aws/corretto.key | sudo gpg --dearmor -o /usr/share/keyrings/corretto-keyring.gpg
-  - sh: echo "deb [signed-by=/usr/share/keyrings/corretto-keyring.gpg] https://apt.corretto.aws stable main" | sudo tee /etc/apt/sources.list.d/corretto.list
-  - sh: sudo apt-get update; sudo apt-get install -y java-1.8.0-amazon-corretto-jdk
-
   # install coretto 21
   - sh: wget -O - https://apt.corretto.aws/corretto.key | sudo gpg --dearmor -o /usr/share/keyrings/corretto-keyring.gpg
   - sh: echo "deb [signed-by=/usr/share/keyrings/corretto-keyring.gpg] https://apt.corretto.aws stable main" | sudo tee /etc/apt/sources.list.d/corretto.list
