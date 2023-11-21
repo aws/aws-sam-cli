@@ -446,7 +446,9 @@ class SamFunctionProvider(SamBaseProvider):
             codeuri = SamLocalStackProvider.normalize_resource_path(stack.location, codeuri)
 
         package_type = resource_properties.get("PackageType", ZIP)
-        if package_type == ZIP and resource_properties.get("Handler") is None:
+        if package_type == ZIP and (
+            resource_properties.get("Handler") is None or resource_properties.get("Handler") == ""
+        ):
             raise MissingFunctionHandlerException(f"Could not find handler for function: {name}")
 
         function_build_info = get_function_build_info(

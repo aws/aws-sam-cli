@@ -4,6 +4,7 @@ from unittest import TestCase
 from unittest.mock import patch, PropertyMock, Mock, call
 
 from parameterized import parameterized
+from samcli.lib.build.exceptions import MissingFunctionHandlerException
 
 from samcli.lib.utils.architecture import X86_64, ARM64
 
@@ -1779,6 +1780,23 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
         result = SamFunctionProvider._convert_lambda_function_resource(STACK, name, properties, [])
 
         self.assertEqual(expected, result)
+
+
+class TestSamFunctionProvider_build_function_configuration(TestCase):
+    def test_must_convert(self):
+        name = "myname"
+        id = "id"
+        properties = {
+            "Code": {"Bucket": "bucket"},
+            "Runtime": "myruntime",
+            "MemorySize": "mymemorysize",
+            "Timeout": "30",
+            "Environment": "myenvironment",
+            "Role": "myrole",
+            "Layers": ["Layer1", "Layer2"],
+        }
+        with self.assertRaises(MissingFunctionHandlerException):
+            SamFunctionProvider._build_function_configuration(STACK, id, name, None, properties, [], None, None, False)
 
 
 class TestSamFunctionProvider_parse_layer_info(TestCase):
