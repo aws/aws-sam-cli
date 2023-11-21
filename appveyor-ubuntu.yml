@@ -1,6 +1,6 @@
 version: 1.0.{build}
 image: 
-  - Ubuntu2004
+  - Ubuntu2204
 
 configuration:
   - BuildIntegTesting
@@ -41,14 +41,6 @@ install:
   - sh: PATH=$JAVA_HOME/bin:$PATH
   - sh: java --version
   - sh: javac --version
-
-  # install Python3.12
-  - sh: sudo add-apt-repository ppa:deadsnakes/ppa
-  - sh: sudo apt update; sudo apt install -y python3.12 python3.12-venv python3.12-distutils
-  - sh: python3.12 -V
-  - sh: python3.12 -m venv $HOME/venv3.12
-  - sh: $HOME/venv3.12/bin/python -V
-  - sh: curl -sS https://bootstrap.pypa.io/get-pip.py | $HOME/venv3.12/bin/python
 
   - sh: "gvm use go1.19"
   - sh: "echo $PATH"
