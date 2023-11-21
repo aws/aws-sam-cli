@@ -11,7 +11,7 @@ Resources:
     Properties:
       Description: Serverless web application for uploading files to S3
       Handler: src/index.handler
-      Runtime: nodejs10.x
+      Runtime: nodejs18.x
       CodeUri:
         Bucket: <%REPO_BUCKET%>
         Key: 63450f0c-68e6-4fe5-98e4-ca1adde7512c
