@@ -15,6 +15,11 @@ from samcli.hook_packages.terraform.hooks.prepare.constants import (
     TF_AWS_API_GATEWAY_RESOURCE,
     TF_AWS_API_GATEWAY_REST_API,
     TF_AWS_API_GATEWAY_STAGE,
+    TF_AWS_API_GATEWAY_V2_API,
+    TF_AWS_API_GATEWAY_V2_AUTHORIZER,
+    TF_AWS_API_GATEWAY_V2_INTEGRATION,
+    TF_AWS_API_GATEWAY_V2_ROUTE,
+    TF_AWS_API_GATEWAY_V2_STAGE,
     TF_AWS_LAMBDA_FUNCTION,
     TF_AWS_LAMBDA_LAYER_VERSION,
 )
@@ -36,6 +41,11 @@ from samcli.lib.utils.resources import AWS_APIGATEWAY_METHOD as CFN_AWS_APIGATEW
 from samcli.lib.utils.resources import AWS_APIGATEWAY_RESOURCE as CFN_AWS_APIGATEWAY_RESOURCE
 from samcli.lib.utils.resources import AWS_APIGATEWAY_RESTAPI as CFN_AWS_APIGATEWAY_RESTAPI
 from samcli.lib.utils.resources import AWS_APIGATEWAY_STAGE as CFN_AWS_APIGATEWAY_STAGE
+from samcli.lib.utils.resources import AWS_APIGATEWAY_V2_API as CFN_AWS_APIGATEWAY_V2_API
+from samcli.lib.utils.resources import AWS_APIGATEWAY_V2_AUTHORIZER as CFN_AWS_APIGATEWAY_V2_AUTHORIZER
+from samcli.lib.utils.resources import AWS_APIGATEWAY_V2_INTEGRATION as CFN_AWS_APIGATEWAY_V2_INTEGRATION
+from samcli.lib.utils.resources import AWS_APIGATEWAY_V2_ROUTE as CFN_AWS_APIGATEWAY_V2_ROUTE
+from samcli.lib.utils.resources import AWS_APIGATEWAY_V2_STAGE as CFN_AWS_APIGATEWAY_V2_STAGE
 from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION
 from samcli.lib.utils.resources import AWS_LAMBDA_LAYERVERSION as CFN_AWS_LAMBDA_LAYER_VERSION
 
@@ -245,6 +255,59 @@ def _get_json_body(tf_properties: dict, resource: TFResource) -> Any:
     return body
 
 
+def _get_cors_v2_api(tf_properties: dict, resource: TFResource) -> Optional[Dict[str, Any]]:
+    """
+    Extract the cors properties from an aws_apigatewayv2_api since they are in a nested property
+    called "cors_configuration" and not in the root of the resource
+
+    e.g.
+    resource "aws_apigatewayv2_api" "my_api" {
+      name           = "my_api"
+      protocol_type  = "HTTP"
+
+      cors_configuration {
+        allow_credentials = true
+        allow_headers     = ["Content-Type"]
+        allow_methods     = ["OPTIONS", "POST", "GET"]
+        allow_origins     = ["my-origin.com"]
+        max_age           = "500"
+      }
+    }
+
+    Parameters
+    ----------
+    tf_properties: dict
+        Properties of the terraform AWS Lambda function resource
+    resource: TFResource
+        Configuration terraform resource
+
+    Returns
+    -------
+    Optional[Dict[str, Any]]
+        Optional dictionary containing the extracted cors properties with CFN property names
+    """
+    cors = tf_properties.get("cors_configuration")
+    if not cors:
+        return None
+
+    extractable_configs = cors[0]
+    cors_configuration = {}
+
+    def _add_property(cfn_prop, tf_prop):
+        property_value = extractable_configs.get(tf_prop)
+        if property_value:
+            cors_configuration[cfn_prop] = property_value
+
+    _add_property("AllowCredentials", "allow_credentials")
+    _add_property("AllowHeaders", "allow_headers")
+    _add_property("AllowMethods", "allow_methods")
+    _add_property("AllowOrigins", "allow_origins")
+    _add_property("ExposeHeaders", "expose_headers")
+    _add_property("MaxAge", "max_age")
+
+    return cors_configuration
+
+
 AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
     "FunctionName": _get_property_extractor("function_name"),
     "Architectures": _get_property_extractor("architectures"),
@@ -320,6 +383,46 @@ AWS_API_GATEWAY_INTEGRATION_RESPONSE_PROPERTY_BUILDER_MAPPING: PropertyBuilderMa
     "ResponseParameters": _get_property_extractor("response_parameters"),
 }
 
+AWS_API_GATEWAY_V2_API_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
+    "Name": _get_property_extractor("name"),
+    "Body": _get_json_body,
+    "Target": _get_property_extractor("target"),
+    "ProtocolType": _get_property_extractor("protocol_type"),
+    "RouteKey": _get_property_extractor("route_key"),
+    "CorsConfiguration": _get_cors_v2_api,
+}
+
+AWS_API_GATEWAY_V2_ROUTE_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
+    "ApiId": _get_property_extractor("api_id"),
+    "RouteKey": _get_property_extractor("route_key"),
+    "Target": _get_property_extractor("target"),
+    "OperationName": _get_property_extractor("operation_name"),
+}
+
+AWS_API_GATEWAY_V2_STAGE_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
+    "ApiId": _get_property_extractor("api_id"),
+    "StageName": _get_property_extractor("name"),
+    "StageVariables": _get_property_extractor("stage_variables"),
+}
+
+AWS_API_GATEWAY_V2_INTEGRATION_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
+    "ApiId": _get_property_extractor("api_id"),
+    "IntegrationType": _get_property_extractor("integration_type"),
+    "IntegrationMethod": _get_property_extractor("integration_method"),
+    "IntegrationUri": _get_property_extractor("integration_uri"),
+    "PayloadFormatVersion": _get_property_extractor("payload_format_version"),
+}
+
+AWS_API_GATEWAY_V2_AUTHORIZER_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
+    "ApiId": _get_property_extractor("api_id"),
+    "AuthorizerType": _get_property_extractor("authorizer_type"),
+    "AuthorizerUri": _get_property_extractor("authorizer_uri"),
+    "Name": _get_property_extractor("name"),
+    "AuthorizerPayloadFormatVersion": _get_property_extractor("authorizer_payload_format_version"),
+    "IdentitySource": _get_property_extractor("identity_sources"),
+    "EnableSimpleResponses": _get_property_extractor("enable_simple_responses"),
+}
+
 RESOURCE_TRANSLATOR_MAPPING: Dict[str, ResourceTranslator] = {
     TF_AWS_LAMBDA_FUNCTION: ResourceTranslator(CFN_AWS_LAMBDA_FUNCTION, AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING),
     TF_AWS_LAMBDA_LAYER_VERSION: ResourceTranslator(
@@ -345,5 +448,20 @@ RESOURCE_TRANSLATOR_MAPPING: Dict[str, ResourceTranslator] = {
     ),
     TF_AWS_API_GATEWAY_INTEGRATION_RESPONSE: ResourceTranslator(
         INTERNAL_API_GATEWAY_INTEGRATION_RESPONSE, AWS_API_GATEWAY_INTEGRATION_RESPONSE_PROPERTY_BUILDER_MAPPING
+    ),
+    TF_AWS_API_GATEWAY_V2_API: ResourceTranslator(
+        CFN_AWS_APIGATEWAY_V2_API, AWS_API_GATEWAY_V2_API_PROPERTY_BUILDER_MAPPING
+    ),
+    TF_AWS_API_GATEWAY_V2_ROUTE: ResourceTranslator(
+        CFN_AWS_APIGATEWAY_V2_ROUTE, AWS_API_GATEWAY_V2_ROUTE_PROPERTY_BUILDER_MAPPING
+    ),
+    TF_AWS_API_GATEWAY_V2_STAGE: ResourceTranslator(
+        CFN_AWS_APIGATEWAY_V2_STAGE, AWS_API_GATEWAY_V2_STAGE_PROPERTY_BUILDER_MAPPING
+    ),
+    TF_AWS_API_GATEWAY_V2_INTEGRATION: ResourceTranslator(
+        CFN_AWS_APIGATEWAY_V2_INTEGRATION, AWS_API_GATEWAY_V2_INTEGRATION_PROPERTY_BUILDER_MAPPING
+    ),
+    TF_AWS_API_GATEWAY_V2_AUTHORIZER: ResourceTranslator(
+        CFN_AWS_APIGATEWAY_V2_AUTHORIZER, AWS_API_GATEWAY_V2_AUTHORIZER_PROPERTY_BUILDER_MAPPING
     ),
 }

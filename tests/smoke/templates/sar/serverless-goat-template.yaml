@@ -77,7 +77,7 @@ Resources:
       CodeUri:
         Bucket: <%REPO_BUCKET%>
         Key: ab45a1db-fcf2-4ded-b3c0-9097db4019c1
-      Runtime: nodejs10.x
+      Runtime: nodejs18.x
       Events:
         ApiConvert:
           Type: Api
@@ -96,7 +96,7 @@ Resources:
       CodeUri:
         Bucket: <%REPO_BUCKET%>
         Key: 2fd9ca0f-61a7-4c87-9324-8c85b1b4de93
-      Runtime: nodejs10.x
+      Runtime: nodejs18.x
       Events:
         ApiConvert:
           Type: Api

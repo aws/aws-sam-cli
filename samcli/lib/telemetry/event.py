@@ -12,6 +12,7 @@ from uuid import UUID, uuid4
 from samcli.cli.context import Context
 from samcli.lib.build.workflows import ALL_CONFIGS
 from samcli.lib.config.file_manager import FILE_MANAGER_MAPPER
+from samcli.lib.remote_invoke.remote_invoke_executors import RemoteInvokeEventType
 from samcli.lib.telemetry.telemetry import Telemetry
 from samcli.local.common.runtime_template import INIT_RUNTIMES
 
@@ -29,6 +30,7 @@ class EventName(Enum):
     BUILD_WORKFLOW_USED = "BuildWorkflowUsed"
     CONFIG_FILE_EXTENSION = "SamConfigFileExtension"
     HOOK_CONFIGURATIONS_USED = "HookConfigurationsUsed"
+    REMOTE_INVOKE_EVENT_TYPE = "RemoteInvokeEventType"
 
 
 class UsedFeature(Enum):
@@ -78,6 +80,7 @@ class EventType:
         EventName.BUILD_WORKFLOW_USED: _WORKFLOWS,
         EventName.CONFIG_FILE_EXTENSION: list(FILE_MANAGER_MAPPER.keys()),
         EventName.HOOK_CONFIGURATIONS_USED: _HOOK_CONFIGURATIONS,
+        EventName.REMOTE_INVOKE_EVENT_TYPE: list(RemoteInvokeEventType.get_possible_values()),
     }
 
     @staticmethod

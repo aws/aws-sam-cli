@@ -1,11 +1,13 @@
 """
 Unit test for Container class
 """
-import docker
-from docker.errors import NotFound, APIError
+import json
 from unittest import TestCase
 from unittest.mock import Mock, call, patch, ANY
+from parameterized import parameterized
 
+import docker
+from docker.errors import NotFound, APIError
 from requests import RequestException
 
 from samcli.lib.utils.packagetype import IMAGE
@@ -577,9 +579,22 @@ class TestContainer_wait_for_result(TestCase):
         self.socket_mock = Mock()
         self.socket_mock.connect_ex.return_value = 0
 
+    @parameterized.expand(
+        [
+            (
+                True,
+                b'{"hello":"world"}',
+            ),
+            (
+                False,
+                b"non-json-deserializable",
+            ),
+            (False, b""),
+        ]
+    )
     @patch("socket.socket")
     @patch("samcli.local.docker.container.requests")
-    def test_wait_for_result_no_error(self, mock_requests, patched_socket):
+    def test_wait_for_result_no_error(self, response_deserializable, rie_response, mock_requests, patched_socket):
         self.container.is_created.return_value = True
 
         real_container_mock = Mock()
@@ -590,9 +605,10 @@ class TestContainer_wait_for_result(TestCase):
         self.container._write_container_output = Mock()
 
         stdout_mock = Mock()
+        stdout_mock.write_str = Mock()
         stderr_mock = Mock()
         response = Mock()
-        response.content = b'{"hello":"world"}'
+        response.content = rie_response
         mock_requests.post.return_value = response
 
         patched_socket.return_value = self.socket_mock
@@ -619,6 +635,10 @@ class TestContainer_wait_for_result(TestCase):
             data=b"{}",
             timeout=(self.container.RAPID_CONNECTION_TIMEOUT, None),
         )
+        if response_deserializable:
+            stdout_mock.write_str.assert_called_with(json.dumps(json.loads(rie_response), ensure_ascii=False))
+        else:
+            stdout_mock.write_str.assert_called_with(rie_response.decode("utf-8"))
 
     @patch("socket.socket")
     @patch("samcli.local.docker.container.requests")
@@ -731,8 +751,8 @@ class TestContainer_wait_for_result(TestCase):
             raise ValueError("The pipe has been ended.")
 
         Container._write_container_output(_output_iterator(), stdout_mock, stderr_mock)
-        stdout_mock.assert_has_calls([call.write_bytes(b"Hello")])
-        stderr_mock.assert_has_calls([call.write_bytes(b"World")])
+        stdout_mock.assert_has_calls([call.write_str("Hello")])
+        stderr_mock.assert_has_calls([call.write_str("World")])
 
 
 class TestContainer_wait_for_logs(TestCase):
@@ -794,25 +814,25 @@ class TestContainer_write_container_output(TestCase):
 
         Container._write_container_output(self.output_itr, stdout=self.stdout_mock, stderr=self.stderr_mock)
 
-        self.stdout_mock.write_bytes.assert_has_calls([call(b"stdout1"), call(b"stdout2")])
+        self.stdout_mock.write_str.assert_has_calls([call("stdout1"), call("stdout2")])
 
-        self.stderr_mock.write_bytes.assert_has_calls([call(b"stderr1"), call(b"stderr2")])
+        self.stderr_mock.write_str.assert_has_calls([call("stderr1"), call("stderr2")])
 
     def test_must_write_only_stderr(self):
         # All the invalid frames must be ignored
 
         Container._write_container_output(self.output_itr, stdout=None, stderr=self.stderr_mock)
 
-        self.stdout_mock.write_bytes.assert_not_called()
+        self.stdout_mock.write_str.assert_not_called()
 
-        self.stderr_mock.write_bytes.assert_has_calls([call(b"stderr1"), call(b"stderr2")])
+        self.stderr_mock.write_str.assert_has_calls([call("stderr1"), call("stderr2")])
 
     def test_must_write_only_stdout(self):
         Container._write_container_output(self.output_itr, stdout=self.stdout_mock, stderr=None)
 
-        self.stdout_mock.write_bytes.assert_has_calls([call(b"stdout1"), call(b"stdout2")])
+        self.stdout_mock.write_str.assert_has_calls([call("stdout1"), call("stdout2")])
 
-        self.stderr_mock.write_bytes.assert_not_called()  # stderr must never be called
+        self.stderr_mock.write_str.assert_not_called()  # stderr must never be called
 
 
 class TestContainer_wait_for_socket_connection(TestCase):

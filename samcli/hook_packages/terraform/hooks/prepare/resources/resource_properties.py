@@ -9,6 +9,11 @@ from samcli.hook_packages.terraform.hooks.prepare.constants import (
     TF_AWS_API_GATEWAY_RESOURCE,
     TF_AWS_API_GATEWAY_REST_API,
     TF_AWS_API_GATEWAY_STAGE,
+    TF_AWS_API_GATEWAY_V2_API,
+    TF_AWS_API_GATEWAY_V2_AUTHORIZER,
+    TF_AWS_API_GATEWAY_V2_INTEGRATION,
+    TF_AWS_API_GATEWAY_V2_ROUTE,
+    TF_AWS_API_GATEWAY_V2_STAGE,
     TF_AWS_LAMBDA_FUNCTION,
     TF_AWS_LAMBDA_LAYER_VERSION,
 )
@@ -18,6 +23,11 @@ from samcli.hook_packages.terraform.hooks.prepare.resources.apigw import (
     ApiGatewayResourceProperties,
     ApiGatewayRestApiProperties,
     ApiGatewayStageProperties,
+    ApiGatewayV2ApiProperties,
+    ApiGatewayV2AuthorizerProperties,
+    ApiGatewayV2IntegrationProperties,
+    ApiGatewayV2RouteProperties,
+    ApiGatewayV2StageProperties,
 )
 from samcli.hook_packages.terraform.hooks.prepare.resources.internal import (
     InternalApiGatewayIntegrationProperties,
@@ -49,4 +59,9 @@ def get_resource_property_mapping() -> Dict[str, ResourceProperties]:
         TF_AWS_API_GATEWAY_INTEGRATION: InternalApiGatewayIntegrationProperties(),
         TF_AWS_API_GATEWAY_INTEGRATION_RESPONSE: InternalApiGatewayIntegrationResponseProperties(),
         TF_AWS_API_GATEWAY_AUTHORIZER: ApiGatewayAuthorizerProperties(),
+        TF_AWS_API_GATEWAY_V2_ROUTE: ApiGatewayV2RouteProperties(),
+        TF_AWS_API_GATEWAY_V2_INTEGRATION: ApiGatewayV2IntegrationProperties(),
+        TF_AWS_API_GATEWAY_V2_API: ApiGatewayV2ApiProperties(),
+        TF_AWS_API_GATEWAY_V2_AUTHORIZER: ApiGatewayV2AuthorizerProperties(),
+        TF_AWS_API_GATEWAY_V2_STAGE: ApiGatewayV2StageProperties(),
     }

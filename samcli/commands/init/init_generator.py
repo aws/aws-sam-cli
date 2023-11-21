@@ -18,6 +18,7 @@ def do_generate(
     extra_context,
     tracing,
     application_insights,
+    structured_logging,
 ):
     try:
         generate_project(
@@ -31,6 +32,7 @@ def do_generate(
             extra_context,
             tracing,
             application_insights,
+            structured_logging,
         )
     except InitErrorException as e:
         raise UserException(str(e), wrapped_from=e.__class__.__name__) from e

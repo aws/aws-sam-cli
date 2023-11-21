@@ -976,3 +976,28 @@ class TestBuildDefinition(TestCase):
         copied_build_definitions = copy.deepcopy(build_definitions)
 
         self.assertEqual(copied_build_definitions, build_definitions)
+
+    def test_go_runtime_different_handlers_are_not_equal(self):
+        build_graph = BuildGraph("build/path")
+        metadata = {}
+        build_definition1 = FunctionBuildDefinition(
+            "go1.x", "codeuri", ZIP, ARM64, metadata, "handler", "source_hash", "manifest_hash"
+        )
+        function1 = generate_function(
+            runtime="go1.x", codeuri=TestBuildGraph.CODEURI, metadata=metadata, handler="handler"
+        )
+        build_definition2 = FunctionBuildDefinition(
+            "go1.x", "codeuri", ZIP, ARM64, metadata, "handler.new", "source_hash", "manifest_hash"
+        )
+        function2 = generate_function(
+            runtime="go1.x", codeuri=TestBuildGraph.CODEURI, metadata=metadata, handler="handler.new"
+        )
+        build_graph.put_function_build_definition(build_definition1, function1)
+        build_graph.put_function_build_definition(build_definition2, function2)
+
+        build_definitions = build_graph.get_function_build_definitions()
+
+        self.assertNotEqual(build_definition1, build_definition2)
+        self.assertEqual(len(build_definitions), 2)
+        self.assertEqual(len(build_definition1.functions), 1)
+        self.assertEqual(len(build_definition2.functions), 1)
