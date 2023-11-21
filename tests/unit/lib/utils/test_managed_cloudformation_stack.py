@@ -99,7 +99,7 @@ class TestManagedCloudFormationStack(TestCase):
             "Tags": [{"Key": "ManagedStackSource", "Value": "AwsSamCli"}],
             "ChangeSetType": "CREATE",
             "ChangeSetName": "InitialCreation",
-            "Capabilities": ["CAPABILITY_IAM"],
+            "Capabilities": ["CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND"],
             "Parameters": [],
         }
         ccs_resp = {"Id": "id", "StackId": "aws-sam-cli-managed-default"}
@@ -210,7 +210,7 @@ class TestManagedCloudFormationStack(TestCase):
             "Tags": [{"Key": "ManagedStackSource", "Value": "AwsSamCli"}],
             "ChangeSetType": "CREATE",
             "ChangeSetName": "InitialCreation",
-            "Capabilities": ["CAPABILITY_IAM"],
+            "Capabilities": ["CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND"],
             "Parameters": [],
         }
         stubber.add_client_error("create_change_set", service_error_code="ClientError", expected_params=ccs_params)
@@ -233,7 +233,7 @@ class TestManagedCloudFormationStack(TestCase):
             "Tags": [{"Key": "ManagedStackSource", "Value": "AwsSamCli"}],
             "ChangeSetType": "CREATE",
             "ChangeSetName": "InitialCreation",
-            "Capabilities": ["CAPABILITY_IAM"],
+            "Capabilities": ["CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND"],
             "Parameters": [],
         }
         ccs_resp = {"Id": "id", "StackId": "aws-sam-cli-managed-default"}
