@@ -253,7 +253,7 @@ def _create_stack(
         Tags=[{"Key": "ManagedStackSource", "Value": "AwsSamCli"}],
         ChangeSetType="CREATE",
         ChangeSetName=change_set_name,  # this must be unique for the stack, but we only create so that's fine
-        Capabilities=["CAPABILITY_IAM"],
+        Capabilities=["CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND"],
         Parameters=parameters,
     )
     stack_id = change_set_resp["StackId"]
