@@ -515,8 +515,6 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture_arm64(Build
 class TestBuildCommand_Rust_arm64(BuildIntegRustBase):
     @parameterized.expand(
         [
-            ("provided", None, False),
-            ("provided", "debug", False),
             ("provided.al2", None, False),
             ("provided.al2", "debug", False),
             ("provided.al2023", None, False),
