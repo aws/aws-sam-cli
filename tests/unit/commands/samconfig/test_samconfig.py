@@ -81,6 +81,7 @@ class TestSamConfigForAllCommands(TestCase):
                 '{"key": "value", "key2": "value2"}',
                 None,
                 ANY,
+                None,
             )
 
     @patch("samcli.commands.validate.validate.do_cli")
