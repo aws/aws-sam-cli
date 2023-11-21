@@ -49,6 +49,9 @@ install:
   - sh: python3.12 -m venv $HOME/venv3.12
   - sh: $HOME/venv3.12/bin/python -V
   - sh: $HOME/venv3.12/bin/python -m pip install --upgrade pip
+  # set PYTHON_HOME and PYTHON_VERSION back to its original values from above
+  - sh: PYTHON_HOME="$HOME/venv3.8/bin"
+  - sh: PYTHON_VERSION="3.8"
 
   - sh: "gvm use go1.19"
   - sh: "echo $PATH"
