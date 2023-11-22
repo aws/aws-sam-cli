@@ -637,6 +637,8 @@ class TestBuildCommand_BadArchitecture(BuildIntegBase):
         self.assertIn("Build Failed", str(process_execute.stdout))
         self.assertIn("Architecture fake is not supported", str(process_execute.stderr))
 
+    
+
 
 
 class TestBuildCommand_NodeFunctions(BuildIntegNodeBase):
@@ -1455,6 +1457,41 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             "ContentUri",
             "random",
         )
+    
+    def test_build_layer_with_makefile_with_fake_build_architecture(self):
+        build_method = "makefile"
+        use_container = False
+        layer_identifier = "LayerWithMakefileBadArchitecture"
+
+        overrides = {"LayerBuildMethod": build_method, "LayerMakeContentUri": "PyLayerMake", "LayerBuildArchitecture": "fake"}
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
+        )
+
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        print(str(command_result.stderr))
+        # Capture warning
+        self.assertIn("`fake` is not a valid architecture", str(command_result.stderr))
+        # Build should still succeed
+        self.assertEqual(command_result.process.returncode, 0)
+
+    def test_build_layer_with_makefile_architecture_not_compatible(self):
+        # The BuildArchitecture is not one of the listed CompatibleArchitectures
+        build_method = "makefile"
+        use_container = False
+        layer_identifier = "LayerWithMakefileBadArchitecture"
+
+        overrides = {"LayerBuildMethod": build_method, "LayerMakeContentUri": "PyLayerMake", "LayerBuildArchitecture": "x86_64", "LayerCompatibleArchitecture": "arm64"}
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
+        )
+
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        print(str(command_result.stderr))
+        # Capture warning
+        self.assertIn("`x86_64` is not listed in the specified CompatibleArchitectures", str(command_result.stderr))
+        # Build should still succeed
+        self.assertEqual(command_result.process.returncode, 0)
 
     @parameterized.expand([("python3.7", False, "LayerTwo"), ("python3.7", "use_container", "LayerTwo")])
     def test_build_fails_with_missing_metadata(self, runtime, use_container, layer_identifier):
@@ -1597,7 +1634,7 @@ class TestBuildCommand_ProvidedFunctions(BuildIntegProvidedBase):
         ("template.yaml", False),
     ],
 )
-class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture(BuildIntegProvidedBase):
+class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture(BuildIntegProvidedBase): 
     # Test Suite for runtime: provided and where selection of the build workflow is implicitly makefile builder
     # if the makefile is present.
     @parameterized.expand(

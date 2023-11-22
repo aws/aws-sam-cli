@@ -14,6 +14,10 @@ Parameters:
     Type: String
   LayerBuildMethod:
     Type: String
+  LayerBuildArchitecture:
+    Type: String
+  LayerCompatibleArchitecture:
+    Type: String
 
 Resources:
 
@@ -72,3 +76,14 @@ Resources:
       ContentUri: !Ref LayerMakeContentUri
     Metadata:
       BuildMethod: !Ref LayerBuildMethod
+
+  LayerWithMakefileBadArchitecture:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      Description: Layer five
+      ContentUri: !Ref LayerMakeContentUri
+      CompatibleArchitectures:
+        - !Ref LayerCompatibleArchitecture
+    Metadata:
+      BuildMethod: !Ref LayerBuildMethod
+      BuildArchitecture: !Ref LayerBuildArchitecture
