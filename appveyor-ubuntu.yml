@@ -53,6 +53,7 @@ install:
   - sh: "mvn --version"
 
   - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
+  - sh: "rvm reinstall ruby-3.2.2 --with-openssl-dir=/usr/lib/x86_64-linux-gnu" # reinstall ruby3.2 to fix OpenSSL issue
   - sh: "rvm use 3.2.2"
   - sh: "docker info"
   - sh: "docker version"
