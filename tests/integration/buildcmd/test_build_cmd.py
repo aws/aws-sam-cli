@@ -613,6 +613,16 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPyt
             runtime, codeuri, use_container, self.test_data_path, architecture=architecture
         )
 
+    def test_invalid_architecture(self):
+        overrides= {"Runtime": "python3.11", "Architectures": "fake"}
+        cmdlist = self.get_command_list(parameter_overrides=overrides)
+        process_execute = run_command(cmdlist, cwd=self.working_dir)
+        
+        self.assertEqual(1, process_execute.process.returncode)
+
+        self.assertIn("Build Failed", str(process_execute.stdout))
+        self.assertIn("Architecture fake is not supported", str(process_execute.stderr))
+
 
 class TestBuildCommand_ErrorCases(BuildIntegBase):
     def test_unsupported_runtime(self):
@@ -623,22 +633,6 @@ class TestBuildCommand_ErrorCases(BuildIntegBase):
         self.assertEqual(1, process_execute.process.returncode)
 
         self.assertIn("Build Failed", str(process_execute.stdout))
-
-
-class TestBuildCommand_BadArchitecture(BuildIntegBase):
-    template = "template_with_bad_architecture.yaml"
-
-    def test_invalid_architecture(self):
-        cmdlist = self.get_command_list()
-        process_execute = run_command(cmdlist, cwd=self.working_dir)
-        
-        self.assertEqual(1, process_execute.process.returncode)
-
-        self.assertIn("Build Failed", str(process_execute.stdout))
-        self.assertIn("Architecture fake is not supported", str(process_execute.stderr))
-
-    
-
 
 
 class TestBuildCommand_NodeFunctions(BuildIntegNodeBase):
