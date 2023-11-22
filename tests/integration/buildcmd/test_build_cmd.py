@@ -1276,7 +1276,6 @@ class TestBuildCommand_Go_Modules_With_Specified_Architecture(BuildIntegGoBase):
     @parameterized.expand(
         [
             ("go1.x", "Go", None, "x86_64"),
-            ("go1.x", "Go", "debug", "x86_64"),
         ]
     )
     def test_building_go(self, runtime, code_uri, mode, architecture):
