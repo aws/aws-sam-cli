@@ -479,7 +479,7 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture_arm64(Build
             (
                 "provided",
                 "use_container",
-                "Makefile",
+                "Makefile-container",
             ),
             (
                 "provided.al2",
@@ -489,7 +489,7 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture_arm64(Build
             (
                 "provided.al2",
                 "use_container",
-                "Makefile",
+                "Makefile-container",
             ),
             (
                 "provided.al2023",
@@ -499,7 +499,7 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture_arm64(Build
             (
                 "provided.al2023",
                 "use_container",
-                "Makefile",
+                "Makefile-container",
             ),
         ]
     )
