@@ -140,6 +140,7 @@ class EsbuildBundler_esbuild_configured(TestCase):
                     "test": {
                         "Properties": {
                             "Environment": {"Variables": {"NODE_OPTIONS": ["--something"]}},
+                            "Handler": "FakeHandler",
                         },
                         "Metadata": {"BuildMethod": "esbuild", "BuildProperties": {"Sourcemap": True}},
                         "Type": "AWS::Serverless::Function",
@@ -152,6 +153,7 @@ class EsbuildBundler_esbuild_configured(TestCase):
                     "test": {
                         "Properties": {
                             "Environment": {"Variables": {"NODE_OPTIONS": ["--something"]}},
+                            "Handler": "FakeHandler",
                         },
                         "Metadata": {"BuildMethod": "Makefile", "BuildProperties": {"Sourcemap": True}},
                         "Type": "AWS::Serverless::Function",
