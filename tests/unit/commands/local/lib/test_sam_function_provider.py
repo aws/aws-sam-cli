@@ -1783,29 +1783,15 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
 
 
 class TestSamFunctionProvider_build_function_configuration(TestCase):
-    def test_raise_error_on_missing_handler(self):
+    @parameterized.expand([(None), ("")])
+    def test_raise_error_on_missing_handler(self, handler):
         name = "myname"
         id = "id"
         properties = {
             "Code": {"Bucket": "bucket"},
             "Runtime": "myruntime",
             "MemorySize": "mymemorysize",
-            "Timeout": "30",
-            "Environment": "myenvironment",
-            "Role": "myrole",
-            "Layers": ["Layer1", "Layer2"],
-        }
-        with self.assertRaises(MissingFunctionHandlerException):
-            SamFunctionProvider._build_function_configuration(STACK, id, name, None, properties, [], None, None, False)
-
-    def test_raise_error_on_empty_handler(self):
-        name = "myname"
-        id = "id"
-        properties = {
-            "Code": {"Bucket": "bucket"},
-            "Runtime": "myruntime",
-            "MemorySize": "mymemorysize",
-            "Handler": "",
+            "Handler": handler,
             "Timeout": "30",
             "Environment": "myenvironment",
             "Role": "myrole",
