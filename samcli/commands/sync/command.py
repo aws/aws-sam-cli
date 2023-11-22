@@ -37,6 +37,7 @@ from samcli.commands._utils.options import (
     tags_option,
     template_option_without_build,
     use_container_build_option,
+    watch_exclude_option,
 )
 from samcli.commands.build.click_container import ContainerOptions
 from samcli.commands.build.command import _get_mode_value_from_envvar
@@ -104,31 +105,6 @@ SHORT_HELP = "Sync an AWS SAM project to AWS."
 DEFAULT_TEMPLATE_NAME = "template.yaml"
 DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 
-WATCH_EXCLUDE_EXPECTED_KEY_VALUE = 2
-WATCH_EXCLUDE_DELIMITER = "="
-
-
-def parse_exclude_mapping(ctx: click.Context, param: click.Option, values: Tuple[str]) -> Dict[str, List[str]]:
-    """
-    TODO: write doc string
-    """
-    resource_exclude_mappings: Dict[str, List[str]] = {}
-
-    for exclude in values:
-        mapping_pair = exclude.split(WATCH_EXCLUDE_DELIMITER)
-
-        if len(mapping_pair) != WATCH_EXCLUDE_EXPECTED_KEY_VALUE:
-            raise
-
-        resource_id, excluded_path = mapping_pair
-
-        current_excludes = resource_exclude_mappings.get(resource_id, [])
-        current_excludes.append(excluded_path)
-
-        resource_exclude_mappings[resource_id] = current_excludes
-
-    return resource_exclude_mappings
-
 
 # TODO(sriram-mv): Move context settings to be global such as width.
 @click.command(
@@ -181,9 +157,7 @@ def parse_exclude_mapping(ctx: click.Context, param: click.Option, values: Tuple
     help="This option will skip the initial infrastructure deployment if it is not required"
     " by comparing the local template with the template deployed in cloud.",
 )
-@click.option(
-    "--watch-exclude", help="TODO: write help text", multiple=True, type=click.STRING, callback=parse_exclude_mapping
-)
+@watch_exclude_option
 @stack_name_option(required=True)  # pylint: disable=E1120
 @base_dir_option
 @use_container_build_option
