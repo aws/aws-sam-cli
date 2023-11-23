@@ -15,6 +15,7 @@ Parameters:
   LayerBuildMethod:
     Type: String
   LayerBuildArchitecture:
+    Default: x86_64
     Type: String
   LayerCompatibleArchitecture:
     Type: String
