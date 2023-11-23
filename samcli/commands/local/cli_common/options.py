@@ -7,6 +7,7 @@ import click
 
 from samcli.commands._utils.options import docker_click_options, parameter_override_click_option, template_click_option
 from samcli.commands.local.cli_common.invoke_context import ContainersInitializationMode
+from samcli.local.docker.container import DEFAULT_CONTAINER_HOST_INTERFACE
 
 
 def get_application_dir():
@@ -59,7 +60,7 @@ def local_common_options(f):
         ),
         click.option(
             "--container-host-interface",
-            default="127.0.0.1",
+            default=DEFAULT_CONTAINER_HOST_INTERFACE,
             show_default=True,
             help="IP address of the host network interface that container ports should bind to. "
             "Use 0.0.0.0 to bind to all interfaces.",

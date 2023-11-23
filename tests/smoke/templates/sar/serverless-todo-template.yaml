@@ -11,7 +11,7 @@ Resources:
     Properties:
       Description: React TodoMVC with a Serverless backend
       Handler: src/index.handler
-      Runtime: nodejs10.x
+      Runtime: nodejs18.x
       CodeUri:
         Bucket: <%REPO_BUCKET%>
         Key: 75ed4bf0-8b24-41f0-bb68-9e61b630d76e

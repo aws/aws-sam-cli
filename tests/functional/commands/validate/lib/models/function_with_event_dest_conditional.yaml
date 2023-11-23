@@ -45,7 +45,7 @@ Resources:
           }
         };      
       Handler: index.handler
-      Runtime: nodejs12.x
+      Runtime: nodejs18.x
       MemorySize: 1024
   DestinationLambda:
     Condition: FunctionInlineEnabled
@@ -60,5 +60,5 @@ Resources:
           return response;
         };
       Handler: index.handler
-      Runtime: nodejs12.x
+      Runtime: nodejs18.x
       MemorySize: 1024

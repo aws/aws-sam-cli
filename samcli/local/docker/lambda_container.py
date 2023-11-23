@@ -7,7 +7,7 @@ from typing import List
 from samcli.lib.utils.packagetype import IMAGE
 from samcli.local.docker.lambda_debug_settings import LambdaDebugSettings
 
-from .container import Container
+from .container import DEFAULT_CONTAINER_HOST_INTERFACE, Container
 from .lambda_image import LambdaImage, Runtime
 
 LOG = logging.getLogger(__name__)
@@ -48,7 +48,7 @@ class LambdaContainer(Container):
         env_vars=None,
         debug_options=None,
         container_host=None,
-        container_host_interface=None,
+        container_host_interface=DEFAULT_CONTAINER_HOST_INTERFACE,
         function_full_path=None,
     ):
         """

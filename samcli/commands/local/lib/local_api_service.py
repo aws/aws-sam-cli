@@ -18,7 +18,7 @@ class LocalApiService:
     Lambda function.
     """
 
-    def __init__(self, lambda_invoke_context, port, host, static_dir):
+    def __init__(self, lambda_invoke_context, port, host, static_dir, disable_authorizer):
         """
         Initialize the local API service.
 
@@ -27,6 +27,7 @@ class LocalApiService:
         :param int port: Port to listen on
         :param string host: Local hostname or IP address to bind to
         :param string static_dir: Optional, directory from which static files will be mounted
+        :param bool disable_authorizer: Optional, flag for disabling the parsing of lambda authorizers
         """
 
         self.port = port
@@ -34,7 +35,10 @@ class LocalApiService:
         self.static_dir = static_dir
 
         self.cwd = lambda_invoke_context.get_cwd()
-        self.api_provider = ApiProvider(lambda_invoke_context.stacks, cwd=self.cwd)
+        self.disable_authorizer = disable_authorizer
+        self.api_provider = ApiProvider(
+            lambda_invoke_context.stacks, cwd=self.cwd, disable_authorizer=disable_authorizer
+        )
         self.lambda_runner = lambda_invoke_context.local_lambda_runner
         self.stderr_stream = lambda_invoke_context.stderr
 
