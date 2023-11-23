@@ -642,10 +642,12 @@ class TestBuildCommand_NodeFunctions(BuildIntegNodeBase):
             ("nodejs14.x", False),
             ("nodejs16.x", False),
             ("nodejs18.x", False),
+            ("nodejs20.x", False),
             ("nodejs12.x", "use_container"),
             ("nodejs14.x", "use_container"),
             ("nodejs16.x", "use_container"),
             ("nodejs18.x", "use_container"),
+            ("nodejs20.x", "use_container"),
         ]
     )
     def test_building_default_package_json(self, runtime, use_container):
@@ -664,6 +666,7 @@ class TestBuildCommand_NodeFunctions_With_External_Manifest(BuildIntegNodeBase):
             ("nodejs14.x",),
             ("nodejs16.x",),
             ("nodejs18.x",),
+            ("nodejs20.x",),
         ]
     )
     def test_building_default_package_json(self, runtime):
@@ -740,8 +743,10 @@ class TestBuildCommand_EsbuildFunctionProperties(BuildIntegEsbuildBase):
         [
             ("nodejs16.x", "../Esbuild/TypeScript", "app.lambdaHandler", "x86_64"),
             ("nodejs18.x", "../Esbuild/TypeScript", "app.lambdaHandler", "x86_64"),
+            ("nodejs20.x", "../Esbuild/TypeScript", "app.lambdaHandler", "x86_64"),
             ("nodejs16.x", "../Esbuild/TypeScript", "nested/function/app.lambdaHandler", "x86_64"),
             ("nodejs18.x", "../Esbuild/TypeScript", "nested/function/app.lambdaHandler", "x86_64"),
+            ("nodejs20.x", "../Esbuild/TypeScript", "nested/function/app.lambdaHandler", "x86_64"),
         ]
     )
     def test_environment_generates_sourcemap(self, runtime, code_uri, handler, architecture):
@@ -763,6 +768,7 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture(BuildIntegNodeB
             ("nodejs14.x", False, "x86_64"),
             ("nodejs16.x", False, "x86_64"),
             ("nodejs18.x", False, "x86_64"),
+            ("nodejs20.x", False, "x86_64"),
             ("nodejs12.x", "use_container", "x86_64"),
             ("nodejs14.x", "use_container", "x86_64"),
             ("nodejs16.x", "use_container", "x86_64"),
