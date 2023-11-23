@@ -330,7 +330,7 @@ class CachedBuildStrategy(BuildStrategy):
         """
         Builds single layer definition with caching
         """
-        if layer_definition.layer.build_method == "makefile":
+        if layer_definition.layer and layer_definition.layer.build_method == "makefile":
             warn_on_invalid_architecture(layer_definition)
 
         code_dir = str(pathlib.Path(self._base_dir, cast(str, layer_definition.codeuri)).resolve())

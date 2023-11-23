@@ -32,6 +32,10 @@ def warn_on_invalid_architecture(layer_definition: LayerBuildDefinition) -> None
         # No sense in checking if the BuildArchitecture is in CompatibleArchitectures if it is not valid in the first place
         return
 
+    # If CompatibleArchitectures are not provided, no more validation required
+    if not compatible_architectures:
+        return
+
     for compatible_architecture in compatible_architectures:
         if not _validate_architecture(compatible_architecture):
             LOG.warn(f"WARNING: `{compatible_architecture}` of CompatibleArchitectures is not a valid architecture.")
