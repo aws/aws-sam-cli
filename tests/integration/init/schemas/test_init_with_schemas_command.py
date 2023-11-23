@@ -26,7 +26,8 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
         # 2: Maven
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
-        # N: Would you like to set Structured Logging in JSON format on your Lambda functions? [y/N]
+        # N: disable cloudwatch insights
+        # N: disable structured logging
         # test-project: response to name
         # Y: Use default aws configuration
         # 1: select schema from cli_paginator
@@ -70,6 +71,8 @@ Y
         # 2: Maven
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
+        # N: disable cloudwatch insights
+        # N: disable structured logging
         # test-project: response to name
         # Y: Use default aws configuration
         # 3: partner registry
@@ -122,6 +125,8 @@ Y
         # 2: Maven
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
+        # N: disable cloudwatch insights
+        # N: disable structured logging
         # eb-app-maven: response to name
         # Y: Use default aws configuration
         # 4: select pagination-registry as registries
@@ -167,6 +172,8 @@ P
         # 2: Maven
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
+        # N: disable cloudwatch insights
+        # N: disable structured logging
         # eb-app-maven: response to name
         # Y: Use default aws configuration
         # 2: select 2p-schema other-schema
@@ -218,6 +225,8 @@ Y
         # 8: Python 3.9
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
+        # N: disable cloudwatch insights
+        # N: disable structured logging
         # eb-app-python39: response to name
         # Y: Use default aws configuration
         # 4: select aws.events as registries
@@ -255,6 +264,8 @@ Y
         # 1: Go 1.x
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
+        # N: disable cloudwatch insights
+        # N: disable structured logging
         # eb-app-go: response to name
         # Y: Use default aws configuration
         # 4: select aws.events as registries
@@ -292,6 +303,8 @@ Y
         # 8: Python 3.9
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
+        # N: disable cloudwatch insights
+        # N: disable structured logging
         # eb-app-python38: response to name
         # N: Use default profile
         # 2: uses second profile from displayed one (myprofile)
@@ -334,6 +347,8 @@ us-east-1
         # 7: Python 3.9
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
+        # N: disable cloudwatch insights
+        # N: disable structured logging
         # eb-app-python39: response to name
         # Y: Use default profile
         # 1: select aws.events as registries
