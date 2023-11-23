@@ -59,7 +59,6 @@ install:
   - "choco install make"
   # setup Java, Maven and Gradle
   - choco install correttojdk --version=21.0.0
-  - refreshenv
   - java --version
   - javac --version
   - choco uninstall gradle
@@ -73,8 +72,6 @@ install:
   - "echo %PYTHON_HOME%"
   - "echo %PATH%"
   - "python --version"
-  - "choco upgrade docker-engine"
-  - sc config docker binpath= "\"C:\Program Files\docker\dockerd.exe\" --run-service -H tcp://0.0.0.0:2375"
   - ps: "Restart-Service docker"
   # Switch to Docker Linux containers
   - ps: Switch-DockerLinux
