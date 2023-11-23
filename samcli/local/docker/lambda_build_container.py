@@ -11,6 +11,7 @@ from uuid import uuid4
 
 from samcli.commands._utils.experimental import get_enabled_experimental_flags
 from samcli.commands.exceptions import UserException
+from samcli.lib.build.utils import valid_architecture
 from samcli.lib.utils.architecture import ARM64, X86_64
 from samcli.lib.utils.lambda_builders import patch_runtime
 from samcli.local.docker.container import Container
@@ -308,7 +309,7 @@ class LambdaBuildContainer(Container):
         str
             Image tag
         """
-        if architecture not in [X86_64, ARM64]:
+        if not valid_architecture(architecture):
             raise InvalidArchitectureForImage(
                 f"'{architecture}' is not a valid architecture, it should be either '{X86_64}' or '{ARM64}'"
             )

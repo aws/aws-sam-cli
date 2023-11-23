@@ -12,7 +12,7 @@ from samcli.lib.utils.architecture import X86_64, ARM64
 LOG = logging.getLogger(__name__)
 
 
-def _validate_architecture(architecture: str) -> bool:
+def valid_architecture(architecture: str) -> bool:
     return architecture in [X86_64, ARM64]
 
 
@@ -27,7 +27,7 @@ def warn_on_invalid_architecture(layer_definition: LayerBuildDefinition) -> None
     layer_architecture = layer_definition.architecture
     compatible_architectures = layer_definition.layer.compatible_architectures
 
-    if not _validate_architecture(layer_architecture):
+    if not valid_architecture(layer_architecture):
         LOG.warn(f"WARNING: `{layer_architecture}` is not a valid architecture.")
         # No sense in checking if the BuildArchitecture is in CompatibleArchitectures if it is not valid in the first place
         return
@@ -37,7 +37,7 @@ def warn_on_invalid_architecture(layer_definition: LayerBuildDefinition) -> None
         return
 
     for compatible_architecture in compatible_architectures:
-        if not _validate_architecture(compatible_architecture):
+        if not valid_architecture(compatible_architecture):
             LOG.warn(f"WARNING: `{compatible_architecture}` of CompatibleArchitectures is not a valid architecture.")
 
     if layer_architecture not in compatible_architectures:

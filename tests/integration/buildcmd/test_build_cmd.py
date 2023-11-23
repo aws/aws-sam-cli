@@ -1473,7 +1473,6 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         )
 
         command_result = run_command(cmdlist, cwd=self.working_dir)
-        print(str(command_result.stderr))
         # Capture warning
         self.assertIn("`fake` is not a valid architecture", str(command_result.stderr))
         # Build should still succeed
@@ -1496,7 +1495,6 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         )
 
         command_result = run_command(cmdlist, cwd=self.working_dir)
-        print(str(command_result.stderr))
         # Capture warning
         self.assertIn("`x86_64` is not listed in the specified CompatibleArchitectures", str(command_result.stderr))
         # Build should still succeed
