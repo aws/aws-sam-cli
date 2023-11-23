@@ -17,6 +17,7 @@ SKIP_SCHEMA_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_
 @skipIf(SKIP_SCHEMA_TESTS, "Skip schema test")
 @pytest.mark.xdist_group(name="sam_init")
 class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
+    @pytest.mark.timeout(300)
     def test_init_interactive_with_event_bridge_app_aws_registry(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
@@ -25,6 +26,7 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
         # 2: Maven
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
+        # N: Would you like to set Structured Logging in JSON format on your Lambda functions? [y/N]
         # test-project: response to name
         # Y: Use default aws configuration
         # 1: select schema from cli_paginator
@@ -37,6 +39,7 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
 4
 2
 2
+N
 N
 N
 eb-app-maven
@@ -57,6 +60,7 @@ Y
                 Path(expected_output_folder, "HelloWorldFunction", "src", "main", "java", "schema").is_dir()
             )
 
+    @pytest.mark.timeout(300)
     def test_init_interactive_with_event_bridge_app_partner_registry(self):
         # setup schema data
         # WHEN the user follows interactive init prompts
@@ -77,6 +81,7 @@ Y
 4
 2
 2
+N
 N
 N
 eb-app-maven
@@ -108,6 +113,7 @@ Y
                 ).is_file()
             )
 
+    @pytest.mark.timeout(300)
     def test_init_interactive_with_event_bridge_app_pagination(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
@@ -131,6 +137,7 @@ Y
 2
 N
 N
+N
 eb-app-maven
 Y
 4
@@ -151,6 +158,7 @@ P
                 Path(expected_output_folder, "HelloWorldFunction", "src", "main", "java", "schema").is_dir()
             )
 
+    @pytest.mark.timeout(300)
     def test_init_interactive_with_event_bridge_app_customer_registry(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
@@ -170,6 +178,7 @@ P
 4
 2
 2
+N
 N
 N
 eb-app-maven
@@ -201,6 +210,7 @@ Y
                 ).is_file()
             )
 
+    @pytest.mark.timeout(300)
     def test_init_interactive_with_event_bridge_app_aws_schemas_python(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
@@ -220,6 +230,7 @@ Y
 2
 N
 N
+N
 eb-app-python38
 Y
 1
@@ -236,6 +247,7 @@ Y
             self.assertTrue(expected_output_folder.is_dir())
             self.assertTrue(Path(expected_output_folder, "hello_world_function", "schema").is_dir())
 
+    @pytest.mark.timeout(300)
     def test_init_interactive_with_event_bridge_app_aws_schemas_go(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
@@ -255,6 +267,7 @@ Y
 2
 N
 N
+N
 eb-app-go
 Y
 4
@@ -270,6 +283,7 @@ Y
             self.assertTrue(expected_output_folder.is_dir())
             self.assertTrue(Path(expected_output_folder, "HelloWorld", "schema").is_dir())
 
+    @pytest.mark.timeout(300)
     def test_init_interactive_with_event_bridge_app_non_default_profile_selection(self):
         self._init_custom_config("mynewprofile", "us-west-2")
         # WHEN the user follows interactive init prompts
@@ -292,6 +306,7 @@ Y
 2
 N
 N
+N
 eb-app-python38
 3
 N
@@ -310,6 +325,7 @@ us-east-1
             self.assertTrue(expected_output_folder.is_dir())
             self.assertTrue(Path(expected_output_folder, "hello_world_function", "schema").is_dir())
 
+    @pytest.mark.timeout(300)
     def test_init_interactive_with_event_bridge_app_non_supported_schemas_region(self):
         self._init_custom_config("default", "cn-north-1")
         # WHEN the user follows interactive init prompts
@@ -328,6 +344,7 @@ us-east-1
 8
 7
 2
+N
 N
 N
 eb-app-python38
