@@ -9,9 +9,9 @@ import pathlib
 from typing import List
 from uuid import uuid4
 
-from samcli.commands.exceptions import UserException
-from samcli.lib.utils.architecture import X86_64, ARM64
 from samcli.commands._utils.experimental import get_enabled_experimental_flags
+from samcli.commands.exceptions import UserException
+from samcli.lib.utils.architecture import ARM64, X86_64
 from samcli.local.docker.container import Container
 
 LOG = logging.getLogger(__name__)
@@ -21,6 +21,7 @@ class InvalidArchitectureForImage(UserException):
     """
     Raised when architecture that is provided for the image is invalid
     """
+
     pass
 
 

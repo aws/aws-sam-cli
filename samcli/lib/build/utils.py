@@ -11,11 +11,20 @@ from samcli.lib.utils.architecture import X86_64, ARM64
 
 LOG = logging.getLogger(__name__)
 
-def _validate_architecture(architecture: str):
+
+def _validate_architecture(architecture: str) -> bool:
     return architecture in [X86_64, ARM64]
 
-def validate_layer_architecture(layer_definition : LayerBuildDefinition):
-    layer_architecture = layer_definition.architecture;
+
+def warn_on_invalid_architecture(layer_definition: LayerBuildDefinition) -> None:
+    """
+    Validate the BuildArchitecture and CompatibleArchitectures of a LambdaLayer.
+
+    Also checks if the BuildArchitecture is in CompatibleArchitectures.
+
+    Prints corresponding LOG warning if something is invalid.
+    """
+    layer_architecture = layer_definition.architecture
     compatible_architectures = layer_definition.layer.compatible_architectures
 
     if not _validate_architecture(layer_architecture):
@@ -29,7 +38,7 @@ def validate_layer_architecture(layer_definition : LayerBuildDefinition):
 
     if layer_architecture not in compatible_architectures:
         LOG.warn(f"WARNING: `{layer_architecture}` is not listed in the specified CompatibleArchitectures.")
-    
+
 
 def _make_env_vars(
     resource: Union[Function, LayerVersion], file_env_vars: Dict, inline_env_vars: Optional[Dict]

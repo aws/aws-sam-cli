@@ -24,7 +24,7 @@ from samcli.lib.build.build_graph import (
     DEFAULT_DEPENDENCIES_DIR,
 )
 from samcli.lib.build.exceptions import MissingBuildMethodException
-from samcli.lib.build.utils import validate_layer_architecture
+from samcli.lib.build.utils import warn_on_invalid_architecture
 
 
 LOG = logging.getLogger(__name__)
@@ -214,9 +214,9 @@ class DefaultBuildStrategy(BuildStrategy):
                 f"Layer {layer.full_path} cannot be build without BuildMethod. "
                 f"Please provide BuildMethod in Metadata."
             )
-        
-        if layer.build_method == 'makefile':
-            validate_layer_architecture(layer_definition)
+
+        if layer.build_method == "makefile":
+            warn_on_invalid_architecture(layer_definition)
 
         single_build_dir = layer.get_build_dir(self._build_dir)
         # when a layer is passed here, it is ZIP function, codeuri and runtime are not None
@@ -330,9 +330,9 @@ class CachedBuildStrategy(BuildStrategy):
         """
         Builds single layer definition with caching
         """
-        if layer_definition.layer.build_method == 'makefile':
-            validate_layer_architecture(layer_definition)
-            
+        if layer_definition.layer.build_method == "makefile":
+            warn_on_invalid_architecture(layer_definition)
+
         code_dir = str(pathlib.Path(self._base_dir, cast(str, layer_definition.codeuri)).resolve())
         source_hash = dir_checksum(code_dir, ignore_list=[".aws-sam"], hash_generator=hashlib.sha256())
         cache_function_dir = pathlib.Path(self._cache_dir, layer_definition.uuid)

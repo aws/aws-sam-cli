@@ -614,10 +614,10 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPyt
         )
 
     def test_invalid_architecture(self):
-        overrides= {"Runtime": "python3.11", "Architectures": "fake"}
+        overrides = {"Runtime": "python3.11", "Architectures": "fake"}
         cmdlist = self.get_command_list(parameter_overrides=overrides)
         process_execute = run_command(cmdlist, cwd=self.working_dir)
-        
+
         self.assertEqual(1, process_execute.process.returncode)
 
         self.assertIn("Build Failed", str(process_execute.stdout))
@@ -1451,13 +1451,17 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             "ContentUri",
             "random",
         )
-    
+
     def test_build_layer_with_makefile_with_fake_build_architecture(self):
         build_method = "makefile"
         use_container = False
         layer_identifier = "LayerWithMakefileBadArchitecture"
 
-        overrides = {"LayerBuildMethod": build_method, "LayerMakeContentUri": "PyLayerMake", "LayerBuildArchitecture": "fake"}
+        overrides = {
+            "LayerBuildMethod": build_method,
+            "LayerMakeContentUri": "PyLayerMake",
+            "LayerBuildArchitecture": "fake",
+        }
         cmdlist = self.get_command_list(
             use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
         )
@@ -1475,7 +1479,12 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         use_container = False
         layer_identifier = "LayerWithMakefileBadArchitecture"
 
-        overrides = {"LayerBuildMethod": build_method, "LayerMakeContentUri": "PyLayerMake", "LayerBuildArchitecture": "x86_64", "LayerCompatibleArchitecture": "arm64"}
+        overrides = {
+            "LayerBuildMethod": build_method,
+            "LayerMakeContentUri": "PyLayerMake",
+            "LayerBuildArchitecture": "x86_64",
+            "LayerCompatibleArchitecture": "arm64",
+        }
         cmdlist = self.get_command_list(
             use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
         )
@@ -1628,7 +1637,7 @@ class TestBuildCommand_ProvidedFunctions(BuildIntegProvidedBase):
         ("template.yaml", False),
     ],
 )
-class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture(BuildIntegProvidedBase): 
+class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture(BuildIntegProvidedBase):
     # Test Suite for runtime: provided and where selection of the build workflow is implicitly makefile builder
     # if the makefile is present.
     @parameterized.expand(
