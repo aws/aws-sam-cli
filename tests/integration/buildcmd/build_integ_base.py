@@ -619,8 +619,9 @@ class BuildIntegJavaBase(BuildIntegBase):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
         
+        # skip arm64 use container tests for gradlew and gradle-kotlin
         if use_container and runtime != self.LATEST_JAVA_VERSION and architecture == ARM64 and \
-            code_path in [self.USING_GRADLEW_PATH, self.USING_GRADLE_KOTLIN_PATH]:
+            any(path in code_path for path in [self.USING_GRADLEW_PATH, self.USING_GRADLE_KOTLIN_PATH]):
             self.skipTest(self.SKIP_ARM64_EARLIER_JAVA_TESTS)
 
         overrides = self.get_override(runtime, code_path, architecture, "aws.example.Hello::myHandler")
