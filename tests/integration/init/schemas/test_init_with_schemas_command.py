@@ -215,10 +215,10 @@ Y
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # 8: Infrastructure event management - Use case
-        # 7: Python 3.9
+        # 8: Python 3.9
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
-        # eb-app-python38: response to name
+        # eb-app-python39: response to name
         # Y: Use default aws configuration
         # 4: select aws.events as registries
         # 1: select aws schema
@@ -226,12 +226,12 @@ Y
         user_input = """
 1
 8
-7
+8
 2
 N
 N
 N
-eb-app-python38
+eb-app-python39
 Y
 1
 4
@@ -242,7 +242,7 @@ Y
             result = runner.invoke(init_cmd, ["--output-dir", temp], input=user_input)
 
             self.assertFalse(result.exception)
-            expected_output_folder = Path(temp, "eb-app-python38")
+            expected_output_folder = Path(temp, "eb-app-python39")
             self.assertTrue(expected_output_folder.exists)
             self.assertTrue(expected_output_folder.is_dir())
             self.assertTrue(Path(expected_output_folder, "hello_world_function", "schema").is_dir())
@@ -289,7 +289,7 @@ Y
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # 8: Infrastructure event management - Use case
-        # 7: Python 3.9
+        # 8: Python 3.9
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
         # eb-app-python38: response to name
@@ -302,12 +302,12 @@ Y
         user_input = """
 1
 8
-7
+8
 2
 N
 N
 N
-eb-app-python38
+eb-app-python39
 3
 N
 2
@@ -320,7 +320,7 @@ us-east-1
             result = runner.invoke(init_cmd, ["--output-dir", temp], input=user_input)
 
             self.assertFalse(result.exception)
-            expected_output_folder = Path(temp, "eb-app-python38")
+            expected_output_folder = Path(temp, "eb-app-python39")
             self.assertTrue(expected_output_folder.exists)
             self.assertTrue(expected_output_folder.is_dir())
             self.assertTrue(Path(expected_output_folder, "hello_world_function", "schema").is_dir())
@@ -334,7 +334,7 @@ us-east-1
         # 7: Python 3.9
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
-        # eb-app-python38: response to name
+        # eb-app-python39: response to name
         # Y: Use default profile
         # 1: select aws.events as registries
         # 1: select aws schema
@@ -342,12 +342,12 @@ us-east-1
         user_input = """
 1
 8
-7
+8
 2
 N
 N
 N
-eb-app-python38
+eb-app-python39
 Y
 1
 1
