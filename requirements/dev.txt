@@ -7,7 +7,7 @@ pytest-cov==4.1.0
 # type checking and related stubs
 # mypy adds new rules in new minor versions, which could cause our PR check to fail
 # here we fix its version and upgrade it manually in the future
-mypy==1.7.0
+mypy==1.7.1
 types-pywin32==306.0.0.4
 types-PyYAML==6.0.12.11
 types-chevron==0.14.2.5
