@@ -77,7 +77,7 @@ class Container:
         container_host_interface="127.0.0.1",
         mount_with_write: bool = False,
         host_tmp_dir: Optional[str] = None,
-        extra_hosts: Optional[dict] = None
+        extra_hosts: Optional[dict] = None,
     ):
         """
         Initializes the class with given configuration. This does not automatically create or run the container.

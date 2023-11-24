@@ -42,6 +42,7 @@ class TestCli(TestCase):
 
         self.container_host = "localhost"
         self.container_host_interface = "127.0.0.1"
+        self.add_host = {}
         self.invoke_image = ()
         self.hook_name = None
 
@@ -81,6 +82,7 @@ class TestCli(TestCase):
             shutdown=self.shutdown,
             container_host=self.container_host,
             container_host_interface=self.container_host_interface,
+            add_host=self.add_host,
             invoke_images={},
         )
 
@@ -180,6 +182,7 @@ class TestCli(TestCase):
             shutdown=self.shutdown,
             container_host=self.container_host,
             container_host_interface=self.container_host_interface,
+            add_host=self.add_host,
             invoke_image=self.invoke_image,
             hook_name=self.hook_name,
         )

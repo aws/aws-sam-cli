@@ -5,7 +5,13 @@ from pathlib import Path
 
 import click
 
-from samcli.commands._utils.options import docker_click_options, parameter_override_click_option, template_click_option
+from samcli.cli.types import DockerAdditionalHostType
+from samcli.commands._utils.options import (
+    docker_click_options,
+    local_add_host_callback,
+    parameter_override_click_option,
+    template_click_option,
+)
 from samcli.commands.local.cli_common.invoke_context import ContainersInitializationMode
 
 
@@ -66,9 +72,15 @@ def local_common_options(f):
         ),
         click.option(
             "--add-host",
-            default=None,
             multiple=True,
-            help="Utilize hostname to IP mapping via docker --add-host flag. Can be multiple."
+            type=DockerAdditionalHostType(),
+            callback=local_add_host_callback,
+            required=False,
+            help="Passes a hostname to IP address mapping to the Docker container's host file. "
+            "This parameter can be passed multiple times."
+            ""
+            "Example:"
+            "--add-host example.com:127.0.0.1",
         ),
         click.option(
             "--invoke-image",

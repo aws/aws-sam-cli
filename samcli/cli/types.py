@@ -452,6 +452,33 @@ class RemoteInvokeBotoApiParameterType(click.ParamType):
         return {key: _value}
 
 
+class DockerAdditionalHostType(click.ParamType):
+    """
+    Custom Parameter Type for managing Docker container's host file for local commands
+    """
+
+    name = "list"
+    MIN_KEY_VALUE_PAIR_LENGTH = 2
+
+    def convert(self, value, param, ctx):
+        """Converts the user provided parameters value with the format "host:IP" to dict
+            {"host": "IP"}
+
+        Parameters
+        ------------
+        value: User provided value for the click option
+        param: click parameter
+        ctx: Context
+        """
+        host_ip_pair = value.split(":", maxsplit=1)
+        if len(host_ip_pair) < self.MIN_KEY_VALUE_PAIR_LENGTH:
+            raise click.BadParameter(f"{param.opts[0]} is not a valid format, it needs to be of the form hostname:IP")
+        host = host_ip_pair[0]
+        ip = host_ip_pair[1]
+        LOG.debug("Converting provided %s option value to dict", param.opts[0])
+        return {host: ip}
+
+
 class RemoteInvokeOutputFormatType(click.Choice):
     """
     Custom Parameter Type for output-format option of remote invoke command.

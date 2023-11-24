@@ -392,7 +392,7 @@ class TestSamConfigForAllCommands(TestCase):
                 {"Key": "Value", "Key2": "Value2"},
                 "localhost",
                 "127.0.0.1",
-                (),
+                {},
                 ("image",),
                 None,
             )
@@ -457,7 +457,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 "localhost",
                 "127.0.0.1",
-                (),
+                {},
                 ("image",),
                 None,
             )
@@ -520,7 +520,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 "localhost",
                 "127.0.0.1",
-                (),
+                {},
                 ("image",),
                 None,
             )
@@ -1131,7 +1131,7 @@ class TestSamConfigWithOverrides(TestCase):
                 None,
                 "localhost",
                 "127.0.0.1",
-                (),
+                {},
                 ("image",),
                 None,
             )
@@ -1226,7 +1226,7 @@ class TestSamConfigWithOverrides(TestCase):
                 None,
                 "localhost",
                 "127.0.0.1",
-                (),
+                {},
                 ("image",),
                 None,
             )

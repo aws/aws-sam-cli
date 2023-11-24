@@ -47,12 +47,7 @@ class LambdaRuntime:
         self._temp_uncompressed_paths_to_be_cleaned = []
 
     def create(
-        self,
-        function_config,
-        debug_context=None,
-        container_host=None,
-        container_host_interface=None,
-        extra_hosts=None
+        self, function_config, debug_context=None, container_host=None, container_host_interface=None, extra_hosts=None
     ):
         """
         Create a new Container for the passed function, then store it in a dictionary using the function name,
@@ -364,7 +359,9 @@ class WarmLambdaRuntime(LambdaRuntime):
 
         super().__init__(container_manager, image_builder)
 
-    def create(self, function_config, debug_context=None, container_host=None, container_host_interface=None, extra_hosts=None):
+    def create(
+        self, function_config, debug_context=None, container_host=None, container_host_interface=None, extra_hosts=None
+    ):
         """
         Create a new Container for the passed function, then store it in a dictionary using the function name,
         so it can be retrieved later and used in the other functions. Make sure to use the debug_context only
@@ -418,7 +415,9 @@ class WarmLambdaRuntime(LambdaRuntime):
         self._observer.watch(function_config)
         self._observer.start()
 
-        container = super().create(function_config, debug_context, container_host, container_host_interface, extra_hosts)
+        container = super().create(
+            function_config, debug_context, container_host, container_host_interface, extra_hosts
+        )
         self._function_configs[function_config.full_path] = function_config
         self._containers[function_config.full_path] = container
 

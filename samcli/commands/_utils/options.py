@@ -145,6 +145,21 @@ def remote_invoke_boto_parameter_callback(ctx, param, provided_value):
     return boto_api_parameters
 
 
+def local_add_host_callback(ctx, param, provided_value):
+    """
+    Create a dictionary of hostnames to IP addresses to add into Docker container's hosts file.
+    :param ctx: Click Context
+    :param param: Param name
+    :param provided_value: Value provided by Click, after being processed by DockerAdditionalHostType.
+    :return: dictionary of hostnames to IP addresses.
+    """
+    extra_hosts = {}
+    for value in provided_value:
+        extra_hosts.update(value)
+
+    return extra_hosts
+
+
 def artifact_callback(ctx, param, provided_value, artifact):
     """
     Provide an error if there are zip/image artifact based resources,

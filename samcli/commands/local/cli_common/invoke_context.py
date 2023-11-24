@@ -97,7 +97,7 @@ class InvokeContext:
         shutdown: bool = False,
         container_host: Optional[str] = None,
         container_host_interface: Optional[str] = None,
-        add_host: Optional[list] = None,
+        add_host: Optional[dict] = None,
         invoke_images: Optional[str] = None,
     ) -> None:
         """
@@ -149,8 +149,8 @@ class InvokeContext:
             Optional. Host of locally emulated Lambda container
         container_host_interface string
             Optional. Interface that Docker host binds ports to
-        add_host list(string)
-            Optional. Docker --add-host flag support
+        add_host dict
+            Optional. Docker extra hosts support from --add-host parameters
         invoke_images dict
             Optional. A dictionary that defines the custom invoke image URI of each function
         """
@@ -181,12 +181,7 @@ class InvokeContext:
         self._container_host = container_host
         self._container_host_interface = container_host_interface
 
-        self._extra_hosts: Optional[Dict] = None
-        if add_host and len(add_host) > 0:
-            self._extra_hosts = {}
-            for host_to_ip in add_host:
-                host, ip = host_to_ip.split(":", maxsplit=1)
-                self._extra_hosts[host] = ip
+        self._extra_hosts: Optional[Dict] = add_host
 
         self._invoke_images = invoke_images
 
