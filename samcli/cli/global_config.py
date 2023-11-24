@@ -148,46 +148,46 @@ class GlobalConfig(metaclass=Singleton):
     # Overload for case where is_flag is set
     @overload
     def get_value(
-        self,
-        config_entry: ConfigEntry,
-        default: bool,
-        value_type: Type[bool],
-        is_flag: bool,
-        reload_config: bool = False,
+            self,
+            config_entry: ConfigEntry,
+            default: bool,
+            value_type: Type[bool],
+            is_flag: bool,
+            reload_config: bool = False,
     ) -> bool:
         ...
 
     # Overload for case where type is specified
     @overload
     def get_value(
-        self,
-        config_entry: ConfigEntry,
-        default: Optional[T] = None,
-        value_type: Type[T] = T,  # type: ignore
-        is_flag: bool = False,
-        reload_config: bool = False,
+            self,
+            config_entry: ConfigEntry,
+            default: Optional[T] = None,
+            value_type: Type[T] = T,  # type: ignore
+            is_flag: bool = False,
+            reload_config: bool = False,
     ) -> Optional[T]:
         ...
 
     # Overload for case where type is not specified and default to object
     @overload
     def get_value(
-        self,
-        config_entry: ConfigEntry,
-        default: Any = None,
-        value_type: object = object,
-        is_flag: bool = False,
-        reload_config: bool = False,
+            self,
+            config_entry: ConfigEntry,
+            default: Any = None,
+            value_type: object = object,
+            is_flag: bool = False,
+            reload_config: bool = False,
     ) -> Any:
         ...
 
     def get_value(
-        self,
-        config_entry,
-        default=None,
-        value_type=object,
-        is_flag=False,
-        reload_config=False,
+            self,
+            config_entry,
+            default=None,
+            value_type=object,
+            is_flag=False,
+            reload_config=False,
     ) -> Any:
         """Get the corresponding value of a configuration entry.
 
@@ -221,12 +221,12 @@ class GlobalConfig(metaclass=Singleton):
             return self._get_value(config_entry, default, value_type, is_flag, reload_config)
 
     def _get_value(
-        self,
-        config_entry: ConfigEntry,
-        default: Optional[T],
-        value_type: Type[T],
-        is_flag: bool,
-        reload_config: bool,
+            self,
+            config_entry: ConfigEntry,
+            default: Optional[T],
+            value_type: Type[T],
+            is_flag: bool,
+            reload_config: bool,
     ) -> Optional[T]:
         """get_value without locking. Non-thread safe."""
         value: Any = None
@@ -252,7 +252,7 @@ class GlobalConfig(metaclass=Singleton):
             )
             return default
 
-        return value
+        return value  # type:ignore
 
     def set_value(self, config_entry: ConfigEntry, value: Any, is_flag: bool = False, flush: bool = True) -> None:
         """Set the value of a configuration. The associated env var will be updated as well.
@@ -422,7 +422,7 @@ class GlobalConfig(metaclass=Singleton):
         Returns False, if this is first time that user runs sam sync with current folder and given stack name.
         """
         accelerate_opt_in_stacks = (
-            self.get_value(DefaultEntry.ACCELERATE_OPT_IN_STACKS, value_type=list, default=[]) or []
+                self.get_value(DefaultEntry.ACCELERATE_OPT_IN_STACKS, value_type=list, default=[]) or []
         )
         return str_checksum(template_file + stack_name) in accelerate_opt_in_stacks
 
@@ -432,7 +432,7 @@ class GlobalConfig(metaclass=Singleton):
         to accept warning message again.
         """
         accelerate_opt_in_stacks = (
-            self.get_value(DefaultEntry.ACCELERATE_OPT_IN_STACKS, value_type=list, default=[]) or []
+                self.get_value(DefaultEntry.ACCELERATE_OPT_IN_STACKS, value_type=list, default=[]) or []
         )
         accelerate_opt_in_stacks.append(str_checksum(template_file + stack_name))
         self.set_value(DefaultEntry.ACCELERATE_OPT_IN_STACKS, accelerate_opt_in_stacks)
