@@ -120,11 +120,11 @@ install:
   # required for RIE with arm64 in linux
   - sh: "
     if [[ -n $BY_CANARY ]] && [[ -n $DOCKER_USER ]] && [[ -n $DOCKER_PASS ]];
-      then echo Logging in Docker Hub; echo $DOCKER_PASS | docker login --username $DOCKER_USER --password-stdin registry-1.docker.io; 
+      then echo Logging in Docker Hub; echo $DOCKER_PASS | docker login --username $DOCKER_USER --password-stdin registry-1.docker.io;
     fi"
   - sh: "
     if [[ -n $BY_CANARY ]] && [[ -n $DOCKER_USER ]] && [[ -n $DOCKER_PASS ]];
-      then echo Logging in Docker Hub; echo $DOCKER_PASS | docker login --username $DOCKER_USER --password-stdin; 
+      then echo Logging in Docker Hub; echo $DOCKER_PASS | docker login --username $DOCKER_USER --password-stdin;
     fi"
   - sh: "docker run --rm --privileged multiarch/qemu-user-static --reset -p yes"
 
@@ -132,7 +132,7 @@ install:
   # Runs only in Linux, logging Public ECR when running canary and cred is available
   - sh: "
     if [[ -n $BY_CANARY ]];
-      then echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws; 
+      then echo Logging in Public ECR; aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws;
     fi"
 
 
@@ -159,7 +159,7 @@ on_finish:
 
 for:
   # Integ testing build
-  - 
+  -
     matrix:
       only:
         - configuration: BuildIntegTesting
@@ -175,8 +175,7 @@ for:
       - sh: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'java or python or provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd-java-python-provided.json"
 
   # Integ testing build arm64 functions
-  - 
-    matrix:
+  - matrix:
       only:
         - configuration: BuildIntegTestingArm64
 
@@ -267,5 +266,5 @@ for:
         - configuration: OtherAndEndToEndTesting
 
     test_script:
-      - sh: "pytest -vv --reruns 4 tests/integration tests/end_to_end --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-others.json"
+      - sh: "pytest -vv -n 4 --reruns 4 --dist loadgroup tests/integration tests/end_to_end --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-others.json"
       - sh: "pytest -vv tests/regression --json-report --json-report-file=TEST_REPORT-regression.json"

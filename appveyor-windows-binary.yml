@@ -60,7 +60,6 @@ install:
   - "choco install make"
   # setup Java, Maven and Gradle
   - choco install correttojdk --version=21.0.0
-  - refreshenv
   - java --version
   - javac --version
   - choco uninstall gradle
