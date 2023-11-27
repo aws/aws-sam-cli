@@ -840,11 +840,22 @@ class TestBuildCommand_RubyFunctionsWithGemfileInTheRoot(BuildIntegRubyBase):
 
 
 class TestBuildCommand_Java(BuildIntegJavaBase):
-
     @parameterized.expand(
         [
-            ("java8", "8", BuildIntegJavaBase.USING_GRADLE_PATH, BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES),
-            ("java8", "8", BuildIntegJavaBase.USING_GRADLEW_PATH, BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES),
+            (
+                "java8",
+                "8",
+                BuildIntegJavaBase.USING_GRADLE_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java8",
+                "8",
+                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
             (
                 "java8",
                 "8",
@@ -852,8 +863,20 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
                 BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
-            ("java8", "8", BuildIntegJavaBase.USING_MAVEN_PATH, BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES),
-            ("java8.al2", "8", BuildIntegJavaBase.USING_GRADLE_PATH, BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES),
+            (
+                "java8",
+                "8",
+                BuildIntegJavaBase.USING_MAVEN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
+            ),
+            (
+                "java8.al2",
+                "8",
+                BuildIntegJavaBase.USING_GRADLE_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
             (
                 "java8.al2",
                 "8",
@@ -868,9 +891,27 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
                 BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
-            ("java8.al2", "8", BuildIntegJavaBase.USING_MAVEN_PATH, BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES),
-            ("java11", "11", BuildIntegJavaBase.USING_GRADLE_PATH, BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES),
-            ("java11", "11", BuildIntegJavaBase.USING_GRADLEW_PATH, BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES),
+            (
+                "java8.al2",
+                "8",
+                BuildIntegJavaBase.USING_MAVEN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
+            ),
+            (
+                "java11",
+                "11",
+                BuildIntegJavaBase.USING_GRADLE_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java11",
+                "11",
+                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
             (
                 "java11",
                 "11",
@@ -878,9 +919,27 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
                 BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
-            ("java11", "11", BuildIntegJavaBase.USING_MAVEN_PATH, BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES),
-            ("java17", "17", BuildIntegJavaBase.USING_GRADLE_PATH, BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES),
-            ("java17", "17", BuildIntegJavaBase.USING_GRADLEW_PATH, BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES),
+            (
+                "java11",
+                "11",
+                BuildIntegJavaBase.USING_MAVEN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
+            ),
+            (
+                "java17",
+                "17",
+                BuildIntegJavaBase.USING_GRADLE_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java17",
+                "17",
+                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
             (
                 "java17",
                 "17",
@@ -888,9 +947,27 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
                 BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
-            ("java17", "17", BuildIntegJavaBase.USING_MAVEN_PATH, BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES),
-            ("java21", "21", BuildIntegJavaBase.USING_GRADLE_PATH, BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES),
-            ("java21", "21", BuildIntegJavaBase.USING_GRADLEW_PATH, BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES),
+            (
+                "java17",
+                "17",
+                BuildIntegJavaBase.USING_MAVEN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
+            ),
+            (
+                "java21",
+                "21",
+                BuildIntegJavaBase.USING_GRADLE_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java21",
+                "21",
+                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
             (
                 "java21",
                 "21",
@@ -898,7 +975,13 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
                 BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
-            ("java21", "21", BuildIntegJavaBase.USING_MAVEN_PATH, BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES),
+            (
+                "java21",
+                "21",
+                BuildIntegJavaBase.USING_MAVEN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
+            ),
         ]
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
@@ -916,8 +999,20 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
 
     @parameterized.expand(
         [
-            ("java8", "8", BuildIntegJavaBase.USING_GRADLE_PATH, BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES),
-            ("java8", "8", BuildIntegJavaBase.USING_GRADLEW_PATH, BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES),
+            (
+                "java8",
+                "8",
+                BuildIntegJavaBase.USING_GRADLE_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java8",
+                "8",
+                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
             (
                 "java8",
                 "8",
@@ -925,8 +1020,20 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
                 BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
-            ("java8", "8", BuildIntegJavaBase.USING_MAVEN_PATH, BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES),
-            ("java8.al2", "8", BuildIntegJavaBase.USING_GRADLE_PATH, BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES),
+            (
+                "java8",
+                "8",
+                BuildIntegJavaBase.USING_MAVEN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
+            ),
+            (
+                "java8.al2",
+                "8",
+                BuildIntegJavaBase.USING_GRADLE_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
             (
                 "java8.al2",
                 "8",
@@ -941,9 +1048,27 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
                 BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
-            ("java8.al2", "8", BuildIntegJavaBase.USING_MAVEN_PATH, BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES),
-            ("java11", "11", BuildIntegJavaBase.USING_GRADLE_PATH, BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES),
-            ("java11", "11", BuildIntegJavaBase.USING_GRADLEW_PATH, BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES),
+            (
+                "java8.al2",
+                "8",
+                BuildIntegJavaBase.USING_MAVEN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
+            ),
+            (
+                "java11",
+                "11",
+                BuildIntegJavaBase.USING_GRADLE_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java11",
+                "11",
+                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
             (
                 "java11",
                 "11",
@@ -951,9 +1076,27 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
                 BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
-            ("java11", "11", BuildIntegJavaBase.USING_MAVEN_PATH, BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES),
-            ("java17", "17", BuildIntegJavaBase.USING_GRADLE_PATH, BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES),
-            ("java17", "17", BuildIntegJavaBase.USING_GRADLEW_PATH, BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES),
+            (
+                "java11",
+                "11",
+                BuildIntegJavaBase.USING_MAVEN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
+            ),
+            (
+                "java17",
+                "17",
+                BuildIntegJavaBase.USING_GRADLE_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java17",
+                "17",
+                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
             (
                 "java17",
                 "17",
@@ -961,9 +1104,27 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
                 BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
-            ("java17", "17", BuildIntegJavaBase.USING_MAVEN_PATH, BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES),
-            ("java21", "21", BuildIntegJavaBase.USING_GRADLE_PATH, BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES),
-            ("java21", "21", BuildIntegJavaBase.USING_GRADLEW_PATH, BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES),
+            (
+                "java17",
+                "17",
+                BuildIntegJavaBase.USING_MAVEN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
+            ),
+            (
+                "java21",
+                "21",
+                BuildIntegJavaBase.USING_GRADLE_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java21",
+                "21",
+                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
             (
                 "java21",
                 "21",
@@ -971,7 +1132,13 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
                 BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
-            ("java21", "21", BuildIntegJavaBase.USING_MAVEN_PATH, BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES),
+            (
+                "java21",
+                "21",
+                BuildIntegJavaBase.USING_MAVEN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
+            ),
         ]
     )
     def test_building_java_in_process(self, runtime, runtime_version, code_path, expected_files, expected_dependencies):
