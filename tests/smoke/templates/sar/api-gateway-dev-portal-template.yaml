@@ -1132,7 +1132,7 @@ Resources:
         Fn::GetAtt:
         - BackendLambdaExecutionRole
         - Arn
-      Runtime: nodejs8.10
+      Runtime: nodejs18.x
       Timeout: 30
       Environment:
         Variables:
@@ -1180,7 +1180,7 @@ Resources:
         Fn::GetAtt:
         - BackendLambdaExecutionRole
         - Arn
-      Runtime: nodejs8.10
+      Runtime: nodejs18.x
       Timeout: 30
   CognitoUserPoolsConfirmationStrategyFunction:
     Type: AWS::Serverless::Function
@@ -1194,7 +1194,7 @@ Resources:
         Fn::GetAtt:
         - CognitoStrategyLambdaExecutionRole
         - Arn
-      Runtime: nodejs8.10
+      Runtime: nodejs18.x
       Timeout: 3
   CognitoUserPool:
     Type: AWS::Cognito::UserPool
@@ -1254,7 +1254,7 @@ Resources:
   CognitoUserPoolClientSettingsBackingFn:
     Type: AWS::Serverless::Function
     Properties:
-      Runtime: nodejs8.10
+      Runtime: nodejs18.x
       MemorySize: 128
       Timeout: 300
       CodeUri:
@@ -1363,7 +1363,7 @@ Resources:
   CognitoUserPoolDomainBackingFn:
     Type: AWS::Serverless::Function
     Properties:
-      Runtime: nodejs8.10
+      Runtime: nodejs18.x
       MemorySize: 128
       Timeout: 300
       CodeUri:
@@ -1522,7 +1522,7 @@ Resources:
         Fn::GetAtt:
         - CatalogUpdaterLambdaExecutionRole
         - Arn
-      Runtime: nodejs8.10
+      Runtime: nodejs18.x
       Timeout: 20
       Environment:
         Variables:
@@ -1551,7 +1551,7 @@ Resources:
         Fn::GetAtt:
         - AssetUploaderLambdaExecutionRole
         - Arn
-      Runtime: nodejs8.10
+      Runtime: nodejs18.x
       Timeout: 300
       Environment:
         Variables:
