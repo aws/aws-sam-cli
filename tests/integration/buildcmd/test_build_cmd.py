@@ -1508,6 +1508,17 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         self.assertEqual(command_result.process.returncode, 1)
         self.assertFalse(self.default_build_dir.joinpath(layer_identifier).exists())
 
+    @parameterized.expand([("python3.7", False, "LayerOne"), ("python3.7", "use_container", "LayerOne")])
+    def test_build_with_missing_buildarchitecture(self, runtime, use_container, layer_identifier):
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        overrides = {"LayerBuildMethod": runtime, "LayerContentUri": "PyLayer"}
+        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
+        self.assertIn("No BuildArchitecture specifed", str(command_result.stderr))
+
     @parameterized.expand([("python3.7", False), ("python3.7", "use_container")])
     def test_build_function_and_layer(self, runtime, use_container):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
