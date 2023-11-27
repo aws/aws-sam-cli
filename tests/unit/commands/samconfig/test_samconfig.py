@@ -81,6 +81,7 @@ class TestSamConfigForAllCommands(TestCase):
                 '{"key": "value", "key2": "value2"}',
                 None,
                 ANY,
+                None,
             )
 
     @patch("samcli.commands.validate.validate.do_cli")
@@ -402,6 +403,7 @@ class TestSamConfigForAllCommands(TestCase):
             "template_file": "mytemplate.yaml",
             "host": "127.0.0.1",
             "port": 12345,
+            "disable_authorizer": False,
             "static_dir": "static_dir",
             "env_vars": "envvar.json",
             "debug_port": [1, 2, 3],
@@ -437,6 +439,7 @@ class TestSamConfigForAllCommands(TestCase):
                 ANY,
                 "127.0.0.1",
                 12345,
+                False,
                 "static_dir",
                 str(Path(os.getcwd(), "mytemplate.yaml")),
                 "envvar.json",

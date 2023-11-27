@@ -5,6 +5,7 @@ Class that Normalizes a Template based on Resource Metadata
 import json
 import logging
 import re
+from copy import deepcopy
 from pathlib import Path
 from typing import Dict
 
@@ -61,10 +62,8 @@ class ResourceMetadataNormalizer:
         resources = template_dict.get(RESOURCES_KEY, {})
 
         for logical_id, resource in resources.items():
-            resource_metadata = resource.get(METADATA_KEY)
-            if resource_metadata is None:
-                resource_metadata = {}
-                resource[METADATA_KEY] = resource_metadata
+            # copy metadata to another variable, change its values and assign it back in the end
+            resource_metadata = deepcopy(resource.get(METADATA_KEY)) or {}
 
             is_normalized = resource_metadata.get(SAM_IS_NORMALIZED, False)
             if not is_normalized:
@@ -97,6 +96,7 @@ class ResourceMetadataNormalizer:
                 resource_metadata,
                 {SAM_RESOURCE_ID_KEY: ResourceMetadataNormalizer.get_resource_id(resource, logical_id)},
             )
+            resource[METADATA_KEY] = resource_metadata
 
         # This is a work around to allow the customer to use sam deploy or package commands without the need to provide
         # values for the CDK auto generated asset parameters. The suggested solution is to let CDK add some metadata to

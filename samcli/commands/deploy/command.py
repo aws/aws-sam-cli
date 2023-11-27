@@ -6,7 +6,7 @@ import os
 
 import click
 
-from samcli.cli.cli_config_file import ConfigProvider, configuration_option
+from samcli.cli.cli_config_file import ConfigProvider, configuration_option, save_params_option
 from samcli.cli.main import aws_creds_options, common_options, pass_context, print_cmdline_args
 from samcli.commands._utils.cdk_support_decorators import unsupported_command_cdk
 from samcli.commands._utils.click_mutex import ClickMutex
@@ -154,6 +154,7 @@ LOG = logging.getLogger(__name__)
 @capabilities_option
 @aws_creds_options
 @common_options
+@save_params_option
 @image_repository_validation()
 @pass_context
 @track_command
@@ -186,6 +187,7 @@ def cli(
     signing_profiles,
     resolve_s3,
     resolve_image_repos,
+    save_params,
     config_file,
     config_env,
     disable_rollback,

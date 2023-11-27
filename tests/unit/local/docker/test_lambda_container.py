@@ -19,15 +19,18 @@ RUNTIMES_WITH_BOOTSTRAP_ENTRYPOINT = [
     Runtime.nodejs14x.value,
     Runtime.nodejs16x.value,
     Runtime.nodejs18x.value,
+    Runtime.nodejs20x.value,
     Runtime.python37.value,
     Runtime.python38.value,
     Runtime.python39.value,
     Runtime.python310.value,
     Runtime.python311.value,
+    Runtime.python312.value,
     Runtime.dotnet6.value,
 ]
 
 RUNTIMES_WITH_DEBUG_ENV_VARS_ONLY = [
+    Runtime.java21.value,
     Runtime.java17.value,
     Runtime.java11.value,
     Runtime.java8.value,

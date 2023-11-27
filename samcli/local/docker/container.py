@@ -28,6 +28,7 @@ from samcli.local.docker.utils import NoFreePortsError, find_free_port, to_posix
 LOG = logging.getLogger(__name__)
 
 CONTAINER_CONNECTION_TIMEOUT = float(os.environ.get("SAM_CLI_CONTAINER_CONNECTION_TIMEOUT", 20))
+DEFAULT_CONTAINER_HOST_INTERFACE = "127.0.0.1"
 
 
 class ContainerResponseException(Exception):
@@ -74,7 +75,7 @@ class Container:
         container_opts=None,
         additional_volumes=None,
         container_host="localhost",
-        container_host_interface="127.0.0.1",
+        container_host_interface=DEFAULT_CONTAINER_HOST_INTERFACE,
         mount_with_write: bool = False,
         host_tmp_dir: Optional[str] = None,
     ):
@@ -130,7 +131,9 @@ class Container:
         self._host_tmp_dir = host_tmp_dir
 
         try:
-            self.rapid_port_host = find_free_port(start=self._start_port_range, end=self._end_port_range)
+            self.rapid_port_host = find_free_port(
+                network_interface=self._container_host_interface, start=self._start_port_range, end=self._end_port_range
+            )
         except NoFreePortsError as ex:
             raise ContainerNotStartableException(str(ex)) from ex
 
@@ -365,7 +368,7 @@ class Container:
         if isinstance(response, str):
             stdout.write_str(response)
         elif isinstance(response, bytes):
-            stdout.write_bytes(response)
+            stdout.write_str(response.decode("utf-8"))
         stdout.flush()
         stderr.write_str("\n")
         stderr.flush()
@@ -469,15 +472,20 @@ class Container:
 
     @staticmethod
     def _handle_data_writing(output_stream: Union[StreamWriter, io.BytesIO, io.TextIOWrapper], output_data: bytes):
+        # Decode the output and strip the string of carriage return characters. Stack traces are returned
+        # with carriage returns from the RIE. If these are left in the string then only the last line after
+        # the carriage return will be printed instead of the entire stack trace. Encode the string after cleaning
+        # to be printed by the correct output stream
+        output_str = output_data.decode("utf-8").replace("\r", os.linesep)
         if isinstance(output_stream, StreamWriter):
-            output_stream.write_bytes(output_data)
+            output_stream.write_str(output_str)
             output_stream.flush()
 
         if isinstance(output_stream, io.BytesIO):
-            output_stream.write(output_data)
+            output_stream.write(output_str.encode("utf-8"))
 
         if isinstance(output_stream, io.TextIOWrapper):
-            output_stream.buffer.write(output_data)
+            output_stream.buffer.write(output_str.encode("utf-8"))
 
     @property
     def network_id(self):

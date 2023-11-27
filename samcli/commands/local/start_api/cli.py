@@ -7,7 +7,7 @@ from ssl import SSLError
 
 import click
 
-from samcli.cli.cli_config_file import ConfigProvider, configuration_option
+from samcli.cli.cli_config_file import ConfigProvider, configuration_option, save_params_option
 from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
 from samcli.cli.main import common_options as cli_framework_options
 from samcli.commands._utils.option_value_processor import process_image_options
@@ -72,11 +72,18 @@ DESCRIPTION = """
     default="public",
     help="Any static assets (e.g. CSS/Javascript/HTML) files located in this directory " "will be presented at /",
 )
+@click.option(
+    "--disable-authorizer",
+    is_flag=True,
+    default=False,
+    help="Disable custom Lambda Authorizers from being parsed and invoked.",
+)
 @invoke_common_options
 @warm_containers_common_options
 @local_common_options
 @cli_framework_options
 @aws_creds_options  # pylint: disable=R0914
+@save_params_option
 @pass_context
 @track_command
 @check_newer_version
@@ -87,6 +94,7 @@ def cli(
     host,
     port,
     static_dir,
+    disable_authorizer,
     # Common Options for Lambda Invoke
     template_file,
     env_vars,
@@ -101,6 +109,7 @@ def cli(
     skip_pull_image,
     force_image_build,
     parameter_overrides,
+    save_params,
     config_file,
     config_env,
     warm_containers,
@@ -124,6 +133,7 @@ def cli(
         ctx,
         host,
         port,
+        disable_authorizer,
         static_dir,
         template_file,
         env_vars,
@@ -154,6 +164,7 @@ def do_cli(  # pylint: disable=R0914
     ctx,
     host,
     port,
+    disable_authorizer,
     static_dir,
     template,
     env_vars,
@@ -228,6 +239,7 @@ def do_cli(  # pylint: disable=R0914
                 port=port,
                 host=host,
                 static_dir=static_dir,
+                disable_authorizer=disable_authorizer,
                 ssl_context=ssl_context,
             )
             service.start()

@@ -3,7 +3,7 @@ Invoke Start Lambda Command Options related Datastructures for formatting.
 """
 from typing import Dict, List
 
-from samcli.cli.core.options import ALL_COMMON_OPTIONS, add_common_options_info
+from samcli.cli.core.options import ALL_COMMON_OPTIONS, SAVE_PARAMS_OPTIONS, add_common_options_info
 from samcli.cli.row_modifiers import RowDefinition
 
 # NOTE(sriram-mv): The ordering of the option lists matter, they are the order
@@ -46,7 +46,7 @@ ARTIFACT_LOCATION_OPTIONS: List[str] = [
 
 EXTENSION_OPTIONS: List[str] = ["hook_name", "skip_prepare_infra"]
 
-CONFIGURATION_OPTION_NAMES: List[str] = ["config_env", "config_file"]
+CONFIGURATION_OPTION_NAMES: List[str] = ["config_env", "config_file"] + SAVE_PARAMS_OPTIONS
 
 TERRAFORM_HOOK_OPTIONS: List[str] = ["terraform_plan_file"]
 

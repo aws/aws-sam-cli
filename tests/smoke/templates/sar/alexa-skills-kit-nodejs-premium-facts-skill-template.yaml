@@ -67,7 +67,7 @@ Resources:
       Layers:
       - arn:aws:lambda:us-east-1:173334852312:layer:ask-sdk-for-nodejs:5
       MemorySize: 128
-      Runtime: nodejs8.10
+      Runtime: nodejs18.x
       Timeout: 8
     Type: AWS::Serverless::Function
 Transform: AWS::Serverless-2016-10-31

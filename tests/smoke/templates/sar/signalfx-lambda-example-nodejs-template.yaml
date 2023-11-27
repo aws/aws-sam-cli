@@ -15,5 +15,5 @@ Resources:
           SIGNALFX_AUTH_TOKEN:
             Ref: SignalFxAuthToken
       Handler: handler.handler
-      Runtime: nodejs10.x
+      Runtime: nodejs18.x
 Transform: AWS::Serverless-2016-10-31

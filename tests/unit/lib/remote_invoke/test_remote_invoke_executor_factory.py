@@ -4,7 +4,13 @@ from unittest.mock import patch, Mock
 
 from parameterized import parameterized
 
-from samcli.lib.remote_invoke.remote_invoke_executor_factory import RemoteInvokeExecutorFactory, AWS_LAMBDA_FUNCTION
+from samcli.lib.remote_invoke.remote_invoke_executor_factory import (
+    RemoteInvokeExecutorFactory,
+    AWS_LAMBDA_FUNCTION,
+    AWS_SQS_QUEUE,
+    AWS_KINESIS_STREAM,
+    AWS_STEPFUNCTIONS_STATEMACHINE,
+)
 from samcli.lib.remote_invoke.remote_invoke_executors import RemoteInvokeOutputFormat
 
 
@@ -15,8 +21,8 @@ class TestRemoteInvokeExecutorFactory(TestCase):
 
     def test_supported_resource_executors(self):
         supported_executors = self.remote_invoke_executor_factory.REMOTE_INVOKE_EXECUTOR_MAPPING
-        self.assertEqual(1, len(supported_executors))
-        expected_executors = {AWS_LAMBDA_FUNCTION}
+        self.assertEqual(4, len(supported_executors))
+        expected_executors = {AWS_LAMBDA_FUNCTION, AWS_SQS_QUEUE, AWS_KINESIS_STREAM, AWS_STEPFUNCTIONS_STATEMACHINE}
         self.assertEqual(expected_executors, set(supported_executors.keys()))
 
     @patch(
@@ -186,6 +192,93 @@ class TestRemoteInvokeExecutorFactory(TestCase):
             request_mappers=[patched_convert_to_default_json()],
             response_mappers=expected_mappers,
             boto_action_executor=patched_stepfunctions_invoke_executor(),
+            response_consumer=given_response_consumer,
+            log_consumer=given_log_consumer,
+        )
+
+    @parameterized.expand(itertools.product([RemoteInvokeOutputFormat.JSON, RemoteInvokeOutputFormat.TEXT]))
+    @patch("samcli.lib.remote_invoke.remote_invoke_executor_factory.SqsSendMessageExecutor")
+    @patch("samcli.lib.remote_invoke.remote_invoke_executor_factory.ResponseObjectToJsonStringMapper")
+    @patch("samcli.lib.remote_invoke.remote_invoke_executor_factory.RemoteInvokeExecutor")
+    def test_create_sqs_boto_executor(
+        self,
+        remote_invoke_output_format,
+        patched_remote_invoke_executor,
+        patched_object_to_json_converter,
+        patched_sqs_invoke_executor,
+    ):
+        given_physical_resource_id = "mock-sqs-queue-url"
+        given_cfn_resource_summary = Mock(physical_resource_id=given_physical_resource_id)
+
+        given_sqs_client = Mock()
+        self.boto_client_provider_mock.return_value = given_sqs_client
+
+        given_remote_invoke_executor = Mock()
+        patched_remote_invoke_executor.return_value = given_remote_invoke_executor
+
+        given_response_consumer = Mock()
+        given_log_consumer = Mock()
+        sqs_executor = self.remote_invoke_executor_factory._create_sqs_boto_executor(
+            given_cfn_resource_summary, remote_invoke_output_format, given_response_consumer, given_log_consumer
+        )
+
+        self.assertEqual(sqs_executor, given_remote_invoke_executor)
+        self.boto_client_provider_mock.assert_called_with("sqs")
+
+        patched_object_to_json_converter.assert_called_once()
+        patched_sqs_invoke_executor.assert_called_with(
+            given_sqs_client, given_physical_resource_id, remote_invoke_output_format
+        )
+
+        patched_remote_invoke_executor.assert_called_with(
+            request_mappers=[],
+            response_mappers=[patched_object_to_json_converter()],
+            boto_action_executor=patched_sqs_invoke_executor(),
+            response_consumer=given_response_consumer,
+            log_consumer=given_log_consumer,
+        )
+
+    @parameterized.expand(itertools.product([RemoteInvokeOutputFormat.JSON, RemoteInvokeOutputFormat.TEXT]))
+    @patch("samcli.lib.remote_invoke.remote_invoke_executor_factory.KinesisPutDataExecutor")
+    @patch("samcli.lib.remote_invoke.remote_invoke_executor_factory.DefaultConvertToJSON")
+    @patch("samcli.lib.remote_invoke.remote_invoke_executor_factory.ResponseObjectToJsonStringMapper")
+    @patch("samcli.lib.remote_invoke.remote_invoke_executor_factory.RemoteInvokeExecutor")
+    def test_create_kinesis_boto_executor(
+        self,
+        remote_invoke_output_format,
+        patched_remote_invoke_executor,
+        patched_object_to_json_converter,
+        patched_convert_to_default_json,
+        patched_kinesis_invoke_executor,
+    ):
+        given_physical_resource_id = "mock-stream-name"
+        given_cfn_resource_summary = Mock(physical_resource_id=given_physical_resource_id)
+
+        given_kinesis_client = Mock()
+        self.boto_client_provider_mock.return_value = given_kinesis_client
+
+        given_remote_invoke_executor = Mock()
+        patched_remote_invoke_executor.return_value = given_remote_invoke_executor
+
+        given_response_consumer = Mock()
+        given_log_consumer = Mock()
+        kinesis_executor = self.remote_invoke_executor_factory._create_kinesis_boto_executor(
+            given_cfn_resource_summary, remote_invoke_output_format, given_response_consumer, given_log_consumer
+        )
+
+        self.assertEqual(kinesis_executor, given_remote_invoke_executor)
+        self.boto_client_provider_mock.assert_called_with("kinesis")
+        patched_convert_to_default_json.assert_called_once()
+
+        patched_object_to_json_converter.assert_called_once()
+        patched_kinesis_invoke_executor.assert_called_with(
+            given_kinesis_client, given_physical_resource_id, remote_invoke_output_format
+        )
+
+        patched_remote_invoke_executor.assert_called_with(
+            request_mappers=[patched_convert_to_default_json()],
+            response_mappers=[patched_object_to_json_converter()],
+            boto_action_executor=patched_kinesis_invoke_executor(),
             response_consumer=given_response_consumer,
             log_consumer=given_log_consumer,
         )

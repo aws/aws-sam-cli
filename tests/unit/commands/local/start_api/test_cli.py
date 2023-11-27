@@ -35,6 +35,7 @@ class TestCli(TestCase):
         self.shutdown = True
         self.region_name = "region"
         self.profile = "profile"
+        self.disable_authorizer = False
 
         self.warm_containers = None
         self.debug_function = None
@@ -67,6 +68,7 @@ class TestCli(TestCase):
 
         self.warm_containers = None
         self.debug_function = None
+        self.disable_authorizer = False
 
         self.call_cli()
 
@@ -101,6 +103,7 @@ class TestCli(TestCase):
             host=self.host,
             ssl_context=None,
             static_dir=self.static_dir,
+            disable_authorizer=self.disable_authorizer,
         )
 
         service_mock.start.assert_called_with()
@@ -221,4 +224,5 @@ class TestCli(TestCase):
             hook_name=self.hook_name,
             ssl_cert_file=self.ssl_cert_file,
             ssl_key_file=self.ssl_key_file,
+            disable_authorizer=self.disable_authorizer,
         )

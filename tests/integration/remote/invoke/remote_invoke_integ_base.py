@@ -58,6 +58,36 @@ class RemoteInvokeIntegBase(TestCase):
         cls.lambda_client = boto_client_provider("lambda")
         cls.stepfunctions_client = boto_client_provider("stepfunctions")
         cls.xray_client = boto_client_provider("xray")
+        cls.sqs_client = boto_client_provider("sqs")
+        cls.kinesis_client = boto_client_provider("kinesis")
+
+    def get_kinesis_records(self, shard_id, sequence_number, stream_name):
+        """Helper function to get kinesis records using the provided shard_id and sequence_number
+
+        Parameters
+        ----------
+        shard_id: string
+            Shard Id to fetch the record from
+        sequence_number: string
+            Sequence number to get the record for
+        stream_name: string
+            Name of the kinesis stream to get records from
+        Returns
+        -------
+        list
+            Returns a list of records received from the kinesis data stream
+        """
+        response = self.kinesis_client.get_shard_iterator(
+            StreamName=stream_name,
+            ShardId=shard_id,
+            ShardIteratorType="AT_SEQUENCE_NUMBER",
+            StartingSequenceNumber=sequence_number,
+        )
+        shard_iter = response["ShardIterator"]
+        response = self.kinesis_client.get_records(ShardIterator=shard_iter, Limit=1)
+        records = response["Records"]
+
+        return records
 
     @staticmethod
     def get_command_list(
