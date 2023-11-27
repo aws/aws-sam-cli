@@ -45,7 +45,7 @@ resource "aws_lambda_function" "this" {
   function_name = "hello-world-function"
   role          = aws_iam_role.this.arn
 
-  runtime  = "go1.x"
+  runtime  = "provided.al2"
   handler  = "bin/hello_world"
   filename = "hello_world.zip"
 
