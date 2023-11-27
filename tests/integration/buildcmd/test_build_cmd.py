@@ -1520,7 +1520,9 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
 
         command_result = run_command(cmdlist, cwd=self.working_dir)
         # Capture warning
-        self.assertIn("`fake` is not a valid architecture", str(command_result.stderr))
+        self.assertIn(
+            "`fake` in Layer `LayerWithMakefileBadArchitecture` is not a valid architecture", str(command_result.stderr)
+        )
         # Build should still succeed
         self.assertEqual(command_result.process.returncode, 0)
 
@@ -1542,7 +1544,10 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
 
         command_result = run_command(cmdlist, cwd=self.working_dir)
         # Capture warning
-        self.assertIn("`x86_64` is not listed in the specified CompatibleArchitectures", str(command_result.stderr))
+        self.assertIn(
+            "`x86_64` is not listed in the specified CompatibleArchitectures of Layer `LayerWithMakefileBadArchitecture`",
+            str(command_result.stderr),
+        )
         # Build should still succeed
         self.assertEqual(command_result.process.returncode, 0)
 
