@@ -986,8 +986,9 @@ def watch_exclude_click_option():
         "--watch-exclude",
         help="Excludes a file or folder from being observed for file changes. "
         "Files and folders that are excluded will not trigger a sync workflow. "
-        "This option can be provided multiple times. "
-        "Example: HelloWorldFunction=package-lock.json",
+        "This option can be provided multiple times.\n\n"
+        "Examples:\n\nHelloWorldFunction=package-lock.json\n\n"
+        "ChildStackA/FunctionName=database.sqlite3",
         multiple=True,
         type=SyncWatchExcludeType(),
         callback=watch_exclude_option_callback,

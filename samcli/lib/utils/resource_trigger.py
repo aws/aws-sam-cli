@@ -17,7 +17,7 @@ from samcli.lib.utils.path_observer import PathHandler
 from samcli.lib.utils.resources import RESOURCES_WITH_LOCAL_PATHS
 from samcli.local.lambdafn.exceptions import FunctionNotFound, ResourceNotFound
 
-DEFAULT_WATCH_IGNORED_RESOURCES = ["^.*\\.aws-sam.*$", "^.*node_modules.*$", "^.*package-lock\\.json$"]
+DEFAULT_WATCH_IGNORED_RESOURCES = ["^.*\\.aws-sam.*$", "^.*node_modules.*$"]
 
 
 class OnChangeCallback(Protocol):
