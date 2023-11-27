@@ -605,9 +605,9 @@ pydantic-core==2.14.5 \
     --hash=sha256:fb2ed8b3fe4bf4506d6dab3b93b83bbc22237e230cba03866d561c3577517d18 \
     --hash=sha256:fe0a5a1025eb797752136ac8b4fa21aa891e3d74fd340f864ff982d649691867
     # via pydantic
-pygments==2.17.1 \
-    --hash=sha256:1b37f1b1e1bff2af52ecaf28cc601e2ef7077000b227a0675da25aef85784bc4 \
-    --hash=sha256:e45a0e74bf9c530f564ca81b8952343be986a29f6afe7f5ad95c5f06b7bdf5e8
+pygments==2.17.2 \
+    --hash=sha256:b27c2826c47d0f3219f29554824c30c5e8945175d888647acd804ddd04af846c \
+    --hash=sha256:da46cec9fd2de5be3a8a784f434e4c4ab670b4ff54d605c4c2717e9d49c4c367
     # via rich
 pyopenssl==23.3.0 \
     --hash=sha256:6756834481d9ed5470f4a9393455154bc92fe7a64b7bc6ee2c804e78c52099b2 \
