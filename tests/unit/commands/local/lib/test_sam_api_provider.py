@@ -1873,6 +1873,109 @@ class TestSamApiUsingAuthorizers(TestCase):
         api_collector_mock.set_default_authorizer.assert_called_with(logical_id_mock, authorizer_name)
 
     @parameterized.expand(
+        [("when enabled ignores ignores authorizers", True), ("when disabled extracts authorizers as normal", False)]
+    )
+    @patch("samcli.lib.providers.sam_api_provider.SamApiProvider._extract_authorizers_from_props")
+    @patch("samcli.lib.providers.sam_api_provider.CfnBaseApiProvider.extract_swagger_route")
+    @patch("samcli.lib.providers.sam_api_provider.LOG.debug")
+    def test_extract_from_serverless_http_with_disable_authorizer_flag(
+        self,
+        _,
+        disable_authorizer,
+        mock_debug_log: Mock,
+        mock_extract_swagger_route: Mock,
+        mock_extract_authorizers_from_props: Mock,
+    ):
+        provider = SamApiProvider()
+        template = {
+            "Properties": {
+                "DefinitionBody": "mock-body",
+                "DefinitionUri": "mock-uri",
+                "StageName": "stage-name",
+                "StageVariables": {},
+                "Auth": {"DefaultAuthorizer": "Authorizer"},
+            }
+        }
+        mock_collector = Mock()
+        provider._extract_from_serverless_http(
+            stack_path="/",
+            logical_id="id",
+            api_resource=template,
+            collector=mock_collector,
+            disable_authorizer=disable_authorizer,
+        )
+
+        if disable_authorizer:
+            mock_collector.set_default_authorizer.assert_not_called()
+            mock_extract_authorizers_from_props.assert_not_called()
+
+        if not disable_authorizer:
+            mock_collector.set_default_authorizer.assert_called()
+            mock_extract_authorizers_from_props.assert_called()
+
+    @parameterized.expand(
+        [("when enabled ignores authorizers", True), ("when disabled extracts authorizers as normal", False)]
+    )
+    @patch("samcli.lib.providers.sam_api_provider.SamApiProvider._extract_authorizers_from_props")
+    @patch("samcli.lib.providers.sam_api_provider.CfnBaseApiProvider.extract_swagger_route")
+    @patch("samcli.lib.providers.sam_api_provider.LOG.debug")
+    def test_extract_from_serverless_api_with_disable_authorizer_flag(
+        self,
+        _,
+        disable_authorizer,
+        mock_debug_log: Mock,
+        mock_extract_swagger_route: Mock,
+        mock_extract_authorizers_from_props: Mock,
+    ):
+        provider = SamApiProvider()
+        template = {
+            "Properties": {
+                "DefinitionBody": "mock-body",
+                "DefinitionUri": "mock-uri",
+                "StageName": "stage-name",
+                "StageVariables": {},
+                "Auth": {"DefaultAuthorizer": "MyAuthorizer"},
+            }
+        }
+        mock_collector = Mock()
+        provider._extract_from_serverless_api(
+            stack_path="/",
+            logical_id="id",
+            api_resource=template,
+            collector=mock_collector,
+            disable_authorizer=disable_authorizer,
+        )
+
+        if disable_authorizer:
+            mock_debug_log.assert_called_with("Authorizer not found or disabled, returning early")
+            mock_collector.set_default_authorizer.assert_not_called()
+            mock_extract_authorizers_from_props.assert_not_called()
+
+        if not disable_authorizer:
+            mock_debug_log.assert_not_called()
+            mock_collector.set_default_authorizer.assert_called()
+            mock_extract_authorizers_from_props.assert_called()
+
+    @parameterized.expand(
+        [("sets authorizer name to None", True, None), ("sets authorizer name to Authorizer", False, "Authorizer")]
+    )
+    def test_convert_event_route_with_disable_authorizer_flag(self, _, disable_authorizer, expected):
+        event_properties = {
+            "Path": "MockPath",
+            "Method": "MockMethod",
+            "RestApiId": "MockId",
+            "Auth": {"Authorizer": "Authorizer"},
+        }
+        _, route = SamApiProvider._convert_event_route(
+            stack_path="",
+            lambda_logical_id="MyLambda",
+            event_properties=event_properties,
+            event_type="Api",
+            disable_authorizer=disable_authorizer,
+        )
+        self.assertEqual(route.authorizer_name, expected)
+
+    @parameterized.expand(
         [
             (  # test token + swagger 2.0
                 {

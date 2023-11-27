@@ -7,7 +7,7 @@ pytest-cov==4.1.0
 # type checking and related stubs
 # mypy adds new rules in new minor versions, which could cause our PR check to fail
 # here we fix its version and upgrade it manually in the future
-mypy==1.6.1
+mypy==1.7.1
 types-pywin32==306.0.0.4
 types-PyYAML==6.0.12.11
 types-chevron==0.14.2.5
@@ -25,10 +25,10 @@ types-urllib3==1.26.25.14
 # Test requirements
 pytest~=7.4.3
 parameterized==0.9.0
-pytest-xdist==3.4.0
+pytest-xdist==3.5.0
 pytest-forked==1.6.0
 pytest-timeout==2.2.0
-pytest-rerunfailures==12.0
+pytest-rerunfailures==13.0
 # NOTE (hawflau): DO NOT upgrade pytest-metadata and pytest-json-report unless pytest-json-report addresses https://github.com/numirias/pytest-json-report/issues/89
 pytest-metadata==2.0.4
 pytest-json-report==1.5.0
