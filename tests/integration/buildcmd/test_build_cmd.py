@@ -657,6 +657,8 @@ class TestBuildCommand_NodeFunctions(BuildIntegNodeBase):
     def test_building_default_package_json(self, runtime, use_container):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
+        if use_container and IS_WINDOWS and runtime == "nodejs20.x":
+            self.skipTest("Skipping nodejs20.x container build test in Windows due to old version of Docker not supporting nodejs20 container")
         self._test_with_default_package_json(runtime, use_container, self.test_data_path)
 
 

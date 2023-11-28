@@ -469,6 +469,10 @@ class BuildIntegNodeBase(BuildIntegBase):
             self.EXPECTED_NODE_MODULES,
         )
 
+        # skipping test invoke due to old version of Docker not supporting nodejs20 container in Windows
+        if runtime == "nodejs20.x" and IS_WINDOWS:
+            self.TEST_INVOKE = False
+
         expected = {"body": '{"message":"hello world!"}', "statusCode": 200}
         if not SKIP_DOCKER_TESTS and self.TEST_INVOKE:
             self._verify_invoke_built_function(
