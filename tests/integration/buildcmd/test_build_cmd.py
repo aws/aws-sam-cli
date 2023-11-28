@@ -1526,31 +1526,6 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         # Build should still succeed
         self.assertEqual(command_result.process.returncode, 0)
 
-    def test_build_layer_with_makefile_architecture_not_compatible(self):
-        # The BuildArchitecture is not one of the listed CompatibleArchitectures
-        build_method = "makefile"
-        use_container = False
-        layer_identifier = "LayerWithMakefileBadArchitecture"
-
-        overrides = {
-            "LayerBuildMethod": build_method,
-            "LayerMakeContentUri": "PyLayerMake",
-            "LayerBuildArchitecture": "x86_64",
-            "LayerCompatibleArchitecture": "arm64",
-        }
-        cmdlist = self.get_command_list(
-            use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
-        )
-
-        command_result = run_command(cmdlist, cwd=self.working_dir)
-        # Capture warning
-        self.assertIn(
-            "`x86_64` is not listed in the specified CompatibleArchitectures of Layer `LayerWithMakefileBadArchitecture`",
-            str(command_result.stderr),
-        )
-        # Build should still succeed
-        self.assertEqual(command_result.process.returncode, 0)
-
     @parameterized.expand([("python3.7", False, "LayerTwo"), ("python3.7", "use_container", "LayerTwo")])
     def test_build_fails_with_missing_metadata(self, runtime, use_container, layer_identifier):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):

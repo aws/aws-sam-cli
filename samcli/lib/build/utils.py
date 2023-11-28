@@ -18,35 +18,15 @@ def valid_architecture(architecture: str) -> bool:
 
 def warn_on_invalid_architecture(layer_definition: LayerBuildDefinition) -> None:
     """
-    Validate the BuildArchitecture and CompatibleArchitectures of a LambdaLayer.
-
-    Also checks if the BuildArchitecture is in CompatibleArchitectures.
+    Validate the BuildArchitecture of a LambdaLayer.
 
     Prints corresponding LOG warning if something is invalid.
     """
     layer_architecture = layer_definition.architecture
-    compatible_architectures = layer_definition.layer.compatible_architectures
     layer_id = layer_definition.layer.layer_id
 
     if not valid_architecture(layer_architecture):
         LOG.warn(f"WARNING: `{layer_architecture}` in Layer `{layer_id}` is not a valid architecture.")
-        # No sense in checking if the BuildArchitecture is in CompatibleArchitectures if it is not valid in the first place
-        return
-
-    # If CompatibleArchitectures are not provided, no more validation required
-    if not compatible_architectures:
-        return
-
-    for compatible_architecture in compatible_architectures:
-        if not valid_architecture(compatible_architecture):
-            LOG.warn(
-                f"WARNING: `{compatible_architecture}` of CompatibleArchitectures in Layer `{layer_id}` is not a valid architecture."
-            )
-
-    if layer_architecture not in compatible_architectures:
-        LOG.warn(
-            f"WARNING: `{layer_architecture}` is not listed in the specified CompatibleArchitectures of Layer `{layer_id}`."
-        )
 
 
 def _make_env_vars(
