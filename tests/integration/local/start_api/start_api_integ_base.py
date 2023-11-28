@@ -133,7 +133,7 @@ class StartApiIntegBaseClass(TestCase):
 
         cls.read_threading = threading.Thread(target=read_sub_process_stderr, daemon=True)
         cls.read_threading.start()
-        
+
         cls.read_threading2 = threading.Thread(target=read_sub_process_stdout, daemon=True)
         cls.read_threading2.start()
 
