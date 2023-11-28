@@ -252,7 +252,7 @@ class GlobalConfig(metaclass=Singleton):
             )
             return default
 
-        return value
+        return value  # type:ignore
 
     def set_value(self, config_entry: ConfigEntry, value: Any, is_flag: bool = False, flush: bool = True) -> None:
         """Set the value of a configuration. The associated env var will be updated as well.
