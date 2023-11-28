@@ -118,6 +118,7 @@ class TestCli(TestCase):
             extra_context=None,
             tracing=False,
             application_insights=False,
+            structured_logging=True,
         )
 
         # THEN we should receive no errors
@@ -134,6 +135,7 @@ class TestCli(TestCase):
             self.extra_context_as_json,
             False,
             False,
+            True,
         )
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
@@ -158,6 +160,7 @@ class TestCli(TestCase):
             extra_context=None,
             tracing=False,
             application_insights=False,
+            structured_logging=False,
         )
 
         # THEN we should receive no errors
@@ -171,6 +174,7 @@ class TestCli(TestCase):
             self.name,
             True,
             {"runtime": "nodejs20.x", "project_name": "testing project", "architectures": {"value": ["x86_64"]}},
+            False,
             False,
             False,
         )
@@ -197,6 +201,7 @@ class TestCli(TestCase):
             extra_context=None,
             tracing=False,
             application_insights=False,
+            structured_logging=False,
         )
 
         # THEN we should receive no errors
@@ -210,6 +215,7 @@ class TestCli(TestCase):
             self.name,
             True,
             {"runtime": "nodejs12.x", "project_name": "testing project", "architectures": {"value": [ARM64]}},
+            False,
             False,
             False,
         )
@@ -236,6 +242,7 @@ class TestCli(TestCase):
             extra_context=None,
             tracing=True,
             application_insights=False,
+            structured_logging=False,
         )
 
         # THEN we should receive no errors
@@ -251,6 +258,7 @@ class TestCli(TestCase):
             True,
             self.extra_context_as_json,
             True,
+            False,
             False,
         )
 
@@ -276,6 +284,7 @@ class TestCli(TestCase):
             extra_context=None,
             tracing=False,
             application_insights=True,
+            structured_logging=False,
         )
 
         # THEN we should receive no errors
@@ -292,6 +301,7 @@ class TestCli(TestCase):
             self.extra_context_as_json,
             False,
             True,
+            False,
         )
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
@@ -316,6 +326,7 @@ class TestCli(TestCase):
             extra_context=None,
             tracing=False,
             application_insights=False,
+            structured_logging=True,
         )
 
         # THEN we should receive no errors
@@ -331,6 +342,7 @@ class TestCli(TestCase):
             {"runtime": "java11", "project_name": "testing project", "architectures": {"value": [X86_64]}},
             False,
             False,
+            True,
         )
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
@@ -355,6 +367,7 @@ class TestCli(TestCase):
                 extra_context=None,
                 tracing=False,
                 application_insights=False,
+                structured_logging=False,
             )
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
@@ -379,6 +392,7 @@ class TestCli(TestCase):
                 extra_context=None,
                 tracing=False,
                 application_insights=False,
+                structured_logging=False,
             )
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
@@ -409,6 +423,7 @@ class TestCli(TestCase):
                 extra_context=None,
                 tracing=False,
                 application_insights=False,
+                structured_logging=False,
             )
 
             generate_project_patch.assert_called_with(
@@ -418,6 +433,7 @@ class TestCli(TestCase):
                 self.output_dir,
                 self.name,
                 self.no_input,
+                False,
                 False,
                 False,
             )
@@ -450,6 +466,7 @@ class TestCli(TestCase):
                 extra_context=None,
                 tracing=False,
                 application_insights=False,
+                structured_logging=False,
             )
 
             generate_project_patch.assert_called_with(
@@ -459,6 +476,7 @@ class TestCli(TestCase):
                 self.output_dir,
                 self.name,
                 self.no_input,
+                False,
                 False,
                 False,
             )
@@ -485,6 +503,7 @@ class TestCli(TestCase):
             extra_context=None,
             tracing=False,
             application_insights=False,
+            structured_logging=False,
         )
 
         # THEN we should receive no errors
@@ -498,6 +517,7 @@ class TestCli(TestCase):
             self.name,
             True,
             self.extra_context_as_json,
+            False,
             False,
             False,
         )
@@ -524,6 +544,7 @@ class TestCli(TestCase):
             extra_context='{"schema_name":"events", "schema_type":"aws"}',
             tracing=False,
             application_insights=False,
+            structured_logging=False,
         )
 
         # THEN we should receive no errors and right extra_context should be passed
@@ -542,6 +563,7 @@ class TestCli(TestCase):
                 "schema_type": "aws",
                 "architectures": {"value": [X86_64]},
             },
+            False,
             False,
             False,
         )
@@ -570,6 +592,7 @@ class TestCli(TestCase):
             extra_context='{"project_name": "my_project", "runtime": "java8", "schema_name":"events", "schema_type": "aws"}',
             tracing=False,
             application_insights=False,
+            structured_logging=False,
         )
 
         # THEN extra_context should have not overridden default_parameters(name, runtime)
@@ -588,6 +611,7 @@ class TestCli(TestCase):
                 "schema_type": "aws",
                 "architectures": {"value": [ARM64]},
             },
+            False,
             False,
             False,
         )
@@ -614,6 +638,7 @@ class TestCli(TestCase):
                 extra_context='{"project_name", "my_project", "runtime": "java8", "schema_name":"events", "schema_type": "aws"}',
                 tracing=False,
                 application_insights=False,
+                structured_logging=False,
             )
 
     @patch("samcli.commands.init.init_generator.generate_project")
@@ -637,6 +662,7 @@ class TestCli(TestCase):
             extra_context='{"schema_name":"events", "schema_type": "aws"}',
             tracing=False,
             application_insights=False,
+            structured_logging=False,
         )
 
         # THEN should set default parameter(name, runtime) as extra_context
@@ -655,6 +681,7 @@ class TestCli(TestCase):
                 "project_name": "test-project",
                 "architectures": {"value": [X86_64]},
             },
+            False,
             False,
             False,
         )
@@ -680,6 +707,7 @@ class TestCli(TestCase):
             extra_context='{"schema_name":"events", "schema_type": "aws"}',
             tracing=False,
             application_insights=False,
+            structured_logging=True,
         )
 
         # THEN extra_context should be without runtime
@@ -699,6 +727,7 @@ class TestCli(TestCase):
             },
             False,
             False,
+            True,
         )
 
     @patch("samcli.commands.init.init_generator.generate_project")
@@ -722,6 +751,7 @@ class TestCli(TestCase):
             extra_context='{"schema_name":"events", "schema_type": "aws"}',
             tracing=False,
             application_insights=False,
+            structured_logging=True,
         )
 
         # THEN extra_context should be without name
@@ -741,6 +771,7 @@ class TestCli(TestCase):
             },
             False,
             False,
+            True,
         )
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
@@ -766,6 +797,7 @@ class TestCli(TestCase):
             extra_context='{\"schema_name\":\"events\", \"schema_type\":\"aws\"}',
             tracing=False,
             application_insights= False,
+            structured_logging=False
             # fmt: on
         )
 
@@ -785,6 +817,7 @@ class TestCli(TestCase):
                 "schema_type": "aws",
                 "architectures": {"value": [X86_64]},
             },
+            False,
             False,
             False,
         )
@@ -900,6 +933,7 @@ class TestCli(TestCase):
 2
 N
 N
+N
 test-project
 Y
 1
@@ -928,6 +962,7 @@ Y
                 "AWS_Schema_root": "schemas.aws.AWSAPICallViaCloudTrail",
                 "architectures": {"value": [X86_64]},
             },
+            False,
             False,
             False,
         )
@@ -984,6 +1019,7 @@ Y
 1
 N
 N
+y
 test-project
             """
         runner = CliRunner()
@@ -1000,6 +1036,7 @@ test-project
             {"project_name": "test-project", "runtime": "java8", "architectures": {"value": [X86_64]}},
             False,
             False,
+            True,
         )
 
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
@@ -1116,6 +1153,7 @@ test-project
 2
 N
 N
+N
 test-project
 N
 1
@@ -1146,6 +1184,7 @@ us-east-1
                 "AWS_Schema_root": "schemas.aws.AWSAPICallViaCloudTrail",
                 "architectures": {"value": [X86_64]},
             },
+            False,
             False,
             False,
         )
@@ -1243,6 +1282,7 @@ us-east-1
 2
 1
 1
+N
 N
 N
 test-project
@@ -1372,6 +1412,7 @@ invalid-region
 2
 N
 N
+N
 test-project
 Y
 1
@@ -1400,6 +1441,7 @@ Y
                 "AWS_Schema_root": "schemas.aws.AWSAPICallViaCloudTrail",
                 "architectures": {"value": [X86_64]},
             },
+            False,
             False,
             False,
         )
@@ -1516,6 +1558,7 @@ Y
 1
 N
 N
+N
 test-project
 Y
 1
@@ -1551,6 +1594,7 @@ Y
             architecture=ARM64,
             tracing=False,
             application_insights=False,
+            structured_logging=False,
         )
 
         self.extra_context_as_json["architectures"] = {"value": [ARM64]}
@@ -1564,6 +1608,7 @@ Y
             self.name,
             True,
             self.extra_context_as_json,
+            False,
             False,
             False,
         )
@@ -1597,6 +1642,7 @@ foo
             None,
             None,
             None,
+            None,
         )
 
     @patch("samcli.commands.init.init_templates.InitTemplates._get_manifest")
@@ -1624,6 +1670,7 @@ N
             "amazon/python3.8-base",
             "--dependency-manager",
             "pip",
+            "--no-structured-logging",
         ]
         runner = CliRunner()
         result = runner.invoke(init_cmd, args=args, input=user_input)
@@ -1631,7 +1678,7 @@ N
         # THEN we should receive no errors
         self.assertFalse(result.exception)
         generate_project_patch.assert_called_once_with(
-            ANY, IMAGE, "python3.8", "pip", ".", "untitled6", True, ANY, False, False
+            ANY, IMAGE, "python3.8", "pip", ".", "untitled6", True, ANY, False, False, False
         )
 
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
@@ -1674,6 +1721,7 @@ N
                 extra_context=self.extra_context,
                 tracing=False,
                 application_insights=False,
+                structured_logging=False,
             )
 
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
@@ -1716,6 +1764,7 @@ N
                 extra_context=self.extra_context,
                 tracing=False,
                 application_insights=False,
+                structured_logging=False,
             )
 
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
@@ -1759,6 +1808,7 @@ N
             extra_context=None,
             tracing=False,
             application_insights=False,
+            structured_logging=False,
         )
         generate_project_patch.assert_called_once_with(
             ANY,  # location
@@ -1769,6 +1819,7 @@ N
             self.name,
             True,  # no_input
             ANY,
+            False,
             False,
             False,
         )
@@ -1807,6 +1858,7 @@ N
             tracing=False,
             application_insights=False,
             architecture=None,
+            structured_logging=False,
         )
         generate_project_patch.assert_called_once_with(
             ANY,  # location
@@ -1817,6 +1869,7 @@ N
             self.name,
             True,  # no_input
             ANY,
+            False,
             False,
             False,
         )
@@ -1855,6 +1908,7 @@ N
             tracing=False,
             application_insights=False,
             architecture=None,
+            structured_logging=False,
         )
         generate_project_patch.assert_called_once_with(
             ANY,  # location
@@ -1865,6 +1919,7 @@ N
             self.name,
             True,  # no_input
             ANY,
+            False,
             False,
             False,
         )
@@ -1904,6 +1959,7 @@ N
                 tracing=False,
                 application_insights=False,
                 architecture=None,
+                structured_logging=False,
             )
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
@@ -1933,7 +1989,7 @@ N
         # THEN we should receive no errors
         self.assertFalse(result.exception)
         generate_project_patch.assert_called_once_with(
-            ANY, IMAGE, "java11", "gradle", ".", "untitled6", True, ANY, None, None
+            ANY, IMAGE, "java11", "gradle", ".", "untitled6", True, ANY, None, None, None
         )
         PackageType.explicit = (
             False  # Other tests fail after we pass --packge-type in this test, so let's reset this variable
@@ -2008,6 +2064,7 @@ N
 y
 N
 N
+N
 test-project
         """
 
@@ -2023,6 +2080,7 @@ test-project
             "test-project",
             True,
             {"project_name": "test-project", "runtime": "python3.9", "architectures": {"value": ["x86_64"]}},
+            False,
             False,
             False,
         )
@@ -2097,6 +2155,7 @@ n
 1
 N
 N
+N
 test-project
         """
 
@@ -2112,6 +2171,7 @@ test-project
             "test-project",
             True,
             {"project_name": "test-project", "runtime": "java11", "architectures": {"value": ["x86_64"]}},
+            False,
             False,
             False,
         )
@@ -2278,6 +2338,7 @@ test-project
                 tracing=False,
                 application_insights=False,
                 architecture=X86_64,
+                structured_logging=False,
             )
         expected_error_message = (
             "Lambda Runtime java8 and dependency manager pip does not have an available initialization template."
@@ -2298,14 +2359,7 @@ test-project
 n
 
         """
-        args = [
-            "--name",
-            "untitled6",
-            "--runtime",
-            "go1.x",
-            "--dependency-manager",
-            "pip",
-        ]
+        args = ["--name", "untitled6", "--runtime", "go1.x", "--dependency-manager", "pip", "--no-structured-logging"]
         runner = CliRunner()
         result = runner.invoke(init_cmd, args=args, input=user_input)
 
@@ -2379,6 +2433,7 @@ n
 1
 N
 N
+N
 test-project
             """
         runner = CliRunner()
@@ -2393,6 +2448,7 @@ test-project
             "test-project",
             True,
             {"project_name": "test-project", "runtime": "java11", "architectures": {"value": ["x86_64"]}},
+            False,
             False,
             False,
         )
@@ -2463,6 +2519,7 @@ test-project
 1
 N
 N
+N
 test-project
             """
         runner = CliRunner()
@@ -2516,6 +2573,7 @@ test-project
         user_input = """
 2
 1
+N
 N
 N
 test-project
@@ -2591,6 +2649,7 @@ test-project
 1
 N
 N
+N
 test-project
         """
 
@@ -2606,6 +2665,7 @@ test-project
             "test-project",
             True,
             {"project_name": "test-project", "runtime": "java11", "architectures": {"value": ["x86_64"]}},
+            False,
             False,
             False,
         )
@@ -2682,6 +2742,7 @@ test-project
 1
 N
 N
+N
 test-project
         """
 
@@ -2697,6 +2758,7 @@ test-project
             "test-project",
             True,
             {"project_name": "test-project", "runtime": "java11", "architectures": {"value": ["x86_64"]}},
+            False,
             False,
             False,
         )
@@ -2765,6 +2827,7 @@ N
 2
 N
 N
+N
 test-project
         """
 
@@ -2780,6 +2843,7 @@ test-project
             "test-project",
             True,
             {"project_name": "test-project", "runtime": "java11", "architectures": {"value": ["x86_64"]}},
+            False,
             False,
             False,
         )
@@ -2854,6 +2918,7 @@ N
 2
 N
 N
+N
 test-project
         """
 
@@ -2869,6 +2934,7 @@ test-project
             "test-project",
             True,
             {"project_name": "test-project", "runtime": "provided.al2", "architectures": {"value": ["x86_64"]}},
+            False,
             False,
             False,
         )
@@ -2931,6 +2997,7 @@ test-project
 1
 N
 N
+N
 test-project
         """
         args = [
@@ -2950,6 +3017,7 @@ test-project
             "test-project",
             True,
             {"project_name": "test-project", "runtime": "provided.al2", "architectures": {"value": ["x86_64"]}},
+            False,
             False,
             False,
         )
@@ -3020,6 +3088,7 @@ test-project
 N
 1
 N
+N
 test-project
         """
 
@@ -3036,6 +3105,7 @@ test-project
             True,
             {"project_name": "test-project", "runtime": "java11", "architectures": {"value": ["x86_64"]}},
             True,
+            False,
             False,
         )
 
@@ -3105,6 +3175,7 @@ test-project
 N
 1
 N
+N
 test-project
         """
 
@@ -3122,4 +3193,5 @@ test-project
             {"project_name": "test-project", "runtime": "java11", "architectures": {"value": ["x86_64"]}},
             False,
             True,
+            False,
         )

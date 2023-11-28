@@ -9,7 +9,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: index.handler
-      Runtime: nodejs10.x
+      Runtime: nodejs18.x
       CodeUri:
         Bucket: <%REPO_BUCKET%>
         Key: 7e855ca1-e613-4e4f-b733-43ddd337b55b

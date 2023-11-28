@@ -35,7 +35,7 @@ Resources:
           return response;
         };
       Handler: index.handler
-      Runtime: nodejs12.x
+      Runtime: nodejs18.x
       Events:
         Basic:
           Type: HttpApi

@@ -40,7 +40,7 @@ Resources:
     Properties:
       CodeUri: s3://sam-demo-bucket/hello.zip
       Handler: index.handler
-      Runtime: nodejs12.x
+      Runtime: nodejs18.x
       MemorySize: 512
       Timeout: 100
       VpcConfig:

@@ -45,7 +45,7 @@ Resources:
       Code:
         S3Bucket: my-bucket
         S3Key: function.zip
-      Runtime: nodejs12.x
+      Runtime: nodejs18.x
       Timeout: 5
       TracingConfig:
         Mode: Active

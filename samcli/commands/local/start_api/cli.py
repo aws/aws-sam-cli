@@ -71,6 +71,12 @@ DESCRIPTION = """
     default="public",
     help="Any static assets (e.g. CSS/Javascript/HTML) files located in this directory " "will be presented at /",
 )
+@click.option(
+    "--disable-authorizer",
+    is_flag=True,
+    default=False,
+    help="Disable custom Lambda Authorizers from being parsed and invoked.",
+)
 @invoke_common_options
 @warm_containers_common_options
 @local_common_options
@@ -87,6 +93,7 @@ def cli(
     host,
     port,
     static_dir,
+    disable_authorizer,
     # Common Options for Lambda Invoke
     template_file,
     env_vars,
@@ -123,6 +130,7 @@ def cli(
         ctx,
         host,
         port,
+        disable_authorizer,
         static_dir,
         template_file,
         env_vars,
@@ -151,6 +159,7 @@ def do_cli(  # pylint: disable=R0914
     ctx,
     host,
     port,
+    disable_authorizer,
     static_dir,
     template,
     env_vars,
@@ -217,7 +226,13 @@ def do_cli(  # pylint: disable=R0914
             container_host_interface=container_host_interface,
             invoke_images=processed_invoke_images,
         ) as invoke_context:
-            service = LocalApiService(lambda_invoke_context=invoke_context, port=port, host=host, static_dir=static_dir)
+            service = LocalApiService(
+                lambda_invoke_context=invoke_context,
+                port=port,
+                host=host,
+                static_dir=static_dir,
+                disable_authorizer=disable_authorizer,
+            )
             service.start()
             if not hook_name:
                 command_suggestions = generate_next_command_recommendation(

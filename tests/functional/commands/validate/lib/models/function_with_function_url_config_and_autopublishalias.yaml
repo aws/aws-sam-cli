@@ -9,7 +9,7 @@ Resources:
       AutoPublishAlias: live
       Handler: index.handler
       MemorySize: 1024
-      Runtime: nodejs12.x
+      Runtime: nodejs18.x
       Timeout: 3
       FunctionUrlConfig:
         AuthType: NONE

@@ -8,6 +8,7 @@ from samtranslator.policy_template_processor.exceptions import TemplateNotFoundE
 
 from samcli.commands._utils.template import TemplateFailedParsingException
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
+from samcli.lib.build.exceptions import MissingFunctionHandlerException
 from samcli.lib.providers.exceptions import InvalidLayerReference
 from samcli.lib.utils.colors import Colored, Colors
 from samcli.lib.utils.file_observer import FileObserver
@@ -445,6 +446,9 @@ class SamFunctionProvider(SamBaseProvider):
             codeuri = SamLocalStackProvider.normalize_resource_path(stack.location, codeuri)
 
         package_type = resource_properties.get("PackageType", ZIP)
+        if package_type == ZIP and not resource_properties.get("Handler"):
+            raise MissingFunctionHandlerException(f"Could not find handler for function: {name}")
+
         function_build_info = get_function_build_info(
             get_full_path(stack.stack_path, function_id), package_type, inlinecode, codeuri, metadata
         )
@@ -473,6 +477,7 @@ class SamFunctionProvider(SamBaseProvider):
             function_url_config=resource_properties.get("FunctionUrlConfig"),
             runtime_management_config=resource_properties.get("RuntimeManagementConfig"),
             function_build_info=function_build_info,
+            logging_config=resource_properties.get("LoggingConfig"),
         )
 
     @staticmethod
