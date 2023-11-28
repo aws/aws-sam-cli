@@ -26,7 +26,7 @@ def warn_on_invalid_architecture(layer_definition: LayerBuildDefinition) -> None
     layer_id = layer_definition.layer.layer_id
 
     if not valid_architecture(layer_architecture):
-        LOG.warn(f"WARNING: `{layer_architecture}` in Layer `{layer_id}` is not a valid architecture.")
+        LOG.warn("WARNING: `%s` in Layer `%s` is not a valid architecture.", layer_architecture, layer_id)
 
 
 def _make_env_vars(
