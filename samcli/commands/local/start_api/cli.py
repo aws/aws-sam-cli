@@ -253,12 +253,7 @@ def do_cli(  # pylint: disable=R0914
                 )
                 click.secho(command_suggestions, fg="yellow")
     except SSLError as ex:
-        error_message = (
-            "SSL key file must be present if certificate is present"
-            if ssl_key_file is None
-            else "Invalid certificate and/or key file"
-        )
-        raise UserException(f"SSL Error: {error_message}", wrapped_from=ex.__class__.__name__) from ex
+        raise UserException(f"SSL Error: {ex.strerror}", wrapped_from=ex.__class__.__name__) from ex
     except NoApisDefined as ex:
         raise UserException(
             "Template does not have any APIs connected to Lambda functions", wrapped_from=ex.__class__.__name__

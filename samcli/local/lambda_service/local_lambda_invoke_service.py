@@ -42,6 +42,9 @@ class LocalLambdaInvokeService(BaseLocalService):
             Optional. port for the service to start listening on
         host str
             Optional. host to start the service on
+        ssl_context : (str, str)
+            Optional. tuple(str, str) indicating the cert and key files to use to start in https mode
+            Defaults to None
         stderr io.BaseIO
             Optional stream where the stderr from Docker container should be written to
         """

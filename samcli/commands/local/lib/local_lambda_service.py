@@ -22,6 +22,8 @@ class LocalLambdaService:
             that can help with Lambda invocation
         :param int port: Port to listen on
         :param string host: Local hostname or IP address to bind to
+        :param tuple(string, string) ssl_context: Optional, path to ssl certificate and key files to start service
+            in https
         """
 
         self.port = port
