@@ -120,10 +120,18 @@ class StartApiIntegBaseClass(TestCase):
 
         def read_sub_process_stderr():
             while not cls.stop_reading_thread:
-                cls.start_api_process.stderr.readline()
+                line = cls.start_api_process.stderr.readline()
+                LOG.info(line)
+
+        def read_sub_process_stdout():
+            while not cls.stop_reading_thread:
+                LOG.info(cls.start_api_process.stdout.readline())
 
         cls.read_threading = threading.Thread(target=read_sub_process_stderr, daemon=True)
         cls.read_threading.start()
+        
+        cls.read_threading2 = threading.Thread(target=read_sub_process_stdout, daemon=True)
+        cls.read_threading2.start()
 
     @classmethod
     def _make_parameter_override_arg(self, overrides):
