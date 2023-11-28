@@ -245,7 +245,7 @@ class LayerVersion:
         self._custom_layer_id = metadata.get(SAM_RESOURCE_ID_KEY)
 
         if "BuildArchitecture" not in metadata:
-            LOG.warn(
+            LOG.warning(
                 f"WARNING: No BuildArchitecture specifed in Layer `{self._custom_layer_id}`"
                 + " Metadata. Defaulting to x86_64."
             )
@@ -254,7 +254,7 @@ class LayerVersion:
         self._compatible_architectures = compatible_architectures
 
         if self._compatible_architectures and self._build_architecture not in self._compatible_architectures:
-            LOG.warn(
+            LOG.warning(
                 f"WARNING: Layer `{self._custom_layer_id}` has BuildArchitecture `{self._build_architecture}`,"
                 + " which is not listed in CompatibleArchitectures."
             )
