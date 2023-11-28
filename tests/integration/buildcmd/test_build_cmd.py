@@ -1550,7 +1550,8 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         command_result = run_command(cmdlist, cwd=self.working_dir)
         # Capture warning
         self.assertIn(
-            "`fake` in Layer `LayerWithNoCompatibleArchitectures` is not a valid architecture", str(command_result.stderr)
+            "`fake` in Layer `LayerWithNoCompatibleArchitectures` is not a valid architecture",
+            str(command_result.stderr),
         )
         # Build should still succeed
         self.assertEqual(command_result.process.returncode, 0)
