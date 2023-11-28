@@ -251,7 +251,7 @@ class LayerVersion:
         self._compatible_architectures = compatible_architectures
 
         if self._compatible_architectures and self._build_architecture not in self._compatible_architectures:
-            LOG.warn(f"WARNING: Layer `{self._custom_layer_id}` has BuildArchitecture `{self._build_architecture}`, which is not listed in CompatibleArchitectures.")
+           LOG.warn(f"WARNING: Layer `{self._custom_layer_id}` has BuildArchitecture `{self._build_architecture}`, which is not listed in CompatibleArchitectures.")
         
         self._skip_build = bool(metadata.get(SAM_METADATA_SKIP_BUILD_KEY, False))
         
