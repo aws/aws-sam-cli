@@ -1493,6 +1493,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             "ContentUri",
             "random",
         )
+
     @parameterized.expand(
         [("makefile", False), ("makefile", "use_container"), ("python3.9", False), ("python3.9", "use_container")]
     )
@@ -1540,7 +1541,9 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
         overrides = {"LayerBuildMethod": runtime, "LayerContentUri": "PyLayer"}
-        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier)
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
+        )
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command_result.process.returncode, 0)
         self.assertIn("No BuildArchitecture specifed", str(command_result.stderr))

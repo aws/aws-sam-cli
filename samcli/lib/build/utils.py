@@ -10,8 +10,10 @@ from samcli.lib.utils.architecture import X86_64, ARM64
 
 LOG = logging.getLogger(__name__)
 
+
 def valid_architecture(architecture: str) -> bool:
     return architecture in [X86_64, ARM64]
+
 
 def _make_env_vars(
     resource: Union[Function, LayerVersion], file_env_vars: Dict, inline_env_vars: Optional[Dict]

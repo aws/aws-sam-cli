@@ -214,7 +214,7 @@ class DefaultBuildStrategy(BuildStrategy):
                 f"Layer {layer.full_path} cannot be build without BuildMethod. "
                 f"Please provide BuildMethod in Metadata."
             )
-            
+
         single_build_dir = layer.get_build_dir(self._build_dir)
         # when a layer is passed here, it is ZIP function, codeuri and runtime are not None
         # codeuri and compatible_runtimes are not None
