@@ -3,17 +3,17 @@ image:
   - Ubuntu2004
 
 configuration:
-  # - BuildIntegTesting
-  # - BuildIntegTestingJavaPythonProvided
-  # - BuildIntegTestingArm64
-  # - BuildIntegTestingArm64Java
-  # - AllTerraformBuildTesting
-  # - PackageAndDeleteAndDeployIntegTesting
-  # - SyncIntegTesting
+  - BuildIntegTesting
+  - BuildIntegTestingJavaPythonProvided
+  - BuildIntegTestingArm64
+  - BuildIntegTestingArm64Java
+  - AllTerraformBuildTesting
+  - PackageAndDeleteAndDeployIntegTesting
+  - SyncIntegTesting
   - LocalInvokeIntegTesting
   - LocalStartIntegTesting
   # other Integration testing, Dev, regression and smoke testing
-  # - OtherAndEndToEndTesting
+  - OtherAndEndToEndTesting
 
 environment:
   PYTHON_HOME: "$HOME/venv3.8/bin"
