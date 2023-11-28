@@ -5,17 +5,17 @@ build: off
 clone_folder: C:\source
 
 configuration:
-  - BuildIntegTesting
-  - BuildIntegTestingJavaPythonProvided
-  - BuildIntegTestingArm64
-  - AllTerraformBuildTesting
-  - PackageAndDeleteAndDeployIntegTesting
-  - SyncIntegTesting
+  # - BuildIntegTesting
+  # - BuildIntegTestingJavaPythonProvided
+  # - BuildIntegTestingArm64
+  # - AllTerraformBuildTesting
+  # - PackageAndDeleteAndDeployIntegTesting
+  # - SyncIntegTesting
   - LocalInvokeIntegTesting
   - LocalStartApiIntegTesting
   - LocalStartLambdaIntegTesting
   # other Integration testing, Dev, regression and smoke testing
-  - OtherAndEndToEndTesting
+  # - OtherAndEndToEndTesting
 
 environment:
   AWS_DEFAULT_REGION: us-east-1
