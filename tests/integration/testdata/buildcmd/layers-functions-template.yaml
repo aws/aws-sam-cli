@@ -78,10 +78,10 @@ Resources:
     Metadata:
       BuildMethod: !Ref LayerBuildMethod
 
-  LayerWithMakefileBadArchitecture:
+  LayerWithNoCompatibleArchitectures:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      Description: Layer five
+      Description: Layer four
       ContentUri: !Ref LayerMakeContentUri
       CompatibleArchitectures:
         - !Ref LayerCompatibleArchitecture
