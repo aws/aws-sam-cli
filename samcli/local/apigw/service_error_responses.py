@@ -1,7 +1,8 @@
 """Class container to hold common Service Responses"""
 
-from flask import Response, jsonify, make_response
 import logging
+
+from flask import Response, jsonify, make_response
 
 LOG = logging.getLogger(__name__)
 
