@@ -627,6 +627,16 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPyt
             runtime, codeuri, use_container, self.test_data_path, architecture=architecture
         )
 
+    def test_invalid_architecture(self):
+        overrides = {"Runtime": "python3.11", "Architectures": "fake"}
+        cmdlist = self.get_command_list(parameter_overrides=overrides)
+        process_execute = run_command(cmdlist, cwd=self.working_dir)
+
+        self.assertEqual(1, process_execute.process.returncode)
+
+        self.assertIn("Build Failed", str(process_execute.stdout))
+        self.assertIn("Architecture fake is not supported", str(process_execute.stderr))
+
 
 class TestBuildCommand_ErrorCases(BuildIntegBase):
     def test_unsupported_runtime(self):
@@ -1516,6 +1526,31 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         # Capture warning
         self.assertIn(
             f"Layer `{layer_identifier}` has BuildArchitecture `x86_64`, which is not listed in CompatibleArchitectures.",
+            str(command_result.stderr),
+        )
+        # Build should still succeed
+        self.assertEqual(command_result.process.returncode, 0)
+
+    def test_build_layer_with_makefile_with_fake_build_architecture(self):
+        build_method = "makefile"
+        use_container = False
+
+        # Re-use the same test Layer, this time with just a bad BuildArchitecture
+        layer_identifier = "LayerWithNoCompatibleArchitectures"
+
+        overrides = {
+            "LayerBuildMethod": build_method,
+            "LayerMakeContentUri": "PyLayerMake",
+            "LayerBuildArchitecture": "fake",
+        }
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
+        )
+
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        # Capture warning
+        self.assertIn(
+            "`fake` in Layer `LayerWithNoCompatibleArchitectures` is not a valid architecture",
             str(command_result.stderr),
         )
         # Build should still succeed
