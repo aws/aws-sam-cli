@@ -19,7 +19,7 @@ resource "null_resource" "build_lambda_function" {
   }
 
   provisioner "local-exec" {
-    command = substr(pathexpand("~"), 0, 1) == "/"? "go build -trimpath -o bin/hello_world main.go && chmod 777 bin/* && zip -r hello_world.zip bin/*" : "powershell $ENV:GOARCH='amd64' ; $Env:GOOS='linux' ; go build -trimpath -o bin\\hello_world . ; Compress-Archive -Path bin -DestinationPath hello_world.zip"
+    command = substr(pathexpand("~"), 0, 1) == "/"? "go build -trimpath -o bootstrap main.go && chmod 777 bootstrap && zip -r hello_world.zip bootstrap" : "powershell $ENV:GOARCH='amd64' ; $Env:GOOS='linux' ; go build -trimpath -o bootstrap . ; Compress-Archive -Path bootstrap -DestinationPath hello_world.zip"
   }
 }
 
@@ -46,7 +46,7 @@ resource "aws_lambda_function" "this" {
   role          = aws_iam_role.this.arn
 
   runtime  = "provided.al2"
-  handler  = "bin/hello_world"
+  handler  = "bootstrap"
   filename = "hello_world.zip"
 
   depends_on = [
