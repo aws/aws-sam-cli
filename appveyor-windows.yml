@@ -63,8 +63,7 @@ install:
   - 'set PATH=%JAVA_HOME%\bin;%PATH%'
   - java --version
   - javac --version
-  - choco uninstall gradle
-  - choco install gradle
+  - choco upgrade gradle --version=8.4.0
   - "gradle -v"
   - "mvn --version"
 
