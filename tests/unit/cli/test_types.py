@@ -523,13 +523,13 @@ class TestSyncWatchExcludeType(TestCase):
     def setUp(self):
         self.exclude_type = SyncWatchExcludeType()
 
-    def test_convert_parses_input(self):
-        resource_id = "HelloWorldFunction"
-        file = "file.txt"
-
-        input = f"{resource_id}={file}"
-        expected = {resource_id: [file]}
-
+    @parameterized.expand(
+        [
+            ("HelloWorldFunction=file.txt", {"HelloWorldFunction": ["file.txt"]}),
+            ({"HelloWorldFunction": ["file.txt"]}, {"HelloWorldFunction": ["file.txt"]}),
+        ]
+    )
+    def test_convert_parses_input(self, input, expected):
         result = self.exclude_type.convert(input, MagicMock(), MagicMock())
 
         self.assertEqual(result, expected)

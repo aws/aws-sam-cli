@@ -6,7 +6,7 @@ import json
 import logging
 import re
 from json import JSONDecodeError
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 import click
 
@@ -490,14 +490,14 @@ class SyncWatchExcludeType(click.ParamType):
     EXCEPTION_MESSAGE = "Argument must be a key, value pair in the format Key=Value."
 
     def convert(
-        self, value: str, param: Optional[click.Parameter], ctx: Optional[click.Context]
+        self, value: Union[Dict[str, List[str]], str], param: Optional[click.Parameter], ctx: Optional[click.Context]
     ) -> Dict[str, List[str]]:
         """
         Parses the multiple provided values into a mapping of resources to a list of exclusions.
 
         Parameters
         ----------
-        value: str
+        value: Union[Dict[str, List[str]], str]
             The passed in arugment
         param: click.Parameter
             The parameter that was provided
@@ -509,6 +509,9 @@ class SyncWatchExcludeType(click.ParamType):
         Dict[str, List[str]]
             A key value pair of Logical/Resource Id and excluded file
         """
+        if isinstance(value, dict):
+            return value
+
         mapping_pair = value.split(self.WATCH_EXCLUDE_DELIMITER)
 
         if len(mapping_pair) != self.WATCH_EXCLUDE_EXPECTED_LENGTH:
