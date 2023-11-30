@@ -7,7 +7,7 @@ import uuid
 import logging
 import json
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List
 from unittest import skipIf
 
 import pytest
@@ -55,6 +55,7 @@ LOG.addHandler(handler)
 class TestSyncWatchBase(SyncIntegBase):
     template_before = ""
     parameter_overrides: Dict[str, str] = {}
+    watch_exclude: List[str] = []
 
     def setUp(self):
         # set up clean testing folder
@@ -161,6 +162,7 @@ class TestSyncWatchEsbuildBase(TestSyncWatchBase):
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key,
             tags="integ=true clarity=yes foo_bar=baz",
+            watch_exclude=self.watch_exclude,
         )
         self.watch_process = start_persistent_process(sync_command_list, cwd=self.test_data_path)
 
@@ -826,3 +828,39 @@ class TestSyncWatchInfraWithInvalidTemplate(TestSyncWatchBase):
 
         # Updated Infra Validation
         self.run_initial_infra_validation()
+
+
+class TestSyncWatchCodeWatchExclude(TestSyncWatchEsbuildBase):
+    dependency_layer = False
+    template_before = str(Path("code", "before", "template-esbuild.yaml"))
+    watch_exclude = ["HelloWorldFunction=app.ts"]
+
+    def test_sync_watch_code_excludes(self):
+        self.stack_resources = self._get_stacks(self.stack_name)
+
+        # Test Lambda Function
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            lambda_response = json.loads(self._get_lambda_response(lambda_function))
+            self.assertNotIn("extra_message", lambda_response)
+            self.assertEqual(lambda_response.get("message"), "hello world")
+
+        self.update_file(
+            self.test_data_path.joinpath("code", "after", "esbuild_function", "app.ts"),
+            self.test_data_path.joinpath("code", "before", "esbuild_function", "app.ts"),
+        )
+
+        try:
+            # wait a couple of seconds to see if a sync flow starts
+            read_until_string(self.watch_process, "", timeout=3)
+            self.fail("Sync started syncflow when app.ts file update was ignored")
+        except TimeoutError:
+            # got timeout error, this is expected since there isn't
+            # suppose to be a sync
+            pass
+
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            lambda_response = json.loads(self._get_lambda_response(lambda_function))
+            self.assertNotIn("extra_message", lambda_response)
+            self.assertEqual(lambda_response.get("message"), "hello world")

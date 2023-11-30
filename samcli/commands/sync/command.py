@@ -1,7 +1,7 @@
 """CLI command for "sync" command."""
 import logging
 import os
-from typing import TYPE_CHECKING, List, Optional, Set, Tuple
+from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple
 
 import click
 
@@ -37,6 +37,7 @@ from samcli.commands._utils.options import (
     tags_option,
     template_option_without_build,
     use_container_build_option,
+    watch_exclude_option,
 )
 from samcli.commands.build.click_container import ContainerOptions
 from samcli.commands.build.command import _get_mode_value_from_envvar
@@ -156,6 +157,7 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
     help="This option will skip the initial infrastructure deployment if it is not required"
     " by comparing the local template with the template deployed in cloud.",
 )
+@watch_exclude_option
 @stack_name_option(required=True)  # pylint: disable=E1120
 @base_dir_option
 @use_container_build_option
@@ -212,6 +214,7 @@ def cli(
     config_env: str,
     build_image: Optional[Tuple[str]],
     build_in_source: Optional[bool],
+    watch_exclude: Optional[Dict[str, List[str]]],
 ) -> None:
     """
     `sam sync` command entry point
@@ -248,6 +251,7 @@ def cli(
         config_file,
         config_env,
         build_in_source,
+        watch_exclude,
     )  # pragma: no cover
 
 
@@ -280,6 +284,7 @@ def do_cli(
     config_file: str,
     config_env: str,
     build_in_source: Optional[bool],
+    watch_exclude: Optional[Dict[str, List[str]]],
 ) -> None:
     """
     Implementation of the ``cli`` method
@@ -393,6 +398,8 @@ def do_cli(
                         dependency_layer, build_context.build_dir, build_context.cache_dir, skip_deploy_sync
                     ) as sync_context:
                         if watch:
+                            watch_excludes_filter = watch_exclude or {}
+
                             execute_watch(
                                 template=template_file,
                                 build_context=build_context,
@@ -401,6 +408,7 @@ def do_cli(
                                 sync_context=sync_context,
                                 auto_dependency_layer=dependency_layer,
                                 disable_infra_syncs=code,
+                                watch_exclude=watch_excludes_filter,
                             )
                         elif code:
                             execute_code_sync(
@@ -519,6 +527,7 @@ def execute_watch(
     sync_context: "SyncContext",
     auto_dependency_layer: bool,
     disable_infra_syncs: bool,
+    watch_exclude: Dict[str, List[str]],
 ):
     """Start sync watch execution
 
@@ -550,6 +559,7 @@ def execute_watch(
         sync_context,
         auto_dependency_layer,
         disable_infra_syncs,
+        watch_exclude,
     )
     watch_manager.start()
 
