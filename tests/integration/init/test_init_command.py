@@ -897,6 +897,7 @@ class TestInitWithArbitraryProject(TestCase):
 
 @pytest.mark.xdist_group(name="sam_init")
 class TestInteractiveInit(TestCase):
+    @pytest.mark.timeout(300)
     def test_interactive_init(self):
         # 1: AWS Quick Start Templates
         # 1: Hello World Example
@@ -930,6 +931,7 @@ sam-interactive-init-app
             self.assertTrue(Path(expected_output_folder, "hello-world").is_dir())
             self.assertTrue(Path(expected_output_folder, "hello-world", "app.mjs").is_file())
 
+    @pytest.mark.timeout(300)
     def test_interactive_init_default_runtime(self):
         user_input = """
 1

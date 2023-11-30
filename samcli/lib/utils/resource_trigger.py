@@ -372,7 +372,7 @@ class DefinitionCodeTrigger(CodeResourceTrigger):
         definition_file = self._resource.get("Properties", {}).get(property_name)
         if not definition_file or not isinstance(definition_file, str):
             raise MissingLocalDefinition(self._resource_identifier, property_name)
-        return definition_file
+        return cast(str, definition_file)
 
     def _validator_wrapper(self, event: Optional[FileSystemEvent] = None):
         """Wrapper for callback that only executes if the definition is valid and non-trivial changes are detected.

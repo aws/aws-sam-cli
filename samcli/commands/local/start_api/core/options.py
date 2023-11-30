@@ -37,6 +37,7 @@ CONTAINER_OPTION_NAMES: List[str] = [
     "container_host",
     "container_host_interface",
     "invoke_image",
+    "disable_authorizer",
 ]
 
 CONFIGURATION_OPTION_NAMES: List[str] = ["config_env", "config_file"] + SAVE_PARAMS_OPTIONS

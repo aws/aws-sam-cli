@@ -815,6 +815,7 @@ class TestDisableADL(TestCase):
                     "test": {
                         "Properties": {
                             "Environment": {"Variables": {"NODE_OPTIONS": ["--something"]}},
+                            "Handler": "FakeHandler",
                         },
                         "Metadata": {"BuildMethod": "esbuild", "BuildProperties": {"Sourcemap": True}},
                         "Type": "AWS::Serverless::Function",
@@ -827,6 +828,7 @@ class TestDisableADL(TestCase):
                     "test": {
                         "Properties": {
                             "Environment": {"Variables": {"NODE_OPTIONS": ["--something"]}},
+                            "Handler": "FakeHandler",
                         },
                         "Type": "AWS::Serverless::Function",
                     }

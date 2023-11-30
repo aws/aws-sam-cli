@@ -4,6 +4,7 @@ from unittest import TestCase
 from unittest.mock import patch, PropertyMock, Mock, call
 
 from parameterized import parameterized
+from samcli.lib.build.exceptions import MissingFunctionHandlerException
 
 from samcli.lib.utils.architecture import X86_64, ARM64
 
@@ -1530,7 +1531,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
 
     def test_must_skip_non_existent_properties(self):
         name = "myname"
-        properties = {"CodeUri": "/usr/local"}
+        properties = {"CodeUri": "/usr/local", "Handler": "FakeHandler"}
 
         expected = Function(
             function_id="myname",
@@ -1539,7 +1540,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             runtime=None,
             memory=None,
             timeout=None,
-            handler=None,
+            handler="FakeHandler",
             codeuri="/usr/local",
             environment=None,
             rolearn=None,
@@ -1563,7 +1564,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
 
     def test_must_default_missing_code_uri(self):
         name = "myname"
-        properties = {"Runtime": "myruntime"}
+        properties = {"Runtime": "myruntime", "Handler": "FakeHandler"}
 
         result = SamFunctionProvider._convert_sam_function_resource(STACK, name, properties, [])
         self.assertEqual(result.codeuri, ".")  # Default value
@@ -1655,7 +1656,8 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             "CodeUri": {
                 # CodeUri is some dictionary
                 "a": "b"
-            }
+            },
+            "Handler": "FakeHandler",
         }
 
         result = SamFunctionProvider._convert_sam_function_resource(STACK, name, properties, [])
@@ -1748,7 +1750,7 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
 
     def test_must_skip_non_existent_properties(self):
         name = "myname"
-        properties = {"Code": {"Bucket": "bucket"}}
+        properties = {"Code": {"Bucket": "bucket"}, "Handler": "FakeHandler"}
 
         expected = Function(
             function_id="myname",
@@ -1757,7 +1759,7 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
             runtime=None,
             memory=None,
             timeout=None,
-            handler=None,
+            handler="FakeHandler",
             codeuri=".",
             environment=None,
             rolearn=None,
@@ -1778,6 +1780,25 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
         result = SamFunctionProvider._convert_lambda_function_resource(STACK, name, properties, [])
 
         self.assertEqual(expected, result)
+
+
+class TestSamFunctionProvider_build_function_configuration(TestCase):
+    @parameterized.expand([(None), ("")])
+    def test_raise_error_on_missing_handler(self, handler):
+        name = "myname"
+        id = "id"
+        properties = {
+            "Code": {"Bucket": "bucket"},
+            "Runtime": "myruntime",
+            "MemorySize": "mymemorysize",
+            "Handler": handler,
+            "Timeout": "30",
+            "Environment": "myenvironment",
+            "Role": "myrole",
+            "Layers": ["Layer1", "Layer2"],
+        }
+        with self.assertRaises(MissingFunctionHandlerException):
+            SamFunctionProvider._build_function_configuration(STACK, id, name, None, properties, [], None, None, False)
 
 
 class TestSamFunctionProvider_parse_layer_info(TestCase):
