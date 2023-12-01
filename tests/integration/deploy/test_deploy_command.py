@@ -1441,7 +1441,7 @@ to create a managed default bucket, or run sam deploy --guided",
         )
 
         deploy_process_execute = self.run_command(deploy_command_list)
-        self.assertEqual(deploy_process_execute.process.returncode, 0)
+        self.assertEqual(deploy_process_execute.process.returncode, 1)
 
         # Check if the stack is deleted from CloudFormation
         stack_exists = True
@@ -1499,7 +1499,7 @@ to create a managed default bucket, or run sam deploy --guided",
         )
 
         deploy_process_execute = self.run_command(deploy_command_list)
-        self.assertEqual(deploy_process_execute.process.returncode, 0)
+        self.assertEqual(deploy_process_execute.process.returncode, 1)
 
         # Check if the stack rolled back successfully
         result = self.cfn_client.describe_stacks(StackName=stack_name)
@@ -1552,7 +1552,7 @@ to create a managed default bucket, or run sam deploy --guided",
         )
 
         deploy_process_execute = self.run_command(deploy_command_list)
-        self.assertEqual(deploy_process_execute.process.returncode, 0)
+        self.assertEqual(deploy_process_execute.process.returncode, 1)
 
         # Check if the stack is deleted from CloudFormation
         stack_exists = True

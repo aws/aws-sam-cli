@@ -6,8 +6,27 @@ from typing import Union, Dict, Optional
 
 from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
 from samcli.lib.providers.provider import Function, LayerVersion
+from samcli.lib.build.build_graph import LayerBuildDefinition
+from samcli.lib.utils.architecture import X86_64, ARM64
 
 LOG = logging.getLogger(__name__)
+
+
+def valid_architecture(architecture: str) -> bool:
+    return architecture in [X86_64, ARM64]
+
+
+def warn_on_invalid_architecture(layer_definition: LayerBuildDefinition) -> None:
+    """
+    Validate the BuildArchitecture of a LambdaLayer.
+
+    Prints corresponding LOG warning if something is invalid.
+    """
+    layer_architecture = layer_definition.architecture
+    layer_id = layer_definition.layer.layer_id
+
+    if not valid_architecture(layer_architecture):
+        LOG.warning("WARNING: `%s` in Layer `%s` is not a valid architecture.", layer_architecture, layer_id)
 
 
 def _make_env_vars(
