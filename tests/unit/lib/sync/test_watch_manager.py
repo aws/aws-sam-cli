@@ -375,6 +375,7 @@ class TestWatchManager(TestCase):
         factory_mock = MagicMock()
         event_mock = MagicMock()
         event_mock.event_type = "modified"
+        event_mock.is_directory = True
         platform_mock.return_value = "linux"
 
         self.watch_manager._sync_flow_factory = factory_mock
