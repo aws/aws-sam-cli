@@ -215,7 +215,7 @@ class TestSyncInfra_BuildInSource_Esbuild(SyncIntegBase):
             tags="integ=true clarity=yes foo_bar=baz",
             build_in_source=True,
         )
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
         self.assertIn("Sync infra completed.", str(sync_process_execute.stderr))
 
@@ -313,7 +313,7 @@ class TestSyncCode_BuildInSource_Esbuild(TestSyncCodeBase):
             tags="integ=true clarity=yes foo_bar=baz",
             build_in_source=True,
         )
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
 
         # check whether dependencies were installed in the source directory
@@ -334,6 +334,7 @@ class TestSyncCode_BuildInSource_Nodejs_Without_Local_Dep(TestSyncCodeBase):
 
     def tearDown(self):
         super().tearDown()
+        shutil.rmtree(Path(self.test_data_path, ".aws-sam"), ignore_errors=True)
 
         for path in self.source_dependencies_paths:
             shutil.rmtree(path, ignore_errors=True)
@@ -429,7 +430,7 @@ class TestSyncCode_BuildInSource_Nodejs_Using_Local_Dep(TestSyncCodeBase):
             tags="integ=true clarity=yes foo_bar=baz",
             build_in_source=True,
         )
-        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode())
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
 
         # check whether dependencies were installed in the source directory
