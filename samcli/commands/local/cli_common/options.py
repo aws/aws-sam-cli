@@ -88,12 +88,6 @@ def local_common_options(f):
     return f
 
 def validate_ssl_params(ctx, param, value):
-    if value and not Path(value).is_file():
-        raise click.UsageError(f"{param.name}: {value} does not exist.")
-
-    if param.name == 'ssl_key_file':
-        return value
-
     if ctx.params['ssl_key_file'] and value:
         return value
     elif ctx.params['ssl_key_file'] or value:
@@ -134,9 +128,9 @@ def service_common_options(port):
             click.option(
                 "--port", "-p", default=port, help="Local port number to listen on (default: '{}')".format(str(port))
             ),
-            click.option("--ssl-cert-file", default=None, callback=validate_ssl_params, help="Path to SSL certificate file (default: None)"),
+            click.option("--ssl-cert-file", default=None, type=click.Path(exists=True), callback=validate_ssl_params, help="Path to SSL certificate file (default: None)"),
             # Mark --ssl-key-file as eager, so by the time the --ssl-cert-file validator is invoked, we know if it's missing
-            click.option("--ssl-key-file", default=None, callback=validate_ssl_params, is_eager=True, help="Path to SSL key file (default: None)"),
+            click.option("--ssl-key-file", default=None, type=click.Path(exists=True), is_eager=True, help="Path to SSL key file (default: None)"),
         ]
 
         # Reverse the list to maintain ordering of options in help text printed with --help
