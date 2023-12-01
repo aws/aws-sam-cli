@@ -368,6 +368,22 @@ class TestWatchManager(TestCase):
 
         factory_mock.create_sync_flow.assert_not_called()
 
+    @patch("samcli.lib.sync.watch_manager.platform.system")
+    def test_on_code_change_wrapper_opened_event_not_called_linux_folder(self, platform_mock):
+        flow1 = MagicMock()
+        resource_id_mock = MagicMock()
+        factory_mock = MagicMock()
+        event_mock = MagicMock()
+        event_mock.event_type = "modified"
+        platform_mock.return_value = "linux"
+
+        self.watch_manager._sync_flow_factory = factory_mock
+        factory_mock.create_sync_flow.return_value = flow1
+
+        self.watch_manager._on_code_change_wrapper(resource_id_mock)(event_mock)
+
+        factory_mock.create_sync_flow.assert_not_called()
+
     def test_on_code_change_wrapper_missing_factory_sync_not_called(self):
         resource_id_mock = MagicMock()
 
