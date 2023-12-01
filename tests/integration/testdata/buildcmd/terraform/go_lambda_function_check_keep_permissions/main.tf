@@ -48,6 +48,7 @@ resource "aws_lambda_function" "this" {
   runtime  = "provided.al2"
   handler  = "bootstrap"
   filename = "hello_world.zip"
+  timeout  = 30
 
   depends_on = [
     null_resource.build_lambda_function
