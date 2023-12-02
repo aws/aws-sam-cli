@@ -29,6 +29,7 @@ from tests.testing_utils import (
     SKIP_DOCKER_MESSAGE,
     SKIP_DOCKER_BUILD,
     get_sam_command,
+    runtime_supported_by_docker,
 )
 
 LOG = logging.getLogger(__name__)
@@ -377,7 +378,7 @@ class BuildIntegEsbuildBase(BuildIntegBase):
         )
 
         expected = {"body": '{"message":"hello world!"}', "statusCode": 200}
-        if not SKIP_DOCKER_TESTS and architecture == X86_64:
+        if not SKIP_DOCKER_TESTS and architecture == X86_64 and runtime_supported_by_docker(runtime):
             # ARM64 is not supported yet for invoking
             self._verify_invoke_built_function(
                 self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
@@ -389,14 +390,14 @@ class BuildIntegEsbuildBase(BuildIntegBase):
             self.verify_docker_container_cleanedup(runtime)
             self.verify_pulled_image(runtime, architecture)
 
-    def _test_with_various_properties(self, overrides):
+    def _test_with_various_properties(self, overrides, runtime):
         overrides = self.get_override(**overrides)
         cmdlist = self.get_command_list(parameter_overrides=overrides)
 
         run_command(cmdlist, cwd=self.working_dir)
 
         expected = {"body": '{"message":"hello world!"}', "statusCode": 200}
-        if not SKIP_DOCKER_TESTS and overrides["Architectures"] == X86_64:
+        if not SKIP_DOCKER_TESTS and overrides["Architectures"] == X86_64 and runtime_supported_by_docker(runtime):
             # ARM64 is not supported yet for invoking
             self._verify_invoke_built_function(
                 self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
@@ -469,12 +470,8 @@ class BuildIntegNodeBase(BuildIntegBase):
             self.EXPECTED_NODE_MODULES,
         )
 
-        # skipping test invoke due to old version of Docker not supporting nodejs20 container in Windows
-        if runtime == "nodejs20.x" and IS_WINDOWS:
-            self.TEST_INVOKE = False
-
         expected = {"body": '{"message":"hello world!"}', "statusCode": 200}
-        if not SKIP_DOCKER_TESTS and self.TEST_INVOKE:
+        if not SKIP_DOCKER_TESTS and self.TEST_INVOKE and runtime_supported_by_docker(runtime):
             self._verify_invoke_built_function(
                 self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
             )
@@ -561,7 +558,7 @@ class BuildIntegGoBase(BuildIntegBase):
         )
 
         expected = "{'message': 'Hello World'}"
-        if not SKIP_DOCKER_TESTS and architecture == X86_64:
+        if not SKIP_DOCKER_TESTS and architecture == X86_64 and runtime_supported_by_docker(runtime):
             # ARM64 is not supported yet for invoking
             self._verify_invoke_built_function(
                 self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
@@ -666,7 +663,7 @@ class BuildIntegJavaBase(BuildIntegBase):
         # If we are testing in the container, invoke the function as well. Otherwise we cannot guarantee docker is on appveyor
         if use_container:
             expected = "Hello World"
-            if not SKIP_DOCKER_TESTS:
+            if not SKIP_DOCKER_TESTS and runtime_supported_by_docker(runtime):
                 self._verify_invoke_built_function(
                     self.built_template,
                     self.FUNCTION_LOGICAL_ID,
@@ -761,7 +758,7 @@ class BuildIntegPythonBase(BuildIntegBase):
             )
 
         expected = {"pi": "3.14"}
-        if not SKIP_DOCKER_TESTS:
+        if not SKIP_DOCKER_TESTS and runtime_supported_by_docker(runtime):
             self._verify_invoke_built_function(
                 self.built_template,
                 self.FUNCTION_LOGICAL_ID,
@@ -835,7 +832,7 @@ class BuildIntegProvidedBase(BuildIntegBase):
         expected = "2.23.0"
         # Building was done with a makefile, but invoke should be checked with corresponding python image.
         overrides["Runtime"] = self._get_python_version()
-        if not SKIP_DOCKER_TESTS:
+        if not SKIP_DOCKER_TESTS and runtime_supported_by_docker(runtime):
             self._verify_invoke_built_function(
                 self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
             )
@@ -1116,7 +1113,12 @@ class BuildIntegRustBase(BuildIntegBase):
             self.default_build_dir, self.FUNCTION_LOGICAL_ID, self.EXPECTED_FILES_PROJECT_MANIFEST
         )
 
-        if expected_invoke_result and not SKIP_DOCKER_TESTS and architecture == X86_64:
+        if (
+            expected_invoke_result
+            and not SKIP_DOCKER_TESTS
+            and architecture == X86_64
+            and runtime_supported_by_docker(runtime)
+        ):
             # ARM64 is not supported yet for local invoke
             self._verify_invoke_built_function(
                 self.built_template,

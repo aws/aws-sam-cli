@@ -28,6 +28,8 @@ from tests.testing_utils import (
     SKIP_DOCKER_MESSAGE,
     run_command_with_input,
     UpdatableSARTemplate,
+    runtime_supported_by_docker,
+    RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG,
 )
 from .build_integ_base import (
     BuildIntegBase,
@@ -503,6 +505,8 @@ class TestBuildCommand_PythonFunctions_WithDocker(BuildIntegPythonBase):
     check_function_only = False
 
     def test_with_default_requirements(self):
+        if not runtime_supported_by_docker(self.runtime):
+            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
         self._test_with_default_requirements(
             self.runtime,
             self.codeuri,
@@ -623,6 +627,8 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPyt
         ]
     )
     def test_with_default_requirements(self, runtime, codeuri, use_container, architecture):
+        if use_container and not runtime_supported_by_docker(runtime):
+            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
         self._test_with_default_requirements(
             runtime, codeuri, use_container, self.test_data_path, architecture=architecture
         )
@@ -665,10 +671,11 @@ class TestBuildCommand_NodeFunctions(BuildIntegNodeBase):
         ]
     )
     def test_building_default_package_json(self, runtime, use_container):
-        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
-            self.skipTest(SKIP_DOCKER_MESSAGE)
-        if use_container and IS_WINDOWS and runtime == "nodejs20.x":
-            self.skipTest("Skipping nodejs20.x container build test in Windows due to old version of Docker not supporting nodejs20 container")
+        if use_container:
+            if SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
+                self.skipTest(SKIP_DOCKER_MESSAGE)
+            if not runtime_supported_by_docker(runtime):
+                self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
         self._test_with_default_package_json(runtime, use_container, self.test_data_path)
 
 
@@ -772,7 +779,7 @@ class TestBuildCommand_EsbuildFunctionProperties(BuildIntegEsbuildBase):
             "handler": handler,
             "architecture": architecture,
         }
-        self._test_with_various_properties(overrides)
+        self._test_with_various_properties(overrides, runtime)
 
 
 class TestBuildCommand_NodeFunctions_With_Specified_Architecture(BuildIntegNodeBase):
@@ -792,6 +799,8 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture(BuildIntegNodeB
         ]
     )
     def test_building_default_package_json(self, runtime, use_container, architecture):
+        if use_container and not runtime_supported_by_docker(runtime):
+            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
         self._test_with_default_package_json(runtime, use_container, self.test_data_path, architecture)
 
 
@@ -1000,6 +1009,8 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
     def test_building_java_in_container(
         self, runtime, runtime_version, code_path, expected_files, expected_dependencies
     ):
+        if not runtime_supported_by_docker(runtime):
+            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
         self._test_with_building_java(
             runtime,
             os.path.join(code_path, runtime_version),
@@ -1853,8 +1864,11 @@ class TestBuildCommand_ProvidedFunctions(BuildIntegProvidedBase):
         ]
     )
     def test_building_Makefile(self, runtime, use_container, manifest):
-        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
-            self.skipTest(SKIP_DOCKER_MESSAGE)
+        if use_container:
+            if SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
+                self.skipTest(SKIP_DOCKER_MESSAGE)
+            if not runtime_supported_by_docker(runtime):
+                self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
         self._test_with_Makefile(runtime, use_container, manifest)
 
 
@@ -1879,6 +1893,8 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture(BuildIntegP
         ]
     )
     def test_building_Makefile(self, runtime, use_container, manifest, architecture):
+        if use_container and not runtime_supported_by_docker(runtime):
+            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
         self._test_with_Makefile(runtime, use_container, manifest, architecture)
 
 
@@ -1907,6 +1923,8 @@ class TestBuildCommand_ProvidedFunctionsWithCustomMetadata(BuildIntegProvidedBas
         ]
     )
     def test_building_Makefile(self, runtime, use_container, manifest):
+        if use_container and not runtime_supported_by_docker(runtime):
+            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
         self._test_with_Makefile(runtime, use_container, manifest)
 
 
