@@ -280,10 +280,9 @@ class DeployContext:
                 click.echo(str(ex))
             except deploy_exceptions.DeployFailedError:
                 # Failed to deploy, check for DELETE action otherwise skip
-                if self.on_failure != FailureMode.DELETE:
-                    raise
-
-                self.deployer.rollback_delete_stack(stack_name)
+                if self.on_failure == FailureMode.DELETE:
+                    self.deployer.rollback_delete_stack(stack_name)
+                raise
 
         else:
             try:
