@@ -6,7 +6,7 @@ import tempfile
 from pathlib import Path
 
 from threading import Thread
-from typing import Callable, List, Optional
+from typing import Callable, List, Optional, cast
 from collections import namedtuple
 from subprocess import Popen, PIPE, TimeoutExpired
 from queue import Queue
@@ -326,4 +326,4 @@ def _version_gte(version1: str, version2: str) -> bool:
 
 
 def get_docker_version() -> str:
-    return docker.from_env().info().get("ServerVersion", "0.0.0")
+    return cast(str, docker.from_env().info().get("ServerVersion", "0.0.0"))
