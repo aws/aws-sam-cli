@@ -1,5 +1,5 @@
 version: 1.0.{build}
-image:
+image: 
   - Ubuntu2204
 
 configuration:
@@ -28,7 +28,6 @@ environment:
   APPVEYOR_CONSOLE_DISABLE_PTY: false
   APPVEYOR_DETAILED_SHELL_LOGGING: true
 
-
 install:
   # AppVeyor's apt-get cache might be outdated, and the package could potentially be 404.
   - sh: "sudo apt-get update --allow-releaseinfo-change"
@@ -53,6 +52,7 @@ install:
   - sh: "mvn --version"
 
   - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
+  - sh: "rvm reinstall ruby-3.2.2 --with-openssl-dir=/usr/lib/x86_64-linux-gnu" # reinstall ruby3.2 to fix OpenSSL issue
   - sh: "rvm use 3.2.2"
   - sh: "docker info"
   - sh: "docker version"
@@ -156,9 +156,9 @@ on_finish:
   # Upload test reports as artifacts
   - sh: find "$APPVEYOR_BUILD_FOLDER" -type f -name 'TEST_REPORT-*.json' -print0 | xargs -0 -I '{}' appveyor PushArtifact '{}'
   - sh: >
-      AWS_ACCESS_KEY_ID=$TEST_REPORT_S3_BUCKET_ACCESS_KEY_ID
-      AWS_SECRET_ACCESS_KEY=$TEST_REPORT_S3_BUCKET_SECRET_ACCESS_KEY
-      AWS_SESSION_TOKEN=$TEST_REPORT_S3_BUCKET_SESSION_TOKEN
+      AWS_ACCESS_KEY_ID=$TEST_REPORT_S3_BUCKET_ACCESS_KEY_ID 
+      AWS_SECRET_ACCESS_KEY=$TEST_REPORT_S3_BUCKET_SECRET_ACCESS_KEY 
+      AWS_SESSION_TOKEN=$TEST_REPORT_S3_BUCKET_SESSION_TOKEN 
       aws s3 cp "$APPVEYOR_BUILD_FOLDER" "s3://$TEST_REPORT_S3_BUCKET_NAME/appveyor/$APPVEYOR_PROJECT_SLUG/$APPVEYOR_BUILD_ID/$APPVEYOR_JOB_ID/" --recursive --exclude "*" --include "TEST_REPORT-*.json" --region us-west-2
 
   # notify task success
