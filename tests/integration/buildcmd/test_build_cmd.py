@@ -627,6 +627,16 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPyt
             runtime, codeuri, use_container, self.test_data_path, architecture=architecture
         )
 
+    def test_invalid_architecture(self):
+        overrides = {"Runtime": "python3.11", "Architectures": "fake"}
+        cmdlist = self.get_command_list(parameter_overrides=overrides)
+        process_execute = run_command(cmdlist, cwd=self.working_dir)
+
+        self.assertEqual(1, process_execute.process.returncode)
+
+        self.assertIn("Build Failed", str(process_execute.stdout))
+        self.assertIn("Architecture fake is not supported", str(process_execute.stderr))
+
 
 class TestBuildCommand_ErrorCases(BuildIntegBase):
     def test_unsupported_runtime(self):
@@ -1494,6 +1504,58 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             "random",
         )
 
+    @parameterized.expand(
+        [("makefile", False), ("makefile", "use_container"), ("python3.9", False), ("python3.9", "use_container")]
+    )
+    def test_build_layer_with_architecture_not_compatible(self, build_method, use_container):
+        # The BuildArchitecture is not one of the listed CompatibleArchitectures
+
+        layer_identifier = "LayerWithNoCompatibleArchitectures"
+
+        overrides = {
+            "LayerBuildMethod": build_method,
+            "LayerMakeContentUri": "PyLayerMake",
+            "LayerBuildArchitecture": "x86_64",
+            "LayerCompatibleArchitecture": "arm64",
+        }
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
+        )
+
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        # Capture warning
+        self.assertIn(
+            f"Layer `{layer_identifier}` has BuildArchitecture `x86_64`, which is not listed in CompatibleArchitectures.",
+            str(command_result.stderr),
+        )
+        # Build should still succeed
+        self.assertEqual(command_result.process.returncode, 0)
+
+    def test_build_layer_with_makefile_with_fake_build_architecture(self):
+        build_method = "makefile"
+        use_container = False
+
+        # Re-use the same test Layer, this time with just a bad BuildArchitecture
+        layer_identifier = "LayerWithNoCompatibleArchitectures"
+
+        overrides = {
+            "LayerBuildMethod": build_method,
+            "LayerMakeContentUri": "PyLayerMake",
+            "LayerBuildArchitecture": "fake",
+        }
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
+        )
+
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        # Capture warning
+        self.assertIn(
+            "`fake` in Layer `LayerWithNoCompatibleArchitectures` is not a valid architecture",
+            str(command_result.stderr),
+        )
+        # Build should still succeed
+        self.assertEqual(command_result.process.returncode, 0)
+
     @parameterized.expand([("python3.7", False, "LayerTwo"), ("python3.7", "use_container", "LayerTwo")])
     def test_build_fails_with_missing_metadata(self, runtime, use_container, layer_identifier):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
@@ -1507,6 +1569,19 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command_result.process.returncode, 1)
         self.assertFalse(self.default_build_dir.joinpath(layer_identifier).exists())
+
+    @parameterized.expand([("python3.7", False, "LayerOne"), ("python3.7", "use_container", "LayerOne")])
+    def test_build_with_missing_buildarchitecture(self, runtime, use_container, layer_identifier):
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        overrides = {"LayerBuildMethod": runtime, "LayerContentUri": "PyLayer"}
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
+        )
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
+        self.assertIn("No BuildArchitecture specifed", str(command_result.stderr))
 
     @parameterized.expand([("python3.7", False), ("python3.7", "use_container")])
     def test_build_function_and_layer(self, runtime, use_container):

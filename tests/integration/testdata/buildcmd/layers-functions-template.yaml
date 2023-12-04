@@ -14,6 +14,11 @@ Parameters:
     Type: String
   LayerBuildMethod:
     Type: String
+  LayerBuildArchitecture:
+    Default: x86_64
+    Type: String
+  LayerCompatibleArchitecture:
+    Type: String
 
 Resources:
 
@@ -72,3 +77,14 @@ Resources:
       ContentUri: !Ref LayerMakeContentUri
     Metadata:
       BuildMethod: !Ref LayerBuildMethod
+
+  LayerWithNoCompatibleArchitectures:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      Description: Layer four
+      ContentUri: !Ref LayerMakeContentUri
+      CompatibleArchitectures:
+        - !Ref LayerCompatibleArchitecture
+    Metadata:
+      BuildMethod: !Ref LayerBuildMethod
+      BuildArchitecture: !Ref LayerBuildArchitecture

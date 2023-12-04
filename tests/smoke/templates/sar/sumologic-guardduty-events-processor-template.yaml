@@ -25,7 +25,7 @@ Resources:
       CodeUri:
         Bucket: <%REPO_BUCKET%>
         Key: 80f76ed0-fd51-47c6-aecd-3d1e71672c7e
-      Runtime: nodejs8.10
+      Runtime: nodejs18.x
       Events:
         CloudWatchEventTrigger:
           Type: CloudWatchEvent
