@@ -248,7 +248,8 @@ class TestSamDeployCommand(TestCase):
 
             self.deploy_command_context.on_failure = FailureMode.DELETE
 
-            self.deploy_command_context.run()
+            with self.assertRaises(DeployFailedError):
+                self.deploy_command_context.run()
 
             self.assertEqual(self.deploy_command_context.deployer.rollback_delete_stack.call_count, 1)
 
