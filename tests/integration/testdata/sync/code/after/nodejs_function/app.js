@@ -1,4 +1,4 @@
-import * as faker from '@faker-js/faker';
+const faker = require("@faker-js/faker");
 
 const name = faker.faker.name.firstName();
 let response;

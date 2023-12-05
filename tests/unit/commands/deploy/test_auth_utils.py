@@ -168,6 +168,7 @@ class TestAuthUtils(TestCase):
                                     OrderedDict(
                                         [
                                             ("FunctionUrlConfig", OrderedDict([("AuthType", "NONE")])),
+                                            ("Handler", "FakeHandler"),
                                         ]
                                     ),
                                 ),
@@ -207,6 +208,7 @@ class TestAuthUtils(TestCase):
                             "Events",
                             OrderedDict(events),
                         ),
+                        ("Handler", "FakeHandler"),
                     ]
                 ),
             ),

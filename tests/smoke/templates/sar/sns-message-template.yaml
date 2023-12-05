@@ -10,7 +10,7 @@ Resources:
       CodeUri:
         Bucket: <%REPO_BUCKET%>
         Key: 7a0f16cd-f381-4f6f-ad5b-adca35470d11
-      Runtime: nodejs10.x
+      Runtime: nodejs18.x
       MemorySize: 128
       Events:
         SNS1:

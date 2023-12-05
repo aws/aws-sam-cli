@@ -146,6 +146,7 @@ class TestDoCli(TestCase):
             self.config_file,
             self.config_env,
             build_in_source=False,
+            watch_exclude={},
         )
 
         if use_container and auto_dependency_layer:
@@ -305,6 +306,7 @@ class TestDoCli(TestCase):
             self.config_file,
             self.config_env,
             build_in_source=False,
+            watch_exclude={},
         )
 
         BuildContextMock.assert_called_with(
@@ -377,6 +379,7 @@ class TestDoCli(TestCase):
             sync_context=sync_context_mock,
             auto_dependency_layer=auto_dependency_layer,
             disable_infra_syncs=disable_infra_syncs,
+            watch_exclude={},
         )
 
     @parameterized.expand([(True, False, True, True, False), (True, False, False, False, True)])
@@ -452,6 +455,7 @@ class TestDoCli(TestCase):
             self.config_file,
             self.config_env,
             build_in_source=None,
+            watch_exclude={},
         )
         execute_code_sync_mock.assert_called_once_with(
             template=self.template_file,
@@ -787,6 +791,7 @@ class TestWatch(TestCase):
             self.sync_context,
             auto_dependency_layer,
             disable_infra_syncs,
+            {},
         )
 
         watch_manager_mock.assert_called_once_with(
@@ -797,6 +802,7 @@ class TestWatch(TestCase):
             self.sync_context,
             auto_dependency_layer,
             disable_infra_syncs,
+            {},
         )
         watch_manager_mock.return_value.start.assert_called_once_with()
 
@@ -809,6 +815,7 @@ class TestDisableADL(TestCase):
                     "test": {
                         "Properties": {
                             "Environment": {"Variables": {"NODE_OPTIONS": ["--something"]}},
+                            "Handler": "FakeHandler",
                         },
                         "Metadata": {"BuildMethod": "esbuild", "BuildProperties": {"Sourcemap": True}},
                         "Type": "AWS::Serverless::Function",
@@ -821,6 +828,7 @@ class TestDisableADL(TestCase):
                     "test": {
                         "Properties": {
                             "Environment": {"Variables": {"NODE_OPTIONS": ["--something"]}},
+                            "Handler": "FakeHandler",
                         },
                         "Type": "AWS::Serverless::Function",
                     }

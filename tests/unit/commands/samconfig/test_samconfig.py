@@ -158,7 +158,7 @@ class TestSamConfigForAllCommands(TestCase):
                 ("",),
                 ("",),
                 None,
-                None,
+                False,
                 "READ",
             )
 
@@ -218,7 +218,7 @@ class TestSamConfigForAllCommands(TestCase):
                 ("",),
                 ("",),
                 None,
-                None,
+                False,
                 "READ",
             )
 
@@ -275,7 +275,7 @@ class TestSamConfigForAllCommands(TestCase):
                 (),
                 (),
                 None,
-                None,
+                False,
                 "READ",
             )
 
@@ -331,7 +331,7 @@ class TestSamConfigForAllCommands(TestCase):
                 ("Function1=image_1", "image_2"),
                 (),
                 None,
-                None,
+                False,
                 "READ",
             )
 
@@ -403,6 +403,7 @@ class TestSamConfigForAllCommands(TestCase):
             "template_file": "mytemplate.yaml",
             "host": "127.0.0.1",
             "port": 12345,
+            "disable_authorizer": False,
             "static_dir": "static_dir",
             "env_vars": "envvar.json",
             "debug_port": [1, 2, 3],
@@ -438,6 +439,7 @@ class TestSamConfigForAllCommands(TestCase):
                 ANY,
                 "127.0.0.1",
                 12345,
+                False,
                 "static_dir",
                 str(Path(os.getcwd(), "mytemplate.yaml")),
                 "envvar.json",
@@ -968,6 +970,7 @@ class TestSamConfigForAllCommands(TestCase):
             "confirm_changeset": True,
             "region": "myregion",
             "signing_profiles": "function=profile:owner",
+            "watch_exclude": {"HelloWorld": ["file.txt", "other.txt"], "HelloMars": ["single.file"]},
         }
 
         with samconfig_parameters(["sync"], self.scratch_dir, **config_values) as config_path:
@@ -1011,7 +1014,8 @@ class TestSamConfigForAllCommands(TestCase):
                 (),
                 "samconfig.toml",
                 "default",
-                None,
+                False,
+                {"HelloWorld": ["file.txt", "other.txt"], "HelloMars": ["single.file"]},
             )
 
 

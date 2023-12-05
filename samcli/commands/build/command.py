@@ -9,6 +9,7 @@ import click
 
 from samcli.cli.context import Context
 from samcli.commands._utils.options import (
+    build_in_source_option,
     skip_prepare_infra_option,
     template_option_without_build,
     docker_common_options,
@@ -74,10 +75,11 @@ DESCRIPTION = """
 @terraform_project_root_path_option
 @hook_name_click_option(
     force_prepare=True,
-    invalid_coexist_options=["t", "template-file", "template", "parameter-overrides"],
+    invalid_coexist_options=["t", "template-file", "template", "parameter-overrides", "build-in-source"],
 )
 @skip_prepare_infra_option
 @use_container_build_option
+@build_in_source_option
 @click.option(
     "--container-env-var",
     "-e",
@@ -158,8 +160,9 @@ def cli(
     save_params: bool,
     hook_name: Optional[str],
     skip_prepare_infra: bool,
-    mount_with,
+    mount_with: str,
     terraform_project_root_path: Optional[str],
+    build_in_source: Optional[bool],
 ) -> None:
     """
     `sam build` command entry point
@@ -189,7 +192,7 @@ def cli(
         build_image,
         exclude,
         hook_name,
-        None,  # TODO: replace with build_in_source once it's added as a click option
+        build_in_source,
         mount_with,
     )  # pragma: no cover
 
@@ -216,7 +219,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     exclude: Optional[Tuple[str, ...]],
     hook_name: Optional[str],
     build_in_source: Optional[bool],
-    mount_with,
+    mount_with: str,
 ) -> None:
     """
     Implementation of the ``cli`` method

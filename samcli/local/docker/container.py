@@ -11,7 +11,7 @@ import socket
 import tempfile
 import threading
 import time
-from typing import Iterator, Optional, Tuple, Union
+from typing import Dict, Iterator, Optional, Tuple, Union
 
 import docker
 import requests
@@ -28,6 +28,7 @@ from samcli.local.docker.utils import NoFreePortsError, find_free_port, to_posix
 LOG = logging.getLogger(__name__)
 
 CONTAINER_CONNECTION_TIMEOUT = float(os.environ.get("SAM_CLI_CONTAINER_CONNECTION_TIMEOUT", 20))
+DEFAULT_CONTAINER_HOST_INTERFACE = "127.0.0.1"
 
 
 class ContainerResponseException(Exception):
@@ -74,7 +75,7 @@ class Container:
         container_opts=None,
         additional_volumes=None,
         container_host="localhost",
-        container_host_interface="127.0.0.1",
+        container_host_interface=DEFAULT_CONTAINER_HOST_INTERFACE,
         mount_with_write: bool = False,
         host_tmp_dir: Optional[str] = None,
     ):
@@ -130,7 +131,9 @@ class Container:
         self._host_tmp_dir = host_tmp_dir
 
         try:
-            self.rapid_port_host = find_free_port(start=self._start_port_range, end=self._end_port_range)
+            self.rapid_port_host = find_free_port(
+                network_interface=self._container_host_interface, start=self._start_port_range, end=self._end_port_range
+            )
         except NoFreePortsError as ex:
             raise ContainerNotStartableException(str(ex)) from ex
 
@@ -158,7 +161,8 @@ class Container:
                     # https://docs.docker.com/storage/bind-mounts
                     "bind": self._working_dir,
                     "mode": mount_mode,
-                }
+                },
+                **self._create_mapped_symlink_files(),
             }
 
         kwargs = {
@@ -224,6 +228,41 @@ class Container:
                 raise
 
         return self.id
+
+    def _create_mapped_symlink_files(self) -> Dict[str, Dict[str, str]]:
+        """
+        Resolves any top level symlinked files and folders that are found on the
+        host directory and creates additional bind mounts to correctly map them
+        inside of the container.
+
+        Returns
+        -------
+        Dict[str, Dict[str, str]]
+            A dictonary representing the resolved file or directory and the bound path
+            on the container
+        """
+        mount_mode = "ro,delegated"
+        additional_volumes = {}
+
+        with os.scandir(self._host_dir) as directory_iterator:
+            for file in directory_iterator:
+                if not file.is_symlink():
+                    continue
+
+                host_resolved_path = os.path.realpath(file.path)
+                container_full_path = pathlib.Path(self._working_dir, file.name).as_posix()
+
+                additional_volumes[host_resolved_path] = {
+                    "bind": container_full_path,
+                    "mode": mount_mode,
+                }
+
+                LOG.info(
+                    "Mounting resolved symlink (%s -> %s) as %s:%s, inside runtime container"
+                    % (file.path, host_resolved_path, container_full_path, mount_mode)
+                )
+
+        return additional_volumes
 
     def stop(self, timeout=3):
         """

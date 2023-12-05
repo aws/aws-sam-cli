@@ -1,32 +1,36 @@
 import os
-import shutil
+from pathlib import Path
 import pytest
 import logging
-from unittest import skip
 from parameterized import parameterized
+from samcli.lib.utils import osutils
 
-from tests.integration.buildcmd.build_integ_base import BuildIntegProvidedBase, BuildIntegEsbuildBase
+from tests.integration.buildcmd.build_integ_base import (
+    BuildIntegNodeBase,
+    BuildIntegProvidedBase,
+    BuildIntegEsbuildBase,
+)
+from tests.testing_utils import run_command
 
 LOG = logging.getLogger(__name__)
 
 
-@skip("Building in source option is not exposed yet. Stop skipping once it is.")
 class TestBuildCommand_BuildInSource_Makefile(BuildIntegProvidedBase):
     template = "template.yaml"
     is_nested_parent = False
 
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls.code_uri = "provided_create_new_file"
-        cls.code_uri_path = os.path.join(cls.test_data_path, cls.code_uri)
-        cls.file_created_from_make_command = "file-created-from-make-command.txt"
+    def setUp(self):
+        super().setUp()
 
-    def tearDown(self):
-        super().tearDown()
-        new_file_in_codeuri_path = os.path.join(self.code_uri_path, self.file_created_from_make_command)
-        if os.path.isfile(new_file_in_codeuri_path):
-            os.remove(new_file_in_codeuri_path)
+        self.code_uri = "provided_create_new_file"
+        test_data_code_uri = Path(self.test_data_path, self.code_uri)
+        self.file_created_from_make_command = "file-created-from-make-command.txt"
+
+        scratch_code_uri_path = Path(self.working_dir, self.code_uri)
+        self.code_uri_path = str(scratch_code_uri_path)
+
+        # copy source code into temporary directory and update code uri to that scratch dir
+        osutils.copytree(test_data_code_uri, scratch_code_uri_path)
 
     @parameterized.expand(
         [
@@ -41,7 +45,7 @@ class TestBuildCommand_BuildInSource_Makefile(BuildIntegProvidedBase):
             runtime="provided.al2",
             use_container=False,
             manifest=None,
-            code_uri=self.code_uri,
+            code_uri=self.code_uri_path,
             build_in_source=build_in_source,
         )
 
@@ -50,19 +54,15 @@ class TestBuildCommand_BuildInSource_Makefile(BuildIntegProvidedBase):
         )
 
 
-@skip("Building in source option is not exposed yet. Stop skipping once it is.")
 class TestBuildCommand_BuildInSource_Esbuild(BuildIntegEsbuildBase):
     is_nested_parent = False
+    template = "template_with_metadata_esbuild.yaml"
 
     def setUp(self):
         super().setUp()
-        self.source_directories = []
 
-    def tearDown(self):
-        super().tearDown()
-        # clean up dependencies installed in source directories
-        for source in self.source_directories:
-            shutil.rmtree(os.path.join(source, "node_modules"), ignore_errors=True)
+        source_files_path = Path(self.test_data_path, "Esbuild")
+        osutils.copytree(source_files_path, self.working_dir)
 
     @parameterized.expand(
         [
@@ -73,13 +73,11 @@ class TestBuildCommand_BuildInSource_Esbuild(BuildIntegEsbuildBase):
     )
     @pytest.mark.flaky(reruns=3)
     def test_builds_successfully_without_local_dependencies(self, build_in_source, dependencies_expected_in_source):
-        self.template_path = os.path.join(self.test_data_path, "template_with_metadata.yaml")
-        codeuri = os.path.join(self.test_data_path, "Esbuild", "Node")
-        self.source_directories = [codeuri]
+        codeuri = os.path.join(self.working_dir, "Node")
 
         self._test_with_default_package_json(
             build_in_source=build_in_source,
-            runtime="nodejs16.x",
+            runtime="nodejs18.x",
             code_uri=codeuri,
             handler="main.lambdaHandler",
             architecture="x86_64",
@@ -92,10 +90,8 @@ class TestBuildCommand_BuildInSource_Esbuild(BuildIntegEsbuildBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_builds_successfully_with_local_dependency(self):
-        self.template_path = os.path.join(self.test_data_path, "template_with_metadata.yaml")
-        codeuri = os.path.join(self.test_data_path, "Esbuild", "NodeWithLocalDependency")
-        self.source_directories = [codeuri]
-        runtime = "nodejs16.x"
+        codeuri = os.path.join(self.working_dir, "NodeWithLocalDependency")
+        runtime = "nodejs18.x"
         architecture = "x86_64"
 
         self._test_with_default_package_json(
@@ -110,3 +106,57 @@ class TestBuildCommand_BuildInSource_Esbuild(BuildIntegEsbuildBase):
 
         # check whether dependencies were installed in source dir
         self.assertEqual(os.path.isdir(os.path.join(codeuri, "node_modules")), True)
+
+
+class TestBuildCommand_BuildInSource_Nodejs(BuildIntegNodeBase):
+    is_nested_parent = False
+    template = "template.yaml"
+
+    def setUp(self):
+        super().setUp()
+
+        osutils.copytree(Path(self.test_data_path, "Esbuild"), self.working_dir)
+
+    def tearDown(self):
+        super().tearDown()
+
+    def validate_node_modules(self, is_build_in_source_behaviour: bool):
+        # validate if node modules exist in the built artifact dir
+        built_node_modules = Path(self.default_build_dir, "Function", "node_modules")
+        self.assertEqual(built_node_modules.is_dir(), True, "node_modules not found in artifact dir")
+        self.assertEqual(built_node_modules.is_symlink(), is_build_in_source_behaviour)
+
+        # validate that node modules are suppose to exist in the source dir
+        source_node_modules = Path(self.codeuri_path, "node_modules")
+        self.assertEqual(source_node_modules.is_dir(), is_build_in_source_behaviour)
+
+    @parameterized.expand(
+        [
+            (True, True),  # build in source
+            (False, False),  # don't build in source
+            (None, False),  # use default for workflow (don't build in source)
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_builds_successfully_without_local_dependencies(self, build_in_source, expected_built_in_source):
+        self.codeuri_path = Path(self.working_dir, "Node")
+
+        overrides = self.get_override(
+            runtime="nodejs18.x", code_uri=self.codeuri_path, architecture="x86_64", handler="main.lambdaHandler"
+        )
+        command_list = self.get_command_list(build_in_source=build_in_source, parameter_overrides=overrides, debug=True)
+
+        run_command(command_list, self.working_dir)
+        self.validate_node_modules(expected_built_in_source)
+
+    @pytest.mark.flaky(reruns=3)
+    def test_builds_successfully_with_local_dependency(self):
+        self.codeuri_path = Path(self.working_dir, "NodeWithLocalDependency")
+
+        overrides = self.get_override(
+            runtime="nodejs18.x", code_uri=self.codeuri_path, architecture="x86_64", handler="main.lambdaHandler"
+        )
+        command_list = self.get_command_list(build_in_source=True, parameter_overrides=overrides)
+
+        run_command(command_list, self.working_dir)
+        self.validate_node_modules(True)

@@ -27,6 +27,7 @@ class StartApiIntegBaseClass(TestCase):
     integration_dir = str(Path(__file__).resolve().parents[2])
     invoke_image: Optional[List] = None
     layer_cache_base_dir: Optional[str] = None
+    disable_authorizer: Optional[bool] = False
     config_file: Optional[str] = None
 
     build_before_invoke = False
@@ -104,6 +105,9 @@ class StartApiIntegBaseClass(TestCase):
             for image in cls.invoke_image:
                 command_list += ["--invoke-image", image]
 
+        if cls.disable_authorizer:
+            command_list += ["--disable-authorizer"]
+
         if cls.config_file:
             command_list += ["--config-file", cls.config_file]
 
@@ -120,10 +124,18 @@ class StartApiIntegBaseClass(TestCase):
 
         def read_sub_process_stderr():
             while not cls.stop_reading_thread:
-                cls.start_api_process.stderr.readline()
+                line = cls.start_api_process.stderr.readline()
+                LOG.info(line)
+
+        def read_sub_process_stdout():
+            while not cls.stop_reading_thread:
+                LOG.info(cls.start_api_process.stdout.readline())
 
         cls.read_threading = threading.Thread(target=read_sub_process_stderr, daemon=True)
         cls.read_threading.start()
+
+        cls.read_threading2 = threading.Thread(target=read_sub_process_stdout, daemon=True)
+        cls.read_threading2.start()
 
     @classmethod
     def _make_parameter_override_arg(self, overrides):

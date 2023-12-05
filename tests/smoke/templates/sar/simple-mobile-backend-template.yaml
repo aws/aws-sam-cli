@@ -30,6 +30,6 @@ Resources:
       CodeUri:
         Bucket: <%REPO_BUCKET%>
         Key: 7e8aa805-1054-4bfe-9f84-d48793b444f3
-      Runtime: nodejs10.x
+      Runtime: nodejs18.x
       MemorySize: 128
 Transform: AWS::Serverless-2016-10-31

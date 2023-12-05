@@ -53,23 +53,29 @@ cache:
   - C:\ProgramData\chocolatey\lib -> appveyor.yml
 
 install:
+  # upgrade chocolately
+  - choco upgrade chocolatey
   # setup make
   - "choco install make"
   # setup Java, Maven and Gradle
-  - "choco install gradle -y --force"
-  - 'set JAVA_HOME=C:\Program Files\Java\jdk17'
+  - choco install correttojdk --version=21.0.0
+  - 'set JAVA_HOME=C:\Program Files\Amazon Corretto\jdk21.0.0_35'
   - 'set PATH=%JAVA_HOME%\bin;%PATH%'
-  - "javac -version"
-  - "java -version"
+  - java --version
+  - javac --version
+  - choco upgrade gradle --version=8.4.0
   - "gradle -v"
   - "mvn --version"
 
   # Make sure the temp directory exists for Python to use.
   - ps: "mkdir -Force C:\\tmp"
-  - 'set PATH=%PYTHON_HOME%;C:\Ruby32-x64\bin;%PATH%;C:\Python37-x64;C:\Python39-x64;C:\Python310-x64;C:\Python311-x64'
+  - 'set PATH=%PYTHON_HOME%;C:\Ruby32-x64\bin;%PATH%;C:\Python37-x64;C:\Python39-x64;C:\Python310-x64;C:\Python311-x64;C:\Python312-x64'
   - "echo %PYTHON_HOME%"
   - "echo %PATH%"
   - "python --version"
+  - ps: "Restart-Service docker"
+  # Switch to Docker Linux containers
+  - ps: Switch-DockerLinux
   - "docker info"
   - "docker version"
 
@@ -82,9 +88,6 @@ install:
 
   # Install AWS CLI Globally via pip3
   - "pip install awscli"
-
-  # Switch to Docker Linux containers
-  - ps: Switch-DockerLinux
 
   # Check for git executable
   - "git --version"

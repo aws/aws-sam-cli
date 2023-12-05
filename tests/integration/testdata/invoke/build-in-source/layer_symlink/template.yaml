@@ -1,0 +1,25 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+  Function:
+    Timeout: 10
+
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: mycoolfunction
+      Handler: app.handler
+      Runtime: nodejs18.x
+      Layers:
+      - Ref: MyLayer
+  MyLayer:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      LayerName: mycoollayer
+      Content: mycoollayer
+      CompatibleRuntimes:
+        - nodejs18.x
+    Metadata:
+      BuildMethod: nodejs18.x

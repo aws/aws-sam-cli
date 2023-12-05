@@ -1,6 +1,10 @@
 """Class container to hold common Service Responses"""
 
+import logging
+
 from flask import Response, jsonify, make_response
+
+LOG = logging.getLogger(__name__)
 
 
 class ServiceErrorResponses:
@@ -51,6 +55,7 @@ class ServiceErrorResponses:
 
         :return: A Flask Response
         """
+        LOG.debug("Lambda execution failed %s", args)
         response_data = jsonify(ServiceErrorResponses._LAMBDA_FAILURE)
         return make_response(response_data, ServiceErrorResponses.HTTP_STATUS_CODE_502)
 
