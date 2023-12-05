@@ -5,7 +5,7 @@ Common CLI options shared by various commands
 import logging
 import os
 from functools import partial
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 import click
 from click.types import FuncParamType
@@ -18,7 +18,9 @@ from samcli.cli.types import (
     ImageRepositoryType,
     RemoteInvokeBotoApiParameterType,
     SigningProfilesOptionType,
+    SyncWatchExcludeType,
 )
+from samcli.commands._utils.click_mutex import ClickMutex
 from samcli.commands._utils.constants import (
     DEFAULT_BUILD_DIR,
     DEFAULT_BUILT_TEMPLATE_PATH,
@@ -33,8 +35,17 @@ from samcli.commands._utils.template import TemplateNotFoundException, get_templ
 from samcli.lib.hook.hook_wrapper import get_available_hook_packages_ids
 from samcli.lib.observability.util import OutputOption
 from samcli.lib.utils.packagetype import IMAGE, ZIP
+from samcli.local.docker.lambda_image import Runtime
 
 _TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml|json]"
+SUPPORTED_BUILD_IN_SOURCE_WORKFLOWS = [
+    Runtime.nodejs12x.value,
+    Runtime.nodejs14x.value,
+    Runtime.nodejs16x.value,
+    Runtime.nodejs18x.value,
+    "Makefile",
+    "esbuild",
+]
 
 LOG = logging.getLogger(__name__)
 
@@ -235,6 +246,39 @@ def skip_prepare_infra_callback(ctx, param, provided_value):
 
     if is_option_provided and not is_hook_provided:
         raise click.BadOptionUsage(option_name=param.name, ctx=ctx, message="Missing option --hook-name")
+
+
+def watch_exclude_option_callback(
+    ctx: click.Context, param: click.Option, values: Tuple[Dict[str, List[str]]]
+) -> Dict[str, List[str]]:
+    """
+    Parses the multiple provided values into a mapping of resources to a list of exclusions.
+
+    Parameters
+    ----------
+    ctx: click.Context
+        The click context
+    param: click.Option
+        The parameter that was provided
+    values: Tuple[Dict[str, List[str]]]
+        A list of values that was passed in
+
+    Returns
+    -------
+    Dict[str, List[str]]
+        A mapping of LogicalIds to a list of files and/or folders to exclude
+        from file change watches
+    """
+    resource_exclude_mappings: Dict[str, List[str]] = {}
+
+    for mappings in values:
+        for resource_id, excluded_files in mappings.items():
+            current_excludes = resource_exclude_mappings.get(resource_id, [])
+            current_excludes.extend(excluded_files)
+
+            resource_exclude_mappings[resource_id] = current_excludes
+
+    return resource_exclude_mappings
 
 
 def template_common_option(f):
@@ -915,3 +959,37 @@ Commands you can use next
 """
     command_list_txt = "\n".join(f"[*] {description}: {command}" for description, command in command_tuples)
     return template.format(command_list_txt)
+
+
+def build_in_source_click_option():
+    return click.option(
+        "--build-in-source/--no-build-in-source",
+        required=False,
+        is_flag=True,
+        help="Opts in to build project in the source folder. The following workflows support "
+        f"building in source: {SUPPORTED_BUILD_IN_SOURCE_WORKFLOWS}",
+        cls=ClickMutex,
+        incompatible_params=["use_container", "hook_name"],
+    )
+
+
+def build_in_source_option(f):
+    return build_in_source_click_option()(f)
+
+
+def watch_exclude_option(f):
+    return watch_exclude_click_option()(f)
+
+
+def watch_exclude_click_option():
+    return click.option(
+        "--watch-exclude",
+        help="Excludes a file or folder from being observed for file changes. "
+        "Files and folders that are excluded will not trigger a sync workflow. "
+        "This option can be provided multiple times.\n\n"
+        "Examples:\n\nHelloWorldFunction=package-lock.json\n\n"
+        "ChildStackA/FunctionName=database.sqlite3",
+        multiple=True,
+        type=SyncWatchExcludeType(),
+        callback=watch_exclude_option_callback,
+    )

@@ -44,10 +44,11 @@ class CodeTriggerFactory(ResourceTypeBasedFactory[CodeResourceTrigger]):  # pyli
         resource_type: str,
         resource: Dict[str, Any],
         on_code_change: Callable,
+        watch_exclude: List[str],
     ):
         package_type = resource.get("Properties", dict()).get("PackageType", ZIP)
         if package_type == ZIP:
-            return LambdaZipCodeTrigger(resource_identifier, self._stacks, self.base_dir, on_code_change)
+            return LambdaZipCodeTrigger(resource_identifier, self._stacks, self.base_dir, on_code_change, watch_exclude)
         if package_type == IMAGE:
             return LambdaImageCodeTrigger(resource_identifier, self._stacks, self.base_dir, on_code_change)
         return None
@@ -58,8 +59,9 @@ class CodeTriggerFactory(ResourceTypeBasedFactory[CodeResourceTrigger]):  # pyli
         resource_type: str,
         resource: Dict[str, Any],
         on_code_change: Callable,
+        watch_exclude: List[str],
     ):
-        return LambdaLayerCodeTrigger(resource_identifier, self._stacks, self.base_dir, on_code_change)
+        return LambdaLayerCodeTrigger(resource_identifier, self._stacks, self.base_dir, on_code_change, watch_exclude)
 
     def _create_definition_code_trigger(
         self,
@@ -67,11 +69,13 @@ class CodeTriggerFactory(ResourceTypeBasedFactory[CodeResourceTrigger]):  # pyli
         resource_type: str,
         resource: Dict[str, Any],
         on_code_change: Callable,
+        watch_exclude: List[str],
     ):
         return DefinitionCodeTrigger(resource_identifier, resource_type, self._stacks, self.base_dir, on_code_change)
 
     GeneratorFunction = Callable[
-        ["CodeTriggerFactory", ResourceIdentifier, str, Dict[str, Any], Callable], Optional[CodeResourceTrigger]
+        ["CodeTriggerFactory", ResourceIdentifier, str, Dict[str, Any], Callable, List[str]],
+        Optional[CodeResourceTrigger],
     ]
     GENERATOR_MAPPING: Dict[str, GeneratorFunction] = {
         AWS_LAMBDA_FUNCTION: _create_lambda_trigger,
@@ -91,7 +95,7 @@ class CodeTriggerFactory(ResourceTypeBasedFactory[CodeResourceTrigger]):  # pyli
         return CodeTriggerFactory.GENERATOR_MAPPING
 
     def create_trigger(
-        self, resource_identifier: ResourceIdentifier, on_code_change: Callable
+        self, resource_identifier: ResourceIdentifier, on_code_change: Callable, watch_exclude: List[str]
     ) -> Optional[CodeResourceTrigger]:
         """Create Trigger for the resource type
 
@@ -113,5 +117,5 @@ class CodeTriggerFactory(ResourceTypeBasedFactory[CodeResourceTrigger]):  # pyli
         if not generator or not resource or not resource_type:
             return None
         return cast(CodeTriggerFactory.GeneratorFunction, generator)(
-            self, resource_identifier, resource_type, resource, on_code_change
+            self, resource_identifier, resource_type, resource, on_code_change, watch_exclude
         )

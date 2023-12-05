@@ -41,6 +41,7 @@ class UsedFeature(Enum):
     INIT_WITH_APPLICATION_INSIGHTS = "InitWithApplicationInsights"
     CFNLint = "CFNLint"
     INVOKED_CUSTOM_LAMBDA_AUTHORIZERS = "InvokedLambdaAuthorizers"
+    BUILD_IN_SOURCE = "BuildInSource"
 
 
 class EventType:

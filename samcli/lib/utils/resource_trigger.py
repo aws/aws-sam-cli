@@ -17,7 +17,7 @@ from samcli.lib.utils.path_observer import PathHandler
 from samcli.lib.utils.resources import RESOURCES_WITH_LOCAL_PATHS
 from samcli.local.lambdafn.exceptions import FunctionNotFound, ResourceNotFound
 
-AWS_SAM_FOLDER_REGEX = "^.*\\.aws-sam.*$"
+DEFAULT_WATCH_IGNORED_RESOURCES = ["^.*\\.aws-sam.*$", "^.*node_modules.*$"]
 
 
 class OnChangeCallback(Protocol):
@@ -155,6 +155,7 @@ class CodeResourceTrigger(ResourceTrigger):
         stacks: List[Stack],
         base_dir: Path,
         on_code_change: OnChangeCallback,
+        watch_exclude: Optional[List[str]] = None,
     ):
         """
         Parameters
@@ -182,6 +183,10 @@ class CodeResourceTrigger(ResourceTrigger):
         self._on_code_change = on_code_change
         self.base_dir = base_dir
 
+        self._watch_exclude = [*DEFAULT_WATCH_IGNORED_RESOURCES]
+        for exclude in watch_exclude or []:
+            self._watch_exclude.append(f"^.*{exclude}.*$")
+
 
 class LambdaFunctionCodeTrigger(CodeResourceTrigger):
     _function: Function
@@ -193,6 +198,7 @@ class LambdaFunctionCodeTrigger(CodeResourceTrigger):
         stacks: List[Stack],
         base_dir: Path,
         on_code_change: OnChangeCallback,
+        watch_exclude: Optional[List[str]] = None,
     ):
         """
         Parameters
@@ -213,7 +219,7 @@ class LambdaFunctionCodeTrigger(CodeResourceTrigger):
         MissingCodeUri
             raised when there is no CodeUri property in the function definition.
         """
-        super().__init__(function_identifier, stacks, base_dir, on_code_change)
+        super().__init__(function_identifier, stacks, base_dir, on_code_change, watch_exclude)
         function = SamFunctionProvider(stacks).get(str(function_identifier))
         if not function:
             raise FunctionNotFound()
@@ -242,7 +248,7 @@ class LambdaFunctionCodeTrigger(CodeResourceTrigger):
             PathHandlers for the code folder associated with the function
         """
         dir_path_handler = ResourceTrigger.get_dir_path_handler(
-            self.base_dir.joinpath(self._code_uri), ignore_regexes=[AWS_SAM_FOLDER_REGEX]
+            self.base_dir.joinpath(self._code_uri), ignore_regexes=self._watch_exclude
         )
         dir_path_handler.self_create = self._on_code_change
         dir_path_handler.self_delete = self._on_code_change
@@ -272,6 +278,7 @@ class LambdaLayerCodeTrigger(CodeResourceTrigger):
         stacks: List[Stack],
         base_dir: Path,
         on_code_change: OnChangeCallback,
+        watch_exclude: Optional[List[str]] = None,
     ):
         """
         Parameters
@@ -292,7 +299,7 @@ class LambdaLayerCodeTrigger(CodeResourceTrigger):
         MissingCodeUri
             raised when there is no CodeUri property in the function definition.
         """
-        super().__init__(layer_identifier, stacks, base_dir, on_code_change)
+        super().__init__(layer_identifier, stacks, base_dir, on_code_change, watch_exclude)
         layer = SamLayerProvider(stacks).get(str(layer_identifier))
         if not layer:
             raise ResourceNotFound()
@@ -310,7 +317,7 @@ class LambdaLayerCodeTrigger(CodeResourceTrigger):
             PathHandlers for the code folder associated with the layer
         """
         dir_path_handler = ResourceTrigger.get_dir_path_handler(
-            self.base_dir.joinpath(self._code_uri), ignore_regexes=[AWS_SAM_FOLDER_REGEX]
+            self.base_dir.joinpath(self._code_uri), ignore_regexes=self._watch_exclude
         )
         dir_path_handler.self_create = self._on_code_change
         dir_path_handler.self_delete = self._on_code_change

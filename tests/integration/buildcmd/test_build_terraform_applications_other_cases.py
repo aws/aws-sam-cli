@@ -26,7 +26,7 @@ class TestBuildTerraformApplicationsWithInvalidOptions(BuildTerraformApplication
         process_stderr = stderr.strip()
         self.assertRegex(
             process_stderr.decode("utf-8"),
-            "Error: Invalid value: Parameters hook-name, and t,template-file,template,parameter-overrides cannot "
+            "Error: Invalid value: Parameters hook-name, and t,template-file,template,parameter-overrides,build-in-source cannot "
             "be used together",
         )
         self.assertNotEqual(return_code, 0)
