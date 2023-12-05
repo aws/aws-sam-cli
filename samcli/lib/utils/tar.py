@@ -62,7 +62,7 @@ def create_tarball(
         tarballfile.close()
 
 
-def _validate_destinations_exists(tar_paths: List[Union[str, Path]]) -> bool:
+def _validate_destinations_exists(tar_paths: Union[List[Union[str, Path]], List[Path]]) -> bool:
     """
     Validates whether the destination of a symlink exists by resolving the link
     and checking the resolved path.
