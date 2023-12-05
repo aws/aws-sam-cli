@@ -1,9 +1,10 @@
 import io
 from unittest import TestCase
 import tarfile
-from unittest.mock import Mock, patch, call
+from unittest.mock import MagicMock, Mock, patch, call
+from parameterized import parameterized
 
-from samcli.lib.utils.tar import extract_tarfile, create_tarball, _is_within_directory
+from samcli.lib.utils.tar import _validate_destinations_exists, extract_tarfile, create_tarball, _is_within_directory
 
 
 class TestTar(TestCase):
@@ -159,3 +160,45 @@ class TestTar(TestCase):
         target = "/another/path/file"
 
         self.assertFalse(_is_within_directory(directory, target))
+
+    @patch("samcli.lib.utils.tar.tarfile.open")
+    @patch("samcli.lib.utils.tar.TemporaryFile")
+    @patch("samcli.lib.utils.tar._validate_destinations_exists")
+    def test_generating_tarball_revert_false_derefernce(self, validate_mock, temporary_file_patch, tarfile_open_patch):
+        temp_file_mock = Mock()
+        temporary_file_patch.return_value = temp_file_mock
+
+        tarfile_file_mock = Mock()
+        tarfile_open_patch.return_value.__enter__.return_value = tarfile_file_mock
+
+        validate_mock.return_value = False
+
+        # pass in dereference is True
+        with create_tarball({"/some/path": "/layer1"}, tar_filter=None, dereference=True) as tarball:
+            self.assertEqual(tarball, temp_file_mock)
+
+        # validate that deference was changed back to False
+        tarfile_open_patch.assert_called_once_with(fileobj=temp_file_mock, mode="w", dereference=False)
+
+    @parameterized.expand(
+        [
+            (True,),
+            (False,),
+        ]
+    )
+    @patch("samcli.lib.utils.tar.Path")
+    def test_validating_symlinked_tar_path(self, does_resolved_exist, path_mock):
+        mock_resolved_object = Mock()
+        mock_resolved_object.exists.return_value = does_resolved_exist
+
+        mock_path_object = Mock()
+        mock_path_object.resolve = Mock()
+        mock_path_object.resolve.return_value = mock_resolved_object
+        mock_path_object.is_symlink = Mock()
+        mock_path_object.is_symlink.return_value = True
+
+        path_mock.return_value = mock_path_object
+
+        result = _validate_destinations_exists(["mock_path"])
+
+        self.assertEqual(result, does_resolved_exist)
