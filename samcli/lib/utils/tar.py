@@ -44,7 +44,7 @@ def create_tarball(
     do_dereferece = dereference
 
     # validate that the destinations for the symlink targets exist
-    if do_dereferece and not _validate_destinations_exists(tar_paths.keys()):
+    if do_dereferece and not _validate_destinations_exists(list(tar_paths.keys())):
         LOG.warning("Falling back to not resolving symlinks to create a tarball.")
         do_dereferece = False
 
