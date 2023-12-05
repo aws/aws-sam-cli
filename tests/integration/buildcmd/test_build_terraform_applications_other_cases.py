@@ -262,7 +262,7 @@ class TestBuildGoFunctionAndKeepPermissions(BuildTerraformApplicationIntegBase):
         environment_variables = os.environ.copy()
 
         _, stderr, return_code = self.run_command(build_cmd_list, env=environment_variables)
-        LOG.info(stderr)
+        LOG.info(stderr.decode("utf-8"))
         self.assertEqual(return_code, 0)
 
         self._verify_invoke_built_function(
