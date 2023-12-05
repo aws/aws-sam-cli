@@ -81,7 +81,13 @@ def _validate_destinations_exists(tar_paths: List[Union[str, Path]]) -> bool:
         file_path_obj = Path(file)
         resolved_path = file_path_obj.resolve()
 
-        if file_path_obj.is_symlink() and not resolved_path.exists():
+        if file_path_obj.is_dir():
+            # recursively call this method to validate the children are not symlinks to empty locations
+            children = list(file_path_obj.iterdir())
+            if not _validate_destinations_exists(children):
+                # exits early
+                return False
+        elif file_path_obj.is_symlink() and not resolved_path.exists():
             LOG.warning(f"Symlinked file {file_path_obj} -> {resolved_path} does not exist!")
             return False
 
