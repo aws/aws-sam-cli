@@ -400,7 +400,7 @@ class Container:
 
         # NOTE(jfuss): Adding a sleep after we get a response from the contianer but before we
         # we write the response to ensure the last thing written to stdout is the container response
-        #time.sleep(1)
+        # time.sleep(1)
         if isinstance(response, str):
             stdout.write_str(response)
         elif isinstance(response, bytes):
