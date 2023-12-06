@@ -46,7 +46,7 @@ resource "aws_lambda_function" "this" {
   role          = aws_iam_role.this.arn
 
   # use provided.al2023 if it is on Linux, use provided.al2 if it is on Windows
-  runtime  = pathexpand("~"), 0, 1) == "/"? "provided.al2023" : "provided.al2"
+  runtime  = substr(pathexpand("~"), 0, 1) == "/"? "provided.al2023" : "provided.al2"
   handler  = "bootstrap"
   filename = "hello_world.zip"
   timeout  = 30
