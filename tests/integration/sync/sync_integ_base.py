@@ -244,6 +244,7 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
         debug=None,
         use_container=False,
         build_in_source=None,
+        watch_exclude=None,
     ):
         command_list = [get_sam_command(), "sync"]
 
@@ -305,5 +306,8 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
             command_list += ["--use-container"]
         if build_in_source is not None:
             command_list += ["--build-in-source"] if build_in_source else ["--no-build-in-source"]
+        if watch_exclude:
+            for exclude in watch_exclude:
+                command_list += ["--watch-exclude", exclude]
 
         return command_list
