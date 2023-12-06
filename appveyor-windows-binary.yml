@@ -285,7 +285,7 @@ for:
       - "choco install terraform"
       - "terraform -version"
 
-      - ps: "pytest -vv  tests/integration/local/start_api --json-report --json-report-file=TEST_REPORT-integration-local-api.json"
+      - ps: "pytest -vv tests/integration/local/start_api --json-report --json-report-file=TEST_REPORT-integration-local-api.json"
 
   #Integ testing local start-lambda
   - matrix:
