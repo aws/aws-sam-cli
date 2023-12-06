@@ -28,8 +28,6 @@ LOG = logging.getLogger(__name__)
 class TestBuildCommand_Rust(BuildIntegRustBase):
     @parameterized.expand(
         [
-            ("provided", "x86_64", None, False),
-            ("provided", "x86_64", "debug", False),
             ("provided.al2", "x86_64", None, False),
             ("provided.al2", "x86_64", "debug", False),
             ("provided.al2023", "x86_64", None, False),
