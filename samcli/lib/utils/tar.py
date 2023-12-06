@@ -85,7 +85,7 @@ def _validate_destinations_exists(tar_paths: Union[List[Union[str, Path]], List[
         except OSError:
             # this exception will occur on Windows and will return
             # a WinError 123
-            LOG.warning("Failed to determine the file on the system")
+            LOG.warning(f"Failed to resolve file {file_path_obj} on the host machine")
             return False
 
         if file_path_obj.is_dir():

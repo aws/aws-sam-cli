@@ -204,10 +204,16 @@ class TestTar(TestCase):
 
         self.assertEqual(result, does_resolved_exist)
 
+    @parameterized.expand(
+        [
+            (True,),
+            (False,),
+        ]
+    )
     @patch("samcli.lib.utils.tar.Path")
-    def test_validating_symlinked_tar_path_directory(self, path_mock):
+    def test_validating_symlinked_tar_path_directory(self, file_exists, path_mock):
         mock_child_resolve = Mock()
-        mock_child_resolve.exists.return_value = False
+        mock_child_resolve.exists.return_value = file_exists
 
         mock_child = Mock()
         mock_child.is_symlink.return_value = True
@@ -224,4 +230,4 @@ class TestTar(TestCase):
 
         result = _validate_destinations_exists(["mock_folder"])
 
-        self.assertEqual(result, False)
+        self.assertEqual(result, file_exists)
