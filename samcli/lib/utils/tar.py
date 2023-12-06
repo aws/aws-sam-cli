@@ -62,7 +62,7 @@ def create_tarball(
         tarballfile.close()
 
 
-def _validate_destinations_exists(tar_paths: List[Union[str, Path]]) -> bool:
+def _validate_destinations_exists(tar_paths: Union[List[Union[str, Path]], List[Path]]) -> bool:
     """
     Validates whether the destination of a symlink exists by resolving the link
     and checking the resolved path.
@@ -79,9 +79,22 @@ def _validate_destinations_exists(tar_paths: List[Union[str, Path]]) -> bool:
     """
     for file in tar_paths:
         file_path_obj = Path(file)
-        resolved_path = file_path_obj.resolve()
 
-        if file_path_obj.is_symlink() and not resolved_path.exists():
+        try:
+            resolved_path = file_path_obj.resolve()
+        except OSError:
+            # this exception will occur on Windows and will return
+            # a WinError 123
+            LOG.warning(f"Failed to resolve file {file_path_obj} on the host machine")
+            return False
+
+        if file_path_obj.is_dir():
+            # recursively call this method to validate the children are not symlinks to empty locations
+            children = list(file_path_obj.iterdir())
+            if not _validate_destinations_exists(children):
+                # exits early
+                return False
+        elif file_path_obj.is_symlink() and not resolved_path.exists():
             LOG.warning(f"Symlinked file {file_path_obj} -> {resolved_path} does not exist!")
             return False
 
