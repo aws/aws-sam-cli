@@ -79,7 +79,14 @@ def _validate_destinations_exists(tar_paths: Union[List[Union[str, Path]], List[
     """
     for file in tar_paths:
         file_path_obj = Path(file)
-        resolved_path = file_path_obj.resolve()
+
+        try:
+            resolved_path = file_path_obj.resolve()
+        except OSError:
+            # this exception will occur on Windows and will return
+            # a WinError 123
+            LOG.warning("Failed to determine the file on the system")
+            return False
 
         if file_path_obj.is_dir():
             # recursively call this method to validate the children are not symlinks to empty locations
