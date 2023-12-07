@@ -387,7 +387,7 @@ class Container:
         # the log thread will not be closed until the container itself got deleted,
         # so as long as the container is still there, no need to start a new log thread
         if not self._logs_thread or not self._logs_thread.is_alive():
-            self._logs_thread_event = threading.Event()
+            self._logs_thread_event = self._create_threading_event()
             self._logs_thread = threading.Thread(
                 target=self.wait_for_logs, args=(stderr, stderr, self._logs_thread_event), daemon=True
             )
@@ -537,6 +537,15 @@ class Container:
             output_stream.buffer.write(output_str.encode("utf-8"))
         if re.match(pattern, output_str) is not None and event is not None:
             event.set()
+
+    # This method exists because otherwise when writing tests patching/mocking threading.Event breaks everything
+    # this allows for the tests to exist as they do currently without any major refactoring
+    @staticmethod
+    def _create_threading_event():
+        """
+        returns a new threading.Event object.
+        """
+        return threading.Event()
 
     @property
     def network_id(self):
