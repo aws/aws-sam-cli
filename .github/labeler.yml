@@ -1,92 +1,109 @@
 area/package:
   - changed-files:
-    - any-glob-to-any-file: samcli/commands/package/*
-    - any-glob-to-any-file: samcli/commands/package/**/*
+    - any-glob-to-any-file:
+      - samcli/commands/package/*
+      - samcli/commands/package/**/*
 
 area/local/invoke:
   - changed-files:
-    - any-glob-to-any-file: samcli/commands/local/invoke/*
-    - any-glob-to-any-file: samcli/commands/local/invoke/**/*
-    - any-glob-to-any-file: samcli/local/*
-    - any-glob-to-any-file: samcli/local/**/*
+    - any-glob-to-any-file:
+      - samcli/commands/local/invoke/*
+      - samcli/commands/local/invoke/**/*
+      - samcli/local/*
+      - samcli/local/**/*
 
 area/pipeline:
   - changed-files:
-    - any-glob-to-any-file: samcli/commands/pipeline/*
-    - any-glob-to-any-file: samcli/commands/pipeline/**/*
+    - any-glob-to-any-file:
+      - samcli/commands/pipeline/*
+      - samcli/commands/pipeline/**/*
 
 area/deploy:
   - changed-files:
-    - any-glob-to-any-file: samcli/commands/deploy/*
-    - any-glob-to-any-file: samcli/commands/deploy/**/*
+    - any-glob-to-any-file:
+      - samcli/commands/deploy/*
+      - samcli/commands/deploy/**/*
 
 area/local/start-api:
   - changed-files:
-    - any-glob-to-any-file: samcli/commands/local/start-api/*
-    - any-glob-to-any-file: samcli/commands/local/start-api/**/*
-    - any-glob-to-any-file: samcli/local/*
-    - any-glob-to-any-file: samcli/local/**/*
+    - any-glob-to-any-file:
+      - samcli/commands/local/start-api/*
+      - samcli/commands/local/start-api/**/*
+      - samcli/local/*
+      - samcli/local/**/*
 
 area/local/start-invoke:
   - changed-files:
-    - any-glob-to-any-file: samcli/commands/local/start-invoke/*
-    - any-glob-to-any-file: samcli/commands/local/start-invoke/**/*
-    - any-glob-to-any-file: samcli/local/*
-    - any-glob-to-any-file: samcli/local/**/*
+    - any-glob-to-any-file:
+      - samcli/commands/local/start-invoke/*
+      - samcli/commands/local/start-invoke/**/*
+      - samcli/local/*
+      - samcli/local/**/*
 
 area/local/generate-event:
   - changed-files:
-    - any-glob-to-any-file: samcli/commands/local/generate-event/*
-    - any-glob-to-any-file: samcli/commands/local/generate-event/**/*
+    - any-glob-to-any-file:
+      - samcli/commands/local/generate-event/*
+      - samcli/commands/local/generate-event/**/*
 
 area/init:
   - changed-files:
-    - any-glob-to-any-file: samcli/commands/init/*
-    - any-glob-to-any-file: samcli/commands/init/**/*
+    - any-glob-to-any-file:
+      - samcli/commands/init/*
+      - samcli/commands/init/**/*
 
 area/delete:
   - changed-files:
-    - any-glob-to-any-file: samcli/commands/delete/*
-    - any-glob-to-any-file: samcli/commands/delete/**/*
+    - any-glob-to-any-file:
+      - samcli/commands/delete/*
+      - samcli/commands/delete/**/*
 
 area/integration-tests:
   - changed-files:
-    - any-glob-to-any-file: test/integration/*
-    - any-glob-to-any-file: test/integration/**/*
+    - any-glob-to-any-file:
+      - test/integration/*
+      - test/integration/**/*
 
 area/publish:
   - changed-files:
-    - any-glob-to-any-file: samcli/commands/publish/*
-    - any-glob-to-any-file: samcli/commands/publish/**/*
+    - any-glob-to-any-file:
+      - samcli/commands/publish/*
+      - samcli/commands/publish/**/*
 
 area/sync:
   - changed-files:
-    - any-glob-to-any-file: samcli/commands/sync/*
-    - any-glob-to-any-file: samcli/commands/sync/**/*
+    - any-glob-to-any-file:
+      - samcli/commands/sync/*
+      - samcli/commands/sync/**/*
 
 area/validate:
   - changed-files:
-    - any-glob-to-any-file: samcli/commands/validate/*
-    - any-glob-to-any-file: samcli/commands/validate/**/*
+    - any-glob-to-any-file:
+      - samcli/commands/validate/*
+      - samcli/commands/validate/**/*
 
 area/build:
   - changed-files:
-    - any-glob-to-any-file: samcli/commands/build/*
-    - any-glob-to-any-file: samcli/commands/build/**/*
-    - any-glob-to-any-file: samcli/lib/build/*
-    - any-glob-to-any-file: samcli/lib/build/**/*
+    - any-glob-to-any-file:
+      - samcli/commands/build/*
+      - samcli/commands/build/**/*
+      - samcli/lib/build/*
+      - samcli/lib/build/**/*
 
 area/logs:
   - changed-files:
-    - any-glob-to-any-file: samcli/commands/logs/*
-    - any-glob-to-any-file: samcli/commands/logs/**/*
+    - any-glob-to-any-file:
+      - samcli/commands/logs/*
+      - samcli/commands/logs/**/*
 
 area/traces:
   - changed-files:
-    - any-glob-to-any-file: samcli/commands/traces/*
-    - any-glob-to-any-file: samcli/commands/traces/**/*
+    - any-glob-to-any-file:
+      - samcli/commands/traces/*
+      - samcli/commands/traces/**/*
 
 area/schema:
   - changed-files:
-    - any-glob-to-any-file: schema/*
-    - any-glob-to-any-file: schema/**/*
+    - any-glob-to-any-file:
+      - schema/*
+      - schema/**/*
