@@ -1,0 +1,10 @@
+{
+  "name": "src",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "author": "",
+  "dependencies": {
+    "local-dep": "file:../local-dep"
+  }
+}

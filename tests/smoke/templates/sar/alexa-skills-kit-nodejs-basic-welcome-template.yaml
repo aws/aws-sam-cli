@@ -25,7 +25,7 @@ Resources:
       CodeUri:
         Bucket: <%REPO_BUCKET%>
         Key: c2a2bfe5-753b-4711-943e-09ec3aca7a10
-      Runtime: nodejs8.10
+      Runtime: nodejs18.x
       Events:
         AlexaTrigger:
           Type: AlexaSkill

@@ -7,4 +7,7 @@ build-LayerWithMakefileNoCompatibleRuntimes:
 	mkdir -p "$(ARTIFACTS_DIR)/random"
 	cp *.py "$(ARTIFACTS_DIR)/random"
 	cp *.txt "$(ARTIFACTS_DIR)/random"
-
+build-LayerWithNoCompatibleArchitectures: 
+	mkdir -p "$(ARTIFACTS_DIR)/random"
+	cp *.py "$(ARTIFACTS_DIR)/random"
+	cp *.txt "$(ARTIFACTS_DIR)/random"

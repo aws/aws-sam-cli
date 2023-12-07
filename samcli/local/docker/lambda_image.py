@@ -336,7 +336,7 @@ class LambdaImage:
             # Set only on Windows, unix systems will preserve the host permission into the tarball
             tar_filter = set_item_permission if platform.system().lower() == "windows" else None
 
-            with create_tarball(tar_paths, tar_filter=tar_filter) as tarballfile:
+            with create_tarball(tar_paths, tar_filter=tar_filter, dereference=True) as tarballfile:
                 try:
                     resp_stream = self.docker_client.api.build(
                         fileobj=tarballfile,

@@ -19,7 +19,7 @@ from parameterized import parameterized_class
 
 from samcli.commands.build.utils import MountMode
 from samcli.lib.utils import osutils
-from samcli.lib.utils.architecture import X86_64, has_runtime_multi_arch_image
+from samcli.lib.utils.architecture import ARM64, X86_64, has_runtime_multi_arch_image
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from samcli.yamlhelper import yaml_parse
 from tests.testing_utils import (
@@ -29,6 +29,7 @@ from tests.testing_utils import (
     SKIP_DOCKER_MESSAGE,
     SKIP_DOCKER_BUILD,
     get_sam_command,
+    runtime_supported_by_docker,
 )
 
 LOG = logging.getLogger(__name__)
@@ -377,7 +378,7 @@ class BuildIntegEsbuildBase(BuildIntegBase):
         )
 
         expected = {"body": '{"message":"hello world!"}', "statusCode": 200}
-        if not SKIP_DOCKER_TESTS and architecture == X86_64:
+        if not SKIP_DOCKER_TESTS and architecture == X86_64 and runtime_supported_by_docker(runtime):
             # ARM64 is not supported yet for invoking
             self._verify_invoke_built_function(
                 self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
@@ -389,14 +390,14 @@ class BuildIntegEsbuildBase(BuildIntegBase):
             self.verify_docker_container_cleanedup(runtime)
             self.verify_pulled_image(runtime, architecture)
 
-    def _test_with_various_properties(self, overrides):
+    def _test_with_various_properties(self, overrides, runtime):
         overrides = self.get_override(**overrides)
         cmdlist = self.get_command_list(parameter_overrides=overrides)
 
         run_command(cmdlist, cwd=self.working_dir)
 
         expected = {"body": '{"message":"hello world!"}', "statusCode": 200}
-        if not SKIP_DOCKER_TESTS and overrides["Architectures"] == X86_64:
+        if not SKIP_DOCKER_TESTS and overrides["Architectures"] == X86_64 and runtime_supported_by_docker(runtime):
             # ARM64 is not supported yet for invoking
             self._verify_invoke_built_function(
                 self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
@@ -470,7 +471,7 @@ class BuildIntegNodeBase(BuildIntegBase):
         )
 
         expected = {"body": '{"message":"hello world!"}', "statusCode": 200}
-        if not SKIP_DOCKER_TESTS and self.TEST_INVOKE:
+        if not SKIP_DOCKER_TESTS and self.TEST_INVOKE and runtime_supported_by_docker(runtime):
             self._verify_invoke_built_function(
                 self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
             )
@@ -557,7 +558,7 @@ class BuildIntegGoBase(BuildIntegBase):
         )
 
         expected = "{'message': 'Hello World'}"
-        if not SKIP_DOCKER_TESTS and architecture == X86_64:
+        if not SKIP_DOCKER_TESTS and architecture == X86_64 and runtime_supported_by_docker(runtime):
             # ARM64 is not supported yet for invoking
             self._verify_invoke_built_function(
                 self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
@@ -587,7 +588,24 @@ class BuildIntegGoBase(BuildIntegBase):
 
 @pytest.mark.java
 class BuildIntegJavaBase(BuildIntegBase):
+    # Run gradlew & gradle-kotlin containerized tests only with latest java version
+    LATEST_JAVA_VERSION = "java21"
+    SKIP_ARM64_EARLIER_JAVA_TESTS = "Skipping gradlew & gradle-kotlin test for this Java version"
+
     FUNCTION_LOGICAL_ID = "Function"
+    EXPECTED_FILES_PROJECT_MANIFEST_GRADLE = {"aws", "lib", "META-INF"}
+    EXPECTED_FILES_PROJECT_MANIFEST_MAVEN = {"aws", "lib"}
+    EXPECTED_GRADLE_DEPENDENCIES = {"annotations-2.1.0.jar", "aws-lambda-java-core-1.1.0.jar"}
+    EXPECTED_MAVEN_DEPENDENCIES = {
+        "software.amazon.awssdk.annotations-2.1.0.jar",
+        "com.amazonaws.aws-lambda-java-core-1.1.0.jar",
+    }
+
+    FUNCTION_LOGICAL_ID = "Function"
+    USING_GRADLE_PATH = os.path.join("Java", "gradle")
+    USING_GRADLEW_PATH = os.path.join("Java", "gradlew")
+    USING_GRADLE_KOTLIN_PATH = os.path.join("Java", "gradle-kotlin")
+    USING_MAVEN_PATH = os.path.join("Java", "maven")
 
     def _test_with_building_java(
         self,
@@ -601,6 +619,15 @@ class BuildIntegJavaBase(BuildIntegBase):
     ):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        # skip arm64 use container tests for gradlew and gradle-kotlin
+        if (
+            use_container
+            and runtime != self.LATEST_JAVA_VERSION
+            and architecture == ARM64
+            and any(path in code_path for path in [self.USING_GRADLEW_PATH, self.USING_GRADLE_KOTLIN_PATH])
+        ):
+            self.skipTest(self.SKIP_ARM64_EARLIER_JAVA_TESTS)
 
         overrides = self.get_override(runtime, code_path, architecture, "aws.example.Hello::myHandler")
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
@@ -636,7 +663,7 @@ class BuildIntegJavaBase(BuildIntegBase):
         # If we are testing in the container, invoke the function as well. Otherwise we cannot guarantee docker is on appveyor
         if use_container:
             expected = "Hello World"
-            if not SKIP_DOCKER_TESTS:
+            if not SKIP_DOCKER_TESTS and runtime_supported_by_docker(runtime):
                 self._verify_invoke_built_function(
                     self.built_template,
                     self.FUNCTION_LOGICAL_ID,
@@ -731,7 +758,7 @@ class BuildIntegPythonBase(BuildIntegBase):
             )
 
         expected = {"pi": "3.14"}
-        if not SKIP_DOCKER_TESTS:
+        if not SKIP_DOCKER_TESTS and runtime_supported_by_docker(runtime):
             self._verify_invoke_built_function(
                 self.built_template,
                 self.FUNCTION_LOGICAL_ID,
@@ -805,7 +832,7 @@ class BuildIntegProvidedBase(BuildIntegBase):
         expected = "2.23.0"
         # Building was done with a makefile, but invoke should be checked with corresponding python image.
         overrides["Runtime"] = self._get_python_version()
-        if not SKIP_DOCKER_TESTS:
+        if not SKIP_DOCKER_TESTS and runtime_supported_by_docker(runtime):
             self._verify_invoke_built_function(
                 self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
             )
@@ -1086,7 +1113,12 @@ class BuildIntegRustBase(BuildIntegBase):
             self.default_build_dir, self.FUNCTION_LOGICAL_ID, self.EXPECTED_FILES_PROJECT_MANIFEST
         )
 
-        if expected_invoke_result and not SKIP_DOCKER_TESTS and architecture == X86_64:
+        if (
+            expected_invoke_result
+            and not SKIP_DOCKER_TESTS
+            and architecture == X86_64
+            and runtime_supported_by_docker(runtime)
+        ):
             # ARM64 is not supported yet for local invoke
             self._verify_invoke_built_function(
                 self.built_template,

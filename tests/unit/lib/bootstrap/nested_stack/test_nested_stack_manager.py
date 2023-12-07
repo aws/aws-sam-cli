@@ -63,7 +63,12 @@ class TestNestedStackManager(TestCase):
         self.assertEqual(template, result)
 
     def test_unsupported_runtime(self):
-        resources = {"MyFunction": {"Type": AWS_SERVERLESS_FUNCTION, "Properties": {"Runtime": "unsupported_runtime"}}}
+        resources = {
+            "MyFunction": {
+                "Type": AWS_SERVERLESS_FUNCTION,
+                "Properties": {"Runtime": "unsupported_runtime", "Handler": "FakeHandler"},
+            }
+        }
         self.stack.resources = resources
         template = {"Resources": resources}
         app_build_result = ApplicationBuildResult(Mock(), {"MyFunction": "path/to/build/dir"})
@@ -75,7 +80,12 @@ class TestNestedStackManager(TestCase):
         self.assertEqual(template, result)
 
     def test_no_function_build_definition(self):
-        resources = {"MyFunction": {"Type": AWS_SERVERLESS_FUNCTION, "Properties": {"Runtime": "python3.8"}}}
+        resources = {
+            "MyFunction": {
+                "Type": AWS_SERVERLESS_FUNCTION,
+                "Properties": {"Runtime": "python3.8", "Handler": "FakeHandler"},
+            }
+        }
         self.stack.resources = resources
         template = {"Resources": resources}
         build_graph = Mock()
@@ -89,7 +99,12 @@ class TestNestedStackManager(TestCase):
         self.assertEqual(template, result)
 
     def test_function_build_definition_without_dependencies_dir(self):
-        resources = {"MyFunction": {"Type": AWS_SERVERLESS_FUNCTION, "Properties": {"Runtime": "python3.8"}}}
+        resources = {
+            "MyFunction": {
+                "Type": AWS_SERVERLESS_FUNCTION,
+                "Properties": {"Runtime": "python3.8", "Handler": "FakeHandler"},
+            }
+        }
         self.stack.resources = resources
         template = {"Resources": resources}
         build_graph = Mock()
@@ -106,7 +121,12 @@ class TestNestedStackManager(TestCase):
     @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.osutils")
     @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.os.path.isdir")
     def test_with_zip_function(self, patched_isdir, patched_osutils, patched_move_template):
-        resources = {"MyFunction": {"Type": AWS_SERVERLESS_FUNCTION, "Properties": {"Runtime": "python3.8"}}}
+        resources = {
+            "MyFunction": {
+                "Type": AWS_SERVERLESS_FUNCTION,
+                "Properties": {"Runtime": "python3.8", "Handler": "FakeHandler"},
+            }
+        }
         self.stack.resources = resources
         template = {"Resources": resources}
 

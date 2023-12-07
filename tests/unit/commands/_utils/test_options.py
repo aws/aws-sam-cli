@@ -25,6 +25,7 @@ from samcli.commands._utils.options import (
     skip_prepare_infra_callback,
     generate_next_command_recommendation,
     terraform_project_root_path_callback,
+    watch_exclude_option_callback,
 )
 from samcli.commands._utils.parameterized_option import parameterized_option
 from samcli.commands.package.exceptions import PackageResolveS3AndS3SetError, PackageResolveS3AndS3NotSetError
@@ -597,3 +598,18 @@ Commands you can use next
 [*] Deploy: sam deploy --guided
 """
         self.assertEqual(output, expectedOutput)
+
+
+class TestWatchExcludeOption(TestCase):
+    @parameterized.expand(
+        [
+            (
+                ({"hello": ["world"]}, {"hello": ["mars"]}, {"foo": ["bar"]}),
+                {"hello": ["world", "mars"], "foo": ["bar"]},
+            ),
+            ((), {}),
+        ]
+    )
+    def test_merging_values(self, input, expected):
+        results = watch_exclude_option_callback(Mock(), Mock(), input)
+        self.assertEqual(results, expected)

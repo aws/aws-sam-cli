@@ -1,5 +1,5 @@
 from unittest import TestCase
-from unittest.mock import Mock, ANY
+from unittest.mock import MagicMock, Mock, ANY
 
 from click import BadParameter
 from parameterized import parameterized
@@ -12,6 +12,7 @@ from samcli.cli.types import (
     ImageRepositoriesType,
     RemoteInvokeBotoApiParameterType,
     RemoteInvokeOutputFormatType,
+    SyncWatchExcludeType,
 )
 from samcli.cli.types import CfnMetadataType
 from samcli.lib.remote_invoke.remote_invoke_executors import RemoteInvokeOutputFormat
@@ -516,3 +517,32 @@ class TestRemoteInvokeOutputFormatParameterType(TestCase):
     def test_successful_parsing(self, input, expected):
         result = self.param_type.convert(input, self.mock_param, None)
         self.assertEqual(result, expected)
+
+
+class TestSyncWatchExcludeType(TestCase):
+    def setUp(self):
+        self.exclude_type = SyncWatchExcludeType()
+
+    @parameterized.expand(
+        [
+            ("HelloWorldFunction=file.txt", {"HelloWorldFunction": ["file.txt"]}),
+            ({"HelloWorldFunction": ["file.txt"]}, {"HelloWorldFunction": ["file.txt"]}),
+        ]
+    )
+    def test_convert_parses_input(self, input, expected):
+        result = self.exclude_type.convert(input, MagicMock(), MagicMock())
+
+        self.assertEqual(result, expected)
+
+    @parameterized.expand(
+        [
+            ("not a key value pair",),
+            ("",),
+            ("key=",),
+            ("=value",),
+            ("key=value=foo=bar",),
+        ]
+    )
+    def test_convert_fails_parse_input(self, input):
+        with self.assertRaises(BadParameter):
+            self.exclude_type.convert(input, MagicMock(), MagicMock())
