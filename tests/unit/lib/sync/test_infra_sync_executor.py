@@ -518,6 +518,74 @@ class TestInfraSyncExecutor(TestCase):
 
         self.assertFalse(infra_sync_executor._auto_skip_infra_sync("path", "path2", "stack_name"))
 
+    # Test stack parameters are { 'Foo' : 'Bar', 'Apples' : 'Oranges' }
+    @parameterized.expand(
+        [
+            ({"Foo": "Bar"}, True),  # Subset
+            ({"Foo": "Bar", "Apples": "Oranges"}, True),  # Equal
+            ({"Foo": "Bar", "Apples": "Grapes"}, False),  # One pair matches the other does not
+            (
+                {"Foo": "Bar", "Apples": "Oranges", "Red": "Blue"},
+                False,
+            ),  # Overrides is a superset of current parameters
+        ]
+    )
+    @patch("samcli.lib.sync.infra_sync_executor.is_local_path")
+    @patch("samcli.lib.sync.infra_sync_executor.get_template_data")
+    @patch("samcli.lib.sync.infra_sync_executor.Session")
+    def test_auto_skip_infra_sync_parameter_overrides(
+        self, parameter_overrides, expect_skip_infra_sync, session_mock, get_template_mock, local_path_mock
+    ):
+        template_dict = {
+            "Resources": {
+                "ServerlessApplication": {
+                    "Type": "AWS::Serverless::Application",
+                    "Properties": {"Location": "https://s3.com/bucket/key"},
+                }
+            }
+        }
+
+        get_template_mock.return_value = template_dict
+        local_path_mock.return_value = True
+
+        infra_sync_executor = InfraSyncExecutor(
+            self.build_context, self.package_context, self.deploy_context, self.sync_context
+        )
+
+        infra_sync_executor._cfn_client.get_template.side_effect = [
+            {
+                "TemplateBody": """{
+                    "Resources": {
+                        "ServerlessApplication": {
+                            "Type": "AWS::Serverless::Application",
+                            "Properties": {"Location": "https://s3.com/bucket/key"},
+                        }
+                    }
+                }"""
+            },
+        ]
+
+        infra_sync_executor._cfn_client.describe_stack_resource.return_value = {
+            "StackResourceDetails": {"PhysicalResourceId": "id"}
+        }
+
+        infra_sync_executor._get_stack_parameters = MagicMock()
+
+        infra_sync_executor._get_stack_parameters.return_value = [
+            {"ParameterKey": "Foo", "ParameterValue": "Bar"},
+            {"ParameterKey": "Apples", "ParameterValue": "Oranges"},
+        ]
+
+        self.assertEqual(
+            infra_sync_executor._auto_skip_infra_sync(
+                packaged_template_path="path",
+                built_template_path="path2",
+                stack_name="stack_name",
+                parameter_overrides=parameter_overrides,
+            ),
+            expect_skip_infra_sync,
+        )
+
     @patch("samcli.lib.sync.infra_sync_executor.is_local_path")
     @patch("samcli.lib.sync.infra_sync_executor.Session")
     def test_sanitize_template(self, session_mock, local_path_mock):
@@ -876,7 +944,6 @@ class TestInfraSyncExecutor(TestCase):
             "Resources": {
                 "ServerlessApplication": {
                     "Type": "AWS::Serverless::Application",
-                    "Properties": {"Location": "https://s3.com/bucket/key"},
                 }
             }
         }
@@ -885,7 +952,6 @@ class TestInfraSyncExecutor(TestCase):
             "Resources": {
                 "ServerlessApplication": {
                     "Type": "AWS::Serverless::Application",
-                    "Properties": {"Location": "https://s3.com/bucket/key"},
                 }
             }
         }"""
