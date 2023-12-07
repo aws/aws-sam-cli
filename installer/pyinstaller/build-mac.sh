@@ -30,11 +30,11 @@ if [ "$python_library_zip_filename" = "" ]; then
 fi
 
 if [ "$openssl_version" = "" ]; then
-    openssl_version="1.1.1o";
+    openssl_version="1.1.1t";
 fi
 
 if [ "$python_version" = "" ]; then
-    python_version="3.8.13";
+    python_version="3.11.3";
 fi
 
 if ! [ "$build_binary_name" = "" ]; then
