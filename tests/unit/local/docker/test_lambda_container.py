@@ -181,7 +181,9 @@ class TestLambdaContainer_init(TestCase):
         self.assertEqual(get_config_mock()["WorkingDir"], container._working_dir)
         self.assertEqual(self.code_dir, container._host_dir)
         self.assertEqual(ports, container._exposed_ports)
-        self.assertEqual(LambdaContainer._get_default_entry_point() + get_config_mock()["Entrypoint"], container._entrypoint)
+        self.assertEqual(
+            LambdaContainer._get_default_entry_point() + get_config_mock()["Entrypoint"], container._entrypoint
+        )
         self.assertEqual({**expected_env_vars, **{"AWS_LAMBDA_FUNCTION_HANDLER": "mycommand"}}, container._env_vars)
         self.assertEqual(self.memory_mb, container._memory_limit_mb)
 
@@ -411,7 +413,9 @@ class TestLambdaContainer_init(TestCase):
         self.assertEqual(self.code_dir, container._host_dir)
         self.assertEqual(ports, container._exposed_ports)
         self.assertEqual(
-            LambdaContainer._get_default_entry_point() + self.image_config["EntryPoint"], container._entrypoint, "x86_64"
+            LambdaContainer._get_default_entry_point() + self.image_config["EntryPoint"],
+            container._entrypoint,
+            "x86_64",
         )
         self.assertEqual(
             {**expected_env_vars, **{"AWS_LAMBDA_FUNCTION_HANDLER": "my-imageconfig-command"}}, container._env_vars
@@ -445,7 +449,19 @@ class TestLambdaContainer_init(TestCase):
 
         self.assertEqual(str(context.exception), "Unsupported Lambda runtime foo")
 
-    @parameterized.expand([(None, "error",), ("0", "error",), ("1", "debug")])
+    @parameterized.expand(
+        [
+            (
+                None,
+                "error",
+            ),
+            (
+                "0",
+                "error",
+            ),
+            ("1", "debug"),
+        ]
+    )
     def test_rie_debug_levels(self, rie_env_var, expected_log_level):
         with patch("samcli.local.docker.lambda_container.os.environ", {RIE_LOG_LEVEL_ENV_VAR: rie_env_var}):
             self.assertIn(expected_log_level, LambdaContainer._get_default_entry_point())
