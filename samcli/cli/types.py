@@ -6,6 +6,7 @@ import json
 import logging
 import re
 from json import JSONDecodeError
+from typing import Dict, List, Optional, Union
 
 import click
 
@@ -474,3 +475,61 @@ class RemoteInvokeOutputFormatType(click.Choice):
         LOG.debug("Converting provided %s option value to Enum", param.opts[0])
         value = super().convert(value, param, ctx)
         return self.enum(value)
+
+
+class SyncWatchExcludeType(click.ParamType):
+    """
+    Custom parameter type to parse Key=Value pairs into dictionary mapping.
+    """
+
+    name = "list"
+
+    WATCH_EXCLUDE_EXPECTED_LENGTH = 2
+    WATCH_EXCLUDE_DELIMITER = "="
+
+    EXCEPTION_MESSAGE = "Argument must be a key, value pair in the format Key=Value."
+
+    def convert(
+        self, value: Union[Dict[str, List[str]], str], param: Optional[click.Parameter], ctx: Optional[click.Context]
+    ) -> Dict[str, List[str]]:
+        """
+        Parses the multiple provided values into a mapping of resources to a list of exclusions.
+
+        Parameters
+        ----------
+        value: Union[Dict[str, List[str]], str]
+            The passed in arugment
+        param: click.Parameter
+            The parameter that was provided
+        ctx: click.Context
+            The click context
+
+        Returns
+        -------
+        Dict[str, List[str]]
+            A key value pair of Logical/Resource Id and excluded file
+        """
+        if isinstance(value, dict):
+            return value
+
+        mapping_pair = value.split(self.WATCH_EXCLUDE_DELIMITER)
+
+        if len(mapping_pair) != self.WATCH_EXCLUDE_EXPECTED_LENGTH:
+            raise click.BadParameter(
+                param=param,
+                param_hint=f"'{value}'",
+                ctx=ctx,
+                message=self.EXCEPTION_MESSAGE,
+            )
+
+        resource_id, excluded_path = mapping_pair
+
+        if not (resource_id and excluded_path):
+            raise click.BadParameter(
+                param=param,
+                param_hint=f"'{value}'",
+                ctx=ctx,
+                message=self.EXCEPTION_MESSAGE,
+            )
+
+        return {resource_id: [excluded_path]}
