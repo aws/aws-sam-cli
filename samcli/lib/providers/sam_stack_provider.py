@@ -389,7 +389,6 @@ class SamLocalStackProvider(SamBaseProvider):
 
 
 def is_local_path(path: Union[Dict, str]) -> bool:
-    LOG.error("PATH: %s", path)
     return bool(path) and not isinstance(path, dict) and not SamLocalStackProvider.is_remote_url(path)
 
 
