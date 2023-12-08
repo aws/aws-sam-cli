@@ -523,6 +523,7 @@ class TestInfraSyncExecutor(TestCase):
         [
             ({"Foo": "Bar"}, True),  # Subset
             ({"Foo": "Bar", "Apples": "Oranges"}, True),  # Equal
+            ({"Apples": "Oranges", "Foo": "Bar"}, True),  # Equal, different order
             ({"Foo": "Bar", "Apples": "Grapes"}, False),  # One pair matches the other does not
             (
                 {"Foo": "Bar", "Apples": "Oranges", "Red": "Blue"},
