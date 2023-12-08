@@ -38,6 +38,7 @@ from samcli.lib.docker.log_streamer import LogStreamer, LogStreamError
 from samcli.lib.providers.provider import ResourcesToBuildCollector, get_full_path, Stack
 from samcli.lib.utils.colors import Colored, Colors
 from samcli.lib.utils import osutils
+from samcli.lib.utils.lambda_builders import patch_runtime
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker.exceptions import ContainerNotStartableException
@@ -859,7 +860,7 @@ class ApplicationBuilder:
             application_framework=config.application_framework,
         )
 
-        runtime = runtime.replace(".al2", "")
+        runtime = patch_runtime(runtime)
 
         try:
             builder.build(

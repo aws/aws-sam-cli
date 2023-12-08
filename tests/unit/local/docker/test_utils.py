@@ -3,6 +3,7 @@ Unit test for Utils
 """
 
 import os
+from parameterized import parameterized
 from unittest import TestCase
 from unittest.mock import patch, Mock
 
@@ -29,11 +30,12 @@ class TestPosixPath(TestCase):
 
 
 class TestFreePorts(TestCase):
+    @parameterized.expand([("0.0.0.0",), ("127.0.0.1",)])
     @patch("samcli.local.docker.utils.socket")
     @patch("samcli.local.docker.utils.random")
-    def test_free_port_first_attempt(self, mock_random, mock_socket):
+    def test_free_port_first_attempt(self, network_interface, mock_random, mock_socket):
         mock_random.randrange = Mock(side_effect=[3093] * 1000)
-        port = find_free_port(start=3000, end=4000)
+        port = find_free_port(network_interface, start=3000, end=4000)
         self.assertEqual(port, 3093)
 
     @patch("samcli.local.docker.utils.socket")
@@ -43,7 +45,7 @@ class TestFreePorts(TestCase):
         mock_socket_object.bind = Mock(side_effect=[OSError, OSError, Mock()])
         mock_socket_module.socket = Mock(return_value=mock_socket_object)
         mock_random.randrange = Mock(side_effect=[3093, 3987, 3300, 3033] * 250)
-        port = find_free_port(start=3000, end=4000)
+        port = find_free_port("127.0.0.1", start=3000, end=4000)
         self.assertEqual(port, 3300)
 
     @patch("samcli.local.docker.utils.socket")
@@ -54,7 +56,7 @@ class TestFreePorts(TestCase):
         mock_socket_module.socket = Mock(return_value=mock_socket_object)
         mock_random.randrange = Mock(side_effect=[1, 2, 3] * 3)
         with self.assertRaises(NoFreePortsError):
-            find_free_port(start=1, end=4)
+            find_free_port("127.0.0.1", start=1, end=4)
 
 
 class TestGetRapidName(TestCase):

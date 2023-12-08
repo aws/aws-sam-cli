@@ -267,8 +267,11 @@ class DeployContext:
                     if not click.confirm(f"{self.MSG_CONFIRM_CHANGESET}", default=False):
                         return
 
+                marker_time = self.deployer.get_last_event_time(stack_name, 0)
                 self.deployer.execute_changeset(result["Id"], stack_name, disable_rollback)
-                self.deployer.wait_for_execute(stack_name, changeset_type, disable_rollback, self.on_failure)
+                self.deployer.wait_for_execute(
+                    stack_name, changeset_type, disable_rollback, self.on_failure, marker_time
+                )
                 click.echo(self.MSG_EXECUTE_SUCCESS.format(stack_name=stack_name, region=region))
 
             except deploy_exceptions.ChangeEmptyError as ex:
@@ -277,10 +280,9 @@ class DeployContext:
                 click.echo(str(ex))
             except deploy_exceptions.DeployFailedError:
                 # Failed to deploy, check for DELETE action otherwise skip
-                if self.on_failure != FailureMode.DELETE:
-                    raise
-
-                self.deployer.rollback_delete_stack(stack_name)
+                if self.on_failure == FailureMode.DELETE:
+                    self.deployer.rollback_delete_stack(stack_name)
+                raise
 
         else:
             try:

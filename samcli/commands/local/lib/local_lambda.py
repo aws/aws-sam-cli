@@ -300,6 +300,7 @@ class LocalLambdaRunner:
             function.memory,
             function.timeout,
             function.handler,
+            function.logging_config,
             variables=variables,
             shell_env_values=shell_env,
             override_values=overrides,

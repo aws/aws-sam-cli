@@ -35,13 +35,24 @@ from samcli.lib.utils.cloudformation import (
     get_resource_summary,
     get_resource_summary_from_physical_id,
 )
-from samcli.lib.utils.resources import AWS_KINESIS_STREAM, AWS_LAMBDA_FUNCTION, AWS_SQS_QUEUE
+from samcli.lib.utils.resources import (
+    AWS_KINESIS_STREAM,
+    AWS_LAMBDA_FUNCTION,
+    AWS_SQS_QUEUE,
+    AWS_STEPFUNCTIONS_STATEMACHINE,
+)
 from samcli.lib.utils.stream_writer import StreamWriter
 
 LOG = logging.getLogger(__name__)
 
 
-SUPPORTED_SERVICES = {"lambda": AWS_LAMBDA_FUNCTION}
+SUPPORTED_SERVICES = {
+    "lambda": AWS_LAMBDA_FUNCTION,
+    "states": AWS_STEPFUNCTIONS_STATEMACHINE,
+    "sqs": AWS_SQS_QUEUE,
+    "kinesis": AWS_KINESIS_STREAM,
+}
+RESOURCES_PRIORITY_ORDER = [AWS_LAMBDA_FUNCTION, AWS_STEPFUNCTIONS_STATEMACHINE, AWS_SQS_QUEUE, AWS_KINESIS_STREAM]
 
 
 class RemoteInvokeContext:
@@ -163,15 +174,15 @@ class RemoteInvokeContext:
         and returns its information if stack has only one resource from that type (including nested stacks)
         """
         LOG.debug(
-            "Trying to get single resource with %s type in % stack since no resource id is provided",
-            SUPPORTED_SERVICES.values(),
+            "Trying to get single resource with %s type in %s stack since no resource id is provided",
+            RESOURCES_PRIORITY_ORDER,
             self._stack_name,
         )
         resource_summaries = get_resource_summaries(
             self._boto_resource_provider,
             self._boto_client_provider,
             cast(str, self._stack_name),
-            set(SUPPORTED_SERVICES.values()),
+            set(RESOURCES_PRIORITY_ORDER),
         )
 
         if len(resource_summaries) == 1:
@@ -180,10 +191,21 @@ class RemoteInvokeContext:
             return resource_summary
 
         if len(resource_summaries) > 1:
-            raise AmbiguousResourceForRemoteInvoke(
-                f"{self._stack_name} contains more than one resource that could be used with remote invoke, "
-                f"please provide resource_id argument to resolve ambiguity."
-            )
+            # Check for single occurrence of resources in priority order.
+            for resource_type in RESOURCES_PRIORITY_ORDER:
+                resource_type_count = 0
+                single_resource_summary = None
+                for logical_id, resource_summary in resource_summaries.items():
+                    if resource_summary.resource_type == resource_type:
+                        resource_type_count += 1
+                        single_resource_summary = resource_summary
+                if resource_type_count == 1 and single_resource_summary:
+                    return single_resource_summary
+                elif resource_type_count > 1:
+                    raise AmbiguousResourceForRemoteInvoke(
+                        f"{self._stack_name} contains more than one resource that could be used with remote invoke,"
+                        f" please provide resource_id argument to resolve ambiguity."
+                    )
 
         # fail if no resource summary found with given types
         raise NoResourceFoundForRemoteInvoke(
@@ -211,12 +233,10 @@ class RemoteInvokeContext:
 
             if SUPPORTED_SERVICES.get(service_from_arn) == AWS_SQS_QUEUE:
                 # SQS queue_url is used for calling boto3 API calls
-                # Note (hnnasit): Add unit test after AWS_SQS_QUEUE is added to SUPPORTED_SERVICES
                 sqs_client = self._boto_client_provider("sqs")
                 resource_id = get_queue_url_from_arn(sqs_client, resource_arn.resource_id)
 
             if SUPPORTED_SERVICES.get(service_from_arn) == AWS_KINESIS_STREAM:
-                # Note (hnnasit): Add unit test after AWS_KINESIS_STREAM is added to SUPPORTED_SERVICES
                 # StreamName extracted from arn is used as resource_id.
                 resource_id = resource_arn.resource_id
 
@@ -278,7 +298,7 @@ class DefaultRemoteInvokeResponseConsumer(RemoteInvokeConsumer[RemoteInvokeRespo
     _stream_writer: StreamWriter
 
     def consume(self, remote_invoke_response: RemoteInvokeResponse) -> None:
-        self._stream_writer.write_bytes(cast(str, remote_invoke_response.response).encode())
+        self._stream_writer.write_str(cast(str, remote_invoke_response.response))
 
 
 @dataclass
@@ -290,4 +310,4 @@ class DefaultRemoteInvokeLogConsumer(RemoteInvokeConsumer[RemoteInvokeLogOutput]
     _stream_writer: StreamWriter
 
     def consume(self, remote_invoke_response: RemoteInvokeLogOutput) -> None:
-        self._stream_writer.write_bytes(remote_invoke_response.log_output.encode())
+        self._stream_writer.write_str(remote_invoke_response.log_output)

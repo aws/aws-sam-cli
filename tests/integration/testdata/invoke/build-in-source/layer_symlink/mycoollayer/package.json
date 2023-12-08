@@ -1,0 +1,12 @@
+{
+  "name": "hello_world",
+  "version": "1.0.0",
+  "description": "hello world sample for NodeJS",
+  "main": "app.js",
+  "author": "SAM CLI",
+  "license": "MIT",
+  "dependencies": {
+    "axios": ">=0.21.1",
+    "@faker-js/faker": "7.1.0"
+  }
+}

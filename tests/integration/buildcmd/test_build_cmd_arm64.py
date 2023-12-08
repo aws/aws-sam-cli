@@ -22,6 +22,8 @@ from tests.testing_utils import (
     CI_OVERRIDE,
     IS_WINDOWS,
     RUNNING_ON_CI,
+    runtime_supported_by_docker,
+    RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG,
 )
 
 
@@ -31,11 +33,25 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture_arm64(BuildIn
     @parameterized.expand(
         [
             ("python3.8", "Python", False),
+            ("python3.9", "Python", False),
+            ("python3.10", "Python", False),
+            ("python3.11", "Python", False),
+            ("python3.12", "Python", False),
             ("python3.8", "PythonPEP600", False),
+            ("python3.9", "PythonPEP600", False),
+            ("python3.10", "PythonPEP600", False),
+            ("python3.11", "PythonPEP600", False),
+            ("python3.12", "PythonPEP600", False),
             ("python3.8", "Python", "use_container"),
+            ("python3.9", "Python", "use_container"),
+            ("python3.10", "Python", "use_container"),
+            ("python3.11", "Python", "use_container"),
+            ("python3.12", "Python", "use_container"),
         ]
     )
     def test_with_default_requirements(self, runtime, codeuri, use_container):
+        if use_container and not runtime_supported_by_docker(runtime):
+            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
         self._test_with_default_requirements(runtime, codeuri, use_container, self.test_data_path, architecture=ARM64)
 
 
@@ -81,6 +97,13 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(BuildIntegE
                 False,
             ),
             (
+                "nodejs20.x",
+                "Esbuild/Node_without_manifest",
+                {"main.js", "main.js.map"},
+                "main.lambdaHandler",
+                False,
+            ),
+            (
                 "nodejs16.x",
                 "Esbuild/TypeScript_without_manifest",
                 {"app.js", "app.js.map"},
@@ -94,9 +117,18 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(BuildIntegE
                 "app.lambdaHandler",
                 False,
             ),
+            (
+                "nodejs20.x",
+                "Esbuild/TypeScript_without_manifest",
+                {"app.js", "app.js.map"},
+                "app.lambdaHandler",
+                False,
+            ),
         ]
     )
     def test_building_default_package_json(self, runtime, code_uri, expected_files, handler, use_container):
+        if use_container and not runtime_supported_by_docker(runtime):
+            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
         self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, ARM64)
 
 
@@ -109,13 +141,17 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture_arm64(BuildInte
             ("nodejs14.x", False),
             ("nodejs16.x", False),
             ("nodejs18.x", False),
+            ("nodejs20.x", False),
             ("nodejs12.x", "use_container"),
             ("nodejs14.x", "use_container"),
             ("nodejs16.x", "use_container"),
             ("nodejs18.x", "use_container"),
+            ("nodejs20.x", "use_container"),
         ]
     )
     def test_building_default_package_json(self, runtime, use_container):
+        if use_container and not runtime_supported_by_docker(runtime):
+            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
         self._test_with_default_package_json(runtime, use_container, self.test_data_path, ARM64)
 
 
@@ -138,105 +174,120 @@ class TestBuildCommand_RubyFunctions_With_Architecture_arm64(BuildIntegRubyBase)
 )
 class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase):
     template = "template_with_architecture.yaml"
-    EXPECTED_FILES_PROJECT_MANIFEST_GRADLE = {"aws", "lib", "META-INF"}
-    EXPECTED_FILES_PROJECT_MANIFEST_MAVEN = {"aws", "lib"}
-    EXPECTED_GRADLE_DEPENDENCIES = {"annotations-2.1.0.jar", "aws-lambda-java-core-1.1.0.jar"}
-    EXPECTED_MAVEN_DEPENDENCIES = {
-        "software.amazon.awssdk.annotations-2.1.0.jar",
-        "com.amazonaws.aws-lambda-java-core-1.1.0.jar",
-    }
-
-    FUNCTION_LOGICAL_ID = "Function"
-    USING_GRADLE_PATH = os.path.join("Java", "gradle")
-    USING_GRADLEW_PATH = os.path.join("Java", "gradlew")
-    USING_GRADLE_KOTLIN_PATH = os.path.join("Java", "gradle-kotlin")
-    USING_MAVEN_PATH = os.path.join("Java", "maven")
 
     @parameterized.expand(
         [
             (
                 "java8.al2",
                 "8",
-                USING_GRADLE_PATH,
-                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                EXPECTED_GRADLE_DEPENDENCIES,
+                BuildIntegJavaBase.USING_GRADLE_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
             (
                 "java8.al2",
                 "8",
-                USING_GRADLEW_PATH,
-                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                EXPECTED_GRADLE_DEPENDENCIES,
+                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
             (
                 "java8.al2",
                 "8",
-                USING_GRADLE_KOTLIN_PATH,
-                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                EXPECTED_GRADLE_DEPENDENCIES,
+                BuildIntegJavaBase.USING_GRADLE_KOTLIN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
             (
                 "java8.al2",
                 "8",
-                USING_MAVEN_PATH,
-                EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
-                EXPECTED_MAVEN_DEPENDENCIES,
+                BuildIntegJavaBase.USING_MAVEN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
             ),
             (
                 "java11",
                 "11",
-                USING_GRADLE_PATH,
-                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                EXPECTED_GRADLE_DEPENDENCIES,
+                BuildIntegJavaBase.USING_GRADLE_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
             (
                 "java11",
                 "11",
-                USING_GRADLEW_PATH,
-                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                EXPECTED_GRADLE_DEPENDENCIES,
+                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
             (
                 "java11",
                 "11",
-                USING_GRADLE_KOTLIN_PATH,
-                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                EXPECTED_GRADLE_DEPENDENCIES,
+                BuildIntegJavaBase.USING_GRADLE_KOTLIN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
             (
                 "java11",
                 "11",
-                USING_MAVEN_PATH,
-                EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
-                EXPECTED_MAVEN_DEPENDENCIES,
+                BuildIntegJavaBase.USING_MAVEN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
             ),
             (
                 "java17",
                 "17",
-                USING_GRADLE_PATH,
-                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                EXPECTED_GRADLE_DEPENDENCIES,
+                BuildIntegJavaBase.USING_GRADLE_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
             (
                 "java17",
                 "17",
-                USING_GRADLEW_PATH,
-                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                EXPECTED_GRADLE_DEPENDENCIES,
+                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
             (
                 "java17",
                 "17",
-                USING_GRADLE_KOTLIN_PATH,
-                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                EXPECTED_GRADLE_DEPENDENCIES,
+                BuildIntegJavaBase.USING_GRADLE_KOTLIN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
             (
                 "java17",
                 "17",
-                USING_MAVEN_PATH,
-                EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
-                EXPECTED_MAVEN_DEPENDENCIES,
+                BuildIntegJavaBase.USING_MAVEN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
+            ),
+            (
+                "java21",
+                "21",
+                BuildIntegJavaBase.USING_GRADLE_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java21",
+                "21",
+                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java21",
+                "21",
+                BuildIntegJavaBase.USING_GRADLE_KOTLIN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java21",
+                "21",
+                BuildIntegJavaBase.USING_MAVEN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
             ),
         ]
     )
@@ -244,6 +295,8 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
     def test_building_java_in_container_with_arm64_architecture(
         self, runtime, runtime_version, code_path, expected_files, expected_dependencies
     ):
+        if not runtime_supported_by_docker(runtime):
+            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
         self._test_with_building_java(
             runtime,
             os.path.join(code_path, runtime_version),
@@ -258,118 +311,124 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
         [
             (
                 "java8.al2",
-                USING_GRADLE_PATH,
-                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                EXPECTED_GRADLE_DEPENDENCIES,
+                "8",
+                BuildIntegJavaBase.USING_GRADLE_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
             (
                 "java8.al2",
-                USING_GRADLEW_PATH,
-                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                EXPECTED_GRADLE_DEPENDENCIES,
+                "8",
+                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
             (
                 "java8.al2",
-                USING_GRADLE_KOTLIN_PATH,
-                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                EXPECTED_GRADLE_DEPENDENCIES,
+                "8",
+                BuildIntegJavaBase.USING_GRADLE_KOTLIN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
             (
                 "java8.al2",
-                USING_MAVEN_PATH,
-                EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
-                EXPECTED_MAVEN_DEPENDENCIES,
+                "8",
+                BuildIntegJavaBase.USING_MAVEN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
+            ),
+            (
+                "java11",
+                "11",
+                BuildIntegJavaBase.USING_GRADLE_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java11",
+                "11",
+                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java11",
+                "11",
+                BuildIntegJavaBase.USING_GRADLE_KOTLIN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java11",
+                "11",
+                BuildIntegJavaBase.USING_MAVEN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
+            ),
+            (
+                "java17",
+                "17",
+                BuildIntegJavaBase.USING_GRADLE_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java17",
+                "17",
+                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java17",
+                "17",
+                BuildIntegJavaBase.USING_GRADLE_KOTLIN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java17",
+                "17",
+                BuildIntegJavaBase.USING_MAVEN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
+            ),
+            (
+                "java21",
+                "21",
+                BuildIntegJavaBase.USING_GRADLE_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java21",
+                "21",
+                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java21",
+                "21",
+                BuildIntegJavaBase.USING_GRADLE_KOTLIN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java21",
+                "21",
+                BuildIntegJavaBase.USING_MAVEN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
             ),
         ]
     )
-    def test_building_java8_in_process_with_arm_architecture(
-        self, runtime, code_path, expected_files, expected_dependencies
+    def test_building_java_in_process_with_arm_architecture(
+        self, runtime, runtime_version, code_path, expected_files, expected_dependencies
     ):
         self._test_with_building_java(
             runtime,
-            os.path.join(code_path, "8"),
-            expected_files,
-            expected_dependencies,
-            False,
-            self.test_data_path,
-            ARM64,
-        )
-
-    @parameterized.expand(
-        [
-            (
-                "java11",
-                USING_GRADLE_PATH,
-                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                EXPECTED_GRADLE_DEPENDENCIES,
-            ),
-            (
-                "java11",
-                USING_GRADLEW_PATH,
-                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                EXPECTED_GRADLE_DEPENDENCIES,
-            ),
-            (
-                "java11",
-                USING_GRADLE_KOTLIN_PATH,
-                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                EXPECTED_GRADLE_DEPENDENCIES,
-            ),
-            (
-                "java11",
-                USING_MAVEN_PATH,
-                EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
-                EXPECTED_MAVEN_DEPENDENCIES,
-            ),
-        ]
-    )
-    def test_building_java11_in_process_with_arm_architecture(
-        self, runtime, code_path, expected_files, expected_dependencies
-    ):
-        self._test_with_building_java(
-            runtime,
-            os.path.join(code_path, "11"),
-            expected_files,
-            expected_dependencies,
-            False,
-            self.test_data_path,
-            ARM64,
-        )
-
-    @parameterized.expand(
-        [
-            (
-                "java17",
-                USING_GRADLE_PATH,
-                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                EXPECTED_GRADLE_DEPENDENCIES,
-            ),
-            (
-                "java17",
-                USING_GRADLEW_PATH,
-                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                EXPECTED_GRADLE_DEPENDENCIES,
-            ),
-            (
-                "java17",
-                USING_GRADLE_KOTLIN_PATH,
-                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                EXPECTED_GRADLE_DEPENDENCIES,
-            ),
-            (
-                "java17",
-                USING_MAVEN_PATH,
-                EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
-                EXPECTED_MAVEN_DEPENDENCIES,
-            ),
-        ]
-    )
-    def test_building_java17_in_process_with_arm_architecture(
-        self, runtime, code_path, expected_files, expected_dependencies
-    ):
-        self._test_with_building_java(
-            runtime,
-            os.path.join(code_path, "17"),
+            os.path.join(code_path, runtime_version),
             expected_files,
             expected_dependencies,
             False,
@@ -429,9 +488,21 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture_arm64(Build
                 "use_container",
                 "Makefile-container",
             ),
+            (
+                "provided.al2023",
+                False,
+                None,
+            ),
+            (
+                "provided.al2023",
+                "use_container",
+                "Makefile-container",
+            ),
         ]
     )
     def test_building_Makefile(self, runtime, use_container, manifest):
+        if use_container and not runtime_supported_by_docker(runtime):
+            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
         self._test_with_Makefile(runtime, use_container, manifest, ARM64)
 
 
@@ -443,13 +514,17 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture_arm64(Build
 class TestBuildCommand_Rust_arm64(BuildIntegRustBase):
     @parameterized.expand(
         [
-            (None, False),
-            ("debug", False),
+            ("provided.al2", None, False),
+            ("provided.al2", "debug", False),
+            ("provided.al2023", None, False),
+            ("provided.al2023", "debug", False),
         ]
     )
-    def test_build(self, build_mode, use_container):
+    def test_build(self, runtime, build_mode, use_container):
+        if use_container and not runtime_supported_by_docker(runtime):
+            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
         self._test_with_rust_cargo_lambda(
-            runtime="provided.al2",
+            runtime=runtime,
             code_uri=self.code_uri,
             binary=self.binary,
             architecture=ARM64,

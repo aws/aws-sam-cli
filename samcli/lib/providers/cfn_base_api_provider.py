@@ -29,7 +29,13 @@ MAX_AGE = "MaxAge"
 class CfnBaseApiProvider:
     RESOURCE_TYPE = "Type"
 
-    def extract_resources(self, stacks: List[Stack], collector: ApiCollector, cwd: Optional[str] = None) -> None:
+    def extract_resources(
+        self,
+        stacks: List[Stack],
+        collector: ApiCollector,
+        cwd: Optional[str] = None,
+        disable_authorizer: Optional[bool] = False,
+    ) -> None:
         """
         Extract the Route Object from a given resource and adds it to the RouteCollector.
 
@@ -41,6 +47,8 @@ class CfnBaseApiProvider:
             Instance of the API collector that where we will save the API information
         cwd : str
             Optional working directory with respect to which we will resolve relative path to Swagger file
+        disable_authorizer : bool
+            Optional flag to disable collection of lambda authorizers
         """
         raise NotImplementedError("not implemented")
 
@@ -54,6 +62,7 @@ class CfnBaseApiProvider:
         collector: ApiCollector,
         cwd: Optional[str] = None,
         event_type: str = Route.API,
+        disable_authorizer: Optional[bool] = False,
     ) -> None:
         """
         Parse the Swagger documents and adds it to the ApiCollector.
@@ -76,24 +85,26 @@ class CfnBaseApiProvider:
             Optional working directory with respect to which we will resolve relative path to Swagger file
         event_type : str
             The event type, 'Api' or 'HttpApi', see samcli/local/apigw/local_apigw_service.py:35
+        disable_authorizer : bool
+            A flag to disable extraction of authorizers
         """
         reader = SwaggerReader(definition_body=body, definition_uri=uri, working_dir=cwd)
         swagger = reader.read()
         parser = SwaggerParser(stack_path, swagger)
 
-        authorizers = parser.get_authorizers(event_type)
-        default_authorizer = parser.get_default_authorizer(event_type)
+        if not disable_authorizer:
+            authorizers = parser.get_authorizers(event_type)
+            default_authorizer = parser.get_default_authorizer(event_type)
+            LOG.debug("Found '%s' authorizers in resource '%s'", len(authorizers), logical_id)
+            collector.add_authorizers(logical_id, authorizers)
+
+            if default_authorizer:
+                collector.set_default_authorizer(logical_id, default_authorizer)
 
         routes = parser.get_routes(event_type)
-
         LOG.debug("Found '%s' APIs in resource '%s'", len(routes), logical_id)
-        LOG.debug("Found '%s' authorizers in resource '%s'", len(authorizers), logical_id)
 
         collector.add_routes(logical_id, routes)
-        collector.add_authorizers(logical_id, authorizers)
-
-        if default_authorizer:
-            collector.set_default_authorizer(logical_id, default_authorizer)
 
         collector.add_binary_media_types(logical_id, parser.get_binary_media_types())  # Binary media from swagger
         collector.add_binary_media_types(logical_id, binary_media)  # Binary media specified on resource in template

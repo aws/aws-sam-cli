@@ -28,7 +28,8 @@ from tests.testing_utils import (
     SKIP_DOCKER_MESSAGE,
     run_command_with_input,
     UpdatableSARTemplate,
-    RUNNING_ON_GITHUB_ACTIONS,
+    runtime_supported_by_docker,
+    RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG,
 )
 from .build_integ_base import (
     BuildIntegBase,
@@ -453,6 +454,7 @@ class TestSkipBuildingFlaggedFunctions(BuildIntegPythonBase):
         ("template.yaml", "Function", True, "python3.9", "Python", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.10", "Python", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.11", "Python", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.12", "Python", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.7", "PythonPEP600", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.8", "PythonPEP600", False, "CodeUri"),
     ],
@@ -465,9 +467,6 @@ class TestBuildCommand_PythonFunctions_WithoutDocker(BuildIntegPythonBase):
     use_container = False
 
     def test_with_default_requirements(self):
-        if IS_WINDOWS and self.runtime == "python3.9" and RUNNING_ON_GITHUB_ACTIONS:
-            self.skipTest("Skipping python3.9 tests on Windows until GHA issue is resolved.")
-
         self._test_with_default_requirements(
             self.runtime,
             self.codeuri,
@@ -495,6 +494,7 @@ class TestBuildCommand_PythonFunctions_WithoutDocker(BuildIntegPythonBase):
         ("template.yaml", "Function", True, "python3.9", "Python", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.10", "Python", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.11", "Python", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.12", "Python", False, "CodeUri"),
     ],
 )
 class TestBuildCommand_PythonFunctions_WithDocker(BuildIntegPythonBase):
@@ -505,6 +505,8 @@ class TestBuildCommand_PythonFunctions_WithDocker(BuildIntegPythonBase):
     check_function_only = False
 
     def test_with_default_requirements(self):
+        if not runtime_supported_by_docker(self.runtime):
+            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
         self._test_with_default_requirements(
             self.runtime,
             self.codeuri,
@@ -605,17 +607,41 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPyt
         [
             ("python3.7", "Python", False, "x86_64"),
             ("python3.8", "Python", False, "x86_64"),
+            ("python3.9", "Python", False, "x86_64"),
+            ("python3.10", "Python", False, "x86_64"),
+            ("python3.11", "Python", False, "x86_64"),
+            ("python3.12", "Python", False, "x86_64"),
             # numpy 1.20.3 (in PythonPEP600/requirements.txt) only support python 3.7+
             ("python3.7", "PythonPEP600", False, "x86_64"),
             ("python3.8", "PythonPEP600", False, "x86_64"),
+            ("python3.9", "PythonPEP600", False, "x86_64"),
+            ("python3.10", "PythonPEP600", False, "x86_64"),
+            ("python3.11", "PythonPEP600", False, "x86_64"),
+            ("python3.12", "PythonPEP600", False, "x86_64"),
             ("python3.7", "Python", "use_container", "x86_64"),
             ("python3.8", "Python", "use_container", "x86_64"),
+            ("python3.9", "Python", "use_container", "x86_64"),
+            ("python3.10", "Python", "use_container", "x86_64"),
+            ("python3.11", "Python", "use_container", "x86_64"),
+            ("python3.12", "Python", "use_container", "x86_64"),
         ]
     )
     def test_with_default_requirements(self, runtime, codeuri, use_container, architecture):
+        if use_container and not runtime_supported_by_docker(runtime):
+            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
         self._test_with_default_requirements(
             runtime, codeuri, use_container, self.test_data_path, architecture=architecture
         )
+
+    def test_invalid_architecture(self):
+        overrides = {"Runtime": "python3.11", "Architectures": "fake"}
+        cmdlist = self.get_command_list(parameter_overrides=overrides)
+        process_execute = run_command(cmdlist, cwd=self.working_dir)
+
+        self.assertEqual(1, process_execute.process.returncode)
+
+        self.assertIn("Build Failed", str(process_execute.stdout))
+        self.assertIn("Architecture fake is not supported", str(process_execute.stderr))
 
 
 class TestBuildCommand_ErrorCases(BuildIntegBase):
@@ -636,15 +662,20 @@ class TestBuildCommand_NodeFunctions(BuildIntegNodeBase):
             ("nodejs14.x", False),
             ("nodejs16.x", False),
             ("nodejs18.x", False),
+            ("nodejs20.x", False),
             ("nodejs12.x", "use_container"),
             ("nodejs14.x", "use_container"),
             ("nodejs16.x", "use_container"),
             ("nodejs18.x", "use_container"),
+            ("nodejs20.x", "use_container"),
         ]
     )
     def test_building_default_package_json(self, runtime, use_container):
-        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
-            self.skipTest(SKIP_DOCKER_MESSAGE)
+        if use_container:
+            if SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
+                self.skipTest(SKIP_DOCKER_MESSAGE)
+            if not runtime_supported_by_docker(runtime):
+                self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
         self._test_with_default_package_json(runtime, use_container, self.test_data_path)
 
 
@@ -658,6 +689,7 @@ class TestBuildCommand_NodeFunctions_With_External_Manifest(BuildIntegNodeBase):
             ("nodejs14.x",),
             ("nodejs16.x",),
             ("nodejs18.x",),
+            ("nodejs20.x",),
         ]
     )
     def test_building_default_package_json(self, runtime):
@@ -734,8 +766,10 @@ class TestBuildCommand_EsbuildFunctionProperties(BuildIntegEsbuildBase):
         [
             ("nodejs16.x", "../Esbuild/TypeScript", "app.lambdaHandler", "x86_64"),
             ("nodejs18.x", "../Esbuild/TypeScript", "app.lambdaHandler", "x86_64"),
+            ("nodejs20.x", "../Esbuild/TypeScript", "app.lambdaHandler", "x86_64"),
             ("nodejs16.x", "../Esbuild/TypeScript", "nested/function/app.lambdaHandler", "x86_64"),
             ("nodejs18.x", "../Esbuild/TypeScript", "nested/function/app.lambdaHandler", "x86_64"),
+            ("nodejs20.x", "../Esbuild/TypeScript", "nested/function/app.lambdaHandler", "x86_64"),
         ]
     )
     def test_environment_generates_sourcemap(self, runtime, code_uri, handler, architecture):
@@ -745,7 +779,7 @@ class TestBuildCommand_EsbuildFunctionProperties(BuildIntegEsbuildBase):
             "handler": handler,
             "architecture": architecture,
         }
-        self._test_with_various_properties(overrides)
+        self._test_with_various_properties(overrides, runtime)
 
 
 class TestBuildCommand_NodeFunctions_With_Specified_Architecture(BuildIntegNodeBase):
@@ -757,6 +791,7 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture(BuildIntegNodeB
             ("nodejs14.x", False, "x86_64"),
             ("nodejs16.x", False, "x86_64"),
             ("nodejs18.x", False, "x86_64"),
+            ("nodejs20.x", False, "x86_64"),
             ("nodejs12.x", "use_container", "x86_64"),
             ("nodejs14.x", "use_container", "x86_64"),
             ("nodejs16.x", "use_container", "x86_64"),
@@ -764,6 +799,8 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture(BuildIntegNodeB
         ]
     )
     def test_building_default_package_json(self, runtime, use_container, architecture):
+        if use_container and not runtime_supported_by_docker(runtime):
+            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
         self._test_with_default_package_json(runtime, use_container, self.test_data_path, architecture)
 
 
@@ -824,74 +861,156 @@ class TestBuildCommand_RubyFunctionsWithGemfileInTheRoot(BuildIntegRubyBase):
 
 
 class TestBuildCommand_Java(BuildIntegJavaBase):
-    EXPECTED_FILES_PROJECT_MANIFEST_GRADLE = {"aws", "lib", "META-INF"}
-    EXPECTED_FILES_PROJECT_MANIFEST_MAVEN = {"aws", "lib"}
-    EXPECTED_GRADLE_DEPENDENCIES = {"annotations-2.1.0.jar", "aws-lambda-java-core-1.1.0.jar"}
-    EXPECTED_MAVEN_DEPENDENCIES = {
-        "software.amazon.awssdk.annotations-2.1.0.jar",
-        "com.amazonaws.aws-lambda-java-core-1.1.0.jar",
-    }
-
-    FUNCTION_LOGICAL_ID = "Function"
-    USING_GRADLE_PATH = os.path.join("Java", "gradle")
-    USING_GRADLEW_PATH = os.path.join("Java", "gradlew")
-    USING_GRADLE_KOTLIN_PATH = os.path.join("Java", "gradle-kotlin")
-    USING_MAVEN_PATH = os.path.join("Java", "maven")
-
     @parameterized.expand(
         [
-            ("java8", "8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
-            ("java8", "8", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
             (
                 "java8",
                 "8",
-                USING_GRADLE_KOTLIN_PATH,
-                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                EXPECTED_GRADLE_DEPENDENCIES,
+                BuildIntegJavaBase.USING_GRADLE_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
-            ("java8", "8", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES),
-            ("java8.al2", "8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            (
+                "java8",
+                "8",
+                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java8",
+                "8",
+                BuildIntegJavaBase.USING_GRADLE_KOTLIN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java8",
+                "8",
+                BuildIntegJavaBase.USING_MAVEN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
+            ),
             (
                 "java8.al2",
                 "8",
-                USING_GRADLEW_PATH,
-                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                EXPECTED_GRADLE_DEPENDENCIES,
+                BuildIntegJavaBase.USING_GRADLE_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
             (
                 "java8.al2",
                 "8",
-                USING_GRADLE_KOTLIN_PATH,
-                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                EXPECTED_GRADLE_DEPENDENCIES,
+                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
-            ("java8.al2", "8", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES),
-            ("java11", "11", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
-            ("java11", "11", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            (
+                "java8.al2",
+                "8",
+                BuildIntegJavaBase.USING_GRADLE_KOTLIN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java8.al2",
+                "8",
+                BuildIntegJavaBase.USING_MAVEN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
+            ),
             (
                 "java11",
                 "11",
-                USING_GRADLE_KOTLIN_PATH,
-                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                EXPECTED_GRADLE_DEPENDENCIES,
+                BuildIntegJavaBase.USING_GRADLE_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
-            ("java11", "11", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES),
-            ("java17", "17", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
-            ("java17", "17", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            (
+                "java11",
+                "11",
+                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java11",
+                "11",
+                BuildIntegJavaBase.USING_GRADLE_KOTLIN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java11",
+                "11",
+                BuildIntegJavaBase.USING_MAVEN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
+            ),
             (
                 "java17",
                 "17",
-                USING_GRADLE_KOTLIN_PATH,
-                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                EXPECTED_GRADLE_DEPENDENCIES,
+                BuildIntegJavaBase.USING_GRADLE_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
-            ("java17", "17", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES),
+            (
+                "java17",
+                "17",
+                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java17",
+                "17",
+                BuildIntegJavaBase.USING_GRADLE_KOTLIN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java17",
+                "17",
+                BuildIntegJavaBase.USING_MAVEN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
+            ),
+            (
+                "java21",
+                "21",
+                BuildIntegJavaBase.USING_GRADLE_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java21",
+                "21",
+                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java21",
+                "21",
+                BuildIntegJavaBase.USING_GRADLE_KOTLIN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java21",
+                "21",
+                BuildIntegJavaBase.USING_MAVEN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
+            ),
         ]
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_building_java_in_container(
         self, runtime, runtime_version, code_path, expected_files, expected_dependencies
     ):
+        if not runtime_supported_by_docker(runtime):
+            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
         self._test_with_building_java(
             runtime,
             os.path.join(code_path, runtime_version),
@@ -903,50 +1022,156 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
 
     @parameterized.expand(
         [
-            ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
-            ("java8", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
-            ("java8", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
-            ("java8", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES),
-            ("java8.al2", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
-            ("java8.al2", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
+            (
+                "java8",
+                "8",
+                BuildIntegJavaBase.USING_GRADLE_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java8",
+                "8",
+                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java8",
+                "8",
+                BuildIntegJavaBase.USING_GRADLE_KOTLIN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java8",
+                "8",
+                BuildIntegJavaBase.USING_MAVEN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
+            ),
             (
                 "java8.al2",
-                USING_GRADLE_KOTLIN_PATH,
-                EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                EXPECTED_GRADLE_DEPENDENCIES,
+                "8",
+                BuildIntegJavaBase.USING_GRADLE_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
-            ("java8.al2", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES),
+            (
+                "java8.al2",
+                "8",
+                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java8.al2",
+                "8",
+                BuildIntegJavaBase.USING_GRADLE_KOTLIN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java8.al2",
+                "8",
+                BuildIntegJavaBase.USING_MAVEN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
+            ),
+            (
+                "java11",
+                "11",
+                BuildIntegJavaBase.USING_GRADLE_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java11",
+                "11",
+                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java11",
+                "11",
+                BuildIntegJavaBase.USING_GRADLE_KOTLIN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java11",
+                "11",
+                BuildIntegJavaBase.USING_MAVEN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
+            ),
+            (
+                "java17",
+                "17",
+                BuildIntegJavaBase.USING_GRADLE_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java17",
+                "17",
+                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java17",
+                "17",
+                BuildIntegJavaBase.USING_GRADLE_KOTLIN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java17",
+                "17",
+                BuildIntegJavaBase.USING_MAVEN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
+            ),
+            (
+                "java21",
+                "21",
+                BuildIntegJavaBase.USING_GRADLE_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java21",
+                "21",
+                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java21",
+                "21",
+                BuildIntegJavaBase.USING_GRADLE_KOTLIN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java21",
+                "21",
+                BuildIntegJavaBase.USING_MAVEN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
+            ),
         ]
     )
-    def test_building_java8_in_process(self, runtime, code_path, expected_files, expected_dependencies):
+    def test_building_java_in_process(self, runtime, runtime_version, code_path, expected_files, expected_dependencies):
         self._test_with_building_java(
-            runtime, os.path.join(code_path, "8"), expected_files, expected_dependencies, False, self.test_data_path
-        )
-
-    @parameterized.expand(
-        [
-            ("java11", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
-            ("java11", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
-            ("java11", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
-            ("java11", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES),
-        ]
-    )
-    def test_building_java11_in_process(self, runtime, code_path, expected_files, expected_dependencies):
-        self._test_with_building_java(
-            runtime, os.path.join(code_path, "11"), expected_files, expected_dependencies, False, self.test_data_path
-        )
-
-    @parameterized.expand(
-        [
-            ("java17", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
-            ("java17", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
-            ("java17", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_GRADLE_DEPENDENCIES),
-            ("java17", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_MAVEN_DEPENDENCIES),
-        ]
-    )
-    def test_building_java17_in_process(self, runtime, code_path, expected_files, expected_dependencies):
-        self._test_with_building_java(
-            runtime, os.path.join(code_path, "17"), expected_files, expected_dependencies, False, self.test_data_path
+            runtime,
+            os.path.join(code_path, runtime_version),
+            expected_files,
+            expected_dependencies,
+            False,
+            self.test_data_path,
         )
 
 
@@ -1228,7 +1453,6 @@ class TestBuildCommand_Go_Modules_With_Specified_Architecture(BuildIntegGoBase):
     @parameterized.expand(
         [
             ("go1.x", "Go", None, "x86_64"),
-            ("go1.x", "Go", "debug", "x86_64"),
         ]
     )
     def test_building_go(self, runtime, code_uri, mode, architecture):
@@ -1446,6 +1670,58 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             "random",
         )
 
+    @parameterized.expand(
+        [("makefile", False), ("makefile", "use_container"), ("python3.9", False), ("python3.9", "use_container")]
+    )
+    def test_build_layer_with_architecture_not_compatible(self, build_method, use_container):
+        # The BuildArchitecture is not one of the listed CompatibleArchitectures
+
+        layer_identifier = "LayerWithNoCompatibleArchitectures"
+
+        overrides = {
+            "LayerBuildMethod": build_method,
+            "LayerMakeContentUri": "PyLayerMake",
+            "LayerBuildArchitecture": "x86_64",
+            "LayerCompatibleArchitecture": "arm64",
+        }
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
+        )
+
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        # Capture warning
+        self.assertIn(
+            f"Layer `{layer_identifier}` has BuildArchitecture `x86_64`, which is not listed in CompatibleArchitectures.",
+            str(command_result.stderr),
+        )
+        # Build should still succeed
+        self.assertEqual(command_result.process.returncode, 0)
+
+    def test_build_layer_with_makefile_with_fake_build_architecture(self):
+        build_method = "makefile"
+        use_container = False
+
+        # Re-use the same test Layer, this time with just a bad BuildArchitecture
+        layer_identifier = "LayerWithNoCompatibleArchitectures"
+
+        overrides = {
+            "LayerBuildMethod": build_method,
+            "LayerMakeContentUri": "PyLayerMake",
+            "LayerBuildArchitecture": "fake",
+        }
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
+        )
+
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        # Capture warning
+        self.assertIn(
+            "`fake` in Layer `LayerWithNoCompatibleArchitectures` is not a valid architecture",
+            str(command_result.stderr),
+        )
+        # Build should still succeed
+        self.assertEqual(command_result.process.returncode, 0)
+
     @parameterized.expand([("python3.7", False, "LayerTwo"), ("python3.7", "use_container", "LayerTwo")])
     def test_build_fails_with_missing_metadata(self, runtime, use_container, layer_identifier):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
@@ -1459,6 +1735,19 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command_result.process.returncode, 1)
         self.assertFalse(self.default_build_dir.joinpath(layer_identifier).exists())
+
+    @parameterized.expand([("python3.7", False, "LayerOne"), ("python3.7", "use_container", "LayerOne")])
+    def test_build_with_missing_buildarchitecture(self, runtime, use_container, layer_identifier):
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        overrides = {"LayerBuildMethod": runtime, "LayerContentUri": "PyLayer"}
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
+        )
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
+        self.assertIn("No BuildArchitecture specifed", str(command_result.stderr))
 
     @parameterized.expand([("python3.7", False), ("python3.7", "use_container")])
     def test_build_function_and_layer(self, runtime, use_container):
@@ -1570,11 +1859,16 @@ class TestBuildCommand_ProvidedFunctions(BuildIntegProvidedBase):
             ("provided", "use_container", "Makefile-container"),
             ("provided.al2", False, None),
             ("provided.al2", "use_container", "Makefile-container"),
+            ("provided.al2023", False, None),
+            ("provided.al2023", "use_container", "Makefile-container"),
         ]
     )
     def test_building_Makefile(self, runtime, use_container, manifest):
-        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
-            self.skipTest(SKIP_DOCKER_MESSAGE)
+        if use_container:
+            if SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
+                self.skipTest(SKIP_DOCKER_MESSAGE)
+            if not runtime_supported_by_docker(runtime):
+                self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
         self._test_with_Makefile(runtime, use_container, manifest)
 
 
@@ -1594,9 +1888,13 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture(BuildIntegP
             ("provided", "use_container", "Makefile-container", "x86_64"),
             ("provided.al2", False, None, "x86_64"),
             ("provided.al2", "use_container", "Makefile-container", "x86_64"),
+            ("provided.al2023", False, None, "x86_64"),
+            ("provided.al2023", "use_container", "Makefile-container", "x86_64"),
         ]
     )
     def test_building_Makefile(self, runtime, use_container, manifest, architecture):
+        if use_container and not runtime_supported_by_docker(runtime):
+            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
         self._test_with_Makefile(runtime, use_container, manifest, architecture)
 
 
@@ -1621,9 +1919,12 @@ class TestBuildCommand_ProvidedFunctionsWithCustomMetadata(BuildIntegProvidedBas
         [
             ("provided", False, None),
             ("provided.al2", False, None),
+            ("provided.al2023", False, None),
         ]
     )
     def test_building_Makefile(self, runtime, use_container, manifest):
+        if use_container and not runtime_supported_by_docker(runtime):
+            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
         self._test_with_Makefile(runtime, use_container, manifest)
 
 
@@ -2442,9 +2743,11 @@ class TestBuildWithNestedStacks3LevelWithSymlink(NestedBuildIntegBase):
         if SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
-        cmdlist = self.get_command_list(use_container=True, cached=True, parallel=True)
+        cmdlist = self.get_command_list(
+            use_container=True, cached=True, parallel=True, build_dir=str(self.default_build_dir)
+        )
 
-        command_result = run_command(cmdlist, cwd=self.working_dir)
+        command_result = run_command(cmdlist, cwd=self.scratch_dir)
 
         function_full_paths = [
             "FunctionA",

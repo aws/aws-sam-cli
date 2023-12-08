@@ -19,15 +19,15 @@ jobs:
       pull-requests: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/github-script@v6
+      - uses: actions/github-script@v7
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           script: |
             const maintainers = [
               'aws-sam-cli-bot',
-              'jfuss', 'hoffa', 'awood45', 'aahung', 'hawflau', 'mndeveci', 'ssenchenko',
-              'qingchm', 'moelasmar', 'xazhao', 'mildaniel', 'marekaiv', 'torresxb1',
-              'lucashuy', 'hnnasit', 'sriram-mv','dependabot[bot]'
+              'hawflau', 'mndeveci',
+              'mildaniel', 'marekaiv',
+              'lucashuy', 'hnnasit', 'jysheng123', 'bentvelj', 'sidhujus', dependabot[bot]'
             ]
             if (maintainers.includes(context.payload.sender.login)) {
               github.rest.issues.addLabels({

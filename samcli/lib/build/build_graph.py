@@ -49,6 +49,9 @@ ARCHITECTURE_FIELD = "architecture"
 HANDLER_FIELD = "handler"
 SHARED_CODEURI_SUFFIX = "Shared"
 
+# Compiled runtimes that we need to compare handlers for
+COMPILED_RUNTIMES = ["go1.x"]
+
 
 def _function_build_definition_to_toml_table(
     function_build_definition: "FunctionBuildDefinition",
@@ -673,6 +676,12 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
 
         if self.metadata and self.metadata.get("BuildMethod", None) == "esbuild":
             # For esbuild, we need to check if handlers within the same CodeUri are the same
+            # if they are different, it should create a separate build definition
+            if self.handler != other.handler:
+                return False
+
+        if self.runtime in COMPILED_RUNTIMES:
+            # For compiled languages, we need to check if handlers within the same CodeUri are the same
             # if they are different, it should create a separate build definition
             if self.handler != other.handler:
                 return False
