@@ -584,8 +584,6 @@ class TestContainer_wait_for_result(TestCase):
         self.socket_mock = Mock()
         self.socket_mock.connect_ex.return_value = 0
 
-        self.event_mock = Mock()
-
     @parameterized.expand(
         [
             (
