@@ -404,7 +404,7 @@ class Container:
         if timer:
             timer.cancel()
 
-        self._logs_thread_event.wait()
+        self._logs_thread_event.wait(timeout=1)
         if isinstance(response, str):
             stdout.write_str(response)
         elif isinstance(response, bytes):
