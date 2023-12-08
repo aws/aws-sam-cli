@@ -608,6 +608,8 @@ class TestContainer_wait_for_result(TestCase):
         output_itr = Mock()
         real_container_mock.attach.return_value = output_itr
         self.container._write_container_output = Mock()
+        self.container._create_threading_event = Mock()
+        self.container._create_threading_event.return_value = Mock()
 
         stdout_mock = Mock()
         stdout_mock.write_str = Mock()
@@ -705,6 +707,8 @@ class TestContainer_wait_for_result(TestCase):
         output_itr = Mock()
         real_container_mock.attach.return_value = output_itr
         self.container._write_container_output = Mock()
+        self.container._create_threading_event = Mock()
+        self.container._create_threading_event.return_value = Mock()
 
         stdout_mock = Mock()
         stderr_mock = Mock()
@@ -794,7 +798,9 @@ class TestContainer_wait_for_logs(TestCase):
         self.container.wait_for_logs(stdout=stdout_mock, stderr=stderr_mock)
 
         real_container_mock.attach.assert_called_with(stream=True, logs=True, demux=True)
-        self.container._write_container_output.assert_called_with(output_itr, stdout=stdout_mock, stderr=stderr_mock)
+        self.container._write_container_output.assert_called_with(
+            output_itr, stdout=stdout_mock, stderr=stderr_mock, event=None
+        )
 
     def test_must_skip_if_no_stdout_and_stderr(self):
         self.container.wait_for_logs()
