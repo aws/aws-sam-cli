@@ -533,7 +533,7 @@ class Container:
 
         if isinstance(output_stream, io.TextIOWrapper):
             output_stream.buffer.write(output_str.encode("utf-8"))
-        if re.match(pattern, output_str) is not None and event is not None:
+        if re.match(pattern, output_str) is not None and event:
             event.set()
 
     # This method exists because otherwise when writing tests patching/mocking threading.Event breaks everything
