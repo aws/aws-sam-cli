@@ -661,9 +661,9 @@ pyyaml==6.0.1 \
     #   aws-sam-cli (setup.py)
     #   cfn-lint
     #   cookiecutter
-referencing==0.31.1 \
-    --hash=sha256:81a1471c68c9d5e3831c30ad1dd9815c45b558e596653db751a2bfdd17b3b9ec \
-    --hash=sha256:c19c4d006f1757e3dd75c4f784d38f8698d87b649c54f9ace14e5e8c9667c01d
+referencing==0.32.0 \
+    --hash=sha256:689e64fe121843dcfd57b71933318ef1f91188ffb45367332700a86ac8fd6161 \
+    --hash=sha256:bdcd3efb936f82ff86f993093f6da7435c7de69a3b3a5a06678a6050184bee99
     # via
     #   jsonschema
     #   jsonschema-specifications
