@@ -427,7 +427,7 @@ class Container:
         if not self.is_created():
             raise RuntimeError("Container does not exist. Cannot get logs for this container")
 
-        real_container = self.docker_client.containers.get(self.id)  #
+        real_container = self.docker_client.containers.get(self.id)
 
         # Fetch both stdout and stderr streams from Docker as a single iterator.
         logs_itr = real_container.attach(stream=True, logs=True, demux=True)
