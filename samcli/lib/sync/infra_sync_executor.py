@@ -287,14 +287,10 @@ an infra sync will be executed for an CloudFormation deployment to improve perfo
         # Whereas parameter overrides are {'Foo1': 'Bar1', 'Foo2': 'Bar2'}
         # So we can flatten the current stack parameters into the same format as the parameter overrides
         # This allows for directly checking if the parameter overrides are a direct subset of the current stack parameters
-        # LOG.error(str(current_stack_parameters))
-        # LOG.error(str(parameter_overrides))
 
         flat_current_stack_parameters = {}
         for param in current_stack_parameters:
             flat_current_stack_parameters[param['ParameterKey']] = param['ParameterValue']
-
-        # LOG.error(str(flat_current_stack_parameters))
 
         # Check for parameter overrides being a subset of the current stack parameters
         if not (parameter_overrides.items() <= flat_current_stack_parameters.items()):
@@ -327,6 +323,7 @@ an infra sync will be executed for an CloudFormation deployment to improve perfo
                     stack_resource_detail = self._cfn_client.describe_stack_resource(
                         StackName=stack_name, LogicalResourceId=resource_logical_id
                     )
+                    LOG.error(stack_resource_detail)
                 except ClientError as ex:
                     LOG.debug(
                         "Cannot get resource detail with name %s on CloudFormation", resource_logical_id, exc_info=ex
@@ -350,6 +347,7 @@ an infra sync will be executed for an CloudFormation deployment to improve perfo
                     .get("Properties", {})
                     .get(template_field)
                 )
+                LOG.error(is_local_path(nested_template_location))
                 if is_local_path(nested_template_location):
                     nested_template_location = str(Path(built_template_path).parent.joinpath(nested_template_location))
                 if not self._auto_skip_infra_sync(
@@ -524,10 +522,12 @@ an infra sync will be executed for an CloudFormation deployment to improve perfo
         template = None
         # If the customer template uses a nested stack with location/template URL in S3
         if template_path.startswith("https://"):
+            LOG.error('get_remote_template_data')
             template = self._get_remote_template_data(template_path)
 
         # If the template location is local
         else:
+            LOG.error('get_template_data')
             template = get_template_data(template_path)
 
         return template
@@ -575,7 +575,6 @@ an infra sync will be executed for an CloudFormation deployment to improve perfo
                 LOG.debug("The provided template location %s can not be found", template_path, exc_info=ex)
             else:
                 streaming_body = s3_object.get("Body")
-                LOG.error(s3_object)
                 if streaming_body:
                     template = yaml_parse(streaming_body.read().decode("utf-8"))
 
