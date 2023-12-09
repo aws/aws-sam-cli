@@ -275,13 +275,11 @@ an infra sync will be executed for an CloudFormation deployment to improve perfo
             return False
 
         try:
-            current_stack_params = self._get_stack_parameters(stack_name)
+            if not self._param_overrides_subset_of_stack_params(stack_name, parameter_overrides):
+                LOG.debug("Detected changes between Parameter overrides and the current stack parameters.")
+                return False
         except ClientError as ex:
             LOG.debug("Unable to fetch stack Parameters from stack with name %s", stack_name, exc_info=ex)
-            return False
-
-        if not self._param_overrides_subset_of_stack_params(current_stack_params, parameter_overrides):
-            LOG.debug("Detected changes between Parameter overrides and the current stack parameters.")
             return False
 
         # The recursive template check for Nested stacks
@@ -517,23 +515,23 @@ an infra sync will be executed for an CloudFormation deployment to improve perfo
 
         return template
 
-    def _param_overrides_subset_of_stack_params(
-        self, current_stack_params: List[Dict[str, str]], param_overrides: Dict[str, str]
-    ) -> bool:
+    def _param_overrides_subset_of_stack_params(self, stack_name: str, param_overrides: Dict[str, str]) -> bool:
         """
         Returns whether or not the supplied parameter overrides are a subset of the current stack parameters
 
         Parameters
         ----------
-        current_stack_params: List[Dict[str,str]]
-            Current stack parameters returned from describe_stacks, taking the following format
-            e.g [{'ParameterKey': 'Foo1', 'ParameterValue': 'Bar1'}, {'ParameterKey': 'Foo2', 'ParameterValue': 'Bar2'}]
+        stack_name: str
 
         param_overrides: Dict[str, str]
             Parameter overrides supplied by the sam sync command, taking the following format
             e.g. {'Foo1': 'Bar1', 'Foo2': 'Bar2'}
 
         """
+
+        # Current stack parameters returned from describe_stacks, taking the following format
+        # e.g [{'ParameterKey': 'Foo1', 'ParameterValue': 'Bar1'}, {'ParameterKey': 'Foo2', 'ParameterValue': 'Bar2'}]
+        current_stack_params = self._get_stack_parameters(stack_name)
 
         # We can flatten the current stack parameters into the same format as the parameter overrides
         # This allows us to check if the parameter overrides are a direct subset of the current stack parameters
@@ -562,7 +560,7 @@ an infra sync will be executed for an CloudFormation deployment to improve perfo
         stacks = self._cfn_client.describe_stacks(StackName=stack_name).get("Stacks")
 
         if len(stacks) < 1:
-            LOG.error(
+            LOG.info(
                 "Failed to pull stack details for stack with name %s, it may not yet be finished deploying.", stack_name
             )
             return []
