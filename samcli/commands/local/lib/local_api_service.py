@@ -76,7 +76,7 @@ class LocalApiService:
         service.create()
 
         # Print out the list of routes that will be mounted
-        self._print_routes(self.api_provider.api.routes, self.host, self.port)
+        self._print_routes(self.api_provider.api.routes, self.host, self.port, bool(self.ssl_context))
         LOG.info(
             "You can now browse to the above endpoints to invoke your functions. "
             "You do not need to restart/reload SAM CLI while working on your functions, "
@@ -88,7 +88,7 @@ class LocalApiService:
         service.run()
 
     @staticmethod
-    def _print_routes(routes, host, port):
+    def _print_routes(routes, host, port, ssl_enabled=False):
         """
         Helper method to print the APIs that will be mounted. This method is purely for printing purposes.
         This method takes in a list of Route Configurations and prints out the Routes grouped by path.
@@ -104,14 +104,19 @@ class LocalApiService:
             Host name where the service is running
         :param int port:
             Port number where the service is running
+        :param bool ssl_enabled:
+            Boolean parameter to set whether SSL configuration is enabled
         :returns list(string):
             List of lines that were printed to the console. Helps with testing
         """
 
         print_lines = []
+        protocol = "https" if ssl_enabled else "http"
         for route in routes:
             methods_str = "[{}]".format(", ".join(route.methods))
-            output = "Mounting {} at http://{}:{}{} {}".format(route.function_name, host, port, route.path, methods_str)
+            output = "Mounting {} at {}://{}:{}{} {}".format(
+                route.function_name, protocol, host, port, route.path, methods_str
+            )
             print_lines.append(output)
 
             LOG.info(output)
