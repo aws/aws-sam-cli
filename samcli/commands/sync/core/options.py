@@ -39,6 +39,8 @@ ADDITIONAL_OPTIONS: List[str] = [
     "resource_id",
     "resource",
     "base_dir",
+    "build_in_source",
+    "watch_exclude",
 ]
 OTHER_OPTIONS: List[str] = ["debug", "help"]
 

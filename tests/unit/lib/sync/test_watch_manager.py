@@ -32,6 +32,7 @@ class TestWatchManager(TestCase):
             self.sync_context,
             False,
             False,
+            {},
         )
 
     def tearDown(self) -> None:
@@ -92,8 +93,8 @@ class TestWatchManager(TestCase):
 
         self.watch_manager._add_code_triggers()
 
-        trigger_factory.create_trigger.assert_any_call(resource_ids[0], on_code_change_wrapper_mock.return_value)
-        trigger_factory.create_trigger.assert_any_call(resource_ids[1], on_code_change_wrapper_mock.return_value)
+        trigger_factory.create_trigger.assert_any_call(resource_ids[0], on_code_change_wrapper_mock.return_value, [])
+        trigger_factory.create_trigger.assert_any_call(resource_ids[1], on_code_change_wrapper_mock.return_value, [])
 
         on_code_change_wrapper_mock.assert_any_call(resource_ids[0])
         on_code_change_wrapper_mock.assert_any_call(resource_ids[1])
@@ -359,6 +360,23 @@ class TestWatchManager(TestCase):
         factory_mock = MagicMock()
         event_mock = MagicMock()
         event_mock.event_type = "opened"
+
+        self.watch_manager._sync_flow_factory = factory_mock
+        factory_mock.create_sync_flow.return_value = flow1
+
+        self.watch_manager._on_code_change_wrapper(resource_id_mock)(event_mock)
+
+        factory_mock.create_sync_flow.assert_not_called()
+
+    @patch("samcli.lib.sync.watch_manager.platform.system")
+    def test_on_code_change_wrapper_opened_event_not_called_linux_folder(self, platform_mock):
+        flow1 = MagicMock()
+        resource_id_mock = MagicMock()
+        factory_mock = MagicMock()
+        event_mock = MagicMock()
+        event_mock.event_type = "modified"
+        event_mock.is_directory = True
+        platform_mock.return_value = "linux"
 
         self.watch_manager._sync_flow_factory = factory_mock
         factory_mock.create_sync_flow.return_value = flow1

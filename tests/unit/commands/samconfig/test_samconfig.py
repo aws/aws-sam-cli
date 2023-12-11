@@ -158,7 +158,7 @@ class TestSamConfigForAllCommands(TestCase):
                 ("",),
                 ("",),
                 None,
-                None,
+                False,
                 "READ",
             )
 
@@ -218,7 +218,7 @@ class TestSamConfigForAllCommands(TestCase):
                 ("",),
                 ("",),
                 None,
-                None,
+                False,
                 "READ",
             )
 
@@ -275,7 +275,7 @@ class TestSamConfigForAllCommands(TestCase):
                 (),
                 (),
                 None,
-                None,
+                False,
                 "READ",
             )
 
@@ -331,7 +331,7 @@ class TestSamConfigForAllCommands(TestCase):
                 ("Function1=image_1", "image_2"),
                 (),
                 None,
-                None,
+                False,
                 "READ",
             )
 
@@ -974,6 +974,7 @@ class TestSamConfigForAllCommands(TestCase):
             "confirm_changeset": True,
             "region": "myregion",
             "signing_profiles": "function=profile:owner",
+            "watch_exclude": {"HelloWorld": ["file.txt", "other.txt"], "HelloMars": ["single.file"]},
         }
 
         with samconfig_parameters(["sync"], self.scratch_dir, **config_values) as config_path:
@@ -1017,7 +1018,8 @@ class TestSamConfigForAllCommands(TestCase):
                 (),
                 "samconfig.toml",
                 "default",
-                None,
+                False,
+                {"HelloWorld": ["file.txt", "other.txt"], "HelloMars": ["single.file"]},
             )
 
 
