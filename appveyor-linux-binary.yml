@@ -1,6 +1,6 @@
 version: 1.0.{build}
-image:
-  - Ubuntu2004
+image: 
+  - Ubuntu2204
 
 configuration:
   - BuildIntegTesting
@@ -19,7 +19,7 @@ environment:
   PYTHON_HOME: "$HOME/venv3.11/bin"
   PYTHON_VERSION: '3.11'
   AWS_DEFAULT_REGION: us-east-1
-  NODE_VERSION: "14.17.6"
+  NODE_VERSION: "18.18.2"
   AWS_S3: 'AWS_S3_TESTING'
   AWS_ECR: 'AWS_ECR_TESTING'
   CARGO_LAMBDA_VERSION: "v0.17.1"
@@ -28,45 +28,51 @@ environment:
   APPVEYOR_CONSOLE_DISABLE_PTY: false
   APPVEYOR_DETAILED_SHELL_LOGGING: true
 
-
 install:
   # AppVeyor's apt-get cache might be outdated, and the package could potentially be 404.
   - sh: "sudo apt-get update --allow-releaseinfo-change"
+
+  # install coretto 21
+  - sh: wget -O - https://apt.corretto.aws/corretto.key | sudo gpg --dearmor -o /usr/share/keyrings/corretto-keyring.gpg
+  - sh: echo "deb [signed-by=/usr/share/keyrings/corretto-keyring.gpg] https://apt.corretto.aws stable main" | sudo tee /etc/apt/sources.list.d/corretto.list
+  - sh: sudo apt-get update; sudo apt-get install -y java-21-amazon-corretto-jdk
+  - sh: JAVA_HOME=/usr/lib/jvm/java-21-amazon-corretto
+  - sh: PATH=$JAVA_HOME/bin:$PATH
+  - sh: java --version
+  - sh: javac --version
 
   - sh: "gvm use go1.19"
   - sh: "echo $PATH"
   - sh: "ls /usr/"
   # install latest maven which is compatible with jdk17
   - sh: "sudo apt-get -y remove maven"
-  - sh: "wget https://dlcdn.apache.org/maven/maven-3/3.8.8/binaries/apache-maven-3.8.8-bin.zip -P /tmp"
+  - sh: "wget https://dlcdn.apache.org/maven/maven-3/3.9.5/binaries/apache-maven-3.9.5-bin.zip -P /tmp"
   - sh: "sudo unzip -d /opt/mvn /tmp/apache-maven-*.zip"
-  - sh: "PATH=/opt/mvn/apache-maven-3.8.8/bin:$PATH"
-  - sh: "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64"
-  - sh: "PATH=$JAVA_HOME/bin:$PATH"
-  - sh: "javac -version"
-  - sh: "java -version"
+  - sh: "PATH=/opt/mvn/apache-maven-3.9.5/bin:$PATH"
   - sh: "mvn --version"
 
   - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
+  - sh: "rvm reinstall ruby-3.2.2 --with-openssl-dir=/usr/lib/x86_64-linux-gnu" # reinstall ruby3.2 to fix OpenSSL issue
   - sh: "rvm use 3.2.2"
   - sh: "docker info"
   - sh: "docker version"
   - sh: "nvm install ${NODE_VERSION}"
-  - sh: "npm install npm@7.24.2 -g"
+  - sh: "npm install npm@10.2.3 -g"
   - sh: "npm -v"
 
   # Install latest gradle
   - sh: "sudo apt-get -y remove gradle"
-  - sh: "wget https://services.gradle.org/distributions/gradle-7.3.1-bin.zip -P /tmp"
+  - sh: "wget https://services.gradle.org/distributions/gradle-8.4-bin.zip -P /tmp"
   - sh: "sudo unzip -d /opt/gradle /tmp/gradle-*.zip"
-  - sh: "PATH=/opt/gradle/gradle-7.3.1/bin:$PATH"
+  - sh: "PATH=/opt/gradle/gradle-8.4/bin:$PATH"
+  - sh: "gradle --version"
 
   # Install AWS CLI
   - sh: "virtualenv aws_cli"
   - sh: "./aws_cli/bin/python -m pip install awscli"
   - sh: "PATH=$(echo $PWD'/aws_cli/bin'):$PATH"
 
-  - sh: "PATH=$PATH:$HOME/venv3.7/bin:$HOME/venv3.8/bin:$HOME/venv3.9/bin:$HOME/venv3.10/bin:$HOME/venv3.11/bin"
+  - sh: "PATH=$PATH:$HOME/venv3.7/bin:$HOME/venv3.8/bin:$HOME/venv3.9/bin:$HOME/venv3.10/bin:$HOME/venv3.11/bin:$HOME/venv3.12/bin"
 
   # Install pytest
   - sh: "python3.9 -m venv $HOME/pytest"
@@ -150,9 +156,9 @@ on_finish:
   # Upload test reports as artifacts
   - sh: find "$APPVEYOR_BUILD_FOLDER" -type f -name 'TEST_REPORT-*.json' -print0 | xargs -0 -I '{}' appveyor PushArtifact '{}'
   - sh: >
-      AWS_ACCESS_KEY_ID=$TEST_REPORT_S3_BUCKET_ACCESS_KEY_ID
-      AWS_SECRET_ACCESS_KEY=$TEST_REPORT_S3_BUCKET_SECRET_ACCESS_KEY
-      AWS_SESSION_TOKEN=$TEST_REPORT_S3_BUCKET_SESSION_TOKEN
+      AWS_ACCESS_KEY_ID=$TEST_REPORT_S3_BUCKET_ACCESS_KEY_ID 
+      AWS_SECRET_ACCESS_KEY=$TEST_REPORT_S3_BUCKET_SECRET_ACCESS_KEY 
+      AWS_SESSION_TOKEN=$TEST_REPORT_S3_BUCKET_SESSION_TOKEN 
       aws s3 cp "$APPVEYOR_BUILD_FOLDER" "s3://$TEST_REPORT_S3_BUCKET_NAME/appveyor/$APPVEYOR_PROJECT_SLUG/$APPVEYOR_BUILD_ID/$APPVEYOR_JOB_ID/" --recursive --exclude "*" --include "TEST_REPORT-*.json" --region us-west-2
 
   # notify task success
@@ -209,8 +215,7 @@ for:
       - sh: "sudo mv /opt/terraform/terraform /usr/local/bin/"
       - sh: "terraform -version"
 
-      - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
-      - sh: "pytest -vv -n 4 tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+      - sh: "pytest -vv -n 4 --reruns 4 tests/integration/buildcmd/test_build_terraform_applications.py tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-terraform.json"
 
   # Integ testing package & delete
   -

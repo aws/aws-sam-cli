@@ -1,8 +1,9 @@
 import re
 from parameterized import parameterized
 from unittest.case import TestCase
-from unittest.mock import MagicMock, patch, ANY
+from unittest.mock import MagicMock, Mock, patch, ANY
 from samcli.lib.utils.resource_trigger import (
+    DEFAULT_WATCH_IGNORED_RESOURCES,
     CodeResourceTrigger,
     DefinitionCodeTrigger,
     LambdaFunctionCodeTrigger,
@@ -113,6 +114,14 @@ class TestCodeResourceTrigger(TestCase):
 
         with self.assertRaises(ResourceNotFound):
             CodeResourceTrigger(ResourceIdentifier("A"), stacks, base_dir, on_code_change_mock)
+
+    @patch.multiple(CodeResourceTrigger, __abstractmethods__=set())
+    @patch("samcli.lib.utils.resource_trigger.get_resource_by_id")
+    def test_init_with_ignored_resources(self, get_resource_by_id_mock):
+        trigger = CodeResourceTrigger(ResourceIdentifier("A"), Mock(), Mock(), Mock(), ["first_path", "second"])
+        expected_watches = [*DEFAULT_WATCH_IGNORED_RESOURCES, "^.*first_path.*$", "^.*second.*$"]
+
+        self.assertEqual(trigger._watch_exclude, expected_watches)
 
 
 class TestLambdaFunctionCodeTrigger(TestCase):
