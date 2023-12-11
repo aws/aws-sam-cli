@@ -131,6 +131,7 @@ class TestValidate(TestCase):
             "Resources": {},
         }
         supported_runtimes = [
+            "dotnet8",
             "dotnet6",
             "go1.x",
             "java21",
