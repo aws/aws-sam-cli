@@ -70,7 +70,7 @@ update-reproducible-linux-reqs:
 	venv-update-reproducible-linux/bin/pip-compile --generate-hashes --allow-unsafe -o requirements/reproducible-linux.txt
 
 update-reproducible-mac-reqs:
-	python3.11 -m venv venv-update-reproducible-mac
+	python3.8 -m venv venv-update-reproducible-mac
 	venv-update-reproducible-mac/bin/pip install --upgrade pip-tools pip
 	venv-update-reproducible-mac/bin/pip install -r requirements/base.txt
 	venv-update-reproducible-mac/bin/pip-compile --generate-hashes --allow-unsafe -o requirements/reproducible-mac.txt
