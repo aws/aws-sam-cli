@@ -52,7 +52,6 @@ class LambdaContainer(Container):
         container_host=None,
         container_host_interface=DEFAULT_CONTAINER_HOST_INTERFACE,
         extra_hosts=None,
-        container_host_interface=DEFAULT_CONTAINER_HOST_INTERFACE,
         function_full_path=None,
     ):
         """
