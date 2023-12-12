@@ -525,8 +525,6 @@ class TestSamConfigForAllCommands(TestCase):
                 "127.0.0.1",
                 ("image",),
                 None,
-                None,
-                None,
             )
 
     @patch("samcli.lib.cli_validation.image_repository_validation._is_all_image_funcs_provided")
@@ -1108,10 +1106,6 @@ class TestSamConfigWithOverrides(TestCase):
                     "localhost",
                     "--container-host-interface",
                     "127.0.0.1",
-                    "--ssl-cert-file",
-                    cert_file.name,
-                    "--ssl-key-file",
-                    key_file.name,
                 ],
             )
 
@@ -1145,8 +1139,6 @@ class TestSamConfigWithOverrides(TestCase):
                 "127.0.0.1",
                 ("image",),
                 None,
-                cert_file.name,
-                key_file.name,
             )
 
     @patch("samcli.commands.local.start_lambda.cli.do_cli")
@@ -1210,10 +1202,6 @@ class TestSamConfigWithOverrides(TestCase):
                     # Parameter overrides is exclusively provided through CLI args and not config
                     "--parameter-overrides",
                     "A=123 C=D E=F12! G=H",
-                    "--ssl-cert-file",
-                    cert_file.name,
-                    "--ssl-key-file",
-                    key_file.name,
                 ],
             )
 
@@ -1247,8 +1235,6 @@ class TestSamConfigWithOverrides(TestCase):
                 "127.0.0.1",
                 ("image",),
                 None,
-                cert_file.name,
-                key_file.name,
             )
 
     @patch("samcli.commands.validate.validate.do_cli")

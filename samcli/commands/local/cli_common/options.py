@@ -88,15 +88,6 @@ def local_common_options(f):
     return f
 
 
-def validate_ssl_params(ctx, param, value):
-    if ctx.params["ssl_key_file"] and value:
-        return value
-    elif ctx.params["ssl_key_file"] or value:
-        raise click.UsageError("If either --ssl-cert-file or --ssl-key-file is specified, both must be specified")
-    else:
-        return value
-
-
 def service_common_options(port):
     """
     Construct common CLI Options that are shared for service related commands ('start-api' and 'start_lambda')
@@ -129,22 +120,6 @@ def service_common_options(port):
             ),
             click.option(
                 "--port", "-p", default=port, help="Local port number to listen on (default: '{}')".format(str(port))
-            ),
-            click.option(
-                "--ssl-cert-file",
-                default=None,
-                type=click.Path(exists=True),
-                callback=validate_ssl_params,
-                help="Path to SSL certificate file (default: None)",
-            ),
-            # Mark --ssl-key-file as eager, so by the time the --ssl-cert-file validator is invoked,
-            # we know if it's missing
-            click.option(
-                "--ssl-key-file",
-                default=None,
-                type=click.Path(exists=True),
-                is_eager=True,
-                help="Path to SSL key file (default: None)",
             ),
         ]
 

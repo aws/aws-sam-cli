@@ -10,6 +10,7 @@ import click
 from samcli.cli.cli_config_file import ConfigProvider, configuration_option, save_params_option
 from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
 from samcli.cli.main import common_options as cli_framework_options
+from samcli.commands._utils.click_mutex import ClickMutex
 from samcli.commands._utils.option_value_processor import process_image_options
 from samcli.commands._utils.options import (
     generate_next_command_recommendation,
@@ -77,6 +78,22 @@ DESCRIPTION = """
     is_flag=True,
     default=False,
     help="Disable custom Lambda Authorizers from being parsed and invoked.",
+)
+@click.option(
+    "--ssl-cert-file",
+    default=None,
+    type=click.Path(exists=True),
+    cls=ClickMutex,
+    required_param_lists=[["ssl_key_file"]],
+    help="Path to SSL certificate file (default: None)",
+)
+@click.option(
+    "--ssl-key-file",
+    default=None,
+    type=click.Path(exists=True),
+    cls=ClickMutex,
+    required_param_lists=[["ssl_cert_file"]],
+    help="Path to SSL key file (default: None)",
 )
 @invoke_common_options
 @warm_containers_common_options
