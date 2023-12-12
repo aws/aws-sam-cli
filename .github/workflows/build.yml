@@ -82,7 +82,9 @@ jobs:
           python-version: 3.11
       - run: make init
       - run: |
-          diff <( cat schema/samcli.json ) <( python schema/make_schema.py; cat schema/samcli.json ) && exit 0 # exit if schema is unchanged
+          diff <( cat schema/samcli.json ) <( python -m schema.make_schema; cat schema/samcli.json ) && \
+            echo "No changes found." && \
+            exit 0 # exit if schema is unchanged
           echo "The generated schema differs from that in the PR. Please run 'make schema'."
           exit 1
         name: Generate and compare the schema
