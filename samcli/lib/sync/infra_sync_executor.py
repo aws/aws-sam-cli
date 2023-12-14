@@ -6,7 +6,7 @@ import logging
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, Optional, Set
+from typing import TYPE_CHECKING, Dict, List, Optional, Set, cast
 from uuid import uuid4
 
 from boto3 import Session
@@ -183,6 +183,7 @@ class InfraSyncExecutor:
                     self._package_context.output_template_file,
                     self._package_context.template_file,
                     self._deploy_context.stack_name,
+                    self._build_context._parameter_overrides or {},
                 ):
                     # We have a threshold on number of sync flows we initiate
                     # If higher than the threshold, we perform infra sync to improve performance
@@ -221,6 +222,7 @@ an infra sync will be executed for an CloudFormation deployment to improve perfo
         packaged_template_path: str,
         built_template_path: str,
         stack_name: str,
+        parameter_overrides: Optional[Dict[str, str]] = None,
         nested_prefix: Optional[str] = None,
     ) -> bool:
         """
@@ -236,6 +238,8 @@ an infra sync will be executed for an CloudFormation deployment to improve perfo
             The CloudFormation stack name that the template is deployed to
         nested_prefix: Optional[str]
             The nested stack stack name tree for child stack resources
+        parameter_overrides: Optional[Dict[str,str]]
+            Parameter overrides passed into sam sync in the form of { KEY1 : VALUE1, KEY2 : VALUE2 }
 
         Returns
         -------
@@ -243,6 +247,8 @@ an infra sync will be executed for an CloudFormation deployment to improve perfo
             Returns True if no template changes from last deployment
             Returns False if there are template differences
         """
+        parameter_overrides = parameter_overrides or {}
+
         current_template = self.get_template(packaged_template_path)
         current_built_template = self.get_template(built_template_path)
 
@@ -270,6 +276,9 @@ an infra sync will be executed for an CloudFormation deployment to improve perfo
 
         if sanitized_last_template != sanitized_current_template:
             LOG.debug("The current template is different from the last deployed version, we will not skip infra sync")
+            return False
+
+        if not self._param_overrides_subset_of_stack_params(stack_name, parameter_overrides):
             return False
 
         # The recursive template check for Nested stacks
@@ -327,7 +336,10 @@ an infra sync will be executed for an CloudFormation deployment to improve perfo
                     resource_dict.get("Properties", {}).get(template_field),
                     nested_template_location,
                     stack_resource_detail.get("StackResourceDetail", {}).get("PhysicalResourceId", ""),
-                    nested_prefix + resource_logical_id + "/" if nested_prefix else resource_logical_id + "/",
+                    parameter_overrides={},  # Do not pass the same parameter overrides to the nested stack
+                    nested_prefix=nested_prefix + resource_logical_id + "/"
+                    if nested_prefix
+                    else resource_logical_id + "/",
                 ):
                     return False
 
@@ -501,6 +513,70 @@ an infra sync will be executed for an CloudFormation deployment to improve perfo
             template = get_template_data(template_path)
 
         return template
+
+    def _param_overrides_subset_of_stack_params(self, stack_name: str, param_overrides: Dict[str, str]) -> bool:
+        """
+        Returns whether or not the supplied parameter overrides are a subset of the current stack parameters
+
+        Parameters
+        ----------
+        stack_name: str
+
+        param_overrides: Dict[str, str]
+            Parameter overrides supplied by the sam sync command, taking the following format
+            e.g. {'Foo1': 'Bar1', 'Foo2': 'Bar2'}
+
+        """
+
+        # Current stack parameters returned from describe_stacks, taking the following format
+        # e.g [{'ParameterKey': 'Foo1', 'ParameterValue': 'Bar1'}, {'ParameterKey': 'Foo2', 'ParameterValue': 'Bar2'}]
+
+        try:
+            current_stack_params = self._get_stack_parameters(stack_name)
+        except ClientError as ex:
+            LOG.debug("Unable to fetch stack Parameters from stack with name %s", stack_name, exc_info=ex)
+            return False
+
+        # We can flatten the current stack parameters into the same format as the parameter overrides
+        # This allows us to check if the parameter overrides are a direct subset of the current stack parameters
+
+        flat_current_stack_parameters = {}
+        for param in current_stack_params:
+            flat_current_stack_parameters[param["ParameterKey"]] = param["ParameterValue"]
+
+        # Check for parameter overrides being a subset of the current stack parameters
+        if not (param_overrides.items() <= flat_current_stack_parameters.items()):
+            LOG.debug("Detected changes between Parameter overrides and the current stack parameters.")
+            return False
+
+        return True
+
+    def _get_stack_parameters(self, stack_name: str) -> List[Dict[str, str]]:
+        """
+        Returns the stack parameters for a given stack
+
+        Parameters
+        ----------
+        stack_name: str
+            The name of the stack
+
+        Returns
+        -------
+            List of Dicts in the form { 'ParameterKey': Foo, 'ParameterValue': Bar }
+
+        """
+        stacks = self._cfn_client.describe_stacks(StackName=stack_name).get("Stacks")
+
+        if len(stacks) < 1:
+            LOG.info(
+                "Failed to pull stack details for stack with name %s, it may not yet be finished deploying.", stack_name
+            )
+            return []
+
+        return cast(
+            List[Dict[str, str]],
+            stacks[0].get("Parameters", []),
+        )
 
     def _get_remote_template_data(self, template_path: str) -> Optional[Dict]:
         """
