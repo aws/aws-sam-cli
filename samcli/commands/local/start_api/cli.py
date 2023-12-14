@@ -3,12 +3,14 @@ CLI command for "local start-api" command
 """
 
 import logging
+from ssl import SSLError
 
 import click
 
 from samcli.cli.cli_config_file import ConfigProvider, configuration_option, save_params_option
 from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
 from samcli.cli.main import common_options as cli_framework_options
+from samcli.commands._utils.click_mutex import ClickMutex
 from samcli.commands._utils.option_value_processor import process_image_options
 from samcli.commands._utils.options import (
     generate_next_command_recommendation,
@@ -77,6 +79,22 @@ DESCRIPTION = """
     default=False,
     help="Disable custom Lambda Authorizers from being parsed and invoked.",
 )
+@click.option(
+    "--ssl-cert-file",
+    default=None,
+    type=click.Path(exists=True),
+    cls=ClickMutex,
+    required_param_lists=[["ssl_key_file"]],
+    help="Path to SSL certificate file (default: None)",
+)
+@click.option(
+    "--ssl-key-file",
+    default=None,
+    type=click.Path(exists=True),
+    cls=ClickMutex,
+    required_param_lists=[["ssl_cert_file"]],
+    help="Path to SSL key file (default: None)",
+)
 @invoke_common_options
 @warm_containers_common_options
 @local_common_options
@@ -121,6 +139,8 @@ def cli(
     hook_name,
     skip_prepare_infra,
     terraform_plan_file,
+    ssl_cert_file,
+    ssl_key_file,
 ):
     """
     `sam local start-api` command entry point
@@ -154,6 +174,8 @@ def cli(
         add_host,
         invoke_image,
         hook_name,
+        ssl_cert_file,
+        ssl_key_file,
     )  # pragma: no cover
 
 
@@ -183,6 +205,8 @@ def do_cli(  # pylint: disable=R0914
     container_host_interface,
     invoke_image,
     hook_name,
+    ssl_cert_file,
+    ssl_key_file,
 ):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
@@ -228,12 +252,14 @@ def do_cli(  # pylint: disable=R0914
             container_host_interface=container_host_interface,
             invoke_images=processed_invoke_images,
         ) as invoke_context:
+            ssl_context = (ssl_cert_file, ssl_key_file) if ssl_cert_file else None
             service = LocalApiService(
                 lambda_invoke_context=invoke_context,
                 port=port,
                 host=host,
                 static_dir=static_dir,
                 disable_authorizer=disable_authorizer,
+                ssl_context=ssl_context,
             )
             service.start()
             if not hook_name:
@@ -245,7 +271,8 @@ def do_cli(  # pylint: disable=R0914
                     ]
                 )
                 click.secho(command_suggestions, fg="yellow")
-
+    except SSLError as ex:
+        raise UserException(f"SSL Error: {ex.strerror}", wrapped_from=ex.__class__.__name__) from ex
     except NoApisDefined as ex:
         raise UserException(
             "Template does not have any APIs connected to Lambda functions", wrapped_from=ex.__class__.__name__

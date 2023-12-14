@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import pathlib
+import re
 import shutil
 import socket
 import tempfile
@@ -116,6 +117,7 @@ class Container:
         self._additional_volumes = additional_volumes
         self._logs_thread = None
         self._extra_hosts = extra_hosts
+        self._logs_thread_event = None
 
         # Use the given Docker client or create new one
         self.docker_client = docker_client or docker.from_env(version=DOCKER_MIN_API_VERSION)
@@ -223,6 +225,7 @@ class Container:
         self.id = real_container.id
 
         self._logs_thread = None
+        self._logs_thread_event = None
 
         if self.network_id and self.network_id != "host":
             try:
@@ -390,7 +393,10 @@ class Container:
         # the log thread will not be closed until the container itself got deleted,
         # so as long as the container is still there, no need to start a new log thread
         if not self._logs_thread or not self._logs_thread.is_alive():
-            self._logs_thread = threading.Thread(target=self.wait_for_logs, args=(stderr, stderr), daemon=True)
+            self._logs_thread_event = self._create_threading_event()
+            self._logs_thread = threading.Thread(
+                target=self.wait_for_logs, args=(stderr, stderr, self._logs_thread_event), daemon=True
+            )
             self._logs_thread.start()
 
         # wait_for_http_response will attempt to establish a connection to the socket
@@ -404,9 +410,7 @@ class Container:
         if timer:
             timer.cancel()
 
-        # NOTE(jfuss): Adding a sleep after we get a response from the contianer but before we
-        # we write the response to ensure the last thing written to stdout is the container response
-        time.sleep(1)
+        self._logs_thread_event.wait(timeout=1)
         if isinstance(response, str):
             stdout.write_str(response)
         elif isinstance(response, bytes):
@@ -414,11 +418,13 @@ class Container:
         stdout.flush()
         stderr.write_str("\n")
         stderr.flush()
+        self._logs_thread_event.clear()
 
     def wait_for_logs(
         self,
         stdout: Optional[Union[StreamWriter, io.BytesIO, io.TextIOWrapper]] = None,
         stderr: Optional[Union[StreamWriter, io.BytesIO, io.TextIOWrapper]] = None,
+        event: Optional[threading.Event] = None,
     ):
         # Return instantly if we don't have to fetch any logs
         if not stdout and not stderr:
@@ -431,7 +437,7 @@ class Container:
 
         # Fetch both stdout and stderr streams from Docker as a single iterator.
         logs_itr = real_container.attach(stream=True, logs=True, demux=True)
-        self._write_container_output(logs_itr, stdout=stdout, stderr=stderr)
+        self._write_container_output(logs_itr, event=event, stdout=stdout, stderr=stderr)
 
     def _wait_for_socket_connection(self) -> None:
         """
@@ -485,6 +491,7 @@ class Container:
         output_itr: Iterator[Tuple[bytes, bytes]],
         stdout: Optional[Union[StreamWriter, io.BytesIO, io.TextIOWrapper]] = None,
         stderr: Optional[Union[StreamWriter, io.BytesIO, io.TextIOWrapper]] = None,
+        event: Optional[threading.Event] = None,
     ):
         """
         Based on the data returned from the Container output, via the iterator, write it to the appropriate streams
@@ -504,21 +511,25 @@ class Container:
             # Iterator returns a tuple of (stdout, stderr)
             for stdout_data, stderr_data in output_itr:
                 if stdout_data and stdout:
-                    Container._handle_data_writing(stdout, stdout_data)
+                    Container._handle_data_writing(stdout, stdout_data, event)
 
                 if stderr_data and stderr:
-                    Container._handle_data_writing(stderr, stderr_data)
-
+                    Container._handle_data_writing(stderr, stderr_data, event)
         except Exception as ex:
             LOG.debug("Failed to get the logs from the container", exc_info=ex)
 
     @staticmethod
-    def _handle_data_writing(output_stream: Union[StreamWriter, io.BytesIO, io.TextIOWrapper], output_data: bytes):
+    def _handle_data_writing(
+        output_stream: Union[StreamWriter, io.BytesIO, io.TextIOWrapper],
+        output_data: bytes,
+        event: Optional[threading.Event],
+    ):
         # Decode the output and strip the string of carriage return characters. Stack traces are returned
         # with carriage returns from the RIE. If these are left in the string then only the last line after
         # the carriage return will be printed instead of the entire stack trace. Encode the string after cleaning
         # to be printed by the correct output stream
         output_str = output_data.decode("utf-8").replace("\r", os.linesep)
+        pattern = r"(.*\s)?REPORT RequestId:\s.+ Duration:\s.+\sMemory Size:\s.+\sMax Memory Used:\s.+"
         if isinstance(output_stream, StreamWriter):
             output_stream.write_str(output_str)
             output_stream.flush()
@@ -528,6 +539,17 @@ class Container:
 
         if isinstance(output_stream, io.TextIOWrapper):
             output_stream.buffer.write(output_str.encode("utf-8"))
+        if re.match(pattern, output_str) is not None and event:
+            event.set()
+
+    # This method exists because otherwise when writing tests patching/mocking threading.Event breaks everything
+    # this allows for the tests to exist as they do currently without any major refactoring
+    @staticmethod
+    def _create_threading_event():
+        """
+        returns a new threading.Event object.
+        """
+        return threading.Event()
 
     @property
     def network_id(self):

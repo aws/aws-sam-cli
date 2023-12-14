@@ -22,6 +22,8 @@ EXTENSION_OPTIONS: List[str] = ["hook_name", "skip_prepare_infra"]
 CONTAINER_OPTION_NAMES: List[str] = [
     "host",
     "port",
+    "ssl_cert_file",
+    "ssl_key_file",
     "env_vars",
     "container_env_vars",
     "debug_port",
