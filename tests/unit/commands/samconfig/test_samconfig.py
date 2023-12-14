@@ -461,6 +461,8 @@ class TestSamConfigForAllCommands(TestCase):
                 "127.0.0.1",
                 ("image",),
                 None,
+                None,
+                None,
             )
 
     @patch("samcli.commands.local.start_lambda.cli.do_cli")
@@ -1057,7 +1059,9 @@ class TestSamConfigWithOverrides(TestCase):
         }
 
         # NOTE: Because we don't load the full Click BaseCommand here, this is mounted as top-level command
-        with samconfig_parameters(["start-lambda"], self.scratch_dir, **config_values) as config_path:
+        with samconfig_parameters(
+            ["start-lambda"], self.scratch_dir, **config_values
+        ) as config_path, tempfile.NamedTemporaryFile() as key_file, tempfile.NamedTemporaryFile() as cert_file:
             from samcli.commands.local.start_lambda.cli import cli
 
             LOG.debug(Path(config_path).read_text())
@@ -1159,7 +1163,9 @@ class TestSamConfigWithOverrides(TestCase):
         }
 
         # NOTE: Because we don't load the full Click BaseCommand here, this is mounted as top-level command
-        with samconfig_parameters(["start-lambda"], self.scratch_dir, **config_values) as config_path:
+        with samconfig_parameters(
+            ["start-lambda"], self.scratch_dir, **config_values
+        ) as config_path, tempfile.NamedTemporaryFile() as key_file, tempfile.NamedTemporaryFile() as cert_file:
             from samcli.commands.local.start_lambda.cli import cli
 
             LOG.debug(Path(config_path).read_text())

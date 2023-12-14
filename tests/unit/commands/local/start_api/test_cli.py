@@ -48,6 +48,8 @@ class TestCli(TestCase):
 
         self.host = "host"
         self.port = 123
+        self.ssl_cert_file = None
+        self.ssl_key_file = None
         self.static_dir = "staticdir"
 
         self.container_host = "localhost"
@@ -99,6 +101,7 @@ class TestCli(TestCase):
             lambda_invoke_context=context_mock,
             port=self.port,
             host=self.host,
+            ssl_context=None,
             static_dir=self.static_dir,
             disable_authorizer=self.disable_authorizer,
         )
@@ -219,5 +222,7 @@ class TestCli(TestCase):
             container_host_interface=self.container_host_interface,
             invoke_image=self.invoke_image,
             hook_name=self.hook_name,
+            ssl_cert_file=self.ssl_cert_file,
+            ssl_key_file=self.ssl_key_file,
             disable_authorizer=self.disable_authorizer,
         )
