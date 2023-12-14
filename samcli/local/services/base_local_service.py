@@ -10,7 +10,7 @@ LOG = logging.getLogger(__name__)
 
 
 class BaseLocalService:
-    def __init__(self, is_debugging, port, host):
+    def __init__(self, is_debugging, port, host, ssl_context):
         """
         Creates a BaseLocalService class
 
@@ -22,10 +22,13 @@ class BaseLocalService:
             Optional. port for the service to start listening on Defaults to 3000
         host str
             Optional. host to start the service on Defaults to '127.0.0.1
+        ssl_context tuple(str, str)
+            Optional. path to ssl certificate and key files to start service in https
         """
         self.is_debugging = is_debugging
         self.port = port
         self.host = host
+        self.ssl_context = ssl_context
         self._app = None
 
     def create(self):
@@ -62,7 +65,7 @@ class BaseLocalService:
 
         flask.cli.show_server_banner = lambda *args: None
 
-        self._app.run(threaded=multi_threaded, host=self.host, port=self.port)
+        self._app.run(threaded=multi_threaded, host=self.host, port=self.port, ssl_context=self.ssl_context)
 
     @staticmethod
     def service_response(body, headers, status_code):
