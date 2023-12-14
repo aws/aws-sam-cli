@@ -518,6 +518,62 @@ class TestInfraSyncExecutor(TestCase):
 
         self.assertFalse(infra_sync_executor._auto_skip_infra_sync("path", "path2", "stack_name"))
 
+    # Test stack parameters are { 'Foo' : 'Bar', 'Apples' : 'Oranges' }
+    @parameterized.expand(
+        [
+            ({"Foo": "Bar"}, True),  # Subset
+            ({"Foo": "Bar", "Apples": "Oranges"}, True),  # Equal
+            ({"Apples": "Oranges", "Foo": "Bar"}, True),  # Equal, different order
+            ({"Foo": "Bar", "Apples": "Grapes"}, False),  # One pair matches the other does not
+            (
+                {"Foo": "Bar", "Apples": "Oranges", "Red": "Blue"},
+                False,
+            ),  # Overrides is a superset of current parameters
+        ]
+    )
+    @patch("samcli.lib.sync.infra_sync_executor.is_local_path")
+    @patch("samcli.lib.sync.infra_sync_executor.get_template_data")
+    @patch("samcli.lib.sync.infra_sync_executor.Session")
+    def test_auto_skip_infra_sync_param_overrides(
+        self, param_overrides, expect_skip_infra_sync, session_mock, get_template_mock, local_path_mock
+    ):
+        built_template_dict = {
+            "Resources": {
+                "ServerlessFunction": {"Type": "AWS::Serverless::Function", "Properties": {"CodeUri": "local/"}}
+            }
+        }
+        packaged_template_dict = {
+            "Resources": {
+                "ServerlessFunction": {"Type": "AWS::Serverless::Function", "Properties": {"CodeUri": "https://s3_new"}}
+            }
+        }
+
+        get_template_mock.side_effect = [packaged_template_dict, built_template_dict]
+        local_path_mock.return_value = True
+
+        infra_sync_executor = InfraSyncExecutor(
+            self.build_context, self.package_context, self.deploy_context, self.sync_context
+        )
+        infra_sync_executor._cfn_client.get_template.return_value = {
+            "TemplateBody": """{
+                "Resources": {
+                    "ServerlessFunction": {"Type": "AWS::Serverless::Function", "Properties": {"CodeUri": "https://s3"}}
+                }
+            }"""
+        }
+
+        infra_sync_executor._get_stack_parameters = MagicMock()
+
+        infra_sync_executor._get_stack_parameters.return_value = [
+            {"ParameterKey": "Foo", "ParameterValue": "Bar"},
+            {"ParameterKey": "Apples", "ParameterValue": "Oranges"},
+        ]
+
+        self.assertEqual(
+            infra_sync_executor._auto_skip_infra_sync("path", "path2", "stack_name", param_overrides),
+            expect_skip_infra_sync,
+        )
+
     @patch("samcli.lib.sync.infra_sync_executor.is_local_path")
     @patch("samcli.lib.sync.infra_sync_executor.Session")
     def test_sanitize_template(self, session_mock, local_path_mock):
