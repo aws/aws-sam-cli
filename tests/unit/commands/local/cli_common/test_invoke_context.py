@@ -848,7 +848,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
             aws_profile="profile",
             aws_region="region",
             container_host="abcdef",
-            add_host={"prod-na.host":"10.11.12.13", "gamma-na.host":"10.22.23.24"},
+            add_host={"prod-na.host": "10.11.12.13", "gamma-na.host": "10.22.23.24"},
         )
         self.context.get_cwd = Mock()
         self.context.get_cwd.return_value = cwd

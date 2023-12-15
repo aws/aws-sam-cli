@@ -43,7 +43,7 @@ class TestCli(TestCase):
         self.profile = "profile"
         self.container_host = "localhost"
         self.container_host_interface = "127.0.0.1"
-        self.add_host = ["prod-na.host:10.11.12.13"],
+        self.add_host = (["prod-na.host:10.11.12.13"],)
         self.invoke_image = ("amazon/aws-sam-cli-emulation-image-python3.9",)
         self.hook_name = None
 
