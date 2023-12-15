@@ -120,7 +120,7 @@ fi
 echo "samcli-mac.spec content is:"
 cat installer/pyinstaller/samcli-mac.spec
 # Note: onefile/onedir options are not valid when spec file is used on mac
-../venv/bin/python -m PyInstaller --clean installer/pyinstaller/samcli-mac.spec
+../venv/bin/python -m PyInstaller --clean --target-arch ${mac_arch} installer/pyinstaller/samcli-mac.spec
 
 # Organizing the pyinstaller-output folder
 mkdir pyinstaller-output
