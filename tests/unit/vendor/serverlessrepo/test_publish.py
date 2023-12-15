@@ -229,7 +229,7 @@ class TestPublishApplication(TestCase):
         actual_result = publish_application(self.template)
         expected_result = {
             "application_id": self.application_id,
-            "actions": [UPDATE_APPLICATION, CREATE_APPLICATION_VERSION],
+            "actions": [CREATE_APPLICATION_VERSION,UPDATE_APPLICATION],
             "details": {
                 # Name and LicenseUrl shouldn't show up since they can't be updated
                 "Description": "hello world",

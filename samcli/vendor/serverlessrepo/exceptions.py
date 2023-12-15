@@ -6,9 +6,10 @@ class ServerlessRepoError(Exception):
 
     MESSAGE = ""
 
-    def __init__(self, **kwargs):
+    def __init__(self, message = None, **kwargs):
         """Init the exception object."""
-        Exception.__init__(self, self.MESSAGE.format(**kwargs))
+        message = message or self.MESSAGE.format(**kwargs)
+        Exception.__init__(self, message)
 
 
 class InvalidApplicationMetadataError(ServerlessRepoError):
@@ -41,6 +42,18 @@ class InvalidS3UriError(ServerlessRepoError):
     MESSAGE = "{message}"
 
 
+class MissingSemanticVersionError(ServerlessRepoError):
+    """Raised when a required semantic version is not provided"""
+
+    # If --fail-on-same-version is set, then a Semantic Version is required
+
+
+class DuplicateSemanticVersionError(ServerlessRepoError):
+    """Raised when a publish is attempted with a Semantic Version that already exists"""
+
+    # If --fail-on-same-version is set, then publish fails on duplicate semantic versions
+
+    
 class ServerlessRepoClientError(ServerlessRepoError):
     """Wrapper for botocore ClientError."""
 

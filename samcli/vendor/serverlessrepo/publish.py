@@ -4,20 +4,30 @@ import copy
 import re
 
 import boto3
+import logging
+
 from botocore.exceptions import ClientError
 
 from samcli.yamlhelper import yaml_dump
 
 from .application_metadata import ApplicationMetadata
-from .exceptions import InvalidS3UriError, S3PermissionsRequired, ServerlessRepoClientError
+from .exceptions import (
+    InvalidS3UriError,
+    S3PermissionsRequired,
+    ServerlessRepoClientError,
+    MissingSemanticVersionError,
+    DuplicateSemanticVersionError,
+)
 from .parser import get_app_metadata, parse_application_id, parse_template, strip_app_metadata
+
+LOG = logging.getLogger(__name__)
 
 CREATE_APPLICATION = "CREATE_APPLICATION"
 UPDATE_APPLICATION = "UPDATE_APPLICATION"
 CREATE_APPLICATION_VERSION = "CREATE_APPLICATION_VERSION"
 
 
-def publish_application(template, sar_client=None):
+def publish_application(template, sar_client=None, fail_on_same_version=False):
     """
     Create a new application or new application version in SAR.
 
@@ -25,6 +35,8 @@ def publish_application(template, sar_client=None):
     :type template: str_or_dict
     :param sar_client: The boto3 client used to access SAR
     :type sar_client: boto3.client
+    :param fail_on_same_version: Whether or not publish hard fails when a duplicate semantic version is provided
+    :type fail_on_same_version: boolean
     :return: Dictionary containing application id, actions taken, and updated details
     :rtype: dict
     :raises ValueError
@@ -47,10 +59,34 @@ def publish_application(template, sar_client=None):
     except ClientError as e:
         if not _is_conflict_exception(e):
             raise _wrap_client_error(e)
-
+        
         # Update the application if it already exists
         error_message = e.response["Error"]["Message"]
         application_id = parse_application_id(error_message)
+
+        if fail_on_same_version:
+            if not app_metadata.semantic_version:
+                raise MissingSemanticVersionError(
+                    f"--fail-on-same-version is set, but no semantic version is specified.\n"
+                    "Please provide a semantic version in either the template metadata or with the --semantic-version option."
+                )
+
+            semantic_version = app_metadata.semantic_version
+
+
+            # Check if the given semantic version already exists
+            try:
+                application_exists = _check_app_with_semantic_version_exists(sar_client, application_id, semantic_version)
+            except ClientError as e:
+                raise _wrap_client_error(e)
+
+
+            if application_exists:
+                raise DuplicateSemanticVersionError(
+                    f"Cannot publish version {semantic_version} for application {application_id} because it already exists"
+                )
+            
+
         try:
             request = _update_application_request(app_metadata, application_id)
             sar_client.update_application(**request)
@@ -65,6 +101,9 @@ def publish_application(template, sar_client=None):
                 sar_client.create_application_version(**request)
                 actions.append(CREATE_APPLICATION_VERSION)
             except ClientError as e:
+                LOG.warning(
+                    "WARNING: Publishing with semantic version that already exists. This may cause issues deploying."
+                )
                 if not _is_conflict_exception(e):
                     raise _wrap_client_error(e)
 
@@ -73,6 +112,17 @@ def publish_application(template, sar_client=None):
         "actions": actions,
         "details": _get_publish_details(actions, app_metadata.template_dict),
     }
+
+
+def _check_app_with_semantic_version_exists(sar_client, application_id, semantic_version):
+    """
+    SAR API does not have a direct method to check if an application exists with a given semantic version, but if it does not exist, a NotFoundException is thrown.
+    """
+    try:
+        sar_client.get_application(ApplicationId=application_id, SemanticVersion=semantic_version)
+        return True
+    except sar_client.exceptions.NotFoundException:
+        return False
 
 
 def _get_template_dict(template):
