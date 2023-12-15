@@ -68,7 +68,11 @@ install:
   - sh: "PATH=/opt/gradle/gradle-8.4/bin:$PATH"
   - sh: "gradle --version"
 
+<<<<<<< HEAD
   # Install dotnet8 SDK
+=======
+  # Install dotnet 8
+>>>>>>> 7e6bf6a23 (Update appveyor-ubuntu.yml (install dotnet8 in appveyor ubuntu))
   - sh: "sudo apt-get update"
   - sh: "sudo apt-get install -y dotnet-sdk-8.0"
 
