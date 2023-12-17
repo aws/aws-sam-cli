@@ -1,22 +1,21 @@
 """Module containing functions to publish or update application."""
 
 import copy
+import logging
 import re
 
 import boto3
-import logging
-
 from botocore.exceptions import ClientError
 
 from samcli.yamlhelper import yaml_dump
 
 from .application_metadata import ApplicationMetadata
 from .exceptions import (
+    DuplicateSemanticVersionError,
     InvalidS3UriError,
+    MissingSemanticVersionError,
     S3PermissionsRequired,
     ServerlessRepoClientError,
-    MissingSemanticVersionError,
-    DuplicateSemanticVersionError,
 )
 from .parser import get_app_metadata, parse_application_id, parse_template, strip_app_metadata
 
@@ -59,7 +58,7 @@ def publish_application(template, sar_client=None, fail_on_same_version=False):
     except ClientError as e:
         if not _is_conflict_exception(e):
             raise _wrap_client_error(e)
-        
+
         # Update the application if it already exists
         error_message = e.response["Error"]["Message"]
         application_id = parse_application_id(error_message)
@@ -67,25 +66,26 @@ def publish_application(template, sar_client=None, fail_on_same_version=False):
         if fail_on_same_version:
             if not app_metadata.semantic_version:
                 raise MissingSemanticVersionError(
-                    f"--fail-on-same-version is set, but no semantic version is specified.\n"
-                    "Please provide a semantic version in either the template metadata or with the --semantic-version option."
+                    "--fail-on-same-version is set, but no semantic version is specified.\n"
+                    "Please provide a semantic version in either the "
+                    "template metadata or with the --semantic-version option."
                 )
 
             semantic_version = app_metadata.semantic_version
 
-
             # Check if the given semantic version already exists
             try:
-                application_exists = _check_app_with_semantic_version_exists(sar_client, application_id, semantic_version)
+                application_exists = _check_app_with_semantic_version_exists(
+                    sar_client, application_id, semantic_version
+                )
             except ClientError as e:
                 raise _wrap_client_error(e)
 
-
             if application_exists:
                 raise DuplicateSemanticVersionError(
-                    f"Cannot publish version {semantic_version} for application {application_id} because it already exists"
+                    f"Cannot publish version {semantic_version} for application "
+                    "{application_id} because it already exists"
                 )
-            
 
         try:
             request = _update_application_request(app_metadata, application_id)
@@ -115,14 +115,30 @@ def publish_application(template, sar_client=None, fail_on_same_version=False):
 
 
 def _check_app_with_semantic_version_exists(sar_client, application_id, semantic_version):
+    # SAR API does not have a direct method to check if an application exists
+    # with a given semantic version, but if it does not exist, a NotFoundException is thrown.
+
     """
-    SAR API does not have a direct method to check if an application exists with a given semantic version, but if it does not exist, a NotFoundException is thrown.
+    Checks if a given SAR application exists with a given semantic version
+
+    :param sar_client: The boto3 client used to access SAR
+    :type sar_client: boto3.client
+    :param application_id: Application Id to check
+    :type sar_client: str
+    :param semantic_version: The semantic version to check with Application Id
+    :type sar_client: str
+    :return: Whether or not the given Application exists with the given semantic version
+    :rtype: bool
+    :raises ClientError
     """
     try:
         sar_client.get_application(ApplicationId=application_id, SemanticVersion=semantic_version)
         return True
-    except sar_client.exceptions.NotFoundException:
-        return False
+    except ClientError as error:
+        if error.response["Error"]["Code"] == "NotFoundException":
+            return False
+        else:
+            raise error
 
 
 def _get_template_dict(template):

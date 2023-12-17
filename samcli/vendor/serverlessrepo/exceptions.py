@@ -6,9 +6,9 @@ class ServerlessRepoError(Exception):
 
     MESSAGE = ""
 
-    def __init__(self, message = None, **kwargs):
+    def __init__(self, message=None, **kwargs):
         """Init the exception object."""
-        message = message or self.MESSAGE.format(**kwargs)
+        message = self.MESSAGE.format(**kwargs) if message is None else message
         Exception.__init__(self, message)
 
 
@@ -53,7 +53,7 @@ class DuplicateSemanticVersionError(ServerlessRepoError):
 
     # If --fail-on-same-version is set, then publish fails on duplicate semantic versions
 
-    
+
 class ServerlessRepoClientError(ServerlessRepoError):
     """Wrapper for botocore ClientError."""
 

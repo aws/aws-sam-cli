@@ -52,13 +52,7 @@ Default is False.
 @configuration_option(provider=ConfigProvider(section="parameters"))
 @template_common_option
 @click.option("--semantic-version", help=SEMANTIC_VERSION_HELP)
-@click.option(
-    "--fail-on-same-version",
-    default=False,
-    required=False,
-    is_flag=True,
-    help=FAIL_ON_SAME_VERSION
-)
+@click.option("--fail-on-same-version", default=False, required=False, is_flag=True, help=FAIL_ON_SAME_VERSION)
 @aws_creds_options
 @cli_framework_options
 @save_params_option
@@ -86,7 +80,10 @@ def do_cli(ctx, template, semantic_version, fail_on_same_version):
 
     from samcli.commands.exceptions import UserException
     from samcli.vendor.serverlessrepo import publish_application
-    from samcli.vendor.serverlessrepo.exceptions import InvalidS3UriError, ServerlessRepoError, MissingSemanticVersionError
+    from samcli.vendor.serverlessrepo.exceptions import (
+        InvalidS3UriError,
+        ServerlessRepoError,
+    )
     from samcli.vendor.serverlessrepo.parser import METADATA, SERVERLESS_REPO_APPLICATION
 
     try:
