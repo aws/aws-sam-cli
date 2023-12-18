@@ -103,7 +103,7 @@ def publish_application(template, sar_client=None, fail_on_same_version=False):
             except ClientError as e:
                 if not _is_conflict_exception(e):
                     raise _wrap_client_error(e)
-            
+
                 LOG.warning(
                     "WARNING: Publishing with semantic version that already exists. This may cause issues deploying."
                 )
