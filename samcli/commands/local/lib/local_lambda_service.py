@@ -14,7 +14,7 @@ class LocalLambdaService:
     that are defined in a SAM file.
     """
 
-    def __init__(self, lambda_invoke_context, port, host, ssl_context):
+    def __init__(self, lambda_invoke_context, port, host, ssl_context=None):
         """
         Initialize the Local Lambda Invoke service.
 
