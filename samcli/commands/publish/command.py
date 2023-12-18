@@ -43,7 +43,7 @@ SEMANTIC_VERSION_HELP = "Optional. The value provided here overrides SemanticVer
 SEMANTIC_VERSION = "SemanticVersion"
 FAIL_ON_SAME_VERSION = """
 If set, AWS SAM CLI will prevent a publish and return a non-zero exit code
-if the publish is attempted with the same semantic version that the SAR application is currently set to.
+if the publish is attempted with a semantic version that already exists on the SAR application.
 Default is False.
 """
 
