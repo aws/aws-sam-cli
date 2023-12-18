@@ -116,9 +116,6 @@ def publish_application(template, sar_client=None, fail_on_same_version=False):
 
 
 def _check_app_with_semantic_version_exists(sar_client, application_id, semantic_version):
-    # SAR API does not have a direct method to check if an application exists
-    # with a given semantic version, but if it does not exist, a NotFoundException is thrown.
-
     """
     Checks if a given SAR application exists with a given semantic version
 
@@ -132,6 +129,9 @@ def _check_app_with_semantic_version_exists(sar_client, application_id, semantic
     :rtype: bool
     :raises ClientError
     """
+
+    # SAR API does not have a direct method to check if an application exists
+    # with a given semantic version, but if it does not exist, a NotFoundException is thrown.
     try:
         sar_client.get_application(ApplicationId=application_id, SemanticVersion=semantic_version)
         return True
