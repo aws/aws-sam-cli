@@ -13,9 +13,7 @@ class TestLocalLambdaService(TestCase):
         lambda_invoke_context_mock.local_lambda_runner = lambda_runner_mock
         lambda_invoke_context_mock.stderr = stderr_mock
 
-        service = LocalLambdaService(
-            lambda_invoke_context=lambda_invoke_context_mock, port=3000, host="localhost", ssl_context=None
-        )
+        service = LocalLambdaService(lambda_invoke_context=lambda_invoke_context_mock, port=3000, host="localhost")
 
         self.assertEqual(service.port, 3000)
         self.assertEqual(service.host, "localhost")
@@ -34,14 +32,12 @@ class TestLocalLambdaService(TestCase):
         lambda_invoke_context_mock.local_lambda_runner = lambda_runner_mock
         lambda_invoke_context_mock.stderr = stderr_mock
 
-        service = LocalLambdaService(
-            lambda_invoke_context=lambda_invoke_context_mock, port=3000, host="localhost", ssl_context=None
-        )
+        service = LocalLambdaService(lambda_invoke_context=lambda_invoke_context_mock, port=3000, host="localhost")
 
         service.start()
 
         local_lambda_invoke_service_mock.assert_called_once_with(
-            lambda_runner=lambda_runner_mock, port=3000, host="localhost", stderr=stderr_mock, ssl_context=None
+            lambda_runner=lambda_runner_mock, port=3000, host="localhost", stderr=stderr_mock
         )
         lambda_context_mock.create.assert_called_once()
         lambda_context_mock.run.assert_called_once()

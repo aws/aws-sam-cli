@@ -18,7 +18,6 @@ class TestLocalApiService_start(TestCase):
     def setUp(self):
         self.port = 123
         self.host = "abc"
-        self.ssl_context = None
         self.static_dir = "static"
         self.cwd = "cwd"
         self.template = {"hello": "world"}
@@ -51,12 +50,7 @@ class TestLocalApiService_start(TestCase):
 
         # Now start the service
         local_service = LocalApiService(
-            self.lambda_invoke_context_mock,
-            self.port,
-            self.host,
-            self.static_dir,
-            self.disable_authorizer,
-            self.ssl_context,
+            self.lambda_invoke_context_mock, self.port, self.host, self.static_dir, self.disable_authorizer
         )
         local_service.api_provider.api.routes = routing_list
         local_service.start()
@@ -66,7 +60,7 @@ class TestLocalApiService_start(TestCase):
             self.lambda_invoke_context_mock.stacks, cwd=self.cwd, disable_authorizer=self.disable_authorizer
         )
 
-        log_routes_mock.assert_called_with(routing_list, self.host, self.port, bool(self.ssl_context))
+        log_routes_mock.assert_called_with(routing_list, self.host, self.port)
         make_static_dir_mock.assert_called_with(self.cwd, self.static_dir)
         ApiGwServiceMock.assert_called_with(
             api=self.api_provider_mock.api,
@@ -74,7 +68,6 @@ class TestLocalApiService_start(TestCase):
             static_dir=static_dir_path,
             port=self.port,
             host=self.host,
-            ssl_context=self.ssl_context,
             stderr=self.stderr_mock,
         )
 
@@ -98,12 +91,7 @@ class TestLocalApiService_start(TestCase):
 
         # Now start the service
         local_service = LocalApiService(
-            self.lambda_invoke_context_mock,
-            self.port,
-            self.host,
-            self.static_dir,
-            self.disable_authorizer,
-            self.ssl_context,
+            self.lambda_invoke_context_mock, self.port, self.host, self.static_dir, self.disable_authorizer
         )
         local_service.api_provider.api.routes = routing_list
         with self.assertRaises(NoApisDefined):
