@@ -10,7 +10,7 @@ if [ "$python_library_zip_filename" = "" ]; then
 fi
 
 if [ "$python_version" = "" ]; then
-    python_version="3.11.3";
+    python_version="3.11.5";
 fi
 
 if [ "$CI_OVERRIDE" = "1" ]; then
