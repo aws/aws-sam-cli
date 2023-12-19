@@ -88,6 +88,20 @@ class TestAuthUtils(TestCase):
         _auth_per_resource = auth_per_resource([Stack("", "", "", {}, self.template_dict)])
         self.assertEqual(_auth_per_resource, [("HelloWorldFunction", True)])
 
+    def test_auth_per_resource_on_non_serverless_api(self):
+        self.template_dict["Resources"]["HelloWorldApi"] = OrderedDict(
+            [
+                ("Type", "AWS::ApiGateway::RestApi"),
+                ("Properties", OrderedDict([("StageName", "Prod")])),
+            ]
+        )
+        # setup the lambda function with a restapiId which has Auth defined.
+        self.template_dict["Resources"]["HelloWorldFunction"]["Properties"]["Events"]["HelloWorld"]["Properties"][
+            "RestApiId"
+        ] = {"Ref": "HelloWorldApi"}
+        _auth_per_resource = auth_per_resource([Stack("", "", "", {}, self.template_dict)])
+        self.assertEqual(_auth_per_resource, [("HelloWorldFunction", True)])
+
     def test_auth_supplied_via_definition_body_uri(self):
         self.template_dict["Resources"]["HelloWorldApi"] = OrderedDict(
             [
