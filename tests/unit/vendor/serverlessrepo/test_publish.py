@@ -201,7 +201,10 @@ class TestPublishApplication(TestCase):
         self.serverlessrepo_mock.create_application_version.assert_not_called()
 
     @patch("samcli.vendor.serverlessrepo.publish.LOG")
-    def test_publish_existing_application_should_update_application_if_version_exists(self, LOG_patch):
+    @patch("samcli.vendor.serverlessrepo.publish._check_app_with_semantic_version_exists")
+    def test_publish_existing_application_should_update_application_if_version_exists(
+        self, _check_app_with_semantic_version_exists_patch, LOG_patch
+    ):
         self.serverlessrepo_mock.create_application.side_effect = self.application_exists_error
         self.serverlessrepo_mock.create_application_version.side_effect = ClientError(
             {"Error": {"Code": "ConflictException", "Message": "Random"}}, "create_application_version"
@@ -225,10 +228,12 @@ class TestPublishApplication(TestCase):
         self.serverlessrepo_mock.create_application.assert_called_once()
         self.serverlessrepo_mock.update_application.assert_called_once()
         self.serverlessrepo_mock.create_application_version.assert_called_once()
-        # If --fail-on-same-version is specified, warning is printed
+        # If --fail-on-same-version is not specified, warning is printed
         LOG_patch.warning.assert_called_once_with(
             "WARNING: Publishing with semantic version that already exists. This may cause issues deploying."
         )
+
+        _check_app_with_semantic_version_exists_patch.assert_not_called()
 
     def test_publish_new_version_should_create_application_version(self):
         self.serverlessrepo_mock.create_application.side_effect = self.application_exists_error
