@@ -11,7 +11,7 @@ aws-sam-translator==1.82.0
 docker~=7.0.0
 dateparser~=1.2
 requests~=2.31.0
-aws_lambda_builders==1.43.0
+aws_lambda_builders==1.44.0
 tomlkit==0.12.3
 watchdog==3.0.0
 rich~=13.7.0
