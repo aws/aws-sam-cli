@@ -1,5 +1,5 @@
 from unittest import TestCase
-from unittest.mock import Mock, ANY
+from unittest.mock import Mock, ANY, call
 
 from parameterized import parameterized
 
@@ -26,6 +26,9 @@ class TestLogGroupProvider_for_lambda_function(TestCase):
         result = LogGroupProvider.for_lambda_function(given_client_provider, "my_function_name")
 
         self.assertEqual(expected, result)
+        given_client_provider.assert_has_calls(
+            [call("lambda").get_function_configuration(FunctionName="my_function_name")]
+        )
 
     def test_must_return_default_log_group_name_with_exception_raised(self):
         expected = "/aws/lambda/my_function_name"
