@@ -113,6 +113,17 @@ Resources:
       ManagedPolicyArns:
         - !Sub "arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
 
+  FunctionWithCustomLoggingConfig:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: function-with-custom-logging/
+      Handler: app.handler
+      Runtime: python3.9
+      Tracing: Active
+      LoggingConfig:
+        LogFormat: JSON
+        LogGroup: !Sub /aws/lambda/${AWS::StackName}
+
   GrandChildStack:
     Type: AWS::Serverless::Application
     Properties:
