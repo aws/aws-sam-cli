@@ -66,7 +66,7 @@ Resources:
     Properties:
       CodeUri: apigw-function/
       Handler: app.handler
-      Runtime: python3.9
+      Runtime: python3.12
       Tracing: Active
       Events:
         HelloWorld:
@@ -81,7 +81,7 @@ Resources:
     Properties:
       CodeUri: sfn-function/
       Handler: app.handler
-      Runtime: python3.9
+      Runtime: python3.12
       Tracing: Active
 
   HelloWorldServerlessApi:
@@ -118,7 +118,7 @@ Resources:
     Properties:
       CodeUri: function-with-custom-logging/
       Handler: app.handler
-      Runtime: python3.9
+      Runtime: python3.12
       Tracing: Active
       LoggingConfig:
         LogFormat: JSON
