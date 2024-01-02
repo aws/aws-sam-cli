@@ -12,7 +12,7 @@ docker~=6.1.0
 dateparser~=1.2
 requests~=2.31.0
 # aws_lambda_builders==1.44.0
-aws_lambda_builders @ git+https://github.com/mndeveci/aws-lambda-builders@debug_pip_process
+aws_lambda_builders @ git+https://github.com/mndeveci/aws-lambda-builders@fix_pip_ld_library_path
 tomlkit==0.12.3
 watchdog==3.0.0
 rich~=13.7.0
