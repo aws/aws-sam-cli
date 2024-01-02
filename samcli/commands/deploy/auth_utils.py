@@ -7,6 +7,7 @@ from typing import List, Tuple
 from samcli.commands.local.lib.swagger.reader import SwaggerReader
 from samcli.lib.providers.provider import Stack
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
+from samcli.lib.utils.resources import AWS_APIGATEWAY_RESTAPI, AWS_APIGATEWAY_V2_API
 
 LOG = logging.getLogger(__name__)
 
@@ -103,9 +104,7 @@ def _auth_id(resources_dict, event_properties, identifier):
     api_resource = resources_dict.get(resource_name, {})
 
     # Auth does not apply to ApiGateway::RestApi resources so return true and continue
-    if api_resource and (
-        api_resource["Type"] == "AWS::ApiGateway::RestApi" or api_resource["Type"] == "AWS::ApiGatewayV2::Api"
-    ):
+    if api_resource and (api_resource.get("Type") in [AWS_APIGATEWAY_RESTAPI, AWS_APIGATEWAY_V2_API]):
         return True
 
     return any(
