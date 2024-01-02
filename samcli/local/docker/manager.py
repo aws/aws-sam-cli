@@ -210,7 +210,8 @@ class ContainerManager:
         """
         try:
             return cast(dict, self.docker_client.api.inspect_container(container))
-        except (docker.errors.APIError, docker.errors.NullResource):
+        except (docker.errors.APIError, docker.errors.NullResource) as ex:
+            LOG.debug("Failed to call Docker inspect: %s", str(ex))
             return False
 
 
