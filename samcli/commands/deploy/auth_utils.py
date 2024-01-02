@@ -103,7 +103,9 @@ def _auth_id(resources_dict, event_properties, identifier):
     api_resource = resources_dict.get(resource_name, {})
 
     # Auth does not apply to ApiGateway::RestApi resources so return true and continue
-    if api_resource and api_resource["Type"] == "AWS::ApiGateway::RestApi":
+    if api_resource and (
+        api_resource["Type"] == "AWS::ApiGateway::RestApi" or api_resource["Type"] == "AWS::ApiGatewayV2::Api"
+    ):
         return True
 
     return any(
