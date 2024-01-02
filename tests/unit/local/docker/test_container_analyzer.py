@@ -37,11 +37,7 @@ class TestContainerAnalyzer(TestCase):
         self.container.id = "id"
         manager = ContainerManager()
         manager.inspect = Mock()
-        manager.inspect.return_value = {
-            "State": {
-                "OOMKilled": True
-            }
-        }
+        manager.inspect.return_value = {"State": {"OOMKilled": True}}
 
         analyzer = ContainerAnalyzer(container_manager=manager, container=self.container)
         state = analyzer.inspect()
