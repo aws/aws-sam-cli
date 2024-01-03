@@ -67,6 +67,10 @@ install:
   - sh: "PATH=/opt/gradle/gradle-8.4/bin:$PATH"
   - sh: "gradle --version"
 
+  # Install dotnet8 SDK
+  - sh: "sudo apt-get update"
+  - sh: "sudo apt-get install -y dotnet-sdk-8.0"
+
   # Install AWS CLI
   - sh: "virtualenv aws_cli"
   - sh: "./aws_cli/bin/python -m pip install awscli"
