@@ -32,6 +32,16 @@ Resources:
       Layers:
         - !Ref LayerOne
 
+  FunctionTwo:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: !Ref Handler
+      Runtime: !Ref Runtime
+      CodeUri: !Ref CodeUri
+      Timeout: 600
+      Layers:
+        - !Sub arn:${AWS::Partition}:lambda:${AWS::Region}:012345678912:layer:layerName:1
+
   LayerOne:
     Type: AWS::Serverless::LayerVersion
     Properties:

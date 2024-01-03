@@ -502,6 +502,13 @@ class ApplicationBuilder:
         str
             Path to the location where built artifacts are available
         """
+
+        if layer_metadata and "BuildArchitecture" not in layer_metadata:
+            LOG.warning(
+                "WARNING: No BuildArchitecture specifed in Layer `%s`" + " Metadata. Defaulting to x86_64.",
+                layer_name,
+            )
+
         # Create the arguments to pass to the builder
         # Code is always relative to the given base directory.
         code_dir = str(pathlib.Path(self._base_dir, codeuri).resolve())
