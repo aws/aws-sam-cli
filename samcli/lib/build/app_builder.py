@@ -505,7 +505,7 @@ class ApplicationBuilder:
 
         if layer_metadata and "BuildArchitecture" not in layer_metadata:
             LOG.warning(
-                "WARNING: No BuildArchitecture specifed in Layer `%s`" + " Metadata. Defaulting to x86_64.",
+                "WARNING: No BuildArchitecture specified in Layer `%s`" + " Metadata. Defaulting to x86_64.",
                 layer_name,
             )
 
