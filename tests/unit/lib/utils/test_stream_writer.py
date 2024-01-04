@@ -3,7 +3,6 @@ Tests for StreamWriter
 """
 
 from io import BytesIO, TextIOWrapper
-from typing import TextIO
 from unittest import TestCase
 
 from samcli.lib.utils.stream_writer import StreamWriter
@@ -34,7 +33,7 @@ class TestStreamWriter(TestCase):
     def test_must_write_to_stream_bytes_for_stdout(self):
         img_bytes = b"\xff\xab\x11"
         stream_mock = Mock()
-        byte_stream_mock = Mock(spec=TextIO)
+        byte_stream_mock = Mock(spec=TextIOWrapper)
 
         writer = StreamWriter(stream_mock, byte_stream_mock)
         writer.write_bytes(img_bytes)

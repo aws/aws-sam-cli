@@ -1,7 +1,7 @@
 """
 This class acts like a wrapper around output streams to provide any flexibility with output we need
 """
-from io import BytesIO
+from io import BytesIO, TextIOWrapper
 from typing import Optional, TextIO, Union
 
 
@@ -20,7 +20,7 @@ class StreamWriter:
         self._stream = stream
         self._stream_bytes = stream_bytes
         self._auto_flush = auto_flush
-        if isinstance(stream, TextIO):
+        if isinstance(stream, TextIOWrapper):
             self._stream_bytes = stream
 
     @property
@@ -37,7 +37,7 @@ class StreamWriter:
         """
         # all these ifs are to satisfy the linting/type checking
         if self._stream_bytes:
-            if isinstance(self._stream_bytes, TextIO):
+            if isinstance(self._stream_bytes, TextIOWrapper):
                 self._stream_bytes.buffer.write(output)
                 if self._auto_flush:
                     self._stream_bytes.flush()
