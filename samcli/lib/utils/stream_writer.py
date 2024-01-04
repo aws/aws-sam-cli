@@ -41,6 +41,7 @@ class StreamWriter:
                 self._stream_bytes.buffer.write(output)
                 if self._auto_flush:
                     self._stream_bytes.flush()
+
             elif isinstance(self._stream_bytes, BytesIO):
                 self._stream_bytes.write(output)
                 if self._auto_flush:

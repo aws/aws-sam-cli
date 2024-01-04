@@ -1,8 +1,9 @@
 """
 Tests for StreamWriter
 """
-import io
 
+from io import BytesIO, TextIOWrapper
+from typing import TextIO
 from unittest import TestCase
 
 from samcli.lib.utils.stream_writer import StreamWriter
@@ -19,6 +20,35 @@ class TestStreamWriter(TestCase):
         writer.write_str(buffer.decode("utf-8"))
 
         stream_mock.write.assert_called_once_with(buffer.decode("utf-8"))
+
+    def test_must_write_to_stream_bytes(self):
+        img_bytes = b"\xff\xab\x11"
+        stream_mock = Mock()
+        byte_stream_mock = Mock(spec=BytesIO)
+
+        writer = StreamWriter(stream_mock, byte_stream_mock)
+        writer.write_bytes(img_bytes)
+
+        byte_stream_mock.write.assert_called_once_with(img_bytes)
+
+    def test_must_write_to_stream_bytes_for_stdout(self):
+        img_bytes = b"\xff\xab\x11"
+        stream_mock = Mock()
+        byte_stream_mock = Mock(spec=TextIO)
+
+        writer = StreamWriter(stream_mock, byte_stream_mock)
+        writer.write_bytes(img_bytes)
+
+        byte_stream_mock.buffer.write.assert_called_once_with(img_bytes)
+
+    def test_must_not_write_to_stream_bytes_if_not_defined(self):
+        img_bytes = b"\xff\xab\x11"
+        stream_mock = Mock()
+
+        writer = StreamWriter(stream_mock)
+        writer.write_bytes(img_bytes)
+
+        stream_mock.write.assert_not_called()
 
     def test_must_flush_underlying_stream(self):
         stream_mock = Mock()
