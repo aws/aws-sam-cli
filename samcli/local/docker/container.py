@@ -411,9 +411,6 @@ class Container:
         if isinstance(response, str):
             stdout.write_str(response)
         elif isinstance(response, bytes) and is_image:
-            # b64_image = base64.b64encode(response)
-            # # Have to decode into utf-8 so we can write
-            # stdout.write_str(b64_image.decode("utf-8"))
             stdout.write_bytes(response)
         elif isinstance(response, bytes):
             stdout.write_str(response.decode("utf-8"))

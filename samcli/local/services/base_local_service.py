@@ -95,8 +95,11 @@ class LambdaOutputParser:
 
         Parameters
         ----------
-        stdout_stream : io.BaseIO
+        stdout_stream_str : io.BaseIO
             Stream to fetch data from
+
+        stdout_stream_bytes : Optional[io.BytesIO], optional
+            Stream to fetch raw bytes data from
 
         Returns
         -------

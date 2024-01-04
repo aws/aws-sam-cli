@@ -14,6 +14,8 @@ class StreamWriter:
         ----------
         stream io.RawIOBase
             Stream to wrap
+        stream_bytes io.TextIO | io.BytesIO
+            Stream to wrap if bytes are being written
         auto_flush bool
             Whether to autoflush the stream upon writing
         """
@@ -36,16 +38,17 @@ class StreamWriter:
             Bytes to write into buffer
         """
         # all these ifs are to satisfy the linting/type checking
-        if self._stream_bytes:
-            if isinstance(self._stream_bytes, TextIOWrapper):
-                self._stream_bytes.buffer.write(output)
-                if self._auto_flush:
-                    self._stream_bytes.flush()
+        if not self._stream_bytes:
+            return
+        if isinstance(self._stream_bytes, TextIOWrapper):
+            self._stream_bytes.buffer.write(output)
+            if self._auto_flush:
+                self._stream_bytes.flush()
 
-            elif isinstance(self._stream_bytes, BytesIO):
-                self._stream_bytes.write(output)
-                if self._auto_flush:
-                    self._stream_bytes.flush()
+        elif isinstance(self._stream_bytes, BytesIO):
+            self._stream_bytes.write(output)
+            if self._auto_flush:
+                self._stream_bytes.flush()
 
     def write_str(self, output: str):
         """

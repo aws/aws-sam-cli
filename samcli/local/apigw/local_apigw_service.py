@@ -606,8 +606,8 @@ class LocalApigwService(BaseLocalService):
 
         Returns
         -------
-        str
-            A string containing the output from the Lambda function
+        Union[str, bytes]
+            A string or bytes containing the output from the Lambda function
         """
         with StringIO() as stdout:
             event_str = json.dumps(event, sort_keys=True)

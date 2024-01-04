@@ -327,7 +327,7 @@ class LambdaAuthorizer(Authorizer):
 
         Parameters
         ----------
-        response: str
+        response: Union[str, bytes]
             JSON string containing the output from a Lambda authorizer
         method_arn: str
             The method ARN of the route that invoked the Lambda authorizer
@@ -424,7 +424,7 @@ class LambdaAuthorizer(Authorizer):
 
         Parameters
         ----------
-        response: str
+        response: Union[str, bytes]
             Output from Lambda authorizer
 
         Returns
