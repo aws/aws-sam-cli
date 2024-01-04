@@ -5,6 +5,7 @@ Provides classes that interface with Docker to create, execute and manage contai
 import logging
 import sys
 import threading
+from typing import Union, cast
 
 import docker
 
@@ -191,6 +192,26 @@ class ContainerManager:
             self.docker_client.images.get(image_name)
             return True
         except docker.errors.ImageNotFound:
+            return False
+
+    def inspect(self, container: str) -> Union[bool, dict]:
+        """
+        Low-level Docker API for inspecting the container state
+
+        Parameters
+        ----------
+        container: str
+            ID of the container
+
+        Returns
+        -------
+        Union[bool, dict]
+            Container inspection state if successful, False otherwise
+        """
+        try:
+            return cast(dict, self.docker_client.api.inspect_container(container))
+        except (docker.errors.APIError, docker.errors.NullResource) as ex:
+            LOG.debug("Failed to call Docker inspect: %s", str(ex))
             return False
 
 
