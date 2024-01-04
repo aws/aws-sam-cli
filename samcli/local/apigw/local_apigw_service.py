@@ -6,7 +6,7 @@ import logging
 from datetime import datetime
 from io import StringIO
 from time import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from flask import Flask, Request, request
 from werkzeug.datastructures import Headers
@@ -593,7 +593,7 @@ class LocalApigwService(BaseLocalService):
 
         return True
 
-    def _invoke_lambda_function(self, lambda_function_name: str, event: dict) -> str:
+    def _invoke_lambda_function(self, lambda_function_name: str, event: dict) -> Union[str, bytes]:
         """
         Helper method to invoke a function and setup stdout+stderr
 

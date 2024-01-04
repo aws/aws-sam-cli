@@ -44,7 +44,7 @@ class TestStreamWriter(TestCase):
 
         lines = ["first", "second", "third"]
 
-        writer = StreamWriter(stream_mock, True)
+        writer = StreamWriter(stream_mock, auto_flush=True)
 
         for line in lines:
             writer.write_str(line)

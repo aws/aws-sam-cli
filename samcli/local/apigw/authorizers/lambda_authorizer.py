@@ -5,7 +5,7 @@ import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from json import JSONDecodeError, loads
-from typing import Any, Dict, List, Optional, Tuple, Type, cast
+from typing import Any, Dict, List, Optional, Tuple, Type, Union, cast
 from urllib.parse import parse_qsl
 
 from samcli.commands.local.lib.validators.identity_source_validator import IdentitySourceValidator
@@ -321,7 +321,7 @@ class LambdaAuthorizer(Authorizer):
 
                     break
 
-    def is_valid_response(self, response: str, method_arn: str) -> bool:
+    def is_valid_response(self, response: Union[str, bytes], method_arn: str) -> bool:
         """
         Validates whether a Lambda authorizer request is authenticated or not.
 
@@ -418,7 +418,7 @@ class LambdaAuthorizer(Authorizer):
 
         return cast(bool, is_authorized)
 
-    def get_context(self, response: str) -> Dict[str, Any]:
+    def get_context(self, response: Union[str, bytes]) -> Dict[str, Any]:
         """
         Returns the context (if set) from the authorizer response and appends the principalId to it.
 
