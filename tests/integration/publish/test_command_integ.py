@@ -74,6 +74,24 @@ class TestPublishExistingApp(PublishAppIntegBase):
         app_metadata[SEMANTIC_VERSION] = "0.1.0"
         self.assert_metadata_details(app_metadata, result.stdout.decode("utf-8"))
 
+    @pytest.mark.flaky(reruns=3)
+    def test_update_application_fail_on_same_semantic_version(self):
+        template_path = self.temp_dir.joinpath("template_create_app_version.yaml")
+        command_list = self.get_command_list(
+            template_path=template_path, region=self.region_name, semantic_version="0.1.0"
+        )
+        # Publish the version initially
+        run_command(command_list)
+
+        second_command_list = self.get_command_list(
+            template_path=template_path, region=self.region_name, semantic_version="0.1.0", fail_on_same_version=True
+        )
+
+        # Attempt to publish again with the same semantic version and with --fail-on-same-version
+        result = run_command(second_command_list)
+        expected_msg = "Cannot publish version 0.1.0 for application"
+        self.assertIn(expected_msg, result.stderr.decode("utf-8"))
+
 
 @skipIf(SKIP_PUBLISH_TESTS, "Skip publish tests in CI/CD only")
 class TestPublishNewApp(PublishAppIntegBase):

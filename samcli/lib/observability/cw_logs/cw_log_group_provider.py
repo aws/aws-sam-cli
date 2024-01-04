@@ -53,7 +53,9 @@ class LogGroupProvider:
         """
         log_group_name = ""
         try:
-            function_configuration = boto_client_provider("lambda").get_function_configuration(function_name)
+            function_configuration = boto_client_provider("lambda").get_function_configuration(
+                FunctionName=function_name
+            )
             logging_config = function_configuration.get("LoggingConfig")
             if logging_config:
                 log_group_name = logging_config.get("LogGroup")

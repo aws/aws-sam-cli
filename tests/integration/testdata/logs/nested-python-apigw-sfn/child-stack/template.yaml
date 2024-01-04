@@ -66,7 +66,7 @@ Resources:
     Properties:
       CodeUri: apigw-function/
       Handler: app.handler
-      Runtime: python3.9
+      Runtime: python3.12
       Tracing: Active
       Events:
         HelloWorld:
@@ -81,7 +81,7 @@ Resources:
     Properties:
       CodeUri: sfn-function/
       Handler: app.handler
-      Runtime: python3.9
+      Runtime: python3.12
       Tracing: Active
 
   HelloWorldServerlessApi:
@@ -112,6 +112,17 @@ Resources:
       Path: "/"
       ManagedPolicyArns:
         - !Sub "arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
+
+  FunctionWithCustomLoggingConfig:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: function-with-custom-logging/
+      Handler: app.handler
+      Runtime: python3.12
+      Tracing: Active
+      LoggingConfig:
+        LogFormat: JSON
+        LogGroup: !Sub /aws/lambda/${AWS::StackName}
 
   GrandChildStack:
     Type: AWS::Serverless::Application

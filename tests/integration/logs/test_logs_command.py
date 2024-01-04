@@ -230,6 +230,7 @@ class LogsIntegTestCases(LogsIntegBase):
 REGULAR_STACK_FUNCTION_LIST = [
     "ApiGwFunction",
     "SfnFunction",
+    "FunctionWithCustomLoggingConfig",
 ]
 REGULAR_STACK_APIGW_LIST = [
     "HelloWorldServerlessApi",
