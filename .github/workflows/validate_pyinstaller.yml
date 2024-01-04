@@ -35,7 +35,7 @@ jobs:
           ./sam-installation/install
           sam-beta --version
           ./tests/sanity-check.sh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v3
         with:
           name: pyinstaller-linux-zip
           path: .build/output/aws-sam-cli-linux-x86_64.zip
