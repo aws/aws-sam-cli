@@ -1746,7 +1746,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         self.assertEqual(command_result.process.returncode, 0)
         self.assertNotIn("No BuildArchitecture specifed", str(command_result.stderr))
 
-    @parameterized.expand([("python3.7", False, "LayerOne"), ("python3.7", "use_container", "LayerOne")])
+    @parameterized.expand([("python3.8", False, "LayerOne"), ("python3.8", "use_container", "LayerOne")])
     def test_build_with_missing_buildarchitecture(self, runtime, use_container, layer_identifier):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
@@ -1757,7 +1757,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         )
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command_result.process.returncode, 0)
-        self.assertIn("No BuildArchitecture specifed", str(command_result.stderr))
+        self.assertIn("No BuildArchitecture specified", str(command_result.stderr))
 
     @parameterized.expand([("python3.7", False), ("python3.7", "use_container")])
     def test_build_function_and_layer(self, runtime, use_container):
