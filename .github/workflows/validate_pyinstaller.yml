@@ -22,7 +22,7 @@ jobs:
       # see example failure: https://github.com/aws/aws-sam-cli/actions/runs/6102715182/job/16561754862?pr=5887
       - uses: actions/checkout@v3
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: "1.20"
       - name: Build PyInstaller
