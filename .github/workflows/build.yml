@@ -60,7 +60,7 @@ jobs:
           - "3.11"
     steps:
     - uses: actions/checkout@v4
-    - uses: actions/setup-python@v4
+    - uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python }}
     - run: test -f "./.github/ISSUE_TEMPLATE/Bug_report.md"  # prevent Bug_report.md from being renamed or deleted
@@ -76,13 +76,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         name: Install Python 3.11
         with:
           python-version: 3.11
       - run: make init
       - run: |
-          diff <( cat schema/samcli.json ) <( python schema/make_schema.py; cat schema/samcli.json ) && exit 0 # exit if schema is unchanged
+          diff <( cat schema/samcli.json ) <( python -m schema.make_schema && cat schema/samcli.json ) && \
+            echo "No changes found." && \
+            exit 0 # exit if schema is unchanged
           echo "The generated schema differs from that in the PR. Please run 'make schema'."
           exit 1
         name: Generate and compare the schema
@@ -132,7 +134,7 @@ jobs:
           - "tests/integration/docs"
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           # set last version as the one in matrix to make it default
           python-version: |
@@ -143,7 +145,7 @@ jobs:
             3.11
             3.12
             ${{ matrix.python }}
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
         with:
           go-version: '1.19'
       - uses: ruby/setup-ruby@v1
@@ -218,7 +220,7 @@ jobs:
           - "3.11"
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
       - name: Init samdev
@@ -240,7 +242,7 @@ jobs:
           - windows-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           # These are the versions of Python that correspond to the supported Lambda runtimes
           python-version: |
