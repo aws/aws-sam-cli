@@ -63,7 +63,7 @@ def no_response(event, context):
 
 
 def image_handler(event, context):
-    f = open("image-for-lambda.png", "rb")
-    image_bytes = f.read()
-    f.close()
+    with open("image-for-lambda.png", "rb") as f:
+        image_bytes = f.read()
+        
     return image_bytes
