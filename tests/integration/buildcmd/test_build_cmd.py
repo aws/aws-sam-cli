@@ -1746,7 +1746,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         command_result = run_command(cmdlist, cwd=self.working_dir)
         # Capture warning
         self.assertIn(
-            f"Layer '{layer_identifier}' has BuildArchitecture arm64, which is not listed in CompatibleArchitectures",
+            f"Layer '{layer_identifier}' has BuildArchitecture x86_64, which is not listed in CompatibleArchitectures",
             str(command_result.stderr),
         )
         # Build should still succeed
