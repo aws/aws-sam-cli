@@ -165,8 +165,9 @@ class LocalLambdaInvokeService(BaseLocalService):
 
         request_data = request_data.decode("utf-8")
 
-        stdout_stream = io.StringIO()
-        stdout_stream_writer = StreamWriter(stdout_stream, auto_flush=True)
+        stdout_stream_string = io.StringIO()
+        stdout_stream_bytes = io.BytesIO()
+        stdout_stream_writer = StreamWriter(stdout_stream_string, stdout_stream_bytes, auto_flush=True)
 
         try:
             self.lambda_runner.invoke(function_name, request_data, stdout=stdout_stream_writer, stderr=self.stderr)
@@ -178,7 +179,9 @@ class LocalLambdaInvokeService(BaseLocalService):
                 "Inline code is not supported for sam local commands. Please write your code in a separate file."
             )
 
-        lambda_response, is_lambda_user_error_response = LambdaOutputParser.get_lambda_output(stdout_stream)
+        lambda_response, is_lambda_user_error_response = LambdaOutputParser.get_lambda_output(
+            stdout_stream_string, stdout_stream_bytes
+        )
 
         if is_lambda_user_error_response:
             return self.service_response(
