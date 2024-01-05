@@ -4,6 +4,8 @@ from datetime import datetime
 from time import time
 from typing import Any, Dict
 
+from samcli.local.apigw.route import Route
+
 
 class ContextIdentity:
     def __init__(
@@ -169,6 +171,7 @@ class ApiGatewayLambdaEvent:
         stage_variables=None,
         path=None,
         is_base_64_encoded=False,
+        api_type=Route.API,
     ):
         """
         Constructs an ApiGatewayLambdaEvent
@@ -205,7 +208,9 @@ class ApiGatewayLambdaEvent:
         if not isinstance(stage_variables, dict) and stage_variables is not None:
             raise TypeError("'stage_variables' must be of type dict or None")
 
-        self.version = "1.0"
+        # v1 payloads and rest api payloads are identical save for the version field
+        if api_type == Route.HTTP:
+            self.version = "1.0"
         self.http_method = http_method
         self.body = body
         self.resource = resource
@@ -218,6 +223,7 @@ class ApiGatewayLambdaEvent:
         self.stage_variables = stage_variables
         self.path = path
         self.is_base_64_encoded = is_base_64_encoded
+        self.api_type = api_type
 
     def to_dict(self) -> Dict[str, Any]:
         """
@@ -233,7 +239,6 @@ class ApiGatewayLambdaEvent:
             request_context_dict = self.request_context.to_dict()
 
         json_dict = {
-            "version": self.version,
             "httpMethod": self.http_method,
             "body": self.body if self.body else None,
             "resource": self.resource,
@@ -249,6 +254,9 @@ class ApiGatewayLambdaEvent:
             "path": self.path,
             "isBase64Encoded": self.is_base_64_encoded,
         }
+
+        if self.api_type == Route.HTTP:
+            json_dict["version"] = "1.0"
 
         return json_dict
 
