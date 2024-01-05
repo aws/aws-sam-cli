@@ -226,13 +226,12 @@ class DefaultBuildStrategy(BuildStrategy):
         build_architecture = layer.build_architecture or X86_64
         compatible_architectures = layer.compatible_architectures or [X86_64]
 
-
         if build_architecture not in compatible_architectures:
             LOG.warning(
-                    "WARNING: Layer '%s' has BuildArchitecture %s, which is not listed in CompatibleArchitectures",
-                    layer.layer_id,
-                    build_architecture
-                )
+                "WARNING: Layer '%s' has BuildArchitecture %s, which is not listed in CompatibleArchitectures",
+                layer.layer_id,
+                build_architecture,
+            )
         single_build_dir = layer.get_build_dir(self._build_dir)
         # when a layer is passed here, it is ZIP function, codeuri and runtime are not None
         # codeuri and compatible_runtimes are not None
