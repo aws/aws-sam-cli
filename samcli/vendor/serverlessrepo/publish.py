@@ -1,6 +1,7 @@
 """Module containing functions to publish or update application."""
 
 import copy
+import logging
 import re
 
 import boto3
@@ -9,25 +10,55 @@ from botocore.exceptions import ClientError
 from samcli.yamlhelper import yaml_dump
 
 from .application_metadata import ApplicationMetadata
-from .exceptions import InvalidS3UriError, S3PermissionsRequired, ServerlessRepoClientError
+from .exceptions import (
+    DuplicateSemanticVersionError,
+    InvalidS3UriError,
+    MissingSemanticVersionError,
+    S3PermissionsRequired,
+    ServerlessRepoClientError,
+)
 from .parser import get_app_metadata, parse_application_id, parse_template, strip_app_metadata
+
+LOG = logging.getLogger(__name__)
 
 CREATE_APPLICATION = "CREATE_APPLICATION"
 UPDATE_APPLICATION = "UPDATE_APPLICATION"
 CREATE_APPLICATION_VERSION = "CREATE_APPLICATION_VERSION"
 
 
-def publish_application(template, sar_client=None):
+def publish_application(template, sar_client=None, fail_on_same_version=False):
     """
     Create a new application or new application version in SAR.
 
-    :param template: Content of a packaged YAML or JSON SAM template
-    :type template: str_or_dict
-    :param sar_client: The boto3 client used to access SAR
-    :type sar_client: boto3.client
-    :return: Dictionary containing application id, actions taken, and updated details
-    :rtype: dict
-    :raises ValueError
+    Parameters
+    ----------
+    template: str | dict
+        Content of a packaged YAML or JSON SAM template
+
+    sar_client: boto3.client
+        The boto3 client used to access SAR
+
+    fail_on_same_version: bool
+        Whether or not publish hard fails when a duplicate semantic version is provided
+
+    Returns
+    -------
+    dict
+        Dictionary containing application id, actions taken, and updated details
+
+    Raises
+    ------
+        ValueError
+            If the template is null
+
+        ClientError
+            If sar client operations fail
+
+        MissingSemanticVersionError
+            If --fail-on-same-version is set in sam publish command but no semantic version is provided
+
+        DuplicateSemanticVersionError
+            If --fail-on-same-version is set in sam publish command and the provided semantic version already exists
     """
     if not template:
         raise ValueError("Require SAM template to publish the application")
@@ -51,6 +82,31 @@ def publish_application(template, sar_client=None):
         # Update the application if it already exists
         error_message = e.response["Error"]["Message"]
         application_id = parse_application_id(error_message)
+
+        if fail_on_same_version:
+            if not app_metadata.semantic_version:
+                raise MissingSemanticVersionError(
+                    "--fail-on-same-version is set, but no semantic version is specified.\n"
+                    "Please provide a semantic version in either the "
+                    "template metadata or with the --semantic-version option."
+                )
+
+            semantic_version = app_metadata.semantic_version
+
+            # Check if the given semantic version already exists
+            try:
+                application_exists = _check_app_with_semantic_version_exists(
+                    sar_client, application_id, semantic_version
+                )
+            except ClientError as e:
+                raise _wrap_client_error(e)
+
+            if application_exists:
+                raise DuplicateSemanticVersionError(
+                    f"Cannot publish version {semantic_version} for application "
+                    f"{application_id} because it already exists"
+                )
+
         try:
             request = _update_application_request(app_metadata, application_id)
             sar_client.update_application(**request)
@@ -68,6 +124,10 @@ def publish_application(template, sar_client=None):
                 if not _is_conflict_exception(e):
                     raise _wrap_client_error(e)
 
+                LOG.warning(
+                    "WARNING: Publishing with semantic version that already exists. This may cause issues deploying."
+                )
+
     return {
         "application_id": application_id,
         "actions": actions,
@@ -75,15 +135,63 @@ def publish_application(template, sar_client=None):
     }
 
 
+def _check_app_with_semantic_version_exists(sar_client, application_id, semantic_version):
+    """
+    Checks if a given SAR application exists with a given semantic version
+
+    Parameters
+    ----------
+    sar_client: boto3.client
+        The boto3 client used to access SAR
+
+    application_id: str
+        Application Id to check
+
+    semantic_version: str
+        The semantic version to check with Application Id
+
+    Returns
+    -------
+    bool
+        Whether or not the given Application exists with the given semantic version
+
+    Raises
+    ------
+    ClientError
+        If the sar client operations fail
+
+    """
+
+    # SAR API does not have a direct method to check if an application exists
+    # with a given semantic version, but if it does not exist, a NotFoundException is thrown.
+    try:
+        sar_client.get_application(ApplicationId=application_id, SemanticVersion=semantic_version)
+        return True
+    except ClientError as error:
+        if error.response["Error"]["Code"] == "NotFoundException":
+            return False
+        else:
+            raise error
+
+
 def _get_template_dict(template):
     """
     Parse string template and or copy dictionary template.
 
-    :param template: Content of a packaged YAML or JSON SAM template
-    :type template: str_or_dict
-    :return: Template as a dictionary
-    :rtype: dict
-    :raises ValueError
+    Parameters
+    ----------
+    template: str | dict
+        Content of a packaged YAML or JSON SAM template
+
+    Returns
+    -------
+    dict
+        Template as a dictionary
+
+    Raises
+    ------
+    ValueError
+        If the supplied template is not a string or dictionary
     """
     if isinstance(template, str):
         return parse_template(template)
@@ -98,12 +206,18 @@ def _create_application_request(app_metadata, template):
     """
     Construct the request body to create application.
 
-    :param app_metadata: Object containing app metadata
-    :type app_metadata: ApplicationMetadata
-    :param template: A packaged YAML or JSON SAM template
-    :type template: str
-    :return: SAR CreateApplication request body
-    :rtype: dict
+    Parameters
+    ----------
+    app_metadata: ApplicationMetadata
+        Object containing app metadata
+
+    template: str
+        A packaged YAML or JSON SAM template
+
+    Returns
+    -------
+    dict
+        SAR CreateApplication request body
     """
     app_metadata.validate(["author", "description", "name"])
     request = {
@@ -129,12 +243,18 @@ def _update_application_request(app_metadata, application_id):
     """
     Construct the request body to update application.
 
-    :param app_metadata: Object containing app metadata
-    :type app_metadata: ApplicationMetadata
-    :param application_id: The Amazon Resource Name (ARN) of the application
-    :type application_id: str
-    :return: SAR UpdateApplication request body
-    :rtype: dict
+    Parameters
+    ----------
+    app_metadata: ApplicationMetadata
+        Object containing app metadata
+
+    application_id: str
+        The Amazon Resource Name (ARN) of the application
+
+    Returns
+    -------
+    dict
+        SAR CreateApplication request body
     """
     request = {
         "ApplicationId": application_id,
@@ -152,14 +272,21 @@ def _create_application_version_request(app_metadata, application_id, template):
     """
     Construct the request body to create application version.
 
-    :param app_metadata: Object containing app metadata
-    :type app_metadata: ApplicationMetadata
-    :param application_id: The Amazon Resource Name (ARN) of the application
-    :type application_id: str
-    :param template: A packaged YAML or JSON SAM template
-    :type template: str
-    :return: SAR CreateApplicationVersion request body
-    :rtype: dict
+    Parameters
+    ----------
+    app_metadata: ApplicationMetadata
+        Object containing app metadata
+
+    application_id: str
+        The Amazon Resource Name (ARN) of the application
+
+    template: str
+        A packaged YAML or JSON SAM template
+
+    Returns
+    -------
+    dict
+        SAR CreateApplication request body
     """
     app_metadata.validate(["semantic_version"])
     request = {
@@ -175,9 +302,15 @@ def _is_conflict_exception(e):
     """
     Check whether the botocore ClientError is ConflictException.
 
-    :param e: botocore exception
-    :type e: ClientError
-    :return: True if e is ConflictException
+    Parameters
+    ----------
+    e: ClientError
+        botocore exception
+
+    Returns
+    -------
+    bool
+        True if e is ConflictException, False otherwise
     """
     error_code = e.response["Error"]["Code"]
     return error_code == "ConflictException"
@@ -187,9 +320,15 @@ def _wrap_client_error(e):
     """
     Wrap botocore ClientError exception into ServerlessRepoClientError.
 
-    :param e: botocore exception
-    :type e: ClientError
-    :return: S3PermissionsRequired or InvalidS3UriError or general ServerlessRepoClientError
+    Parameters
+    ----------
+    e: ClientError
+        botocore exception
+
+    Returns
+    -------
+    ServerlessRepoError
+       S3PermissionsRequired or InvalidS3UriError or general ServerlessRepoClientError
     """
     error_code = e.response["Error"]["Code"]
     message = e.response["Error"]["Message"]
@@ -209,12 +348,18 @@ def _get_publish_details(actions, app_metadata_template):
     """
     Get the changed application details after publishing.
 
-    :param actions: Actions taken during publishing
-    :type actions: list of str
-    :param app_metadata_template: Original template definitions of app metadata
-    :type app_metadata_template: dict
-    :return: Updated fields and values of the application
-    :rtype: dict
+    Parameters
+    ----------
+    actions: str | list
+        Actions taken during publishing
+
+    app_metadata_template: dict
+        Original template definitions of app metadata
+
+    Returns
+    -------
+    dict
+        Updated fields and values of the application
     """
     if actions == [CREATE_APPLICATION]:
         return {k: v for k, v in app_metadata_template.items() if v}
