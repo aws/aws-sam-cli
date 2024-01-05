@@ -1692,12 +1692,12 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         command_result = run_command(cmdlist, cwd=self.working_dir)
         # Capture warning
         self.assertIn(
-            f"Layer `{layer_identifier}` has BuildArchitecture `x86_64`, which is not listed in CompatibleArchitectures.",
+            f"Layer '{layer_identifier}' has BuildArchitecture x86_64, which is not listed in CompatibleArchitectures.",
             str(command_result.stderr),
         )
         # Build should still succeed
         self.assertEqual(command_result.process.returncode, 0)
-
+        
     def test_build_layer_with_makefile_with_fake_build_architecture(self):
         build_method = "makefile"
         use_container = False
