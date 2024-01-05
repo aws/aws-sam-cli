@@ -20,7 +20,6 @@ class StreamWriter:
             Whether to autoflush the stream upon writing
         """
         self._stream = stream
-        self._stream_bytes = stream_bytes
         self._stream_bytes = stream if isinstance(stream, TextIOWrapper) else stream_bytes
         self._auto_flush = auto_flush
 
