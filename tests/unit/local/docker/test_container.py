@@ -1,6 +1,7 @@
 """
 Unit test for Container class
 """
+import base64
 import json
 from unittest import TestCase
 from unittest.mock import MagicMock, Mock, call, patch, ANY
@@ -584,22 +585,77 @@ class TestContainer_wait_for_result(TestCase):
         self.socket_mock = Mock()
         self.socket_mock.connect_ex.return_value = 0
 
+    @patch("socket.socket")
+    @patch("samcli.local.docker.container.requests")
+    def test_wait_for_result_no_error_image_response(self, mock_requests, patched_socket):
+        self.container.is_created.return_value = True
+
+        rie_response = b"\xff\xab"
+        resp_headers = {
+            "Date": "Tue, 02 Jan 2024 21:23:31 GMT",
+            "Content-Type": "image/jpeg",
+            "Transfer-Encoding": "chunked",
+        }
+
+        real_container_mock = Mock()
+        self.mock_docker_client.containers.get.return_value = real_container_mock
+
+        output_itr = Mock()
+        real_container_mock.attach.return_value = output_itr
+        self.container._write_container_output = Mock()
+        self.container._create_threading_event = Mock()
+        self.container._create_threading_event.return_value = Mock()
+
+        stdout_mock = Mock()
+        stdout_mock.write_bytes = Mock()
+        stderr_mock = Mock()
+        response = Mock()
+        response.content = rie_response
+        response.headers = resp_headers
+        mock_requests.post.return_value = response
+
+        patched_socket.return_value = self.socket_mock
+
+        start_timer = Mock()
+        timer = Mock()
+        start_timer.return_value = timer
+
+        self.container.wait_for_result(
+            event=self.event, full_path=self.name, stdout=stdout_mock, stderr=stderr_mock, start_timer=start_timer
+        )
+
+        # since we passed in a start_timer function, ensure it's called and
+        # the timer is cancelled once execution is done
+        start_timer.assert_called()
+        timer.cancel.assert_called()
+
+        # make sure we wait for the same host+port that we make the post request to
+        host = self.container._container_host
+        port = self.container.rapid_port_host
+        self.socket_mock.connect_ex.assert_called_with((host, port))
+        mock_requests.post.assert_called_with(
+            self.container.URL.format(host=host, port=port, function_name="function"),
+            data=b"{}",
+            timeout=(self.container.RAPID_CONNECTION_TIMEOUT, None),
+        )
+        stdout_mock.write_bytes.assert_called_with(rie_response)
+
     @parameterized.expand(
         [
-            (
-                True,
-                b'{"hello":"world"}',
-            ),
+            (True, b'{"hello":"world"}', {"Date": "Tue, 02 Jan 2024 21:23:31 GMT", "Content-Type": "text"}),
             (
                 False,
                 b"non-json-deserializable",
+                {"Date": "Tue, 02 Jan 2024 21:23:31 GMT", "Content-Type": "text/plain"},
             ),
-            (False, b""),
+            (False, b"", {"Date": "Tue, 02 Jan 2024 21:23:31 GMT", "Content-Type": "text/plain"}),
         ]
     )
     @patch("socket.socket")
     @patch("samcli.local.docker.container.requests")
-    def test_wait_for_result_no_error(self, response_deserializable, rie_response, mock_requests, patched_socket):
+    def test_wait_for_result_no_error(
+        self, response_deserializable, rie_response, resp_headers, mock_requests, patched_socket
+    ):
         self.container.is_created.return_value = True
 
         real_container_mock = Mock()
@@ -616,6 +672,7 @@ class TestContainer_wait_for_result(TestCase):
         stderr_mock = Mock()
         response = Mock()
         response.content = rie_response
+        response.headers = resp_headers
         mock_requests.post.return_value = response
 
         patched_socket.return_value = self.socket_mock
