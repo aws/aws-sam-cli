@@ -1676,6 +1676,8 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
     )
     def test_build_layer_with_architecture_not_compatible(self, build_method, use_container):
         # The BuildArchitecture is not one of the listed CompatibleArchitectures
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
+            self.skipTest(SKIP_DOCKER_MESSAGE)
 
         layer_identifier = "LayerWithNoCompatibleArchitectures"
 
@@ -1692,12 +1694,66 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         command_result = run_command(cmdlist, cwd=self.working_dir)
         # Capture warning
         self.assertIn(
-            f"Layer '{layer_identifier}' has BuildArchitecture x86_64, which is not listed in CompatibleArchitectures.",
-            str(command_result.stderr),
+            f"Layer '{layer_identifier}' has BuildArchitecture x86_64, which is not listed in CompatibleArchitectures",
+            str(command_result.stderr.decode('utf-8')),
         )
         # Build should still succeed
         self.assertEqual(command_result.process.returncode, 0)
         
+    @parameterized.expand([("python3.8", False), ("python3.8", "use_container")])
+    def test_build_arch_no_compatible_arch(self,runtime,use_container):
+        # CompatibleArchitectures section is missing, but BuildArchitecture is present
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        layer_identifier = "LayerWithBuildArchButNoCompatibleArchs"
+
+        overrides = {
+            "LayerBuildMethod": runtime,
+            "LayerMakeContentUri": "PyLayer",
+            "LayerCompatibleArchitecture": "arm64",
+        }
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
+        )
+
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        # Capture warning
+        self.assertIn(
+            f"Layer '{layer_identifier}' has BuildArchitecture arm64, which is not listed in CompatibleArchitectures",
+            str(command_result.stderr),
+        )
+        # Build should still succeed
+        self.assertEqual(command_result.process.returncode, 0)
+
+        
+    @parameterized.expand([("python3.8", False), ("python3.8", "use_container")])
+    def test_compatible_arch_no_build_arch(self,runtime,use_container):
+        # BuildArchitecture section is missing, but CompatibleArchitectures is present
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        layer_identifier = "LayerWithBuildArchButNoCompatibleArchs"
+
+        overrides = {
+            "LayerBuildMethod": runtime,
+            "LayerMakeContentUri": "PyLayer",
+            "LayerBuildArchitecture": "arm64",
+        }
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
+        )
+
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        # Capture warning
+        self.assertIn(
+            f"Layer '{layer_identifier}' has BuildArchitecture arm64, which is not listed in CompatibleArchitectures",
+            str(command_result.stderr),
+        )
+        # Build should still succeed
+        self.assertEqual(command_result.process.returncode, 0)
+
+
     def test_build_layer_with_makefile_with_fake_build_architecture(self):
         build_method = "makefile"
         use_container = False
