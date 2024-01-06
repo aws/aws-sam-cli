@@ -208,9 +208,6 @@ class ApiGatewayLambdaEvent:
         if not isinstance(stage_variables, dict) and stage_variables is not None:
             raise TypeError("'stage_variables' must be of type dict or None")
 
-        # v1 payloads and rest api payloads are identical save for the version field
-        if api_type == Route.HTTP:
-            self.version = "1.0"
         self.http_method = http_method
         self.body = body
         self.resource = resource
@@ -255,6 +252,7 @@ class ApiGatewayLambdaEvent:
             "isBase64Encoded": self.is_base_64_encoded,
         }
 
+        # v1 payloads and rest api payloads are identical save for the version field
         if self.api_type == Route.HTTP:
             json_dict["version"] = "1.0"
 
