@@ -1791,10 +1791,15 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         self.assertEqual(command_result.process.returncode, 1)
         self.assertFalse(self.default_build_dir.joinpath(layer_identifier).exists())
 
-    def test_function_build_succeeds_with_referenced_layer(self):
-        overrides = {"Runtime": "python3.8"}
+    @parameterized.expand([False, "use_container"])
+    def test_function_build_succeeds_with_referenced_layer(self, use_container):
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        overrides = {"Runtime": "python3.8", "CodeUri": "Python"}
+
         cmdlist = self.get_command_list(
-            use_container=False, parameter_overrides=overrides, function_identifier="FunctionTwo"
+            use_container=use_container, parameter_overrides=overrides, function_identifier="FunctionTwo"
         )
 
         command_result = run_command(cmdlist, cwd=self.working_dir)
