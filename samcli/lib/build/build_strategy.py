@@ -26,6 +26,7 @@ from samcli.lib.build.build_graph import (
 from samcli.lib.build.exceptions import MissingBuildMethodException
 from samcli.lib.build.utils import warn_on_invalid_architecture
 
+from samcli.lib.utils.architecture import X86_64, ARM64
 
 LOG = logging.getLogger(__name__)
 
@@ -218,6 +219,19 @@ class DefaultBuildStrategy(BuildStrategy):
         if layer.build_method == "makefile":
             warn_on_invalid_architecture(layer_definition)
 
+        # There are two cases where we'd like to warn the customer
+        # 1. Compatible Architectures is only x86 (or not present) but Build Architecture is arm64
+        # 2. Build Architecture is x86 (or not present) but Compatible Architectures is only arm64
+
+        build_architecture = layer.build_architecture or X86_64
+        compatible_architectures = layer.compatible_architectures or [X86_64]
+
+        if build_architecture not in compatible_architectures:
+            LOG.warning(
+                "WARNING: Layer '%s' has BuildArchitecture %s, which is not listed in CompatibleArchitectures",
+                layer.layer_id,
+                build_architecture,
+            )
         single_build_dir = layer.get_build_dir(self._build_dir)
         # when a layer is passed here, it is ZIP function, codeuri and runtime are not None
         # codeuri and compatible_runtimes are not None
