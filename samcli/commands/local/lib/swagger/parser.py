@@ -359,7 +359,6 @@ class SwaggerParser:
 
                 authorizer_name = None
                 use_default_authorizer = True
-
                 if authorizers is not None:
                     if not isinstance(authorizers, list):
                         raise InvalidSecurityDefinition(
@@ -372,8 +371,8 @@ class SwaggerParser:
                             "There must only be a single authorizer defined "
                             f"for path='{full_path}' method='{method}', found '{len(authorizers)}'"
                         )
-
-                    if len(authorizers) == 1:
+                    
+                    if len(authorizers) == 1 and authorizers[0] != {}:
                         # user has authorizer defined
                         authorizer_object = authorizers[0]
                         authorizer_object = list(authorizers[0])
