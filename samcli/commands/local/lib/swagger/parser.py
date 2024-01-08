@@ -371,7 +371,7 @@ class SwaggerParser:
                             "There must only be a single authorizer defined "
                             f"for path='{full_path}' method='{method}', found '{len(authorizers)}'"
                         )
-                    
+
                     if len(authorizers) == 1 and authorizers[0] != {}:
                         # user has authorizer defined
                         authorizer_object = authorizers[0]
