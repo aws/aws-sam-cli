@@ -145,7 +145,7 @@ jobs:
             3.11
             3.12
             ${{ matrix.python }}
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
         with:
           go-version: '1.19'
       - uses: ruby/setup-ruby@v1

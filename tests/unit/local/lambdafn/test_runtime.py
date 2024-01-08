@@ -312,6 +312,8 @@ class LambdaRuntime_invoke(TestCase):
         self.runtime._configure_interrupt = Mock()
         self.runtime._configure_interrupt.return_value = start_timer
 
+        self.runtime._check_exit_state = Mock()
+
         LambdaContainerMock.return_value = container
         container.is_running.return_value = False
 
@@ -372,6 +374,8 @@ class LambdaRuntime_invoke(TestCase):
         self.runtime._configure_interrupt = Mock()
         self.runtime._configure_interrupt.return_value = start_timer
 
+        self.runtime._check_exit_state = Mock()
+
         LambdaContainerMock.return_value = container
         container.is_running.return_value = False
 
@@ -407,6 +411,7 @@ class LambdaRuntime_invoke(TestCase):
         self.runtime._get_code_dir.return_value = code_dir
         self.runtime._configure_interrupt = Mock()
         self.runtime._configure_interrupt.return_value = timer
+        self.runtime._check_exit_state = Mock()
 
         LambdaContainerMock.return_value = container
         container.is_running.return_value = False
@@ -440,6 +445,7 @@ class LambdaRuntime_invoke(TestCase):
         self.runtime._get_code_dir = MagicMock()
         self.runtime._get_code_dir.return_value = code_dir
         self.runtime._configure_interrupt = Mock()
+        self.runtime._check_exit_state = Mock()
 
         LambdaContainerMock.return_value = container
         container.is_running.return_value = False
