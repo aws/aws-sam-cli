@@ -32,6 +32,16 @@ Resources:
       Layers:
         - !Ref LayerOne
 
+  FunctionTwo:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: !Ref Handler
+      Runtime: !Ref Runtime
+      CodeUri: !Ref CodeUri
+      Timeout: 600
+      Layers:
+        - !Sub arn:${AWS::Partition}:lambda:${AWS::Region}:012345678912:layer:layerName:1
+
   LayerOne:
     Type: AWS::Serverless::LayerVersion
     Properties:
@@ -88,3 +98,22 @@ Resources:
     Metadata:
       BuildMethod: !Ref LayerBuildMethod
       BuildArchitecture: !Ref LayerBuildArchitecture
+
+  LayerWithBuildArchButNoCompatibleArchs:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      Description: Build arch present but CompatibleArchs not present
+      ContentUri: !Ref LayerMakeContentUri
+    Metadata:
+      BuildMethod: !Ref LayerBuildMethod
+      BuildArchitecture: !Ref LayerBuildArchitecture
+
+  LayerWithCompatibleArchsButNoBuildArch:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      Description: Build arch present but CompatibleArchs not present
+      ContentUri: !Ref LayerMakeContentUri
+      CompatibleArchitectures:
+        - !Ref LayerCompatibleArchitecture
+    Metadata:
+      BuildMethod: !Ref LayerBuildMethod
