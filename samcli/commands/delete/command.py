@@ -7,9 +7,10 @@ from typing import Optional
 
 import click
 
-from samcli.cli.cli_config_file import save_params_option
+from samcli.cli.cli_config_file import ConfigProvider, configuration_option, save_params_option
 from samcli.cli.main import aws_creds_options, common_options, pass_context, print_cmdline_args
 from samcli.commands._utils.command_exception_handler import command_exception_handler
+from samcli.commands.delete.delete_context import CONFIG_SECTION
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.version_checker import check_newer_version
 
@@ -33,6 +34,7 @@ LOG = logging.getLogger(__name__)
     context_settings={"ignore_unknown_options": False, "allow_interspersed_args": True, "allow_extra_args": True},
     help=HELP_TEXT,
 )
+@configuration_option(provider=ConfigProvider(section=CONFIG_SECTION))
 @click.option(
     "--stack-name",
     required=False,

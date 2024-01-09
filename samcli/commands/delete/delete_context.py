@@ -8,7 +8,6 @@ import click
 from botocore.exceptions import NoCredentialsError, NoRegionError
 from click import confirm, prompt
 
-from samcli.cli.cli_config_file import ConfigProvider
 from samcli.commands.delete.exceptions import CfDeleteFailedStatusError
 from samcli.commands.exceptions import AWSServiceClientError, RegionError
 from samcli.lib.bootstrap.companion_stack.companion_stack_builder import CompanionStack
@@ -58,7 +57,6 @@ class DeleteContext:
         self.companion_stack_name = None
 
     def __enter__(self):
-        self.parse_config_file()
         if not self.stack_name:
             LOG.debug("No stack-name input found")
             if not self.no_prompts:
@@ -76,32 +74,6 @@ class DeleteContext:
 
     def __exit__(self, *args):
         pass
-
-    def parse_config_file(self):
-        """
-        Read the provided config file if it exists and assign the options values.
-        """
-        config_provider = ConfigProvider(CONFIG_SECTION, [CONFIG_COMMAND])
-        config_options = config_provider(
-            config_path=self.config_file, config_env=self.config_env, cmd_names=[CONFIG_COMMAND]
-        )
-        if not config_options:
-            return
-
-        if not self.stack_name:
-            self.stack_name = config_options.get("stack_name", None)
-        # If the stack_name is same as the one present in samconfig file,
-        # get the information about parameters if not specified by user.
-        if self.stack_name and self.stack_name == config_options.get("stack_name", None):
-            LOG.debug("Local config present and using the defined options")
-            if not self.region:
-                self.region = config_options.get("region", None)
-            if not self.profile:
-                self.profile = config_options.get("profile", None)
-            if not self.s3_bucket:
-                self.s3_bucket = config_options.get("s3_bucket", None)
-            if not self.s3_prefix:
-                self.s3_prefix = config_options.get("s3_prefix", None)
 
     def init_clients(self):
         """
