@@ -2,7 +2,7 @@
 import io
 import json
 import logging
-from typing import Optional, Tuple, Union
+from typing import Tuple
 
 from flask import Response
 
@@ -85,9 +85,7 @@ class BaseLocalService:
 
 class LambdaOutputParser:
     @staticmethod
-    def get_lambda_output(
-        stdout_stream_str: io.StringIO, stdout_stream_bytes: Optional[io.BytesIO] = None
-    ) -> Tuple[Union[str, bytes], bool]:
+    def get_lambda_output(stdout_stream: io.StringIO) -> Tuple[str, bool]:
         """
         This method will extract read the given stream and return the response from Lambda function separated out
         from any log statements it might have outputted. Logs end up in the stdout stream if the Lambda function
@@ -95,11 +93,8 @@ class LambdaOutputParser:
 
         Parameters
         ----------
-        stdout_stream_str : io.BaseIO
+        stdout_stream : io.BaseIO
             Stream to fetch data from
-
-        stdout_stream_bytes : Optional[io.BytesIO], optional
-            Stream to fetch raw bytes data from
 
         Returns
         -------
@@ -108,9 +103,7 @@ class LambdaOutputParser:
         bool
             If the response is an error/exception from the container
         """
-        lambda_response: Union[str, bytes] = stdout_stream_str.getvalue()
-        if stdout_stream_bytes and not lambda_response:
-            lambda_response = stdout_stream_bytes.getvalue()
+        lambda_response = stdout_stream.getvalue()
 
         # When the Lambda Function returns an Error/Exception, the output is added to the stdout of the container. From
         # our perspective, the container returned some value, which is not always true. Since the output is the only
