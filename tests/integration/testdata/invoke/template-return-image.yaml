@@ -9,4 +9,4 @@ Resources:
       Handler: main.image_handler
       Runtime: python3.12
       CodeUri: .
-      Timeout: 30
+      Timeout: 600
