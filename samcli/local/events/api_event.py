@@ -188,6 +188,7 @@ class ApiGatewayLambdaEvent:
         :param dict stage_variables: API Gateway Stage Variables
         :param str path: Path of the request
         :param bool is_base_64_encoded: True if the data is base64 encoded.
+        :param str api_type: The type of API the event is being generated for 
         """
 
         if not isinstance(query_string_params, dict) and query_string_params is not None:
