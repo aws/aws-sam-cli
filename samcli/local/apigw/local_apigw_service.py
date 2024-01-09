@@ -477,6 +477,7 @@ class LocalApigwService(BaseLocalService):
             stage_name=self.api.stage_name,
             stage_variables=self.api.stage_variables,
             operation_name=route_key,
+            api_type=route.event_type,
         )
 
     def _build_v1_context(self, route: Route) -> Dict[str, Any]:
