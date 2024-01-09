@@ -66,7 +66,7 @@ class Runtime(Enum):
         return any(value == item.value for item in cls)
 
     @classmethod
-    def get_image_name_tag(cls, runtime: str, architecture: str) -> str:
+    def get_image_name_tag(cls, runtime: str, architecture: str, is_preview: bool = False) -> str:
         """
         Returns the image name and tag for a particular runtime
 
@@ -97,6 +97,9 @@ class Runtime(Enum):
             runtime_image_tag = re.sub(r"^([a-z]+)([0-9][a-z0-9\.]*)$", r"\1:\2", runtime)
             # nodejs20.x, go1.x, etc don't have the `.x` part.
             runtime_image_tag = runtime_image_tag.replace(".x", "")
+
+        if is_preview:
+            runtime_image_tag = f"{runtime_image_tag}-preview"
 
         # Runtime image tags contain the architecture only if more than one is supported for that runtime
         if has_runtime_multi_arch_image(runtime):
@@ -163,7 +166,8 @@ class LambdaImage:
         if packagetype == IMAGE:
             base_image = image
         elif packagetype == ZIP:
-            runtime_image_tag = Runtime.get_image_name_tag(runtime, architecture)
+            # NOTE (hawflau): update for dotnet8
+            runtime_image_tag = Runtime.get_image_name_tag(runtime, architecture, is_preview=True)
             if self.invoke_images:
                 base_image = self.invoke_images.get(function_name, self.invoke_images.get(None))
             if not base_image:

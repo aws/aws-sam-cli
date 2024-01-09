@@ -11,7 +11,7 @@ aws-sam-translator==1.84.0
 docker~=7.0.0
 dateparser~=1.2
 requests~=2.31.0
-aws_lambda_builders==1.45.0
+aws_lambda_builders @ git+https://github.com/aws/aws-lambda-builders@9d114ad94a3d959cecdc7ec1240af52f22b05b90 # test for dotnet8
 tomlkit==0.12.3
 watchdog==3.0.0
 rich~=13.7.0
