@@ -28,8 +28,6 @@ class TestDeleteContext(TestCase):
         with DeleteContext(
             stack_name="test",
             region="us-east-1",
-            config_file="samconfig.toml",
-            config_env="default",
             profile="test",
             no_prompts=True,
             s3_bucket=None,
@@ -47,8 +45,6 @@ class TestDeleteContext(TestCase):
         with DeleteContext(
             stack_name="test",
             region="us-east-1",
-            config_file="samconfig.toml",
-            config_env="default",
             profile="test",
             no_prompts=True,
             s3_bucket=None,
@@ -83,8 +79,6 @@ class TestDeleteContext(TestCase):
         with DeleteContext(
             stack_name=None,
             region=None,
-            config_file=None,
-            config_env=None,
             profile=None,
             no_prompts=None,
             s3_bucket=None,
@@ -129,8 +123,6 @@ class TestDeleteContext(TestCase):
         with DeleteContext(
             stack_name="test",
             region=None,
-            config_file="samconfig.toml",
-            config_env="default",
             profile=None,
             no_prompts=True,
             s3_bucket="test",
@@ -159,8 +151,6 @@ class TestDeleteContext(TestCase):
         with DeleteContext(
             stack_name="test",
             region="us-east-1",
-            config_file="samconfig.toml",
-            config_env="default",
             profile="test",
             no_prompts=True,
             s3_bucket=None,
@@ -204,8 +194,6 @@ class TestDeleteContext(TestCase):
         with DeleteContext(
             stack_name="test",
             region="us-east-1",
-            config_file="samconfig.toml",
-            config_env="default",
             profile="test",
             no_prompts=None,
             s3_bucket=None,
@@ -267,8 +255,6 @@ class TestDeleteContext(TestCase):
         with DeleteContext(
             stack_name="test",
             region="us-east-1",
-            config_file="samconfig.toml",
-            config_env="default",
             profile="test",
             no_prompts=None,
             s3_bucket=None,
@@ -322,8 +308,6 @@ class TestDeleteContext(TestCase):
         with DeleteContext(
             stack_name="test",
             region="us-east-1",
-            config_file="samconfig.toml",
-            config_env="default",
             profile="test",
             no_prompts=None,
             s3_bucket=None,
@@ -406,8 +390,6 @@ class TestDeleteContext(TestCase):
         with DeleteContext(
             stack_name="Companion-Stack-Name",
             region="us-east-1",
-            config_file="samconfig.toml",
-            config_env="default",
             profile="test",
             no_prompts=True,
             s3_bucket=None,
@@ -451,8 +433,6 @@ class TestDeleteContext(TestCase):
         with DeleteContext(
             stack_name="test",
             region="us-east-1",
-            config_file="samconfig.toml",
-            config_env="default",
             profile="test",
             no_prompts=True,
             s3_bucket=None,
@@ -473,8 +453,6 @@ class TestDeleteContext(TestCase):
         with DeleteContext(
             stack_name="test",
             region="us-east-1",
-            config_file="samconfig.toml",
-            config_env="default",
             profile="test",
             no_prompts=True,
             s3_bucket="s3_bucket",
@@ -504,8 +482,6 @@ class TestDeleteContext(TestCase):
         with DeleteContext(
             stack_name="test",
             region="us-east-1",
-            config_file="samconfig.toml",
-            config_env="default",
             profile="test",
             no_prompts=True,
             s3_bucket="s3_bucket_override",
@@ -525,8 +501,6 @@ class TestDeleteContext(TestCase):
             with DeleteContext(
                 stack_name="test",
                 region=None,
-                config_file=None,
-                config_env=None,
                 profile="profile_without_creds",
                 no_prompts=True,
                 s3_bucket=None,
@@ -546,8 +520,6 @@ class TestDeleteContext(TestCase):
             with DeleteContext(
                 stack_name="test",
                 region=None,
-                config_file=None,
-                config_env=None,
                 profile="profile_without_region",
                 no_prompts=True,
                 s3_bucket=None,

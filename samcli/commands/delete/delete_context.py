@@ -33,8 +33,6 @@ class DeleteContext:
         stack_name: str,
         region: str,
         profile: str,
-        config_file: str,
-        config_env: str,
         no_prompts: bool,
         s3_bucket: Optional[str],
         s3_prefix: Optional[str],
@@ -42,8 +40,6 @@ class DeleteContext:
         self.stack_name = stack_name
         self.region = region
         self.profile = profile
-        self.config_file = config_file
-        self.config_env = config_env
         self.no_prompts = no_prompts
         self.s3_bucket = s3_bucket
         self.s3_prefix = s3_prefix
