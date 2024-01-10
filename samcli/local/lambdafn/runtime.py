@@ -13,6 +13,9 @@ from typing import Dict, Optional, Union
 from samcli.lib.telemetry.metric import capture_parameter
 from samcli.lib.utils.file_observer import LambdaFunctionObserver
 from samcli.lib.utils.packagetype import ZIP
+from samcli.local.docker.container import Container
+from samcli.local.docker.container_analyzer import ContainerAnalyzer
+from samcli.local.docker.exceptions import ContainerFailureError
 from samcli.local.docker.lambda_container import LambdaContainer
 
 from ...lib.providers.provider import LayerVersion
@@ -223,8 +226,29 @@ class LambdaRuntime:
            The current running container
         """
         if container:
+            self._check_exit_state(container)
             self._container_manager.stop(container)
         self._clean_decompressed_paths()
+
+    def _check_exit_state(self, container: Container):
+        """
+        Check and validate the exit state of the invoke container.
+
+        Parameters
+        ----------
+        container: Container
+            Docker container to be checked
+
+        Raises
+        -------
+        ContainerFailureError
+            If the exit reason is due to out-of-memory, return exit code 1
+
+        """
+        container_analyzer = ContainerAnalyzer(self._container_manager, container)
+        exit_state = container_analyzer.inspect()
+        if exit_state.out_of_memory:
+            raise ContainerFailureError("Container invocation failed due to maximum memory usage")
 
     def _configure_interrupt(self, function_full_path, timeout, container, is_debugging):
         """

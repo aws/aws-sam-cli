@@ -120,7 +120,7 @@ class Container:
         self.docker_client = docker_client or docker.from_env(version=DOCKER_MIN_API_VERSION)
 
         # Runtime properties of the container. They won't have value until container is created or started
-        self.id = None
+        self.id: Optional[str] = None
 
         # aws-lambda-rie defaults to 8080 as the port, however that's a common port. A port is chosen by
         # selecting the first free port in a range that's not ephemeral.
