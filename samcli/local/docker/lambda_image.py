@@ -167,7 +167,8 @@ class LambdaImage:
             base_image = image
         elif packagetype == ZIP:
             # NOTE (hawflau): update for dotnet8
-            runtime_image_tag = Runtime.get_image_name_tag(runtime, architecture, is_preview=True)
+            is_preview = True if runtime == "dotnet8" else False
+            runtime_image_tag = Runtime.get_image_name_tag(runtime, architecture, is_preview=is_preview)
             if self.invoke_images:
                 base_image = self.invoke_images.get(function_name, self.invoke_images.get(None))
             if not base_image:
