@@ -123,6 +123,7 @@ class TestApiGatewayService(TestCase):
             stage_name=ANY,
             stage_variables=ANY,
             operation_name="getRestApi",
+            api_type=Route.API,
         )
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
@@ -190,6 +191,7 @@ class TestApiGatewayService(TestCase):
             stage_name=ANY,
             stage_variables=ANY,
             operation_name=None,
+            api_type=Route.HTTP,
         )
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
