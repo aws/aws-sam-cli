@@ -56,7 +56,9 @@ class BuildStrategyBaseTest(TestCase):
         self.build_graph.put_function_build_definition(self.function_build_definition2, self.function2)
 
         self.layer1 = Mock()
+        self.layer1.compatible_architectures = None
         self.layer2 = Mock()
+        self.layer2.compatible_architectures = None
 
         self.layer_build_definition1 = LayerBuildDefinition("layer1", "codeuri", "build_method", [], X86_64)
         self.layer_build_definition2 = LayerBuildDefinition("layer2", "codeuri", "build_method", [], X86_64)
@@ -699,6 +701,7 @@ class TestIncrementalBuildStrategy(TestCase):
         given_layer_build_def = Mock(
             manifest_hash=build_toml_manifest_hash, functions=[Mock()], dependencies_dir=dependency_dir
         )
+        given_layer_build_def.layer.compatible_architectures = None
         self.build_graph.get_function_build_definitions.return_value = []
         self.build_graph.get_layer_build_definitions.return_value = [given_layer_build_def]
 

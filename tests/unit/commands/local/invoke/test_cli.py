@@ -43,6 +43,7 @@ class TestCli(TestCase):
         self.profile = "profile"
         self.container_host = "localhost"
         self.container_host_interface = "127.0.0.1"
+        self.add_host = (["prod-na.host:10.11.12.13"],)
         self.invoke_image = ("amazon/aws-sam-cli-emulation-image-python3.9",)
         self.hook_name = None
 
@@ -72,6 +73,7 @@ class TestCli(TestCase):
             shutdown=self.shutdown,
             container_host=self.container_host,
             container_host_interface=self.container_host_interface,
+            add_host=self.add_host,
             invoke_image=self.invoke_image,
             hook_name=self.hook_name,
         )
@@ -108,6 +110,7 @@ class TestCli(TestCase):
             aws_profile=self.profile,
             container_host=self.container_host,
             container_host_interface=self.container_host_interface,
+            add_host=self.add_host,
             invoke_images={None: "amazon/aws-sam-cli-emulation-image-python3.9"},
         )
 
@@ -147,6 +150,7 @@ class TestCli(TestCase):
             aws_profile=self.profile,
             container_host=self.container_host,
             container_host_interface=self.container_host_interface,
+            add_host=self.add_host,
             invoke_images={None: "amazon/aws-sam-cli-emulation-image-python3.9"},
         )
 
