@@ -3,6 +3,7 @@ from unittest.mock import Mock
 
 from time import time
 from datetime import datetime
+from samcli.local.apigw.route import Route
 
 from samcli.local.events.api_event import (
     ContextIdentity,
@@ -335,7 +336,6 @@ class TestApiGatewayLambdaEvent(TestCase):
         )
 
         expected = {
-            "version": "1.0",
             "httpMethod": "request_method",
             "body": "request_data",
             "resource": "resource",
@@ -354,6 +354,26 @@ class TestApiGatewayLambdaEvent(TestCase):
 
     def test_to_dict_with_defaults(self):
         event = ApiGatewayLambdaEvent()
+
+        expected = {
+            "httpMethod": None,
+            "body": None,
+            "resource": None,
+            "requestContext": {},
+            "queryStringParameters": None,
+            "multiValueQueryStringParameters": None,
+            "headers": None,
+            "multiValueHeaders": None,
+            "pathParameters": None,
+            "stageVariables": None,
+            "path": None,
+            "isBase64Encoded": False,
+        }
+
+        self.assertEqual(event.to_dict(), expected)
+
+    def test_to_dict_with_http_v1(self):
+        event = ApiGatewayLambdaEvent(api_type=Route.HTTP)
 
         expected = {
             "version": "1.0",

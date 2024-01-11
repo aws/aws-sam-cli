@@ -90,6 +90,7 @@ def cli(
     config_env,
     container_host,
     container_host_interface,
+    add_host,
     invoke_image,
     hook_name,
     skip_prepare_infra,
@@ -121,6 +122,7 @@ def cli(
         parameter_overrides,
         container_host,
         container_host_interface,
+        add_host,
         invoke_image,
         hook_name,
     )  # pragma: no cover
@@ -147,6 +149,7 @@ def do_cli(  # pylint: disable=R0914
     parameter_overrides,
     container_host,
     container_host_interface,
+    add_host,
     invoke_image,
     hook_name,
 ):
@@ -195,6 +198,7 @@ def do_cli(  # pylint: disable=R0914
             shutdown=shutdown,
             container_host=container_host,
             container_host_interface=container_host_interface,
+            add_host=add_host,
             invoke_images=processed_invoke_images,
         ) as context:
             # Invoke the function
