@@ -3,8 +3,7 @@ CLI command for "delete" command
 """
 
 import logging
-from pathlib import Path
-from typing import Callable, Optional
+from typing import Optional
 
 import click
 
@@ -12,8 +11,6 @@ from samcli.cli.cli_config_file import ConfigProvider, configuration_option, get
 from samcli.cli.main import aws_creds_options, common_options, pass_context, print_cmdline_args
 from samcli.commands._utils.command_exception_handler import command_exception_handler
 from samcli.commands.delete.delete_context import CONFIG_COMMAND, CONFIG_SECTION
-from samcli.commands.exceptions import ConfigException
-from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME, DEFAULT_ENV, SamConfig
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.version_checker import check_newer_version
 
