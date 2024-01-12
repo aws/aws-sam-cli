@@ -74,6 +74,8 @@ def cli(
     no_prompts: bool,
     s3_bucket: str,
     s3_prefix: str,
+    config_env: str,
+    config_file: str,
     save_params: bool,
 ):
     """
