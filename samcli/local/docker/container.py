@@ -369,7 +369,7 @@ class Container:
             raise ex
 
     @retry(exc=requests.exceptions.RequestException, exc_raise=ContainerResponseException)
-    def wait_for_http_response(self, name, event, stdout) -> Union[str, bytes]:
+    def wait_for_http_response(self, name, event, stdout) -> Tuple[Union[str, bytes], bool]:
         # TODO(sriram-mv): `aws-lambda-rie` is in a mode where the function_name is always "function"
         # NOTE(sriram-mv): There is a connection timeout set on the http call to `aws-lambda-rie`, however there is not
         # a read time out for the response received from the server.
@@ -380,10 +380,13 @@ class Container:
             timeout=(self.RAPID_CONNECTION_TIMEOUT, None),
         )
         try:
-            return json.dumps(json.loads(resp.content), ensure_ascii=False)
+            # if response is an image then json.loads/dumps will throw a UnicodeDecodeError so return raw content
+            if "image" in resp.headers["Content-Type"]:
+                return resp.content, True
+            return json.dumps(json.loads(resp.content), ensure_ascii=False), False
         except json.JSONDecodeError:
             LOG.debug("Failed to deserialize response from RIE, returning the raw response as is")
-            return resp.content
+            return resp.content, False
 
     def wait_for_result(self, full_path, event, stdout, stderr, start_timer=None):
         # NOTE(sriram-mv): Let logging happen in its own thread, so that a http request can be sent.
@@ -406,13 +409,15 @@ class Container:
         # start the timer for function timeout right before executing the function, as waiting for the socket
         # can take some time
         timer = start_timer() if start_timer else None
-        response = self.wait_for_http_response(full_path, event, stdout)
+        response, is_image = self.wait_for_http_response(full_path, event, stdout)
         if timer:
             timer.cancel()
 
         self._logs_thread_event.wait(timeout=1)
         if isinstance(response, str):
             stdout.write_str(response)
+        elif isinstance(response, bytes) and is_image:
+            stdout.write_bytes(response)
         elif isinstance(response, bytes):
             stdout.write_str(response.decode("utf-8"))
         stdout.flush()

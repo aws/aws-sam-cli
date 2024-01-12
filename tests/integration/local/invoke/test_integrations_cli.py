@@ -1197,6 +1197,41 @@ class TestInvokeFunctionWithInlineCode(InvokeIntegBase):
         self.assertEqual(process.returncode, 1)
 
 
+class TestInvokeFunctionWithImageBytesAsReturn(InvokeIntegBase):
+    template = Path("template-return-image.yaml")
+
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_returncode_is_zero(self):
+        command_list = InvokeIntegBase.get_command_list(
+            "GetImageFunction", template_path=self.template_path, event_path=self.event_path
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        self.assertEqual(process.returncode, 0)
+
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_image_is_returned(self):
+        command_list = InvokeIntegBase.get_command_list(
+            "GetImageFunction", template_path=self.template_path, event_path=self.event_path
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        # The first byte of a png image file is \x89 so we can check that to verify that it returned an image
+        self.assertEqual(stdout[0:1], b"\x89")
+
+
 class TestInvokeFunctionWithError(InvokeIntegBase):
     template = Path("template.yml")
 
