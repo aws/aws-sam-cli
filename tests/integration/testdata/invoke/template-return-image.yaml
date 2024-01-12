@@ -7,6 +7,6 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.image_handler
-      Runtime: python3.12
+      Runtime: python3.11
       CodeUri: .
-      Timeout: 30
+      Timeout: 600
