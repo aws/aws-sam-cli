@@ -123,7 +123,7 @@ class TestHelloWorldZipPackagePermissionsEndToEnd(EndToEndBase):
             package_command_list = self._get_package_command(
                 s3_prefix="end-to-end-package-test", use_json=True, output_template_file="packaged_template.json"
             )
-            local_command_list = self._get_local_command(function_name)
+            local_command_list = self._get_local_command(function_name) + ["--debug"]
             stages = [
                 DefaultInitStage(InitValidator(e2e_context), e2e_context, init_command_list, self.app_name),
                 EndToEndBaseStage(BuildValidator(e2e_context), e2e_context, build_command_list),
