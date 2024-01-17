@@ -92,6 +92,7 @@ class InvokeContext:
         force_image_build: Optional[bool] = None,
         aws_region: Optional[str] = None,
         aws_profile: Optional[str] = None,
+        aws_accountid: Optional[str] = None,
         warm_container_initialization_mode: Optional[str] = None,
         debug_function: Optional[str] = None,
         shutdown: bool = False,
@@ -169,8 +170,12 @@ class InvokeContext:
         self._parameter_overrides = parameter_overrides
         # Override certain CloudFormation pseudo-parameters based on values provided by customer
         self._global_parameter_overrides: Optional[Dict] = None
-        if aws_region:
-            self._global_parameter_overrides = {"AWS::Region": aws_region}
+        if aws_region or aws_accountid:
+            self._global_parameter_overrides = {}
+            if aws_region:
+                self._global_parameter_overrides["AWS::Region"] = aws_region
+            if aws_accountid:
+                self._global_parameter_overrides["AWS::AccountId"] = aws_accountid
 
         self._layer_cache_basedir = layer_cache_basedir
         self._force_image_build = force_image_build

@@ -15,7 +15,7 @@ INPUT_EVENT_OPTIONS: List[str] = ["event", "event_file", "test_event_name"]
 
 ADDITIONAL_OPTIONS: List[str] = ["parameter", "output"]
 
-AWS_CREDENTIAL_OPTION_NAMES: List[str] = ["region", "profile"]
+AWS_CREDENTIAL_OPTION_NAMES: List[str] = ["region", "profile", "accountid"]
 
 CONFIGURATION_OPTION_NAMES: List[str] = ["config_env", "config_file"] + SAVE_PARAMS_OPTIONS
 

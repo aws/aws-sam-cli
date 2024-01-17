@@ -76,3 +76,23 @@ def profile_option(f):
         help="Select a specific profile from your credential file to get AWS credentials.",
         callback=callback,
     )(f)
+
+
+def accountid_option(f):
+    """
+    Configures --accountid option for CLI
+
+    :param f: Callback Function to be passed to Click
+    """
+
+    def callback(ctx, param, value):
+        state = ctx.ensure_object(Context)
+        state.accountid = value
+        return value
+
+    return click.option(
+        "--accountid",
+        expose_value=False,
+        help="Select an accountId to be substituted into template values.",
+        callback=callback,
+    )(f)

@@ -41,6 +41,7 @@ class TestCli(TestCase):
         self.shutdown = False
         self.region_name = "region"
         self.profile = "profile"
+        self.accountid = "accountid"
         self.container_host = "localhost"
         self.container_host_interface = "127.0.0.1"
         self.add_host = (["prod-na.host:10.11.12.13"],)
@@ -50,6 +51,7 @@ class TestCli(TestCase):
         self.ctx_mock = Mock()
         self.ctx_mock.region = self.region_name
         self.ctx_mock.profile = self.profile
+        self.ctx_mock.accountid = self.accountid
 
     def call_cli(self):
         invoke_cli(
@@ -108,6 +110,7 @@ class TestCli(TestCase):
             shutdown=self.shutdown,
             aws_region=self.region_name,
             aws_profile=self.profile,
+            aws_accountid=self.accountid,
             container_host=self.container_host,
             container_host_interface=self.container_host_interface,
             add_host=self.add_host,
@@ -148,6 +151,7 @@ class TestCli(TestCase):
             shutdown=self.shutdown,
             aws_region=self.region_name,
             aws_profile=self.profile,
+            aws_accountid=self.accountid,
             container_host=self.container_host,
             container_host_interface=self.container_host_interface,
             add_host=self.add_host,

@@ -13,7 +13,7 @@ LOG_IDENTIFIER_OPTIONS: List[str] = ["stack_name", "cw_log_group", "name"]
 # Can be used instead of the options in the first list
 ADDITIONAL_OPTIONS: List[str] = ["include_traces", "filter", "output", "tail", "start_time", "end_time"]
 
-AWS_CREDENTIAL_OPTION_NAMES: List[str] = ["region", "profile"]
+AWS_CREDENTIAL_OPTION_NAMES: List[str] = ["region", "profile", "accountid"]
 
 CONFIGURATION_OPTION_NAMES: List[str] = ["config_env", "config_file"] + SAVE_PARAMS_OPTIONS
 

@@ -10,7 +10,7 @@ from samcli.cli.row_modifiers import RowDefinition
 
 REQUIRED_OPTIONS: List[str] = ["s3_bucket", "resolve_s3"]
 
-AWS_CREDENTIAL_OPTION_NAMES: List[str] = ["region", "profile"]
+AWS_CREDENTIAL_OPTION_NAMES: List[str] = ["region", "profile", "accountid"]
 
 INFRASTRUCTURE_OPTION_NAMES: List[str] = [
     "s3_prefix",

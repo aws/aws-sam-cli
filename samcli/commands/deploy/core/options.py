@@ -13,7 +13,7 @@ REQUIRED_OPTIONS: List[str] = ["stack_name", "capabilities", "resolve_s3"]
 # Can be used instead of the options in the first list
 INTERACTIVE_OPTIONS: List[str] = ["guided"]
 
-AWS_CREDENTIAL_OPTION_NAMES: List[str] = ["region", "profile"]
+AWS_CREDENTIAL_OPTION_NAMES: List[str] = ["region", "profile", "accountid"]
 
 INFRASTRUCTURE_OPTION_NAMES: List[str] = [
     "parameter_overrides",

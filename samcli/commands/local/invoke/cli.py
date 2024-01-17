@@ -195,6 +195,7 @@ def do_cli(  # pylint: disable=R0914
             force_image_build=force_image_build,
             aws_region=ctx.region,
             aws_profile=ctx.profile,
+            aws_accountid=ctx.accountid,
             shutdown=shutdown,
             container_host=container_host,
             container_host_interface=container_host_interface,

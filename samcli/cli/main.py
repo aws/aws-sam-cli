@@ -11,7 +11,7 @@ from samcli import __version__
 from samcli.cli.command import BaseCommand
 from samcli.cli.context import Context
 from samcli.cli.global_config import GlobalConfig
-from samcli.cli.options import debug_option, profile_option, region_option
+from samcli.cli.options import accountid_option, debug_option, profile_option, region_option
 from samcli.commands._utils.experimental import experimental, get_all_experimental_env_vars
 from samcli.lib.utils.sam_logging import (
     LAMBDA_BULDERS_LOGGER_NAME,
@@ -45,6 +45,7 @@ def aws_creds_options(f):
     """
     f = region_option(f)
     f = profile_option(f)
+    f = accountid_option(f)
     return f
 
 

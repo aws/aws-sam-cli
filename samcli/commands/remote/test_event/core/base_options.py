@@ -10,7 +10,7 @@ from samcli.cli.row_modifiers import RowDefinition
 
 INFRASTRUCTURE_OPTION_NAMES: List[str] = ["stack_name"]
 
-AWS_CREDENTIAL_OPTION_NAMES: List[str] = ["region", "profile"]
+AWS_CREDENTIAL_OPTION_NAMES: List[str] = ["region", "profile", "accountid"]
 
 CONFIGURATION_OPTION_NAMES: List[str] = ["config_env", "config_file"]
 
