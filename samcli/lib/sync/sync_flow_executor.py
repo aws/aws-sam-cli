@@ -7,6 +7,7 @@ from queue import Queue
 from threading import RLock
 from typing import Callable, List, Optional, Set
 from uuid import uuid4
+from datetime import datetime
 
 from botocore.exceptions import ClientError
 
@@ -311,7 +312,7 @@ class SyncFlowExecutor:
             for dependent_sync_flow in sync_flow_result.dependent_sync_flows:
                 self.add_sync_flow(dependent_sync_flow)
             LOG.info(
-                self._color.color_log(msg=f"Finished syncing {sync_flow_result.sync_flow.log_name}.", color="green"),
+                self._color.color_log(msg=f"{datetime.now().strftime('%d/%b/%Y:%H:%M:%S')}: Finished syncing {sync_flow_result.sync_flow.log_name}.", color="green"),
                 extra=dict(markup=True),
             )
         return True
