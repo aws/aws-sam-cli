@@ -135,7 +135,7 @@ class TestLocalLambdaService(TestCase):
         result = service._invoke_request_handler(function_name="HelloWorld")
 
         self.assertEqual(result, "request response")
-        lambda_output_parser_mock.get_lambda_output.assert_called_with(ANY)
+        lambda_output_parser_mock.get_lambda_output.assert_called_with(ANY, ANY)
 
     @patch("samcli.local.lambda_service.local_lambda_invoke_service.LambdaErrorResponses")
     def test_construct_error_handling(self, lambda_error_response_mock):
