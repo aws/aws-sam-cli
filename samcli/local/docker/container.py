@@ -251,7 +251,11 @@ class Container:
             on the container
         """
         mount_mode = "ro,delegated"
-        additional_volumes = {}
+        additional_volumes: Dict[str, Dict[str, str]] = {}
+
+        if not pathlib.Path(self._host_dir).exists():
+            LOG.debug("Host directory not found, skip resolving symlinks")
+            return additional_volumes
 
         with os.scandir(self._host_dir) as directory_iterator:
             for file in directory_iterator:
