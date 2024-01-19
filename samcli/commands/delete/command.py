@@ -7,9 +7,10 @@ from typing import Optional
 
 import click
 
-from samcli.cli.cli_config_file import save_params_option
+from samcli.cli.cli_config_file import ConfigProvider, configuration_option, save_params_option
 from samcli.cli.main import aws_creds_options, common_options, pass_context, print_cmdline_args
 from samcli.commands._utils.command_exception_handler import command_exception_handler
+from samcli.commands.delete.delete_context import CONFIG_COMMAND, CONFIG_SECTION
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.version_checker import check_newer_version
 
@@ -33,33 +34,11 @@ LOG = logging.getLogger(__name__)
     context_settings={"ignore_unknown_options": False, "allow_interspersed_args": True, "allow_extra_args": True},
     help=HELP_TEXT,
 )
+@configuration_option(provider=ConfigProvider(CONFIG_SECTION, [CONFIG_COMMAND]))
 @click.option(
     "--stack-name",
     required=False,
     help="The name of the AWS CloudFormation stack you want to delete. ",
-)
-@click.option(
-    "--config-file",
-    help=(
-        "The path and file name of the configuration file containing default parameter values to use. "
-        "Its default value is 'samconfig.toml' in project directory. For more information about configuration files, "
-        "see: "
-        "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html."
-    ),
-    type=click.STRING,
-    default="samconfig.toml",
-    show_default=True,
-)
-@click.option(
-    "--config-env",
-    help=(
-        "The environment name specifying the default parameter values in the configuration file to use. "
-        "Its default value is 'default'. For more information about configuration files, see: "
-        "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html."
-    ),
-    type=click.STRING,
-    default="default",
-    show_default=True,
 )
 @click.option(
     "--no-prompts",
@@ -92,11 +71,11 @@ LOG = logging.getLogger(__name__)
 def cli(
     ctx,
     stack_name: str,
-    config_file: str,
-    config_env: str,
     no_prompts: bool,
     s3_bucket: str,
     s3_prefix: str,
+    config_env: str,
+    config_file: str,
     save_params: bool,
 ):
     """
@@ -107,8 +86,6 @@ def cli(
     do_cli(
         stack_name=stack_name,
         region=ctx.region,
-        config_file=config_file,
-        config_env=config_env,
         profile=ctx.profile,
         no_prompts=no_prompts,
         s3_bucket=s3_bucket,
@@ -119,8 +96,6 @@ def cli(
 def do_cli(
     stack_name: str,
     region: str,
-    config_file: str,
-    config_env: str,
     profile: str,
     no_prompts: bool,
     s3_bucket: Optional[str],
@@ -135,8 +110,6 @@ def do_cli(
         stack_name=stack_name,
         region=region,
         profile=profile,
-        config_file=config_file,
-        config_env=config_env,
         no_prompts=no_prompts,
         s3_bucket=s3_bucket,
         s3_prefix=s3_prefix,
