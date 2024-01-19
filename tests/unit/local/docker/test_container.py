@@ -1066,13 +1066,8 @@ class TestContainer_create_mapped_symlink_files(TestCase):
         self.assertEqual(volumes, {})
 
     @patch("samcli.local.docker.container.pathlib.Path.exists")
-    @patch("samcli.local.docker.container.os.scandir")
-    def test_host_dir_does_not_exist_returns_empty_symlinks(self, mock_scandir, mock_exists):
-        mock_context = MagicMock()
-        mock_context.__enter__ = Mock(return_value=[self.mock_regular_file])
-        mock_scandir.return_value = mock_context
+    def test_host_dir_does_not_exist_returns_empty_symlinks(self, mock_exists):
         mock_exists.return_value = False
-
         volumes = self.container._create_mapped_symlink_files()
 
         self.assertEqual(volumes, {})
