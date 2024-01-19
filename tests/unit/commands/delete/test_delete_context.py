@@ -28,8 +28,6 @@ class TestDeleteContext(TestCase):
         with DeleteContext(
             stack_name="test",
             region="us-east-1",
-            config_file="samconfig.toml",
-            config_env="default",
             profile="test",
             no_prompts=True,
             s3_bucket=None,
@@ -41,21 +39,17 @@ class TestDeleteContext(TestCase):
             ]
             self.assertEqual(expected_click_echo_calls, patched_click_echo.call_args_list)
 
-    @patch.object(DeleteContext, "parse_config_file", MagicMock())
     @patch.object(DeleteContext, "init_clients", MagicMock())
     @patch("samcli.commands.delete.delete_context.get_boto_client_provider_with_config")
     def test_delete_context_enter(self, get_boto_client_provider_mock):
         with DeleteContext(
             stack_name="test",
             region="us-east-1",
-            config_file="samconfig.toml",
-            config_env="default",
             profile="test",
             no_prompts=True,
             s3_bucket=None,
             s3_prefix=None,
         ) as delete_context:
-            self.assertEqual(delete_context.parse_config_file.call_count, 1)
             self.assertEqual(delete_context.init_clients.call_count, 1)
 
     @patch.object(
@@ -73,26 +67,6 @@ class TestDeleteContext(TestCase):
             )
         ),
     )
-    @patch("samcli.commands.delete.delete_context.click.get_current_context")
-    @patch("samcli.commands.delete.delete_context.get_boto_client_provider_with_config")
-    def test_delete_context_parse_config_file(self, get_boto_client_provider_mock, patched_click_get_current_context):
-        patched_click_get_current_context = MagicMock()
-        with DeleteContext(
-            stack_name=None,
-            region=None,
-            config_file="samconfig.toml",
-            config_env="default",
-            profile=None,
-            no_prompts=True,
-            s3_bucket=None,
-            s3_prefix=None,
-        ) as delete_context:
-            self.assertEqual(delete_context.stack_name, "test")
-            self.assertEqual(delete_context.region, "us-east-1")
-            self.assertEqual(delete_context.profile, "developer")
-            self.assertEqual(delete_context.s3_bucket, "s3-bucket")
-            self.assertEqual(delete_context.s3_prefix, "s3-prefix")
-
     @patch("samcli.commands.delete.delete_context.prompt")
     @patch("samcli.commands.delete.delete_context.confirm")
     @patch("samcli.commands.delete.delete_context.click.get_current_context")
@@ -105,8 +79,6 @@ class TestDeleteContext(TestCase):
         with DeleteContext(
             stack_name=None,
             region=None,
-            config_file=None,
-            config_env=None,
             profile=None,
             no_prompts=None,
             s3_bucket=None,
@@ -149,14 +121,12 @@ class TestDeleteContext(TestCase):
     def test_delete_context_valid_execute_run(self, get_boto_client_provider_mock, patched_click_get_current_context):
         patched_click_get_current_context = MagicMock()
         with DeleteContext(
-            stack_name=None,
+            stack_name="test",
             region=None,
-            config_file="samconfig.toml",
-            config_env="default",
             profile=None,
             no_prompts=True,
-            s3_bucket=None,
-            s3_prefix=None,
+            s3_bucket="test",
+            s3_prefix="test",
         ) as delete_context:
             delete_context.run()
 
@@ -181,8 +151,6 @@ class TestDeleteContext(TestCase):
         with DeleteContext(
             stack_name="test",
             region="us-east-1",
-            config_file="samconfig.toml",
-            config_env="default",
             profile="test",
             no_prompts=True,
             s3_bucket=None,
@@ -226,8 +194,6 @@ class TestDeleteContext(TestCase):
         with DeleteContext(
             stack_name="test",
             region="us-east-1",
-            config_file="samconfig.toml",
-            config_env="default",
             profile="test",
             no_prompts=None,
             s3_bucket=None,
@@ -289,8 +255,6 @@ class TestDeleteContext(TestCase):
         with DeleteContext(
             stack_name="test",
             region="us-east-1",
-            config_file="samconfig.toml",
-            config_env="default",
             profile="test",
             no_prompts=None,
             s3_bucket=None,
@@ -344,8 +308,6 @@ class TestDeleteContext(TestCase):
         with DeleteContext(
             stack_name="test",
             region="us-east-1",
-            config_file="samconfig.toml",
-            config_env="default",
             profile="test",
             no_prompts=None,
             s3_bucket=None,
@@ -428,8 +390,6 @@ class TestDeleteContext(TestCase):
         with DeleteContext(
             stack_name="Companion-Stack-Name",
             region="us-east-1",
-            config_file="samconfig.toml",
-            config_env="default",
             profile="test",
             no_prompts=True,
             s3_bucket=None,
@@ -473,8 +433,6 @@ class TestDeleteContext(TestCase):
         with DeleteContext(
             stack_name="test",
             region="us-east-1",
-            config_file="samconfig.toml",
-            config_env="default",
             profile="test",
             no_prompts=True,
             s3_bucket=None,
@@ -490,14 +448,11 @@ class TestDeleteContext(TestCase):
             self.assertEqual(CfnUtils.delete_stack.call_count, 4)
             self.assertEqual(CfnUtils.wait_for_delete.call_count, 4)
 
-    @patch.object(DeleteContext, "parse_config_file", MagicMock())
     @patch.object(DeleteContext, "init_clients", MagicMock())
     def test_s3_option_flag(self):
         with DeleteContext(
             stack_name="test",
             region="us-east-1",
-            config_file="samconfig.toml",
-            config_env="default",
             profile="test",
             no_prompts=True,
             s3_bucket="s3_bucket",
@@ -521,15 +476,12 @@ class TestDeleteContext(TestCase):
             )
         ),
     )
-    @patch.object(DeleteContext, "parse_config_file", MagicMock())
     @patch.object(DeleteContext, "init_clients", MagicMock())
     @patch("samcli.commands.delete.delete_context.get_boto_client_provider_with_config")
     def test_s3_option_flag_overrides_config(self, get_boto_client_provider_mock):
         with DeleteContext(
             stack_name="test",
             region="us-east-1",
-            config_file="samconfig.toml",
-            config_env="default",
             profile="test",
             no_prompts=True,
             s3_bucket="s3_bucket_override",
@@ -538,7 +490,6 @@ class TestDeleteContext(TestCase):
             self.assertEqual(delete_context.s3_bucket, "s3_bucket_override")
             self.assertEqual(delete_context.s3_prefix, "s3_prefix_override")
 
-    @patch.object(DeleteContext, "parse_config_file", MagicMock())
     @patch("samcli.commands.delete.delete_context.click.get_current_context")
     @patch("samcli.commands.delete.delete_context.get_boto_client_provider_with_config")
     def test_must_throw_error_if_boto3_cannot_resolve_credentials(
@@ -550,8 +501,6 @@ class TestDeleteContext(TestCase):
             with DeleteContext(
                 stack_name="test",
                 region=None,
-                config_file=None,
-                config_env=None,
                 profile="profile_without_creds",
                 no_prompts=True,
                 s3_bucket=None,
@@ -560,7 +509,6 @@ class TestDeleteContext(TestCase):
                 get_boto_client_provider_mock.assert_called_once_with(region=None, profile="profile_without_creds")
                 self.assertIn("Unable to resolve credentials for the AWS SDK for Python client", ex)
 
-    @patch.object(DeleteContext, "parse_config_file", MagicMock())
     @patch("samcli.commands.delete.delete_context.click.get_current_context")
     @patch("samcli.commands.delete.delete_context.get_boto_client_provider_with_config")
     def test_must_throw_error_if_boto3_cannot_resolve_region(
@@ -572,8 +520,6 @@ class TestDeleteContext(TestCase):
             with DeleteContext(
                 stack_name="test",
                 region=None,
-                config_file=None,
-                config_env=None,
                 profile="profile_without_region",
                 no_prompts=True,
                 s3_bucket=None,
