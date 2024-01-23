@@ -51,6 +51,7 @@ class TestCli(TestCase):
         self.ssl_cert_file = None
         self.ssl_key_file = None
         self.static_dir = "staticdir"
+        self.add_host = []
 
         self.container_host = "localhost"
         self.container_host_interface = "127.0.0.1"
@@ -94,6 +95,7 @@ class TestCli(TestCase):
             shutdown=self.shutdown,
             container_host=self.container_host,
             container_host_interface=self.container_host_interface,
+            add_host=self.add_host,
             invoke_images={},
         )
 
@@ -225,4 +227,5 @@ class TestCli(TestCase):
             ssl_cert_file=self.ssl_cert_file,
             ssl_key_file=self.ssl_key_file,
             disable_authorizer=self.disable_authorizer,
+            add_host=self.add_host,
         )

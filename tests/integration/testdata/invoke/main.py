@@ -60,3 +60,10 @@ def execute_git(event, context):
 
 def no_response(event, context):
     print("lambda called")
+
+
+def image_handler(event, context):
+    with open("image-for-lambda.png", "rb") as f:
+        image_bytes = f.read()
+        
+    return image_bytes
