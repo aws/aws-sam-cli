@@ -2,6 +2,7 @@ from typing import List, Optional
 
 from unittest import TestCase
 
+import logging
 import boto3
 import zipfile
 import json
@@ -15,6 +16,8 @@ from filelock import FileLock
 from samcli.lib.utils.s3 import parse_s3_url
 from tests.end_to_end.end_to_end_context import EndToEndTestContext
 from tests.testing_utils import CommandResult, run_command, run_command_with_input
+
+LOG = logging.getLogger(__name__)
 
 
 class BaseValidator(TestCase):
@@ -108,6 +111,12 @@ class PackageDownloadZipFunctionStage(EndToEndBaseStage):
 
             with zipfile.ZipFile(zip_file_path, "r") as zip_refzip:
                 zip_refzip.extractall(path=built_function_path)
+
+                file_list = zip_refzip.namelist()
+
+                for extracted_file in file_list:
+                    permission_mask = oct(os.stat(os.path.join(built_function_path, extracted_file)).st_mode)[-3:]
+                    LOG.info("Extracted file %s, with permission mask %s", extracted_file, permission_mask)
 
 
 class DefaultSyncStage(EndToEndBaseStage):
