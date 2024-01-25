@@ -99,7 +99,7 @@ class TestHelloWorldDefaultEndToEnd(EndToEndBase):
             ]
             self._run_tests(stages)
 
-        os.environ.pop('SAM_CLI_RIE_DEV', None)
+        os.environ.pop("SAM_CLI_RIE_DEV", None)
 
 
 @skipIf(SKIP_E2E_TESTS, "Skip E2E tests in CI/CD only")
