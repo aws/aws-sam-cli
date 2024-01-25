@@ -99,7 +99,6 @@ class TestHelloWorldDefaultEndToEnd(EndToEndBase):
             self._run_tests(stages)
 
 
-
 @skipIf(SKIP_E2E_TESTS, "Skip E2E tests in CI/CD only")
 @parameterized_class(
     ("runtime", "dependency_manager"),
