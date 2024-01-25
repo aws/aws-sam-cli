@@ -77,6 +77,7 @@ class TestHelloWorldDefaultEndToEnd(EndToEndBase):
     app_template = "hello-world"
 
     def test_hello_world_default_workflow(self):
+        os.environ["SAM_CLI_RIE_DEV"] = "1"
         stack_name = self._method_to_stack_name(self.id())
         function_name = "HelloWorldFunction"
         event = '{"hello": "world"}'
@@ -97,6 +98,8 @@ class TestHelloWorldDefaultEndToEnd(EndToEndBase):
                 DefaultDeleteStage(BaseValidator(e2e_context), e2e_context, delete_command_list, stack_name),
             ]
             self._run_tests(stages)
+
+        os.environ.pop('SAM_CLI_RIE_DEV', None)
 
 
 @skipIf(SKIP_E2E_TESTS, "Skip E2E tests in CI/CD only")
