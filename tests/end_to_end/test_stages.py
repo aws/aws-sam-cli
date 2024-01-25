@@ -115,8 +115,8 @@ class PackageDownloadZipFunctionStage(EndToEndBaseStage):
                 file_list = zip_refzip.namelist()
 
                 for extracted_file in file_list:
-                    permission_mask = oct(os.stat(extracted_file).st_mode[-3:])
-                    LOG.debug("Exctracted file %s, with permission mask %s", extracted_file, permission_mask)
+                    permission_mask = oct(os.stat(os.path.join(built_function_path, extracted_file)).st_mode)[-3:]
+                    LOG.info("Extracted file %s, with permission mask %s", extracted_file, permission_mask)
 
 
 class DefaultSyncStage(EndToEndBaseStage):
