@@ -9,6 +9,7 @@ from time import time
 from typing import Any, Dict
 
 from samcli.local.apigw.path_converter import PathConverter
+from samcli.local.apigw.route import Route
 from samcli.local.events.api_event import (
     ApiGatewayLambdaEvent,
     ApiGatewayV2LambdaEvent,
@@ -22,16 +23,18 @@ LOG = logging.getLogger(__name__)
 
 
 def construct_v1_event(
-    flask_request, port, binary_types, stage_name=None, stage_variables=None, operation_name=None
+    flask_request, port, binary_types, stage_name=None, stage_variables=None, operation_name=None, api_type=Route.API
 ) -> Dict[str, Any]:
     """
-    Helper method that constructs the Event to be passed to Lambda
+    Helper method that constructs the Event to be passed to Lambda.
+    Used for Http apis with payload v1 and Rest apis because the payloads are almost identical
 
     :param request flask_request: Flask Request
     :param port: the port number
     :param binary_types: list of binary types
     :param stage_name: Optional, the stage name string
     :param stage_variables: Optional, API Gateway Stage Variables
+    :param api_type: Optional, the type of api payload being constructed
     :return: JSON object
     """
 
@@ -86,6 +89,7 @@ def construct_v1_event(
         path=flask_request.path,
         is_base_64_encoded=is_base_64,
         stage_variables=stage_variables,
+        api_type=api_type,
     )
 
     event_dict = event.to_dict()

@@ -79,6 +79,7 @@ class Container:
         container_host_interface=DEFAULT_CONTAINER_HOST_INTERFACE,
         mount_with_write: bool = False,
         host_tmp_dir: Optional[str] = None,
+        extra_hosts: Optional[dict] = None,
     ):
         """
         Initializes the class with given configuration. This does not automatically create or run the container.
@@ -100,6 +101,7 @@ class Container:
         :param bool mount_with_write: Optional. Mount source code directory with write permissions when
             building on container
         :param string host_tmp_dir: Optional. Temporary directory on the host when mounting with write permissions.
+        :param dict extra_hosts: Optional. Dict of hostname to IP resolutions
         """
 
         self._image = image
@@ -114,6 +116,7 @@ class Container:
         self._container_opts = container_opts
         self._additional_volumes = additional_volumes
         self._logs_thread = None
+        self._extra_hosts = extra_hosts
         self._logs_thread_event = None
 
         # Use the given Docker client or create new one
@@ -215,6 +218,9 @@ class Container:
             # Ex: 128m => 128MB
             kwargs["mem_limit"] = "{}m".format(self._memory_limit_mb)
 
+        if self._extra_hosts:
+            kwargs["extra_hosts"] = self._extra_hosts
+
         real_container = self.docker_client.containers.create(self._image, **kwargs)
         self.id = real_container.id
 
@@ -245,7 +251,11 @@ class Container:
             on the container
         """
         mount_mode = "ro,delegated"
-        additional_volumes = {}
+        additional_volumes: Dict[str, Dict[str, str]] = {}
+
+        if not pathlib.Path(self._host_dir).exists():
+            LOG.debug("Host directory not found, skip resolving symlinks")
+            return additional_volumes
 
         with os.scandir(self._host_dir) as directory_iterator:
             for file in directory_iterator:
@@ -363,7 +373,7 @@ class Container:
             raise ex
 
     @retry(exc=requests.exceptions.RequestException, exc_raise=ContainerResponseException)
-    def wait_for_http_response(self, name, event, stdout) -> Union[str, bytes]:
+    def wait_for_http_response(self, name, event, stdout) -> Tuple[Union[str, bytes], bool]:
         # TODO(sriram-mv): `aws-lambda-rie` is in a mode where the function_name is always "function"
         # NOTE(sriram-mv): There is a connection timeout set on the http call to `aws-lambda-rie`, however there is not
         # a read time out for the response received from the server.
@@ -374,10 +384,13 @@ class Container:
             timeout=(self.RAPID_CONNECTION_TIMEOUT, None),
         )
         try:
-            return json.dumps(json.loads(resp.content), ensure_ascii=False)
+            # if response is an image then json.loads/dumps will throw a UnicodeDecodeError so return raw content
+            if "image" in resp.headers["Content-Type"]:
+                return resp.content, True
+            return json.dumps(json.loads(resp.content), ensure_ascii=False), False
         except json.JSONDecodeError:
             LOG.debug("Failed to deserialize response from RIE, returning the raw response as is")
-            return resp.content
+            return resp.content, False
 
     def wait_for_result(self, full_path, event, stdout, stderr, start_timer=None):
         # NOTE(sriram-mv): Let logging happen in its own thread, so that a http request can be sent.
@@ -400,13 +413,15 @@ class Container:
         # start the timer for function timeout right before executing the function, as waiting for the socket
         # can take some time
         timer = start_timer() if start_timer else None
-        response = self.wait_for_http_response(full_path, event, stdout)
+        response, is_image = self.wait_for_http_response(full_path, event, stdout)
         if timer:
             timer.cancel()
 
         self._logs_thread_event.wait(timeout=1)
         if isinstance(response, str):
             stdout.write_str(response)
+        elif isinstance(response, bytes) and is_image:
+            stdout.write_bytes(response)
         elif isinstance(response, bytes):
             stdout.write_str(response.decode("utf-8"))
         stdout.flush()

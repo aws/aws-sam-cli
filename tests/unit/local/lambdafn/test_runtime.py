@@ -91,6 +91,7 @@ class LambdaRuntime_create(TestCase):
             memory_mb=self.DEFAULT_MEMORY,
             container_host=None,
             container_host_interface=None,
+            extra_hosts=None,
             function_full_path=self.full_path,
         )
         # Run the container and get results
@@ -161,6 +162,7 @@ class LambdaRuntime_create(TestCase):
             memory_mb=self.DEFAULT_MEMORY,
             container_host=None,
             container_host_interface=None,
+            extra_hosts=None,
             function_full_path=self.full_path,
         )
         # Run the container and get results
@@ -339,6 +341,7 @@ class LambdaRuntime_invoke(TestCase):
             memory_mb=self.DEFAULT_MEMORY,
             container_host=None,
             container_host_interface=None,
+            extra_hosts=None,
             function_full_path=self.full_path,
         )
 
@@ -696,6 +699,7 @@ class TestWarmLambdaRuntime_invoke(TestCase):
             memory_mb=self.DEFAULT_MEMORY,
             container_host=None,
             container_host_interface=None,
+            extra_hosts=None,
             function_full_path=self.full_path,
         )
 
@@ -797,6 +801,7 @@ class TestWarmLambdaRuntime_create(TestCase):
             memory_mb=self.DEFAULT_MEMORY,
             container_host=None,
             container_host_interface=None,
+            extra_hosts=None,
             function_full_path=self.full_path,
         )
 
@@ -843,6 +848,7 @@ class TestWarmLambdaRuntime_create(TestCase):
                     memory_mb=self.DEFAULT_MEMORY,
                     container_host=None,
                     container_host_interface=None,
+                    extra_hosts=None,
                     function_full_path=self.full_path,
                 ),
                 call(
@@ -860,6 +866,7 @@ class TestWarmLambdaRuntime_create(TestCase):
                     memory_mb=self.DEFAULT_MEMORY,
                     container_host=None,
                     container_host_interface=None,
+                    extra_hosts=None,
                     function_full_path=self.full_path,
                 ),
             ]
@@ -931,6 +938,7 @@ class TestWarmLambdaRuntime_create(TestCase):
             memory_mb=self.DEFAULT_MEMORY,
             container_host=None,
             container_host_interface=None,
+            extra_hosts=None,
             function_full_path=self.full_path,
         )
         self.manager_mock.create.assert_called_with(container)

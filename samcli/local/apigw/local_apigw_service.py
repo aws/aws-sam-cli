@@ -6,7 +6,7 @@ import logging
 from datetime import datetime
 from io import StringIO
 from time import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from flask import Flask, Request, request
 from werkzeug.datastructures import Headers
@@ -477,6 +477,7 @@ class LocalApigwService(BaseLocalService):
             stage_name=self.api.stage_name,
             stage_variables=self.api.stage_variables,
             operation_name=route_key,
+            api_type=route.event_type,
         )
 
     def _build_v1_context(self, route: Route) -> Dict[str, Any]:
@@ -593,7 +594,7 @@ class LocalApigwService(BaseLocalService):
 
         return True
 
-    def _invoke_lambda_function(self, lambda_function_name: str, event: dict) -> str:
+    def _invoke_lambda_function(self, lambda_function_name: str, event: dict) -> Union[str, bytes]:
         """
         Helper method to invoke a function and setup stdout+stderr
 
@@ -606,8 +607,8 @@ class LocalApigwService(BaseLocalService):
 
         Returns
         -------
-        str
-            A string containing the output from the Lambda function
+        Union[str, bytes]
+            A string or bytes containing the output from the Lambda function
         """
         with StringIO() as stdout:
             event_str = json.dumps(event, sort_keys=True)

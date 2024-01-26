@@ -25,8 +25,6 @@ class TestDeleteCliCommand(TestCase):
         do_cli(
             stack_name=self.stack_name,
             region=self.region,
-            config_file=self.config_file,
-            config_env=self.config_env,
             profile=self.profile,
             no_prompts=self.no_prompts,
             s3_bucket=self.s3_bucket,
@@ -37,8 +35,6 @@ class TestDeleteCliCommand(TestCase):
             stack_name=self.stack_name,
             region=self.region,
             profile=self.profile,
-            config_file=self.config_file,
-            config_env=self.config_env,
             no_prompts=self.no_prompts,
             s3_bucket=self.s3_bucket,
             s3_prefix=self.s3_prefix,
