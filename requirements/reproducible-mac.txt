@@ -975,9 +975,9 @@ tomlkit==0.12.3 \
     --hash=sha256:75baf5012d06501f07bee5bf8e801b9f343e7aac5a92581f20f80ce632e6b5a4 \
     --hash=sha256:b0a645a9156dc7cb5d3a1f0d4bab66db287fcb8e0430bdd4664a095ea16414ba
     # via aws-sam-cli (setup.py)
-types-awscrt==0.20.0 \
-    --hash=sha256:99778c952e1eae10cc7a53468413001177026c9434345bf00120bb2ea5b79109 \
-    --hash=sha256:e872b65d041687ec7fb49fb4dcb871ff10ade5efeca02722e037a03bff81db7e
+types-awscrt==0.20.3 \
+    --hash=sha256:06a859189a329ca8e66d56ceeef2391488e39b878fbd2141f115eab4d416fe22 \
+    --hash=sha256:f61a120d3e98ee1387bc5ca4b93437f258cc5c2af1f55f8634ec4cee5729f178
     # via botocore-stubs
 types-python-dateutil==2.8.19.20240106 \
     --hash=sha256:1f8db221c3b98e6ca02ea83a58371b22c374f42ae5bbdf186db9c9a76581459f \
