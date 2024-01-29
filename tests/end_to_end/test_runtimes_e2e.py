@@ -115,6 +115,7 @@ class TestHelloWorldZipPackagePermissionsEndToEnd(EndToEndBase):
     app_template = "hello-world"
 
     def test_hello_world_workflow(self):
+        os.environ["SAM_CLI_RIE_DEV"] = "1"
         function_name = "HelloWorldFunction"
         with EndToEndTestContext(self.app_name) as e2e_context:
             self.template_path = e2e_context.template_path
@@ -133,6 +134,7 @@ class TestHelloWorldZipPackagePermissionsEndToEnd(EndToEndBase):
                 EndToEndBaseStage(LocalInvokeValidator(e2e_context), e2e_context, local_command_list),
             ]
             self._run_tests(stages)
+        os.environ.pop("SAM_CLI_RIE_DEV", None)
 
 
 @skipIf(SKIP_E2E_TESTS, "Skip E2E tests in CI/CD only")
