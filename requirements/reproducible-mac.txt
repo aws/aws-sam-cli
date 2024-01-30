@@ -630,9 +630,9 @@ python-dateutil==2.8.2 \
     #   arrow
     #   botocore
     #   dateparser
-python-slugify==8.0.1 \
-    --hash=sha256:70ca6ea68fe63ecc8fa4fcf00ae651fc8a5d02d93dcd12ae6d4fc7ca46c4d395 \
-    --hash=sha256:ce0d46ddb668b3be82f4ed5e503dbc33dd815d83e2eb6824211310d3fb172a27
+python-slugify==8.0.2 \
+    --hash=sha256:428ea9b00c977b8f6c097724398f190b2c18e2a6011094d1001285875ccacdbf \
+    --hash=sha256:a1a02b127a95c124fd84f8f88be730e557fd823774bf19b1cd5e8704e2ae0e5e
     # via cookiecutter
 pytz==2023.4 \
     --hash=sha256:31d4583c4ed539cd037956140d695e42c033a19e984bfce9964a3f7d59bc2b40 \
