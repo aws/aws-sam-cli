@@ -1029,9 +1029,9 @@ tzlocal==5.2 \
     # via
     #   aws-sam-cli (setup.py)
     #   dateparser
-urllib3==2.2.0 \
-    --hash=sha256:051d961ad0c62a94e50ecf1af379c3aba230c66c710493493560c0c223c49f20 \
-    --hash=sha256:ce3711610ddce217e6d113a2732fafad960a03fd0318c91faa79481e35c11224
+urllib3==1.26.18 \
+    --hash=sha256:34b97092d7e0a3a8cf7cd10e386f401b3737364026c45e622aa02903dffe0f07 \
+    --hash=sha256:f8ecc1bba5667413457c529ab955bf8c67b45db799d159066261719e328580a0
     # via
     #   botocore
     #   docker
