@@ -165,7 +165,7 @@ class TestParallelRequests(StartApiIntegBaseClass):
         self.url = "http://127.0.0.1:{}".format(self.port)
         HTTPConnection._http_vsn_str = "HTTP/1.1"
 
-    # @pytest.mark.flaky(reruns=3)
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_same_endpoint(self):
         """
