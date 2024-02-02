@@ -31,7 +31,7 @@ pytest-forked==1.6.0
 pytest-timeout==2.2.0
 pytest-rerunfailures==13.0
 # NOTE (hawflau): DO NOT upgrade pytest-metadata and pytest-json-report unless pytest-json-report addresses https://github.com/numirias/pytest-json-report/issues/89
-pytest-metadata==2.0.4
+pytest-metadata==3.1.0
 pytest-json-report==1.5.0
 filelock==3.13.1
 
