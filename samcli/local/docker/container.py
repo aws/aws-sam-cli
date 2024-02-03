@@ -31,6 +31,11 @@ LOG = logging.getLogger(__name__)
 CONTAINER_CONNECTION_TIMEOUT = float(os.environ.get("SAM_CLI_CONTAINER_CONNECTION_TIMEOUT", 20))
 DEFAULT_CONTAINER_HOST_INTERFACE = "127.0.0.1"
 
+# Keep a lock instance to access the locks for individual containers (see dict below)
+CONCURRENT_CALL_MANAGER_LOCK = threading.Lock()
+# Keeps locks per container (aka per function) so that one function can be invoked one at a time
+CONCURRENT_CALL_MANAGER: Dict[str, threading.Lock] = {}
+
 
 class ContainerResponseException(Exception):
     """
@@ -378,11 +383,22 @@ class Container:
         # NOTE(sriram-mv): There is a connection timeout set on the http call to `aws-lambda-rie`, however there is not
         # a read time out for the response received from the server.
 
-        resp = requests.post(
-            self.URL.format(host=self._container_host, port=self.rapid_port_host, function_name="function"),
-            data=event.encode("utf-8"),
-            timeout=(self.RAPID_CONNECTION_TIMEOUT, None),
-        )
+        # generate a lock key with host-port combination which is unique per function
+        lock_key = f"{self._container_host}-{self.rapid_port_host}"
+        LOG.debug("Getting lock for the key %s", lock_key)
+        with CONCURRENT_CALL_MANAGER_LOCK:
+            lock = CONCURRENT_CALL_MANAGER.get(lock_key)
+            if not lock:
+                lock = threading.Lock()
+                CONCURRENT_CALL_MANAGER[lock_key] = lock
+        LOG.debug("Waiting to retrieve the lock (%s) to start invocation", lock_key)
+        with lock:
+            resp = requests.post(
+                self.URL.format(host=self._container_host, port=self.rapid_port_host, function_name="function"),
+                data=event.encode("utf-8"),
+                timeout=(self.RAPID_CONNECTION_TIMEOUT, None),
+            )
+
         try:
             # if response is an image then json.loads/dumps will throw a UnicodeDecodeError so return raw content
             if "image" in resp.headers["Content-Type"]:
