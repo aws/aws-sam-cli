@@ -1,6 +1,7 @@
 """
 Click option for replacing help text option name.
 """
+
 import click
 
 

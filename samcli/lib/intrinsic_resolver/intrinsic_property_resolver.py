@@ -1,6 +1,7 @@
 """
 Process and simplifies CloudFormation intrinsic properties such as FN::* and Ref
 """
+
 import base64
 import copy
 import logging

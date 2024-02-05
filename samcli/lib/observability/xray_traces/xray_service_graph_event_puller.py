@@ -1,6 +1,7 @@
 """
 This file contains puller implementations for XRay
 """
+
 import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Set, Union

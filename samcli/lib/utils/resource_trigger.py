@@ -1,4 +1,5 @@
 """ResourceTrigger Classes for Creating PathHandlers According to a Resource"""
+
 import platform
 import re
 from abc import ABC, abstractmethod

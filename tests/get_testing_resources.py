@@ -2,6 +2,7 @@
 Script for getting test account credentials and managed test account resources.
 The output will be a json string with creds and resource names.
 """
+
 import json
 import os
 

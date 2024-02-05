@@ -1,6 +1,7 @@
 """
 The producer for the 'sam list resources' command
 """
+
 import dataclasses
 import logging
 from typing import Any, Dict

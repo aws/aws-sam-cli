@@ -1,4 +1,5 @@
 """Base SyncFlow for Lambda Function"""
+
 import logging
 import time
 from abc import ABC

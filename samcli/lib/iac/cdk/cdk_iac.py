@@ -1,6 +1,7 @@
 """
 Provide a CDK implementation of IaCPluginInterface
 """
+
 from typing import List
 
 from samcli.lib.iac.plugins_interfaces import IaCPluginInterface, LookupPath, SamCliProject, Stack

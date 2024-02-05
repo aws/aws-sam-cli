@@ -1,6 +1,7 @@
 """
 StackBuilder implementation for nested stack
 """
+
 import re
 from typing import cast
 

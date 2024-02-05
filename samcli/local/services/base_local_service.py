@@ -1,4 +1,5 @@
 """Base class for all Services that interact with Local Lambda"""
+
 import io
 import json
 import logging

@@ -1,6 +1,7 @@
 """
     Companion stack template builder
 """
+
 from typing import Dict, cast
 
 from samcli.lib.bootstrap.companion_stack.data_types import CompanionStack, ECRRepo

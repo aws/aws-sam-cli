@@ -1,6 +1,7 @@
 """
 Logs Command Options related Datastructures for formatting.
 """
+
 from typing import Dict, List
 
 from samcli.cli.core.options import ALL_COMMON_OPTIONS, SAVE_PARAMS_OPTIONS, add_common_options_info

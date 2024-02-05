@@ -1227,9 +1227,11 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         self._verify_built_artifact(
             self.default_build_dir,
             self.FUNCTION_LOGICAL_ID,
-            self.EXPECTED_FILES_PROJECT_MANIFEST
-            if runtime != "provided.al2"
-            else self.EXPECTED_FILES_PROJECT_MANIFEST_PROVIDED,
+            (
+                self.EXPECTED_FILES_PROJECT_MANIFEST
+                if runtime != "provided.al2"
+                else self.EXPECTED_FILES_PROJECT_MANIFEST_PROVIDED
+            ),
         )
 
         self._verify_resource_property(
@@ -1298,9 +1300,11 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         self._verify_built_artifact(
             self.default_build_dir,
             self.FUNCTION_LOGICAL_ID,
-            self.EXPECTED_FILES_PROJECT_MANIFEST
-            if runtime != "provided.al2"
-            else self.EXPECTED_FILES_PROJECT_MANIFEST_PROVIDED,
+            (
+                self.EXPECTED_FILES_PROJECT_MANIFEST
+                if runtime != "provided.al2"
+                else self.EXPECTED_FILES_PROJECT_MANIFEST_PROVIDED
+            ),
         )
 
         self._verify_resource_property(
@@ -1372,9 +1376,11 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         self._verify_built_artifact(
             self.default_build_dir,
             self.FUNCTION_LOGICAL_ID,
-            self.EXPECTED_FILES_PROJECT_MANIFEST
-            if runtime != "provided.al2"
-            else self.EXPECTED_FILES_PROJECT_MANIFEST_PROVIDED,
+            (
+                self.EXPECTED_FILES_PROJECT_MANIFEST
+                if runtime != "provided.al2"
+                else self.EXPECTED_FILES_PROJECT_MANIFEST_PROVIDED
+            ),
         )
 
         self._verify_resource_property(

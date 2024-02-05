@@ -1,6 +1,7 @@
 """
 Implementation of the data to json mapper
 """
+
 import json
 from typing import Dict
 

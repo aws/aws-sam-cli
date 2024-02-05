@@ -1,6 +1,7 @@
 """
 Utilities for checking authorization of certain resource types
 """
+
 import logging
 from typing import List, Tuple
 

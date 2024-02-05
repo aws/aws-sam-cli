@@ -1,6 +1,7 @@
 """
 CLI command for "pipeline init" command
 """
+
 from typing import Any, Optional
 
 import click

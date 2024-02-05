@@ -1,4 +1,5 @@
 """A flow of questions to be asked to the user in an interactive way."""
+
 from typing import Any, Dict, List, Optional, Tuple
 
 import click

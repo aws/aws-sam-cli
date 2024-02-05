@@ -1,6 +1,7 @@
 """
 Build Command Options related Datastructures for formatting.
 """
+
 from typing import Dict, List
 
 from samcli.cli.row_modifiers import RowDefinition

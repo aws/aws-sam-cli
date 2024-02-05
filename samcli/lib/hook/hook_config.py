@@ -1,4 +1,5 @@
 """Hook Package Config"""
+
 import json
 from pathlib import Path
 from typing import Dict, NamedTuple, Optional, cast

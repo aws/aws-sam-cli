@@ -1,6 +1,7 @@
 """
 Utilities to manipulate template
 """
+
 import itertools
 import os
 import pathlib

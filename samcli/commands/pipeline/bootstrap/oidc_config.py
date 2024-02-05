@@ -1,6 +1,7 @@
 """
 Represents a pipeline OIDC provider
 """
+
 from dataclasses import dataclass
 from typing import Optional
 

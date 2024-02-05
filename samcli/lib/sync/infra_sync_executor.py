@@ -1,6 +1,7 @@
 """
 InfraSyncExecutor class which runs build, package and deploy contexts
 """
+
 import copy
 import logging
 import re
@@ -337,9 +338,9 @@ an infra sync will be executed for an CloudFormation deployment to improve perfo
                     nested_template_location,
                     stack_resource_detail.get("StackResourceDetail", {}).get("PhysicalResourceId", ""),
                     parameter_overrides={},  # Do not pass the same parameter overrides to the nested stack
-                    nested_prefix=nested_prefix + resource_logical_id + "/"
-                    if nested_prefix
-                    else resource_logical_id + "/",
+                    nested_prefix=(
+                        nested_prefix + resource_logical_id + "/" if nested_prefix else resource_logical_id + "/"
+                    ),
                 ):
                     return False
 

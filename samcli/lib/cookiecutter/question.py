@@ -1,4 +1,5 @@
 """ This module represents the questions to ask to the user to fulfill the cookiecutter context. """
+
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any, Dict, List, Optional, Type, Union

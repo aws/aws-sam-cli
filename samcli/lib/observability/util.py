@@ -1,6 +1,7 @@
 """
 Utility classes and methods for observability commands and functionality
 """
+
 from enum import Enum
 
 

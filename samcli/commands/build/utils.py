@@ -1,6 +1,7 @@
 """
 Utilities for sam build command
 """
+
 import pathlib
 from enum import Enum
 from typing import List

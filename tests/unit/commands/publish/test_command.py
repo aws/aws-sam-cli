@@ -1,4 +1,5 @@
 """Test sam publish CLI."""
+
 import json
 from unittest import TestCase
 from unittest.mock import patch, call, Mock

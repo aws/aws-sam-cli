@@ -1,6 +1,7 @@
 """
 Library for Validating Sam Templates
 """
+
 import functools
 import logging
 from typing import Dict, Optional, cast

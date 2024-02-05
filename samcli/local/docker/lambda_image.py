@@ -1,6 +1,7 @@
 """
 Generates a Docker Image to be used for invoking a function locally
 """
+
 import hashlib
 import logging
 import os

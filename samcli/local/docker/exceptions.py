@@ -1,6 +1,7 @@
 """
 Docker container related exceptions
 """
+
 from samcli.commands.exceptions import UserException
 
 

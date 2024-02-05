@@ -2,7 +2,6 @@
 Exceptions for SAM list
 """
 
-
 from samcli.commands.exceptions import UserException
 
 

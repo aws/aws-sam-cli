@@ -3,6 +3,7 @@ Terraform prepare hook implementation
 
 This module contains the main prepare method
 """
+
 import json
 import logging
 import os

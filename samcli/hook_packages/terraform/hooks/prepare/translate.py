@@ -3,6 +3,7 @@ Terraform translate to CFN implementation
 
 This method contains the logic required to translate the `terraform show` JSON output into a Cloudformation template
 """
+
 import hashlib
 import logging
 from typing import Any, Dict, Iterator, List, Tuple, Type, Union

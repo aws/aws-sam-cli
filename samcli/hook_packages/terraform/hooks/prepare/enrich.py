@@ -3,6 +3,7 @@ Terraform resource enrichment
 
 This module populates the values required for each of the Lambda resources
 """
+
 import json
 import logging
 import os
