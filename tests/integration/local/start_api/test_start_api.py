@@ -149,10 +149,11 @@ class TestServiceHTTP10(StartApiIntegBaseClass):
 
 
 @parameterized_class(
-    ("template_path",),
+    ("template_path", "container_mode"),
     [
-        ("/testdata/start_api/template.yaml",),
-        ("/testdata/start_api/cdk/template_cdk.yaml",),
+        ("/testdata/start_api/template.yaml", "LAZY"),
+        ("/testdata/start_api/template.yaml", "EAGER"),
+        ("/testdata/start_api/cdk/template_cdk.yaml", "LAZY"),
     ],
 )
 class TestParallelRequests(StartApiIntegBaseClass):
@@ -179,16 +180,15 @@ class TestParallelRequests(StartApiIntegBaseClass):
                 for _ in range(0, number_of_requests)
             ]
             results = [r.result() for r in as_completed(futures)]
-
             end_time = time()
-
-            self.assertEqual(len(results), 10)
-            self.assertGreater(end_time - start_time, 10)
 
             for result in results:
                 self.assertEqual(result.status_code, 200)
                 self.assertEqual(result.json(), {"message": "HelloWorld! I just slept and waking up."})
                 self.assertEqual(result.raw.version, 11)  # Checks if the response is HTTP/1.1 version
+            # after checking responses now check the time to complete
+            self.assertEqual(len(results), 10)
+            self.assertGreater(end_time - start_time, 10)
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
