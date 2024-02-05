@@ -24,7 +24,7 @@ types-requests==2.31.0.6
 types-urllib3==1.26.25.14
 
 # Test requirements
-pytest~=7.4.4
+pytest~=8.0.0
 parameterized==0.9.0
 pytest-xdist==3.5.0
 pytest-forked==1.6.0
@@ -32,7 +32,7 @@ pytest-timeout==2.2.0
 pytest-rerunfailures==13.0
 # NOTE (hawflau): DO NOT upgrade pytest-metadata and pytest-json-report unless pytest-json-report addresses https://github.com/numirias/pytest-json-report/issues/89
 pytest-metadata==3.1.0
-pytest-json-report==1.5.0
+pytest-json-report-wip==1.5.1
 filelock==3.13.1
 
 # formatter
