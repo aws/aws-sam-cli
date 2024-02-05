@@ -1,6 +1,7 @@
 """
 Exceptions that are used by remote invoke or remote test-events commands
 """
+
 from samcli.commands.exceptions import UserException
 
 

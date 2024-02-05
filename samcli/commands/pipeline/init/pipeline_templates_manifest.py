@@ -19,6 +19,7 @@ Example:
         provider: Github Actions
         location: templates/cookiecutter-github-actions-two-environments-pipeline
 """
+
 from pathlib import Path
 from typing import Dict, List
 

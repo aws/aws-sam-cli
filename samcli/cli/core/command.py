@@ -4,6 +4,7 @@ to be specific for AWS SAM CLI.
 
 Should be used by all commands for a consistent UI experience
 """
+
 from typing import Any, Dict, List, Optional
 
 from click import Command, Context, Parameter, style

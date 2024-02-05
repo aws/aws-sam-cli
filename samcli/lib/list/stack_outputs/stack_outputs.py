@@ -1,6 +1,7 @@
 """
 The container for stack outputs
 """
+
 from dataclasses import dataclass
 
 

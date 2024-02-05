@@ -1,6 +1,7 @@
 """
 The factory for returning the appropriate mapper and consumer
 """
+
 from samcli.commands.list.json_consumer import StringConsumerJsonOutput
 from samcli.commands.list.table_consumer import StringConsumerTableOutput
 from samcli.lib.list.data_to_json_mapper import DataToJsonMapper

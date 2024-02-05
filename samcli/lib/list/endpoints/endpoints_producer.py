@@ -1,6 +1,7 @@
 """
 The producer for the 'sam list endpoints' command
 """
+
 import dataclasses
 import json
 import logging
@@ -468,9 +469,9 @@ def get_response_domain_dict(response: Dict[Any, Any]) -> Dict[str, str]:
             resource.get(RESOURCE_TYPE, "") == AWS_APIGATEWAY_DOMAIN_NAME
             or resource.get(RESOURCE_TYPE, "") == AWS_APIGATEWAY_V2_DOMAIN_NAME
         ):
-            response_domain_dict[
-                resource.get(LOGICAL_RESOURCE_ID, "")
-            ] = f'https://{resource.get(PHYSICAL_RESOURCE_ID, "")}'
+            response_domain_dict[resource.get(LOGICAL_RESOURCE_ID, "")] = (
+                f'https://{resource.get(PHYSICAL_RESOURCE_ID, "")}'
+            )
     return response_domain_dict
 
 

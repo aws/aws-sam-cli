@@ -1,6 +1,7 @@
 """
 Abstract class definitions and generic implementations for remote invoke
 """
+
 import json
 import logging
 from abc import ABC, abstractmethod

@@ -1,4 +1,5 @@
 """Utility Class for Getting Function or Layer Manifest Dependency Hashes"""
+
 import pathlib
 
 from typing import Any, Optional

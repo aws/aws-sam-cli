@@ -1,6 +1,7 @@
 """
 This file contains puller implementations for XRay
 """
+
 import logging
 import time
 from datetime import datetime

@@ -1,6 +1,7 @@
 """
 Handles bundler properties as needed to modify the build process
 """
+
 import logging
 from copy import deepcopy
 from pathlib import Path, PosixPath

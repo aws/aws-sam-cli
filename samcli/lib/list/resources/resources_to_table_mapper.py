@@ -1,6 +1,7 @@
 """
 Implementation of the resources to table mapper
 """
+
 from collections import OrderedDict
 from typing import Any, Dict
 

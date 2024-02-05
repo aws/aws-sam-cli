@@ -1,6 +1,7 @@
 """
 The symbol table that is used in IntrinsicResolver in order to resolve runtime attributes
 """
+
 import logging
 import os
 

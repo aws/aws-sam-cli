@@ -1,6 +1,7 @@
 """
 Put Test Event Command Class.
 """
+
 import json
 
 from click import Context, style

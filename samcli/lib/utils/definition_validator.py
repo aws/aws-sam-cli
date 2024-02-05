@@ -1,4 +1,5 @@
 """DefinitionValidator for Validating YAML and JSON Files"""
+
 import logging
 from pathlib import Path
 from typing import Any, Dict, Optional

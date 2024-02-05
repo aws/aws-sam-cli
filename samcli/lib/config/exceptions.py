@@ -2,7 +2,6 @@
 Exceptions to be used by samconfig.py
 """
 
-
 from samcli.commands.exceptions import UserException
 
 

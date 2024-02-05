@@ -1,6 +1,7 @@
 """
 Builds the application
 """
+
 import os
 import io
 import json

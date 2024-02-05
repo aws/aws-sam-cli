@@ -1,6 +1,7 @@
 """
 Get Test Event Command Class.
 """
+
 from click import Context, style
 
 from samcli.cli.core.command import CoreCommand

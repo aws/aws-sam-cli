@@ -1,6 +1,7 @@
 """
 Contains information about newer version checker for SAM CLI
 """
+
 import logging
 from datetime import datetime, timedelta
 from functools import wraps

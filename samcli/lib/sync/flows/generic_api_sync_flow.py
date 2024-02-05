@@ -1,4 +1,5 @@
 """SyncFlow interface for HttpApi and RestApi"""
+
 import hashlib
 import logging
 from abc import ABC

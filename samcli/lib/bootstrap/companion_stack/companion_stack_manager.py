@@ -1,6 +1,7 @@
 """
     Companion stack manager
 """
+
 import logging
 from typing import Dict, List, Optional
 
