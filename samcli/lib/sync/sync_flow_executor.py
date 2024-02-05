@@ -311,8 +311,10 @@ class SyncFlowExecutor:
             sync_flow_result: SyncFlowResult = future.result()
             for dependent_sync_flow in sync_flow_result.dependent_sync_flows:
                 self.add_sync_flow(dependent_sync_flow)
-            message = f"{datetime.now().strftime('%d/%b/%Y:%H:%M:%S')}: Finished syncing \
-                {sync_flow_result.sync_flow.log_name}."
+            message = (
+                f"{datetime.now().strftime('%d/%b/%Y:%H:%M:%S')}: "
+                f"Finished syncing {sync_flow_result.sync_flow.log_name}."
+            )
             LOG.info(
                 self._color.color_log(msg=message, color="green"),
                 extra=dict(markup=True),
