@@ -1,6 +1,7 @@
 """
 Integration tests for sam validate
 """
+
 import json
 import os
 import re

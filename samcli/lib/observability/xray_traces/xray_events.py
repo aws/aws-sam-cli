@@ -1,6 +1,7 @@
 """
 Keeps XRay event definitions
 """
+
 import json
 import operator
 from typing import List, Optional

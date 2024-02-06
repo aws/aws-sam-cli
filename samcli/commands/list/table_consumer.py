@@ -1,6 +1,7 @@
 """
 The table consumer for 'sam list'
 """
+
 from typing import Any, Dict
 
 from samcli.commands._utils.table_print import pprint_column_names, pprint_columns

@@ -1,6 +1,7 @@
 """
 Utilities module specific to code resources such as Lambda functions and Lambda layers
 """
+
 from typing import Any, Dict
 
 from samcli.hook_packages.terraform.hooks.prepare.resource_linking import _resolve_resource_attribute

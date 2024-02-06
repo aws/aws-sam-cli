@@ -1,6 +1,7 @@
 """
 Representation of an effective user
 """
+
 import os
 from dataclasses import dataclass
 from typing import Optional

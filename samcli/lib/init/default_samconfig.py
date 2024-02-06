@@ -1,6 +1,7 @@
 """
 Module for creating default samconfig.toml files after initialize a sample app
 """
+
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, List

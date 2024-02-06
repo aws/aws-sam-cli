@@ -2,7 +2,6 @@
 Class to represent the parsing of different file types into Python objects.
 """
 
-
 import json
 import logging
 from abc import ABC, abstractmethod

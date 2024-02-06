@@ -1,6 +1,7 @@
 """
 Delete a SAM stack
 """
+
 import logging
 from typing import Optional
 

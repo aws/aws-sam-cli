@@ -1,4 +1,5 @@
 """Test sam deploy command"""
+
 from unittest import TestCase
 from unittest.mock import ANY, patch, MagicMock, Mock
 import tempfile

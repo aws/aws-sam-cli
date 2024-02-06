@@ -1,4 +1,5 @@
 """Executor for SyncFlows"""
+
 import logging
 import time
 from concurrent.futures import Future, ThreadPoolExecutor

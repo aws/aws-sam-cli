@@ -1,6 +1,7 @@
 """
 Remote invoke executor implementation for Step Functions
 """
+
 import logging
 import time
 from datetime import datetime

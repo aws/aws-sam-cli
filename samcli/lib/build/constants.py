@@ -1,6 +1,7 @@
 """
 build constants
 """
+
 from typing import Set
 
 DEPRECATED_RUNTIMES: Set[str] = {

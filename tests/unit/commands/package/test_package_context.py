@@ -1,4 +1,5 @@
 """Test sam package command"""
+
 from unittest import TestCase
 from unittest.mock import patch, MagicMock, Mock, call, ANY
 from parameterized import parameterized

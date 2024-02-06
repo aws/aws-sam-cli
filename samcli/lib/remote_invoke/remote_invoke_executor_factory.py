@@ -1,6 +1,7 @@
 """
 Remote Invoke factory to instantiate remote invoker for given resource
 """
+
 import logging
 from typing import Any, Callable, Dict, Optional
 

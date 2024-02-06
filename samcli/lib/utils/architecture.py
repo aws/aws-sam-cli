@@ -1,6 +1,7 @@
 """
 Architecture tools
 """
+
 from typing import TYPE_CHECKING, Dict, List, cast
 
 from samcli.commands.exceptions import UserException

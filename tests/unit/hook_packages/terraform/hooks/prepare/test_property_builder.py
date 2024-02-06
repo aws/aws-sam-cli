@@ -1,4 +1,5 @@
 """Test Terraform property builder"""
+
 import json
 from unittest.mock import patch, Mock, call
 from parameterized import parameterized

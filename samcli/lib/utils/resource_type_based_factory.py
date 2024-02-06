@@ -1,4 +1,5 @@
 """Base Factory Abstract Class for Creating Objects Specific to a Resource Type"""
+
 import logging
 from abc import ABC, abstractmethod
 from typing import Callable, Dict, Generic, List, Optional, TypeVar

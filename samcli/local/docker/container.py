@@ -1,6 +1,7 @@
 """
 Representation of a generic Docker container
 """
+
 import io
 import json
 import logging

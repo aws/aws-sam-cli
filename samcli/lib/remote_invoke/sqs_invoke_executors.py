@@ -1,6 +1,7 @@
 """
 Remote invoke executor implementation for SQS
 """
+
 import json
 import logging
 from dataclasses import asdict, dataclass

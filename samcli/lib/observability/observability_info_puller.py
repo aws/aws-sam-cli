@@ -1,6 +1,7 @@
 """
 Interfaces and generic implementations for observability events (like CW logs)
 """
+
 import logging
 from abc import ABC, abstractmethod
 from datetime import datetime

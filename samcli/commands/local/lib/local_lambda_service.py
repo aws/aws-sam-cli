@@ -1,6 +1,7 @@
 """
 Connects the CLI with Local Lambda Invoke Service.
 """
+
 import logging
 
 from samcli.local.lambda_service.local_lambda_invoke_service import LocalLambdaInvokeService

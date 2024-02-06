@@ -1,6 +1,7 @@
 """
 Click Help Formatter Classes that are customized for the root command.
 """
+
 from contextlib import contextmanager
 from typing import Iterator, Optional, Sequence
 

@@ -1,4 +1,5 @@
 """Class that parses the CloudFormation Api Template"""
+
 import logging
 from typing import Any, Dict, List, Optional, Type, Union
 

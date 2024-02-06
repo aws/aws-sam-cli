@@ -1,6 +1,7 @@
 """
 Wraps watchdog to observe file system for any change.
 """
+
 import logging
 import platform
 import threading

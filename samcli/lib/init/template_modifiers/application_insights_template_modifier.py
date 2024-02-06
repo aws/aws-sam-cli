@@ -1,6 +1,7 @@
 """
 Class used to parse and update template when application-insights is enabled
 """
+
 import logging
 from typing import Any
 

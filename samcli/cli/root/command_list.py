@@ -1,6 +1,7 @@
 """
 Data structure to host the root command name and short help text to speed up load time.
 """
+
 SAM_CLI_COMMANDS = {
     "init": "Initialize an AWS SAM application.",
     "validate": "Validate an AWS SAM template.",

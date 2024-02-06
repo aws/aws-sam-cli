@@ -1,6 +1,7 @@
 """
 SAM CLI Default Build constants
 """
+
 import os
 
 DEFAULT_STACK_NAME = "sam-app"

@@ -1,6 +1,7 @@
 """
 Testing local lambda runner
 """
+
 import os
 import posixpath
 from unittest import TestCase

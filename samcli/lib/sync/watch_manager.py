@@ -1,6 +1,7 @@
 """
 WatchManager for Sync Watch Logic
 """
+
 import logging
 import platform
 import threading

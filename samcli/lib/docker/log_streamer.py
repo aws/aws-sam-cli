@@ -1,6 +1,7 @@
 """
 Log streaming utilities when streaming logs from Docker
 """
+
 import os
 from typing import Dict
 

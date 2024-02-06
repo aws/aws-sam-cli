@@ -1,6 +1,7 @@
 """
 Utilities for table pretty printing using click
 """
+
 import shutil
 import textwrap
 from functools import wraps

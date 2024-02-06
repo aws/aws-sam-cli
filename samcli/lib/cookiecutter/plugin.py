@@ -1,6 +1,7 @@
 """
 Plugins are sub-sets of templates, it encapsulate common behavior of different templates and plugged to each of them
 """
+
 from typing import NamedTuple
 
 from .interactive_flow import InteractiveFlow

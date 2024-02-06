@@ -1,6 +1,7 @@
 """
 CLI command for "traces" command
 """
+
 import logging
 
 import click

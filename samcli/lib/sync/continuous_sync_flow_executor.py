@@ -1,4 +1,5 @@
 """SyncFlowExecutor that will run continuously until stop is called."""
+
 import logging
 import time
 from concurrent.futures.thread import ThreadPoolExecutor
