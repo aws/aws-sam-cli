@@ -1,6 +1,7 @@
 """
 Contains all mappers (formatters) for CloudWatch logs
 """
+
 import json
 import logging
 from json import JSONDecodeError

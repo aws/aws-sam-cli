@@ -1,6 +1,7 @@
 """
 Reads CLI arguments and performs necessary preparation to be able to run the function
 """
+
 import errno
 import json
 import logging

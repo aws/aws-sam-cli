@@ -1,4 +1,5 @@
 """Test Terraform prepare enrichment"""
+
 from unittest.mock import Mock, call, patch
 from parameterized import parameterized
 from subprocess import CalledProcessError

@@ -1,6 +1,7 @@
 """
 The producer for the 'sam list stack-outputs' command
 """
+
 import dataclasses
 import logging
 from typing import Any, Optional

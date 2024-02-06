@@ -1,6 +1,7 @@
 """
 Base Command Options related Data Structures for formatting.
 """
+
 from typing import Dict, List
 
 # The ordering of the option lists matter, they are the order in which options will be displayed.

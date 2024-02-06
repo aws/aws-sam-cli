@@ -1,4 +1,5 @@
 """Test Terraform prepare hook"""
+
 from subprocess import CalledProcessError
 from unittest.mock import Mock, call, patch, MagicMock, ANY
 from parameterized import parameterized

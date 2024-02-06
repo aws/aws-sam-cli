@@ -1,6 +1,7 @@
 """
 Remote Test Event Command Formatter base.
 """
+
 from typing import List
 
 from samcli.cli.formatters import RootCommandHelpTextFormatter

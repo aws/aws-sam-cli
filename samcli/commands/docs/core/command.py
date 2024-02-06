@@ -1,6 +1,7 @@
 """
 Module contains classes for creating the docs command from click
 """
+
 import os
 from typing import List, Optional
 

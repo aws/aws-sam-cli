@@ -1,6 +1,7 @@
 """
 Class that provides layers from a given SAM template
 """
+
 import logging
 from typing import Dict, List, Optional
 

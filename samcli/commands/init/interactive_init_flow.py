@@ -1,6 +1,7 @@
 """
 Isolates interactive init prompt flow. Expected to call generator logic at end of flow.
 """
+
 import logging
 import pathlib
 import tempfile

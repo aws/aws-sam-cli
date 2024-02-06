@@ -1,4 +1,5 @@
 """Parses SAM given a template"""
+
 import logging
 from typing import Any, Dict, List, Optional, Tuple, cast
 

@@ -1,6 +1,7 @@
 """
 Hooks Wrapper Class
 """
+
 import importlib
 import logging
 from pathlib import Path

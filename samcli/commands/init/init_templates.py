@@ -1,6 +1,7 @@
 """
 Manages the set of application templates.
 """
+
 import itertools
 import json
 import logging

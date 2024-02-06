@@ -1,6 +1,7 @@
 """
 Image artifacts based utilities
 """
+
 import docker
 from docker.errors import APIError, NullResource
 

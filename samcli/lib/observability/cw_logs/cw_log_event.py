@@ -1,6 +1,7 @@
 """
 CloudWatch log event type
 """
+
 from typing import Optional
 
 from samcli.lib.observability.observability_info_puller import ObservabilityEvent

@@ -1,6 +1,7 @@
 """
 Provides all Warnings checkers for sam template
 """
+
 import logging
 from typing import Dict
 

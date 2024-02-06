@@ -1,6 +1,7 @@
 """
 Common CLI options for invoke command
 """
+
 from pathlib import Path
 
 import click

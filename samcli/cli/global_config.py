@@ -1,6 +1,7 @@
 """
 Provides global configuration helpers.
 """
+
 import json
 import logging
 import os
@@ -154,8 +155,7 @@ class GlobalConfig(metaclass=Singleton):
         value_type: Type[bool],
         is_flag: bool,
         reload_config: bool = False,
-    ) -> bool:
-        ...
+    ) -> bool: ...
 
     # Overload for case where type is specified
     @overload
@@ -166,8 +166,7 @@ class GlobalConfig(metaclass=Singleton):
         value_type: Type[T] = T,  # type: ignore
         is_flag: bool = False,
         reload_config: bool = False,
-    ) -> Optional[T]:
-        ...
+    ) -> Optional[T]: ...
 
     # Overload for case where type is not specified and default to object
     @overload
@@ -178,8 +177,7 @@ class GlobalConfig(metaclass=Singleton):
         value_type: object = object,
         is_flag: bool = False,
         reload_config: bool = False,
-    ) -> Any:
-        ...
+    ) -> Any: ...
 
     def get_value(
         self,

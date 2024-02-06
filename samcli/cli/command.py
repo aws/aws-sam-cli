@@ -1,6 +1,7 @@
 """
 Base classes that implement the CLI framework
 """
+
 import importlib
 import logging
 from collections import OrderedDict

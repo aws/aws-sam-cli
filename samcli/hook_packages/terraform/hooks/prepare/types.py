@@ -1,4 +1,5 @@
 """ Contains the data types used in the TF prepare hook"""
+
 from abc import ABC
 from copy import deepcopy
 from dataclasses import dataclass

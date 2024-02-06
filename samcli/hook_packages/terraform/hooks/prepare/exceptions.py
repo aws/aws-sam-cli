@@ -1,6 +1,7 @@
 """
 Module containing prepare hook-related exceptions
 """
+
 import os
 
 from samcli.commands.exceptions import UserException

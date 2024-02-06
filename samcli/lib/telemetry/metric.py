@@ -1,6 +1,7 @@
 """
 Provides methods to generate and send metrics
 """
+
 import logging
 import platform
 import uuid

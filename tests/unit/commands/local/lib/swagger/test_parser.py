@@ -1,6 +1,7 @@
 """
 Test the swagger parser
 """
+
 from unittest import TestCase
 
 from unittest.mock import ANY, patch, Mock

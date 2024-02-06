@@ -1,4 +1,5 @@
 """ Represents AWS resource"""
+
 from typing import Optional
 
 from samcli.lib.utils.arn_utils import ARNParts

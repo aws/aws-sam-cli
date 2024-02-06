@@ -1,4 +1,5 @@
 """ This module parses a json/yaml file that defines a flow of questions to fulfill the cookiecutter context"""
+
 from typing import Dict, Optional, Tuple
 
 import yaml

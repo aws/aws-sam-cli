@@ -1,6 +1,7 @@
 """
 CLI command for "docs" command
 """
+
 from typing import Type
 
 from click import Command, command

@@ -1,6 +1,7 @@
 """
 The container for Endpoints
 """
+
 from dataclasses import dataclass
 from typing import Any
 

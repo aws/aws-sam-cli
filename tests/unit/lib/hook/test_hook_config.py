@@ -1,4 +1,5 @@
 """Test Hook Package Config"""
+
 import json
 from copy import deepcopy
 from unittest import TestCase

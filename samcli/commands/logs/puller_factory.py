@@ -2,6 +2,7 @@
 File keeps Factory method to prepare required puller information
 with its producers and consumers
 """
+
 import logging
 from typing import List, Optional
 

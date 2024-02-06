@@ -2,6 +2,7 @@
 An interactive flow that prompt the user for required information to bootstrap the AWS account of an environment
 with the required infrastructure
 """
+
 import os
 import sys
 from textwrap import dedent
@@ -317,9 +318,11 @@ class GuidedContext:
             inputs.extend(
                 [
                     (
-                        f"Pipeline user ARN: {self.pipeline_user_arn}"
-                        if self.pipeline_user_arn
-                        else "Pipeline user: [to be created]",
+                        (
+                            f"Pipeline user ARN: {self.pipeline_user_arn}"
+                            if self.pipeline_user_arn
+                            else "Pipeline user: [to be created]"
+                        ),
                         self._prompt_pipeline_user,
                     )
                 ]
@@ -328,27 +331,35 @@ class GuidedContext:
         inputs.extend(
             [
                 (
-                    f"Pipeline execution role ARN: {self.pipeline_execution_role_arn}"
-                    if self.pipeline_execution_role_arn
-                    else "Pipeline execution role: [to be created]",
+                    (
+                        f"Pipeline execution role ARN: {self.pipeline_execution_role_arn}"
+                        if self.pipeline_execution_role_arn
+                        else "Pipeline execution role: [to be created]"
+                    ),
                     self._prompt_pipeline_execution_role,
                 ),
                 (
-                    f"CloudFormation execution role ARN: {self.cloudformation_execution_role_arn}"
-                    if self.cloudformation_execution_role_arn
-                    else "CloudFormation execution role: [to be created]",
+                    (
+                        f"CloudFormation execution role ARN: {self.cloudformation_execution_role_arn}"
+                        if self.cloudformation_execution_role_arn
+                        else "CloudFormation execution role: [to be created]"
+                    ),
                     self._prompt_cloudformation_execution_role,
                 ),
                 (
-                    f"Artifacts bucket ARN: {self.artifacts_bucket_arn}"
-                    if self.artifacts_bucket_arn
-                    else "Artifacts bucket: [to be created]",
+                    (
+                        f"Artifacts bucket ARN: {self.artifacts_bucket_arn}"
+                        if self.artifacts_bucket_arn
+                        else "Artifacts bucket: [to be created]"
+                    ),
                     self._prompt_artifacts_bucket,
                 ),
                 (
-                    f"ECR image repository ARN: {self.image_repository_arn}"
-                    if self.image_repository_arn
-                    else f"ECR image repository: [{'to be created' if self.create_image_repository else 'skipped'}]",
+                    (
+                        f"ECR image repository ARN: {self.image_repository_arn}"
+                        if self.image_repository_arn
+                        else f"ECR image repository: [{'to be created' if self.create_image_repository else 'skipped'}]"
+                    ),
                     self._prompt_image_repository,
                 ),
             ]

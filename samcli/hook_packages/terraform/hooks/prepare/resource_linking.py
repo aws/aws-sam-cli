@@ -2,6 +2,7 @@
 Use Terraform plan to link resources together
 e.g. linking layers to functions
 """
+
 import logging
 import re
 from dataclasses import dataclass
@@ -157,9 +158,9 @@ class ResourceLinkingPair:
     cfn_resource_update_call_back_function: Callable[[Dict, List[ReferenceType]], None]
     linking_exceptions: ResourcePairExceptions
     # function to extract the terraform destination value from the linking field value
-    tf_destination_value_extractor_from_link_field_value_function: Callable[
-        [str], str
-    ] = _default_tf_destination_value_id_extractor
+    tf_destination_value_extractor_from_link_field_value_function: Callable[[str], str] = (
+        _default_tf_destination_value_id_extractor
+    )
 
 
 class ResourceLinker:
@@ -357,12 +358,14 @@ class ResourceLinker:
         )
 
         dest_resources = [
-            LogicalIdReference(
-                value=child_resources_linking_attributes_logical_id_mapping[value][0],
-                resource_type=child_resources_linking_attributes_logical_id_mapping[value][1],
+            (
+                LogicalIdReference(
+                    value=child_resources_linking_attributes_logical_id_mapping[value][0],
+                    resource_type=child_resources_linking_attributes_logical_id_mapping[value][1],
+                )
+                if value in child_resources_linking_attributes_logical_id_mapping
+                else ExistingResourceReference(value)
             )
-            if value in child_resources_linking_attributes_logical_id_mapping
-            else ExistingResourceReference(value)
             for value in values
         ]
 

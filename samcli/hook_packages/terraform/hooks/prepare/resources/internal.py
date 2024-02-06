@@ -1,4 +1,5 @@
 """Module containing logic specific to internal resources handling during the prepare hook execution"""
+
 from samcli.hook_packages.terraform.hooks.prepare.types import ResourceProperties
 
 INTERNAL_PREFIX = "Internal::"
