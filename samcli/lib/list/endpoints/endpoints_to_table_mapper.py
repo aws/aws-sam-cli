@@ -1,6 +1,7 @@
 """
 Implementation of the endpoints to table mapper
 """
+
 from collections import OrderedDict
 from typing import Any, Dict
 

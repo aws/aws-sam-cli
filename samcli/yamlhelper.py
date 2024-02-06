@@ -119,9 +119,9 @@ def yaml_parse(yamlstr) -> Dict:
         # json parser.
         return cast(Dict, json.loads(yamlstr, object_pairs_hook=OrderedDict))
     except ValueError:
-        yaml.constructor.SafeConstructor.yaml_constructors[
-            TIMESTAMP_TAG
-        ] = yaml.constructor.SafeConstructor.yaml_constructors[TAG_STR]
+        yaml.constructor.SafeConstructor.yaml_constructors[TIMESTAMP_TAG] = (
+            yaml.constructor.SafeConstructor.yaml_constructors[TAG_STR]
+        )
         yaml.SafeLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _dict_constructor)
         yaml.SafeLoader.add_multi_constructor("!", intrinsics_multi_constructor)
         return cast(Dict, yaml.safe_load(yamlstr))

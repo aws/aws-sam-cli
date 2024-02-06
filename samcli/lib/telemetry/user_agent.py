@@ -1,6 +1,7 @@
 """
 Reads user agent information from environment and returns it for telemetry consumption
 """
+
 import os
 import re
 from typing import Optional

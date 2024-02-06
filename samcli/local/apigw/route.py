@@ -1,6 +1,7 @@
 """
 Route definition for local start-api
 """
+
 from typing import List, Optional
 
 from samcli.local.apigw.authorizers.authorizer import Authorizer

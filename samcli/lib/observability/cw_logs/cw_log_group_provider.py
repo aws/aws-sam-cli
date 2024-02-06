@@ -1,6 +1,7 @@
 """
 Discover & provide the log group name
 """
+
 import logging
 from typing import Optional
 

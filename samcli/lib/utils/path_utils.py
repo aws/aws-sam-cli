@@ -1,6 +1,7 @@
 """
 Common Path related utilities
 """
+
 from pathlib import PureWindowsPath
 
 

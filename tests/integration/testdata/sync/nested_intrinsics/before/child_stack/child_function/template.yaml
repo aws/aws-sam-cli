@@ -16,7 +16,7 @@ Resources:
     Properties:
       CodeUri: function/
       Handler: function.lambda_handler
-      Runtime: python3.7
+      Runtime: python3.11
       Layers:
         - Ref: Layer
       Tracing: Active

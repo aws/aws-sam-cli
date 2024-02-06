@@ -2,6 +2,7 @@
 Image Repository Option Validation.
 This is to be run last after all CLI options have been processed.
 """
+
 import click
 
 from samcli.commands._utils.option_validator import Validator

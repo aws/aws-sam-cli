@@ -1,6 +1,7 @@
 """
 Factory methods which generates puller and consumer instances for XRay events
 """
+
 from typing import Any, List
 
 from samcli.commands.traces.trace_console_consumers import XRayTraceConsoleConsumer

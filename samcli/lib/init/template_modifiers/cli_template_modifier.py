@@ -1,6 +1,7 @@
 """
 Class used to parse and update template with new field
 """
+
 import logging
 from abc import abstractmethod
 from copy import deepcopy

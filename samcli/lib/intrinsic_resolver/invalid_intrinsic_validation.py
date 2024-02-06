@@ -1,6 +1,7 @@
 """
 A list of helper functions that cleanup the processing in IntrinsicResolver and IntrinsicSymbolTable
 """
+
 from samcli.lib.intrinsic_resolver.invalid_intrinsic_exception import InvalidIntrinsicException
 
 

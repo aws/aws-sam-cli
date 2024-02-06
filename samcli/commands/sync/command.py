@@ -1,4 +1,5 @@
 """CLI command for "sync" command."""
+
 import logging
 import os
 from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple

@@ -1,4 +1,5 @@
 """Test Terraform utilities"""
+
 from unittest import TestCase
 from unittest.mock import patch, Mock, call
 from parameterized import parameterized

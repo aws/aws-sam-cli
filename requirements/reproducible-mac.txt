@@ -24,9 +24,9 @@ aws-lambda-builders==1.45.0 \
     --hash=sha256:5c19a6628eecf21578cd9c521e747f4a2163c62c527cd840b11b62a10b661348 \
     --hash=sha256:a4db7766198c052900905bd7ee3b1a8b486511394cdabffed054204d43b29943
     # via aws-sam-cli (setup.py)
-aws-sam-translator==1.83.0 \
-    --hash=sha256:022246b4745cc9067f88ab2b051f49898606bcf0222e22b9da41063e5619c6f9 \
-    --hash=sha256:46025ca8894a56eacd87eb0e4f9af5c01c567c9a734b97fbba353bffd56ba5dc
+aws-sam-translator==1.84.0 \
+    --hash=sha256:a24f43e80095c79258a1f1c7a0b8169f55daf0b2bc237d5b9010b02ba86fa3bb \
+    --hash=sha256:dbfd5669b5ef4bd7bc7af4775eec2ce4db61a2c2a17d721e67b51cf6a6dd63f9
     # via
     #   aws-sam-cli (setup.py)
     #   cfn-lint
@@ -78,9 +78,9 @@ botocore-stubs==1.34.32 \
     --hash=sha256:978c97b8c02b5ffa3726a5052e5715aecc52c640a75a8088b3a58453c2b054b2 \
     --hash=sha256:e5b04b8ab81e736088470b7be244de072ac2f986caf0f51b7e2087400778dc9f
     # via boto3-stubs
-certifi==2023.11.17 \
-    --hash=sha256:9b469f3a900bf28dc19b8cfbf8019bf47f7fdd1a65a1d4ffb98fc14166beb4d1 \
-    --hash=sha256:e036ab49d5b79556f99cfc2d9320b34cfbe5be05c5871b51de9329f0603b0474
+certifi==2024.2.2 \
+    --hash=sha256:0569859f95fc761b18b45ef421b1290a0f65f147e92a1e5eb3e635f9a5e4e66f \
+    --hash=sha256:dc383c07b76109f368f6106eee2b593b04a011ea4d55f652c6ca24a754d1cdd1
     # via requests
 cffi==1.16.0 \
     --hash=sha256:0c9ef6ff37e974b73c25eecc13952c55bceed9112be2d9d938ded8e856138bcc \
@@ -617,9 +617,9 @@ python-slugify==8.0.3 \
     --hash=sha256:c71189c161e8c671f1b141034d9a56308a8a5978cd13d40446c879569212fdd1 \
     --hash=sha256:e04cba5f1c562502a1175c84a8bc23890c54cdaf23fccaaf0bf78511508cabed
     # via cookiecutter
-pytz==2023.4 \
-    --hash=sha256:31d4583c4ed539cd037956140d695e42c033a19e984bfce9964a3f7d59bc2b40 \
-    --hash=sha256:f90ef520d95e7c46951105338d918664ebfd6f1d995bd7d153127ce90efafa6a
+pytz==2024.1 \
+    --hash=sha256:2a29735ea9c18baf14b448846bde5a48030ed267578472d8955cd0e7443a9812 \
+    --hash=sha256:328171f4e3623139da4983451950b28e95ac706e13f3f2630a879749e7a8b319
     # via dateparser
 pyyaml==6.0.1 \
     --hash=sha256:062582fca9fabdd2c8b54a3ef1c978d786e0f6b3a1510e0ac93ef59e0ddae2bc \

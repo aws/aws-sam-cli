@@ -1,6 +1,7 @@
 """
 Contains helper functions for validation and exception handling of "sam logs" command
 """
+
 from functools import wraps
 from typing import Any, Callable, Dict
 

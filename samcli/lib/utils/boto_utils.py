@@ -1,6 +1,7 @@
 """
 This module contains utility functions for boto3 library
 """
+
 from typing import Any, Optional
 
 from boto3 import Session
@@ -28,17 +29,16 @@ def get_boto_config_with_user_agent(**kwargs) -> Config:
     """
     gc = GlobalConfig()
     return Config(
-        user_agent_extra=f"aws-sam-cli/{__version__}/{gc.installation_id}"
-        if gc.telemetry_enabled
-        else f"aws-sam-cli/{__version__}",
+        user_agent_extra=(
+            f"aws-sam-cli/{__version__}/{gc.installation_id}" if gc.telemetry_enabled else f"aws-sam-cli/{__version__}"
+        ),
         **kwargs,
     )
 
 
 # Type definition of following boto providers, which is equal to Callable[[str], Any]
 class BotoProviderType(Protocol):
-    def __call__(self, service_name: str) -> Any:
-        ...  # pragma: no cover
+    def __call__(self, service_name: str) -> Any: ...  # pragma: no cover
 
 
 def get_boto_client_provider_from_session_with_config(session: Session, **kwargs) -> BotoProviderType:

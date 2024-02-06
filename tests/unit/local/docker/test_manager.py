@@ -1,6 +1,7 @@
 """
 Tests container manager
 """
+
 import importlib
 from unittest import TestCase
 from unittest.mock import Mock, patch, MagicMock, ANY, call

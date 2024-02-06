@@ -1,4 +1,5 @@
 """ Define a processor to process the cookiecutter context before/after generating a cookiecutter project"""
+
 from abc import ABC, abstractmethod
 from typing import Dict
 

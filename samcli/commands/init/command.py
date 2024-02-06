@@ -1,6 +1,7 @@
 """
 Init command to scaffold a project app from a template
 """
+
 import json
 import logging
 from json import JSONDecodeError

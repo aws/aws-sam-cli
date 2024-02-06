@@ -1,6 +1,7 @@
 """
 Handles the validation of identity sources
 """
+
 import re
 
 from samcli.local.apigw.route import Route

@@ -1,6 +1,7 @@
 """
 Exceptions that are raised by sam delete
 """
+
 from samcli.commands.exceptions import UserException
 
 

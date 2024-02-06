@@ -1,6 +1,7 @@
 """
 Class for handling the analysis and inspection of Docker containers
 """
+
 import logging
 from dataclasses import dataclass
 

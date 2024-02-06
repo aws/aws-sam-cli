@@ -1,4 +1,5 @@
 """Command group for "test-event" suite of commands."""
+
 import click
 
 from samcli.commands.remote.test_event.delete.cli import cli as delete_cli

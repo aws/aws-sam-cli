@@ -1,6 +1,7 @@
 """
 Display the Outputs of a SAM stack
 """
+
 import logging
 from typing import Optional
 

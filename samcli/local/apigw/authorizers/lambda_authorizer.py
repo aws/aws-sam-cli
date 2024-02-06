@@ -1,6 +1,7 @@
 """
 Custom Lambda Authorizer class definition
 """
+
 import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
