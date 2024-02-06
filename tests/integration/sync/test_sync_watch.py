@@ -274,9 +274,7 @@ class TestSyncWatchCode(TestSyncWatchBase):
             self.test_data_path.joinpath("code", "after", "statemachine", "function.asl.json"),
             self.test_data_path.joinpath("code", "before", "statemachine", "function.asl.json"),
         )
-        read_until_string(
-            self.watch_process, "Finished syncing StepFunctions HelloStepFunction.\x1b[0m\n", timeout=20
-        )
+        read_until_string(self.watch_process, "Finished syncing StepFunctions HelloStepFunction.\x1b[0m\n", timeout=20)
         state_machine = self.stack_resources.get(AWS_STEPFUNCTIONS_STATEMACHINE)[0]
         time.sleep(SFN_SLEEP)
         self.assertEqual(self._get_sfn_response(state_machine), '"World 2"')
@@ -326,8 +324,7 @@ class TestSyncCodeWatchNestedStacks(TestSyncWatchBase):
             )
             read_until_string(
                 self.watch_process,
-                "Finished syncing Function Layer Reference Sync "
-                "LocalNestedChildStack/HelloWorldFunction.\x1b[0m\n",
+                "Finished syncing Function Layer Reference Sync " "LocalNestedChildStack/HelloWorldFunction.\x1b[0m\n",
                 timeout=45,
             )
             layer_contents = self.get_dependency_layer_contents_from_arn(self.stack_resources, "python", 2)
