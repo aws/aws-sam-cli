@@ -11,4 +11,4 @@ Resources:
     Properties:
       CodeUri: python_function_no_deps/
       Handler: app.lambda_handler
-      Runtime: python3.7
+      Runtime: python3.11
