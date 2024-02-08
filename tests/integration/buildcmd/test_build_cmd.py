@@ -667,13 +667,9 @@ class TestBuildCommand_ErrorCases(BuildIntegBase):
 class TestBuildCommand_NodeFunctions(BuildIntegNodeBase):
     @parameterized.expand(
         [
-            ("nodejs12.x", False),
-            ("nodejs14.x", False),
             ("nodejs16.x", False),
             ("nodejs18.x", False),
             ("nodejs20.x", False),
-            ("nodejs12.x", "use_container"),
-            ("nodejs14.x", "use_container"),
             ("nodejs16.x", "use_container"),
             ("nodejs18.x", "use_container"),
             ("nodejs20.x", "use_container"),
@@ -695,7 +691,6 @@ class TestBuildCommand_NodeFunctions_With_External_Manifest(BuildIntegNodeBase):
 
     @parameterized.expand(
         [
-            ("nodejs14.x",),
             ("nodejs16.x",),
             ("nodejs18.x",),
             ("nodejs20.x",),
@@ -710,11 +705,12 @@ class TestBuildCommand_EsbuildFunctions(BuildIntegEsbuildBase):
 
     @parameterized.expand(
         [
-            ("nodejs14.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", False, "x86_64"),
-            ("nodejs14.x", "Esbuild/TypeScript", {"app.js", "app.js.map"}, "app.lambdaHandler", False, "x86_64"),
-            ("nodejs14.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", "use_container", "x86_64"),
+            ("nodejs20.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", False, "x86_64"),
+            ("nodejs20.x", "Esbuild/TypeScript", {"app.js", "app.js.map"}, "app.lambdaHandler", False, "x86_64"),
+            # Keeping container tests as Node.js18 until our CI platform can run Node.js20 container tests
+            ("nodejs18.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", "use_container", "x86_64"),
             (
-                "nodejs14.x",
+                "nodejs18.x",
                 "Esbuild/TypeScript",
                 {"app.js", "app.js.map"},
                 "app.lambdaHandler",
@@ -736,7 +732,7 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest(BuildIntegEsbuild
     @parameterized.expand(
         [
             (
-                "nodejs14.x",
+                "nodejs20.x",
                 "Esbuild/Node_without_manifest",
                 {"main.js", "main.js.map"},
                 "main.lambdaHandler",
@@ -744,7 +740,7 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest(BuildIntegEsbuild
                 "x86_64",
             ),
             (
-                "nodejs14.x",
+                "nodejs20.x",
                 "Esbuild/TypeScript_without_manifest",
                 {"app.js", "app.js.map"},
                 "app.lambdaHandler",
@@ -796,13 +792,9 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture(BuildIntegNodeB
 
     @parameterized.expand(
         [
-            ("nodejs12.x", False, "x86_64"),
-            ("nodejs14.x", False, "x86_64"),
             ("nodejs16.x", False, "x86_64"),
             ("nodejs18.x", False, "x86_64"),
             ("nodejs20.x", False, "x86_64"),
-            ("nodejs12.x", "use_container", "x86_64"),
-            ("nodejs14.x", "use_container", "x86_64"),
             ("nodejs16.x", "use_container", "x86_64"),
             ("nodejs18.x", "use_container", "x86_64"),
         ]
@@ -2144,12 +2136,12 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
                 "dotnet6",
             ),
             (False, "Java/gradlew/8", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
-            (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
+            (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs20.x"),
             (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.7"),
             # container
             (True, "Java/gradlew/8", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
-            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
+            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs20.x"),
             (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.7"),
         ]
@@ -2263,12 +2255,12 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
                 "dotnet6",
             ),
             (False, "Java/gradlew/8", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
-            (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
+            (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs20.x"),
             (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.7"),
             # container
             (True, "Java/gradlew/8", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
-            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
+            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs20.x"),
             (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.7"),
         ]
@@ -2442,12 +2434,12 @@ class TestParallelBuilds(DedupBuildIntegBase):
                 "dotnet6",
             ),
             (False, "Java/gradlew/8", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
-            (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
+            (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs20.x"),
             (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.7"),
             # container
             (True, "Java/gradlew/8", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
-            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
+            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs20.x"),
             (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.7"),
         ]

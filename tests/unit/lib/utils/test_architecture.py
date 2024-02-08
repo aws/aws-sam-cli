@@ -42,7 +42,7 @@ class TestArchitecture(TestCase):
 
     @parameterized.expand(
         [
-            ("nodejs14.x", X86_64, ZIP),
+            ("nodejs20.x", X86_64, ZIP),
             ("java8.al2", ARM64, ZIP),
             ("dotnet6", ARM64, ZIP),
             (None, X86_64, IMAGE),

@@ -7,7 +7,7 @@ What will be changed?
 ---------------------
 
 Serverless Function resources can now have a Metadata Resource Attribute which specifies a `BuildMethod`. 
-`BuildMethod` will either be the official lambda runtime identifiers such as `python3.8`, `nodejs12.x` etc or `makefile`.
+`BuildMethod` will either be the official lambda runtime identifiers such as `python3.8`, `nodejs20.x` etc or `makefile`.
 If `BuildMethod` is specified to be `makefile`, the build targets that are present in the `Makefile` which take the form of
 
 `build-{resource_logical_id}` will be executed.

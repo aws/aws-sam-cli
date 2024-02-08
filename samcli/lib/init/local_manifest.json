@@ -73,7 +73,7 @@
             "useCaseName": "Hello World Example"
         }
     ],
-    "nodejs14.x": [
+    "nodejs20.x": [
         {
             "directory": "template/cookiecutter-aws-sam-hello-nodejs",
             "displayName": "Hello World Example",
@@ -83,7 +83,17 @@
             "useCaseName": "Hello World Example"
         }
     ],
-    "nodejs12.x": [
+    "nodejs18.x": [
+        {
+            "directory": "template/cookiecutter-aws-sam-hello-nodejs",
+            "displayName": "Hello World Example",
+            "dependencyManager": "npm",
+            "appTemplate": "hello-world",
+            "packageType": "Zip",
+            "useCaseName": "Hello World Example"
+        }
+    ],
+    "nodejs16.x": [
         {
             "directory": "template/cookiecutter-aws-sam-hello-nodejs",
             "displayName": "Hello World Example",

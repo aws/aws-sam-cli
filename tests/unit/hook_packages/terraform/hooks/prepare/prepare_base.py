@@ -108,12 +108,12 @@ class PrepareHookUnitBase(TestCase):
 
         self.tf_layer_common_properties: dict = {
             "layer_name": self.lambda_layer_name,
-            "compatible_runtimes": ["nodejs14.x", "nodejs16.x"],
+            "compatible_runtimes": ["nodejs18.x", "nodejs20.x"],
             "compatible_architectures": ["arm64"],
         }
         self.expected_cfn_layer_common_properties: dict = {
             "LayerName": self.lambda_layer_name,
-            "CompatibleRuntimes": ["nodejs14.x", "nodejs16.x"],
+            "CompatibleRuntimes": ["nodejs18.x", "nodejs20.x"],
             "CompatibleArchitectures": ["arm64"],
         }
 

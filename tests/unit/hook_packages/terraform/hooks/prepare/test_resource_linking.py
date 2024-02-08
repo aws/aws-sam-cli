@@ -1637,7 +1637,7 @@ class TestResourceLinker(TestCase):
                 "schema_version": 0,
                 "values": {
                     "compatible_architectures": ["arm64"],
-                    "compatible_runtimes": ["nodejs14.x", "nodejs16.x"],
+                    "compatible_runtimes": ["nodejs20.x", "nodejs16.x"],
                     "description": None,
                     "filename": None,
                     "layer_name": "lambda_layer_name",

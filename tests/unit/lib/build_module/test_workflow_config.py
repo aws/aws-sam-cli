@@ -28,7 +28,7 @@ class Test_get_workflow_config(TestCase):
         self.assertIn(Event("BuildWorkflowUsed", "python-pip"), EventTracker.get_tracked_events())
         self.assertFalse(result.must_mount_with_write_in_container)
 
-    @parameterized.expand([("nodejs12.x",), ("nodejs14.x",), ("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",)])
+    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",)])
     def test_must_work_for_nodejs(self, runtime):
         result = get_workflow_config(runtime, self.code_dir, self.project_dir)
         self.assertEqual(result.language, "nodejs")
@@ -135,7 +135,7 @@ class Test_get_workflow_config(TestCase):
             self.assertIn(Event("BuildWorkflowUsed", "java-maven"), EventTracker.get_tracked_events())
 
     def test_must_get_workflow_for_esbuild(self):
-        runtime = "nodejs12.x"
+        runtime = "nodejs20.x"
         result = get_workflow_config(runtime, self.code_dir, self.project_dir, specified_workflow="esbuild")
         self.assertEqual(result.language, "nodejs")
         self.assertEqual(result.dependency_manager, "npm-esbuild")
