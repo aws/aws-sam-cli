@@ -734,7 +734,7 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
         [
             "python3.7",
             "nodejs20.x",
-            "ruby2.7",
+            "ruby3.2",
         ]
     )
     def test_will_call_incremental_build_strategy(self, mocked_read, mocked_write, runtime):
