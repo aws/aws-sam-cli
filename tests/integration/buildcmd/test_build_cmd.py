@@ -699,9 +699,10 @@ class TestBuildCommand_EsbuildFunctions(BuildIntegEsbuildBase):
         [
             ("nodejs20.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", False, "x86_64"),
             ("nodejs20.x", "Esbuild/TypeScript", {"app.js", "app.js.map"}, "app.lambdaHandler", False, "x86_64"),
-            ("nodejs20.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", "use_container", "x86_64"),
+            # Keeping container tests as Node.js18 until our CI platform can run Node.js20 container tests
+            ("nodejs18.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", "use_container", "x86_64"),
             (
-                "nodejs20.x",
+                "nodejs18.x",
                 "Esbuild/TypeScript",
                 {"app.js", "app.js.map"},
                 "app.lambdaHandler",
