@@ -92,9 +92,9 @@ def local_common_options(f):
             multiple=True,
             help="Container image URIs for invoking functions or starting api and function. "
             "One can specify the image URI used for the local function invocation "
-            "(--invoke-image public.ecr.aws/sam/build-nodejs14.x:latest). "
+            "(--invoke-image public.ecr.aws/sam/build-nodejs20.x:latest). "
             "One can also specify for each individual function with "
-            "(--invoke-image Function1=public.ecr.aws/sam/build-nodejs14.x:latest). "
+            "(--invoke-image Function1=public.ecr.aws/sam/build-nodejs20.x:latest). "
             "If a function does not have invoke image specified, the default AWS SAM CLI "
             "emulation image will be used.",
         ),

@@ -6,6 +6,6 @@ Resources:
     Properties:
       PackageType: Image
     Metadata:
-      DockerTag: nodejs14.x-v1
+      DockerTag: nodejs20.x-v1
       DockerContext: ./hello-world
       Dockerfile: Dockerfile
