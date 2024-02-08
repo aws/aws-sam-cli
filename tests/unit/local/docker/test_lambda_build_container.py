@@ -182,7 +182,7 @@ class TestLambdaBuildContainer_get_image(TestCase):
     @parameterized.expand(
         [
             ("myruntime", ARM64, "public.ecr.aws/sam/build-myruntime:latest-arm64"),
-            ("nodejs14.x", X86_64, "public.ecr.aws/sam/build-nodejs14.x:latest-x86_64"),
+            ("nodejs20.x", X86_64, "public.ecr.aws/sam/build-nodejs20.x:latest-x86_64"),
         ]
     )
     def test_must_get_image_name(self, runtime, architecture, expected_image_name):

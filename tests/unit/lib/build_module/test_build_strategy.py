@@ -343,7 +343,7 @@ class CachedBuildStrategyTest(BuildStrategyBaseTest):
     FUNCTION_UUID = "3c1c254e-cd4b-4d94-8c74-7ab870b36063"
     SOURCE_HASH = "cae49aa393d669e850bd49869905099d"
     LAYER_UUID = "761ce752-d1c8-4e07-86a0-f64778cdd108"
-    LAYER_METHOD = "nodejs12.x"
+    LAYER_METHOD = "nodejs20.x"
 
     BUILD_GRAPH_CONTENTS = f"""
     [function_build_definitions]
@@ -358,8 +358,8 @@ class CachedBuildStrategyTest(BuildStrategyBaseTest):
     [layer_build_definitions.{LAYER_UUID}]
     layer_name = "SumLayer"
     codeuri = "sum_layer/"
-    build_method = "nodejs12.x"
-    compatible_runtimes = ["nodejs12.x"]
+    build_method = "nodejs20.x"
+    compatible_runtimes = ["nodejs20.x"]
     source_hash = "{SOURCE_HASH}"
     layer = "SumLayer"
     """
@@ -733,7 +733,7 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
     @parameterized.expand(
         [
             "python3.7",
-            "nodejs12.x",
+            "nodejs20.x",
             "ruby3.2",
         ]
     )

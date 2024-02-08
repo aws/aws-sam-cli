@@ -18,9 +18,9 @@ from samcli import __version__ as version
 class TestRuntime(TestCase):
     @parameterized.expand(
         [
-            ("nodejs12.x", "nodejs:12-x86_64"),
-            ("nodejs14.x", "nodejs:14-x86_64"),
             ("nodejs16.x", "nodejs:16-x86_64"),
+            ("nodejs18.x", "nodejs:18-x86_64"),
+            ("nodejs20.x", "nodejs:20-x86_64"),
             ("python2.7", "python:2.7"),
             ("python3.7", "python:3.7"),
             ("python3.8", "python:3.8-x86_64"),

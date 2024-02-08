@@ -60,11 +60,11 @@ class TestBuildCommand_EsbuildFunctions_arm64(BuildIntegEsbuildBase):
 
     @parameterized.expand(
         [
-            ("nodejs12.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", False),
-            ("nodejs12.x", "Esbuild/TypeScript", {"app.js", "app.js.map"}, "app.lambdaHandler", False),
-            ("nodejs12.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", "use_container"),
+            ("nodejs20.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", False),
+            ("nodejs20.x", "Esbuild/TypeScript", {"app.js", "app.js.map"}, "app.lambdaHandler", False),
+            ("nodejs20.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", "use_container"),
             (
-                "nodejs12.x",
+                "nodejs20.x",
                 "Esbuild/TypeScript",
                 {"app.js", "app.js.map"},
                 "app.lambdaHandler",
@@ -137,13 +137,9 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture_arm64(BuildInte
 
     @parameterized.expand(
         [
-            ("nodejs12.x", False),
-            ("nodejs14.x", False),
             ("nodejs16.x", False),
             ("nodejs18.x", False),
             ("nodejs20.x", False),
-            ("nodejs12.x", "use_container"),
-            ("nodejs14.x", "use_container"),
             ("nodejs16.x", "use_container"),
             ("nodejs18.x", "use_container"),
             ("nodejs20.x", "use_container"),
