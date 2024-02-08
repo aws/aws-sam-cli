@@ -819,12 +819,12 @@ class TestBuildCommand_RubyFunctions(BuildIntegRubyBase):
 class TestBuildCommand_RubyFunctions_With_Architecture(BuildIntegRubyBase):
     template = "template_with_architecture.yaml"
 
-    @parameterized.expand([("Ruby"), ("ruby3.2", "Ruby32")])
+    @parameterized.expand([("ruby3.2", "Ruby32")])
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_building_ruby_in_container_with_specified_architecture(self, runtime, codeuri):
         self._test_with_default_gemfile(runtime, "use_container", codeuri, self.test_data_path, "x86_64")
 
-    @parameterized.expand([("Ruby"), ("ruby3.2", "Ruby32")])
+    @parameterized.expand([("ruby3.2", "Ruby32")])
     def test_building_ruby_in_process_with_specified_architecture(self, runtime, codeuri):
         self._test_with_default_gemfile(runtime, False, codeuri, self.test_data_path, "x86_64")
 
