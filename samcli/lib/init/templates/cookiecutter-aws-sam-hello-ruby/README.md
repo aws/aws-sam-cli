@@ -10,7 +10,7 @@ A cookiecutter template to create a Ruby Hello world boilerplate using [Serverle
 
 Generate a boilerplate template in your current project directory using the following syntax:
 
-* **Ruby 2.5**: `sam init --runtime ruby2.5`
+* **Ruby 3.2**: `sam init --runtime ruby3.2`
 
 > **NOTE**: ``--name`` allows you to specify a different project folder name (`sam-app` is the default)
 

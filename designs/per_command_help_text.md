@@ -377,7 +377,7 @@ Usage: sam build [OPTIONS] [RESOURCE_LOGICAL_ID]
 
   2. Nodejs 18.x, 16.x, 14.x, 12.x using NPM
 
-  3. Ruby 2.7 using Bundler
+  3. Ruby3.2 using Bundler
 
   4. Java 8, Java 11 using Gradle and Maven
 
