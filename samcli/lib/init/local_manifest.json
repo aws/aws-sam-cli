@@ -122,15 +122,5 @@
             "packageType": "Zip",
             "useCaseName": "Hello World Example"
         }
-    ],
-    "ruby2.7": [
-        {
-            "directory": "template/cookiecutter-aws-sam-hello-ruby",
-            "displayName": "Hello World Example",
-            "dependencyManager": "bundler",
-            "appTemplate": "hello-world",
-            "packageType": "Zip",
-            "useCaseName": "Hello World Example"
-        }
     ]
 }

@@ -15,5 +15,6 @@ DEPRECATED_RUNTIMES: Set[str] = {
     "python2.7",
     "python3.6",
     "ruby2.5",
+    "ruby2.7",
 }
 BUILD_PROPERTIES = "BuildProperties"

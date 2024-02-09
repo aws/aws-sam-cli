@@ -241,6 +241,6 @@ class TestNestedStackManager(TestCase):
         patched_osutils.copytree.assert_not_called()
         patched_add_layer_readme.assert_called_with(str(layer_root_folder), function_logical_id)
 
-    @parameterized.expand([("python3.8", True), ("ruby2.7", False)])
+    @parameterized.expand([("python3.8", True), ("ruby3.2", False)])
     def test_is_runtime_supported(self, runtime, supported):
         self.assertEqual(NestedStackManager.is_runtime_supported(runtime), supported)
