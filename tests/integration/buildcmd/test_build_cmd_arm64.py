@@ -154,12 +154,12 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture_arm64(BuildInte
 class TestBuildCommand_RubyFunctions_With_Architecture_arm64(BuildIntegRubyBase):
     template = "template_with_architecture.yaml"
 
-    @parameterized.expand([("ruby2.7", "Ruby"), ("ruby3.2", "Ruby32")])
+    @parameterized.expand([("ruby3.2", "Ruby32")])
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_building_ruby_in_container_with_specified_architecture(self, runtime, code_uri):
         self._test_with_default_gemfile(runtime, "use_container", code_uri, self.test_data_path, ARM64)
 
-    @parameterized.expand([("ruby2.7", "Ruby"), ("ruby3.2", "Ruby32")])
+    @parameterized.expand([("ruby3.2", "Ruby32")])
     def test_building_ruby_in_process_with_specified_architecture(self, runtime, code_uri):
         self._test_with_default_gemfile(runtime, False, code_uri, self.test_data_path, ARM64)
 
