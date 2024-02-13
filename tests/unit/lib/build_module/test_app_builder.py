@@ -1556,7 +1556,7 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
                 "DockerBuildArgs": {"a": "b"},
             }
 
-            self.docker_client_mock.images.build.return_value = (Mock(), [{"error": "Function building failed"}])
+            self.docker_client_mock.api.build.return_value = [{"error": "Function building failed"}]
 
             self.builder._build_lambda_image("Name", metadata, X86_64)
 
@@ -1591,7 +1591,7 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
             error_mock = Mock()
             error_mock.side_effect = docker.errors.APIError("Bad Request", explanation="Some explanation")
             self.builder._stream_lambda_image_build_logs = error_mock
-            self.docker_client_mock.images.build.return_value = (Mock(), [])
+            self.docker_client_mock.api.build.return_value = []
 
             self.builder._build_lambda_image("Name", metadata, X86_64)
 
@@ -1603,7 +1603,7 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
             "DockerBuildArgs": {"a": "b"},
         }
 
-        self.docker_client_mock.images.build.return_value = (Mock(), [])
+        self.docker_client_mock.api.build.return_value = []
 
         result = self.builder._build_lambda_image("Name", metadata, X86_64)
 
@@ -1644,7 +1644,7 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
     def test_can_build_image_function_without_tag(self):
         metadata = {"Dockerfile": "Dockerfile", "DockerContext": "context", "DockerBuildArgs": {"a": "b"}}
 
-        self.docker_client_mock.images.build.return_value = (Mock(), [])
+        self.docker_client_mock.api.build.return_value = []
         result = self.builder._build_lambda_image("Name", metadata, X86_64)
 
         self.assertEqual(result, "name:latest")
@@ -1659,12 +1659,12 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
             "DockerBuildArgs": {"a": "b"},
         }
 
-        self.docker_client_mock.images.build.return_value = (Mock, [])
+        self.docker_client_mock.api.build.return_value = []
 
         result = self.builder._build_lambda_image("Name", metadata, X86_64)
         self.assertEqual(result, "name:Tag-debug")
         self.assertEqual(
-            self.docker_client_mock.images.build.call_args,
+            self.docker_client_mock.api.build.call_args,
             # NOTE (sriram-mv): path set to ANY to handle platform differences.
             call(
                 path=ANY,
@@ -1673,6 +1673,7 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
                 buildargs={"a": "b", "SAM_BUILD_MODE": "debug"},
                 platform="linux/amd64",
                 rm=True,
+                decode=True,
             ),
         )
 
@@ -1687,12 +1688,12 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
             "DockerBuildTarget": "stage",
         }
 
-        self.docker_client_mock.images.build.return_value = (Mock(), [])
+        self.docker_client_mock.api.build.return_value = []
 
         result = self.builder._build_lambda_image("Name", metadata, X86_64)
         self.assertEqual(result, "name:Tag-debug")
         self.assertEqual(
-            self.docker_client_mock.images.build.call_args,
+            self.docker_client_mock.api.build.call_args,
             call(
                 path=ANY,
                 dockerfile="Dockerfile",
@@ -1701,6 +1702,7 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
                 target="stage",
                 platform="linux/amd64",
                 rm=True,
+                decode=True,
             ),
         )
 
