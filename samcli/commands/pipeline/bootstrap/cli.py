@@ -1,6 +1,7 @@
 """
 CLI command for "pipeline bootstrap", which sets up the require pipeline infrastructure resources
 """
+
 import os
 from textwrap import dedent
 from typing import Any, Dict, List, Optional

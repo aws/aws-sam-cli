@@ -1,4 +1,5 @@
 """Contains utility functions related to AWS S3 service"""
+
 from typing import Any, Dict, Optional
 from urllib.parse import parse_qs, urlparse
 

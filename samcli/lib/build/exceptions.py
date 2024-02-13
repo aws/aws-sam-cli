@@ -2,7 +2,6 @@
 Build Related Exceptions.
 """
 
-
 from samcli.commands.exceptions import UserException
 
 

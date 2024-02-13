@@ -1,4 +1,5 @@
 """CLI command for "invoke" command."""
+
 import logging
 from io import TextIOWrapper
 

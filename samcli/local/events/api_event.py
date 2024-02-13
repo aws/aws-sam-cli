@@ -1,4 +1,5 @@
 """Holds Classes for API Gateway to Lambda Events"""
+
 import uuid
 from datetime import datetime
 from time import time
@@ -242,9 +243,9 @@ class ApiGatewayLambdaEvent:
             "resource": self.resource,
             "requestContext": request_context_dict,
             "queryStringParameters": dict(self.query_string_params) if self.query_string_params else None,
-            "multiValueQueryStringParameters": dict(self.multi_value_query_string_params)
-            if self.multi_value_query_string_params
-            else None,
+            "multiValueQueryStringParameters": (
+                dict(self.multi_value_query_string_params) if self.multi_value_query_string_params else None
+            ),
             "headers": dict(self.headers) if self.headers else None,
             "multiValueHeaders": dict(self.multi_value_headers) if self.multi_value_headers else None,
             "pathParameters": dict(self.path_parameters) if self.path_parameters else None,

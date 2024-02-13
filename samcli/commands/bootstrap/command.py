@@ -1,6 +1,7 @@
 """
 CLI command for "bootstrap", which sets up a SAM development environment
 """
+
 import click
 
 from samcli.cli.main import aws_creds_options, common_options, pass_context

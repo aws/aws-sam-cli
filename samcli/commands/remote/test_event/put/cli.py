@@ -1,4 +1,5 @@
 """CLI command for "test-event put" command."""
+
 import logging
 import sys
 from io import TextIOWrapper

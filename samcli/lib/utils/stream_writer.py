@@ -1,6 +1,7 @@
 """
 This class acts like a wrapper around output streams to provide any flexibility with output we need
 """
+
 from io import BytesIO, TextIOWrapper
 from typing import Optional, TextIO, Union
 

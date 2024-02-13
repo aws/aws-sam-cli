@@ -1,6 +1,7 @@
 """
 Module to help validate Lambda Authorizer properties
 """
+
 import logging
 from abc import ABC, abstractmethod
 

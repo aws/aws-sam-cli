@@ -1,6 +1,7 @@
 """
 Context object used by `sam remote invoke` command
 """
+
 import logging
 from dataclasses import dataclass
 from typing import Optional, cast

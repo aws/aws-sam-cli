@@ -1,4 +1,5 @@
 """Test Terraform prepare Makefile"""
+
 from unittest.mock import patch, Mock, call
 from parameterized import parameterized
 

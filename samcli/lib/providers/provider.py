@@ -2,6 +2,7 @@
 A provider class that can parse and return Lambda Functions from a variety of sources. A SAM template is one such
 source
 """
+
 import hashlib
 import logging
 import os

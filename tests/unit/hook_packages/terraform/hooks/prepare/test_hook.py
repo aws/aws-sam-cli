@@ -1,4 +1,5 @@
 """Test Terraform prepare hook"""
+
 from subprocess import CalledProcessError
 from unittest.mock import Mock, call, patch, MagicMock, ANY
 from parameterized import parameterized
@@ -389,7 +390,7 @@ class TestPrepareHook(PrepareHookUnitBase):
                         "S3Bucket": "s3_bucket_name",
                         "S3Key": "s3_key_name",
                     },
-                    "CompatibleRuntimes": ["nodejs14.x", "nodejs16.x"],
+                    "CompatibleRuntimes": ["nodejs20.x", "nodejs16.x"],
                     "CompatibleArchitectures": ["arm64"],
                 },
             },
@@ -397,7 +398,7 @@ class TestPrepareHook(PrepareHookUnitBase):
                 "Type": "AWS::Lambda::LayerVersion",
                 "Properties": {
                     "Content": relative_path,
-                    "CompatibleRuntimes": ["nodejs14.x", "nodejs16.x"],
+                    "CompatibleRuntimes": ["nodejs20.x", "nodejs16.x"],
                     "CompatibleArchitectures": ["arm64"],
                 },
             },
@@ -434,7 +435,7 @@ class TestPrepareHook(PrepareHookUnitBase):
                         "S3Bucket": "s3_bucket_name",
                         "S3Key": "s3_key_name",
                     },
-                    "CompatibleRuntimes": ["nodejs14.x", "nodejs16.x"],
+                    "CompatibleRuntimes": ["nodejs20.x", "nodejs16.x"],
                     "CompatibleArchitectures": ["arm64"],
                 },
             },
@@ -442,7 +443,7 @@ class TestPrepareHook(PrepareHookUnitBase):
                 "Type": "AWS::Lambda::LayerVersion",
                 "Properties": {
                     "Content": updated_relative_path,
-                    "CompatibleRuntimes": ["nodejs14.x", "nodejs16.x"],
+                    "CompatibleRuntimes": ["nodejs20.x", "nodejs16.x"],
                     "CompatibleArchitectures": ["arm64"],
                 },
             },

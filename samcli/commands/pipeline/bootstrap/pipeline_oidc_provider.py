@@ -1,6 +1,7 @@
 """
 Represents a pipeline OIDC provider
 """
+
 from abc import abstractmethod
 from typing import List
 

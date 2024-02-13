@@ -1,6 +1,7 @@
 """
 Contains helpers for providing default values
 """
+
 from botocore.session import get_session
 
 

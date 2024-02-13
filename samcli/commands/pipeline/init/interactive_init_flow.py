@@ -2,6 +2,7 @@
 Interactive flow that prompts that users for pipeline template (cookiecutter template) and used it to generate
 pipeline configuration file
 """
+
 import json
 import logging
 import os

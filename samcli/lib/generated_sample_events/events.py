@@ -21,7 +21,6 @@ from samcli.lib.utils.hash import str_checksum
 
 
 class Events:
-
     """
     Events library class that loads and customizes event json files
 

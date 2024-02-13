@@ -35,10 +35,8 @@ class TestGuidedContext(TestCase):
         self.companion_stack_manager_mock.return_value.get_unreferenced_repos.return_value = [
             self.unreferenced_repo_mock
         ]
-        self.companion_stack_manager_mock.return_value.get_repo_uri = (
-            lambda repo: "123456789012.dkr.ecr.us-east-1.amazonaws.com/test2"
-            if repo == self.unreferenced_repo_mock
-            else None
+        self.companion_stack_manager_mock.return_value.get_repo_uri = lambda repo: (
+            "123456789012.dkr.ecr.us-east-1.amazonaws.com/test2" if repo == self.unreferenced_repo_mock else None
         )
 
         self.verify_image_patch = patch(

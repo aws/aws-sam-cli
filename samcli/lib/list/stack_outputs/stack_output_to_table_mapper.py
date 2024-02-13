@@ -1,6 +1,7 @@
 """
 Implementation of the stack output to table mapper
 """
+
 from collections import OrderedDict
 from typing import Any, Dict
 

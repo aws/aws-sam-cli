@@ -1,6 +1,7 @@
 """
 nested stack manager to generate nested stack information and update original template with it
 """
+
 import logging
 import os
 import shutil

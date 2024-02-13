@@ -1,6 +1,7 @@
 """
 Bootstrap's user's development environment by creating cloud resources required by SAM CLI
 """
+
 import logging
 from collections.abc import Collection
 from typing import Dict, List, Optional, Union, cast

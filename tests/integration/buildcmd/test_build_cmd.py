@@ -659,13 +659,9 @@ class TestBuildCommand_ErrorCases(BuildIntegBase):
 class TestBuildCommand_NodeFunctions(BuildIntegNodeBase):
     @parameterized.expand(
         [
-            ("nodejs12.x", False),
-            ("nodejs14.x", False),
             ("nodejs16.x", False),
             ("nodejs18.x", False),
             ("nodejs20.x", False),
-            ("nodejs12.x", "use_container"),
-            ("nodejs14.x", "use_container"),
             ("nodejs16.x", "use_container"),
             ("nodejs18.x", "use_container"),
             ("nodejs20.x", "use_container"),
@@ -687,7 +683,6 @@ class TestBuildCommand_NodeFunctions_With_External_Manifest(BuildIntegNodeBase):
 
     @parameterized.expand(
         [
-            ("nodejs14.x",),
             ("nodejs16.x",),
             ("nodejs18.x",),
             ("nodejs20.x",),
@@ -702,11 +697,12 @@ class TestBuildCommand_EsbuildFunctions(BuildIntegEsbuildBase):
 
     @parameterized.expand(
         [
-            ("nodejs14.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", False, "x86_64"),
-            ("nodejs14.x", "Esbuild/TypeScript", {"app.js", "app.js.map"}, "app.lambdaHandler", False, "x86_64"),
-            ("nodejs14.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", "use_container", "x86_64"),
+            ("nodejs20.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", False, "x86_64"),
+            ("nodejs20.x", "Esbuild/TypeScript", {"app.js", "app.js.map"}, "app.lambdaHandler", False, "x86_64"),
+            # Keeping container tests as Node.js18 until our CI platform can run Node.js20 container tests
+            ("nodejs18.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", "use_container", "x86_64"),
             (
-                "nodejs14.x",
+                "nodejs18.x",
                 "Esbuild/TypeScript",
                 {"app.js", "app.js.map"},
                 "app.lambdaHandler",
@@ -728,7 +724,7 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest(BuildIntegEsbuild
     @parameterized.expand(
         [
             (
-                "nodejs14.x",
+                "nodejs20.x",
                 "Esbuild/Node_without_manifest",
                 {"main.js", "main.js.map"},
                 "main.lambdaHandler",
@@ -736,7 +732,7 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest(BuildIntegEsbuild
                 "x86_64",
             ),
             (
-                "nodejs14.x",
+                "nodejs20.x",
                 "Esbuild/TypeScript_without_manifest",
                 {"app.js", "app.js.map"},
                 "app.lambdaHandler",
@@ -788,13 +784,9 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture(BuildIntegNodeB
 
     @parameterized.expand(
         [
-            ("nodejs12.x", False, "x86_64"),
-            ("nodejs14.x", False, "x86_64"),
             ("nodejs16.x", False, "x86_64"),
             ("nodejs18.x", False, "x86_64"),
             ("nodejs20.x", False, "x86_64"),
-            ("nodejs12.x", "use_container", "x86_64"),
-            ("nodejs14.x", "use_container", "x86_64"),
             ("nodejs16.x", "use_container", "x86_64"),
             ("nodejs18.x", "use_container", "x86_64"),
         ]
@@ -806,12 +798,12 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture(BuildIntegNodeB
 
 
 class TestBuildCommand_RubyFunctions(BuildIntegRubyBase):
-    @parameterized.expand(["ruby2.7", "ruby3.2"])
+    @parameterized.expand(["ruby3.2"])
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_building_ruby_in_container(self, runtime):
         self._test_with_default_gemfile(runtime, "use_container", "Ruby", self.test_data_path)
 
-    @parameterized.expand(["ruby2.7", "ruby3.2"])
+    @parameterized.expand(["ruby3.2"])
     def test_building_ruby_in_process(self, runtime):
         self._test_with_default_gemfile(runtime, False, "Ruby", self.test_data_path)
 
@@ -819,12 +811,12 @@ class TestBuildCommand_RubyFunctions(BuildIntegRubyBase):
 class TestBuildCommand_RubyFunctions_With_Architecture(BuildIntegRubyBase):
     template = "template_with_architecture.yaml"
 
-    @parameterized.expand([("ruby2.7", "Ruby"), ("ruby3.2", "Ruby32")])
+    @parameterized.expand([("ruby3.2", "Ruby32")])
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_building_ruby_in_container_with_specified_architecture(self, runtime, codeuri):
         self._test_with_default_gemfile(runtime, "use_container", codeuri, self.test_data_path, "x86_64")
 
-    @parameterized.expand([("ruby2.7", "Ruby"), ("ruby3.2", "Ruby32")])
+    @parameterized.expand([("ruby3.2", "Ruby32")])
     def test_building_ruby_in_process_with_specified_architecture(self, runtime, codeuri):
         self._test_with_default_gemfile(runtime, False, codeuri, self.test_data_path, "x86_64")
 
@@ -835,7 +827,7 @@ class TestBuildCommand_RubyFunctionsWithGemfileInTheRoot(BuildIntegRubyBase):
     This doesn't apply to containerized build, since it copies only the function folder to the container
     """
 
-    @parameterized.expand([("ruby2.7"), ("ruby3.2")])
+    @parameterized.expand([("ruby3.2")])
     def test_building_ruby_in_process_with_root_gemfile(self, runtime):
         self._prepare_application_environment()
         self._test_with_default_gemfile(runtime, False, "RubyWithRootGemfile", self.working_dir)
@@ -1227,9 +1219,11 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         self._verify_built_artifact(
             self.default_build_dir,
             self.FUNCTION_LOGICAL_ID,
-            self.EXPECTED_FILES_PROJECT_MANIFEST
-            if runtime != "provided.al2"
-            else self.EXPECTED_FILES_PROJECT_MANIFEST_PROVIDED,
+            (
+                self.EXPECTED_FILES_PROJECT_MANIFEST
+                if runtime != "provided.al2"
+                else self.EXPECTED_FILES_PROJECT_MANIFEST_PROVIDED
+            ),
         )
 
         self._verify_resource_property(
@@ -1298,9 +1292,11 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         self._verify_built_artifact(
             self.default_build_dir,
             self.FUNCTION_LOGICAL_ID,
-            self.EXPECTED_FILES_PROJECT_MANIFEST
-            if runtime != "provided.al2"
-            else self.EXPECTED_FILES_PROJECT_MANIFEST_PROVIDED,
+            (
+                self.EXPECTED_FILES_PROJECT_MANIFEST
+                if runtime != "provided.al2"
+                else self.EXPECTED_FILES_PROJECT_MANIFEST_PROVIDED
+            ),
         )
 
         self._verify_resource_property(
@@ -1372,9 +1368,11 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         self._verify_built_artifact(
             self.default_build_dir,
             self.FUNCTION_LOGICAL_ID,
-            self.EXPECTED_FILES_PROJECT_MANIFEST
-            if runtime != "provided.al2"
-            else self.EXPECTED_FILES_PROJECT_MANIFEST_PROVIDED,
+            (
+                self.EXPECTED_FILES_PROJECT_MANIFEST
+                if runtime != "provided.al2"
+                else self.EXPECTED_FILES_PROJECT_MANIFEST_PROVIDED
+            ),
         )
 
         self._verify_resource_property(
@@ -2130,14 +2128,14 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
                 "dotnet6",
             ),
             (False, "Java/gradlew/8", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
-            (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
+            (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs20.x"),
             (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
-            (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.7"),
+            (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.2"),
             # container
             (True, "Java/gradlew/8", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
-            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
+            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs20.x"),
             (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
-            (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.7"),
+            (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.2"),
         ]
     )
     def test_dedup_build(self, use_container, code_uri, function1_handler, function2_handler, runtime):
@@ -2249,14 +2247,14 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
                 "dotnet6",
             ),
             (False, "Java/gradlew/8", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
-            (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
+            (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs20.x"),
             (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
-            (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.7"),
+            (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.2"),
             # container
             (True, "Java/gradlew/8", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
-            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
+            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs20.x"),
             (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
-            (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.7"),
+            (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.2"),
         ]
     )
     def test_cache_build(self, use_container, code_uri, function1_handler, function2_handler, runtime):
@@ -2428,14 +2426,14 @@ class TestParallelBuilds(DedupBuildIntegBase):
                 "dotnet6",
             ),
             (False, "Java/gradlew/8", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
-            (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
+            (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs20.x"),
             (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
-            (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.7"),
+            (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.2"),
             # container
             (True, "Java/gradlew/8", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
-            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs14.x"),
+            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs20.x"),
             (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
-            (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.7"),
+            (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.2"),
         ]
     )
     def test_dedup_build(self, use_container, code_uri, function1_handler, function2_handler, runtime):

@@ -1,4 +1,5 @@
 """Base SyncFlow for StepFunctions"""
+
 import hashlib
 import logging
 from pathlib import Path

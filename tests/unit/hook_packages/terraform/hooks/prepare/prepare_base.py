@@ -1,6 +1,7 @@
 """
 Unit test base class for Terraform prepare hook
 """
+
 from unittest import TestCase
 
 from samcli.hook_packages.terraform.hooks.prepare.translate import AWS_PROVIDER_NAME, NULL_RESOURCE_PROVIDER_NAME
@@ -107,12 +108,12 @@ class PrepareHookUnitBase(TestCase):
 
         self.tf_layer_common_properties: dict = {
             "layer_name": self.lambda_layer_name,
-            "compatible_runtimes": ["nodejs14.x", "nodejs16.x"],
+            "compatible_runtimes": ["nodejs18.x", "nodejs20.x"],
             "compatible_architectures": ["arm64"],
         }
         self.expected_cfn_layer_common_properties: dict = {
             "LayerName": self.lambda_layer_name,
-            "CompatibleRuntimes": ["nodejs14.x", "nodejs16.x"],
+            "CompatibleRuntimes": ["nodejs18.x", "nodejs20.x"],
             "CompatibleArchitectures": ["arm64"],
         }
 

@@ -1,6 +1,7 @@
 """
 Put Test Event Command Formatter.
 """
+
 from samcli.commands.remote.test_event.core.formatters import RemoteTestEventCommandHelpTextFormatter
 from samcli.commands.remote.test_event.put.core.options import ALL_OPTIONS
 

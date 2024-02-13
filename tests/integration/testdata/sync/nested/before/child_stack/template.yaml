@@ -24,7 +24,7 @@ Resources:
       # Build with nested stack already exhibits this behaviour
       CodeUri: child_functions/
       Handler: child_function.lambda_handler
-      Runtime: python3.7
+      Runtime: python3.11
       Layers:
         - Ref: ParentLayer
       Tracing: Active
@@ -40,9 +40,9 @@ Resources:
       # Build with nested stack already exhibits this behaviour
       ContentUri: ../root_layer/
       CompatibleRuntimes:
-        - python3.7
+        - python3.11
     Metadata:
-      BuildMethod: python3.7
+      BuildMethod: python3.11
 
   ChildChildStack:
     Type: AWS::Serverless::Application

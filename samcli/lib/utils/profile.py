@@ -1,6 +1,7 @@
 """
 Module for aws profile related helpers
 """
+
 from typing import List
 
 from botocore.session import Session

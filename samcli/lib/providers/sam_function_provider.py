@@ -1,6 +1,7 @@
 """
 Class that provides functions from a given SAM template
 """
+
 import logging
 from typing import Any, Dict, Iterator, List, Optional, cast
 

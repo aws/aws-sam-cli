@@ -1,6 +1,7 @@
 """
 Architecture tools
 """
+
 from typing import TYPE_CHECKING, Dict, List, cast
 
 from samcli.commands.exceptions import UserException
@@ -14,8 +15,6 @@ X86_64 = "x86_64"
 ARM64 = "arm64"
 
 SUPPORTED_RUNTIMES: Dict[str, List[str]] = {
-    "nodejs12.x": [ARM64, X86_64],
-    "nodejs14.x": [ARM64, X86_64],
     "nodejs16.x": [ARM64, X86_64],
     "nodejs18.x": [ARM64, X86_64],
     "nodejs20.x": [ARM64, X86_64],
@@ -25,7 +24,6 @@ SUPPORTED_RUNTIMES: Dict[str, List[str]] = {
     "python3.10": [ARM64, X86_64],
     "python3.11": [ARM64, X86_64],
     "python3.12": [ARM64, X86_64],
-    "ruby2.7": [ARM64, X86_64],
     "ruby3.2": [ARM64, X86_64],
     "java8": [X86_64],
     "java8.al2": [ARM64, X86_64],
