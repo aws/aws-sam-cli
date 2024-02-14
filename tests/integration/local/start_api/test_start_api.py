@@ -159,7 +159,7 @@ class TestParallelRequestsZipped(StartApiIntegBaseClass):
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_same_endpoint_zipped(self):
         """
-        Send two requests to the same path at the same time. This is to ensure we can handle
+        Send 10 requests to the same path at the same time. This is to ensure we can handle
         multiple requests at once and do not block/queue up requests
         """
         number_of_requests = 10
