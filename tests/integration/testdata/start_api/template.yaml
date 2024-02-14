@@ -299,5 +299,5 @@ Resources:
         HelloWorld:
           Type: Api 
           Properties:
-            Path: /helloZipped
+            Path: /sleepfortensecondszipped
             Method: get
