@@ -1,6 +1,7 @@
 """
 Reads CLI arguments and performs necessary preparation to be able to run the function
 """
+
 import errno
 import json
 import logging
@@ -14,6 +15,7 @@ from samcli.commands.exceptions import ContainersInitializationException
 from samcli.commands.local.cli_common.user_exceptions import DebugContextException, InvokeContextException
 from samcli.commands.local.lib.debug_context import DebugContext
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
+from samcli.commands.validate.validate import do_cli as run_sam_validate
 from samcli.lib.providers.provider import Function, Stack
 from samcli.lib.providers.sam_function_provider import RefreshableSamFunctionProvider, SamFunctionProvider
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
@@ -99,6 +101,7 @@ class InvokeContext:
         container_host_interface: Optional[str] = None,
         add_host: Optional[dict] = None,
         invoke_images: Optional[str] = None,
+        ctx: Optional[dict] = None,
     ) -> None:
         """
         Initialize the context
@@ -153,6 +156,8 @@ class InvokeContext:
             Optional. Docker extra hosts support from --add-host parameters
         invoke_images dict
             Optional. A dictionary that defines the custom invoke image URI of each function
+        ctx dict
+            Optional. Command invoke context used to invoke commands before invoking `sam local` logic
         """
         self._template_file = template_file
         self._function_identifier = function_identifier
@@ -209,6 +214,7 @@ class InvokeContext:
         self._lambda_runtimes: Optional[Dict[ContainersMode, LambdaRuntime]] = None
 
         self._local_lambda_runner: Optional[LocalLambdaRunner] = None
+        self._ctx = ctx
 
     def __enter__(self) -> "InvokeContext":
         """
@@ -218,6 +224,10 @@ class InvokeContext:
         """
 
         self._stacks = self._get_stacks()
+
+        if self._ctx:
+            LOG.info("Validating template %s\n", self._template_file)
+            run_sam_validate(ctx=self._ctx, template=self._template_file, lint=True)
 
         _function_providers_class: Dict[ContainersMode, Type[SamFunctionProvider]] = {
             ContainersMode.WARM: RefreshableSamFunctionProvider,
