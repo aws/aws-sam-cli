@@ -25,3 +25,9 @@ class ContainerFailureError(UserException):
     """
     Raised when the invoke container fails execution
     """
+
+
+class ProcessSigTermException(Exception):
+    """
+    Raises by a SIGTERM interrupt handler. Will unblock the thread and exit the program gracefully
+    """

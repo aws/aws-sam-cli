@@ -3,9 +3,12 @@
 import io
 import json
 import logging
+import signal
 from typing import Optional, Tuple, Union
 
 from flask import Response
+
+from samcli.local.docker.exceptions import ProcessSigTermException
 
 LOG = logging.getLogger(__name__)
 
@@ -65,6 +68,13 @@ class BaseLocalService:
         import flask.cli
 
         flask.cli.show_server_banner = lambda *args: None
+
+        def interrupt_handler(sig, frame):
+            LOG.debug("Caught SIGTERM interrupt")
+            raise ProcessSigTermException()
+
+        LOG.debug("\nSetting SIGTERM interrupt handler\n")
+        signal.signal(signal.SIGTERM, interrupt_handler)
 
         self._app.run(threaded=multi_threaded, host=self.host, port=self.port, ssl_context=self.ssl_context)
 

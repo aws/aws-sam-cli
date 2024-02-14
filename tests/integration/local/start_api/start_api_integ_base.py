@@ -10,6 +10,7 @@ from pathlib import Path
 
 import docker
 from docker.errors import APIError
+from psutil import NoSuchProcess
 
 from tests.integration.local.common_utils import InvalidAddressException, random_port, wait_for_local_process
 from tests.testing_utils import kill_process, get_sam_command
@@ -145,7 +146,10 @@ class StartApiIntegBaseClass(TestCase):
     def tearDownClass(cls):
         # After all the tests run, we need to kill the start-api process.
         cls.stop_reading_thread = True
-        kill_process(cls.start_api_process)
+        try:
+            kill_process(cls.start_api_process)
+        except NoSuchProcess:
+            LOG.info("Process has already been terminated")
 
     @staticmethod
     def get_binary_data(filename):
