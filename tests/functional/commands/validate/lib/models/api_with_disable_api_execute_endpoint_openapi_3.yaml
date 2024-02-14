@@ -16,7 +16,7 @@ Resources:
             Method: get
             RestApiId:
               Ref: ApiGatewayApi
-      Runtime: python3.7
+      Runtime: python3.11
       Handler: index.handler
       InlineCode: |-
         def handler(event, context):
