@@ -148,9 +148,9 @@ class TestServiceHTTP10(StartApiIntegBaseClass):
         self.assertEqual(response.raw.version, 11)
 
 
-
 class TestParallelRequestsZipped(StartApiIntegBaseClass):
     template_path = "/testdata/start_api/template.yaml"
+
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
         HTTPConnection._http_vsn_str = "HTTP/1.1"
@@ -223,7 +223,6 @@ class TestParallelRequests(StartApiIntegBaseClass):
             self.assertEqual(len(results), 10)
             self.assertGreater(end_time - start_time, 10)
 
-    
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_different_endpoints(self):
