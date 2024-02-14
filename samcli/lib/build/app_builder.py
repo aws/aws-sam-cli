@@ -414,13 +414,14 @@ class ApplicationBuilder:
             "buildargs": docker_build_args,
             "platform": get_docker_platform(architecture),
             "rm": True,
+            "decode": True,
         }
         if docker_build_target:
             build_args["target"] = cast(str, docker_build_target)
 
         try:
-            (build_image, build_logs) = self._docker_client.images.build(**build_args)
-            LOG.debug("%s image is built for %s function", build_image, function_name)
+            build_logs = self._docker_client.api.build(**build_args)
+            LOG.debug("image is built for %s function", function_name)
         except docker.errors.BuildError as ex:
             LOG.error("Failed building function %s", function_name)
             raise DockerBuildFailed(str(ex)) from ex
