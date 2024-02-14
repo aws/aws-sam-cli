@@ -353,9 +353,10 @@ class LambdaRuntime:
         Clean the temporary decompressed code dirs
         """
         LOG.debug("Cleaning all decompressed code dirs")
-        for decompressed_dir in self._temp_uncompressed_paths_to_be_cleaned:
-            shutil.rmtree(decompressed_dir)
-        self._temp_uncompressed_paths_to_be_cleaned = []
+        with self._container_manager._lock:
+            for decompressed_dir in self._temp_uncompressed_paths_to_be_cleaned:
+                shutil.rmtree(decompressed_dir)
+            self._temp_uncompressed_paths_to_be_cleaned = []
 
 
 class WarmLambdaRuntime(LambdaRuntime):
