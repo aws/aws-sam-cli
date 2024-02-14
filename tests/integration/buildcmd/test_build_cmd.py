@@ -99,7 +99,7 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
 
     FUNCTION_LOGICAL_ID_IMAGE = "ImageFunction"
 
-    @parameterized.expand([("3.7", False), ("3.8", False), ("3.9", False)])
+    @parameterized.expand([("3.8", False), ("3.9", False), ("3.10", False), ("3.11", False), ("3.12", False)])
     def test_with_default_requirements(self, runtime, use_container):
         _tag = uuid4().hex
         overrides = {
@@ -125,7 +125,15 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
             self.built_template, self.FUNCTION_LOGICAL_ID_IMAGE, self._make_parameter_override_arg(overrides), expected
         )
 
-    @parameterized.expand([("3.7", False), ("3.8", False), ("3.9", False)])
+    @parameterized.expand(
+        [
+            ("3.8", False),
+            ("3.9", False),
+            ("3.10", False),
+            ("3.11", False),
+            ("3.12", False),
+        ]
+    )
     def test_with_dockerfile_extension(self, runtime, use_container):
         _tag = uuid4().hex
         overrides = {
@@ -198,8 +206,11 @@ class TestBuildCommand_PythonFunctions_ImagesWithSharedCode(BuildIntegBase):
 
     @parameterized.expand(
         [
-            *[(runtime, "feature_phi/Dockerfile", {"phi": "1.62"}) for runtime in ["3.7", "3.8", "3.9"]],
-            *[(runtime, "feature_pi/Dockerfile", {"pi": "3.14"}) for runtime in ["3.7", "3.8", "3.9"]],
+            *[
+                (runtime, "feature_phi/Dockerfile", {"phi": "1.62"})
+                for runtime in ["3.8", "3.9", "3.10", "3.11", "3.12"]
+            ],
+            *[(runtime, "feature_pi/Dockerfile", {"pi": "3.14"}) for runtime in ["3.8", "3.9", "3.10", "3.11", "3.12"]],
         ]
     )
     def test_with_default_requirements(self, runtime, dockerfile, expected):
@@ -311,7 +322,7 @@ class TestSkipBuildingFunctionsWithLocalImageUri(BuildIntegBase):
 
     FUNCTION_LOGICAL_ID_IMAGE = "ImageFunction"
 
-    @parameterized.expand(["3.7", "3.8", "3.9"])
+    @parameterized.expand(["3.8", "3.9", "3.10", "3.11", "3.12"])
     def test_with_default_requirements(self, runtime):
         _tag = uuid4().hex
         image_uri = f"func:{_tag}"
@@ -450,14 +461,16 @@ class TestSkipBuildingFlaggedFunctions(BuildIntegPythonBase):
         "prop",
     ),
     [
-        ("template.yaml", "Function", True, "python3.7", "Python", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.8", "Python", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.9", "Python", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.10", "Python", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.11", "Python", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.12", "Python", False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.7", "PythonPEP600", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.8", "PythonPEP600", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.9", "PythonPEP600", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.10", "PythonPEP600", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.11", "PythonPEP600", False, "CodeUri"),
+        ("template.yaml", "Function", True, "python3.12", "PythonPEP600", False, "CodeUri"),
     ],
 )
 class TestBuildCommand_PythonFunctions_WithoutDocker(BuildIntegPythonBase):
@@ -490,7 +503,6 @@ class TestBuildCommand_PythonFunctions_WithoutDocker(BuildIntegPythonBase):
         "prop",
     ),
     [
-        ("template.yaml", "Function", True, "python3.7", "Python", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.8", "Python", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.9", "Python", False, "CodeUri"),
         ("template.yaml", "Function", True, "python3.10", "Python", False, "CodeUri"),
@@ -606,20 +618,16 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPyt
 
     @parameterized.expand(
         [
-            ("python3.7", "Python", False, "x86_64"),
             ("python3.8", "Python", False, "x86_64"),
             ("python3.9", "Python", False, "x86_64"),
             ("python3.10", "Python", False, "x86_64"),
             ("python3.11", "Python", False, "x86_64"),
             ("python3.12", "Python", False, "x86_64"),
-            # numpy 1.20.3 (in PythonPEP600/requirements.txt) only support python 3.7+
-            ("python3.7", "PythonPEP600", False, "x86_64"),
             ("python3.8", "PythonPEP600", False, "x86_64"),
             ("python3.9", "PythonPEP600", False, "x86_64"),
             ("python3.10", "PythonPEP600", False, "x86_64"),
             ("python3.11", "PythonPEP600", False, "x86_64"),
             ("python3.12", "PythonPEP600", False, "x86_64"),
-            ("python3.7", "Python", "use_container", "x86_64"),
             ("python3.8", "Python", "use_container", "x86_64"),
             ("python3.9", "Python", "use_container", "x86_64"),
             ("python3.10", "Python", "use_container", "x86_64"),
@@ -1488,7 +1496,7 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
     }
 
     def test_function_not_found(self):
-        overrides = {"Runtime": "python3.7", "CodeUri": "Python", "Handler": "main.handler"}
+        overrides = {"Runtime": "python3.12", "CodeUri": "Python", "Handler": "main.handler"}
         cmdlist = self.get_command_list(parameter_overrides=overrides, function_identifier="FunctionNotInTemplate")
 
         process_execute = run_command(cmdlist, cwd=self.working_dir)
@@ -1498,10 +1506,10 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
 
     @parameterized.expand(
         [
-            ("python3.7", False, "FunctionOne"),
-            ("python3.7", "use_container", "FunctionOne"),
-            ("python3.7", False, "FunctionTwo"),
-            ("python3.7", "use_container", "FunctionTwo"),
+            ("python3.12", False, "FunctionOne"),
+            ("python3.12", "use_container", "FunctionOne"),
+            ("python3.12", False, "FunctionTwo"),
+            ("python3.12", "use_container", "FunctionTwo"),
         ]
     )
     def test_build_single_function(self, runtime, use_container, function_identifier):
@@ -1567,7 +1575,7 @@ class TestBuildCommand_ExcludeResources(BuildIntegBase):
         ]
     )
     def test_build_without_resources(self, excluded_resources, function_identifier):
-        overrides = {"Runtime": "python3.7", "CodeUri": "Python", "Handler": "main.handler"}
+        overrides = {"Runtime": "python3.12", "CodeUri": "Python", "Handler": "main.handler"}
         cmdlist = self.get_command_list(
             parameter_overrides=overrides, function_identifier=function_identifier, exclude=excluded_resources
         )
@@ -1603,10 +1611,10 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
 
     @parameterized.expand(
         [
-            ("python3.7", False, "LayerOne", "ContentUri"),
-            ("python3.7", "use_container", "LayerOne", "ContentUri"),
-            ("python3.7", False, "LambdaLayerOne", "Content"),
-            ("python3.7", "use_container", "LambdaLayerOne", "Content"),
+            ("python3.12", False, "LayerOne", "ContentUri"),
+            ("python3.12", "use_container", "LayerOne", "ContentUri"),
+            ("python3.12", False, "LambdaLayerOne", "Content"),
+            ("python3.12", "use_container", "LambdaLayerOne", "Content"),
         ]
     )
     def test_build_single_layer(self, runtime, use_container, layer_identifier, content_property):
@@ -1783,7 +1791,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         # Build should still succeed
         self.assertEqual(command_result.process.returncode, 0)
 
-    @parameterized.expand([("python3.7", False, "LayerTwo"), ("python3.7", "use_container", "LayerTwo")])
+    @parameterized.expand([("python3.12", False, "LayerTwo"), ("python3.12", "use_container", "LayerTwo")])
     def test_build_fails_with_missing_metadata(self, runtime, use_container, layer_identifier):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
@@ -1811,7 +1819,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command_result.process.returncode, 0)
 
-    @parameterized.expand([("python3.7", False), ("python3.7", "use_container")])
+    @parameterized.expand([("python3.12", False), ("python3.12", "use_container")])
     def test_build_function_and_layer(self, runtime, use_container):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
@@ -1846,7 +1854,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             self.verify_docker_container_cleanedup(runtime)
             self.verify_pulled_image(runtime)
 
-    @parameterized.expand([("python3.7", False), ("python3.7", "use_container")])
+    @parameterized.expand([("python3.12", False), ("python3.12", "use_container")])
     def test_build_function_with_dependent_layer(self, runtime, use_container):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
@@ -2187,7 +2195,7 @@ class TestBuildWithDedupImageBuilds(DedupBuildIntegBase):
         overrides = {
             "Function1Handler": "main.first_function_handler",
             "Function2Handler": "main.second_function_handler",
-            "FunctionRuntime": "3.7",
+            "FunctionRuntime": "3.12",
             "DockerFile": "Dockerfile",
             "Tag": f"{random.randint(1,100)}",
         }
@@ -2374,10 +2382,10 @@ class TestRepeatedBuildHitsCache(BuildIntegBase):
 
         parameter_overrides = {
             "LayerContentUri": "PyLayer",
-            "LayerBuildMethod": "python3.7",
+            "LayerBuildMethod": "python3.12",
             "CodeUri": "Python",
             "Handler": "main.handler",
-            "Runtime": "python3.7",
+            "Runtime": "python3.12",
             "LayerMakeContentUri": "PyLayerMake",
         }
 
@@ -2526,8 +2534,8 @@ class TestBuildWithInlineCode(BuildIntegBase):
         self._verify_built_artifact(self.default_build_dir)
 
         if use_container:
-            self.verify_docker_container_cleanedup("python3.7")
-            self.verify_pulled_image("python3.7")
+            self.verify_docker_container_cleanedup("python3.12")
+            self.verify_pulled_image("python3.12")
 
     def _verify_built_artifact(self, build_dir):
         self.assertTrue(build_dir.exists(), "Build directory should be created")
@@ -2575,8 +2583,8 @@ class TestBuildWithJsonContainerEnvVars(BuildIntegBase):
         self._verify_built_env_var(self.default_build_dir)
 
         if use_container:
-            self.verify_docker_container_cleanedup("python3.7")
-            self.verify_pulled_image("python3.7")
+            self.verify_docker_container_cleanedup("python3.12")
+            self.verify_pulled_image("python3.12")
 
     @staticmethod
     def get_env_file(filename):
@@ -2623,8 +2631,8 @@ class TestBuildWithInlineContainerEnvVars(BuildIntegBase):
         self._verify_built_env_var(self.default_build_dir)
 
         if use_container:
-            self.verify_docker_container_cleanedup("python3.7")
-            self.verify_pulled_image("python3.7")
+            self.verify_docker_container_cleanedup("python3.12")
+            self.verify_pulled_image("python3.12")
 
     def _verify_built_env_var(self, build_dir):
         self.assertTrue(build_dir.exists(), "Build directory should be created")
@@ -2673,7 +2681,7 @@ class TestBuildWithNestedStacks(NestedBuildIntegBase):
         Build template above and verify that each function call returns as expected
         """
         overrides = {
-            "Runtime": "python3.7",
+            "Runtime": "python3.12",
             "CodeUri": "../Python",  # root stack is one level deeper than the code
             "ChildStackCodeUri": "./Python",  # chidl stack is in the same folder as the code
             "LocalNestedFuncHandler": "main.handler",
@@ -2888,7 +2896,7 @@ class TestBuildWithNestedStacksImage(NestedBuildIntegBase):
         Build template above and verify that each function call returns as expected
         """
         overrides = {
-            "Runtime": "3.7",
+            "Runtime": "3.12",
             "DockerFile": "Dockerfile",
             "Tag": f"{random.randint(1,100)}",
             "LocalNestedFuncHandler": "main.handler",
@@ -2940,7 +2948,7 @@ class TestBuildWithCustomBuildImage(BuildIntegBase):
     @parameterized.expand(
         [
             ("use_container", None),
-            ("use_container", "amazon/aws-sam-cli-build-image-python3.7:latest"),
+            ("use_container", "amazon/aws-sam-cli-build-image-python3.12:latest"),
         ]
     )
     def test_custom_build_image_succeeds(self, use_container, build_image):
@@ -2957,10 +2965,10 @@ class TestBuildWithCustomBuildImage(BuildIntegBase):
         self._verify_right_image_pulled(build_image, process_stderr)
         self._verify_build_succeeds(self.default_build_dir)
 
-        self.verify_docker_container_cleanedup("python3.7")
+        self.verify_docker_container_cleanedup("python3.12")
 
     def _verify_right_image_pulled(self, build_image, process_stderr):
-        image_name = build_image if build_image is not None else "public.ecr.aws/sam/build-python3.7:latest"
+        image_name = build_image if build_image is not None else "public.ecr.aws/sam/build-python3.12:latest"
         processed_name = bytes(image_name, encoding="utf-8")
         self.assertIn(
             processed_name,

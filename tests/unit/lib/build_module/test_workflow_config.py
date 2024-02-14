@@ -16,7 +16,7 @@ class Test_get_workflow_config(TestCase):
         self.project_dir = ""
         EventTracker.clear_trackers()
 
-    @parameterized.expand([("python3.7",), ("python3.8",)])
+    @parameterized.expand([("python3.8",), ("python3.9",), ("python3.10",), ("python3.11",), ("python3.12",)])
     def test_must_work_for_python(self, runtime):
         result = get_workflow_config(runtime, self.code_dir, self.project_dir)
         self.assertEqual(result.language, "python")
