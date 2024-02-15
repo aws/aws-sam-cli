@@ -257,8 +257,8 @@ class TestLambdaService(StartLambdaIntegBaseClass):
         )
         response_data = json.loads(response.get("Payload").read().decode("utf-8"))
 
-        self.assertIn('raise Exception("Lambda is raising an exception")', response_data.get("stackTrace", []))
-        self.assertEqual(response.get("FunctionError"), "Unhandled")
+        self.assertEqual(response_data.get("errorMessage"), "Lambda is raising an exception")
+        self.assertEqual(response_data.get("errorType"), "Exception")
         self.assertEqual(response.get("StatusCode"), 200)
 
     @parameterized.expand([("False"), ("True")])
