@@ -2948,7 +2948,7 @@ class TestBuildWithCustomBuildImage(BuildIntegBase):
     @parameterized.expand(
         [
             ("use_container", None),
-            ("use_container", "amazon/aws-sam-cli-build-image-python3.12:x86_64"),
+            ("use_container", "amazon/aws-sam-cli-build-image-python3.12:latest-x86_64"),
         ]
     )
     def test_custom_build_image_succeeds(self, use_container, build_image):
@@ -2968,7 +2968,7 @@ class TestBuildWithCustomBuildImage(BuildIntegBase):
         self.verify_docker_container_cleanedup("python3.12")
 
     def _verify_right_image_pulled(self, build_image, process_stderr):
-        image_name = build_image if build_image is not None else "public.ecr.aws/sam/build-python3.12:x86_64"
+        image_name = build_image if build_image is not None else "public.ecr.aws/sam/build-python3.12:latest-x86_64"
         processed_name = bytes(image_name, encoding="utf-8")
         self.assertIn(
             processed_name,
