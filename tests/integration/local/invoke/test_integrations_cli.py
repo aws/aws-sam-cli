@@ -242,7 +242,7 @@ class TestSamPythonHelloWorldIntegration(InvokeIntegBase):
             "HelloWorldServerlessFunction",
             template_path=self.template_path,
             event_path=self.event_path,
-            invoke_image="amazon/aws-sam-cli-emulation-image-python3.12",
+            invoke_image="public.ecr.aws/lambda/python:3.11-x86_64",
         )
 
         process = Popen(command_list, stdout=PIPE)
@@ -253,7 +253,7 @@ class TestSamPythonHelloWorldIntegration(InvokeIntegBase):
             raise
 
         process_stdout = stdout.strip()
-        self.assertEqual(process_stdout.decode("utf-8"), "Hello world")
+        self.assertEqual(process_stdout.decode("utf-8"), '"Hello world"')
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_when_function_writes_stdout(self):
