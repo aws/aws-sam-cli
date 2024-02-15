@@ -73,7 +73,7 @@ class BaseLocalService:
             LOG.debug("Caught SIGTERM interrupt")
             raise ProcessSigTermException()
 
-        LOG.debug("\nSetting SIGTERM interrupt handler\n")
+        LOG.debug("Setting SIGTERM interrupt handler")
         signal.signal(signal.SIGTERM, interrupt_handler)
 
         self._app.run(threaded=multi_threaded, host=self.host, port=self.port, ssl_context=self.ssl_context)
