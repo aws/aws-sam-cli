@@ -344,6 +344,7 @@ class CachedBuildStrategyTest(BuildStrategyBaseTest):
     SOURCE_HASH = "cae49aa393d669e850bd49869905099d"
     LAYER_UUID = "761ce752-d1c8-4e07-86a0-f64778cdd108"
     LAYER_METHOD = "nodejs20.x"
+    LAYER_METHOD = "nodejs20.x"
 
     BUILD_GRAPH_CONTENTS = f"""
     [function_build_definitions]
