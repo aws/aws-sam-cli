@@ -1022,7 +1022,7 @@ def handler(event, context):
 
 def handler(event, context):
     return {"statusCode": 200, "body": json.dumps({"hello": "world2"})}"""
-    docker_file_content = """FROM public.ecr.aws/lambda/python:3.12
+    docker_file_content = """FROM public.ecr.aws/lambda/python:3.11
 COPY main.py ./"""
     container_mode = ContainersInitializationMode.EAGER.value
     build_before_invoke = True
