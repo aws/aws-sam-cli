@@ -253,7 +253,7 @@ class TestSamPythonHelloWorldIntegration(InvokeIntegBase):
             raise
 
         process_stdout = stdout.strip()
-        self.assertEqual(process_stdout.decode("utf-8"), '"Hello world"')
+        self.assertEqual(process_stdout.decode("utf-8"), "Hello world")
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_when_function_writes_stdout(self):
