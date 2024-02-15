@@ -2948,7 +2948,7 @@ class TestBuildWithCustomBuildImage(BuildIntegBase):
     @parameterized.expand(
         [
             ("use_container", None),
-            ("use_container", "amazon/aws-sam-cli-build-image-python3.12:latest-x86_64"),
+            ("use_container", "public.ecr.aws/sam/build-python3.12:latest-x86_64"),
         ]
     )
     def test_custom_build_image_succeeds(self, use_container, build_image):
