@@ -148,7 +148,6 @@ class TestServiceHTTP10(StartApiIntegBaseClass):
         self.assertEqual(response.raw.version, 11)
 
 
-
 @parameterized_class(
     ("template_path", "container_mode", "endpoint"),
     [
