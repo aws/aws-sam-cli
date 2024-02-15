@@ -2444,7 +2444,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.12
+      Runtime: python3.11
       CodeUri: .
       Timeout: 600
       Events:
@@ -2462,7 +2462,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main2.handler
-      Runtime: python3.12
+      Runtime: python3.11
       CodeUri: dir
       Timeout: 600
       Events:
@@ -2542,7 +2542,7 @@ def handler(event, context):
 
 def handler(event, context):
     return {"statusCode": 200, "body": json.dumps({"hello": "world2"})}"""
-    docker_file_content = """FROM public.ecr.aws/lambda/python:3.12
+    docker_file_content = """FROM public.ecr.aws/lambda/python:3.11
 COPY main.py ./"""
     container_mode = ContainersInitializationMode.EAGER.value
     build_before_invoke = True
@@ -2634,7 +2634,7 @@ def handler(event, context):
 
 def handler(event, context):
     return {"statusCode": 200, "body": json.dumps({"hello": "world2"})}"""
-    docker_file_content = """FROM public.ecr.aws/lambda/python:3.12
+    docker_file_content = """FROM public.ecr.aws/lambda/python:3.11
 COPY main.py ./"""
     container_mode = ContainersInitializationMode.EAGER.value
     build_before_invoke = True
@@ -2749,7 +2749,7 @@ def handler(event, context):
 
 def handler(event, context):
     return {"statusCode": 200, "body": json.dumps({"hello": "world2"})}"""
-    docker_file_content = """FROM public.ecr.aws/lambda/python:3.12
+    docker_file_content = """FROM public.ecr.aws/lambda/python:3.11
 COPY main.py ./"""
     container_mode = ContainersInitializationMode.LAZY.value
     build_before_invoke = True
@@ -2850,7 +2850,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.12
+      Runtime: python3.11
       CodeUri: .
       Timeout: 600
       Events:
@@ -2868,7 +2868,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main2.handler
-      Runtime: python3.12
+      Runtime: python3.11
       CodeUri: dir
       Timeout: 600
       Events:
