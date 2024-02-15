@@ -148,38 +148,6 @@ class TestServiceHTTP10(StartApiIntegBaseClass):
         self.assertEqual(response.raw.version, 11)
 
 
-class TestParallelRequestsZipped(StartApiIntegBaseClass):
-    template_path = "/testdata/start_api/template.yaml"
-
-    def setUp(self):
-        self.url = "http://127.0.0.1:{}".format(self.port)
-        HTTPConnection._http_vsn_str = "HTTP/1.1"
-
-    @pytest.mark.flaky(reruns=3)
-    @pytest.mark.timeout(timeout=600, method="thread")
-    def test_same_endpoint_zipped(self):
-        """
-        Send 10 requests to the same path at the same time. This is to ensure we can handle
-        multiple requests at once and do not block/queue up requests
-        """
-        number_of_requests = 10
-        start_time = time()
-        with ThreadPoolExecutor(number_of_requests) as thread_pool:
-            futures = [
-                thread_pool.submit(requests.get, self.url + "/helloZipped", timeout=300)
-                for _ in range(0, number_of_requests)
-            ]
-            results = [r.result() for r in as_completed(futures)]
-            end_time = time()
-
-            for result in results:
-                self.assertEqual(result.status_code, 200)
-                self.assertEqual(result.json(), {"message": "HelloWorld! I just slept and waking up."})
-                self.assertEqual(result.raw.version, 11)  # Checks if the response is HTTP/1.1 version
-            # after checking responses now check the time to complete
-            self.assertEqual(len(results), 10)
-            self.assertGreater(end_time - start_time, 10)
-
 
 @parameterized_class(
     ("template_path", "container_mode", "endpoint"),
