@@ -25,3 +25,8 @@ class ContainerFailureError(UserException):
     """
     Raised when the invoke container fails execution
     """
+
+class InvalidRuntimeException(UserException):
+    """
+    Raised when an invalid runtime is specified for a Lambda Function
+    """
