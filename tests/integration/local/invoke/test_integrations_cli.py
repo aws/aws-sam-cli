@@ -479,7 +479,7 @@ class TestSamPythonHelloWorldIntegration(InvokeIntegBase):
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=TIMEOUT, method="thread")
     def test_skip_pull_image_in_env_var(self):
-        docker.from_env().api.pull("lambci/lambda:python3.12")
+        docker.from_env().api.pull("public.ecr.aws/lambda/python:3.11-x86_64")
 
         command_list = InvokeIntegBase.get_command_list(
             "HelloWorldLambdaFunction", template_path=self.template_path, event_path=self.event_path
