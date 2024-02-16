@@ -1,6 +1,7 @@
 """
 test path_utils module
 """
+
 from unittest import TestCase
 
 from parameterized import parameterized

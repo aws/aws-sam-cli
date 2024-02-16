@@ -6,7 +6,7 @@ import logging
 from datetime import datetime
 from io import StringIO
 from time import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from flask import Flask, Request, request
 from werkzeug.datastructures import Headers
@@ -66,6 +66,7 @@ class LocalApigwService(BaseLocalService):
         port: Optional[int] = None,
         host: Optional[str] = None,
         stderr: Optional[StreamWriter] = None,
+        ssl_context: Optional[Tuple[str, str]] = None,
     ):
         """
         Creates an ApiGatewayService
@@ -84,10 +85,13 @@ class LocalApigwService(BaseLocalService):
         host : str
             Optional. host to start the service on
             Defaults to '127.0.0.1
+        ssl_context : (str, str)
+            Optional. tuple(str, str) indicating the cert and key files to use to start in https mode
+            Defaults to None
         stderr : samcli.lib.utils.stream_writer.StreamWriter
             Optional stream writer where the stderr from Docker container should be written to
         """
-        super().__init__(lambda_runner.is_debugging(), port=port, host=host)
+        super().__init__(lambda_runner.is_debugging(), port=port, host=host, ssl_context=ssl_context)
         self.api = api
         self.lambda_runner = lambda_runner
         self.static_dir = static_dir
@@ -473,6 +477,7 @@ class LocalApigwService(BaseLocalService):
             stage_name=self.api.stage_name,
             stage_variables=self.api.stage_variables,
             operation_name=route_key,
+            api_type=route.event_type,
         )
 
     def _build_v1_context(self, route: Route) -> Dict[str, Any]:
@@ -589,7 +594,7 @@ class LocalApigwService(BaseLocalService):
 
         return True
 
-    def _invoke_lambda_function(self, lambda_function_name: str, event: dict) -> str:
+    def _invoke_lambda_function(self, lambda_function_name: str, event: dict) -> Union[str, bytes]:
         """
         Helper method to invoke a function and setup stdout+stderr
 
@@ -602,8 +607,8 @@ class LocalApigwService(BaseLocalService):
 
         Returns
         -------
-        str
-            A string containing the output from the Lambda function
+        Union[str, bytes]
+            A string or bytes containing the output from the Lambda function
         """
         with StringIO() as stdout:
             event_str = json.dumps(event, sort_keys=True)

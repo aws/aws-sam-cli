@@ -3,6 +3,7 @@ Terraform Makefile and make rule generation
 
 This module generates the Makefile for the project and the rules for each of the Lambda functions found
 """
+
 import logging
 import os
 import shutil

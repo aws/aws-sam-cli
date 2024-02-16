@@ -22,7 +22,7 @@ Resources:
     Properties:
       CodeUri: function/
       Handler: app.lambda_handler
-      Runtime: python3.7
+      Runtime: python3.11
       Layers:
         - Ref: HelloWorldLayer
       Tracing: Active
@@ -32,7 +32,7 @@ Resources:
     Properties:
       CodeUri: function/
       Handler: app.lambda_handler
-      Runtime: python3.7
+      Runtime: python3.11
       Layers:
         - Ref: HelloWorldLayerWithoutBuildMethod
       Tracing: Active
@@ -42,7 +42,7 @@ Resources:
     Properties:
       CodeUri: function/
       Handler: app.lambda_handler
-      Runtime: python3.7
+      Runtime: python3.11
       Layers:
         - Ref: HelloWorldPreBuiltZipLayer
       Tracing: Active
@@ -54,9 +54,9 @@ Resources:
       Description: Hello World Layer
       ContentUri: layer/
       CompatibleRuntimes:
-        - python3.7
+        - python3.11
     Metadata:
-      BuildMethod: python3.7
+      BuildMethod: python3.11
 
   HelloWorldLayerWithoutBuildMethod:
     Type: AWS::Serverless::LayerVersion
@@ -65,7 +65,7 @@ Resources:
       Description: Hello World Layer without BuildMethod
       ContentUri: layer_without_build_method/
       CompatibleRuntimes:
-        - python3.7
+        - python3.11
 
   HelloWorldPreBuiltZipLayer:
     Type: AWS::Serverless::LayerVersion
@@ -74,7 +74,7 @@ Resources:
       Description: Hello World Layer which is pre-built as ZIP file
       ContentUri: layer_zip/layer.zip
       CompatibleRuntimes:
-        - python3.7
+        - python3.11
 
   HelloStepFunction:
     Type: AWS::Serverless::StateMachine

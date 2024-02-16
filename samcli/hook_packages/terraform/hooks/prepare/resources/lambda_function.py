@@ -1,4 +1,5 @@
 """Module containing logic specific to Lambda function resource handling during the prepare hook execution"""
+
 from typing import Dict, List, Tuple
 
 from samcli.hook_packages.terraform.hooks.prepare.resources.code_resource_utils import (

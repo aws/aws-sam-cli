@@ -1,12 +1,14 @@
 """
 Utilities for checking authorization of certain resource types
 """
+
 import logging
 from typing import List, Tuple
 
 from samcli.commands.local.lib.swagger.reader import SwaggerReader
 from samcli.lib.providers.provider import Stack
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
+from samcli.lib.utils.resources import AWS_APIGATEWAY_RESTAPI, AWS_APIGATEWAY_V2_API
 
 LOG = logging.getLogger(__name__)
 
@@ -101,6 +103,11 @@ def _auth_id(resources_dict, event_properties, identifier):
     """
     resource_name = event_properties.get(identifier, "")
     api_resource = resources_dict.get(resource_name, {})
+
+    # Auth does not apply to ApiGateway::RestApi or ApiGatwayV2::Api resources so return true and continue
+    if api_resource and (api_resource.get("Type") in [AWS_APIGATEWAY_RESTAPI, AWS_APIGATEWAY_V2_API]):
+        return True
+
     return any(
         [
             api_resource.get("Properties", {}).get("Auth", False),

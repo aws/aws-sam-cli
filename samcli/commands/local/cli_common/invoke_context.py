@@ -1,6 +1,7 @@
 """
 Reads CLI arguments and performs necessary preparation to be able to run the function
 """
+
 import errno
 import json
 import logging
@@ -97,6 +98,7 @@ class InvokeContext:
         shutdown: bool = False,
         container_host: Optional[str] = None,
         container_host_interface: Optional[str] = None,
+        add_host: Optional[dict] = None,
         invoke_images: Optional[str] = None,
     ) -> None:
         """
@@ -148,6 +150,8 @@ class InvokeContext:
             Optional. Host of locally emulated Lambda container
         container_host_interface string
             Optional. Interface that Docker host binds ports to
+        add_host dict
+            Optional. Docker extra hosts support from --add-host parameters
         invoke_images dict
             Optional. A dictionary that defines the custom invoke image URI of each function
         """
@@ -177,6 +181,9 @@ class InvokeContext:
 
         self._container_host = container_host
         self._container_host_interface = container_host_interface
+
+        self._extra_hosts: Optional[Dict] = add_host
+
         self._invoke_images = invoke_images
 
         self._containers_mode = ContainersMode.COLD
@@ -396,6 +403,7 @@ class InvokeContext:
             debug_context=self._debug_context,
             container_host=self._container_host,
             container_host_interface=self._container_host_interface,
+            extra_hosts=self._extra_hosts,
         )
         return self._local_lambda_runner
 

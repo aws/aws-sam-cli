@@ -1,6 +1,7 @@
 """
 Base Authorizer class definition
 """
+
 from dataclasses import dataclass
 
 

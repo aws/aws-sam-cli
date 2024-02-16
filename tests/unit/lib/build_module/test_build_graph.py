@@ -288,7 +288,7 @@ class TestBuildGraph(TestCase):
     LAYER_NAME = "SumLayer"
     ZIP = ZIP
     RUNTIME = "python3.8"
-    LAYER_RUNTIME = "nodejs12.x"
+    LAYER_RUNTIME = "nodejs20.x"
     METADATA = {"Test": "hello", "Test2": "world"}
     UUID = "3c1c254e-cd4b-4d94-8c74-7ab870b36063"
     LAYER_UUID = "7dnc257e-cd4b-4d94-8c74-7ab870b3abc3"

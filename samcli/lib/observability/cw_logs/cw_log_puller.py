@@ -1,6 +1,7 @@
 """
 CloudWatch log event puller implementation
 """
+
 import logging
 import time
 from datetime import datetime

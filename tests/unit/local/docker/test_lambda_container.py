@@ -1,6 +1,7 @@
 """
 Unit test for Lambda container management
 """
+
 from unittest import TestCase
 from unittest.mock import patch, Mock
 
@@ -15,8 +16,6 @@ from samcli.local.docker.lambda_image import RAPID_IMAGE_TAG_PREFIX
 RUNTIMES_WITH_ENTRYPOINT = [Runtime.dotnet6.value, Runtime.dotnet8.value, Runtime.go1x.value]
 
 RUNTIMES_WITH_BOOTSTRAP_ENTRYPOINT = [
-    Runtime.nodejs12x.value,
-    Runtime.nodejs14x.value,
     Runtime.nodejs16x.value,
     Runtime.nodejs18x.value,
     Runtime.nodejs20x.value,
@@ -47,7 +46,7 @@ ALL_RUNTIMES = [r.value for r in Runtime]
 
 class TestLambdaContainer_init(TestCase):
     def setUp(self):
-        self.runtime = "nodejs12.x"
+        self.runtime = "nodejs20.x"
         self.handler = "handler"
         self.code_dir = "codedir"
         self.image_config = None

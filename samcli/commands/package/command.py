@@ -1,6 +1,7 @@
 """
 CLI command for "package" command
 """
+
 import click
 
 from samcli.cli.cli_config_file import ConfigProvider, configuration_option, save_params_option

@@ -121,34 +121,6 @@ class LambdaDebugSettings:
                     **_container_env_vars,
                 },
             ),
-            Runtime.nodejs12x.value: lambda: DebugSettings(
-                entry
-                + ["/var/lang/bin/node"]
-                + debug_args_list
-                + ["--no-lazy", "--expose-gc"]
-                + ["/var/runtime/index.js"],
-                container_env_vars={
-                    "NODE_PATH": "/opt/nodejs/node_modules:/opt/nodejs/node12/node_modules:/var/runtime/node_modules:"
-                    "/var/runtime:/var/task",
-                    "NODE_OPTIONS": f"--inspect-brk=0.0.0.0:{str(debug_port)} --max-http-header-size 81920",
-                    "AWS_EXECUTION_ENV": "AWS_Lambda_nodejs12.x",
-                    **_container_env_vars,
-                },
-            ),
-            Runtime.nodejs14x.value: lambda: DebugSettings(
-                entry
-                + ["/var/lang/bin/node"]
-                + debug_args_list
-                + ["--no-lazy", "--expose-gc"]
-                + ["/var/runtime/index.js"],
-                container_env_vars={
-                    "NODE_PATH": "/opt/nodejs/node_modules:/opt/nodejs/node14/node_modules:/var/runtime/node_modules:"
-                    "/var/runtime:/var/task",
-                    "NODE_OPTIONS": f"--inspect-brk=0.0.0.0:{str(debug_port)} --max-http-header-size 81920",
-                    "AWS_EXECUTION_ENV": "AWS_Lambda_nodejs14.x",
-                    **_container_env_vars,
-                },
-            ),
             Runtime.nodejs16x.value: lambda: DebugSettings(
                 entry
                 + ["/var/lang/bin/node"]

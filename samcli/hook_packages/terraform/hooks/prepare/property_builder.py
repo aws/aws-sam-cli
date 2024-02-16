@@ -1,6 +1,7 @@
 """
 Terraform prepare property builder
 """
+
 import logging
 from json import loads
 from json.decoder import JSONDecodeError

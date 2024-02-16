@@ -1,4 +1,5 @@
 """ Application Environment """
+
 import hashlib
 import json
 import os
@@ -240,13 +241,17 @@ class Stage:
                 [] if self.pipeline_user.is_user_provided or self.use_oidc_provider else [self.pipeline_user.comment],
                 [] if not self.use_oidc_provider else [self.oidc_provider.comment],
                 [] if self.pipeline_execution_role.is_user_provided else [self.pipeline_execution_role.comment],
-                []
-                if self.cloudformation_execution_role.is_user_provided
-                else [self.cloudformation_execution_role.comment],
+                (
+                    []
+                    if self.cloudformation_execution_role.is_user_provided
+                    else [self.cloudformation_execution_role.comment]
+                ),
                 [] if self.artifacts_bucket.is_user_provided else [self.artifacts_bucket.comment],
-                []
-                if self.image_repository.is_user_provided or not self.create_image_repository
-                else [self.image_repository.comment],
+                (
+                    []
+                    if self.image_repository.is_user_provided or not self.create_image_repository
+                    else [self.image_repository.comment]
+                ),
             ]
         )
         return "\n".join([f"\t- {comment}" for comment in resource_comments])

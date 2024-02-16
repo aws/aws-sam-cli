@@ -1,6 +1,7 @@
 """
 Class that provides all nested stacks from a given SAM template
 """
+
 import logging
 import os
 from typing import Dict, Iterator, List, Optional, Tuple, Union, cast

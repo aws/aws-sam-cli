@@ -1,6 +1,7 @@
 """
 Generates a Docker Image to be used for invoking a function locally
 """
+
 import hashlib
 import logging
 import os
@@ -32,8 +33,6 @@ RAPID_IMAGE_TAG_PREFIX = "rapid"
 
 
 class Runtime(Enum):
-    nodejs12x = "nodejs12.x"
-    nodejs14x = "nodejs14.x"
     nodejs16x = "nodejs16.x"
     nodejs18x = "nodejs18.x"
     nodejs20x = "nodejs20.x"
@@ -43,7 +42,6 @@ class Runtime(Enum):
     python310 = "python3.10"
     python311 = "python3.11"
     python312 = "python3.12"
-    ruby27 = "ruby2.7"
     ruby32 = "ruby3.2"
     java8 = "java8"
     java8al2 = "java8.al2"
@@ -97,7 +95,7 @@ class Runtime(Enum):
         else:
             # This fits most runtimes format: `nameN.M` becomes `name:N.M` (python3.9 -> python:3.9)
             runtime_image_tag = re.sub(r"^([a-z]+)([0-9][a-z0-9\.]*)$", r"\1:\2", runtime)
-            # nodejs14.x, go1.x, etc don't have the `.x` part.
+            # nodejs20.x, go1.x, etc don't have the `.x` part.
             runtime_image_tag = runtime_image_tag.replace(".x", "")
 
         # Runtime image tags contain the architecture only if more than one is supported for that runtime

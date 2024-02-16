@@ -10,6 +10,8 @@ from samcli.vendor.serverlessrepo.exceptions import (
     S3PermissionsRequired,
     InvalidS3UriError,
     ServerlessRepoClientError,
+    DuplicateSemanticVersionError,
+    MissingSemanticVersionError,
 )
 from samcli.vendor.serverlessrepo.parser import get_app_metadata, strip_app_metadata
 from samcli.vendor.serverlessrepo.publish import CREATE_APPLICATION, UPDATE_APPLICATION, CREATE_APPLICATION_VERSION
@@ -198,7 +200,11 @@ class TestPublishApplication(TestCase):
         # create_application_version shouldn't be called if update_application fails
         self.serverlessrepo_mock.create_application_version.assert_not_called()
 
-    def test_publish_existing_application_should_update_application_if_version_exists(self):
+    @patch("samcli.vendor.serverlessrepo.publish.LOG")
+    @patch("samcli.vendor.serverlessrepo.publish._check_app_with_semantic_version_exists")
+    def test_publish_existing_application_should_update_application_if_version_exists(
+        self, _check_app_with_semantic_version_exists_patch, LOG_patch
+    ):
         self.serverlessrepo_mock.create_application.side_effect = self.application_exists_error
         self.serverlessrepo_mock.create_application_version.side_effect = ClientError(
             {"Error": {"Code": "ConflictException", "Message": "Random"}}, "create_application_version"
@@ -222,6 +228,12 @@ class TestPublishApplication(TestCase):
         self.serverlessrepo_mock.create_application.assert_called_once()
         self.serverlessrepo_mock.update_application.assert_called_once()
         self.serverlessrepo_mock.create_application_version.assert_called_once()
+        # If --fail-on-same-version is not specified, warning is printed
+        LOG_patch.warning.assert_called_once_with(
+            "WARNING: Publishing with semantic version that already exists. This may cause issues deploying."
+        )
+
+        _check_app_with_semantic_version_exists_patch.assert_not_called()
 
     def test_publish_new_version_should_create_application_version(self):
         self.serverlessrepo_mock.create_application.side_effect = self.application_exists_error
@@ -331,6 +343,39 @@ class TestPublishApplication(TestCase):
             },
         }
         self.assertEqual(expected_result, actual_result)
+
+    def test_semantic_version_publish_succeeds(self):
+        # If the supplied semantic version does not exist with the --fail-on-same-version flag,
+        # publish should succeed
+        sar_client = Mock()
+        sar_client.create_application.side_effect = self.application_exists_error
+        sar_client.get_application.side_effect = ClientError(
+            error_response={"Error": {"Code": "NotFoundException", "Message": "Application does not exist"}},
+            operation_name="get_application",
+        )
+
+        publish_application(self.template, sar_client, fail_on_same_version=True)
+
+    @patch("samcli.vendor.serverlessrepo.publish._check_app_with_semantic_version_exists")
+    def test_fail_update_on_same_semantic_version(self, check_app_with_semantic_version_exists_patch):
+        sar_client = Mock()
+        sar_client.create_application.side_effect = self.application_exists_error
+
+        check_app_with_semantic_version_exists_patch.return_value = True
+
+        with self.assertRaises(DuplicateSemanticVersionError):
+            publish_application(self.template, sar_client, fail_on_same_version=True)
+
+    @patch("samcli.vendor.serverlessrepo.publish._check_app_with_semantic_version_exists")
+    def test_fail_update_on_no_semantic_version(self, check_app_with_semantic_version_exists_patch):
+        sar_client = Mock()
+        sar_client.create_application.side_effect = self.application_exists_error
+        template_without_version = self.template.replace('"SemanticVersion": "1.0.0"', "")
+
+        check_app_with_semantic_version_exists_patch.return_value = True
+
+        with self.assertRaises(MissingSemanticVersionError):
+            publish_application(template_without_version, sar_client, fail_on_same_version=True)
 
 
 class TestUpdateApplicationMetadata(TestCase):

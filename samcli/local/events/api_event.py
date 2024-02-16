@@ -1,8 +1,11 @@
 """Holds Classes for API Gateway to Lambda Events"""
+
 import uuid
 from datetime import datetime
 from time import time
 from typing import Any, Dict
+
+from samcli.local.apigw.route import Route
 
 
 class ContextIdentity:
@@ -169,6 +172,7 @@ class ApiGatewayLambdaEvent:
         stage_variables=None,
         path=None,
         is_base_64_encoded=False,
+        api_type=Route.API,
     ):
         """
         Constructs an ApiGatewayLambdaEvent
@@ -185,6 +189,7 @@ class ApiGatewayLambdaEvent:
         :param dict stage_variables: API Gateway Stage Variables
         :param str path: Path of the request
         :param bool is_base_64_encoded: True if the data is base64 encoded.
+        :param str api_type: The type of API the event is being generated for
         """
 
         if not isinstance(query_string_params, dict) and query_string_params is not None:
@@ -205,7 +210,6 @@ class ApiGatewayLambdaEvent:
         if not isinstance(stage_variables, dict) and stage_variables is not None:
             raise TypeError("'stage_variables' must be of type dict or None")
 
-        self.version = "1.0"
         self.http_method = http_method
         self.body = body
         self.resource = resource
@@ -218,6 +222,7 @@ class ApiGatewayLambdaEvent:
         self.stage_variables = stage_variables
         self.path = path
         self.is_base_64_encoded = is_base_64_encoded
+        self.api_type = api_type
 
     def to_dict(self) -> Dict[str, Any]:
         """
@@ -233,15 +238,14 @@ class ApiGatewayLambdaEvent:
             request_context_dict = self.request_context.to_dict()
 
         json_dict = {
-            "version": self.version,
             "httpMethod": self.http_method,
             "body": self.body if self.body else None,
             "resource": self.resource,
             "requestContext": request_context_dict,
             "queryStringParameters": dict(self.query_string_params) if self.query_string_params else None,
-            "multiValueQueryStringParameters": dict(self.multi_value_query_string_params)
-            if self.multi_value_query_string_params
-            else None,
+            "multiValueQueryStringParameters": (
+                dict(self.multi_value_query_string_params) if self.multi_value_query_string_params else None
+            ),
             "headers": dict(self.headers) if self.headers else None,
             "multiValueHeaders": dict(self.multi_value_headers) if self.multi_value_headers else None,
             "pathParameters": dict(self.path_parameters) if self.path_parameters else None,
@@ -249,6 +253,10 @@ class ApiGatewayLambdaEvent:
             "path": self.path,
             "isBase64Encoded": self.is_base_64_encoded,
         }
+
+        # v1 payloads and rest api payloads are identical save for the version field
+        if self.api_type == Route.HTTP:
+            json_dict["version"] = "1.0"
 
         return json_dict
 

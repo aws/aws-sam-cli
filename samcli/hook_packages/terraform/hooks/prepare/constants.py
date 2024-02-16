@@ -1,6 +1,7 @@
 """
 Constants related to the Terraform prepare hook.
 """
+
 import re
 
 from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION as CFN_AWS_LAMBDA_FUNCTION

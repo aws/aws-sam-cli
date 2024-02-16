@@ -1,6 +1,7 @@
 """
 Provide a CFN implementation of IaCPluginInterface
 """
+
 import logging
 import os
 from typing import List, Optional

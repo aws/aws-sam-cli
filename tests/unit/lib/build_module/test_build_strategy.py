@@ -56,7 +56,9 @@ class BuildStrategyBaseTest(TestCase):
         self.build_graph.put_function_build_definition(self.function_build_definition2, self.function2)
 
         self.layer1 = Mock()
+        self.layer1.compatible_architectures = None
         self.layer2 = Mock()
+        self.layer2.compatible_architectures = None
 
         self.layer_build_definition1 = LayerBuildDefinition("layer1", "codeuri", "build_method", [], X86_64)
         self.layer_build_definition2 = LayerBuildDefinition("layer2", "codeuri", "build_method", [], X86_64)
@@ -341,7 +343,7 @@ class CachedBuildStrategyTest(BuildStrategyBaseTest):
     FUNCTION_UUID = "3c1c254e-cd4b-4d94-8c74-7ab870b36063"
     SOURCE_HASH = "cae49aa393d669e850bd49869905099d"
     LAYER_UUID = "761ce752-d1c8-4e07-86a0-f64778cdd108"
-    LAYER_METHOD = "nodejs12.x"
+    LAYER_METHOD = "nodejs20.x"
 
     BUILD_GRAPH_CONTENTS = f"""
     [function_build_definitions]
@@ -356,8 +358,8 @@ class CachedBuildStrategyTest(BuildStrategyBaseTest):
     [layer_build_definitions.{LAYER_UUID}]
     layer_name = "SumLayer"
     codeuri = "sum_layer/"
-    build_method = "nodejs12.x"
-    compatible_runtimes = ["nodejs12.x"]
+    build_method = "nodejs20.x"
+    compatible_runtimes = ["nodejs20.x"]
     source_hash = "{SOURCE_HASH}"
     layer = "SumLayer"
     """
@@ -699,6 +701,7 @@ class TestIncrementalBuildStrategy(TestCase):
         given_layer_build_def = Mock(
             manifest_hash=build_toml_manifest_hash, functions=[Mock()], dependencies_dir=dependency_dir
         )
+        given_layer_build_def.layer.compatible_architectures = None
         self.build_graph.get_function_build_definitions.return_value = []
         self.build_graph.get_layer_build_definitions.return_value = [given_layer_build_def]
 
@@ -730,8 +733,8 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
     @parameterized.expand(
         [
             "python3.7",
-            "nodejs12.x",
-            "ruby2.7",
+            "nodejs20.x",
+            "ruby3.2",
         ]
     )
     def test_will_call_incremental_build_strategy(self, mocked_read, mocked_write, runtime):

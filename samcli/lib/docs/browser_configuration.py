@@ -1,6 +1,7 @@
 """
 Library housing logic for handling web browsers
 """
+
 import logging
 import webbrowser
 from enum import Enum

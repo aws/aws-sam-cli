@@ -1,4 +1,5 @@
 """CLI command for "test-event get" command."""
+
 import logging
 import sys
 from io import TextIOWrapper

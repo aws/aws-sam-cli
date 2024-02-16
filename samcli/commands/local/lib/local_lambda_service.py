@@ -1,6 +1,7 @@
 """
 Connects the CLI with Local Lambda Invoke Service.
 """
+
 import logging
 
 from samcli.local.lambda_service.local_lambda_invoke_service import LocalLambdaInvokeService
@@ -14,7 +15,7 @@ class LocalLambdaService:
     that are defined in a SAM file.
     """
 
-    def __init__(self, lambda_invoke_context, port, host):
+    def __init__(self, lambda_invoke_context, port, host, ssl_context=None):
         """
         Initialize the Local Lambda Invoke service.
 
@@ -22,10 +23,13 @@ class LocalLambdaService:
             that can help with Lambda invocation
         :param int port: Port to listen on
         :param string host: Local hostname or IP address to bind to
+        :param tuple(string, string) ssl_context: Optional, path to ssl certificate and key files to start service
+            in https
         """
 
         self.port = port
         self.host = host
+        self.ssl_context = ssl_context
         self.lambda_runner = lambda_invoke_context.local_lambda_runner
         self.stderr_stream = lambda_invoke_context.stderr
 
@@ -43,7 +47,11 @@ class LocalLambdaService:
         # to the console or a log file. stderr from Docker container contains runtime logs and output of print
         # statements from the Lambda function
         service = LocalLambdaInvokeService(
-            lambda_runner=self.lambda_runner, port=self.port, host=self.host, stderr=self.stderr_stream
+            lambda_runner=self.lambda_runner,
+            port=self.port,
+            host=self.host,
+            ssl_context=self.ssl_context,
+            stderr=self.stderr_stream,
         )
 
         service.create()

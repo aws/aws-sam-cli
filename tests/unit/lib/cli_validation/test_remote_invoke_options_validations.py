@@ -83,8 +83,8 @@ class TestEventFileValidation(TestCase):
         mocked_context = Mock()
         patched_click_context.return_value = mocked_context
 
-        mocked_context.params.get.side_effect = (
-            lambda key: "event_content" if key in ("event", "test_event_name") else None
+        mocked_context.params.get.side_effect = lambda key: (
+            "event_content" if key in ("event", "test_event_name") else None
         )
 
         with self.assertRaises(BadOptionUsage) as ex:
@@ -102,8 +102,8 @@ class TestEventFileValidation(TestCase):
         mocked_context = Mock()
         patched_click_context.return_value = mocked_context
 
-        mocked_context.params.get.side_effect = (
-            lambda key: "event_content" if key in ("event_file", "test_event_name") else None
+        mocked_context.params.get.side_effect = lambda key: (
+            "event_content" if key in ("event_file", "test_event_name") else None
         )
 
         with self.assertRaises(BadOptionUsage) as ex:

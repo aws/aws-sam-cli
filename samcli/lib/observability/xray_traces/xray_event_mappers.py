@@ -1,6 +1,7 @@
 """
 Contains mapper implementations of XRay events
 """
+
 import json
 from copy import deepcopy
 from datetime import datetime

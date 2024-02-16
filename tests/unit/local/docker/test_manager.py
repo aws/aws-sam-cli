@@ -1,12 +1,15 @@
 """
 Tests container manager
 """
+
 import importlib
 from unittest import TestCase
 from unittest.mock import Mock, patch, MagicMock, ANY, call
 
 import requests
 from docker.errors import APIError, ImageNotFound
+
+import docker
 from samcli.local.docker.manager import ContainerManager, DockerImagePullFailedException
 from samcli.local.docker.lambda_image import RAPID_IMAGE_TAG_PREFIX
 
@@ -384,3 +387,25 @@ class TestContainerManager_stop(TestCase):
 
         manager.stop(container)
         container.delete.assert_called_with()
+
+
+class TestContainerManager_inspect(TestCase):
+    def test_must_call_inspect_on_container(self):
+        manager = ContainerManager()
+        manager.docker_client = Mock()
+
+        container = "container_id"
+
+        manager.inspect(container)
+        manager.docker_client.docker_client.api.inspect_container(container)
+
+    @patch("samcli.local.docker.manager.LOG")
+    def test_must_fail_with_error_message(self, mock_log):
+        manager = ContainerManager()
+        manager.docker_client.api.inspect_container = Mock()
+        manager.docker_client.api.inspect_container.side_effect = [docker.errors.APIError("Failed")]
+
+        return_val = manager.inspect("container_id")
+
+        self.assertEqual(return_val, False)
+        mock_log.debug.assert_called_once_with("Failed to call Docker inspect: %s", "Failed")

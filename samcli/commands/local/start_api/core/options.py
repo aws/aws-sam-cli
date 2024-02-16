@@ -1,6 +1,7 @@
 """
 Invoke Start API Command Options related Datastructures for formatting.
 """
+
 from typing import Dict, List
 
 from samcli.cli.core.options import ALL_COMMON_OPTIONS, SAVE_PARAMS_OPTIONS, add_common_options_info
@@ -22,6 +23,8 @@ EXTENSION_OPTIONS: List[str] = ["hook_name", "skip_prepare_infra"]
 CONTAINER_OPTION_NAMES: List[str] = [
     "host",
     "port",
+    "ssl_cert_file",
+    "ssl_key_file",
     "env_vars",
     "container_env_vars",
     "debug_port",
@@ -36,6 +39,7 @@ CONTAINER_OPTION_NAMES: List[str] = [
     "shutdown",
     "container_host",
     "container_host_interface",
+    "add_host",
     "invoke_image",
     "disable_authorizer",
 ]

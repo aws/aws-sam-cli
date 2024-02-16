@@ -1,6 +1,7 @@
 """
 Lambda Function configuration data required by the runtime
 """
+
 from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException
 
 from .env_vars import EnvironmentVariables

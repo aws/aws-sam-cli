@@ -1,6 +1,7 @@
 """
 Represents Lambda runtime containers.
 """
+
 import logging
 import os
 from typing import List
@@ -51,6 +52,7 @@ class LambdaContainer(Container):
         debug_options=None,
         container_host=None,
         container_host_interface=DEFAULT_CONTAINER_HOST_INTERFACE,
+        extra_hosts=None,
         function_full_path=None,
     ):
         """
@@ -87,6 +89,8 @@ class LambdaContainer(Container):
             Optional. Host of locally emulated Lambda container
         container_host_interface
             Optional. Interface that Docker host binds ports to
+        extra_hosts
+            Optional. Dict of hostname to IP resolutions
         function_full_path str
             Optional. The function full path, unique in all stacks
         """
@@ -138,6 +142,7 @@ class LambdaContainer(Container):
             additional_volumes=additional_volumes,
             container_host=container_host,
             container_host_interface=container_host_interface,
+            extra_hosts=extra_hosts,
         )
 
     @staticmethod

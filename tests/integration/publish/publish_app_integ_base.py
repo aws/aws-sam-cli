@@ -80,7 +80,9 @@ class PublishAppIntegBase(TestCase):
         for key, value in app_metadata.items():
             self.assertIn('"{}":{}'.format(key, json.dumps(value)), stripped_std_output)
 
-    def get_command_list(self, template_path=None, region=None, profile=None, semantic_version=None):
+    def get_command_list(
+        self, template_path=None, region=None, profile=None, semantic_version=None, fail_on_same_version=None
+    ):
         command_list = [get_sam_command(), "publish"]
 
         if template_path:
@@ -94,5 +96,8 @@ class PublishAppIntegBase(TestCase):
 
         if semantic_version:
             command_list = command_list + ["--semantic-version", semantic_version]
+
+        if fail_on_same_version:
+            command_list = command_list + ["--fail-on-same-version"]
 
         return command_list

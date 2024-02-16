@@ -1,4 +1,5 @@
 """Test Terraform prepare translate"""
+
 import copy
 from unittest import TestCase
 from unittest.mock import Mock, call, patch, MagicMock, ANY

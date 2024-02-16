@@ -1,6 +1,7 @@
 """
 Test the swagger parser
 """
+
 from unittest import TestCase
 
 from unittest.mock import ANY, patch, Mock
@@ -217,6 +218,46 @@ class TestSwaggerParser_get_apis(TestCase):
         parser._get_payload_format_version = Mock(return_value=payload_version)
 
         results = parser.get_routes()
+        expected_result = [
+            Route(
+                path="/path1",
+                methods=["get"],
+                function_name=function_name,
+                payload_format_version=payload_version,
+                stack_path=self.stack_path,
+                authorizer_name=None,
+                authorizer_object=None,
+                use_default_authorizer=False,
+            ),
+        ]
+
+        self.assertEqual(results, expected_result)
+
+    def test_set_optional_authorizer(self):
+        function_name = "function"
+        payload_version = "1.0"
+
+        swagger = {
+            "paths": {
+                "/path1": {
+                    "get": {
+                        "security": [{}],
+                        "x-amazon-apigateway-integration": {
+                            "type": "aws_proxy",
+                            "uri": "someuri",
+                            "payloadFormatVersion": payload_version,
+                        },
+                    }
+                }
+            }
+        }
+
+        parser = SwaggerParser(self.stack_path, swagger)
+        parser._get_integration_function_name = Mock(return_value=function_name)
+        parser._get_payload_format_version = Mock(return_value=payload_version)
+
+        results = parser.get_routes()
+        print(results)
         expected_result = [
             Route(
                 path="/path1",

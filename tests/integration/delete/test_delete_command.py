@@ -6,6 +6,7 @@ import boto3
 import docker
 from botocore.exceptions import ClientError
 from parameterized import parameterized
+from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME
 
 from tests.integration.delete.delete_integ_base import DeleteIntegBase
 from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY, CommandResult
@@ -126,15 +127,13 @@ class TestDelete(DeleteIntegBase):
 
         stack_name = self._method_to_stack_name(self.id())
 
-        config_file_name = stack_name + ".toml"
-        deploy_command_list = self.get_deploy_command_list(
-            template_file=template_path, guided=True, config_file=config_file_name
-        )
+        config_file_name = DEFAULT_CONFIG_FILE_NAME
+        deploy_command_list = self.get_deploy_command_list(template_file=template_path, guided=True)
         _ = run_command_with_input(deploy_command_list, "{}\n\n\n\n\n\n\n\n\n".format(stack_name).encode())
 
         config_file_path = self.test_data_path.joinpath(config_file_name)
         delete_command_list = self.get_delete_command_list(
-            stack_name=stack_name, config_file=config_file_path, region=self._session.region_name, no_prompts=True
+            stack_name=stack_name, region=self._session.region_name, no_prompts=True
         )
 
         delete_process_execute = run_command(delete_command_list)
@@ -155,9 +154,9 @@ class TestDelete(DeleteIntegBase):
 
         stack_name = self._method_to_stack_name(self.id())
 
-        config_file_name = stack_name + ".toml"
+        config_file_name = DEFAULT_CONFIG_FILE_NAME
         deploy_command_list = self.get_deploy_command_list(
-            template_file=template_path, guided=True, config_file=config_file_name, image_repository=self.ecr_repo_name
+            template_file=template_path, guided=True, image_repository=self.ecr_repo_name
         )
         _ = run_command_with_input(
             deploy_command_list, f"{stack_name}\n\n{self.ecr_repo_name}\n\n\ny\n\n\n\n\n\n".encode()
@@ -165,7 +164,7 @@ class TestDelete(DeleteIntegBase):
 
         config_file_path = self.test_data_path.joinpath(config_file_name)
         delete_command_list = self.get_delete_command_list(
-            stack_name=stack_name, config_file=config_file_path, region=self._session.region_name, no_prompts=True
+            stack_name=stack_name, region=self._session.region_name, no_prompts=True
         )
 
         delete_process_execute = run_command(delete_command_list)
@@ -186,14 +185,12 @@ class TestDelete(DeleteIntegBase):
 
         stack_name = self._method_to_stack_name(self.id())
 
-        config_file_name = stack_name + ".toml"
-        deploy_command_list = self.get_deploy_command_list(
-            template_file=template_path, guided=True, config_file=config_file_name
-        )
+        config_file_name = DEFAULT_CONFIG_FILE_NAME
+        deploy_command_list = self.get_deploy_command_list(template_file=template_path, guided=True)
         _ = run_command_with_input(deploy_command_list, "{}\n\n\n\n\n\n\n\n\n".format(stack_name).encode())
 
         config_file_path = self.test_data_path.joinpath(config_file_name)
-        delete_command_list = self.get_delete_command_list(stack_name=stack_name, config_file=config_file_path)
+        delete_command_list = self.get_delete_command_list(stack_name=stack_name)
         delete_process_execute = run_command_with_input(delete_command_list, "y\nn\ny\n".encode())
 
         self.validate_delete_process(delete_process_execute)

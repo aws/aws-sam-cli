@@ -1,6 +1,7 @@
 """
 Contains asyncio related methods and helpers
 """
+
 import logging
 from asyncio import AbstractEventLoop, gather, new_event_loop
 from concurrent.futures.thread import ThreadPoolExecutor

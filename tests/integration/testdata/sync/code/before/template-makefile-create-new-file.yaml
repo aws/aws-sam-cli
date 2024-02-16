@@ -11,7 +11,7 @@ Resources:
     Properties:
       CodeUri: makefile_function_create_new_file/
       Handler: main.handler
-      Runtime: python3.7
+      Runtime: python3.11
       Layers:
         - !Ref HelloWorldLayer
     Metadata:
@@ -22,6 +22,6 @@ Resources:
     Properties:
       ContentUri: makefile_layer_create_new_file/
       CompatibleRuntimes:
-        - python3.7
+        - python3.11
     Metadata:
       BuildMethod: makefile

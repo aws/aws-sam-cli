@@ -1,6 +1,7 @@
 """
 Common context class to inherit from for sam list sub-commands
 """
+
 from samcli.lib.utils.boto_utils import get_boto_client_provider_with_config
 
 

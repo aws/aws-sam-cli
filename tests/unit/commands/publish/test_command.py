@@ -1,4 +1,5 @@
 """Test sam publish CLI."""
+
 import json
 from unittest import TestCase
 from unittest.mock import patch, call, Mock
@@ -30,7 +31,7 @@ class TestCli(TestCase):
     def test_must_raise_if_invalid_template(self, exception_to_raise, click_mock, get_template_data_mock):
         get_template_data_mock.side_effect = exception_to_raise("Template not found")
         with self.assertRaises(exception_to_raise) as context:
-            publish_cli(self.ctx_mock, self.template, None)
+            publish_cli(self.ctx_mock, self.template, None, False)
 
         message = str(context.exception)
         self.assertEqual("Template not found", message)
@@ -42,7 +43,7 @@ class TestCli(TestCase):
     def test_must_raise_if_serverlessrepo_error(self, click_mock, publish_application_mock):
         publish_application_mock.side_effect = ServerlessRepoError()
         with self.assertRaises(UserException):
-            publish_cli(self.ctx_mock, self.template, None)
+            publish_cli(self.ctx_mock, self.template, None, False)
 
         click_mock.secho.assert_called_with("Publish Failed", fg="red")
 
@@ -52,7 +53,7 @@ class TestCli(TestCase):
     def test_must_raise_if_invalid_S3_uri_error(self, click_mock, publish_application_mock):
         publish_application_mock.side_effect = InvalidS3UriError(message="")
         with self.assertRaises(UserException) as context:
-            publish_cli(self.ctx_mock, self.template, None)
+            publish_cli(self.ctx_mock, self.template, None, False)
 
         message = str(context.exception)
         self.assertTrue("Your SAM template contains invalid S3 URIs" in message)
@@ -68,7 +69,7 @@ class TestCli(TestCase):
             "actions": [CREATE_APPLICATION],
         }
 
-        publish_cli(self.ctx_mock, self.template, None)
+        publish_cli(self.ctx_mock, self.template, None, False)
         details_str = json.dumps({"attr1": "value1"}, indent=2)
         expected_msg = "Created new application with the following metadata:\n{}"
         expected_link = self.console_link.format(self.ctx_mock.region, self.application_id.replace("/", "~"))
@@ -90,7 +91,7 @@ class TestCli(TestCase):
             "actions": [UPDATE_APPLICATION],
         }
 
-        publish_cli(self.ctx_mock, self.template, None)
+        publish_cli(self.ctx_mock, self.template, None, False)
         details_str = json.dumps({"attr1": "value1"}, indent=2)
         expected_msg = 'The following metadata of application "{}" has been updated:\n{}'
         expected_link = self.console_link.format(self.ctx_mock.region, self.application_id.replace("/", "~"))
@@ -118,7 +119,7 @@ class TestCli(TestCase):
         session_mock.region_name = "us-west-1"
         boto3_mock.Session.return_value = session_mock
 
-        publish_cli(self.ctx_mock, self.template, None)
+        publish_cli(self.ctx_mock, self.template, None, False)
         expected_link = self.console_link.format(session_mock.region_name, self.application_id.replace("/", "~"))
         click_mock.secho.assert_called_with(expected_link, fg="yellow")
 
@@ -128,8 +129,8 @@ class TestCli(TestCase):
         template_data = {METADATA: {SERVERLESS_REPO_APPLICATION: {SEMANTIC_VERSION: "0.1"}}}
         get_template_data_mock.return_value = template_data
         publish_application_mock.return_value = {"application_id": self.application_id, "details": {}, "actions": {}}
-        publish_cli(self.ctx_mock, self.template, None)
-        publish_application_mock.assert_called_with(template_data)
+        publish_cli(self.ctx_mock, self.template, None, False)
+        publish_application_mock.assert_called_with(template=template_data, fail_on_same_version=False)
 
     @patch("samcli.commands.publish.command.get_template_data")
     @patch("samcli.vendor.serverlessrepo.publish_application")
@@ -138,6 +139,6 @@ class TestCli(TestCase):
         get_template_data_mock.return_value = template_data
         publish_application_mock.return_value = {"application_id": self.application_id, "details": {}, "actions": {}}
 
-        publish_cli(self.ctx_mock, self.template, "0.2")
+        publish_cli(self.ctx_mock, self.template, "0.2", False)
         expected_template_data = {METADATA: {SERVERLESS_REPO_APPLICATION: {SEMANTIC_VERSION: "0.2"}}}
-        publish_application_mock.assert_called_with(expected_template_data)
+        publish_application_mock.assert_called_with(template=expected_template_data, fail_on_same_version=False)

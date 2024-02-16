@@ -1,8 +1,9 @@
 """Base class for all Services that interact with Local Lambda"""
+
 import io
 import json
 import logging
-from typing import Tuple
+from typing import Optional, Tuple, Union
 
 from flask import Response
 
@@ -10,7 +11,7 @@ LOG = logging.getLogger(__name__)
 
 
 class BaseLocalService:
-    def __init__(self, is_debugging, port, host):
+    def __init__(self, is_debugging, port, host, ssl_context):
         """
         Creates a BaseLocalService class
 
@@ -22,10 +23,13 @@ class BaseLocalService:
             Optional. port for the service to start listening on Defaults to 3000
         host str
             Optional. host to start the service on Defaults to '127.0.0.1
+        ssl_context tuple(str, str)
+            Optional. path to ssl certificate and key files to start service in https
         """
         self.is_debugging = is_debugging
         self.port = port
         self.host = host
+        self.ssl_context = ssl_context
         self._app = None
 
     def create(self):
@@ -62,7 +66,7 @@ class BaseLocalService:
 
         flask.cli.show_server_banner = lambda *args: None
 
-        self._app.run(threaded=multi_threaded, host=self.host, port=self.port)
+        self._app.run(threaded=multi_threaded, host=self.host, port=self.port, ssl_context=self.ssl_context)
 
     @staticmethod
     def service_response(body, headers, status_code):
@@ -82,7 +86,9 @@ class BaseLocalService:
 
 class LambdaOutputParser:
     @staticmethod
-    def get_lambda_output(stdout_stream: io.StringIO) -> Tuple[str, bool]:
+    def get_lambda_output(
+        stdout_stream_str: io.StringIO, stdout_stream_bytes: Optional[io.BytesIO] = None
+    ) -> Tuple[Union[str, bytes], bool]:
         """
         This method will extract read the given stream and return the response from Lambda function separated out
         from any log statements it might have outputted. Logs end up in the stdout stream if the Lambda function
@@ -90,8 +96,11 @@ class LambdaOutputParser:
 
         Parameters
         ----------
-        stdout_stream : io.BaseIO
+        stdout_stream_str : io.BaseIO
             Stream to fetch data from
+
+        stdout_stream_bytes : Optional[io.BytesIO], optional
+            Stream to fetch raw bytes data from
 
         Returns
         -------
@@ -100,7 +109,9 @@ class LambdaOutputParser:
         bool
             If the response is an error/exception from the container
         """
-        lambda_response = stdout_stream.getvalue()
+        lambda_response: Union[str, bytes] = stdout_stream_str.getvalue()
+        if stdout_stream_bytes and not lambda_response:
+            lambda_response = stdout_stream_bytes.getvalue()
 
         # When the Lambda Function returns an Error/Exception, the output is added to the stdout of the container. From
         # our perspective, the container returned some value, which is not always true. Since the output is the only

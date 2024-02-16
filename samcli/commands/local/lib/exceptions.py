@@ -1,6 +1,7 @@
 """
 Custom exceptions raised by this local library
 """
+
 from samcli.commands.exceptions import UserException
 
 

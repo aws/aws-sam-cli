@@ -1,6 +1,7 @@
 """
 Provide a factory class for IaC project creation
 """
+
 import fnmatch
 import os
 

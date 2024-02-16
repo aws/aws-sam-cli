@@ -1,6 +1,7 @@
 """
 The json consumer for 'sam list'
 """
+
 import click
 
 from samcli.lib.list.list_interfaces import ListInfoPullerConsumer

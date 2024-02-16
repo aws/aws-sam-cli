@@ -1,6 +1,7 @@
 """
 Invoke Command Options related Datastructures for formatting.
 """
+
 from typing import Dict, List
 
 from samcli.cli.core.options import ALL_COMMON_OPTIONS, SAVE_PARAMS_OPTIONS, add_common_options_info
@@ -32,6 +33,7 @@ CONTAINER_OPTION_NAMES: List[str] = [
     "shutdown",
     "container_host",
     "container_host_interface",
+    "add_host",
     "invoke_image",
 ]
 

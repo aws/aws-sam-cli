@@ -1,6 +1,7 @@
 """
 This utility file contains methods to read information from certain CFN stack
 """
+
 import logging
 import posixpath
 from typing import Any, Dict, Iterable, Optional, Set

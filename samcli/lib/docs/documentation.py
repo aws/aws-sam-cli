@@ -1,6 +1,7 @@
 """
 Library housing the logic for handling AWS SAM CLI documentation pages
 """
+
 import json
 import logging
 from pathlib import Path

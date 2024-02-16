@@ -192,7 +192,7 @@ class TestCli(TestCase):
             package_type=IMAGE,
             runtime=None,
             architecture=ARM64,
-            base_image="amazon/nodejs12.x-base",
+            base_image="amazon/nodejs20.x-base",
             dependency_manager="npm",
             output_dir=None,
             name=self.name,
@@ -209,12 +209,12 @@ class TestCli(TestCase):
             # need to change the location validation check
             ANY,
             IMAGE,
-            "nodejs12.x",
+            "nodejs20.x",
             "npm",
             self.output_dir,
             self.name,
             True,
-            {"runtime": "nodejs12.x", "project_name": "testing project", "architectures": {"value": [ARM64]}},
+            {"runtime": "nodejs20.x", "project_name": "testing project", "architectures": {"value": [ARM64]}},
             False,
             False,
             False,
@@ -2094,7 +2094,7 @@ test-project
     ):
         init_options_from_manifest_mock.return_value = [
             {
-                "directory": "nodejs14.x/cookiecutter-aws-sam-hello-nodejs",
+                "directory": "nodejs20.x/cookiecutter-aws-sam-hello-nodejs",
                 "displayName": "Hello World Example",
                 "dependencyManager": "npm",
                 "appTemplate": "hello-world",
@@ -2114,10 +2114,10 @@ test-project
 
         get_preprocessed_manifest_mock.return_value = {
             "Hello World Example": {
-                "nodejs14.x": {
+                "nodejs20.x": {
                     "Zip": [
                         {
-                            "directory": "nodejs14.x/cookiecutter-aws-sam-hello-nodejs",
+                            "directory": "nodejs20.x/cookiecutter-aws-sam-hello-nodejs",
                             "displayName": "Hello World Example",
                             "dependencyManager": "npm",
                             "appTemplate": "hello-world",
@@ -2181,9 +2181,8 @@ test-project
             "amazon/dotnet6-base",
             "amazon/go1.x-base",
             "amazon/java11-base",
-            "amazon/nodejs14.x-base",
+            "amazon/nodejs20.x-base",
             "amazon/python3.8-base",
-            "amazon/ruby2.7-base",
             "amazon/go-provided.al2-base",
             "amazon/ruby3.2-base",
         ]
@@ -2192,9 +2191,8 @@ test-project
             "dotnet6",
             "go1.x",
             "java11",
-            "nodejs14.x",
+            "nodejs20.x",
             "python3.8",
-            "ruby2.7",
             "go (provided.al2)",
             "ruby3.2",
         ]
@@ -2235,10 +2233,10 @@ test-project
                         }
                     ]
                 },
-                "nodejs14.x": {
+                "nodejs20.x": {
                     "Image": [
                         {
-                            "directory": "nodejs14.x-image/cookiecutter-aws-sam-hello-nodejs-lambda-image",
+                            "directory": "nodejs20.x-image/cookiecutter-aws-sam-hello-nodejs-lambda-image",
                             "displayName": "Hello World Image Example",
                             "dependencyManager": "npm",
                             "appTemplate": "hello-world-lambda-image",
@@ -2292,15 +2290,15 @@ test-project
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
     def test_must_process_manifest_with_image_as_filter_value(self, _get_manifest_mock):
         template = InitTemplates()
-        filter_value = "amazon/nodejs14.x-base"
+        filter_value = "amazon/nodejs20.x-base"
         _get_manifest_mock.return_value = self.data
         preprocess_manifest = template.get_preprocessed_manifest(filter_value)
         expected_result = {
             "Hello World Example": {
-                "nodejs14.x": {
+                "nodejs20.x": {
                     "Image": [
                         {
-                            "directory": "nodejs14.x-image/cookiecutter-aws-sam-hello-nodejs-lambda-image",
+                            "directory": "nodejs20.x-image/cookiecutter-aws-sam-hello-nodejs-lambda-image",
                             "displayName": "Hello World Image Example",
                             "dependencyManager": "npm",
                             "appTemplate": "hello-world-lambda-image",
@@ -2591,7 +2589,7 @@ test-project
     ):
         init_options_from_manifest_mock.return_value = [
             {
-                "directory": "nodejs14.x/cookiecutter-aws-sam-hello-nodejs",
+                "directory": "nodejs20.x/cookiecutter-aws-sam-hello-nodejs",
                 "displayName": "Hello World Example",
                 "dependencyManager": "npm",
                 "appTemplate": "hello-world",
@@ -2611,10 +2609,10 @@ test-project
 
         get_preprocessed_manifest_mock.return_value = {
             "Hello World Example": {
-                "nodejs14.x": {
+                "nodejs20.x": {
                     "Zip": [
                         {
-                            "directory": "nodejs14.x/cookiecutter-aws-sam-hello-nodejs",
+                            "directory": "nodejs20.x/cookiecutter-aws-sam-hello-nodejs",
                             "displayName": "Hello World Example",
                             "dependencyManager": "npm",
                             "appTemplate": "hello-world",
@@ -2686,7 +2684,7 @@ test-project
     ):
         init_options_from_manifest_mock.return_value = [
             {
-                "directory": "nodejs14.x/cookiecutter-aws-sam-hello-nodejs",
+                "directory": "nodejs20.x/cookiecutter-aws-sam-hello-nodejs",
                 "displayName": "Hello World Example",
                 "dependencyManager": "npm",
                 "appTemplate": "hello-world",
@@ -2706,10 +2704,10 @@ test-project
 
         get_preprocessed_manifest_mock.return_value = {
             "Hello World Example": {
-                "nodejs14.x": {
+                "nodejs20.x": {
                     "Zip": [
                         {
-                            "directory": "nodejs14.x/cookiecutter-aws-sam-hello-nodejs",
+                            "directory": "nodejs20.x/cookiecutter-aws-sam-hello-nodejs",
                             "displayName": "Hello World Example",
                             "dependencyManager": "npm",
                             "appTemplate": "hello-world",
@@ -2765,7 +2763,7 @@ test-project
 
     def does_template_meet_filter_criteria(self):
         template1 = {
-            "directory": "nodejs14.x/cookiecutter-aws-sam-hello-nodejs",
+            "directory": "nodejs20.x/cookiecutter-aws-sam-hello-nodejs",
             "displayName": "Hello World Example",
             "dependencyManager": "npm",
             "appTemplate": "hello-world",
@@ -2850,9 +2848,9 @@ test-project
 
     @patch("samcli.local.common.runtime_template.INIT_RUNTIMES")
     def test_must_remove_unsupported_runtime(self, init_runtime_mock):
-        runtime_option_list = ["python3.7", "ruby3.2", "ruby2.7", "java11", "unsupported_runtime"]
-        init_runtime_mock.return_value = ["go1.x", "java11", "python3.7", "ruby3.2", "ruby2.7"]
-        expect_result = ["java11", "python3.7", "ruby3.2", "ruby2.7"]
+        runtime_option_list = ["python3.7", "ruby3.2", "java11", "unsupported_runtime"]
+        init_runtime_mock.return_value = ["go1.x", "java11", "python3.7", "ruby3.2"]
+        expect_result = ["java11", "python3.7", "ruby3.2"]
         actual_result = get_sorted_runtimes(runtime_option_list)
         self.assertEqual(actual_result, expect_result)
 
@@ -3031,7 +3029,7 @@ test-project
     ):
         init_options_from_manifest_mock.return_value = [
             {
-                "directory": "nodejs14.x/cookiecutter-aws-sam-hello-nodejs",
+                "directory": "nodejs20.x/cookiecutter-aws-sam-hello-nodejs",
                 "displayName": "Hello World Example",
                 "dependencyManager": "npm",
                 "appTemplate": "hello-world",
@@ -3051,10 +3049,10 @@ test-project
 
         get_preprocessed_manifest_mock.return_value = {
             "Hello World Example": {
-                "nodejs14.x": {
+                "nodejs20.x": {
                     "Zip": [
                         {
-                            "directory": "nodejs14.x/cookiecutter-aws-sam-hello-nodejs",
+                            "directory": "nodejs20.x/cookiecutter-aws-sam-hello-nodejs",
                             "displayName": "Hello World Example",
                             "dependencyManager": "npm",
                             "appTemplate": "hello-world",
@@ -3118,7 +3116,7 @@ test-project
     ):
         init_options_from_manifest_mock.return_value = [
             {
-                "directory": "nodejs14.x/cookiecutter-aws-sam-hello-nodejs",
+                "directory": "nodejs20.x/cookiecutter-aws-sam-hello-nodejs",
                 "displayName": "Hello World Example",
                 "dependencyManager": "npm",
                 "appTemplate": "hello-world",
@@ -3138,10 +3136,10 @@ test-project
 
         get_preprocessed_manifest_mock.return_value = {
             "Hello World Example": {
-                "nodejs14.x": {
+                "nodejs20.x": {
                     "Zip": [
                         {
-                            "directory": "nodejs14.x/cookiecutter-aws-sam-hello-nodejs",
+                            "directory": "nodejs20.x/cookiecutter-aws-sam-hello-nodejs",
                             "displayName": "Hello World Example",
                             "dependencyManager": "npm",
                             "appTemplate": "hello-world",

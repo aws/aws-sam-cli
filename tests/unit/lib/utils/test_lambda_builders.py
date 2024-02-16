@@ -9,7 +9,7 @@ from samcli.lib.utils import lambda_builders
 class TestPatchRuntime(TestCase):
     @parameterized.expand(
         [
-            ("nodejs14.x", "nodejs14.x"),
+            ("nodejs20.x", "nodejs20.x"),
             ("java8.al2", "java8"),
             ("dotnet6", "dotnet6"),
             ("provided", "provided"),

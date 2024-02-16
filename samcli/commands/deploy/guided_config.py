@@ -1,6 +1,7 @@
 """
 Set of Utilities to deal with reading/writing to configuration file during sam deploy
 """
+
 from typing import Any
 
 import click

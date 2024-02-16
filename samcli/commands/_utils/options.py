@@ -39,10 +39,9 @@ from samcli.local.docker.lambda_image import Runtime
 
 _TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml|json]"
 SUPPORTED_BUILD_IN_SOURCE_WORKFLOWS = [
-    Runtime.nodejs12x.value,
-    Runtime.nodejs14x.value,
     Runtime.nodejs16x.value,
     Runtime.nodejs18x.value,
+    Runtime.nodejs20x.value,
     "Makefile",
     "esbuild",
 ]
@@ -154,6 +153,21 @@ def remote_invoke_boto_parameter_callback(ctx, param, provided_value):
         boto_api_parameters.update(value)
 
     return boto_api_parameters
+
+
+def local_add_host_callback(ctx, param, provided_value):
+    """
+    Create a dictionary of hostnames to IP addresses to add into Docker container's hosts file.
+    :param ctx: Click Context
+    :param param: Param name
+    :param provided_value: Value provided by Click, after being processed by DockerAdditionalHostType.
+    :return: dictionary of hostnames to IP addresses.
+    """
+    extra_hosts = {}
+    for value in provided_value:
+        extra_hosts.update(value)
+
+    return extra_hosts
 
 
 def artifact_callback(ctx, param, provided_value, artifact):
@@ -317,9 +331,11 @@ def template_click_option(include_build=True):
         callback=partial(get_or_default_template_file_name, include_build=include_build),
         show_default=True,
         is_eager=True,
-        help="AWS SAM template which references built artifacts for resources in the template. (if applicable)"
-        if include_build
-        else "AWS SAM template file.",
+        help=(
+            "AWS SAM template which references built artifacts for resources in the template. (if applicable)"
+            if include_build
+            else "AWS SAM template file."
+        ),
     )
 
 
@@ -752,9 +768,9 @@ def hook_name_click_option(force_prepare=True, invalid_coexist_options=None):
     def hook_name_processer_wrapper(f):
         configuration_setup_params = ()
         configuration_setup_attrs = {}
-        configuration_setup_attrs[
-            "help"
-        ] = "This is a hidden click option whose callback function to run the provided hook package."
+        configuration_setup_attrs["help"] = (
+            "This is a hidden click option whose callback function to run the provided hook package."
+        )
         configuration_setup_attrs["is_eager"] = True
         configuration_setup_attrs["expose_value"] = False
         configuration_setup_attrs["hidden"] = True

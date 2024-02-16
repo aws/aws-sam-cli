@@ -1,6 +1,7 @@
 """
 Hash calculation utilities for files and directories.
 """
+
 import hashlib
 import os
 import sys
