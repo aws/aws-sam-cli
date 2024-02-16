@@ -19,6 +19,13 @@ from .start_api_integ_base import StartApiIntegBaseClass, WritableStartApiIntegB
 from ..invoke.layer_utils import LayerUtils
 
 
+# class TestInvalidTempate(StartApiIntegBaseClass):
+#     template_path = "/testdata/start_api/invalid-template.yaml"
+
+#     def test(self):
+#         self.assertIsNotNone(self.start_api_process.poll())
+
+
 @parameterized_class(
     ("template_path",),
     [
