@@ -102,7 +102,7 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
     @parameterized.expand([("3.8", False), ("3.9", False), ("3.10", False), ("3.11", False), ("3.12", False)])
     def test_with_default_requirements(self, runtime, use_container):
         if IS_WINDOWS and not runtime_supported_by_docker(runtime):
-            self.skipTest("python3.12 tests are not supported with current Windows CI configuration")
+            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
         _tag = uuid4().hex
         overrides = {
             "Runtime": runtime,
@@ -217,7 +217,7 @@ class TestBuildCommand_PythonFunctions_ImagesWithSharedCode(BuildIntegBase):
     )
     def test_with_default_requirements(self, runtime, dockerfile, expected):
         if IS_WINDOWS and not runtime_supported_by_docker(runtime):
-            self.skipTest("python3.12 tests are not supported with current Windows CI configuration")
+            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
         _tag = uuid4().hex
         overrides = {
             "Runtime": runtime,
