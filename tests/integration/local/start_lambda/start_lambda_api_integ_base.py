@@ -10,6 +10,7 @@ from pathlib import Path
 
 import docker
 from docker.errors import APIError
+from psutil import NoSuchProcess
 
 from tests.integration.local.common_utils import random_port, InvalidAddressException, wait_for_local_process
 from tests.testing_utils import (
@@ -178,7 +179,10 @@ class StartLambdaIntegBaseClass(TestCase):
     def tearDownClass(cls):
         # After all the tests run, we need to kill the start_lambda process.
         cls.stop_reading_thread = True
-        kill_process(cls.start_lambda_process)
+        try:
+            kill_process(cls.start_lambda_process)
+        except NoSuchProcess:
+            LOG.info("Process has already been terminated")
 
 
 class WatchWarmContainersIntegBaseClass(StartLambdaIntegBaseClass):

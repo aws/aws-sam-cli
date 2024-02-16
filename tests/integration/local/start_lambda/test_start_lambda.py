@@ -1,3 +1,4 @@
+import signal
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from time import time, sleep
@@ -337,6 +338,37 @@ class TestWarmContainers(TestWarmContainersBaseClass):
         response = json.loads(result.get("Payload").read().decode("utf-8"))
         self.assertEqual(response.get("statusCode"), 200)
         self.assertEqual(json.loads(response.get("body")), {"hello": "world"})
+
+
+class TestWarmContainersHandlesSigTermInterrupt(TestWarmContainersBaseClass):
+    template_path = "/testdata/start_api/template-warm-containers.yaml"
+    container_mode = ContainersInitializationMode.EAGER.value
+    mode_env_variable = str(uuid.uuid4())
+    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_can_invoke_lambda_function_successfully(self):
+        result = self.lambda_client.invoke(FunctionName="HelloWorldFunction")
+        self.assertEqual(result.get("StatusCode"), 200)
+
+        response = json.loads(result.get("Payload").read().decode("utf-8"))
+        self.assertEqual(response.get("statusCode"), 200)
+        self.assertEqual(json.loads(response.get("body")), {"hello": "world"})
+
+        initiated_containers = self.count_running_containers()
+        self.assertEqual(initiated_containers, 2)
+
+        service_process = self.start_lambda_process
+        service_process.send_signal(signal.SIGTERM)
+
+        # Sleep for 10 seconds since this is the default time that Docker
+        # allows for a process to handle a SIGTERM before sending a SIGKILL
+        sleep(10)
+
+        remaining_containers = self.count_running_containers()
+        self.assertEqual(remaining_containers, 0)
+        self.assertEqual(service_process.poll(), 0)
 
 
 @parameterized_class(

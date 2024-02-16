@@ -27,6 +27,12 @@ class ContainerFailureError(UserException):
     """
 
 
+class ProcessSigTermException(Exception):
+    """
+    Raises by a SIGTERM interrupt handler. Will unblock the thread and exit the program gracefully
+    """
+
+
 class InvalidRuntimeException(UserException):
     """
     Raised when an invalid runtime is specified for a Lambda Function
