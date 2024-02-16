@@ -101,7 +101,7 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
 
     @parameterized.expand([("3.8", False), ("3.9", False), ("3.10", False), ("3.11", False), ("3.12", False)])
     def test_with_default_requirements(self, runtime, use_container):
-        if IS_WINDOWS and runtime == "python3.12":
+        if IS_WINDOWS and not runtime_supported_by_docker(runtime):
             self.skipTest("python3.12 tests are not supported with current Windows CI configuration")
         _tag = uuid4().hex
         overrides = {
@@ -216,7 +216,7 @@ class TestBuildCommand_PythonFunctions_ImagesWithSharedCode(BuildIntegBase):
         ]
     )
     def test_with_default_requirements(self, runtime, dockerfile, expected):
-        if IS_WINDOWS and runtime == "python3.12":
+        if IS_WINDOWS and not runtime_supported_by_docker(runtime):
             self.skipTest("python3.12 tests are not supported with current Windows CI configuration")
         _tag = uuid4().hex
         overrides = {
@@ -1492,7 +1492,7 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
     }
 
     def test_function_not_found(self):
-        overrides = {"Runtime": "python3.12", "CodeUri": "Python", "Handler": "main.handler"}
+        overrides = {"Runtime": "python3.11", "CodeUri": "Python", "Handler": "main.handler"}
         cmdlist = self.get_command_list(parameter_overrides=overrides, function_identifier="FunctionNotInTemplate")
 
         process_execute = run_command(cmdlist, cwd=self.working_dir)
@@ -1502,10 +1502,10 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
 
     @parameterized.expand(
         [
-            ("python3.12", False, "FunctionOne"),
-            ("python3.12", "use_container", "FunctionOne"),
-            ("python3.12", False, "FunctionTwo"),
-            ("python3.12", "use_container", "FunctionTwo"),
+            ("python3.11", False, "FunctionOne"),
+            ("python3.11", "use_container", "FunctionOne"),
+            ("python3.11", False, "FunctionTwo"),
+            ("python3.11", "use_container", "FunctionTwo"),
         ]
     )
     def test_build_single_function(self, runtime, use_container, function_identifier):
@@ -2191,7 +2191,7 @@ class TestBuildWithDedupImageBuilds(DedupBuildIntegBase):
         overrides = {
             "Function1Handler": "main.first_function_handler",
             "Function2Handler": "main.second_function_handler",
-            "FunctionRuntime": "3.12",
+            "FunctionRuntime": "3.11",
             "DockerFile": "Dockerfile",
             "Tag": f"{random.randint(1,100)}",
         }
@@ -2677,7 +2677,7 @@ class TestBuildWithNestedStacks(NestedBuildIntegBase):
         Build template above and verify that each function call returns as expected
         """
         overrides = {
-            "Runtime": "python3.12",
+            "Runtime": "python3.11",
             "CodeUri": "../Python",  # root stack is one level deeper than the code
             "ChildStackCodeUri": "./Python",  # chidl stack is in the same folder as the code
             "LocalNestedFuncHandler": "main.handler",
@@ -2892,7 +2892,7 @@ class TestBuildWithNestedStacksImage(NestedBuildIntegBase):
         Build template above and verify that each function call returns as expected
         """
         overrides = {
-            "Runtime": "3.12",
+            "Runtime": "3.11",
             "DockerFile": "Dockerfile",
             "Tag": f"{random.randint(1,100)}",
             "LocalNestedFuncHandler": "main.handler",
