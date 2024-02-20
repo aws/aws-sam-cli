@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING
 
 from samcli.commands.exceptions import UserException
 from samcli.commands.local.lib.exceptions import UnsupportedRuntimeArchitectureError
+from samcli.lib.runtimes.base import Architecture, Runtime
 from samcli.lib.utils.packagetype import IMAGE
-from samcli.lib.runtimes.base import Runtime, Architecture
 
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.lib.providers.provider import Function

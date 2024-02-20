@@ -10,12 +10,11 @@ from typing import List
 
 from samcli.lib.runtimes.base import (
     Runtime,
-    DeprecatedRuntime,
-    runtime_dep_template_mapping,
     init_runtimes,
     lambda_images_runtimes_map,
-    sam_runtime_to_schemas_code_lang_mapping,
     provided_runtimes,
+    runtime_dep_template_mapping,
+    sam_runtime_to_schemas_code_lang_mapping,
 )
 
 _init_path = str(pathlib.Path(os.path.dirname(__file__)).parent.parent)

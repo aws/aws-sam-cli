@@ -1,11 +1,8 @@
 import os
-from pathlib import Path
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional, NamedTuple, Tuple
 from enum import Enum, unique
-
-from samcli.lib.build.workflows import CONFIG as WorkflowConfig
-
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
 
 _init_path = Path(os.path.dirname(__file__)).parent.parent
 _templates = _init_path / "lib" / "init" / "templates"
@@ -358,7 +355,7 @@ def lambda_images_runtimes_map(runtimes: List[RuntimeDataMixin]) -> Dict[str, st
     return {r.key: r.lambda_image for r in s}
 
 def sam_runtime_to_schemas_code_lang_mapping(runtimes: List[RuntimeDataMixin]) -> Dict[str, str]:
-    return {r.key: r.family.value.eb_code_binding for r in runtimes if r.family.eb_code_binding}
+    return {r.key: r.family.eb_code_binding for r in runtimes if r.family.eb_code_binding}
 
 def provided_runtimes(runtimes: List[RuntimeDataMixin]) -> List[str]:
     return [r.key for r in runtimes if r.family == Family.PROVIDED and r.is_lambda_enum]
