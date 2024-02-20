@@ -80,9 +80,9 @@ class BuildTerraformApplicationIntegBase(BuildIntegBase):
             command_list_parameters["use_container"] = True
             command_list_parameters["build_image"] = self.docker_tag
             if self.override:
-                command_list_parameters["container_env_var"] = (
-                    "TF_VAR_HELLO_FUNCTION_SRC_CODE=./artifacts/HelloWorldFunction2"
-                )
+                command_list_parameters[
+                    "container_env_var"
+                ] = "TF_VAR_HELLO_FUNCTION_SRC_CODE=./artifacts/HelloWorldFunction2"
 
         environment_variables = os.environ.copy()
         if self.override:

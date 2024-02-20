@@ -1,4 +1,5 @@
 import signal
+from unittest import skipIf
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from time import time, sleep
@@ -14,6 +15,7 @@ from botocore.config import Config
 from botocore.exceptions import ClientError
 
 from samcli.commands.local.cli_common.invoke_context import ContainersInitializationMode
+from tests.testing_utils import IS_WINDOWS
 from .start_lambda_api_integ_base import StartLambdaIntegBaseClass, WatchWarmContainersIntegBaseClass
 
 
@@ -340,6 +342,7 @@ class TestWarmContainers(TestWarmContainersBaseClass):
         self.assertEqual(json.loads(response.get("body")), {"hello": "world"})
 
 
+@skipIf(IS_WINDOWS, "SIGTERM interrupt doesn't exist on Windows")
 class TestWarmContainersHandlesSigTermInterrupt(TestWarmContainersBaseClass):
     template_path = "/testdata/start_api/template-warm-containers.yaml"
     container_mode = ContainersInitializationMode.EAGER.value
