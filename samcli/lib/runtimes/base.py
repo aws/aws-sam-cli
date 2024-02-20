@@ -1,7 +1,8 @@
 import os
 from pathlib import Path
+from dataclasses import dataclass, field
 from typing import List, Dict, Optional, NamedTuple, Tuple
-from enum import Enum, EnumMeta
+from enum import Enum, unique
 
 from samcli.lib.build.workflows import CONFIG as WorkflowConfig
 
@@ -10,79 +11,94 @@ _init_path = Path(os.path.dirname(__file__)).parent.parent
 _templates = _init_path / "lib" / "init" / "templates"
 _lambda_images_templates = _init_path / "lib" / "init" / "image_templates"
 
+@unique
 class Architecture(Enum):
     X86_64 = "x86_64"
     ARM64 = "arm64"
 
-class _Family(NamedTuple):
-    name: str
-    dep_manager: List[Tuple[str, Path]] = [] # (package manager, path to local init template)
+
+@dataclass
+class FamilyDataMixin:
+    key: str
+    dep_manager: List[Tuple[str, Path]] = field(default_factory=list) # (package manager, path to local init template)
     build: bool = True
-    eb_code_binding: Optional[str] = None
-    include_in_runtime_dep_template_mapping: bool = True
+    eb_code_binding: Optional[str] = None # See https://docs.aws.amazon.com/eventbridge/latest/schema-reference/v1-registries-name-registryname-schemas-name-schemaname-language-language-source.html#GetCodeBindingSource for possible values
+    include_in_runtime_dep_template_mapping: bool = field(repr=False, default=True)
 
-class Family(Enum):
-    DOTNET = _Family(
-        name="dotnet",
-        dep_manager=[
-            ("cli-package", _templates / "cookiecutter-aws-sam-hello-dotnet"),
-        ],
+@unique
+class Family(FamilyDataMixin, Enum):
+    DOTNET = (
+        "dotnet",
+        [("cli-package", _templates / "cookiecutter-aws-sam-hello-dotnet")],
+        True,
     )
-
-    GO = _Family(
-        name="go",
-        dep_manager=[
-            ("mod", _templates / "cookiecutter-aws-sam-hello-golang"),
-        ],
-        build=False,
-        eb_code_binding="Go1",
+    GO = (
+        "go",
+        [("mod", _templates / "cookiecutter-aws-sam-hello-golang")],
+        False,
+        "Go1"
     )
-
-    JAVA = _Family(
-        name="java",
-        dep_manager=[
+    JAVA = (
+        "java",
+        [
             ("maven", _templates / "cookiecutter-aws-sam-hello-java-maven"),
             ("gradle", _templates / "cookiecutter-aws-sam-hello-java-gradle"),
-        ],
-        eb_code_binding="Java8",
+        ], 
+        True,
+        "Java8",
+    )
+    NODEJS = (
+        "nodejs",
+        [("npm", _templates / "cookiecutter-aws-sam-hello-nodejs")],
+        True,
+    )
+    PROVIDED = (
+        "provided",
+        [],
+        False,
+        None,
+        False,
+    )
+    PYTHON= (
+        "python",
+        [("pip", _templates / "cookiecutter-aws-sam-hello-python")],
+        True,
+        "Python36",
+    )
+    RUBY = (
+        "ruby",
+        [("bundler", _templates / "cookiecutter-aws-sam-hello-ruby")]
     )
 
-    NODEJS = _Family(
-        name="nodejs",
-        dep_manager=[
-            ("npm", _templates / "cookiecutter-aws-sam-hello-nodejs")
-        ],
-    )
+    # def __ge__(self, other):
+    #     if self.__class__ is other.__class__:
+    #         return self.key >= other.key
+    #     return NotImplemented
 
-    PROVIDED = _Family(
-        name="provided",
-        include_in_runtime_dep_template_mapping=False,
-    )
+    # def __gt__(self, other):
+    #     if self.__class__ is other.__class__:
+    #         return self.key > other.key
+    #     return NotImplemented
 
-    PYTHON = _Family(
-        name="python",
-        dep_manager=[
-            ("pip", _templates / "cookiecutter-aws-sam-hello-python"),
-        ],
-        eb_code_binding="Python36",
-    )
+    # def __le__(self, other):
+    #     if self.__class__ is other.__class__:
+    #         return self.key <= other.key
+    #     return NotImplemented
+        
+    # def __lt__(self, other):
+    #     if self.__class__ is other.__class__:
+    #         return self.key < other.key
+    #     return NotImplemented
 
-    RUBY = _Family(
-        name="ruby",
-        dep_manager=[
-            ("bundler", _templates / "cookiecutter-aws-sam-hello-ruby"),
-        ],
-    )
-
-
-class _Runtime(NamedTuple):
+@dataclass
+class RuntimeDataMixin:
     """
     Definition of a SAM Runtime 
     """
-    name: str
+    key: str
     family: Family
     lambda_image: Optional[str]
-    archs: List[Architecture] = [Architecture.X86_64]
+    archs: List[Architecture] = field(default_factory=list)
     is_lambda_enum: bool = True
     # build_workflow: WorkflowConfig
     # layer_subfolder: str
@@ -125,195 +141,224 @@ class _Runtime(NamedTuple):
         """
         raise NotImplementedError()
 
-class RuntimeEnumBase(Enum):
+class RuntimeEnumBase(RuntimeDataMixin, Enum):
     @classmethod
-    def from_name(cls, name: str) -> "Runtime":
+    def from_str(cls, runtime: str) -> "RuntimeEnumBase":
         for item in cls:
-            if item.value.name == name:
+            if item.key == runtime:
                 return item
-        raise ValueError("Unknown runtime %s", name)
+        raise ValueError("Unknown runtime %s", runtime)
 
+    # def __ge__(self, other):
+    #     if self.__class__ is other.__class__:
+    #         if self.family == other.family:
+    #             return self.key >= other.key
+    #         return self.family >= other.family
+    #     return NotImplemented
 
+    # def __gt__(self, other):
+    #     if self.__class__ is other.__class__:
+    #         if self.family == other.family:
+    #             return self.key > other.key
+    #         return self.family > other.family
+    #     return NotImplemented
+
+    # def __le__(self, other):
+    #     if self.__class__ is other.__class__:
+    #         if self.family == other.family:
+    #             return self.key <= other.key
+    #         return self.family <= other.family
+    #     return NotImplemented
+        
+    # def __lt__(self, other):
+    #     if self.__class__ is other.__class__:
+    #         if self.family == other.family:
+    #             return self.key < other.key
+    #         return self.family < other.family
+    #     return NotImplemented
+
+@unique
 class Runtime(RuntimeEnumBase):
     """
     NOTE: order runtimes from latest to oldest per family
     """
 
-    dotnet6 = _Runtime(
-        name="dotnet6",
-        family=Family.DOTNET,
-        lambda_image="amazon/dotnet6-base",
-        archs=[Architecture.X86_64, Architecture.ARM64],
+    dotnet6 = (
+        "dotnet6",
+        Family.DOTNET,
+        "amazon/dotnet6-base",
+        [Architecture.X86_64, Architecture.ARM64],
     )
 
-    go1x = _Runtime(
-        name="go1.x",
-        family=Family.GO,
-        lambda_image="amazon/go1.x-base",
-        archs=[Architecture.X86_64],
+    go1x = (
+        "go1.x",
+        Family.GO,
+        "amazon/go1.x-base",
+        [Architecture.X86_64],
     )
 
-    java21 = _Runtime(
-        name="java21",
-        family=Family.JAVA,
-        lambda_image="amazon/java21-base",
-        archs=[Architecture.X86_64, Architecture.ARM64],
+    java21 = (
+        "java21",
+        Family.JAVA,
+        "amazon/java21-base",
+        [Architecture.X86_64, Architecture.ARM64],
     )
-    java17 = _Runtime(
-        name="java17",
-        family=Family.JAVA,
-        lambda_image="amazon/java17-base",
-        archs=[Architecture.X86_64, Architecture.ARM64],
+    java17 = (
+        "java17",
+        Family.JAVA,
+        "amazon/java17-base",
+        [Architecture.X86_64, Architecture.ARM64],
     )
-    java11 = _Runtime(
-        name="java11",
-        family=Family.JAVA,
-        lambda_image="amazon/java11-base",
-        archs=[Architecture.X86_64, Architecture.ARM64],
+    java11 = (
+        "java11",
+        Family.JAVA,
+        "amazon/java11-base",
+        [Architecture.X86_64, Architecture.ARM64],
     )
-    java8al2 = _Runtime(
-        name="java8.al2",
-        family=Family.JAVA,
-        lambda_image="amazon/java8.al2-base",
-        archs=[Architecture.X86_64, Architecture.ARM64],
+    java8al2 = (
+        "java8.al2",
+        Family.JAVA,
+        "amazon/java8.al2-base",
+        [Architecture.X86_64, Architecture.ARM64],
     )
-    java8 = _Runtime(
-        name="java8",
-        family=Family.JAVA,
-        lambda_image="amazon/java8-base",
-        archs=[Architecture.X86_64],
-    )
-
-    nodejs20x = _Runtime(
-        name="nodejs20.x",
-        family=Family.NODEJS,
-        lambda_image="amazon/nodejs20.x-base",
-        archs=[Architecture.X86_64, Architecture.ARM64],
-    )
-    nodejs18x = _Runtime(
-        name="nodejs18.x",
-        family=Family.NODEJS,
-        lambda_image="amazon/nodejs18.x-base",
-        archs=[Architecture.X86_64, Architecture.ARM64],
-    )
-    nodejs16x = _Runtime(
-        name="nodejs16.x",
-        family=Family.NODEJS,
-        lambda_image="amazon/nodejs16.x-base",
-        archs=[Architecture.X86_64, Architecture.ARM64],
+    java8 = (
+        "java8",
+        Family.JAVA,
+        "amazon/java8-base",
+        [Architecture.X86_64],
     )
 
-    provided_al2023 = _Runtime(
-        name="provided.al2023",
-        family=Family.PROVIDED,
-        lambda_image=None,
-        archs=[Architecture.X86_64, Architecture.ARM64],
+    nodejs20x = (
+        "nodejs20.x",
+        Family.NODEJS,
+        "amazon/nodejs20.x-base",
+        [Architecture.X86_64, Architecture.ARM64],
     )
-    provided_al2 = _Runtime(
-        name="provided.al2",
-        family=Family.PROVIDED,
-        lambda_image=None,
-        archs=[Architecture.X86_64, Architecture.ARM64],
+    nodejs18x = (
+        "nodejs18.x",
+        Family.NODEJS,
+        "amazon/nodejs18.x-base",
+        [Architecture.X86_64, Architecture.ARM64],
     )
-    provided = _Runtime(
-        name="provided",
-        family=Family.PROVIDED,
-        lambda_image=None,
-        archs=[Architecture.X86_64],
+    nodejs16x = (
+        "nodejs16.x",
+        Family.NODEJS,
+        "amazon/nodejs16.x-base",
+        [Architecture.X86_64, Architecture.ARM64],
     )
-    go_provided_al2023 = _Runtime(
-        name="go (provided.al2023)",
-        family=Family.PROVIDED,
-        lambda_image="amazon/go-provided.al2023-base",
-        archs=[Architecture.X86_64, Architecture.ARM64],
-        is_lambda_enum=False,
+
+    provided_al2023 = (
+        "provided.al2023",
+        Family.PROVIDED,
+        None,
+        [Architecture.X86_64, Architecture.ARM64],
+    )
+    provided_al2 = (
+        "provided.al2",
+        Family.PROVIDED,
+        None,
+        [Architecture.X86_64, Architecture.ARM64],
+    )
+    provided = (
+        "provided",
+        Family.PROVIDED,
+        None,
+        [Architecture.X86_64],
+    )
+    go_provided_al2023 = (
+        "go (provided.al2023)",
+        Family.PROVIDED,
+        "amazon/go-provided.al2023-base",
+        [Architecture.X86_64, Architecture.ARM64],
+        False,
         
     )
-    go_provided_al2 = _Runtime(
-        name="go (provided.al2)",
-        family=Family.PROVIDED,
-        lambda_image="amazon/go-provided.al2-base",
-        archs=[Architecture.X86_64, Architecture.ARM64],
-        is_lambda_enum=False,
+    go_provided_al2 = (
+        "go (provided.al2)",
+        Family.PROVIDED,
+        "amazon/go-provided.al2-base",
+        [Architecture.X86_64, Architecture.ARM64],
+        False,
     )
 
-    python312 = _Runtime(
-        name="python3.12",
-        family=Family.PYTHON,
-        lambda_image="amazon/python3.12-base",
-        archs=[Architecture.X86_64, Architecture.ARM64],
+    python312 = (
+        "python3.12",
+        Family.PYTHON,
+        "amazon/python3.12-base",
+        [Architecture.X86_64, Architecture.ARM64],
     )
-    python311 = _Runtime(
-        name="python3.11",
-        family=Family.PYTHON,
-        lambda_image="amazon/python3.11-base",
-        archs=[Architecture.X86_64, Architecture.ARM64],
+    python311 = (
+        "python3.11",
+        Family.PYTHON,
+        "amazon/python3.11-base",
+        [Architecture.X86_64, Architecture.ARM64],
     )
-    python310 = _Runtime(
-        name="python3.10",
-        family=Family.PYTHON,
-        lambda_image="amazon/python3.10-base",
-        archs=[Architecture.X86_64, Architecture.ARM64],
+    python310 = (
+        "python3.10",
+        Family.PYTHON,
+        "amazon/python3.10-base",
+        [Architecture.X86_64, Architecture.ARM64],
     )
-    python39 = _Runtime(
-        name="python3.9",
-        family=Family.PYTHON,
-        lambda_image="amazon/python3.9-base",
-        archs=[Architecture.X86_64, Architecture.ARM64],
+    python39 = (
+        "python3.9",
+        Family.PYTHON,
+        "amazon/python3.9-base",
+        [Architecture.X86_64, Architecture.ARM64],
     )
-    python38 = _Runtime(
-        name="python3.8",
-        family=Family.PYTHON,
-        lambda_image="amazon/python3.8-base",
-        archs=[Architecture.X86_64, Architecture.ARM64],
+    python38 = (
+        "python3.8",
+        Family.PYTHON,
+        "amazon/python3.8-base",
+        [Architecture.X86_64, Architecture.ARM64],
     )
-    python37 = _Runtime(
-        name="python3.7",
-        family=Family.PYTHON,
-        lambda_image="amazon/python3.7-base",
-        archs=[Architecture.X86_64],
-    )
-
-    ruby32 = _Runtime(
-        name="ruby3.2",
-        family=Family.RUBY,
-        lambda_image="amazon/ruby3.2-base",
-        archs=[Architecture.X86_64, Architecture.ARM64],
+    python37 = (
+        "python3.7",
+        Family.PYTHON,
+        "amazon/python3.7-base",
+        [Architecture.X86_64],
     )
 
+    ruby32 = (
+        "ruby3.2",
+        Family.RUBY,
+        "amazon/ruby3.2-base",
+        [Architecture.X86_64, Architecture.ARM64],
+    )
 
+
+@unique
 class DeprecatedRuntime(RuntimeEnumBase):
     pass
     
 
-def runtime_dep_template_mapping(runtimes: List[_Runtime]) -> Dict:
+def runtime_dep_template_mapping(runtimes: List[RuntimeDataMixin]) -> Dict:
     ret = {}
     for runtime in runtimes:
-        family = runtime.family.value
+        family = runtime.family
         if not family.include_in_runtime_dep_template_mapping:
             continue
-        if family.name not in ret:
-            ret[family.name] = []
+        if family.key not in ret:
+            ret[family.key] = []
             for dep_manager, init_loc in family.dep_manager:
-                ret[family.name].append({
+                ret[family.key].append({
                     "runtimes": [],
                     "dependency_manager": dep_manager,
                     "init_location": str(init_loc.absolute()),
                     "build": family.build,
                 })
-        for item in ret[family.name]:
-            item["runtimes"].append(runtime.name)
+        for item in ret[family.key]:
+            item["runtimes"].append(runtime.key)
     return ret
 
-def init_runtimes(runtimes: List[_Runtime]) -> List[str]:
-    return [r.name for r in runtimes if r.family.value.include_in_runtime_dep_template_mapping]
+def init_runtimes(runtimes: List[RuntimeDataMixin]) -> List[str]:
+    return [r.key for r in runtimes if r.is_lambda_enum]
 
-def lambda_images_runtimes_map(runtimes: List[_Runtime]) -> Dict[str, str]:
-    s = sorted([r for r in runtimes if r.lambda_image], key=lambda r: r.name)
-    return {r.name: r.lambda_image for r in s}
+def lambda_images_runtimes_map(runtimes: List[RuntimeDataMixin]) -> Dict[str, str]:
+    s = sorted([r for r in runtimes if r.lambda_image], key=lambda r: r.key)
+    return {r.key: r.lambda_image for r in s}
 
-def sam_runtime_to_schemas_code_lang_mapping(runtimes: List[_Runtime]) -> Dict[str, str]:
-    return {r.name: r.family.value.eb_code_binding for r in runtimes if r.family.value.eb_code_binding}
+def sam_runtime_to_schemas_code_lang_mapping(runtimes: List[RuntimeDataMixin]) -> Dict[str, str]:
+    return {r.key: r.family.value.eb_code_binding for r in runtimes if r.family.eb_code_binding}
 
-def provided_runtimes(runtimes: List[_Runtime]) -> List[str]:
-    return [r.name for r in runtimes if r.family == Family.PROVIDED and r.is_lambda_enum]
+def provided_runtimes(runtimes: List[RuntimeDataMixin]) -> List[str]:
+    return [r.key for r in runtimes if r.family == Family.PROVIDED and r.is_lambda_enum]

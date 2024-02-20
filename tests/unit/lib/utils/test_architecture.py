@@ -5,13 +5,12 @@ from parameterized import parameterized
 
 from samcli.commands.local.lib.exceptions import UnsupportedRuntimeArchitectureError
 from samcli.lib.utils.architecture import (
-    ARM64,
     InvalidArchitecture,
     validate_architecture,
-    X86_64,
     validate_architecture_runtime,
     has_runtime_multi_arch_image,
 )
+from samcli.lib.runtimes.base import Architecture
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 
 
@@ -24,8 +23,8 @@ class TestArchitecture(TestCase):
         """
         Passing values
         """
-        validate_architecture(ARM64)
-        validate_architecture(X86_64)
+        validate_architecture(Architecture.ARM64.value)
+        validate_architecture(Architecture.X86_64.value)
 
     @parameterized.expand([(None,), (""), ("unknown")])
     def test_validate_architecture_errors(self, value):
@@ -42,12 +41,12 @@ class TestArchitecture(TestCase):
 
     @parameterized.expand(
         [
-            ("nodejs20.x", X86_64, ZIP),
-            ("java8.al2", ARM64, ZIP),
-            ("dotnet6", ARM64, ZIP),
-            (None, X86_64, IMAGE),
-            (None, ARM64, IMAGE),
-            (None, X86_64, IMAGE),
+            ("nodejs20.x", Architecture.X86_64.value, ZIP),
+            ("java8.al2", Architecture.ARM64.value, ZIP),
+            ("dotnet6", Architecture.ARM64.value, ZIP),
+            (None, Architecture.X86_64.value, IMAGE),
+            (None, Architecture.ARM64.value, IMAGE),
+            (None, Architecture.X86_64.value, IMAGE),
         ]
     )
     def test_must_pass_for_support_runtime_architecture(self, runtime, arch, packagetype):
@@ -58,10 +57,10 @@ class TestArchitecture(TestCase):
 
     @parameterized.expand(
         [
-            ("python3.7", ARM64),
-            ("java8", ARM64),
-            ("go1.x", ARM64),
-            ("provided", ARM64),
+            ("python3.7", Architecture.ARM64.value),
+            ("java8", Architecture.ARM64.value),
+            ("go1.x", Architecture.ARM64.value),
+            ("provided", Architecture.ARM64.value),
         ]
     )
     def test_must_raise_for_unsupported_runtime_architecture(self, runtime, arch):

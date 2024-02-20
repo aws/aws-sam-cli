@@ -2,7 +2,7 @@
 Architecture tools
 """
 import logging
-from typing import TYPE_CHECKING, Dict, List, cast
+from typing import TYPE_CHECKING
 
 from samcli.commands.exceptions import UserException
 from samcli.commands.local.lib.exceptions import UnsupportedRuntimeArchitectureError
@@ -33,7 +33,7 @@ def validate_architecture_runtime(function: "Function") -> None:
 
     runtime_architectures = []
     try:
-        runtime = Runtime.from_name(function.runtime)
+        runtime = Runtime.from_str(function.runtime)
         runtime_architectures.extend(runtime.value.archs_as_list_of_str())
     except ValueError:
         LOG.debug("Unrecognized runtime %s", function.runtime)
@@ -46,7 +46,7 @@ def validate_architecture_runtime(function: "Function") -> None:
 
 def has_runtime_multi_arch_image(runtime: str) -> bool:
     try:
-        r = Runtime.from_name(runtime)
+        r = Runtime.from_str(runtime)
         return len(r.value.archs) > 1
     except ValueError:
         LOG.debug("Unrecognized runtime %s", runtime)
