@@ -38,8 +38,7 @@ def get_boto_config_with_user_agent(**kwargs) -> Config:
 
 # Type definition of following boto providers, which is equal to Callable[[str], Any]
 class BotoProviderType(Protocol):
-    def __call__(self, service_name: str) -> Any:
-        ...  # pragma: no cover
+    def __call__(self, service_name: str) -> Any: ...  # pragma: no cover
 
 
 def get_boto_client_provider_from_session_with_config(session: Session, **kwargs) -> BotoProviderType:
