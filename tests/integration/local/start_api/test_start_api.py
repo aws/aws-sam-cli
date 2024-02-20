@@ -151,11 +151,12 @@ class TestServiceHTTP10(StartApiIntegBaseClass):
 
 
 @parameterized_class(
-    ("template_path", "container_mode"),
+    ("template_path", "container_mode", "endpoint"),
     [
-        ("/testdata/start_api/template.yaml", "LAZY"),
-        ("/testdata/start_api/template.yaml", "EAGER"),
-        ("/testdata/start_api/cdk/template_cdk.yaml", "LAZY"),
+        ("/testdata/start_api/template.yaml", "LAZY", "/sleepfortenseconds/function1"),
+        ("/testdata/start_api/template.yaml", "LAZY", "/sleepfortensecondszipped"),
+        ("/testdata/start_api/template.yaml", "EAGER", "/sleepfortenseconds/function1"),
+        ("/testdata/start_api/cdk/template_cdk.yaml", "LAZY", "/sleepfortenseconds/function1"),
     ],
 )
 class TestParallelRequests(StartApiIntegBaseClass):
@@ -178,7 +179,7 @@ class TestParallelRequests(StartApiIntegBaseClass):
         start_time = time()
         with ThreadPoolExecutor(number_of_requests) as thread_pool:
             futures = [
-                thread_pool.submit(requests.get, self.url + "/sleepfortenseconds/function1", timeout=300)
+                thread_pool.submit(requests.get, self.url + self.endpoint, timeout=300)
                 for _ in range(0, number_of_requests)
             ]
             results = [r.result() for r in as_completed(futures)]
