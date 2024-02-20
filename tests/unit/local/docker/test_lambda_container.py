@@ -9,6 +9,7 @@ from parameterized import parameterized, param
 
 from samcli.commands.local.lib.debug_context import DebugContext
 from samcli.lib.utils.packagetype import IMAGE, ZIP
+from samcli.local.docker.exceptions import InvalidRuntimeException
 from samcli.local.docker.lambda_container import LambdaContainer, Runtime, RIE_LOG_LEVEL_ENV_VAR
 from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported
 from samcli.local.docker.lambda_image import RAPID_IMAGE_TAG_PREFIX
@@ -432,7 +433,7 @@ class TestLambdaContainer_init(TestCase):
 
         image_builder_mock = Mock()
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(InvalidRuntimeException) as context:
             LambdaContainer(
                 runtime=runtime,
                 imageuri=self.imageuri,
@@ -445,7 +446,10 @@ class TestLambdaContainer_init(TestCase):
                 architecture="x86_64",
             )
 
-        self.assertEqual(str(context.exception), "Unsupported Lambda runtime foo")
+        self.assertEqual(
+            str(context.exception),
+            "Unsupported Lambda runtime: foo. For a list of supported runtimes, please visit https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html",
+        )
 
     @parameterized.expand(
         [
