@@ -1,6 +1,7 @@
 import base64
 import shutil
 import signal
+from unittest import skipIf
 import uuid
 import random
 from pathlib import Path
@@ -17,6 +18,7 @@ from parameterized import parameterized_class, parameterized
 
 from samcli.commands.local.cli_common.invoke_context import ContainersInitializationMode
 from samcli.local.apigw.route import Route
+from tests.testing_utils import IS_WINDOWS
 from .start_api_integ_base import StartApiIntegBaseClass, WritableStartApiIntegBaseClass
 from ..invoke.layer_utils import LayerUtils
 
@@ -2161,6 +2163,7 @@ class TestWarmContainers(TestWarmContainersBaseClass):
         self.assertEqual(response.json(), {"hello": "world"})
 
 
+@skipIf(IS_WINDOWS, "SIGTERM interrupt doesn't exist on Windows")
 class TestWarmContainersHandlesSigTerm(TestWarmContainersBaseClass):
     template_path = "/testdata/start_api/template-warm-containers.yaml"
     container_mode = ContainersInitializationMode.EAGER.value
