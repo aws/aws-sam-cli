@@ -32,6 +32,7 @@ SUPPORTED_RUNTIMES: Dict[str, List[str]] = {
     "java21": [ARM64, X86_64],
     "go1.x": [X86_64],
     "dotnet6": [ARM64, X86_64],
+    "dotnet8": [ARM64, X86_64],
     "provided": [X86_64],
     "provided.al2": [ARM64, X86_64],
     "provided.al2023": [ARM64, X86_64],

@@ -107,6 +107,10 @@ class LambdaDebugSettings:
                 entry + ["/var/runtime/bootstrap"] + debug_args_list,
                 container_env_vars={"_AWS_LAMBDA_DOTNET_DEBUGGING": "1", **_container_env_vars},
             ),
+            Runtime.dotnet8.value: lambda: DebugSettings(
+                entry + ["/var/runtime/bootstrap"] + debug_args_list,
+                container_env_vars={"_AWS_LAMBDA_DOTNET_DEBUGGING": "1", **_container_env_vars},
+            ),
             Runtime.go1x.value: lambda: DebugSettings(
                 entry,
                 container_env_vars={
