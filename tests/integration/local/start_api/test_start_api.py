@@ -1,10 +1,12 @@
 import base64
 import shutil
+import signal
 import uuid
 import random
 from pathlib import Path
 from typing import Dict
 
+import docker.errors
 import requests
 from http.client import HTTPConnection
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -149,11 +151,12 @@ class TestServiceHTTP10(StartApiIntegBaseClass):
 
 
 @parameterized_class(
-    ("template_path", "container_mode"),
+    ("template_path", "container_mode", "endpoint"),
     [
-        ("/testdata/start_api/template.yaml", "LAZY"),
-        ("/testdata/start_api/template.yaml", "EAGER"),
-        ("/testdata/start_api/cdk/template_cdk.yaml", "LAZY"),
+        ("/testdata/start_api/template.yaml", "LAZY", "/sleepfortenseconds/function1"),
+        ("/testdata/start_api/template.yaml", "LAZY", "/sleepfortensecondszipped"),
+        ("/testdata/start_api/template.yaml", "EAGER", "/sleepfortenseconds/function1"),
+        ("/testdata/start_api/cdk/template_cdk.yaml", "LAZY", "/sleepfortenseconds/function1"),
     ],
 )
 class TestParallelRequests(StartApiIntegBaseClass):
@@ -176,7 +179,7 @@ class TestParallelRequests(StartApiIntegBaseClass):
         start_time = time()
         with ThreadPoolExecutor(number_of_requests) as thread_pool:
             futures = [
-                thread_pool.submit(requests.get, self.url + "/sleepfortenseconds/function1", timeout=300)
+                thread_pool.submit(requests.get, self.url + self.endpoint, timeout=300)
                 for _ in range(0, number_of_requests)
             ]
             results = [r.result() for r in as_completed(futures)]
@@ -2156,6 +2159,34 @@ class TestWarmContainers(TestWarmContainersBaseClass):
         response = requests.post(self.url + "/id", timeout=300)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
+
+
+class TestWarmContainersHandlesSigTerm(TestWarmContainersBaseClass):
+    template_path = "/testdata/start_api/template-warm-containers.yaml"
+    container_mode = ContainersInitializationMode.EAGER.value
+    mode_env_variable = str(uuid.uuid4())
+    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_can_invoke_lambda_function_successfully(self):
+        response = requests.post(self.url + "/id", timeout=300)
+        initiated_containers = self.count_running_containers()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+        self.assertEqual(initiated_containers, 2)
+
+        service_process = self.start_api_process
+        service_process.send_signal(signal.SIGTERM)
+
+        # Sleep for 10 seconds since this is the default time that Docker
+        # allows for a process to handle a SIGTERM before sending a SIGKILL
+        sleep(10)
+
+        remaining_containers = self.count_running_containers()
+        self.assertEqual(remaining_containers, 0)
+        self.assertEqual(service_process.poll(), 0)
 
 
 @parameterized_class(
