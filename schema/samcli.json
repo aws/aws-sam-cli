@@ -67,7 +67,6 @@
                     "python3.10",
                     "python3.11",
                     "python3.12",
-                    "python3.7",
                     "python3.8",
                     "python3.9",
                     "ruby3.2"
@@ -103,7 +102,6 @@
                     "amazon/python3.10-base",
                     "amazon/python3.11-base",
                     "amazon/python3.12-base",
-                    "amazon/python3.7-base",
                     "amazon/python3.8-base",
                     "amazon/python3.9-base",
                     "amazon/ruby3.2-base"

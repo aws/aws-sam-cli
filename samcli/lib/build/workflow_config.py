@@ -85,7 +85,6 @@ def get_selector(
 
 def get_layer_subfolder(build_workflow: str) -> str:
     subfolders_by_runtime = {
-        "python3.7": "python",
         "python3.8": "python",
         "python3.9": "python",
         "python3.10": "python",
@@ -153,7 +152,6 @@ def get_workflow_config(
     }
 
     selectors_by_runtime = {
-        "python3.7": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
         "python3.8": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
         "python3.9": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
         "python3.10": BasicWorkflowSelector(PYTHON_PIP_CONFIG),

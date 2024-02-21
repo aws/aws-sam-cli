@@ -36,7 +36,6 @@ class Runtime(Enum):
     nodejs16x = "nodejs16.x"
     nodejs18x = "nodejs18.x"
     nodejs20x = "nodejs20.x"
-    python37 = "python3.7"
     python38 = "python3.8"
     python39 = "python3.9"
     python310 = "python3.10"
@@ -80,7 +79,7 @@ class Runtime(Enum):
         Returns
         -------
         str
-            Image name and tag for the runtime's base image, like `python:3.7` or `provided:al2`
+            Image name and tag for the runtime's base image, like `python:3.12` or `provided:al2`
         """
         runtime_image_tag = ""
         if runtime == cls.provided.value:
@@ -167,7 +166,7 @@ class LambdaImage:
             if self.invoke_images:
                 base_image = self.invoke_images.get(function_name, self.invoke_images.get(None))
             if not base_image:
-                # Gets the ECR image format like `python:3.7` or `nodejs:16-x86_64`
+                # Gets the ECR image format like `python:3.12` or `nodejs:16-x86_64`
                 runtime_only_number = re.split("[:-]", runtime_image_tag)[1]
                 tag_prefix = f"{runtime_only_number}-"
                 base_image = f"{self._INVOKE_REPO_PREFIX}/{runtime_image_tag}"
@@ -263,7 +262,7 @@ class LambdaImage:
             List of the layers
 
         runtime_image_tag str
-            Runtime version format to generate image name and tag (including architecture, e.g. "python:3.7-x86_64")
+            Runtime version format to generate image name and tag (including architecture, e.g. "python:3.12-x86_64")
 
         Returns
         -------

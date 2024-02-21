@@ -48,7 +48,7 @@ Resources:
       Description: Layer one
       ContentUri: !Ref LayerContentUri
       CompatibleRuntimes:
-        - python3.7
+        - python3.11
     Metadata:
       BuildMethod: !Ref LayerBuildMethod
 
@@ -58,7 +58,7 @@ Resources:
       Description: Lambda Layer one
       Content: !Ref LayerContentUri
       CompatibleRuntimes:
-        - python3.7
+        - python3.11
     Metadata:
       BuildMethod: !Ref LayerBuildMethod
 
@@ -68,7 +68,7 @@ Resources:
       Description: Layer two
       ContentUri: !Ref LayerContentUri
       CompatibleRuntimes:
-        - python3.7
+        - python3.11
 
   LayerWithMakefile:
     Type: AWS::Serverless::LayerVersion
@@ -76,7 +76,7 @@ Resources:
       Description: Layer three
       ContentUri: !Ref LayerMakeContentUri
       CompatibleRuntimes:
-        - python3.7
+        - python3.11
     Metadata:
       BuildMethod: !Ref LayerBuildMethod
 
