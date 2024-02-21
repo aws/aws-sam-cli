@@ -2,11 +2,12 @@ import os
 from dataclasses import dataclass, field
 from enum import Enum, unique
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, cast
 
 _init_path = Path(os.path.dirname(__file__)).parent.parent
 _templates = _init_path / "lib" / "init" / "templates"
 _lambda_images_templates = _init_path / "lib" / "init" / "image_templates"
+
 
 @unique
 class Architecture(Enum):
@@ -17,10 +18,11 @@ class Architecture(Enum):
 @dataclass
 class FamilyDataMixin:
     key: str
-    dep_manager: List[Tuple[str, Path]] = field(default_factory=list) # (package manager, path to local init template)
+    dep_manager: List[Tuple[str, Path]] = field(default_factory=list)  # (package manager, path to local init template)
     build: bool = True
-    eb_code_binding: Optional[str] = None # See https://docs.aws.amazon.com/eventbridge/latest/schema-reference/v1-registries-name-registryname-schemas-name-schemaname-language-language-source.html#GetCodeBindingSource for possible values
+    eb_code_binding: Optional[str] = None  # possible values are "Java8", "Python36", "Go1", "TypeScript3"
     include_in_runtime_dep_template_mapping: bool = field(repr=False, default=True)
+
 
 @unique
 class Family(FamilyDataMixin, Enum):
@@ -29,18 +31,13 @@ class Family(FamilyDataMixin, Enum):
         [("cli-package", _templates / "cookiecutter-aws-sam-hello-dotnet")],
         True,
     )
-    GO = (
-        "go",
-        [("mod", _templates / "cookiecutter-aws-sam-hello-golang")],
-        False,
-        "Go1"
-    )
+    GO = ("go", [("mod", _templates / "cookiecutter-aws-sam-hello-golang")], False, "Go1")
     JAVA = (
         "java",
         [
             ("maven", _templates / "cookiecutter-aws-sam-hello-java-maven"),
             ("gradle", _templates / "cookiecutter-aws-sam-hello-java-gradle"),
-        ], 
+        ],
         True,
         "Java8",
     )
@@ -56,16 +53,13 @@ class Family(FamilyDataMixin, Enum):
         None,
         False,
     )
-    PYTHON= (
+    PYTHON = (
         "python",
         [("pip", _templates / "cookiecutter-aws-sam-hello-python")],
         True,
         "Python36",
     )
-    RUBY = (
-        "ruby",
-        [("bundler", _templates / "cookiecutter-aws-sam-hello-ruby")]
-    )
+    RUBY = ("ruby", [("bundler", _templates / "cookiecutter-aws-sam-hello-ruby")])
 
     # def __ge__(self, other):
     #     if self.__class__ is other.__class__:
@@ -81,17 +75,19 @@ class Family(FamilyDataMixin, Enum):
     #     if self.__class__ is other.__class__:
     #         return self.key <= other.key
     #     return NotImplemented
-        
+
     # def __lt__(self, other):
     #     if self.__class__ is other.__class__:
     #         return self.key < other.key
     #     return NotImplemented
 
+
 @dataclass
 class RuntimeDataMixin:
     """
-    Definition of a SAM Runtime 
+    Definition of a SAM Runtime
     """
+
     key: str
     family: Family
     lambda_image: Optional[str]
@@ -138,6 +134,7 @@ class RuntimeDataMixin:
         """
         raise NotImplementedError()
 
+
 class RuntimeEnumBase(RuntimeDataMixin, Enum):
     @classmethod
     def from_str(cls, runtime: str) -> "RuntimeEnumBase":
@@ -166,13 +163,14 @@ class RuntimeEnumBase(RuntimeDataMixin, Enum):
     #             return self.key <= other.key
     #         return self.family <= other.family
     #     return NotImplemented
-        
+
     # def __lt__(self, other):
     #     if self.__class__ is other.__class__:
     #         if self.family == other.family:
     #             return self.key < other.key
     #         return self.family < other.family
     #     return NotImplemented
+
 
 @unique
 class Runtime(RuntimeEnumBase):
@@ -268,7 +266,6 @@ class Runtime(RuntimeEnumBase):
         "amazon/go-provided.al2023-base",
         [Architecture.X86_64, Architecture.ARM64],
         False,
-        
     )
     go_provided_al2 = (
         "go (provided.al2)",
@@ -326,10 +323,10 @@ class Runtime(RuntimeEnumBase):
 @unique
 class DeprecatedRuntime(RuntimeEnumBase):
     pass
-    
 
-def runtime_dep_template_mapping(runtimes: List[RuntimeDataMixin]) -> Dict:
-    ret = {}
+
+def runtime_dep_template_mapping(runtimes: List[RuntimeDataMixin]) -> dict:
+    ret = dict()
     for runtime in runtimes:
         family = runtime.family
         if not family.include_in_runtime_dep_template_mapping:
@@ -337,25 +334,31 @@ def runtime_dep_template_mapping(runtimes: List[RuntimeDataMixin]) -> Dict:
         if family.key not in ret:
             ret[family.key] = []
             for dep_manager, init_loc in family.dep_manager:
-                ret[family.key].append({
-                    "runtimes": [],
-                    "dependency_manager": dep_manager,
-                    "init_location": str(init_loc.absolute()),
-                    "build": family.build,
-                })
+                ret[family.key].append(
+                    {
+                        "runtimes": [],
+                        "dependency_manager": dep_manager,
+                        "init_location": str(init_loc.absolute()),
+                        "build": family.build,
+                    }
+                )
         for item in ret[family.key]:
             item["runtimes"].append(runtime.key)
     return ret
 
+
 def init_runtimes(runtimes: List[RuntimeDataMixin]) -> List[str]:
     return [r.key for r in runtimes if r.is_lambda_enum]
 
+
 def lambda_images_runtimes_map(runtimes: List[RuntimeDataMixin]) -> Dict[str, str]:
     s = sorted([r for r in runtimes if r.lambda_image], key=lambda r: r.key)
-    return {r.key: r.lambda_image for r in s}
+    return {r.key: cast(str, r.lambda_image) for r in s}
+
 
 def sam_runtime_to_schemas_code_lang_mapping(runtimes: List[RuntimeDataMixin]) -> Dict[str, str]:
     return {r.key: r.family.eb_code_binding for r in runtimes if r.family.eb_code_binding}
+
 
 def provided_runtimes(runtimes: List[RuntimeDataMixin]) -> List[str]:
     return [r.key for r in runtimes if r.family == Family.PROVIDED and r.is_lambda_enum]

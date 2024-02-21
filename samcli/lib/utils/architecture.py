@@ -1,6 +1,7 @@
 """
 Architecture tools
 """
+
 import logging
 from typing import TYPE_CHECKING
 
@@ -13,6 +14,9 @@ if TYPE_CHECKING:  # pragma: no cover
     from samcli.lib.providers.provider import Function
 
 LOG = logging.getLogger(__name__)
+X86_64 = Architecture.X86_64.value
+ARM64 = Architecture.ARM64.value
+
 
 def validate_architecture_runtime(function: "Function") -> None:
     """
@@ -77,4 +81,7 @@ def validate_architecture(architecture: str) -> None:
         Architecture(architecture)
         return
     except ValueError:
-        raise InvalidArchitecture(f"Architecture '{architecture}' is invalid. Valid values are {Architecture.ARM64.value} or {Architecture.X86_64.value}")
+        raise InvalidArchitecture(
+            f"Architecture '{architecture}' is invalid. "
+            f"Valid values are {Architecture.ARM64.value} or {Architecture.X86_64.value}"
+        )
