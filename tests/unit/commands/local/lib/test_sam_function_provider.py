@@ -2476,7 +2476,7 @@ class TestSamFunctionProvider_search_layer(TestCase):
                     "LayerName": "SamLayer",
                     "Description": "Sam",
                     "ContentUri": "layer/",
-                    "CompatibleRuntimes": ["python3.7"],
+                    "CompatibleRuntimes": ["python3.12"],
                 },
             }
         },

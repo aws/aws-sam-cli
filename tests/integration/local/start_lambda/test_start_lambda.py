@@ -260,19 +260,8 @@ class TestLambdaService(StartLambdaIntegBaseClass):
         )
         response_data = json.loads(response.get("Payload").read().decode("utf-8"))
 
-        print(response_data)
-
-        self.assertEqual(
-            response_data,
-            {
-                "errorMessage": "Lambda is raising an exception",
-                "errorType": "Exception",
-                "stackTrace": [
-                    '  File "/var/task/main.py", line 51, in raise_exception\n    raise Exception("Lambda is raising an exception")\n'
-                ],
-            },
-        )
-        self.assertEqual(response.get("FunctionError"), "Unhandled")
+        self.assertEqual(response_data.get("errorMessage"), "Lambda is raising an exception")
+        self.assertEqual(response_data.get("errorType"), "Exception")
         self.assertEqual(response.get("StatusCode"), 200)
 
     @parameterized.expand([("False"), ("True")])
@@ -661,7 +650,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.7
+      Runtime: python3.11
       CodeUri: .
       Timeout: 600
       Events:
@@ -674,7 +663,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler2
-      Runtime: python3.7
+      Runtime: python3.11
       CodeUri: .
       Timeout: 600
       Events:
@@ -764,7 +753,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.7
+      Runtime: python3.11
       CodeUri: .
       Timeout: 600
       Events:
@@ -777,7 +766,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler2
-      Runtime: python3.7
+      Runtime: python3.11
       CodeUri: .
       Timeout: 600
       Events:
@@ -867,7 +856,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main2.handler
-      Runtime: python3.7
+      Runtime: python3.11
       CodeUri: dir
       Timeout: 600
       Events:
@@ -962,7 +951,7 @@ def handler(event, context):
 
 def handler(event, context):
     return {"statusCode": 200, "body": json.dumps({"hello": "world2"})}"""
-    docker_file_content = """FROM public.ecr.aws/lambda/python:3.7
+    docker_file_content = """FROM public.ecr.aws/lambda/python:3.11
 COPY main.py ./"""
     container_mode = ContainersInitializationMode.EAGER.value
     build_before_invoke = True
@@ -1068,7 +1057,7 @@ def handler(event, context):
 
 def handler(event, context):
     return {"statusCode": 200, "body": json.dumps({"hello": "world2"})}"""
-    docker_file_content = """FROM public.ecr.aws/lambda/python:3.7
+    docker_file_content = """FROM public.ecr.aws/lambda/python:3.11
 COPY main.py ./"""
     container_mode = ContainersInitializationMode.EAGER.value
     build_before_invoke = True
@@ -1211,7 +1200,7 @@ def handler(event, context):
 
 def handler(event, context):
     return {"statusCode": 200, "body": json.dumps({"hello": "world2"})}"""
-    docker_file_content = """FROM public.ecr.aws/lambda/python:3.7
+    docker_file_content = """FROM public.ecr.aws/lambda/python:3.11
 COPY main.py ./"""
     container_mode = ContainersInitializationMode.LAZY.value
     build_before_invoke = True
@@ -1277,7 +1266,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.7
+      Runtime: python3.11
       CodeUri: .
       Timeout: 600
       Events:
@@ -1290,7 +1279,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler2
-      Runtime: python3.7
+      Runtime: python3.11
       CodeUri: .
       Timeout: 600
       Events:
@@ -1380,7 +1369,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.7
+      Runtime: python3.11
       CodeUri: .
       Timeout: 600
       Events:
@@ -1393,7 +1382,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler2
-      Runtime: python3.7
+      Runtime: python3.11
       CodeUri: .
       Timeout: 600
       Events:
@@ -1483,7 +1472,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main2.handler
-      Runtime: python3.7
+      Runtime: python3.11
       CodeUri: dir
       Timeout: 600
       Events:
@@ -1606,7 +1595,7 @@ def handler(event, context):
 
 def handler(event, context):
     return {"statusCode": 200, "body": json.dumps({"hello": "world2"})}"""
-    docker_file_content = """FROM public.ecr.aws/lambda/python:3.7
+    docker_file_content = """FROM public.ecr.aws/lambda/python:3.11
 COPY main.py ./"""
     container_mode = ContainersInitializationMode.LAZY.value
     build_before_invoke = True

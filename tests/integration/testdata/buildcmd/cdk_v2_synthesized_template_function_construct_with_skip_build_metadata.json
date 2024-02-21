@@ -50,7 +50,7 @@
           ]
         },
         "Handler": "main.handler",
-        "Runtime": "python3.7",
+        "Runtime": "python3.11",
         "Timeout": 120
       },
       "DependsOn": [

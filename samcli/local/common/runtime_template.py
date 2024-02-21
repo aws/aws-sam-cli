@@ -16,7 +16,7 @@ _lambda_images_templates = os.path.join(_init_path, "lib", "init", "image_templa
 RUNTIME_DEP_TEMPLATE_MAPPING = {
     "python": [
         {
-            "runtimes": ["python3.12", "python3.11", "python3.10", "python3.9", "python3.8", "python3.7"],
+            "runtimes": ["python3.12", "python3.11", "python3.10", "python3.9", "python3.8"],
             "dependency_manager": "pip",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-python"),
             "build": True,
@@ -121,7 +121,6 @@ INIT_RUNTIMES = [
     "python3.10",
     "python3.9",
     "python3.8",
-    "python3.7",
     # ruby runtimes in descending order
     "ruby3.2",
 ]
@@ -145,7 +144,6 @@ LAMBDA_IMAGES_RUNTIMES_MAP = {
     "python3.10": "amazon/python3.10-base",
     "python3.9": "amazon/python3.9-base",
     "python3.8": "amazon/python3.8-base",
-    "python3.7": "amazon/python3.7-base",
     "ruby3.2": "amazon/ruby3.2-base",
 }
 
@@ -160,7 +158,6 @@ SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING = {
     "java11": "Java8",
     "java17": "Java8",
     "java21": "Java8",
-    "python3.7": "Python36",
     "python3.8": "Python36",
     "python3.9": "Python36",
     "python3.10": "Python36",

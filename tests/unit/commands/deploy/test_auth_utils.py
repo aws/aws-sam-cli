@@ -26,7 +26,7 @@ class TestAuthUtils(TestCase):
                                         [
                                             ("CodeUri", "HelloWorldFunction"),
                                             ("Handler", "app.lambda_handler"),
-                                            ("Runtime", "python3.7"),
+                                            ("Runtime", "python3.12"),
                                             (
                                                 "Events",
                                                 OrderedDict(

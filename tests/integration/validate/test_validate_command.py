@@ -145,11 +145,10 @@ class TestValidate(TestCase):
             "provided",
             "provided.al2",
             "provided.al2023",
-            "ruby3.2",
-            "python3.7",
             "python3.8",
             "python3.9",
             "python3.10",
+            "ruby3.2",
         ]
         i = 0
         for runtime in supported_runtimes:
