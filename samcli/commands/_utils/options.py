@@ -39,10 +39,9 @@ from samcli.local.docker.lambda_image import Runtime
 
 _TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml|json]"
 SUPPORTED_BUILD_IN_SOURCE_WORKFLOWS = [
-    Runtime.nodejs12x.value,
-    Runtime.nodejs14x.value,
     Runtime.nodejs16x.value,
     Runtime.nodejs18x.value,
+    Runtime.nodejs20x.value,
     "Makefile",
     "esbuild",
 ]

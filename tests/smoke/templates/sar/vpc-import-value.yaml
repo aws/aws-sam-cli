@@ -14,7 +14,7 @@ Resources:
         Bucket: <%REPO_BUCKET%>
         Key: a44a03c9-ccb1-4ddc-b196-8e2c9fdeec35
       Handler: app.lambda_handler
-      Runtime: python3.7
+      Runtime: python3.11
       Layers:
         - Ref: LayerArn
       VpcConfig:

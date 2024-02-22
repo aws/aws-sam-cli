@@ -323,7 +323,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
         function2.full_path = "Function2"
         function2.packagetype = IMAGE
         build_definition = FunctionBuildDefinition(
-            "3.7", "codeuri", IMAGE, X86_64, {}, "handler", env_vars={"FOO": "BAR"}
+            "3.12", "codeuri", IMAGE, X86_64, {}, "handler", env_vars={"FOO": "BAR"}
         )
         # since they have the same metadata, they are put into the same build_definition.
         build_definition.functions = [function1, function2]
@@ -343,7 +343,8 @@ class CachedBuildStrategyTest(BuildStrategyBaseTest):
     FUNCTION_UUID = "3c1c254e-cd4b-4d94-8c74-7ab870b36063"
     SOURCE_HASH = "cae49aa393d669e850bd49869905099d"
     LAYER_UUID = "761ce752-d1c8-4e07-86a0-f64778cdd108"
-    LAYER_METHOD = "nodejs12.x"
+    LAYER_METHOD = "nodejs20.x"
+    LAYER_METHOD = "nodejs20.x"
 
     BUILD_GRAPH_CONTENTS = f"""
     [function_build_definitions]
@@ -358,8 +359,8 @@ class CachedBuildStrategyTest(BuildStrategyBaseTest):
     [layer_build_definitions.{LAYER_UUID}]
     layer_name = "SumLayer"
     codeuri = "sum_layer/"
-    build_method = "nodejs12.x"
-    compatible_runtimes = ["nodejs12.x"]
+    build_method = "nodejs20.x"
+    compatible_runtimes = ["nodejs20.x"]
     source_hash = "{SOURCE_HASH}"
     layer = "SumLayer"
     """
@@ -732,9 +733,9 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
 
     @parameterized.expand(
         [
-            "python3.7",
-            "nodejs12.x",
-            "ruby2.7",
+            "python3.12",
+            "nodejs20.x",
+            "ruby3.2",
         ]
     )
     def test_will_call_incremental_build_strategy(self, mocked_read, mocked_write, runtime):

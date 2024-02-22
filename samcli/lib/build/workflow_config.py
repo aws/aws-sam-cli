@@ -85,7 +85,6 @@ def get_selector(
 
 def get_layer_subfolder(build_workflow: str) -> str:
     subfolders_by_runtime = {
-        "python3.7": "python",
         "python3.8": "python",
         "python3.9": "python",
         "python3.10": "python",
@@ -94,12 +93,9 @@ def get_layer_subfolder(build_workflow: str) -> str:
         "nodejs4.3": "nodejs",
         "nodejs6.10": "nodejs",
         "nodejs8.10": "nodejs",
-        "nodejs12.x": "nodejs",
-        "nodejs14.x": "nodejs",
         "nodejs16.x": "nodejs",
         "nodejs18.x": "nodejs",
         "nodejs20.x": "nodejs",
-        "ruby2.7": "ruby/lib",
         "ruby3.2": "ruby/lib",
         "java8": "java",
         "java11": "java",
@@ -107,6 +103,7 @@ def get_layer_subfolder(build_workflow: str) -> str:
         "java17": "java",
         "java21": "java",
         "dotnet6": "dotnet",
+        "dotnet8": "dotnet",
         # User is responsible for creating subfolder in these workflows
         "makefile": "",
     }
@@ -139,7 +136,7 @@ def get_workflow_config(
 
     specified_workflow str
         Workflow to be used, if directly specified. They are currently scoped to "makefile" and the official runtime
-        identifier names themselves, eg: nodejs14.x. If a workflow is not directly specified,
+        identifier names themselves, eg: nodejs20.x. If a workflow is not directly specified,
         it is calculated by the current method based on the runtime.
 
     Returns
@@ -155,20 +152,17 @@ def get_workflow_config(
     }
 
     selectors_by_runtime = {
-        "python3.7": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
         "python3.8": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
         "python3.9": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
         "python3.10": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
         "python3.11": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
         "python3.12": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
-        "nodejs12.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
-        "nodejs14.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "nodejs16.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "nodejs18.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "nodejs20.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
-        "ruby2.7": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
         "ruby3.2": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
         "dotnet6": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
+        "dotnet8": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
         "go1.x": BasicWorkflowSelector(GO_MOD_CONFIG),
         # When Maven builder exists, add to this list so we can automatically choose a builder based on the supported
         # manifest

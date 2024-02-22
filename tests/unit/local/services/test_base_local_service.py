@@ -1,5 +1,6 @@
+import signal
 from unittest import TestCase
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, ANY
 
 from parameterized import parameterized, param
 
@@ -54,6 +55,20 @@ class TestLocalHostRunner(TestCase):
 
         self.assertEqual(actual_response.status_code, 200)
         self.assertEqual(actual_response.headers, {"Content-Type": "application/json"})
+
+    @patch("samcli.local.services.base_local_service.signal.signal")
+    def test_service_registers_sigterm_interrupt(self, signal_mock):
+        service = BaseLocalService(is_debugging=False, port=3000, host="127.0.0.1", ssl_context=None)
+
+        service._app = Mock()
+        app_run_mock = Mock()
+        service._app.run = app_run_mock
+
+        service.run()
+
+        signal_mock.assert_called_once_with(signal.SIGTERM, ANY)
+
+        app_run_mock.assert_called_once_with(threaded=True, host="127.0.0.1", port=3000, ssl_context=None)
 
     def test_create_returns_not_implemented(self):
         is_debugging = False

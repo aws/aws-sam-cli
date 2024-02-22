@@ -107,6 +107,10 @@ class LambdaDebugSettings:
                 entry + ["/var/runtime/bootstrap"] + debug_args_list,
                 container_env_vars={"_AWS_LAMBDA_DOTNET_DEBUGGING": "1", **_container_env_vars},
             ),
+            Runtime.dotnet8.value: lambda: DebugSettings(
+                entry + ["/var/runtime/bootstrap"] + debug_args_list,
+                container_env_vars={"_AWS_LAMBDA_DOTNET_DEBUGGING": "1", **_container_env_vars},
+            ),
             Runtime.go1x.value: lambda: DebugSettings(
                 entry,
                 container_env_vars={
@@ -114,34 +118,6 @@ class LambdaDebugSettings:
                     "_AWS_LAMBDA_GO_DELVE_API_VERSION": LambdaDebugSettings.parse_go_delve_api_version(debug_args_list),
                     "_AWS_LAMBDA_GO_DELVE_LISTEN_PORT": debug_port,
                     "_AWS_LAMBDA_GO_DELVE_PATH": options.get("delvePath"),
-                    **_container_env_vars,
-                },
-            ),
-            Runtime.nodejs12x.value: lambda: DebugSettings(
-                entry
-                + ["/var/lang/bin/node"]
-                + debug_args_list
-                + ["--no-lazy", "--expose-gc"]
-                + ["/var/runtime/index.js"],
-                container_env_vars={
-                    "NODE_PATH": "/opt/nodejs/node_modules:/opt/nodejs/node12/node_modules:/var/runtime/node_modules:"
-                    "/var/runtime:/var/task",
-                    "NODE_OPTIONS": f"--inspect-brk=0.0.0.0:{str(debug_port)} --max-http-header-size 81920",
-                    "AWS_EXECUTION_ENV": "AWS_Lambda_nodejs12.x",
-                    **_container_env_vars,
-                },
-            ),
-            Runtime.nodejs14x.value: lambda: DebugSettings(
-                entry
-                + ["/var/lang/bin/node"]
-                + debug_args_list
-                + ["--no-lazy", "--expose-gc"]
-                + ["/var/runtime/index.js"],
-                container_env_vars={
-                    "NODE_PATH": "/opt/nodejs/node_modules:/opt/nodejs/node14/node_modules:/var/runtime/node_modules:"
-                    "/var/runtime:/var/task",
-                    "NODE_OPTIONS": f"--inspect-brk=0.0.0.0:{str(debug_port)} --max-http-header-size 81920",
-                    "AWS_EXECUTION_ENV": "AWS_Lambda_nodejs14.x",
                     **_container_env_vars,
                 },
             ),
@@ -186,10 +162,6 @@ class LambdaDebugSettings:
                     "AWS_EXECUTION_ENV": "AWS_Lambda_nodejs20.x",
                     **_container_env_vars,
                 },
-            ),
-            Runtime.python37.value: lambda: DebugSettings(
-                entry + ["/var/lang/bin/python3.7"] + debug_args_list + ["/var/runtime/bootstrap"],
-                container_env_vars=_container_env_vars,
             ),
             Runtime.python38.value: lambda: DebugSettings(
                 entry + ["/var/lang/bin/python3.8"] + debug_args_list + ["/var/runtime/bootstrap.py"],

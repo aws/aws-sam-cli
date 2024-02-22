@@ -1215,13 +1215,13 @@ class TestResourceLinker(TestCase):
             "Type": "AWS::Lambda::Function",
             "Properties": {
                 "FunctionName": "func1",
-                "Runtime": "Python3.7",
+                "Runtime": "Python3.12",
                 "Layers": ["applied_layer1.arn", "existing_layer1.arn"],
             },
         }
         cfn_resource_depend_on_at_least_one_non_applied_resource = {
             "Type": "AWS::Lambda::Function",
-            "Properties": {"FunctionName": "func2", "Runtime": "Python3.7"},
+            "Properties": {"FunctionName": "func2", "Runtime": "Python3.12"},
         }
         cfn_resources = [
             cfn_resource_depend_on_applied_resources,
@@ -1244,7 +1244,7 @@ class TestResourceLinker(TestCase):
             "Type": "AWS::Lambda::Function",
             "Properties": {
                 "FunctionName": "func1",
-                "Runtime": "Python3.7",
+                "Runtime": "Python3.12",
                 "Layers": ["applied_layer1.arn", "existing_layer1.arn"],
             },
         }
@@ -1252,7 +1252,7 @@ class TestResourceLinker(TestCase):
             "Type": "AWS::Lambda::Function",
             "Properties": {
                 "FunctionName": "func2",
-                "Runtime": "Python3.7",
+                "Runtime": "Python3.12",
                 "Layers": ["applied_layer2.arn", "existing_layer2.arn"],
             },
         }
@@ -1278,11 +1278,11 @@ class TestResourceLinker(TestCase):
     def test_handle_linking_only_non_applied_resources(self):
         cfn_resource1_depend_on_at_least_one_non_applied_resource = {
             "Type": "AWS::Lambda::Function",
-            "Properties": {"FunctionName": "func2", "Runtime": "Python3.7"},
+            "Properties": {"FunctionName": "func2", "Runtime": "Python3.12"},
         }
         cfn_resource2_depend_on_at_least_one_non_applied_resource = {
             "Type": "AWS::Lambda::Function",
-            "Properties": {"FunctionName": "func3", "Runtime": "Python3.7"},
+            "Properties": {"FunctionName": "func3", "Runtime": "Python3.12"},
         }
         cfn_resources = [
             cfn_resource1_depend_on_at_least_one_non_applied_resource,
@@ -1637,7 +1637,7 @@ class TestResourceLinker(TestCase):
                 "schema_version": 0,
                 "values": {
                     "compatible_architectures": ["arm64"],
-                    "compatible_runtimes": ["nodejs14.x", "nodejs16.x"],
+                    "compatible_runtimes": ["nodejs20.x", "nodejs16.x"],
                     "description": None,
                     "filename": None,
                     "layer_name": "lambda_layer_name",
