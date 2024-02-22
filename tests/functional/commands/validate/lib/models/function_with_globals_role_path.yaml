@@ -16,5 +16,5 @@ Resources:
     Properties:
       CodeUri: s3://sam-demo-bucket/hello.zip
       Handler: hello.world
-      Runtime: python3.7
+      Runtime: python3.11
       RolePath: /foo/bar

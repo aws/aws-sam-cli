@@ -7,7 +7,7 @@ Resources:
     Type: AWS::Lambda::LayerVersion
     Properties:
       CompatibleRuntimes:
-        - python3.7
+        - python3.11
       Content: "."
       Description: My layer
       LayerName: my-layer
