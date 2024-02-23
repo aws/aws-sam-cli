@@ -16,7 +16,7 @@ _lambda_images_templates = os.path.join(_init_path, "lib", "init", "image_templa
 RUNTIME_DEP_TEMPLATE_MAPPING = {
     "python": [
         {
-            "runtimes": ["python3.12", "python3.11", "python3.10", "python3.9", "python3.8", "python3.7"],
+            "runtimes": ["python3.12", "python3.11", "python3.10", "python3.9", "python3.8"],
             "dependency_manager": "pip",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-python"),
             "build": True,
@@ -40,7 +40,7 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
     ],
     "dotnet": [
         {
-            "runtimes": ["dotnet6"],
+            "runtimes": ["dotnet8", "dotnet6"],
             "dependency_manager": "cli-package",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-dotnet"),
             "build": True,
@@ -99,7 +99,9 @@ SUPPORTED_DEP_MANAGERS: List[str] = sorted(
 # Runtimes are ordered in alphabetical fashion with reverse version order (latest versions first)
 INIT_RUNTIMES = [
     # dotnet runtimes in descending order
+    "dotnet8",
     "dotnet6",
+    # go runtimes in descending order
     "go1.x",
     # java runtimes in descending order
     "java21",
@@ -121,13 +123,13 @@ INIT_RUNTIMES = [
     "python3.10",
     "python3.9",
     "python3.8",
-    "python3.7",
     # ruby runtimes in descending order
     "ruby3.2",
 ]
 
 
 LAMBDA_IMAGES_RUNTIMES_MAP = {
+    "dotnet8": "amazon/dotnet8-base",
     "dotnet6": "amazon/dotnet6-base",
     "go1.x": "amazon/go1.x-base",
     "go (provided.al2)": "amazon/go-provided.al2-base",
@@ -145,7 +147,6 @@ LAMBDA_IMAGES_RUNTIMES_MAP = {
     "python3.10": "amazon/python3.10-base",
     "python3.9": "amazon/python3.9-base",
     "python3.8": "amazon/python3.8-base",
-    "python3.7": "amazon/python3.7-base",
     "ruby3.2": "amazon/ruby3.2-base",
 }
 
@@ -160,13 +161,13 @@ SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING = {
     "java11": "Java8",
     "java17": "Java8",
     "java21": "Java8",
-    "python3.7": "Python36",
     "python3.8": "Python36",
     "python3.9": "Python36",
     "python3.10": "Python36",
     "python3.11": "Python36",
     "python3.12": "Python36",
     "dotnet6": "dotnet6",
+    "dotnet8": "dotnet6",
     "go1.x": "Go1",
 }
 

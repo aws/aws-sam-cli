@@ -339,7 +339,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
                         "Code": "file.zip",
                         "Handler": "index.handler",
                         "PackageType": "Zip",
-                        "Runtime": "python3.7",
+                        "Runtime": "python3.12",
                         "Layers": ["layer_arn1", "layer_arn2"],
                         "Timeout": 3,
                         "MemorySize": 128,

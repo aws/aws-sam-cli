@@ -27,7 +27,7 @@ Resources:
             Ref: LogLevel
           SLACK_URL:
             Ref: SlackUrl
-      Runtime: python3.7
+      Runtime: python3.11
       Timeout: 60
       Tracing: Active
       CodeUri:

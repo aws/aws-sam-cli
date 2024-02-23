@@ -287,3 +287,17 @@ Resources:
           Properties:
             Method: GET
             Path: /multipleheadersoverridesheaders
+
+  ZippedHelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: zipped.sleep_10_sec_handler
+      Runtime: python3.9
+      CodeUri: ./zipped.zip
+      Timeout: 600
+      Events:
+        HelloWorld:
+          Type: Api 
+          Properties:
+            Path: /sleepfortensecondszipped
+            Method: get

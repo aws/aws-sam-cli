@@ -6,12 +6,12 @@ jmespath~=1.0.1
 ruamel_yaml~=0.18.6
 PyYAML~=6.0,>=6.0.1
 cookiecutter~=2.5.0
-aws-sam-translator==1.84.0
+aws-sam-translator==1.85.0
 #docker minor version updates can include breaking changes. Auto update micro version only.
 docker~=7.0.0
 dateparser~=1.2
 requests~=2.31.0
-aws_lambda_builders==1.45.0
+aws_lambda_builders==1.46.0
 tomlkit==0.12.3
 watchdog==3.0.0
 rich~=13.7.0

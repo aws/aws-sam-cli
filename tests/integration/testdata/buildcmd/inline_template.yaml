@@ -12,10 +12,10 @@ Resources:
     Properties:
       CodeUri: Python
       Handler: main.handler
-      Runtime: python3.7
+      Runtime: python3.11
   InlineCodeFunction:
     Type: AWS::Serverless::Function
     Properties:
       InlineCode: "def handler(): pass"
       Handler: index.handler
-      Runtime: python3.7
+      Runtime: python3.11

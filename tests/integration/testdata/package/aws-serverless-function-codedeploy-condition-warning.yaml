@@ -9,7 +9,7 @@ Resources:
     Condition: true
     Properties:
       Handler: lambda.lambda_handler
-      Runtime: python3.7
+      Runtime: python3.11
       CodeUri: s3://bucket/key
       DeploymentPreference:
         Type: Linear10PercentEvery1Minute
