@@ -11,7 +11,7 @@ Resources:
   Function:
     Type: AWS::Serverless::Function
     Properties:
-      Runtime: python3.7
+      Runtime: python3.11
       Handler: index.handler
       CodeUri: s3://bucket/key
       Events:
