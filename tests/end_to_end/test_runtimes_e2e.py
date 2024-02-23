@@ -70,7 +70,7 @@ class StackOutputsValidator(BaseValidator):
     ("runtime", "dependency_manager"),
     [
         ("go1.x", "mod"),
-        ("python3.7", "pip"),
+        ("python3.11", "pip"),
     ],
 )
 class TestHelloWorldDefaultEndToEnd(EndToEndBase):
@@ -104,7 +104,7 @@ class TestHelloWorldDefaultEndToEnd(EndToEndBase):
     ("runtime", "dependency_manager"),
     [
         ("go1.x", "mod"),
-        ("python3.7", "pip"),
+        ("python3.11", "pip"),
     ],
 )
 class TestHelloWorldZipPackagePermissionsEndToEnd(EndToEndBase):
@@ -142,7 +142,7 @@ class TestHelloWorldZipPackagePermissionsEndToEnd(EndToEndBase):
     ("runtime", "dependency_manager"),
     [
         ("go1.x", "mod"),
-        ("python3.7", "pip"),
+        ("python3.11", "pip"),
     ],
 )
 class TestHelloWorldDefaultSyncEndToEnd(EndToEndBase):

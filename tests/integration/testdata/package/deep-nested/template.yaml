@@ -7,7 +7,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main_a.handler
-      Runtime: python3.7
+      Runtime: python3.11
       CodeUri: FunctionA
       Timeout: 600
 

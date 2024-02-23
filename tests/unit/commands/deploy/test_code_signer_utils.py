@@ -46,7 +46,7 @@ class TestCodeSignerUtils(TestCase):
                                         [
                                             ("CodeUri", "HelloWorldFunction"),
                                             ("Handler", "app.lambda_handler"),
-                                            ("Runtime", "python3.7"),
+                                            ("Runtime", "python3.12"),
                                             ("CodeSigningConfigArn", "MyCodeSigningConfigArn"),
                                             (
                                                 "Layers",
@@ -71,7 +71,7 @@ class TestCodeSignerUtils(TestCase):
                                         [
                                             ("CodeUri", "HelloWorldFunction2"),
                                             ("Handler", "app.lambda_handler2"),
-                                            ("Runtime", "python3.7"),
+                                            ("Runtime", "python3.12"),
                                             ("CodeSigningConfigArn", "MyCodeSigningConfigArn"),
                                             (
                                                 "Layers",
@@ -96,7 +96,7 @@ class TestCodeSignerUtils(TestCase):
                                         [
                                             ("LayerName", "dependencies"),
                                             ("ContentUri", "dependencies/"),
-                                            ("CompatibleRuntimes", ["python3.7"]),
+                                            ("CompatibleRuntimes", ["python3.12"]),
                                         ]
                                     ),
                                 ),

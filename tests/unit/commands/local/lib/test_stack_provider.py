@@ -17,7 +17,7 @@ LEAF_TEMPLATE = {
     "Resources": {
         "AFunction": {
             "Type": "AWS::Serverless::Function",
-            "Properties": {"CodeUri": "hi/", "Runtime": "python3.7"},
+            "Properties": {"CodeUri": "hi/", "Runtime": "python3.12"},
         }
     }
 }
