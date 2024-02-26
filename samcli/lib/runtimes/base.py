@@ -178,6 +178,13 @@ class Runtime(RuntimeEnumBase):
     NOTE: order runtimes from latest to oldest per family
     """
 
+    dotnet8 = (
+        "dotnet8",
+        Family.DOTNET,
+        "amazon/dotnet8-base",
+        [Architecture.X86_64, Architecture.ARM64],
+    )
+
     dotnet6 = (
         "dotnet6",
         Family.DOTNET,
