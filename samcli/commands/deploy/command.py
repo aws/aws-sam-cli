@@ -1,6 +1,7 @@
 """
 CLI command for "deploy" command
 """
+
 import logging
 import os
 
@@ -347,9 +348,11 @@ def do_cli(
             no_progressbar=no_progressbar,
             s3_prefix=guided_context.guided_s3_prefix if guided else s3_prefix,
             kms_key_id=kms_key_id,
-            parameter_overrides=sanitize_parameter_overrides(guided_context.guided_parameter_overrides)
-            if guided
-            else parameter_overrides,
+            parameter_overrides=(
+                sanitize_parameter_overrides(guided_context.guided_parameter_overrides)
+                if guided
+                else parameter_overrides
+            ),
             capabilities=guided_context.guided_capabilities if guided else capabilities,
             no_execute_changeset=no_execute_changeset,
             role_arn=role_arn,

@@ -1,6 +1,7 @@
 """
 Integration tests for sam validate
 """
+
 import json
 import os
 import re
@@ -131,6 +132,7 @@ class TestValidate(TestCase):
             "Resources": {},
         }
         supported_runtimes = [
+            "dotnet8",
             "dotnet6",
             "go1.x",
             "java21",
@@ -138,18 +140,16 @@ class TestValidate(TestCase):
             "java11",
             "java8",
             "java8.al2",
-            "nodejs14.x",
             "nodejs16.x",
             "nodejs18.x",
             "nodejs20.x",
             "provided",
             "provided.al2",
             "provided.al2023",
-            "python3.7",
             "python3.8",
             "python3.9",
             "python3.10",
-            "ruby2.7",
+            "ruby3.2",
         ]
         i = 0
         for runtime in supported_runtimes:

@@ -42,9 +42,10 @@
           }
         },
         "CompatibleRuntimes": [
-          "python3.7",
           "python3.8",
-          "python3.9"
+          "python3.9",
+          "python3.11",
+          "python3.12"
         ]
       },
       "Metadata": {
@@ -52,7 +53,7 @@
         "aws:asset:path": "after/asset.b998895901bf33127f2c9dce715854f8b35aa73fb7eb5245ba9721580bbe6948",
         "aws:asset:is-bundled": false,
         "aws:asset:property": "Content",
-        "BuildMethod": "python3.7"
+        "BuildMethod": "python3.11"
       }
     },
     "RandomCitiesFunctionServiceRole4EFB1CF5": {
@@ -142,7 +143,7 @@
             "Ref": "CountriesLibLayer259A7AF1"
           }
         ],
-        "Runtime": "python3.7"
+        "Runtime": "python3.11"
       },
       "DependsOn": [
         "RandomCitiesFunctionServiceRole4EFB1CF5"

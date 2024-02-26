@@ -1,6 +1,7 @@
 """
 Context object used by sync command
 """
+
 import logging
 import threading
 from dataclasses import dataclass

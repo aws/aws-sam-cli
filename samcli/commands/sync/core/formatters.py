@@ -1,6 +1,7 @@
 """
 Sync Command Formatter.
 """
+
 from samcli.cli.formatters import RootCommandHelpTextFormatter
 from samcli.cli.row_modifiers import BaseLineRowModifier
 from samcli.commands.sync.core.options import ALL_OPTIONS

@@ -1,6 +1,7 @@
 """
 Configures a logger
 """
+
 import logging
 import os
 import sys

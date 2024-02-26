@@ -1,4 +1,5 @@
 """Hooks Exceptions"""
+
 from samcli.commands.exceptions import UserException
 
 

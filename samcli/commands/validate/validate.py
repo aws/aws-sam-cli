@@ -1,6 +1,7 @@
 """
 CLI Command for Validating a SAM Template
 """
+
 import os
 
 import boto3

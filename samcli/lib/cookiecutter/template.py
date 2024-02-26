@@ -2,6 +2,7 @@
 This is the core module of the cookiecutter workflow, it defines how to create a template, prompt the user for
 values of the context and how to generate a project from the given template and provided context
 """
+
 import logging
 from typing import Dict, List, Optional
 

@@ -172,7 +172,7 @@ class TestYaml(TestCase):
             "    Type: AWS::Serverless::Function\n"
             "    Properties:\n"
             "      Handler: main.handler\n"
-            "      Runtime: python3.7\n"
+            "      Runtime: python3.12\n"
             "      CodeUri: .\n"
             "      Timeout: 600\n"
         )

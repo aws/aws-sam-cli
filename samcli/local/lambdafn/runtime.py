@@ -1,6 +1,7 @@
 """
 Classes representing a local Lambda runtime
 """
+
 import copy
 import logging
 import os
@@ -48,6 +49,7 @@ class LambdaRuntime:
         self._container_manager = container_manager
         self._image_builder = image_builder
         self._temp_uncompressed_paths_to_be_cleaned = []
+        self._lock = threading.Lock()
 
     def create(
         self, function_config, debug_context=None, container_host=None, container_host_interface=None, extra_hosts=None
@@ -352,9 +354,10 @@ class LambdaRuntime:
         Clean the temporary decompressed code dirs
         """
         LOG.debug("Cleaning all decompressed code dirs")
-        for decompressed_dir in self._temp_uncompressed_paths_to_be_cleaned:
-            shutil.rmtree(decompressed_dir)
-        self._temp_uncompressed_paths_to_be_cleaned = []
+        with self._lock:
+            for decompressed_dir in self._temp_uncompressed_paths_to_be_cleaned:
+                shutil.rmtree(decompressed_dir)
+            self._temp_uncompressed_paths_to_be_cleaned = []
 
 
 class WarmLambdaRuntime(LambdaRuntime):

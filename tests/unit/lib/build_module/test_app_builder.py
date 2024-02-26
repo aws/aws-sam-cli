@@ -462,7 +462,18 @@ class TestApplicationBuilder_build(TestCase):
         self.assertEqual(str(ex.exception), msg)
 
     @parameterized.expand(
-        [("python2.7",), ("python3.6",), ("ruby2.5",), ("nodejs10.x",), ("dotnetcore2.1",), ("dotnetcore3.1",)]
+        [
+            ("python2.7",),
+            ("python3.6",),
+            ("python3.7",),
+            ("ruby2.5",),
+            ("ruby2.7",),
+            ("nodejs10.x",),
+            ("nodejs12.x",),
+            ("nodejs14.x",),
+            ("dotnetcore2.1",),
+            ("dotnetcore3.1",),
+        ]
     )
     def test_deprecated_runtimes(self, runtime):
         with self.assertRaises(UnsupportedRuntimeException):

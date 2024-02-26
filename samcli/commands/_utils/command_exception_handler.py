@@ -2,6 +2,7 @@
 Contains method decorator which can be used to convert common exceptions into click exceptions
 which will end execution gracefully
 """
+
 from functools import wraps
 from typing import Any, Callable, Dict, Optional
 

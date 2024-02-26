@@ -1,11 +1,13 @@
 """
 Represents Lambda runtime containers.
 """
+
 import logging
 import os
 from typing import List
 
 from samcli.lib.utils.packagetype import IMAGE
+from samcli.local.docker.exceptions import InvalidRuntimeException
 from samcli.local.docker.lambda_debug_settings import LambdaDebugSettings
 
 from .container import DEFAULT_CONTAINER_HOST_INTERFACE, Container
@@ -14,6 +16,7 @@ from .lambda_image import LambdaImage, Runtime
 LOG = logging.getLogger(__name__)
 
 RIE_LOG_LEVEL_ENV_VAR = "SAM_CLI_RIE_DEV"
+INVALID_RUNTIME_MESSAGE = "Unsupported Lambda runtime: {runtime}. For a list of supported runtimes, please visit https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html"
 
 
 class LambdaContainer(Container):
@@ -94,7 +97,7 @@ class LambdaContainer(Container):
             Optional. The function full path, unique in all stacks
         """
         if not Runtime.has_value(runtime) and not packagetype == IMAGE:
-            raise ValueError("Unsupported Lambda runtime {}".format(runtime))
+            raise InvalidRuntimeException(INVALID_RUNTIME_MESSAGE.format(runtime=runtime))
 
         image = LambdaContainer._get_image(
             lambda_image, runtime, packagetype, imageuri, layers, architecture, function_full_path

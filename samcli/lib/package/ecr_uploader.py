@@ -1,6 +1,7 @@
 """
 Client for uploading packaged artifacts to ecr
 """
+
 import base64
 import logging
 from io import StringIO

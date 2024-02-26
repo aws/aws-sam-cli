@@ -1,6 +1,5 @@
 """Handles JSON schema generation logic"""
 
-
 import importlib
 import json
 from dataclasses import dataclass

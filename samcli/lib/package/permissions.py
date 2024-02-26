@@ -1,6 +1,7 @@
 """
 Classes which will change permissions on a ZipInfo object
 """
+
 import platform
 import zipfile
 

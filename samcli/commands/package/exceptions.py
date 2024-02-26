@@ -1,6 +1,7 @@
 """
 Exceptions that are raised by sam package
 """
+
 from samcli.commands.exceptions import UserException
 
 

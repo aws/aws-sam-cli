@@ -1,6 +1,7 @@
 """
 Stream cursor utilities for moving cursor in the terminal.
 """
+
 import os
 import platform
 

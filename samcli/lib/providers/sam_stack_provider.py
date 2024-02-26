@@ -1,6 +1,7 @@
 """
 Class that provides all nested stacks from a given SAM template
 """
+
 import logging
 import os
 from typing import Dict, Iterator, List, Optional, Tuple, Union, cast
@@ -348,9 +349,9 @@ class SamLocalStackProvider(SamBaseProvider):
 
         * symlinks on Windows might not work properly.
           https://stackoverflow.com/questions/43333640/python-os-path-realpath-for-symlink-in-windows
-          For example, using Python 3.7, realpath() is a no-op (same as abspath):
+          For example, using Python 3.8, realpath() is a no-op (same as abspath):
             ```
-            Python 3.7.8 (tags/v3.7.8:4b47a5b6ba, Jun 28 2020, 08:53:46) [MSC v.1916 64 bit (AMD64)] on win32
+            Python 3.8.8 (tags/v3.8.8:4b47a5b6ba, Jun 28 2020, 08:53:46) [MSC v.1916 64 bit (AMD64)] on win32
             Type "help", "copyright", "credits" or "license" for more information.
             >>> import os
             >>> os.symlink('some\\path', 'link1')

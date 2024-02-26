@@ -1,4 +1,5 @@
 """Exceptions related to sync functionalities"""
+
 from typing import TYPE_CHECKING, Dict, Optional
 
 if TYPE_CHECKING:  # pragma: no cover

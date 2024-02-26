@@ -1,6 +1,7 @@
 """
     Date type classes for companion stacks
 """
+
 import posixpath
 import re
 from typing import Optional

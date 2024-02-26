@@ -1,6 +1,7 @@
 """
 Abstract definitions for stack builder
 """
+
 import json
 from abc import ABC
 from copy import deepcopy

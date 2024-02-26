@@ -1,6 +1,7 @@
 """
 Unit test base class for Terraform prepare hook
 """
+
 from unittest import TestCase
 
 from samcli.hook_packages.terraform.hooks.prepare.translate import AWS_PROVIDER_NAME, NULL_RESOURCE_PROVIDER_NAME
@@ -71,7 +72,7 @@ class PrepareHookUnitBase(TestCase):
             "environment": [{"variables": {"foo": "bar", "hello": "world"}}],
             "handler": "index.handler",
             "package_type": "Zip",
-            "runtime": "python3.7",
+            "runtime": "python3.12",
             "layers": ["layer_arn1", "layer_arn2"],
             "timeout": 3,
             "memory_size": 128,
@@ -82,7 +83,7 @@ class PrepareHookUnitBase(TestCase):
             "Environment": {"Variables": {"foo": "bar", "hello": "world"}},
             "Handler": "index.handler",
             "PackageType": "Zip",
-            "Runtime": "python3.7",
+            "Runtime": "python3.12",
             "Layers": ["layer_arn1", "layer_arn2"],
             "Timeout": 3,
             "MemorySize": 128,
@@ -107,12 +108,12 @@ class PrepareHookUnitBase(TestCase):
 
         self.tf_layer_common_properties: dict = {
             "layer_name": self.lambda_layer_name,
-            "compatible_runtimes": ["nodejs14.x", "nodejs16.x"],
+            "compatible_runtimes": ["nodejs18.x", "nodejs20.x"],
             "compatible_architectures": ["arm64"],
         }
         self.expected_cfn_layer_common_properties: dict = {
             "LayerName": self.lambda_layer_name,
-            "CompatibleRuntimes": ["nodejs14.x", "nodejs16.x"],
+            "CompatibleRuntimes": ["nodejs18.x", "nodejs20.x"],
             "CompatibleArchitectures": ["arm64"],
         }
 

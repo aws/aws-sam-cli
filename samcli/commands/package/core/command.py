@@ -1,6 +1,7 @@
 """
 `sam package` command class for help text visual layer.
 """
+
 import click
 from click import Context, style
 from rich.table import Table

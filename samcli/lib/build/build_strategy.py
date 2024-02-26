@@ -1,6 +1,7 @@
 """
 Keeps implementation of different build strategies
 """
+
 import hashlib
 import logging
 import os.path

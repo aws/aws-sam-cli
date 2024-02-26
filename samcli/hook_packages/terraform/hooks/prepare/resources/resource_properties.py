@@ -1,4 +1,5 @@
 """Module for getting the resource property mappings for various resource types"""
+
 from typing import Dict
 
 from samcli.hook_packages.terraform.hooks.prepare.constants import (

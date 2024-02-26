@@ -1,10 +1,13 @@
 import base64
 import shutil
+import signal
+from unittest import skipIf
 import uuid
 import random
 from pathlib import Path
 from typing import Dict
 
+import docker.errors
 import requests
 from http.client import HTTPConnection
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -15,6 +18,7 @@ from parameterized import parameterized_class, parameterized
 
 from samcli.commands.local.cli_common.invoke_context import ContainersInitializationMode
 from samcli.local.apigw.route import Route
+from tests.testing_utils import IS_WINDOWS
 from .start_api_integ_base import StartApiIntegBaseClass, WritableStartApiIntegBaseClass
 from ..invoke.layer_utils import LayerUtils
 
@@ -149,10 +153,12 @@ class TestServiceHTTP10(StartApiIntegBaseClass):
 
 
 @parameterized_class(
-    ("template_path",),
+    ("template_path", "container_mode", "endpoint"),
     [
-        ("/testdata/start_api/template.yaml",),
-        ("/testdata/start_api/cdk/template_cdk.yaml",),
+        ("/testdata/start_api/template.yaml", "LAZY", "/sleepfortenseconds/function1"),
+        ("/testdata/start_api/template.yaml", "LAZY", "/sleepfortensecondszipped"),
+        ("/testdata/start_api/template.yaml", "EAGER", "/sleepfortenseconds/function1"),
+        ("/testdata/start_api/cdk/template_cdk.yaml", "LAZY", "/sleepfortenseconds/function1"),
     ],
 )
 class TestParallelRequests(StartApiIntegBaseClass):
@@ -175,20 +181,19 @@ class TestParallelRequests(StartApiIntegBaseClass):
         start_time = time()
         with ThreadPoolExecutor(number_of_requests) as thread_pool:
             futures = [
-                thread_pool.submit(requests.get, self.url + "/sleepfortenseconds/function1", timeout=300)
+                thread_pool.submit(requests.get, self.url + self.endpoint, timeout=300)
                 for _ in range(0, number_of_requests)
             ]
             results = [r.result() for r in as_completed(futures)]
-
             end_time = time()
-
-            self.assertEqual(len(results), 10)
-            self.assertGreater(end_time - start_time, 10)
 
             for result in results:
                 self.assertEqual(result.status_code, 200)
                 self.assertEqual(result.json(), {"message": "HelloWorld! I just slept and waking up."})
                 self.assertEqual(result.raw.version, 11)  # Checks if the response is HTTP/1.1 version
+            # after checking responses now check the time to complete
+            self.assertEqual(len(results), 10)
+            self.assertGreater(end_time - start_time, 10)
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -2158,6 +2163,35 @@ class TestWarmContainers(TestWarmContainersBaseClass):
         self.assertEqual(response.json(), {"hello": "world"})
 
 
+@skipIf(IS_WINDOWS, "SIGTERM interrupt doesn't exist on Windows")
+class TestWarmContainersHandlesSigTerm(TestWarmContainersBaseClass):
+    template_path = "/testdata/start_api/template-warm-containers.yaml"
+    container_mode = ContainersInitializationMode.EAGER.value
+    mode_env_variable = str(uuid.uuid4())
+    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_can_invoke_lambda_function_successfully(self):
+        response = requests.post(self.url + "/id", timeout=300)
+        initiated_containers = self.count_running_containers()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+        self.assertEqual(initiated_containers, 2)
+
+        service_process = self.start_api_process
+        service_process.send_signal(signal.SIGTERM)
+
+        # Sleep for 10 seconds since this is the default time that Docker
+        # allows for a process to handle a SIGTERM before sending a SIGKILL
+        sleep(10)
+
+        remaining_containers = self.count_running_containers()
+        self.assertEqual(remaining_containers, 0)
+        self.assertEqual(service_process.poll(), 0)
+
+
 @parameterized_class(
     ("template_path",),
     [
@@ -2444,7 +2478,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.7
+      Runtime: python3.11
       CodeUri: .
       Timeout: 600
       Events:
@@ -2462,7 +2496,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main2.handler
-      Runtime: python3.7
+      Runtime: python3.11
       CodeUri: dir
       Timeout: 600
       Events:
@@ -2542,7 +2576,7 @@ def handler(event, context):
 
 def handler(event, context):
     return {"statusCode": 200, "body": json.dumps({"hello": "world2"})}"""
-    docker_file_content = """FROM public.ecr.aws/lambda/python:3.7
+    docker_file_content = """FROM public.ecr.aws/lambda/python:3.11
 COPY main.py ./"""
     container_mode = ContainersInitializationMode.EAGER.value
     build_before_invoke = True
@@ -2634,7 +2668,7 @@ def handler(event, context):
 
 def handler(event, context):
     return {"statusCode": 200, "body": json.dumps({"hello": "world2"})}"""
-    docker_file_content = """FROM public.ecr.aws/lambda/python:3.7
+    docker_file_content = """FROM public.ecr.aws/lambda/python:3.11
 COPY main.py ./"""
     container_mode = ContainersInitializationMode.EAGER.value
     build_before_invoke = True
@@ -2749,7 +2783,7 @@ def handler(event, context):
 
 def handler(event, context):
     return {"statusCode": 200, "body": json.dumps({"hello": "world2"})}"""
-    docker_file_content = """FROM public.ecr.aws/lambda/python:3.7
+    docker_file_content = """FROM public.ecr.aws/lambda/python:3.11
 COPY main.py ./"""
     container_mode = ContainersInitializationMode.LAZY.value
     build_before_invoke = True
@@ -2850,7 +2884,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.7
+      Runtime: python3.11
       CodeUri: .
       Timeout: 600
       Events:
@@ -2868,7 +2902,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main2.handler
-      Runtime: python3.7
+      Runtime: python3.11
       CodeUri: dir
       Timeout: 600
       Events:
@@ -2976,7 +3010,7 @@ def handler(event, context):
 
 def handler(event, context):
     return {"statusCode": 200, "body": json.dumps({"hello": "world2"})}"""
-    docker_file_content = """FROM public.ecr.aws/lambda/python:3.7
+    docker_file_content = """FROM public.ecr.aws/lambda/python:3.11
 COPY main.py ./"""
     container_mode = ContainersInitializationMode.LAZY.value
     build_before_invoke = True

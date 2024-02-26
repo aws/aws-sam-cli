@@ -1,6 +1,7 @@
 """
 Remote invoke executor implementation for Kinesis streams
 """
+
 import logging
 import uuid
 from dataclasses import asdict, dataclass

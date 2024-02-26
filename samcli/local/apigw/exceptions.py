@@ -1,6 +1,7 @@
 """
 Exceptions used by API Gateway service
 """
+
 from samcli.commands.exceptions import UserException
 
 

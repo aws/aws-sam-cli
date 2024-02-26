@@ -1,4 +1,5 @@
 """Test Terraform prepare enrichment"""
+
 from unittest.mock import Mock, call, patch
 from parameterized import parameterized
 from subprocess import CalledProcessError
@@ -1203,10 +1204,6 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
     @parameterized.expand(
         [
             ([CalledProcessError(-2, "python3 --version"), Mock(stdout="Python 3.8.10")], "py3"),
-            ([Mock(stdout="Python 3.7.12"), CalledProcessError(-2, "py3 --version")], "python3"),
-            ([Mock(stdout="Python 3.7")], "python3"),
-            ([Mock(stdout="Python 3.7.0")], "python3"),
-            ([Mock(stdout="Python 3.7.12")], "python3"),
             ([Mock(stdout="Python 3.8")], "python3"),
             ([Mock(stdout="Python 3.8.0")], "python3"),
             ([Mock(stdout="Python 3.8.12")], "python3"),
@@ -1221,7 +1218,7 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
                     Mock(stdout="Python 3.6.10"),
                     Mock(stdout="Python 3.0.10"),
                     Mock(stdout="Python 2.7.10"),
-                    Mock(stdout="Python 3.7.12"),
+                    Mock(stdout="Python 3.12.1"),
                 ],
                 "py",
             ),
@@ -1274,6 +1271,6 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
     def test_get_python_command_name_python_not_found(self, mock_run_side_effect, mock_subprocess_run):
         mock_subprocess_run.side_effect = mock_run_side_effect
 
-        expected_error_msg = "Python not found. Please ensure that python 3.7 or above is installed."
+        expected_error_msg = "Python not found. Please ensure that python 3.12 or above is installed."
         with self.assertRaises(PrepareHookException, msg=expected_error_msg):
             _get_python_command_name()
