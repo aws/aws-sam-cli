@@ -1158,7 +1158,7 @@ class TestRequireContainerReloading(TestCase):
         func = FunctionConfig(
             "name",
             "stack/name",
-            "python3.7",
+            "python3.12",
             "app.handler",
             None,
             None,
@@ -1186,7 +1186,7 @@ class TestRequireContainerReloading(TestCase):
         func = FunctionConfig(
             "name",
             "stack/name",
-            "python3.7",
+            "python3.12",
             "app.handler",
             None,
             None,
@@ -1199,7 +1199,7 @@ class TestRequireContainerReloading(TestCase):
         updated_func = FunctionConfig(
             "name",
             "stack/name",
-            "python3.7",
+            "python3.12",
             "app.handler1",
             None,
             None,
@@ -1214,7 +1214,7 @@ class TestRequireContainerReloading(TestCase):
         func = FunctionConfig(
             "name",
             "stack/name",
-            "python3.7",
+            "python3.12",
             "app.handler",
             "imageUri",
             None,
@@ -1227,7 +1227,7 @@ class TestRequireContainerReloading(TestCase):
         updated_func = FunctionConfig(
             "name",
             "stack/name",
-            "python3.7",
+            "python3.12",
             "app.handler",
             None,
             None,
@@ -1242,7 +1242,7 @@ class TestRequireContainerReloading(TestCase):
         func = FunctionConfig(
             "name",
             "stack/name",
-            "python3.7",
+            "python3.12",
             "app.handler",
             "imageUri",
             None,
@@ -1255,7 +1255,7 @@ class TestRequireContainerReloading(TestCase):
         updated_func = FunctionConfig(
             "name",
             "stack/name",
-            "python3.7",
+            "python3.12",
             "app.handler",
             "imageUri1",
             None,
@@ -1270,7 +1270,7 @@ class TestRequireContainerReloading(TestCase):
         func = FunctionConfig(
             "name",
             "stack/name",
-            "python3.7",
+            "python3.12",
             "app.handler",
             "imageUri",
             {"WorkingDirectory": "/opt"},
@@ -1283,7 +1283,7 @@ class TestRequireContainerReloading(TestCase):
         updated_func = FunctionConfig(
             "name",
             "stack/name",
-            "python3.7",
+            "python3.12",
             "app.handler",
             "imageUri",
             {"WorkingDirectory": "/var"},
@@ -1298,7 +1298,7 @@ class TestRequireContainerReloading(TestCase):
         func = FunctionConfig(
             "name",
             "stack/name",
-            "python3.7",
+            "python3.12",
             "app.handler",
             None,
             None,
@@ -1311,7 +1311,7 @@ class TestRequireContainerReloading(TestCase):
         updated_func = FunctionConfig(
             "name",
             "stack/name",
-            "python3.7",
+            "python3.12",
             "app.handler",
             None,
             None,
@@ -1326,7 +1326,7 @@ class TestRequireContainerReloading(TestCase):
         func = FunctionConfig(
             "name",
             "stack/name",
-            "python3.7",
+            "python3.12",
             "app.handler",
             None,
             None,
@@ -1345,7 +1345,7 @@ class TestRequireContainerReloading(TestCase):
         updated_func = FunctionConfig(
             "name",
             "stack/name",
-            "python3.7",
+            "python3.12",
             "app.handler",
             None,
             None,
@@ -1365,7 +1365,7 @@ class TestRequireContainerReloading(TestCase):
         func = FunctionConfig(
             "name",
             "stack/name",
-            "python3.7",
+            "python3.12",
             "app.handler",
             None,
             None,
@@ -1382,7 +1382,7 @@ class TestRequireContainerReloading(TestCase):
         updated_func = FunctionConfig(
             "name",
             "stack/name",
-            "python3.7",
+            "python3.12",
             "app.handler",
             None,
             None,
@@ -1400,7 +1400,7 @@ class TestRequireContainerReloading(TestCase):
         func = FunctionConfig(
             "name",
             "stack/name",
-            "python3.7",
+            "python3.12",
             "app.handler",
             None,
             None,
@@ -1416,7 +1416,7 @@ class TestRequireContainerReloading(TestCase):
         updated_func = FunctionConfig(
             "name",
             "stack/name",
-            "python3.7",
+            "python3.12",
             "app.handler",
             None,
             None,
@@ -1434,7 +1434,7 @@ class TestRequireContainerReloading(TestCase):
         func = FunctionConfig(
             "name",
             "stack/name",
-            "python3.7",
+            "python3.12",
             "app.handler",
             None,
             None,
@@ -1450,7 +1450,7 @@ class TestRequireContainerReloading(TestCase):
         updated_func = FunctionConfig(
             "name",
             "stack/name",
-            "python3.7",
+            "python3.12",
             "app.handler",
             None,
             None,
@@ -1468,7 +1468,7 @@ class TestRequireContainerReloading(TestCase):
         func = FunctionConfig(
             "name",
             "stack/name",
-            "python3.7",
+            "python3.12",
             "app.handler",
             None,
             None,
@@ -1485,7 +1485,7 @@ class TestRequireContainerReloading(TestCase):
         updated_func = FunctionConfig(
             "name",
             "stack/name",
-            "python3.7",
+            "python3.12",
             "app.handler",
             None,
             None,

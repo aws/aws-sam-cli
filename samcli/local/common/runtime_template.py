@@ -50,7 +50,7 @@ RUNTIME_DEP_TEMPLATE_MAPPING = runtime_dep_template_mapping(list(Runtime))
 #     ],
 #     "dotnet": [
 #         {
-#             "runtimes": ["dotnet6"],
+#             "runtimes": ["dotnet8", "dotnet6"],
 #             "dependency_manager": "cli-package",
 #             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-dotnet"),
 #             "build": True,
@@ -106,85 +106,87 @@ SUPPORTED_DEP_MANAGERS: List[str] = sorted(
 )
 
 INIT_RUNTIMES = init_runtimes(list(Runtime))
+LAMBDA_IMAGES_RUNTIMES_MAP = lambda_images_runtimes_map(list(Runtime))
+LAMBDA_IMAGES_RUNTIMES: List = sorted(list(set(LAMBDA_IMAGES_RUNTIMES_MAP.values())))
+SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING = sam_runtime_to_schemas_code_lang_mapping(list(Runtime))
+PROVIDED_RUNTIMES = provided_runtimes(list(Runtime))
+
 # When adding new Lambda runtimes, please update SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING
 # Runtimes are ordered in alphabetical fashion with reverse version order (latest versions first)
-# INIT_RUNTIMES = [
-#     # dotnet runtimes in descending order
-#     "dotnet6",
-#     "go1.x",
-#     # java runtimes in descending order
-#     "java21",
-#     "java17",
-#     "java11",
-#     "java8.al2",
-#     "java8",
-#     # nodejs runtimes in descending order
-#     "nodejs20.x",
-#     "nodejs18.x",
-#     "nodejs16.x",
-#     # custom runtime in descending order
-#     "provided.al2023",
-#     "provided.al2",
-#     "provided",
-#     # python runtimes in descending order
-#     "python3.12",
-#     "python3.11",
-#     "python3.10",
-#     "python3.9",
-#     "python3.8",
-#     "python3.7",
-#     # ruby runtimes in descending order
-#     "ruby3.2",
-# ]
+INIT_RUNTIMES = [
+    # dotnet runtimes in descending order
+    "dotnet8",
+    "dotnet6",
+    # go runtimes in descending order
+    "go1.x",
+    # java runtimes in descending order
+    "java21",
+    "java17",
+    "java11",
+    "java8.al2",
+    "java8",
+    # nodejs runtimes in descending order
+    "nodejs20.x",
+    "nodejs18.x",
+    "nodejs16.x",
+    # custom runtime in descending order
+    "provided.al2023",
+    "provided.al2",
+    "provided",
+    # python runtimes in descending order
+    "python3.12",
+    "python3.11",
+    "python3.10",
+    "python3.9",
+    "python3.8",
+    # ruby runtimes in descending order
+    "ruby3.2",
+]
 
 
-LAMBDA_IMAGES_RUNTIMES_MAP = lambda_images_runtimes_map(list(Runtime))
-# LAMBDA_IMAGES_RUNTIMES_MAP = {
-#     "dotnet6": "amazon/dotnet6-base",
-#     "go1.x": "amazon/go1.x-base",
-#     "go (provided.al2)": "amazon/go-provided.al2-base",
-#     "go (provided.al2023)": "amazon/go-provided.al2023-base",
-#     "java21": "amazon/java21-base",
-#     "java17": "amazon/java17-base",
-#     "java11": "amazon/java11-base",
-#     "java8.al2": "amazon/java8.al2-base",
-#     "java8": "amazon/java8-base",
-#     "nodejs20.x": "amazon/nodejs20.x-base",
-#     "nodejs18.x": "amazon/nodejs18.x-base",
-#     "nodejs16.x": "amazon/nodejs16.x-base",
-#     "python3.12": "amazon/python3.12-base",
-#     "python3.11": "amazon/python3.11-base",
-#     "python3.10": "amazon/python3.10-base",
-#     "python3.9": "amazon/python3.9-base",
-#     "python3.8": "amazon/python3.8-base",
-#     "python3.7": "amazon/python3.7-base",
-#     "ruby3.2": "amazon/ruby3.2-base",
-# }
+LAMBDA_IMAGES_RUNTIMES_MAP = {
+    "dotnet8": "amazon/dotnet8-base",
+    "dotnet6": "amazon/dotnet6-base",
+    "go1.x": "amazon/go1.x-base",
+    "go (provided.al2)": "amazon/go-provided.al2-base",
+    "go (provided.al2023)": "amazon/go-provided.al2023-base",
+    "java21": "amazon/java21-base",
+    "java17": "amazon/java17-base",
+    "java11": "amazon/java11-base",
+    "java8.al2": "amazon/java8.al2-base",
+    "java8": "amazon/java8-base",
+    "nodejs20.x": "amazon/nodejs20.x-base",
+    "nodejs18.x": "amazon/nodejs18.x-base",
+    "nodejs16.x": "amazon/nodejs16.x-base",
+    "python3.12": "amazon/python3.12-base",
+    "python3.11": "amazon/python3.11-base",
+    "python3.10": "amazon/python3.10-base",
+    "python3.9": "amazon/python3.9-base",
+    "python3.8": "amazon/python3.8-base",
+    "ruby3.2": "amazon/ruby3.2-base",
+}
 
-LAMBDA_IMAGES_RUNTIMES: List = sorted(list(set(LAMBDA_IMAGES_RUNTIMES_MAP.values())))
 
-SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING = sam_runtime_to_schemas_code_lang_mapping(list(Runtime))
 # Schemas Code lang is a MINIMUM supported version
 # - this is why later Lambda runtimes can be mapped to earlier Schemas Code Languages
 # event schema registry supports only java8, python3.6, dotnet6, and Go1 for code binding
-# SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING = {
-#     "java8": "Java8",
-#     "java8.al2": "Java8",
-#     "java11": "Java8",
-#     "java17": "Java8",
-#     "java21": "Java8",
-#     "python3.7": "Python36",
-#     "python3.8": "Python36",
-#     "python3.9": "Python36",
-#     "python3.10": "Python36",
-#     "python3.11": "Python36",
-#     "python3.12": "Python36",
-#     "dotnet6": "dotnet6",
-#     "go1.x": "Go1",
-# }
+SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING = {
+    "java8": "Java8",
+    "java8.al2": "Java8",
+    "java11": "Java8",
+    "java17": "Java8",
+    "java21": "Java8",
+    "python3.8": "Python36",
+    "python3.9": "Python36",
+    "python3.10": "Python36",
+    "python3.11": "Python36",
+    "python3.12": "Python36",
+    "dotnet6": "dotnet6",
+    "dotnet8": "dotnet6",
+    "go1.x": "Go1",
+}
 
-PROVIDED_RUNTIMES = provided_runtimes(list(Runtime))
-# PROVIDED_RUNTIMES = ["provided.al2023", "provided.al2", "provided"]
+PROVIDED_RUNTIMES = ["provided.al2023", "provided.al2", "provided"]
 
 
 def is_custom_runtime(runtime):

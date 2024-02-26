@@ -106,7 +106,7 @@ Resources:
           Resource:
             Fn::Sub: arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/deployment_account_id
         Version: '2012-10-17'
-      Runtime: python3.7
+      Runtime: python3.11
       Timeout: 300
     Type: AWS::Serverless::Function
   BootstrapTemplatesBucket:
@@ -452,7 +452,7 @@ Resources:
         Fn::GetAtt:
         - LambdaRole
         - Arn
-      Runtime: python3.7
+      Runtime: python3.11
       Timeout: 300
     Type: AWS::Serverless::Function
   CrossRegionBucketHandler:
@@ -480,7 +480,7 @@ Resources:
           - Fn::Sub: arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/shared_modules_bucket
           - Fn::Sub: arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/deployment_account_region
         Version: '2012-10-17'
-      Runtime: python3.7
+      Runtime: python3.11
       Timeout: 300
     Type: AWS::Serverless::Function
   DeploymentAccount:
@@ -544,7 +544,7 @@ Resources:
         Fn::GetAtt:
         - LambdaRole
         - Arn
-      Runtime: python3.7
+      Runtime: python3.11
       Timeout: 300
     Type: AWS::Serverless::Function
   InitialCommit:
@@ -593,7 +593,7 @@ Resources:
             - CodeCommitRepository
             - Arn
         Version: '2012-10-17'
-      Runtime: python3.7
+      Runtime: python3.11
       Timeout: 300
     Type: AWS::Serverless::Function
   LambdaLayerVersion:
@@ -707,7 +707,7 @@ Resources:
         Fn::GetAtt:
         - LambdaRole
         - Arn
-      Runtime: python3.7
+      Runtime: python3.11
       Timeout: 900
     Type: AWS::Serverless::Function
   Organization:
@@ -738,7 +738,7 @@ Resources:
           Effect: Allow
           Resource: arn:aws:iam::*:role/aws-service-role/*
         Version: '2012-10-17'
-      Runtime: python3.7
+      Runtime: python3.11
       Timeout: 300
     Type: AWS::Serverless::Function
   OrganizationUnitHandler:
@@ -758,7 +758,7 @@ Resources:
           Effect: Allow
           Resource: '*'
         Version: '2012-10-17'
-      Runtime: python3.7
+      Runtime: python3.11
       Timeout: 300
     Type: AWS::Serverless::Function
   RoleStackDeploymentFunction:
@@ -786,7 +786,7 @@ Resources:
         Fn::GetAtt:
         - LambdaRole
         - Arn
-      Runtime: python3.7
+      Runtime: python3.11
       Timeout: 300
     Type: AWS::Serverless::Function
   SharedModulesBucket:
@@ -858,7 +858,7 @@ Resources:
         Fn::GetAtt:
         - LambdaRole
         - Arn
-      Runtime: python3.7
+      Runtime: python3.11
       Timeout: 300
     Type: AWS::Serverless::Function
   StateMachine:
@@ -1012,7 +1012,7 @@ Resources:
         Fn::GetAtt:
         - LambdaRole
         - Arn
-      Runtime: python3.7
+      Runtime: python3.11
       Timeout: 300
     Type: AWS::Serverless::Function
 Transform: AWS::Serverless-2016-10-31

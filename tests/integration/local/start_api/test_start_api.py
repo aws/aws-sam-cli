@@ -1,6 +1,7 @@
 import base64
 import shutil
 import signal
+from unittest import skipIf
 import uuid
 import random
 from pathlib import Path
@@ -17,6 +18,7 @@ from parameterized import parameterized_class, parameterized
 
 from samcli.commands.local.cli_common.invoke_context import ContainersInitializationMode
 from samcli.local.apigw.route import Route
+from tests.testing_utils import IS_WINDOWS
 from .start_api_integ_base import StartApiIntegBaseClass, WritableStartApiIntegBaseClass
 from ..invoke.layer_utils import LayerUtils
 
@@ -2161,6 +2163,7 @@ class TestWarmContainers(TestWarmContainersBaseClass):
         self.assertEqual(response.json(), {"hello": "world"})
 
 
+@skipIf(IS_WINDOWS, "SIGTERM interrupt doesn't exist on Windows")
 class TestWarmContainersHandlesSigTerm(TestWarmContainersBaseClass):
     template_path = "/testdata/start_api/template-warm-containers.yaml"
     container_mode = ContainersInitializationMode.EAGER.value
@@ -2475,7 +2478,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.7
+      Runtime: python3.11
       CodeUri: .
       Timeout: 600
       Events:
@@ -2493,7 +2496,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main2.handler
-      Runtime: python3.7
+      Runtime: python3.11
       CodeUri: dir
       Timeout: 600
       Events:
@@ -2573,7 +2576,7 @@ def handler(event, context):
 
 def handler(event, context):
     return {"statusCode": 200, "body": json.dumps({"hello": "world2"})}"""
-    docker_file_content = """FROM public.ecr.aws/lambda/python:3.7
+    docker_file_content = """FROM public.ecr.aws/lambda/python:3.11
 COPY main.py ./"""
     container_mode = ContainersInitializationMode.EAGER.value
     build_before_invoke = True
@@ -2665,7 +2668,7 @@ def handler(event, context):
 
 def handler(event, context):
     return {"statusCode": 200, "body": json.dumps({"hello": "world2"})}"""
-    docker_file_content = """FROM public.ecr.aws/lambda/python:3.7
+    docker_file_content = """FROM public.ecr.aws/lambda/python:3.11
 COPY main.py ./"""
     container_mode = ContainersInitializationMode.EAGER.value
     build_before_invoke = True
@@ -2780,7 +2783,7 @@ def handler(event, context):
 
 def handler(event, context):
     return {"statusCode": 200, "body": json.dumps({"hello": "world2"})}"""
-    docker_file_content = """FROM public.ecr.aws/lambda/python:3.7
+    docker_file_content = """FROM public.ecr.aws/lambda/python:3.11
 COPY main.py ./"""
     container_mode = ContainersInitializationMode.LAZY.value
     build_before_invoke = True
@@ -2881,7 +2884,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.7
+      Runtime: python3.11
       CodeUri: .
       Timeout: 600
       Events:
@@ -2899,7 +2902,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main2.handler
-      Runtime: python3.7
+      Runtime: python3.11
       CodeUri: dir
       Timeout: 600
       Events:
@@ -3007,7 +3010,7 @@ def handler(event, context):
 
 def handler(event, context):
     return {"statusCode": 200, "body": json.dumps({"hello": "world2"})}"""
-    docker_file_content = """FROM public.ecr.aws/lambda/python:3.7
+    docker_file_content = """FROM public.ecr.aws/lambda/python:3.11
 COPY main.py ./"""
     container_mode = ContainersInitializationMode.LAZY.value
     build_before_invoke = True
