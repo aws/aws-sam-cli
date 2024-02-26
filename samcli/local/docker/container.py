@@ -18,8 +18,10 @@ from typing import Dict, Iterator, Optional, Tuple, Union
 import docker
 import requests
 from docker.errors import (
-    NotFound as DockerNetworkNotFound,
     APIError as DockerAPIError,
+)
+from docker.errors import (
+    NotFound as DockerNetworkNotFound,
 )
 
 from samcli.commands.exceptions import DockerContainerCreationFailedException

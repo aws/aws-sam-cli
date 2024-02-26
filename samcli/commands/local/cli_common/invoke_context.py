@@ -15,12 +15,12 @@ from samcli.commands.exceptions import ContainersInitializationException
 from samcli.commands.local.cli_common.user_exceptions import DebugContextException, InvokeContextException
 from samcli.commands.local.lib.debug_context import DebugContext
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
+from samcli.lib.lint import get_lint_matches
 from samcli.lib.providers.provider import Function, Stack
 from samcli.lib.providers.sam_function_provider import RefreshableSamFunctionProvider, SamFunctionProvider
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils import osutils
 from samcli.lib.utils.async_utils import AsyncContext
-from samcli.lib.lint import get_lint_matches
 from samcli.lib.utils.packagetype import ZIP
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker.exceptions import PortAlreadyInUse
