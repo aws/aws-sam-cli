@@ -12,10 +12,12 @@ def get_lint_matches(template: str, debug: Optional[bool] = None, region: Option
 
     Parameters
     -----------
-    ctx
-        Click context object
     template
         Path to the template file
+    debug
+        Enable debug mode
+    region
+        AWS region to run against
 
     """
 

@@ -15,12 +15,12 @@ from samcli.commands.exceptions import ContainersInitializationException
 from samcli.commands.local.cli_common.user_exceptions import DebugContextException, InvokeContextException
 from samcli.commands.local.lib.debug_context import DebugContext
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
-from samcli.commands.validate.validate import do_cli as run_sam_validate
 from samcli.lib.providers.provider import Function, Stack
 from samcli.lib.providers.sam_function_provider import RefreshableSamFunctionProvider, SamFunctionProvider
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils import osutils
 from samcli.lib.utils.async_utils import AsyncContext
+from samcli.lib.lint import get_lint_matches
 from samcli.lib.utils.packagetype import ZIP
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker.exceptions import PortAlreadyInUse
@@ -226,8 +226,9 @@ class InvokeContext:
         self._stacks = self._get_stacks()
 
         if self._ctx:
-            LOG.info("Validating template %s\n", self._template_file)
-            run_sam_validate(ctx=self._ctx, template=self._template_file, lint=True)
+            _, matches_output = get_lint_matches(self._template_file, self._ctx.debug, self._aws_region)
+            if matches_output:
+                LOG.warning("Lint Error found, containter creation might fail: %s", matches_output)
 
         _function_providers_class: Dict[ContainersMode, Type[SamFunctionProvider]] = {
             ContainersMode.WARM: RefreshableSamFunctionProvider,

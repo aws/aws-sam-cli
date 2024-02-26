@@ -17,8 +17,12 @@ from typing import Dict, Iterator, Optional, Tuple, Union
 
 import docker
 import requests
-from docker.errors import NotFound as DockerNetworkNotFound
+from docker.errors import (
+    NotFound as DockerNetworkNotFound,
+    APIError as DockerAPIError,
+)
 
+from samcli.commands.exceptions import DockerContainerCreationFailedException
 from samcli.lib.constants import DOCKER_MIN_API_VERSION
 from samcli.lib.utils.retry import retry
 from samcli.lib.utils.stream_writer import StreamWriter
@@ -227,7 +231,10 @@ class Container:
         if self._extra_hosts:
             kwargs["extra_hosts"] = self._extra_hosts
 
-        real_container = self.docker_client.containers.create(self._image, **kwargs)
+        try:
+            real_container = self.docker_client.containers.create(self._image, **kwargs)
+        except DockerAPIError as ex:
+            raise DockerContainerCreationFailedException(str(ex))
         self.id = real_container.id
 
         self._logs_thread = None

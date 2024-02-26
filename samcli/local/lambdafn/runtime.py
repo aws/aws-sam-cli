@@ -11,6 +11,7 @@ import tempfile
 import threading
 from typing import Dict, Optional, Union
 
+from samcli.commands.exceptions import DockerContainerCreationFailedException
 from samcli.lib.telemetry.metric import capture_parameter
 from samcli.lib.utils.file_observer import LambdaFunctionObserver
 from samcli.lib.utils.packagetype import ZIP
@@ -111,6 +112,10 @@ class LambdaRuntime:
             # create the container.
             self._container_manager.create(container)
             return container
+
+        except DockerContainerCreationFailedException:
+            LOG.warning("Failed to create container for function %s", function_config.full_path)
+            raise
 
         except KeyboardInterrupt:
             LOG.debug("Ctrl+C was pressed. Aborting container creation")
