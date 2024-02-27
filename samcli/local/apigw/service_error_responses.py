@@ -106,7 +106,7 @@ class ServiceErrorResponses:
     def container_creation_failed(message):
         """
         Constuct a Flask Response for when container creation fails for a Lambda Function
-        
+
         :return: a Flask Response
         """
         response_data = jsonify({"message": message})
