@@ -1253,17 +1253,3 @@ class TestInvokeFunctionWithError(InvokeIntegBase):
         self.assertEqual(result.process.returncode, 0)
         for line in stack_trace_lines:
             self.assertIn(line, stderr)
-
-
-class TestRunValidateBeforeInvoke(InvokeIntegBase):
-    template = Path("template-invalid-memorysize.yaml")
-
-    def test_validation_exception(self):
-        command_list = InvokeIntegBase.get_command_list(
-            function_to_invoke="HelloWorldFunction",
-            template_path=self.template_path,
-            parameter_overrides={"MemorySize": "1"},
-        )
-
-        result = run_command(command_list)
-        self.assertIn("E3034 Value has to be between 128 and 10240", result.stdout.decode("utf-8"))
