@@ -10,6 +10,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, TextIO, Tuple, Type, cast
 
+from samcli.cli.main import Context
 from samcli.commands._utils.template import TemplateFailedParsingException, TemplateNotFoundException
 from samcli.commands.exceptions import ContainersInitializationException
 from samcli.commands.local.cli_common.user_exceptions import DebugContextException, InvokeContextException
@@ -101,7 +102,7 @@ class InvokeContext:
         container_host_interface: Optional[str] = None,
         add_host: Optional[dict] = None,
         invoke_images: Optional[str] = None,
-        ctx: Optional[dict] = None,
+        ctx: Optional[Context] = None,
     ) -> None:
         """
         Initialize the context
