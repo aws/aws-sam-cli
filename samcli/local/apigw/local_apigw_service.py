@@ -13,6 +13,7 @@ from werkzeug.datastructures import Headers
 from werkzeug.routing import BaseConverter
 from werkzeug.serving import WSGIRequestHandler
 
+from samcli.commands.exceptions import DockerContainerCreationFailedException
 from samcli.commands.local.lib.exceptions import UnsupportedInlineCodeError
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
 from samcli.lib.providers.provider import Api, Cors
@@ -730,6 +731,10 @@ class LocalApigwService(BaseLocalService):
             )
         except LambdaResponseParseException:
             endpoint_service_error = ServiceErrorResponses.lambda_body_failure_response()
+        except DockerContainerCreationFailedException:
+            endpoint_service_error = ServiceErrorResponses.container_creation_failed(
+                "Container creation failed. Check template for potential issue."
+            )
 
         if endpoint_service_error:
             return endpoint_service_error
