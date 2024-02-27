@@ -1,8 +1,27 @@
+import logging
 import os
 from dataclasses import dataclass, field
 from enum import Enum, unique
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, cast
+from typing import Dict, List, Optional, Tuple, cast, Callable
+
+from samcli.lib.build.workflows import (
+    CONFIG,
+    PYTHON_PIP_CONFIG,
+    NODEJS_NPM_CONFIG,
+    RUBY_BUNDLER_CONFIG,
+    JAVA_GRADLE_CONFIG,
+    JAVA_KOTLIN_GRADLE_CONFIG,
+    JAVA_MAVEN_CONFIG,
+    DOTNET_CLIPACKAGE_CONFIG,
+    GO_MOD_CONFIG,
+    PROVIDED_MAKE_CONFIG,
+    NODEJS_NPM_ESBUILD_CONFIG,
+    RUST_CARGO_LAMBDA_CONFIG,
+)
+
+
+LOG = logging.getLogger(__name__)
 
 _init_path = Path(os.path.dirname(__file__)).parent.parent
 _templates = _init_path / "lib" / "init" / "templates"
@@ -18,6 +37,8 @@ class Architecture(Enum):
 @dataclass
 class FamilyDataMixin:
     key: str
+    layer_subfolder: Optional[str]
+    workflow_config: Callable[[str, str], CONFIG]
     dep_manager: List[Tuple[str, Path]] = field(default_factory=list)  # (package manager, path to local init template)
     build: bool = True
     eb_code_binding: Optional[str] = None  # possible values are "Java8", "Python36", "Go1", "TypeScript3"
@@ -28,11 +49,13 @@ class FamilyDataMixin:
 class Family(FamilyDataMixin, Enum):
     DOTNET = (
         "dotnet",
+        "dotnet",
         [("cli-package", _templates / "cookiecutter-aws-sam-hello-dotnet")],
         True,
     )
-    GO = ("go", [("mod", _templates / "cookiecutter-aws-sam-hello-golang")], False, "Go1")
+    GO = "go", None, [("mod", _templates / "cookiecutter-aws-sam-hello-golang")], False, "Go1"
     JAVA = (
+        "java",
         "java",
         [
             ("maven", _templates / "cookiecutter-aws-sam-hello-java-maven"),
@@ -43,43 +66,19 @@ class Family(FamilyDataMixin, Enum):
     )
     NODEJS = (
         "nodejs",
+        "nodejs",
         [("npm", _templates / "cookiecutter-aws-sam-hello-nodejs")],
         True,
     )
-    PROVIDED = (
-        "provided",
-        [],
-        False,
-        None,
-        False,
-    )
+    PROVIDED = "provided", "", [], False, None, False  # type: ignore [var-annotated]
     PYTHON = (
+        "python",
         "python",
         [("pip", _templates / "cookiecutter-aws-sam-hello-python")],
         True,
         "Python36",
     )
-    RUBY = ("ruby", [("bundler", _templates / "cookiecutter-aws-sam-hello-ruby")])
-
-    # def __ge__(self, other):
-    #     if self.__class__ is other.__class__:
-    #         return self.key >= other.key
-    #     return NotImplemented
-
-    # def __gt__(self, other):
-    #     if self.__class__ is other.__class__:
-    #         return self.key > other.key
-    #     return NotImplemented
-
-    # def __le__(self, other):
-    #     if self.__class__ is other.__class__:
-    #         return self.key <= other.key
-    #     return NotImplemented
-
-    # def __lt__(self, other):
-    #     if self.__class__ is other.__class__:
-    #         return self.key < other.key
-    #     return NotImplemented
+    RUBY = "ruby", "ruby/lib", [("bundler", _templates / "cookiecutter-aws-sam-hello-ruby")]
 
 
 @dataclass
@@ -94,7 +93,6 @@ class RuntimeDataMixin:
     archs: List[Architecture] = field(default_factory=list)
     is_lambda_enum: bool = True
     # build_workflow: WorkflowConfig
-    # layer_subfolder: str
     # workflow_selector: ???
 
     # debug settings - samcli/local/docker/lambda_debug_settings.py
@@ -109,6 +107,10 @@ class RuntimeDataMixin:
     # is local manifest useful at all?
     def archs_as_list_of_str(self) -> List[str]:
         return [a.value for a in self.archs]
+    
+    @property
+    def is_provided(self):
+        return self.family == Family.PROVIDED
 
     def to_local_init_manifest(self) -> List[Dict]:
         """
@@ -137,39 +139,12 @@ class RuntimeDataMixin:
 
 class RuntimeEnumBase(RuntimeDataMixin, Enum):
     @classmethod
-    def from_str(cls, runtime: str) -> "RuntimeEnumBase":
-        for item in cls:
-            if item.key == runtime:
-                return item
+    def from_str(cls, runtime: Optional[str]) -> "RuntimeEnumBase":
+        if runtime:
+            for item in cls:
+                if item.key == runtime:
+                    return item
         raise ValueError("Unknown runtime %s", runtime)
-
-    # def __ge__(self, other):
-    #     if self.__class__ is other.__class__:
-    #         if self.family == other.family:
-    #             return self.key >= other.key
-    #         return self.family >= other.family
-    #     return NotImplemented
-
-    # def __gt__(self, other):
-    #     if self.__class__ is other.__class__:
-    #         if self.family == other.family:
-    #             return self.key > other.key
-    #         return self.family > other.family
-    #     return NotImplemented
-
-    # def __le__(self, other):
-    #     if self.__class__ is other.__class__:
-    #         if self.family == other.family:
-    #             return self.key <= other.key
-    #         return self.family <= other.family
-    #     return NotImplemented
-
-    # def __lt__(self, other):
-    #     if self.__class__ is other.__class__:
-    #         if self.family == other.family:
-    #             return self.key < other.key
-    #         return self.family < other.family
-    #     return NotImplemented
 
 
 @unique
@@ -333,7 +308,7 @@ class DeprecatedRuntime(RuntimeEnumBase):
 
 
 def runtime_dep_template_mapping(runtimes: List[RuntimeDataMixin]) -> dict:
-    ret = dict()
+    ret: dict = {}
     for runtime in runtimes:
         family = runtime.family
         if not family.include_in_runtime_dep_template_mapping:
@@ -369,3 +344,9 @@ def sam_runtime_to_schemas_code_lang_mapping(runtimes: List[RuntimeDataMixin]) -
 
 def provided_runtimes(runtimes: List[RuntimeDataMixin]) -> List[str]:
     return [r.key for r in runtimes if r.family == Family.PROVIDED and r.is_lambda_enum]
+
+    
+def layer_subfolder_mapping(runtimes: List[RuntimeDataMixin]) -> Dict[str, str]:
+    return {
+        r.key: r.family.layer_subfolder for r in runtimes if not r.is_provided and r.family.layer_subfolder is not None
+    }

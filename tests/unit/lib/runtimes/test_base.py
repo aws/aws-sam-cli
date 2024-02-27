@@ -15,34 +15,41 @@ from samcli.lib.runtimes.base import (
     lambda_images_runtimes_map,
     sam_runtime_to_schemas_code_lang_mapping,
     provided_runtimes,
+    layer_subfolder_mapping,
 )
 from samcli.local.common.runtime_template import RUNTIME_DEP_TEMPLATE_MAPPING
 
 
 class TestRuntimeDataMixin(TestCase):
-    @parameterized.expand(
-        [
-            (
-                RuntimeDataMixin(
-                    key="x", family=Family.DOTNET, lambda_image=None, archs=[Architecture.X86_64, Architecture.ARM64]
-                ),
-                ["x86_64", "arm64"],
+    @parameterized.expand([
+        (
+            RuntimeDataMixin(
+                key="x", family=Family.DOTNET, lambda_image=None, archs=[Architecture.X86_64, Architecture.ARM64]
             ),
-            (
-                RuntimeDataMixin(
-                    key="x1", family=Family.DOTNET, lambda_image=None, archs=[Architecture.ARM64, Architecture.X86_64]
-                ),
-                ["arm64", "x86_64"],
+            ["x86_64", "arm64"],
+        ),
+        (
+            RuntimeDataMixin(
+                key="x1", family=Family.DOTNET, lambda_image=None, archs=[Architecture.ARM64, Architecture.X86_64]
             ),
-            (
-                RuntimeDataMixin(key="y", family=Family.DOTNET, lambda_image=None, archs=[Architecture.X86_64]),
-                ["x86_64"],
-            ),
-            (RuntimeDataMixin(key="z", family=Family.DOTNET, lambda_image=None, archs=[Architecture.ARM64]), ["arm64"]),
-        ]
-    )
-    def test_archs_as_list_of_str(self, runtime: RuntimeDataMixin, expected: List[str]):
-        self.assertEqual(runtime.archs_as_list_of_str(), expected)
+            ["arm64", "x86_64"],
+        ),
+        (
+            RuntimeDataMixin(key="y", family=Family.DOTNET, lambda_image=None, archs=[Architecture.X86_64]),
+            ["x86_64"],
+        ),
+        (RuntimeDataMixin(key="z", family=Family.DOTNET, lambda_image=None, archs=[Architecture.ARM64]), ["arm64"]),
+    ])
+    def test_archs_as_list_of_str(self, runtime, expect):
+        self.assertEqual(runtime.archs_as_list_of_str(), expect)
+
+    @parameterized.expand([
+        (RuntimeDataMixin(key="x", family=Family.DOTNET, lambda_image=None), False),
+        (RuntimeDataMixin(key="x", family=Family.PYTHON, lambda_image=None), False),
+        (RuntimeDataMixin(key="x", family=Family.PROVIDED, lambda_image=None), True),
+    ])
+    def test_is_provided(self, runtime, expect):
+        self.assertEqual(runtime.is_provided, expect)
 
 
 @unique
@@ -55,14 +62,22 @@ class MockRuntime(RuntimeEnumBase):
     p = ("p", Family.PROVIDED, "image/p", [Architecture.X86_64, Architecture.ARM64])
     pg = ("go (provided.al2)", Family.PROVIDED, "image/go", [Architecture.X86_64, Architecture.ARM64], False)
 
+@unique
+class MockRuntimeDifferentOrder(RuntimeEnumBase):
+    b = ("b1", Family.DOTNET, "image/b1", [Architecture.X86_64, Architecture.ARM64])
+    a = ("a1", Family.DOTNET, "image/a1", [Architecture.X86_64])
+    j = ("j", Family.JAVA, "image/j", [Architecture.X86_64, Architecture.ARM64])
+    c38 = ("c.3.8", Family.PYTHON, "image/c.3.8", [Architecture.X86_64, Architecture.ARM64])
+    c39 = ("c.3.9", Family.PYTHON, "image/c.3.9", [Architecture.X86_64, Architecture.ARM64])
+    p = ("p", Family.PROVIDED, "image/p", [Architecture.X86_64, Architecture.ARM64])
+    pg = ("go (provided.al2)", Family.PROVIDED, "image/go", [Architecture.X86_64, Architecture.ARM64], False)
+
 
 class TestFuncs(TestCase):
 
-    def test_runtime_dep_template_mapping(self):
-        self.maxDiff = None
-        r = runtime_dep_template_mapping(list(MockRuntime))
-        self.assertDictEqual(
-            r,
+    @parameterized.expand([
+        (
+            MockRuntime,
             {
                 "dotnet": [
                     {
@@ -95,7 +110,48 @@ class TestFuncs(TestCase):
                     }
                 ],
             },
-        )
+        ),
+        (
+            MockRuntimeDifferentOrder,
+            {
+                "dotnet": [
+                    {
+                        "runtimes": ["b1", "a1"],
+                        "dependency_manager": "cli-package",
+                        "init_location": str(Family.DOTNET.dep_manager[0][1]),
+                        "build": True,
+                    }
+                ],
+                "java": [
+                    {
+                        "runtimes": ["j"],
+                        "dependency_manager": "maven",
+                        "init_location": str(Family.JAVA.dep_manager[0][1]),
+                        "build": True,
+                    },
+                    {
+                        "runtimes": ["j"],
+                        "dependency_manager": "gradle",
+                        "init_location": str(Family.JAVA.dep_manager[1][1]),
+                        "build": True,
+                    },
+                ],
+                "python": [
+                    {
+                        "runtimes": ["c.3.8", "c.3.9"],
+                        "dependency_manager": "pip",
+                        "init_location": str(Family.PYTHON.dep_manager[0][1]),
+                        "build": True,
+                    }
+                ],
+            },
+        ),
+        
+    ])
+    def test_runtime_dep_template_mapping(self, cls, expect):
+        self.maxDiff = None
+        r = runtime_dep_template_mapping(list(cls))
+        self.assertDictEqual(r, expect)
 
     def test_init_runtimes(self):
         r = init_runtimes(list(MockRuntime))
@@ -116,6 +172,7 @@ class TestFuncs(TestCase):
             },
         )
 
+
     def test_sam_runtime_to_schemas_code_lang_mapping(self):
         r = sam_runtime_to_schemas_code_lang_mapping(list(MockRuntime))
         self.assertEqual(
@@ -131,7 +188,15 @@ class TestFuncs(TestCase):
         r = provided_runtimes(list(MockRuntime))
         self.assertEqual(r, ["p"])
 
-    # def test_m(self):
-    #     self.maxDiff = None
-    #     r = runtime_dep_template_mapping(list(Runtime))
-    #     self.assertEqual(r, RUNTIME_DEP_TEMPLATE_MAPPING)
+    def test_layer_subfolder_mapping(self):
+        r = layer_subfolder_mapping(list(MockRuntime))
+        self.assertEqual(
+            r,
+            {
+                "a1": "dotnet",
+                "b1": "dotnet",
+                "c.3.8": "python",
+                "c.3.9": "python",
+                "j": "java",
+            }
+        )
