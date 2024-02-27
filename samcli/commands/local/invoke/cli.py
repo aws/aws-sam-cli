@@ -16,7 +16,11 @@ from samcli.commands.local.invoke.core.command import InvokeCommand
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.version_checker import check_newer_version
-from samcli.local.docker.exceptions import ContainerNotStartableException, PortAlreadyInUse
+from samcli.local.docker.exceptions import (
+    ContainerNotStartableException,
+    DockerContainerCreationFailedException,
+    PortAlreadyInUse,
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -221,7 +225,7 @@ def do_cli(  # pylint: disable=R0914
         PortAlreadyInUse,
     ) as ex:
         raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
-    except DockerImagePullFailedException as ex:
+    except (DockerImagePullFailedException, DockerContainerCreationFailedException) as ex:
         raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
     except ContainerNotStartableException as ex:
         raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex

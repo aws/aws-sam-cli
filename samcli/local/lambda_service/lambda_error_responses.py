@@ -206,7 +206,7 @@ class LambdaErrorResponses:
         )
 
     @staticmethod
-    def container_creation_failed(*args):
+    def container_creation_failed(message):
         """
         Creates a Container Creation Failed response
 
@@ -224,7 +224,7 @@ class LambdaErrorResponses:
         return BaseLocalService.service_response(
             LambdaErrorResponses._construct_error_response_body(
                 LambdaErrorResponses.LOCAL_SERVICE_ERROR,
-                "Container creation failed. Check template for potential issue.",
+                message,
             ),
             LambdaErrorResponses._construct_headers(error_type),
             status_code,

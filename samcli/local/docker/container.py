@@ -239,7 +239,9 @@ class Container:
         try:
             real_container = self.docker_client.containers.create(self._image, **kwargs)
         except DockerAPIError as ex:
-            raise DockerContainerCreationFailedException(str(ex))
+            raise DockerContainerCreationFailedException(
+                f"Container creation failed: {ex.explanation}, check template for potential issue"
+            )
         self.id = real_container.id
 
         self._logs_thread = None
