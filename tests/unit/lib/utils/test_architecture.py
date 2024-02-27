@@ -57,9 +57,9 @@ class TestArchitecture(TestCase):
 
     @parameterized.expand(
         [
-            ("java8", ARM64),
-            ("go1.x", ARM64),
-            ("provided", ARM64),
+            ("java8", Architecture.ARM64.value),
+            ("go1.x", Architecture.ARM64.value),
+            ("provided", Architecture.ARM64.value),
         ]
     )
     def test_must_raise_for_unsupported_runtime_architecture(self, runtime, arch):

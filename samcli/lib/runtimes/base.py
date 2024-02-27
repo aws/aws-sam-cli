@@ -3,23 +3,7 @@ import os
 from dataclasses import dataclass, field
 from enum import Enum, unique
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, cast, Callable
-
-from samcli.lib.build.workflows import (
-    CONFIG,
-    PYTHON_PIP_CONFIG,
-    NODEJS_NPM_CONFIG,
-    RUBY_BUNDLER_CONFIG,
-    JAVA_GRADLE_CONFIG,
-    JAVA_KOTLIN_GRADLE_CONFIG,
-    JAVA_MAVEN_CONFIG,
-    DOTNET_CLIPACKAGE_CONFIG,
-    GO_MOD_CONFIG,
-    PROVIDED_MAKE_CONFIG,
-    NODEJS_NPM_ESBUILD_CONFIG,
-    RUST_CARGO_LAMBDA_CONFIG,
-)
-
+from typing import Dict, List, Optional, Tuple, cast
 
 LOG = logging.getLogger(__name__)
 
@@ -38,7 +22,6 @@ class Architecture(Enum):
 class FamilyDataMixin:
     key: str
     layer_subfolder: Optional[str]
-    workflow_config: Callable[[str, str], CONFIG]
     dep_manager: List[Tuple[str, Path]] = field(default_factory=list)  # (package manager, path to local init template)
     build: bool = True
     eb_code_binding: Optional[str] = None  # possible values are "Java8", "Python36", "Go1", "TypeScript3"

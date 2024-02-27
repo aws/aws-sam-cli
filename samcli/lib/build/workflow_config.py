@@ -21,6 +21,7 @@ from samcli.lib.build.workflows import (
     RUST_CARGO_LAMBDA_CONFIG,
 )
 from samcli.lib.runtimes.base import (
+    RuntimeDataMixin,
     Runtime,
     DeprecatedRuntime,
     Family,
@@ -90,7 +91,9 @@ def get_selector(
 
 
 def get_layer_subfolder(build_workflow: str) -> str:
-    subfolders_by_runtime = layer_subfolder_mapping(list(Runtime) + list(DeprecatedRuntime))
+    subfolders_by_runtime = layer_subfolder_mapping(
+        cast(List[RuntimeDataMixin], list(Runtime) + list(DeprecatedRuntime))
+    )
     # User is responsible for creating subfolder in these workflows
     subfolders_by_runtime["makefile"] = ""
 
