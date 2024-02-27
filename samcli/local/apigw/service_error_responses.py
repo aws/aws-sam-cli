@@ -103,11 +103,11 @@ class ServiceErrorResponses:
         return make_response(response_data, ServiceErrorResponses.HTTP_STATUS_CODE_403)
 
     @staticmethod
-    def container_creation_failed(message):
+    def container_creation_failed(*args):
         """
         Constuct a Flask Response for when container creation fails for a Lambda Function
 
         :return: a Flask Response
         """
-        response_data = jsonify({"message": message})
+        response_data = jsonify({"message": "Container creation failed. Check template for potential issue."})
         return make_response(response_data, ServiceErrorResponses.HTTP_STATUS_CODE_501)

@@ -7,6 +7,7 @@ import logging
 from flask import Flask, request
 from werkzeug.routing import BaseConverter
 
+from samcli.commands.exceptions import DockerContainerCreationFailedException
 from samcli.commands.local.lib.exceptions import UnsupportedInlineCodeError
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.lambdafn.exceptions import FunctionNotFound
@@ -178,6 +179,8 @@ class LocalLambdaInvokeService(BaseLocalService):
             return LambdaErrorResponses.not_implemented_locally(
                 "Inline code is not supported for sam local commands. Please write your code in a separate file."
             )
+        except DockerContainerCreationFailedException:
+            return LambdaErrorResponses.container_creation_failed()
 
         lambda_response, is_lambda_user_error_response = LambdaOutputParser.get_lambda_output(
             stdout_stream_string, stdout_stream_bytes

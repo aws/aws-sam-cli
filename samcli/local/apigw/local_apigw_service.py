@@ -732,9 +732,7 @@ class LocalApigwService(BaseLocalService):
         except LambdaResponseParseException:
             endpoint_service_error = ServiceErrorResponses.lambda_body_failure_response()
         except DockerContainerCreationFailedException:
-            endpoint_service_error = ServiceErrorResponses.container_creation_failed(
-                "Container creation failed. Check template for potential issue."
-            )
+            endpoint_service_error = ServiceErrorResponses.container_creation_failed()
 
         if endpoint_service_error:
             return endpoint_service_error
