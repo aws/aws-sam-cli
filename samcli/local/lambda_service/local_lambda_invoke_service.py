@@ -7,9 +7,9 @@ import logging
 from flask import Flask, request
 from werkzeug.routing import BaseConverter
 
-from samcli.commands.exceptions import DockerContainerCreationFailedException
 from samcli.commands.local.lib.exceptions import UnsupportedInlineCodeError
 from samcli.lib.utils.stream_writer import StreamWriter
+from samcli.local.docker.exceptions import DockerContainerCreationFailedException
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.local.services.base_local_service import BaseLocalService, LambdaOutputParser
 

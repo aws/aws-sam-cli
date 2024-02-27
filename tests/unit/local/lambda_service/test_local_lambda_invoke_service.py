@@ -1,7 +1,7 @@
 from unittest import TestCase
 from unittest.mock import Mock, patch, ANY, call
 
-from samcli.commands.exceptions import DockerContainerCreationFailedException
+from samcli.local.docker.exceptions import DockerContainerCreationFailedException
 from samcli.local.lambda_service import local_lambda_invoke_service
 from samcli.local.lambda_service.local_lambda_invoke_service import LocalLambdaInvokeService, FunctionNamePathConverter
 from samcli.local.lambdafn.exceptions import FunctionNotFound

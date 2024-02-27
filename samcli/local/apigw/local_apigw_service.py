@@ -13,7 +13,6 @@ from werkzeug.datastructures import Headers
 from werkzeug.routing import BaseConverter
 from werkzeug.serving import WSGIRequestHandler
 
-from samcli.commands.exceptions import DockerContainerCreationFailedException
 from samcli.commands.local.lib.exceptions import UnsupportedInlineCodeError
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
 from samcli.lib.providers.provider import Api, Cors
@@ -31,6 +30,7 @@ from samcli.local.apigw.exceptions import (
 from samcli.local.apigw.path_converter import PathConverter
 from samcli.local.apigw.route import Route
 from samcli.local.apigw.service_error_responses import ServiceErrorResponses
+from samcli.local.docker.exceptions import DockerContainerCreationFailedException
 from samcli.local.events.api_event import (
     ContextHTTP,
     ContextIdentity,

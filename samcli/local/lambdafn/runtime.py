@@ -11,13 +11,12 @@ import tempfile
 import threading
 from typing import Dict, Optional, Union
 
-from samcli.commands.exceptions import DockerContainerCreationFailedException
 from samcli.lib.telemetry.metric import capture_parameter
 from samcli.lib.utils.file_observer import LambdaFunctionObserver
 from samcli.lib.utils.packagetype import ZIP
 from samcli.local.docker.container import Container
 from samcli.local.docker.container_analyzer import ContainerAnalyzer
-from samcli.local.docker.exceptions import ContainerFailureError
+from samcli.local.docker.exceptions import ContainerFailureError, DockerContainerCreationFailedException
 from samcli.local.docker.lambda_container import LambdaContainer
 
 from ...lib.providers.provider import LayerVersion

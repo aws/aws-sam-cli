@@ -8,7 +8,6 @@ from unittest.mock import Mock, patch, ANY, MagicMock
 from parameterized import parameterized, param
 from werkzeug.datastructures import Headers
 
-from samcli.commands.exceptions import DockerContainerCreationFailedException
 from samcli.lib.providers.provider import Api
 from samcli.lib.providers.provider import Cors
 from samcli.lib.telemetry.event import EventName, EventTracker, UsedFeature
@@ -24,6 +23,7 @@ from samcli.local.apigw.exceptions import (
     LambdaResponseParseException,
     PayloadFormatVersionValidateException,
 )
+from samcli.local.docker.exceptions import DockerContainerCreationFailedException
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.commands.local.lib.exceptions import UnsupportedInlineCodeError
 

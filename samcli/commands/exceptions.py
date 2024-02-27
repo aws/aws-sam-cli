@@ -152,9 +152,3 @@ class LinterRuleMatchedException(UserException):
     """
     The linter matched a rule meaning that the template linting failed
     """
-
-
-class DockerContainerCreationFailedException(UserException):
-    """
-    Docker Container Creation failed. It could be due to invalid template
-    """
