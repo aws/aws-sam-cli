@@ -13,7 +13,7 @@ Resources:
         Fn::GetAtt:
         - HelloWorldFunctionRole
         - Arn
-      Runtime: python3.7
+      Runtime: python3.11
       Tags:
       - Key: lambda:createdBy
         Value: SAM

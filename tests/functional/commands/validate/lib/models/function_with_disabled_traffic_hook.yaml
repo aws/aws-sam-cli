@@ -11,7 +11,7 @@ Resources:
       Handler: lambda.lambda_handler
       Role:
         Fn::Sub: arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda-role
-      Runtime: python3.7
+      Runtime: python3.11
       CodeUri: s3://bucket/key
       AutoPublishAlias: live
       DeploymentPreference:
@@ -34,7 +34,7 @@ Resources:
       Handler: hook.lambda_handler
       Role:
         Fn::Sub: arn:${AWS::Partition}:iam::${AWS::AccountId}:role/lambda-role
-      Runtime: python3.7
+      Runtime: python3.11
       CodeUri: s3://bucket/key
       FunctionName: CodeDeployHook_preTrafficHook
       AutoPublishAlias: live

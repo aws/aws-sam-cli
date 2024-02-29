@@ -5,7 +5,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: lambda.handler
-      Runtime: python3.7
+      Runtime: python3.11
       Policies:
       - AmazonCognitoPowerUser
       - AmazonDynamoDBFullAccess

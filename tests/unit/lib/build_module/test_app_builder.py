@@ -465,9 +465,12 @@ class TestApplicationBuilder_build(TestCase):
         [
             ("python2.7",),
             ("python3.6",),
+            ("python3.7",),
             ("ruby2.5",),
             ("ruby2.7",),
             ("nodejs10.x",),
+            ("nodejs12.x",),
+            ("nodejs14.x",),
             ("dotnetcore2.1",),
             ("dotnetcore3.1",),
         ]

@@ -8,7 +8,7 @@ Resources:
     Properties:
       CodeUri: s3://sam-demo-bucket/todo_list.zip
       Handler: index.restapi
-      Runtime: python3.7
+      Runtime: python3.11
       Events:
         # The following events use the defined AWS::Serverless::HttpApi, MyDefaultIamAuthHttpApi, further down.
         # This HttpApi has Iam auth enabled AND set as the default.

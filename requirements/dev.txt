@@ -1,6 +1,6 @@
 -r pre-dev.txt
 
-coverage==7.4.1
+coverage==7.4.3
 pytest-cov==4.1.0
 
 
@@ -12,19 +12,19 @@ types-pywin32==306.0.0.20240130
 types-PyYAML==6.0.12.12
 types-chevron==0.14.2.20240106
 types-psutil==5.9.5.20240205
-types-setuptools==69.1.0.20240215
+types-setuptools==69.1.0.20240229
 types-Pygments==2.17.0.20240106 
 types-colorama==0.4.15.20240205
 types-dateparser==1.1.4.20240106
-types-docutils==0.20.0.20240201
+types-docutils==0.20.0.20240227
 types-jsonschema==4.21.0.20240118
-types-pyOpenSSL==24.0.0.20240130
+types-pyOpenSSL==24.0.0.20240228
 # as of types-requests>=2.31.0.7, this now requires `urllib3>2`, pin we are able to upgrade
 types-requests==2.31.0.6
 types-urllib3==1.26.25.14
 
 # Test requirements
-pytest~=8.0.0
+pytest~=8.0.1
 parameterized==0.9.0
 pytest-xdist==3.5.0
 pytest-forked==1.6.0

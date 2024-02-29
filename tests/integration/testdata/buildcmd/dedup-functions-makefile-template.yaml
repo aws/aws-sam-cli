@@ -12,7 +12,7 @@ Resources:
     Properties:
       CodeUri: ProvidedWithMultipleFunctions
       Handler: first_function.handler
-      Runtime: python3.7
+      Runtime: python3.11
     Metadata:
       BuildMethod: makefile
   HelloMarsFunction:
@@ -20,6 +20,6 @@ Resources:
     Properties:
       CodeUri: ProvidedWithMultipleFunctions
       Handler: second_function.handler
-      Runtime: python3.7
+      Runtime: python3.11
     Metadata:
       BuildMethod: makefile
