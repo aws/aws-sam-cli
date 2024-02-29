@@ -23,6 +23,7 @@ _lambda_images_templates = os.path.join(_init_path, "lib", "init", "image_templa
 
 RUNTIME_DEP_TEMPLATE_MAPPING = runtime_dep_template_mapping(list(Runtime))
 
+
 def get_local_manifest_path():
     return pathlib.Path(_init_path, "lib", "init", "local_manifest.json")
 

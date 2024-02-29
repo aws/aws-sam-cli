@@ -90,7 +90,7 @@ class RuntimeDataMixin:
     # is local manifest useful at all?
     def archs_as_list_of_str(self) -> List[str]:
         return [a.value for a in self.archs]
-    
+
     @property
     def is_provided(self):
         return self.family == Family.PROVIDED
@@ -328,7 +328,7 @@ def sam_runtime_to_schemas_code_lang_mapping(runtimes: List[RuntimeDataMixin]) -
 def provided_runtimes(runtimes: List[RuntimeDataMixin]) -> List[str]:
     return [r.key for r in runtimes if r.family == Family.PROVIDED and r.is_lambda_enum]
 
-    
+
 def layer_subfolder_mapping(runtimes: List[RuntimeDataMixin]) -> Dict[str, str]:
     return {
         r.key: r.family.layer_subfolder for r in runtimes if not r.is_provided and r.family.layer_subfolder is not None
