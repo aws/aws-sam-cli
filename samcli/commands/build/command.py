@@ -57,7 +57,7 @@ DESCRIPTION = """
   2. Nodejs 20.x, 18.x, 16.x, 14.x, 12.x using NPM\n
   3. Ruby 3.2 using Bundler\n
   4. Java 8, Java 11, Java 17, Java 21 using Gradle and Maven\n
-  5. Dotnet6 using Dotnet CLI (without --use-container)\n
+  5. Dotnet8, Dotnet6 using Dotnet CLI\n
   6. Go 1.x using Go Modules (without --use-container)\n
 """
 

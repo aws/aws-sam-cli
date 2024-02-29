@@ -12,6 +12,7 @@ _DEBUG_RUNTIMES = [
     Runtime.java17,
     Runtime.java21,
     Runtime.dotnet6,
+    Runtime.dotnet8,
     Runtime.go1x,
     Runtime.nodejs16x,
     Runtime.nodejs18x,

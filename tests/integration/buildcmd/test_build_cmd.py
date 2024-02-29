@@ -1202,6 +1202,8 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
             ("dotnet6", "Dotnet6", None),
             ("dotnet6", "Dotnet6", "debug"),
             ("provided.al2", "Dotnet7", None),
+            ("dotnet8", "Dotnet8", None),
+            ("dotnet8", "Dotnet8", "debug"),
         ]
     )
     def test_dotnet_in_process(self, runtime, code_uri, mode, architecture="x86_64"):
@@ -1272,6 +1274,8 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
             # force to run tests on arm64 machines may cause dotnet7 test failing
             # because Native AOT Lambda functions require the host and lambda architectures to match
             ("provided.al2", "Dotnet7", None),
+            ("dotnet8", "Dotnet8", None),
+            ("dotnet8", "Dotnet8", "debug"),
         ]
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
@@ -1344,6 +1348,8 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
             # force to run tests on arm64 machines may cause dotnet7 test failing
             # because Native AOT Lambda functions require the host and lambda architectures to match
             ("provided.al2", "Dotnet7", None),
+            ("dotnet8", "Dotnet8", None),
+            ("dotnet8", "Dotnet8", "debug"),
         ]
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
@@ -1413,7 +1419,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         )
         self.verify_docker_container_cleanedup(runtime)
 
-    @parameterized.expand([("dotnet6", "Dotnet6")])
+    @parameterized.expand([("dotnet6", "Dotnet6"), ("dotnet8", "Dotnet8")])
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_must_fail_on_container_mount_without_write_interactive(self, runtime, code_uri):
         use_container = True
