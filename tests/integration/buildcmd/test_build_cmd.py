@@ -137,6 +137,9 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
         ]
     )
     def test_with_dockerfile_extension(self, runtime, use_container):
+        if not runtime_supported_by_docker(f"python{runtime}") and IS_WINDOWS:
+            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
+
         _tag = uuid4().hex
         overrides = {
             "Runtime": runtime,
@@ -1230,6 +1233,9 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         command_result = run_command(cmdlist, cwd=self.working_dir, env=newenv)
         self.assertEqual(command_result.process.returncode, 0)
 
+        if not runtime_supported_by_docker(runtime) and IS_WINDOWS:
+            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
+
         self._verify_built_artifact(
             self.default_build_dir,
             self.FUNCTION_LOGICAL_ID,
@@ -1280,6 +1286,9 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_dotnet_in_container_mount_with_write_explicit(self, runtime, code_uri, mode, architecture="x86_64"):
+        if not runtime_supported_by_docker(runtime) and IS_WINDOWS:
+            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
+
         overrides = {
             "Runtime": runtime,
             "CodeUri": code_uri,
@@ -1360,6 +1369,9 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         mode,
         architecture="x86_64",
     ):
+        if not runtime_supported_by_docker(runtime) and IS_WINDOWS:
+            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
+
         overrides = {
             "Runtime": runtime,
             "CodeUri": code_uri,
