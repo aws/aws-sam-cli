@@ -324,6 +324,9 @@ class IntrinsicsSymbolTable:
         if any(isinstance(logical_id_item, object_type) for object_type in [str, list, bool, int]):
             if resource_attributes not in (IntrinsicResolver.REF, ""):
                 return None
+            parameter_info = self._parameters.get(logical_id)
+            if parameter_info and parameter_info.get("Type") == "CommaDelimitedList":
+                return [item.strip() for item in logical_id_item.split(",")]
             return logical_id_item
 
         return logical_id_item.get(resource_attributes)
