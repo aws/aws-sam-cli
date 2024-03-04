@@ -72,7 +72,7 @@ class RuntimeDataMixin:
 
     key: str
     family: Family
-    lambda_image: Optional[str]
+    lambda_image: Optional[str] = None
     archs: List[Architecture] = field(default_factory=list)
     is_lambda_enum: bool = True
     # build_workflow: WorkflowConfig
@@ -270,12 +270,6 @@ class Runtime(RuntimeEnumBase):
         "amazon/python3.8-base",
         [Architecture.X86_64, Architecture.ARM64],
     )
-    python37 = (
-        "python3.7",
-        Family.PYTHON,
-        "amazon/python3.7-base",
-        [Architecture.X86_64],
-    )
 
     ruby32 = (
         "ruby3.2",
@@ -287,7 +281,20 @@ class Runtime(RuntimeEnumBase):
 
 @unique
 class DeprecatedRuntime(RuntimeEnumBase):
-    pass
+    dotnetcore20 = ("dotnetcore2.0", Family.DOTNET)
+    dotnetcore21 = ("dotnetcore2.1", Family.DOTNET)
+    dotnetcore31 = ("dotnetcore3.1", Family.DOTNET)
+    nodejs43 = ("nodejs4.3", Family.NODEJS)
+    nodejs610 = ("nodejs6.10", Family.NODEJS)
+    nodejs810 = ("nodejs8.10", Family.NODEJS)
+    nodejs10x = ("nodejs10.x", Family.NODEJS)
+    nodejs12x = ("nodejs12.x", Family.NODEJS)
+    nodejs14x = ("nodejs14.x", Family.NODEJS)
+    python27 = ("python2.7", Family.PYTHON)
+    python36 = ("python3.6", Family.PYTHON)
+    python37 = ("python3.7", Family.PYTHON)
+    ruby25 = ("ruby2.5", Family.RUBY)
+    ruby27 = ("ruby2.7", Family.RUBY)
 
 
 def runtime_dep_template_mapping(runtimes: List[RuntimeDataMixin]) -> dict:
