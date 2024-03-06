@@ -402,7 +402,7 @@ class Container:
 
         try:
             # if response is an image then json.loads/dumps will throw a UnicodeDecodeError so return raw content
-            if "image" in resp.headers["Content-Type"]:
+            if resp.headers.get("Content-Type") and "image" in resp.headers["Content-Type"]:
                 return resp.content, True
             return json.dumps(json.loads(resp.content), ensure_ascii=False), False
         except json.JSONDecodeError:
