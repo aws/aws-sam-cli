@@ -58,9 +58,9 @@ install:
   - sh: "which rbenv"
   - sh: "which ruby"
   # - sh: "PATH=/home/appveyor/.rbenv/shims/ruby/bin:/home/appveyor/.rbenv/gems/ruby-2.7.2@global/bin:/home/appveyor/.rvm/rubies/ruby-2.7.2/bin:/home/appveyor/.rvm/bin:$PATH"
-  - sh: "ruby --version"
   - sh: "rbenv reinstall ruby-3.2.3 --with-openssl-dir=/usr/lib/x86_64-linux-gnu" # reinstall ruby3.2 to fix OpenSSL issue
   - sh: "rbenv global 3.2.3"
+  - sh: "ruby --version"
   # - sh: "rvm use 3.2.3"
   - sh: "docker info"
   - sh: "docker version"
