@@ -7,27 +7,26 @@ import logging
 import os.path
 import pathlib
 import shutil
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
 from copy import deepcopy
-from typing import Callable, Dict, List, Any, Optional, cast, Set, Tuple, TypeVar
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, TypeVar, cast
 
-from samcli.commands._utils.experimental import is_experimental_enabled, ExperimentalFlag
-from samcli.lib.utils import osutils
-from samcli.lib.utils.async_utils import AsyncContext
-from samcli.lib.utils.hash import dir_checksum
-from samcli.lib.utils.packagetype import ZIP, IMAGE
-from samcli.lib.build.dependency_hash_generator import DependencyHashGenerator
+from samcli.commands._utils.experimental import ExperimentalFlag, is_experimental_enabled
 from samcli.lib.build.build_graph import (
+    DEFAULT_DEPENDENCIES_DIR,
+    AbstractBuildDefinition,
     BuildGraph,
     FunctionBuildDefinition,
     LayerBuildDefinition,
-    AbstractBuildDefinition,
-    DEFAULT_DEPENDENCIES_DIR,
 )
+from samcli.lib.build.dependency_hash_generator import DependencyHashGenerator
 from samcli.lib.build.exceptions import MissingBuildMethodException
 from samcli.lib.build.utils import warn_on_invalid_architecture
-
-from samcli.lib.utils.architecture import X86_64, ARM64
+from samcli.lib.utils import osutils
+from samcli.lib.utils.architecture import X86_64
+from samcli.lib.utils.async_utils import AsyncContext
+from samcli.lib.utils.hash import dir_checksum
+from samcli.lib.utils.packagetype import IMAGE, ZIP
 
 LOG = logging.getLogger(__name__)
 

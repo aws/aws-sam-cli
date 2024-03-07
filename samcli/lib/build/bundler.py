@@ -4,10 +4,9 @@ Handles bundler properties as needed to modify the build process
 
 import logging
 from copy import deepcopy
-from pathlib import Path, PosixPath
+from pathlib import Path
 from typing import Dict, Optional
 
-from samcli.commands.local.lib.exceptions import InvalidHandlerPathError
 from samcli.lib.providers.provider import Stack
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 
