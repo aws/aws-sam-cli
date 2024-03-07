@@ -16,7 +16,7 @@ from samcli.lib.utils.file_observer import LambdaFunctionObserver
 from samcli.lib.utils.packagetype import ZIP
 from samcli.local.docker.container import Container
 from samcli.local.docker.container_analyzer import ContainerAnalyzer
-from samcli.local.docker.exceptions import ContainerFailureError, DockerContainerCreationFailedException
+from samcli.local.docker.exceptions import ContainerFailureError
 from samcli.local.docker.lambda_container import LambdaContainer
 
 from ...lib.providers.provider import LayerVersion
@@ -111,10 +111,6 @@ class LambdaRuntime:
             # create the container.
             self._container_manager.create(container)
             return container
-
-        except DockerContainerCreationFailedException:
-            LOG.warning("Failed to create container for function %s", function_config.full_path)
-            raise
 
         except KeyboardInterrupt:
             LOG.debug("Ctrl+C was pressed. Aborting container creation")

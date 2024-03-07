@@ -16,11 +16,7 @@ from samcli.commands.local.invoke.core.command import InvokeCommand
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.version_checker import check_newer_version
-from samcli.local.docker.exceptions import (
-    ContainerNotStartableException,
-    DockerContainerCreationFailedException,
-    PortAlreadyInUse,
-)
+from samcli.local.docker.exceptions import ContainerNotStartableException, PortAlreadyInUse
 
 LOG = logging.getLogger(__name__)
 
@@ -204,7 +200,6 @@ def do_cli(  # pylint: disable=R0914
             container_host_interface=container_host_interface,
             add_host=add_host,
             invoke_images=processed_invoke_images,
-            ctx=ctx,
         ) as context:
             # Invoke the function
             context.local_lambda_runner.invoke(
@@ -225,7 +220,7 @@ def do_cli(  # pylint: disable=R0914
         PortAlreadyInUse,
     ) as ex:
         raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
-    except (DockerImagePullFailedException, DockerContainerCreationFailedException) as ex:
+    except DockerImagePullFailedException as ex:
         raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
     except ContainerNotStartableException as ex:
         raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
