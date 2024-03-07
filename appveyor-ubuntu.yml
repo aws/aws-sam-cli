@@ -53,6 +53,9 @@ install:
   - sh: "mvn --version"
 
   - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
+  - sh: "rbenv versions"
+  - sh: "rbenv --version"
+  - sh: "which rbenv"
   - sh: "which ruby"
   - sh: "PATH=/home/appveyor/.rvm/gems/ruby-2.7.2/bin:/home/appveyor/.rvm/gems/ruby-2.7.2@global/bin:/home/appveyor/.rvm/rubies/ruby-2.7.2/bin:/home/appveyor/.rvm/bin:$PATH"
   - sh: "ruby --version"
