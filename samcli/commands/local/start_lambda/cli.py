@@ -205,6 +205,7 @@ def do_cli(  # pylint: disable=R0914
             container_host_interface=container_host_interface,
             add_host=add_host,
             invoke_images=processed_invoke_images,
+            ctx=ctx,
         ) as invoke_context:
             service = LocalLambdaService(lambda_invoke_context=invoke_context, port=port, host=host)
             service.start()
