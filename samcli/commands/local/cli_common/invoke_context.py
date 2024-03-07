@@ -11,11 +11,10 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, TextIO, Tuple, Type, cast
 
 from samcli.commands._utils.template import TemplateFailedParsingException, TemplateNotFoundException
-from samcli.commands.exceptions import ContainersInitializationException, UserException
+from samcli.commands.exceptions import ContainersInitializationException
 from samcli.commands.local.cli_common.user_exceptions import DebugContextException, InvokeContextException
 from samcli.commands.local.lib.debug_context import DebugContext
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
-from samcli.lib.lint import get_lint_matches
 from samcli.lib.providers.provider import Function, Stack
 from samcli.lib.providers.sam_function_provider import RefreshableSamFunctionProvider, SamFunctionProvider
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
@@ -101,7 +100,6 @@ class InvokeContext:
         container_host_interface: Optional[str] = None,
         add_host: Optional[dict] = None,
         invoke_images: Optional[str] = None,
-        verbose: bool = False,
     ) -> None:
         """
         Initialize the context
@@ -156,8 +154,6 @@ class InvokeContext:
             Optional. Docker extra hosts support from --add-host parameters
         invoke_images dict
             Optional. A dictionary that defines the custom invoke image URI of each function
-        verbose bool
-            Set template validation to verbose mode
         """
         self._template_file = template_file
         self._function_identifier = function_identifier
@@ -182,7 +178,6 @@ class InvokeContext:
         self._aws_region = aws_region
         self._aws_profile = aws_profile
         self._shutdown = shutdown
-        self._verbose = verbose
 
         self._container_host = container_host
         self._container_host_interface = container_host_interface
@@ -224,13 +219,6 @@ class InvokeContext:
         """
 
         self._stacks = self._get_stacks()
-
-        try:
-            _, matches_output = get_lint_matches(self._template_file, self._verbose, self._aws_region)
-            if matches_output:
-                LOG.warning("Lint Error found, containter creation might fail: %s", matches_output)
-        except UserException as e:
-            LOG.warning("Non blocking error found when trying to validate template: %s", e)
 
         _function_providers_class: Dict[ContainersMode, Type[SamFunctionProvider]] = {
             ContainersMode.WARM: RefreshableSamFunctionProvider,

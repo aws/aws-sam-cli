@@ -17,23 +17,14 @@ from typing import Dict, Iterator, Optional, Tuple, Union
 
 import docker
 import requests
-from docker.errors import (
-    APIError as DockerAPIError,
-)
-from docker.errors import (
-    NotFound as DockerNetworkNotFound,
-)
+from docker.errors import NotFound as DockerNetworkNotFound
 
 from samcli.lib.constants import DOCKER_MIN_API_VERSION
 from samcli.lib.utils.retry import retry
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.lib.utils.tar import extract_tarfile
 from samcli.local.docker.effective_user import ROOT_USER_ID, EffectiveUser
-from samcli.local.docker.exceptions import (
-    ContainerNotStartableException,
-    DockerContainerCreationFailedException,
-    PortAlreadyInUse,
-)
+from samcli.local.docker.exceptions import ContainerNotStartableException, PortAlreadyInUse
 from samcli.local.docker.utils import NoFreePortsError, find_free_port, to_posix_path
 
 LOG = logging.getLogger(__name__)
@@ -236,12 +227,7 @@ class Container:
         if self._extra_hosts:
             kwargs["extra_hosts"] = self._extra_hosts
 
-        try:
-            real_container = self.docker_client.containers.create(self._image, **kwargs)
-        except DockerAPIError as ex:
-            raise DockerContainerCreationFailedException(
-                f"Container creation failed: {ex.explanation}, check template for potential issue"
-            )
+        real_container = self.docker_client.containers.create(self._image, **kwargs)
         self.id = real_container.id
 
         self._logs_thread = None
