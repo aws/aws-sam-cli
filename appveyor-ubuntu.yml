@@ -55,6 +55,7 @@ install:
   - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
   - sh: "which ruby"
   - sh: "PATH=$PATH:/home/appveyor/.rbenv/shims/ruby"
+  - sh: "ruby --version"
   - sh: "rvm reinstall ruby-3.2.3 --with-openssl-dir=/usr/lib/x86_64-linux-gnu" # reinstall ruby3.2 to fix OpenSSL issue
   - sh: "rvm use 3.2.3"
   - sh: "docker info"
