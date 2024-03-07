@@ -3,12 +3,12 @@ build utilities
 """
 
 import logging
-from typing import Union, Dict, Optional
+from typing import Dict, Optional, Union
 
 from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
-from samcli.lib.providers.provider import Function, LayerVersion
 from samcli.lib.build.build_graph import LayerBuildDefinition
-from samcli.lib.utils.architecture import X86_64, ARM64
+from samcli.lib.providers.provider import Function, LayerVersion
+from samcli.lib.utils.architecture import ARM64, X86_64
 
 LOG = logging.getLogger(__name__)
 
