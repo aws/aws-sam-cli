@@ -57,7 +57,7 @@ class TestCli(TestCase):
 
     def call_cli(self):
         invoke_cli(
-            verbose=self.ctx_mock.debug,
+            ctx=self.ctx_mock,
             function_identifier=self.function_id,
             template=self.template,
             event=self.eventfile,
