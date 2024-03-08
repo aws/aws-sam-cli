@@ -116,7 +116,7 @@ class TestCli(TestCase):
             container_host_interface=self.container_host_interface,
             add_host=self.add_host,
             invoke_images={None: "amazon/aws-sam-cli-emulation-image-python3.9"},
-            ctx=self.ctx_mock,
+            verbose=self.ctx_mock.debug,
         )
 
         context_mock.local_lambda_runner.invoke.assert_called_with(
@@ -157,7 +157,7 @@ class TestCli(TestCase):
             container_host_interface=self.container_host_interface,
             add_host=self.add_host,
             invoke_images={None: "amazon/aws-sam-cli-emulation-image-python3.9"},
-            ctx=self.ctx_mock,
+            verbose=self.ctx_mock.debug,
         )
 
         get_event_mock.assert_not_called()
