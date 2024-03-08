@@ -303,9 +303,9 @@ importlib-metadata==7.0.2 \
     --hash=sha256:198f568f3230878cb1b44fbd7975f87906c22336dba2e4a7f05278c281fbd792 \
     --hash=sha256:f4bc4c0c070c490abf4ce96d715f68e95923320370efb66143df00199bb6c100
     # via flask
-importlib-resources==6.1.2 \
-    --hash=sha256:308abf8474e2dba5f867d279237cd4076482c3de7104a40b41426370e891549b \
-    --hash=sha256:9a0a862501dc38b68adebc82970140c9e4209fc99601782925178f8386339938
+importlib-resources==6.1.3 \
+    --hash=sha256:4c0269e3580fe2634d364b39b38b961540a7738c02cb984e98add8b4221d793d \
+    --hash=sha256:56fb4525197b78544a3354ea27793952ab93f935bb4bf746b846bb1015020f2b
     # via
     #   jsonschema
     #   jsonschema-specifications
