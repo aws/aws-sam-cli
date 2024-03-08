@@ -162,7 +162,7 @@ class TestCli(TestCase):
 
     def call_cli(self):
         start_lambda_cli(
-            verbose=self.ctx_mock.debug,
+            ctx=self.ctx_mock,
             host=self.host,
             port=self.port,
             template=self.template,
