@@ -2,37 +2,38 @@
 CLI command for "build" command
 """
 
-import os
 import logging
-from typing import List, Optional, Dict, Tuple
+import os
+from typing import Dict, List, Optional, Tuple
+
 import click
 
+from samcli.cli.cli_config_file import ConfigProvider, configuration_option, save_params_option
 from samcli.cli.context import Context
+from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
+from samcli.cli.main import common_options as cli_framework_options
+from samcli.commands._utils.option_value_processor import process_env_var, process_image_options
 from samcli.commands._utils.options import (
+    base_dir_option,
+    build_dir_option,
+    build_image_option,
     build_in_source_option,
+    cache_dir_option,
+    cached_option,
+    docker_common_options,
+    hook_name_click_option,
+    manifest_option,
+    parameter_override_option,
     skip_prepare_infra_option,
     template_option_without_build,
-    docker_common_options,
-    parameter_override_option,
-    build_dir_option,
-    cache_dir_option,
-    base_dir_option,
-    manifest_option,
-    cached_option,
-    use_container_build_option,
-    build_image_option,
-    hook_name_click_option,
-    terraform_plan_file_option,
     terraform_project_root_path_option,
+    use_container_build_option,
 )
-from samcli.commands._utils.option_value_processor import process_env_var, process_image_options
-from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options, print_cmdline_args
-from samcli.commands.build.core.command import BuildCommand
-from samcli.lib.telemetry.metric import track_command
-from samcli.cli.cli_config_file import configuration_option, ConfigProvider, save_params_option
-from samcli.lib.utils.version_checker import check_newer_version
 from samcli.commands.build.click_container import ContainerOptions
+from samcli.commands.build.core.command import BuildCommand
 from samcli.commands.build.utils import MountMode
+from samcli.lib.telemetry.metric import track_command
+from samcli.lib.utils.version_checker import check_newer_version
 
 LOG = logging.getLogger(__name__)
 

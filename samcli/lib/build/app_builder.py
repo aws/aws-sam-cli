@@ -2,12 +2,13 @@
 Builds the application
 """
 
-import os
 import io
 import json
 import logging
+import os
 import pathlib
-from typing import List, Optional, Dict, cast, NamedTuple
+from typing import Dict, List, NamedTuple, Optional, cast
+
 import docker
 import docker.errors
 from aws_lambda_builders import (
@@ -15,16 +16,40 @@ from aws_lambda_builders import (
 )
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import LambdaBuilderError
-from samcli.lib.constants import DOCKER_MIN_API_VERSION
-from samcli.lib.build.build_graph import FunctionBuildDefinition, LayerBuildDefinition, BuildGraph
+
+from samcli.commands._utils.experimental import get_enabled_experimental_flags
+from samcli.lib.build.build_graph import BuildGraph, FunctionBuildDefinition, LayerBuildDefinition
 from samcli.lib.build.build_strategy import (
-    DefaultBuildStrategy,
-    CachedOrIncrementalBuildStrategyWrapper,
-    ParallelBuildStrategy,
     BuildStrategy,
+    CachedOrIncrementalBuildStrategyWrapper,
+    DefaultBuildStrategy,
+    ParallelBuildStrategy,
 )
-from samcli.lib.build.constants import DEPRECATED_RUNTIMES, BUILD_PROPERTIES
+from samcli.lib.build.constants import BUILD_PROPERTIES, DEPRECATED_RUNTIMES
+from samcli.lib.build.exceptions import (
+    BuildError,
+    BuildInsideContainerError,
+    DockerBuildFailed,
+    DockerConnectionError,
+    DockerfileOutSideOfContext,
+    UnsupportedBuilderLibraryVersionError,
+)
 from samcli.lib.build.utils import _make_env_vars
+from samcli.lib.build.workflow_config import (
+    CONFIG,
+    UnsupportedRuntimeException,
+    get_layer_subfolder,
+    get_workflow_config,
+    supports_specified_workflow,
+)
+from samcli.lib.constants import DOCKER_MIN_API_VERSION
+from samcli.lib.docker.log_streamer import LogStreamer, LogStreamError
+from samcli.lib.providers.provider import ResourcesToBuildCollector, Stack, get_full_path
+from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
+from samcli.lib.utils import osutils
+from samcli.lib.utils.colors import Colored, Colors
+from samcli.lib.utils.lambda_builders import patch_runtime
+from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.path_utils import convert_path_to_unix_path
 from samcli.lib.utils.resources import (
     AWS_CLOUDFORMATION_STACK,
@@ -34,38 +59,18 @@ from samcli.lib.utils.resources import (
     AWS_SERVERLESS_FUNCTION,
     AWS_SERVERLESS_LAYERVERSION,
 )
-from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
-from samcli.lib.docker.log_streamer import LogStreamer, LogStreamError
-from samcli.lib.providers.provider import ResourcesToBuildCollector, get_full_path, Stack
-from samcli.lib.utils.colors import Colored, Colors
-from samcli.lib.utils import osutils
-from samcli.lib.utils.lambda_builders import patch_runtime
-from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.stream_writer import StreamWriter
-from samcli.local.docker.exceptions import ContainerNotStartableException
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
-from samcli.local.docker.utils import is_docker_reachable, get_docker_platform
 from samcli.local.docker.manager import ContainerManager, DockerImagePullFailedException
-from samcli.commands._utils.experimental import get_enabled_experimental_flags
-from samcli.lib.build.exceptions import (
-    DockerConnectionError,
-    DockerfileOutSideOfContext,
-    DockerBuildFailed,
-    BuildError,
-    BuildInsideContainerError,
-    UnsupportedBuilderLibraryVersionError,
-)
-from samcli.lib.build.workflow_config import (
-    get_workflow_config,
-    supports_specified_workflow,
-    get_layer_subfolder,
-    CONFIG,
-    UnsupportedRuntimeException,
-)
+from samcli.local.docker.utils import get_docker_platform, is_docker_reachable
 
 LOG = logging.getLogger(__name__)
 
 FIRST_COMPATIBLE_RUNTIME_INDEX = 0
+HTTP_400 = 400
+HTTP_500 = 500
+HTTP_505 = 505
+JSON_RPC_CODE = -32601
 
 
 class ApplicationBuildResult(NamedTuple):
@@ -988,11 +993,11 @@ class ApplicationBuilder:
             err_code = error.get("code")
             msg = error.get("message")
 
-            if 400 <= err_code < 500:
+            if HTTP_400 <= err_code < HTTP_500:
                 # Like HTTP 4xx - customer error
                 raise BuildInsideContainerError(msg)
 
-            if err_code == 505:
+            if err_code == HTTP_505:
                 # Like HTTP 505 error code: Version of the protocol is not supported
                 # In this case, this error means that the Builder Library within the container is
                 # not compatible with the version of protocol expected SAM CLI installation supports.
@@ -1000,7 +1005,7 @@ class ApplicationBuilder:
                 # https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/505
                 raise UnsupportedBuilderLibraryVersionError(image_name, msg)
 
-            if err_code == -32601:
+            if err_code == JSON_RPC_CODE:
                 # Default JSON Rpc Code for Method Unavailable https://www.jsonrpc.org/specification
                 # This can happen if customers are using an incompatible version of builder library within the
                 # container
