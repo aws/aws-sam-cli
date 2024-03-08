@@ -253,7 +253,7 @@ def do_cli(  # pylint: disable=R0914
             container_host_interface=container_host_interface,
             invoke_images=processed_invoke_images,
             add_host=add_host,
-            ctx=ctx,
+            verbose=ctx.debug,
         ) as invoke_context:
             ssl_context = (ssl_cert_file, ssl_key_file) if ssl_cert_file else None
             service = LocalApiService(
