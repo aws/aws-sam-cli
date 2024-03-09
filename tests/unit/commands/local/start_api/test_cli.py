@@ -97,7 +97,6 @@ class TestCli(TestCase):
             container_host_interface=self.container_host_interface,
             add_host=self.add_host,
             invoke_images={},
-            verbose=self.ctx_mock.debug,
         )
 
         local_api_service_mock.assert_called_with(

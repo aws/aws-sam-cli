@@ -142,15 +142,49 @@ def _lint(ctx: Context, template: str) -> None:
         Path to the template file
 
     """
-    from samcli.lib.lint import get_lint_matches
 
+    import logging
+
+    import cfnlint.core  # type: ignore
+
+    from samcli.commands.exceptions import UserException
+
+    cfn_lint_logger = logging.getLogger("cfnlint")
+    cfn_lint_logger.propagate = False
     EventTracker.track_event("UsedFeature", "CFNLint")
-    matches, matches_output = get_lint_matches(template, ctx.debug, ctx.region)
-    if not matches:
-        click.secho("{} is a valid SAM Template".format(template), fg="green")
-        return
 
-    if matches_output:
-        click.secho(matches_output)
+    try:
+        lint_args = [template]
+        if ctx.debug:
+            lint_args.append("--debug")
+        if ctx.region:
+            lint_args.append("--region")
+            lint_args.append(ctx.region)
 
-    raise LinterRuleMatchedException("Linting failed. At least one linting rule was matched to the provided template.")
+        (args, filenames, formatter) = cfnlint.core.get_args_filenames(lint_args)
+        cfn_lint_logger.setLevel(logging.WARNING)
+        matches = list(cfnlint.core.get_matches(filenames, args))
+        if not matches:
+            click.secho("{} is a valid SAM Template".format(template), fg="green")
+            return
+
+        rules = cfnlint.core.get_used_rules()
+        matches_output = formatter.print_matches(matches, rules, filenames)
+
+        if matches_output:
+            click.secho(matches_output)
+
+        raise LinterRuleMatchedException(
+            "Linting failed. At least one linting rule was matched to the provided template."
+        )
+
+    except cfnlint.core.InvalidRegionException as e:
+        raise UserException(
+            "AWS Region was not found. Please configure your region through the --region option",
+            wrapped_from=e.__class__.__name__,
+        ) from e
+    except cfnlint.core.CfnLintExitException as lint_error:
+        raise UserException(
+            lint_error,
+            wrapped_from=lint_error.__class__.__name__,
+        ) from lint_error

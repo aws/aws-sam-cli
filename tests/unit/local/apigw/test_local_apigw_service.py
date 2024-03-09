@@ -23,7 +23,6 @@ from samcli.local.apigw.exceptions import (
     LambdaResponseParseException,
     PayloadFormatVersionValidateException,
 )
-from samcli.local.docker.exceptions import DockerContainerCreationFailedException
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.commands.local.lib.exceptions import UnsupportedInlineCodeError
 
@@ -457,27 +456,6 @@ class TestApiGatewayService(TestCase):
         response = self.api_service._request_handler()
 
         self.assertEqual(response, not_implemented_response_mock)
-
-    @patch.object(LocalApigwService, "get_request_methods_endpoints")
-    @patch("samcli.local.apigw.local_apigw_service.ServiceErrorResponses")
-    @patch("samcli.local.apigw.local_apigw_service.LocalApigwService._generate_lambda_event")
-    def test_request_handles_error_when_container_creation_failed(
-        self, generate_mock, service_error_responses_patch, request_mock
-    ):
-        generate_mock.return_value = {}
-        container_creation_failed_response_mock = Mock()
-        self.api_service._get_current_route = MagicMock()
-        self.api_service._get_current_route.return_value.payload_format_version = "2.0"
-        self.api_service._get_current_route.return_value.authorizer_object = None
-        self.api_service._get_current_route.methods = []
-
-        service_error_responses_patch.container_creation_failed.return_value = container_creation_failed_response_mock
-
-        self.lambda_runner.invoke.side_effect = DockerContainerCreationFailedException("container creation failed")
-        request_mock.return_value = ("test", "test")
-        response = self.api_service._request_handler()
-
-        self.assertEqual(response, container_creation_failed_response_mock)
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     def test_request_throws_when_invoke_fails(self, request_mock):
