@@ -37,9 +37,3 @@ class InvalidRuntimeException(UserException):
     """
     Raised when an invalid runtime is specified for a Lambda Function
     """
-
-
-class DockerContainerCreationFailedException(UserException):
-    """
-    Docker Container Creation failed. It could be due to invalid template
-    """

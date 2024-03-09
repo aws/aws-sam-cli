@@ -6,11 +6,7 @@ from unittest import TestCase
 from unittest.mock import patch, Mock
 from parameterized import parameterized, param
 
-from samcli.local.docker.exceptions import (
-    ContainerNotStartableException,
-    PortAlreadyInUse,
-    DockerContainerCreationFailedException,
-)
+from samcli.local.docker.exceptions import ContainerNotStartableException, PortAlreadyInUse
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.lib.providers.exceptions import InvalidLayerReference
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
@@ -116,7 +112,6 @@ class TestCli(TestCase):
             container_host_interface=self.container_host_interface,
             add_host=self.add_host,
             invoke_images={None: "amazon/aws-sam-cli-emulation-image-python3.9"},
-            ctx=self.ctx_mock,
         )
 
         context_mock.local_lambda_runner.invoke.assert_called_with(
@@ -157,7 +152,6 @@ class TestCli(TestCase):
             container_host_interface=self.container_host_interface,
             add_host=self.add_host,
             invoke_images={None: "amazon/aws-sam-cli-emulation-image-python3.9"},
-            ctx=self.ctx_mock,
         )
 
         get_event_mock.assert_not_called()
@@ -268,10 +262,6 @@ class TestCli(TestCase):
             param(
                 PortAlreadyInUse("Container cannot be started, provided port already in use"),
                 "Container cannot be started, provided port already in use",
-            ),
-            param(
-                DockerContainerCreationFailedException("Container creation failed, check template for potential issue"),
-                "Container creation failed, check template for potential issue",
             ),
         ]
     )
