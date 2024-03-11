@@ -61,8 +61,8 @@ install:
   # - sh: "rbenv reinstall ruby-3.2.3 --with-openssl-dir=/usr/lib/x86_64-linux-gnu" # reinstall ruby3.2 to fix OpenSSL issue
   # - sh: "rbenv global 3.2.3"
   # - sh: "ruby --version"
-  - sh: "rvm reinstall ruby-3.2.2 --with-openssl-dir=/usr/lib/x86_64-linux-gnu" # reinstall ruby3.2 to fix OpenSSL issue
-  - sh: "rvm use 3.2.2"
+  - sh: "rbenv global 3.2.3"
+  - sh: "ruby --version"
   - sh: "docker info"
   - sh: "docker version"
   - sh: "nvm install ${NODE_VERSION}"
