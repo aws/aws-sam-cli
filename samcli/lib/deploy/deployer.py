@@ -421,8 +421,14 @@ class Deployer:
                 for new_event in new_events:
                     row_color = self.deploy_color.get_stack_events_status_color(status=new_event["ResourceStatus"])
                     pprint_columns(
+                        # Print the detailed status beside the status if it is present
+                        # E.g. CREATE_IN_PROGRESS - CONFIGURATION_COMPLETE
                         columns=[
-                            new_event["ResourceStatus"],
+                            (
+                                (new_event["ResourceStatus"] + " - " + new_event["ResourceDetailedStatus"])
+                                if "ResourceDetailedStatus" in new_event
+                                else new_event["ResourceStatus"]
+                            ),
                             new_event["ResourceType"],
                             new_event["LogicalResourceId"],
                             new_event.get("ResourceStatusReason", "-"),
