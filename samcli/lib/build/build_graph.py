@@ -9,22 +9,21 @@ import threading
 from abc import abstractmethod
 from copy import deepcopy
 from pathlib import Path
-from typing import Sequence, Tuple, List, Any, Optional, Dict, cast, NamedTuple
+from typing import Any, Dict, List, NamedTuple, Optional, Sequence, Tuple, cast
 from uuid import uuid4
 
 import tomlkit
 from tomlkit.toml_document import TOMLDocument
 
-from samcli.commands._utils.experimental import is_experimental_enabled, ExperimentalFlag
+from samcli.commands._utils.experimental import ExperimentalFlag, is_experimental_enabled
 from samcli.lib.build.exceptions import InvalidBuildGraphException
 from samcli.lib.providers.provider import Function, LayerVersion
 from samcli.lib.samlib.resource_metadata_normalizer import (
-    SAM_RESOURCE_ID_KEY,
     SAM_IS_NORMALIZED,
+    SAM_RESOURCE_ID_KEY,
 )
-from samcli.lib.utils.packagetype import ZIP
 from samcli.lib.utils.architecture import X86_64
-
+from samcli.lib.utils.packagetype import ZIP
 
 LOG = logging.getLogger(__name__)
 
