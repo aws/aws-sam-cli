@@ -1419,3 +1419,64 @@ class TestDeployer(CustomTestCase):
         self.deployer._rollback_wait("test")
 
         self.assertEqual(log_mock.call_count, 1)
+
+    @patch("samcli.lib.deploy.deployer.pprint_columns")
+    def test_show_stabilizing_status(self, patched_pprint_columns):
+        start_timestamp = datetime(2022, 1, 1, 16, 42, 0, 0, timezone.utc)
+
+        self.deployer._client.get_paginator = MagicMock(
+            return_value=MockPaginator(
+                # describe_stack_events is in reverse chronological order
+                [
+                    {
+                        "StackEvents": [
+                            {
+                                "StackId": "arn:aws:cloudformation:us-west-2:123456789012:stack/my-stack-name/...",
+                                "EventId": "1",
+                                "StackName": "my-stack-name",
+                                "LogicalResourceId": "my-stack-name",
+                                "PhysicalResourceId": "arn:aws:cloudformation:us-west-2:123456789012:stack/my-stack-name/...",
+                                "ResourceType": "AWS::CloudFormation::Stack",
+                                "Timestamp": start_timestamp + timedelta(seconds=3),
+                                "ResourceStatus": "CREATE_COMPLETE",
+                            },
+                            {
+                                "StackId": "arn:aws:cloudformation:us-west-2:123456789012:stack/my-stack-name/...",
+                                "EventId": "2",
+                                "StackName": "my-stack-name",
+                                "LogicalResourceId": "mybucket",
+                                "PhysicalResourceId": "arn:aws:cloudformation:region:accountId:stack/test/uuid",
+                                "ResourceType": "AWS::S3::Bucket",
+                                "Timestamp": start_timestamp + timedelta(seconds=2),
+                                "ResourceStatus": "CREATE_IN_PROGRESS",
+                                "ResourceDetailedStatus": "CONFIGURATION_COMPLETE",
+                            },
+                            {
+                                "StackId": "arn:aws:cloudformation:us-west-2:123456789012:stack/my-stack-name/...",
+                                "EventId": "3",
+                                "StackName": "my-stack-name",
+                                "LogicalResourceId": "mybucket",
+                                "PhysicalResourceId": "arn:aws:cloudformation:region:accountId:stack/test/uuid",
+                                "ResourceType": "AWS::S3::Bucket",
+                                "Timestamp": start_timestamp + timedelta(seconds=1),
+                                "ResourceStatus": "CREATE_IN_PROGRESS",
+                            },
+                        ]
+                    },
+                ]
+            )
+        )
+        self.deployer.describe_stack_events("test", utc_to_timestamp(start_timestamp))
+        self.assertEqual(patched_pprint_columns.call_count, 3)
+        self.assertListSubset(
+            ["CREATE_IN_PROGRESS", "AWS::S3::Bucket", "mybucket"],
+            patched_pprint_columns.call_args_list[0][1]["columns"],
+        )
+        self.assertListSubset(
+            ["CREATE_IN_PROGRESS - CONFIGURATION_COMPLETE", "AWS::S3::Bucket", "mybucket"],
+            patched_pprint_columns.call_args_list[1][1]["columns"],
+        )
+        self.assertListSubset(
+            ["CREATE_COMPLETE", "AWS::CloudFormation::Stack", "my-stack-name"],
+            patched_pprint_columns.call_args_list[2][1]["columns"],
+        )
