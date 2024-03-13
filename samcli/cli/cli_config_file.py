@@ -406,9 +406,9 @@ def configuration_option(*param_decls, **attrs):
     def decorator_configuration_setup(f):
         configuration_setup_params = ()
         configuration_setup_attrs = {}
-        configuration_setup_attrs["help"] = (
-            "This is a hidden click option whose callback function loads configuration parameters."
-        )
+        configuration_setup_attrs[
+            "help"
+        ] = "This is a hidden click option whose callback function loads configuration parameters."
         configuration_setup_attrs["is_eager"] = True
         configuration_setup_attrs["expose_value"] = False
         configuration_setup_attrs["hidden"] = True

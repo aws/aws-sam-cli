@@ -112,7 +112,11 @@ class Test_get_workflow_config(TestCase):
         self.assertFalse(result.must_mount_with_write_in_container)
 
     @parameterized.expand(
-        [("java8.al2", "build.gradle", "gradle"), ("java8.al2", "build.gradle.kts", "gradle"), ("java8.al2", "pom.xml", "maven")]
+        [
+            ("java8.al2", "build.gradle", "gradle"),
+            ("java8.al2", "build.gradle.kts", "gradle"),
+            ("java8.al2", "pom.xml", "maven"),
+        ]
     )
     @patch("samcli.lib.build.workflow_config.os")
     def test_must_work_for_java(self, runtime, build_file, dep_manager, os_mock):
