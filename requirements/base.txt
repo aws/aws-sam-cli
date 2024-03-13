@@ -15,7 +15,7 @@ aws_lambda_builders==1.47.0
 tomlkit==0.12.4
 watchdog==4.0.0
 rich~=13.7.1
-pyopenssl~=24.0.0
+pyopenssl~=24.1.0
 # Pin to <4.18 to until SAM-T no longer uses RefResolver
 jsonschema<4.22
 
