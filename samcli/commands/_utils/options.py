@@ -768,9 +768,9 @@ def hook_name_click_option(force_prepare=True, invalid_coexist_options=None):
     def hook_name_processer_wrapper(f):
         configuration_setup_params = ()
         configuration_setup_attrs = {}
-        configuration_setup_attrs[
-            "help"
-        ] = "This is a hidden click option whose callback function to run the provided hook package."
+        configuration_setup_attrs["help"] = (
+            "This is a hidden click option whose callback function to run the provided hook package."
+        )
         configuration_setup_attrs["is_eager"] = True
         configuration_setup_attrs["expose_value"] = False
         configuration_setup_attrs["hidden"] = True
