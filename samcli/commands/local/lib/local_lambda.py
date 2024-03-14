@@ -45,7 +45,7 @@ class LocalLambdaRunner:
         local_runtime: LambdaRuntime,
         function_provider: SamFunctionProvider,
         cwd: str,
-        real_path: str, 
+        real_path: str,
         aws_profile: Optional[str] = None,
         aws_region: Optional[str] = None,
         env_vars_values: Optional[Dict[Any, Any]] = None,
@@ -202,7 +202,7 @@ class LocalLambdaRunner:
             LOG.debug("Resolved absolute path to code is %s", code_abs_path)
             code_real_path = resolve_code_path(self.real_path, function.codeuri)
             LOG.debug("Resolved real code path to %s", code_real_path)
-            
+
         function_timeout = function.timeout
 
         # The Runtime container handles timeout inside the container. When debugging with short timeouts, this can
