@@ -2,22 +2,22 @@
 Contains Builder Workflow Configs for different Runtimes
 """
 
-import os
 import logging
-from typing import Dict, List, Optional, Tuple, Union, cast
+import os
+from typing import Dict, List, Optional, Union, cast
 
 from samcli.lib.build.workflows import (
     CONFIG,
-    PYTHON_PIP_CONFIG,
-    NODEJS_NPM_CONFIG,
-    RUBY_BUNDLER_CONFIG,
+    DOTNET_CLIPACKAGE_CONFIG,
+    GO_MOD_CONFIG,
     JAVA_GRADLE_CONFIG,
     JAVA_KOTLIN_GRADLE_CONFIG,
     JAVA_MAVEN_CONFIG,
-    DOTNET_CLIPACKAGE_CONFIG,
-    GO_MOD_CONFIG,
-    PROVIDED_MAKE_CONFIG,
+    NODEJS_NPM_CONFIG,
     NODEJS_NPM_ESBUILD_CONFIG,
+    PROVIDED_MAKE_CONFIG,
+    PYTHON_PIP_CONFIG,
+    RUBY_BUNDLER_CONFIG,
     RUST_CARGO_LAMBDA_CONFIG,
 )
 from samcli.lib.telemetry.event import EventTracker
@@ -85,7 +85,6 @@ def get_selector(
 
 def get_layer_subfolder(build_workflow: str) -> str:
     subfolders_by_runtime = {
-        "python3.7": "python",
         "python3.8": "python",
         "python3.9": "python",
         "python3.10": "python",
@@ -104,6 +103,7 @@ def get_layer_subfolder(build_workflow: str) -> str:
         "java17": "java",
         "java21": "java",
         "dotnet6": "dotnet",
+        "dotnet8": "dotnet",
         # User is responsible for creating subfolder in these workflows
         "makefile": "",
     }
@@ -152,7 +152,6 @@ def get_workflow_config(
     }
 
     selectors_by_runtime = {
-        "python3.7": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
         "python3.8": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
         "python3.9": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
         "python3.10": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
@@ -163,6 +162,7 @@ def get_workflow_config(
         "nodejs20.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "ruby3.2": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
         "dotnet6": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
+        "dotnet8": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
         "go1.x": BasicWorkflowSelector(GO_MOD_CONFIG),
         # When Maven builder exists, add to this list so we can automatically choose a builder based on the supported
         # manifest

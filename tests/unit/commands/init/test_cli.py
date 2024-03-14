@@ -2521,7 +2521,7 @@ N
 test-project
             """
         runner = CliRunner()
-        result = runner.invoke(init_cmd, ["--runtime", "python3.7"], input=user_input)
+        result = runner.invoke(init_cmd, ["--runtime", "python3.12"], input=user_input)
         self.assertTrue(result.exception)
 
     @patch("samcli.commands.init.init_templates.InitTemplates.get_preprocessed_manifest")
@@ -2848,9 +2848,9 @@ test-project
 
     @patch("samcli.local.common.runtime_template.INIT_RUNTIMES")
     def test_must_remove_unsupported_runtime(self, init_runtime_mock):
-        runtime_option_list = ["python3.7", "ruby3.2", "java11", "unsupported_runtime"]
-        init_runtime_mock.return_value = ["go1.x", "java11", "python3.7", "ruby3.2"]
-        expect_result = ["java11", "python3.7", "ruby3.2"]
+        runtime_option_list = ["python3.12", "ruby3.2", "java11", "unsupported_runtime"]
+        init_runtime_mock.return_value = ["go1.x", "java11", "python3.12", "ruby3.2"]
+        expect_result = ["java11", "python3.12", "ruby3.2"]
         actual_result = get_sorted_runtimes(runtime_option_list)
         self.assertEqual(actual_result, expect_result)
 
