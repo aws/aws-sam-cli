@@ -393,10 +393,13 @@ class InvokeContext:
         if self._local_lambda_runner:
             return self._local_lambda_runner
 
+        real_path = str(os.path.dirname(os.path.abspath(self._template_file)))
+
         self._local_lambda_runner = LocalLambdaRunner(
             local_runtime=self.lambda_runtime,
             function_provider=self._function_provider,
             cwd=self.get_cwd(),
+            real_path=real_path,
             aws_profile=self._aws_profile,
             aws_region=self._aws_region,
             env_vars_values=self._env_vars_value,
