@@ -326,6 +326,11 @@ def do_cli(
             region=guided_context.guided_region if guided else region,
             profile=profile,
             signing_profiles=guided_context.signing_profiles if guided else signing_profiles,
+            parameter_overrides=(
+                sanitize_parameter_overrides(guided_context.guided_parameter_overrides)
+                if guided
+                else parameter_overrides
+            ),
         ) as package_context:
             package_context.run()
 
