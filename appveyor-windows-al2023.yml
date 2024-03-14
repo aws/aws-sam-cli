@@ -1,0 +1,194 @@
+version: 1.0.{build}
+image: ws2022-azure
+build: off
+
+clone_folder: C:\source
+
+configuration:
+  - BuildIntegTesting
+
+environment:
+  AWS_DEFAULT_REGION: us-east-1
+  SAM_CLI_DEV: 1
+  CARGO_LAMBDA_VERSION: "v0.17.1"
+  APPVEYOR_TEST_AL2023: 1
+
+  # Python uses $TMPDIR envvar to find root of tempdir
+  TMPDIR: "%TEMP%"
+  TMP: "%TEMP%"
+
+  # MSI Installers only use Py3.8. It is sufficient to test with this version here.
+  PYTHON_HOME: "C:\\Python38-x64"
+  PYTHON_SCRIPTS: "C:\\Python38-x64\\Scripts"
+  PYTHON_EXE: "C:\\Python38-x64\\python.exe"
+  PYTHON_ARCH: "64"
+  HOME: 'C:\Users\appveyor'
+  HOMEDRIVE: "C:"
+  HOMEPATH: 'C:\Users\appveyor'
+  NOSE_PARAMETERIZED_NO_WARN: 1
+  AWS_S3: "AWS_S3_TESTING"
+  AWS_ECR: "AWS_ECR_TESTING"
+  APPVEYOR_CONSOLE_DISABLE_PTY: true
+  APPVEYOR_BUILD_WORKER_IMAGE: "ws2022-azure"
+
+init:
+  # Uncomment this for RDP
+  # - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+  - ps: gcim Win32_Processor | % { "$($_.NumberOfLogicalProcessors) logical CPUs" }
+  - ps: gcim Win32_OperatingSystem | % { "$([int]($_.TotalVisibleMemorySize/1mb)) Gb" }
+  - git config --global core.autocrlf false
+  - ps: New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force
+  - ps: git config --system core.longpaths true
+
+cache:
+  - C:\ProgramData\chocolatey\bin -> appveyor.yml
+  - C:\ProgramData\chocolatey\lib -> appveyor.yml
+
+install:
+  # upgrade chocolately
+  - choco upgrade chocolatey
+  # setup make
+  - "choco install make"
+  # setup Java, Maven and Gradle
+  - choco install correttojdk --version=21.0.0
+  - 'set JAVA_HOME=C:\Program Files\Amazon Corretto\jdk21.0.0_35'
+  - 'set PATH=%JAVA_HOME%\bin;%PATH%'
+  - java --version
+  - javac --version
+  - choco upgrade gradle --version=8.4.0
+  - "gradle -v"
+  - "mvn --version"
+
+  # Make sure the temp directory exists for Python to use.
+  - ps: "mkdir -Force C:\\tmp"
+  - 'set PATH=%PYTHON_HOME%;C:\Ruby32-x64\bin;%PATH%;C:\Python37-x64;C:\Python39-x64;C:\Python310-x64;C:\Python311-x64;C:\Python312-x64'
+  - "echo %PYTHON_HOME%"
+  - "echo %PATH%"
+  - "python --version"
+  - ps: "Restart-Service docker"
+  # Switch to Docker Linux containers
+  - ps: '& $Env:ProgramFiles\Docker\Docker\DockerCli.exe -SwitchLinuxEngine'
+  - "docker info"
+  - "docker version"
+
+  # Upgrade setuptools, wheel and virtualenv
+  - "python -m pip install --upgrade setuptools wheel virtualenv"
+  # Install pip for the python versions which is used by the tests
+  - "C:\\Python37-x64\\python.exe -m pip install --upgrade pip"
+  - "C:\\Python39-x64\\python.exe -m pip install --upgrade pip"
+  - "C:\\Python310-x64\\python.exe -m pip install --upgrade pip"
+
+  # Install Node 20
+  - ps: "Install-Product node 20.10.0"
+
+  # Install AWS CLI Globally via pip3
+  - "pip install awscli"
+
+  # Check for git executable
+  - "git --version"
+
+  # Get testing env vars
+  - ps: "
+  If (Test-Path env:BY_CANARY){
+    python -m virtualenv venv_env_vars;
+    ./venv_env_vars/Scripts/pip install boto3;
+    $test_env_var = ./venv_env_vars/Scripts/python tests/get_testing_resources.py;
+    $test_env_var_json = ConvertFrom-Json $test_env_var;
+
+    $env:CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID = $env:AWS_ACCESS_KEY_ID;
+    $env:CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY = $env:AWS_SECRET_ACCESS_KEY;
+    $env:CI_ACCESS_ROLE_AWS_SESSION_TOKEN = $env:AWS_SESSION_TOKEN;
+
+    $env:AWS_ACCESS_KEY_ID = $test_env_var_json.accessKeyID;
+    $env:AWS_SECRET_ACCESS_KEY = $test_env_var_json.secretAccessKey;
+    $env:AWS_SESSION_TOKEN = $test_env_var_json.sessionToken;
+    $env:TASK_TOKEN = $test_env_var_json.taskToken;
+    $env:AWS_S3_TESTING = $test_env_var_json.TestBucketName;
+    $env:AWS_ECR_TESTING = $test_env_var_json.TestECRURI;
+    $env:AWS_KMS_KEY = $test_env_var_json.TestKMSKeyArn;
+    $env:AWS_SIGNING_PROFILE_NAME = $test_env_var_json.TestSigningProfileName;
+    $env:AWS_SIGNING_PROFILE_VERSION_ARN = $test_env_var_json.TestSigningProfileARN;
+  }"
+
+
+  # Create new virtual environment with chosen python version and activate it
+  - "python -m virtualenv venv"
+  - "venv\\Scripts\\activate"
+  - "python --version"
+
+  # Actually install SAM CLI's dependencies
+  - 'pip install -e ".[dev]"'
+
+  # Install aws cli
+  - "pip install awscli"
+
+  # Echo final Path
+  - "echo %PATH%"
+
+  # use amazon-ecr-credential-helper
+  - choco install amazon-ecr-credential-helper
+  - ps: "
+    $docker_config = Get-Content $env:HOME/.docker/config.json -raw | ConvertFrom-Json;
+    $docker_config.credsStore = 'ecr-login';
+    $docker_config | ConvertTo-Json | set-content $env:HOME/.docker/config.json;
+  "
+  - ps: "get-content $env:HOME/.docker/config.json"
+
+  # claim some disk space before starting the tests
+  - "docker system prune -a -f"
+  # activate virtual environment
+  - "venv\\Scripts\\activate"
+
+
+
+# Final clean up no matter success or failure
+on_finish:
+  # Upload test reports as artifacts
+  - ps: Get-ChildItem .\TEST_REPORT-*.json | % { Push-AppveyorArtifact $_.FullName -FileName $_.Name }
+  - ps: '
+  If (Test-Path env:BY_CANARY){
+    $env:AWS_ACCESS_KEY_ID = $env:TEST_REPORT_S3_BUCKET_ACCESS_KEY_ID;
+    $env:AWS_SECRET_ACCESS_KEY = $env:TEST_REPORT_S3_BUCKET_SECRET_ACCESS_KEY;
+    $env:AWS_SESSION_TOKEN = $env:TEST_REPORT_S3_BUCKET_SESSION_TOKEN;
+    aws s3 cp ".\" "s3://$env:TEST_REPORT_S3_BUCKET_NAME/appveyor/$env:APPVEYOR_PROJECT_SLUG/$env:APPVEYOR_BUILD_ID/$env:APPVEYOR_JOB_ID/" --recursive --exclude "*" --include "TEST_REPORT-*.json" --region us-west-2
+  }'
+
+  # notify success
+  - ps: "
+  If (Test-Path env:BY_CANARY){
+    $env:AWS_ACCESS_KEY_ID = $env:CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID;
+    $env:AWS_SECRET_ACCESS_KEY = $env:CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY;
+    $env:AWS_SESSION_TOKEN = $env:CI_ACCESS_ROLE_AWS_SESSION_TOKEN;
+    aws stepfunctions send-task-success --task-token \"$env:TASK_TOKEN\" --task-output \"{}\" --region us-west-2;
+  }"
+
+
+for:
+  - matrix:
+      only:
+        - configuration: BuildIntegTesting
+
+    build_script:
+      # install Rust in build_script to not override the default "install" actions
+      - appveyor-retry appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
+      - rustup-init.exe -y --default-host x86_64-pc-windows-msvc --default-toolchain stable
+      - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
+      - set RUST_BACKTRACE=1
+      - rustup toolchain install stable --profile minimal --no-self-update
+      - rustup default stable
+      - rustup target add x86_64-unknown-linux-gnu --toolchain stable
+      - rustup target add aarch64-unknown-linux-gnu --toolchain stable
+      - ps: "choco install zig"
+      - ps: Invoke-WebRequest -Uri https://github.com/cargo-lambda/cargo-lambda/releases/download/$env:CARGO_LAMBDA_VERSION/cargo-lambda-$env:CARGO_LAMBDA_VERSION.windows-x64.zip -OutFile C:\Users\appveyor\cargo-lambda.zip
+      - ps: Expand-Archive -DestinationPath C:\Users\appveyor\.cargo\bin C:\Users\appveyor\cargo-lambda.zip
+      - rustc -V
+      - cargo -V
+      - cargo lambda -V
+
+    test_script:
+      - ps: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m al2023 --ignore=tests/integration/buildcmd/test_build_samconfig.py --ignore=tests/integration/buildcmd/test_build_in_source.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+
+# Uncomment for RDP
+# on_finish:
+#   - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+  

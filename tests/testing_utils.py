@@ -47,6 +47,16 @@ CommandResult = namedtuple("CommandResult", "process stdout stderr")
 TIMEOUT = 600
 CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".", "-")
 
+# Used to exclusively test AL2023 based runtimes
+RUNNING_AL2023 = os.environ.get("APPVEYOR_TEST_AL2023", False)
+AL2023_BASED_RUNTIMES = {
+    "provided.al2023",
+    "nodejs20.x",
+    "java21",
+    "python3.12",
+    "dotnet8",
+}
+
 
 def get_sam_command():
     windows_bin_path = os.getenv("SAM_WINDOWS_BINARY_PATH")
@@ -299,7 +309,7 @@ class UpdatableSARTemplate:
 RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG = "Runtime is not supported the installed Docker version."
 
 
-def runtime_supported_by_docker(runtime: str) -> bool:
+def do_test_runtime_on_docker(runtime: str) -> bool:
     """
     To determine if a test ca on runtime and docker_version, in case the test is run in an environment with a very old version of docker
 
@@ -307,16 +317,13 @@ def runtime_supported_by_docker(runtime: str) -> bool:
     See: https://docs.docker.com/engine/release-notes/20.10/#201010
 
     """
-    al2023_based_runtimes = {
-        "provided.al2023",
-        "nodejs20.x",
-        "java21",
-        "python3.12",
-        "dotnet8",
-    }
     min_docker_version = "20.10.10"
-    return runtime not in al2023_based_runtimes or (
-        runtime in al2023_based_runtimes and _version_gte(get_docker_version(), min_docker_version)
+
+    if RUNNING_AL2023:
+        return runtime in AL2023_BASED_RUNTIMES
+
+    return runtime not in AL2023_BASED_RUNTIMES or (
+        runtime in AL2023_BASED_RUNTIMES and _version_gte(get_docker_version(), min_docker_version)
     )
 
 

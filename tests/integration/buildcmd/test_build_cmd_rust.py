@@ -6,6 +6,7 @@ import logging
 from unittest import skipIf
 
 from parameterized import parameterized
+import pytest
 
 from tests.testing_utils import (
     IS_WINDOWS,
@@ -34,6 +35,7 @@ class TestBuildCommand_Rust(BuildIntegRustBase):
             ("provided.al2023", "x86_64", "debug", False),
         ]
     )
+    @pytest.mark.al2023
     def test_build(self, runtime, architecture, build_mode, use_container):
         self._test_with_rust_cargo_lambda(
             runtime=runtime,
