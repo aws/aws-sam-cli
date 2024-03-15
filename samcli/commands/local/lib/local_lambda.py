@@ -45,7 +45,6 @@ class LocalLambdaRunner:
         local_runtime: LambdaRuntime,
         function_provider: SamFunctionProvider,
         cwd: str,
-        real_path: str,
         aws_profile: Optional[str] = None,
         aws_region: Optional[str] = None,
         env_vars_values: Optional[Dict[Any, Any]] = None,
@@ -73,7 +72,6 @@ class LocalLambdaRunner:
         self.local_runtime = local_runtime
         self.provider = function_provider
         self.cwd = cwd
-        self.real_path = real_path
         self.aws_profile = aws_profile
         self.aws_region = aws_region
         self.env_vars_values = env_vars_values or {}
@@ -201,8 +199,6 @@ class LocalLambdaRunner:
         if function.packagetype == ZIP:
             code_abs_path = resolve_code_path(self.cwd, function.codeuri)
             LOG.debug("Resolved absolute path to code is %s", code_abs_path)
-            code_real_path = resolve_code_path(self.real_path, function.codeuri)
-            LOG.debug("Resolved real code path to %s", code_real_path)
 
         function_timeout = function.timeout
 
@@ -227,7 +223,6 @@ class LocalLambdaRunner:
             timeout=function_timeout,
             env_vars=env_vars,
             runtime_management_config=function.runtime_management_config,
-            code_real_path=code_real_path,
         )
 
     def _make_env_vars(self, function: Function) -> EnvironmentVariables:
