@@ -3,8 +3,7 @@ set -xeo pipefail
 
 export SAM_CLI_TELEMETRY="${SAM_CLI_TELEMETRY:-0}"
 export SAM_INIT_ARCH="${SAM_INIT_ARCH:-x86_64}"
-export PYTHON_VERSION=`python -c 'import sys; version=sys.version_info[:3]; print("{0}.{1}".format(*version))'`
-export SAM_INIT_RUNTIME="${SAM_INIT_RUNTIME:-python${PYTHON_VERSION}}"
+export SAM_INIT_RUNTIME="${SAM_INIT_RUNTIME:-python3.11}"
 export SAM_INIT_DEPENDENCY_MANAGER="${SAM_INIT_DEPENDENCY_MANAGER:-pip}"
 export SAM_INIT_APP_TEMPLATE="${SAM_INIT_APP_TEMPLATE:-hello-world}"
 export SAM_INIT_PACKAGE_TYPE="${SAM_INIT_PACKAGE_TYPE:-Zip}"
