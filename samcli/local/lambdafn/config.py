@@ -32,6 +32,7 @@ class FunctionConfig:
         timeout=None,
         runtime_management_config=None,
         env_vars=None,
+        code_real_path=None,
     ):
         """
         Parameters
@@ -80,6 +81,7 @@ class FunctionConfig:
         self.packagetype = packagetype
         self.handler = handler
         self.code_abs_path = code_abs_path
+        self.code_real_path = code_real_path
         self.layers = layers
         self.memory = memory or self._DEFAULT_MEMORY
         self.architecture = architecture
