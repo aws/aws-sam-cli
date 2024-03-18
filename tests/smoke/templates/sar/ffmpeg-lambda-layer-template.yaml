@@ -14,7 +14,7 @@ Resources:
       - nodejs18.x
       - python3.9
       - ruby3.2
-      - java8
+      - java21
       - go1.x
       ContentUri:
         Bucket: <%REPO_BUCKET%>

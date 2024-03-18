@@ -97,7 +97,6 @@ def get_layer_subfolder(build_workflow: str) -> str:
         "nodejs18.x": "nodejs",
         "nodejs20.x": "nodejs",
         "ruby3.2": "ruby/lib",
-        "java8": "java",
         "java11": "java",
         "java8.al2": "java",
         "java17": "java",
@@ -166,14 +165,6 @@ def get_workflow_config(
         "go1.x": BasicWorkflowSelector(GO_MOD_CONFIG),
         # When Maven builder exists, add to this list so we can automatically choose a builder based on the supported
         # manifest
-        "java8": ManifestWorkflowSelector(
-            [
-                # Gradle builder needs custom executable paths to find `gradlew` binary
-                JAVA_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
-                JAVA_KOTLIN_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
-                JAVA_MAVEN_CONFIG,
-            ]
-        ),
         "java11": ManifestWorkflowSelector(
             [
                 # Gradle builder needs custom executable paths to find `gradlew` binary
