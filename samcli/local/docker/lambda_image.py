@@ -42,7 +42,6 @@ class Runtime(Enum):
     python311 = "python3.11"
     python312 = "python3.12"
     ruby32 = "ruby3.2"
-    java8 = "java8"
     java8al2 = "java8.al2"
     java11 = "java11"
     java17 = "java17"
@@ -172,7 +171,7 @@ class LambdaImage:
                 base_image = f"{self._INVOKE_REPO_PREFIX}/{runtime_image_tag}"
 
                 # Temporarily add a version tag to the emulation image so that we don't pull a broken image
-                if platform.system().lower() == "windows" and runtime in [Runtime.go1x.value, Runtime.java8.value]:
+                if platform.system().lower() == "windows" and runtime in [Runtime.go1x.value]:
                     LOG.info("Falling back to a previous version of the emulation image")
                     base_image = f"{base_image}.2023.08.02.10"
 

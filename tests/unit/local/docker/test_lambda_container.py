@@ -33,7 +33,6 @@ RUNTIMES_WITH_DEBUG_ENV_VARS_ONLY = [
     Runtime.java21.value,
     Runtime.java17.value,
     Runtime.java11.value,
-    Runtime.java8.value,
     Runtime.java8al2.value,
     Runtime.dotnet6.value,
     Runtime.go1x.value,

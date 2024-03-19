@@ -738,21 +738,23 @@ class LambdaFunctionObserver_watch(TestCase):
         lambda_function = Mock()
         lambda_function.packagetype = ZIP
         lambda_function.code_abs_path = "path1"
+        lambda_function.code_real_path = "path2"
         lambda_function.layers = []
         self.lambda_function_observer.watch(lambda_function)
         self.assertEqual(
             self.lambda_function_observer._observed_functions,
             {
-                ZIP: {"path1": [lambda_function]},
+                ZIP: {"path2": [lambda_function]},
                 IMAGE: {},
             },
         )
-        self.file_observer_mock.watch.assert_called_with("path1")
+        self.file_observer_mock.watch.assert_called_with("path2")
 
     def test_watch_ZIP_lambda_function_with_layers(self):
         lambda_function = Mock()
         lambda_function.packagetype = ZIP
         lambda_function.code_abs_path = "path1"
+        lambda_function.code_real_path = "path2"
         layer1_mock = Mock()
         layer1_mock.codeuri = "layer1_path"
         layer2_mock = Mock()
@@ -764,7 +766,7 @@ class LambdaFunctionObserver_watch(TestCase):
             self.lambda_function_observer._observed_functions,
             {
                 ZIP: {
-                    "path1": [lambda_function],
+                    "path2": [lambda_function],
                     "layer1_path": [lambda_function],
                     "layer2_path": [lambda_function],
                 },
@@ -774,7 +776,7 @@ class LambdaFunctionObserver_watch(TestCase):
         self.assertEqual(
             self.file_observer_mock.watch.call_args_list,
             [
-                call("path1"),
+                call("path2"),
                 call("layer1_path"),
                 call("layer2_path"),
             ],
@@ -784,6 +786,7 @@ class LambdaFunctionObserver_watch(TestCase):
         lambda_function = Mock()
         lambda_function.packagetype = ZIP
         lambda_function.code_abs_path = "path1"
+        lambda_function.code_real_path = "path2"
         layer1_mock = LayerVersion(arn="arn", codeuri="layer1_path")
         layer2_mock = LayerVersion(arn="arn2", codeuri=None)
 
@@ -793,7 +796,7 @@ class LambdaFunctionObserver_watch(TestCase):
             self.lambda_function_observer._observed_functions,
             {
                 ZIP: {
-                    "path1": [lambda_function],
+                    "path2": [lambda_function],
                     "layer1_path": [lambda_function],
                 },
                 IMAGE: {},
@@ -802,7 +805,7 @@ class LambdaFunctionObserver_watch(TestCase):
         self.assertEqual(
             self.file_observer_mock.watch.call_args_list,
             [
-                call("path1"),
+                call("path2"),
                 call("layer1_path"),
             ],
         )
@@ -836,12 +839,14 @@ class LambdaFunctionObserver_unwatch(TestCase):
         self.zip_lambda_function1 = Mock()
         self.zip_lambda_function1.packagetype = ZIP
         self.zip_lambda_function1.code_abs_path = "path1"
+        self.zip_lambda_function1.code_real_path = "path1"
         self.zip_lambda_function1.layers = []
         self.lambda_function_observer.watch(self.zip_lambda_function1)
 
         self.zip_lambda_function2 = Mock()
         self.zip_lambda_function2.packagetype = ZIP
         self.zip_lambda_function2.code_abs_path = "path2"
+        self.zip_lambda_function2.code_real_path = "path2"
         layer1_mock = Mock()
         layer1_mock.codeuri = "layer1_path1"
         layer2_mock = Mock()
@@ -852,6 +857,7 @@ class LambdaFunctionObserver_unwatch(TestCase):
         self.zip_lambda_function3 = Mock()
         self.zip_lambda_function3.packagetype = ZIP
         self.zip_lambda_function3.code_abs_path = "path3"
+        self.zip_lambda_function3.code_real_path = "path3"
         self.zip_lambda_function3.layers = [layer1_mock]
         self.lambda_function_observer.watch(self.zip_lambda_function3)
 
@@ -996,12 +1002,14 @@ class LambdaFunctionObserver_on_change(TestCase):
         self.zip_lambda_function1 = Mock()
         self.zip_lambda_function1.packagetype = ZIP
         self.zip_lambda_function1.code_abs_path = "path1"
+        self.zip_lambda_function1.code_real_path = "path1"
         self.zip_lambda_function1.layers = []
         self.lambda_function_observer.watch(self.zip_lambda_function1)
 
         self.zip_lambda_function2 = Mock()
         self.zip_lambda_function2.packagetype = ZIP
         self.zip_lambda_function2.code_abs_path = "path2"
+        self.zip_lambda_function2.code_real_path = "path2"
         layer1_mock = Mock()
         layer1_mock.codeuri = "layer1_path1"
         layer2_mock = Mock()
@@ -1012,6 +1020,7 @@ class LambdaFunctionObserver_on_change(TestCase):
         self.zip_lambda_function3 = Mock()
         self.zip_lambda_function3.packagetype = ZIP
         self.zip_lambda_function3.code_abs_path = "path3"
+        self.zip_lambda_function3.code_real_path = "path3"
         self.zip_lambda_function3.layers = [layer1_mock]
         self.lambda_function_observer.watch(self.zip_lambda_function3)
 
