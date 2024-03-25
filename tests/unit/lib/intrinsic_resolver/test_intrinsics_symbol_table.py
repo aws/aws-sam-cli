@@ -105,10 +105,7 @@ class TestSymbolResolution(TestCase):
         res = symbol_resolver.get_translation("UNKNOWN MAP")
         self.assertEqual(res, None)
 
-    @parameterized.expand([
-        (["my-origin.com", "my-second-origin.com"],),
-        ("my-origin.com, my-second-origin.com",)
-    ])
+    @parameterized.expand([(["my-origin.com", "my-second-origin.com"],), ("my-origin.com, my-second-origin.com",)])
     def test_comma_delimited_list(self, logical_id_translator_target):
         template = {
             "Parameters": {"Test": {"Default": "my-origin.com,my-second-origin.com", "Type": "CommaDelimitedList"}},
