@@ -42,6 +42,7 @@ class Runtime(Enum):
     python311 = "python3.11"
     python312 = "python3.12"
     ruby32 = "ruby3.2"
+    ruby33 = "ruby3.3"
     java8al2 = "java8.al2"
     java11 = "java11"
     java17 = "java17"
