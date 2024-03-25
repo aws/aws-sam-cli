@@ -1,7 +1,7 @@
 -r pre-dev.txt
 
 coverage==7.4.4
-pytest-cov==4.1.0
+pytest-cov==5.0.0
 
 
 # type checking and related stubs
