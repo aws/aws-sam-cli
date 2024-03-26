@@ -70,6 +70,7 @@ class PackageContext:
         metadata,
         region,
         profile,
+        parameter_overrides=None,
         on_deploy=False,
         signing_profiles=None,
     ):
@@ -89,6 +90,7 @@ class PackageContext:
         self.on_deploy = on_deploy
         self.code_signer = None
         self.signing_profiles = signing_profiles
+        self.parameter_overrides = parameter_overrides
         self._global_parameter_overrides = {IntrinsicsSymbolTable.AWS_REGION: region} if region else {}
 
     def __enter__(self):
@@ -104,6 +106,7 @@ class PackageContext:
         stacks, _ = SamLocalStackProvider.get_stacks(
             self.template_file,
             global_parameter_overrides=self._global_parameter_overrides,
+            parameter_overrides=self.parameter_overrides,
         )
         self._warn_preview_runtime(stacks)
         self.image_repositories = self.image_repositories if self.image_repositories is not None else {}
