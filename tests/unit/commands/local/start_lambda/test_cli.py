@@ -84,6 +84,7 @@ class TestCli(TestCase):
             container_host_interface=self.container_host_interface,
             add_host=self.add_host,
             invoke_images={},
+            verbose=self.ctx_mock.debug,
         )
 
         local_lambda_service_mock.assert_called_with(lambda_invoke_context=context_mock, port=self.port, host=self.host)

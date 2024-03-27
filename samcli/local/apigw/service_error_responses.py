@@ -101,3 +101,13 @@ class ServiceErrorResponses:
         """
         response_data = jsonify(ServiceErrorResponses._MISSING_AUTHENTICATION)
         return make_response(response_data, ServiceErrorResponses.HTTP_STATUS_CODE_403)
+
+    @staticmethod
+    def container_creation_failed(message):
+        """
+        Constuct a Flask Response for when container creation fails for a Lambda Function
+
+        :return: a Flask Response
+        """
+        response_data = jsonify({"message": message})
+        return make_response(response_data, ServiceErrorResponses.HTTP_STATUS_CODE_501)
