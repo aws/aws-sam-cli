@@ -12,7 +12,7 @@ from samcli.cli.row_modifiers import RowDefinition
 
 REQUIRED_OPTIONS: List[str] = ["template_file"]
 
-AWS_CREDENTIAL_OPTION_NAMES: List[str] = ["region", "profile"]
+AWS_CREDENTIAL_OPTION_NAMES: List[str] = ["region", "profile", "accountid"]
 
 CONTAINER_OPTION_NAMES: List[str] = [
     "use_container",

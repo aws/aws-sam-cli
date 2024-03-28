@@ -42,6 +42,7 @@ class Context:
         self._debug = False
         self._aws_region = None
         self._aws_profile = None
+        self._aws_accountid = None
         self._session_id = str(uuid.uuid4())
         self._experimental = False
         self._exception = None
@@ -109,6 +110,18 @@ class Context:
         Set AWS profile for credential resolution
         """
         self._aws_profile = value
+        self._refresh_session()
+
+    @property
+    def accountid(self):
+        return self._aws_accountid
+
+    @accountid.setter
+    def accountid(self, value):
+        """
+        Set AWS accountid for substitution
+        """
+        self._aws_accountid = value
         self._refresh_session()
 
     @property
