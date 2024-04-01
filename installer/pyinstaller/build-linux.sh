@@ -38,9 +38,9 @@ mkdir -p .build/output/pyinstaller-output
 mkdir -p .build/output/openssl
 cd .build/output/openssl
 
-curl "https://www.openssl.org/source/openssl-1.1.1t.tar.gz" --output openssl-1.1.1.tar.gz
+curl "https://www.openssl.org/source/openssl-1.1.1w.tar.gz" --output openssl-1.1.1.tar.gz
 tar xzf openssl-1.1.1.tar.gz
-cd openssl-1.1.1t
+cd openssl-1.1.1w
 ./config --prefix=/opt/openssl && make && make install
 cd ../../..
 

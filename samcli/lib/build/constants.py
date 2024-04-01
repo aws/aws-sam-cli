@@ -14,6 +14,7 @@ DEPRECATED_RUNTIMES: Set[str] = {
     "dotnetcore2.0",
     "dotnetcore2.1",
     "dotnetcore3.1",
+    "java8",
     "python2.7",
     "python3.6",
     "python3.7",
