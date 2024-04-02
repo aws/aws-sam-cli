@@ -49,9 +49,18 @@ echo "Building zlib"
 curl https://www.zlib.net/zlib-1.3.1.tar.gz --output zlib.tar.gz
 tar xvf zlib.tar.gz
 cd zlib-1.3.1
-./configure --prefix/opt/zlib
-make
-make install
+./configure --prefix=/opt/zlib && make && make install
+cd ../
+
+echo "Building bzip2"
+mkdir bzip2 && cd bzip2
+git init
+git remote add origin https://gitlab.com/bzip2/bzip2.git
+# this is the 1.0.8 release
+# https://gitlab.com/bzip2/bzip2/-/tags
+git fetch origin 6a8690fc8d26c815e798c588f796eabe9d684cf0
+git reset --hard FETCH_HEAD
+make install PREFIX=/opt/bzip2
 cd ../
 
 echo "Copying Source"
@@ -78,7 +87,12 @@ echo "Installing Python"
 curl "https://www.python.org/ftp/python/${python_version}/Python-${python_version}.tgz" --output python.tgz
 tar -xzf python.tgz
 cd Python-$python_version
-./configure CPPFLAGS='-I/opt/zlib/include' LDFLAGS='-L/opt/zlib/lib' --enable-shared --with-openssl=/opt/openssl --with-openssl-rpath=auto
+./configure \
+    CPPFLAGS='-I/opt/zlib/include -I/opt/bzip2/include' \
+    LDFLAGS='-L/opt/zlib/lib -L/opt/bzip2/lib' \
+    --enable-shared \
+    --with-openssl=/opt/openssl \
+    --with-openssl-rpath=auto
 make -j8
 make install
 ldconfig
