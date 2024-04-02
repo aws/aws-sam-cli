@@ -28,7 +28,7 @@ fi
 
 set -eux
 
-yum install -y libffi-devel
+yum install -y libffi-devel bzip2-devel
 
 echo "Making Folders"
 mkdir -p .build/src
