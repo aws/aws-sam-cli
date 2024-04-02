@@ -49,7 +49,7 @@ echo "Building zlib"
 curl https://www.zlib.net/zlib-1.3.1.tar.gz --output zlib.tar.gz
 tar xvf zlib.tar.gz
 cd zlib-1.3.1
-./configure --prefix=/opt/zlib && make && make install
+./configure && make && make install
 cd ../
 
 # echo "Building bzip2"
@@ -88,8 +88,6 @@ curl "https://www.python.org/ftp/python/${python_version}/Python-${python_versio
 tar -xzf python.tgz
 cd Python-$python_version
 ./configure \
-    CPPFLAGS='-I/opt/zlib/include' \
-    LDFLAGS='-L/opt/zlib/lib' \
     --enable-shared \
     --with-openssl=/opt/openssl \
     --with-openssl-rpath=auto
