@@ -37,24 +37,6 @@
             "useCaseName": "Hello World Example"
         }
     ],
-    "java8": [
-        {
-            "directory": "template/cookiecutter-aws-sam-hello-java-gradle",
-            "displayName": "Hello World Example: Gradle",
-            "dependencyManager": "gradle",
-            "appTemplate": "hello-world",
-            "packageType": "Zip",
-            "useCaseName": "Hello World Example"
-        },
-        {
-            "directory": "template/cookiecutter-aws-sam-hello-java-gradle",
-            "displayName": "Hello World Example: Maven",
-            "dependencyManager": "maven",
-            "appTemplate": "hello-world",
-            "packageType": "Zip",
-            "useCaseName": "Hello World Example"
-        }
-    ],
     "java8.al2": [
         {
             "directory": "template/cookiecutter-aws-sam-hello-java-gradle",

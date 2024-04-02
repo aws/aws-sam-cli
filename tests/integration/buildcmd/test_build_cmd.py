@@ -872,34 +872,6 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
     @parameterized.expand(
         [
             (
-                "java8",
-                "8",
-                BuildIntegJavaBase.USING_GRADLE_PATH,
-                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
-            ),
-            (
-                "java8",
-                "8",
-                BuildIntegJavaBase.USING_GRADLEW_PATH,
-                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
-            ),
-            (
-                "java8",
-                "8",
-                BuildIntegJavaBase.USING_GRADLE_KOTLIN_PATH,
-                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
-            ),
-            (
-                "java8",
-                "8",
-                BuildIntegJavaBase.USING_MAVEN_PATH,
-                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
-                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
-            ),
-            (
                 "java8.al2",
                 "8",
                 BuildIntegJavaBase.USING_GRADLE_PATH,
@@ -1030,34 +1002,6 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
 
     @parameterized.expand(
         [
-            (
-                "java8",
-                "8",
-                BuildIntegJavaBase.USING_GRADLE_PATH,
-                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
-            ),
-            (
-                "java8",
-                "8",
-                BuildIntegJavaBase.USING_GRADLEW_PATH,
-                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
-            ),
-            (
-                "java8",
-                "8",
-                BuildIntegJavaBase.USING_GRADLE_KOTLIN_PATH,
-                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
-            ),
-            (
-                "java8",
-                "8",
-                BuildIntegJavaBase.USING_MAVEN_PATH,
-                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
-                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
-            ),
             (
                 "java8.al2",
                 "8",
@@ -2103,8 +2047,8 @@ class TestBuildWithBuildMethod(BuildIntegBase):
 
         # runtime is chosen based off current python version.
         runtime = self._get_python_version()
-        # BuildMethod is set to the java8, this should cause failure.
-        overrides = {"Runtime": runtime, "CodeUri": "Provided", "Handler": "main.handler", "BuildMethod": "java8"}
+        # BuildMethod is set to the java17, this should cause failure.
+        overrides = {"Runtime": runtime, "CodeUri": "Provided", "Handler": "main.handler", "BuildMethod": "java17"}
         manifest_path = os.path.join(self.test_data_path, "Provided", "requirements.txt")
 
         cmdlist = self.get_command_list(
@@ -2157,12 +2101,24 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
                 "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
                 "dotnet6",
             ),
-            (False, "Java/gradlew/8", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
+            (
+                False,
+                "Java/gradlew/8",
+                "aws.example.Hello::myHandler",
+                "aws.example.SecondFunction::myHandler",
+                "java8.al2",
+            ),
             (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs20.x"),
             (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.2"),
             # container
-            (True, "Java/gradlew/8", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
+            (
+                True,
+                "Java/gradlew/8",
+                "aws.example.Hello::myHandler",
+                "aws.example.SecondFunction::myHandler",
+                "java8.al2",
+            ),
             (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs20.x"),
             (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.2"),
@@ -2276,12 +2232,24 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
                 "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
                 "dotnet6",
             ),
-            (False, "Java/gradlew/8", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
+            (
+                False,
+                "Java/gradlew/8",
+                "aws.example.Hello::myHandler",
+                "aws.example.SecondFunction::myHandler",
+                "java8.al2",
+            ),
             (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs20.x"),
             (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.2"),
             # container
-            (True, "Java/gradlew/8", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
+            (
+                True,
+                "Java/gradlew/8",
+                "aws.example.Hello::myHandler",
+                "aws.example.SecondFunction::myHandler",
+                "java8.al2",
+            ),
             (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs20.x"),
             (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.2"),
@@ -2455,12 +2423,24 @@ class TestParallelBuilds(DedupBuildIntegBase):
                 "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
                 "dotnet6",
             ),
-            (False, "Java/gradlew/8", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
+            (
+                False,
+                "Java/gradlew/8",
+                "aws.example.Hello::myHandler",
+                "aws.example.SecondFunction::myHandler",
+                "java8.al2",
+            ),
             (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs20.x"),
             (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.2"),
             # container
-            (True, "Java/gradlew/8", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
+            (
+                True,
+                "Java/gradlew/8",
+                "aws.example.Hello::myHandler",
+                "aws.example.SecondFunction::myHandler",
+                "java8.al2",
+            ),
             (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs20.x"),
             (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.2"),

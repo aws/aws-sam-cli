@@ -11,7 +11,7 @@ Resources:
     Properties:
       CodeUri: Java/maven-with-layer/HelloWorldFunction
       Handler: helloworld.App::handleRequest
-      Runtime: java8
+      Runtime: java17
       MemorySize: 512
       Layers:
         - !Ref HelloWorldLayer
@@ -21,7 +21,7 @@ Resources:
     Properties:
       ContentUri: Java/maven-with-layer/HelloWorldLayer
       CompatibleRuntimes:
-        - java8
+        - java17
     Metadata:
-      BuildMethod: java8
+      BuildMethod: java17
       BuildArchitecture: x86_64
