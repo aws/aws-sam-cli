@@ -42,14 +42,14 @@ echo "Building OpenSSL"
 curl "https://www.openssl.org/source/openssl-1.1.1w.tar.gz" --output openssl-1.1.1.tar.gz
 tar xzf openssl-1.1.1.tar.gz
 cd openssl-1.1.1w
-./config --prefix=/opt/openssl && make && make install
+./config --prefix=/opt/openssl && make -j8 && make install
 cd ../../..
 
 echo "Building zlib"
 curl https://www.zlib.net/zlib-1.3.1.tar.gz --output zlib.tar.gz
 tar xvf zlib.tar.gz
 cd zlib-1.3.1
-./configure && make && make install
+./configure && make -j8 && make install
 cd ../
 
 echo "Building bzip2"
@@ -60,6 +60,8 @@ git remote add origin https://gitlab.com/bzip2/bzip2.git
 # https://gitlab.com/bzip2/bzip2/-/tags
 git fetch origin 6a8690fc8d26c815e798c588f796eabe9d684cf0
 git reset --hard FETCH_HEAD
+make -f Makefile-libbz2_so -j8
+make -j8
 make install
 cd ../
 
