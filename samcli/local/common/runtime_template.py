@@ -24,7 +24,7 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
     ],
     "ruby": [
         {
-            "runtimes": ["ruby3.2"],
+            "runtimes": ["ruby3.3", "ruby3.2"],
             "dependency_manager": "bundler",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-ruby"),
             "build": True,
@@ -123,6 +123,7 @@ INIT_RUNTIMES = [
     "python3.9",
     "python3.8",
     # ruby runtimes in descending order
+    "ruby3.3",
     "ruby3.2",
 ]
 
@@ -145,6 +146,7 @@ LAMBDA_IMAGES_RUNTIMES_MAP = {
     "python3.10": "amazon/python3.10-base",
     "python3.9": "amazon/python3.9-base",
     "python3.8": "amazon/python3.8-base",
+    "ruby3.3": "amazon/ruby3.3-base",
     "ruby3.2": "amazon/ruby3.2-base",
 }
 

@@ -31,6 +31,8 @@ LOG = logging.getLogger(__name__)
 
 RAPID_IMAGE_TAG_PREFIX = "rapid"
 
+TEST_RUNTIMES = ["ruby3.3"]
+
 
 class Runtime(Enum):
     nodejs16x = "nodejs16.x"
@@ -42,6 +44,7 @@ class Runtime(Enum):
     python311 = "python3.11"
     python312 = "python3.12"
     ruby32 = "ruby3.2"
+    ruby33 = "ruby3.3"
     java8al2 = "java8.al2"
     java11 = "java11"
     java17 = "java17"
@@ -64,7 +67,7 @@ class Runtime(Enum):
         return any(value == item.value for item in cls)
 
     @classmethod
-    def get_image_name_tag(cls, runtime: str, architecture: str) -> str:
+    def get_image_name_tag(cls, runtime: str, architecture: str, is_preview: bool = False) -> str:
         """
         Returns the image name and tag for a particular runtime
 
@@ -74,6 +77,8 @@ class Runtime(Enum):
             AWS Lambda runtime
         architecture : str
             Architecture for the runtime
+        is_preview : bool
+            Flag to use preview tag
 
         Returns
         -------
@@ -95,6 +100,9 @@ class Runtime(Enum):
             runtime_image_tag = re.sub(r"^([a-z]+)([0-9][a-z0-9\.]*)$", r"\1:\2", runtime)
             # nodejs20.x, go1.x, etc don't have the `.x` part.
             runtime_image_tag = runtime_image_tag.replace(".x", "")
+
+        if is_preview:
+            runtime_image_tag = f"{runtime_image_tag}-preview"
 
         # Runtime image tags contain the architecture only if more than one is supported for that runtime
         if has_runtime_multi_arch_image(runtime):
@@ -161,7 +169,8 @@ class LambdaImage:
         if packagetype == IMAGE:
             base_image = image
         elif packagetype == ZIP:
-            runtime_image_tag = Runtime.get_image_name_tag(runtime, architecture)
+            is_preview = runtime in TEST_RUNTIMES
+            runtime_image_tag = Runtime.get_image_name_tag(runtime, architecture, is_preview=is_preview)
             if self.invoke_images:
                 base_image = self.invoke_images.get(function_name, self.invoke_images.get(None))
             if not base_image:

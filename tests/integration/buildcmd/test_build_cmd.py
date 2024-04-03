@@ -813,7 +813,7 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture(BuildIntegNodeB
 
 
 class TestBuildCommand_RubyFunctions(BuildIntegRubyBase):
-    @parameterized.expand(["ruby3.2"])
+    @parameterized.expand(["ruby3.2", "ruby3.3"])
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_building_ruby_in_container(self, runtime):
         self._test_with_default_gemfile(runtime, "use_container", "Ruby", self.test_data_path)
@@ -826,12 +826,12 @@ class TestBuildCommand_RubyFunctions(BuildIntegRubyBase):
 class TestBuildCommand_RubyFunctions_With_Architecture(BuildIntegRubyBase):
     template = "template_with_architecture.yaml"
 
-    @parameterized.expand([("ruby3.2", "Ruby32")])
+    @parameterized.expand([("ruby3.2", "Ruby32"), ("ruby3.3", "Ruby33")])
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_building_ruby_in_container_with_specified_architecture(self, runtime, codeuri):
         self._test_with_default_gemfile(runtime, "use_container", codeuri, self.test_data_path, "x86_64")
 
-    @parameterized.expand([("ruby3.2", "Ruby32")])
+    @parameterized.expand([("ruby3.2", "Ruby32"), ("ruby3.3", "Ruby33")])
     def test_building_ruby_in_process_with_specified_architecture(self, runtime, codeuri):
         self._test_with_default_gemfile(runtime, False, codeuri, self.test_data_path, "x86_64")
 
@@ -842,7 +842,7 @@ class TestBuildCommand_RubyFunctionsWithGemfileInTheRoot(BuildIntegRubyBase):
     This doesn't apply to containerized build, since it copies only the function folder to the container
     """
 
-    @parameterized.expand([("ruby3.2")])
+    @parameterized.expand([("ruby3.2"), ("ruby3.3")])
     def test_building_ruby_in_process_with_root_gemfile(self, runtime):
         self._prepare_application_environment()
         self._test_with_default_gemfile(runtime, False, "RubyWithRootGemfile", self.working_dir)
