@@ -231,7 +231,7 @@ class LambdaRuntime_run(TestCase):
             debug_context=debug_options,
             container_host=None,
             container_host_interface=None,
-            extra_hosts=None
+            extra_hosts=None,
         )
         self.manager_mock.run.assert_called_with(container)
 

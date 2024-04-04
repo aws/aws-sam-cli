@@ -161,7 +161,7 @@ class LambdaRuntime:
                 debug_context=debug_context,
                 container_host=container_host,
                 container_host_interface=container_host_interface,
-                extra_hosts=extra_hosts
+                extra_hosts=extra_hosts,
             )
 
         if container.is_running():
