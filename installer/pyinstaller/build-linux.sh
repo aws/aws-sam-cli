@@ -10,7 +10,7 @@ if [ "$python_library_zip_filename" = "" ]; then
 fi
 
 if [ "$python_version" = "" ]; then
-    python_version="3.11.3";
+    python_version="3.11.8";
 fi
 
 if [ "$CI_OVERRIDE" = "1" ]; then
@@ -28,7 +28,7 @@ fi
 
 set -eux
 
-yum install -y zlib-devel libffi-devel bzip2-devel
+yum install -y libffi-devel bzip2-devel
 
 echo "Making Folders"
 mkdir -p .build/src
@@ -38,17 +38,25 @@ mkdir -p .build/output/pyinstaller-output
 mkdir -p .build/output/openssl
 cd .build/output/openssl
 
+echo "Building OpenSSL"
 curl "https://www.openssl.org/source/openssl-1.1.1w.tar.gz" --output openssl-1.1.1.tar.gz
 tar xzf openssl-1.1.1.tar.gz
 cd openssl-1.1.1w
-./config --prefix=/opt/openssl && make && make install
+./config --prefix=/opt/openssl && make -j8 && make install
 cd ../../..
+
+echo "Building zlib"
+curl https://www.zlib.net/zlib-1.3.1.tar.gz --output zlib.tar.gz
+tar xvf zlib.tar.gz
+cd zlib-1.3.1
+./configure && make -j8 && make install
+cd ../
 
 echo "Copying Source"
 cp -r ../[!.]* ./src
 cp -r ./src/* ./output/aws-sam-cli-src
 
-echo "Removing CI Scripts and other files/direcories not needed"
+echo "Removing CI Scripts and other files/directories not needed"
 rm -vf ./output/aws-sam-cli-src/appveyor*.yml
 rm -rf ./output/aws-sam-cli-src/tests
 rm -rf ./output/aws-sam-cli-src/designs
@@ -68,7 +76,10 @@ echo "Installing Python"
 curl "https://www.python.org/ftp/python/${python_version}/Python-${python_version}.tgz" --output python.tgz
 tar -xzf python.tgz
 cd Python-$python_version
-./configure --enable-shared --with-openssl=/opt/openssl --with-openssl-rpath=auto 
+./configure \
+    --enable-shared \
+    --with-openssl=/opt/openssl \
+    --with-openssl-rpath=auto
 make -j8
 make install
 ldconfig
