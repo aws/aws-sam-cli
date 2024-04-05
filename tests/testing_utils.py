@@ -313,6 +313,7 @@ def runtime_supported_by_docker(runtime: str) -> bool:
         "java21",
         "python3.12",
         "dotnet8",
+        "ruby3.3",
     }
     min_docker_version = "20.10.10"
     return runtime not in al2023_based_runtimes or (
