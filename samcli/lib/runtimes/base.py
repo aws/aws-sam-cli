@@ -25,7 +25,7 @@ class FamilyDataMixin:
     dep_manager: List[Tuple[str, Path]] = field(default_factory=list)  # (package manager, path to local init template)
     build: bool = True
     eb_code_binding: Optional[str] = None  # possible values are "Java8", "Python36", "Go1", "TypeScript3"
-    include_in_runtime_dep_template_mapping: bool = field(repr=False, default=True)
+    include_in_runtime_dependency_template_mapping: bool = field(repr=False, default=True)
 
 
 @unique
@@ -297,11 +297,11 @@ class DeprecatedRuntime(RuntimeEnumBase):
     ruby27 = ("ruby2.7", Family.RUBY)
 
 
-def runtime_dep_template_mapping(runtimes: List[RuntimeDataMixin]) -> dict:
+def runtime_dependency_template_mapping(runtimes: List[RuntimeDataMixin]) -> dict:
     ret: dict = {}
     for runtime in runtimes:
         family = runtime.family
-        if not family.include_in_runtime_dep_template_mapping:
+        if not family.include_in_runtime_dependency_template_mapping:
             continue
         if family.key not in ret:
             ret[family.key] = []

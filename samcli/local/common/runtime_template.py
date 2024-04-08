@@ -13,7 +13,7 @@ from samcli.lib.runtimes.base import (
     init_runtimes,
     lambda_images_runtimes_map,
     provided_runtimes,
-    runtime_dep_template_mapping,
+    runtime_dependency_template_mapping,
     sam_runtime_to_schemas_code_lang_mapping,
 )
 
@@ -21,7 +21,7 @@ _init_path = str(pathlib.Path(os.path.dirname(__file__)).parent.parent)
 _templates = os.path.join(_init_path, "lib", "init", "templates")
 _lambda_images_templates = os.path.join(_init_path, "lib", "init", "image_templates")
 
-RUNTIME_DEP_TEMPLATE_MAPPING = runtime_dep_template_mapping(list(Runtime))
+RUNTIME_DEP_TEMPLATE_MAPPING = runtime_dependency_template_mapping(list(Runtime))
 
 
 def get_local_manifest_path():

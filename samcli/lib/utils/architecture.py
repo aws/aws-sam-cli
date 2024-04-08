@@ -40,7 +40,7 @@ def validate_architecture_runtime(function: "Function") -> None:
         runtime = Runtime.from_str(function.runtime)
         runtime_architectures.extend(runtime.archs_as_list_of_str())
     except ValueError:
-        LOG.debug("Unrecognized runtime %s", function.runtime)
+        LOG.warning("Unrecognized runtime %s", function.runtime)
 
     if function.architectures and function.architectures[0] not in runtime_architectures:
         raise UnsupportedRuntimeArchitectureError(

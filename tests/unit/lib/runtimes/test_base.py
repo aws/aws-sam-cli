@@ -10,7 +10,7 @@ from samcli.lib.runtimes.base import (
     Family,
     Architecture,
     RuntimeEnumBase,
-    runtime_dep_template_mapping,
+    runtime_dependency_template_mapping,
     init_runtimes,
     lambda_images_runtimes_map,
     sam_runtime_to_schemas_code_lang_mapping,
@@ -154,9 +154,9 @@ class TestFuncs(TestCase):
             ),
         ]
     )
-    def test_runtime_dep_template_mapping(self, cls, expect):
+    def test_runtime_dependency_template_mapping(self, cls, expect):
         self.maxDiff = None
-        r = runtime_dep_template_mapping(list(cls))
+        r = runtime_dependency_template_mapping(list(cls))
         self.assertDictEqual(r, expect)
 
     def test_init_runtimes(self):
