@@ -2,40 +2,20 @@
 Architecture tools
 """
 
-from typing import TYPE_CHECKING, Dict, List, cast
+import logging
+from typing import TYPE_CHECKING
 
 from samcli.commands.exceptions import UserException
 from samcli.commands.local.lib.exceptions import UnsupportedRuntimeArchitectureError
+from samcli.lib.runtimes.base import Architecture, Runtime
 from samcli.lib.utils.packagetype import IMAGE
 
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.lib.providers.provider import Function
 
-X86_64 = "x86_64"
-ARM64 = "arm64"
-
-SUPPORTED_RUNTIMES: Dict[str, List[str]] = {
-    "nodejs16.x": [ARM64, X86_64],
-    "nodejs18.x": [ARM64, X86_64],
-    "nodejs20.x": [ARM64, X86_64],
-    "python3.8": [ARM64, X86_64],
-    "python3.9": [ARM64, X86_64],
-    "python3.10": [ARM64, X86_64],
-    "python3.11": [ARM64, X86_64],
-    "python3.12": [ARM64, X86_64],
-    "ruby3.2": [ARM64, X86_64],
-    "java8": [X86_64],
-    "java8.al2": [ARM64, X86_64],
-    "java11": [ARM64, X86_64],
-    "java17": [ARM64, X86_64],
-    "java21": [ARM64, X86_64],
-    "go1.x": [X86_64],
-    "dotnet6": [ARM64, X86_64],
-    "dotnet8": [ARM64, X86_64],
-    "provided": [X86_64],
-    "provided.al2": [ARM64, X86_64],
-    "provided.al2023": [ARM64, X86_64],
-}
+LOG = logging.getLogger(__name__)
+X86_64 = Architecture.X86_64.value
+ARM64 = Architecture.ARM64.value
 
 
 def validate_architecture_runtime(function: "Function") -> None:
@@ -55,7 +35,12 @@ def validate_architecture_runtime(function: "Function") -> None:
     if function.packagetype == IMAGE:
         return
 
-    runtime_architectures = SUPPORTED_RUNTIMES.get(cast(str, function.runtime), [])
+    runtime_architectures = []
+    try:
+        runtime = Runtime.from_str(function.runtime)
+        runtime_architectures.extend(runtime.archs_as_list_of_str())
+    except ValueError:
+        LOG.warning("Unrecognized runtime %s", function.runtime)
 
     if function.architectures and function.architectures[0] not in runtime_architectures:
         raise UnsupportedRuntimeArchitectureError(
@@ -63,8 +48,13 @@ def validate_architecture_runtime(function: "Function") -> None:
         )
 
 
-def has_runtime_multi_arch_image(runtime: str):
-    return len(SUPPORTED_RUNTIMES.get(runtime, [])) > 1
+def has_runtime_multi_arch_image(runtime: str) -> bool:
+    try:
+        r = Runtime.from_str(runtime)
+        return len(r.archs) > 1
+    except ValueError:
+        LOG.debug("Unrecognized runtime %s", runtime)
+    return False
 
 
 class InvalidArchitecture(UserException):
@@ -87,5 +77,11 @@ def validate_architecture(architecture: str) -> None:
     InvalidArchitecture
         If the architecture is unknown
     """
-    if architecture not in [ARM64, X86_64]:
-        raise InvalidArchitecture(f"Architecture '{architecture}' is invalid. Valid values are {ARM64} or {X86_64}")
+    try:
+        Architecture(architecture)
+        return
+    except ValueError:
+        raise InvalidArchitecture(
+            f"Architecture '{architecture}' is invalid. "
+            f"Valid values are {Architecture.ARM64.value} or {Architecture.X86_64.value}"
+        )

@@ -20,6 +20,13 @@ from samcli.lib.build.workflows import (
     NODEJS_NPM_ESBUILD_CONFIG,
     RUST_CARGO_LAMBDA_CONFIG,
 )
+from samcli.lib.runtimes.base import (
+    RuntimeDataMixin,
+    Runtime,
+    DeprecatedRuntime,
+    Family,
+    layer_subfolder_mapping,
+)
 from samcli.lib.telemetry.event import EventTracker
 
 LOG = logging.getLogger(__name__)
@@ -84,32 +91,14 @@ def get_selector(
 
 
 def get_layer_subfolder(build_workflow: str) -> str:
-    subfolders_by_runtime = {
-        "python3.8": "python",
-        "python3.9": "python",
-        "python3.10": "python",
-        "python3.11": "python",
-        "python3.12": "python",
-        "nodejs4.3": "nodejs",
-        "nodejs6.10": "nodejs",
-        "nodejs8.10": "nodejs",
-        "nodejs16.x": "nodejs",
-        "nodejs18.x": "nodejs",
-        "nodejs20.x": "nodejs",
-        "ruby3.2": "ruby/lib",
-        "java8": "java",
-        "java11": "java",
-        "java8.al2": "java",
-        "java17": "java",
-        "java21": "java",
-        "dotnet6": "dotnet",
-        "dotnet8": "dotnet",
-        # User is responsible for creating subfolder in these workflows
-        "makefile": "",
-    }
+    subfolders_by_runtime = layer_subfolder_mapping(
+        cast(List[RuntimeDataMixin], list(Runtime) + list(DeprecatedRuntime))
+    )
+    # User is responsible for creating subfolder in these workflows
+    subfolders_by_runtime["makefile"] = ""
 
     if build_workflow not in subfolders_by_runtime:
-        raise UnsupportedRuntimeException("'{}' runtime is not supported for layers".format(build_workflow))
+        raise UnsupportedRuntimeException(f"{build_workflow} runtime is not supported for layers")
 
     return subfolders_by_runtime[build_workflow]
 
