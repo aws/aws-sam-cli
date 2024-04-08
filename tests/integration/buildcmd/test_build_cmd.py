@@ -137,6 +137,9 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
         ]
     )
     def test_with_dockerfile_extension(self, runtime, use_container):
+        if not runtime_supported_by_docker(f"python{runtime}") and IS_WINDOWS:
+            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
+
         _tag = uuid4().hex
         overrides = {
             "Runtime": runtime,
@@ -810,9 +813,11 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture(BuildIntegNodeB
 
 
 class TestBuildCommand_RubyFunctions(BuildIntegRubyBase):
-    @parameterized.expand(["ruby3.2"])
+    @parameterized.expand(["ruby3.2", "ruby3.3"])
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_building_ruby_in_container(self, runtime):
+        if IS_WINDOWS and not runtime_supported_by_docker(runtime):
+            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
         self._test_with_default_gemfile(runtime, "use_container", "Ruby", self.test_data_path)
 
     @parameterized.expand(["ruby3.2"])
@@ -823,13 +828,17 @@ class TestBuildCommand_RubyFunctions(BuildIntegRubyBase):
 class TestBuildCommand_RubyFunctions_With_Architecture(BuildIntegRubyBase):
     template = "template_with_architecture.yaml"
 
-    @parameterized.expand([("ruby3.2", "Ruby32")])
+    @parameterized.expand([("ruby3.2", "Ruby32"), ("ruby3.3", "Ruby33")])
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_building_ruby_in_container_with_specified_architecture(self, runtime, codeuri):
+        if IS_WINDOWS and not runtime_supported_by_docker(runtime):
+            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
         self._test_with_default_gemfile(runtime, "use_container", codeuri, self.test_data_path, "x86_64")
 
-    @parameterized.expand([("ruby3.2", "Ruby32")])
+    @parameterized.expand([("ruby3.2", "Ruby32"), ("ruby3.3", "Ruby33")])
     def test_building_ruby_in_process_with_specified_architecture(self, runtime, codeuri):
+        if IS_WINDOWS and not runtime_supported_by_docker(runtime):
+            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
         self._test_with_default_gemfile(runtime, False, codeuri, self.test_data_path, "x86_64")
 
 
@@ -839,7 +848,7 @@ class TestBuildCommand_RubyFunctionsWithGemfileInTheRoot(BuildIntegRubyBase):
     This doesn't apply to containerized build, since it copies only the function folder to the container
     """
 
-    @parameterized.expand([("ruby3.2")])
+    @parameterized.expand([("ruby3.2"), ("ruby3.3")])
     def test_building_ruby_in_process_with_root_gemfile(self, runtime):
         self._prepare_application_environment()
         self._test_with_default_gemfile(runtime, False, "RubyWithRootGemfile", self.working_dir)
@@ -868,34 +877,6 @@ class TestBuildCommand_RubyFunctionsWithGemfileInTheRoot(BuildIntegRubyBase):
 class TestBuildCommand_Java(BuildIntegJavaBase):
     @parameterized.expand(
         [
-            (
-                "java8",
-                "8",
-                BuildIntegJavaBase.USING_GRADLE_PATH,
-                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
-            ),
-            (
-                "java8",
-                "8",
-                BuildIntegJavaBase.USING_GRADLEW_PATH,
-                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
-            ),
-            (
-                "java8",
-                "8",
-                BuildIntegJavaBase.USING_GRADLE_KOTLIN_PATH,
-                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
-            ),
-            (
-                "java8",
-                "8",
-                BuildIntegJavaBase.USING_MAVEN_PATH,
-                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
-                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
-            ),
             (
                 "java8.al2",
                 "8",
@@ -1027,34 +1008,6 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
 
     @parameterized.expand(
         [
-            (
-                "java8",
-                "8",
-                BuildIntegJavaBase.USING_GRADLE_PATH,
-                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
-            ),
-            (
-                "java8",
-                "8",
-                BuildIntegJavaBase.USING_GRADLEW_PATH,
-                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
-            ),
-            (
-                "java8",
-                "8",
-                BuildIntegJavaBase.USING_GRADLE_KOTLIN_PATH,
-                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
-            ),
-            (
-                "java8",
-                "8",
-                BuildIntegJavaBase.USING_MAVEN_PATH,
-                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
-                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
-            ),
             (
                 "java8.al2",
                 "8",
@@ -1230,6 +1183,9 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         command_result = run_command(cmdlist, cwd=self.working_dir, env=newenv)
         self.assertEqual(command_result.process.returncode, 0)
 
+        if not runtime_supported_by_docker(runtime) and IS_WINDOWS:
+            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
+
         self._verify_built_artifact(
             self.default_build_dir,
             self.FUNCTION_LOGICAL_ID,
@@ -1280,6 +1236,9 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_dotnet_in_container_mount_with_write_explicit(self, runtime, code_uri, mode, architecture="x86_64"):
+        if not runtime_supported_by_docker(runtime) and IS_WINDOWS:
+            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
+
         overrides = {
             "Runtime": runtime,
             "CodeUri": code_uri,
@@ -1360,6 +1319,9 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         mode,
         architecture="x86_64",
     ):
+        if not runtime_supported_by_docker(runtime) and IS_WINDOWS:
+            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
+
         overrides = {
             "Runtime": runtime,
             "CodeUri": code_uri,
@@ -2091,8 +2053,8 @@ class TestBuildWithBuildMethod(BuildIntegBase):
 
         # runtime is chosen based off current python version.
         runtime = self._get_python_version()
-        # BuildMethod is set to the java8, this should cause failure.
-        overrides = {"Runtime": runtime, "CodeUri": "Provided", "Handler": "main.handler", "BuildMethod": "java8"}
+        # BuildMethod is set to the java17, this should cause failure.
+        overrides = {"Runtime": runtime, "CodeUri": "Provided", "Handler": "main.handler", "BuildMethod": "java17"}
         manifest_path = os.path.join(self.test_data_path, "Provided", "requirements.txt")
 
         cmdlist = self.get_command_list(
@@ -2145,12 +2107,24 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
                 "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
                 "dotnet6",
             ),
-            (False, "Java/gradlew/8", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
+            (
+                False,
+                "Java/gradlew/8",
+                "aws.example.Hello::myHandler",
+                "aws.example.SecondFunction::myHandler",
+                "java8.al2",
+            ),
             (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs20.x"),
             (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.2"),
             # container
-            (True, "Java/gradlew/8", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
+            (
+                True,
+                "Java/gradlew/8",
+                "aws.example.Hello::myHandler",
+                "aws.example.SecondFunction::myHandler",
+                "java8.al2",
+            ),
             (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs20.x"),
             (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.2"),
@@ -2264,12 +2238,24 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
                 "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
                 "dotnet6",
             ),
-            (False, "Java/gradlew/8", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
+            (
+                False,
+                "Java/gradlew/8",
+                "aws.example.Hello::myHandler",
+                "aws.example.SecondFunction::myHandler",
+                "java8.al2",
+            ),
             (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs20.x"),
             (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.2"),
             # container
-            (True, "Java/gradlew/8", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
+            (
+                True,
+                "Java/gradlew/8",
+                "aws.example.Hello::myHandler",
+                "aws.example.SecondFunction::myHandler",
+                "java8.al2",
+            ),
             (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs20.x"),
             (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.2"),
@@ -2443,12 +2429,24 @@ class TestParallelBuilds(DedupBuildIntegBase):
                 "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
                 "dotnet6",
             ),
-            (False, "Java/gradlew/8", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
+            (
+                False,
+                "Java/gradlew/8",
+                "aws.example.Hello::myHandler",
+                "aws.example.SecondFunction::myHandler",
+                "java8.al2",
+            ),
             (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs20.x"),
             (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.2"),
             # container
-            (True, "Java/gradlew/8", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
+            (
+                True,
+                "Java/gradlew/8",
+                "aws.example.Hello::myHandler",
+                "aws.example.SecondFunction::myHandler",
+                "java8.al2",
+            ),
             (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs20.x"),
             (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.2"),

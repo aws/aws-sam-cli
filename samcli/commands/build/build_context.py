@@ -6,7 +6,7 @@ import logging
 import os
 import pathlib
 import shutil
-from typing import Dict, Optional, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import click
 
@@ -17,14 +17,14 @@ from samcli.commands._utils.template import (
     move_template,
 )
 from samcli.commands.build.exceptions import InvalidBuildDirException, MissingBuildMethodException
-from samcli.commands.build.utils import prompt_user_to_enable_mount_with_write_if_needed, MountMode
+from samcli.commands.build.utils import MountMode, prompt_user_to_enable_mount_with_write_if_needed
 from samcli.commands.exceptions import UserException
 from samcli.lib.bootstrap.nested_stack.nested_stack_manager import NestedStackManager
 from samcli.lib.build.app_builder import (
     ApplicationBuilder,
+    ApplicationBuildResult,
     BuildError,
     UnsupportedBuilderLibraryVersionError,
-    ApplicationBuildResult,
 )
 from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
 from samcli.lib.build.bundler import EsbuildBundlerManager
@@ -34,12 +34,12 @@ from samcli.lib.build.exceptions import (
 )
 from samcli.lib.build.workflow_config import UnsupportedRuntimeException
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
-from samcli.lib.providers.provider import ResourcesToBuildCollector, Stack, LayerVersion
+from samcli.lib.providers.provider import LayerVersion, ResourcesToBuildCollector, Stack
 from samcli.lib.providers.sam_api_provider import SamApiProvider
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.providers.sam_layer_provider import SamLayerProvider
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
-from samcli.lib.telemetry.event import EventTracker, UsedFeature, EventName
+from samcli.lib.telemetry.event import EventName, EventTracker, UsedFeature
 from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
 from samcli.local.docker.manager import ContainerManager
 from samcli.local.lambdafn.exceptions import (
@@ -577,8 +577,8 @@ Commands you can use next
 
         if not result.functions and not result.layers:
             # Collect all functions and layers that are not inline
-            all_resources = [f.name for f in self.function_provider.get_all() if not f.inlinecode]
-            all_resources.extend([l.name for l in self.layer_provider.get_all()])
+            all_resources = [func.name for func in self.function_provider.get_all() if not func.inlinecode]
+            all_resources.extend([layer.name for layer in self.layer_provider.get_all()])
 
             available_resource_message = (
                 f"{resource_identifier} not found. Possible options in your " f"template: {all_resources}"
@@ -599,16 +599,16 @@ Commands you can use next
         excludes: Tuple[str, ...] = self._exclude if self._exclude is not None else ()
         result.add_functions(
             [
-                f
-                for f in self.function_provider.get_all()
-                if (f.name not in excludes) and f.function_build_info.is_buildable()
+                func
+                for func in self.function_provider.get_all()
+                if (func.name not in excludes) and func.function_build_info.is_buildable()
             ]
         )
         result.add_layers(
             [
-                l
-                for l in self.layer_provider.get_all()
-                if (l.name not in excludes) and BuildContext.is_layer_buildable(l)
+                layer
+                for layer in self.layer_provider.get_all()
+                if (layer.name not in excludes) and BuildContext.is_layer_buildable(layer)
             ]
         )
         return result
@@ -639,7 +639,7 @@ Commands you can use next
             return
 
         resource_collector.add_function(function)
-        resource_collector.add_layers([l for l in function.layers if BuildContext.is_layer_buildable(l)])
+        resource_collector.add_layers([layer for layer in function.layers if BuildContext.is_layer_buildable(layer)])
 
     def _collect_single_buildable_layer(
         self, resource_identifier: str, resource_collector: ResourcesToBuildCollector
