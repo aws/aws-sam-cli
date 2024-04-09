@@ -7,9 +7,9 @@ from typing import Dict, List, Optional, Tuple, cast
 
 LOG = logging.getLogger(__name__)
 
-_init_path = Path(os.path.dirname(__file__)).parent.parent
-_templates = _init_path / "lib" / "init" / "templates"
-_lambda_images_templates = _init_path / "lib" / "init" / "image_templates"
+_INIT_PATH = Path(os.path.dirname(__file__)).parent.parent
+_TEMPLATES = _INIT_PATH / "lib" / "init" / "templates"
+_LAMBDA_IMAGES_TEMPLATES = _INIT_PATH / "lib" / "init" / "image_templates"
 
 
 @unique
@@ -33,16 +33,16 @@ class Family(FamilyDataMixin, Enum):
     DOTNET = (
         "dotnet",
         "dotnet",
-        [("cli-package", _templates / "cookiecutter-aws-sam-hello-dotnet")],
+        [("cli-package", _TEMPLATES / "cookiecutter-aws-sam-hello-dotnet")],
         True,
     )
-    GO = "go", None, [("mod", _templates / "cookiecutter-aws-sam-hello-golang")], False, "Go1"
+    GO = "go", None, [("mod", _TEMPLATES / "cookiecutter-aws-sam-hello-golang")], False, "Go1"
     JAVA = (
         "java",
         "java",
         [
-            ("maven", _templates / "cookiecutter-aws-sam-hello-java-maven"),
-            ("gradle", _templates / "cookiecutter-aws-sam-hello-java-gradle"),
+            ("maven", _TEMPLATES / "cookiecutter-aws-sam-hello-java-maven"),
+            ("gradle", _TEMPLATES / "cookiecutter-aws-sam-hello-java-gradle"),
         ],
         True,
         "Java8",
@@ -50,18 +50,18 @@ class Family(FamilyDataMixin, Enum):
     NODEJS = (
         "nodejs",
         "nodejs",
-        [("npm", _templates / "cookiecutter-aws-sam-hello-nodejs")],
+        [("npm", _TEMPLATES / "cookiecutter-aws-sam-hello-nodejs")],
         True,
     )
     PROVIDED = "provided", "", [], False, None, False  # type: ignore [var-annotated]
     PYTHON = (
         "python",
         "python",
-        [("pip", _templates / "cookiecutter-aws-sam-hello-python")],
+        [("pip", _TEMPLATES / "cookiecutter-aws-sam-hello-python")],
         True,
         "Python36",
     )
-    RUBY = "ruby", "ruby/lib", [("bundler", _templates / "cookiecutter-aws-sam-hello-ruby")]
+    RUBY = "ruby", "ruby/lib", [("bundler", _TEMPLATES / "cookiecutter-aws-sam-hello-ruby")]
 
 
 @dataclass
@@ -181,12 +181,6 @@ class Runtime(RuntimeEnumBase):
         "amazon/java8.al2-base",
         [Architecture.X86_64, Architecture.ARM64],
     )
-    java8 = (
-        "java8",
-        Family.JAVA,
-        "amazon/java8-base",
-        [Architecture.X86_64],
-    )
 
     nodejs20x = (
         "nodejs20.x",
@@ -277,6 +271,12 @@ class Runtime(RuntimeEnumBase):
         "amazon/ruby3.2-base",
         [Architecture.X86_64, Architecture.ARM64],
     )
+    ruby33 = (
+        "ruby3.3",
+        Family.RUBY,
+        "amazon/ruby3.3-base",
+        [Architecture.X86_64, Architecture.ARM64],
+    )
 
 
 @unique
@@ -284,6 +284,7 @@ class DeprecatedRuntime(RuntimeEnumBase):
     dotnetcore20 = ("dotnetcore2.0", Family.DOTNET)
     dotnetcore21 = ("dotnetcore2.1", Family.DOTNET)
     dotnetcore31 = ("dotnetcore3.1", Family.DOTNET)
+    java8 = ("java8", Family.JAVA)
     nodejs43 = ("nodejs4.3", Family.NODEJS)
     nodejs610 = ("nodejs6.10", Family.NODEJS)
     nodejs810 = ("nodejs8.10", Family.NODEJS)

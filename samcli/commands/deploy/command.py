@@ -310,6 +310,10 @@ def do_cli(
             )
 
     with osutils.tempfile_platform_independent() as output_template_file:
+        if guided:
+            context_param_overrides = sanitize_parameter_overrides(guided_context.guided_parameter_overrides)
+        else:
+            context_param_overrides = parameter_overrides
         with PackageContext(
             template_file=template_file,
             s3_bucket=guided_context.guided_s3_bucket if guided else s3_bucket,
@@ -326,6 +330,7 @@ def do_cli(
             region=guided_context.guided_region if guided else region,
             profile=profile,
             signing_profiles=guided_context.signing_profiles if guided else signing_profiles,
+            parameter_overrides=context_param_overrides,
         ) as package_context:
             package_context.run()
 
@@ -348,11 +353,7 @@ def do_cli(
             no_progressbar=no_progressbar,
             s3_prefix=guided_context.guided_s3_prefix if guided else s3_prefix,
             kms_key_id=kms_key_id,
-            parameter_overrides=(
-                sanitize_parameter_overrides(guided_context.guided_parameter_overrides)
-                if guided
-                else parameter_overrides
-            ),
+            parameter_overrides=context_param_overrides,
             capabilities=guided_context.guided_capabilities if guided else capabilities,
             no_execute_changeset=no_execute_changeset,
             role_arn=role_arn,
