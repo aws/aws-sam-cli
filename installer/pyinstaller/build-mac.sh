@@ -63,6 +63,7 @@ cd openssl-"$openssl_version"
 ./Configure --prefix=/usr/local --openssldir=/usr/local/openssl no-ssl3 no-ssl3-method no-zlib ${openssl_config_arch} enable-ec_nistp_64_gcc_128
 
 make -j8
+# install_sw installs OpenSSL without manual pages
 sudo make -j8 install_sw
 cd ..
 

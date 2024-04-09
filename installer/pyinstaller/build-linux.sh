@@ -52,6 +52,7 @@ echo "Building OpenSSL"
 curl "https://www.openssl.org/source/openssl-${openssl_version}.tar.gz" --output openssl.tar.gz
 tar xzf openssl.tar.gz
 cd openssl-${openssl_version}
+# install_sw installs OpenSSL without manual pages
 ./config --prefix=/opt/openssl && make -j8 && make -j8 install_sw
 cd ../../
 
