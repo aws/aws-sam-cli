@@ -43,7 +43,7 @@ curl "https://www.openssl.org/source/openssl-1.1.1w.tar.gz" --output openssl-1.1
 tar xzf openssl-1.1.1.tar.gz
 cd openssl-1.1.1w
 ./config --prefix=/opt/openssl && make -j8 && make install
-cd ../../..
+cd ../../
 
 echo "Building zlib"
 curl https://www.zlib.net/zlib-1.3.1.tar.gz --output zlib.tar.gz
@@ -63,6 +63,9 @@ git fetch origin 6a8690fc8d26c815e798c588f796eabe9d684cf0
 git reset --hard FETCH_HEAD
 make -j8 -f Makefile-libbz2_so
 make -j8 install
+cd ../
+
+# Return to `.build/` folder
 cd ../
 
 echo "Copying Source"
