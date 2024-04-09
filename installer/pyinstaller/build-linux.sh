@@ -61,7 +61,8 @@ git remote add origin https://gitlab.com/bzip2/bzip2.git
 # fetch specific commit as to not grab the entire git history
 git fetch origin 6a8690fc8d26c815e798c588f796eabe9d684cf0
 git reset --hard FETCH_HEAD
-make install
+make -j8 -f Makefile-libbz2_so
+make -j8 install
 cd ../
 
 echo "Copying Source"
