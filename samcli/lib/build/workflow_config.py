@@ -21,10 +21,9 @@ from samcli.lib.build.workflows import (
     RUST_CARGO_LAMBDA_CONFIG,
 )
 from samcli.lib.runtimes.base import (
-    RuntimeDataMixin,
-    Runtime,
     DeprecatedRuntime,
-    Family,
+    Runtime,
+    RuntimeDataMixin,
     layer_subfolder_mapping,
 )
 from samcli.lib.telemetry.event import EventTracker
