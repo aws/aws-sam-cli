@@ -28,7 +28,7 @@ fi
 
 set -eux
 
-yum install -y libffi-devel bzip2-devel
+yum install -y libffi-devel
 
 echo "Making Folders"
 mkdir -p .build/src
@@ -50,6 +50,18 @@ curl https://www.zlib.net/zlib-1.3.1.tar.gz --output zlib.tar.gz
 tar xvf zlib.tar.gz
 cd zlib-1.3.1
 ./configure && make -j8 && make install
+cd ../
+
+echo "Building bzip2"
+mkdir bzip2 && cd bzip2
+git init
+git remote add origin https://gitlab.com/bzip2/bzip2.git
+# this is the 1.0.8 release
+# https://gitlab.com/bzip2/bzip2/-/tags
+# fetch specific commit as to not grab the entire git history
+git fetch origin 6a8690fc8d26c815e798c588f796eabe9d684cf0
+git reset --hard FETCH_HEAD
+make install
 cd ../
 
 echo "Copying Source"
