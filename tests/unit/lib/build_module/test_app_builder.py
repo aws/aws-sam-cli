@@ -56,11 +56,12 @@ class TestApplicationBuilder_build(TestCase):
         self.imageFunc1.get_build_dir = Mock()
         self.imageFunc1.inlinecode = None
         self.imageFunc1.architectures = [X86_64]
+        self.imageFunc1.packagetype = IMAGE
+        self.imageFunc1.imageuri = "imageuri"
 
         self.layer1 = Mock()
         self.layer2 = Mock()
 
-        self.imageFunc1.packagetype = IMAGE
         self.layer1.build_method = "build_method"
         self.layer1.name = "layer_name1"
         self.layer1.full_path = os.path.join("StackJ", "layer_name1")
@@ -131,6 +132,7 @@ class TestApplicationBuilder_build(TestCase):
                 call(
                     self.func1.name,
                     self.func1.codeuri,
+                    ANY,
                     ZIP,
                     self.func1.runtime,
                     self.func1.architecture,
@@ -144,6 +146,7 @@ class TestApplicationBuilder_build(TestCase):
                 call(
                     self.func2.name,
                     self.func2.codeuri,
+                    ANY,
                     ZIP,
                     self.func2.runtime,
                     self.func2.architecture,
@@ -157,6 +160,7 @@ class TestApplicationBuilder_build(TestCase):
                 call(
                     self.imageFunc1.name,
                     self.imageFunc1.codeuri,
+                    self.imageFunc1.imageuri,
                     IMAGE,
                     self.imageFunc1.runtime,
                     self.imageFunc1.architecture,
@@ -203,7 +207,7 @@ class TestApplicationBuilder_build(TestCase):
     @patch("samcli.lib.build.build_graph.BuildGraph._write")
     def test_should_use_function_or_layer_get_build_dir_to_determine_artifact_dir(self, persist_mock):
         def get_func_call_with_artifact_dir(artifact_dir):
-            return call(ANY, ANY, ANY, ANY, ANY, ANY, artifact_dir, ANY, ANY, ANY, True)
+            return call(ANY, ANY, ANY, ANY, ANY, ANY, ANY, artifact_dir, ANY, ANY, ANY, True)
 
         def get_layer_call_with_artifact_dir(artifact_dir):
             return call(ANY, ANY, ANY, ANY, ANY, artifact_dir, ANY, ANY, True, ANY)
@@ -296,6 +300,7 @@ class TestApplicationBuilder_build(TestCase):
                 call(
                     function1_1.name,
                     function1_1.codeuri,
+                    ANY,
                     ZIP,
                     function1_1.runtime,
                     function1_1.architectures[0],
@@ -309,6 +314,7 @@ class TestApplicationBuilder_build(TestCase):
                 call(
                     function2.name,
                     function2.codeuri,
+                    ANY,
                     ZIP,
                     function2.runtime,
                     function1_1.architectures[0],
@@ -480,6 +486,7 @@ class TestApplicationBuilder_build(TestCase):
             self.builder._build_function(
                 function_name="function_name",
                 codeuri="code_uri",
+                imageuri=None,
                 packagetype=ZIP,
                 runtime=runtime,
                 architecture="architecture",
@@ -527,7 +534,18 @@ class TestApplicationBuilder_build(TestCase):
         builder.build()
 
         builder._build_function.assert_called_with(
-            "name", "codeuri", ZIP, "runtime", X86_64, "handler", str(Path("builddir/name")), {}, {}, None, True
+            "name",
+            "codeuri",
+            "imageuri",
+            ZIP,
+            "runtime",
+            X86_64,
+            "handler",
+            str(Path("builddir/name")),
+            {},
+            {},
+            None,
+            True,
         )
 
 
@@ -1744,7 +1762,7 @@ class TestApplicationBuilder_build_function(TestCase):
         artifacts_dir = str(Path("/build/dir/function_full_path"))
         manifest_path = str(Path(os.path.join(code_dir, config_mock.manifest_name)).resolve())
 
-        self.builder._build_function(function_name, codeuri, ZIP, runtime, architecture, handler, artifacts_dir)
+        self.builder._build_function(function_name, codeuri, None, ZIP, runtime, architecture, handler, artifacts_dir)
 
         self.builder._build_function_in_process.assert_called_with(
             config_mock,
@@ -1807,7 +1825,9 @@ class TestApplicationBuilder_build_function(TestCase):
         get_build_options = ApplicationBuilder._get_build_options
         ApplicationBuilder._get_build_options = get_build_options_mock
         builder._build_function_in_process = build_function_in_process_mock
-        builder._build_function(function_name, codeuri, ZIP, runtime, architecture, handler, artifacts_dir, metadata)
+        builder._build_function(
+            function_name, codeuri, None, ZIP, runtime, architecture, handler, artifacts_dir, metadata
+        )
 
         ApplicationBuilder._get_build_options = get_build_options
 
@@ -1883,7 +1903,9 @@ class TestApplicationBuilder_build_function(TestCase):
         get_build_options = ApplicationBuilder._get_build_options
         ApplicationBuilder._get_build_options = get_build_options_mock
         builder._build_function_in_process = build_function_in_process_mock
-        builder._build_function(function_name, codeuri, ZIP, runtime, architecture, handler, artifacts_dir, metadata)
+        builder._build_function(
+            function_name, codeuri, None, ZIP, runtime, architecture, handler, artifacts_dir, metadata
+        )
 
         ApplicationBuilder._get_build_options = get_build_options
 
@@ -1961,7 +1983,9 @@ class TestApplicationBuilder_build_function(TestCase):
         get_build_options = ApplicationBuilder._get_build_options
         ApplicationBuilder._get_build_options = get_build_options_mock
         builder._build_function_in_process = build_function_in_process_mock
-        builder._build_function(function_name, codeuri, ZIP, runtime, architecture, handler, artifacts_dir, metadata)
+        builder._build_function(
+            function_name, codeuri, None, ZIP, runtime, architecture, handler, artifacts_dir, metadata
+        )
 
         ApplicationBuilder._get_build_options = get_build_options
 
@@ -2037,7 +2061,9 @@ class TestApplicationBuilder_build_function(TestCase):
         get_build_options = ApplicationBuilder._get_build_options
         ApplicationBuilder._get_build_options = get_build_options_mock
         builder._build_function_in_process = build_function_in_process_mock
-        builder._build_function(function_name, codeuri, ZIP, runtime, architecture, handler, artifacts_dir, metadata)
+        builder._build_function(
+            function_name, codeuri, None, ZIP, runtime, architecture, handler, artifacts_dir, metadata
+        )
 
         ApplicationBuilder._get_build_options = get_build_options
 
@@ -2112,7 +2138,9 @@ class TestApplicationBuilder_build_function(TestCase):
         get_build_options = ApplicationBuilder._get_build_options
         ApplicationBuilder._get_build_options = get_build_options_mock
         builder._build_function_in_process = build_function_in_process_mock
-        builder._build_function(function_name, codeuri, ZIP, runtime, architecture, handler, artifacts_dir, metadata)
+        builder._build_function(
+            function_name, codeuri, None, ZIP, runtime, architecture, handler, artifacts_dir, metadata
+        )
 
         ApplicationBuilder._get_build_options = get_build_options
 
@@ -2183,7 +2211,9 @@ class TestApplicationBuilder_build_function(TestCase):
         get_build_options = ApplicationBuilder._get_build_options
         ApplicationBuilder._get_build_options = get_build_options_mock
         builder._build_function_in_process = build_function_in_process_mock
-        builder._build_function(function_name, codeuri, ZIP, runtime, architecture, handler, artifacts_dir, metadata)
+        builder._build_function(
+            function_name, codeuri, None, ZIP, runtime, architecture, handler, artifacts_dir, metadata
+        )
 
         ApplicationBuilder._get_build_options = get_build_options
 
@@ -2237,6 +2267,7 @@ class TestApplicationBuilder_build_function(TestCase):
         self.builder._build_function(
             function_name,
             codeuri,
+            None,
             packagetype,
             runtime,
             architecture,
@@ -2294,6 +2325,7 @@ class TestApplicationBuilder_build_function(TestCase):
         self.builder._build_function(
             function_name,
             codeuri,
+            None,
             packagetype,
             runtime,
             architecture,
@@ -2344,7 +2376,9 @@ class TestApplicationBuilder_build_function(TestCase):
 
         # Settting the container manager will make us use the container
         self.builder._container_manager = Mock()
-        self.builder._build_function(function_name, codeuri, packagetype, runtime, architecture, handler, artifacts_dir)
+        self.builder._build_function(
+            function_name, codeuri, None, packagetype, runtime, architecture, handler, artifacts_dir
+        )
 
         self.builder._build_function_on_container.assert_called_with(
             config_mock,
@@ -2387,6 +2421,7 @@ class TestApplicationBuilder_build_function(TestCase):
         self.builder._build_function(
             function_name,
             codeuri,
+            None,
             packagetype,
             runtime,
             architecture,
@@ -2436,7 +2471,15 @@ class TestApplicationBuilder_build_function(TestCase):
         self.builder._container_manager = Mock()
         self.builder._build_images = build_images
         self.builder._build_function(
-            function_name, codeuri, packagetype, runtime, architecture, handler, artifacts_dir, container_env_vars=None
+            function_name,
+            codeuri,
+            None,
+            packagetype,
+            runtime,
+            architecture,
+            handler,
+            artifacts_dir,
+            container_env_vars=None,
         )
 
         self.builder._build_function_on_container.assert_called_with(
@@ -2480,7 +2523,15 @@ class TestApplicationBuilder_build_function(TestCase):
         self.builder._container_manager = Mock()
         self.builder._build_images = build_images
         self.builder._build_function(
-            function_name, codeuri, packagetype, runtime, architecture, handler, artifacts_dir, container_env_vars=None
+            function_name,
+            codeuri,
+            None,
+            packagetype,
+            runtime,
+            architecture,
+            handler,
+            artifacts_dir,
+            container_env_vars=None,
         )
 
         self.builder._build_function_on_container.assert_called_with(

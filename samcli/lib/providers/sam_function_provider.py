@@ -451,7 +451,7 @@ class SamFunctionProvider(SamBaseProvider):
             raise MissingFunctionHandlerException(f"Could not find handler for function: {name}")
 
         function_build_info = get_function_build_info(
-            get_full_path(stack.stack_path, function_id), package_type, inlinecode, codeuri, metadata
+            get_full_path(stack.stack_path, function_id), package_type, inlinecode, codeuri, imageuri, metadata
         )
 
         return Function(

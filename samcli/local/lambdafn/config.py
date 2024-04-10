@@ -46,7 +46,8 @@ class FunctionConfig:
         handler : str
             Handler method
         imageuri : str
-            Name of the Lambda Image which is of the form {image}:{tag}
+            Location of the Lambda Image which is of the form {image}:{tag}, sha256:{digest},
+            or a path to a local archive
         imageconfig : str
             Image configuration which can be used set to entrypoint, command and working dir for the container.
         packagetype : str

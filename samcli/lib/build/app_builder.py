@@ -7,6 +7,7 @@ import json
 import logging
 import os
 import pathlib
+from pathlib import Path
 from typing import Dict, List, NamedTuple, Optional, cast
 
 import docker
@@ -250,6 +251,7 @@ class ApplicationBuilder:
             function_build_details = FunctionBuildDefinition(
                 function.runtime,
                 function.codeuri,
+                function.imageuri,
                 function.packagetype,
                 function.architecture,
                 function.metadata,
@@ -460,6 +462,16 @@ class ApplicationBuilder:
         except LogStreamError as ex:
             raise DockerBuildFailed(msg=f"{function_name} failed to build: {str(ex)}") from ex
 
+    def _load_lambda_image(self, image_archive_path: str) -> str:
+        with open(image_archive_path, mode="rb") as image_archive:
+            try:
+                [image, *rest] = self._docker_client.images.load(image_archive)
+                if len(rest) != 0:
+                    raise DockerBuildFailed("Archive must represent a single image")
+                return f"{image.id}"
+            except docker.errors.APIError as ex:
+                raise DockerBuildFailed(msg=str(ex)) from ex
+
     def _build_layer(
         self,
         layer_name: str,
@@ -599,6 +611,7 @@ class ApplicationBuilder:
         self,
         function_name: str,
         codeuri: str,
+        imageuri: Optional[str],
         packagetype: str,
         runtime: str,
         architecture: str,
@@ -619,6 +632,9 @@ class ApplicationBuilder:
             Name or LogicalId of the function
         codeuri : str
             Path to where the code lives
+        imageuri : str
+            Location of the Lambda Image which is of the form {image}:{tag}, sha256:{digest},
+            or a path to a local archive
         packagetype : str
             The package type, 'Zip' or 'Image', see samcli/lib/utils/packagetype.py
         runtime : str
@@ -646,6 +662,8 @@ class ApplicationBuilder:
             Path to the location where built artifacts are available
         """
         if packagetype == IMAGE:
+            if imageuri and Path(imageuri).is_file():  # something exists at this path and what exists is a file
+                return self._load_lambda_image(imageuri)  # should be an image archive – load it instead of building it
             # pylint: disable=fixme
             # FIXME: _build_lambda_image assumes metadata is not None, we need to throw an exception here
             return self._build_lambda_image(

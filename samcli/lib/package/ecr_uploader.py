@@ -5,6 +5,7 @@ Client for uploading packaged artifacts to ecr
 import base64
 import logging
 from io import StringIO
+from pathlib import Path
 from typing import Dict
 
 import botocore
@@ -76,10 +77,26 @@ class ECRUploader:
         if not self.login_session_active:
             self.login()
             self.login_session_active = True
-        try:
-            docker_img = self.docker_client.images.get(image)
 
-            _tag = tag_translation(image, docker_image_id=docker_img.id, gen_tag=self.tag)
+        # cosborn: We sometimes use the resource_name as the `image` parameter to `tag_translation`.
+        # This is because these two cases (directly from an archive or by ID) are effectively anonymous,
+        # so the best identifier we've been given is the resource name.
+        try:
+            if Path(image).is_file():
+                with open(image, mode="rb") as image_archive:
+                    [docker_img, *rest] = self.docker_client.images.load(image_archive)
+                    if len(rest) != 0:
+                        raise DockerPushFailedError("Archive must represent a single image")
+                    _tag = tag_translation(resource_name, docker_image_id=docker_img.id, gen_tag=self.tag)
+            else:
+                # If it's not a file, it's gotta be a {repo}:{tag} or a sha256:{digest}
+                docker_img = self.docker_client.images.get(image)
+                _tag = tag_translation(
+                    resource_name if image == docker_img.id else image,
+                    docker_image_id=docker_img.id,
+                    gen_tag=self.tag,
+                )
+
             repository = (
                 self.ecr_repo
                 if not self.ecr_repo_multi or not isinstance(self.ecr_repo_multi, dict)
