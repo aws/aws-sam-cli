@@ -78,9 +78,9 @@ class ECRUploader:
             self.login()
             self.login_session_active = True
 
-        # cosborn: We sometimes use the resource_name as the `image` parameter to `tag_translation`.
-        # This is because these two cases (directly from an archive or by ID) are effectively anonymous,
-        # so the best identifier we've been given is the resource name.
+        # Sometimes the `resource_name`` is used as the `image` parameter to `tag_translation`.
+        # This is because these two cases (directly from an archive or by ID) are effectively
+        # anonymous, so the best identifier available in scope is the resource name.
         try:
             if Path(image).is_file():
                 with open(image, mode="rb") as image_archive:
