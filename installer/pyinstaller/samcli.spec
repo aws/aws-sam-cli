@@ -4,10 +4,7 @@ block_cipher = None
 exe_name = 'sam'
 analysis = Analysis(
     ['../../samcli/__main__.py'],
-    binaries=[
-        ('/usr/local/lib/libbz2.so.1', '.'),
-        ('/usr/local/lib/libcrypt.so.2', '.')
-    ],
+    binaries=[],
     datas=[],
     hiddenimports=[],
     hookspath=['./installer/pyinstaller'],
