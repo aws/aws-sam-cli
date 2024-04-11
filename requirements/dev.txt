@@ -34,7 +34,7 @@ pytest-rerunfailures==14.0
 pytest-metadata==3.1.1
 # NOTE (lucashuy): `pytest-json-report` was updated to `pytest-json-report-wip` as the original repository does not seem to be maintained anymore, if `-wip` is updated, validate the changes
 pytest-json-report-wip==1.5.1
-filelock==3.13.3
+filelock==3.13.4
 
 # formatter
 black==24.3.0
