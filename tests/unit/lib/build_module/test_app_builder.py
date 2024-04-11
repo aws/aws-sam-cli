@@ -1756,7 +1756,7 @@ class TestApplicationBuilder_load_lambda_image_function(TestCase):
         self.assertEqual(id, image)
 
     @patch("builtins.open", new_callable=mock_open)
-    def test_must_represent_a_single_image(self, mock_open):
+    def test_archive_must_represent_a_single_image(self, mock_open):
         self.docker_client_mock.images.load.return_value = [
             Mock(id="sha256:1a2b3c4d5e6f"),
             Mock(id="sha256:1f2e3d4c5b6a"),

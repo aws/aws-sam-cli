@@ -1,3 +1,5 @@
+import docker
+
 from unittest import TestCase
 from unittest.mock import MagicMock, Mock, call, mock_open, patch
 
@@ -275,6 +277,27 @@ class TestECRUploader(TestCase):
         image = "./path/to/archive.tar.gz"
 
         self.docker_client.images.load.return_value = [Mock(), Mock()]
+
+        ecr_uploader = ECRUploader(
+            docker_client=self.docker_client,
+            ecr_client=self.ecr_client,
+            ecr_repo=self.ecr_repo,
+            ecr_repo_multi=self.ecr_repo_multi,
+            tag=self.tag,
+        )
+        ecr_uploader.login = MagicMock()
+
+        with self.assertRaises(DockerPushFailedError):
+            ecr_uploader.upload(image, resource_name=resource_name)
+
+    @patch.object(Path, "is_file", return_value=False)
+    def test_upload_failure_if_image_archive_does_not_exist(self, mock_is_file):
+        resource_name = "HelloWorldFunction"
+        image = "./path/to/archive.tar.gz"
+
+        # this error is raised because we ask the docker service for an image
+        # with an id or tag which resembles a file path (as `image` above)
+        self.docker_client.images.get.side_effect = docker.errors.ImageNotFound("no such image")
 
         ecr_uploader = ECRUploader(
             docker_client=self.docker_client,
