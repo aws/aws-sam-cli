@@ -1,6 +1,7 @@
 from unittest import TestCase
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, Mock, call, mock_open, patch
 
+from pathlib import Path
 from botocore.exceptions import ClientError
 from docker.errors import APIError, BuildError
 from parameterized import parameterized
@@ -193,6 +194,99 @@ class TestECRUploader(TestCase):
         ecr_uploader.login = MagicMock()
         with self.assertRaises(DockerPushFailedError):
             ecr_uploader.upload(image, resource_name="HelloWorldFunction")
+
+    @patch.object(Path, "is_file", return_value=True)
+    @patch("builtins.open", new_callable=mock_open)
+    def test_upload_from_image_archive(self, mock_open, mock_is_file):
+        resource_name = "HelloWorldFunction"
+        digest = "1a2b3c4d5e6f"
+        id = f"sha256:{digest}"
+        image = "./path/to/archive.tar.gz"
+
+        self.docker_client.images.load.return_value = [Mock(id=id)]
+        self.docker_client.api.push.return_value.__iter__.return_value = iter(
+            [
+                {"status": "Pushing to xyz"},
+                {"id": "1", "status": "Preparing", "progress": ""},
+                {"id": "2", "status": "Preparing", "progress": ""},
+                {"id": "3", "status": "Preparing", "progress": ""},
+                {"id": "1", "status": "Pushing", "progress": "[====>   ]"},
+                {"id": "3", "status": "Pushing", "progress": "[====>   ]"},
+                {"id": "2", "status": "Pushing", "progress": "[====>   ]"},
+                {"id": "3", "status": "Pushed", "progress": "[========>]"},
+                {"id": "1", "status": "Pushed", "progress": "[========>]"},
+                {"id": "2", "status": "Pushed", "progress": "[========>]"},
+                {"status": f"image {resource_name} pushed digest: {digest}"},
+                {},
+            ]
+        )
+
+        ecr_uploader = ECRUploader(
+            docker_client=self.docker_client,
+            ecr_client=self.ecr_client,
+            ecr_repo=self.ecr_repo,
+            ecr_repo_multi=self.ecr_repo_multi,
+            tag=self.tag,
+        )
+        ecr_uploader.login = MagicMock()
+        tag = ecr_uploader.upload(image, resource_name=resource_name)
+        self.assertEqual(f"{self.ecr_repo}:{resource_name}-{digest}-{self.tag}", tag)
+
+    @patch.object(Path, "is_file", return_value=False)
+    def test_upload_from_digest(self, mock_is_file):
+        resource_name = "HelloWorldFunction"
+        digest = "1a2b3c4d5e6f"
+        id = f"sha256:{digest}"
+        image = id
+
+        self.docker_client.images.get.return_value = Mock(id=id)
+        self.docker_client.api.push.return_value.__iter__.return_value = iter(
+            [
+                {"status": "Pushing to xyz"},
+                {"id": "1", "status": "Preparing", "progress": ""},
+                {"id": "2", "status": "Preparing", "progress": ""},
+                {"id": "3", "status": "Preparing", "progress": ""},
+                {"id": "1", "status": "Pushing", "progress": "[====>   ]"},
+                {"id": "3", "status": "Pushing", "progress": "[====>   ]"},
+                {"id": "2", "status": "Pushing", "progress": "[====>   ]"},
+                {"id": "3", "status": "Pushed", "progress": "[========>]"},
+                {"id": "1", "status": "Pushed", "progress": "[========>]"},
+                {"id": "2", "status": "Pushed", "progress": "[========>]"},
+                {"status": f"image {resource_name} pushed digest: {digest}"},
+                {},
+            ]
+        )
+
+        ecr_uploader = ECRUploader(
+            docker_client=self.docker_client,
+            ecr_client=self.ecr_client,
+            ecr_repo=self.ecr_repo,
+            ecr_repo_multi=self.ecr_repo_multi,
+            tag=self.tag,
+        )
+        ecr_uploader.login = MagicMock()
+        tag = ecr_uploader.upload(image, resource_name=resource_name)
+        self.assertEqual(f"{self.ecr_repo}:{resource_name}-{digest}-{self.tag}", tag)
+
+    @patch.object(Path, "is_file", return_value=True)
+    @patch("builtins.open", new_callable=mock_open)
+    def test_upload_failure_if_archive_represents_multiple_images(self, mock_open, mock_is_file):
+        resource_name = "HelloWorldFunction"
+        image = "./path/to/archive.tar.gz"
+
+        self.docker_client.images.load.return_value = [Mock(), Mock()]
+
+        ecr_uploader = ECRUploader(
+            docker_client=self.docker_client,
+            ecr_client=self.ecr_client,
+            ecr_repo=self.ecr_repo,
+            ecr_repo_multi=self.ecr_repo_multi,
+            tag=self.tag,
+        )
+        ecr_uploader.login = MagicMock()
+
+        with self.assertRaises(DockerPushFailedError):
+            ecr_uploader.upload(image, resource_name=resource_name)
 
     @patch("samcli.lib.package.ecr_uploader.click.echo")
     def test_delete_artifact_successful(self, patched_click_echo):

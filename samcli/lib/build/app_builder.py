@@ -463,14 +463,14 @@ class ApplicationBuilder:
             raise DockerBuildFailed(msg=f"{function_name} failed to build: {str(ex)}") from ex
 
     def _load_lambda_image(self, image_archive_path: str) -> str:
-        with open(image_archive_path, mode="rb") as image_archive:
-            try:
+        try:
+            with open(image_archive_path, mode="rb") as image_archive:
                 [image, *rest] = self._docker_client.images.load(image_archive)
                 if len(rest) != 0:
                     raise DockerBuildFailed("Archive must represent a single image")
                 return f"{image.id}"
-            except docker.errors.APIError as ex:
-                raise DockerBuildFailed(msg=str(ex)) from ex
+        except (docker.errors.APIError, OSError) as ex:
+            raise DockerBuildFailed(msg=str(ex)) from ex
 
     def _build_layer(
         self,

@@ -6,7 +6,7 @@ import docker
 import json
 
 from unittest import TestCase
-from unittest.mock import Mock, MagicMock, call, patch, ANY
+from unittest.mock import Mock, MagicMock, call, mock_open, patch, ANY
 from pathlib import Path, WindowsPath
 
 from parameterized import parameterized
@@ -1734,10 +1734,61 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
             self.builder._build_lambda_image("Name", {}, X86_64)
 
 
+class TestApplicationBuilder_load_lambda_image_function(TestCase):
+    def setUp(self):
+        self.docker_client_mock = Mock()
+        self.builder = ApplicationBuilder(
+            Mock(),
+            "/build/dir",
+            "/base/dir",
+            "/cached/dir",
+            stream_writer=Mock(),
+            docker_client=self.docker_client_mock,
+        )
+
+    @patch("builtins.open", new_callable=mock_open)
+    def test_loads_image_archive(self, mock_open):
+        id = "sha256:1a2b3c4d5e6f"
+
+        self.docker_client_mock.images.load.return_value = [Mock(id=id)]
+
+        image = self.builder._load_lambda_image("./path/to/archive.tar.gz")
+        self.assertEqual(id, image)
+
+    @patch("builtins.open", new_callable=mock_open)
+    def test_must_represent_a_single_image(self, mock_open):
+        self.docker_client_mock.images.load.return_value = [
+            Mock(id="sha256:1a2b3c4d5e6f"),
+            Mock(id="sha256:1f2e3d4c5b6a"),
+        ]
+
+        with self.assertRaises(DockerBuildFailed) as ex:
+            self.builder._load_lambda_image("./path/to/archive.tar.gz")
+        self.assertIn("single", str(ex.exception))
+
+    @patch("builtins.open", side_effect=OSError)
+    def test_image_archive_does_not_exist(self, mock_open):
+        with self.assertRaises(DockerBuildFailed):
+            self.builder._load_lambda_image("./path/to/nowhere.tar.gz")
+
+    @patch("builtins.open", new_callable=mock_open)
+    def test_docker_api_error(self, mock_open):
+        self.docker_client_mock.images.load.side_effect = docker.errors.APIError("failed to dial")
+
+        with self.assertRaises(DockerBuildFailed):
+            self.builder._load_lambda_image("./path/to/archive.tar.gz")
+
+
 class TestApplicationBuilder_build_function(TestCase):
     def setUp(self):
+        self.docker_client_mock = Mock()
         self.builder = ApplicationBuilder(
-            Mock(), "/build/dir", "/base/dir", "cachedir", stream_writer=StreamWriter(sys.stderr)
+            Mock(),
+            "/build/dir",
+            "/base/dir",
+            "cachedir",
+            stream_writer=StreamWriter(sys.stderr),
+            docker_client=self.docker_client_mock,
         )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
@@ -2546,6 +2597,19 @@ class TestApplicationBuilder_build_function(TestCase):
             image_uri,
             specified_workflow=None,
         )
+
+    @parameterized.expand([X86_64, ARM64])
+    @patch.object(Path, "is_file", return_value=True)
+    @patch("builtins.open", new_callable=mock_open)
+    def test_loads_if_path_exists(self, mock_open, mock_is_file, architecture):
+        id = "sha256:1a2b3c4d5e6f"
+        function_name = "function_name"
+        imageuri = str(Path("./path/to/archive.tar.gz"))
+
+        self.docker_client_mock.images.load.return_value = [Mock(id=id)]
+
+        image = self.builder._build_function(function_name, None, imageuri, IMAGE, None, architecture, None, None)
+        self.assertEqual(id, image)
 
 
 class TestApplicationBuilder_build_function_in_process(TestCase):
