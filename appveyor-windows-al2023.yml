@@ -37,10 +37,6 @@ init:
   - ps: New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force
   - ps: git config --system core.longpaths true
 
-cache:
-  - C:\ProgramData\chocolatey\bin -> appveyor.yml
-  - C:\ProgramData\chocolatey\lib -> appveyor.yml
-
 install:
   # upgrade chocolately
   - choco upgrade chocolatey
