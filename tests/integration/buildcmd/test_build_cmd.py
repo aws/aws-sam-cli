@@ -86,6 +86,49 @@ class TestBuildingImageTypeLambdaDockerFileFailures(BuildIntegBase):
         self.assertIn("COPY requires at least two arguments", command_result.stderr.decode())
 
 
+@skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
+class TestLoadingImagesFromArchive(BuildIntegBase):
+    template = "template_loadable_image.yaml"
+
+    FUNCTION_LOGICAL_ID = "ImageFunction"
+
+    def test_load_success(self):
+        overrides = {"ImageUri": "./load_image_archive/archive.tar.gz"}
+        cmdlist = self.get_command_list(parameter_overrides=overrides)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        self.assertEqual(command_result.process.returncode, 0)
+        self._verify_image_build_artifact(
+            self.built_template,
+            self.FUNCTION_LOGICAL_ID,
+            "ImageUri",
+            "sha256:46bd05c4a04f3d121198e054da02daed22d0f561764acb0f0594066d5972619b",
+        )
+
+    def test_load_not_an_archive_passthrough(self):
+        imageuri = "repository:tag"
+
+        overrides = {"ImageUri": imageuri}
+        cmdlist = self.get_command_list(parameter_overrides=overrides)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        self.assertEqual(command_result.process.returncode, 0)
+        self._verify_image_build_artifact(
+            self.built_template,
+            self.FUNCTION_LOGICAL_ID,
+            "ImageUri",
+            imageuri,
+        )
+
+    def test_bad_image_archive(self):
+        overrides = {"ImageUri": "./load_image_archive/error.tar.gz"}
+        cmdlist = self.get_command_list(parameter_overrides=overrides)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        self.assertEqual(command_result.process.returncode, 1)
+        self.assertIn("unexpected EOF", command_result.stderr.decode())
+
+
 @skipIf(
     # Hits public ECR pull limitation, move it to canary tests
     (not RUN_BY_CANARY and not CI_OVERRIDE),

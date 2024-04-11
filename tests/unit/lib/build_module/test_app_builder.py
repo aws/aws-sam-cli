@@ -5,6 +5,8 @@ import sys
 import docker
 import json
 
+from uuid import uuid4
+
 from unittest import TestCase
 from unittest.mock import Mock, MagicMock, call, mock_open, patch, ANY
 from pathlib import Path, WindowsPath
@@ -1748,7 +1750,7 @@ class TestApplicationBuilder_load_lambda_image_function(TestCase):
 
     @patch("builtins.open", new_callable=mock_open)
     def test_loads_image_archive(self, mock_open):
-        id = "sha256:1a2b3c4d5e6f"
+        id = f"sha256:{uuid4().hex}"
 
         self.docker_client_mock.images.load.return_value = [Mock(id=id)]
 
@@ -1758,8 +1760,8 @@ class TestApplicationBuilder_load_lambda_image_function(TestCase):
     @patch("builtins.open", new_callable=mock_open)
     def test_archive_must_represent_a_single_image(self, mock_open):
         self.docker_client_mock.images.load.return_value = [
-            Mock(id="sha256:1a2b3c4d5e6f"),
-            Mock(id="sha256:1f2e3d4c5b6a"),
+            Mock(id=f"sha256:{uuid4().hex}"),
+            Mock(id=f"sha256:{uuid4().hex}"),
         ]
 
         with self.assertRaises(DockerBuildFailed) as ex:
@@ -2602,7 +2604,7 @@ class TestApplicationBuilder_build_function(TestCase):
     @patch.object(Path, "is_file", return_value=True)
     @patch("builtins.open", new_callable=mock_open)
     def test_loads_if_path_exists(self, mock_open, mock_is_file, architecture):
-        id = "sha256:1a2b3c4d5e6f"
+        id = f"sha256:{uuid4().hex}"
         function_name = "function_name"
         imageuri = str(Path("./path/to/archive.tar.gz"))
 

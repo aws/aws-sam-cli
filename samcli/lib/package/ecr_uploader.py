@@ -78,7 +78,7 @@ class ECRUploader:
             self.login()
             self.login_session_active = True
 
-        # Sometimes the `resource_name`` is used as the `image` parameter to `tag_translation`.
+        # Sometimes the `resource_name` is used as the `image` parameter to `tag_translation`.
         # This is because these two cases (directly from an archive or by ID) are effectively
         # anonymous, so the best identifier available in scope is the resource name.
         try:

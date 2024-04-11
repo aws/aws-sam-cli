@@ -4,6 +4,8 @@ from unittest import TestCase
 from unittest.mock import MagicMock, Mock, call, mock_open, patch
 
 from pathlib import Path
+from uuid import uuid4
+
 from botocore.exceptions import ClientError
 from docker.errors import APIError, BuildError
 from parameterized import parameterized
@@ -17,6 +19,7 @@ from samcli.commands.package.exceptions import (
     DeleteArtifactFailedError,
 )
 from samcli.lib.package.ecr_uploader import ECRUploader
+from samcli.lib.package.image_utils import SHA_CHECKSUM_TRUNCATION_LENGTH
 from samcli.lib.utils.stream_writer import StreamWriter
 
 
@@ -201,7 +204,7 @@ class TestECRUploader(TestCase):
     @patch("builtins.open", new_callable=mock_open)
     def test_upload_from_image_archive(self, mock_open, mock_is_file):
         resource_name = "HelloWorldFunction"
-        digest = "1a2b3c4d5e6f"
+        digest = uuid4().hex
         id = f"sha256:{digest}"
         image = "./path/to/archive.tar.gz"
 
@@ -232,12 +235,12 @@ class TestECRUploader(TestCase):
         )
         ecr_uploader.login = MagicMock()
         tag = ecr_uploader.upload(image, resource_name=resource_name)
-        self.assertEqual(f"{self.ecr_repo}:{resource_name}-{digest}-{self.tag}", tag)
+        self.assertEqual(f"{self.ecr_repo}:{resource_name}-{digest[:SHA_CHECKSUM_TRUNCATION_LENGTH]}-{self.tag}", tag)
 
     @patch.object(Path, "is_file", return_value=False)
     def test_upload_from_digest(self, mock_is_file):
         resource_name = "HelloWorldFunction"
-        digest = "1a2b3c4d5e6f"
+        digest = uuid4().hex
         id = f"sha256:{digest}"
         image = id
 
@@ -268,7 +271,7 @@ class TestECRUploader(TestCase):
         )
         ecr_uploader.login = MagicMock()
         tag = ecr_uploader.upload(image, resource_name=resource_name)
-        self.assertEqual(f"{self.ecr_repo}:{resource_name}-{digest}-{self.tag}", tag)
+        self.assertEqual(f"{self.ecr_repo}:{resource_name}-{digest[:SHA_CHECKSUM_TRUNCATION_LENGTH]}-{self.tag}", tag)
 
     @patch.object(Path, "is_file", return_value=True)
     @patch("builtins.open", new_callable=mock_open)
