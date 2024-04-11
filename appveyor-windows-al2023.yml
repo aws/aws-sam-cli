@@ -4,9 +4,6 @@ build: off
 
 clone_folder: C:\source
 
-configuration:
-  - BuildIntegTesting
-
 environment:
   AWS_DEFAULT_REGION: us-east-1
   SAM_CLI_DEV: 1
@@ -162,31 +159,25 @@ on_finish:
     aws stepfunctions send-task-success --task-token \"$env:TASK_TOKEN\" --task-output \"{}\" --region us-west-2;
   }"
 
+build_script:
+  # install Rust in build_script to not override the default "install" actions
+  - appveyor-retry appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
+  - rustup-init.exe -y --default-host x86_64-pc-windows-msvc --default-toolchain stable
+  - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
+  - set RUST_BACKTRACE=1
+  - rustup toolchain install stable --profile minimal --no-self-update
+  - rustup default stable
+  - rustup target add x86_64-unknown-linux-gnu --toolchain stable
+  - rustup target add aarch64-unknown-linux-gnu --toolchain stable
+  - ps: "choco install zig"
+  - ps: Invoke-WebRequest -Uri https://github.com/cargo-lambda/cargo-lambda/releases/download/$env:CARGO_LAMBDA_VERSION/cargo-lambda-$env:CARGO_LAMBDA_VERSION.windows-x64.zip -OutFile C:\Users\appveyor\cargo-lambda.zip
+  - ps: Expand-Archive -DestinationPath C:\Users\appveyor\.cargo\bin C:\Users\appveyor\cargo-lambda.zip
+  - rustc -V
+  - cargo -V
+  - cargo lambda -V
 
-for:
-  - matrix:
-      only:
-        - configuration: BuildIntegTesting
-
-    build_script:
-      # install Rust in build_script to not override the default "install" actions
-      - appveyor-retry appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
-      - rustup-init.exe -y --default-host x86_64-pc-windows-msvc --default-toolchain stable
-      - set PATH=%PATH%;C:\Users\appveyor\.cargo\bin
-      - set RUST_BACKTRACE=1
-      - rustup toolchain install stable --profile minimal --no-self-update
-      - rustup default stable
-      - rustup target add x86_64-unknown-linux-gnu --toolchain stable
-      - rustup target add aarch64-unknown-linux-gnu --toolchain stable
-      - ps: "choco install zig"
-      - ps: Invoke-WebRequest -Uri https://github.com/cargo-lambda/cargo-lambda/releases/download/$env:CARGO_LAMBDA_VERSION/cargo-lambda-$env:CARGO_LAMBDA_VERSION.windows-x64.zip -OutFile C:\Users\appveyor\cargo-lambda.zip
-      - ps: Expand-Archive -DestinationPath C:\Users\appveyor\.cargo\bin C:\Users\appveyor\cargo-lambda.zip
-      - rustc -V
-      - cargo -V
-      - cargo lambda -V
-
-    test_script:
-      - ps: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m al2023 --ignore=tests/integration/buildcmd/test_build_samconfig.py --ignore=tests/integration/buildcmd/test_build_in_source.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+test_script:
+  - ps: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m al2023 --ignore=tests/integration/buildcmd/test_build_samconfig.py --ignore=tests/integration/buildcmd/test_build_in_source.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
 # Uncomment for RDP
 # on_finish:
