@@ -30,7 +30,7 @@ The AWS Serverless Application Model (SAM) CLI is an open-source CLI tool that h
 
 * **AWS Serverless Developer Experience Workshop: A day in a life of a developer** - [This advanced workshop](https://s12d.com/aws-sde-workshop) provides you with an immersive experience as a serverless developer, with hands-on experience building a serverless solution using AWS SAM and SAM CLI.
 
-* **The Complete SAM Workshop**- [This workshop](https://s12d.com/jKo46elk) is a great way to experience the power of SAM and SAM CLI.
+* **The Complete SAM Workshop** - [This workshop](https://s12d.com/jKo46elk) is a great way to experience the power of SAM and SAM CLI.
 
 * **Getting started with CI/CD? SAM pipelines can help you get started** - [This workshop](https://s12d.com/_JQ48d5T) walks you through the basics.
 
