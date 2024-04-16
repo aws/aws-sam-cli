@@ -15,6 +15,7 @@ import requests
 from botocore.exceptions import ClientError
 from botocore.config import Config
 
+from lib.utils.hash import file_checksum
 from samcli.lib.bootstrap.bootstrap import SAM_CLI_STACK_NAME
 from tests.integration.buildcmd.build_integ_base import BuildIntegBase
 from tests.integration.package.package_integ_base import PackageIntegBase
@@ -187,6 +188,11 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
 
     @staticmethod
     def update_file(source, destination):
+        LOG.info(
+            "Hash comparison before updating files: source (%s) target (%s)",
+            file_checksum(source),
+            file_checksum(destination),
+        )
         with open(source, "rb") as source_file:
             with open(destination, "wb") as destination_file:
                 destination_file.write(source_file.read())
