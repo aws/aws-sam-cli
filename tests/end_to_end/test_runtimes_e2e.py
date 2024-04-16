@@ -69,7 +69,7 @@ class StackOutputsValidator(BaseValidator):
 @parameterized_class(
     ("runtime", "dependency_manager"),
     [
-        ("go1.x", "mod"),
+        ("java17", "maven"),
         ("python3.11", "pip"),
     ],
 )
@@ -103,7 +103,7 @@ class TestHelloWorldDefaultEndToEnd(EndToEndBase):
 @parameterized_class(
     ("runtime", "dependency_manager"),
     [
-        ("go1.x", "mod"),
+        ("java17", "maven"),
         ("python3.11", "pip"),
     ],
 )
@@ -141,7 +141,7 @@ class TestHelloWorldZipPackagePermissionsEndToEnd(EndToEndBase):
 @parameterized_class(
     ("runtime", "dependency_manager"),
     [
-        ("go1.x", "mod"),
+        ("java17", "maven"),
         ("python3.11", "pip"),
     ],
 )
