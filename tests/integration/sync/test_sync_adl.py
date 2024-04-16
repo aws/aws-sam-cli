@@ -154,7 +154,7 @@ class TestSyncAdlWithWatchStartWithNoDependencies(TestSyncWatchBase):
         )
         read_until_string(
             self.watch_process,
-            "Finished syncing Function Layer Reference Sync HelloWorldFunction.\x1b[0m\n",
+            "Finished syncing Function Layer Reference Sync HelloWorldFunction",
             timeout=60,
         )
 
