@@ -15,7 +15,7 @@ import requests
 from botocore.exceptions import ClientError
 from botocore.config import Config
 
-from lib.utils.hash import file_checksum
+from samcli.lib.utils.hash import file_checksum
 from samcli.lib.bootstrap.bootstrap import SAM_CLI_STACK_NAME
 from tests.integration.buildcmd.build_integ_base import BuildIntegBase
 from tests.integration.package.package_integ_base import PackageIntegBase
