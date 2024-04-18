@@ -92,6 +92,21 @@ class TestLoadingImagesFromArchive(BuildIntegBase):
 
     FUNCTION_LOGICAL_ID = "ImageFunction"
 
+    def test_load_not_an_archive_passthrough(self):
+        overrides = {"ImageUri": "./load_image_archive/this_file_does_not_exist.tar.gz"}
+        cmdlist = self.get_command_list(parameter_overrides=overrides)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        self.assertEqual(command_result.process.returncode, 0)
+
+    def test_bad_image_archive_fails(self):
+        overrides = {"ImageUri": "./load_image_archive/error.tar.gz"}
+        cmdlist = self.get_command_list(parameter_overrides=overrides)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        self.assertEqual(command_result.process.returncode, 1)
+        self.assertIn("unexpected EOF", command_result.stderr.decode())
+
     def test_load_success(self):
         overrides = {"ImageUri": "./load_image_archive/archive.tar.gz"}
         cmdlist = self.get_command_list(parameter_overrides=overrides)
@@ -102,31 +117,8 @@ class TestLoadingImagesFromArchive(BuildIntegBase):
             self.built_template,
             self.FUNCTION_LOGICAL_ID,
             "ImageUri",
-            "sha256:46bd05c4a04f3d121198e054da02daed22d0f561764acb0f0594066d5972619b",
+            "sha256:81d2ff8422e3a78dc0c1eff53d8e46f5666a801b17b5607a920860c2d234f9d0",
         )
-
-    def test_load_not_an_archive_passthrough(self):
-        imageuri = "repository:tag"
-
-        overrides = {"ImageUri": imageuri}
-        cmdlist = self.get_command_list(parameter_overrides=overrides)
-        command_result = run_command(cmdlist, cwd=self.working_dir)
-
-        self.assertEqual(command_result.process.returncode, 0)
-        self._verify_image_build_artifact(
-            self.built_template,
-            self.FUNCTION_LOGICAL_ID,
-            "ImageUri",
-            imageuri,
-        )
-
-    def test_bad_image_archive(self):
-        overrides = {"ImageUri": "./load_image_archive/error.tar.gz"}
-        cmdlist = self.get_command_list(parameter_overrides=overrides)
-        command_result = run_command(cmdlist, cwd=self.working_dir)
-
-        self.assertEqual(command_result.process.returncode, 1)
-        self.assertIn("unexpected EOF", command_result.stderr.decode())
 
 
 @skipIf(

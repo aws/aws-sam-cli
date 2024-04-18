@@ -3,6 +3,7 @@ Class that provides functions from a given SAM template
 """
 
 import logging
+from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, cast
 
 from samtranslator.policy_template_processor.exceptions import TemplateNotFoundException
@@ -445,6 +446,12 @@ class SamFunctionProvider(SamBaseProvider):
         if codeuri and not use_raw_codeuri:
             LOG.debug("--base-dir is not presented, adjusting uri %s relative to %s", codeuri, stack.location)
             codeuri = SamLocalStackProvider.normalize_resource_path(stack.location, codeuri)
+
+        if imageuri and codeuri != ".":
+            normalized_image_uri = SamLocalStackProvider.normalize_resource_path(stack.location, imageuri)
+            if Path(normalized_image_uri).is_file():
+                LOG.debug("--base-dir is not presented, adjusting uri %s relative to %s", codeuri, stack.location)
+                imageuri = normalized_image_uri
 
         package_type = resource_properties.get("PackageType", ZIP)
         if package_type == ZIP and not resource_properties.get("Handler"):

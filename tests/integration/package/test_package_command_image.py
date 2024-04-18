@@ -1,3 +1,4 @@
+import logging
 import os
 import tempfile
 from subprocess import Popen, PIPE, TimeoutExpired
@@ -18,6 +19,7 @@ from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RU
 # This is to restrict package tests to run outside of CI/CD, when the branch is not master and tests are not run by Canary.
 SKIP_PACKAGE_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 TIMEOUT = 300
+LOG = logging.getLogger(__name__)
 
 
 @skipIf(SKIP_PACKAGE_TESTS, "Skip package tests in CI/CD only")
@@ -139,8 +141,8 @@ class TestPackageImage(PackageIntegBase):
         except TimeoutExpired:
             process.kill()
             raise
-
         process_stderr = stderr.strip()
+
         self.assertIn(f"{self.ecr_repo_name}", process_stderr.decode("utf-8"))
         self.assertEqual(0, process.returncode)
 
@@ -271,3 +273,35 @@ class TestPackageImage(PackageIntegBase):
             # check string like this:
             # ...python-ce689abb4f0d-3.9-slim: digest:...
             self.assertRegex(process_stderr, rf"{image}-.+-{tag}: digest:")
+
+    @parameterized.expand(["template-image-load.yaml"])
+    def test_package_with_loadable_image_archive(self, template_file):
+        template_path = self.test_data_path.joinpath(os.path.join("load-image-archive", template_file))
+        command_list = PackageIntegBase.get_command_list(image_repository=self.ecr_repo_name, template=template_path)
+
+        process = Popen(command_list, stderr=PIPE)
+        try:
+            _, stderr = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+        process_stderr = stderr.strip()
+
+        self.assertEqual(0, process.returncode)
+        self.assertIn(f"{self.ecr_repo_name}", process_stderr.decode("utf-8"))
+
+    @parameterized.expand(["template-image-load-fail.yaml"])
+    def test_package_with_nonloadable_image_archive(self, template_file):
+        template_path = self.test_data_path.joinpath(os.path.join("load-image-archive", template_file))
+        command_list = PackageIntegBase.get_command_list(image_repository=self.ecr_repo_name, template=template_path)
+
+        process = Popen(command_list, stderr=PIPE)
+        try:
+            _, stderr = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+        process_stderr = stderr.strip()
+
+        self.assertEqual(1, process.returncode)
+        self.assertIn("unexpected EOF", process_stderr.decode("utf-8"))
