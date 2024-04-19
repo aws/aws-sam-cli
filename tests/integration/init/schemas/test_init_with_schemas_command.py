@@ -281,7 +281,7 @@ N
 N
 eb-app-go
 Y
-4
+1
 1
         """
         with tempfile.TemporaryDirectory() as temp:
