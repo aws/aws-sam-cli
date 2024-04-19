@@ -12,7 +12,7 @@ types-pywin32==306.0.0.20240408
 types-PyYAML==6.0.12.20240311
 types-chevron==0.14.2.20240310
 types-psutil==5.9.5.20240316
-types-setuptools==69.2.0.20240317
+types-setuptools==69.5.0.20240415
 types-Pygments==2.17.0.20240310 
 types-colorama==0.4.15.20240311
 types-dateparser==1.1.4.20240331
