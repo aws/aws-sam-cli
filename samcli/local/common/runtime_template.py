@@ -168,6 +168,7 @@ SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING = {
     "dotnet6": "dotnet6",
     "dotnet8": "dotnet6",
     "go1.x": "Go1",
+    "provided.al2": "Go1",
 }
 
 PROVIDED_RUNTIMES = ["provided.al2023", "provided.al2", "provided"]
