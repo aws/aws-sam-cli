@@ -866,6 +866,7 @@ class ApplicationBuilder:
             application_framework=config.application_framework,
         )
 
+        unpatched_runtime = runtime
         runtime = patch_runtime(runtime)
 
         try:
@@ -875,6 +876,7 @@ class ApplicationBuilder:
                 scratch_dir,
                 manifest_path,
                 runtime=runtime,
+                unpatched_runtime=unpatched_runtime,
                 executable_search_paths=config.executable_search_paths,
                 mode=self._mode,
                 options=options,
