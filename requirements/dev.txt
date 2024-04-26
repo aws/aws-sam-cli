@@ -37,5 +37,5 @@ pytest-json-report-wip==1.5.1
 filelock==3.13.4
 
 # formatter
-black==24.4.1
+black==24.4.2
 psutil==5.9.8
