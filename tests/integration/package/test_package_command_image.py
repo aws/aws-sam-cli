@@ -1,4 +1,3 @@
-import logging
 import os
 import tempfile
 from subprocess import Popen, PIPE, TimeoutExpired
@@ -19,7 +18,6 @@ from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RU
 # This is to restrict package tests to run outside of CI/CD, when the branch is not master and tests are not run by Canary.
 SKIP_PACKAGE_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 TIMEOUT = 300
-LOG = logging.getLogger(__name__)
 
 
 @skipIf(SKIP_PACKAGE_TESTS, "Skip package tests in CI/CD only")

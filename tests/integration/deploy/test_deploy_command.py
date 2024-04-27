@@ -136,7 +136,7 @@ class TestDeploy(DeployIntegBase):
 
     @parameterized.expand(["template-image-load.yaml"])
     def test_deploy_directly_from_image_archive(self, template_file):
-        template_path = self.test_data_path.joinpath(template_file)
+        template_path = self.test_data_path.joinpath(os.path.join("load-image-archive", template_file))
 
         stack_name = self._method_to_stack_name(self.id())
         self.stacks.append({"name": stack_name})
@@ -163,7 +163,7 @@ class TestDeploy(DeployIntegBase):
 
     @parameterized.expand(["template-image-load-fail.yaml"])
     def test_deploy_directly_from_image_archive_but_error_fail(self, template_file):
-        template_path = self.test_data_path.joinpath(template_file)
+        template_path = self.test_data_path.joinpath(os.path.join("load-image-archive", template_file))
 
         stack_name = self._method_to_stack_name(self.id())
         self.stacks.append({"name": stack_name})
@@ -186,7 +186,7 @@ class TestDeploy(DeployIntegBase):
         )
 
         deploy_process_execute = self.run_command(deploy_command_list)
-        self.assertEqual(deploy_process_execute.process.returncode, 0)
+        self.assertEqual(deploy_process_execute.process.returncode, 1)
 
     @parameterized.expand(
         [
