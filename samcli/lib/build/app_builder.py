@@ -866,7 +866,7 @@ class ApplicationBuilder:
             application_framework=config.application_framework,
         )
 
-        runtime = patch_runtime(runtime)
+        runtime_patched = patch_runtime(runtime)
 
         try:
             builder.build(
@@ -874,7 +874,8 @@ class ApplicationBuilder:
                 artifacts_dir,
                 scratch_dir,
                 manifest_path,
-                runtime=runtime,
+                runtime=runtime_patched,
+                unpatched_runtime=runtime,
                 executable_search_paths=config.executable_search_paths,
                 mode=self._mode,
                 options=options,
