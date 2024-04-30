@@ -2676,6 +2676,7 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
             "scratch_dir",
             "manifest_path",
             runtime="runtime",
+            unpatched_runtime="runtime",
             executable_search_paths=config_mock.executable_search_paths,
             mode="mode",
             options=None,
@@ -2689,6 +2690,63 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
         )
 
         patch_runtime_mock.assert_called_with("runtime")
+
+    @parameterized.expand([("provided.al2",), ("provided.al2023",)])
+    @patch("samcli.lib.telemetry.event.EventType.get_accepted_values")
+    @patch("samcli.lib.build.app_builder.LambdaBuilder")
+    @patch("samcli.lib.build.app_builder.get_enabled_experimental_flags")
+    def test_pass_unpatched_runtime_to_lambda_builder(
+        self,
+        runtime,
+        experimental_flags_mock,
+        lambda_builder_mock,
+        event_mock,
+    ):
+        experimental_flags_mock.return_value = ["experimental_flags"]
+        config_mock = Mock()
+        builder_instance_mock = lambda_builder_mock.return_value = Mock()
+        event_mock.return_value = [runtime]
+
+        result = self.builder._build_function_in_process(
+            config_mock,
+            "source_dir",
+            "artifacts_dir",
+            "scratch_dir",
+            "manifest_path",
+            runtime,
+            X86_64,
+            None,
+            None,
+            True,
+            True,
+            is_building_layer=False,
+        )
+        self.assertEqual(result, "artifacts_dir")
+
+        lambda_builder_mock.assert_called_with(
+            language=config_mock.language,
+            dependency_manager=config_mock.dependency_manager,
+            application_framework=config_mock.application_framework,
+        )
+
+        builder_instance_mock.build.assert_called_with(
+            "source_dir",
+            "artifacts_dir",
+            "scratch_dir",
+            "manifest_path",
+            runtime="provided",
+            unpatched_runtime=runtime,
+            executable_search_paths=config_mock.executable_search_paths,
+            mode="mode",
+            options=None,
+            architecture=X86_64,
+            dependencies_dir=None,
+            download_dependencies=True,
+            combine_dependencies=True,
+            is_building_layer=False,
+            experimental_flags=["experimental_flags"],
+            build_in_source=False,
+        )
 
     @patch("samcli.lib.build.app_builder.LambdaBuilder")
     def test_must_raise_on_error(self, lambda_builder_mock):
@@ -2743,6 +2801,7 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
                     "scratch_dir",
                     "manifest_path",
                     runtime="runtime",
+                    unpatched_runtime="runtime",
                     executable_search_paths=ANY,
                     mode="mode",
                     options=None,
