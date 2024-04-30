@@ -4,8 +4,7 @@ python_library_zip_filename=$2
 build_binary_name=$3
 build_folder=$4
 python_version=$5
-openssl_version=$6
-zlib_version=$7
+zlib_version=$6
 
 if [ "$python_library_zip_filename" = "" ]; then
     python_library_zip_filename="python-libraries.zip";
@@ -13,10 +12,6 @@ fi
 
 if [ "$python_version" = "" ]; then
     python_version="3.11.8";
-fi
-
-if [ "$openssl_version" = "" ]; then
-    openssl_version="1.1.1w";
 fi
 
 if [ "$zlib_version" = "" ]; then
@@ -45,16 +40,7 @@ mkdir -p .build/src
 mkdir -p .build/output/aws-sam-cli-src
 mkdir -p .build/output/python-libraries
 mkdir -p .build/output/pyinstaller-output
-mkdir -p .build/output/openssl
-cd .build/output/openssl
-
-echo "Building OpenSSL"
-curl "https://www.openssl.org/source/openssl-${openssl_version}.tar.gz" --output openssl.tar.gz
-tar xzf openssl.tar.gz
-cd openssl-${openssl_version}
-# install_sw installs OpenSSL without manual pages
-./config --prefix=/opt/openssl && make -j8 && make -j8 install_sw
-cd ../../
+cd .build/output/
 
 echo "Building zlib"
 curl https://www.zlib.net/zlib-${zlib_version}.tar.gz --output zlib.tar.gz
@@ -107,9 +93,7 @@ curl "https://www.python.org/ftp/python/${python_version}/Python-${python_versio
 tar -xzf python.tgz
 cd Python-$python_version
 ./configure \
-    --enable-shared \
-    --with-openssl=/opt/openssl \
-    --with-openssl-rpath=auto
+    --enable-shared
 make -j8
 make -j8 install
 ldconfig

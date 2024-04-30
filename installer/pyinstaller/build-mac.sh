@@ -5,7 +5,6 @@ python_library_zip_filename=${2:-}
 python_version=${3:-}
 build_binary_name=${4:-}
 build_folder=${5:-}
-openssl_version=${6:-}
 mac_arch="$(uname -m)"
 openssl_config_arch=""
 
@@ -29,10 +28,6 @@ if [ "$python_library_zip_filename" = "" ]; then
     python_library_zip_filename="python-libraries.zip";
 fi
 
-if [ "$openssl_version" = "" ]; then
-    openssl_version="1.1.1w";
-fi
-
 if [ "$python_version" = "" ]; then
     python_version="3.8.13";
 fi
@@ -53,19 +48,6 @@ mkdir -p .build/output/aws-sam-cli-src
 mkdir -p .build/output/python-libraries
 mkdir -p .build/output/pyinstaller-output
 cd .build
-
-# Installing Openssl to allow pip configured in the TLS/SSL location to install python libraries
-echo "Installing Openssl"
-curl -LO https://www.openssl.org/source/openssl-"${openssl_version}".tar.gz
-tar -xzf openssl-"${openssl_version}".tar.gz
-cd openssl-"$openssl_version"
-# Openssl configure https://wiki.openssl.org/index.php/Compilation_and_Installation
-./Configure --prefix=/usr/local --openssldir=/usr/local/openssl no-ssl3 no-ssl3-method no-zlib ${openssl_config_arch} enable-ec_nistp_64_gcc_128
-
-make -j8
-# install_sw installs OpenSSL without manual pages
-sudo make -j8 install_sw
-cd ..
 
 # Copying aws-sam-cli source code
 echo "Copying Source"
