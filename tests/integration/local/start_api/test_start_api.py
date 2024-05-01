@@ -7,7 +7,6 @@ import random
 from pathlib import Path
 from typing import Dict
 
-import docker.errors
 import requests
 from http.client import HTTPConnection
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -2141,6 +2140,12 @@ class TestWarmContainersBaseClass(StartApiIntegBaseClass):
             if f"MODE={self.mode_env_variable}" in str(output):
                 running_containers += 1
         return running_containers
+    
+    def tearDown(self) -> None:
+        # Use a new container test UUID for the next test run to avoid
+        # counting additional containers in the event of a retry
+        self.mode_env_variable = str(uuid.uuid4())
+        super().tearDown()
 
 
 @parameterized_class(
