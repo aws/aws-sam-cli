@@ -65,7 +65,8 @@ class LambdaContainer(Container):
         runtime str
             Name of the Lambda runtime
         imageuri str
-            Name of the Lambda Image which is of the form {image}:{tag}
+            Location of the Lambda Image which is of the form {image}:{tag}, sha256:{digest},
+            or a path to a local archive
         handler str
             Handler of the function to run
         packagetype str
@@ -240,7 +241,8 @@ class LambdaContainer(Container):
         packagetype : str
             Package type for the lambda function which is either zip or image.
         image : str
-            Name of the Lambda Image which is of the form {image}:{tag}
+            Location of the Lambda Image which is of the form {image}:{tag}, sha256:{digest},
+            or a path to a local archive
         layers : List[str]
             List of layers
         architecture : str

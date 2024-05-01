@@ -128,7 +128,9 @@ class DefaultBuildStrategy(BuildStrategy):
         self,
         build_graph: BuildGraph,
         build_dir: str,
-        build_function: Callable[[str, str, str, str, str, Optional[str], str, dict, dict, Optional[str], bool], str],
+        build_function: Callable[
+            [str, str, Optional[str], str, str, str, Optional[str], str, dict, dict, Optional[str], bool], str
+        ],
         build_layer: Callable[[str, str, str, List[str], str, str, dict, Optional[str], bool, Optional[Dict]], str],
         cached: bool = False,
     ) -> None:
@@ -166,6 +168,7 @@ class DefaultBuildStrategy(BuildStrategy):
         result = self._build_function(
             build_definition.get_function_name(),
             build_definition.codeuri,  # type: ignore
+            build_definition.imageuri,
             build_definition.packagetype,
             build_definition.runtime,  # type: ignore
             build_definition.architecture,
