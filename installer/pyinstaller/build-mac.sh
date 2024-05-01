@@ -92,7 +92,9 @@ echo "Installing Python"
 curl "https://www.python.org/ftp/python/${python_version}/Python-${python_version}.tgz" --output python.tgz
 tar -xzf python.tgz
 cd Python-"$python_version"
-./configure --enable-shared
+./configure \
+    --enable-shared \
+    --with-openssl=/usr/local
 make -j8
 sudo make -j8 install
 cd ..
