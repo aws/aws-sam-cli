@@ -25,7 +25,7 @@ def wait_for_local_process(process, port, collect_output=False) -> str:
             LOG.info(f"{line_as_str}")
             if collect_output:
                 output += f"{line_as_str}\n"
-        if "Address already in use" in line_as_str:
+        if "Address already in use" in line_as_str or "port is already allocated" in line_as_str:
             LOG.info(f"Attempted to start port on {port} but it is already in use, restarting on a new port.")
             raise InvalidAddressException()
         if "Press CTRL+C to quit" in line_as_str or "Error: " in line_as_str:
