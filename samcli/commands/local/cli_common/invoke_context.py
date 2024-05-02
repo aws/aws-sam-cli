@@ -2,6 +2,8 @@
 Reads CLI arguments and performs necessary preparation to be able to run the function
 """
 
+import boto3
+from botocore.exceptions import TokenRetrievalError
 import errno
 import json
 import logging
@@ -172,6 +174,17 @@ class InvokeContext:
         self._global_parameter_overrides: Optional[Dict] = None
         if aws_region:
             self._global_parameter_overrides = {"AWS::Region": aws_region}
+        
+        # Attempt to get the Account ID from the current session (if any)
+        sts = boto3.client("sts")
+        try:
+            account_id = sts.get_caller_identity()["Account"]            
+            if account_id:
+                if self._global_parameter_overrides is None:
+                    self._global_parameter_overrides = {}
+                self._global_parameter_overrides["AWS::AccountId"] = account_id
+        except TokenRetrievalError:
+            LOG.warning( "No current session found, using default AWS::AccountId" )
 
         self._layer_cache_basedir = layer_cache_basedir
         self._force_image_build = force_image_build
