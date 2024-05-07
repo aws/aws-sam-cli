@@ -352,7 +352,7 @@ class InvokeContext:
         # Attempt to get the Account ID from the current session (if any)
         sts = boto3.client("sts")
         try:
-            account_id = sts.get_caller_identity()["Account"]            
+            account_id = sts.get_caller_identity().get("Account")         
             if account_id:
                 if parameters is None:
                     parameters = {}
