@@ -1373,7 +1373,4 @@ class TestInvokeContext_add_account_id_to_global(TestCase):
         get_caller_identity_mock.return_value.get_caller_identity.return_value.get.return_value = "210987654321"
         invoke_context = InvokeContext("template_file")
         invoke_context._add_account_id_to_global()
-        print("\n")
-        print(invoke_context._global_parameter_overrides)
-        print("\n")
-        assert invoke_context._global_parameter_overrides.get("AWS::AccountId") is "210987654321"
+        self.assertEqual(invoke_context._global_parameter_overrides.get("AWS::AccountId"), "210987654321")
