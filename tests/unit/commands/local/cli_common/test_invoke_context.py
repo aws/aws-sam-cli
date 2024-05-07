@@ -1366,7 +1366,7 @@ class TestInvokeContext_add_account_id_to_global(TestCase):
     def test_must_work_with_no_token(self):
         invoke_context = InvokeContext("template_file")
         invoke_context._add_account_id_to_global()
-        assert invoke_context._global_parameter_overrides is None
+        self.assertIsNone(invoke_context._global_parameter_overrides)
 
     @patch("boto3.client")
     def test_must_work_with_token(self, get_caller_identity_mock):
