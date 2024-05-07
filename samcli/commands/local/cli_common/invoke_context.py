@@ -2,8 +2,6 @@
 Reads CLI arguments and performs necessary preparation to be able to run the function
 """
 
-import boto3
-from botocore.exceptions import TokenRetrievalError
 import errno
 import json
 import logging
@@ -11,6 +9,9 @@ import os
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, TextIO, Tuple, Type, cast
+
+import boto3
+from botocore.exceptions import TokenRetrievalError
 
 from samcli.commands._utils.template import TemplateFailedParsingException, TemplateNotFoundException
 from samcli.commands.exceptions import ContainersInitializationException
@@ -174,8 +175,8 @@ class InvokeContext:
         self._global_parameter_overrides: Optional[Dict] = None
         if aws_region:
             self._global_parameter_overrides = {"AWS::Region": aws_region}
-        
-        self._global_parameter_overrides = self._add_account_id_to_global(self._global_parameter_overrides)
+
+        self._add_account_id_to_global()
         self._layer_cache_basedir = layer_cache_basedir
         self._force_image_build = force_image_build
         self._aws_region = aws_region
@@ -348,18 +349,17 @@ class InvokeContext:
         cast(WarmLambdaRuntime, self.lambda_runtime).clean_running_containers_and_related_resources()
         cast(RefreshableSamFunctionProvider, self._function_provider).stop_observer()
 
-    def _add_account_id_to_global(self, parameters) -> Optional[Dict]:
+    def _add_account_id_to_global(self):
         # Attempt to get the Account ID from the current session (if any)
         sts = boto3.client("sts")
         try:
-            account_id = sts.get_caller_identity().get("Account")         
+            account_id = sts.get_caller_identity().get("Account")
             if account_id:
-                if parameters is None:
-                    parameters = {}
-                parameters["AWS::AccountId"] = account_id
+                if self._global_parameter_overrides is None:
+                    self._global_parameter_overrides = {}
+                self._global_parameter_overrides["AWS::AccountId"] = account_id
         except TokenRetrievalError:
-            LOG.warning( "No current session found, using default AWS::AccountId" )
-        return parameters
+            LOG.warning("No current session found, using default AWS::AccountId")
 
     @property
     def function_identifier(self) -> str:
