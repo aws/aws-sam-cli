@@ -1360,3 +1360,20 @@ class TestInvokeContext_get_stacks(TestCase):
         get_stacks_mock.assert_called_with(
             "template_file", parameter_overrides=None, global_parameter_overrides={"AWS::Region": "my-custom-region"}
         )
+
+
+class TestInvokeContext_add_account_id_to_global(TestCase):
+    def test_must_work_with_no_token(self):
+        invoke_context = InvokeContext("template_file")
+        invoke_context._add_account_id_to_global()
+        assert invoke_context._global_parameter_overrides is None
+
+    @patch("boto3.client")
+    def test_must_work_with_token(self, get_caller_identity_mock):
+        get_caller_identity_mock.return_value.get_caller_identity.return_value.get.return_value = "210987654321"
+        invoke_context = InvokeContext("template_file")
+        invoke_context._add_account_id_to_global()
+        print("\n")
+        print(invoke_context._global_parameter_overrides)
+        print("\n")
+        assert invoke_context._global_parameter_overrides.get("AWS::AccountId") is "210987654321"
