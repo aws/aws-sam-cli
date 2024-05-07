@@ -350,7 +350,11 @@ class InvokeContext:
         cast(RefreshableSamFunctionProvider, self._function_provider).stop_observer()
 
     def _add_account_id_to_global(self):
-        # Attempt to get the Account ID from the current session (if any)
+        """
+        Attempts to get the Account ID from the current session
+        If there is no current session, the standard parameter override for
+        AWS::AccountId is used
+        """
         sts = boto3.client("sts")
         try:
             account_id = sts.get_caller_identity().get("Account")
