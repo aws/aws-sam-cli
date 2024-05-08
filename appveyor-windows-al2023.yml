@@ -173,7 +173,7 @@ build_script:
   - cargo lambda -V
 
 test_script:
-  - ps: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m al2023 --ignore=tests/integration/buildcmd/test_build_samconfig.py --ignore=tests/integration/buildcmd/test_build_in_source.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+  - ps: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m al2023 --collect-only --ignore=tests/integration/buildcmd/test_build_samconfig.py --ignore=tests/integration/buildcmd/test_build_in_source.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
 # Uncomment for RDP
 # on_finish:
