@@ -311,7 +311,12 @@ class InvokeContext:
         def initialize_function_container(function: Function) -> None:
             function_config = self.local_lambda_runner.get_invoke_config(function)
             self.lambda_runtime.run(
-                None, function_config, self._debug_context, self._container_host, self._container_host_interface
+                container=None,
+                function_config=function_config,
+                debug_context=self._debug_context,
+                container_host=self._container_host,
+                container_host_interface=self._container_host_interface,
+                extra_hosts=self._extra_hosts,
             )
 
         try:

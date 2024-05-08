@@ -307,6 +307,12 @@ class TestWarmContainersBaseClass(StartLambdaIntegBaseClass):
                 running_containers += 1
         return running_containers
 
+    def tearDown(self) -> None:
+        # Use a new container test UUID for the next test run to avoid
+        # counting additional containers in the event of a retry
+        self.mode_env_variable = str(uuid.uuid4())
+        super().tearDown()
+
 
 @parameterized_class(
     ("template_path",),

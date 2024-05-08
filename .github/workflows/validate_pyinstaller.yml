@@ -21,10 +21,6 @@ jobs:
       # due to glibc requirement from github actions 
       # see example failure: https://github.com/aws/aws-sam-cli/actions/runs/6102715182/job/16561754862?pr=5887
       - uses: actions/checkout@v3
-      - name: Set up Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: "1.20"
       - name: Build PyInstaller
         run: |
           chmod +x ./installer/pyinstaller/build-linux.sh
@@ -52,15 +48,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.8"
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.20"
       - name: Build PyInstaller
         run: |
           chmod +x ./installer/pyinstaller/build-mac.sh
           ./installer/pyinstaller/build-mac.sh aws-sam-cli-macos-x86_64.zip
       - name: Basic tests for PyInstaller
+        env:
+          SAM_INIT_RUNTIME: "python3.8"
         run: |
           unzip .build/output/aws-sam-cli-macos-x86_64.zip -d sam-installation
           sudo ./sam-installation/install

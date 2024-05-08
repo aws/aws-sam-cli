@@ -10,7 +10,7 @@ from samcli.lib.schemas.schemas_code_manager import do_download_source_code_bind
 
 class TestSchemaCodeManager(TestCase):
     def setUp(self):
-        self.runtime = "java8"
+        self.runtime = "java8.al2"
         self.registry_name = "aws.events"
         self.schema_name = "EC2InstanceChangeNotification"
         self.schema_full_name = "aws.EC2InstanceChangeNotification"
@@ -76,7 +76,7 @@ class TestSchemaCodeManager(TestCase):
     def test_merge_generated_code(self, unzip_mock, json_loads_mock):
         json_loads_mock.return_value = {
             "project_name": "Your EventBridge Starter app",
-            "runtime": "java8",
+            "runtime": "java8.al2",
             "function_name": "HelloWorldFunction",
             "AWS_Schema_registry": "aws.events",
             "AWS_Schema_name": "EC2InstanceStateChangeNotification",

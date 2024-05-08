@@ -589,7 +589,7 @@ class TestCli(TestCase):
             name=self.name,
             app_template=self.app_template,
             no_input=self.no_input,
-            extra_context='{"project_name": "my_project", "runtime": "java8", "schema_name":"events", "schema_type": "aws"}',
+            extra_context='{"project_name": "my_project", "runtime": "java17", "schema_name":"events", "schema_type": "aws"}',
             tracing=False,
             application_insights=False,
             structured_logging=False,
@@ -635,7 +635,7 @@ class TestCli(TestCase):
                 name=self.name,
                 app_template=self.app_template,
                 no_input=self.no_input,
-                extra_context='{"project_name", "my_project", "runtime": "java8", "schema_name":"events", "schema_type": "aws"}',
+                extra_context='{"project_name", "my_project", "runtime": "java8.al2", "schema_name":"events", "schema_type": "aws"}',
                 tracing=False,
                 application_insights=False,
                 structured_logging=False,
@@ -651,7 +651,7 @@ class TestCli(TestCase):
             location="custom location",
             pt_explicit=self.pt_explicit,
             package_type=self.package_type,
-            runtime="java8",
+            runtime="java8.al2",
             architecture=X86_64,
             base_image=self.base_image,
             dependency_manager=None,
@@ -669,7 +669,7 @@ class TestCli(TestCase):
         generate_project_patch.assert_called_once_with(
             "custom location",
             ZIP,
-            "java8",
+            "java8.al2",
             None,
             ".",
             "test-project",
@@ -677,7 +677,7 @@ class TestCli(TestCase):
             {
                 "schema_name": "events",
                 "schema_type": "aws",
-                "runtime": "java8",
+                "runtime": "java8.al2",
                 "project_name": "test-project",
                 "architectures": {"value": [X86_64]},
             },
@@ -740,7 +740,7 @@ class TestCli(TestCase):
             location="custom location",
             pt_explicit=self.pt_explicit,
             package_type=self.package_type,
-            runtime="java8",
+            runtime="java8.al2",
             architecture=ARM64,
             base_image=self.base_image,
             dependency_manager=None,
@@ -758,7 +758,7 @@ class TestCli(TestCase):
         generate_project_patch.assert_called_once_with(
             "custom location",
             ZIP,
-            "java8",
+            "java8.al2",
             None,
             ".",
             None,
@@ -766,7 +766,7 @@ class TestCli(TestCase):
             {
                 "schema_name": "events",
                 "schema_type": "aws",
-                "runtime": "java8",
+                "runtime": "java8.al2",
                 "architectures": {"value": [ARM64]},
             },
             False,
@@ -980,7 +980,7 @@ Y
     ):
         init_options_from_manifest_mock.return_value = [
             {
-                "directory": "java8-image/cookiecutter-aws-sam-hello-java-maven-lambda-image",
+                "directory": "java8.al2-image/cookiecutter-aws-sam-hello-java-maven-lambda-image",
                 "displayName": "Hello World Lambda Image Example: Maven",
                 "dependencyManager": "maven",
                 "appTemplate": "hello-world-lambda-image",
@@ -991,10 +991,10 @@ Y
 
         get_preprocessed_manifest_mock.return_value = {
             "Serverless API": {
-                "java8": {
+                "java8.al2": {
                     "Image": [
                         {
-                            "directory": "java8-image/cookiecutter-aws-sam-hello-java-maven-lambda-image",
+                            "directory": "java8.al2-image/cookiecutter-aws-sam-hello-java-maven-lambda-image",
                             "displayName": "Hello World Lambda Image Example: Maven",
                             "dependencyManager": "maven",
                             "appTemplate": "hello-world-lambda-image",
@@ -1010,7 +1010,7 @@ Y
 
         # 2: AWS Quick Start Templates
         # 1: Serverless API - Use case
-        # Java8
+        # Java8.al2
         # Package type - Image
         # Hello World Lambda Image Example: Maven
         # test-project: response to name
@@ -1028,12 +1028,12 @@ test-project
         generate_project_patch.assert_called_once_with(
             ANY,
             IMAGE,
-            "java8",
+            "java8.al2",
             "maven",
             ".",
             "test-project",
             True,
-            {"project_name": "test-project", "runtime": "java8", "architectures": {"value": [X86_64]}},
+            {"project_name": "test-project", "runtime": "java8.al2", "architectures": {"value": [X86_64]}},
             False,
             False,
             True,
@@ -2325,7 +2325,7 @@ test-project
                 location=self.location,
                 pt_explicit=self.pt_explicit,
                 package_type=self.package_type,
-                runtime="java8",
+                runtime="java8.al2",
                 base_image=self.base_image,
                 dependency_manager="pip",
                 output_dir=None,
@@ -2339,7 +2339,7 @@ test-project
                 structured_logging=False,
             )
         expected_error_message = (
-            "Lambda Runtime java8 and dependency manager pip does not have an available initialization template."
+            "Lambda Runtime java8.al2 and dependency manager pip does not have an available initialization template."
         )
         self.assertEqual(str(ex.exception), expected_error_message)
 
@@ -2774,7 +2774,7 @@ test-project
         self.assertFalse(template_does_not_meet_filter_criteria(app_template, None, None, template1))
 
         template2 = {
-            "directory": "java8/cookiecutter-aws-sam-hello-nodejs",
+            "directory": "java8.al2/cookiecutter-aws-sam-hello-nodejs",
             "displayName": "Hello World Example",
             "dependencyManager": "Gradle",
             "appTemplate": "hello-world",
@@ -2785,7 +2785,7 @@ test-project
         self.assertTrue(template_does_not_meet_filter_criteria(app_template, package_type, None, template2))
 
         template3 = {
-            "directory": "java8/cookiecutter-aws-sam-hello-nodejs",
+            "directory": "java8.al2/cookiecutter-aws-sam-hello-nodejs",
             "displayName": "Hello World Example",
             "dependencyManager": "Gradle",
             "appTemplate": "hello-world",

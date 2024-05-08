@@ -218,6 +218,7 @@ class BuildIntegBase(TestCase):
     def _verify_resource_property(self, template_path, logical_id, property, expected_value):
         with open(template_path, "r") as fp:
             template_dict = yaml_parse(fp.read())
+
             self.assertEqual(
                 expected_value, jmespath.search(f"Resources.{logical_id}.Properties.{property}", template_dict)
             )

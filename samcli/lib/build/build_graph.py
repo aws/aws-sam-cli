@@ -107,6 +107,7 @@ def _toml_table_to_function_build_definition(uuid: str, toml_table: tomlkit.api.
     function_build_definition = FunctionBuildDefinition(
         toml_table.get(RUNTIME_FIELD),
         toml_table.get(CODE_URI_FIELD),
+        None,
         toml_table.get(PACKAGETYPE_FIELD, ZIP),
         toml_table.get(ARCHITECTURE_FIELD, X86_64),
         dict(toml_table.get(METADATA_FIELD, {})),
@@ -584,6 +585,7 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         self,
         runtime: Optional[str],
         codeuri: Optional[str],
+        imageuri: Optional[str],
         packagetype: str,
         architecture: str,
         metadata: Optional[Dict],
@@ -595,6 +597,7 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         super().__init__(source_hash, manifest_hash, env_vars, architecture)
         self.runtime = runtime
         self.codeuri = codeuri
+        self.imageuri = imageuri
         self.packagetype = packagetype
         self.handler = handler
 
@@ -688,6 +691,7 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         return (
             self.runtime == other.runtime
             and self.codeuri == other.codeuri
+            and self.imageuri == other.imageuri
             and self.packagetype == other.packagetype
             and self.metadata == other.metadata
             and self.env_vars == other.env_vars

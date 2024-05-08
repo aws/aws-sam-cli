@@ -58,7 +58,6 @@ class TestArchitecture(TestCase):
 
     @parameterized.expand(
         [
-            ("java8", ARM64),
             ("go1.x", ARM64),
             ("provided", ARM64),
         ]

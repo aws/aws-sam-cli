@@ -56,7 +56,7 @@ DESCRIPTION = """
   ------------------
   1. Python 3.8, 3.9, 3.10, 3.11, 3.12 using PIP\n
   2. Nodejs 20.x, 18.x, 16.x, 14.x, 12.x using NPM\n
-  3. Ruby 3.2 using Bundler\n
+  3. Ruby 3.2, 3.3 using Bundler\n
   4. Java 8, Java 11, Java 17, Java 21 using Gradle and Maven\n
   5. Dotnet8, Dotnet6 using Dotnet CLI\n
   6. Go 1.x using Go Modules (without --use-container)\n

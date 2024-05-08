@@ -1,6 +1,7 @@
 # coding=utf-8
 
 import os
+import platform
 import tempfile
 
 from subprocess import Popen, PIPE, TimeoutExpired
@@ -33,12 +34,16 @@ class TestWithDifferentLambdaRuntimeZips(InvokeIntegBase):
     def tearDown(self):
         os.remove(self.events_file_path)
 
-    @parameterized.expand([param("Go1xFunction"), param("Java8Function")])
+    @parameterized.expand([param("Go1xFunction"), param("Java21Function")])
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_runtime_zip(self, function_name):
         command_list = InvokeIntegBase.get_command_list(
             function_name, template_path=self.template_path, event_path=self.events_file_path
         )
+
+        # Temporarily skip al2023 tests on Windows
+        if function_name == "Java21Function" and platform.system().lower() == "windows":
+            self.skipTest("Skipping AL2023 test on Windows")
 
         process = Popen(command_list, stdout=PIPE)
         try:

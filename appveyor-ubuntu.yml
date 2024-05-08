@@ -53,7 +53,8 @@ install:
   - sh: "mvn --version"
 
   - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
-  - sh: "rbenv global 3.2.3"
+  - sh: "rbenv install 3.3.0"
+  - sh: "rbenv global 3.3.0"
   - sh: "ruby --version"
   - sh: "docker info"
   - sh: "docker version"

@@ -13,7 +13,7 @@ Resources:
     Properties:
       CodeUri: java8
       Handler: sts.App::handleRequest
-      Runtime: java8
+      Runtime: java8.al2
       MemorySize: 1024
   PythonStsExample:
     Type: AWS::Serverless::Function

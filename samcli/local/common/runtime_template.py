@@ -24,7 +24,7 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
     ],
     "ruby": [
         {
-            "runtimes": ["ruby3.2"],
+            "runtimes": ["ruby3.3", "ruby3.2"],
             "dependency_manager": "bundler",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-ruby"),
             "build": True,
@@ -56,13 +56,13 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
     ],
     "java": [
         {
-            "runtimes": ["java11", "java8", "java8.al2", "java17", "java21"],
+            "runtimes": ["java11", "java8.al2", "java17", "java21"],
             "dependency_manager": "maven",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-java-maven"),
             "build": True,
         },
         {
-            "runtimes": ["java11", "java8", "java8.al2", "java17", "java21"],
+            "runtimes": ["java11", "java8.al2", "java17", "java21"],
             "dependency_manager": "gradle",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-java-gradle"),
             "build": True,
@@ -108,7 +108,6 @@ INIT_RUNTIMES = [
     "java17",
     "java11",
     "java8.al2",
-    "java8",
     # nodejs runtimes in descending order
     "nodejs20.x",
     "nodejs18.x",
@@ -124,6 +123,7 @@ INIT_RUNTIMES = [
     "python3.9",
     "python3.8",
     # ruby runtimes in descending order
+    "ruby3.3",
     "ruby3.2",
 ]
 
@@ -138,7 +138,6 @@ LAMBDA_IMAGES_RUNTIMES_MAP = {
     "java17": "amazon/java17-base",
     "java11": "amazon/java11-base",
     "java8.al2": "amazon/java8.al2-base",
-    "java8": "amazon/java8-base",
     "nodejs20.x": "amazon/nodejs20.x-base",
     "nodejs18.x": "amazon/nodejs18.x-base",
     "nodejs16.x": "amazon/nodejs16.x-base",
@@ -147,6 +146,7 @@ LAMBDA_IMAGES_RUNTIMES_MAP = {
     "python3.10": "amazon/python3.10-base",
     "python3.9": "amazon/python3.9-base",
     "python3.8": "amazon/python3.8-base",
+    "ruby3.3": "amazon/ruby3.3-base",
     "ruby3.2": "amazon/ruby3.2-base",
 }
 
@@ -156,7 +156,6 @@ LAMBDA_IMAGES_RUNTIMES: List = sorted(list(set(LAMBDA_IMAGES_RUNTIMES_MAP.values
 # - this is why later Lambda runtimes can be mapped to earlier Schemas Code Languages
 # event schema registry supports only java8, python3.6, dotnet6, and Go1 for code binding
 SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING = {
-    "java8": "Java8",
     "java8.al2": "Java8",
     "java11": "Java8",
     "java17": "Java8",
@@ -169,6 +168,7 @@ SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING = {
     "dotnet6": "dotnet6",
     "dotnet8": "dotnet6",
     "go1.x": "Go1",
+    "provided.al2": "Go1",
 }
 
 PROVIDED_RUNTIMES = ["provided.al2023", "provided.al2", "provided"]

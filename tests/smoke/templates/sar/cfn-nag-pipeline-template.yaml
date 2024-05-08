@@ -40,6 +40,6 @@ Resources:
       CodeUri:
         Bucket: <%REPO_BUCKET%>
         Key: 3f2189f9-d086-457b-81a8-a68b4cca82dd
-      Runtime: java8
+      Runtime: java21
       MemorySize: 1024
 Transform: AWS::Serverless-2016-10-31

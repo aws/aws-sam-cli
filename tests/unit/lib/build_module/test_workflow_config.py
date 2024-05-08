@@ -112,7 +112,11 @@ class Test_get_workflow_config(TestCase):
         self.assertFalse(result.must_mount_with_write_in_container)
 
     @parameterized.expand(
-        [("java8", "build.gradle", "gradle"), ("java8", "build.gradle.kts", "gradle"), ("java8", "pom.xml", "maven")]
+        [
+            ("java8.al2", "build.gradle", "gradle"),
+            ("java8.al2", "build.gradle.kts", "gradle"),
+            ("java8.al2", "pom.xml", "maven"),
+        ]
     )
     @patch("samcli.lib.build.workflow_config.os")
     def test_must_work_for_java(self, runtime, build_file, dep_manager, os_mock):
@@ -146,7 +150,7 @@ class Test_get_workflow_config(TestCase):
         self.assertIn(Event("BuildWorkflowUsed", "nodejs-npm-esbuild"), EventTracker.get_tracked_events())
         self.assertFalse(result.must_mount_with_write_in_container)
 
-    @parameterized.expand([("java8", "unknown.manifest")])
+    @parameterized.expand([("java8.al2", "unknown.manifest")])
     @patch("samcli.lib.build.workflow_config.os")
     def test_must_fail_when_manifest_not_found(self, runtime, build_file, os_mock):
         os_mock.path.join.side_effect = lambda dirname, v: v

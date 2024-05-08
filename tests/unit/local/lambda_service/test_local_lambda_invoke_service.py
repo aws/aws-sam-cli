@@ -1,6 +1,7 @@
 from unittest import TestCase
 from unittest.mock import Mock, patch, ANY, call
 
+from samcli.local.docker.exceptions import DockerContainerCreationFailedException
 from samcli.local.lambda_service import local_lambda_invoke_service
 from samcli.local.lambda_service.local_lambda_invoke_service import LocalLambdaInvokeService, FunctionNamePathConverter
 from samcli.local.lambdafn.exceptions import FunctionNotFound
@@ -110,6 +111,29 @@ class TestLocalLambdaService(TestCase):
         lambda_runner_mock.invoke.assert_called_once_with("FunctionWithInlineCode", "{}", stdout=ANY, stderr=None)
 
         lambda_error_responses_mock.not_implemented_locally.assert_called()
+
+    @patch("samcli.local.lambda_service.local_lambda_invoke_service.LambdaErrorResponses")
+    def test_invoke_request_container_creation_failed(self, lambda_error_responses_mock):
+        request_mock = Mock()
+        request_mock.get_data.return_value = b"{}"
+        local_lambda_invoke_service.request = request_mock
+
+        lambda_runner_mock = Mock()
+        lambda_runner_mock.invoke.side_effect = DockerContainerCreationFailedException("container creation failed")
+
+        lambda_error_responses_mock.container_creation_failed.return_value = "Container creation failed"
+
+        service = LocalLambdaInvokeService(lambda_runner=lambda_runner_mock, port=3000, host="localhost")
+
+        response = service._invoke_request_handler(function_name="FunctionContainerCreationFailed")
+
+        self.assertEqual(response, "Container creation failed")
+
+        lambda_runner_mock.invoke.assert_called_once_with(
+            "FunctionContainerCreationFailed", "{}", stdout=ANY, stderr=None
+        )
+
+        lambda_error_responses_mock.container_creation_failed.assert_called()
 
     @patch("samcli.local.lambda_service.local_lambda_invoke_service.LocalLambdaInvokeService.service_response")
     @patch("samcli.local.lambda_service.local_lambda_invoke_service.LambdaOutputParser")

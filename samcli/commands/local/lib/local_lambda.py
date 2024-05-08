@@ -197,6 +197,7 @@ class LocalLambdaRunner:
 
         env_vars = self._make_env_vars(function)
         code_abs_path = None
+        code_real_path = None
         if function.packagetype == ZIP:
             code_abs_path = resolve_code_path(self.cwd, function.codeuri)
             LOG.debug("Resolved absolute path to code is %s", code_abs_path)

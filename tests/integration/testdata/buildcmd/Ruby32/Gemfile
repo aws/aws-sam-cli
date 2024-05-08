@@ -2,4 +2,4 @@ source "https://rubygems.org"
 
 gem "aws-eventstream"
 
-ruby '~> 3.2.0'
+ruby '~> 3.2'

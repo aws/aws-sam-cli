@@ -48,10 +48,6 @@ init:
   - ps: New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force
   - ps: git config --system core.longpaths true
 
-cache:
-  - C:\ProgramData\chocolatey\bin -> appveyor.yml
-  - C:\ProgramData\chocolatey\lib -> appveyor.yml
-
 install:
   # upgrade chocolately
   - choco upgrade chocolatey
@@ -66,6 +62,7 @@ install:
   - choco upgrade gradle --version=8.4.0
   - "gradle -v"
   - "mvn --version"
+  - choco install ruby --version=3.3.0.1
 
   # Make sure the temp directory exists for Python to use.
   - ps: "mkdir -Force C:\\tmp"

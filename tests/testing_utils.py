@@ -55,6 +55,7 @@ AL2023_BASED_RUNTIMES = {
     "java21",
     "python3.12",
     "dotnet8",
+    "ruby3.3",
 }
 
 

@@ -125,6 +125,10 @@ def upload_local_image_artifacts(resource_id, resource_dict, property_name, pare
         LOG.debug("Property %s of %s is already an ECR URL", property_name, resource_id)
         return image_path
 
+    possible_image_archive_path = make_abs_path(parent_dir, image_path)
+    if is_local_file(possible_image_archive_path):
+        image_path = possible_image_archive_path
+
     return uploader.upload(image_path, resource_id)
 
 
