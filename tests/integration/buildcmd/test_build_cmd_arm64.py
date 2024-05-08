@@ -54,6 +54,10 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture_arm64(BuildIn
     def test_with_default_requirements(self, runtime, codeuri, use_container):
         if use_container and not do_test_runtime_on_docker(runtime):
             self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
+
+        if not do_test_runtime_on_docker(runtime):
+            self.skipTest()
+
         self._test_with_default_requirements(runtime, codeuri, use_container, self.test_data_path, architecture=ARM64)
 
 
@@ -133,6 +137,10 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(BuildIntegE
     def test_building_default_package_json(self, runtime, code_uri, expected_files, handler, use_container):
         if use_container and not do_test_runtime_on_docker(runtime):
             self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
+
+        if not do_test_runtime_on_docker(runtime):
+            self.skipTest()
+
         self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, ARM64)
 
 
@@ -153,6 +161,10 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture_arm64(BuildInte
     def test_building_default_package_json(self, runtime, use_container):
         if use_container and not do_test_runtime_on_docker(runtime):
             self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
+
+        if not do_test_runtime_on_docker(runtime):
+            self.skipTest()
+
         self._test_with_default_package_json(runtime, use_container, self.test_data_path, ARM64)
 
 
@@ -508,6 +520,10 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture_arm64(Build
     def test_building_Makefile(self, runtime, use_container, manifest):
         if use_container and not do_test_runtime_on_docker(runtime):
             self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
+            
+        if not do_test_runtime_on_docker(runtime):
+            self.skipTest()
+
         self._test_with_Makefile(runtime, use_container, manifest, ARM64)
 
 
@@ -529,6 +545,10 @@ class TestBuildCommand_Rust_arm64(BuildIntegRustBase):
     def test_build(self, runtime, build_mode, use_container):
         if use_container and not do_test_runtime_on_docker(runtime):
             self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
+
+        if not do_test_runtime_on_docker(runtime):
+            self.skipTest()
+
         self._test_with_rust_cargo_lambda(
             runtime=runtime,
             code_uri=self.code_uri,

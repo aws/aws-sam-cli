@@ -686,6 +686,10 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPyt
     def test_with_default_requirements(self, runtime, codeuri, use_container, architecture):
         if use_container and not do_test_runtime_on_docker(runtime):
             self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
+
+        if not do_test_runtime_on_docker(runtime):
+            self.skipTest()
+    
         self._test_with_default_requirements(
             runtime, codeuri, use_container, self.test_data_path, architecture=architecture
         )
@@ -730,6 +734,10 @@ class TestBuildCommand_NodeFunctions(BuildIntegNodeBase):
                 self.skipTest(SKIP_DOCKER_MESSAGE)
             if not do_test_runtime_on_docker(runtime):
                 self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
+
+        if not do_test_runtime_on_docker(runtime):
+            self.skipTest()
+
         self._test_with_default_package_json(runtime, use_container, self.test_data_path)
 
 
@@ -855,6 +863,10 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture(BuildIntegNodeB
     def test_building_default_package_json(self, runtime, use_container, architecture):
         if use_container and not do_test_runtime_on_docker(runtime):
             self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
+
+        if not do_test_runtime_on_docker(runtime):
+            self.skipTest()
+
         self._test_with_default_package_json(runtime, use_container, self.test_data_path, architecture)
 
 
@@ -1957,6 +1969,10 @@ class TestBuildCommand_ProvidedFunctions(BuildIntegProvidedBase):
                 self.skipTest(SKIP_DOCKER_MESSAGE)
             if not do_test_runtime_on_docker(runtime):
                 self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
+
+        if not do_test_runtime_on_docker(runtime):
+            self.skipTest()
+
         self._test_with_Makefile(runtime, use_container, manifest)
 
 
@@ -1984,6 +2000,10 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture(BuildIntegP
     def test_building_Makefile(self, runtime, use_container, manifest, architecture):
         if use_container and not do_test_runtime_on_docker(runtime):
             self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
+
+        if not do_test_runtime_on_docker(runtime):
+            self.skipTest()
+
         self._test_with_Makefile(runtime, use_container, manifest, architecture)
 
 
@@ -2015,6 +2035,10 @@ class TestBuildCommand_ProvidedFunctionsWithCustomMetadata(BuildIntegProvidedBas
     def test_building_Makefile(self, runtime, use_container, manifest):
         if use_container and not do_test_runtime_on_docker(runtime):
             self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
+
+        if not do_test_runtime_on_docker(runtime):
+            self.skipTest()
+
         self._test_with_Makefile(runtime, use_container, manifest)
 
 
@@ -2023,6 +2047,7 @@ class TestBuildCommand_ProvidedFunctionsWithCustomMetadata(BuildIntegProvidedBas
     "Skip build tests on windows when running in CI unless overridden",
 )
 class TestBuildWithBuildMethod(BuildIntegBase):
+
     # Test Suite where `BuildMethod` is explicitly specified.
 
     template = "custom-build-function.yaml"
