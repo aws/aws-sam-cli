@@ -34,9 +34,9 @@ binaryornot==0.4.4 \
     --hash=sha256:359501dfc9d40632edc9fac890e19542db1a287bbcfa58175b66658392018061 \
     --hash=sha256:b8b71173c917bddcd2c16070412e369c3ed7f0528926f70cac18a6c97fd563e4
     # via cookiecutter
-blinker==1.8.1 \
-    --hash=sha256:5f1cdeff423b77c31b89de0565cd03e5275a03028f44b2b15f912632a58cced6 \
-    --hash=sha256:da44ec748222dcd0105ef975eed946da197d5bdf8bafb6aa92f5bc89da63fa25
+blinker==1.8.2 \
+    --hash=sha256:1779309f71bf239144b9399d06ae925637cf6634cf6bd131104184531bf67c01 \
+    --hash=sha256:8f77b09d3bf7c795e969e9486f39c2c5e9c39d4ee07424be2bc594ece9642d83
     # via flask
 boto3==1.34.96 \
     --hash=sha256:42ea7d46688e7cb27259780b9da2cddcfaf2763ff5d327f4d54eac12edba8e72 \
