@@ -310,7 +310,7 @@ class UpdatableSARTemplate:
 RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG = "Runtime is not supported the installed Docker version."
 
 
-def do_test_runtime_on_docker(runtime: str) -> bool:
+def runtime_supported_by_docker(runtime: str) -> bool:
     """
     To determine if a test ca on runtime and docker_version, in case the test is run in an environment with a very old version of docker
 

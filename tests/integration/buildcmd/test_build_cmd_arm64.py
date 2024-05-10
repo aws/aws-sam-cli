@@ -23,7 +23,7 @@ from tests.testing_utils import (
     CI_OVERRIDE,
     IS_WINDOWS,
     RUNNING_ON_CI,
-    do_test_runtime_on_docker,
+    runtime_supported_by_docker,
     RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG,
 )
 
@@ -52,12 +52,8 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture_arm64(BuildIn
     )
     @pytest.mark.al2023
     def test_with_default_requirements(self, runtime, codeuri, use_container):
-        if use_container and not do_test_runtime_on_docker(runtime):
+        if use_container and not runtime_supported_by_docker(runtime):
             self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
-
-        if not do_test_runtime_on_docker(runtime):
-            self.skipTest()
-
         self._test_with_default_requirements(runtime, codeuri, use_container, self.test_data_path, architecture=ARM64)
 
 
@@ -78,7 +74,6 @@ class TestBuildCommand_EsbuildFunctions_arm64(BuildIntegEsbuildBase):
             ),
         ]
     )
-    @pytest.mark.al2023
     def test_building_default_package_json(self, runtime, code_uri, expected_files, handler, use_container):
         self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, ARM64)
 
@@ -133,14 +128,9 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(BuildIntegE
             ),
         ]
     )
-    @pytest.mark.al2023
     def test_building_default_package_json(self, runtime, code_uri, expected_files, handler, use_container):
-        if use_container and not do_test_runtime_on_docker(runtime):
+        if use_container and not runtime_supported_by_docker(runtime):
             self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
-
-        if not do_test_runtime_on_docker(runtime):
-            self.skipTest()
-
         self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, ARM64)
 
 
@@ -159,12 +149,8 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture_arm64(BuildInte
     )
     @pytest.mark.al2023
     def test_building_default_package_json(self, runtime, use_container):
-        if use_container and not do_test_runtime_on_docker(runtime):
+        if use_container and not runtime_supported_by_docker(runtime):
             self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
-
-        if not do_test_runtime_on_docker(runtime):
-            self.skipTest()
-
         self._test_with_default_package_json(runtime, use_container, self.test_data_path, ARM64)
 
 
@@ -305,11 +291,10 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
         ]
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
-    @pytest.mark.al2023
     def test_building_java_in_container_with_arm64_architecture(
         self, runtime, runtime_version, code_path, expected_files, expected_dependencies
     ):
-        if not do_test_runtime_on_docker(runtime):
+        if not runtime_supported_by_docker(runtime):
             self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
         self._test_with_building_java(
             runtime,
@@ -437,7 +422,6 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
             ),
         ]
     )
-    @pytest.mark.al2023
     def test_building_java_in_process_with_arm_architecture(
         self, runtime, runtime_version, code_path, expected_files, expected_dependencies
     ):
@@ -469,7 +453,6 @@ class TestBuildCommand_Go_Modules_With_Specified_Architecture_arm64(BuildIntegGo
             ),
         ]
     )
-    @pytest.mark.al2023
     def test_building_go(self, runtime, code_uri, mode):
         self._test_with_go(runtime, code_uri, mode, self.test_data_path, ARM64)
 
@@ -518,12 +501,8 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture_arm64(Build
     )
     @pytest.mark.al2023
     def test_building_Makefile(self, runtime, use_container, manifest):
-        if use_container and not do_test_runtime_on_docker(runtime):
+        if use_container and not runtime_supported_by_docker(runtime):
             self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
-            
-        if not do_test_runtime_on_docker(runtime):
-            self.skipTest()
-
         self._test_with_Makefile(runtime, use_container, manifest, ARM64)
 
 
@@ -541,14 +520,9 @@ class TestBuildCommand_Rust_arm64(BuildIntegRustBase):
             ("provided.al2023", "debug", False),
         ]
     )
-    @pytest.mark.al2023
     def test_build(self, runtime, build_mode, use_container):
-        if use_container and not do_test_runtime_on_docker(runtime):
+        if use_container and not runtime_supported_by_docker(runtime):
             self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
-
-        if not do_test_runtime_on_docker(runtime):
-            self.skipTest()
-
         self._test_with_rust_cargo_lambda(
             runtime=runtime,
             code_uri=self.code_uri,
