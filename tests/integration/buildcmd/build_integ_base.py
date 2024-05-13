@@ -1066,8 +1066,8 @@ def rust_parameterized_class(cls):
             ),
             (
                 "template_build_method_rust_cargo_workspace.yaml",
-                "Rust/cargo_workspace",
-                "function_b",
+                "Rust/cargo_workspace/function_b",
+                None,
                 {"req_id": "281", "msg": "Hello World B"},
             ),
         ],
