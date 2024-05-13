@@ -20,6 +20,7 @@ from samcli.commands._utils.options import (
     build_in_source_option,
     cache_dir_option,
     cached_option,
+    container_env_var_file_option,
     docker_common_options,
     hook_name_click_option,
     manifest_option,
@@ -92,14 +93,7 @@ DESCRIPTION = """
     "\n\n Example: --container-env-var Func1.VAR1=value1 --container-env-var VAR2=value2",
     cls=ContainerOptions,
 )
-@click.option(
-    "--container-env-var-file",
-    "-ef",
-    default=None,
-    type=click.Path(),  # Must be a json file
-    help="Environment variables json file (e.g., env_vars.json) to be passed to build containers.",
-    cls=ContainerOptions,
-)
+@container_env_var_file_option(cls=ContainerOptions)
 @build_image_option(cls=ContainerOptions)
 @click.option(
     "--exclude",

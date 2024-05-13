@@ -25,6 +25,7 @@ from samcli.commands._utils.options import (
     build_image_option,
     build_in_source_option,
     capabilities_option,
+    container_env_var_file_option,
     image_repositories_option,
     image_repository_option,
     kms_key_id_option,
@@ -158,6 +159,7 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
     help="This option will skip the initial infrastructure deployment if it is not required"
     " by comparing the local template with the template deployed in cloud.",
 )
+@container_env_var_file_option(cls=ContainerOptions)
 @watch_exclude_option
 @stack_name_option(required=True)  # pylint: disable=E1120
 @base_dir_option
@@ -210,6 +212,7 @@ def cli(
     tags: dict,
     metadata: dict,
     use_container: bool,
+    container_env_var_file: Optional[str],
     save_params: bool,
     config_file: str,
     config_env: str,
@@ -248,6 +251,7 @@ def cli(
         tags,
         metadata,
         use_container,
+        container_env_var_file,
         build_image,
         config_file,
         config_env,
@@ -281,6 +285,7 @@ def do_cli(
     tags: dict,
     metadata: dict,
     use_container: bool,
+    container_env_var_file: Optional[str],
     build_image: Optional[Tuple[str]],
     config_file: str,
     config_env: str,
@@ -331,6 +336,7 @@ def do_cli(
         cache_dir=DEFAULT_CACHE_DIR,
         clean=True,
         use_container=use_container,
+        container_env_var_file=container_env_var_file,
         cached=True,
         parallel=True,
         parameter_overrides=parameter_overrides,
