@@ -21,7 +21,8 @@ LOG = logging.getLogger(__name__)
 
 
 class BaseValidator(TestCase):
-    def __init__(self, test_context: EndToEndTestContext):
+    # NOTE: making test_context optional as a workaround for pytest 8.2.0 to collect tests - https://github.com/pytest-dev/pytest/pull/12320/files
+    def __init__(self, test_context: Optional[EndToEndTestContext] = None):
         super().__init__()
         self.test_context = test_context
 
@@ -29,7 +30,7 @@ class BaseValidator(TestCase):
         self.assertEqual(command_result.process.returncode, 0)
 
 
-class EndToEndBaseStage(TestCase):
+class EndToEndBaseStage:
     def __init__(
         self, validator: BaseValidator, test_context: EndToEndTestContext, command_list: Optional[List[str]] = None
     ):
