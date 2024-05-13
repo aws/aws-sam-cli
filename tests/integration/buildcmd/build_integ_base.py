@@ -1064,6 +1064,12 @@ def rust_parameterized_class(cls):
                 "function_b",
                 {"req_id": "99", "msg": "Hello FunctionB"},
             ),
+            (
+                "template_build_method_rust_cargo_workspace.yaml",
+                "Rust/cargo_workspace/function_b",
+                None,
+                {"req_id": "281", "msg": "Hello World B"},
+            ),
         ],
     )(cls)
     return cls
