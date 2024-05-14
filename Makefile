@@ -36,7 +36,7 @@ smoke-test:
 
 lint:
 	# Linter performs static analysis to catch latent bugs
-	ruff samcli schema
+	ruff check samcli schema
 	# mypy performs type check
 	mypy --exclude /testdata/ --exclude /init/templates/ --no-incremental setup.py samcli tests schema
 

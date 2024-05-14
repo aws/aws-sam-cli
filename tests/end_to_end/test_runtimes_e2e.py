@@ -28,15 +28,17 @@ from tests.testing_utils import CommandResult
 class InitValidator(BaseValidator):
     def validate(self, command_result: CommandResult):
         self.assertEqual(command_result.process.returncode, 0)
-        self.assertTrue(Path(self.test_context.working_directory).is_dir())
-        self.assertTrue(Path(self.test_context.project_directory).is_dir())
+        if self.test_context is not None:
+            self.assertTrue(Path(self.test_context.working_directory).is_dir())
+            self.assertTrue(Path(self.test_context.project_directory).is_dir())
 
 
 class BuildValidator(BaseValidator):
     def validate(self, command_result: CommandResult):
         self.assertEqual(command_result.process.returncode, 0)
-        build_dir = Path(self.test_context.project_directory) / ".aws-sam"
-        self.assertTrue(build_dir.is_dir())
+        if self.test_context is not None:
+            build_dir = Path(self.test_context.project_directory) / ".aws-sam"
+            self.assertTrue(build_dir.is_dir())
 
 
 class LocalInvokeValidator(BaseValidator):

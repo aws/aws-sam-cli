@@ -92,7 +92,7 @@ function Test {
 }
 
 function Lint {
-    ruff samcli
+    ruff check samcli schema
     mypy setup.py samcli tests
 }
 
