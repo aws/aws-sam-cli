@@ -23,11 +23,13 @@ from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from samcli.yamlhelper import yaml_parse
 from tests.testing_utils import (
     IS_WINDOWS,
+    CommandResult,
     run_command,
     SKIP_DOCKER_TESTS,
     SKIP_DOCKER_MESSAGE,
     SKIP_DOCKER_BUILD,
     get_sam_command,
+    run_command_with_input,
     runtime_supported_by_docker,
 )
 
@@ -1130,6 +1132,105 @@ class BuildIntegRustBase(BuildIntegBase):
         if use_container:
             self.verify_docker_container_cleanedup(runtime)
             self.verify_pulled_image(runtime, architecture)
+
+    def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
+        self.assertTrue(build_dir.exists(), "Build directory should be created")
+
+        build_dir_files = os.listdir(str(build_dir))
+        self.assertIn("template.yaml", build_dir_files)
+        self.assertIn(function_logical_id, build_dir_files)
+
+        template_path = build_dir.joinpath("template.yaml")
+        resource_artifact_dir = build_dir.joinpath(function_logical_id)
+
+        # Make sure the template has correct CodeUri for resource
+        self._verify_resource_property(str(template_path), function_logical_id, "CodeUri", function_logical_id)
+
+        all_artifacts = set(os.listdir(str(resource_artifact_dir)))
+        actual_files = all_artifacts.intersection(expected_files)
+        self.assertEqual(actual_files, expected_files)
+
+
+@pytest.mark.dotnet
+class BuildIntegDotnetBase(BuildIntegBase):
+    FUNCTION_LOGICAL_ID = "Function"
+    EXPECTED_FILES_PROJECT_MANIFEST = {
+        "Amazon.Lambda.APIGatewayEvents.dll",
+        "Amazon.Lambda.Core.dll",
+        "HelloWorld.runtimeconfig.json",
+        "Amazon.Lambda.Serialization.Json.dll",
+        "Newtonsoft.Json.dll",
+        "HelloWorld.deps.json",
+        "HelloWorld.dll",
+    }
+
+    EXPECTED_FILES_PROJECT_MANIFEST_PROVIDED = {
+        "bootstrap",
+    }
+
+    def validate_build_command(
+        self, overrides, mode, mount_mode=None, use_container=False, input=None
+    ) -> CommandResult:
+        do_use_container = mount_mode == None or use_container
+
+        cmdlist = self.get_command_list(
+            use_container=do_use_container, parameter_overrides=overrides, mount_with=mount_mode
+        )
+
+        if do_use_container:
+            cmdlist += ["--container-env-var", "DOTNET_CLI_HOME=/tmp/dotnet"]
+            cmdlist += ["--container-env-var", "XDG_DATA_HOME=/tmp/xdg"]
+
+        LOG.info("Running with SAM_BUILD_MODE={}".format(mode))
+
+        newenv = os.environ.copy()
+        if mode:
+            newenv["SAM_BUILD_MODE"] = mode
+
+        if input:
+            command_result = run_command_with_input(cmdlist, input.encode(), cwd=self.working_dir, env=newenv)
+        else:
+            command_result = run_command(cmdlist, cwd=self.working_dir, env=newenv)
+
+        self.assertEqual(command_result.process.returncode, 0)
+
+    def validate_invoke_command(self, overrides, runtime):
+        expected = "{'message': 'Hello World'}"
+
+        self._verify_invoke_built_function(
+            self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
+        )
+        self.verify_docker_container_cleanedup(runtime)
+
+    def validate_build_artifacts(self, expected_manifest):
+        self._verify_built_artifact(
+            self.default_build_dir,
+            self.FUNCTION_LOGICAL_ID,
+            expected_manifest,
+        )
+
+        self._verify_built_properties()
+
+    def _verify_built_properties(self):
+        self._verify_resource_property(
+            str(self.built_template),
+            "OtherRelativePathResource",
+            "BodyS3Location",
+            os.path.relpath(
+                os.path.normpath(os.path.join(str(self.test_data_path), "SomeRelativePath")),
+                str(self.default_build_dir),
+            ),
+        )
+
+        self._verify_resource_property(
+            str(self.built_template),
+            "GlueResource",
+            "Command.ScriptLocation",
+            os.path.relpath(
+                os.path.normpath(os.path.join(str(self.test_data_path), "SomeRelativePath")),
+                str(self.default_build_dir),
+            ),
+        )
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
         self.assertTrue(build_dir.exists(), "Build directory should be created")

@@ -50,7 +50,6 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture_arm64(BuildIn
             ("python3.12", "Python", "use_container"),
         ]
     )
-    @pytest.mark.al2023
     def test_with_default_requirements(self, runtime, codeuri, use_container):
         if use_container and not runtime_supported_by_docker(runtime):
             self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
@@ -147,7 +146,6 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture_arm64(BuildInte
             ("nodejs20.x", "use_container"),
         ]
     )
-    @pytest.mark.al2023
     def test_building_default_package_json(self, runtime, use_container):
         if use_container and not runtime_supported_by_docker(runtime):
             self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
@@ -499,7 +497,6 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture_arm64(Build
             ),
         ]
     )
-    @pytest.mark.al2023
     def test_building_Makefile(self, runtime, use_container, manifest):
         if use_container and not runtime_supported_by_docker(runtime):
             self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)

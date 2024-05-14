@@ -28,6 +28,10 @@ environment:
   APPVEYOR_CONSOLE_DISABLE_PTY: true
   APPVEYOR_BUILD_WORKER_IMAGE: "ws2022-azure"
 
+cache:
+  - C:\ProgramData\chocolatey\bin -> appveyor-windows-al2023.yml
+  - C:\ProgramData\chocolatey\lib -> appveyor-windows-al2023.yml
+
 init:
   # Uncomment this for RDP
   # - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
@@ -173,7 +177,7 @@ build_script:
   - cargo lambda -V
 
 test_script:
-  - ps: "pytest -vv -n 2 --reruns 3 -m al2023 tests/integration/buildcmd/test_build_cmd.py tests/integration/buildcmd/test_build_cmd_arm64.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+  - ps: "pytest -vv -n 2 --reruns 3 -m al2023 tests/integration/buildcmd --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
 # Uncomment for RDP
 # on_finish:

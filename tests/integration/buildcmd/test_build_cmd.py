@@ -13,7 +13,6 @@ import docker
 import pytest
 from parameterized import parameterized, parameterized_class
 
-from samcli.commands.build.utils import MountMode
 from samcli.lib.utils import osutils
 from samcli.yamlhelper import yaml_parse
 from tests.testing_utils import (
@@ -26,12 +25,11 @@ from tests.testing_utils import (
     SKIP_DOCKER_TESTS,
     SKIP_DOCKER_BUILD,
     SKIP_DOCKER_MESSAGE,
-    run_command_with_input,
     UpdatableSARTemplate,
     runtime_supported_by_docker,
     RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG,
 )
-from .build_integ_base import (
+from tests.integration.buildcmd.build_integ_base import (
     BuildIntegBase,
     DedupBuildIntegBase,
     CachedBuildIntegBase,
@@ -134,19 +132,15 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
 
     FUNCTION_LOGICAL_ID_IMAGE = "ImageFunction"
 
-    @parameterized.expand([("3.8", False), ("3.9", False), ("3.10", False), ("3.11", False), ("3.12", False)])
-    @pytest.mark.al2023
-    def test_with_default_requirements(self, runtime, use_container):
-        if IS_WINDOWS and not runtime_supported_by_docker(f"python{runtime}"):
-            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
-        _tag = uuid4().hex
+    def _test_default_requirements_wrapper(self, runtime, dockerfile):
+        tag = uuid4().hex
         overrides = {
             "Runtime": runtime,
             "Handler": "main.handler",
-            "DockerFile": "Dockerfile",
-            "Tag": _tag,
+            "DockerFile": dockerfile,
+            "Tag": tag,
         }
-        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
+        cmdlist = self.get_command_list(use_container=False, parameter_overrides=overrides)
 
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command_result.process.returncode, 0)
@@ -155,7 +149,7 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
             self.built_template,
             self.FUNCTION_LOGICAL_ID_IMAGE,
             "ImageUri",
-            f"{self.FUNCTION_LOGICAL_ID_IMAGE.lower()}:{_tag}",
+            f"{self.FUNCTION_LOGICAL_ID_IMAGE.lower()}:{tag}",
         )
 
         expected = {"pi": "3.14"}
@@ -163,43 +157,16 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
             self.built_template, self.FUNCTION_LOGICAL_ID_IMAGE, self._make_parameter_override_arg(overrides), expected
         )
 
-    @parameterized.expand(
-        [
-            ("3.8", False),
-            ("3.9", False),
-            ("3.10", False),
-            ("3.11", False),
-            ("3.12", False),
-        ]
-    )
+    @pytest.mark.parametrize("runtime", ["3.8", "3.9", "3.10", "3.11"])
+    @pytest.mark.parametrize("dockerfile", ["Dockerfile", "Dockerfile.production"])
+    def test_with_default_requirements(self, runtime, dockerfile):
+        self._test_default_requirements_wrapper(runtime, dockerfile)
+
+    @pytest.mark.parametrize("runtime", ["3.12"])
+    @pytest.mark.parametrize("dockerfile", ["Dockerfile", "Dockerfile.production"])
     @pytest.mark.al2023
-    def test_with_dockerfile_extension(self, runtime, use_container):
-        if not runtime_supported_by_docker(f"python{runtime}") and IS_WINDOWS:
-            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
-
-        _tag = uuid4().hex
-        overrides = {
-            "Runtime": runtime,
-            "Handler": "main.handler",
-            "DockerFile": "Dockerfile.production",
-            "Tag": _tag,
-        }
-        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
-
-        command_result = run_command(cmdlist, cwd=self.working_dir)
-        self.assertEqual(command_result.process.returncode, 0)
-
-        self._verify_image_build_artifact(
-            self.built_template,
-            self.FUNCTION_LOGICAL_ID_IMAGE,
-            "ImageUri",
-            f"{self.FUNCTION_LOGICAL_ID_IMAGE.lower()}:{_tag}",
-        )
-
-        expected = {"pi": "3.14"}
-        self._verify_invoke_built_function(
-            self.built_template, self.FUNCTION_LOGICAL_ID_IMAGE, self._make_parameter_override_arg(overrides), expected
-        )
+    def test_with_default_requirements_al2023(self, runtime, dockerfile):
+        self._test_default_requirements_wrapper(runtime, dockerfile)
 
     def test_intermediate_container_deleted(self):
         _tag = uuid4().hex
@@ -246,26 +213,15 @@ class TestBuildCommand_PythonFunctions_ImagesWithSharedCode(BuildIntegBase):
 
     FUNCTION_LOGICAL_ID_IMAGE = "ImageFunction"
 
-    @parameterized.expand(
-        [
-            *[
-                (runtime, "feature_phi/Dockerfile", {"phi": "1.62"})
-                for runtime in ["3.8", "3.9", "3.10", "3.11", "3.12"]
-            ],
-            *[(runtime, "feature_pi/Dockerfile", {"pi": "3.14"}) for runtime in ["3.8", "3.9", "3.10", "3.11", "3.12"]],
-        ]
-    )
-    @pytest.mark.al2023
-    def test_with_default_requirements(self, runtime, dockerfile, expected):
-        if IS_WINDOWS and not runtime_supported_by_docker(f"python{runtime}"):
-            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
-        _tag = uuid4().hex
+    def _test_default_requirements_wrapper(self, runtime, dockerfile, expected):
+        tag = uuid4().hex
         overrides = {
             "Runtime": runtime,
             "Handler": "main.handler",
             "DockerFile": dockerfile,
-            "Tag": _tag,
+            "Tag": tag,
         }
+
         cmdlist = self.get_command_list(use_container=False, parameter_overrides=overrides)
 
         command_result = run_command(cmdlist, cwd=self.working_dir)
@@ -275,12 +231,25 @@ class TestBuildCommand_PythonFunctions_ImagesWithSharedCode(BuildIntegBase):
             self.built_template,
             self.FUNCTION_LOGICAL_ID_IMAGE,
             "ImageUri",
-            f"{self.FUNCTION_LOGICAL_ID_IMAGE.lower()}:{_tag}",
+            f"{self.FUNCTION_LOGICAL_ID_IMAGE.lower()}:{tag}",
         )
 
         self._verify_invoke_built_function(
             self.built_template, self.FUNCTION_LOGICAL_ID_IMAGE, self._make_parameter_override_arg(overrides), expected
         )
+
+    @pytest.mark.parametrize("runtime", ["3.8", "3.9", "3.10", "3.11"])
+    @pytest.mark.parametrize("dockerfile", ["feature_phi/Dockerfile", "feature_pi/Dockerfile"])
+    @pytest.mark.parametrize("expected", [{"phi": "1.62"}, {"pi": "3.14"}])
+    def test_with_default_requirements(self, runtime, dockerfile, expected):
+        self._test_default_requirements_wrapper(runtime, dockerfile, expected)
+
+    @pytest.mark.parametrize("runtime", ["3.12"])
+    @pytest.mark.parametrize("dockerfile", ["feature_phi/Dockerfile", "feature_pi/Dockerfile"])
+    @pytest.mark.parametrize("expected", [{"phi": "1.62"}, {"pi": "3.14"}])
+    @pytest.mark.al2023
+    def test_with_default_requirements_al2023(self, runtime, dockerfile, expected):
+        self._test_default_requirements_wrapper(runtime, dockerfile, expected)
 
     @parameterized.expand(
         [
@@ -537,37 +506,42 @@ class TestBuildCommand_PythonFunctions_WithoutDocker(BuildIntegPythonBase):
 
 
 @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
-@parameterized_class(
-    (
-        "template",
-        "FUNCTION_LOGICAL_ID",
-        "overrides",
-        "runtime",
-        "codeuri",
-        "check_function_only",
-        "prop",
-    ),
-    [
-        ("template.yaml", "Function", True, "python3.8", "Python", False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.9", "Python", False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.10", "Python", False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.11", "Python", False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.12", "Python", False, "CodeUri"),
-    ],
-)
-@pytest.mark.al2023
 class TestBuildCommand_PythonFunctions_WithDocker(BuildIntegPythonBase):
+    template = "template.yaml"
+    FUNCTION_LOGICAL_ID = "Function"
     overrides = True
-    runtime = "python3.9"
     codeuri = "Python"
     use_container = "use_container"
     check_function_only = False
+    prop = "CodeUri"
 
-    def test_with_default_requirements(self):
-        if not runtime_supported_by_docker(self.runtime):
-            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
+    @parameterized.expand(
+        [
+            ("python3.8",),
+            ("python3.9",),
+            ("python3.10",),
+            ("python3.11",),
+        ]
+    )
+    def test_with_default_requirements(self, runtime):
         self._test_with_default_requirements(
-            self.runtime,
+            runtime,
+            self.codeuri,
+            self.use_container,
+            self.test_data_path,
+            do_override=self.overrides,
+            check_function_only=self.check_function_only,
+        )
+
+    @parameterized.expand(
+        [
+            ("python3.12",),
+        ]
+    )
+    @pytest.mark.al2023
+    def test_with_default_requirements_al2023(self, runtime):
+        self._test_with_default_requirements(
+            runtime,
             self.codeuri,
             self.use_container,
             self.test_data_path,
@@ -681,7 +655,6 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPyt
             ("python3.12", "Python", "use_container", "x86_64"),
         ]
     )
-    @pytest.mark.al2023
     def test_with_default_requirements(self, runtime, codeuri, use_container, architecture):
         if use_container and not runtime_supported_by_docker(runtime):
             self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
@@ -719,17 +692,22 @@ class TestBuildCommand_NodeFunctions(BuildIntegNodeBase):
             ("nodejs20.x", False),
             ("nodejs16.x", "use_container"),
             ("nodejs18.x", "use_container"),
-            ("nodejs20.x", "use_container"),
         ]
     )
-    @pytest.mark.al2023
     def test_building_default_package_json(self, runtime, use_container):
-        if use_container:
-            if SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
-                self.skipTest(SKIP_DOCKER_MESSAGE)
-            if not runtime_supported_by_docker(runtime):
-                self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
+        if use_container and SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
         self._test_with_default_package_json(runtime, use_container, self.test_data_path)
+
+    @parameterized.expand(
+        [
+            ("nodejs20.x",),
+        ]
+    )
+    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
+    @pytest.mark.al2023
+    def test_building_default_package_json_al2023(self, runtime):
+        self._test_with_default_package_json(runtime, "use_container", self.test_data_path)
 
 
 class TestBuildCommand_NodeFunctions_With_External_Manifest(BuildIntegNodeBase):
@@ -854,35 +832,34 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture(BuildIntegNodeB
 
 
 class TestBuildCommand_RubyFunctions(BuildIntegRubyBase):
-    @parameterized.expand(["ruby3.2", "ruby3.3"])
+    @parameterized.expand([(False,), ("use_container",)])
+    def test_building_ruby_3_2(self, use_container):
+        if use_container and SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        self._test_with_default_gemfile("ruby3.2", use_container, "Ruby", self.test_data_path)
+
+    @parameterized.expand([("ruby3.3",)])
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     @pytest.mark.al2023
-    def test_building_ruby_in_container(self, runtime):
-        if IS_WINDOWS and not runtime_supported_by_docker(runtime):
-            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
+    def test_building_ruby_al2023(self, runtime):
         self._test_with_default_gemfile(runtime, "use_container", "Ruby", self.test_data_path)
 
-    @parameterized.expand(["ruby3.2"])
-    def test_building_ruby_in_process(self, runtime):
-        self._test_with_default_gemfile(runtime, False, "Ruby", self.test_data_path)
 
-
-@pytest.mark.al2023
 class TestBuildCommand_RubyFunctions_With_Architecture(BuildIntegRubyBase):
     template = "template_with_architecture.yaml"
 
-    @parameterized.expand([("ruby3.2", "Ruby32"), ("ruby3.3", "Ruby33")])
-    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
-    def test_building_ruby_in_container_with_specified_architecture(self, runtime, codeuri):
-        if IS_WINDOWS and not runtime_supported_by_docker(runtime):
-            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
-        self._test_with_default_gemfile(runtime, "use_container", codeuri, self.test_data_path, "x86_64")
+    @parameterized.expand([(False,), ("use_container",)])
+    def test_building_ruby_3_2(self, use_container):
+        if use_container and SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+        self._test_with_default_gemfile("ruby3.2", use_container, "Ruby32", self.test_data_path, "x86_64")
 
-    @parameterized.expand([("ruby3.2", "Ruby32"), ("ruby3.3", "Ruby33")])
-    def test_building_ruby_in_process_with_specified_architecture(self, runtime, codeuri):
-        if IS_WINDOWS and not runtime_supported_by_docker(runtime):
-            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
-        self._test_with_default_gemfile(runtime, False, codeuri, self.test_data_path, "x86_64")
+    @parameterized.expand([("ruby3.3", "Ruby33", False), ("ruby3.3", "Ruby33", True)])
+    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
+    @pytest.mark.al2023
+    def test_building_ruby_al2023(self, runtime, codeuri, use_container):
+        self._test_with_default_gemfile(runtime, use_container, codeuri, self.test_data_path, "x86_64")
 
 
 class TestBuildCommand_RubyFunctionsWithGemfileInTheRoot(BuildIntegRubyBase):
@@ -1035,7 +1012,6 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
         ]
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
-    @pytest.mark.al2023
     def test_building_java_in_container(
         self, runtime, runtime_version, code_path, expected_files, expected_dependencies
     ):
@@ -1175,293 +1151,6 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
             False,
             self.test_data_path,
         )
-
-
-@pytest.mark.dotnet
-class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
-    FUNCTION_LOGICAL_ID = "Function"
-    EXPECTED_FILES_PROJECT_MANIFEST = {
-        "Amazon.Lambda.APIGatewayEvents.dll",
-        "Amazon.Lambda.Core.dll",
-        "HelloWorld.runtimeconfig.json",
-        "Amazon.Lambda.Serialization.Json.dll",
-        "Newtonsoft.Json.dll",
-        "HelloWorld.deps.json",
-        "HelloWorld.dll",
-    }
-
-    EXPECTED_FILES_PROJECT_MANIFEST_PROVIDED = {
-        "bootstrap",
-    }
-
-    @parameterized.expand(
-        [
-            ("dotnet6", "Dotnet6", None),
-            ("dotnet6", "Dotnet6", "debug"),
-            ("provided.al2", "Dotnet7", None),
-            ("dotnet8", "Dotnet8", None),
-            ("dotnet8", "Dotnet8", "debug"),
-        ]
-    )
-    @pytest.mark.al2023
-    def test_dotnet_in_process(self, runtime, code_uri, mode, architecture="x86_64"):
-        # dotnet7 requires docker to build the function
-        if code_uri == "Dotnet7" and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
-            self.skipTest(SKIP_DOCKER_MESSAGE)
-        overrides = {
-            "Runtime": runtime,
-            "CodeUri": code_uri,
-            "Handler": "HelloWorld::HelloWorld.Function::FunctionHandler",
-            "Architectures": architecture,
-        }
-
-        if runtime == "provided.al2":
-            self.template_path = self.template_path.replace("template.yaml", "template_build_method_dotnet_7.yaml")
-
-        cmdlist = self.get_command_list(use_container=False, parameter_overrides=overrides)
-        LOG.info("Running with SAM_BUILD_MODE={}".format(mode))
-
-        newenv = os.environ.copy()
-        if mode:
-            newenv["SAM_BUILD_MODE"] = mode
-
-        command_result = run_command(cmdlist, cwd=self.working_dir, env=newenv)
-        self.assertEqual(command_result.process.returncode, 0)
-
-        if not runtime_supported_by_docker(runtime) and IS_WINDOWS:
-            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
-
-        self._verify_built_artifact(
-            self.default_build_dir,
-            self.FUNCTION_LOGICAL_ID,
-            (
-                self.EXPECTED_FILES_PROJECT_MANIFEST
-                if runtime != "provided.al2"
-                else self.EXPECTED_FILES_PROJECT_MANIFEST_PROVIDED
-            ),
-        )
-
-        self._verify_resource_property(
-            str(self.built_template),
-            "OtherRelativePathResource",
-            "BodyS3Location",
-            os.path.relpath(
-                os.path.normpath(os.path.join(str(self.test_data_path), "SomeRelativePath")),
-                str(self.default_build_dir),
-            ),
-        )
-
-        self._verify_resource_property(
-            str(self.built_template),
-            "GlueResource",
-            "Command.ScriptLocation",
-            os.path.relpath(
-                os.path.normpath(os.path.join(str(self.test_data_path), "SomeRelativePath")),
-                str(self.default_build_dir),
-            ),
-        )
-
-        expected = "{'message': 'Hello World'}"
-        if not SKIP_DOCKER_TESTS:
-            self._verify_invoke_built_function(
-                self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
-            )
-            self.verify_docker_container_cleanedup(runtime)
-
-    @parameterized.expand(
-        [
-            ("dotnet6", "Dotnet6", None),
-            ("dotnet6", "Dotnet6", "debug"),
-            # force to run tests on arm64 machines may cause dotnet7 test failing
-            # because Native AOT Lambda functions require the host and lambda architectures to match
-            ("provided.al2", "Dotnet7", None),
-            ("dotnet8", "Dotnet8", None),
-            ("dotnet8", "Dotnet8", "debug"),
-        ]
-    )
-    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
-    @pytest.mark.al2023
-    def test_dotnet_in_container_mount_with_write_explicit(self, runtime, code_uri, mode, architecture="x86_64"):
-        if not runtime_supported_by_docker(runtime) and IS_WINDOWS:
-            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
-
-        overrides = {
-            "Runtime": runtime,
-            "CodeUri": code_uri,
-            "Handler": "HelloWorld::HelloWorld.Function::FunctionHandler",
-            "Architectures": architecture,
-        }
-
-        if runtime == "provided.al2":
-            self.template_path = self.template_path.replace("template.yaml", "template_build_method_dotnet_7.yaml")
-
-        # test with explicit mount_with_write flag
-        cmdlist = self.get_command_list(use_container=True, parameter_overrides=overrides, mount_with=MountMode.WRITE)
-        # env vars needed for testing unless set by dotnet images on public.ecr.aws
-        cmdlist += ["--container-env-var", "DOTNET_CLI_HOME=/tmp/dotnet"]
-        cmdlist += ["--container-env-var", "XDG_DATA_HOME=/tmp/xdg"]
-
-        LOG.info("Running with SAM_BUILD_MODE={}".format(mode))
-
-        newenv = os.environ.copy()
-        if mode:
-            newenv["SAM_BUILD_MODE"] = mode
-
-        command_result = run_command(cmdlist, cwd=self.working_dir, env=newenv)
-        self.assertEqual(command_result.process.returncode, 0)
-
-        self._verify_built_artifact(
-            self.default_build_dir,
-            self.FUNCTION_LOGICAL_ID,
-            (
-                self.EXPECTED_FILES_PROJECT_MANIFEST
-                if runtime != "provided.al2"
-                else self.EXPECTED_FILES_PROJECT_MANIFEST_PROVIDED
-            ),
-        )
-
-        self._verify_resource_property(
-            str(self.built_template),
-            "OtherRelativePathResource",
-            "BodyS3Location",
-            os.path.relpath(
-                os.path.normpath(os.path.join(str(self.test_data_path), "SomeRelativePath")),
-                str(self.default_build_dir),
-            ),
-        )
-
-        self._verify_resource_property(
-            str(self.built_template),
-            "GlueResource",
-            "Command.ScriptLocation",
-            os.path.relpath(
-                os.path.normpath(os.path.join(str(self.test_data_path), "SomeRelativePath")),
-                str(self.default_build_dir),
-            ),
-        )
-
-        expected = "{'message': 'Hello World'}"
-        self._verify_invoke_built_function(
-            self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
-        )
-        self.verify_docker_container_cleanedup(runtime)
-
-    @parameterized.expand(
-        [
-            ("dotnet6", "Dotnet6", None),
-            ("dotnet6", "Dotnet6", "debug"),
-            # force to run tests on arm64 machines may cause dotnet7 test failing
-            # because Native AOT Lambda functions require the host and lambda architectures to match
-            ("provided.al2", "Dotnet7", None),
-            ("dotnet8", "Dotnet8", None),
-            ("dotnet8", "Dotnet8", "debug"),
-        ]
-    )
-    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
-    @pytest.mark.al2023
-    def test_dotnet_in_container_mount_with_write_interactive(
-        self,
-        runtime,
-        code_uri,
-        mode,
-        architecture="x86_64",
-    ):
-        if not runtime_supported_by_docker(runtime) and IS_WINDOWS:
-            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
-
-        overrides = {
-            "Runtime": runtime,
-            "CodeUri": code_uri,
-            "Handler": "HelloWorld::HelloWorld.Function::FunctionHandler",
-            "Architectures": architecture,
-        }
-
-        if runtime == "provided.al2":
-            self.template_path = self.template_path.replace("template.yaml", "template_build_method_dotnet_7.yaml")
-
-        # test without explicit mount_with_write flag
-        cmdlist = self.get_command_list(use_container=True, parameter_overrides=overrides)
-        # env vars needed for testing unless set by dotnet images on public.ecr.aws
-        cmdlist += ["--container-env-var", "DOTNET_CLI_HOME=/tmp/dotnet"]
-        cmdlist += ["--container-env-var", "XDG_DATA_HOME=/tmp/xdg"]
-
-        LOG.info("Running with SAM_BUILD_MODE={}".format(mode))
-
-        # mock user input to mount with write
-        user_click_confirm_input = "y"
-        command_result = run_command_with_input(cmdlist, user_click_confirm_input.encode(), cwd=self.working_dir)
-        self.assertEqual(command_result.process.returncode, 0)
-
-        self._verify_built_artifact(
-            self.default_build_dir,
-            self.FUNCTION_LOGICAL_ID,
-            (
-                self.EXPECTED_FILES_PROJECT_MANIFEST
-                if runtime != "provided.al2"
-                else self.EXPECTED_FILES_PROJECT_MANIFEST_PROVIDED
-            ),
-        )
-
-        self._verify_resource_property(
-            str(self.built_template),
-            "OtherRelativePathResource",
-            "BodyS3Location",
-            os.path.relpath(
-                os.path.normpath(os.path.join(str(self.test_data_path), "SomeRelativePath")),
-                str(self.default_build_dir),
-            ),
-        )
-
-        self._verify_resource_property(
-            str(self.built_template),
-            "GlueResource",
-            "Command.ScriptLocation",
-            os.path.relpath(
-                os.path.normpath(os.path.join(str(self.test_data_path), "SomeRelativePath")),
-                str(self.default_build_dir),
-            ),
-        )
-
-        expected = "{'message': 'Hello World'}"
-        self._verify_invoke_built_function(
-            self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
-        )
-        self.verify_docker_container_cleanedup(runtime)
-
-    @parameterized.expand([("dotnet6", "Dotnet6"), ("dotnet8", "Dotnet8")])
-    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
-    def test_must_fail_on_container_mount_without_write_interactive(self, runtime, code_uri):
-        use_container = True
-        overrides = {
-            "Runtime": runtime,
-            "CodeUri": code_uri,
-            "Handler": "HelloWorld::HelloWorld.Function::FunctionHandler",
-        }
-        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
-
-        # mock user input to not allow mounting with write
-        user_click_confirm_input = "N"
-        process_execute = run_command_with_input(cmdlist, user_click_confirm_input.encode())
-
-        # Must error out, because mounting with write is not allowed
-        self.assertEqual(process_execute.process.returncode, 1)
-
-    def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
-        self.assertTrue(build_dir.exists(), "Build directory should be created")
-
-        build_dir_files = os.listdir(str(build_dir))
-        self.assertIn("template.yaml", build_dir_files)
-        self.assertIn(function_logical_id, build_dir_files)
-
-        template_path = build_dir.joinpath("template.yaml")
-        resource_artifact_dir = build_dir.joinpath(function_logical_id)
-
-        # Make sure the template has correct CodeUri for resource
-        self._verify_resource_property(str(template_path), function_logical_id, "CodeUri", function_logical_id)
-
-        all_artifacts = set(os.listdir(str(resource_artifact_dir)))
-        actual_files = all_artifacts.intersection(expected_files)
-        self.assertEqual(actual_files, expected_files)
 
 
 class TestBuildCommand_Go_Modules(BuildIntegGoBase):
@@ -1944,7 +1633,6 @@ class TestBuildCommand_ProvidedFunctions(BuildIntegProvidedBase):
             ("provided.al2023", "use_container", "Makefile-container"),
         ]
     )
-    @pytest.mark.al2023
     def test_building_Makefile(self, runtime, use_container, manifest):
         if use_container:
             if SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:

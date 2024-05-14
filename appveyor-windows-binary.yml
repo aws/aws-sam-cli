@@ -17,6 +17,10 @@ configuration:
   # other Integration testing, Dev, regression and smoke testing
   - OtherAndEndToEndTesting
 
+cache:
+  - C:\ProgramData\chocolatey\bin -> appveyor-windows-binary.yml
+  - C:\ProgramData\chocolatey\lib -> appveyor-windows-binary.yml
+
 environment:
   AWS_DEFAULT_REGION: us-east-1
   CARGO_LAMBDA_VERSION: "v0.17.1"
@@ -185,7 +189,7 @@ for:
         - configuration: BuildIntegTesting
 
     test_script:
-      - ps: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'not java and not python and not provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+      - ps: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'not java and not python and not provided and not al2023' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
   - matrix:
       only:
@@ -209,7 +213,7 @@ for:
       - cargo lambda -V
 
     test_script:
-      - ps: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'java or python or provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd-java-python-provided.json"
+      - ps: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'java and not al2023 or python and not al2023 or provided and not al2023' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd-java-python-provided.json"
 
   #Integ testing build arm64
   - matrix:
@@ -234,7 +238,7 @@ for:
       - cargo lambda -V
 
     test_script:
-      - ps: "pytest -vv --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64.json"
+      - ps: "pytest -vv --reruns 3 -m 'not al2023' tests/integration/buildcmd/test_build_cmd_arm64.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64.json"
 
   #Integ testing Terraform build
   - matrix:
@@ -246,7 +250,7 @@ for:
       - "choco install terraform"
       - "terraform -version"
 
-      - ps: "pytest -vv -n 4 --reruns 4 tests/integration/buildcmd/test_build_terraform_applications.py tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+      - ps: "pytest -vv -n 4 --reruns 4 -m 'not al2023' tests/integration/buildcmd/test_build_terraform_applications.py tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
   # Integ testing package, delete and deploy
   - matrix:
