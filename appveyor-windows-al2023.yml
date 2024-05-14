@@ -26,6 +26,7 @@ environment:
   AWS_ECR: "AWS_ECR_TESTING"
   APPVEYOR_CONSOLE_DISABLE_PTY: true
   APPVEYOR_BUILD_WORKER_IMAGE: "ws2022-azure"
+  APPVEYOR_SAVE_CACHE_ON_ERROR: true
 
 cache:
   - C:\ProgramData\chocolatey\bin -> appveyor-windows-al2023.yml
