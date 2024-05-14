@@ -122,6 +122,7 @@ install:
   # use amazon-ecr-credential-helper
   - choco install amazon-ecr-credential-helper
   - ps: "
+    ls $env:HOME/.docker
     $docker_config = Get-Content $env:HOME/.docker/config.json -raw | ConvertFrom-Json;
     $docker_config.credsStore = 'ecr-login';
     $docker_config | ConvertTo-Json | set-content $env:HOME/.docker/config.json;
