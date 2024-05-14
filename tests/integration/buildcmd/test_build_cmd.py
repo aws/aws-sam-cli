@@ -157,13 +157,21 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
             self.built_template, self.FUNCTION_LOGICAL_ID_IMAGE, self._make_parameter_override_arg(overrides), expected
         )
 
-    @pytest.mark.parametrize("runtime", ["3.8", "3.9", "3.10", "3.11"])
-    @pytest.mark.parametrize("dockerfile", ["Dockerfile", "Dockerfile.production"])
+    @parameterized.expand(
+        [
+            *[(runtime, "Dockerfile") for runtime in ["3.8", "3.9", "3.10", "3.11"]],
+            *[(runtime, "Dockerfile.production") for runtime in ["3.8", "3.9", "3.10", "3.11"]],
+        ]
+    )
     def test_with_default_requirements(self, runtime, dockerfile):
         self._test_default_requirements_wrapper(runtime, dockerfile)
 
-    @pytest.mark.parametrize("runtime", ["3.12"])
-    @pytest.mark.parametrize("dockerfile", ["Dockerfile", "Dockerfile.production"])
+    @parameterized.expand(
+        [
+            *[(runtime, "Dockerfile") for runtime in ["3.12"]],
+            *[(runtime, "Dockerfile.production") for runtime in ["3.12"]],
+        ]
+    )
     @pytest.mark.al2023
     def test_with_default_requirements_al2023(self, runtime, dockerfile):
         self._test_default_requirements_wrapper(runtime, dockerfile)
@@ -238,15 +246,21 @@ class TestBuildCommand_PythonFunctions_ImagesWithSharedCode(BuildIntegBase):
             self.built_template, self.FUNCTION_LOGICAL_ID_IMAGE, self._make_parameter_override_arg(overrides), expected
         )
 
-    @pytest.mark.parametrize("runtime", ["3.8", "3.9", "3.10", "3.11"])
-    @pytest.mark.parametrize("dockerfile", ["feature_phi/Dockerfile", "feature_pi/Dockerfile"])
-    @pytest.mark.parametrize("expected", [{"phi": "1.62"}, {"pi": "3.14"}])
+    @parameterized.expand(
+        [
+            *[(runtime, "feature_phi/Dockerfile", {"phi": "1.62"}) for runtime in ["3.8", "3.9", "3.10", "3.11"]],
+            *[(runtime, "feature_pi/Dockerfile", {"pi": "3.14"}) for runtime in ["3.8", "3.9", "3.10", "3.11"]],
+        ]
+    )
     def test_with_default_requirements(self, runtime, dockerfile, expected):
         self._test_default_requirements_wrapper(runtime, dockerfile, expected)
 
-    @pytest.mark.parametrize("runtime", ["3.12"])
-    @pytest.mark.parametrize("dockerfile", ["feature_phi/Dockerfile", "feature_pi/Dockerfile"])
-    @pytest.mark.parametrize("expected", [{"phi": "1.62"}, {"pi": "3.14"}])
+    @parameterized.expand(
+        [
+            *[(runtime, "feature_phi/Dockerfile", {"phi": "1.62"}) for runtime in ["3.12"]],
+            *[(runtime, "feature_pi/Dockerfile", {"pi": "3.14"}) for runtime in ["3.12"]],
+        ]
+    )
     @pytest.mark.al2023
     def test_with_default_requirements_al2023(self, runtime, dockerfile, expected):
         self._test_default_requirements_wrapper(runtime, dockerfile, expected)

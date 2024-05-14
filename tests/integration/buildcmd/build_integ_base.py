@@ -1120,11 +1120,7 @@ class BuildIntegRustBase(BuildIntegBase):
             self.default_build_dir, self.FUNCTION_LOGICAL_ID, self.EXPECTED_FILES_PROJECT_MANIFEST
         )
 
-        if (
-            expected_invoke_result
-            and not SKIP_DOCKER_TESTS
-            and architecture == X86_64
-        ):
+        if expected_invoke_result and not SKIP_DOCKER_TESTS and architecture == X86_64:
             # ARM64 is not supported yet for local invoke
             self._verify_invoke_built_function(
                 self.built_template,
@@ -1175,7 +1171,7 @@ class BuildIntegDotnetBase(BuildIntegBase):
     def validate_build_command(
         self, overrides, mode, mount_mode=None, use_container=False, input=None
     ) -> CommandResult:
-        do_use_container = mount_mode == None or use_container
+        do_use_container = mount_mode != None or use_container
 
         cmdlist = self.get_command_list(
             use_container=do_use_container, parameter_overrides=overrides, mount_with=mount_mode
