@@ -17,10 +17,6 @@ configuration:
   # other Integration testing, Dev, regression and smoke testing
   - OtherAndEndToEndTesting
 
-cache:
-  - C:\ProgramData\chocolatey\bin -> appveyor-windows.yml
-  - C:\ProgramData\chocolatey\lib -> appveyor-windows.yml
-
 environment:
   AWS_DEFAULT_REGION: us-east-1
   SAM_CLI_DEV: 1

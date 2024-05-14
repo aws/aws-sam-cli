@@ -28,10 +28,6 @@ environment:
   APPVEYOR_BUILD_WORKER_IMAGE: "ws2022-azure"
   APPVEYOR_SAVE_CACHE_ON_ERROR: true
 
-cache:
-  - C:\ProgramData\chocolatey\bin -> appveyor-windows-al2023.yml
-  - C:\ProgramData\chocolatey\lib -> appveyor-windows-al2023.yml
-
 init:
   # Uncomment this for RDP
   # - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
