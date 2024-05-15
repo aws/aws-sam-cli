@@ -1168,9 +1168,7 @@ class BuildIntegDotnetBase(BuildIntegBase):
         "bootstrap",
     }
 
-    def validate_build_command(
-        self, overrides, mode, mount_mode=None, use_container=False, input=None
-    ) -> CommandResult:
+    def validate_build_command(self, overrides, mode, mount_mode=None, use_container=False, input=None) -> None:
         do_use_container = mount_mode != None or use_container
 
         cmdlist = self.get_command_list(
