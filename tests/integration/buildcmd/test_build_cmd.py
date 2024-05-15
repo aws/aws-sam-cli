@@ -509,6 +509,11 @@ class TestBuildCommand_PythonFunctions_WithoutDocker(BuildIntegPythonBase):
     use_container = False
 
     def test_with_default_requirements(self):
+        # lucashuy: temporarily set docker check here
+        # until we refactor this set of tests
+        if IS_WINDOWS and not runtime_supported_by_docker(self.runtime):
+            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
+
         self._test_with_default_requirements(
             self.runtime,
             self.codeuri,
@@ -670,8 +675,11 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPyt
         ]
     )
     def test_with_default_requirements(self, runtime, codeuri, use_container, architecture):
-        if use_container and not runtime_supported_by_docker(runtime):
+        # lucashuy: temporarily set docker check here
+        # until we refactor this set of tests
+        if IS_WINDOWS and not runtime_supported_by_docker(runtime):
             self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
+
         self._test_with_default_requirements(
             runtime, codeuri, use_container, self.test_data_path, architecture=architecture
         )
@@ -739,7 +747,7 @@ class TestBuildCommand_NodeFunctions_With_External_Manifest(BuildIntegNodeBase):
     def test_building_default_package_json(self, runtime):
         # lucashuy: temporarily set docker check here
         # until we refactor this set of tests
-        if IS_WINDOWS and runtime_supported_by_docker(runtime):
+        if IS_WINDOWS and not runtime_supported_by_docker(runtime):
             self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
 
         self._test_with_default_package_json(runtime, False, self.test_data_path)
@@ -769,7 +777,7 @@ class TestBuildCommand_EsbuildFunctions(BuildIntegEsbuildBase):
     ):
         # lucashuy: temporarily set docker check here
         # until we refactor this set of tests
-        if IS_WINDOWS and runtime_supported_by_docker(runtime):
+        if IS_WINDOWS and not runtime_supported_by_docker(runtime):
             self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
 
         self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, architecture)
@@ -804,7 +812,7 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest(BuildIntegEsbuild
     ):
         # lucashuy: temporarily set docker check here
         # until we refactor this set of tests
-        if IS_WINDOWS and runtime_supported_by_docker(runtime):
+        if IS_WINDOWS and not runtime_supported_by_docker(runtime):
             self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
 
         self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, architecture)
