@@ -2,7 +2,6 @@ import os
 from unittest import skipIf
 
 from parameterized import parameterized, parameterized_class
-import pytest
 
 from samcli.lib.utils.architecture import ARM64
 from tests.integration.buildcmd.build_integ_base import (
