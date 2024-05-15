@@ -37,7 +37,6 @@ environment:
   AWS_S3: "AWS_S3_TESTING"
   AWS_ECR: "AWS_ECR_TESTING"
   APPVEYOR_CONSOLE_DISABLE_PTY: true
-  APPVEYOR_SAVE_CACHE_ON_ERROR: true
 
   SAM_WINDOWS_BINARY_PATH: "C:\\Program Files\\Amazon\\AWSSAMCLI_NIGHTLY\\bin\\sam-nightly.cmd"
 

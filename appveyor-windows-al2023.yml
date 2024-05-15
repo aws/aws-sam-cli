@@ -26,7 +26,6 @@ environment:
   AWS_ECR: "AWS_ECR_TESTING"
   APPVEYOR_CONSOLE_DISABLE_PTY: true
   APPVEYOR_BUILD_WORKER_IMAGE: "ws2022-azure"
-  APPVEYOR_SAVE_CACHE_ON_ERROR: true
 
 init:
   # Uncomment this for RDP
@@ -52,10 +51,11 @@ install:
   - "gradle -v"
   - "mvn --version"
   - choco install ruby --version=3.3.0.1
+  - ruby --version
 
   # Make sure the temp directory exists for Python to use.
   - ps: "mkdir -Force C:\\tmp"
-  - 'set PATH=%PYTHON_HOME%;C:\Ruby32-x64\bin;%PATH%;C:\Python37-x64;C:\Python39-x64;C:\Python310-x64;C:\Python311-x64;C:\Python312-x64'
+  - 'set PATH=%PYTHON_HOME%;C:\Ruby32-x64\bin;%PATH%;C:\Python39-x64;C:\Python310-x64;C:\Python311-x64;C:\Python312-x64'
   - "echo %PYTHON_HOME%"
   - "echo %PATH%"
   - "python --version"
@@ -68,7 +68,6 @@ install:
   # Upgrade setuptools, wheel and virtualenv
   - "python -m pip install --upgrade setuptools wheel virtualenv"
   # Install pip for the python versions which is used by the tests
-  - "C:\\Python37-x64\\python.exe -m pip install --upgrade pip"
   - "C:\\Python39-x64\\python.exe -m pip install --upgrade pip"
   - "C:\\Python310-x64\\python.exe -m pip install --upgrade pip"
 
@@ -121,8 +120,8 @@ install:
 
   # use amazon-ecr-credential-helper
   - choco install amazon-ecr-credential-helper
+  - ps: "ls $env:HOME/.docker"
   - ps: "
-    ls $env:HOME/.docker
     $docker_config = Get-Content $env:HOME/.docker/config.json -raw | ConvertFrom-Json;
     $docker_config.credsStore = 'ecr-login';
     $docker_config | ConvertTo-Json | set-content $env:HOME/.docker/config.json;

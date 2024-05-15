@@ -737,6 +737,11 @@ class TestBuildCommand_NodeFunctions_With_External_Manifest(BuildIntegNodeBase):
         ]
     )
     def test_building_default_package_json(self, runtime):
+        # lucashuy: temporarily set docker check here
+        # until we refactor this set of tests
+        if IS_WINDOWS and runtime_supported_by_docker(runtime):
+            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
+
         self._test_with_default_package_json(runtime, False, self.test_data_path)
 
 
@@ -762,6 +767,11 @@ class TestBuildCommand_EsbuildFunctions(BuildIntegEsbuildBase):
     def test_building_default_package_json(
         self, runtime, code_uri, expected_files, handler, use_container, architecture
     ):
+        # lucashuy: temporarily set docker check here
+        # until we refactor this set of tests
+        if IS_WINDOWS and runtime_supported_by_docker(runtime):
+            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
+
         self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, architecture)
 
 
@@ -792,6 +802,11 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest(BuildIntegEsbuild
     def test_building_default_package_json(
         self, runtime, code_uri, expected_files, handler, use_container, architecture
     ):
+        # lucashuy: temporarily set docker check here
+        # until we refactor this set of tests
+        if IS_WINDOWS and runtime_supported_by_docker(runtime):
+            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
+
         self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, architecture)
 
 
@@ -845,6 +860,7 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture(BuildIntegNodeB
         self._test_with_default_package_json(runtime, use_container, self.test_data_path, architecture)
 
 
+@pytest.mark.ruby
 class TestBuildCommand_RubyFunctions(BuildIntegRubyBase):
     @parameterized.expand([(False,), ("use_container",)])
     def test_building_ruby_3_2(self, use_container):
