@@ -511,7 +511,7 @@ class TestBuildCommand_PythonFunctions_WithoutDocker(BuildIntegPythonBase):
     def test_with_default_requirements(self):
         # lucashuy: temporarily set docker check here
         # until we refactor this set of tests
-        if IS_WINDOWS and not runtime_supported_by_docker(self.runtime):
+        if IS_WINDOWS and not SKIP_DOCKER_TESTS and not runtime_supported_by_docker(self.runtime):
             self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
 
         self._test_with_default_requirements(
