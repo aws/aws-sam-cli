@@ -174,7 +174,7 @@ build_script:
   - cargo lambda -V
 
 test_script:
-  - ps: "pytest -vv -n 2 --reruns 3 -m al2023 tests/integration/buildcmd --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+  - ps: "pytest -vv -n 2 --reruns 3 -m 'al2023 and ruby' tests/integration/buildcmd --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
 
 # Uncomment for RDP
 # on_finish:
