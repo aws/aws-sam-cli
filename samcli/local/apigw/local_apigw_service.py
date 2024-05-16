@@ -30,6 +30,7 @@ from samcli.local.apigw.exceptions import (
 from samcli.local.apigw.path_converter import PathConverter
 from samcli.local.apigw.route import Route
 from samcli.local.apigw.service_error_responses import ServiceErrorResponses
+from samcli.local.docker.exceptions import DockerContainerCreationFailedException
 from samcli.local.events.api_event import (
     ContextHTTP,
     ContextIdentity,
@@ -730,6 +731,8 @@ class LocalApigwService(BaseLocalService):
             )
         except LambdaResponseParseException:
             endpoint_service_error = ServiceErrorResponses.lambda_body_failure_response()
+        except DockerContainerCreationFailedException as ex:
+            endpoint_service_error = ServiceErrorResponses.container_creation_failed(ex.message)
 
         if endpoint_service_error:
             return endpoint_service_error

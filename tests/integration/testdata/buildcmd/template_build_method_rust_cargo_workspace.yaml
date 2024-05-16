@@ -1,0 +1,26 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  Runtime:
+    Type: String
+  CodeUri:
+    Type: String
+  Handler:
+    Type: String
+  Architectures:
+    Type: String
+
+Resources:
+
+  Function:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: !Ref Handler
+      Runtime: !Ref Runtime
+      CodeUri: !Ref CodeUri
+      Timeout: 600
+      Architectures:
+        - !Ref Architectures
+    Metadata:
+      BuildMethod: rust-cargolambda

@@ -9,6 +9,7 @@ import os
 import posixpath
 from collections import namedtuple
 from enum import Enum
+from pathlib import Path
 from typing import Any, Dict, Iterator, List, NamedTuple, Optional, Set, Union, cast
 
 from samcli.commands.local.cli_common.user_exceptions import (
@@ -953,6 +954,7 @@ def get_function_build_info(
     packagetype: str,
     inlinecode: Optional[str],
     codeuri: Optional[str],
+    imageuri: Optional[str],
     metadata: Optional[Dict],
 ) -> FunctionBuildInfo:
     """
@@ -974,8 +976,9 @@ def get_function_build_info(
         metadata = metadata or {}
         dockerfile = cast(str, metadata.get("Dockerfile", ""))
         docker_context = cast(str, metadata.get("DockerContext", ""))
-
-        if not dockerfile or not docker_context:
+        buildable = dockerfile and docker_context
+        loadable = imageuri and Path(imageuri).is_file()
+        if not buildable and not loadable:
             LOG.debug(
                 "Skip Building %s function, as it is missing either Dockerfile or DockerContext "
                 "metadata properties.",

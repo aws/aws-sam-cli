@@ -16,7 +16,7 @@ from samcli.lib.utils.file_observer import LambdaFunctionObserver
 from samcli.lib.utils.packagetype import ZIP
 from samcli.local.docker.container import Container
 from samcli.local.docker.container_analyzer import ContainerAnalyzer
-from samcli.local.docker.exceptions import ContainerFailureError
+from samcli.local.docker.exceptions import ContainerFailureError, DockerContainerCreationFailedException
 from samcli.local.docker.lambda_container import LambdaContainer
 
 from ...lib.providers.provider import LayerVersion
@@ -67,6 +67,10 @@ class LambdaRuntime:
             Debugging context for the function (includes port, args, and path)
         container_host string
             Host of locally emulated Lambda container
+        container_host_interface string
+            Optional. Interface that Docker host binds ports to
+        extra_hosts Dict
+            Optional. Dict of hostname to IP resolutions
 
         Returns
         -------
@@ -112,11 +116,23 @@ class LambdaRuntime:
             self._container_manager.create(container)
             return container
 
+        except DockerContainerCreationFailedException:
+            LOG.warning("Failed to create container for function %s", function_config.full_path)
+            raise
+
         except KeyboardInterrupt:
             LOG.debug("Ctrl+C was pressed. Aborting container creation")
             raise
 
-    def run(self, container, function_config, debug_context, container_host=None, container_host_interface=None):
+    def run(
+        self,
+        container,
+        function_config,
+        debug_context,
+        container_host=None,
+        container_host_interface=None,
+        extra_hosts=None,
+    ):
         """
         Find the created container for the passed Lambda function, then using the
         ContainerManager run this container.
@@ -134,6 +150,8 @@ class LambdaRuntime:
             Host of locally emulated Lambda container
         container_host_interface string
             Optional. Interface that Docker host binds ports to
+        extra_hosts Dict
+            Optional. Dict of hostname to IP resolutions
 
         Returns
         -------
@@ -142,7 +160,13 @@ class LambdaRuntime:
         """
 
         if not container:
-            container = self.create(function_config, debug_context, container_host, container_host_interface)
+            container = self.create(
+                function_config=function_config,
+                debug_context=debug_context,
+                container_host=container_host,
+                container_host_interface=container_host_interface,
+                extra_hosts=extra_hosts,
+            )
 
         if container.is_running():
             LOG.info("Lambda function '%s' is already running", function_config.full_path)

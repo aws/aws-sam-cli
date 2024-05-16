@@ -1009,3 +1009,22 @@ def watch_exclude_click_option():
         type=SyncWatchExcludeType(),
         callback=watch_exclude_option_callback,
     )
+
+
+def container_env_var_file_click_option(cls):
+    """
+    Click option to --container-env-var-file option
+    """
+    return click.option(
+        "--container-env-var-file",
+        "-ef",
+        default=None,
+        type=click.Path(),  # Must be a json file
+        help="Environment variables json file (e.g., env_vars.json) to be passed to containers.",
+        cls=cls,
+    )
+
+
+@parameterized_option
+def container_env_var_file_option(f, cls):
+    return container_env_var_file_click_option(cls)(f)

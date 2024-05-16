@@ -219,6 +219,7 @@ class BuildIntegBase(TestCase):
     def _verify_resource_property(self, template_path, logical_id, property, expected_value):
         with open(template_path, "r") as fp:
             template_dict = yaml_parse(fp.read())
+
             self.assertEqual(
                 expected_value, jmespath.search(f"Resources.{logical_id}.Properties.{property}", template_dict)
             )
@@ -1062,6 +1063,12 @@ def rust_parameterized_class(cls):
                 "Rust/multi-binaries",
                 "function_b",
                 {"req_id": "99", "msg": "Hello FunctionB"},
+            ),
+            (
+                "template_build_method_rust_cargo_workspace.yaml",
+                "Rust/cargo_workspace/function_b",
+                None,
+                {"req_id": "281", "msg": "Hello World B"},
             ),
         ],
     )(cls)

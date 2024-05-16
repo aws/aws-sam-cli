@@ -21,6 +21,8 @@ class LambdaErrorResponses:
 
     NotImplementedException = ("NotImplemented", 501)
 
+    ContainerCreationFailed = ("ContainerCreationFailed", 501)
+
     PathNotFoundException = ("PathNotFoundLocally", 404)
 
     MethodNotAllowedException = ("MethodNotAllowedLocally", 405)
@@ -202,6 +204,29 @@ class LambdaErrorResponses:
             ),
             LambdaErrorResponses._construct_headers(exception_tuple[0]),
             exception_tuple[1],
+        )
+
+    @staticmethod
+    def container_creation_failed(message):
+        """
+        Creates a Container Creation Failed response
+        Parameters
+        ----------
+        args list
+            List of arguments Flask passes to the method
+        Returns
+        -------
+        Flask.Response
+            A response object representing the ContainerCreationFailed Error
+        """
+        error_type, status_code = LambdaErrorResponses.ContainerCreationFailed
+        return BaseLocalService.service_response(
+            LambdaErrorResponses._construct_error_response_body(
+                LambdaErrorResponses.LOCAL_SERVICE_ERROR,
+                message,
+            ),
+            LambdaErrorResponses._construct_headers(error_type),
+            status_code,
         )
 
     @staticmethod
