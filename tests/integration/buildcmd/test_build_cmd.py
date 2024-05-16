@@ -652,31 +652,96 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPyt
 
     @parameterized.expand(
         [
-            ("python3.8", "Python", False, "x86_64"),
-            ("python3.9", "Python", False, "x86_64"),
-            ("python3.10", "Python", False, "x86_64"),
-            ("python3.11", "Python", False, "x86_64"),
-            ("python3.12", "Python", False, "x86_64"),
-            ("python3.8", "PythonPEP600", False, "x86_64"),
-            ("python3.9", "PythonPEP600", False, "x86_64"),
-            ("python3.10", "PythonPEP600", False, "x86_64"),
-            ("python3.11", "PythonPEP600", False, "x86_64"),
-            ("python3.12", "PythonPEP600", False, "x86_64"),
-            ("python3.8", "Python", "use_container", "x86_64"),
-            ("python3.9", "Python", "use_container", "x86_64"),
-            ("python3.10", "Python", "use_container", "x86_64"),
-            ("python3.11", "Python", "use_container", "x86_64"),
-            ("python3.12", "Python", "use_container", "x86_64"),
+            (
+                "python3.8",
+                "Python",
+                False,
+            ),
+            (
+                "python3.9",
+                "Python",
+                False,
+            ),
+            (
+                "python3.10",
+                "Python",
+                False,
+            ),
+            (
+                "python3.11",
+                "Python",
+                False,
+            ),
+            (
+                "python3.12",
+                "Python",
+                False,
+            ),
+            (
+                "python3.8",
+                "PythonPEP600",
+                False,
+            ),
+            (
+                "python3.9",
+                "PythonPEP600",
+                False,
+            ),
+            (
+                "python3.10",
+                "PythonPEP600",
+                False,
+            ),
+            (
+                "python3.11",
+                "PythonPEP600",
+                False,
+            ),
+            (
+                "python3.12",
+                "PythonPEP600",
+                False,
+            ),
+            (
+                "python3.8",
+                "Python",
+                "use_container",
+            ),
+            (
+                "python3.9",
+                "Python",
+                "use_container",
+            ),
+            (
+                "python3.10",
+                "Python",
+                "use_container",
+            ),
+            (
+                "python3.11",
+                "Python",
+                "use_container",
+            ),
         ]
     )
-    def test_with_default_requirements(self, runtime, codeuri, use_container, architecture):
-        # lucashuy: temporarily set docker check here
-        # until we refactor this set of tests
-        if IS_WINDOWS and not runtime_supported_by_docker(runtime):
-            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
-
+    def test_with_default_requirements(self, runtime, codeuri, use_container):
         self._test_with_default_requirements(
-            runtime, codeuri, use_container, self.test_data_path, architecture=architecture
+            runtime, codeuri, use_container, self.test_data_path, architecture="x86_64"
+        )
+
+    @parameterized.expand(
+        [
+            (
+                "python3.12",
+                "Python",
+                "use_container",
+            ),
+        ]
+    )
+    @pytest.mark.al2023
+    def test_with_default_requirements_al2023(self, runtime, codeuri, use_container):
+        self._test_with_default_requirements(
+            runtime, codeuri, use_container, self.test_data_path, architecture="x86_64"
         )
 
     def test_invalid_architecture(self):
@@ -740,11 +805,6 @@ class TestBuildCommand_NodeFunctions_With_External_Manifest(BuildIntegNodeBase):
         ]
     )
     def test_building_default_package_json(self, runtime):
-        # lucashuy: temporarily set docker check here
-        # until we refactor this set of tests
-        if IS_WINDOWS and not runtime_supported_by_docker(runtime):
-            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
-
         self._test_with_default_package_json(runtime, False, self.test_data_path)
 
 
@@ -753,29 +813,33 @@ class TestBuildCommand_EsbuildFunctions(BuildIntegEsbuildBase):
 
     @parameterized.expand(
         [
-            ("nodejs20.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", False, "x86_64"),
-            ("nodejs20.x", "Esbuild/TypeScript", {"app.js", "app.js.map"}, "app.lambdaHandler", False, "x86_64"),
-            # Keeping container tests as Node.js18 until our CI platform can run Node.js20 container tests
-            ("nodejs18.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", "use_container", "x86_64"),
-            (
-                "nodejs18.x",
-                "Esbuild/TypeScript",
-                {"app.js", "app.js.map"},
-                "app.lambdaHandler",
-                "use_container",
-                "x86_64",
-            ),
+            ("nodejs20.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler"),
+            ("nodejs20.x", "Esbuild/TypeScript", {"app.js", "app.js.map"}, "app.lambdaHandler"),
         ]
     )
     def test_building_default_package_json(
-        self, runtime, code_uri, expected_files, handler, use_container, architecture
+        self,
+        runtime,
+        code_uri,
+        expected_files,
+        handler,
     ):
-        # lucashuy: temporarily set docker check here
-        # until we refactor this set of tests
-        if IS_WINDOWS and not runtime_supported_by_docker(runtime):
-            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
+        self._test_with_default_package_json(runtime, False, code_uri, expected_files, handler, "x86_64")
 
-        self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, architecture)
+    @parameterized.expand(
+        [
+            ("nodejs20.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler"),
+            (
+                "nodejs20.x",
+                "Esbuild/TypeScript",
+                {"app.js", "app.js.map"},
+                "app.lambdaHandler",
+            ),
+        ]
+    )
+    @pytest.mark.al2023
+    def test_building_default_package_json_use_container(self, runtime, code_uri, expected_files, handler):
+        self._test_with_default_package_json(runtime, "use_container", code_uri, expected_files, handler, "x86_64")
 
 
 class TestBuildCommand_EsbuildFunctions_With_External_Manifest(BuildIntegEsbuildBase):
@@ -805,11 +869,6 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest(BuildIntegEsbuild
     def test_building_default_package_json(
         self, runtime, code_uri, expected_files, handler, use_container, architecture
     ):
-        # lucashuy: temporarily set docker check here
-        # until we refactor this set of tests
-        if IS_WINDOWS and not runtime_supported_by_docker(runtime):
-            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
-
         self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, architecture)
 
 
@@ -850,17 +909,24 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture(BuildIntegNodeB
 
     @parameterized.expand(
         [
-            ("nodejs16.x", False, "x86_64"),
-            ("nodejs18.x", False, "x86_64"),
-            ("nodejs20.x", False, "x86_64"),
-            ("nodejs16.x", "use_container", "x86_64"),
-            ("nodejs18.x", "use_container", "x86_64"),
+            ("nodejs16.x", False,),
+            ("nodejs18.x", False,),
+            ("nodejs20.x", False,),
+            ("nodejs16.x", "use_container",),
+            ("nodejs18.x", "use_container",),
         ]
     )
-    def test_building_default_package_json(self, runtime, use_container, architecture):
-        if use_container and not runtime_supported_by_docker(runtime):
-            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
-        self._test_with_default_package_json(runtime, use_container, self.test_data_path, architecture)
+    def test_building_default_package_json(self, runtime, use_container,):
+        self._test_with_default_package_json(runtime, use_container, self.test_data_path, "x86_64")
+
+    @parameterized.expand(
+        [
+            ("nodejs20.x",),
+        ]
+    )
+    @pytest.mark.al2023
+    def test_building_default_package_json_al2023_container(self, runtime):
+        self._test_with_default_package_json(runtime, "use_container", self.test_data_path, "x86_64")
 
 
 @pytest.mark.ruby
