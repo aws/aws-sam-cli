@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, cast
 
 from typing_extensions import Protocol
-from watchdog.events import FileSystemEvent, RegexMatchingEventHandler
+from watchdog.events import FileSystemEvent, RegexMatchingEventHandler, EVENT_TYPE_OPENED
 
 from samcli.lib.providers.exceptions import InvalidTemplateFile, MissingCodeUri, MissingLocalDefinition
 from samcli.lib.providers.provider import Function, LayerVersion, ResourceIdentifier, Stack, get_resource_by_id
@@ -138,6 +138,12 @@ class TemplateTrigger(ResourceTrigger):
         ----------
         event : Optional[FileSystemEvent], optional
         """
+        if event and event.event_type == EVENT_TYPE_OPENED:
+            # Ignore all file opened events since this event is
+            # added in addition to a create or modified event,
+            # causing an infinite loop of sync flow creations
+            LOG.debug("Ignoring file system OPENED event")
+            return
         LOG.debug(
             "Template watcher (%s) for stack (%s) got file event %s", self._template_file, self._stack_name, event
         )
