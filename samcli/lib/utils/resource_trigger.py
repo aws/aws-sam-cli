@@ -139,7 +139,7 @@ class TemplateTrigger(ResourceTrigger):
         event : Optional[FileSystemEvent], optional
         """
         LOG.debug(
-            "Template watcher ({}) for stack ({}) got file event {}", self._template_file, self._stack_name, event
+            "Template watcher (%s) for stack (%s) got file event %s", self._template_file, self._stack_name, event
         )
         if self._validator.validate_change():
             self._on_template_change(event)
