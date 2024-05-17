@@ -1,5 +1,5 @@
 """ResourceTrigger Classes for Creating PathHandlers According to a Resource"""
-
+import logging
 import platform
 import re
 from abc import ABC, abstractmethod
@@ -17,6 +17,10 @@ from samcli.lib.utils.definition_validator import DefinitionValidator
 from samcli.lib.utils.path_observer import PathHandler
 from samcli.lib.utils.resources import RESOURCES_WITH_LOCAL_PATHS
 from samcli.local.lambdafn.exceptions import FunctionNotFound, ResourceNotFound
+
+
+LOG = logging.getLogger(__name__)
+
 
 DEFAULT_WATCH_IGNORED_RESOURCES = ["^.*\\.aws-sam.*$", "^.*node_modules.*$"]
 
@@ -134,6 +138,9 @@ class TemplateTrigger(ResourceTrigger):
         ----------
         event : Optional[FileSystemEvent], optional
         """
+        LOG.debug(
+            "Template watcher ({}) for stack ({}) got file event {}", self._template_file, self._stack_name, event
+        )
         if self._validator.validate_change():
             self._on_template_change(event)
 
