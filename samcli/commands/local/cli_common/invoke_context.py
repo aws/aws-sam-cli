@@ -10,9 +10,9 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, TextIO, Tuple, Type, cast
 
-import boto3
 from botocore.exceptions import TokenRetrievalError
 
+import samcli.lib.utils.boto_utils
 from samcli.commands._utils.template import TemplateFailedParsingException, TemplateNotFoundException
 from samcli.commands.exceptions import ContainersInitializationException
 from samcli.commands.local.cli_common.user_exceptions import DebugContextException, InvokeContextException
@@ -355,7 +355,10 @@ class InvokeContext:
         If there is no current session, the standard parameter override for
         AWS::AccountId is used
         """
-        sts = boto3.client("sts")
+        client_provider = samcli.lib.utils.boto_utils.get_boto_client_provider_with_config()
+
+        sts = client_provider("sts")
+
         try:
             account_id = sts.get_caller_identity().get("Account")
             if account_id:
@@ -492,6 +495,7 @@ class InvokeContext:
 
     def _get_stacks(self) -> List[Stack]:
         try:
+            print(SamLocalStackProvider.get_stacks)
             stacks, _ = SamLocalStackProvider.get_stacks(
                 self._template_file,
                 parameter_overrides=self._parameter_overrides,

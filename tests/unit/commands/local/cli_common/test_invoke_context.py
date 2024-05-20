@@ -1368,9 +1368,11 @@ class TestInvokeContext_add_account_id_to_global(TestCase):
         invoke_context._add_account_id_to_global()
         self.assertIsNone(invoke_context._global_parameter_overrides)
 
-    @patch("boto3.client")
-    def test_must_work_with_token(self, get_caller_identity_mock):
-        get_caller_identity_mock.return_value.get_caller_identity.return_value.get.return_value = "210987654321"
+    @patch("samcli.lib.utils.boto_utils.get_boto_client_provider_with_config")
+    def test_must_work_with_token(self, get_boto_client_provider_with_config_mock):
+        get_boto_client_provider_with_config_mock.return_value.return_value.get_caller_identity.return_value.get.return_value = (
+            "210987654321"
+        )
         invoke_context = InvokeContext("template_file")
         invoke_context._add_account_id_to_global()
         self.assertEqual(invoke_context._global_parameter_overrides.get("AWS::AccountId"), "210987654321")
