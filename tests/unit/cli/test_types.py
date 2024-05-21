@@ -1,5 +1,5 @@
 from unittest import TestCase
-from unittest.mock import MagicMock, Mock, ANY
+from unittest.mock import MagicMock, Mock, ANY, patch
 
 from click import BadParameter
 from parameterized import parameterized
@@ -243,6 +243,28 @@ class TestCfnTags(TestCase):
     def test_successful_parsing(self, input, expected):
         result = self.param_type.convert(input, None, None)
         self.assertEqual(result, expected, msg="Failed with Input = " + str(input))
+
+    @parameterized.expand(
+        [
+            (
+                ["stage=int", "company:application=awesome-service", "company:department=engineering"],
+                {"stage": "int", "company:application": "awesome-service", "company:department": "engineering"},
+            ),
+            (
+                ['owner:name="son of anton"', "company:application=awesome-service", "company:department=engineering"],
+                {
+                    "owner:name": "son of anton",
+                    "company:application": "awesome-service",
+                    "company:department": "engineering",
+                },
+            ),
+        ]
+    )
+    @patch("re.findall")
+    def test_no_regex_parsing_if_input_is_list(self, input, expected, regex_mock):
+        result = self.param_type.convert(input, None, None)
+        self.assertEqual(result, expected, msg="Failed with Input = " + str(input))
+        regex_mock.assert_not_called()
 
 
 class TestCfnTagsMultipleValues(TestCase):

@@ -162,7 +162,11 @@ def _update_relative_paths(template_dict, original_root, new_root):
                 resource_type in [AWS_SERVERLESS_FUNCTION, AWS_LAMBDA_FUNCTION]
                 and properties.get("PackageType", ZIP) == IMAGE
             ):
-                continue
+                if not properties.get("ImageUri"):
+                    continue
+                resolved_image_archive_path = _resolve_relative_to(properties.get("ImageUri"), original_root, new_root)
+                if not resolved_image_archive_path or not pathlib.Path(resolved_image_archive_path).is_file():
+                    continue
 
             # SAM GraphQLApi has many instances of CODE_ARTIFACT_PROPERTY and all of them must be updated
             if resource_type == AWS_SERVERLESS_GRAPHQLAPI and path_prop_name == graphql_api.CODE_ARTIFACT_PROPERTY:

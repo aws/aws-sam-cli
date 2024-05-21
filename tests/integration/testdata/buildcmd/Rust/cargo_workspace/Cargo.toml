@@ -1,0 +1,4 @@
+[workspace]
+resolver = "2"
+
+members = ["function_a", "function_b"]

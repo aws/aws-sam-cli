@@ -76,7 +76,9 @@ def get_function(
         function_url_config=None,
         stack_path="",
         runtime_management_config=None,
-        function_build_info=get_function_build_info("stack/function", packagetype, inlinecode, codeuri, metadata),
+        function_build_info=get_function_build_info(
+            "stack/function", packagetype, inlinecode, codeuri, imageuri, metadata
+        ),
     )
 
 

@@ -1,0 +1,22 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: A hello world image application.
+
+Parameters:
+  Parameter:
+    Type: String
+    Default: Sample
+    Description: A custom parameter
+
+Resources:
+  Hello:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageUri: ./archive.tar.gz
+      Events:
+        HelloWorld:
+          Type: Api
+          Properties:
+            Path: /hello
+            Method: get

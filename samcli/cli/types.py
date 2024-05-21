@@ -208,7 +208,7 @@ class CfnTags(click.ParamType):
         if isinstance(value, list):
             if not value:
                 return result
-            value = " ".join(value)
+            value = tuple(value)
         # if value comes in a via configuration file, it will be a string. So we should still convert it.
         value = (value,) if not isinstance(value, tuple) else value
 
