@@ -20,7 +20,7 @@ types-docutils==0.21.0.20240423
 types-jsonschema==4.22.0.20240501
 types-pyOpenSSL==24.1.0.20240425
 # as of types-requests>=2.31.0.7, this now requires `urllib3>2`, pin we are able to upgrade
-types-requests==2.32.0.20240521
+types-requests<=2.31.0.6
 types-urllib3==1.26.25.14
 
 # Test requirements
