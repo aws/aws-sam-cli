@@ -10,7 +10,7 @@ aws-sam-translator==1.89.0
 #docker minor version updates can include breaking changes. Auto update micro version only.
 docker~=7.0.0
 dateparser~=1.2
-requests~=2.31.0
+requests~=2.32.2
 aws_lambda_builders==1.50.0
 tomlkit==0.12.5
 watchdog==4.0.0
