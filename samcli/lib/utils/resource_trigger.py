@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, cast
 
 from typing_extensions import Protocol
-from watchdog.events import FileSystemEvent, RegexMatchingEventHandler, EVENT_TYPE_OPENED
+from watchdog.events import EVENT_TYPE_OPENED, FileSystemEvent, RegexMatchingEventHandler
 
 from samcli.lib.providers.exceptions import InvalidTemplateFile, MissingCodeUri, MissingLocalDefinition
 from samcli.lib.providers.provider import Function, LayerVersion, ResourceIdentifier, Stack, get_resource_by_id
@@ -17,7 +17,6 @@ from samcli.lib.utils.definition_validator import DefinitionValidator
 from samcli.lib.utils.path_observer import PathHandler
 from samcli.lib.utils.resources import RESOURCES_WITH_LOCAL_PATHS
 from samcli.local.lambdafn.exceptions import FunctionNotFound, ResourceNotFound
-
 
 LOG = logging.getLogger(__name__)
 
