@@ -2,6 +2,7 @@ import re
 from parameterized import parameterized
 from unittest.case import TestCase
 from unittest.mock import MagicMock, Mock, patch, ANY
+from watchdog.events import EVENT_TYPE_OPENED
 from samcli.lib.utils.resource_trigger import (
     DEFAULT_WATCH_IGNORED_RESOURCES,
     CodeResourceTrigger,
