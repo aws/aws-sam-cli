@@ -92,7 +92,7 @@ class TestTemplateTrigger(TestCase):
         trigger = TemplateTrigger("template.yaml", "stack", on_template_change_mock)
         trigger._validator_wrapper(event_mock)
         on_template_change_mock.assert_called_once_with(event_mock)
-    
+
     @patch("samcli.lib.utils.resource_trigger.DefinitionValidator")
     @patch("samcli.lib.utils.resource_trigger.Path")
     def test_validator_wrapper_for_file_opened_event(self, path_mock, validator_mock):

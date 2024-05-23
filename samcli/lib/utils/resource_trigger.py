@@ -1,4 +1,5 @@
 """ResourceTrigger Classes for Creating PathHandlers According to a Resource"""
+
 import logging
 import platform
 import re
