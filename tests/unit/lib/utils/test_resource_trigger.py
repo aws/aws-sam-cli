@@ -94,7 +94,7 @@ class TestTemplateTrigger(TestCase):
     
     @patch("samcli.lib.utils.resource_trigger.DefinitionValidator")
     @patch("samcli.lib.utils.resource_trigger.Path")
-    def test_validator_wrapper(self, path_mock, validator_mock):
+    def test_validator_wrapper_for_file_opened_event(self, path_mock, validator_mock):
         validator_mock.return_value.raw_validate.return_value = True
         on_template_change_mock = MagicMock()
         event_mock = MagicMock()
