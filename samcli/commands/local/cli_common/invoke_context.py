@@ -495,7 +495,6 @@ class InvokeContext:
 
     def _get_stacks(self) -> List[Stack]:
         try:
-            print(SamLocalStackProvider.get_stacks)
             stacks, _ = SamLocalStackProvider.get_stacks(
                 self._template_file,
                 parameter_overrides=self._parameter_overrides,
