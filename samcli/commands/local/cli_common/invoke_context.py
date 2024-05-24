@@ -176,12 +176,12 @@ class InvokeContext:
         if aws_region:
             self._global_parameter_overrides = {"AWS::Region": aws_region}
 
-        self._add_account_id_to_global()
         self._layer_cache_basedir = layer_cache_basedir
         self._force_image_build = force_image_build
         self._aws_region = aws_region
         self._aws_profile = aws_profile
         self._shutdown = shutdown
+        self._add_account_id_to_global()
 
         self._container_host = container_host
         self._container_host_interface = container_host_interface
@@ -355,7 +355,9 @@ class InvokeContext:
         If there is no current session, the standard parameter override for
         AWS::AccountId is used
         """
-        client_provider = samcli.lib.utils.boto_utils.get_boto_client_provider_with_config()
+        client_provider = samcli.lib.utils.boto_utils.get_boto_client_provider_with_config(
+            region=self._aws_region, profile=self._aws_profile
+        )
 
         sts = client_provider("sts")
 
