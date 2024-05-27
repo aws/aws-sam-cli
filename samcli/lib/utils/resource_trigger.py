@@ -1,5 +1,6 @@
 """ResourceTrigger Classes for Creating PathHandlers According to a Resource"""
 
+import logging
 import platform
 import re
 from abc import ABC, abstractmethod
@@ -7,7 +8,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, cast
 
 from typing_extensions import Protocol
-from watchdog.events import FileSystemEvent, RegexMatchingEventHandler
+from watchdog.events import EVENT_TYPE_OPENED, FileSystemEvent, RegexMatchingEventHandler
 
 from samcli.lib.providers.exceptions import InvalidTemplateFile, MissingCodeUri, MissingLocalDefinition
 from samcli.lib.providers.provider import Function, LayerVersion, ResourceIdentifier, Stack, get_resource_by_id
@@ -17,6 +18,9 @@ from samcli.lib.utils.definition_validator import DefinitionValidator
 from samcli.lib.utils.path_observer import PathHandler
 from samcli.lib.utils.resources import RESOURCES_WITH_LOCAL_PATHS
 from samcli.local.lambdafn.exceptions import FunctionNotFound, ResourceNotFound
+
+LOG = logging.getLogger(__name__)
+
 
 DEFAULT_WATCH_IGNORED_RESOURCES = ["^.*\\.aws-sam.*$", "^.*node_modules.*$"]
 
@@ -134,6 +138,15 @@ class TemplateTrigger(ResourceTrigger):
         ----------
         event : Optional[FileSystemEvent], optional
         """
+        if event and event.event_type == EVENT_TYPE_OPENED:
+            # Ignore all file opened events since this event is
+            # added in addition to a create or modified event,
+            # causing an infinite loop of sync flow creations
+            LOG.debug("Ignoring file system OPENED event")
+            return
+        LOG.debug(
+            "Template watcher (%s) for stack (%s) got file event %s", self._template_file, self._stack_name, event
+        )
         if self._validator.validate_change():
             self._on_template_change(event)
 
