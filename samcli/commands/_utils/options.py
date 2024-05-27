@@ -737,8 +737,9 @@ def resolve_s3_click_option(guided):
         )
     )
     return click.option(
-        "--resolve-s3",
+        "--resolve-s3/--no-resolve-s3",
         required=False,
+        default=False,
         is_flag=True,
         callback=callback,
         help="Automatically resolve AWS S3 bucket for non-guided deployments. "
