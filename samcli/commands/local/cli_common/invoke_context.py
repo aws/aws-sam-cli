@@ -349,7 +349,7 @@ class InvokeContext:
         cast(WarmLambdaRuntime, self.lambda_runtime).clean_running_containers_and_related_resources()
         cast(RefreshableSamFunctionProvider, self._function_provider).stop_observer()
 
-    def _add_account_id_to_global(self):
+    def _add_account_id_to_global(self) -> None:
         """
         Attempts to get the Account ID from the current session
         If there is no current session, the standard parameter override for
