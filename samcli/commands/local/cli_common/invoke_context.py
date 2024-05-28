@@ -12,7 +12,6 @@ from typing import Any, Dict, List, Optional, TextIO, Tuple, Type, cast
 
 from botocore.exceptions import TokenRetrievalError
 
-import samcli.lib.utils.boto_utils
 from samcli.commands._utils.template import TemplateFailedParsingException, TemplateNotFoundException
 from samcli.commands.exceptions import ContainersInitializationException
 from samcli.commands.local.cli_common.user_exceptions import DebugContextException, InvokeContextException
@@ -23,6 +22,7 @@ from samcli.lib.providers.sam_function_provider import RefreshableSamFunctionPro
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils import osutils
 from samcli.lib.utils.async_utils import AsyncContext
+from samcli.lib.utils.boto_utils import get_boto_client_provider_with_config
 from samcli.lib.utils.packagetype import ZIP
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker.exceptions import PortAlreadyInUse
@@ -355,9 +355,7 @@ class InvokeContext:
         If there is no current session, the standard parameter override for
         AWS::AccountId is used
         """
-        client_provider = samcli.lib.utils.boto_utils.get_boto_client_provider_with_config(
-            region=self._aws_region, profile=self._aws_profile
-        )
+        client_provider = get_boto_client_provider_with_config(region=self._aws_region, profile=self._aws_profile)
 
         sts = client_provider("sts")
 
