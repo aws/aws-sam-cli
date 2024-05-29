@@ -2,7 +2,7 @@ import shutil
 import tempfile
 from pathlib import Path
 from enum import Enum, auto
-from typing import List, Optional
+from typing import Optional
 
 import boto3
 from botocore.config import Config
@@ -28,12 +28,11 @@ class DeployIntegBase(PackageIntegBase):
             ResourceType.IAM_ROLE: list(),
         }
         # make temp directory and move all test files into there for each test run
-        original_test_data_path = self.test_data_path
         self.test_data_path = Path(tempfile.mkdtemp())
 
         # copytree call below fails if root folder present, delete it first
         shutil.rmtree(self.test_data_path, ignore_errors=True)
-        shutil.copytree(original_test_data_path, self.test_data_path)
+        shutil.copytree(self.original_test_data_path, self.test_data_path)
 
         self.cfn_client = boto3.client("cloudformation")
         self.ecr_client = boto3.client("ecr")
