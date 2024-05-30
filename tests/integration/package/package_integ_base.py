@@ -60,6 +60,7 @@ class PackageIntegBase(TestCase):
         )
         cls.bucket_name = cls.pre_created_bucket if cls.pre_created_bucket else str(uuid.uuid4())
         cls.test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "package")
+        cls.original_test_data_path = cls.test_data_path
 
         # Intialize S3 client
         s3 = boto3.resource("s3")
