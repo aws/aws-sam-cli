@@ -28,7 +28,8 @@ from samcli.lib.providers.provider import Stack
 class TestInvokeContext__enter__(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.ContainerManager")
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
-    def test_must_read_from_necessary_files(self, SamFunctionProviderMock, ContainerManagerMock):
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext._add_account_id_to_global")
+    def test_must_read_from_necessary_files(self, _add_account_id_to_global_mock, SamFunctionProviderMock, ContainerManagerMock):
         function_provider = Mock()
         function_provider.get_all.return_value = [
             Mock(
@@ -61,6 +62,7 @@ class TestInvokeContext__enter__(TestCase):
             debug_args="args",
             parameter_overrides={},
             aws_region="region",
+            aws_profile="profile",
             shutdown=False,
             invoke_images={None: "image"},
         )
@@ -115,8 +117,9 @@ class TestInvokeContext__enter__(TestCase):
 
     @patch("samcli.commands.local.cli_common.invoke_context.ContainerManager")
     @patch("samcli.commands.local.cli_common.invoke_context.RefreshableSamFunctionProvider")
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext._add_account_id_to_global")
     def test_must_initialize_all_containers_if_warm_containers_is_enabled(
-        self, RefreshableSamFunctionProviderMock, ContainerManagerMock
+        self, _add_account_id_to_global_mock, RefreshableSamFunctionProviderMock, ContainerManagerMock
     ):
         function_provider = Mock()
         function = Mock()
@@ -143,6 +146,7 @@ class TestInvokeContext__enter__(TestCase):
             debug_args="args",
             parameter_overrides=parameter_overrides,
             aws_region="region",
+            aws_profile="profile",
             warm_container_initialization_mode=ContainersInitializationMode.EAGER.value,
             shutdown=True,
             invoke_images={None: "image"},
@@ -203,8 +207,9 @@ class TestInvokeContext__enter__(TestCase):
 
     @patch("samcli.commands.local.cli_common.invoke_context.ContainerManager")
     @patch("samcli.commands.local.cli_common.invoke_context.RefreshableSamFunctionProvider")
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext._add_account_id_to_global")
     def test_must_set_debug_function_if_warm_containers_enabled_no_debug_function_provided_and_template_contains_one_function(
-        self, RefreshableSamFunctionProviderMock, ContainerManagerMock
+        self, _add_account_id_to_global_mock, RefreshableSamFunctionProviderMock, ContainerManagerMock
     ):
         function_provider = Mock()
         function = Mock(
@@ -235,6 +240,7 @@ class TestInvokeContext__enter__(TestCase):
             debug_args="args",
             parameter_overrides=parameter_overrides,
             aws_region="region",
+            aws_profile="profile",
             warm_container_initialization_mode=ContainersInitializationMode.EAGER.value,
             debug_function="",
             shutdown=True,
@@ -297,8 +303,10 @@ class TestInvokeContext__enter__(TestCase):
 
     @patch("samcli.commands.local.cli_common.invoke_context.ContainerManager")
     @patch("samcli.commands.local.cli_common.invoke_context.RefreshableSamFunctionProvider")
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext._add_account_id_to_global")
+
     def test_no_container_will_be_initialized_if_lazy_containers_is_enabled(
-        self, RefreshableSamFunctionProviderMock, ContainerManagerMock
+        self, _add_account_id_to_global_mock, RefreshableSamFunctionProviderMock, ContainerManagerMock
     ):
         function_provider = Mock()
         function_provider.get_all.return_value = [
@@ -326,6 +334,7 @@ class TestInvokeContext__enter__(TestCase):
             debug_args="args",
             parameter_overrides=parameter_overrides,
             aws_region="region",
+            aws_profile="profile",
             warm_container_initialization_mode=ContainersInitializationMode.LAZY.value,
             debug_function="debug_function",
             shutdown=True,
@@ -515,6 +524,7 @@ class TestInvokeContextAsContextManager(TestCase):
             debug_ports=[1111],
             debugger_path="path-to-debugger",
             debug_args="args",
+            aws_profile="profile",
             invoke_images={None: "image"},
         ) as context:
             self.assertEqual(context_obj, context)
@@ -594,6 +604,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
             debug_ports=[1111],
             debugger_path="path-to-debugger",
             debug_args="args",
+            aws_profile="profile",
             aws_region="region",
         )
         self.context.get_cwd = Mock()
@@ -622,7 +633,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
                 real_path=ANY,
                 debug_context=None,
                 env_vars_values=ANY,
-                aws_profile=None,
+                aws_profile="profile",
                 aws_region="region",
                 container_host=None,
                 container_host_interface=None,
@@ -672,6 +683,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
             debug_ports=[1111],
             debugger_path="path-to-debugger",
             debug_args="args",
+            aws_profile="profile",
             aws_region="region",
             warm_container_initialization_mode=ContainersInitializationMode.EAGER,
         )
@@ -701,7 +713,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
                 real_path=ANY,
                 debug_context=None,
                 env_vars_values=ANY,
-                aws_profile=None,
+                aws_profile="profile",
                 aws_region="region",
                 container_host=None,
                 container_host_interface=None,
@@ -756,6 +768,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
             debug_ports=[1111],
             debugger_path="path-to-debugger",
             debug_args="args",
+            aws_profile="profile",
             aws_region="region",
             container_host="abcdef",
             container_host_interface="192.168.100.101",
@@ -786,7 +799,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
                 real_path=ANY,
                 debug_context=None,
                 env_vars_values=ANY,
-                aws_profile=None,
+                aws_profile="profile",
                 aws_region="region",
                 container_host="abcdef",
                 container_host_interface="192.168.100.101",
@@ -841,6 +854,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
             debug_ports=[1111],
             debugger_path="path-to-debugger",
             debug_args="args",
+            aws_profile="profile",
             aws_region="region",
             container_host="abcdef",
             add_host={"prod-na.host": "10.11.12.13", "gamma-na.host": "10.22.23.24"},
@@ -871,7 +885,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
                 real_path=ANY,
                 debug_context=None,
                 env_vars_values=ANY,
-                aws_profile=None,
+                aws_profile="profile",
                 aws_region="region",
                 container_host="abcdef",
                 container_host_interface=None,
@@ -929,7 +943,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
             debug_ports=[1111],
             debugger_path="path-to-debugger",
             debug_args="args",
-            # aws_profile="aws_profile",
+            aws_profile="profile",
             aws_region="region",
             invoke_images={None: "image"},
         )
@@ -959,7 +973,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
                 real_path=ANY,
                 debug_context=None,
                 env_vars_values=ANY,
-                aws_profile=None,
+                aws_profile="profile",
                 aws_region="region",
                 container_host=None,
                 container_host_interface=None,
@@ -1344,7 +1358,8 @@ class TestInvokeContext_get_debug_context(TestCase):
 
 class TestInvokeContext_get_stacks(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.SamLocalStackProvider.get_stacks")
-    def test_must_pass_custom_region(self, get_stacks_mock):
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext._add_account_id_to_global")
+    def test_must_pass_custom_region(self, add_account_id_to_global_mock, get_stacks_mock):
         get_stacks_mock.return_value = [Mock(), []]
         invoke_context = InvokeContext("template_file", aws_region="my-custom-region")
         invoke_context._get_stacks()

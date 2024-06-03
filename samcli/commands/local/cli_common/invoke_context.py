@@ -10,7 +10,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, TextIO, Tuple, Type, cast
 
-from botocore.exceptions import NoCredentialsError, TokenRetrievalError
+from botocore.exceptions import ClientError, NoCredentialsError, TokenRetrievalError
 
 from samcli.commands._utils.template import TemplateFailedParsingException, TemplateNotFoundException
 from samcli.commands.exceptions import ContainersInitializationException
@@ -365,7 +365,7 @@ class InvokeContext:
                 if self._global_parameter_overrides is None:
                     self._global_parameter_overrides = {}
                 self._global_parameter_overrides["AWS::AccountId"] = account_id
-        except (NoCredentialsError, TokenRetrievalError):
+        except (NoCredentialsError, TokenRetrievalError, ClientError):
             LOG.warning("No current session found, using default AWS::AccountId")
 
     @property
