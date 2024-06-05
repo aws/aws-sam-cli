@@ -29,7 +29,9 @@ class TestInvokeContext__enter__(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.ContainerManager")
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext._add_account_id_to_global")
-    def test_must_read_from_necessary_files(self, _add_account_id_to_global_mock, SamFunctionProviderMock, ContainerManagerMock):
+    def test_must_read_from_necessary_files(
+        self, _add_account_id_to_global_mock, SamFunctionProviderMock, ContainerManagerMock
+    ):
         function_provider = Mock()
         function_provider.get_all.return_value = [
             Mock(
@@ -304,7 +306,6 @@ class TestInvokeContext__enter__(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.ContainerManager")
     @patch("samcli.commands.local.cli_common.invoke_context.RefreshableSamFunctionProvider")
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext._add_account_id_to_global")
-
     def test_no_container_will_be_initialized_if_lazy_containers_is_enabled(
         self, _add_account_id_to_global_mock, RefreshableSamFunctionProviderMock, ContainerManagerMock
     ):
@@ -509,7 +510,8 @@ class TestInvokeContextAsContextManager(TestCase):
 
     @patch.object(InvokeContext, "__enter__")
     @patch.object(InvokeContext, "__exit__")
-    def test_must_work_in_with_statement(self, ExitMock, EnterMock):
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext._add_account_id_to_global")
+    def test_must_work_in_with_statement(self, _add_account_id_to_global_mock, ExitMock, EnterMock):
         context_obj = Mock()
         EnterMock.return_value = context_obj
 
@@ -567,8 +569,10 @@ class TestInvokeContext_local_lambda_runner(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.LambdaRuntime")
     @patch("samcli.commands.local.cli_common.invoke_context.LocalLambdaRunner")
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext._add_account_id_to_global")
     def test_must_create_runner(
         self,
+        _add_account_id_to_global_mock,
         SamFunctionProviderMock,
         LocalLambdaMock,
         LambdaRuntimeMock,
@@ -650,8 +654,10 @@ class TestInvokeContext_local_lambda_runner(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.WarmLambdaRuntime")
     @patch("samcli.commands.local.cli_common.invoke_context.LocalLambdaRunner")
     @patch("samcli.commands.local.cli_common.invoke_context.RefreshableSamFunctionProvider")
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext._add_account_id_to_global")
     def test_must_create_runner_using_warm_containers(
         self,
+        _add_account_id_to_global_mock,
         RefreshableSamFunctionProviderMock,
         LocalLambdaMock,
         WarmLambdaRuntimeMock,
@@ -731,8 +737,10 @@ class TestInvokeContext_local_lambda_runner(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.LambdaRuntime")
     @patch("samcli.commands.local.cli_common.invoke_context.LocalLambdaRunner")
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext._add_account_id_to_global")
     def test_must_create_runner_with_container_host_option(
         self,
+        _add_account_id_to_global_mock,
         SamFunctionProviderMock,
         LocalLambdaMock,
         LambdaRuntimeMock,
@@ -817,8 +825,10 @@ class TestInvokeContext_local_lambda_runner(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.LambdaRuntime")
     @patch("samcli.commands.local.cli_common.invoke_context.LocalLambdaRunner")
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext._add_account_id_to_global")
     def test_must_create_runner_with_extra_hosts_option(
         self,
+        _add_account_id_to_global_mock,
         SamFunctionProviderMock,
         LocalLambdaMock,
         LambdaRuntimeMock,
@@ -906,8 +916,10 @@ class TestInvokeContext_local_lambda_runner(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.LambdaRuntime")
     @patch("samcli.commands.local.cli_common.invoke_context.LocalLambdaRunner")
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext._add_account_id_to_global")
     def test_must_create_runner_with_invoke_image_option(
         self,
+        _add_account_id_to_global_mock,
         SamFunctionProviderMock,
         LocalLambdaMock,
         LambdaRuntimeMock,
