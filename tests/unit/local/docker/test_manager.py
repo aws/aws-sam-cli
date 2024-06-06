@@ -324,6 +324,13 @@ class TestContainerManager_is_docker_reachable(TestCase):
 
         self.assertFalse(is_reachable)
 
+    def test_must_return_false_if_ping_raises_read_timout_error(self):
+        self.ping_mock.side_effect = requests.exceptions.ReadTimeout("error")
+
+        is_reachable = self.manager.is_docker_reachable
+
+        self.assertFalse(is_reachable)
+
     def test_must_return_false_if_ping_raises_pywintypes_error(self):
         with patch.dict("sys.modules", patched_modules()):
             import samcli.local.docker.manager as manager_module

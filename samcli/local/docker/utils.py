@@ -81,6 +81,7 @@ def is_docker_reachable(docker_client):
     errors = (
         docker.errors.APIError,
         requests.exceptions.ConnectionError,
+        requests.exceptions.ReadTimeout
     )
     if platform.system() == "Windows":
         import pywintypes  # pylint: disable=import-error
