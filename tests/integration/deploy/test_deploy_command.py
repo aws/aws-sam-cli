@@ -423,6 +423,39 @@ to create a managed default bucket, or run sam deploy --guided",
             deploy_process_execute.stderr,
         )
 
+    def test_deploy_with_no_resolve_s3_option(self):
+        template_path = self.test_data_path.joinpath("aws-serverless-function.yaml")
+
+        stack_name = self._method_to_stack_name(self.id())
+
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix=self.s3_prefix,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="Parameter=Clarity",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+        )
+
+        deploy_command_list.append("--no-resolve-s3")
+
+        deploy_process_execute = self.run_command(deploy_command_list)
+        # Error asking for s3 bucket
+        self.assertEqual(deploy_process_execute.process.returncode, 1)
+        self.assertIn(
+            bytes(
+                f"S3 Bucket not specified, use --s3-bucket to specify a bucket name, or use --resolve-s3 \
+to create a managed default bucket, or run sam deploy --guided",
+                encoding="utf-8",
+            ),
+            deploy_process_execute.stderr,
+        )
+
     @parameterized.expand(["aws-serverless-function.yaml", "cdk_v1_synthesized_template_zip_functions.json"])
     def test_deploy_without_stack_name(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
