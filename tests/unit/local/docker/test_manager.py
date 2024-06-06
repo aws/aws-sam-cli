@@ -12,6 +12,7 @@ from docker.errors import APIError, ImageNotFound
 import docker
 from samcli.local.docker.manager import ContainerManager, DockerImagePullFailedException
 from samcli.local.docker.lambda_image import RAPID_IMAGE_TAG_PREFIX
+from parameterized import parameterized
 
 
 # pywintypes is not available non-Windows OS,
@@ -280,6 +281,15 @@ class TestContainerManager_pull_image(TestCase):
 
 
 class TestContainerManager_is_docker_reachable(TestCase):
+
+    def tearDown(self) -> None:
+        import samcli.local.docker.manager as manager_module
+        import samcli.local.docker.utils as docker_utils
+
+        importlib.reload(manager_module)
+        importlib.reload(docker_utils)
+        return super().tearDown()
+
     def setUp(self):
         self.ping_mock = Mock()
 
@@ -317,16 +327,14 @@ class TestContainerManager_is_docker_reachable(TestCase):
 
         self.assertFalse(is_reachable)
 
-    def test_must_return_false_if_ping_raises_connection_error(self):
-        self.ping_mock.side_effect = requests.exceptions.ConnectionError("error")
-
-        is_reachable = self.manager.is_docker_reachable
-
-        self.assertFalse(is_reachable)
-
-    def test_must_return_false_if_ping_raises_read_timout_error(self):
-        self.ping_mock.side_effect = requests.exceptions.ReadTimeout("error")
-
+    @parameterized.expand(
+        [
+            (requests.exceptions.ConnectionError,),
+            (requests.exceptions.ReadTimeout,),
+        ]
+    )
+    def test_must_return_false_if_ping_raises_requests_error(self, requests_exception):
+        self.ping_mock.side_effect = requests_exception("error")
         is_reachable = self.manager.is_docker_reachable
 
         self.assertFalse(is_reachable)

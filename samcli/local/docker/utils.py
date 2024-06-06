@@ -78,11 +78,7 @@ def is_docker_reachable(docker_client):
     :param docker_client : docker.from_env() - docker client object
     :returns True, if Docker is available, False otherwise.
     """
-    errors = (
-        docker.errors.APIError,
-        requests.exceptions.ConnectionError,
-        requests.exceptions.ReadTimeout
-    )
+    errors = (docker.errors.APIError, requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout)
     if platform.system() == "Windows":
         import pywintypes  # pylint: disable=import-error
 
