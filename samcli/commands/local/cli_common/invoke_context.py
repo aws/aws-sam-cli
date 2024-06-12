@@ -10,6 +10,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, TextIO, Tuple, Type, cast
 
+from botocore.exceptions import ClientError, NoCredentialsError, TokenRetrievalError
+
 from samcli.commands._utils.template import TemplateFailedParsingException, TemplateNotFoundException
 from samcli.commands.exceptions import ContainersInitializationException
 from samcli.commands.local.cli_common.user_exceptions import DebugContextException, InvokeContextException
@@ -20,6 +22,7 @@ from samcli.lib.providers.sam_function_provider import RefreshableSamFunctionPro
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils import osutils
 from samcli.lib.utils.async_utils import AsyncContext
+from samcli.lib.utils.boto_utils import get_boto_client_provider_with_config
 from samcli.lib.utils.packagetype import ZIP
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker.exceptions import PortAlreadyInUse
@@ -178,6 +181,7 @@ class InvokeContext:
         self._aws_region = aws_region
         self._aws_profile = aws_profile
         self._shutdown = shutdown
+        self._add_account_id_to_global()
 
         self._container_host = container_host
         self._container_host_interface = container_host_interface
@@ -344,6 +348,25 @@ class InvokeContext:
         """
         cast(WarmLambdaRuntime, self.lambda_runtime).clean_running_containers_and_related_resources()
         cast(RefreshableSamFunctionProvider, self._function_provider).stop_observer()
+
+    def _add_account_id_to_global(self) -> None:
+        """
+        Attempts to get the Account ID from the current session
+        If there is no current session, the standard parameter override for
+        AWS::AccountId is used
+        """
+        client_provider = get_boto_client_provider_with_config(region=self._aws_region, profile=self._aws_profile)
+
+        sts = client_provider("sts")
+
+        try:
+            account_id = sts.get_caller_identity().get("Account")
+            if account_id:
+                if self._global_parameter_overrides is None:
+                    self._global_parameter_overrides = {}
+                self._global_parameter_overrides["AWS::AccountId"] = account_id
+        except (NoCredentialsError, TokenRetrievalError, ClientError):
+            LOG.warning("No current session found, using default AWS::AccountId")
 
     @property
     def function_identifier(self) -> str:
