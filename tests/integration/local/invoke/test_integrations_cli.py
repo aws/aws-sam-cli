@@ -12,7 +12,7 @@ import pytest
 import docker
 
 from tests.integration.local.invoke.layer_utils import LayerUtils
-from .invoke_integ_base import InvokeIntegBase
+from tests.integration.local.invoke.invoke_integ_base import IntegrationIntegBase, InvokeIntegBase
 from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY, run_command
 
 # Layers tests require credentials and Appveyor will only add credentials to the env if the PR is from the same repo.
@@ -31,16 +31,7 @@ TIMEOUT = 300
         (Path("nested-templates/template-parent.yaml"),),
     ],
 )
-class TestSamPythonHelloWorldIntegration(InvokeIntegBase):
-    def assert_is_account_id_valid(self, account_id: str):
-        try:
-            int(account_id)
-        except ValueError:
-            self.fail(f"Account ID '{account_id}' is not a valid number")
-
-        # AWS account IDs have length of 12
-        self.assertEqual(len(account_id), 12)
-
+class TestSamPythonHelloWorldIntegration(IntegrationIntegBase):
     @pytest.mark.flaky(reruns=3)
     def test_invoke_returncode_is_zero(self):
         command_list = InvokeIntegBase.get_command_list(

@@ -129,3 +129,14 @@ class InvokeIntegBase(TestCase):
         except TimeoutExpired:
             process.kill()
             raise
+
+
+class IntegrationIntegBase(InvokeIntegBase):
+    def assert_is_account_id_valid(self, account_id: str):
+        try:
+            int(account_id)
+        except ValueError:
+            self.fail(f"Account ID '{account_id}' is not a valid number")
+
+        # AWS account IDs have length of 12
+        self.assertEqual(len(account_id), 12)
