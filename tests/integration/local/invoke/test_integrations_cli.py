@@ -32,6 +32,15 @@ TIMEOUT = 300
     ],
 )
 class TestSamPythonHelloWorldIntegration(InvokeIntegBase):
+    def assert_is_account_id_valid(self, account_id: str):
+        try:
+            self.assertTrue(int(account_id))
+        except ValueError:
+            self.fail(f"Account ID '{account_id}' is not a valid number")
+
+        # AWS account IDs have length of 12
+        self.assertEqual(len(account_id), 12)
+
     @pytest.mark.flaky(reruns=3)
     def test_invoke_returncode_is_zero(self):
         command_list = InvokeIntegBase.get_command_list(
@@ -349,12 +358,12 @@ class TestSamPythonHelloWorldIntegration(InvokeIntegBase):
         environ = json.loads(process_stdout.decode("utf-8"))
 
         self.assertEqual(environ["Region"], "us-east-1")
-        self.assertEqual(environ["AccountId"], "123456789012")
+        self.assert_is_account_id_valid(environ["AccountId"])
         self.assertEqual(environ["Partition"], "aws")
         self.assertEqual(environ["StackName"], "local")
         self.assertEqual(
             environ["StackId"],
-            "arn:aws:cloudformation:us-east-1:123456789012:stack/" "local/51af3dc0-da77-11e4-872e-1234567db123",
+            "arn:aws:cloudformation:us-east-1:123456789012:stack/local/51af3dc0-da77-11e4-872e-1234567db123",
         )
 
         self.assertEqual(environ["URLSuffix"], "localhost")
@@ -364,7 +373,7 @@ class TestSamPythonHelloWorldIntegration(InvokeIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_with_env_using_parameters_with_custom_region(self):
-        custom_region = "my-custom-region"
+        custom_region = "us-west-2"
 
         command_list = InvokeIntegBase.get_command_list(
             "EchoEnvWithParameters", template_path=self.template_path, event_path=self.event_path, region=custom_region
@@ -384,7 +393,7 @@ class TestSamPythonHelloWorldIntegration(InvokeIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_with_env_with_aws_creds(self):
-        custom_region = "my-custom-region"
+        custom_region = "us-west-2"
         key = "key"
         secret = "secret"
         session = "session"
