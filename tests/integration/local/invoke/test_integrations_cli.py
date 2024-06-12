@@ -34,7 +34,7 @@ TIMEOUT = 300
 class TestSamPythonHelloWorldIntegration(InvokeIntegBase):
     def assert_is_account_id_valid(self, account_id: str):
         try:
-            self.assertTrue(int(account_id))
+            int(account_id)
         except ValueError:
             self.fail(f"Account ID '{account_id}' is not a valid number")
 
