@@ -125,6 +125,38 @@ class TestValidate(TestCase):
         self.assertEqual(command_result.process.returncode, 0)
         self.assertRegex(output, pattern)
 
+    @parameterized.expand(
+        [
+            ("nodejs16.x",),
+        ]
+    )
+    def test_lint_deprecated_runtimes(self, runtime):
+        template = {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Transform": "AWS::Serverless-2016-10-31",
+            "Resources": {
+                "HelloWorldFunction": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {
+                        "CodeUri": "HelloWorldFunction",
+                        "Handler": "app.lambdaHandler",
+                        "Runtime": runtime,
+                    },
+                }
+            },
+        }
+
+        with tempfile.TemporaryDirectory() as temp:
+            template_file = Path(temp, "template.json")
+            with open(template_file, "w") as f:
+                f.write(json.dumps(template, indent=4) + "\n")
+
+            command_result = run_command(self.command_list(lint=True), cwd=str(temp))
+
+            output = command_result.stdout.decode("utf-8")
+            self.assertEqual(command_result.process.returncode, 1)
+            self.assertRegex(output, f"W2531 Runtime \\({runtime}\\)")
+
     def test_lint_supported_runtimes(self):
         template = {
             "AWSTemplateFormatVersion": "2010-09-09",
@@ -139,7 +171,6 @@ class TestValidate(TestCase):
             "java17",
             "java11",
             "java8.al2",
-            "nodejs16.x",
             "nodejs18.x",
             "nodejs20.x",
             "provided",
