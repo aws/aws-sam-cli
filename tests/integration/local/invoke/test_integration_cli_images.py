@@ -10,7 +10,7 @@ from timeit import default_timer as timer
 import pytest
 import docker
 
-from tests.integration.local.invoke.invoke_integ_base import IntegrationIntegBase, InvokeIntegBase
+from tests.integration.local.invoke.invoke_integ_base import IntegrationCliIntegBase, InvokeIntegBase
 from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, CI_OVERRIDE
 
 from pathlib import Path
@@ -26,7 +26,7 @@ TIMEOUT = 300
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
-class TestSamPython36HelloWorldIntegrationImages(IntegrationIntegBase):
+class TestSamPython36HelloWorldIntegrationImages(IntegrationCliIntegBase):
     template = Path("template_image.yaml")
 
     @classmethod

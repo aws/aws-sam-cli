@@ -131,7 +131,7 @@ class InvokeIntegBase(TestCase):
             raise
 
 
-class IntegrationIntegBase(InvokeIntegBase):
+class IntegrationCliIntegBase(InvokeIntegBase):
     def assert_is_account_id_valid(self, account_id: str):
         try:
             int(account_id)
