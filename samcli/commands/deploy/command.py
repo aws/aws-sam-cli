@@ -135,6 +135,12 @@ LOG = logging.getLogger(__name__)
     cls=ClickMutex,
     incompatible_params=["disable_rollback", "no_disable_rollback"],
 )
+@click.option(
+    "--max-wait-duration",
+    default=60,
+    type=int,
+    help="Maximum duration in minutes to wait for the deployment to complete",
+)
 @stack_name_option(callback=guided_deploy_stack_name)  # pylint: disable=E1120
 @s3_bucket_option(disable_callback=True)  # pylint: disable=E1120
 @image_repository_option
@@ -193,6 +199,7 @@ def cli(
     config_env,
     disable_rollback,
     on_failure,
+    max_wait_duration,
 ):
     """
     `sam deploy` command entry point
@@ -228,6 +235,7 @@ def cli(
         resolve_image_repos,
         disable_rollback,
         on_failure,
+        max_wait_duration,
     )  # pragma: no cover
 
 
@@ -261,6 +269,7 @@ def do_cli(
     resolve_image_repos,
     disable_rollback,
     on_failure,
+    max_wait_duration,
 ):
     """
     Implementation of the ``cli`` method
@@ -368,5 +377,6 @@ def do_cli(
             disable_rollback=guided_context.disable_rollback if guided else disable_rollback,
             poll_delay=poll_delay,
             on_failure=on_failure,
+            max_wait_duration=max_wait_duration,
         ) as deploy_context:
             deploy_context.run()
