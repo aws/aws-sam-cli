@@ -1977,6 +1977,28 @@ class TestSamApiUsingAuthorizers(TestCase):
 
     @parameterized.expand(
         [
+            (  # test default token + swagger 2.0
+                {
+                    "Authorizers": {
+                        "mycoolauthorizer": {
+                            "Identity": {
+                                "Header": "myheader",
+                            },
+                            "FunctionArn": "will_be_mocked",
+                        }
+                    }
+                },
+                {
+                    "mycoolauthorizer": LambdaAuthorizer(
+                        payload_version="1.0",
+                        authorizer_name="mycoolauthorizer",
+                        type="token",
+                        lambda_name=ANY,
+                        identity_sources=["method.request.header.myheader"],
+                    )
+                },
+                Route.API,
+            ),
             (  # test token + swagger 2.0
                 {
                     "Authorizers": {

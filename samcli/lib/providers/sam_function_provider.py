@@ -15,6 +15,7 @@ from samcli.lib.providers.exceptions import InvalidLayerReference
 from samcli.lib.utils.colors import Colored, Colors
 from samcli.lib.utils.file_observer import FileObserver
 from samcli.lib.utils.packagetype import IMAGE, ZIP
+from samcli.lib.utils.path_utils import check_path_valid_type
 from samcli.lib.utils.resources import (
     AWS_LAMBDA_FUNCTION,
     AWS_LAMBDA_LAYERVERSION,
@@ -447,7 +448,7 @@ class SamFunctionProvider(SamBaseProvider):
             LOG.debug("--base-dir is not presented, adjusting uri %s relative to %s", codeuri, stack.location)
             codeuri = SamLocalStackProvider.normalize_resource_path(stack.location, codeuri)
 
-        if imageuri and codeuri != ".":
+        if imageuri and check_path_valid_type(imageuri) and codeuri != ".":
             normalized_image_uri = SamLocalStackProvider.normalize_resource_path(stack.location, imageuri)
             if Path(normalized_image_uri).is_file():
                 LOG.debug("--base-dir is not presented, adjusting uri %s relative to %s", codeuri, stack.location)

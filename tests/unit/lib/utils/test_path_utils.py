@@ -6,7 +6,7 @@ from unittest import TestCase
 
 from parameterized import parameterized
 
-from samcli.lib.utils.path_utils import convert_path_to_unix_path
+from samcli.lib.utils.path_utils import convert_path_to_unix_path, check_path_valid_type
 
 
 class TestPathUtilities(TestCase):
@@ -22,3 +22,15 @@ class TestPathUtilities(TestCase):
     def test_convert_path_to_unix_path(self, input_path, expected_path):
         output_path = convert_path_to_unix_path(input_path)
         self.assertEqual(output_path, expected_path)
+
+    @parameterized.expand(
+        [
+            ("C:\\windows\\like\\path", True),
+            ("test", True),
+            (123456, True),
+            ({"test": "test"}, False),
+            ([1, 2, 3], False),
+        ]
+    )
+    def test_check_valid_path(self, input_path, expected):
+        self.assertEqual(check_path_valid_type(input_path), expected)

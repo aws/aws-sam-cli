@@ -1202,7 +1202,10 @@
                 },
                 "tags": {
                   "title": "tags",
-                  "type": "array",
+                  "type": [
+                    "array",
+                    "string"
+                  ],
                   "description": "List of tags to associate with the stack.",
                   "items": {
                     "type": "string"
@@ -1731,7 +1734,10 @@
                 },
                 "tags": {
                   "title": "tags",
-                  "type": "array",
+                  "type": [
+                    "array",
+                    "string"
+                  ],
                   "description": "List of tags to associate with the stack.",
                   "items": {
                     "type": "string"

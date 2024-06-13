@@ -2,7 +2,11 @@
 Common Path related utilities
 """
 
+import logging
+import os
 from pathlib import PureWindowsPath
+
+LOG = logging.getLogger(__name__)
 
 
 def convert_path_to_unix_path(path: str) -> str:
@@ -19,3 +23,22 @@ def convert_path_to_unix_path(path: str) -> str:
         the path in unix format
     """
     return PureWindowsPath(path).as_posix()
+
+
+def check_path_valid_type(path) -> bool:
+    """
+    Checks the input to see if is a valid type to be a path, returning false if otherwise
+    Parameters
+    ----------
+    path: str
+        the path to be checked
+
+    Returns
+    -------
+    bool
+        if the input is a valid path type
+    """
+    if isinstance(path, (bytes, str, os.PathLike, int)):
+        return True
+    LOG.debug("Type error when trying to use input {} as Path, not string, int, bytes or os.PathLike ".format(path))
+    return False

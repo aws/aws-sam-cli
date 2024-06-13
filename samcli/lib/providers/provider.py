@@ -25,6 +25,7 @@ from samcli.lib.samlib.resource_metadata_normalizer import (
 )
 from samcli.lib.utils.architecture import X86_64
 from samcli.lib.utils.packagetype import IMAGE
+from samcli.lib.utils.path_utils import check_path_valid_type
 from samcli.local.apigw.route import Route
 
 LOG = logging.getLogger(__name__)
@@ -977,7 +978,7 @@ def get_function_build_info(
         dockerfile = cast(str, metadata.get("Dockerfile", ""))
         docker_context = cast(str, metadata.get("DockerContext", ""))
         buildable = dockerfile and docker_context
-        loadable = imageuri and Path(imageuri).is_file()
+        loadable = imageuri and check_path_valid_type(imageuri) and Path(imageuri).is_file()
         if not buildable and not loadable:
             LOG.debug(
                 "Skip Building %s function, as it is missing either Dockerfile or DockerContext "

@@ -195,7 +195,7 @@ class CfnTags(click.ParamType):
 
     _pattern = r"{tag}={tag}".format(tag=_generate_match_regex(match_pattern=TAG_REGEX, delim=" "))
 
-    name = "list"
+    name = "string,list"
 
     def convert(self, value, param, ctx):
         result = {}
