@@ -2,6 +2,7 @@ import re
 from parameterized import parameterized
 from unittest.case import TestCase
 from unittest.mock import MagicMock, Mock, patch, ANY
+from watchdog.events import EVENT_TYPE_OPENED
 from samcli.lib.utils.resource_trigger import (
     DEFAULT_WATCH_IGNORED_RESOURCES,
     CodeResourceTrigger,
@@ -91,6 +92,18 @@ class TestTemplateTrigger(TestCase):
         trigger = TemplateTrigger("template.yaml", "stack", on_template_change_mock)
         trigger._validator_wrapper(event_mock)
         on_template_change_mock.assert_called_once_with(event_mock)
+
+    @patch("samcli.lib.utils.resource_trigger.DefinitionValidator")
+    @patch("samcli.lib.utils.resource_trigger.Path")
+    def test_validator_wrapper_for_file_opened_event(self, path_mock, validator_mock):
+        validator_mock.return_value.raw_validate.return_value = True
+        on_template_change_mock = MagicMock()
+        event_mock = MagicMock()
+        event_mock.event_type = EVENT_TYPE_OPENED
+        validator_mock.return_value.raw_validate.return_value = True
+        trigger = TemplateTrigger("template.yaml", "stack", on_template_change_mock)
+        trigger._validator_wrapper(event_mock)
+        on_template_change_mock.assert_not_called()
 
 
 class TestCodeResourceTrigger(TestCase):

@@ -28,7 +28,10 @@ from samcli.lib.providers.provider import Stack
 class TestInvokeContext__enter__(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.ContainerManager")
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
-    def test_must_read_from_necessary_files(self, SamFunctionProviderMock, ContainerManagerMock):
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext._add_account_id_to_global")
+    def test_must_read_from_necessary_files(
+        self, _add_account_id_to_global_mock, SamFunctionProviderMock, ContainerManagerMock
+    ):
         function_provider = Mock()
         function_provider.get_all.return_value = [
             Mock(
@@ -116,8 +119,9 @@ class TestInvokeContext__enter__(TestCase):
 
     @patch("samcli.commands.local.cli_common.invoke_context.ContainerManager")
     @patch("samcli.commands.local.cli_common.invoke_context.RefreshableSamFunctionProvider")
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext._add_account_id_to_global")
     def test_must_initialize_all_containers_if_warm_containers_is_enabled(
-        self, RefreshableSamFunctionProviderMock, ContainerManagerMock
+        self, _add_account_id_to_global_mock, RefreshableSamFunctionProviderMock, ContainerManagerMock
     ):
         function_provider = Mock()
         function = Mock()
@@ -205,8 +209,9 @@ class TestInvokeContext__enter__(TestCase):
 
     @patch("samcli.commands.local.cli_common.invoke_context.ContainerManager")
     @patch("samcli.commands.local.cli_common.invoke_context.RefreshableSamFunctionProvider")
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext._add_account_id_to_global")
     def test_must_set_debug_function_if_warm_containers_enabled_no_debug_function_provided_and_template_contains_one_function(
-        self, RefreshableSamFunctionProviderMock, ContainerManagerMock
+        self, _add_account_id_to_global_mock, RefreshableSamFunctionProviderMock, ContainerManagerMock
     ):
         function_provider = Mock()
         function = Mock(
@@ -300,8 +305,9 @@ class TestInvokeContext__enter__(TestCase):
 
     @patch("samcli.commands.local.cli_common.invoke_context.ContainerManager")
     @patch("samcli.commands.local.cli_common.invoke_context.RefreshableSamFunctionProvider")
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext._add_account_id_to_global")
     def test_no_container_will_be_initialized_if_lazy_containers_is_enabled(
-        self, RefreshableSamFunctionProviderMock, ContainerManagerMock
+        self, _add_account_id_to_global_mock, RefreshableSamFunctionProviderMock, ContainerManagerMock
     ):
         function_provider = Mock()
         function_provider.get_all.return_value = [
@@ -504,7 +510,8 @@ class TestInvokeContextAsContextManager(TestCase):
 
     @patch.object(InvokeContext, "__enter__")
     @patch.object(InvokeContext, "__exit__")
-    def test_must_work_in_with_statement(self, ExitMock, EnterMock):
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext._add_account_id_to_global")
+    def test_must_work_in_with_statement(self, _add_account_id_to_global_mock, ExitMock, EnterMock):
         context_obj = Mock()
         EnterMock.return_value = context_obj
 
@@ -562,8 +569,10 @@ class TestInvokeContext_local_lambda_runner(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.LambdaRuntime")
     @patch("samcli.commands.local.cli_common.invoke_context.LocalLambdaRunner")
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext._add_account_id_to_global")
     def test_must_create_runner(
         self,
+        _add_account_id_to_global_mock,
         SamFunctionProviderMock,
         LocalLambdaMock,
         LambdaRuntimeMock,
@@ -645,8 +654,10 @@ class TestInvokeContext_local_lambda_runner(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.WarmLambdaRuntime")
     @patch("samcli.commands.local.cli_common.invoke_context.LocalLambdaRunner")
     @patch("samcli.commands.local.cli_common.invoke_context.RefreshableSamFunctionProvider")
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext._add_account_id_to_global")
     def test_must_create_runner_using_warm_containers(
         self,
+        _add_account_id_to_global_mock,
         RefreshableSamFunctionProviderMock,
         LocalLambdaMock,
         WarmLambdaRuntimeMock,
@@ -726,8 +737,10 @@ class TestInvokeContext_local_lambda_runner(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.LambdaRuntime")
     @patch("samcli.commands.local.cli_common.invoke_context.LocalLambdaRunner")
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext._add_account_id_to_global")
     def test_must_create_runner_with_container_host_option(
         self,
+        _add_account_id_to_global_mock,
         SamFunctionProviderMock,
         LocalLambdaMock,
         LambdaRuntimeMock,
@@ -812,8 +825,10 @@ class TestInvokeContext_local_lambda_runner(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.LambdaRuntime")
     @patch("samcli.commands.local.cli_common.invoke_context.LocalLambdaRunner")
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext._add_account_id_to_global")
     def test_must_create_runner_with_extra_hosts_option(
         self,
+        _add_account_id_to_global_mock,
         SamFunctionProviderMock,
         LocalLambdaMock,
         LambdaRuntimeMock,
@@ -901,8 +916,10 @@ class TestInvokeContext_local_lambda_runner(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.LambdaRuntime")
     @patch("samcli.commands.local.cli_common.invoke_context.LocalLambdaRunner")
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext._add_account_id_to_global")
     def test_must_create_runner_with_invoke_image_option(
         self,
+        _add_account_id_to_global_mock,
         SamFunctionProviderMock,
         LocalLambdaMock,
         LambdaRuntimeMock,
@@ -1353,10 +1370,27 @@ class TestInvokeContext_get_debug_context(TestCase):
 
 class TestInvokeContext_get_stacks(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.SamLocalStackProvider.get_stacks")
-    def test_must_pass_custom_region(self, get_stacks_mock):
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext._add_account_id_to_global")
+    def test_must_pass_custom_region(self, add_account_id_to_global_mock, get_stacks_mock):
         get_stacks_mock.return_value = [Mock(), []]
         invoke_context = InvokeContext("template_file", aws_region="my-custom-region")
         invoke_context._get_stacks()
         get_stacks_mock.assert_called_with(
             "template_file", parameter_overrides=None, global_parameter_overrides={"AWS::Region": "my-custom-region"}
         )
+
+
+class TestInvokeContext_add_account_id_to_global(TestCase):
+    def test_must_work_with_no_token(self):
+        invoke_context = InvokeContext("template_file")
+        invoke_context._add_account_id_to_global()
+        self.assertIsNone(invoke_context._global_parameter_overrides)
+
+    @patch("samcli.commands.local.cli_common.invoke_context.get_boto_client_provider_with_config")
+    def test_must_work_with_token(self, get_boto_client_provider_with_config_mock):
+        get_boto_client_provider_with_config_mock.return_value.return_value.get_caller_identity.return_value.get.return_value = (
+            "210987654321"
+        )
+        invoke_context = InvokeContext("template_file")
+        invoke_context._add_account_id_to_global()
+        self.assertEqual(invoke_context._global_parameter_overrides.get("AWS::AccountId"), "210987654321")

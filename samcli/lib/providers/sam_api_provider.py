@@ -299,7 +299,7 @@ class SamApiProvider(CfnBaseApiProvider):
         authorizers: Dict[str, Authorizer] = {}
 
         for auth_name, auth_props in auth.get(SamApiProvider._AUTHORIZERS, {}).items():
-            authorizer_type = auth_props.get(SamApiProvider._FUNCTION_TYPE, LambdaAuthorizer.TOKEN)
+            authorizer_type = auth_props.get(SamApiProvider._FUNCTION_TYPE, LambdaAuthorizer.TOKEN.upper())
             identity_object = auth_props.get(SamApiProvider._IDENTITY, {})
 
             function_arn = auth_props.get(SamApiProvider._FUNCTION_ARN)
