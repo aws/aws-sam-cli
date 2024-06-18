@@ -38,6 +38,7 @@ class TestSamDeployCommand(TestCase):
             disable_rollback=False,
             poll_delay=0.5,
             on_failure=None,
+            max_wait_duration=60,
         )
 
     @patch("boto3.client")
@@ -202,6 +203,7 @@ class TestSamDeployCommand(TestCase):
             disable_rollback=False,
             poll_delay=0.5,
             on_failure=None,
+            max_wait_duration=60,
         )
         patched_get_buildable_stacks.return_value = (Mock(), [])
         patched_auth_required.return_value = [("HelloWorldFunction", False)]
@@ -273,3 +275,15 @@ class TestSamDeployCommand(TestCase):
             self.deploy_command_context.deployer.wait_for_execute.assert_called_with(
                 ANY, "CREATE", False, FailureMode.DO_NOTHING, 1000
             )
+
+    @patch("boto3.Session")
+    @patch("boto3.client")
+    def test_low_wait_duration(self, mock_client, mock_session):
+        with tempfile.NamedTemporaryFile(delete=False) as template_file:
+            template_file.write(b"{}")
+            template_file.flush()
+            self.deploy_command_context.template_file = template_file.name
+            self.deploy_command_context.max_wait_duration = 1
+
+            self.deploy_command_context.deploy = MagicMock()
+            self.deploy_command_context.run()
