@@ -16,10 +16,8 @@ attrs==23.2.0 \
     --hash=sha256:935dc3b529c262f6cf76e50877d35a4bd3c1de194fd41f47a2b7ae8f19971f30 \
     --hash=sha256:99b87a485a5820b23b879f04c2305b44b951b502fd64be915879d77a7e8fc6f1
     # via
-    #   jschema-to-python
     #   jsonschema
     #   referencing
-    #   sarif-om
 aws-lambda-builders==1.50.0 \
     --hash=sha256:40a613ecb19fbf0b64a47bae14bd252ea5da32ea71fde9808d596e2dbc011baf \
     --hash=sha256:ad95ed55359c399872f5825582896500dfc1c5564eccf2a6ab8d0e9f6c1ae385
@@ -298,18 +296,10 @@ jmespath==1.0.1 \
     #   aws-sam-cli (setup.py)
     #   boto3
     #   botocore
-jschema-to-python==1.2.3 \
-    --hash=sha256:76ff14fe5d304708ccad1284e4b11f96a658949a31ee7faed9e0995279549b91 \
-    --hash=sha256:8a703ca7604d42d74b2815eecf99a33359a8dccbb80806cce386d5e2dd992b05
-    # via cfn-lint
 jsonpatch==1.33 \
     --hash=sha256:0ae28c0cd062bbd8b8ecc26d7d164fbbea9652a1a3693f3b956c1eae5145dade \
     --hash=sha256:9fcd4009c41e6d12348b4a0ff2563ba56a2923a7dfee731d004e212e1ee5030c
     # via cfn-lint
-jsonpickle==3.2.1 \
-    --hash=sha256:4b6d7640974199f7acf9035295365b5a1a71a91109effa15ba170fbb48cf871c \
-    --hash=sha256:ec291e4719674dd35d390fbdb521ac6517fbe9f541d361c8bffc8131133b1661
-    # via jschema-to-python
 jsonpointer==3.0.0 \
     --hash=sha256:13e088adc14fca8b6aa8177c044e12701e6ad4b28ff10e65f2267a90109c9942 \
     --hash=sha256:2b2d729f2091522d61c3b31f82e11870f60b68f43fbc705cb76bf4b832af59ef
@@ -320,15 +310,10 @@ jsonschema==4.22.0 \
     # via
     #   aws-sam-cli (setup.py)
     #   aws-sam-translator
-    #   cfn-lint
 jsonschema-specifications==2023.12.1 \
     --hash=sha256:48a76787b3e70f5ed53f1160d2b81f586e4ca6d1548c5de7085d1682674764cc \
     --hash=sha256:87e4fdf3a94858b8a2ba2778d9ba57d8a9cafca7c7489c46ba0d30a8bc6a9c3c
     # via jsonschema
-junit-xml==1.9 \
-    --hash=sha256:de16a051990d4e25a3982b2dd9e89d671067548718866416faec14d9de56db9f \
-    --hash=sha256:ec5ca1a55aefdd76d28fcc0b135251d156c7106fa979686a4b48d62b761b4732
-    # via cfn-lint
 markdown-it-py==3.0.0 \
     --hash=sha256:355216845c60bd96232cd8d8c40e8f9765cc86f46880e43a8fd22dc1a1a8cab1 \
     --hash=sha256:e3f60a94fa066dc52ec76661e37c851cb232d92f9886b15cb560aaada2df8feb
@@ -465,12 +450,6 @@ networkx==3.3 \
     --hash=sha256:0c127d8b2f4865f59ae9cb8aafcd60b5c70f3241ebd66f7defad7c4ab90126c9 \
     --hash=sha256:28575580c6ebdaf4505b22c6256a2b9de86b316dc63ba9e93abde3d78dfdbcf2
     # via cfn-lint
-pbr==6.0.0 \
-    --hash=sha256:4a7317d5e3b17a3dccb6a8cfe67dab65b20551404c52c8ed41279fa4f0cb4cda \
-    --hash=sha256:d1377122a5a00e2f940ee482999518efe16d745d423a670c27773dfbc3c9a7d9
-    # via
-    #   jschema-to-python
-    #   sarif-om
 pycparser==2.22 \
     --hash=sha256:491c8be9c040f5390f5bf44a5b07752bd07f56edf992381b05c701439eec10f6 \
     --hash=sha256:c3702b6d3dd8c7abc1afa565d7e63d53a1d0bd86cdc24edd75470f4de499cfcc
@@ -894,16 +873,10 @@ s3transfer==0.10.1 \
     --hash=sha256:5683916b4c724f799e600f41dd9e10a9ff19871bf87623cc8f491cb4f5fa0a19 \
     --hash=sha256:ceb252b11bcf87080fb7850a224fb6e05c8a776bab8f2b64b7f25b969464839d
     # via boto3
-sarif-om==1.0.4 \
-    --hash=sha256:539ef47a662329b1c8502388ad92457425e95dc0aaaf995fe46f4984c4771911 \
-    --hash=sha256:cd5f416b3083e00d402a92e449a7ff67af46f11241073eea0461802a3b5aef98
-    # via cfn-lint
 six==1.16.0 \
     --hash=sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926 \
     --hash=sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254
-    # via
-    #   junit-xml
-    #   python-dateutil
+    # via python-dateutil
 sympy==1.12.1 \
     --hash=sha256:2877b03f998cd8c08f07cd0de5b767119cd3ef40d09f41c30d722f6686b0fb88 \
     --hash=sha256:9b2cbc7f1a640289430e13d2a56f02f867a1da0190f2f99d8968c2f74da0e515
@@ -935,6 +908,7 @@ typing-extensions==4.12.2 \
     #   aws-sam-cli (setup.py)
     #   aws-sam-translator
     #   boto3-stubs
+    #   cfn-lint
     #   mypy-boto3-apigateway
     #   mypy-boto3-cloudformation
     #   mypy-boto3-ecr
