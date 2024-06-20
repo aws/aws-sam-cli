@@ -306,9 +306,9 @@ jsonpatch==1.33 \
     --hash=sha256:0ae28c0cd062bbd8b8ecc26d7d164fbbea9652a1a3693f3b956c1eae5145dade \
     --hash=sha256:9fcd4009c41e6d12348b4a0ff2563ba56a2923a7dfee731d004e212e1ee5030c
     # via cfn-lint
-jsonpickle==3.2.1 \
-    --hash=sha256:4b6d7640974199f7acf9035295365b5a1a71a91109effa15ba170fbb48cf871c \
-    --hash=sha256:ec291e4719674dd35d390fbdb521ac6517fbe9f541d361c8bffc8131133b1661
+jsonpickle==3.2.2 \
+    --hash=sha256:87cd82d237fd72c5a34970e7222dddc0accc13fddf49af84111887ed9a9445aa \
+    --hash=sha256:d425fd2b8afe9f5d7d57205153403fbf897782204437882a477e8eed60930f8c
     # via jschema-to-python
 jsonpointer==3.0.0 \
     --hash=sha256:13e088adc14fca8b6aa8177c044e12701e6ad4b28ff10e65f2267a90109c9942 \
