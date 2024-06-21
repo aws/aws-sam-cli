@@ -11,7 +11,7 @@ mypy==1.10.0
 types-pywin32==306.0.0.20240408
 types-PyYAML==6.0.12.20240311
 types-chevron==0.14.2.20240310
-types-psutil==5.9.5.20240516
+types-psutil==6.0.0.20240621
 types-setuptools==70.0.0.20240524
 types-Pygments==2.18.0.20240506 
 types-colorama==0.4.15.20240311
