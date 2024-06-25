@@ -42,4 +42,4 @@ filelock==3.15.4
 
 # formatter
 black==24.4.2
-psutil==5.9.8
+psutil==6.0.0
