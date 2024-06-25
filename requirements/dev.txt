@@ -1,6 +1,6 @@
 -r pre-dev.txt
 
-coverage==7.5.3
+coverage==7.5.4
 pytest-cov==5.0.0
 
 
