@@ -51,7 +51,7 @@ class TestDeployCliCommand(TestCase):
         self.resolve_image_repos = False
         self.disable_rollback = False
         self.on_failure = None
-        self.max_wait_duration = 60
+        self.max_wait_duration = 480
         MOCK_SAM_CONFIG.reset_mock()
 
         self.companion_stack_manager_patch = patch("samcli.commands.deploy.guided_context.CompanionStackManager")
