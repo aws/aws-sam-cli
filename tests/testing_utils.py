@@ -66,8 +66,9 @@ def method_to_stack_name(method_name):
 
 def run_command(command_list, cwd=None, env=None, timeout=TIMEOUT) -> CommandResult:
     LOG.info("Running command: %s", " ".join(command_list))
-    
+
     import subprocess
+
     try:
         process = subprocess.run(command_list, cwd=cwd, timeout=timeout, stdout=PIPE, stderr=PIPE)
     except subprocess.CalledProcessError as e:
@@ -75,8 +76,9 @@ def run_command(command_list, cwd=None, env=None, timeout=TIMEOUT) -> CommandRes
         LOG.error("Stdout: %s", e.stdout.decode("utf-8"))
         LOG.error("Stderr: %s", e.stderr.decode("utf-8"))
         raise
-    print(process.stdout)
-    print(process.stdout.decode("utf-8"))
+    except Exception as e:
+        LOG.exception(e)
+
     LOG.info("Stdout: %s", process.stdout.decode("utf-8"))
     LOG.info("Stderr: %s", process.stderr.decode("utf-8"))
     return CommandResult(process, process.stdout, process.stderr)
@@ -97,6 +99,7 @@ def run_command_with_input(command_list, stdin_input, timeout=TIMEOUT, cwd=None)
     LOG.info("Running command: %s", " ".join(command_list))
     LOG.info("With input: %s", stdin_input)
     import subprocess
+
     try:
         process = subprocess.run(command_list, cwd=cwd, input=stdin_input, timeout=timeout, stdout=PIPE, stderr=PIPE)
     except subprocess.CalledProcessError as e:
