@@ -76,8 +76,11 @@ def run_command(command_list, cwd=None, env=None, timeout=TIMEOUT) -> CommandRes
         LOG.error("Stdout: %s", e.stdout.decode("utf-8"))
         LOG.error("Stderr: %s", e.stderr.decode("utf-8"))
         raise
-    except Exception as e:
-        LOG.exception(e)
+    except TimeoutExpired as e:
+        LOG.error("Command %s, TIMED OUT")
+        LOG.error("Stdout: %s", e.stdout.decode("utf-8"))
+        LOG.error("Stderr: %s", e.stderr.decode("utf-8"))
+        raise
 
     LOG.info("Stdout: %s", process.stdout.decode("utf-8"))
     LOG.info("Stderr: %s", process.stderr.decode("utf-8"))
@@ -104,6 +107,11 @@ def run_command_with_input(command_list, stdin_input, timeout=TIMEOUT, cwd=None)
         process = subprocess.run(command_list, cwd=cwd, input=stdin_input, timeout=timeout, stdout=PIPE, stderr=PIPE)
     except subprocess.CalledProcessError as e:
         LOG.error("Command %s failed: %s", command_list, e.returncode)
+        LOG.error("Stdout: %s", e.stdout.decode("utf-8"))
+        LOG.error("Stderr: %s", e.stderr.decode("utf-8"))
+        raise
+    except TimeoutExpired as e:
+        LOG.error("Command %s, TIMED OUT")
         LOG.error("Stdout: %s", e.stdout.decode("utf-8"))
         LOG.error("Stderr: %s", e.stderr.decode("utf-8"))
         raise
