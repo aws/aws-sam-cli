@@ -2,9 +2,11 @@
 Utils for CDK-based projects
 """
 
+import logging
 import os
 from typing import Dict
 
+LOG = logging.getLogger(__name__)
 CDK_METADATA_TYPE_VALUE = "AWS::CDK::Metadata"
 CDK_PATH_METADATA_KEY = "aws:cdk:path"
 
@@ -70,5 +72,9 @@ def _relevant_cdk_files_are_present() -> bool:
     relevant_cdk_files = ["manifest.json", "tree.json", "cdk.json"]
     # In case a customer runs `cdk synth --no-staging > template.yaml` the template
     # will be in the project root and it's entirely possible to find the cdk.json there
-    project_files = os.listdir(os.getcwd())
-    return any(cdk_file in project_files for cdk_file in relevant_cdk_files)
+    try:
+        project_files = os.listdir(os.getcwd())
+        return any(cdk_file in project_files for cdk_file in relevant_cdk_files)
+    except FileNotFoundError as e:
+        LOG.debug("Error listing CWD: %s", e)
+        return False
