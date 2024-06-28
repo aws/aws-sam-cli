@@ -9,8 +9,6 @@ from threading import Thread
 from typing import Callable, List, Optional, cast
 from collections import namedtuple
 from subprocess import Popen, PIPE, TimeoutExpired, CalledProcessError
-from functools import wraps
-from datetime import datetime
 import subprocess
 from queue import Queue
 
@@ -67,18 +65,6 @@ def method_to_stack_name(method_name):
     return stack_name[:128]
 
 
-def log_duration(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        start = datetime.now()
-        ret = func(*args, **kwargs)
-        LOG.info("elapsed: %s seconds", (datetime.now() - start).total_seconds())
-        return ret
-
-    return wrapper
-
-
-@log_duration
 def run_command(command_list, cwd=None, env=None, timeout=TIMEOUT) -> CommandResult:
     LOG.info("Running command: %s", " ".join(command_list))
 
@@ -102,7 +88,6 @@ def run_command(command_list, cwd=None, env=None, timeout=TIMEOUT) -> CommandRes
     return CommandResult(process, process.stdout, process.stderr)
 
 
-@log_duration
 def run_command_with_input(command_list, stdin_input, timeout=TIMEOUT, cwd=None) -> CommandResult:
     LOG.info("Running command: %s", " ".join(command_list))
     LOG.info("With input: %s", stdin_input)
