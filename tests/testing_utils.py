@@ -9,7 +9,6 @@ from threading import Thread
 from typing import Callable, List, Optional, cast
 from collections import namedtuple
 from subprocess import Popen, PIPE, TimeoutExpired, CalledProcessError
-from functools import wraps
 from datetime import datetime
 import subprocess
 from queue import Queue
@@ -67,27 +66,17 @@ def method_to_stack_name(method_name):
     return stack_name[:128]
 
 
-def log_duration(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        start = datetime.now()
-        ret = func(*args, **kwargs)
-        LOG.info("elapsed: %s seconds", (datetime.now() - start).total_seconds())
-        return ret
-
-    return wrapper
-
-
-@log_duration
 def run_command(command_list, cwd=None, env=None, timeout=TIMEOUT) -> CommandResult:
     LOG.info("Running command: %s", " ".join(command_list))
 
     try:
+        start = datetime.now()
         process = subprocess.run(command_list, cwd=cwd, timeout=timeout, stdout=PIPE, stderr=PIPE)
     except CalledProcessError as e:
         LOG.error("Command %s failed: %s", command_list, e.returncode)
         LOG.error("Stdout: %s", e.stdout.decode("utf-8"))
         LOG.error("Stderr: %s", e.stderr.decode("utf-8"))
+        LOG.info("elapsed: %s seconds", (datetime.now() - start).total_seconds())
         raise
     except TimeoutExpired as e:
         LOG.error("Command %s, TIMED OUT in %ss", command_list, timeout)
@@ -95,24 +84,27 @@ def run_command(command_list, cwd=None, env=None, timeout=TIMEOUT) -> CommandRes
             LOG.error("Stdout: %s", e.stdout.decode("utf-8"))
         if e.stderr:
             LOG.error("Stderr: %s", e.stderr.decode("utf-8"))
+        LOG.info("elapsed: %s seconds", (datetime.now() - start).total_seconds())
         raise
 
     LOG.info("Stdout: %s", process.stdout.decode("utf-8"))
     LOG.info("Stderr: %s", process.stderr.decode("utf-8"))
+    LOG.info("elapsed: %s seconds", (datetime.now() - start).total_seconds())
     return CommandResult(process, process.stdout, process.stderr)
 
 
-@log_duration
 def run_command_with_input(command_list, stdin_input, timeout=TIMEOUT, cwd=None) -> CommandResult:
     LOG.info("Running command: %s", " ".join(command_list))
     LOG.info("With input: %s", stdin_input)
 
     try:
+        start = datetime.now()
         process = subprocess.run(command_list, cwd=cwd, input=stdin_input, timeout=timeout, stdout=PIPE, stderr=PIPE)
     except CalledProcessError as e:
         LOG.error("Command %s failed: %s", command_list, e.returncode)
         LOG.error("Stdout: %s", e.stdout.decode("utf-8"))
         LOG.error("Stderr: %s", e.stderr.decode("utf-8"))
+        LOG.info("elapsed: %s seconds", (datetime.now() - start).total_seconds())
         raise
     except TimeoutExpired as e:
         LOG.error("Command %s, TIMED OUT in %ss", command_list, timeout)
@@ -120,9 +112,11 @@ def run_command_with_input(command_list, stdin_input, timeout=TIMEOUT, cwd=None)
             LOG.error("Stdout: %s", e.stdout.decode("utf-8"))
         if e.stderr:
             LOG.error("Stderr: %s", e.stderr.decode("utf-8"))
+        LOG.info("elapsed: %s seconds", (datetime.now() - start).total_seconds())
         raise
     LOG.info("Stdout: %s", process.stdout.decode("utf-8"))
     LOG.info("Stderr: %s", process.stderr.decode("utf-8"))
+    LOG.info("elapsed: %s seconds", (datetime.now() - start).total_seconds())
     return CommandResult(process, process.stdout, process.stderr)
 
 
