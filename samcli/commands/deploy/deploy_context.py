@@ -74,6 +74,7 @@ class DeployContext:
         disable_rollback,
         poll_delay,
         on_failure,
+        max_wait_duration,
     ):
         self.template_file = template_file
         self.stack_name = stack_name
@@ -106,6 +107,7 @@ class DeployContext:
         self.poll_delay = poll_delay
         self.on_failure = FailureMode(on_failure) if on_failure else FailureMode.ROLLBACK
         self._max_template_size = 51200
+        self.max_wait_duration = max_wait_duration
 
     def __enter__(self):
         return self
@@ -270,7 +272,7 @@ class DeployContext:
                 marker_time = self.deployer.get_last_event_time(stack_name, 0)
                 self.deployer.execute_changeset(result["Id"], stack_name, disable_rollback)
                 self.deployer.wait_for_execute(
-                    stack_name, changeset_type, disable_rollback, self.on_failure, marker_time
+                    stack_name, changeset_type, disable_rollback, self.on_failure, marker_time, self.max_wait_duration
                 )
                 click.echo(self.MSG_EXECUTE_SUCCESS.format(stack_name=stack_name, region=region))
 
