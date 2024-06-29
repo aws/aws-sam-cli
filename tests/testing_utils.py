@@ -87,7 +87,7 @@ def run_command(command_list, cwd=None, env=None, timeout=TIMEOUT) -> CommandRes
         LOG.info("elapsed: %s seconds", (datetime.now() - start).total_seconds())
         assert 1 == 2
 
-    LOG.info("Stdout: %s", process.stdout.decode("utf-8"))
+    LOG.info("Command succeeded. Stdout: %s", process.stdout.decode("utf-8"))
     LOG.info("Stderr: %s", process.stderr.decode("utf-8"))
     LOG.info("elapsed: %s seconds", (datetime.now() - start).total_seconds())
     return CommandResult(process, process.stdout, process.stderr)
@@ -114,7 +114,7 @@ def run_command_with_input(command_list, stdin_input, timeout=TIMEOUT, cwd=None)
             LOG.error("Stderr: %s", e.stderr.decode("utf-8"))
         LOG.info("elapsed: %s seconds", (datetime.now() - start).total_seconds())
         assert 1 == 2
-    LOG.info("Stdout: %s", process.stdout.decode("utf-8"))
+    LOG.info("Command succeeded. Stdout: %s", process.stdout.decode("utf-8"))
     LOG.info("Stderr: %s", process.stderr.decode("utf-8"))
     LOG.info("elapsed: %s seconds", (datetime.now() - start).total_seconds())
     return CommandResult(process, process.stdout, process.stderr)
