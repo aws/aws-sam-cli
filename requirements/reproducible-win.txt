@@ -38,25 +38,25 @@ blinker==1.8.2 \
     --hash=sha256:1779309f71bf239144b9399d06ae925637cf6634cf6bd131104184531bf67c01 \
     --hash=sha256:8f77b09d3bf7c795e969e9486f39c2c5e9c39d4ee07424be2bc594ece9642d83
     # via flask
-boto3==1.34.134 \
-    --hash=sha256:342782c02ff077aae118c9c61179eed95c585831fba666baacc5588ff04aa6e1 \
-    --hash=sha256:f6d6e5b0c9ab022a75373fa16c01f0cd54bc1bb64ef3b6ac64ac7cedd56cbe9c
+boto3==1.34.135 \
+    --hash=sha256:344f635233c85dbb509b87638232ff9132739f90bb5e6bf01fa0e0a521a9107e \
+    --hash=sha256:6f5d7a20afbe45e3f7c6b5e96071752d36c3942535b1f7924964f1fdf25376a7
     # via
     #   aws-sam-cli (setup.py)
     #   aws-sam-translator
-boto3-stubs[apigateway,cloudformation,ecr,iam,kinesis,lambda,s3,schemas,secretsmanager,signer,sqs,stepfunctions,sts,xray]==1.34.134 \
-    --hash=sha256:2ad081807d710a0cd53f866480de76db9f98f4ad7106d947affb0e8af3c88ebc \
-    --hash=sha256:b68455d88b538f0eb608e64a0e28b4145f52e169eaede7d35c56cb5430471c20
+boto3-stubs[apigateway,cloudformation,ecr,iam,kinesis,lambda,s3,schemas,secretsmanager,signer,sqs,stepfunctions,sts,xray]==1.34.135 \
+    --hash=sha256:7aa56baacba4f631400b3cc55d5a0554d63cfa0955ef9189ae28da476a3140e8 \
+    --hash=sha256:7d771b74d5c17987cd73e13add9334ba2e4c85ee1e59019ccd1534aa4f49666d
     # via aws-sam-cli (setup.py)
-botocore==1.34.134 \
-    --hash=sha256:45219e00639755f92569b29f8f279d5dde721494791412c1f7026a3779e8d9f4 \
-    --hash=sha256:e29c299599426ed16dd2d4c1e20eef784f96b15e1850ebbc59a3250959285b95
+botocore==1.34.135 \
+    --hash=sha256:2e72f37072f75cb1391fca9d7a4c32cecb52a3557d62431d0f59d5311dc7d0cf \
+    --hash=sha256:3aa9e85e7c479babefb5a590e844435449df418085f3c74d604277bc52dc3109
     # via
     #   boto3
     #   s3transfer
-botocore-stubs==1.34.134 \
-    --hash=sha256:d3b09442c3044448071c4c3c07a6005626f330b677a3fa7ac5dcfbe787e23f5e \
-    --hash=sha256:e3c08af26d0711ceef356cd254a0d8772f794b8cd9da8f9eba32e4f0460c46f8
+botocore-stubs==1.34.135 \
+    --hash=sha256:b77891dac2324b78f63c854e765cf76a71822f5d2868d9a4219ca1b06a93f9e3 \
+    --hash=sha256:f599499a5e0dacc27137b8b0728b1846c3a502b001dcee6da6a036407ccd1663
     # via boto3-stubs
 certifi==2024.6.2 \
     --hash=sha256:3cd43f1c6fa7dedc5899d69d3ad0398fd018ad1a17fba83ddaf78aa46c747516 \
@@ -910,9 +910,9 @@ ruamel-yaml-clib==0.2.8 \
     --hash=sha256:f481f16baec5290e45aebdc2a5168ebc6d35189ae6fea7a58787613a25f6e875 \
     --hash=sha256:fff3573c2db359f091e1589c3d7c5fc2f86f5bdb6f24252c2d8e539d4e45f412
     # via ruamel-yaml
-s3transfer==0.10.1 \
-    --hash=sha256:5683916b4c724f799e600f41dd9e10a9ff19871bf87623cc8f491cb4f5fa0a19 \
-    --hash=sha256:ceb252b11bcf87080fb7850a224fb6e05c8a776bab8f2b64b7f25b969464839d
+s3transfer==0.10.2 \
+    --hash=sha256:0711534e9356d3cc692fdde846b4a1e4b0cb6519971860796e6bc4c7aea00ef6 \
+    --hash=sha256:eca1c20de70a39daee580aef4986996620f365c4e0fda6a86100231d62f1bf69
     # via boto3
 sarif-om==1.0.4 \
     --hash=sha256:539ef47a662329b1c8502388ad92457425e95dc0aaaf995fe46f4984c4771911 \
