@@ -77,7 +77,7 @@ def run_command(command_list, cwd=None, env=None, timeout=TIMEOUT) -> CommandRes
         LOG.error("Stdout: %s", e.stdout.decode("utf-8"))
         LOG.error("Stderr: %s", e.stderr.decode("utf-8"))
         LOG.info("elapsed: %s seconds", (datetime.now() - start).total_seconds())
-        raise
+        assert 1 == 2
     except TimeoutExpired as e:
         LOG.error("Command %s, TIMED OUT in %ss", command_list, timeout)
         if e.stdout:
@@ -85,7 +85,7 @@ def run_command(command_list, cwd=None, env=None, timeout=TIMEOUT) -> CommandRes
         if e.stderr:
             LOG.error("Stderr: %s", e.stderr.decode("utf-8"))
         LOG.info("elapsed: %s seconds", (datetime.now() - start).total_seconds())
-        raise
+        assert 1 == 2
 
     LOG.info("Stdout: %s", process.stdout.decode("utf-8"))
     LOG.info("Stderr: %s", process.stderr.decode("utf-8"))
@@ -105,7 +105,7 @@ def run_command_with_input(command_list, stdin_input, timeout=TIMEOUT, cwd=None)
         LOG.error("Stdout: %s", e.stdout.decode("utf-8"))
         LOG.error("Stderr: %s", e.stderr.decode("utf-8"))
         LOG.info("elapsed: %s seconds", (datetime.now() - start).total_seconds())
-        raise
+        assert 1 == 2
     except TimeoutExpired as e:
         LOG.error("Command %s, TIMED OUT in %ss", command_list, timeout)
         if e.stdout:
@@ -113,7 +113,7 @@ def run_command_with_input(command_list, stdin_input, timeout=TIMEOUT, cwd=None)
         if e.stderr:
             LOG.error("Stderr: %s", e.stderr.decode("utf-8"))
         LOG.info("elapsed: %s seconds", (datetime.now() - start).total_seconds())
-        raise
+        assert 1 == 2
     LOG.info("Stdout: %s", process.stdout.decode("utf-8"))
     LOG.info("Stderr: %s", process.stderr.decode("utf-8"))
     LOG.info("elapsed: %s seconds", (datetime.now() - start).total_seconds())
