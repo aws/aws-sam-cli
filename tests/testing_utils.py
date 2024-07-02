@@ -8,9 +8,7 @@ from pathlib import Path
 from threading import Thread
 from typing import Callable, List, Optional, cast
 from collections import namedtuple
-from subprocess import Popen, PIPE, TimeoutExpired, CalledProcessError
-from datetime import datetime
-import subprocess
+from subprocess import Popen, PIPE, TimeoutExpired
 from queue import Queue
 
 from samcli import __version__ as SAM_CLI_VERSION
@@ -68,56 +66,33 @@ def method_to_stack_name(method_name):
 
 def run_command(command_list, cwd=None, env=None, timeout=TIMEOUT) -> CommandResult:
     LOG.info("Running command: %s", " ".join(command_list))
-
+    process_execute = Popen(command_list, cwd=cwd, env=env, stdout=PIPE, stderr=PIPE)
     try:
-        start = datetime.now()
-        process = subprocess.run(command_list, cwd=cwd, timeout=timeout, stdout=PIPE, stderr=PIPE)
-    except CalledProcessError as e:
-        LOG.error("Command %s failed: %s", command_list, e.returncode)
-        LOG.error("Stdout: %s", e.stdout.decode("utf-8"))
-        LOG.error("Stderr: %s", e.stderr.decode("utf-8"))
-        LOG.info("elapsed: %s seconds", (datetime.now() - start).total_seconds())
-        assert 1 == 2
-    except TimeoutExpired as e:
-        LOG.error("Command %s, TIMED OUT in %ss", command_list, timeout)
-        if e.stdout:
-            LOG.error("Stdout: %s", e.stdout.decode("utf-8"))
-        if e.stderr:
-            LOG.error("Stderr: %s", e.stderr.decode("utf-8"))
-        LOG.info("elapsed: %s seconds", (datetime.now() - start).total_seconds())
-        assert 1 == 2
-
-    LOG.info("Command succeeded. Stdout: %s", process.stdout.decode("utf-8"))
-    LOG.info("Stderr: %s", process.stderr.decode("utf-8"))
-    LOG.info("elapsed: %s seconds", (datetime.now() - start).total_seconds())
-    return CommandResult(process, process.stdout, process.stderr)
+        stdout_data, stderr_data = process_execute.communicate(timeout=timeout)
+        LOG.info(f"Stdout: {stdout_data.decode('utf-8')}")
+        LOG.info(f"Stderr: {stderr_data.decode('utf-8')}")
+        return CommandResult(process_execute, stdout_data, stderr_data)
+    except TimeoutExpired:
+        LOG.error(f"Command: {command_list}, TIMED OUT")
+        LOG.error(f"Return Code: {process_execute.returncode}")
+        process_execute.kill()
+        raise
 
 
 def run_command_with_input(command_list, stdin_input, timeout=TIMEOUT, cwd=None) -> CommandResult:
     LOG.info("Running command: %s", " ".join(command_list))
     LOG.info("With input: %s", stdin_input)
-
+    process_execute = Popen(command_list, cwd=cwd, stdout=PIPE, stderr=PIPE, stdin=PIPE)
     try:
-        start = datetime.now()
-        process = subprocess.run(command_list, cwd=cwd, input=stdin_input, timeout=timeout, stdout=PIPE, stderr=PIPE)
-    except CalledProcessError as e:
-        LOG.error("Command %s failed: %s", command_list, e.returncode)
-        LOG.error("Stdout: %s", e.stdout.decode("utf-8"))
-        LOG.error("Stderr: %s", e.stderr.decode("utf-8"))
-        LOG.info("elapsed: %s seconds", (datetime.now() - start).total_seconds())
-        assert 1 == 2
-    except TimeoutExpired as e:
-        LOG.error("Command %s, TIMED OUT in %ss", command_list, timeout)
-        if e.stdout:
-            LOG.error("Stdout: %s", e.stdout.decode("utf-8"))
-        if e.stderr:
-            LOG.error("Stderr: %s", e.stderr.decode("utf-8"))
-        LOG.info("elapsed: %s seconds", (datetime.now() - start).total_seconds())
-        assert 1 == 2
-    LOG.info("Command succeeded. Stdout: %s", process.stdout.decode("utf-8"))
-    LOG.info("Stderr: %s", process.stderr.decode("utf-8"))
-    LOG.info("elapsed: %s seconds", (datetime.now() - start).total_seconds())
-    return CommandResult(process, process.stdout, process.stderr)
+        stdout_data, stderr_data = process_execute.communicate(stdin_input, timeout=timeout)
+        LOG.info(f"Stdout: {stdout_data.decode('utf-8')}")
+        LOG.info(f"Stderr: {stderr_data.decode('utf-8')}")
+        return CommandResult(process_execute, stdout_data, stderr_data)
+    except TimeoutExpired:
+        LOG.error(f"Command: {command_list}, TIMED OUT")
+        LOG.error(f"Return Code: {process_execute.returncode}")
+        process_execute.kill()
+        raise
 
 
 def run_command_with_inputs(command_list: List[str], inputs: List[str], timeout=TIMEOUT) -> CommandResult:

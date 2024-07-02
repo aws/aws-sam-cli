@@ -1166,8 +1166,6 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
             False,
             self.test_data_path,
         )
-        if runtime == "java8.al2" and code_path == BuildIntegJavaBase.USING_GRADLE_PATH:
-            assert 1 == 2
 
 
 @pytest.mark.dotnet
