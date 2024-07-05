@@ -12,26 +12,27 @@ jobs:
   build-for-linux:
     name: build-pyinstaller-linux
     runs-on: ubuntu-latest
-    container: quay.io/pypa/manylinux2014_x86_64:latest
     if: github.repository_owner == 'aws'
     strategy:
       fail-fast: false
     steps:
-      # we need to keep checkout as v3 otherwise it doesn't work with manylinux image above
-      # due to glibc requirement from github actions 
-      # see example failure: https://github.com/aws/aws-sam-cli/actions/runs/6102715182/job/16561754862?pr=5887
-      - uses: actions/checkout@v3
-      - name: Build PyInstaller
+      - uses: actions/checkout@v4
+      - name: Make installer script executable
+        run: chmod +x ./installer/pyinstaller/build-linux.sh
+      - name: Build PyInstaller in manylinux container
         run: |
-          chmod +x ./installer/pyinstaller/build-linux.sh
-          ./installer/pyinstaller/build-linux.sh aws-sam-cli-linux-x86_64.zip
+          docker run --rm -v .:/samcli -w /samcli -e CI_OVERRIDE='1' \
+          quay.io/pypa/manylinux2014_x86_64:latest /samcli/installer/pyinstaller/build-linux.sh aws-sam-cli-linux-x86_64.zip
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.11
       - name: Basic tests for PyInstaller
         run: |
           unzip .build/output/aws-sam-cli-linux-x86_64.zip -d sam-installation
-          ./sam-installation/install
+          sudo ./sam-installation/install
           sam-beta --version
           ./tests/sanity-check.sh
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: pyinstaller-linux-zip
           path: .build/output/aws-sam-cli-linux-x86_64.zip
