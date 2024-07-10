@@ -12,11 +12,11 @@ types-pywin32==306.0.0.20240408
 types-PyYAML==6.0.12.20240311
 types-chevron==0.14.2.20240310
 types-psutil==6.0.0.20240621
-types-setuptools==70.2.0.20240704
+types-setuptools==70.3.0.20240710
 types-Pygments==2.18.0.20240506 
 types-colorama==0.4.15.20240311
 types-dateparser==1.2.0.20240420
-types-docutils==0.21.0.20240704
+types-docutils==0.21.0.20240710
 types-jsonschema==4.22.0.20240610
 types-pyOpenSSL==24.1.0.20240425
 # lucashuy: pin `types-request` based on the Python version since newer versions of
