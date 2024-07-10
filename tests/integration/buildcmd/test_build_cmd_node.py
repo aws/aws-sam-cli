@@ -9,8 +9,6 @@ from tests.testing_utils import (
     RUNNING_TEST_FOR_MASTER_ON_CI,
     RUN_BY_CANARY,
     CI_OVERRIDE,
-    runtime_supported_by_docker,
-    RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG,
 )
 from tests.integration.buildcmd.build_integ_base import (
     BuildIntegNodeBase,
@@ -159,8 +157,6 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture(BuildIntegNodeB
         ]
     )
     def test_building_default_package_json(self, runtime, use_container, architecture):
-        if use_container and not runtime_supported_by_docker(runtime):
-            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
         self._test_with_default_package_json(runtime, use_container, self.test_data_path, architecture)
 
     @parameterized.expand(
@@ -170,6 +166,4 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture(BuildIntegNodeB
     )
     @pytest.mark.al2023
     def test_building_default_package_json_al2023(self, runtime, use_container, architecture):
-        if use_container and not runtime_supported_by_docker(runtime):
-            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
         self._test_with_default_package_json(runtime, use_container, self.test_data_path, architecture)

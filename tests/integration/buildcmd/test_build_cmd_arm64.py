@@ -1,5 +1,6 @@
 import os
 from unittest import skipIf
+import pytest
 
 from parameterized import parameterized, parameterized_class
 
@@ -22,11 +23,9 @@ from tests.testing_utils import (
     CI_OVERRIDE,
     IS_WINDOWS,
     RUNNING_ON_CI,
-    runtime_supported_by_docker,
-    RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG,
 )
 
-
+@pytest.mark.python
 class TestBuildCommand_PythonFunctions_With_Specified_Architecture_arm64(BuildIntegPythonBase):
     template = "template_with_architecture.yaml"
 
@@ -36,22 +35,28 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture_arm64(BuildIn
             ("python3.9", "Python", False),
             ("python3.10", "Python", False),
             ("python3.11", "Python", False),
-            ("python3.12", "Python", False),
             ("python3.8", "PythonPEP600", False),
             ("python3.9", "PythonPEP600", False),
             ("python3.10", "PythonPEP600", False),
             ("python3.11", "PythonPEP600", False),
-            ("python3.12", "PythonPEP600", False),
             ("python3.8", "Python", "use_container"),
             ("python3.9", "Python", "use_container"),
             ("python3.10", "Python", "use_container"),
             ("python3.11", "Python", "use_container"),
-            ("python3.12", "Python", "use_container"),
         ]
     )
     def test_with_default_requirements(self, runtime, codeuri, use_container):
-        if use_container and not runtime_supported_by_docker(runtime):
-            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
+        self._test_with_default_requirements(runtime, codeuri, use_container, self.test_data_path, architecture=ARM64)
+
+    @parameterized.expand(
+        [
+            ("python3.12", "Python", False),
+            ("python3.12", "PythonPEP600", False),
+            ("python3.12", "Python", "use_container"),
+        ]
+    )
+    @pytest.mark.al2023
+    def test_with_default_requirements_al2023(self, runtime, codeuri, use_container):
         self._test_with_default_requirements(runtime, codeuri, use_container, self.test_data_path, architecture=ARM64)
 
 
@@ -75,7 +80,7 @@ class TestBuildCommand_EsbuildFunctions_arm64(BuildIntegEsbuildBase):
     def test_building_default_package_json(self, runtime, code_uri, expected_files, handler, use_container):
         self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, ARM64)
 
-
+@pytest.mark.node
 class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(BuildIntegEsbuildBase):
     template = "template_with_metadata_esbuild.yaml"
     MANIFEST_PATH = "Esbuild/npm_manifest/package.json"
@@ -97,13 +102,6 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(BuildIntegE
                 False,
             ),
             (
-                "nodejs20.x",
-                "Esbuild/Node_without_manifest",
-                {"main.js", "main.js.map"},
-                "main.lambdaHandler",
-                False,
-            ),
-            (
                 "nodejs16.x",
                 "Esbuild/TypeScript_without_manifest",
                 {"app.js", "app.js.map"},
@@ -117,6 +115,21 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(BuildIntegE
                 "app.lambdaHandler",
                 False,
             ),
+        ]
+    )
+    def test_building_default_package_json(self, runtime, code_uri, expected_files, handler, use_container):
+        self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, ARM64)
+
+
+    @parameterized.expand(
+        [
+            (
+                "nodejs20.x",
+                "Esbuild/Node_without_manifest",
+                {"main.js", "main.js.map"},
+                "main.lambdaHandler",
+                False,
+            ),
             (
                 "nodejs20.x",
                 "Esbuild/TypeScript_without_manifest",
@@ -126,12 +139,11 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(BuildIntegE
             ),
         ]
     )
-    def test_building_default_package_json(self, runtime, code_uri, expected_files, handler, use_container):
-        if use_container and not runtime_supported_by_docker(runtime):
-            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
+    @pytest.mark.al2023
+    def test_building_default_package_json_al2023(self, runtime, code_uri, expected_files, handler, use_container):
         self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, ARM64)
 
-
+@pytest.mark.node
 class TestBuildCommand_NodeFunctions_With_Specified_Architecture_arm64(BuildIntegNodeBase):
     template = "template_with_architecture.yaml"
 
@@ -139,15 +151,21 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture_arm64(BuildInte
         [
             ("nodejs16.x", False),
             ("nodejs18.x", False),
-            ("nodejs20.x", False),
             ("nodejs16.x", "use_container"),
             ("nodejs18.x", "use_container"),
-            ("nodejs20.x", "use_container"),
         ]
     )
     def test_building_default_package_json(self, runtime, use_container):
-        if use_container and not runtime_supported_by_docker(runtime):
-            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
+        self._test_with_default_package_json(runtime, use_container, self.test_data_path, ARM64)
+
+    @parameterized.expand(
+        [
+            ("nodejs20.x", False),
+            ("nodejs20.x", "use_container"),
+        ]
+    )
+    @pytest.mark.al2023
+    def test_building_default_package_json_al2023(self, runtime, use_container):
         self._test_with_default_package_json(runtime, use_container, self.test_data_path, ARM64)
 
 
@@ -168,6 +186,7 @@ class TestBuildCommand_RubyFunctions_With_Architecture_arm64(BuildIntegRubyBase)
     (IS_WINDOWS and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
+@pytest.mark.java
 class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase):
     template = "template_with_architecture.yaml"
 
@@ -257,6 +276,24 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
                 BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
                 BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
             ),
+        ]
+    )
+    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
+    def test_building_java_in_container_with_arm64_architecture(
+        self, runtime, runtime_version, code_path, expected_files, expected_dependencies
+    ):
+        self._test_with_building_java(
+            runtime,
+            os.path.join(code_path, runtime_version),
+            expected_files,
+            expected_dependencies,
+            "use_container",
+            self.test_data_path,
+            ARM64,
+        )
+
+    @parameterized.expand(
+        [
             (
                 "java21",
                 "21",
@@ -288,11 +325,10 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
         ]
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
-    def test_building_java_in_container_with_arm64_architecture(
+    @pytest.mark.al2023
+    def test_building_java_in_container_with_arm64_architecture_al2023(
         self, runtime, runtime_version, code_path, expected_files, expected_dependencies
     ):
-        if not runtime_supported_by_docker(runtime):
-            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
         self._test_with_building_java(
             runtime,
             os.path.join(code_path, runtime_version),
@@ -484,6 +520,12 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture_arm64(Build
                 "use_container",
                 "Makefile-container",
             ),
+        ]
+    )
+    def test_building_Makefile(self, runtime, use_container, manifest):
+        self._test_with_Makefile(runtime, use_container, manifest, ARM64)
+    @parameterized.expand(
+        [
             (
                 "provided.al2023",
                 False,
@@ -496,9 +538,8 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture_arm64(Build
             ),
         ]
     )
-    def test_building_Makefile(self, runtime, use_container, manifest):
-        if use_container and not runtime_supported_by_docker(runtime):
-            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
+    @pytest.mark.al2023
+    def test_building_Makefile_al2023(self, runtime, use_container, manifest):
         self._test_with_Makefile(runtime, use_container, manifest, ARM64)
 
 
@@ -507,18 +548,32 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture_arm64(Build
     "Skip build tests on windows when running in CI unless overridden",
 )
 @rust_parameterized_class
+@pytest.mark.provided
 class TestBuildCommand_Rust_arm64(BuildIntegRustBase):
     @parameterized.expand(
         [
             ("provided.al2", None, False),
             ("provided.al2", "debug", False),
+        ]
+    )
+    def test_build(self, runtime, build_mode, use_container):
+        self._test_with_rust_cargo_lambda(
+            runtime=runtime,
+            code_uri=self.code_uri,
+            binary=self.binary,
+            architecture=ARM64,
+            build_mode=build_mode,
+            expected_invoke_result=self.expected_invoke_result,
+            use_container=use_container,
+        ) 
+    @parameterized.expand(
+        [
             ("provided.al2023", None, False),
             ("provided.al2023", "debug", False),
         ]
     )
-    def test_build(self, runtime, build_mode, use_container):
-        if use_container and not runtime_supported_by_docker(runtime):
-            self.skipTest(RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG)
+    @pytest.mark.al2023
+    def test_build_al2023(self, runtime, build_mode, use_container):
         self._test_with_rust_cargo_lambda(
             runtime=runtime,
             code_uri=self.code_uri,
