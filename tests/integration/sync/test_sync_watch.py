@@ -60,6 +60,7 @@ class TestSyncWatchBase(SyncIntegBase):
     def setUp(self):
         # set up clean testing folder
         self.test_data_path = Path(tempfile.mkdtemp())
+        LOG.info("self.teest_data_path: %s", self.test_data_path)
         original_test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "sync")
 
         shutil.rmtree(self.test_data_path)
@@ -194,6 +195,7 @@ class TestSyncWatchInfra(TestSyncWatchBase):
             self.test_data_path.joinpath(f"infra/template-{self.runtime}-before.yaml"),
         )
 
+        assert_path_exists(self.test_data_path)
         read_until_string(self.watch_process, "\x1b[32mInfra sync completed.\x1b[0m\n", timeout=600)
 
         # Updated Infra Validation
@@ -221,6 +223,7 @@ class TestSyncWatchCode(TestSyncWatchBase):
                 self.test_data_path.joinpath("code", "after", "function", "requirements.txt"),
                 self.test_data_path.joinpath("code", "before", "function", "requirements.txt"),
             )
+            assert_path_exists(self.test_data_path)
             read_until_string(
                 self.watch_process,
                 "Finished syncing Function Layer Reference Sync HelloWorldFunction.\x1b[0m\n",
@@ -230,6 +233,7 @@ class TestSyncWatchCode(TestSyncWatchBase):
             self.assertIn("requests", layer_contents)
 
         # Test Lambda Function
+        assert_path_exists(self.test_data_path)
         self.update_file(
             self.test_data_path.joinpath("code", "after", "function", "app.py"),
             self.test_data_path.joinpath("code", "before", "function", "app.py"),
@@ -244,6 +248,7 @@ class TestSyncWatchCode(TestSyncWatchBase):
             self.assertEqual(lambda_response.get("message"), "8")
 
         # Test Lambda Layer
+        assert_path_exists(self.test_data_path)
         self.update_file(
             self.test_data_path.joinpath("code", "after", "layer", "layer_method.py"),
             self.test_data_path.joinpath("code", "before", "layer", "layer_method.py"),
@@ -260,6 +265,7 @@ class TestSyncWatchCode(TestSyncWatchBase):
             self.assertEqual(lambda_response.get("message"), "9")
 
         # Test APIGW
+        assert_path_exists(self.test_data_path)
         self.update_file(
             self.test_data_path.joinpath("code", "after", "apigateway", "definition.json"),
             self.test_data_path.joinpath("code", "before", "apigateway", "definition.json"),
@@ -270,6 +276,7 @@ class TestSyncWatchCode(TestSyncWatchBase):
         self.assertEqual(self._get_api_message(rest_api), '{"message": "hello 2"}')
 
         # Test SFN
+        assert_path_exists(self.test_data_path)
         self.update_file(
             self.test_data_path.joinpath("code", "after", "statemachine", "function.asl.json"),
             self.test_data_path.joinpath("code", "before", "statemachine", "function.asl.json"),
@@ -290,6 +297,7 @@ class TestSyncInfraNestedStacks(TestSyncWatchBase):
         super().setUpClass()
 
     def test_sync_watch_infra_nested_stack(self):
+        assert_path_exists(self.test_data_path)
         self.update_file(
             self.test_data_path.joinpath("infra", "template-python-after.yaml"),
             self.test_data_path.joinpath("infra", "template-python-before.yaml"),
@@ -318,6 +326,7 @@ class TestSyncCodeWatchNestedStacks(TestSyncWatchBase):
             # Test update manifest
             layer_contents = self.get_dependency_layer_contents_from_arn(self.stack_resources, "python", 1)
             self.assertNotIn("requests", layer_contents)
+            assert_path_exists(self.test_data_path)
             self.update_file(
                 self.test_data_path.joinpath("code", "after", "function", "requirements.txt"),
                 self.test_data_path.joinpath("code", "before", "function", "requirements.txt"),
@@ -331,6 +340,7 @@ class TestSyncCodeWatchNestedStacks(TestSyncWatchBase):
             self.assertIn("requests", layer_contents)
 
         # Test Lambda Function
+        assert_path_exists(self.test_data_path)
         self.update_file(
             self.test_data_path.joinpath("code", "after", "function", "app.py"),
             self.test_data_path.joinpath("code", "before", "function", "app.py"),
@@ -347,6 +357,7 @@ class TestSyncCodeWatchNestedStacks(TestSyncWatchBase):
             self.assertEqual(lambda_response.get("message"), "8")
 
         # Test Lambda Layer
+        assert_path_exists(self.test_data_path)
         self.update_file(
             self.test_data_path.joinpath("code", "after", "layer", "layer_method.py"),
             self.test_data_path.joinpath("code", "before", "layer", "layer_method.py"),
@@ -363,6 +374,7 @@ class TestSyncCodeWatchNestedStacks(TestSyncWatchBase):
             self.assertEqual(lambda_response.get("message"), "9")
 
         # Test APIGW
+        assert_path_exists(self.test_data_path)
         self.update_file(
             self.test_data_path.joinpath("code", "after", "apigateway", "definition.json"),
             self.test_data_path.joinpath("code", "before", "apigateway", "definition.json"),
@@ -377,6 +389,7 @@ class TestSyncCodeWatchNestedStacks(TestSyncWatchBase):
         self.assertEqual(self._get_api_message(rest_api), '{"message": "hello 2"}')
 
         # Test SFN
+        assert_path_exists(self.test_data_path)
         self.update_file(
             self.test_data_path.joinpath("code", "after", "statemachine", "function.asl.json"),
             self.test_data_path.joinpath("code", "before", "statemachine", "function.asl.json"),
@@ -405,6 +418,7 @@ class TestSyncWatchCodeEsbuild(TestSyncWatchEsbuildBase):
             self.assertNotIn("extra_message", lambda_response)
             self.assertEqual(lambda_response.get("message"), "hello world")
 
+        assert_path_exists(self.test_data_path)
         self.update_file(
             self.test_data_path.joinpath("code", "after", "esbuild_function", "app.ts"),
             self.test_data_path.joinpath("code", "before", "esbuild_function", "app.ts"),
@@ -441,6 +455,7 @@ class TestSyncWatchInfraUseContainer(TestSyncWatchUseContainer):
         super().setUpClass()
 
     def test_sync_watch_infra(self):
+        assert_path_exists(self.test_data_path)
         self.update_file(
             self.test_data_path.joinpath(f"infra/template-python-after.yaml"),
             self.test_data_path.joinpath(f"infra/template-python-before.yaml"),
@@ -465,6 +480,7 @@ class TestSyncWatchCodeUseContainer(TestSyncWatchUseContainer):
         self.stack_resources = self._get_stacks(self.stack_name)
 
         # Test Lambda Function
+        assert_path_exists(self.test_data_path)
         self.update_file(
             self.test_data_path.joinpath("code", "after", "function", "requirements.txt"),
             self.test_data_path.joinpath("code", "before", "function", "requirements.txt"),
@@ -526,6 +542,7 @@ class TestSyncWatchCodeOnly(TestSyncWatchBase):
             # Test update manifest
             layer_contents = self.get_dependency_layer_contents_from_arn(self.stack_resources, "python", 1)
             self.assertNotIn("requests", layer_contents)
+            assert_path_exists(self.test_data_path)
             self.update_file(
                 self.test_data_path.joinpath("code", "after", "function", "requirements.txt"),
                 self.test_data_path.joinpath("code", "before", "function", "requirements.txt"),
@@ -539,6 +556,7 @@ class TestSyncWatchCodeOnly(TestSyncWatchBase):
             self.assertIn("requests", layer_contents)
 
         # Test Lambda Function
+        assert_path_exists(self.test_data_path)
         self.update_file(
             self.test_data_path.joinpath("code", "after", "function", "app.py"),
             self.test_data_path.joinpath("code", "before", "function", "app.py"),
@@ -553,6 +571,7 @@ class TestSyncWatchCodeOnly(TestSyncWatchBase):
             self.assertEqual(lambda_response.get("message"), "8")
 
         # Test Lambda Layer
+        assert_path_exists(self.test_data_path)
         self.update_file(
             self.test_data_path.joinpath("code", "after", "layer", "layer_method.py"),
             self.test_data_path.joinpath("code", "before", "layer", "layer_method.py"),
@@ -569,6 +588,7 @@ class TestSyncWatchCodeOnly(TestSyncWatchBase):
             self.assertEqual(lambda_response.get("message"), "9")
 
         # updating infra should not trigger an infra sync
+        assert_path_exists(self.test_data_path)
         self.update_file(
             self.test_data_path.joinpath(f"infra/template-{self.runtime}-after.yaml"),
             self.test_data_path.joinpath(f"code/before/template-{self.runtime}-code-only.yaml"),
@@ -655,6 +675,7 @@ class TestSyncWatchAutoSkipInfra(SyncIntegBase):
         kill_process(self.watch_process)
 
         # Test Lambda Function
+        assert_path_exists(self.test_data_path)
         self.update_file(
             self.test_dir.joinpath("code", "after", "function", "app.py"),
             self.test_dir.joinpath("code", "before", "function", "app.py"),
@@ -689,6 +710,7 @@ class TestSyncWatchAutoSkipInfra(SyncIntegBase):
             self.assertEqual(lambda_response.get("message"), "8")
 
         # Test Lambda Layer
+        assert_path_exists(self.test_data_path)
         self.update_file(
             self.test_dir.joinpath("code", "after", "layer", "layer_method.py"),
             self.test_dir.joinpath("code", "before", "layer", "layer_method.py"),
@@ -724,6 +746,7 @@ class TestSyncWatchAutoSkipInfra(SyncIntegBase):
             self.assertEqual(lambda_response.get("message"), "9")
 
         # Test APIGW
+        assert_path_exists(self.test_data_path)
         self.update_file(
             self.test_dir.joinpath("code", "after", "apigateway", "definition.json"),
             self.test_dir.joinpath("code", "before", "apigateway", "definition.json"),
@@ -756,6 +779,7 @@ class TestSyncWatchAutoSkipInfra(SyncIntegBase):
         self.assertEqual(self._get_api_message(rest_api), '{"message": "hello 2"}')
 
         # Test SFN
+        assert_path_exists(self.test_data_path)
         self.update_file(
             self.test_dir.joinpath("code", "after", "statemachine", "function.asl.json"),
             self.test_dir.joinpath("code", "before", "statemachine", "function.asl.json"),
@@ -800,12 +824,14 @@ class TestSyncWatchInfraWithInvalidTemplate(TestSyncWatchBase):
 
     def test_sync_watch_infra(self):
         # keep a copy of valid template
+        assert_path_exists(self.test_data_path)
         self.update_file(
             self.test_data_path.joinpath(f"infra/template-python-function-only.yaml"),
             self.test_data_path.joinpath(f"infra/template-python-function-only-copy.yaml"),
         )
 
         # update template with invalid one
+        assert_path_exists(self.test_data_path)
         self.update_file(
             self.test_data_path.joinpath(f"infra/template-python-function-only-invalid.yaml"),
             self.test_data_path.joinpath(f"infra/template-python-function-only.yaml"),
@@ -817,6 +843,7 @@ class TestSyncWatchInfraWithInvalidTemplate(TestSyncWatchBase):
         time.sleep(5)
 
         # update it back to valid template
+        assert_path_exists(self.test_data_path)
         self.update_file(
             self.test_data_path.joinpath(f"infra/template-python-function-only-copy.yaml"),
             self.test_data_path.joinpath(f"infra/template-python-function-only.yaml"),
@@ -842,6 +869,7 @@ class TestSyncWatchCodeWatchExclude(TestSyncWatchEsbuildBase):
             self.assertNotIn("extra_message", lambda_response)
             self.assertEqual(lambda_response.get("message"), "hello world")
 
+        assert_path_exists(self.test_data_path)
         self.update_file(
             self.test_data_path.joinpath("code", "after", "esbuild_function", "app.ts"),
             self.test_data_path.joinpath("code", "before", "esbuild_function", "app.ts"),
@@ -861,3 +889,8 @@ class TestSyncWatchCodeWatchExclude(TestSyncWatchEsbuildBase):
             lambda_response = json.loads(self._get_lambda_response(lambda_function))
             self.assertNotIn("extra_message", lambda_response)
             self.assertEqual(lambda_response.get("message"), "hello world")
+
+
+def assert_path_exists(path):
+    LOG.info("Checking if %s exists", path)
+    assert os.listdir(path)
