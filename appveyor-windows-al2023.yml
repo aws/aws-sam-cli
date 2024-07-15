@@ -71,7 +71,7 @@ install:
   - "C:\\Python310-x64\\python.exe -m pip install --upgrade pip"
 
   # Install Node 20
-  - ps: "Install-Product node 20.10.0"
+  - ps: "Install-Product node 20"
 
   # Install AWS CLI Globally via pip3
   - "pip install awscli"
