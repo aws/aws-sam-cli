@@ -80,7 +80,7 @@ class TestBuildCommand_EsbuildFunctions_arm64(BuildIntegEsbuildBase):
     def test_building_default_package_json(self, runtime, code_uri, expected_files, handler, use_container):
         self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, ARM64)
 
-@pytest.mark.node
+@pytest.mark.nodejs
 class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(BuildIntegEsbuildBase):
     template = "template_with_metadata_esbuild.yaml"
     MANIFEST_PATH = "Esbuild/npm_manifest/package.json"
@@ -143,7 +143,7 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(BuildIntegE
     def test_building_default_package_json_al2023(self, runtime, code_uri, expected_files, handler, use_container):
         self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, ARM64)
 
-@pytest.mark.node
+@pytest.mark.nodejs
 class TestBuildCommand_NodeFunctions_With_Specified_Architecture_arm64(BuildIntegNodeBase):
     template = "template_with_architecture.yaml"
 
