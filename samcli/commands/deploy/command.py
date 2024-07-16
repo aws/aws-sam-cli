@@ -138,8 +138,8 @@ LOG = logging.getLogger(__name__)
 @click.option(
     "--max-wait-duration",
     default=60,
-    type=click.IntRange(min=60, max=480),
-    help="Maximum duration in minutes to wait for the deployment to complete. Must be between 60 and 480 minutes.",
+    type=int,
+    help="Maximum duration in minutes to wait for the deployment to complete.",
 )
 @stack_name_option(callback=guided_deploy_stack_name)  # pylint: disable=E1120
 @s3_bucket_option(disable_callback=True)  # pylint: disable=E1120
