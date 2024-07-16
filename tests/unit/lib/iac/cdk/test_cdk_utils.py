@@ -25,16 +25,20 @@ class TestIsCDKProject(TestCase):
 
     @parameterized.expand(
         [
-            (True, ["lib", "app.py", "requirements.txt", "cdk.json"]),
-            (True, ["Stack.template.json", "manifest.json", "asset"]),
-            (True, ["Stack.template.json", "tree.json", "asset"]),
-            (True, ["Stack.template.json", "manifest.json", "tree.json"]),
-            (False, ["lib", "app.py", "requirements.txt"]),
-            (False, []),
+            (True, ["lib", "app.py", "requirements.txt", "cdk.json"], None),
+            (True, ["Stack.template.json", "manifest.json", "asset"], None),
+            (True, ["Stack.template.json", "tree.json", "asset"], None),
+            (True, ["Stack.template.json", "manifest.json", "tree.json"], None),
+            (False, ["lib", "app.py", "requirements.txt"], None),
+            (False, [], None),
+            (False, [], FileNotFoundError),
         ]
     )
-    def test_cdk_project_files(self, expected_is_cdk, project_files):
+    def test_cdk_project_files(self, expected_is_cdk, project_files, side_effect):
         with patch("samcli.lib.iac.cdk.utils.os") as mock_os:
-            mock_os.listdir.return_value = project_files
+            if side_effect:
+                mock_os.listdir.side_effect = side_effect
+            else:
+                mock_os.listdir.return_value = project_files
             is_cdk = is_cdk_project({})
             self.assertEqual(is_cdk, expected_is_cdk)
