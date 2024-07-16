@@ -10,7 +10,7 @@ from timeit import default_timer as timer
 import pytest
 import docker
 
-from .invoke_integ_base import InvokeIntegBase
+from tests.integration.local.invoke.invoke_integ_base import IntegrationCliIntegBase, InvokeIntegBase
 from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, CI_OVERRIDE
 
 from pathlib import Path
@@ -26,7 +26,7 @@ TIMEOUT = 300
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
-class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
+class TestSamPython36HelloWorldIntegrationImages(IntegrationCliIntegBase):
     template = Path("template_image.yaml")
 
     @classmethod
@@ -275,7 +275,7 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
         environ = json.loads(process_stdout.decode("utf-8"))
 
         self.assertEqual(environ["Region"], "us-east-1")
-        self.assertEqual(environ["AccountId"], "123456789012")
+        self.assert_is_account_id_valid(environ["AccountId"])
         self.assertEqual(environ["Partition"], "aws")
         self.assertEqual(environ["StackName"], "local")
         self.assertEqual(
@@ -289,7 +289,7 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_with_env_using_parameters_with_custom_region(self):
-        custom_region = "my-custom-region"
+        custom_region = "us-west-2"
 
         command_list = InvokeIntegBase.get_command_list(
             "EchoEnvWithParameters", template_path=self.template_path, event_path=self.event_path, region=custom_region
@@ -309,7 +309,7 @@ class TestSamPython36HelloWorldIntegrationImages(InvokeIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_with_env_with_aws_creds(self):
-        custom_region = "my-custom-region"
+        custom_region = "us-west-2"
         key = "key"
         secret = "secret"
         session = "session"

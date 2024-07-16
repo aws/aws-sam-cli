@@ -12,12 +12,12 @@ docker~=7.1.0
 dateparser~=1.2
 requests~=2.32.3
 aws_lambda_builders==1.50.0
-tomlkit==0.12.5
+tomlkit==0.13.0
 watchdog==4.0.1
 rich~=13.7.1
 pyopenssl~=24.1.0
 # Pin to <4.18 to until SAM-T no longer uses RefResolver
-jsonschema<4.23
+jsonschema<4.24
 
 # Needed for supporting Protocol in Python 3.7, Protocol class became public with python3.8
 typing_extensions>=4.4.0,<5
@@ -28,7 +28,7 @@ regex!=2021.10.8
 tzlocal==5.2
 
 #Adding cfn-lint dependency for SAM validate
-cfn-lint~=0.87.5
+cfn-lint~=0.87.7
 
 # Type checking boto3 objects
-boto3-stubs[apigateway,cloudformation,ecr,iam,lambda,s3,schemas,secretsmanager,signer,stepfunctions,sts,xray,sqs,kinesis]==1.34.123
+boto3-stubs[apigateway,cloudformation,ecr,iam,lambda,s3,schemas,secretsmanager,signer,stepfunctions,sts,xray,sqs,kinesis]==1.34.143
