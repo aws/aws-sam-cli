@@ -28,6 +28,7 @@ LOG = logging.getLogger(__name__)
 # SAR tests require credentials. This is to skip running the test where credentials are not available.
 SKIP_SAR_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 
+
 @skipIf(
     # Hits public ECR pull limitation, move it to canary tests
     (not RUN_BY_CANARY and not CI_OVERRIDE),
@@ -254,7 +255,6 @@ class TestBuildCommand_PythonFunctions_ImagesWithSharedCode(BuildIntegBase):
         ("template_cfn_local_prebuilt_image.yaml", "Code.ImageUri"),
     ],
 )
-
 @parameterized_class(
     (
         "template",
@@ -483,5 +483,3 @@ class TestBuildCommand_ErrorCases(BuildIntegBase):
         self.assertEqual(1, process_execute.process.returncode)
 
         self.assertIn("Build Failed", str(process_execute.stdout))
-
-

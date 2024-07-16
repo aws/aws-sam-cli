@@ -295,6 +295,7 @@ class UpdatableSARTemplate:
     def __exit__(self, *args):
         self.clean()
 
+
 def _version_gte(version1: str, version2: str) -> bool:
     v1 = packaging.version.parse(version1)
     v2 = packaging.version.parse(version2)

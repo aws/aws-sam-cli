@@ -21,6 +21,7 @@ LOG = logging.getLogger(__name__)
 # SAR tests require credentials. This is to skip running the test where credentials are not available.
 SKIP_SAR_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 
+
 @pytest.mark.nodejs
 class TestBuildCommand_NodeFunctions_With_External_Manifest(BuildIntegNodeBase):
     CODE_URI = "Node_without_manifest"
@@ -46,6 +47,7 @@ class TestBuildCommand_NodeFunctions_With_External_Manifest(BuildIntegNodeBase):
     def test_building_default_package_json_al2023(self, runtime):
         self._test_with_default_package_json(runtime, False, self.test_data_path)
 
+
 class TestBuildCommand_EsbuildFunctions(BuildIntegEsbuildBase):
     template = "template_with_metadata_esbuild.yaml"
 
@@ -66,7 +68,6 @@ class TestBuildCommand_EsbuildFunctions(BuildIntegEsbuildBase):
         self, runtime, code_uri, expected_files, handler, use_container, architecture
     ):
         self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, architecture)
-
 
     @parameterized.expand(
         [

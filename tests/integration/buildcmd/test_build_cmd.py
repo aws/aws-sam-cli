@@ -112,12 +112,12 @@ class TestLoadingImagesFromArchive(BuildIntegBase):
             "sha256:81d2ff8422e3a78dc0c1eff53d8e46f5666a801b17b5607a920860c2d234f9d0",
         )
 
+
 @skipIf(
     # Hits public ECR pull limitation, move it to canary tests
     (not RUN_BY_CANARY and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
-
 @skipIf(
     # Hits public ECR pull limitation, move it to canary tests
     ((not RUN_BY_CANARY) or (IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
@@ -261,6 +261,8 @@ class TestSkipBuildingFlaggedFunctions(BuildIntegPythonBase):
             self._verify_invoke_built_function(
                 self.built_template, skipped_function_logical_id, self._make_parameter_override_arg({}), expected
             )
+
+
 @pytest.mark.ruby
 class TestBuildCommand_RubyFunctions(BuildIntegRubyBase):
     @parameterized.expand([(False,), ("use_container",)])
@@ -323,7 +325,6 @@ class TestBuildCommand_RubyFunctionsWithGemfileInTheRoot(BuildIntegRubyBase):
         shutil.copyfile(Path(self.template_path), Path(self.working_dir).joinpath("template.yaml"))
         # update template path with new location
         self.template_path = str(Path(self.working_dir).joinpath("template.yaml"))
-
 
 
 class TestBuildCommand_Go_Modules(BuildIntegGoBase):
@@ -784,6 +785,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
 
     def _get_python_version(self):
         return "python{}.{}".format(sys.version_info.major, sys.version_info.minor)
+
 
 @skipIf(
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),

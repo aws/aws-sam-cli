@@ -25,6 +25,7 @@ from tests.testing_utils import (
     RUNNING_ON_CI,
 )
 
+
 @pytest.mark.python
 class TestBuildCommand_PythonFunctions_With_Specified_Architecture_arm64(BuildIntegPythonBase):
     template = "template_with_architecture.yaml"
@@ -80,6 +81,7 @@ class TestBuildCommand_EsbuildFunctions_arm64(BuildIntegEsbuildBase):
     def test_building_default_package_json(self, runtime, code_uri, expected_files, handler, use_container):
         self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, ARM64)
 
+
 @pytest.mark.nodejs
 class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(BuildIntegEsbuildBase):
     template = "template_with_metadata_esbuild.yaml"
@@ -120,7 +122,6 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(BuildIntegE
     def test_building_default_package_json(self, runtime, code_uri, expected_files, handler, use_container):
         self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, ARM64)
 
-
     @parameterized.expand(
         [
             (
@@ -142,6 +143,7 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(BuildIntegE
     @pytest.mark.al2023
     def test_building_default_package_json_al2023(self, runtime, code_uri, expected_files, handler, use_container):
         self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, ARM64)
+
 
 @pytest.mark.nodejs
 class TestBuildCommand_NodeFunctions_With_Specified_Architecture_arm64(BuildIntegNodeBase):
@@ -524,6 +526,7 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture_arm64(Build
     )
     def test_building_Makefile(self, runtime, use_container, manifest):
         self._test_with_Makefile(runtime, use_container, manifest, ARM64)
+
     @parameterized.expand(
         [
             (
@@ -565,7 +568,8 @@ class TestBuildCommand_Rust_arm64(BuildIntegRustBase):
             build_mode=build_mode,
             expected_invoke_result=self.expected_invoke_result,
             use_container=use_container,
-        ) 
+        )
+
     @parameterized.expand(
         [
             ("provided.al2023", None, False),

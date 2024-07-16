@@ -21,6 +21,7 @@ LOG = logging.getLogger(__name__)
 # SAR tests require credentials. This is to skip running the test where credentials are not available.
 SKIP_SAR_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 
+
 @parameterized_class(
     ("template", "is_nested_parent"),
     [
@@ -80,6 +81,7 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture(BuildIntegP
     )
     def test_building_Makefile(self, runtime, use_container, manifest, architecture):
         self._test_with_Makefile(runtime, use_container, manifest, architecture)
+
     @parameterized.expand(
         [
             ("provided.al2023", False, None, "x86_64"),
@@ -125,4 +127,3 @@ class TestBuildCommand_ProvidedFunctionsWithCustomMetadata(BuildIntegProvidedBas
     @pytest.mark.al2023
     def test_building_Makefile_al2023(self, runtime, use_container, manifest):
         self._test_with_Makefile(runtime, use_container, manifest)
-
