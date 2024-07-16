@@ -217,6 +217,7 @@ class TestDoCli(TestCase):
             disable_rollback=False,
             poll_delay=10,
             on_failure=None,
+            max_wait_duration=60,
         )
 
         execute_infra_mock.assert_called_with(
@@ -375,6 +376,7 @@ class TestDoCli(TestCase):
             disable_rollback=False,
             poll_delay=0.5,
             on_failure=None,
+            max_wait_duration=60,
         )
         execute_watch_mock.assert_called_once_with(
             template=self.template_file,
