@@ -895,6 +895,5 @@ def assert_path_exists(path):
     LOG.info("assert_path_exists")
     with os.scandir(path) as it:
         for entry in it:
-            if not entry.name.startswith('.') and entry.is_file():
-                LOG.info(entry.name)
+            LOG.info("entry: %s, is file: %s", entry.name, entry.is_file())
     
