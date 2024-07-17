@@ -281,7 +281,7 @@ class TestBuildCommand_PythonFunctions_WithoutDocker(BuildIntegPythonBase):
     codeuri = "Python"
     check_function_only = False
     use_container = False
-    prop="CodeUri"
+    prop = "CodeUri"
 
     def test_with_default_requirements(self):
         self._test_with_default_requirements(

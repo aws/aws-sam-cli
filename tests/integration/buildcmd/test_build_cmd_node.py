@@ -143,6 +143,7 @@ class TestBuildCommand_EsbuildFunctionProperties(BuildIntegEsbuildBase):
             "architecture": architecture,
         }
         self._test_with_various_properties(overrides, runtime)
+
     @parameterized.expand(
         [
             ("nodejs20.x", "../Esbuild/TypeScript", "app.lambdaHandler", "x86_64"),
