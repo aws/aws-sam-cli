@@ -49,7 +49,7 @@ mkdir -p .build/output/openssl
 cd .build/output/openssl
 
 echo "Building OpenSSL"
-curl "https://www.openssl.org/source/openssl-${openssl_version}.tar.gz" --output openssl.tar.gz
+curl "https://www.openssl.org/source/openssl-${openssl_version}.tar.gz" --output openssl.tar.gz -L
 tar xzf openssl.tar.gz
 cd openssl-${openssl_version}
 # install_sw installs OpenSSL without manual pages
@@ -103,7 +103,7 @@ rm -rf ./output/aws-sam-cli-src/mypy.ini
 rm -rf ./output/aws-sam-cli-src/pytest.ini
 
 echo "Installing Python"
-curl "https://www.python.org/ftp/python/${python_version}/Python-${python_version}.tgz" --output python.tgz -L
+curl "https://www.python.org/ftp/python/${python_version}/Python-${python_version}.tgz" --output python.tgz
 tar -xzf python.tgz
 cd Python-$python_version
 ./configure \
