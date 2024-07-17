@@ -38,7 +38,7 @@ fi
 
 set -eux
 
-yum install -y libffi-devel
+yum install -y libffi-devel perl-IPC-Cmd
 
 echo "Making Folders"
 mkdir -p .build/src
