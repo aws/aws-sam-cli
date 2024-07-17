@@ -103,7 +103,7 @@ rm -rf ./output/aws-sam-cli-src/mypy.ini
 rm -rf ./output/aws-sam-cli-src/pytest.ini
 
 echo "Installing Python"
-curl "https://www.python.org/ftp/python/${python_version}/Python-${python_version}.tgz" --output python.tgz
+curl "https://www.python.org/ftp/python/${python_version}/Python-${python_version}.tgz" --output python.tgz -L
 tar -xzf python.tgz
 cd Python-$python_version
 ./configure \
