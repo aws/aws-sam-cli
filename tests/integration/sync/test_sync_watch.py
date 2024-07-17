@@ -892,8 +892,10 @@ class TestSyncWatchCodeWatchExclude(TestSyncWatchEsbuildBase):
 
 
 def assert_path_exists(path):
-    LOG.info("assert_path_exists")
+    LOG.info("assert_path_exists: %s", path)
     with os.scandir(path) as it:
         for entry in it:
             LOG.info("entry: %s, is file: %s", entry.name, entry.is_file())
+            if not entry.is_file():
+                assert_path_exists(entry.path)
     
