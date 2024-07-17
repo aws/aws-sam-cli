@@ -243,11 +243,11 @@ class TestBuildCommand_PythonFunctions_ImagesWithSharedCode(BuildIntegBase):
         )
 
 
-@skipIf(
-    # Hits public ECR pull limitation, move it to canary tests
-    ((not RUN_BY_CANARY) or (IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
-    "Skip build tests on windows when running in CI unless overridden",
-)
+# @skipIf(
+#     # Hits public ECR pull limitation, move it to canary tests
+#     ((not RUN_BY_CANARY) or (IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+#     "Skip build tests on windows when running in CI unless overridden",
+# )
 @parameterized_class(
     ("template", "prop"),
     [
@@ -275,7 +275,7 @@ class TestBuildCommand_PythonFunctions_ImagesWithSharedCode(BuildIntegBase):
 )
 class TestBuildCommand_PythonFunctions_WithoutDocker(BuildIntegPythonBase):
     template = "template.yaml"
-    FUNCTION_LOGICAL_ID = function
+    FUNCTION_LOGICAL_ID = "Function"
     overrides = True
     runtime = "python3.9"
     codeuri = "Python"

@@ -134,7 +134,6 @@ class TestBuildCommand_EsbuildFunctionProperties(BuildIntegEsbuildBase):
             ("nodejs18.x", "../Esbuild/TypeScript", "nested/function/app.lambdaHandler", "x86_64"),
         ]
     )
-    @pytest.mark.al2023
     def test_environment_generates_sourcemap(self, runtime, code_uri, handler, architecture):
         overrides = {
             "runtime": runtime,
@@ -150,7 +149,8 @@ class TestBuildCommand_EsbuildFunctionProperties(BuildIntegEsbuildBase):
             ("nodejs20.x", "../Esbuild/TypeScript", "nested/function/app.lambdaHandler", "x86_64"),
         ]
     )
-    def test_environment_generates_sourcemap(self, runtime, code_uri, handler, architecture):
+    @pytest.mark.al2023
+    def test_environment_generates_sourcemap_al2023(self, runtime, code_uri, handler, architecture):
         overrides = {
             "runtime": runtime,
             "code_uri": code_uri,
