@@ -257,33 +257,31 @@ class TestBuildCommand_PythonFunctions_ImagesWithSharedCode(BuildIntegBase):
 )
 @parameterized_class(
     (
-        "template",
-        "FUNCTION_LOGICAL_ID",
-        "overrides",
         "runtime",
         "codeuri",
-        "check_function_only",
-        "prop",
     ),
     [
-        ("template.yaml", "Function", True, "python3.8", "Python", False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.9", "Python", False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.10", "Python", False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.11", "Python", False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.12", "Python", False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.8", "PythonPEP600", False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.9", "PythonPEP600", False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.10", "PythonPEP600", False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.11", "PythonPEP600", False, "CodeUri"),
-        ("template.yaml", "Function", True, "python3.12", "PythonPEP600", False, "CodeUri"),
+        ("python3.8", "Python"),
+        ("python3.9", "Python"),
+        ("python3.10", "Python"),
+        ("python3.11", "Python"),
+        ("python3.12", "Python"),
+        ("python3.8", "PythonPEP600"),
+        ("python3.9", "PythonPEP600"),
+        ("python3.10", "PythonPEP600"),
+        ("python3.11", "PythonPEP600"),
+        ("python3.12", "PythonPEP600"),
     ],
 )
 class TestBuildCommand_PythonFunctions_WithoutDocker(BuildIntegPythonBase):
+    template = "template.yaml"
+    FUNCTION_LOGICAL_ID = function
     overrides = True
     runtime = "python3.9"
     codeuri = "Python"
     check_function_only = False
     use_container = False
+    prop="CodeUri"
 
     def test_with_default_requirements(self):
         self._test_with_default_requirements(

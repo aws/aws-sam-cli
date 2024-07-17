@@ -36,10 +36,12 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture_arm64(BuildIn
             ("python3.9", "Python", False),
             ("python3.10", "Python", False),
             ("python3.11", "Python", False),
+            ("python3.12", "Python", False),
             ("python3.8", "PythonPEP600", False),
             ("python3.9", "PythonPEP600", False),
             ("python3.10", "PythonPEP600", False),
             ("python3.11", "PythonPEP600", False),
+            ("python3.12", "PythonPEP600", False),
             ("python3.8", "Python", "use_container"),
             ("python3.9", "Python", "use_container"),
             ("python3.10", "Python", "use_container"),
@@ -51,8 +53,6 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture_arm64(BuildIn
 
     @parameterized.expand(
         [
-            ("python3.12", "Python", False),
-            ("python3.12", "PythonPEP600", False),
             ("python3.12", "Python", "use_container"),
         ]
     )
@@ -104,6 +104,13 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(BuildIntegE
                 False,
             ),
             (
+                "nodejs20.x",
+                "Esbuild/Node_without_manifest",
+                {"main.js", "main.js.map"},
+                "main.lambdaHandler",
+                False,
+            ),
+            (
                 "nodejs16.x",
                 "Esbuild/TypeScript_without_manifest",
                 {"app.js", "app.js.map"},
@@ -117,20 +124,6 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(BuildIntegE
                 "app.lambdaHandler",
                 False,
             ),
-        ]
-    )
-    def test_building_default_package_json(self, runtime, code_uri, expected_files, handler, use_container):
-        self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, ARM64)
-
-    @parameterized.expand(
-        [
-            (
-                "nodejs20.x",
-                "Esbuild/Node_without_manifest",
-                {"main.js", "main.js.map"},
-                "main.lambdaHandler",
-                False,
-            ),
             (
                 "nodejs20.x",
                 "Esbuild/TypeScript_without_manifest",
@@ -140,8 +133,7 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(BuildIntegE
             ),
         ]
     )
-    @pytest.mark.al2023
-    def test_building_default_package_json_al2023(self, runtime, code_uri, expected_files, handler, use_container):
+    def test_building_default_package_json(self, runtime, code_uri, expected_files, handler, use_container):
         self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, ARM64)
 
 
@@ -153,6 +145,7 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture_arm64(BuildInte
         [
             ("nodejs16.x", False),
             ("nodejs18.x", False),
+            ("nodejs20.x", False),
             ("nodejs16.x", "use_container"),
             ("nodejs18.x", "use_container"),
         ]
@@ -162,7 +155,6 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture_arm64(BuildInte
 
     @parameterized.expand(
         [
-            ("nodejs20.x", False),
             ("nodejs20.x", "use_container"),
         ]
     )
@@ -508,6 +500,11 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture_arm64(Build
                 None,
             ),
             (
+                "provided.al2023",
+                False,
+                None,
+            ),
+            (
                 "provided",
                 "use_container",
                 "Makefile-container",
@@ -531,11 +528,6 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture_arm64(Build
         [
             (
                 "provided.al2023",
-                False,
-                None,
-            ),
-            (
-                "provided.al2023",
                 "use_container",
                 "Makefile-container",
             ),
@@ -557,27 +549,11 @@ class TestBuildCommand_Rust_arm64(BuildIntegRustBase):
         [
             ("provided.al2", None, False),
             ("provided.al2", "debug", False),
-        ]
-    )
-    def test_build(self, runtime, build_mode, use_container):
-        self._test_with_rust_cargo_lambda(
-            runtime=runtime,
-            code_uri=self.code_uri,
-            binary=self.binary,
-            architecture=ARM64,
-            build_mode=build_mode,
-            expected_invoke_result=self.expected_invoke_result,
-            use_container=use_container,
-        )
-
-    @parameterized.expand(
-        [
             ("provided.al2023", None, False),
             ("provided.al2023", "debug", False),
         ]
     )
-    @pytest.mark.al2023
-    def test_build_al2023(self, runtime, build_mode, use_container):
+    def test_build(self, runtime, build_mode, use_container):
         self._test_with_rust_cargo_lambda(
             runtime=runtime,
             code_uri=self.code_uri,
