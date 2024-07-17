@@ -12,7 +12,7 @@ if [ "$python_library_zip_filename" = "" ]; then
 fi
 
 if [ "$python_version" = "" ]; then
-    python_version="3.11.8";
+    python_version="3.11.9";
 fi
 
 if [ "$openssl_version" = "" ]; then
@@ -54,6 +54,7 @@ tar xzf openssl.tar.gz
 cd openssl-${openssl_version}
 # install_sw installs OpenSSL without manual pages
 ./config --prefix=/opt/openssl && make -j8 && make -j8 install_sw
+ln -s /opt/openssl/lib64 /opt/openssl/lib
 cd ../../
 
 echo "Building zlib"
@@ -104,6 +105,7 @@ rm -rf ./output/aws-sam-cli-src/pytest.ini
 
 echo "Installing Python"
 curl "https://www.python.org/ftp/python/${python_version}/Python-${python_version}.tgz" --output python.tgz
+curl "https://www.python.org/ftp/python/3.11.9/Python-3.11.9.tgz" --output python.tgz
 tar -xzf python.tgz
 cd Python-$python_version
 ./configure \
