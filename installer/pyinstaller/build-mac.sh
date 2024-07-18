@@ -102,7 +102,7 @@ cd ..
 echo "Installing Python Libraries"
 /usr/local/bin/python3.11 -m venv venv
 ./venv/bin/pip install --upgrade pip
-./venv/bin/pip install -r src/requirements/reproducible-mac.txt
+./venv/bin/pip install -r src/requirements/reproducible-linux.txt
 
 echo "Copying All Python Libraries"
 cp -r ./venv/lib/python*/site-packages/* ./output/python-libraries
