@@ -59,7 +59,9 @@ class TestSyncWatchBase(SyncIntegBase):
 
     def setUp(self):
         # set up clean testing folder
-        self.test_data_path = Path(tempfile.mkdtemp())
+        self.test_data_path = Path(os.getcwd()) / f"testdata-{str(uuid.uuid4())[:8]}" 
+        os.mkdir(self.test_data_path)
+        # self.test_data_path = Path(tempfile.mkdtemp())
         LOG.info("self.teest_data_path: %s", self.test_data_path)
         original_test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "sync")
 
@@ -891,7 +893,9 @@ class TestSyncWatchCodeWatchExclude(TestSyncWatchEsbuildBase):
             self.assertEqual(lambda_response.get("message"), "hello world")
 
 
-def assert_path_exists(path):
+def assert_path_exists(path, depth=0):
+    if depth > 2:
+        return
     LOG.info("assert_path_exists: %s", path)
     with os.scandir(path) as it:
         for entry in it:
@@ -899,5 +903,5 @@ def assert_path_exists(path):
                 continue
             LOG.info("entry: %s, is file: %s", entry.path, entry.is_file())
             if not entry.is_file():
-                assert_path_exists(entry.path)
+                assert_path_exists(entry.path, depth+1)
     
