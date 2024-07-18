@@ -40,7 +40,7 @@ jobs:
 
   build-for-mac:
     name: build-pyinstaller-macos
-    runs-on: macos-latest
+    runs-on: macos-12
     if: github.repository_owner == 'aws'
     strategy:
       fail-fast: false
