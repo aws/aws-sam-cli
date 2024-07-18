@@ -36,10 +36,12 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
 
         original_test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "sync")
         cls.test_data_path = Path(tempfile.mkdtemp())
+        LOG.info("setUpClass: %s", cls.test_data_path)
         shutil.copytree(original_test_data_path, cls.test_data_path, dirs_exist_ok=True)
 
     @classmethod
     def tearDownClass(cls) -> None:
+        LOG.info("tearDownClass: %s", cls.test_data_path)
         if cls.test_data_path:
             shutil.rmtree(cls.test_data_path, ignore_errors=True)
 
@@ -97,11 +99,13 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
                 lambda_response = self.lambda_client.invoke(
                     FunctionName=lambda_function, InvocationType="RequestResponse"
                 )
+                LOG.info("Lambda payload: %s", lambda_response)
                 lambda_response_payload = lambda_response.get("Payload").read().decode("utf-8")
                 LOG.info("Lambda Response Payload: %s", lambda_response_payload)
                 payload = json.loads(lambda_response_payload)
                 return payload.get("body")
-            except Exception:
+            except Exception as e:
+                LOG.error("Exception in _get_lambda_response: %s", e)
                 if count == RETRY_ATTEMPTS:
                     raise
             count += 1
@@ -239,7 +243,7 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
         notification_arns=None,
         tags=None,
         metadata=None,
-        debug=True,
+        debug=None,
         use_container=False,
         build_in_source=None,
         watch_exclude=None,

@@ -62,7 +62,7 @@ class TestSyncWatchBase(SyncIntegBase):
         self.test_data_path = Path(os.getcwd()) / f"testdata-{str(uuid.uuid4())[:8]}" 
         os.mkdir(self.test_data_path)
         # self.test_data_path = Path(tempfile.mkdtemp())
-        LOG.info("self.teest_data_path: %s", self.test_data_path)
+        LOG.info("setUp: %s", self.test_data_path)
         original_test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "sync")
 
         shutil.rmtree(self.test_data_path)
@@ -75,6 +75,7 @@ class TestSyncWatchBase(SyncIntegBase):
 
     def tearDown(self):
         # clean up the old testing folder
+        LOG.info("tearDown: %s", self.test_data_path)
         shutil.rmtree(self.test_data_path, ignore_errors=True)
 
         kill_process(self.watch_process)
