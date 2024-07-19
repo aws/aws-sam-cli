@@ -52,12 +52,12 @@ class DefinitionValidator:
         old_data = self._data
 
         if event and event.event_type != "opened":
-            LOG.debug("validate on event: %s", event)
+            LOG.info("validate on event: %s", event)
         if not self.validate_file(event):
             return False
         if event and event.event_type != "opened":
-            LOG.debug("detect_change: %s", self._detect_change)
-            LOG.debug("changed: %s", old_data != self._data)
+            LOG.info("detect_change: %s", self._detect_change)
+            LOG.info("changed: %s", old_data != self._data)
         return old_data != self._data if self._detect_change else True
 
     def validate_file(self, event=None) -> bool:
@@ -69,7 +69,7 @@ class DefinitionValidator:
             True if it is valid path and yaml file, False otherwise.
         """
         if event and event.event_type != "opened":
-            LOG.debug("path %s exists: %s", self._path, self._path.exists())
+            LOG.info("path %s exists: %s", self._path, self._path.exists())
         if not self._path.exists():
             LOG.debug(
                 "File %s failed to validate due to file path does not exist. Please verify that the path is valid.",
@@ -80,7 +80,7 @@ class DefinitionValidator:
         try:
             self._data = parse_yaml_file(str(self._path))
             if event and event.event_type != "opened":
-                LOG.debug("Updated self._data")
+                LOG.info("Updated self._data")
         except (ValueError, yaml.YAMLError) as e:
             LOG.debug(
                 "File %s failed to validate due to it file cannot be parsed. \
