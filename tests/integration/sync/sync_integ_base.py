@@ -244,7 +244,7 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
         notification_arns=None,
         tags=None,
         metadata=None,
-        debug=None,
+        debug=True,
         use_container=False,
         build_in_source=None,
         watch_exclude=None,
