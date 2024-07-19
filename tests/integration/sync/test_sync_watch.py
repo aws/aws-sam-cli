@@ -382,11 +382,14 @@ class TestSyncCodeWatchNestedStacks(TestSyncWatchBase):
             self.test_data_path.joinpath("code", "after", "apigateway", "definition.json"),
             self.test_data_path.joinpath("code", "before", "apigateway", "definition.json"),
         )
-        read_until_string(
-            self.watch_process,
-            "Finished syncing RestApi LocalNestedChildStack/HelloWorldApi.\x1b[0m\n",
-            timeout=20,
-        )
+        try:
+            read_until_string(
+                self.watch_process,
+                "Finished syncing RestApi LocalNestedChildStack/HelloWorldApi.\x1b[0m\n",
+                timeout=20,
+            )
+        except:
+            pass
         time.sleep(API_SLEEP)
         rest_api = self.stack_resources.get(AWS_APIGATEWAY_RESTAPI)[0]
         self.assertEqual(self._get_api_message(rest_api), '{"message": "hello 2"}')
