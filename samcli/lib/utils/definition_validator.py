@@ -60,6 +60,10 @@ class DefinitionValidator:
             LOG.info("changed: %s", old_data != self._data)
             LOG.info("old: %s", old_data)
             LOG.info("new: %s", self._data)
+        if old_data != self._data:
+            LOG.info("changed! (event: %s)", event)
+            LOG.info("old: %s", old_data)
+            LOG.info("new: %s", self._data)
         return old_data != self._data if self._detect_change else True
 
     def validate_file(self, event=None) -> bool:
