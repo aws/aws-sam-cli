@@ -895,14 +895,15 @@ class TestSyncWatchCodeWatchExclude(TestSyncWatchEsbuildBase):
 
 
 def assert_path_exists(path, depth=0):
-    if depth > 2:
-        return
-    LOG.info("assert_path_exists: %s", path)
-    with os.scandir(path) as it:
-        for entry in it:
-            if entry.name.startswith("."):
-                continue
-            LOG.info("entry: %s, is file: %s", entry.path, entry.is_file())
-            if not entry.is_file():
-                assert_path_exists(entry.path, depth+1)
+    # if depth > 2:
+    #     return
+    # LOG.info("assert_path_exists: %s", path)
+    # with os.scandir(path) as it:
+    #     for entry in it:
+    #         if entry.name.startswith("."):
+    #             continue
+    #         LOG.info("entry: %s, is file: %s", entry.path, entry.is_file())
+    #         if not entry.is_file():
+    #             assert_path_exists(entry.path, depth+1)
+    pass
     

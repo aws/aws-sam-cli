@@ -194,6 +194,7 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
         with open(source, "rb") as source_file:
             with open(destination, "wb") as destination_file:
                 destination_file.write(source_file.read())
+        LOG.info("Updated destination %s from source %s", destination, source)
 
     @staticmethod
     def _extract_contents_from_layer_zip(dep_dir, zipped_layer):
