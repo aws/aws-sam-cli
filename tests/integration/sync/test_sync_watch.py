@@ -76,7 +76,7 @@ class TestSyncWatchBase(SyncIntegBase):
     def tearDown(self):
         # clean up the old testing folder
         LOG.info("tearDown: %s", self.test_data_path)
-        shutil.rmtree(self.test_data_path, ignore_errors=True)
+        # shutil.rmtree(self.test_data_path, ignore_errors=True)
 
         kill_process(self.watch_process)
         for stack in self.stacks:
