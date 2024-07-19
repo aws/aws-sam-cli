@@ -123,6 +123,7 @@ class TestSyncWatchBase(SyncIntegBase):
             tags="integ=true clarity=yes foo_bar=baz",
         )
         LOG.info("command: %s", sync_command_list)
+        self.fail()
         self.watch_process = start_persistent_process(sync_command_list, cwd=self.test_data_path)
         read_until_string(self.watch_process, "Enter Y to proceed with the command, or enter N to cancel:\n")
 
