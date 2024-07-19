@@ -265,15 +265,52 @@ class TestBuildCommand_PythonFunctions_ImagesWithSharedCode(BuildIntegBase):
         ("python3.9", "Python"),
         ("python3.10", "Python"),
         ("python3.11", "Python"),
-        ("python3.12", "Python"),
         ("python3.8", "PythonPEP600"),
         ("python3.9", "PythonPEP600"),
         ("python3.10", "PythonPEP600"),
         ("python3.11", "PythonPEP600"),
-        ("python3.12", "PythonPEP600"),
     ],
 )
 class TestBuildCommand_PythonFunctions_WithoutDocker(BuildIntegPythonBase):
+    template = "template.yaml"
+    FUNCTION_LOGICAL_ID = "Function"
+    overrides = True
+    runtime = "python3.9"
+    codeuri = "Python"
+    check_function_only = False
+    use_container = False
+    prop = "CodeUri"
+
+    def test_with_default_requirements(self):
+        self._test_with_default_requirements(
+            self.runtime,
+            self.codeuri,
+            self.use_container,
+            self.test_data_path,
+            do_override=self.overrides,
+            check_function_only=self.check_function_only,
+        )
+
+
+@parameterized_class(
+    ("template", "prop"),
+    [
+        ("template_local_prebuilt_image.yaml", "ImageUri"),
+        ("template_cfn_local_prebuilt_image.yaml", "Code.ImageUri"),
+    ],
+)
+@parameterized_class(
+    (
+        "runtime",
+        "codeuri",
+    ),
+    [
+        ("python3.12", "Python"),
+        ("python3.12", "PythonPEP600"),
+    ],
+)
+@pytest.mark.al2023
+class TestBuildCommand_PythonFunctions_WithoutDocker_al2023(BuildIntegPythonBase):
     template = "template.yaml"
     FUNCTION_LOGICAL_ID = "Function"
     overrides = True
