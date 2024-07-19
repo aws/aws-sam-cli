@@ -58,6 +58,8 @@ class DefinitionValidator:
         if event and event.event_type != "opened":
             LOG.info("detect_change: %s", self._detect_change)
             LOG.info("changed: %s", old_data != self._data)
+            LOG.info("old: %s", old_data)
+            LOG.info("new: %s", self._data)
         return old_data != self._data if self._detect_change else True
 
     def validate_file(self, event=None) -> bool:
