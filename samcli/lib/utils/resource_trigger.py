@@ -395,7 +395,7 @@ class DefinitionCodeTrigger(CodeResourceTrigger):
         ----------
         event : Optional[FileSystemEvent], optional
         """
-        if self._validator.validate_change():
+        if self._validator.validate_change(event):
             self._on_code_change(event)
 
     def get_path_handlers(self) -> List[PathHandler]:

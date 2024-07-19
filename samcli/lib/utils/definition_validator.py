@@ -39,7 +39,7 @@ class DefinitionValidator:
         if initialize_data:
             self.validate_change()
 
-    def validate_change(self) -> bool:
+    def validate_change(self, event=None) -> bool:
         """Validate change on json or yaml file.
 
         Returns
@@ -51,11 +51,16 @@ class DefinitionValidator:
         """
         old_data = self._data
 
-        if not self.validate_file():
+        if event and event.event_type != "opened":
+            LOG.debug("validate on event: %s", event)
+        if not self.validate_file(event):
             return False
+        if event and event.event_type != "opened":
+            LOG.debug("detect_change: %s", self._detect_change)
+            LOG.debug("changed: %s", old_data != self._data)
         return old_data != self._data if self._detect_change else True
 
-    def validate_file(self) -> bool:
+    def validate_file(self, event=None) -> bool:
         """Validate json or yaml file.
 
         Returns
@@ -63,6 +68,8 @@ class DefinitionValidator:
         bool
             True if it is valid path and yaml file, False otherwise.
         """
+        if event and event.event_type != "opened":
+            LOG.debug("path %s exists: %s", self._path, self._path.exists())
         if not self._path.exists():
             LOG.debug(
                 "File %s failed to validate due to file path does not exist. Please verify that the path is valid.",
@@ -72,6 +79,8 @@ class DefinitionValidator:
 
         try:
             self._data = parse_yaml_file(str(self._path))
+            if event and event.event_type != "opened":
+                LOG.debug("Updated self._data")
         except (ValueError, yaml.YAMLError) as e:
             LOG.debug(
                 "File %s failed to validate due to it file cannot be parsed. \
