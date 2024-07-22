@@ -58,6 +58,8 @@ class DefinitionValidator:
         old_size = self._st_size
         old_mtime = self._st_mtime
 
+        if event and event.event_type == "opened":
+            return False
         if event and event.event_type != "opened":
             LOG.info("validate on event: %s", event)
         if not self.validate_file(event):
