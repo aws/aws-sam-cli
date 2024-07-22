@@ -69,4 +69,3 @@ class TestDefinitionValidator(TestCase):
         validator = DefinitionValidator(self.path, detect_change=True, initialize_data=True)
         event = FileOpenedEvent("src_path")
         self.assertFalse(validator.validate_change(event))
-        
