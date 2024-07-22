@@ -1,6 +1,7 @@
 from parameterized import parameterized
 from unittest.case import TestCase
 from unittest.mock import MagicMock, patch, ANY
+from watchdog.events import FileOpenedEvent
 from samcli.lib.utils.definition_validator import DefinitionValidator
 
 
@@ -61,3 +62,11 @@ class TestDefinitionValidator(TestCase):
         self.assertFalse(validator.validate_change())
         self.assertFalse(validator.validate_change())
         self.assertTrue(validator.validate_change())
+
+    @patch("samcli.lib.utils.definition_validator.parse_yaml_file")
+    def test_detect_change_for_file_opened_event(self, parse_yaml_file_mock):
+        parse_yaml_file_mock.side_effect = [{"A": 1}, {"B": 1}]
+        validator = DefinitionValidator(self.path, detect_change=True, initialize_data=True)
+        event = FileOpenedEvent("src_path")
+        self.assertFalse(validator.validate_change(event))
+        
