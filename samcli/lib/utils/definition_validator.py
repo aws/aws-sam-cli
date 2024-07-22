@@ -4,9 +4,8 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from watchdog.events import EVENT_TYPE_OPENED, FileSystemEvent, FileOpenedEvent
-
 import yaml
+from watchdog.events import FileOpenedEvent, FileSystemEvent
 
 from samcli.yamlhelper import parse_yaml_file
 
