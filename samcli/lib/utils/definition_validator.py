@@ -53,6 +53,7 @@ class DefinitionValidator:
         """
         if event and isinstance(event, FileOpenedEvent):
             return False
+
         old_data = self._data
 
         if not self.validate_file():
