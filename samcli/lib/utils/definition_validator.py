@@ -4,6 +4,8 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from watchdog.events import EVENT_TYPE_OPENED, FileSystemEvent, FileOpenedEvent
+
 import yaml
 
 from samcli.yamlhelper import parse_yaml_file
@@ -39,7 +41,7 @@ class DefinitionValidator:
         if initialize_data:
             self.validate_change()
 
-    def validate_change(self) -> bool:
+    def validate_change(self, event: Optional[FileSystemEvent] = None) -> bool:
         """Validate change on json or yaml file.
 
         Returns
@@ -49,6 +51,8 @@ class DefinitionValidator:
             If detect_change is set, False will also be returned if there is
             no change compared to the previous validation.
         """
+        if event and isinstance(event, FileOpenedEvent):
+            return False
         old_data = self._data
 
         if not self.validate_file():
