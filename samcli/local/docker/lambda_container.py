@@ -154,7 +154,6 @@ class LambdaContainer(Container):
         Returns default entry point for lambda container, which is the path of the RIE executable with its debugging
         configuration. If SAM_CLI_RIE_DEV is set to 1, RIE log level is set to 'debug', otherwise it is kept as 'error'.
         """
-        #
         rie_log_level = "debug" if os.environ.get(RIE_LOG_LEVEL_ENV_VAR, "0") == "1" else "error"
         return ["/var/rapid/aws-lambda-rie", "--log-level", rie_log_level]
 

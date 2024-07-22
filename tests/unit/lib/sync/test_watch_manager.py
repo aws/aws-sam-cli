@@ -7,6 +7,8 @@ from samcli.lib.providers.exceptions import MissingCodeUri, MissingLocalDefiniti
 from samcli.lib.sync.exceptions import MissingPhysicalResourceError, SyncFlowException
 from parameterized import parameterized
 
+from samcli.local.lambdafn.exceptions import ResourceNotFound
+
 
 class TestWatchManager(TestCase):
     def setUp(self) -> None:
@@ -84,6 +86,7 @@ class TestWatchManager(TestCase):
             MissingCodeUri(),
             trigger_2,
             MissingLocalDefinition(MagicMock(), MagicMock()),
+            ResourceNotFound(),
         ]
         self.watch_manager._stacks = [MagicMock()]
         self.watch_manager._trigger_factory = trigger_factory

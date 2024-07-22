@@ -38,6 +38,7 @@ class TestSamDeployCommand(TestCase):
             disable_rollback=False,
             poll_delay=0.5,
             on_failure=None,
+            max_wait_duration=60,
         )
 
     @patch("boto3.client")
@@ -202,6 +203,7 @@ class TestSamDeployCommand(TestCase):
             disable_rollback=False,
             poll_delay=0.5,
             on_failure=None,
+            max_wait_duration=60,
         )
         patched_get_buildable_stacks.return_value = (Mock(), [])
         patched_auth_required.return_value = [("HelloWorldFunction", False)]
@@ -271,5 +273,5 @@ class TestSamDeployCommand(TestCase):
             self.deploy_command_context.run()
 
             self.deploy_command_context.deployer.wait_for_execute.assert_called_with(
-                ANY, "CREATE", False, FailureMode.DO_NOTHING, 1000
+                ANY, "CREATE", False, FailureMode.DO_NOTHING, 1000, 60
             )
