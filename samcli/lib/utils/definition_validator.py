@@ -1,6 +1,7 @@
 """DefinitionValidator for Validating YAML and JSON Files"""
 
 import logging
+import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -15,6 +16,8 @@ class DefinitionValidator:
     _path: Path
     _detect_change: bool
     _data: Optional[Dict[str, Any]]
+    _st_size: Optional[int]
+    _st_mtime: Optional[int]
 
     def __init__(self, path: Path, detect_change: bool = True, initialize_data: bool = True) -> None:
         """
@@ -36,6 +39,8 @@ class DefinitionValidator:
         self._path = path
         self._detect_change = detect_change
         self._data = None
+        self._st_size = None
+        self._st_mtime = None
         if initialize_data:
             self.validate_change()
 
@@ -49,7 +54,9 @@ class DefinitionValidator:
             If detect_change is set, False will also be returned if there is
             no change compared to the previous validation.
         """
-        old_data = self._data
+        # old_data = self._data
+        old_size = self._st_size
+        old_mtime = self._st_mtime
 
         if event and event.event_type != "opened":
             LOG.info("validate on event: %s", event)
@@ -57,14 +64,13 @@ class DefinitionValidator:
             return False
         if event and event.event_type != "opened":
             LOG.info("detect_change: %s", self._detect_change)
-            LOG.info("changed: %s", old_data != self._data)
-            LOG.info("old: %s", old_data)
-            LOG.info("new: %s", self._data)
-        if old_data != self._data:
+            LOG.info("old: %s | %s", old_size, old_mtime)
+            LOG.info("new: %s | %s", self._st_size, self._st_mtime)
+        if (old_size != self._st_size or old_mtime != self._st_mtime):
             LOG.info("changed! (event: %s)", event)
-            LOG.info("old: %s", old_data)
-            LOG.info("new: %s", self._data)
-        return old_data != self._data if self._detect_change else True
+            LOG.info("old: %s | %s", old_size, old_mtime)
+            LOG.info("new: %s | %s", self._st_size, self._st_mtime)
+        return (old_size != self._st_size or old_mtime != self._st_mtime) if self._detect_change else True
 
     def validate_file(self, event=None) -> bool:
         """Validate json or yaml file.
@@ -76,23 +82,15 @@ class DefinitionValidator:
         """
         if event and event.event_type != "opened":
             LOG.info("path %s exists: %s", self._path, self._path.exists())
-        if not self._path.exists():
+        try:
+            stat = os.stat(self._path)
+            self._st_size = stat.st_size
+            self._st_mtime = stat.st_mtime
+        except FileNotFoundError:
             LOG.debug(
                 "File %s failed to validate due to file path does not exist. Please verify that the path is valid.",
                 self._path,
             )
             return False
 
-        try:
-            self._data = parse_yaml_file(str(self._path))
-            if event and event.event_type != "opened":
-                LOG.info("Updated self._data")
-        except (ValueError, yaml.YAMLError) as e:
-            LOG.debug(
-                "File %s failed to validate due to it file cannot be parsed. \
-Please verify that file is in the correct json or yaml format.",
-                self._path,
-                exc_info=e,
-            )
-            return False
         return True
