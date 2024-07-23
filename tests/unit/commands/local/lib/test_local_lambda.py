@@ -10,8 +10,9 @@ from parameterized import parameterized, param
 
 from samcli.lib.utils.architecture import X86_64, ARM64
 
-from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
+from samcli.commands.local.lib.local_lambda import RUST_LOCAL_INVOKE_DISCLAIMER, LocalLambdaRunner
 from samcli.lib.providers.provider import Function, FunctionBuildInfo
+from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.local.docker.container import ContainerResponseException
 from samcli.local.lambdafn.exceptions import FunctionNotFound
@@ -585,6 +586,28 @@ class TestLocalLambda_invoke(TestCase):
             container_host_interface=None,
             extra_hosts=None,
         )
+
+    @patch("click.echo")
+    @patch("platform.platform")
+    @patch("samcli.commands.local.lib.local_lambda.validate_architecture_runtime")
+    def test_displays_rust_disclaimer(self, patched_validate_architecture_runtime, patched_platform, patched_echo):
+        name = "name"
+        event = "event"
+        stdout = "stdout"
+        stderr = "stderr"
+        metadata = {"BuildMethod": "rust-cargolambda"}
+        function = Mock(functionname="name", metadata=metadata)
+        patched_platform.return_value = "macOS-14.5-arm64-arm-64bit"
+
+        invoke_config = "config"
+
+        self.function_provider_mock.get.return_value = function
+        self.local_lambda.get_invoke_config = Mock()
+        self.local_lambda.get_invoke_config.return_value = invoke_config
+
+        self.local_lambda.invoke(name, event, stdout, stderr)
+
+        patched_echo.assert_called_once_with(Colored().yellow(RUST_LOCAL_INVOKE_DISCLAIMER))
 
     @patch("samcli.commands.local.lib.local_lambda.validate_architecture_runtime")
     def test_must_work_packagetype_ZIP(self, patched_validate_architecture_runtime):

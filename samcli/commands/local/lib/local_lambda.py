@@ -4,9 +4,11 @@ Implementation of Local Lambda runner
 
 import logging
 import os
+import platform
 from typing import Any, Dict, Optional, cast
 
 import boto3
+import click
 from botocore.credentials import Credentials
 
 from samcli.commands.local.lib.debug_context import DebugContext
@@ -20,6 +22,7 @@ from samcli.lib.providers.provider import Function
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.utils.architecture import validate_architecture_runtime
 from samcli.lib.utils.codeuri import resolve_code_path
+from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker.container import ContainerConnectionTimeoutException, ContainerResponseException
@@ -29,6 +32,13 @@ from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.local.lambdafn.runtime import LambdaRuntime
 
 LOG = logging.getLogger(__name__)
+
+RUST_LOCAL_INVOKE_DISCLAIMER = """
+DISCLAIMER: If your local machine is using Apple silicon and you are unable to run \"sam local invoke\" 
+you can try setting the \"SAM_BUILD_MODE\" environ variable to equal \"debug\". 
+Please note that this is only recommended when building and testing locally. 
+We advise customers to switch back to a release build by unsetting or removing the SAM_BUILD_MODE environ variable
+"""
 
 
 class LocalLambdaRunner:
@@ -141,8 +151,15 @@ class LocalLambdaRunner:
             LOG.info("Invoking Container created from %s", function.imageuri)
 
         validate_architecture_runtime(function)
-
         config = self.get_invoke_config(function)
+
+        if (
+            function.metadata
+            and function.metadata.get("BuildMethod", "") == "rust-cargolambda"
+            and "macOS" in platform.platform()
+            and "arm64" in platform.platform()
+        ):
+            click.echo(Colored().yellow(RUST_LOCAL_INVOKE_DISCLAIMER))
 
         # Invoke the function
         try:
