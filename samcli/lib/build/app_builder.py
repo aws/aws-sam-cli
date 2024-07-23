@@ -51,7 +51,7 @@ from samcli.lib.utils import osutils
 from samcli.lib.utils.colors import Colored, Colors
 from samcli.lib.utils.lambda_builders import patch_runtime
 from samcli.lib.utils.packagetype import IMAGE, ZIP
-from samcli.lib.utils.path_utils import convert_path_to_unix_path
+from samcli.lib.utils.path_utils import check_path_valid_type, convert_path_to_unix_path
 from samcli.lib.utils.resources import (
     AWS_CLOUDFORMATION_STACK,
     AWS_LAMBDA_FUNCTION,
@@ -662,7 +662,9 @@ class ApplicationBuilder:
             Path to the location where built artifacts are available
         """
         if packagetype == IMAGE:
-            if imageuri and Path(imageuri).is_file():  # something exists at this path and what exists is a file
+            if (
+                imageuri and check_path_valid_type(imageuri) and Path(imageuri).is_file()
+            ):  # something exists at this path and what exists is a file
                 return self._load_lambda_image(imageuri)  # should be an image archive – load it instead of building it
             # pylint: disable=fixme
             # FIXME: _build_lambda_image assumes metadata is not None, we need to throw an exception here
