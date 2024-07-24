@@ -307,7 +307,7 @@ class TestContainer_create(TestCase):
             self.image,
             command=self.cmd,
             working_dir=self.working_dir,
-            ports=self.always_exposed_ports,
+            network_mode="host",
             tty=False,
             use_config_proxy=True,
             volumes=expected_volumes,
