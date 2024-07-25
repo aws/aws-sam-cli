@@ -1,3 +1,5 @@
 # Executable binary builder requirements
+
+backports.tarfile=1.20 python_version=="3.8"
 setuptools==71.1.0
 pyinstaller==6.9.0
