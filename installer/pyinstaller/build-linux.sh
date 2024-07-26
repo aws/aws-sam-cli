@@ -49,7 +49,7 @@ mkdir -p .build/output/openssl
 cd .build/output/openssl
 
 echo "Building OpenSSL"
-curl -L "https://github.com:443/openssl/openssl/releases/download/OpenSSL_${openssl_version//./_}/openssl-${openssl_version}.tar.gz" --output openssl.tar.gz
+curl -L "https://github.com/openssl/openssl/releases/download/OpenSSL_${openssl_version//./_}/openssl-${openssl_version}.tar.gz" --output openssl.tar.gz
 tar xzf openssl.tar.gz
 cd openssl-${openssl_version}
 # install_sw installs OpenSSL without manual pages
