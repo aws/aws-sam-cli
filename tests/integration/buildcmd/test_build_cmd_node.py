@@ -169,16 +169,8 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture(BuildIntegNodeB
             ("nodejs18.x", False, "x86_64"),
             ("nodejs16.x", "use_container", "x86_64"),
             ("nodejs18.x", "use_container", "x86_64"),
-        ]
-    )
-    def test_building_default_package_json(self, runtime, use_container, architecture):
-        self._test_with_default_package_json(runtime, use_container, self.test_data_path, architecture)
-
-    @parameterized.expand(
-        [
             ("nodejs20.x", False, "x86_64"),
         ]
     )
-    @pytest.mark.al2023
-    def test_building_default_package_json_al2023(self, runtime, use_container, architecture):
+    def test_building_default_package_json(self, runtime, use_container, architecture):
         self._test_with_default_package_json(runtime, use_container, self.test_data_path, architecture)
