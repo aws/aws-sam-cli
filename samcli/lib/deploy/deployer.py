@@ -491,6 +491,7 @@ class Deployer:
         disable_rollback: bool,
         on_failure: FailureMode = FailureMode.ROLLBACK,
         time_stamp_marker: float = 0,
+        max_wait_duration: int = 60,
     ) -> None:
         """
         Wait for stack operation to execute and return when execution completes.
@@ -508,6 +509,8 @@ class Deployer:
             The action to take when the operation fails
         time_stamp_marker:
             last event time on the stack to start streaming events from.
+        max_wait_duration:
+            The maximum duration in minutes to wait for the deployment to complete.
         """
         sys.stdout.write(
             "\n{} - Waiting for stack create/update "
@@ -525,9 +528,12 @@ class Deployer:
         else:
             raise RuntimeError("Invalid stack operation type {0}".format(stack_operation))
 
+        delay = 30
+        max_attempts = max_wait_duration * 60 // delay
+
         # Poll every 30 seconds. Polling too frequently risks hitting rate limits
         # on CloudFormation's DescribeStacks API
-        waiter_config = {"Delay": 30, "MaxAttempts": 120}
+        waiter_config = {"Delay": delay, "MaxAttempts": max_attempts}
 
         try:
             waiter.wait(StackName=stack_name, WaiterConfig=waiter_config)

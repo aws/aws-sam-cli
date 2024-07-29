@@ -37,6 +37,7 @@ DEPLOYMENT_OPTIONS: List[str] = [
     "disable_rollback",
     "on_failure",
     "force_upload",
+    "max_wait_duration",
 ]
 
 CONFIGURATION_OPTION_NAMES: List[str] = ["config_env", "config_file"] + SAVE_PARAMS_OPTIONS
