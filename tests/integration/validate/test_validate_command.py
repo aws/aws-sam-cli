@@ -9,7 +9,7 @@ import tempfile
 from enum import Enum, auto
 from pathlib import Path
 from typing import List, Optional
-from unittest import TestCase
+from unittest import TestCase, skip
 from unittest.case import skipIf
 
 from parameterized import parameterized
@@ -155,7 +155,11 @@ class TestValidate(TestCase):
 
             output = command_result.stdout.decode("utf-8")
             self.assertEqual(command_result.process.returncode, 1)
-            self.assertRegex(output, f"W2531 Runtime \\({runtime}\\)")
+            self.assertRegex(
+                output,
+                f"\\[\\[W2531: Check if EOL Lambda Function Runtimes are used] "
+                f"\\(Runtime \\'{runtime}'\\ was deprecated on.*",
+            )
 
     def test_lint_supported_runtimes(self):
         template = {
@@ -216,6 +220,7 @@ class TestValidate(TestCase):
 
         self.assertIn(error_message, output)
 
+    @skip("Skip test until https://github.com/aws-cloudformation/cfn-lint/pull/3545 is released")
     def test_lint_error_invalid_region(self):
         test_data_path = Path(__file__).resolve().parents[2] / "integration" / "testdata" / "validate" / "default_json"
         template_file = "template.json"
@@ -223,7 +228,7 @@ class TestValidate(TestCase):
         command_result = run_command(self.command_list(lint=True, region="us-north-5", template_file=template_path))
         output = command_result.stderr.decode("utf-8")
 
-        error_message = f"Error: AWS Region was not found. Please configure your region through the --region option"
+        error_message = f"ERROR - Regions ['us-north-5'] are unsupported. Supported regions are"
 
         self.assertIn(error_message, output)
 
@@ -237,10 +242,10 @@ class TestValidate(TestCase):
         output = output.replace("\r", "")
 
         warning_message = (
-            'E0000 Duplicate found "HelloWorldFunction" (line 5)\n'
-            f'{os.path.join(test_data_path, "templateError.yaml")}:5:3\n\n'
-            'E0000 Duplicate found "HelloWorldFunction" (line 12)\n'
-            f'{os.path.join(test_data_path, "templateError.yaml")}:12:3\n\n'
+            "[[E0000: Parsing error found when parsing the template] "
+            '(Duplicate found "HelloWorldFunction" (line 5)) matched 5, '
+            "[E0000: Parsing error found when parsing the template] "
+            '(Duplicate found "HelloWorldFunction" (line 12)) matched 12]\n'
         )
 
         self.assertIn(warning_message, output)

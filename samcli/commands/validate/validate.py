@@ -2,7 +2,9 @@
 CLI Command for Validating a SAM Template
 """
 
+import logging
 import os
+from dataclasses import dataclass
 
 import boto3
 import click
@@ -25,6 +27,14 @@ from samcli.lib.utils.version_checker import check_newer_version
 DESCRIPTION = """
   Verify and Lint an AWS SAM Template being valid.
 """
+
+CNT_LINT_LOGGER_NAME = "cfnlint"
+
+
+@dataclass
+class SamTemplate:
+    serialized: str
+    deserialized: dict
 
 
 @click.command(
@@ -71,14 +81,14 @@ def do_cli(ctx, template, lint):
     from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
     from samcli.lib.translate.sam_template_validator import SamTemplateValidator
 
-    if lint:
-        _lint(ctx, template)
-    else:
-        sam_template = _read_sam_file(template)
+    sam_template = _read_sam_file(template)
 
+    if lint:
+        _lint(ctx, sam_template.serialized, template)
+    else:
         iam_client = boto3.client("iam")
         validator = SamTemplateValidator(
-            sam_template, ManagedPolicyLoader(iam_client), profile=ctx.profile, region=ctx.region
+            sam_template.deserialized, ManagedPolicyLoader(iam_client), profile=ctx.profile, region=ctx.region
         )
 
         try:
@@ -103,7 +113,7 @@ def do_cli(ctx, template, lint):
         )
 
 
-def _read_sam_file(template):
+def _read_sam_file(template) -> SamTemplate:
     """
     Reads the file (json and yaml supported) provided and returns the dictionary representation of the file.
 
@@ -120,12 +130,13 @@ def _read_sam_file(template):
         raise SamTemplateNotFoundException("Template at {} is not found".format(template))
 
     with click.open_file(template, "r", encoding="utf-8") as sam_file:
-        sam_template = yaml_parse(sam_file.read())
+        template_string = sam_file.read()
+        sam_template = yaml_parse(template_string)
 
-    return sam_template
+    return SamTemplate(serialized=template_string, deserialized=sam_template)
 
 
-def _lint(ctx: Context, template: str) -> None:
+def _lint(ctx: Context, template: str, template_path: str) -> None:
     """
     Parses provided SAM template and maps errors from CloudFormation template back to SAM template.
 
@@ -139,52 +150,32 @@ def _lint(ctx: Context, template: str) -> None:
     ctx
         Click context object
     template
-        Path to the template file
-
+        Contents of sam template as a string
+    template_path
+        Path to the sam template
     """
 
-    import logging
+    from cfnlint.api import ManualArgs, lint
 
-    import cfnlint.core  # type: ignore
-
-    from samcli.commands.exceptions import UserException
-
-    cfn_lint_logger = logging.getLogger("cfnlint")
+    cfn_lint_logger = logging.getLogger(CNT_LINT_LOGGER_NAME)
     cfn_lint_logger.propagate = False
+
     EventTracker.track_event("UsedFeature", "CFNLint")
 
-    try:
-        lint_args = [template]
-        if ctx.debug:
-            lint_args.append("--debug")
-        if ctx.region:
-            lint_args.append("--region")
-            lint_args.append(ctx.region)
+    linter_config = {}
+    if ctx.region:
+        linter_config["region"] = ctx.region
+    if ctx.debug:
+        cfn_lint_logger.propagate = True
+        cfn_lint_logger.setLevel(logging.DEBUG)
 
-        (args, filenames, formatter) = cfnlint.core.get_args_filenames(lint_args)
-        cfn_lint_logger.setLevel(logging.WARNING)
-        matches = list(cfnlint.core.get_matches(filenames, args))
-        if not matches:
-            click.secho("{} is a valid SAM Template".format(template), fg="green")
-            return
+    config = ManualArgs(**linter_config)
+    matches = lint(template, config=config)
 
-        rules = cfnlint.core.get_used_rules()
-        matches_output = formatter.print_matches(matches, rules, filenames)
+    if not matches:
+        click.secho("{} is a valid SAM Template".format(template_path), fg="green")
+        return
 
-        if matches_output:
-            click.secho(matches_output)
+    click.secho(matches)
 
-        raise LinterRuleMatchedException(
-            "Linting failed. At least one linting rule was matched to the provided template."
-        )
-
-    except cfnlint.core.InvalidRegionException as e:
-        raise UserException(
-            "AWS Region was not found. Please configure your region through the --region option",
-            wrapped_from=e.__class__.__name__,
-        ) from e
-    except cfnlint.core.CfnLintExitException as lint_error:
-        raise UserException(
-            lint_error,
-            wrapped_from=lint_error.__class__.__name__,
-        ) from lint_error
+    raise LinterRuleMatchedException("Linting failed. At least one linting rule was matched to the provided template.")
