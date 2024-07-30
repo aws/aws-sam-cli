@@ -114,9 +114,9 @@ cffi==1.16.0 \
     --hash=sha256:fa3a0128b152627161ce47201262d3140edb5a5c3da88d73a1b790a959126956 \
     --hash=sha256:fcc8eb6d5902bb1cf6dc4f187ee3ea80a1eba0a89aba40a5cb20a5087d961357
     # via cryptography
-cfn-lint==1.4.2 \
-    --hash=sha256:5f70df127c438117bb7f6da73e2310cebcf1901ba5ed001c6fbb0715c09efdde \
-    --hash=sha256:7b884d0c79b7f3b40212df42299211e2c4f37e1598ac9f5d36c7e2142d23702c
+cfn-lint==1.9.1 \
+    --hash=sha256:751034d9aeedb303e1dbd0f7fc68b2a1b8d475335ae7695b33dab3cb12d28c48 \
+    --hash=sha256:ed0a1c49fa5a01e8c345816be899078774cffb3c75200f15249c311410d9241a
     # via aws-sam-cli (setup.py)
 chardet==5.2.0 \
     --hash=sha256:1b3b6ff479a8c414bc3fa2c0852995695c4a026dcd6d0633b2dd092ca39c1cf7 \
@@ -890,9 +890,7 @@ s3transfer==0.10.2 \
 six==1.16.0 \
     --hash=sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926 \
     --hash=sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254
-    # via
-    #   junit-xml
-    #   python-dateutil
+    # via python-dateutil
 sympy==1.13.1 \
     --hash=sha256:9cebf7e04ff162015ce31c9c6c9144daa34a93bd082f54fd8f12deca4f47515f \
     --hash=sha256:db36cdc64bf61b9b24578b6f7bab1ecdd2452cf008f34faa33776680c26d66f8
