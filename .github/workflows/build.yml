@@ -279,4 +279,4 @@ jobs:
       - name: Init samdev
         run: make init
       - name: Run tests without Docker
-        run: pytest -vv tests/integration/buildcmd/test_build_cmd.py -k TestBuildCommand_PythonFunctions_WithoutDocker
+        run: pytest -vv tests/integration/buildcmd/test_build_cmd_python.py -k TestBuildCommand_PythonFunctions_WithoutDocker
