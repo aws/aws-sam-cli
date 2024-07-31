@@ -93,8 +93,9 @@ class TestValidateCli(TestCase):
 
         do_cli(ctx=ctx_lint_mock(debug=False, region="region"), template=template_path, lint=True)
 
+    @patch("cfnlint.api.lint")
     @patch("samcli.commands.validate.validate.click")
-    def test_lint_event_recorded(self, click_patch):
+    def test_lint_event_recorded(self, click_patch, lint_patch):
         template_path = "path_to_template"
         template_contents = "{}"
 
