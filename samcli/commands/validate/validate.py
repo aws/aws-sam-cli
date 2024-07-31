@@ -18,7 +18,7 @@ from samcli.cli.main import common_options as cli_framework_options
 from samcli.commands._utils.cdk_support_decorators import unsupported_command_cdk
 from samcli.commands._utils.command_exception_handler import command_exception_handler
 from samcli.commands._utils.options import template_option_without_build
-from samcli.commands.exceptions import LinterRuleMatchedException
+from samcli.commands.exceptions import LinterRuleMatchedException, UserException
 from samcli.commands.validate.core.command import ValidateCommand
 from samcli.lib.telemetry.event import EventTracker
 from samcli.lib.telemetry.metric import track_command
@@ -156,6 +156,7 @@ def _lint(ctx: Context, template: str, template_path: str) -> None:
     """
 
     from cfnlint.api import ManualArgs, lint
+    from cfnlint.runner import InvalidRegionException
 
     cfn_lint_logger = logging.getLogger(CNT_LINT_LOGGER_NAME)
     cfn_lint_logger.propagate = False
@@ -164,13 +165,20 @@ def _lint(ctx: Context, template: str, template_path: str) -> None:
 
     linter_config = {}
     if ctx.region:
-        linter_config["region"] = ctx.region
+        linter_config["regions"] = [ctx.region]
     if ctx.debug:
         cfn_lint_logger.propagate = True
         cfn_lint_logger.setLevel(logging.DEBUG)
 
     config = ManualArgs(**linter_config)
-    matches = lint(template, config=config)
+
+    try:
+        matches = lint(template, config=config)
+    except InvalidRegionException as ex:
+        raise UserException(
+            f"AWS Region was not found. Please configure your region through the --region option.\n{ex}",
+            wrapped_from=ex.__class__.__name__,
+        ) from ex
 
     if not matches:
         click.secho("{} is a valid SAM Template".format(template_path), fg="green")

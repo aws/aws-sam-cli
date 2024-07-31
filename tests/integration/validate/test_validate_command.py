@@ -220,7 +220,6 @@ class TestValidate(TestCase):
 
         self.assertIn(error_message, output)
 
-    @skip("Skip test until https://github.com/aws-cloudformation/cfn-lint/pull/3545 is released")
     def test_lint_error_invalid_region(self):
         test_data_path = Path(__file__).resolve().parents[2] / "integration" / "testdata" / "validate" / "default_json"
         template_file = "template.json"
@@ -228,7 +227,10 @@ class TestValidate(TestCase):
         command_result = run_command(self.command_list(lint=True, region="us-north-5", template_file=template_path))
         output = command_result.stderr.decode("utf-8")
 
-        error_message = f"ERROR - Regions ['us-north-5'] are unsupported. Supported regions are"
+        error_message = (
+            f"Error: AWS Region was not found. Please configure your region through the --region option.\n"
+            f"Regions ['us-north-5'] are unsupported. Supported regions are"
+        )
 
         self.assertIn(error_message, output)
 
