@@ -228,7 +228,7 @@ class TestValidate(TestCase):
         output = command_result.stderr.decode("utf-8")
 
         error_message = (
-            f"Error: AWS Region was not found. Please configure your region through the --region option.\n"
+            f"Error: AWS Region was not found. Please configure your region through the --region option.{os.linesep}"
             f"Regions ['us-north-5'] are unsupported. Supported regions are"
         )
 
