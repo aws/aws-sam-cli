@@ -16,7 +16,7 @@ if [ "$python_version" = "" ]; then
 fi
 
 if [ "$openssl_version" = "" ]; then
-    openssl_version="1.1.1w";
+    openssl_version="3.3.1";
 fi
 
 if [ "$zlib_version" = "" ]; then
@@ -38,7 +38,7 @@ fi
 
 set -eux
 
-yum install -y libffi-devel
+yum install -y libffi-devel perl-IPC-Cmd
 
 echo "Making Folders"
 mkdir -p .build/src
@@ -49,7 +49,7 @@ mkdir -p .build/output/openssl
 cd .build/output/openssl
 
 echo "Building OpenSSL"
-curl -L "https://github.com/openssl/openssl/releases/download/OpenSSL_${openssl_version//./_}/openssl-${openssl_version}.tar.gz" --output openssl.tar.gz
+curl -L "https://github.com/openssl/openssl/releases/download/openssl-${openssl_version}/openssl-${openssl_version}.tar.gz" --output openssl.tar.gz
 tar xzf openssl.tar.gz
 cd openssl-${openssl_version}
 # install_sw installs OpenSSL without manual pages

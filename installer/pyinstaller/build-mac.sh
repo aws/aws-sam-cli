@@ -30,7 +30,7 @@ if [ "$python_library_zip_filename" = "" ]; then
 fi
 
 if [ "$openssl_version" = "" ]; then
-    openssl_version="1.1.1w";
+    openssl_version="3.3.1";
 fi
 
 if [ "$python_version" = "" ]; then
