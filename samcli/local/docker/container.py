@@ -154,6 +154,7 @@ class Container:
             self.rapid_port_host = find_free_port(
                 network_interface=self._container_host_interface, start=self._start_port_range, end=self._end_port_range
             )
+
         except NoFreePortsError as ex:
             raise ContainerNotStartableException(str(ex)) from ex
 
@@ -216,15 +217,25 @@ class Container:
         if self._env_vars:
             kwargs["environment"] = self._env_vars
 
-        kwargs["ports"] = {self.RAPID_PORT_CONTAINER: (self._container_host_interface, self.rapid_port_host)}
+        if self.network_id == "host":
+            kwargs["network_mode"] = self.network_id
+            # When using host network, aws-lambda-rie will bind to 8080
+            self.rapid_port_host = int(self.RAPID_PORT_CONTAINER)
+            LOG.warning("Using host network mode will bind to port %s", self.RAPID_PORT_CONTAINER)
 
-        if self._exposed_ports:
-            kwargs["ports"].update(
-                {
-                    container_port: (self._container_host_interface, host_port)
-                    for container_port, host_port in self._exposed_ports.items()
-                }
-            )
+        # It is not possible to both use host network and expose ports
+        if "network_mode" in kwargs and kwargs["network_mode"] == "host":
+            LOG.warning("Using host network mode, ignoring any port mappings")
+        else:
+            kwargs["ports"] = {self.RAPID_PORT_CONTAINER: (self._container_host_interface, self.rapid_port_host)}
+
+            if self._exposed_ports:
+                kwargs["ports"].update(
+                    {
+                        container_port: (self._container_host_interface, host_port)
+                        for container_port, host_port in self._exposed_ports.items()
+                    }
+                )
 
         if self._entrypoint:
             kwargs["entrypoint"] = self._entrypoint
@@ -235,6 +246,8 @@ class Container:
 
         if self._extra_hosts:
             kwargs["extra_hosts"] = self._extra_hosts
+
+        LOG.debug("Docker will start with the following arguments: %s", kwargs)
 
         try:
             real_container = self.docker_client.containers.create(self._image, **kwargs)
