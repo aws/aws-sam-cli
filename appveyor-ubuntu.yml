@@ -53,7 +53,10 @@ install:
   - sh: "mvn --version"
 
   - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
-  - sh: "ls -ltra /home/appveyor/.rbenv/shims/ruby"
+  - sh: "ls -ltra /home/appveyor/.rbenv/versions"
+  - sh: "ls -ltra /home/appveyor/.rbenv/versions/3.2.4/bin"
+  - sh: "ls -ltra /home/appveyor/.rbenv/versions/3.3.4/bin"
+  - sh: "echo $PATH"
   - sh: "which ruby"
   - sh: "rvm use 3.2"
   - sh: "which ruby"
