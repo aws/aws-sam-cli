@@ -53,7 +53,7 @@ install:
   - sh: "mvn --version"
 
   # ruby version management
-  - sh: "PATH=$RBENV/versions/3.2.4/bin:$RBENV/versions/3.3.4/bin:$PATH"
+  - sh: "PATH=/home/appveyor/.rbenv/versions/3.2.4/bin:/home/appveyor/.rbenv/versions/3.3.4/bin:$PATH"
   - sh: "echo $PATH"
   - sh: "ruby --version"
   - sh: "which ruby"
