@@ -286,6 +286,28 @@ class TestLambdaService(StartLambdaIntegBaseClass):
         self.assertIsNone(response.get("FunctionError"))
         self.assertEqual(response.get("StatusCode"), 200)
 
+    @parameterized.expand([("False"), ("True")])
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=300, method="thread")
+    def test_invoke_with_function_timeout_using_lookup_value(self, use_full_path):
+        """
+        This behavior does not match the actually Lambda Service. For functions that timeout, data returned like the
+        following:
+        {"errorMessage":"<timestamp> <request_id> Task timed out after 5.00 seconds"}
+
+        For Local Lambda's, however, timeouts are an interrupt on the thread that runs invokes the function. Since the
+        invoke is on a different thread, we do not (currently) have a way to communicate this back to the caller. So
+        when a timeout happens locally, we do not add the FunctionError: Unhandled to the response and have an empty
+        string as the data returned (because no data was found in stdout from the container).
+        """
+        response = self.lambda_client.invoke(
+            FunctionName=f"{self.parent_path if use_full_path == 'True' else ''}TimeoutFunctionUsingLookupValue"
+        )
+
+        self.assertEqual(response.get("Payload").read().decode("utf-8"), "")
+        self.assertIsNone(response.get("FunctionError"))
+        self.assertEqual(response.get("StatusCode"), 200)
+
 
 class TestWarmContainersBaseClass(StartLambdaIntegBaseClass):
     def setUp(self):

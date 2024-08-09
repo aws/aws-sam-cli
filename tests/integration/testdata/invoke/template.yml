@@ -26,6 +26,11 @@ Parameters:
     Type: String
     Default: "2"
 
+Mappings:
+  common:
+    LambdaFunction:
+      Timeout: 5
+
 Resources:
   HelloWorldServerlessFunction:
     Type: AWS::Serverless::Function
@@ -57,6 +62,14 @@ Resources:
       Runtime: python3.9
       CodeUri: .
       Timeout: 5
+
+  TimeoutFunctionUsingLookupValue:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.sleep_handler
+      Runtime: python3.9
+      CodeUri: .
+      Timeout: !FindInMap [common, LambdaFunction, Timeout]    
 
   HelloWorldSleepFunction:
     Type: AWS::Serverless::Function
