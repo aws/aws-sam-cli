@@ -53,8 +53,6 @@ install:
   - sh: "mvn --version"
 
   # ruby version management
-  - sh: "rbenv install 3.2.4"
-  - sh: "rbenv install 3.3.4"
   - sh: "PATH=$RBENV/versions/3.2.4/bin:$RBENV/versions/3.3.4/bin:$PATH"
   - sh: "echo $PATH"
   - sh: "ruby --version"
