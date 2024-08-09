@@ -53,6 +53,12 @@ install:
   - sh: "mvn --version"
 
   - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
+  - sh: "which ruby"
+  - sh: "rvm use 3.2"
+  - sh: "which ruby"
+  - sh: "rvm use 3.3"
+  - sh: "which ruby"
+  - sh: "exit 1"
   - sh: "rbenv install 3.3.0"
   - sh: "rbenv global 3.3.0"
   - sh: "ruby --version"
