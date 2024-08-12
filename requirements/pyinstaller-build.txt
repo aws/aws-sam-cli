@@ -7,4 +7,4 @@
 # This is a workaround until python version is bumped for Mac pyinstaller.
 backports.tarfile==1.2.0; python_version=="3.8"
 setuptools==72.1.0
-pyinstaller==6.9.0
+pyinstaller==6.10.0
