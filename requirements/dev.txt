@@ -1,18 +1,18 @@
 -r pre-dev.txt
 
-coverage==7.6.0
+coverage==7.6.1
 pytest-cov==5.0.0
 
 
 # type checking and related stubs
 # mypy adds new rules in new minor versions, which could cause our PR check to fail
 # here we fix its version and upgrade it manually in the future
-mypy==1.11.0
-types-pywin32==306.0.0.20240408
-types-PyYAML==6.0.12.20240724
+mypy==1.11.1
+types-pywin32==306.0.0.20240806
+types-PyYAML==6.0.12.20240808
 types-chevron==0.14.2.20240310
 types-psutil==6.0.0.20240621
-types-setuptools==71.1.0.20240726
+types-setuptools==71.1.0.20240806
 types-Pygments==2.18.0.20240506 
 types-colorama==0.4.15.20240311
 types-dateparser==1.2.0.20240420
@@ -41,5 +41,5 @@ pytest-json-report-wip==1.5.1
 filelock==3.15.4
 
 # formatter
-black==24.4.2
+black==24.8.0
 psutil==6.0.0
