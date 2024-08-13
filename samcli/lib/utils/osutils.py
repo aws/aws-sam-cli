@@ -2,6 +2,7 @@
 Common OS utilities
 """
 
+import errno
 import io
 import logging
 import os
@@ -178,7 +179,15 @@ def copytree(source, destination, ignore=None):
         if os.path.isdir(new_source):
             copytree(new_source, new_destination, ignore=ignore)
         else:
-            shutil.copy2(new_source, new_destination)
+            try:
+                shutil.copy2(new_source, new_destination)
+            except OSError as e:
+                if e.errno != errno.EINVAL:
+                    raise e
+                
+                # Symlinks do not get copied for Windows using shutil.copy2, which is why
+                # they are handled separately here.
+                create_symlink_or_copy(new_source, new_destination)
 
 
 def convert_files_to_unix_line_endings(path: str, target_files: Optional[List[str]] = None) -> None:

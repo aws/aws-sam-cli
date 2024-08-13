@@ -90,6 +90,69 @@ class Test_rmtree_if_exists(TestCase):
         patched_rmtree.assert_called_with(mock_path_obj)
 
 
+class Test_copytree(TestCase):
+    @patch("samcli.lib.utils.osutils.Path")
+    @patch("samcli.lib.utils.osutils.os")
+    @patch("samcli.lib.utils.osutils.shutil.copy2")
+    def test_must_copytree(self, patched_copy2, patched_os, patched_path):
+        source_path = "mock-source/path"
+        destination_path = "mock-destination/path"
+        mock_path_obj = Mock()
+        patched_path.exists.return_value = True
+        patched_os.path.return_value = mock_path_obj
+
+        patched_os.path.join.side_effect = [source_path, destination_path]
+        patched_os.path.isdir.return_value = False
+        patched_os.listdir.return_value = ["mock-source-file1"]
+        osutils.copytree(source_path, destination_path)
+
+        patched_os.path.join.assert_called()
+        patched_copy2.assert_called_with(source_path, destination_path)
+
+    @patch("samcli.lib.utils.osutils.Path")
+    @patch("samcli.lib.utils.osutils.os")
+    @patch("samcli.lib.utils.osutils.shutil.copy2")
+    def test_copytree_throws_oserror_path_exists(self, patched_copy2, patched_os, patched_path):
+        source_path = "mock-source/path"
+        destination_path = "mock-destination/path"
+        mock_path_obj = Mock()
+        patched_path.exists.return_value = True
+        patched_os.path.return_value = mock_path_obj
+        patched_copy2.side_effect = OSError("mock-os-error")
+
+        patched_os.path.join.side_effect = [source_path, destination_path]
+        patched_os.path.isdir.return_value = False
+        patched_os.listdir.return_value = ["mock-source-file1"]
+        with self.assertRaises(OSError):
+            osutils.copytree(source_path, destination_path)
+
+        patched_os.path.join.assert_called()
+        patched_copy2.assert_called_with(source_path, destination_path)
+
+    @patch("samcli.lib.utils.osutils.create_symlink_or_copy")
+    @patch("samcli.lib.utils.osutils.Path")
+    @patch("samcli.lib.utils.osutils.os")
+    @patch("samcli.lib.utils.osutils.shutil.copy2")
+    def test_copytree_symlink_copy_error_handling(
+        self, patched_copy2, patched_os, patched_path, patched_create_symlink_or_copy
+    ):
+        source_path = "mock-source/path"
+        destination_path = "mock-destination/path"
+        mock_path_obj = Mock()
+        patched_path.exists.return_value = True
+        patched_os.path.return_value = mock_path_obj
+        patched_copy2.side_effect = OSError(22, "mock-os-error")
+
+        patched_os.path.join.side_effect = [source_path, destination_path]
+        patched_os.path.isdir.return_value = False
+        patched_os.listdir.return_value = ["mock-source-file1"]
+        osutils.copytree(source_path, destination_path)
+
+        patched_os.path.join.assert_called()
+        patched_copy2.assert_called_with(source_path, destination_path)
+        patched_create_symlink_or_copy.assert_called_with(source_path, destination_path)
+
+
 class Test_create_symlink_or_copy(TestCase):
     @patch("samcli.lib.utils.osutils.Path")
     @patch("samcli.lib.utils.osutils.os")
