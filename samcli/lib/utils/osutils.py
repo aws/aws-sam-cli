@@ -184,7 +184,7 @@ def copytree(source, destination, ignore=None):
             except OSError as e:
                 if e.errno != errno.EINVAL:
                     raise e
-                
+
                 # Symlinks do not get copied for Windows using shutil.copy2, which is why
                 # they are handled separately here.
                 create_symlink_or_copy(new_source, new_destination)
