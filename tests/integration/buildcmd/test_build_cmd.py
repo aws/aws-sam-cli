@@ -303,17 +303,24 @@ class TestBuildCommand_RubyFunctionsWithGemfileInTheRoot(BuildIntegRubyBase):
 
     @parameterized.expand([("ruby3.2"), ("ruby3.3")])
     def test_building_ruby_in_process_with_root_gemfile(self, runtime):
-        self._prepare_application_environment()
+        self._prepare_application_environment(runtime)
         self._test_with_default_gemfile(runtime, False, "RubyWithRootGemfile", self.working_dir)
 
-    def _prepare_application_environment(self):
+    def _prepare_application_environment(self, runtime):
         """
         Create an application environment where Gemfile will be in the root folder of the app;
+        ├── .ruby-version
         ├── RubyWithRootGemfile
         │   └── app.rb
         ├── Gemfile
         └── template.yaml
         """
+        # copy .ruby-version to the root of the project
+        ruby_runtime_path = "Ruby32" if runtime == "ruby3.2" else "Ruby33"
+        shutil.copyfile(
+            Path(self.template_path).parent.joinpath(ruby_runtime_path, ".ruby-version"),
+            Path(self.working_dir).joinpath(".ruby-version"),
+        )
         # copy gemfile to the root of the project
         shutil.copyfile(Path(self.template_path).parent.joinpath("Gemfile"), Path(self.working_dir).joinpath("Gemfile"))
         # copy function source code in its folder
