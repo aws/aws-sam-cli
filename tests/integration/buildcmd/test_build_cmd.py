@@ -317,7 +317,10 @@ class TestBuildCommand_RubyFunctionsWithGemfileInTheRoot(BuildIntegRubyBase):
         """
         # copy .ruby-version to the root of the project
         ruby_runtime_path = "Ruby32" if runtime == "ruby3.2" else "Ruby33"
-        shutil.copyfile(Path(self.template_path).parent.joinpath(ruby_runtime_path, ".ruby-version"), Path(self.working_dir).joinpath(".ruby-version"))
+        shutil.copyfile(
+            Path(self.template_path).parent.joinpath(ruby_runtime_path, ".ruby-version"),
+            Path(self.working_dir).joinpath(".ruby-version"),
+        )
         # copy gemfile to the root of the project
         shutil.copyfile(Path(self.template_path).parent.joinpath("Gemfile"), Path(self.working_dir).joinpath("Gemfile"))
         # copy function source code in its folder
