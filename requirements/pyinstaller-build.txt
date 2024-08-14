@@ -1,10 +1,3 @@
 # Executable binary builder requirements
-
-# backports-zoneinfo==0.2.1 is a dependency that comes from updating reproducibles using python3.8.
-# This is a bug coming from the backports lib and according to https://pypi.org/project/backports/,
-# the packages related to backports get masked and tarfile cannot be imported from backports for setuptools > 71.0.0.
-# That’s why we install it as part of requirements. More context in https://github.com/pypa/setuptools/issues/4508#issuecomment-2249216574.
-# This is a workaround until python version is bumped for Mac pyinstaller.
-backports.tarfile==1.2.0; python_version=="3.8"
-setuptools==72.1.0
+setuptools==70.3.0
 pyinstaller==6.10.0
