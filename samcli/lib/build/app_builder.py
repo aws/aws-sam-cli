@@ -412,7 +412,7 @@ class ApplicationBuilder:
             docker_tag = "-".join([docker_tag, docker_build_args["SAM_BUILD_MODE"]])
 
         if isinstance(docker_build_args, dict):
-            LOG.info("Setting DockerBuildArgs: %s for %s function", docker_build_args, function_name)
+            LOG.info("Setting DockerBuildArgs for %s function", function_name)
 
         build_args = {
             "path": str(docker_context_dir),
