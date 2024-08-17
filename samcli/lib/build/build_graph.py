@@ -648,10 +648,14 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
             raise InvalidBuildGraphException("Build definition doesn't have any function definition to build")
 
     def __str__(self) -> str:
+        metadata = self.metadata.copy()
+        if "DockerBuildArgs" in metadata:
+            del metadata["DockerBuildArgs"]
+
         return (
             "BuildDefinition("
             f"{self.runtime}, {self.codeuri}, {self.packagetype}, {self.source_hash}, "
-            f"{self.uuid}, {self.metadata}, {self.env_vars}, {self.architecture}, "
+            f"{self.uuid}, {metadata}, {self.env_vars}, {self.architecture}, "
             f"{[f.functionname for f in self.functions]})"
         )
 
