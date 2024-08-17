@@ -172,7 +172,7 @@ class Function(NamedTuple):
         metadata = None if not self.metadata else self.metadata.copy()
         if metadata and "DockerBuildArgs" in metadata:
             del metadata["DockerBuildArgs"]
-        
+
         copy = self._asdict()
         if metadata:
             copy["metadata"] = metadata
