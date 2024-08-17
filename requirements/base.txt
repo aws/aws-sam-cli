@@ -4,16 +4,16 @@ Flask<3.1
 boto3>=1.29.2,<2
 jmespath~=1.0.1
 ruamel_yaml~=0.18.6
-PyYAML~=6.0,>=6.0.1
+PyYAML~=6.0
 cookiecutter~=2.6.0
-aws-sam-translator==1.89.0
+aws-sam-translator==1.90.0
 #docker minor version updates can include breaking changes. Auto update micro version only.
 docker~=7.1.0
 dateparser~=1.2
 requests~=2.32.3
 aws_lambda_builders==1.50.0
 tomlkit==0.13.0
-watchdog==4.0.1
+watchdog==4.0.2
 rich~=13.7.1
 pyopenssl~=24.2.1
 # Pin to <4.18 to until SAM-T no longer uses RefResolver
@@ -28,7 +28,7 @@ regex!=2021.10.8
 tzlocal==5.2
 
 #Adding cfn-lint dependency for SAM validate
-cfn-lint~=0.87.7
+cfn-lint~=1.10.0
 
 # Type checking boto3 objects
-boto3-stubs[apigateway,cloudformation,ecr,iam,lambda,s3,schemas,secretsmanager,signer,stepfunctions,sts,xray,sqs,kinesis]==1.34.147
+boto3-stubs[apigateway,cloudformation,ecr,iam,lambda,s3,schemas,secretsmanager,signer,stepfunctions,sts,xray,sqs,kinesis]==1.34.159

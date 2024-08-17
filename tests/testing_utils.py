@@ -79,10 +79,10 @@ def run_command(command_list, cwd=None, env=None, timeout=TIMEOUT) -> CommandRes
         raise
 
 
-def run_command_with_input(command_list, stdin_input, timeout=TIMEOUT, cwd=None) -> CommandResult:
+def run_command_with_input(command_list, stdin_input, timeout=TIMEOUT, cwd=None, env=None) -> CommandResult:
     LOG.info("Running command: %s", " ".join(command_list))
     LOG.info("With input: %s", stdin_input)
-    process_execute = Popen(command_list, cwd=cwd, stdout=PIPE, stderr=PIPE, stdin=PIPE)
+    process_execute = Popen(command_list, cwd=cwd, env=env, stdout=PIPE, stderr=PIPE, stdin=PIPE)
     try:
         stdout_data, stderr_data = process_execute.communicate(stdin_input, timeout=timeout)
         LOG.info(f"Stdout: {stdout_data.decode('utf-8')}")
@@ -294,31 +294,6 @@ class UpdatableSARTemplate:
 
     def __exit__(self, *args):
         self.clean()
-
-
-RUNTIME_NOT_SUPPORTED_BY_DOCKER_MSG = "Runtime is not supported the installed Docker version."
-
-
-def runtime_supported_by_docker(runtime: str) -> bool:
-    """
-    To determine if a test ca on runtime and docker_version, in case the test is run in an environment with a very old version of docker
-
-    Container test for AL2023-based runtimes (i.e. provided.al2023, java21, python3.12 and nodejs20.x as of 2023-12-01) requires docker 20.10.10+
-    See: https://docs.docker.com/engine/release-notes/20.10/#201010
-
-    """
-    al2023_based_runtimes = {
-        "provided.al2023",
-        "nodejs20.x",
-        "java21",
-        "python3.12",
-        "dotnet8",
-        "ruby3.3",
-    }
-    min_docker_version = "20.10.10"
-    return runtime not in al2023_based_runtimes or (
-        runtime in al2023_based_runtimes and _version_gte(get_docker_version(), min_docker_version)
-    )
 
 
 def _version_gte(version1: str, version2: str) -> bool:

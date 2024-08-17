@@ -2,6 +2,7 @@
 Common OS utilities
 """
 
+import errno
 import io
 import logging
 import os
@@ -11,7 +12,7 @@ import sys
 import tempfile
 from contextlib import contextmanager
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import List, Optional, Union, cast
 
 LOG = logging.getLogger(__name__)
 
@@ -90,11 +91,11 @@ def stdout() -> io.TextIOWrapper:
         Byte stream of Stdout
     """
     # ensure stdout is utf8
-    sys.stdout.reconfigure(encoding="utf-8")  # type:ignore[attr-defined]
 
-    # Note(jfuss): sys.stdout is a type typing.TextIO but are initialized to
-    # io.TextIOWrapper. To make mypy and typing play well, tell mypy to ignore.
-    return sys.stdout  # type:ignore[return-value]
+    stdout_text_io = cast(io.TextIOWrapper, sys.stdout)
+    stdout_text_io.reconfigure(encoding="utf-8")
+
+    return stdout_text_io
 
 
 def stderr() -> io.TextIOWrapper:
@@ -107,11 +108,10 @@ def stderr() -> io.TextIOWrapper:
         Byte stream of stderr
     """
     # ensure stderr is utf8
-    sys.stderr.reconfigure(encoding="utf-8")  # type:ignore[attr-defined]
+    stderr_text_io = cast(io.TextIOWrapper, sys.stderr)
+    stderr_text_io.reconfigure(encoding="utf-8")
 
-    # Note(jfuss): sys.stderr is a type typing.TextIO but are initialized to
-    # io.TextIOWrapper. To make mypy and typing play well, tell mypy to ignore.
-    return sys.stderr  # type:ignore[return-value]
+    return stderr_text_io
 
 
 def remove(path):
@@ -179,7 +179,15 @@ def copytree(source, destination, ignore=None):
         if os.path.isdir(new_source):
             copytree(new_source, new_destination, ignore=ignore)
         else:
-            shutil.copy2(new_source, new_destination)
+            try:
+                shutil.copy2(new_source, new_destination)
+            except OSError as e:
+                if e.errno != errno.EINVAL:
+                    raise e
+
+                # Symlinks do not get copied for Windows using shutil.copy2, which is why
+                # they are handled separately here.
+                create_symlink_or_copy(new_source, new_destination)
 
 
 def convert_files_to_unix_line_endings(path: str, target_files: Optional[List[str]] = None) -> None:

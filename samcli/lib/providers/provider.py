@@ -168,6 +168,16 @@ class Function(NamedTuple):
             )
         return str(arch_list[0])
 
+    def __str__(self) -> str:
+        metadata = None if not self.metadata else self.metadata.copy()
+        if metadata and "DockerBuildArgs" in metadata:
+            del metadata["DockerBuildArgs"]
+
+        copy = self._asdict()
+        if metadata:
+            copy["metadata"] = metadata
+        return f"Function({copy})"
+
 
 class ResourcesToBuildCollector:
     def __init__(self) -> None:

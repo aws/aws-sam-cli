@@ -50,7 +50,7 @@ black-check:
 	black --check setup.py samcli tests schema
 
 format: black
-	ruff samcli --fix
+	ruff check samcli --fix
 
 schema:
 	python -m schema.make_schema

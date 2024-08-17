@@ -146,10 +146,9 @@ class DefaultBuildStrategy(BuildStrategy):
         """
         function_build_results = {}
         LOG.info(
-            "Building codeuri: %s runtime: %s metadata: %s architecture: %s functions: %s",
+            "Building codeuri: %s runtime: %s architecture: %s functions: %s",
             build_definition.codeuri,
             build_definition.runtime,
-            build_definition.metadata,
             build_definition.architecture,
             build_definition.get_resource_full_paths(),
         )
