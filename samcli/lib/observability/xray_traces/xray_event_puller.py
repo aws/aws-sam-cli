@@ -160,7 +160,6 @@ class XRayTracePuller(AbstractXRayPuller):
 
                     # update latest fetched event
                     latest_event_time = xray_trace_event.get_latest_event_time()
-                    if latest_event_time > self.latest_event_time:
-                        self.latest_event_time = latest_event_time
+                    self.latest_event_time = max(self.latest_event_time, latest_event_time)
 
                     self.consumer.consume(xray_trace_event)
