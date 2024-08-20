@@ -1449,7 +1449,7 @@ class TestDeployer(CustomTestCase):
                                 "ResourceType": "AWS::S3::Bucket",
                                 "Timestamp": start_timestamp + timedelta(seconds=2),
                                 "ResourceStatus": "CREATE_IN_PROGRESS",
-                                "ResourceDetailedStatus": "CONFIGURATION_COMPLETE",
+                                "DetailedStatus": "CONFIGURATION_COMPLETE",
                             },
                             {
                                 "StackId": "arn:aws:cloudformation:us-west-2:123456789012:stack/my-stack-name/...",
