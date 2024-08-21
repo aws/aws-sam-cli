@@ -935,9 +935,9 @@ types-awscrt==0.21.2 \
     --hash=sha256:0839fe12f0f914d8f7d63ed777c728cb4eccc2d5d79a26e377d12b0604e7bf0e \
     --hash=sha256:84a9f4f422ec525c314fdf54c23a1e73edfbcec968560943ca2d41cfae623b38
     # via botocore-stubs
-types-python-dateutil==2.9.0.20240316 \
-    --hash=sha256:5d2f2e240b86905e40944dd787db6da9263f0deabef1076ddaed797351ec0202 \
-    --hash=sha256:6b8cb66d960771ce5ff974e9dd45e38facb81718cc1e208b10b1baccbfdbee3b
+types-python-dateutil==2.9.0.20240821 \
+    --hash=sha256:9649d1dcb6fef1046fb18bebe9ea2aa0028b160918518c34589a46045f6ebd98 \
+    --hash=sha256:f5889fcb4e63ed4aaa379b44f93c32593d50b9a94c9a60a0c854d8cc3511cd57
     # via arrow
 types-s3transfer==0.10.1 \
     --hash=sha256:02154cce46528287ad76ad1a0153840e0492239a0887e8833466eccf84b98da0 \
