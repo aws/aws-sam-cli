@@ -83,3 +83,12 @@ class MissingLocalDefinition(Exception):
     @property
     def property_name(self) -> str:
         return self._property_name
+
+
+class MissingFunctionNameException(Exception):
+    """
+    Exception when a resource does not have function name specified
+    """
+
+    def __init__(self) -> None:
+        super().__init__("Unable to get Lambda function because the function identifier is not defined.")
