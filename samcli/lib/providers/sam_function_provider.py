@@ -11,7 +11,7 @@ from samtranslator.policy_template_processor.exceptions import TemplateNotFoundE
 from samcli.commands._utils.template import TemplateFailedParsingException
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
 from samcli.lib.build.exceptions import MissingFunctionHandlerException
-from samcli.lib.providers.exceptions import InvalidLayerReference
+from samcli.lib.providers.exceptions import InvalidLayerReference, MissingFunctionNameException
 from samcli.lib.utils.colors import Colored, Colors
 from samcli.lib.utils.file_observer import FileObserver
 from samcli.lib.utils.packagetype import IMAGE, ZIP
@@ -119,7 +119,8 @@ class SamFunctionProvider(SamBaseProvider):
         """
 
         if not name:
-            raise ValueError("Function name is required")
+            LOG.debug("Function name is not defined, unable to fetch Lambda function.")
+            raise MissingFunctionNameException()
 
         resolved_function = None
 

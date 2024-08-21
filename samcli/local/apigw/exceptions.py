@@ -51,3 +51,9 @@ class AuthorizerUnauthorizedRequest(UserException):
     """
     An exception raised when the request is not authorized by the authorizer
     """
+
+
+class InvocationFailureException(UserException):
+    """
+    An exception raised when an invocation fails
+    """

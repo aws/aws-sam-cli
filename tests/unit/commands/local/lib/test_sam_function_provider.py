@@ -11,7 +11,7 @@ from samcli.lib.utils.architecture import X86_64, ARM64
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
 from samcli.lib.providers.provider import Function, LayerVersion, Stack, FunctionBuildInfo
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider, RefreshableSamFunctionProvider
-from samcli.lib.providers.exceptions import InvalidLayerReference
+from samcli.lib.providers.exceptions import InvalidLayerReference, MissingFunctionNameException
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 
 
@@ -1908,7 +1908,7 @@ class TestSamFunctionProvider_get(TestCase):
     def test_raise_on_invalid_name(self):
         provider = SamFunctionProvider([])
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(MissingFunctionNameException):
             provider.get(None)
 
     def test_must_return_function_value(self):
