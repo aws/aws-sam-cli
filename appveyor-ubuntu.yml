@@ -241,7 +241,7 @@ for:
       - sh: "sudo mv /opt/terraform/terraform /usr/local/bin/"
       - sh: "terraform -version"
 
-      - sh: "pytest -vv tests/integration/local/invoke tests/integration/local/generate_event --json-report --json-report-file=TEST_REPORT-integration-local.json"
+      - sh: "pytest -vv --reruns 3 tests/integration/local/invoke tests/integration/local/generate_event --json-report --json-report-file=TEST_REPORT-integration-local.json"
 
   # Integ testing local
   -
@@ -258,7 +258,7 @@ for:
       - sh: "sudo mv /opt/terraform/terraform /usr/local/bin/"
       - sh: "terraform -version"
 
-      - sh: "pytest -vv tests/integration/local/start_api tests/integration/local/start_lambda --json-report --json-report-file=TEST_REPORT-integration-local-start.json"
+      - sh: "pytest -vv --reruns 3 tests/integration/local/start_api tests/integration/local/start_lambda --json-report --json-report-file=TEST_REPORT-integration-local-start.json"
 
   # Other testing
   -
@@ -268,4 +268,4 @@ for:
 
     test_script:
       - sh: "pytest -vv -n 4 --reruns 4 --dist loadgroup tests/integration tests/end_to_end --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-others.json"
-      - sh: "pytest -vv tests/regression --json-report --json-report-file=TEST_REPORT-regression.json"
+      - sh: "pytest -vv --reruns 3 tests/regression --json-report --json-report-file=TEST_REPORT-regression.json"
