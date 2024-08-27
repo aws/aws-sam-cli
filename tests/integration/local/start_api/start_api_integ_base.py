@@ -78,7 +78,7 @@ class StartApiIntegBaseClass(TestCase):
             cls.port = str(random_port())
             try:
                 cls.start_api()
-            except InvalidAddressException:
+            except Exception:
                 retry_count += 1
                 continue
             break
