@@ -3,11 +3,11 @@ Downloads Layers locally
 """
 
 import logging
+import threading
 from pathlib import Path
 from typing import List
 
 import boto3
-import threading
 from botocore.exceptions import ClientError, NoCredentialsError
 
 from samcli.commands.local.cli_common.user_exceptions import CredentialsRequired, ResourceNotFound
