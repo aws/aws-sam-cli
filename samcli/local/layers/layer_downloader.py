@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import List
 
 import boto3
+import threading
 from botocore.exceptions import ClientError, NoCredentialsError
 
 from samcli.commands.local.cli_common.user_exceptions import CredentialsRequired, ResourceNotFound
@@ -106,7 +107,8 @@ class LayerDownloader:
             LOG.info("%s is already cached. Skipping download", layer.arn)
             return layer
 
-        layer_zip_path = layer.codeuri + ".zip"
+        current_thread_id = str(threading.get_ident())
+        layer_zip_path = f'{layer.codeuri}_{current_thread_id}.zip'
         layer_zip_uri = self._fetch_layer_uri(layer)
         unzip_from_uri(
             layer_zip_uri,

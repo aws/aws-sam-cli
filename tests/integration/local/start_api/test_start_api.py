@@ -3219,6 +3219,18 @@ class TestWarmContainersRemoteLayersLazyInvoke(WarmContainersWithRemoteLayersBas
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content.decode("utf-8"), '"Layer1"')
 
+class TestWarmContainersMultipleRemoteLayersInvoke(WarmContainersWithRemoteLayersBase):
+    template_path = "/testdata/start_api/template-warm-containers-multi-layers.yaml"
+    container_mode = ContainersInitializationMode.EAGER.value
+    mode_env_variable = str(uuid.uuid4())
+    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_can_invoke_lambda_layer_successfully(self):
+        response = requests.get(self.url + "/", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content.decode("utf-8"), '"Layer1"')
 
 class TestDisableAuthorizer(StartApiIntegBaseClass):
     # integration test for scenario: 'sam local start-api --disable-authorizer'

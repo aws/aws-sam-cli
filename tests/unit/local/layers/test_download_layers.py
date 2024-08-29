@@ -1,4 +1,5 @@
 import os
+import threading
 from unittest import TestCase
 from unittest.mock import Mock, call, patch
 
@@ -116,9 +117,10 @@ class TestDownloadLayers(TestCase):
 
         create_cache_patch.assert_called_once_with("/home")
         fetch_layer_uri_patch.assert_called_once_with(layer_mock)
+        current_thread_id = str(threading.get_ident())
         unzip_from_uri_patch.assert_called_once_with(
             "layer/uri",
-            str(Path("/home/layer1.zip").resolve()),
+            str(Path("/home/layer1_" + current_thread_id + ".zip").resolve()),
             unzip_output_dir=str(Path("/home/layer1").resolve()),
             progressbar_label="Downloading arn:layer:layer1",
         )
