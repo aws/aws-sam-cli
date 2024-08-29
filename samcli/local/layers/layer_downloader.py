@@ -108,7 +108,7 @@ class LayerDownloader:
             return layer
 
         current_thread_id = str(threading.get_ident())
-        layer_zip_path = f'{layer.codeuri}_{current_thread_id}.zip'
+        layer_zip_path = f"{layer.codeuri}_{current_thread_id}.zip"
         layer_zip_uri = self._fetch_layer_uri(layer)
         unzip_from_uri(
             layer_zip_uri,

@@ -3219,6 +3219,7 @@ class TestWarmContainersRemoteLayersLazyInvoke(WarmContainersWithRemoteLayersBas
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content.decode("utf-8"), '"Layer1"')
 
+
 class TestWarmContainersMultipleRemoteLayersInvoke(WarmContainersWithRemoteLayersBase):
     template_path = "/testdata/start_api/template-warm-containers-multi-layers.yaml"
     container_mode = ContainersInitializationMode.EAGER.value
@@ -3231,6 +3232,7 @@ class TestWarmContainersMultipleRemoteLayersInvoke(WarmContainersWithRemoteLayer
         response = requests.get(self.url + "/", timeout=300)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content.decode("utf-8"), '"Layer1"')
+
 
 class TestDisableAuthorizer(StartApiIntegBaseClass):
     # integration test for scenario: 'sam local start-api --disable-authorizer'
