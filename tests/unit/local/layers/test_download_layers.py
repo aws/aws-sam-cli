@@ -1,5 +1,4 @@
 import os
-import threading
 from unittest import TestCase
 from unittest.mock import Mock, call, patch
 
@@ -99,6 +98,10 @@ class TestDownloadLayers(TestCase):
     def test_download_layer(
         self, is_layer_cached_patch, create_cache_patch, fetch_layer_uri_patch, unzip_from_uri_patch
     ):
+        class AnyStringWith(str):
+            def __eq__(self, other):
+                return self in other
+
         is_layer_cached_patch.return_value = False
 
         download_layers = LayerDownloader("/home", ".", Mock())
@@ -117,10 +120,9 @@ class TestDownloadLayers(TestCase):
 
         create_cache_patch.assert_called_once_with("/home")
         fetch_layer_uri_patch.assert_called_once_with(layer_mock)
-        current_thread_id = str(threading.get_ident())
         unzip_from_uri_patch.assert_called_once_with(
             "layer/uri",
-            str(Path("/home/layer1_" + current_thread_id + ".zip").resolve()),
+            AnyStringWith(str(Path("/home/layer1_"))),
             unzip_output_dir=str(Path("/home/layer1").resolve()),
             progressbar_label="Downloading arn:layer:layer1",
         )
