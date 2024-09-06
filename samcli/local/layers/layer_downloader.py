@@ -3,6 +3,7 @@ Downloads Layers locally
 """
 
 import logging
+import uuid
 from pathlib import Path
 from typing import List
 
@@ -106,7 +107,7 @@ class LayerDownloader:
             LOG.info("%s is already cached. Skipping download", layer.arn)
             return layer
 
-        layer_zip_path = layer.codeuri + ".zip"
+        layer_zip_path = f"{layer.codeuri}_{uuid.uuid4().hex}.zip"
         layer_zip_uri = self._fetch_layer_uri(layer)
         unzip_from_uri(
             layer_zip_uri,
