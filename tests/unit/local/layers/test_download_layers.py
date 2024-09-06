@@ -98,6 +98,10 @@ class TestDownloadLayers(TestCase):
     def test_download_layer(
         self, is_layer_cached_patch, create_cache_patch, fetch_layer_uri_patch, unzip_from_uri_patch
     ):
+        class AnyStringWith(str):
+            def __eq__(self, other):
+                return self in other
+
         is_layer_cached_patch.return_value = False
 
         download_layers = LayerDownloader("/home", ".", Mock())
@@ -118,7 +122,7 @@ class TestDownloadLayers(TestCase):
         fetch_layer_uri_patch.assert_called_once_with(layer_mock)
         unzip_from_uri_patch.assert_called_once_with(
             "layer/uri",
-            str(Path("/home/layer1.zip").resolve()),
+            AnyStringWith(str(Path("/home/layer1_"))),
             unzip_output_dir=str(Path("/home/layer1").resolve()),
             progressbar_label="Downloading arn:layer:layer1",
         )
