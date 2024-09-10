@@ -42,9 +42,9 @@ boto3==1.35.15 \
     # via
     #   aws-sam-cli (setup.py)
     #   aws-sam-translator
-boto3-stubs[apigateway,cloudformation,ecr,iam,kinesis,lambda,s3,schemas,secretsmanager,signer,sqs,stepfunctions,sts,xray]==1.35.14 \
-    --hash=sha256:c9b3c92b5b9b1278ca03bbb942075c5f9378f4bd26d7bce3ab1068246b088928 \
-    --hash=sha256:cfa0d7189862cbd02c6cef1c6ce597728340056687547e8a2c50d2033bf979b6
+boto3-stubs[apigateway,cloudformation,ecr,iam,kinesis,lambda,s3,schemas,secretsmanager,signer,sqs,stepfunctions,sts,xray]==1.35.15 \
+    --hash=sha256:33f7bbbeabd3a2d2d7b7509b87f131d506ebd1e865cd706de8fc53a812e2c1d2 \
+    --hash=sha256:b71282a386d19c73c1757a6fc8fee3dd5c309176bf541778bab33ca669554abb
     # via aws-sam-cli (setup.py)
 botocore==1.35.15 \
     --hash=sha256:a01a7668941c9276ca7697fb0b09a47ab1f13e585c5ca6551270528f4e086de8 \
