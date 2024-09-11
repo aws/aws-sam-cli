@@ -15,6 +15,7 @@ from werkzeug.serving import WSGIRequestHandler
 
 from samcli.commands.local.lib.exceptions import UnsupportedInlineCodeError
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
+from samcli.lib.providers.exceptions import MissingFunctionNameException
 from samcli.lib.providers.provider import Api, Cors
 from samcli.lib.telemetry.event import EventName, EventTracker, UsedFeature
 from samcli.lib.utils.stream_writer import StreamWriter
@@ -733,6 +734,10 @@ class LocalApigwService(BaseLocalService):
             endpoint_service_error = ServiceErrorResponses.lambda_body_failure_response()
         except DockerContainerCreationFailedException as ex:
             endpoint_service_error = ServiceErrorResponses.container_creation_failed(ex.message)
+        except MissingFunctionNameException as ex:
+            endpoint_service_error = ServiceErrorResponses.lambda_failure_response(
+                f"Failed to execute endpoint. Got an invalid function name ({str(ex)})",
+            )
 
         if endpoint_service_error:
             return endpoint_service_error

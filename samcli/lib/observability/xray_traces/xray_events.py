@@ -49,8 +49,7 @@ class XRayTraceEvent(ObservabilityEvent[dict]):
         latest_event_time = 0
         for segment in self.segments:
             segment_latest_event_time = segment.get_latest_event_time()
-            if segment_latest_event_time > latest_event_time:
-                latest_event_time = segment_latest_event_time
+            latest_event_time = max(latest_event_time, segment_latest_event_time)
 
         return latest_event_time
 
@@ -84,8 +83,7 @@ class XRayTraceSegment:
         latest_event_time = self.end_time
         for sub_segment in self.sub_segments:
             sub_segment_latest_time = sub_segment.get_latest_event_time()
-            if sub_segment_latest_time > latest_event_time:
-                latest_event_time = sub_segment_latest_time
+            latest_event_time = max(latest_event_time, sub_segment_latest_time)
 
         return latest_event_time
 

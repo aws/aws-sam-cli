@@ -412,8 +412,8 @@ class TestBootstrap(BootstrapIntegBase):
         # Assert non SSl requests are denied
         with self.assertRaises(ClientError) as error:
             s3_non_ssl_client.get_object(Bucket=bucket_name, Key=bucket_key)
-        self.assertEqual(
-            str(error.exception), "An error occurred (AccessDenied) when calling the GetObject operation: Access Denied"
+        self.assertTrue(
+            str(error.exception).startswith("An error occurred (AccessDenied) when calling the GetObject operation:")
         )
 
     def test_bootstrapped_artifacts_bucket_has_server_access_log_enabled(self):

@@ -425,8 +425,8 @@ class Deployer:
                         # E.g. CREATE_IN_PROGRESS - CONFIGURATION_COMPLETE
                         columns=[
                             (
-                                (new_event["ResourceStatus"] + " - " + new_event["ResourceDetailedStatus"])
-                                if "ResourceDetailedStatus" in new_event
+                                (new_event["ResourceStatus"] + " - " + new_event["DetailedStatus"])
+                                if "DetailedStatus" in new_event
                                 else new_event["ResourceStatus"]
                             ),
                             new_event["ResourceType"],

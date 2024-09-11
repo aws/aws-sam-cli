@@ -133,8 +133,7 @@ class CWLogPuller(ObservabilityPuller):
                 self.had_data = True
                 cw_event = CWLogEvent(self.cw_log_group, dict(event), self.resource_name)
 
-                if cw_event.timestamp > self.latest_event_time:
-                    self.latest_event_time = cw_event.timestamp
+                self.latest_event_time = max(cw_event.timestamp, self.latest_event_time)
 
                 self.consumer.consume(cw_event)
 

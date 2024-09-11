@@ -8,6 +8,7 @@ from unittest.mock import Mock, patch, ANY, MagicMock
 from parameterized import parameterized, param
 from werkzeug.datastructures import Headers
 
+from samcli.lib.providers.exceptions import MissingFunctionNameException
 from samcli.lib.providers.provider import Api
 from samcli.lib.providers.provider import Cors
 from samcli.lib.telemetry.event import EventName, EventTracker, UsedFeature
@@ -23,6 +24,7 @@ from samcli.local.apigw.exceptions import (
     LambdaResponseParseException,
     PayloadFormatVersionValidateException,
 )
+from samcli.local.apigw.service_error_responses import ServiceErrorResponses
 from samcli.local.docker.exceptions import DockerContainerCreationFailedException
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.commands.local.lib.exceptions import UnsupportedInlineCodeError
@@ -1038,6 +1040,47 @@ class TestApiGatewayService(TestCase):
         self.assertEqual(result, make_response_mock)
         self.lambda_runner.invoke.assert_called_with(
             self.api_gateway_route.function_name, ANY, stdout=ANY, stderr=self.stderr
+        )
+
+    @patch.object(LocalApigwService, "get_request_methods_endpoints")
+    @patch.object(LocalApigwService, "_generate_lambda_authorizer_event")
+    @patch.object(LocalApigwService, "_valid_identity_sources")
+    @patch.object(LocalApigwService, "_invoke_lambda_function")
+    @patch.object(LocalApigwService, "_invoke_parse_lambda_authorizer")
+    @patch.object(EventTracker, "track_event")
+    @patch("samcli.local.apigw.local_apigw_service.construct_v1_event")
+    @patch("samcli.local.apigw.local_apigw_service.construct_v2_event_http")
+    @patch("samcli.local.apigw.local_apigw_service.ServiceErrorResponses")
+    def test_lambda_invoke_fails_no_function_name_exception(
+        self,
+        service_mock,
+        v2_event_mock,
+        v1_event_mock,
+        track_mock,
+        lambda_invoke_mock,
+        invoke_mock,
+        validate_id_mock,
+        gen_auth_event_mock,
+        request_mock,
+    ):
+        self.api_service._get_current_route = MagicMock()
+
+        self.api_gateway_route.authorizer_object = Mock()
+
+        self.api_service._get_current_route.return_value = self.api_gateway_route
+        self.api_service._get_current_route.methods = []
+        self.api_service._get_current_route.return_value.payload_format_version = "2.0"
+
+        invoke_mock.side_effect = MissingFunctionNameException()
+        service_mock.lambda_failure_response = Mock()
+        request_mock.return_value = ("test", "test")
+        v1_event_mock.return_value = {}
+
+        self.api_service._request_handler()
+
+        service_mock.lambda_failure_response.assert_called_once_with(
+            "Failed to execute endpoint. Got an invalid function name "
+            "(Unable to get Lambda function because the function identifier is not defined.)"
         )
 
 
