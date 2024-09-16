@@ -1026,7 +1026,7 @@ wheel==0.44.0 \
     # via aws-lambda-builders
 
 # The following packages are considered to be unsafe in a requirements file:
-setuptools==70.3.0 \
-    --hash=sha256:f171bab1dfbc86b132997f26a119f6056a57950d058587841a0082e8830f9dc5 \
-    --hash=sha256:fe384da74336c398e0d956d1cae0669bc02eed936cdb1d49b57de1990dc11ffc
+setuptools==75.0.0 \
+    --hash=sha256:25af69c809d9334cd8e653d385277abeb5a102dca255954005a7092d282575ea \
+    --hash=sha256:791ae94f04f78c880b5e614e560dd32d4b4af5d151bd9e7483e3377846caf90a
     # via aws-lambda-builders
