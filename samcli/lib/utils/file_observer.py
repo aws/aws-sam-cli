@@ -9,7 +9,7 @@ import uuid
 from abc import ABC, abstractmethod
 from pathlib import Path
 from threading import Lock, Thread
-from typing import Callable, Dict, List, Optional, cast
+from typing import Callable, Dict, List, Optional
 
 import docker
 from docker import DockerClient
@@ -462,8 +462,8 @@ class SingletonFileObserver(metaclass=Singleton):
                         if path == event.src_path
                         or path in self._watch_dog_observed_paths.get(f"{event.src_path!r}_False", [])
                     ]
-                else:
-                    observed_paths = [path for path in _observed_paths if cast(str, event.src_path).startswith(path)]
+                elif isinstance(event.src_path, str):
+                    observed_paths = [path for path in _observed_paths if event.src_path.startswith(path)]
 
                 if not observed_paths:
                     continue
