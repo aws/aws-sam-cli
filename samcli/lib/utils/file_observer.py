@@ -464,6 +464,8 @@ class SingletonFileObserver(metaclass=Singleton):
                     ]
                 elif isinstance(event.src_path, str):
                     observed_paths = [path for path in _observed_paths if event.src_path.startswith(path)]
+                else:
+                    observed_paths = None
 
                 if not observed_paths:
                     continue
