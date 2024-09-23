@@ -54,25 +54,25 @@ blinker==1.8.2 \
     --hash=sha256:1779309f71bf239144b9399d06ae925637cf6634cf6bd131104184531bf67c01 \
     --hash=sha256:8f77b09d3bf7c795e969e9486f39c2c5e9c39d4ee07424be2bc594ece9642d83
     # via flask
-boto3==1.35.23 \
-    --hash=sha256:3fbf1d5b749c92ed43aa190650979dff9f83790a42522e1e9eefa54c8e44bc4b \
-    --hash=sha256:ecba4362f82e23ef775c72b3e6fdef3ef68443629b79e88886d5088302ffc050
+boto3==1.35.24 \
+    --hash=sha256:97fcc1a14cbc759e4ba9535ced703a99fcf652c9c4b8dfcd06f292c80551684b \
+    --hash=sha256:be7807f30f26d6c0057e45cfd09dad5968e664488bf4f9138d0bb7a0f6d8ed40
     # via
     #   aws-sam-cli (setup.py)
     #   aws-sam-translator
-boto3-stubs[apigateway,cloudformation,ecr,iam,kinesis,lambda,s3,schemas,secretsmanager,signer,sqs,stepfunctions,sts,xray]==1.35.23 \
-    --hash=sha256:15e0825f0338dfd6f8623ecce44bd2369aabae7aeea3f706772c9172b6f3cff6 \
-    --hash=sha256:78d96e7135e2ed2743211000b7a592c90ea1caf6c2a203f4778af527da7353c1
+boto3-stubs[apigateway,cloudformation,ecr,iam,kinesis,lambda,s3,schemas,secretsmanager,signer,sqs,stepfunctions,sts,xray]==1.35.24 \
+    --hash=sha256:329a9944a75bedd9b343230b03d37c94158e60e7b7a9553e03be9a8f327cd41c \
+    --hash=sha256:f96c814f26f2ab8fcd42811b7208105f43657fe15ffa82be2cdc7734160e28c4
     # via aws-sam-cli (setup.py)
-botocore==1.35.23 \
-    --hash=sha256:25b17a9ccba6ad32bb5bf7ba4f52656aa03c1cb29f6b4e438050ee4ad1967a3b \
-    --hash=sha256:cab9ec4e0367b9f33f0bc02c5a29f587b0119ecffd6d125bacee085dcbc8817d
+botocore==1.35.24 \
+    --hash=sha256:1e59b0f14f4890c4f70bd6a58a634b9464bed1c4c6171f87c8795d974ade614b \
+    --hash=sha256:eb9ccc068255cc3d24c36693fda6aec7786db05ae6c2b13bcba66dce6a13e2e3
     # via
     #   boto3
     #   s3transfer
-botocore-stubs==1.35.23 \
-    --hash=sha256:3a335e6898d7ca0dc79292f15693e2743ec394f9d08d36f94e7a61df3bb9a14e \
-    --hash=sha256:8b9d554b5adcc070e30d9089d36cb82a4a2286df684274654ad74e5f354b8491
+botocore-stubs==1.35.24 \
+    --hash=sha256:052eead5808ef138988089b6de6786f6271fc7f395ee0d4395e96e06ab04573c \
+    --hash=sha256:20ca0d0c77215b599ab79e365f2bf5f909a49f4c5440bbbbb08175971a3de442
     # via boto3-stubs
 certifi==2024.8.30 \
     --hash=sha256:922820b53db7a7257ffbda3f597266d435245903d80737e34f8a45ff3e3230d8 \
