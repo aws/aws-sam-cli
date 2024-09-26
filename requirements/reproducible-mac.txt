@@ -1025,7 +1025,7 @@ urllib3==1.26.20 \
     #   botocore
     #   docker
     #   requests
-watchdog==4.0.2 \
+watchdog==4.0.2 ; python_version <= "3.8" \
     --hash=sha256:0b4359067d30d5b864e09c8597b112fe0a0a59321a0f331498b013fb097406b4 \
     --hash=sha256:0d8a7e523ef03757a5aa29f591437d64d0d894635f8a50f370fe37f913ce4e19 \
     --hash=sha256:0e83619a2d5d436a7e58a1aea957a3c1ccbf9782c43c0b4fed80580e5e4acd1a \
