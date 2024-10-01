@@ -37,7 +37,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegDotnetBase):
             "Architectures": "x86_64",
         }
 
-        if(mode == "Dotnet"):
+        if mode == "Dotnet":
             self.template_path = self.template_path.replace("template.yaml", "template_build_method_dotnet.yaml")
         else:
             self.template_path = self.template_path.replace("template.yaml", "template_build_method_dotnet_7.yaml")
