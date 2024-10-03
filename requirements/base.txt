@@ -13,7 +13,7 @@ dateparser~=1.2
 requests~=2.32.3
 aws_lambda_builders==1.50.0
 tomlkit==0.13.2
-watchdog==5.0.2; python_version>"3.8"
+watchdog==5.0.3; python_version>"3.8"
 watchdog==4.0.2; python_version<="3.8"
 
 rich~=13.8.1
