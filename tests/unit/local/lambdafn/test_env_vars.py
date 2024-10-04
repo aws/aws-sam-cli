@@ -122,6 +122,7 @@ class TestEnvironmentVariables_resolve(TestCase):
             "AWS_LAMBDA_LOG_GROUP_NAME": f"aws/lambda/{self.name}",
             "AWS_LAMBDA_LOG_STREAM_NAME": "$LATEST",
             "AWS_ACCOUNT_ID": "123456789012",
+            "AWS_LAMBDA_INITIALIZATION_TYPE": "on-demand",
             "AWS_REGION": "some region",
             "AWS_DEFAULT_REGION": "some region",
             "AWS_ACCESS_KEY_ID": "some key",
@@ -151,6 +152,7 @@ class TestEnvironmentVariables_resolve(TestCase):
             "AWS_LAMBDA_LOG_GROUP_NAME": f"aws/lambda/{self.name}",
             "AWS_LAMBDA_LOG_STREAM_NAME": "$LATEST",
             "AWS_ACCOUNT_ID": "123456789012",
+            "AWS_LAMBDA_INITIALIZATION_TYPE": "on-demand",
             "AWS_REGION": "us-east-1",
             "AWS_ACCESS_KEY_ID": "defaultkey",
             "AWS_SECRET_ACCESS_KEY": "defaultsecret",
@@ -184,6 +186,7 @@ class TestEnvironmentVariables_resolve(TestCase):
             "AWS_LAMBDA_LOG_GROUP_NAME": f"aws/lambda/{self.name}",
             "AWS_LAMBDA_LOG_STREAM_NAME": "$LATEST",
             "AWS_ACCOUNT_ID": "123456789012",
+            "AWS_LAMBDA_INITIALIZATION_TYPE": "on-demand",
             "AWS_REGION": "us-east-1",
             "AWS_ACCESS_KEY_ID": "defaultkey",
             "AWS_SECRET_ACCESS_KEY": "defaultsecret",
@@ -225,6 +228,7 @@ class TestEnvironmentVariables_resolve(TestCase):
             "AWS_LAMBDA_LOG_GROUP_NAME": f"aws/lambda/{self.name}",
             "AWS_LAMBDA_LOG_STREAM_NAME": "$LATEST",
             "AWS_ACCOUNT_ID": "123456789012",
+            "AWS_LAMBDA_INITIALIZATION_TYPE": "on-demand",
             "AWS_REGION": "us-east-1",
             "AWS_ACCESS_KEY_ID": "defaultkey",
             "AWS_SECRET_ACCESS_KEY": "defaultsecret",
@@ -282,6 +286,7 @@ class TestEnvironmentVariables_get_aws_variables(TestCase):
             "AWS_LAMBDA_LOG_GROUP_NAME": f"aws/lambda/{self.name}",
             "AWS_LAMBDA_LOG_STREAM_NAME": "$LATEST",
             "AWS_ACCOUNT_ID": "123456789012",
+            "AWS_LAMBDA_INITIALIZATION_TYPE": "on-demand",
             "AWS_SESSION_TOKEN": "some other token",
         }
 
@@ -300,6 +305,7 @@ class TestEnvironmentVariables_get_aws_variables(TestCase):
             "AWS_LAMBDA_LOG_GROUP_NAME": f"aws/lambda/{self.name}",
             "AWS_LAMBDA_LOG_STREAM_NAME": "$LATEST",
             "AWS_ACCOUNT_ID": "123456789012",
+            "AWS_LAMBDA_INITIALIZATION_TYPE": "on-demand",
             # Default values assigned to these variables
             "AWS_REGION": "us-east-1",
             "AWS_DEFAULT_REGION": "us-east-1",
@@ -323,6 +329,7 @@ class TestEnvironmentVariables_get_aws_variables(TestCase):
             "AWS_LAMBDA_LOG_GROUP_NAME": f"aws/lambda/{self.name}",
             "AWS_LAMBDA_LOG_STREAM_NAME": "$LATEST",
             "AWS_ACCOUNT_ID": "123456789012",
+            "AWS_LAMBDA_INITIALIZATION_TYPE": "on-demand",
             # Values from the input creds
             "AWS_REGION": "some other region",
             "AWS_DEFAULT_REGION": "some other region",
@@ -346,6 +353,7 @@ class TestEnvironmentVariables_get_aws_variables(TestCase):
             "AWS_LAMBDA_LOG_GROUP_NAME": f"aws/lambda/{self.name}",
             "AWS_LAMBDA_LOG_STREAM_NAME": "$LATEST",
             "AWS_ACCOUNT_ID": "123456789012",
+            "AWS_LAMBDA_INITIALIZATION_TYPE": "on-demand",
             # Default values assigned to these variables
             "AWS_REGION": "us-east-1",
             "AWS_DEFAULT_REGION": "us-east-1",
@@ -369,6 +377,7 @@ class TestEnvironmentVariables_get_aws_variables(TestCase):
             "AWS_LAMBDA_LOG_GROUP_NAME": f"aws/lambda/{self.name}",
             "AWS_LAMBDA_LOG_STREAM_NAME": "$LATEST",
             "AWS_ACCOUNT_ID": "123456789012",
+            "AWS_LAMBDA_INITIALIZATION_TYPE": "on-demand",
             # Default values assigned to these variables
             "AWS_REGION": "us-east-1",
             "AWS_DEFAULT_REGION": "us-east-1",
@@ -393,6 +402,7 @@ class TestEnvironmentVariables_get_aws_variables(TestCase):
             "AWS_LAMBDA_LOG_GROUP_NAME": f"aws/lambda/{self.name}",
             "AWS_LAMBDA_LOG_STREAM_NAME": "$LATEST",
             "AWS_ACCOUNT_ID": "123456789012",
+            "AWS_LAMBDA_INITIALIZATION_TYPE": "on-demand",
             # Default values assigned to these variables
             "AWS_REGION": "us-east-1",
             "AWS_DEFAULT_REGION": "us-east-1",
@@ -417,6 +427,7 @@ class TestEnvironmentVariables_get_aws_variables(TestCase):
             "AWS_LAMBDA_LOG_GROUP_NAME": "myCustomLogGroup",
             "AWS_LAMBDA_LOG_STREAM_NAME": "$LATEST",
             "AWS_ACCOUNT_ID": "123456789012",
+            "AWS_LAMBDA_INITIALIZATION_TYPE": "on-demand",
             # Default values assigned to these variables
             "AWS_REGION": "us-east-1",
             "AWS_DEFAULT_REGION": "us-east-1",
