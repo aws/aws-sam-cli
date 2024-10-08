@@ -752,9 +752,9 @@ requests==2.32.3 \
     #   aws-sam-cli (setup.py)
     #   cookiecutter
     #   docker
-rich==13.8.1 \
-    --hash=sha256:1760a3c0848469b97b558fc61c85233e3dafb69c7a071b4d60c38099d3cd4c06 \
-    --hash=sha256:8260cda28e3db6bf04d2d1ef4dbc03ba80a824c88b0e7668a0f23126a424844a
+rich==13.9.2 \
+    --hash=sha256:51a2c62057461aaf7152b4d611168f93a9fc73068f8ded2790f29fe2b5366d0c \
+    --hash=sha256:8c82a3d3f8dcfe9e734771313e606b39d8247bb6b826e196f4914b333b743cf1
     # via
     #   aws-sam-cli (setup.py)
     #   cookiecutter
