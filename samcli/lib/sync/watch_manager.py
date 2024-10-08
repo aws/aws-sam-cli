@@ -363,7 +363,7 @@ class WatchManager:
                 #
                 # It looks like the other way a folder modified event can happen
                 # is if the permissions of the folder were changed
-                LOG.debug(f"Ignoring file system MODIFIED event for folder {event.src_path}")
+                LOG.debug(f"Ignoring file system MODIFIED event for folder {event.src_path!r}")
                 return
 
             # sync flow factory should always exist, but guarding just incase

@@ -176,6 +176,7 @@ class EnvironmentVariables:
             "AWS_ACCESS_KEY_ID": self.aws_creds.get("key", self._DEFAULT_AWS_CREDS["key"]),
             "AWS_SECRET_ACCESS_KEY": self.aws_creds.get("secret", self._DEFAULT_AWS_CREDS["secret"]),
             "AWS_ACCOUNT_ID": "123456789012",
+            "AWS_LAMBDA_INITIALIZATION_TYPE": "on-demand",
         }
 
         # Session Token should be added **only** if the input creds have a token and the value is not empty.
