@@ -25,6 +25,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegDotnetBase):
         [
             ("provided.al2", "Dotnet7", None, None),
             ("provided.al2", "Dotnet7", None, MountMode.WRITE),
+            ("provided.al2", "Dotnet", None, None),
         ]
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
@@ -36,7 +37,10 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegDotnetBase):
             "Architectures": "x86_64",
         }
 
-        self.template_path = self.template_path.replace("template.yaml", "template_build_method_dotnet_7.yaml")
+        if mode == "Dotnet":
+            self.template_path = self.template_path.replace("template.yaml", "template_build_method_dotnet.yaml")
+        else:
+            self.template_path = self.template_path.replace("template.yaml", "template_build_method_dotnet_7.yaml")
 
         self.validate_build_command(overrides, mode, mount_mode)
         self.validate_build_artifacts(self.EXPECTED_FILES_PROJECT_MANIFEST_PROVIDED)
