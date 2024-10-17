@@ -455,14 +455,15 @@ class SingletonFileObserver(metaclass=Singleton):
 
             LOG.debug("a %s change got detected in path %s", event.event_type, event.src_path)
             for group, _observed_paths in self._observed_paths_per_group.items():
+                observed_paths = None
                 if event.event_type == EVENT_TYPE_DELETED:
                     observed_paths = [
                         path
                         for path in _observed_paths
                         if path == event.src_path
-                        or path in self._watch_dog_observed_paths.get(f"{event.src_path}_False", [])
+                        or path in self._watch_dog_observed_paths.get(f"{event.src_path!r}_False", [])
                     ]
-                else:
+                elif isinstance(event.src_path, str):
                     observed_paths = [path for path in _observed_paths if event.src_path.startswith(path)]
 
                 if not observed_paths:
