@@ -16,7 +16,7 @@ if [ "$python_version" = "" ]; then
 fi
 
 if [ "$openssl_version" = "" ]; then
-    openssl_version="3.0.15";
+    openssl_version="3.3.1";
 fi
 
 if [ "$zlib_version" = "" ]; then
