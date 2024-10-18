@@ -48,14 +48,14 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.8"
+          python-version: "3.11"
       - name: Build PyInstaller
         run: |
           chmod +x ./installer/pyinstaller/build-mac.sh
           ./installer/pyinstaller/build-mac.sh aws-sam-cli-macos-x86_64.zip
       - name: Basic tests for PyInstaller
         env:
-          SAM_INIT_RUNTIME: "python3.8"
+          SAM_INIT_RUNTIME: "python3.11"
         run: |
           unzip .build/output/aws-sam-cli-macos-x86_64.zip -d sam-installation
           sudo ./sam-installation/install
