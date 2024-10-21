@@ -3,6 +3,8 @@ import json
 import shutil
 import subprocess
 import tempfile
+from unittest import mock
+from parameterized import parameterized
 import requests
 from pathlib import Path
 from typing import Dict, Any
@@ -25,7 +27,7 @@ from samcli.commands.init.init_templates import (
     get_template_value,
     template_does_not_meet_filter_criteria,
 )
-from samcli.commands.init.interactive_init_flow import get_sorted_runtimes
+from samcli.commands.init.interactive_init_flow import _get_latest_python_runtime, get_sorted_runtimes
 from samcli.lib.init import GenerateProjectFailedError
 from samcli.lib.utils import osutils
 from samcli.lib.utils.git_repo import GitRepo
@@ -2006,9 +2008,9 @@ N
         request_mock.side_effect = requests.Timeout()
         init_options_from_manifest_mock.return_value = [
             {
-                "directory": "python3.9/cookiecutter-aws-sam-hello-python",
+                "directory": "python3.12/cookiecutter-aws-sam-hello-python",
                 "displayName": "Hello World Example",
-                "dependencyManager": "npm",
+                "dependencyManager": "pip",
                 "appTemplate": "hello-world",
                 "packageType": "Zip",
                 "useCaseName": "Hello World Example",
@@ -2026,10 +2028,10 @@ N
 
         get_preprocessed_manifest_mock.return_value = {
             "Hello World Example": {
-                "python3.9": {
+                "python3.12": {
                     "Zip": [
                         {
-                            "directory": "python3.9/cookiecutter-aws-sam-hello-python3.9",
+                            "directory": "python3.12/cookiecutter-aws-sam-hello-python3.12",
                             "displayName": "Hello World Example",
                             "dependencyManager": "pip",
                             "appTemplate": "hello-world",
@@ -2070,16 +2072,17 @@ test-project
 
         runner = CliRunner()
         result = runner.invoke(init_cmd, input=user_input)
+        print(result.stdout)
         self.assertFalse(result.exception)
         generate_project_patch.assert_called_once_with(
             ANY,
             ZIP,
-            "python3.9",
+            "python3.12",
             "pip",
             ".",
             "test-project",
             True,
-            {"project_name": "test-project", "runtime": "python3.9", "architectures": {"value": ["x86_64"]}},
+            {"project_name": "test-project", "runtime": "python3.12", "architectures": {"value": ["x86_64"]}},
             False,
             False,
             False,
@@ -3193,3 +3196,30 @@ test-project
             True,
             False,
         )
+
+    def test_latest_python_fetcher_returns_latest(self):
+        latest_python = "python3.100000"
+
+        with mock.patch(
+            "samcli.commands.init.interactive_init_flow.SUPPORTED_RUNTIMES",
+            {"python3.2": Any, latest_python: Any, "python3.14": Any},
+        ):
+            result = _get_latest_python_runtime()
+
+        self.assertEqual(result, latest_python)
+
+    @parameterized.expand(
+        [
+            ("dotnet3.1",),
+            ("foo bar",),
+            ("",),
+        ]
+    )
+    def test_latest_python_fetcher_fallback_invalid_runtime(self, invalid_runtime):
+        with mock.patch(
+            "samcli.commands.init.interactive_init_flow.SUPPORTED_RUNTIMES",
+            {invalid_runtime: Any},
+        ):
+            result = _get_latest_python_runtime()
+
+        self.assertEqual(result, "python3.9")

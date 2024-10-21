@@ -4,6 +4,7 @@ Isolates interactive init prompt flow. Expected to call generator logic at end o
 
 import logging
 import pathlib
+import re
 import tempfile
 from typing import Optional, Tuple
 
@@ -28,6 +29,7 @@ from samcli.commands.init.interactive_event_bridge_flow import (
 )
 from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME
 from samcli.lib.schemas.schemas_code_manager import do_download_source_code_binding, do_extract_and_merge_schemas_code
+from samcli.lib.utils.architecture import SUPPORTED_RUNTIMES
 from samcli.lib.utils.osutils import remove
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.local.common.runtime_template import (
@@ -323,6 +325,49 @@ def _generate_from_use_case(
         )
 
 
+def _get_latest_python_runtime() -> str:
+    """
+    Returns the latest support version of Python
+    SAM CLI supports
+
+    Returns
+    -------
+    str:
+        The name of the latest Python runtime (ex. "python3.12")
+    """
+
+    # set python3.9 as fallback
+    latest_major = 3
+    latest_minor = 9
+
+    compiled_regex = re.compile(r"python(.*?)\.(.*)")
+
+    for runtime in SUPPORTED_RUNTIMES:
+        if not runtime.startswith("python"):
+            continue
+
+        # python3.12 => 3.12 => (3, 12)
+        version_match = re.match(compiled_regex, runtime)
+
+        if not version_match:
+            LOG.debug(f"Failed to match version while checking {runtime}")
+            continue
+
+        matched_groups = version_match.groups()
+
+        try:
+            version_major = int(matched_groups[0])
+            version_minor = int(matched_groups[1])
+        except (ValueError, IndexError):
+            LOG.debug(f"Failed to parse version while checking {runtime}")
+            continue
+
+        latest_major = version_major if version_major > latest_major else latest_major
+        latest_minor = version_minor if version_minor > latest_minor else latest_minor
+
+    return f"python{latest_major}.{latest_minor}"
+
+
 def _generate_default_hello_world_application(
     use_case: str,
     package_type: Optional[str],
@@ -356,8 +401,10 @@ def _generate_default_hello_world_application(
     """
     is_package_type_image = bool(package_type == IMAGE)
     if use_case == "Hello World Example" and not (runtime or base_image or is_package_type_image or dependency_manager):
-        if click.confirm("\nUse the most popular runtime and package type? (Python and zip)"):
-            runtime, package_type, dependency_manager, pt_explicit = "python3.9", ZIP, "pip", True
+        latest_python = _get_latest_python_runtime()
+
+        if click.confirm(f"\nUse the most popular runtime and package type? ({latest_python} and zip)"):
+            runtime, package_type, dependency_manager, pt_explicit = _get_latest_python_runtime(), ZIP, "pip", True
     return (runtime, package_type, dependency_manager, pt_explicit)
 
 
