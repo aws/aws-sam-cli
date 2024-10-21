@@ -16,7 +16,7 @@ _lambda_images_templates = os.path.join(_init_path, "lib", "init", "image_templa
 RUNTIME_DEP_TEMPLATE_MAPPING = {
     "python": [
         {
-            "runtimes": ["python3.12", "python3.11", "python3.10", "python3.9", "python3.8"],
+            "runtimes": ["python3.13", "python3.12", "python3.11", "python3.10", "python3.9", "python3.8"],
             "dependency_manager": "pip",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-python"),
             "build": True,
@@ -117,6 +117,7 @@ INIT_RUNTIMES = [
     "provided.al2",
     "provided",
     # python runtimes in descending order
+    "python3.13",
     "python3.12",
     "python3.11",
     "python3.10",
@@ -141,6 +142,7 @@ LAMBDA_IMAGES_RUNTIMES_MAP = {
     "nodejs20.x": "amazon/nodejs20.x-base",
     "nodejs18.x": "amazon/nodejs18.x-base",
     "nodejs16.x": "amazon/nodejs16.x-base",
+    "python3.13": "amazon/python3.13-base",
     "python3.12": "amazon/python3.12-base",
     "python3.11": "amazon/python3.11-base",
     "python3.10": "amazon/python3.10-base",
@@ -165,6 +167,7 @@ SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING = {
     "python3.10": "Python36",
     "python3.11": "Python36",
     "python3.12": "Python36",
+    "python3.13": "Python36",
     "dotnet6": "dotnet6",
     "dotnet8": "dotnet6",
     "go1.x": "Go1",
