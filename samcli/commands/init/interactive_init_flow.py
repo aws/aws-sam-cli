@@ -12,7 +12,7 @@ import click
 from botocore.exceptions import ClientError, WaiterError
 
 from samcli.commands._utils.options import generate_next_command_recommendation
-from samcli.commands.exceptions import InvalidInitOptionException, SchemasApiException
+from samcli.commands.exceptions import InvalidInitOptionException, PopularRuntimeNotFoundException, SchemasApiException
 from samcli.commands.init.init_flow_helpers import (
     _get_image_from_runtime,
     _get_runtime_from_image,
@@ -335,10 +335,8 @@ def _get_latest_python_runtime() -> str:
     str:
         The name of the latest Python runtime (ex. "python3.12")
     """
-
-    # set python3.9 as fallback
-    latest_major = 3
-    latest_minor = 9
+    latest_major = 0
+    latest_minor = 0
 
     compiled_regex = re.compile(r"python(.*?)\.(.*)")
 
@@ -367,6 +365,12 @@ def _get_latest_python_runtime() -> str:
             latest_minor = version_minor
         elif version_major == latest_major:
             latest_minor = version_minor if version_minor > latest_minor else latest_minor
+
+    if not latest_major:
+        # major version is still 0, assume that something went wrong
+        # this in theory should not happen as long as Python is
+        # listed in the SUPPORTED_RUNTIMES constant
+        raise PopularRuntimeNotFoundException("Was unable to search for the latest supported runtime")
 
     selected_version = f"python{latest_major}.{latest_minor}"
 

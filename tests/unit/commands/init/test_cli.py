@@ -15,7 +15,7 @@ import botocore.exceptions
 import click
 from click.testing import CliRunner
 
-from samcli.commands.exceptions import UserException
+from samcli.commands.exceptions import PopularRuntimeNotFoundException, UserException
 from samcli.commands.init import cli as init_cmd
 from samcli.commands.init.command import do_cli as init_cli
 from samcli.commands.init.command import PackageType
@@ -3197,40 +3197,14 @@ test-project
             False,
         )
 
-    def test_latest_python_fetcher_returns_latest(self):
-        latest_python = "python3.100000"
-
-        with mock.patch(
-            "samcli.commands.init.interactive_init_flow.SUPPORTED_RUNTIMES",
-            {"python3.2": Any, latest_python: Any, "python3.14": Any},
-        ):
-            result = _get_latest_python_runtime()
-
-        self.assertEqual(result, latest_python)
-
     @parameterized.expand(
         [
-            ("dotnet3.1",),
-            ("foo bar",),
-            ("",),
-        ]
-    )
-    def test_latest_python_fetcher_fallback_invalid_runtime(self, invalid_runtime):
-        with mock.patch(
-            "samcli.commands.init.interactive_init_flow.SUPPORTED_RUNTIMES",
-            {invalid_runtime: Any},
-        ):
-            result = _get_latest_python_runtime()
-
-        self.assertEqual(result, "python3.9")
-
-    @parameterized.expand(
-        [
+            ({"python3.2": Any, "python3.100000": Any, "python3.14": Any}, "python3.100000"),
             ({"python7.8": Any, "python9.1": Any}, "python9.1"),
             ({"python6.1": Any, "python4.7": Any}, "python6.1"),
         ]
     )
-    def test_latest_python_fetcher_major_minor_difference(self, versions, expected):
+    def test_latest_python_fetcher_correct_latest(self, versions, expected):
         with mock.patch(
             "samcli.commands.init.interactive_init_flow.SUPPORTED_RUNTIMES",
             versions,
@@ -3238,3 +3212,19 @@ test-project
             result = _get_latest_python_runtime()
 
         self.assertEqual(result, expected)
+
+    def test_latest_python_fetcher_has_valid_supported_runtimes(self):
+        """
+        Mainly checks if the SUPPORTED_RUNTIMES constant actually has
+        Python runtime inside of it
+        """
+        result = _get_latest_python_runtime()
+        self.assertTrue(result, "Python was not found in the SUPPORTED_RUNTIMES const")
+
+    def test_latest_python_fetchers_raises_not_found(self):
+        with mock.patch(
+            "samcli.commands.init.interactive_init_flow.SUPPORTED_RUNTIMES",
+            {"invalid": Any},
+        ):
+            with self.assertRaises(PopularRuntimeNotFoundException):
+                _get_latest_python_runtime()
