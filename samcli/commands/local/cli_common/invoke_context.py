@@ -365,7 +365,7 @@ class InvokeContext:
                 if self._global_parameter_overrides is None:
                     self._global_parameter_overrides = {}
                 self._global_parameter_overrides["AWS::AccountId"] = account_id
-        except (NoCredentialsError, TokenRetrievalError, ClientError):
+        except (Exception):
             LOG.warning("No current session found, using default AWS::AccountId")
 
     @property
