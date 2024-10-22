@@ -3223,3 +3223,18 @@ test-project
             result = _get_latest_python_runtime()
 
         self.assertEqual(result, "python3.9")
+
+    @parameterized.expand(
+        [
+            ({"python7.8": Any, "python9.1": Any}, "python9.1"),
+            ({"python6.1": Any, "python4.7": Any}, "python6.1"),
+        ]
+    )
+    def test_latest_python_fetcher_major_minor_difference(self, versions, expected):
+        with mock.patch(
+            "samcli.commands.init.interactive_init_flow.SUPPORTED_RUNTIMES",
+            versions,
+        ):
+            result = _get_latest_python_runtime()
+
+        self.assertEqual(result, expected)

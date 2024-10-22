@@ -362,10 +362,17 @@ def _get_latest_python_runtime() -> str:
             LOG.debug(f"Failed to parse version while checking {runtime}")
             continue
 
-        latest_major = version_major if version_major > latest_major else latest_major
-        latest_minor = version_minor if version_minor > latest_minor else latest_minor
+        if version_major > latest_major:
+            latest_major = version_major
+            latest_minor = version_minor
+        elif version_major == latest_major:
+            latest_minor = version_minor if version_minor > latest_minor else latest_minor
 
-    return f"python{latest_major}.{latest_minor}"
+    selected_version = f"python{latest_major}.{latest_minor}"
+
+    LOG.debug(f"Using {selected_version} as the latest runtime version")
+
+    return selected_version
 
 
 def _generate_default_hello_world_application(
