@@ -4,6 +4,7 @@ Isolates interactive init prompt flow. Expected to call generator logic at end o
 
 import logging
 import pathlib
+import re
 import tempfile
 from typing import Optional, Tuple
 
@@ -11,7 +12,7 @@ import click
 from botocore.exceptions import ClientError, WaiterError
 
 from samcli.commands._utils.options import generate_next_command_recommendation
-from samcli.commands.exceptions import InvalidInitOptionException, SchemasApiException
+from samcli.commands.exceptions import InvalidInitOptionException, PopularRuntimeNotFoundException, SchemasApiException
 from samcli.commands.init.init_flow_helpers import (
     _get_image_from_runtime,
     _get_runtime_from_image,
@@ -28,6 +29,7 @@ from samcli.commands.init.interactive_event_bridge_flow import (
 )
 from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME
 from samcli.lib.schemas.schemas_code_manager import do_download_source_code_binding, do_extract_and_merge_schemas_code
+from samcli.lib.utils.architecture import SUPPORTED_RUNTIMES
 from samcli.lib.utils.osutils import remove
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.local.common.runtime_template import (
@@ -323,6 +325,60 @@ def _generate_from_use_case(
         )
 
 
+def _get_latest_python_runtime() -> str:
+    """
+    Returns the latest support version of Python
+    SAM CLI supports
+
+    Returns
+    -------
+    str:
+        The name of the latest Python runtime (ex. "python3.12")
+    """
+    latest_major = 0
+    latest_minor = 0
+
+    compiled_regex = re.compile(r"python(.*?)\.(.*)")
+
+    for runtime in SUPPORTED_RUNTIMES:
+        if not runtime.startswith("python"):
+            continue
+
+        # python3.12 => 3.12 => (3, 12)
+        version_match = re.match(compiled_regex, runtime)
+
+        if not version_match:
+            LOG.debug(f"Failed to match version while checking {runtime}")
+            continue
+
+        matched_groups = version_match.groups()
+
+        try:
+            version_major = int(matched_groups[0])
+            version_minor = int(matched_groups[1])
+        except (ValueError, IndexError):
+            LOG.debug(f"Failed to parse version while checking {runtime}")
+            continue
+
+        if version_major > latest_major:
+            latest_major = version_major
+            latest_minor = version_minor
+        elif version_major == latest_major:
+            latest_minor = version_minor if version_minor > latest_minor else latest_minor
+
+    if not latest_major:
+        # major version is still 0, assume that something went wrong
+        # this in theory should not happen as long as Python is
+        # listed in the SUPPORTED_RUNTIMES constant
+        raise PopularRuntimeNotFoundException("Was unable to search for the latest supported runtime")
+
+    selected_version = f"python{latest_major}.{latest_minor}"
+
+    LOG.debug(f"Using {selected_version} as the latest runtime version")
+
+    return selected_version
+
+
 def _generate_default_hello_world_application(
     use_case: str,
     package_type: Optional[str],
@@ -356,8 +412,10 @@ def _generate_default_hello_world_application(
     """
     is_package_type_image = bool(package_type == IMAGE)
     if use_case == "Hello World Example" and not (runtime or base_image or is_package_type_image or dependency_manager):
-        if click.confirm("\nUse the most popular runtime and package type? (Python and zip)"):
-            runtime, package_type, dependency_manager, pt_explicit = "python3.9", ZIP, "pip", True
+        latest_python = _get_latest_python_runtime()
+
+        if click.confirm(f"\nUse the most popular runtime and package type? ({latest_python} and zip)"):
+            runtime, package_type, dependency_manager, pt_explicit = _get_latest_python_runtime(), ZIP, "pip", True
     return (runtime, package_type, dependency_manager, pt_explicit)
 
 
