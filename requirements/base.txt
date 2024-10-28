@@ -13,6 +13,8 @@ dateparser~=1.2
 requests~=2.32.3
 aws_lambda_builders==1.50.0
 tomlkit==0.13.2
+# NOTE: For supporting watchdog in Python3.8, version is pinned to 4.0.2 as 
+# version 5.0.2 introduced some breaking changes for versions > Python3.8
 watchdog==4.0.2
 
 rich~=13.9.2
