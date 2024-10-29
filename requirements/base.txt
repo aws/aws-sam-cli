@@ -13,8 +13,9 @@ dateparser~=1.2
 requests~=2.32.3
 aws_lambda_builders==1.50.0
 tomlkit==0.13.2
-watchdog==5.0.3; python_version>"3.8"
-watchdog==4.0.2; python_version<="3.8"
+# NOTE: For supporting watchdog in Python3.8, version is pinned to 4.0.2 as 
+# version 5.0.2 introduced some breaking changes for versions > Python3.8
+watchdog==4.0.2
 
 rich~=13.9.2
 pyopenssl~=24.2.1
@@ -30,7 +31,7 @@ regex!=2021.10.8
 tzlocal==5.2
 
 #Adding cfn-lint dependency for SAM validate
-cfn-lint~=1.16.0
+cfn-lint~=1.17.2
 
 # Type checking boto3 objects
-boto3-stubs[apigateway,cloudformation,ecr,iam,lambda,s3,schemas,secretsmanager,signer,stepfunctions,sts,xray,sqs,kinesis]==1.35.32
+boto3-stubs[apigateway,cloudformation,ecr,iam,lambda,s3,schemas,secretsmanager,signer,stepfunctions,sts,xray,sqs,kinesis]==1.35.49
