@@ -238,6 +238,14 @@ class TestCfnTags(TestCase):
                 ["stage=int", "company:application=awesome-service", "company:department=engineering"],
                 {"stage": "int", "company:application": "awesome-service", "company:department": "engineering"},
             ),
+            # input as string with multiple key-values including spaces
+            (('tag1="son of anton" tag2="company abc"',), {"tag1": "son of anton", "tag2": "company abc"}),
+            (('tag1="son of anton"   tag2="company abc"',), {"tag1": "son of anton", "tag2": "company abc"}),
+            (('\'tag1="son of anton" tag2="company abc"\'',), {"tag1": "son of anton", "tag2": "company abc"}),
+            (
+                ('tag1="son of anton" tag2="company abc" tag:3="dummy tag"',),
+                {"tag1": "son of anton", "tag2": "company abc", "tag:3": "dummy tag"},
+            ),
         ]
     )
     def test_successful_parsing(self, input, expected):
