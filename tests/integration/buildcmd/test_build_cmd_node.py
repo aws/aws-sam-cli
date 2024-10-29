@@ -40,7 +40,10 @@ class TestBuildCommand_NodeFunctions_With_External_Manifest(BuildIntegNodeBase):
 
     @parameterized.expand(
         [
-            ("nodejs20.x",),
+            (
+                "nodejs20.x",
+                "nodejs22.x",
+            ),
         ]
     )
     @pytest.mark.al2023
@@ -170,6 +173,7 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture(BuildIntegNodeB
             ("nodejs16.x", "use_container", "x86_64"),
             ("nodejs18.x", "use_container", "x86_64"),
             ("nodejs20.x", False, "x86_64"),
+            ("nodejs22.x", False, "x86_64"),
         ]
     )
     def test_building_default_package_json(self, runtime, use_container, architecture):

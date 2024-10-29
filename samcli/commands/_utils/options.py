@@ -42,6 +42,7 @@ SUPPORTED_BUILD_IN_SOURCE_WORKFLOWS = [
     Runtime.nodejs16x.value,
     Runtime.nodejs18x.value,
     Runtime.nodejs20x.value,
+    Runtime.nodejs22x.value,
     "Makefile",
     "esbuild",
 ]
