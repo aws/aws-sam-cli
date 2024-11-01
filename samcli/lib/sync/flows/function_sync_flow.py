@@ -109,7 +109,7 @@ class FunctionSyncFlow(SyncFlow, ABC):
             raise FunctionNotFound(f"Unable to find function {self._function_identifier}")
 
         auto_publish_alias_name = function_resource.get("Properties", dict()).get("AutoPublishAlias", None)
-        auto_delete_old_alias = function_resource.get("Properties", dict()).get("AutoDeleteOldAlias", False)
+        auto_delete_old_alias = function_resource.get("Metadata", dict()).get("AutoDeleteOldAlias", False)
         if auto_publish_alias_name:
             sync_flows.append(
                 AliasVersionSyncFlow(
