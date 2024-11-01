@@ -27,15 +27,15 @@ class AliasVersionSyncFlow(SyncFlow):
     _lambda_client: Any
 
     def __init__(
-        self,
-        function_identifier: str,
-        alias_name: str,
-        delete_old_alias: bool,
-        build_context: "BuildContext",
-        deploy_context: "DeployContext",
-        sync_context: "SyncContext",
-        physical_id_mapping: Dict[str, str],
-        stacks: Optional[List[Stack]] = None,
+            self,
+            function_identifier: str,
+            alias_name: str,
+            delete_old_alias: bool,
+            build_context: "BuildContext",
+            deploy_context: "DeployContext",
+            sync_context: "SyncContext",
+            physical_id_mapping: Dict[str, str],
+            stacks: Optional[List[Stack]] = None,
     ):
         """
         Parameters
@@ -102,9 +102,9 @@ class AliasVersionSyncFlow(SyncFlow):
                 FunctionName=function_physical_id, Name=self._alias_name, FunctionVersion=version
             )
             if self._delete_old_alias and current_alias_version:
-                function_name_w_version = "{}:{}".format(function_physical_id, current_alias_version)
-                self._lambda_client.delete_function(FunctionName=function_name_w_version)
-
+                formatted_function_name_version = "{}:{}".format(function_physical_id, current_alias_version)
+                LOG.debug("%Deleting Old Version Alias: %s", self.log_prefix, current_alias_version)
+                self._lambda_client.delete_function(FunctionName=formatted_function_name_version)
 
     def gather_dependencies(self) -> List[SyncFlow]:
         return []
@@ -119,7 +119,7 @@ class AliasVersionSyncFlow(SyncFlow):
     def _get_version_alias_if_exists(self) -> Optional[str]:
         try:
             return str(self._lambda_client.get_alias(FunctionName=self.get_physical_id(self._function_identifier),
-                                                  Name=self._alias_name)
-                    .get("FunctionVersion"))
+                                                     Name=self._alias_name)
+                       .get("FunctionVersion"))
         except self._lambda_client.exceptions.ResourceNotFoundException:
             return None
