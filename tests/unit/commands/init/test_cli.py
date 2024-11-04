@@ -2008,7 +2008,7 @@ N
         request_mock.side_effect = requests.Timeout()
         init_options_from_manifest_mock.return_value = [
             {
-                "directory": "python3.12/cookiecutter-aws-sam-hello-python",
+                "directory": "python3.13/cookiecutter-aws-sam-hello-python",
                 "displayName": "Hello World Example",
                 "dependencyManager": "pip",
                 "appTemplate": "hello-world",
@@ -2031,7 +2031,7 @@ N
                 "python3.12": {
                     "Zip": [
                         {
-                            "directory": "python3.12/cookiecutter-aws-sam-hello-python3.12",
+                            "directory": "python3.13/cookiecutter-aws-sam-hello-python3.12",
                             "displayName": "Hello World Example",
                             "dependencyManager": "pip",
                             "appTemplate": "hello-world",
@@ -2077,12 +2077,12 @@ test-project
         generate_project_patch.assert_called_once_with(
             ANY,
             ZIP,
-            "python3.12",
+            "python3.13",
             "pip",
             ".",
             "test-project",
             True,
-            {"project_name": "test-project", "runtime": "python3.12", "architectures": {"value": ["x86_64"]}},
+            {"project_name": "test-project", "runtime": "python3.13", "architectures": {"value": ["x86_64"]}},
             False,
             False,
             False,
