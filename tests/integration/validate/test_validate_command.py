@@ -176,7 +176,6 @@ class TestValidate(TestCase):
             "java8.al2",
             "nodejs18.x",
             "nodejs20.x",
-            "provided",
             "provided.al2",
             "provided.al2023",
             "python3.9",
