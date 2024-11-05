@@ -2,7 +2,7 @@
 
 coverage==7.6.4; python_version>="3.9"
 coverage==7.6.1; python_version<"3.9"
-pytest-cov==5.0.0
+pytest-cov==6.0.0
 
 
 # type checking and related stubs
