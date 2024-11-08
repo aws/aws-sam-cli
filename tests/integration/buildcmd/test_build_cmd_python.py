@@ -167,8 +167,8 @@ class TestBuildCommand_PythonFunctions_ImagesWithSharedCode(BuildIntegBase):
 
     @parameterized.expand(
         [
-            *[(runtime, "feature_phi/Dockerfile", {"phi": "1.62"}) for runtime in ["3.12"]],
-            *[(runtime, "feature_pi/Dockerfile", {"pi": "3.14"}) for runtime in ["3.12"]],
+            *[(runtime, "feature_phi/Dockerfile", {"phi": "1.62"}) for runtime in ["3.12", "3.13"]],
+            *[(runtime, "feature_pi/Dockerfile", {"pi": "3.14"}) for runtime in ["3.12", "3.13"]],
         ]
     )
     @pytest.mark.al2023
