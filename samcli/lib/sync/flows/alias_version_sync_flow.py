@@ -27,15 +27,15 @@ class AliasVersionSyncFlow(SyncFlow):
     _lambda_client: Any
 
     def __init__(
-            self,
-            function_identifier: str,
-            alias_name: str,
-            delete_old_alias: bool,
-            build_context: "BuildContext",
-            deploy_context: "DeployContext",
-            sync_context: "SyncContext",
-            physical_id_mapping: Dict[str, str],
-            stacks: Optional[List[Stack]] = None,
+        self,
+        function_identifier: str,
+        alias_name: str,
+        delete_old_alias: bool,
+        build_context: "BuildContext",
+        deploy_context: "DeployContext",
+        sync_context: "SyncContext",
+        physical_id_mapping: Dict[str, str],
+        stacks: Optional[List[Stack]] = None,
     ):
         """
         Parameters
@@ -118,8 +118,10 @@ class AliasVersionSyncFlow(SyncFlow):
 
     def _get_version_alias_if_exists(self) -> Optional[str]:
         try:
-            return str(self._lambda_client.get_alias(FunctionName=self.get_physical_id(self._function_identifier),
-                                                     Name=self._alias_name)
-                       .get("FunctionVersion"))
+            return str(
+                self._lambda_client.get_alias(
+                    FunctionName=self.get_physical_id(self._function_identifier), Name=self._alias_name
+                ).get("FunctionVersion")
+            )
         except self._lambda_client.exceptions.ResourceNotFoundException:
             return None
