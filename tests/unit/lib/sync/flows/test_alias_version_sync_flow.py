@@ -7,7 +7,7 @@ from samcli.lib.utils.hash import str_checksum
 
 
 class TestAliasVersionSyncFlow(TestCase):
-    def create_sync_flow(self, delete_old_alias = False):
+    def create_sync_flow(self, delete_old_alias=False):
         sync_flow = AliasVersionSyncFlow(
             "Function1",
             "Alias1",
