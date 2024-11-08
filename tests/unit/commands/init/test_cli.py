@@ -2028,7 +2028,7 @@ N
 
         get_preprocessed_manifest_mock.return_value = {
             "Hello World Example": {
-                "python3.12": {
+                "python3.13": {
                     "Zip": [
                         {
                             "directory": "python3.13/cookiecutter-aws-sam-hello-python3.12",
