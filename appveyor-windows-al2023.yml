@@ -39,7 +39,7 @@ init:
 
 install:
   - ps: 'Invoke-WebRequest -Uri https://www.python.org/ftp/python/3.13.0/python-3.13.0-embed-amd64.zip -OutFile python313.zip'
-  - ps: "Expand-Archive -Path python313.zip -DestinationPath C:\Python313"
+  - ps: "Expand-Archive -Path python313.zip -DestinationPath C:\\Python313"
   - 'set PATH=%PYTHON_HOME%;C:\Ruby33-x64\bin;C:\Ruby32-x64\bin;%PATH%;C:\Python39-x64;C:\Python310-x64;C:\Python311-x64;C:\Python312-x64;C:\Python313'
   - "python3.13 --version"
   # upgrade chocolately
