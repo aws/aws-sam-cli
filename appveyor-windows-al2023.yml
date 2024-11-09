@@ -17,6 +17,8 @@ environment:
   PYTHON_HOME: "C:\\Python38-x64"
   PYTHON_SCRIPTS: "C:\\Python38-x64\\Scripts"
   PYTHON_EXE: "C:\\Python38-x64\\python.exe"
+  PYTHON313_URL: "https://www.python.org/ftp/python/3.13.0/python-3.13.0-embed-amd64.zip"
+  PYTHON313_HOME: "C:\\Python313-x64"
   PYTHON_ARCH: "64"
   HOME: 'C:\Users\appveyor'
   HOMEDRIVE: "C:"
@@ -52,9 +54,11 @@ install:
   - "mvn --version"
 
   # Make sure the temp directory exists for Python to use.
-  - "choco install python313 --pre"
+  # - "choco install python313 --pre"
+  - 'Invoke-WebRequest -Uri %PYTHON313_URL% -OutFile python313.zip'
+  - ps: "Expand-Archive -Path python313.zip -DestinationPath %PYTHON313_HOME%"
   - ps: "mkdir -Force C:\\tmp"
-  - 'set PATH=%PYTHON_HOME%;C:\Ruby33-x64\bin;C:\Ruby32-x64\bin;%PATH%;C:\Python39-x64;C:\Python310-x64;C:\Python311-x64;C:\Python312-x64;C:\Python313'
+  - 'set PATH=%PYTHON_HOME%;C:\Ruby33-x64\bin;C:\Ruby32-x64\bin;%PATH%;C:\Python39-x64;C:\Python310-x64;C:\Python311-x64;C:\Python312-x64;C:\Python313-x64'
   - "echo %PYTHON_HOME%"
   - "echo %PATH%"
   - "python --version"
