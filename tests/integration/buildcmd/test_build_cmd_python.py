@@ -78,8 +78,8 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
 
     @parameterized.expand(
         [
-            *[(runtime, "Dockerfile") for runtime in ["3.12"]],
-            *[(runtime, "Dockerfile.production") for runtime in ["3.12"]],
+            *[(runtime, "Dockerfile") for runtime in ["3.12", "3.13"]],
+            *[(runtime, "Dockerfile.production") for runtime in ["3.12", "3.13"]],
         ]
     )
     @pytest.mark.al2023
@@ -167,8 +167,8 @@ class TestBuildCommand_PythonFunctions_ImagesWithSharedCode(BuildIntegBase):
 
     @parameterized.expand(
         [
-            *[(runtime, "feature_phi/Dockerfile", {"phi": "1.62"}) for runtime in ["3.12"]],
-            *[(runtime, "feature_pi/Dockerfile", {"pi": "3.14"}) for runtime in ["3.12"]],
+            *[(runtime, "feature_phi/Dockerfile", {"phi": "1.62"}) for runtime in ["3.12", "3.13"]],
+            *[(runtime, "feature_pi/Dockerfile", {"pi": "3.14"}) for runtime in ["3.12", "3.13"]],
         ]
     )
     @pytest.mark.al2023
@@ -307,6 +307,8 @@ class TestBuildCommand_PythonFunctions_WithoutDocker(BuildIntegPythonBase):
     [
         ("python3.12", "Python"),
         ("python3.12", "PythonPEP600"),
+        ("python3.13", "Python"),
+        ("python3.13", "PythonPEP600"),
     ],
 )
 @pytest.mark.al2023
@@ -362,6 +364,7 @@ class TestBuildCommand_PythonFunctions_WithDocker(BuildIntegPythonBase):
     @parameterized.expand(
         [
             ("python3.12",),
+            ("python3.13",),
         ]
     )
     @pytest.mark.al2023
@@ -489,6 +492,9 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPyt
             ("python3.12", "Python", False, "x86_64"),
             ("python3.12", "PythonPEP600", False, "x86_64"),
             ("python3.12", "Python", "use_container", "x86_64"),
+            ("python3.13", "Python", False, "x86_64"),
+            ("python3.13", "PythonPEP600", False, "x86_64"),
+            ("python3.13", "Python", "use_container", "x86_64"),
         ]
     )
     @pytest.mark.al2023
