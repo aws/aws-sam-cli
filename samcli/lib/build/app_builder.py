@@ -430,6 +430,11 @@ class ApplicationBuilder:
             LOG.debug("%s image is built for %s function", build_image, function_name)
         except docker.errors.BuildError as ex:
             LOG.error("Failed building function %s", function_name)
+            for log in ex.build_log:
+                if "stream" in log:
+                    self._stream_writer.write_str(log["stream"])
+                elif "error" in log:
+                    self._stream_writer.write_str(log["error"])
             raise DockerBuildFailed(str(ex)) from ex
 
         # The Docker-py low level api will stream logs back but if an exception is raised by the api

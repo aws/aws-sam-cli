@@ -1728,13 +1728,23 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
             ),
         )
 
+    def test_can_raise_missing_dockerfile_error(self):
+        with self.assertRaises(DockerBuildFailed) as ex:
+            self.builder._build_lambda_image("Name", {}, X86_64)
+
+        self.assertEqual(ex.exception.args, ("Docker file or Docker context metadata are missed.",))
+
     def test_can_raise_build_error(self):
         self.docker_client_mock.images.build.side_effect = docker.errors.BuildError(
-            reason="Missing Dockerfile", build_log="Build failed"
+            reason="Build failure", build_log=[{"stream": "Some earlier log"}, {"error": "Build failed"}]
         )
 
-        with self.assertRaises(DockerBuildFailed):
-            self.builder._build_lambda_image("Name", {}, X86_64)
+        with self.assertRaises(DockerBuildFailed) as ex:
+            self.builder._build_lambda_image("Name", {"Dockerfile": "Dockerfile", "DockerContext": "context"}, X86_64)
+
+        self.assertEqual(ex.exception.args, ("Build failure",))
+        self.assertEqual(self.stream_mock.write_str.call_count, 2)
+        self.assertEqual(self.stream_mock.write_str.call_args_list, [call("Some earlier log"), call("Build failed")])
 
 
 class TestApplicationBuilder_load_lambda_image_function(TestCase):
