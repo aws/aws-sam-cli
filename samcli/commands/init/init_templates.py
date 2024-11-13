@@ -283,16 +283,18 @@ class InitTemplates:
         """
         try:
             response = requests.get(MANIFEST_URL, timeout=10)
-            body = response.text
-            # if the commit is not exist then MANIFEST_URL will be invalid, fall back to use manifest in latest commit
-            if response.status_code == Status.NOT_FOUND.value:
-                LOG.warning(
-                    "Request to MANIFEST_URL: %s failed, the commit hash in this url maybe invalid, "
-                    "Using manifest.json in the latest commit instead.",
-                    MANIFEST_URL,
-                )
+            if not response.ok:
+                # if the commit is not exist then MANIFEST_URL will be invalid, fall back to use manifest in latest commit
+                if response.status_code == Status.NOT_FOUND.value:
+                    LOG.warning(
+                        "Request to MANIFEST_URL: %s failed, the commit hash in this url maybe invalid, "
+                        "Using manifest.json in the latest commit instead.",
+                        MANIFEST_URL,
+                    )
+                else:
+                    LOG.debug("Request to MANIFEST_URL: %s failed, with %s status code", MANIFEST_URL, response.status_code)
                 raise ManifestNotFoundException()
-
+            body = response.text
         except (requests.Timeout, requests.ConnectionError, ManifestNotFoundException):
             LOG.debug("Request to get Manifest failed, attempting to clone the repository")
             self.clone_templates_repo()
