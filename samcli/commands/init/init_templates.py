@@ -294,9 +294,7 @@ class InitTemplates:
                     )
                 else:
                     LOG.debug(
-                        "Request to MANIFEST_URL: %s failed, with %s status code",
-                        MANIFEST_URL,
-                        response.status_code
+                        "Request to MANIFEST_URL: %s failed, with %s status code", MANIFEST_URL, response.status_code
                     )
                 raise ManifestNotFoundException()
             body = response.text

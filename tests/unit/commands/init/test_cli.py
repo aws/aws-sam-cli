@@ -2213,15 +2213,14 @@ test-project
 
         template = InitTemplates()
         with mock.patch.object(
-                template, "clone_templates_repo", wraps=template.clone_templates_repo
+            template, "clone_templates_repo", wraps=template.clone_templates_repo
         ) as mocked_clone_templates_repo:
             with mock.patch.object(
-                    template, "get_manifest_path", wraps=template.get_manifest_path
+                template, "get_manifest_path", wraps=template.get_manifest_path
             ) as mocked_get_manifest_path:
                 template.get_preprocessed_manifest()
                 mocked_clone_templates_repo.assert_called_once()
                 mocked_get_manifest_path.assert_called_once()
-
 
     @patch("samcli.commands.init.init_templates.InitTemplates._get_manifest")
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
