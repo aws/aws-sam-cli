@@ -135,7 +135,7 @@ class TestSkipBuildingFunctionsWithLocalImageUri(BuildIntegBase):
 
     FUNCTION_LOGICAL_ID_IMAGE = "ImageFunction"
 
-    @parameterized.expand(["3.8", "3.9", "3.10", "3.11", "3.12"])
+    @parameterized.expand(["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"])
     def test_with_default_requirements(self, runtime):
         _tag = uuid4().hex
         image_uri = f"func:{_tag}"
