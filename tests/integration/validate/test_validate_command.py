@@ -169,7 +169,6 @@ class TestValidate(TestCase):
         }
         supported_runtimes = [
             "dotnet8",
-            "dotnet6",
             "java21",
             "java17",
             "java11",
