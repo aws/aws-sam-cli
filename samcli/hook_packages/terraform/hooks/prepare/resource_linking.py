@@ -357,7 +357,7 @@ class ResourceLinker:
             child_resources_linking_attributes_logical_id_mapping,
         )
 
-        dest_resources = [
+        dest_resources: List[ReferenceType] = [
             (
                 LogicalIdReference(
                     value=child_resources_linking_attributes_logical_id_mapping[value][0],

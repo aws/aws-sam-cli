@@ -240,7 +240,7 @@ def get_workflow_config(
         ) from ex
 
 
-def supports_specified_workflow(specified_workflow: str) -> bool:
+def supports_specified_workflow(specified_workflow: Optional[str]) -> bool:
     """
     Given a specified workflow, returns whether it is supported in container builds,
     can be used to overwrite runtime and get docker image or not
