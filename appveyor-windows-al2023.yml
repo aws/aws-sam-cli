@@ -53,7 +53,21 @@ install:
 
   # Make sure the temp directory exists for Python to use.
   - ps: "mkdir -Force C:\\tmp"
-  - 'set PATH=%PYTHON_HOME%;C:\Ruby33-x64\bin;C:\Ruby32-x64\bin;%PATH%;C:\Python39-x64;C:\Python310-x64;C:\Python311-x64;C:\Python312-x64'
+  - "python --version"
+  # Temporarily install python3.13 from the embedded zip file. Once AppVeyor installs it in the image, the below code can be removed.
+  - ps: 'Invoke-WebRequest -Uri https://www.python.org/ftp/python/3.13.0/python-3.13.0-embed-amd64.zip -OutFile python313.zip'
+  - ps: "Expand-Archive -Path python313.zip -DestinationPath C:\\Python313-x64"
+  - 'set PATH=%PYTHON_HOME%;C:\Ruby33-x64\bin;C:\Ruby32-x64\bin;%PATH%;C:\Python39-x64;C:\Python310-x64;C:\Python311-x64;C:\Python312-x64;C:\Python313-x64;C:\Python313-x64\Scripts;'
+  - ps: | 
+      $pth_file = "C:\Python313-x64\python313._pth"
+      (Get-Content -Path $pth_file) -replace '#import site', 'import site' | Set-Content -Path $pth_file
+  - ps: |
+      if (!(Test-Path -Path "C:\Python313-x64\Scripts\pip.exe")) {
+          Invoke-WebRequest -Uri https://bootstrap.pypa.io/get-pip.py -OutFile get-pip.py
+          & "C:\Python313-x64\python.exe" get-pip.py
+      }
+  - "python --version"
+  - ps: pip --version
   - "echo %PYTHON_HOME%"
   - "echo %PATH%"
   - "python --version"

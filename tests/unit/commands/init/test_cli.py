@@ -9,7 +9,7 @@ import requests
 from pathlib import Path
 from typing import Dict, Any
 from unittest import TestCase
-from unittest.mock import patch, ANY
+from unittest.mock import patch, ANY, Mock
 
 import botocore.exceptions
 import click
@@ -2008,7 +2008,7 @@ N
         request_mock.side_effect = requests.Timeout()
         init_options_from_manifest_mock.return_value = [
             {
-                "directory": "python3.12/cookiecutter-aws-sam-hello-python",
+                "directory": "python3.13/cookiecutter-aws-sam-hello-python",
                 "displayName": "Hello World Example",
                 "dependencyManager": "pip",
                 "appTemplate": "hello-world",
@@ -2028,10 +2028,10 @@ N
 
         get_preprocessed_manifest_mock.return_value = {
             "Hello World Example": {
-                "python3.12": {
+                "python3.13": {
                     "Zip": [
                         {
-                            "directory": "python3.12/cookiecutter-aws-sam-hello-python3.12",
+                            "directory": "python3.13/cookiecutter-aws-sam-hello-python3.12",
                             "displayName": "Hello World Example",
                             "dependencyManager": "pip",
                             "appTemplate": "hello-world",
@@ -2077,12 +2077,12 @@ test-project
         generate_project_patch.assert_called_once_with(
             ANY,
             ZIP,
-            "python3.12",
+            "python3.13",
             "pip",
             ".",
             "test-project",
             True,
-            {"project_name": "test-project", "runtime": "python3.12", "architectures": {"value": ["x86_64"]}},
+            {"project_name": "test-project", "runtime": "python3.13", "architectures": {"value": ["x86_64"]}},
             False,
             False,
             False,
@@ -2203,6 +2203,24 @@ test-project
         for index, base_image in enumerate(base_images):
             runtime = get_runtime(IMAGE, base_image)
             self.assertEqual(runtime, expected_runtime[index])
+
+    @patch("samcli.commands.init.init_templates.requests")
+    @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
+    def test_must_fallback_for_non_ok_http_response(self, requests_mock):
+        requests_mock.get.return_value = Mock(ok=False)
+        requests_mock.Timeout = requests.Timeout
+        requests_mock.ConnectionError = requests.ConnectionError
+
+        template = InitTemplates()
+        with mock.patch.object(
+            template, "clone_templates_repo", wraps=template.clone_templates_repo
+        ) as mocked_clone_templates_repo:
+            with mock.patch.object(
+                template, "get_manifest_path", wraps=template.get_manifest_path
+            ) as mocked_get_manifest_path:
+                template.get_preprocessed_manifest()
+                mocked_clone_templates_repo.assert_called_once()
+                mocked_get_manifest_path.assert_called_once()
 
     @patch("samcli.commands.init.init_templates.InitTemplates._get_manifest")
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
