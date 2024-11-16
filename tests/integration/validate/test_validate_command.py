@@ -169,8 +169,6 @@ class TestValidate(TestCase):
         }
         supported_runtimes = [
             "dotnet8",
-            "dotnet6",
-            "go1.x",
             "java21",
             "java17",
             "java11",
@@ -178,14 +176,13 @@ class TestValidate(TestCase):
             "nodejs18.x",
             "nodejs20.x",
             "nodejs22.x",
-            "provided",
             "provided.al2",
             "provided.al2023",
-            "python3.8",
             "python3.9",
             "python3.10",
             "python3.11",
             "python3.12",
+            "python3.13",
             "ruby3.2",
             "ruby3.3",
         ]

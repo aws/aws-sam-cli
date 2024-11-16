@@ -55,8 +55,8 @@ DESCRIPTION = """
   \b
   Supported Runtimes
   ------------------
-  1. Python 3.8, 3.9, 3.10, 3.11, 3.12 using PIP\n
-  2. Nodejs 22.x, 20.x, 18.x, 16.x, 14.x, 12.x using NPM\n
+  1. Python 3.8, 3.9, 3.10, 3.11, 3.12, 3.13 using PIP\n
+  2. Nodejs 22.x, Nodejs 20.x, 18.x, 16.x, 14.x, 12.x using NPM\n
   3. Ruby 3.2, 3.3 using Bundler\n
   4. Java 8, Java 11, Java 17, Java 21 using Gradle and Maven\n
   5. Dotnet8, Dotnet6 using Dotnet CLI\n
