@@ -1743,8 +1743,11 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
             self.builder._build_lambda_image("Name", {"Dockerfile": "Dockerfile", "DockerContext": "context"}, X86_64)
 
         self.assertEqual(ex.exception.args, ("Build failure",))
-        self.assertEqual(self.stream_mock.write_str.call_count, 2)
-        self.assertEqual(self.stream_mock.write_str.call_args_list, [call("Some earlier log"), call("Build failed")])
+        self.assertEqual(self.stream_mock.write_str.call_count, 4, self.stream_mock.write_str.call_args_list)
+        self.assertEqual(
+            self.stream_mock.write_str.call_args_list,
+            [call("Some earlier log"), call(""), call("Build failed"), call("\n")],
+        )
 
 
 class TestApplicationBuilder_load_lambda_image_function(TestCase):
