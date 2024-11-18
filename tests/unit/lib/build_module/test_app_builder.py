@@ -1746,7 +1746,7 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
         self.assertEqual(self.stream_mock.write_str.call_count, 4, self.stream_mock.write_str.call_args_list)
         self.assertEqual(
             self.stream_mock.write_str.call_args_list,
-            [call("Some earlier log"), call(""), call("Build failed"), call("\n")],
+            [call("Some earlier log"), call(""), call("Build failed"), call(os.linesep)],
         )
 
 
