@@ -184,7 +184,7 @@ Resources:
 """
 
     @pytest.mark.flaky(reruns=3)
-    @pytest.mark.timeout(timeout=10, method="thread")
+    @pytest.mark.timeout(timeout=10, method="signal")
     def test_invalid_template(self):
         self.assertIn(
             "Authorizer 'RequestAuthorizer' with type 'notvalid' is currently not supported. "
