@@ -114,6 +114,13 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(BuildIntegE
                 False,
             ),
             (
+                "nodejs22.x",
+                "Esbuild/Node_without_manifest",
+                {"main.js", "main.js.map"},
+                "main.lambdaHandler",
+                False,
+            ),
+            (
                 "nodejs16.x",
                 "Esbuild/TypeScript_without_manifest",
                 {"app.js", "app.js.map"},
@@ -134,6 +141,13 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(BuildIntegE
                 "app.lambdaHandler",
                 False,
             ),
+            (
+                "nodejs22.x",
+                "Esbuild/TypeScript_without_manifest",
+                {"app.js", "app.js.map"},
+                "app.lambdaHandler",
+                False,
+            ),
         ]
     )
     def test_building_default_package_json(self, runtime, code_uri, expected_files, handler, use_container):
@@ -149,6 +163,7 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture_arm64(BuildInte
             ("nodejs16.x", False),
             ("nodejs18.x", False),
             ("nodejs20.x", False),
+            ("nodejs22.x", False),
             ("nodejs16.x", "use_container"),
             ("nodejs18.x", "use_container"),
         ]
@@ -159,6 +174,7 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture_arm64(BuildInte
     @parameterized.expand(
         [
             ("nodejs20.x", "use_container"),
+            ("nodejs22.x", "use_container"),
         ]
     )
     @pytest.mark.al2023

@@ -6,12 +6,12 @@ jmespath~=1.0.1
 ruamel_yaml~=0.18.6
 PyYAML~=6.0
 cookiecutter~=2.6.0
-aws-sam-translator==1.92.0
+aws-sam-translator==1.93.0
 #docker minor version updates can include breaking changes. Auto update micro version only.
 docker~=7.1.0
 dateparser~=1.2
 requests~=2.32.3
-aws_lambda_builders==1.51.0
+aws_lambda_builders==1.52.0
 tomlkit==0.13.2
 # NOTE: For supporting watchdog in Python3.8, version is pinned to 4.0.2 as 
 # version 5.0.2 introduced some breaking changes for versions > Python3.8
@@ -34,4 +34,4 @@ tzlocal==5.2
 cfn-lint~=1.19.0
 
 # Type checking boto3 objects
-boto3-stubs[apigateway,cloudformation,ecr,iam,lambda,s3,schemas,secretsmanager,signer,stepfunctions,sts,xray,sqs,kinesis]==1.35.56
+boto3-stubs[apigateway,cloudformation,ecr,iam,lambda,s3,schemas,secretsmanager,signer,stepfunctions,sts,xray,sqs,kinesis]==1.35.63

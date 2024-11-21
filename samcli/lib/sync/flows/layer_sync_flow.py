@@ -409,8 +409,8 @@ class FunctionLayerReferenceSync(SyncFlow):
             return
 
         # Check function uses layer
-        old_layer_arn = [layer_arn for layer_arn in layer_arns if layer_arn.startswith(self._layer_arn)]
-        old_layer_arn = old_layer_arn[0] if len(old_layer_arn) == 1 else None
+        old_layer_arns = [layer_arn for layer_arn in layer_arns if layer_arn.startswith(self._layer_arn)]
+        old_layer_arn = old_layer_arns[0] if len(old_layer_arns) == 1 else None
         if not old_layer_arn:
             LOG.warning(
                 "%sLambda Function (%s) does not have layer (%s).%s",

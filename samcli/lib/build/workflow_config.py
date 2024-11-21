@@ -97,6 +97,7 @@ def get_layer_subfolder(build_workflow: str) -> str:
         "nodejs16.x": "nodejs",
         "nodejs18.x": "nodejs",
         "nodejs20.x": "nodejs",
+        "nodejs22.x": "nodejs",
         "ruby3.2": "ruby/lib",
         "ruby3.3": "ruby/lib",
         "java11": "java",
@@ -163,6 +164,7 @@ def get_workflow_config(
         "nodejs16.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "nodejs18.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "nodejs20.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
+        "nodejs22.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "ruby3.2": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
         "ruby3.3": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
         "dotnet6": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
@@ -240,7 +242,7 @@ def get_workflow_config(
         ) from ex
 
 
-def supports_specified_workflow(specified_workflow: str) -> bool:
+def supports_specified_workflow(specified_workflow: Optional[str]) -> bool:
     """
     Given a specified workflow, returns whether it is supported in container builds,
     can be used to overwrite runtime and get docker image or not
