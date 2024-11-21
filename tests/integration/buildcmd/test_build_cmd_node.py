@@ -40,10 +40,8 @@ class TestBuildCommand_NodeFunctions_With_External_Manifest(BuildIntegNodeBase):
 
     @parameterized.expand(
         [
-            (
-                "nodejs20.x",
-                "nodejs22.x",
-            ),
+            ("nodejs20.x",),
+            ("nodejs22.x",),
         ]
     )
     @pytest.mark.al2023
