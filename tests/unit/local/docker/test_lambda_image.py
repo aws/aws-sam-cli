@@ -21,6 +21,7 @@ class TestRuntime(TestCase):
             ("nodejs16.x", "nodejs:16-x86_64"),
             ("nodejs18.x", "nodejs:18-x86_64"),
             ("nodejs20.x", "nodejs:20-x86_64"),
+            ("nodejs22.x", "nodejs:22-x86_64"),
             ("python3.8", "python:3.8-x86_64"),
             ("python3.9", "python:3.9-x86_64"),
             ("ruby3.2", "ruby:3.2-x86_64"),
