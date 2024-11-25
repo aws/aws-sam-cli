@@ -18,13 +18,13 @@ attrs==24.2.0 \
     # via
     #   jsonschema
     #   referencing
-aws-lambda-builders==1.51.0 \
-    --hash=sha256:6cb003c147df58f12e558f47e703e92f18435608cc1cea78b18477781478d6f6 \
-    --hash=sha256:b995417a4fc932a93588f0e95cb2b69fcd2e690831b390c9a8637b23cb74695a
+aws-lambda-builders==1.52.0 \
+    --hash=sha256:70d07c878e702276a68b1dec49aa8cc9110a337d52d61d23a7f71bd9f24b5370 \
+    --hash=sha256:eda67c6a16562ee9774b2ad0d9ece43653ff3f5a7f8176f77c2f94ece0607532
     # via aws-sam-cli (setup.py)
-aws-sam-translator==1.92.0 \
-    --hash=sha256:10e77ab628cead3d0e8ee0211eb84c04010c051b9a48ce6b15171c39bdbe917d \
-    --hash=sha256:49014e783180ca1fcdd70790645a850d20f4285c19ae694d37fefc52a60d7c64
+aws-sam-translator==1.94.0 \
+    --hash=sha256:100e33eeffcfa81f7c45cadeb0ee29596ce829f6b4d2745140f04fa19a41f539 \
+    --hash=sha256:8ec258d9f7ece72ef91c81f4edb45a2db064c16844b6afac90c575893beaa391
     # via
     #   aws-sam-cli (setup.py)
     #   cfn-lint
@@ -1031,7 +1031,7 @@ wheel==0.45.0 \
     # via aws-lambda-builders
 
 # The following packages are considered to be unsafe in a requirements file:
-setuptools==75.5.0 \
-    --hash=sha256:5c4ccb41111392671f02bb5f8436dfc5a9a7185e80500531b133f5775c4163ef \
-    --hash=sha256:87cb777c3b96d638ca02031192d40390e0ad97737e27b6b4fa831bea86f2f829
+setuptools==75.3.0 \
+    --hash=sha256:f2504966861356aa38616760c0f66568e535562374995367b4e69c7143cf6bcd \
+    --hash=sha256:fba5dd4d766e97be1b1681d98712680ae8f2f26d7881245f2ce9e40714f1a686
     # via aws-lambda-builders
