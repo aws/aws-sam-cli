@@ -967,9 +967,9 @@ types-python-dateutil==2.9.0.20241003 \
     --hash=sha256:250e1d8e80e7bbc3a6c99b907762711d1a1cdd00e978ad39cb5940f6f0a87f3d \
     --hash=sha256:58cb85449b2a56d6684e41aeefb4c4280631246a0da1a719bdbe6f3fb0317446
     # via arrow
-types-s3transfer==0.10.3 \
-    --hash=sha256:d34c5a82f531af95bb550927136ff5b737a1ed3087f90a59d545591dfde5b4cc \
-    --hash=sha256:f761b2876ac4c208e6c6b75cdf5f6939009768be9950c545b11b0225e7703ee7
+types-s3transfer==0.10.4 \
+    --hash=sha256:03123477e3064c81efe712bf9d372c7c72f2790711431f9baa59cf96ea607267 \
+    --hash=sha256:22ac1aabc98f9d7f2928eb3fb4d5c02bf7435687f0913345a97dd3b84d0c217d
     # via boto3-stubs
 typing-extensions==4.12.2 \
     --hash=sha256:04e5ca0351e0f3f85c6853954072df659d0d13fac324d0072316b67d7794700d \
