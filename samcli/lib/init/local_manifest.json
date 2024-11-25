@@ -55,6 +55,16 @@
             "useCaseName": "Hello World Example"
         }
     ],
+    "nodejs22.x": [
+        {
+            "directory": "template/cookiecutter-aws-sam-hello-nodejs",
+            "displayName": "Hello World Example",
+            "dependencyManager": "npm",
+            "appTemplate": "hello-world",
+            "packageType": "Zip",
+            "useCaseName": "Hello World Example"
+        }
+    ],
     "nodejs20.x": [
         {
             "directory": "template/cookiecutter-aws-sam-hello-nodejs",
