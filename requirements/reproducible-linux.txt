@@ -480,9 +480,9 @@ pycparser==2.22 \
     --hash=sha256:491c8be9c040f5390f5bf44a5b07752bd07f56edf992381b05c701439eec10f6 \
     --hash=sha256:c3702b6d3dd8c7abc1afa565d7e63d53a1d0bd86cdc24edd75470f4de499cfcc
     # via cffi
-pydantic==2.10.0 \
-    --hash=sha256:0aca0f045ff6e2f097f1fe89521115335f15049eeb8a7bef3dafe4b19a74e289 \
-    --hash=sha256:5e7807ba9201bdf61b1b58aa6eb690916c40a47acfb114b1b4fef3e7fd5b30fc
+pydantic==2.10.1 \
+    --hash=sha256:a4daca2dc0aa429555e0656d6bf94873a7dc5f54ee42b1f5873d666fb3f35560 \
+    --hash=sha256:a8d20db84de64cf4a7d59e899c2caf0fe9d660c7cfc482528e7020d7dd189a7e
     # via aws-sam-translator
 pydantic-core==2.27.0 \
     --hash=sha256:0aa4d1b2eba9a325897308b3124014a142cdccb9f3e016f31d3ebee6b5ea5e75 \
