@@ -16,7 +16,8 @@ PARAM_AND_METADATA_KEY_REGEX = """([A-Za-z0-9\\"\']+)"""
 
 LOG = logging.getLogger(__name__)
 
-def _generate_match_regex(match_pattern, delim = None):
+
+def _generate_match_regex(match_pattern, delim=None):
     """
     Creates a regex string based on a match pattern (also a regex) that is to be
     run on a string (which may contain escaped quotes) that is separated by delimiters.
@@ -31,8 +32,7 @@ def _generate_match_regex(match_pattern, delim = None):
     str: regex expression
 
     """
-    result = (f"""(\\"(?:\\\\{match_pattern}|[^\\"\\\\]+)*\\"|"""
-        + f"""\'(?:\\\\{match_pattern}|[^\'\\\\]+)*\'""")
+    result = f"""(\\"(?:\\\\{match_pattern}|[^\\"\\\\]+)*\\"|""" + f"""\'(?:\\\\{match_pattern}|[^\'\\\\]+)*\'"""
 
     if delim is not None:
         # Non capturing groups reduces duplicates in groups, but does not reduce matches.
@@ -356,6 +356,7 @@ class CfnTags(click.ParamType):
                 return None
             tags_dict.update(parsed_tag)
         return tags_dict
+
 
 class SigningProfilesOptionType(click.ParamType):
     """
