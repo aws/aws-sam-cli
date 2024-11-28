@@ -17,7 +17,7 @@ PARAM_AND_METADATA_KEY_REGEX = """([A-Za-z0-9\\"\']+)"""
 LOG = logging.getLogger(__name__)
 
 
-def _generate_match_regex(match_pattern, delim):
+def _generate_match_regex(match_pattern, delim=None):
     """
     Creates a regex string based on a match pattern (also a regex) that is to be
     run on a string (which may contain escaped quotes) that is separated by delimiters.
@@ -32,13 +32,13 @@ def _generate_match_regex(match_pattern, delim):
     str: regex expression
 
     """
+    result = f"""(\\"(?:\\\\{match_pattern}|[^\\"\\\\]+)*\\"|""" + f"""\'(?:\\\\{match_pattern}|[^\'\\\\]+)*\'"""
 
-    # Non capturing groups reduces duplicates in groups, but does not reduce matches.
-    return (
-        f"""(\\"(?:\\\\{match_pattern}|[^\\"\\\\]+)*\\"|"""
-        + f"""\'(?:\\\\{match_pattern}|[^\'\\\\]+)*\'|"""
-        + f"""(?:\\\\{match_pattern}|[^{delim}\\"\\\\]+)+)"""
-    )
+    if delim is not None:
+        # Non capturing groups reduces duplicates in groups, but does not reduce matches.
+        return result + f"""|(?:\\\\{match_pattern}|[^{delim}\\"\\\\]+)+)"""
+    else:
+        return result + ")"
 
 
 def _unquote_wrapped_quotes(value):
@@ -194,6 +194,7 @@ class CfnTags(click.ParamType):
     TAG_REGEX = '[A-Za-z0-9\\"_:\\.\\/\\+-\\@=]'
 
     _pattern = r"{tag}={tag}".format(tag=_generate_match_regex(match_pattern=TAG_REGEX, delim=" "))
+    _quoted_pattern = _generate_match_regex(match_pattern=TAG_REGEX)
 
     name = "string,list"
 
@@ -222,13 +223,7 @@ class CfnTags(click.ParamType):
                 for k in tags:
                     self._add_value(result, _unquote_wrapped_quotes(k), _unquote_wrapped_quotes(tags[k]))
             else:
-                groups = re.findall(self._pattern, val)
-
-                if not groups:
-                    fail = True
-                for group in groups:
-                    key, v = group
-                    self._add_value(result, _unquote_wrapped_quotes(key), _unquote_wrapped_quotes(v))
+                fail = not self._parse_key_value_pair(result, val)
 
             if fail:
                 return self.fail(
@@ -238,6 +233,66 @@ class CfnTags(click.ParamType):
                 )
 
         return result
+
+    def _parse_key_value_pair(self, result: dict, key_value_string: str):
+        """
+        This method processes a string in the format "'key1'='value1','key2'='value2'",
+        where spaces may exist within keys or values.
+
+        To optimize performance, the parsing is divided into two stages:
+
+        Stage 1: Optimized Parsing
+        1. Identify quoted strings containing spaces within values.
+        2. Temporarily replace spaces in these strings with a placeholder (e.g., "_").
+        3. Use a fast, standard parser to extract key-value pairs, as no spaces are expected.
+        4. Restore original spaces in the extracted key-value pairs.
+
+        Stage 2: Fallback Parsing
+        If Stage 1 fails to parse the string correctly,run against a comprehensive regex pattern
+        {tag}={tag}) to parse the entire string.
+
+        Parameters
+        ----------
+        result: result dict
+        key_value_string: string to parse
+
+        Returns
+        -------
+        boolean - parse result
+        """
+        parse_result = True
+
+        # Unquote an entire string
+        modified_val = _unquote_wrapped_quotes(key_value_string)
+
+        # Looking for a quote strings that contain spaces and proceed to replace them
+        quoted_strings_with_spaces = re.findall(self._quoted_pattern, modified_val)
+        quoted_strings_with_spaces_objects = [
+            TextWithSpaces(str_with_spaces) for str_with_spaces in quoted_strings_with_spaces
+        ]
+        for s, replacement in zip(quoted_strings_with_spaces, quoted_strings_with_spaces_objects):
+            modified_val = modified_val.replace(s, replacement.replace_spaces())
+
+        # Use default parser to parse key=value
+        tags = self._multiple_space_separated_key_value_parser(modified_val)
+        if tags is not None:
+            for key, value in tags.items():
+                new_value = value
+                text_objects = [obj for obj in quoted_strings_with_spaces_objects if obj.modified_text == value]
+                if len(text_objects) > 0:
+                    new_value = text_objects[0].restore_spaces()
+                self._add_value(result, _unquote_wrapped_quotes(key), _unquote_wrapped_quotes(new_value))
+        else:
+            # Otherwise, fall back to the original mechanism.
+            groups = re.findall(self._pattern, key_value_string)
+
+            if not groups:
+                parse_result = False
+            for group in groups:
+                key, v = group
+                self._add_value(result, _unquote_wrapped_quotes(key), _unquote_wrapped_quotes(v))
+
+        return parse_result
 
     def _add_value(self, result: dict, key: str, new_value: str):
         """
@@ -285,6 +340,22 @@ class CfnTags(click.ParamType):
                 return False, None
             tags_dict = {**tags_dict, **parsed_tag}
         return True, tags_dict
+
+    @staticmethod
+    def _multiple_space_separated_key_value_parser(tag_value):
+        """
+        Method to parse space separated `Key1=Value1 Key2=Value2` type tags without using regex.
+        Parameters
+        ----------
+        tag_value
+        """
+        tags_dict = {}
+        for value in tag_value.split():
+            parsed, parsed_tag = CfnTags._standard_key_value_parser(value)
+            if not parsed:
+                return None
+            tags_dict.update(parsed_tag)
+        return tags_dict
 
 
 class SigningProfilesOptionType(click.ParamType):
@@ -560,3 +631,34 @@ class SyncWatchExcludeType(click.ParamType):
             )
 
         return {resource_id: [excluded_path]}
+
+
+class TextWithSpaces:
+    def __init__(self, text) -> None:
+        self.text = text
+        self.modified_text = text
+        self.space_positions = []  # type: List[int]
+
+    def replace_spaces(self, replacement="_"):
+        """
+        Replace spaces in a text with a replacement together with its original locations.
+        Input: "test 1"
+        Output: "test_1" [4]
+        """
+        self.space_positions = [i for i, char in enumerate(self.text) if char == " "]
+        self.modified_text = self.text.replace(" ", replacement)
+
+        return self.modified_text
+
+    def restore_spaces(self):
+        """
+        Restore spaces in a text from a original space locations.
+        Input: "test_1" [4]
+        Output: "test 1"
+        """
+        text_list = list(self.modified_text)
+
+        for pos in self.space_positions:
+            text_list[pos] = " "
+
+        return "".join(text_list)
