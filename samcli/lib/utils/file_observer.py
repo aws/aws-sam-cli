@@ -307,12 +307,12 @@ class ImageObserver(ResourceObserver):
         self._observed_images: Dict[str, str] = {}
         self._input_on_change: Callable = on_change
         self.docker_client: DockerClient = docker.from_env(version=DOCKER_MIN_API_VERSION)
-        self.events: CancellableStream = self.docker_client.events(filters={"type": "image"}, decode=True)
         self._images_observer_thread: Optional[Thread] = None
         self._lock: Lock = threading.Lock()
 
     @broken_pipe_handler
     def _watch_images_events(self):
+        self.events: CancellableStream = self.docker_client.events(filters={"type": "image"}, decode=True)
         for event in self.events:
             if event.get("Action", None) != "tag":
                 continue
