@@ -1019,7 +1019,6 @@ typing-extensions==4.12.2 \
     #   aws-sam-cli (setup.py)
     #   aws-sam-translator
     #   boto3-stubs
-    #   botocore-stubs
     #   cfn-lint
     #   mypy-boto3-apigateway
     #   mypy-boto3-cloudformation
