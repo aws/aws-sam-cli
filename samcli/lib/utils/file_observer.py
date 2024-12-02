@@ -368,7 +368,8 @@ class ImageObserver(ResourceObserver):
         Stop Observing.
         """
         with self._lock:
-            self.events.close()
+            if hasattr(self, "events"):
+                self.events.close()
             # wait until the images observer thread got stopped
             while self._images_observer_thread and self._images_observer_thread.is_alive():
                 pass
