@@ -36,25 +36,25 @@ blinker==1.8.2 \
     --hash=sha256:1779309f71bf239144b9399d06ae925637cf6634cf6bd131104184531bf67c01 \
     --hash=sha256:8f77b09d3bf7c795e969e9486f39c2c5e9c39d4ee07424be2bc594ece9642d83
     # via flask
-boto3==1.35.63 \
-    --hash=sha256:d0f938d4f6f392b6ffc5e75fff14a42e5bbb5228675a0367c8af55398abadbec \
-    --hash=sha256:deb593d9a0fb240deb4c43e4da8e6626d7c36be7b2fd2fe28f49d44d395b7de0
+boto3==1.35.73 \
+    --hash=sha256:473438feafe77d29fbea532a91a65de0d8751a4fa5822127218710a205e28e7a \
+    --hash=sha256:ccb1a365d3084de53b58f8dfc056462f49b16931c139f4c8ac5f0bca8cb8fe81
     # via
     #   aws-sam-cli (setup.py)
     #   aws-sam-translator
-boto3-stubs[apigateway,cloudformation,ecr,iam,kinesis,lambda,s3,schemas,secretsmanager,signer,sqs,stepfunctions,sts,xray]==1.35.63 \
-    --hash=sha256:74663e6087360f49a4da4d2079bca6a809586f44d42238046d5a726c48be4a00 \
-    --hash=sha256:cc471636d28f595bf750dc3c2079d16e988c9f518a66f50c9d62b0119c3f72cf
+boto3-stubs[apigateway,cloudformation,ecr,iam,kinesis,lambda,s3,schemas,secretsmanager,signer,sqs,stepfunctions,sts,xray]==1.35.73 \
+    --hash=sha256:b935f0b62be1e18445f63cd9f5bbb4fe9a792d99efa9eb7f37b641ed4a6e70e0 \
+    --hash=sha256:d1c072dfa59fbe0d91ba8e8966e844d9eb79ccc5f59e49914f796f29cd96a14d
     # via aws-sam-cli (setup.py)
-botocore==1.35.63 \
-    --hash=sha256:0ca1200694a4c0a3fa846795d8e8a08404c214e21195eb9e010c4b8a4ca78a4a \
-    --hash=sha256:2b8196bab0a997d206c3d490b52e779ef47dffb68c57c685443f77293aca1589
+botocore==1.35.73 \
+    --hash=sha256:8a6a0f5ad119e38d850571df8c625dbad66aec1b20c15f84cdcb95258f9f1edb \
+    --hash=sha256:b2e3ecdd1769f011f72c4c0d0094570ba125f4ca327f24269e4d68eb5d9878b9
     # via
     #   boto3
     #   s3transfer
-botocore-stubs==1.35.63 \
-    --hash=sha256:7ac5cbfb3bf15106c3344a56d5e853c07dd1fc775ebc37ff1a2d2cb0e79b4ef1 \
-    --hash=sha256:e7d1f5c704c837b751e5c2b1d128f7c889ab04ebf2d56143702f5fc92702858b
+botocore-stubs==1.35.73 \
+    --hash=sha256:54f7bcc325382050ae6aa839163f93f5c4e777db9c0fd2da3ad0744720895fbe \
+    --hash=sha256:e9a20b0a29621674b46225fdb88bf00a0bca5216413d717895b75ba2dd63c6cc
     # via boto3-stubs
 certifi==2024.8.30 \
     --hash=sha256:922820b53db7a7257ffbda3f597266d435245903d80737e34f8a45ff3e3230d8 \
@@ -415,13 +415,13 @@ mpmath==1.3.0 \
     --hash=sha256:7a28eb2a9774d00c7bc92411c19a89209d5da7c4c9a9e227be8330a23a25b91f \
     --hash=sha256:a0b2b9fe80bbcd81a6647ff13108738cfb482d481d826cc0e02f5b35e5c88d2c
     # via sympy
-mypy-boto3-apigateway==1.35.25 \
-    --hash=sha256:436cee5bc8a4e75a116653dddf277b7582f331d7af8ac8c0195d2eb7828e45b8 \
-    --hash=sha256:ea3b419ae868d63f0613eeacc6a75861fd57b689d6a14bb7562eed303913a5ae
+mypy-boto3-apigateway==1.35.67 \
+    --hash=sha256:799be089b61b3b1745c9359d34f42573624cb0d36812a4d19276680afd5f1b19 \
+    --hash=sha256:7ee4e0957cd367f72e9aee5abdb2f7b5cefdc1da214e19272ef6741d0200299f
     # via boto3-stubs
-mypy-boto3-cloudformation==1.35.41 \
-    --hash=sha256:125698530718b36fd9e42a13cdc964028304440d80927adf2e1dfcf5e376839e \
-    --hash=sha256:c7b190f7179cd328b323558d4cb07ce520492c9ed0541ebe7c47af53b207fa30
+mypy-boto3-cloudformation==1.35.64 \
+    --hash=sha256:aba213f3411a65096a8d95633c36e0c57a775ac6ac9ccf1e6fd9bea4002073bc \
+    --hash=sha256:d1a1500df811ac8ebd459640f5b31c14daac784d8a00fc4f67bc6eb391e7b5a8
     # via boto3-stubs
 mypy-boto3-ecr==1.35.21 \
     --hash=sha256:90a067cc131129e010887b8da3caa8d34d32da9c17121b5dc047f738c2c1f00c \
@@ -435,13 +435,13 @@ mypy-boto3-kinesis==1.35.26 \
     --hash=sha256:865f2697f62dfc7d04052436a925bdf0d39a9317cde8c6981a6ac46e659c1c7f \
     --hash=sha256:f5e526f3b91ac9709c487a4334853149c2cabb41700ef93827daeb742e05c05e
     # via boto3-stubs
-mypy-boto3-lambda==1.35.58 \
-    --hash=sha256:a75cad0637f88ee45d19e60e94fc391c3e6c5948864271ccb053ac6b2cadafb7 \
-    --hash=sha256:c6807363ee18579b3d6dff7c090f64b462a1f243be46fe6847333624e31ebbfc
+mypy-boto3-lambda==1.35.68 \
+    --hash=sha256:00499898236fe423c9292f77644102d4bd6699b3c16b8c4062eb759c022447f5 \
+    --hash=sha256:577a9465ac63ac564efc2755a7e72c28a9d2f496747c1faf242cb13d5017b262
     # via boto3-stubs
-mypy-boto3-s3==1.35.61 \
-    --hash=sha256:4cfc410a02a302935876f0d1ae3f0738bf540acd686168790fb0c5986a085f1e \
-    --hash=sha256:6965fe6c5f3d8362ac7895663540844ed29c885c92a62233c29a1c031ca28c90
+mypy-boto3-s3==1.35.72 \
+    --hash=sha256:571e659c1d355499d5e5070f33e613a1e251e6f5d2a57d535c5eaef52ebb6a86 \
+    --hash=sha256:b2a18ca57079659eb602dcfc4abb56425c793ccb1939826e401d4f2ddf9128b0
     # via boto3-stubs
 mypy-boto3-schemas==1.35.0 \
     --hash=sha256:a63cbf1c5189e29638b7f1522357db080bfd99e142110a06df6192b5d68f0dc8 \
@@ -459,17 +459,17 @@ mypy-boto3-sqs==1.35.0 \
     --hash=sha256:61752f1c2bf2efa3815f64d43c25b4a39dbdbd9e472ae48aa18d7c6d2a7a6eb8 \
     --hash=sha256:9fd6e622ed231c06f7542ba6f8f0eea92046cace24defa95d0d0ce04e7caee0c
     # via boto3-stubs
-mypy-boto3-stepfunctions==1.35.54 \
-    --hash=sha256:2ee7940aa2bda046197e296a5ba9c0e7ccc5350b509fd7a883f0667c183e3bfe \
-    --hash=sha256:f0f260d44cd1beb70845ed37184b4c11bad7e8d8d55ac02aed86a1632d29e69c
+mypy-boto3-stepfunctions==1.35.68 \
+    --hash=sha256:4abef0d339463ebe612836f42154a092e95eed025baca9a15be1286cc9a90434 \
+    --hash=sha256:ceea974dd9f779f19042dc6ce6ac64955036be9b825512a6a33eecb7d682f43c
     # via boto3-stubs
 mypy-boto3-sts==1.35.61 \
     --hash=sha256:37465ba1d3202cd39b508c346955f9a5a2597071300791a569cbbc2ad7ab4dd1 \
     --hash=sha256:cf8e7b49396e4ad3a5709d51034a4925afcf14f01fa42e1ae222d3b09f111054
     # via boto3-stubs
-mypy-boto3-xray==1.35.0 \
-    --hash=sha256:a3c3a6d83f659f6dc4dbf392ac1481029af6b941e9485ea4878bbf60e338f82c \
-    --hash=sha256:c3c7aff1b2d05e218f991ab74101d2296927553bbb7d4b2d961ffb7326995931
+mypy-boto3-xray==1.35.67 \
+    --hash=sha256:289b4fed82208724d9a5f5eb662013e142dc9c1d78aab5950b58dfe3259a31b9 \
+    --hash=sha256:36a4a1b7782777001083551ccd844496f71b42122fe4c3f95fc0a9d512a7317f
     # via boto3-stubs
 networkx==3.1 \
     --hash=sha256:4f33f68cb2afcf86f28a45f43efc27a9386b535d567d2127f8f61d51dec58d36 \
