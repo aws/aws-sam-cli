@@ -849,8 +849,10 @@ def resolve_image_repos_option(f):
 
 def use_container_build_click_option():
     return click.option(
-        "--use-container",
+        "--use-container/--no-use-container",
         "-u",
+        required=False,
+        default=False,
         is_flag=True,
         help="Build functions within an AWS Lambda-like container.",
     )
