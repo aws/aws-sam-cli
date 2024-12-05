@@ -163,6 +163,182 @@ class TestSamConfigForAllCommands(TestCase):
             )
 
     @patch("samcli.commands.build.command.do_cli")
+    def test_build_with_no_use_container(self, do_cli_mock):
+        config_values = {
+            "resource_logical_id": "foo",
+            "template_file": "mytemplate.yaml",
+            "base_dir": "basedir",
+            "build_dir": "builddir",
+            "cache_dir": "cachedir",
+            "cache": True,
+            "use_container": False,
+            "manifest": "requirements.txt",
+            "docker_network": "mynetwork",
+            "skip_pull_image": True,
+            "parameter_overrides": "ParameterKey=Key,ParameterValue=Value ParameterKey=Key2,ParameterValue=Value2",
+            "container_env_var": [("")],
+            "container_env_var_file": "file",
+            "build_image": [("")],
+            "exclude": [("")],
+            "mount_with": "read",
+        }
+
+        with samconfig_parameters(["build"], self.scratch_dir, **config_values) as config_path:
+            from samcli.commands.build.command import cli
+
+            LOG.debug(Path(config_path).read_text())
+            runner = CliRunner()
+            result = runner.invoke(cli, [])
+
+            LOG.info(result.output)
+            LOG.info(result.exception)
+            if result.exception:
+                LOG.exception("Command failed", exc_info=result.exc_info)
+            self.assertIsNone(result.exception)
+
+            do_cli_mock.assert_called_with(
+                ANY,
+                "foo",
+                str(Path(os.getcwd(), "mytemplate.yaml")),
+                "basedir",
+                "builddir",
+                "cachedir",
+                True,
+                False,
+                False,
+                False,
+                "requirements.txt",
+                "mynetwork",
+                True,
+                {"Key": "Value", "Key2": "Value2"},
+                None,
+                ("",),
+                "file",
+                ("",),
+                ("",),
+                None,
+                False,
+                "READ",
+            )
+
+    @patch("samcli.commands.build.command.do_cli")
+    def test_build_with_no_use_container_option(self, do_cli_mock):
+        config_values = {
+            "resource_logical_id": "foo",
+            "template_file": "mytemplate.yaml",
+            "base_dir": "basedir",
+            "build_dir": "builddir",
+            "cache_dir": "cachedir",
+            "cache": True,
+            "manifest": "requirements.txt",
+            "docker_network": "mynetwork",
+            "skip_pull_image": True,
+            "parameter_overrides": "ParameterKey=Key,ParameterValue=Value ParameterKey=Key2,ParameterValue=Value2",
+            "container_env_var": [("")],
+            "container_env_var_file": "file",
+            "build_image": [("")],
+            "exclude": [("")],
+            "mount_with": "read",
+        }
+
+        with samconfig_parameters(["build"], self.scratch_dir, **config_values) as config_path:
+            from samcli.commands.build.command import cli
+
+            LOG.debug(Path(config_path).read_text())
+            runner = CliRunner()
+            result = runner.invoke(cli, ["--no-use-container"])
+
+            LOG.info(result.output)
+            LOG.info(result.exception)
+            if result.exception:
+                LOG.exception("Command failed", exc_info=result.exc_info)
+            self.assertIsNone(result.exception)
+
+            do_cli_mock.assert_called_with(
+                ANY,
+                "foo",
+                str(Path(os.getcwd(), "mytemplate.yaml")),
+                "basedir",
+                "builddir",
+                "cachedir",
+                True,
+                False,
+                False,
+                False,
+                "requirements.txt",
+                "mynetwork",
+                True,
+                {"Key": "Value", "Key2": "Value2"},
+                None,
+                ("",),
+                "file",
+                ("",),
+                ("",),
+                None,
+                False,
+                "READ",
+            )
+
+    @patch("samcli.commands.build.command.do_cli")
+    def test_build_with_no_use_container_override(self, do_cli_mock):
+        config_values = {
+            "resource_logical_id": "foo",
+            "template_file": "mytemplate.yaml",
+            "base_dir": "basedir",
+            "build_dir": "builddir",
+            "cache_dir": "cachedir",
+            "cache": True,
+            "use_container": True,
+            "manifest": "requirements.txt",
+            "docker_network": "mynetwork",
+            "skip_pull_image": True,
+            "parameter_overrides": "ParameterKey=Key,ParameterValue=Value ParameterKey=Key2,ParameterValue=Value2",
+            "container_env_var": [("")],
+            "container_env_var_file": "file",
+            "build_image": [("")],
+            "exclude": [("")],
+            "mount_with": "read",
+        }
+
+        with samconfig_parameters(["build"], self.scratch_dir, **config_values) as config_path:
+            from samcli.commands.build.command import cli
+
+            LOG.debug(Path(config_path).read_text())
+            runner = CliRunner()
+            result = runner.invoke(cli, ["--no-use-container"])
+
+            LOG.info(result.output)
+            LOG.info(result.exception)
+            if result.exception:
+                LOG.exception("Command failed", exc_info=result.exc_info)
+            self.assertIsNone(result.exception)
+
+            do_cli_mock.assert_called_with(
+                ANY,
+                "foo",
+                str(Path(os.getcwd(), "mytemplate.yaml")),
+                "basedir",
+                "builddir",
+                "cachedir",
+                True,
+                False,
+                False,
+                False,
+                "requirements.txt",
+                "mynetwork",
+                True,
+                {"Key": "Value", "Key2": "Value2"},
+                None,
+                ("",),
+                "file",
+                ("",),
+                ("",),
+                None,
+                False,
+                "READ",
+            )
+
+    @patch("samcli.commands.build.command.do_cli")
     def test_build_with_no_cached_override(self, do_cli_mock):
         config_values = {
             "resource_logical_id": "foo",
@@ -1019,6 +1195,278 @@ class TestSamConfigForAllCommands(TestCase):
                 {"a": "tag1", "b": "tag with spaces"},
                 {"m1": "value1", "m2": "value2"},
                 True,
+                "file",
+                (),
+                "samconfig.toml",
+                "default",
+                False,
+                {"HelloWorld": ["file.txt", "other.txt"], "HelloMars": ["single.file"]},
+            )
+
+    @patch("samcli.commands._utils.experimental.is_experimental_enabled")
+    @patch("samcli.lib.cli_validation.image_repository_validation._is_all_image_funcs_provided")
+    @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format")
+    @patch("samcli.commands._utils.template.get_template_artifacts_format")
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
+    @patch("samcli.commands.sync.command.do_cli")
+    def test_sync_with_no_use_container(
+        self,
+        do_cli_mock,
+        template_artifacts_mock1,
+        template_artifacts_mock2,
+        template_artifacts_mock3,
+        is_all_image_funcs_provided_mock,
+        experimental_mock,
+    ):
+        template_artifacts_mock1.return_value = [ZIP]
+        template_artifacts_mock2.return_value = [ZIP]
+        template_artifacts_mock3.return_value = [ZIP]
+        is_all_image_funcs_provided_mock.return_value = True
+        experimental_mock.return_value = True
+
+        config_values = {
+            "template_file": "mytemplate.yaml",
+            "stack_name": "mystack",
+            "image_repository": "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
+            "base_dir": "path",
+            "use_container": False,
+            "s3_bucket": "mybucket",
+            "s3_prefix": "myprefix",
+            "kms_key_id": "mykms",
+            "parameter_overrides": 'Key1=Value1 Key2="Multiple spaces in the value"',
+            "capabilities": "cap1 cap2",
+            "no_execute_changeset": True,
+            "role_arn": "arn",
+            "notification_arns": "notify1 notify2",
+            "tags": 'a=tag1 b="tag with spaces"',
+            "metadata": '{"m1": "value1", "m2": "value2"}',
+            "container_env_var_file": "file",
+            "guided": True,
+            "confirm_changeset": True,
+            "region": "myregion",
+            "signing_profiles": "function=profile:owner",
+            "watch_exclude": {"HelloWorld": ["file.txt", "other.txt"], "HelloMars": ["single.file"]},
+        }
+
+        with samconfig_parameters(["sync"], self.scratch_dir, **config_values) as config_path:
+            from samcli.commands.sync.command import cli
+
+            LOG.debug(Path(config_path).read_text())
+            runner = CliRunner()
+            result = runner.invoke(cli, [])
+
+            LOG.info(result.output)
+            LOG.info(result.exception)
+            if result.exception:
+                LOG.exception("Command failed", exc_info=result.exc_info)
+            self.assertIsNone(result.exception)
+
+            do_cli_mock.assert_called_with(
+                str(Path(os.getcwd(), "mytemplate.yaml")),
+                False,
+                False,
+                (),
+                (),
+                True,
+                True,
+                "mystack",
+                "myregion",
+                None,
+                "path",
+                {"Key1": "Value1", "Key2": "Multiple spaces in the value"},
+                None,
+                "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
+                None,
+                "mybucket",
+                "myprefix",
+                "mykms",
+                ["cap1", "cap2"],
+                "arn",
+                ["notify1", "notify2"],
+                {"a": "tag1", "b": "tag with spaces"},
+                {"m1": "value1", "m2": "value2"},
+                False,
+                "file",
+                (),
+                "samconfig.toml",
+                "default",
+                False,
+                {"HelloWorld": ["file.txt", "other.txt"], "HelloMars": ["single.file"]},
+            )
+
+    @patch("samcli.commands._utils.experimental.is_experimental_enabled")
+    @patch("samcli.lib.cli_validation.image_repository_validation._is_all_image_funcs_provided")
+    @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format")
+    @patch("samcli.commands._utils.template.get_template_artifacts_format")
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
+    @patch("samcli.commands.sync.command.do_cli")
+    def test_sync_with_no_use_container_options(
+        self,
+        do_cli_mock,
+        template_artifacts_mock1,
+        template_artifacts_mock2,
+        template_artifacts_mock3,
+        is_all_image_funcs_provided_mock,
+        experimental_mock,
+    ):
+        template_artifacts_mock1.return_value = [ZIP]
+        template_artifacts_mock2.return_value = [ZIP]
+        template_artifacts_mock3.return_value = [ZIP]
+        is_all_image_funcs_provided_mock.return_value = True
+        experimental_mock.return_value = True
+
+        config_values = {
+            "template_file": "mytemplate.yaml",
+            "stack_name": "mystack",
+            "image_repository": "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
+            "base_dir": "path",
+            "s3_bucket": "mybucket",
+            "s3_prefix": "myprefix",
+            "kms_key_id": "mykms",
+            "parameter_overrides": 'Key1=Value1 Key2="Multiple spaces in the value"',
+            "capabilities": "cap1 cap2",
+            "no_execute_changeset": True,
+            "role_arn": "arn",
+            "notification_arns": "notify1 notify2",
+            "tags": 'a=tag1 b="tag with spaces"',
+            "metadata": '{"m1": "value1", "m2": "value2"}',
+            "container_env_var_file": "file",
+            "guided": True,
+            "confirm_changeset": True,
+            "region": "myregion",
+            "signing_profiles": "function=profile:owner",
+            "watch_exclude": {"HelloWorld": ["file.txt", "other.txt"], "HelloMars": ["single.file"]},
+        }
+
+        with samconfig_parameters(["sync"], self.scratch_dir, **config_values) as config_path:
+            from samcli.commands.sync.command import cli
+
+            LOG.debug(Path(config_path).read_text())
+            runner = CliRunner()
+            result = runner.invoke(cli, ["--no-use-container"])
+
+            LOG.info(result.output)
+            LOG.info(result.exception)
+            if result.exception:
+                LOG.exception("Command failed", exc_info=result.exc_info)
+            self.assertIsNone(result.exception)
+
+            do_cli_mock.assert_called_with(
+                str(Path(os.getcwd(), "mytemplate.yaml")),
+                False,
+                False,
+                (),
+                (),
+                True,
+                True,
+                "mystack",
+                "myregion",
+                None,
+                "path",
+                {"Key1": "Value1", "Key2": "Multiple spaces in the value"},
+                None,
+                "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
+                None,
+                "mybucket",
+                "myprefix",
+                "mykms",
+                ["cap1", "cap2"],
+                "arn",
+                ["notify1", "notify2"],
+                {"a": "tag1", "b": "tag with spaces"},
+                {"m1": "value1", "m2": "value2"},
+                False,
+                "file",
+                (),
+                "samconfig.toml",
+                "default",
+                False,
+                {"HelloWorld": ["file.txt", "other.txt"], "HelloMars": ["single.file"]},
+            )
+
+    @patch("samcli.commands._utils.experimental.is_experimental_enabled")
+    @patch("samcli.lib.cli_validation.image_repository_validation._is_all_image_funcs_provided")
+    @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format")
+    @patch("samcli.commands._utils.template.get_template_artifacts_format")
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
+    @patch("samcli.commands.sync.command.do_cli")
+    def test_sync_with_no_use_container_override(
+        self,
+        do_cli_mock,
+        template_artifacts_mock1,
+        template_artifacts_mock2,
+        template_artifacts_mock3,
+        is_all_image_funcs_provided_mock,
+        experimental_mock,
+    ):
+        template_artifacts_mock1.return_value = [ZIP]
+        template_artifacts_mock2.return_value = [ZIP]
+        template_artifacts_mock3.return_value = [ZIP]
+        is_all_image_funcs_provided_mock.return_value = True
+        experimental_mock.return_value = True
+
+        config_values = {
+            "template_file": "mytemplate.yaml",
+            "stack_name": "mystack",
+            "image_repository": "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
+            "base_dir": "path",
+            "use_container": True,
+            "s3_bucket": "mybucket",
+            "s3_prefix": "myprefix",
+            "kms_key_id": "mykms",
+            "parameter_overrides": 'Key1=Value1 Key2="Multiple spaces in the value"',
+            "capabilities": "cap1 cap2",
+            "no_execute_changeset": True,
+            "role_arn": "arn",
+            "notification_arns": "notify1 notify2",
+            "tags": 'a=tag1 b="tag with spaces"',
+            "metadata": '{"m1": "value1", "m2": "value2"}',
+            "container_env_var_file": "file",
+            "guided": True,
+            "confirm_changeset": True,
+            "region": "myregion",
+            "signing_profiles": "function=profile:owner",
+            "watch_exclude": {"HelloWorld": ["file.txt", "other.txt"], "HelloMars": ["single.file"]},
+        }
+
+        with samconfig_parameters(["sync"], self.scratch_dir, **config_values) as config_path:
+            from samcli.commands.sync.command import cli
+
+            LOG.debug(Path(config_path).read_text())
+            runner = CliRunner()
+            result = runner.invoke(cli, ["--no-use-container"])
+
+            LOG.info(result.output)
+            LOG.info(result.exception)
+            if result.exception:
+                LOG.exception("Command failed", exc_info=result.exc_info)
+            self.assertIsNone(result.exception)
+
+            do_cli_mock.assert_called_with(
+                str(Path(os.getcwd(), "mytemplate.yaml")),
+                False,
+                False,
+                (),
+                (),
+                True,
+                True,
+                "mystack",
+                "myregion",
+                None,
+                "path",
+                {"Key1": "Value1", "Key2": "Multiple spaces in the value"},
+                None,
+                "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
+                None,
+                "mybucket",
+                "myprefix",
+                "mykms",
+                ["cap1", "cap2"],
+                "arn",
+                ["notify1", "notify2"],
+                {"a": "tag1", "b": "tag with spaces"},
+                {"m1": "value1", "m2": "value2"},
+                False,
                 "file",
                 (),
                 "samconfig.toml",
