@@ -2,6 +2,7 @@
 Custom Lambda Authorizer class definition
 """
 
+import logging
 import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -25,6 +26,7 @@ _RESPONSE_IAM_RESOURCE = "Resource"
 _SIMPLE_RESPONSE_IS_AUTH = "isAuthorized"
 _IAM_INVOKE_ACTION = "execute-api:Invoke"
 
+LOG = logging.getLogger(__name__)
 
 class IdentitySource(ABC):
     def __init__(self, identity_source: str):
@@ -388,9 +390,8 @@ class LambdaAuthorizer(Authorizer):
 
             for resource_arn in resource_list:
                 # form a regular expression from the possible wildcard resource ARN
-                regex_method_arn = resource_arn.replace("*", ".*").replace("?", ".")
+                regex_method_arn = resource_arn.replace("*", ".*").replace("?", ".").replace("$", "\\$")
                 regex_method_arn += "$"
-
                 if re.match(regex_method_arn, method_arn):
                     return True
 

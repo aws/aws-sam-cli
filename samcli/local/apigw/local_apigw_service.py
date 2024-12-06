@@ -360,7 +360,7 @@ class LocalApigwService(BaseLocalService):
         method, endpoint = self.get_request_methods_endpoints(flask_request)
 
         # generate base lambda event and load it into a dict
-        lambda_event = self._generate_lambda_event(flask_request, route, method, endpoint)
+        lambda_event = self._generate_lambda_event(flask_request, route, method, endpoint, lambda_authorizer.payload_version)
         lambda_event.update({"type": LambdaAuthorizer.REQUEST.upper()})
 
         # build context to form identity values
@@ -432,7 +432,7 @@ class LocalApigwService(BaseLocalService):
 
         return authorizer_events[lambda_authorizer.type](**kwargs)
 
-    def _generate_lambda_event(self, flask_request: Request, route: Route, method: str, endpoint: str) -> dict:
+    def _generate_lambda_event(self, flask_request: Request, route: Route, method: str, endpoint: str, authorizer_version: str = None) -> dict:
         """
         Helper function to generate the correct Lambda event
 
@@ -452,11 +452,12 @@ class LocalApigwService(BaseLocalService):
         str
             JSON string of event properties
         """
+        version = authorizer_version if authorizer_version != None else route.payload_format_version
         # TODO: Rewrite the logic below to use version 2.0 when an invalid value is provided
         # the Lambda Event 2.0 is only used for the HTTP API gateway with defined payload format version equal 2.0
         # or none, as the default value to be used is 2.0
         # https://docs.aws.amazon.com/apigatewayv2/latest/api-reference/apis-apiid-integrations.html#apis-apiid-integrations-prop-createintegrationinput-payloadformatversion
-        if route.event_type == Route.HTTP and route.payload_format_version in [None, "2.0"]:
+        if route.event_type == Route.HTTP and version in [None, "2.0"] and authorizer_version == None:
             apigw_endpoint = PathConverter.convert_path_to_api_gateway(endpoint)
             route_key = self._v2_route_key(method, apigw_endpoint, route.is_default_route)
 
