@@ -22,12 +22,13 @@ class LogStreamError(Exception):
 
 
 class LogStreamer:
-    def __init__(self, stream: StreamWriter):
+    def __init__(self, stream: StreamWriter, throw_on_error: bool = True):
         self._stream = stream
         self._cursor_up_formatter = CursorUpFormatter()
         self._cursor_down_formatter = CursorDownFormatter()
         self._cursor_left_formatter = CursorLeftFormatter()
         self._cursor_clear_formatter = ClearLineFormatter()
+        self._throw_on_error = throw_on_error
 
     def stream_progress(self, logs: docker.APIClient.logs):
         """
@@ -73,7 +74,12 @@ class LogStreamer:
         :param error: docker log error
         """
         if error:
-            raise LogStreamError(msg=error)
+            if self._throw_on_error:
+                raise LogStreamError(msg=error)
+            else:
+                self._stream.write_str(error)
+                return
+
         if not status and not stream:
             return
 
