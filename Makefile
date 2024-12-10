@@ -58,11 +58,9 @@ schema:
 # Verifications to run before sending a pull request
 pr: init dev schema black-check
 
-# (jfuss) We updated to have two requirement files, one for mac and one for linux. This
-# is meant to be a short term fix when upgrading the Linux installer to be python3.11 from 
-# python3.7. Having different requirements is not ideal but this allows us to isolate changes
-# giving us the ability to roll out upgrade to Linux first. When we update the MacOS installer
-# we can move to a single file again.
+# lucashuy: Linux and MacOS are on the same Python version,
+# however we should follow up in a different change
+# to consider combining these files again
 update-reproducible-linux-reqs:
 	python3.11 -m venv venv-update-reproducible-linux
 	venv-update-reproducible-linux/bin/pip install --upgrade pip-tools pip
@@ -70,7 +68,7 @@ update-reproducible-linux-reqs:
 	venv-update-reproducible-linux/bin/pip-compile --generate-hashes --allow-unsafe -o requirements/reproducible-linux.txt
 
 update-reproducible-mac-reqs:
-	python3.8 -m venv venv-update-reproducible-mac
+	python3.11 -m venv venv-update-reproducible-mac
 	venv-update-reproducible-mac/bin/pip install --upgrade pip-tools pip
 	venv-update-reproducible-mac/bin/pip install -r requirements/base.txt
 	venv-update-reproducible-mac/bin/pip-compile --generate-hashes --allow-unsafe -o requirements/reproducible-mac.txt
