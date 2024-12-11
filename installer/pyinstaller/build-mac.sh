@@ -34,7 +34,7 @@ if [ "$openssl_version" = "" ]; then
 fi
 
 if [ "$python_version" = "" ]; then
-    python_version="3.8.20";
+    python_version="3.11.10";
 fi
 
 if ! [ "$build_binary_name" = "" ]; then
@@ -100,7 +100,7 @@ sudo make -j8 install
 cd ..
 
 echo "Installing Python Libraries"
-/usr/local/bin/python3.8 -m venv venv
+/usr/local/bin/python3.11 -m venv venv
 ./venv/bin/pip install --upgrade pip
 ./venv/bin/pip install -r src/requirements/reproducible-mac.txt
 

@@ -22,7 +22,7 @@ jobs:
             python: 3.11
             target: update-reproducible-linux-reqs
           - os: macos-latest
-            python: 3.8
+            python: 3.11
             target: update-reproducible-mac-reqs
           - os: windows-latest
             python: 3.12
