@@ -10,6 +10,7 @@ updates:
       include: scope
     reviewers:
       - aws/serverless-application-experience-sbt
+      - aws/aws-lambda-tooling
     open-pull-requests-limit: 10
 
   - package-ecosystem: "pip"
@@ -22,6 +23,7 @@ updates:
       include: scope
     reviewers:
       -  aws/serverless-application-experience-sbt
+      -  aws/aws-lambda-tooling
     open-pull-requests-limit: 10
     groups:
       boto:
