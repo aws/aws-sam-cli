@@ -57,7 +57,7 @@ class TestSamConfigWithBuild(BuildIntegBase):
         ]
     )
     def test_samconfig_parameters_are_overridden(self, extension):
-        overrides = {"Runtime": "python3.8"}
+        overrides = {"Runtime": "python3.11"}
         overridden_build_dir = f"override_{extension}"
 
         cmdlist = self.get_command_list(

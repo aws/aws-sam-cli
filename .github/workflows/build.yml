@@ -55,7 +55,6 @@ jobs:
           - ubuntu-latest
           - windows-latest
         python:
-          - "3.8"
           - "3.9"
           - "3.11"
     steps:
@@ -111,8 +110,8 @@ jobs:
           - ubuntu-latest
           - windows-latest
         python:
-          - "3.8"
           - "3.9"
+          - "3.11"
         # folders that is commented below requires credentials, no need to spare time to run them
         tests_config:
           - "-n 2 --reruns 3 tests/integration/buildcmd"
@@ -138,8 +137,6 @@ jobs:
         with:
           # set last version as the one in matrix to make it default
           python-version: |
-            3.7
-            3.8
             3.9
             3.10
             3.11
@@ -213,7 +210,6 @@ jobs:
           - ubuntu-latest
           - windows-latest
         python:
-          - "3.8"
           - "3.9"
           - "3.11"
     steps:
@@ -244,8 +240,6 @@ jobs:
         with:
           # These are the versions of Python that correspond to the supported Lambda runtimes
           python-version: |
-            3.7
-            3.8
             3.9
             3.10
             3.11
