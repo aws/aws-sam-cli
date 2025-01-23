@@ -261,11 +261,9 @@ class TestBuildCommand_PythonFunctions_ImagesWithSharedCode(BuildIntegBase):
         "codeuri",
     ),
     [
-        ("python3.8", "Python"),
         ("python3.9", "Python"),
         ("python3.10", "Python"),
         ("python3.11", "Python"),
-        ("python3.8", "PythonPEP600"),
         ("python3.9", "PythonPEP600"),
         ("python3.10", "PythonPEP600"),
         ("python3.11", "PythonPEP600"),
@@ -345,7 +343,6 @@ class TestBuildCommand_PythonFunctions_WithDocker(BuildIntegPythonBase):
 
     @parameterized.expand(
         [
-            ("python3.8",),
             ("python3.9",),
             ("python3.10",),
             ("python3.11",),
@@ -467,15 +464,12 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPyt
 
     @parameterized.expand(
         [
-            ("python3.8", "Python", False, "x86_64"),
             ("python3.9", "Python", False, "x86_64"),
             ("python3.10", "Python", False, "x86_64"),
             ("python3.11", "Python", False, "x86_64"),
-            ("python3.8", "PythonPEP600", False, "x86_64"),
             ("python3.9", "PythonPEP600", False, "x86_64"),
             ("python3.10", "PythonPEP600", False, "x86_64"),
             ("python3.11", "PythonPEP600", False, "x86_64"),
-            ("python3.8", "Python", "use_container", "x86_64"),
             ("python3.9", "Python", "use_container", "x86_64"),
             ("python3.10", "Python", "use_container", "x86_64"),
             ("python3.11", "Python", "use_container", "x86_64"),
