@@ -595,7 +595,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         # Build should still succeed
         self.assertEqual(command_result.process.returncode, 0)
 
-    @parameterized.expand([("python3.8", False), ("python3.8", "use_container")])
+    @parameterized.expand([("python3.11", False), ("python3.11", "use_container")])
     def test_build_arch_no_compatible_arch(self, runtime, use_container):
         # BuildArchitecture is present, but CompatibleArchitectures section is missing
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
@@ -621,7 +621,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         # Build should still succeed
         self.assertEqual(command_result.process.returncode, 0)
 
-    @parameterized.expand([("python3.8", False), ("python3.8", "use_container")])
+    @parameterized.expand([("python3.11", False), ("python3.11", "use_container")])
     def test_compatible_arch_no_build_arch(self, runtime, use_container):
         # CompatibleArchitectures is present, but BuildArchitecture section is missing
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
@@ -691,7 +691,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
-        overrides = {"Runtime": "python3.8", "CodeUri": "Python"}
+        overrides = {"Runtime": "python3.11", "CodeUri": "Python"}
 
         cmdlist = self.get_command_list(
             use_container=use_container, parameter_overrides=overrides, function_identifier="FunctionTwo"
@@ -1123,7 +1123,7 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
             "FunctionCodeUri": "Python",
             "Function1Handler": "main.first_function_handler",
             "Function2Handler": "main.second_function_handler",
-            "FunctionRuntime": "python3.8",
+            "FunctionRuntime": "python3.11",
         }
         config_file = str(Path(self.test_data_path).joinpath("samconfig_no_cached.toml"))
         cmdlist = self.get_command_list(parameter_overrides=overrides, cached=True)
@@ -1161,7 +1161,7 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
             "FunctionCodeUri": "Python",
             "Function1Handler": "main.first_function_handler",
             "Function2Handler": "main.second_function_handler",
-            "FunctionRuntime": "python3.8",
+            "FunctionRuntime": "python3.11",
         }
         cmdlist = self.get_command_list(
             use_container=True, parameter_overrides=overrides, cached=True, container_env_var="FOO=BAR"
