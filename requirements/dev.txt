@@ -10,7 +10,7 @@ pytest-cov==5.0.0; python_version<"3.9"
 # mypy adds new rules in new minor versions, which could cause our PR check to fail
 # here we fix its version and upgrade it manually in the future
 mypy==1.14.1
-types-pywin32==308.0.0.20241221
+types-pywin32==308.0.0.20250124
 types-PyYAML==6.0.12.20241230
 types-chevron==0.14.2.20250103
 types-psutil==6.1.0.20241221
