@@ -31,7 +31,7 @@ LOG = logging.getLogger(__name__)
 
 RAPID_IMAGE_TAG_PREFIX = "rapid"
 
-TEST_RUNTIMES = []
+TEST_RUNTIMES = ["N/A"]
 
 
 class Runtime(Enum):
