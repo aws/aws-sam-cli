@@ -118,8 +118,8 @@ class AliasVersionSyncFlow(SyncFlow):
 
     def _get_version_alias_if_exists(self) -> Optional[str]:
         try:
-            return self._lambda_client.get_alias(
-                FunctionName=self.get_physical_id(self._function_identifier), Name=self._alias_name
-            ).get("FunctionVersion")
+            result = self._lambda_client.get_alias(FunctionName=self.get_physical_id(
+                self._function_identifier), Name=self._alias_name).get("FunctionVersion")
+            return str(result) if result is not None else result
         except self._lambda_client.exceptions.ResourceNotFoundException:
             return None
