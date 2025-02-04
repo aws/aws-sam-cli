@@ -35,7 +35,7 @@ resource "aws_lambda_function" "s3_lambda" {
         s3_bucket = "lambda_code_bucket"
         s3_key = "s3_lambda_code_key"
         handler = "app.lambda_handler"
-        runtime = "python3.8"
+        runtime = "python3.9"
         function_name = "s3_lambda_function"
         timeout = 500
         role = aws_iam_role.iam_for_lambda.arn
@@ -45,7 +45,7 @@ resource "aws_lambda_function" "remote_lambda_code" {
         s3_bucket = "lambda_code_bucket"
         s3_key = "remote_lambda_code_key"
         handler = "app.lambda_handler"
-        runtime = "python3.8"
+        runtime = "python3.9"
         timeout = 300
         function_name = "s3_remote_lambda_function"
         role = aws_iam_role.iam_for_lambda.arn
@@ -54,7 +54,7 @@ resource "aws_lambda_function" "remote_lambda_code" {
 resource "aws_lambda_function" "root_lambda" {
         filename = "HelloWorldFunction.zip"
         handler = "app.lambda_handler"
-        runtime = "python3.8"
+        runtime = "python3.9"
         function_name = "root_lambda"
         timeout = 300
         role = aws_iam_role.iam_for_lambda.arn

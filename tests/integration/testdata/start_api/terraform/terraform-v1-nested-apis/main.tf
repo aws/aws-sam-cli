@@ -41,14 +41,14 @@ resource "aws_s3_object" "s3_lambda_code" {
 resource "aws_lambda_layer_version" "MyAwesomeLayer" {
   filename            = "HelloWorldFunction.zip"
   layer_name          = "MyAwesomeLayer"
-  compatible_runtimes = ["python3.8"]
+  compatible_runtimes = ["python3.9"]
 }
 
 resource "aws_lambda_function" "HelloWorldFunction" {
   s3_bucket     = "lambda-code-bucket-${random_uuid.unique_id.result}"
   s3_key        = "s3_lambda_code_key"
   handler       = "app.lambda_handler"
-  runtime       = "python3.8"
+  runtime       = "python3.9"
   function_name = "HelloWorldFunction-${random_uuid.unique_id.result}"
   timeout       = 500
   role          = aws_iam_role.iam_for_lambda.arn
@@ -60,7 +60,7 @@ resource "aws_lambda_function" "HelloWorldFunction2" {
   s3_bucket     = "lambda-code-bucket-${random_uuid.unique_id.result}"
   s3_key        = "s3_lambda_code_key"
   handler       = "app.lambda_handler"
-  runtime       = "python3.8"
+  runtime       = "python3.9"
   function_name = "HelloWorldFunction2-${random_uuid.unique_id.result}"
   timeout       = 500
   role          = aws_iam_role.iam_for_lambda.arn

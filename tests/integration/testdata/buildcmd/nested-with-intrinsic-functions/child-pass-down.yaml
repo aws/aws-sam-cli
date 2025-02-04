@@ -11,6 +11,6 @@ Resources:
     Properties:
       CodeUri: ../Python
       Handler: main.handler
-      Runtime: python3.8
+      Runtime: python3.9
       Layers:
         - !Ref Layer
