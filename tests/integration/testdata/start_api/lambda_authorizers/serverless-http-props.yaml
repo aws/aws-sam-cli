@@ -57,7 +57,7 @@ Resources:
     Properties:
       CodeUri: ./
       Handler: app.lambda_handler
-      Runtime: python3.8
+      Runtime: python3.9
       Architectures:
         - x86_64
       Events:
@@ -74,7 +74,7 @@ Resources:
     Properties:
       CodeUri: ./
       Handler: !Ref AuthHandler
-      Runtime: python3.8
+      Runtime: python3.9
       Architectures:
         - x86_64
   AuthorizerPermission:
@@ -88,7 +88,7 @@ Resources:
     Properties:
       CodeUri: ./
       Handler: !Ref AuthSimpleHandler
-      Runtime: python3.8
+      Runtime: python3.9
       Architectures:
         - x86_64
   AuthorizerSimplePermission:

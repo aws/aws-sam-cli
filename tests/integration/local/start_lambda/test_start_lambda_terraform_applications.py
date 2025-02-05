@@ -213,7 +213,7 @@ class TestLocalStartLambdaTerraformApplicationWithLayersWithoutBuild(StartLambda
             bytes('resource "aws_lambda_function" "this" {' + os.linesep, "utf-8"),
             bytes("   filename = var.source_code" + os.linesep, "utf-8"),
             bytes('   handler = "app.lambda_handler"' + os.linesep, "utf-8"),
-            bytes('   runtime = "python3.8"' + os.linesep, "utf-8"),
+            bytes('   runtime = "python3.9"' + os.linesep, "utf-8"),
             bytes("   function_name = var.function_name" + os.linesep, "utf-8"),
             bytes("   role = aws_iam_role.iam_for_lambda.arn" + os.linesep, "utf-8"),
             bytes(f'   layers = ["{_4th_layer_arn}"]' + os.linesep, "utf-8"),

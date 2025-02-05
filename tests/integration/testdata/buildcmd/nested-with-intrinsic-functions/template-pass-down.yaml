@@ -8,9 +8,9 @@ Resources:
       LayerName: MyLayerInRoot
       ContentUri: ../PyLayer
       CompatibleRuntimes:
-        - python3.8
+        - python3.9
     Metadata:
-      BuildMethod: python3.8
+      BuildMethod: python3.9
 
   AppUsingRef:
     Type: AWS::Serverless::Application
