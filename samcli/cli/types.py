@@ -145,11 +145,11 @@ class CfnParameterOverridesType(click.ParamType):
                             ctx,
                         )
 
-            elif isinstance(value, CommentedMap) or isinstance(value, dict):
+            elif isinstance(value, (dict, CommentedMap)):
                 # e.g. YAML key-value pairs
                 for k, v in value.items():
-                    if isinstance(value, list):
-                        parameters[str(k)] = ",".join(map(str, value)) # Collapse lists to csv
+                    if isinstance(v, (list, CommentedSeq)):
+                        parameters[str(k)] = ",".join(map(str, v)) # Collapse lists to comma delimited
                     else:
                         parameters[str(k)] = str(v)
             else:
