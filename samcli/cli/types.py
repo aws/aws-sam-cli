@@ -113,7 +113,7 @@ class CfnParameterOverridesType(click.ParamType):
         LOG.debug("Input parameters: %s", values)
 
         # Flatten to support YAML anchors & aliases
-        values = _flatten_list(values) if isinstance(values, (list, CommentedSeq)) else [values,]
+        values = _flatten_list(values) if isinstance(values, (tuple, list, CommentedSeq)) else (values,)
         LOG.debug("Flattened parameters: %s", values)
 
         parameters = {}
