@@ -65,15 +65,6 @@ def _unquote_wrapped_quotes(value):
 
     return value.replace("\\ ", " ").replace('\\"', '"').replace("\\'", "'")
 
-def _format_value(value):
-    if isinstance(value, bool):
-        return str(value).lower()
-    if isinstance(value, int):
-        return str(value)
-    if isinstance(value, list):
-        return f'{",".join(map(str, value))}'
-    return f'{value}'
-
 def _flatten_list(data):
     flat_data = []
     for item in data:
@@ -114,8 +105,9 @@ class CfnParameterOverridesType(click.ParamType):
     def convert(self, values, param, ctx):
         result = {}
 
-        # Empty tuple
-        if values == ("",):
+        # Empty tuple or empty param file
+        if values == ("",) or values == "" or values is None:
+            LOG.debug("Empty parameter set (%s)", values)
             return result
 
         LOG.debug("Input parameters: %s", values)
@@ -126,6 +118,8 @@ class CfnParameterOverridesType(click.ParamType):
 
         parameters = {}
         for value in values:
+            LOG.debug("Processing parameter: %s", value)
+
             if isinstance(value, str):
                 if value.startswith('file://'):
                     filepath = Path(value[7:])
@@ -154,9 +148,20 @@ class CfnParameterOverridesType(click.ParamType):
             elif isinstance(value, CommentedMap) or isinstance(value, dict):
                 # e.g. YAML key-value pairs
                 for k, v in value.items():
-                    parameters[k] = _format_value(v)
+                    if isinstance(value, list):
+                        parameters[str(k)] = ",".join(map(str, value)) # Collapse lists to csv
+                    else:
+                        parameters[str(k)] = str(v)
+            else:
+                self.fail(
+                    "This error should never appear.",
+                    param,
+                    ctx,
+                )
 
         result = {}
+        LOG.debug("Pre-unwrap parameters: %s", parameters)
+
         for key, param_value in parameters.items():
             result[_unquote_wrapped_quotes(key)] = _unquote_wrapped_quotes(param_value)
 
