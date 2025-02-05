@@ -6,10 +6,12 @@ import json
 import logging
 import re
 from json import JSONDecodeError
+from pathlib import Path
 from typing import Dict, List, Optional, Union
 
 import click
 
+from samcli.lib.config.file_manager import FILE_MANAGER_MAPPER
 from samcli.lib.package.ecr_utils import is_ecr_url
 
 PARAM_AND_METADATA_KEY_REGEX = """([A-Za-z0-9\\"\']+)"""
@@ -97,6 +99,19 @@ class CfnParameterOverridesType(click.ParamType):
 
         value = (value,) if isinstance(value, str) else value
         for val in value:
+            if val.startswith('file://'):
+                filepath = Path(val[7:])
+                if not filepath.is_file():
+                    return self.fail(f"{val} was not found or is a directory", param, ctx)
+                file_manager = FILE_MANAGER_MAPPER.get(filepath.suffix, None)
+                if not file_manager:
+                    return self.fail(f"{val} uses an unsupported extension", param, ctx)
+                try:
+                    parameters = file_manager.read(filepath)
+                except Exception as e:
+                    return self.fail(str(e), param, ctx)
+                result |= parameters
+                continue
             # Add empty string to start of the string to help match `_pattern2`
             normalized_val = " " + val.strip()
 
