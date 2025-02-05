@@ -335,7 +335,7 @@ class TestLambdaImage(TestCase):
     @parameterized.expand(
         [
             ("python3.12", "python:3.12-x86_64", "public.ecr.aws/lambda/python:3.12-x86_64"),
-            "python3.9", "python:3.9-x86_64", "public.ecr.aws/lambda/python:3.9-x86_64"),
+            ("python3.9", "python:3.9-x86_64", "public.ecr.aws/lambda/python:3.9-x86_64"),
         ]
     )
     @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
