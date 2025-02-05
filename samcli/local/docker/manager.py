@@ -12,7 +12,7 @@ import docker
 from samcli.lib.constants import DOCKER_MIN_API_VERSION
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker import utils
-from samcli.local.docker.container import Container
+from samcli.local.docker.container import Container, ContainerContext
 from samcli.local.docker.lambda_image import LambdaImage
 
 LOG = logging.getLogger(__name__)
@@ -55,7 +55,7 @@ class ContainerManager:
         """
         return utils.is_docker_reachable(self.docker_client)
 
-    def create(self, container):
+    def create(self, container, context):
         """
         Create a container based on the given configuration.
 
@@ -63,6 +63,8 @@ class ContainerManager:
         ----------
         container samcli.local.docker.container.Container:
             Container to be created
+        context: samcli.local.docker.container.ContainerContext
+            Context for the container management to run. (build, invoke)
 
         Raises
         ------
@@ -93,9 +95,9 @@ class ContainerManager:
                 LOG.info("Failed to download a new %s image. Invoking with the already downloaded image.", image_name)
 
         container.network_id = self.docker_network_id
-        container.create()
+        container.create(context)
 
-    def run(self, container, input_data=None):
+    def run(self, container, context: ContainerContext, input_data=None):
         """
         Run a Docker container based on the given configuration.
         If the container is not created, it will call Create method to create.
@@ -104,6 +106,8 @@ class ContainerManager:
         ----------
         container: samcli.local.docker.container.Container
             Container to create and run
+        context: samcli.local.docker.container.ContainerContext
+            Context for the container management to run. (build, invoke)
         input_data: str, optional
             Input data sent to the container through container's stdin.
 
@@ -113,8 +117,7 @@ class ContainerManager:
             If the Docker image was not available in the server
         """
         if not container.is_created():
-            self.create(container)
-
+            self.create(container, context)
         container.start(input_data=input_data)
 
     def stop(self, container: Container) -> None:
