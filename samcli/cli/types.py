@@ -10,6 +10,9 @@ from pathlib import Path
 from typing import Dict, List, Optional, Union
 
 import click
+import ruamel.yaml
+
+from ruamel.yaml.comments import CommentedMap, CommentedSeq
 
 from samcli.lib.config.file_manager import FILE_MANAGER_MAPPER
 from samcli.lib.package.ecr_utils import is_ecr_url
@@ -62,6 +65,24 @@ def _unquote_wrapped_quotes(value):
 
     return value.replace("\\ ", " ").replace('\\"', '"').replace("\\'", "'")
 
+def _format_value(value):
+    if isinstance(value, bool):
+        return str(value).lower()
+    if isinstance(value, int):
+        return str(value)
+    if isinstance(value, list):
+        return f'{",".join(map(str, value))}'
+    return f'{value}'
+
+def _flatten_list(data):
+    flat_data = []
+    for item in data:
+        if isinstance(item, list):
+            flat_data.extend(_flatten_list(item))
+        else:
+            flat_data.append(item)
+    return flat_data
+
 
 class CfnParameterOverridesType(click.ParamType):
     """
@@ -90,56 +111,56 @@ class CfnParameterOverridesType(click.ParamType):
 
     name = "string,list"
 
-    def convert(self, value, param, ctx):
+    def convert(self, values, param, ctx):
         result = {}
 
         # Empty tuple
-        if value == ("",):
+        if values == ("",):
             return result
 
-        value = (value,) if isinstance(value, str) else value
-        for val in value:
-            if val.startswith('file://'):
-                filepath = Path(val[7:])
-                if not filepath.is_file():
-                    return self.fail(f"{val} was not found or is a directory", param, ctx)
-                file_manager = FILE_MANAGER_MAPPER.get(filepath.suffix, None)
-                if not file_manager:
-                    return self.fail(f"{val} uses an unsupported extension", param, ctx)
-                try:
-                    parameters = file_manager.read(filepath)
-                except Exception as e:
-                    return self.fail(str(e), param, ctx)
-                result |= parameters
-                continue
-            # Add empty string to start of the string to help match `_pattern2`
-            normalized_val = " " + val.strip()
+        LOG.debug("Input parameters: %s", values)
 
-            try:
-                # NOTE(TheSriram): find the first regex that matched.
-                # pylint is concerned that we are checking at the same `val` within the loop,
-                # but that is the point, so disabling it.
-                pattern = next(
-                    i
-                    for i in filter(
-                        lambda item: re.findall(item, normalized_val), self.ordered_pattern_match
-                    )  # pylint: disable=cell-var-from-loop
-                )
-            except StopIteration:
-                return self.fail(
-                    "{} is not in valid format. It must look something like '{}' or '{}'".format(
-                        val, self.__EXAMPLE_1, self.__EXAMPLE_2
-                    ),
-                    param,
-                    ctx,
-                )
+        # Flatten to support YAML anchors & aliases
+        values = _flatten_list(values) if isinstance(values, (list, CommentedSeq)) else [values,]
+        LOG.debug("Flattened parameters: %s", values)
 
-            groups = re.findall(pattern, normalized_val)
+        parameters = {}
+        for value in values:
+            if isinstance(value, str):
+                if value.startswith('file://'):
+                    filepath = Path(value[7:])
+                    if not filepath.is_file():
+                        self.fail(f"{value} was not found or is a directory", param, ctx)
+                    file_manager = FILE_MANAGER_MAPPER.get(filepath.suffix, None)
+                    if not file_manager:
+                        self.fail(f"{value} uses an unsupported extension", param, ctx)
+                    parameters |= self.convert(file_manager.read(filepath), param, ctx)
+                else:
+                    # Legacy parameter matching
+                    normalized_value = " " + value.strip()
+                    for pattern in self.ordered_pattern_match:
+                        groups = re.findall(pattern, normalized_value)
+                        if groups:
+                            # Group tuples can be merged into dict
+                            parameters |= groups
+                            break
+                    else:
+                        self.fail(
+                            f"{value} is not in valid format. It must look something like '{self.__EXAMPLE_1}' or '{self.__EXAMPLE_2}'",
+                            param,
+                            ctx,
+                        )
 
-            # 'groups' variable is a list of tuples ex: [(key1, value1), (key2, value2)]
-            for key, param_value in groups:
-                result[_unquote_wrapped_quotes(key)] = _unquote_wrapped_quotes(param_value)
+            elif isinstance(value, CommentedMap) or isinstance(value, dict):
+                # e.g. YAML key-value pairs
+                for k, v in value.items():
+                    parameters[k] = _format_value(v)
 
+        result = {}
+        for key, param_value in parameters.items():
+            result[_unquote_wrapped_quotes(key)] = _unquote_wrapped_quotes(param_value)
+
+        LOG.debug("Output parameters: %s", result)
         return result
 
 
