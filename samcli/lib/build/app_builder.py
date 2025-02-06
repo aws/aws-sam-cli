@@ -61,6 +61,7 @@ from samcli.lib.utils.resources import (
     AWS_SERVERLESS_LAYERVERSION,
 )
 from samcli.lib.utils.stream_writer import StreamWriter
+from samcli.local.docker.container import ContainerContext
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from samcli.local.docker.manager import ContainerManager, DockerImagePullFailedException
 from samcli.local.docker.utils import get_docker_platform, is_docker_reachable
@@ -968,7 +969,7 @@ class ApplicationBuilder:
 
         try:
             try:
-                self._container_manager.run(container)
+                self._container_manager.run(container, context=ContainerContext.BUILD)
             except docker.errors.APIError as ex:
                 if "executable file not found in $PATH" in str(ex):
                     raise UnsupportedBuilderLibraryVersionError(

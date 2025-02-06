@@ -14,7 +14,7 @@ from typing import Dict, Optional, Union
 from samcli.lib.telemetry.metric import capture_parameter
 from samcli.lib.utils.file_observer import LambdaFunctionObserver
 from samcli.lib.utils.packagetype import ZIP
-from samcli.local.docker.container import Container
+from samcli.local.docker.container import Container, ContainerContext
 from samcli.local.docker.container_analyzer import ContainerAnalyzer
 from samcli.local.docker.exceptions import ContainerFailureError, DockerContainerCreationFailedException
 from samcli.local.docker.lambda_container import LambdaContainer
@@ -113,7 +113,7 @@ class LambdaRuntime:
         )
         try:
             # create the container.
-            self._container_manager.create(container)
+            self._container_manager.create(container, ContainerContext.INVOKE)
             return container
 
         except DockerContainerCreationFailedException:
@@ -174,7 +174,7 @@ class LambdaRuntime:
 
         try:
             # start the container.
-            self._container_manager.run(container)
+            self._container_manager.run(container, ContainerContext.INVOKE)
             return container
 
         except KeyboardInterrupt:
