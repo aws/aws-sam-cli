@@ -10,7 +10,6 @@ from pathlib import Path
 from typing import Dict, List, Optional, Union
 
 import click
-
 from ruamel.yaml.comments import CommentedMap, CommentedSeq
 
 from samcli.lib.config.file_manager import FILE_MANAGER_MAPPER
@@ -64,7 +63,8 @@ def _unquote_wrapped_quotes(value):
 
     return value.replace("\\ ", " ").replace('\\"', '"').replace("\\'", "'")
 
-def _flatten_list(data: list) -> list:
+
+def _flatten_list(data: list | tuple) -> list:
     """
         Recursively flattens lists and other list-like types for easy sequential processing.
         This also helps with lists combined with YAML anchors & aliases.
@@ -97,7 +97,6 @@ class CfnParameterOverridesType(click.ParamType):
     __EXAMPLE_2 = "KeyPairName=MyKey InstanceType=t1.micro"
     __EXAMPLE_3 = "file://MyParams.yaml"
 
-
     # Regex that parses CloudFormation parameter key-value pairs:
     # https://regex101.com/r/xqfSjW/2
     # https://regex101.com/r/xqfSjW/5
@@ -116,8 +115,8 @@ class CfnParameterOverridesType(click.ParamType):
 
     def _normalize_parameters(self, values, param, ctx):
         """
-            Normalizes parameter overrides into key-value pairs of strings
-            Later keys overwrite previous ones in case of key conflict
+        Normalizes parameter overrides into key-value pairs of strings
+        Later keys overwrite previous ones in case of key conflict
         """
         if values in (("",), "", None) or values == {}:
             LOG.debug("Empty parameter set (%s)", values)
@@ -130,7 +129,7 @@ class CfnParameterOverridesType(click.ParamType):
         parameters = {}
         for value in values:
             if isinstance(value, str):
-                if value.startswith('file://'):
+                if value.startswith("file://"):
                     filepath = Path(value[7:])
                     if not filepath.is_file():
                         self.fail(f"{value} was not found or is a directory", param, ctx)
@@ -148,7 +147,8 @@ class CfnParameterOverridesType(click.ParamType):
                             break
                     else:
                         self.fail(
-                            f"{value} is not a valid format. It must look something like '{self.__EXAMPLE_1}', '{self.__EXAMPLE_2}', or '{self.__EXAMPLE_3}'",
+                            f"{value} is not a valid format. It must look something like "
+                            f"'{self.__EXAMPLE_1}', '{self.__EXAMPLE_2}', or '{self.__EXAMPLE_3}'",
                             param,
                             ctx,
                         )
@@ -169,16 +169,15 @@ class CfnParameterOverridesType(click.ParamType):
 
         result = {}
         for key, param_value in parameters.items():
-            result[_unquote_wrapped_quotes(key)] = _unquote_wrapped_quotes(param_value)
+            result[_unquote_wrapped_quotes(key.lower())] = _unquote_wrapped_quotes(param_value)
         LOG.debug("Output parameters: %s", result)
         return result
 
-
     def convert(self, values, param, ctx):
         # Merge samconfig with CLI parameter-overrides
-        if isinstance(values, tuple): # Tuple implies CLI
+        if isinstance(values, tuple):  # Tuple implies CLI
             # default_map was populated from samconfig
-            default_map = ctx.default_map.get('parameter_overrides', {})
+            default_map = ctx.default_map.get("parameter_overrides", {})
             LOG.debug("Default map: %s", default_map)
             LOG.debug("Current values: %s", values)
             # Easy merge - will flatten later
