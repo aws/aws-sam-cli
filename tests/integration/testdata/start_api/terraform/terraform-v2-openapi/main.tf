@@ -13,7 +13,7 @@ resource "aws_lambda_function" "hello_endpoint" {
   function_name = "hello-lambda-open-api-${random_uuid.unique_id.result}"
   role = aws_iam_role.invocation_role.arn
   handler = "app.lambda_handler"
-  runtime = "python3.8"
+  runtime = "python3.9"
   source_code_hash = filebase64sha256("lambda-functions.zip")
 }
 

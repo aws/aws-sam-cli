@@ -15,11 +15,11 @@ RUN yum install -y yum-utils \
     && terraform --version
 
 # AWS Lambda Builders
-RUN amazon-linux-extras enable python3.8
-RUN yum clean metadata && yum -y install python3.8
-RUN curl -L get-pip.io | python3.8
+RUN amazon-linux-extras enable python3.9
+RUN yum clean metadata && yum -y install python3.9
+RUN curl -L get-pip.io | python3.9
 RUN pip3 install aws-lambda-builders
-RUN ln -s /usr/bin/python3.8 /usr/bin/python3
+RUN ln -s /usr/bin/python3.9 /usr/bin/python3
 RUN python3 --version
 
 VOLUME /project

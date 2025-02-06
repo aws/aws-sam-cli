@@ -39,7 +39,7 @@ resource "aws_lambda_function" "this" {
     count = 1
     filename = var.source_code
     handler = "app.lambda_handler"
-    runtime = "python3.8"
+    runtime = "python3.9"
     timeout = 300
     function_name = var.function_name
     role = aws_iam_role.iam_for_lambda.arn

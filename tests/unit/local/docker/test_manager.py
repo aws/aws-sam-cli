@@ -11,6 +11,7 @@ from docker.errors import APIError, ImageNotFound
 
 import docker
 from samcli.local.docker.manager import ContainerManager, DockerImagePullFailedException
+from samcli.local.docker.container import ContainerContext
 from samcli.local.docker.lambda_image import RAPID_IMAGE_TAG_PREFIX
 from parameterized import parameterized
 
@@ -53,6 +54,7 @@ class TestContainerManager_run(TestCase):
 
     def test_must_pull_image_and_run_container(self):
         input_data = "input data"
+        context = ContainerContext.BUILD
 
         self.manager.has_image = Mock()
         self.manager.pull_image = Mock()
@@ -61,7 +63,7 @@ class TestContainerManager_run(TestCase):
         self.manager.has_image.return_value = False
         self.container_mock.is_created.return_value = False
 
-        self.manager.run(self.container_mock, input_data)
+        self.manager.run(self.container_mock, context, input_data)
 
         self.manager.has_image.assert_called_with(self.image_name)
         self.manager.pull_image.assert_called_with(self.image_name)
@@ -69,6 +71,7 @@ class TestContainerManager_run(TestCase):
 
     def test_must_pull_image_if_image_exist_and_no_skip(self):
         input_data = "input data"
+        context = ContainerContext.BUILD
 
         self.manager.has_image = Mock()
         self.manager.pull_image = Mock()
@@ -79,7 +82,7 @@ class TestContainerManager_run(TestCase):
         self.manager.skip_pull_image = False
         self.container_mock.is_created.return_value = False
 
-        self.manager.run(self.container_mock, input_data)
+        self.manager.run(self.container_mock, context, input_data)
 
         self.manager.has_image.assert_called_with(self.image_name)
         self.manager.pull_image.assert_called_with(self.image_name)
@@ -87,6 +90,7 @@ class TestContainerManager_run(TestCase):
 
     def test_must_not_pull_image_if_image_is_samcli_lambda_image(self):
         input_data = "input data"
+        context = ContainerContext.BUILD
 
         self.manager.has_image = Mock()
         self.manager.pull_image = Mock()
@@ -99,7 +103,7 @@ class TestContainerManager_run(TestCase):
         self.container_mock.image = "samcli/lambda"
         self.container_mock.is_created.return_value = False
 
-        self.manager.run(self.container_mock, input_data)
+        self.manager.run(self.container_mock, context, input_data)
 
         self.manager.has_image.assert_called_with("samcli/lambda")
         self.manager.pull_image.assert_not_called()
@@ -107,6 +111,7 @@ class TestContainerManager_run(TestCase):
 
     def test_must_not_pull_image_if_image_is_rapid_image(self):
         input_data = "input data"
+        context = ContainerContext.BUILD
         rapid_image_name = f"Mock_image_name/python:3.9-{RAPID_IMAGE_TAG_PREFIX}-x86_64"
 
         self.manager.has_image = Mock()
@@ -120,7 +125,7 @@ class TestContainerManager_run(TestCase):
         self.container_mock.image = rapid_image_name
         self.container_mock.is_created.return_value = False
 
-        self.manager.run(self.container_mock, input_data)
+        self.manager.run(self.container_mock, context, input_data)
 
         self.manager.has_image.assert_called_with(rapid_image_name)
         self.manager.pull_image.assert_not_called()
@@ -128,6 +133,7 @@ class TestContainerManager_run(TestCase):
 
     def test_must_not_pull_image_if_asked_to_skip(self):
         input_data = "input data"
+        context = ContainerContext.BUILD
 
         self.manager.has_image = Mock()
         self.manager.pull_image = Mock()
@@ -138,7 +144,7 @@ class TestContainerManager_run(TestCase):
         self.manager.skip_pull_image = True
         self.container_mock.is_created.return_value = False
 
-        self.manager.run(self.container_mock, input_data)
+        self.manager.run(self.container_mock, context, input_data)
 
         self.manager.has_image.assert_called_with(self.image_name)
         # Must not call pull_image
@@ -147,6 +153,7 @@ class TestContainerManager_run(TestCase):
 
     def test_must_fail_if_image_pull_failed_and_image_does_not_exist(self):
         input_data = "input data"
+        context = ContainerContext.BUILD
 
         self.manager.has_image = Mock()
         self.manager.pull_image = Mock(side_effect=DockerImagePullFailedException("Failed to pull image"))
@@ -158,7 +165,7 @@ class TestContainerManager_run(TestCase):
         self.container_mock.is_created.return_value = False
 
         with self.assertRaises(DockerImagePullFailedException):
-            self.manager.run(self.container_mock, input_data)
+            self.manager.run(self.container_mock, context, input_data)
 
         self.manager.has_image.assert_called_with(self.image_name)
         self.manager.pull_image.assert_called_with(self.image_name)
@@ -166,6 +173,7 @@ class TestContainerManager_run(TestCase):
 
     def test_must_run_if_image_pull_failed_and_image_does_exist(self):
         input_data = "input data"
+        context = ContainerContext.BUILD
 
         self.manager.has_image = Mock()
         self.manager.pull_image = Mock(side_effect=DockerImagePullFailedException("Failed to pull image"))
@@ -176,7 +184,7 @@ class TestContainerManager_run(TestCase):
         self.manager.skip_pull_image = False
         self.container_mock.is_created.return_value = False
 
-        self.manager.run(self.container_mock, input_data)
+        self.manager.run(self.container_mock, context, input_data)
 
         self.manager.has_image.assert_called_with(self.image_name)
         self.manager.pull_image.assert_called_with(self.image_name)
@@ -184,26 +192,28 @@ class TestContainerManager_run(TestCase):
 
     def test_must_create_container_if_not_exists(self):
         input_data = "input data"
+        context = ContainerContext.BUILD
         self.manager.has_image = Mock()
         self.manager.pull_image = Mock()
 
         # Assume container does NOT exist
         self.container_mock.is_created.return_value = False
 
-        self.manager.run(self.container_mock, input_data)
+        self.manager.run(self.container_mock, context, input_data)
 
         # Container should be created
-        self.container_mock.create.assert_called_with()
+        self.container_mock.create.assert_called_with(context)
 
     def test_must_not_create_container_if_it_already_exists(self):
         input_data = "input data"
+        context = ContainerContext.BUILD
         self.manager.has_image = Mock()
         self.manager.pull_image = Mock()
 
         # Assume container does NOT exist
         self.container_mock.is_created.return_value = True
 
-        self.manager.run(self.container_mock, input_data)
+        self.manager.run(self.container_mock, context, input_data)
 
         # Container should be created
         self.container_mock.create.assert_not_called()
