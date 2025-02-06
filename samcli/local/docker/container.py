@@ -13,6 +13,7 @@ import socket
 import tempfile
 import threading
 import time
+from enum import Enum
 from typing import Dict, Iterator, Optional, Tuple, Union
 
 import docker
@@ -57,6 +58,11 @@ class ContainerConnectionTimeoutException(Exception):
     """
     Exception raised when timeout was reached while attempting to establish a connection to a container.
     """
+
+
+class ContainerContext(Enum):
+    BUILD = "build"
+    INVOKE = "invoke"
 
 
 class Container:
@@ -157,10 +163,13 @@ class Container:
         except NoFreePortsError as ex:
             raise ContainerNotStartableException(str(ex)) from ex
 
-    def create(self):
+    def create(self, context):
         """
         Calls Docker API to creates the Docker container instance. Creating the container does *not* run the container.
         Use ``start`` method to run the container
+
+        context: samcli.local.docker.container.ContainerContext
+            Context for the container management to run (build, invoke)
 
         :return string: ID of the created container
         :raise RuntimeError: If this method is called after a container already has been created
@@ -174,6 +183,7 @@ class Container:
         if self._host_dir:
             mount_mode = "rw,delegated" if self._mount_with_write else "ro,delegated"
             LOG.info("Mounting %s as %s:%s, inside runtime container", self._host_dir, self._working_dir, mount_mode)
+            mapped_symlinks = self._create_mapped_symlink_files() if self._resolve_symlinks(context) else {}
 
             _volumes = {
                 self._host_dir: {
@@ -182,7 +192,7 @@ class Container:
                     "bind": self._working_dir,
                     "mode": mount_mode,
                 },
-                **self._create_mapped_symlink_files(),
+                **mapped_symlinks,
             }
 
         kwargs = {
@@ -648,3 +658,18 @@ class Container:
             return real_container.status == "running"
         except docker.errors.NotFound:
             return False
+
+    def _resolve_symlinks(self, context) -> bool:
+        """_summary_
+
+        Parameters
+        ----------
+        context : sacli.local.docker.container.ContainerContext
+            Context for the container management to run. (build, invoke)
+
+        Returns
+        -------
+        bool
+            True, if given these parameters it should resolve symlinks or not
+        """
+        return bool(context != ContainerContext.BUILD)

@@ -11,6 +11,7 @@ from samcli.lib.providers.provider import LayerVersion
 from samcli.local.lambdafn.env_vars import EnvironmentVariables
 from samcli.local.lambdafn.runtime import LambdaRuntime, _unzip_file, WarmLambdaRuntime, _require_container_reloading
 from samcli.local.lambdafn.config import FunctionConfig
+from samcli.local.docker.container import ContainerContext
 
 
 class LambdaRuntime_create(TestCase):
@@ -95,7 +96,7 @@ class LambdaRuntime_create(TestCase):
             function_full_path=self.full_path,
         )
         # Run the container and get results
-        self.manager_mock.create.assert_called_with(container)
+        self.manager_mock.create.assert_called_with(container, ContainerContext.INVOKE)
 
     @patch("samcli.local.lambdafn.runtime.LambdaContainer")
     def test_keyboard_interrupt_must_raise(self, LambdaContainerMock):
@@ -166,7 +167,7 @@ class LambdaRuntime_create(TestCase):
             function_full_path=self.full_path,
         )
         # Run the container and get results
-        self.manager_mock.create.assert_called_with(container)
+        self.manager_mock.create.assert_called_with(container, ContainerContext.INVOKE)
 
 
 class LambdaRuntime_run(TestCase):
@@ -212,7 +213,7 @@ class LambdaRuntime_run(TestCase):
         self.runtime = LambdaRuntime(self.manager_mock, lambda_image_mock)
 
         self.runtime.run(container, self.func_config, debug_context=debug_options)
-        self.manager_mock.run.assert_called_with(container)
+        self.manager_mock.run.assert_called_with(container, ContainerContext.INVOKE)
 
     def test_must_create_container_first_if_passed_container_is_none(self):
         container = Mock()
@@ -233,7 +234,7 @@ class LambdaRuntime_run(TestCase):
             container_host_interface=None,
             extra_hosts=None,
         )
-        self.manager_mock.run.assert_called_with(container)
+        self.manager_mock.run.assert_called_with(container, ContainerContext.INVOKE)
 
     def test_must_skip_run_running_container(self):
         container = Mock()
@@ -352,7 +353,7 @@ class LambdaRuntime_invoke(TestCase):
         )
 
         # Run the container and get results
-        self.manager_mock.run.assert_called_with(container)
+        self.manager_mock.run.assert_called_with(container, ContainerContext.INVOKE)
         self.runtime._configure_interrupt.assert_called_with(self.full_path, self.DEFAULT_TIMEOUT, container, True)
         container.wait_for_result.assert_called_with(
             event=event, full_path=self.full_path, stdout=stdout, stderr=stderr, start_timer=start_timer
@@ -392,7 +393,7 @@ class LambdaRuntime_invoke(TestCase):
             self.runtime.invoke(self.func_config, event, debug_context=None, stdout=stdout, stderr=stderr)
 
         # Run the container and get results
-        self.manager_mock.run.assert_called_with(container)
+        self.manager_mock.run.assert_called_with(container, ContainerContext.INVOKE)
 
         self.runtime._configure_interrupt.assert_not_called()
 
@@ -430,7 +431,7 @@ class LambdaRuntime_invoke(TestCase):
             self.runtime.invoke(self.func_config, event, debug_context=debug_options, stdout=stdout, stderr=stderr)
 
         # Run the container and get results
-        self.manager_mock.run.assert_called_with(container)
+        self.manager_mock.run.assert_called_with(container, ContainerContext.INVOKE)
 
         self.runtime._configure_interrupt.assert_called_with(self.full_path, self.DEFAULT_TIMEOUT, container, True)
 
@@ -464,7 +465,7 @@ class LambdaRuntime_invoke(TestCase):
         self.runtime.invoke(self.func_config, event, stdout=stdout, stderr=stderr)
 
         # Run the container and get results
-        self.manager_mock.run.assert_called_with(container)
+        self.manager_mock.run.assert_called_with(container, ContainerContext.INVOKE)
 
         self.runtime._configure_interrupt.assert_not_called()
 
@@ -713,7 +714,7 @@ class TestWarmLambdaRuntime_invoke(TestCase):
         )
 
         # Run the container and get results
-        self.manager_mock.run.assert_called_with(container)
+        self.manager_mock.run.assert_called_with(container, ContainerContext.INVOKE)
         self.runtime._configure_interrupt.assert_called_with(self.full_path, self.DEFAULT_TIMEOUT, container, True)
         container.wait_for_result.assert_called_with(
             event=event, full_path=self.full_path, stdout=stdout, stderr=stderr, start_timer=start_timer
@@ -814,7 +815,7 @@ class TestWarmLambdaRuntime_create(TestCase):
             function_full_path=self.full_path,
         )
 
-        self.manager_mock.create.assert_called_with(container)
+        self.manager_mock.create.assert_called_with(container, ContainerContext.INVOKE)
         # validate that the created container got cached
         self.assertEqual(self.runtime._containers[self.full_path], container)
         lambda_function_observer_mock.watch.assert_called_with(self.func_config)
@@ -881,7 +882,9 @@ class TestWarmLambdaRuntime_create(TestCase):
             ]
         )
 
-        self.manager_mock.create.assert_has_calls([call(container), call(container2)])
+        self.manager_mock.create.assert_has_calls(
+            [call(container, ContainerContext.INVOKE), call(container2, ContainerContext.INVOKE)]
+        )
         self.manager_mock.stop.assert_called_with(container)
         # validate that the created container got cached
         self.assertEqual(self.runtime._containers[self.full_path], container2)
@@ -907,7 +910,7 @@ class TestWarmLambdaRuntime_create(TestCase):
         result = self.runtime.create(self.func_config, debug_context=debug_options)
 
         # validate that the manager.create method got called only one time
-        self.manager_mock.create.assert_called_once_with(container)
+        self.manager_mock.create.assert_called_once_with(container, ContainerContext.INVOKE)
         self.assertEqual(result, container)
 
     @patch("samcli.local.lambdafn.runtime.LambdaFunctionObserver")
@@ -950,7 +953,7 @@ class TestWarmLambdaRuntime_create(TestCase):
             extra_hosts=None,
             function_full_path=self.full_path,
         )
-        self.manager_mock.create.assert_called_with(container)
+        self.manager_mock.create.assert_called_with(container, ContainerContext.INVOKE)
         # validate that the created container got cached
         self.assertEqual(self.runtime._containers[self.full_path], container)
 

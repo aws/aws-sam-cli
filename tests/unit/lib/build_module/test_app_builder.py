@@ -32,6 +32,7 @@ from samcli.lib.utils.architecture import X86_64, ARM64
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker.manager import DockerImagePullFailedException
+from samcli.local.docker.container import ContainerContext
 from tests.unit.lib.build_module.test_build_graph import generate_function
 
 
@@ -1728,13 +1729,26 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
             ),
         )
 
+    def test_can_raise_missing_dockerfile_error(self):
+        with self.assertRaises(DockerBuildFailed) as ex:
+            self.builder._build_lambda_image("Name", {}, X86_64)
+
+        self.assertEqual(ex.exception.args, ("Docker file or Docker context metadata are missed.",))
+
     def test_can_raise_build_error(self):
         self.docker_client_mock.images.build.side_effect = docker.errors.BuildError(
-            reason="Missing Dockerfile", build_log="Build failed"
+            reason="Build failure", build_log=[{"stream": "Some earlier log"}, {"error": "Build failed"}]
         )
 
-        with self.assertRaises(DockerBuildFailed):
-            self.builder._build_lambda_image("Name", {}, X86_64)
+        with self.assertRaises(DockerBuildFailed) as ex:
+            self.builder._build_lambda_image("Name", {"Dockerfile": "Dockerfile", "DockerContext": "context"}, X86_64)
+
+        self.assertEqual(ex.exception.args, ("Build failure",))
+        self.assertEqual(self.stream_mock.write_str.call_count, 4, self.stream_mock.write_str.call_args_list)
+        self.assertEqual(
+            self.stream_mock.write_str.call_args_list,
+            [call("Some earlier log"), call(""), call("Build failed"), call(os.linesep)],
+        )
 
 
 class TestApplicationBuilder_load_lambda_image_function(TestCase):
@@ -2927,7 +2941,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
             build_dir="/build/dir",
         )
 
-        self.container_manager.run.assert_called_with(container_mock)
+        self.container_manager.run.assert_called_with(container_mock, context=ContainerContext.BUILD)
         self.builder._parse_builder_response.assert_called_once_with(stdout_data, container_mock.image)
         container_mock.copy.assert_called_with(response["result"]["artifacts_dir"] + "/.", "artifacts_dir")
         self.container_manager.stop.assert_called_with(container_mock)

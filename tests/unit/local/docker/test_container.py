@@ -16,6 +16,7 @@ from samcli.lib.utils.packagetype import IMAGE
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker.container import (
     Container,
+    ContainerContext,
     ContainerResponseException,
     ContainerConnectionTimeoutException,
     PortAlreadyInUse,
@@ -76,6 +77,7 @@ class TestContainer_create(TestCase):
         self.additional_volumes = {"/somepath": {"blah": "blah value"}}
         self.container_host = "localhost"
         self.container_host_interface = "127.0.0.1"
+        self.container_context = ContainerContext.BUILD
 
         self.mock_docker_client = Mock()
         self.mock_docker_client.containers = Mock()
@@ -104,7 +106,7 @@ class TestContainer_create(TestCase):
             exposed_ports=self.exposed_ports,
         )
 
-        container_id = container.create()
+        container_id = container.create(ContainerContext.INVOKE)
         self.assertEqual(container_id, generated_id)
         self.assertEqual(container.id, generated_id)
 
@@ -121,6 +123,7 @@ class TestContainer_create(TestCase):
             use_config_proxy=True,
         )
         self.mock_docker_client.networks.get.assert_not_called()
+        mock_resolve_symlinks.assert_called_with()  # When context is INVOKE
 
     @patch("samcli.local.docker.container.Container._create_mapped_symlink_files")
     def test_must_create_container_including_all_optional_values(self, mock_resolve_symlinks):
@@ -155,7 +158,7 @@ class TestContainer_create(TestCase):
             container_host_interface=self.container_host_interface,
         )
 
-        container_id = container.create()
+        container_id = container.create(ContainerContext.BUILD)
         self.assertEqual(container_id, generated_id)
         self.assertEqual(container.id, generated_id)
 
@@ -176,6 +179,7 @@ class TestContainer_create(TestCase):
             container="opts",
         )
         self.mock_docker_client.networks.get.assert_not_called()
+        mock_resolve_symlinks.assert_not_called()  # When context is BUILD
 
     @patch("samcli.local.docker.utils.os")
     @patch("samcli.local.docker.container.Container._create_mapped_symlink_files")
@@ -216,7 +220,7 @@ class TestContainer_create(TestCase):
             additional_volumes=additional_volumes,
         )
 
-        container_id = container.create()
+        container_id = container.create(self.container_context)
         self.assertEqual(container_id, generated_id)
         self.assertEqual(container.id, generated_id)
 
@@ -261,7 +265,7 @@ class TestContainer_create(TestCase):
 
         container.network_id = network_id
 
-        container_id = container.create()
+        container_id = container.create(self.container_context)
         self.assertEqual(container_id, generated_id)
 
         self.mock_docker_client.containers.create.assert_called_with(
@@ -300,7 +304,7 @@ class TestContainer_create(TestCase):
 
         container.network_id = network_id
 
-        container_id = container.create()
+        container_id = container.create(self.container_context)
         self.assertEqual(container_id, generated_id)
 
         self.mock_docker_client.containers.create.assert_called_with(
@@ -324,7 +328,7 @@ class TestContainer_create(TestCase):
         container.is_created.return_value = True
 
         with self.assertRaises(RuntimeError):
-            container.create()
+            container.create(self.container_context)
 
 
 class TestContainer_stop(TestCase):

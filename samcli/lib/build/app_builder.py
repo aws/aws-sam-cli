@@ -61,6 +61,7 @@ from samcli.lib.utils.resources import (
     AWS_SERVERLESS_LAYERVERSION,
 )
 from samcli.lib.utils.stream_writer import StreamWriter
+from samcli.local.docker.container import ContainerContext
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from samcli.local.docker.manager import ContainerManager, DockerImagePullFailedException
 from samcli.local.docker.utils import get_docker_platform, is_docker_reachable
@@ -430,6 +431,7 @@ class ApplicationBuilder:
             LOG.debug("%s image is built for %s function", build_image, function_name)
         except docker.errors.BuildError as ex:
             LOG.error("Failed building function %s", function_name)
+            self._stream_lambda_image_build_logs(ex.build_log, function_name, False)
             raise DockerBuildFailed(str(ex)) from ex
 
         # The Docker-py low level api will stream logs back but if an exception is raised by the api
@@ -445,7 +447,9 @@ class ApplicationBuilder:
 
         return docker_tag
 
-    def _stream_lambda_image_build_logs(self, build_logs: List[Dict[str, str]], function_name: str) -> None:
+    def _stream_lambda_image_build_logs(
+        self, build_logs: List[Dict[str, str]], function_name: str, throw_on_error: bool = True
+    ) -> None:
         """
         Stream logs to the console from an Lambda image build.
 
@@ -456,7 +460,7 @@ class ApplicationBuilder:
         function_name str
             Name of the function that is being built
         """
-        build_log_streamer = LogStreamer(self._stream_writer)
+        build_log_streamer = LogStreamer(self._stream_writer, throw_on_error)
         try:
             build_log_streamer.stream_progress(build_logs)
         except LogStreamError as ex:
@@ -965,7 +969,7 @@ class ApplicationBuilder:
 
         try:
             try:
-                self._container_manager.run(container)
+                self._container_manager.run(container, context=ContainerContext.BUILD)
             except docker.errors.APIError as ex:
                 if "executable file not found in $PATH" in str(ex):
                     raise UnsupportedBuilderLibraryVersionError(
