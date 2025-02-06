@@ -32,6 +32,7 @@ from samcli.lib.utils.architecture import X86_64, ARM64
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker.manager import DockerImagePullFailedException
+from samcli.local.docker.container import ContainerContext
 from tests.unit.lib.build_module.test_build_graph import generate_function
 
 
@@ -2940,7 +2941,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
             build_dir="/build/dir",
         )
 
-        self.container_manager.run.assert_called_with(container_mock)
+        self.container_manager.run.assert_called_with(container_mock, context=ContainerContext.BUILD)
         self.builder._parse_builder_response.assert_called_once_with(stdout_data, container_mock.image)
         container_mock.copy.assert_called_with(response["result"]["artifacts_dir"] + "/.", "artifacts_dir")
         self.container_manager.stop.assert_called_with(container_mock)
