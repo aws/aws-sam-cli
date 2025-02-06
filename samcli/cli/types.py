@@ -10,7 +10,6 @@ from pathlib import Path
 from typing import Dict, List, Optional, Union
 
 import click
-import ruamel.yaml
 
 from ruamel.yaml.comments import CommentedMap, CommentedSeq
 
@@ -65,10 +64,23 @@ def _unquote_wrapped_quotes(value):
 
     return value.replace("\\ ", " ").replace('\\"', '"').replace("\\'", "'")
 
-def _flatten_list(data):
+def _flatten_list(data: list) -> list:
+    """
+        Recursively flattens lists and other list-like types for easy sequential processing.
+        This also helps with lists combined with YAML anchors & aliases.
+
+    Parameters
+    ----------
+    value : data
+        List to flatten
+
+    Returns
+    -------
+    Flattened list
+    """
     flat_data = []
     for item in data:
-        if isinstance(item, list):
+        if isinstance(item, (tuple, list, CommentedSeq)):
             flat_data.extend(_flatten_list(item))
         else:
             flat_data.append(item)
@@ -83,6 +95,8 @@ class CfnParameterOverridesType(click.ParamType):
 
     __EXAMPLE_1 = "ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro"
     __EXAMPLE_2 = "KeyPairName=MyKey InstanceType=t1.micro"
+    __EXAMPLE_3 = "file://MyParams.yaml"
+
 
     # Regex that parses CloudFormation parameter key-value pairs:
     # https://regex101.com/r/xqfSjW/2
@@ -100,26 +114,21 @@ class CfnParameterOverridesType(click.ParamType):
 
     ordered_pattern_match = [_pattern_1, _pattern_2]
 
-    name = "string,list"
-
-    def convert(self, values, param, ctx):
-        result = {}
-
-        # Empty tuple or empty param file
-        if values == ("",) or values == "" or values is None:
+    def _normalize_parameters(self, values, param, ctx):
+        """
+            Normalizes parameter overrides into key-value pairs of strings
+            Later keys overwrite previous ones in case of key conflict
+        """
+        if values in (("",), "", None) or values == {}:
             LOG.debug("Empty parameter set (%s)", values)
-            return result
+            return {}
 
         LOG.debug("Input parameters: %s", values)
-
-        # Flatten to support YAML anchors & aliases
-        values = _flatten_list(values) if isinstance(values, (tuple, list, CommentedSeq)) else (values,)
+        values = _flatten_list([values])
         LOG.debug("Flattened parameters: %s", values)
 
         parameters = {}
         for value in values:
-            LOG.debug("Processing parameter: %s", value)
-
             if isinstance(value, str):
                 if value.startswith('file://'):
                     filepath = Path(value[7:])
@@ -128,44 +137,53 @@ class CfnParameterOverridesType(click.ParamType):
                     file_manager = FILE_MANAGER_MAPPER.get(filepath.suffix, None)
                     if not file_manager:
                         self.fail(f"{value} uses an unsupported extension", param, ctx)
-                    parameters |= self.convert(file_manager.read(filepath), param, ctx)
+                    parameters |= self._normalize_parameters(file_manager.read(filepath), param, ctx)
                 else:
                     # Legacy parameter matching
                     normalized_value = " " + value.strip()
                     for pattern in self.ordered_pattern_match:
                         groups = re.findall(pattern, normalized_value)
                         if groups:
-                            # Group tuples can be merged into dict
                             parameters |= groups
                             break
                     else:
                         self.fail(
-                            f"{value} is not in valid format. It must look something like '{self.__EXAMPLE_1}' or '{self.__EXAMPLE_2}'",
+                            f"{value} is not a valid format. It must look something like '{self.__EXAMPLE_1}', '{self.__EXAMPLE_2}', or '{self.__EXAMPLE_3}'",
                             param,
                             ctx,
                         )
-
             elif isinstance(value, (dict, CommentedMap)):
                 # e.g. YAML key-value pairs
                 for k, v in value.items():
                     if isinstance(v, (list, CommentedSeq)):
-                        parameters[str(k)] = ",".join(map(str, v)) # Collapse lists to comma delimited
+                        # Collapse list values to comma delimited
+                        parameters[str(k)] = ",".join(map(str, v))
                     else:
                         parameters[str(k)] = str(v)
             else:
                 self.fail(
-                    "This error should never appear.",
+                    f"{value} is not valid in a way the code doesn't expect",
                     param,
                     ctx,
                 )
 
         result = {}
-        LOG.debug("Pre-unwrap parameters: %s", parameters)
-
         for key, param_value in parameters.items():
             result[_unquote_wrapped_quotes(key)] = _unquote_wrapped_quotes(param_value)
-
         LOG.debug("Output parameters: %s", result)
+        return result
+
+
+    def convert(self, values, param, ctx):
+        # Merge samconfig with CLI parameter-overrides
+        if isinstance(values, tuple): # Tuple implies CLI
+            # default_map was populated from samconfig
+            default_map = ctx.default_map.get('parameter_overrides', {})
+            LOG.debug("Default map: %s", default_map)
+            LOG.debug("Current values: %s", values)
+            # Easy merge - will flatten later
+            values = [default_map] + [values]
+        result = self._normalize_parameters(values, param, ctx)
         return result
 
 
