@@ -155,11 +155,15 @@ class CfnParameterOverridesType(click.ParamType):
             elif isinstance(value, (dict, CommentedMap)):
                 # e.g. YAML key-value pairs
                 for k, v in value.items():
-                    if isinstance(v, (list, CommentedSeq)):
-                        # Collapse list values to comma delimited
-                        parameters[str(k)] = ",".join(map(str, v))
+                    if v is None:
+                        parameters[str(k)] = ""
+                    elif isinstance(v, (list, CommentedSeq)):
+                        # Collapse list values to comma delimited, ignore empty strings and remove extra spaces
+                        parameters[str(k)] = ",".join(str(x).strip() for x in v if x not in (None, ""))
                     else:
                         parameters[str(k)] = str(v)
+            elif value is None:
+                continue
             else:
                 self.fail(
                     f"{value} is not valid in a way the code doesn't expect",
@@ -169,13 +173,13 @@ class CfnParameterOverridesType(click.ParamType):
 
         result = {}
         for key, param_value in parameters.items():
-            result[_unquote_wrapped_quotes(key.lower())] = _unquote_wrapped_quotes(param_value)
+            result[_unquote_wrapped_quotes(key)] = _unquote_wrapped_quotes(param_value)
         LOG.debug("Output parameters: %s", result)
         return result
 
     def convert(self, values, param, ctx):
         # Merge samconfig with CLI parameter-overrides
-        if isinstance(values, tuple):  # Tuple implies CLI
+        if isinstance(values, tuple) and ctx: # ctx isn't set in all unit tests
             # default_map was populated from samconfig
             default_map = ctx.default_map.get("parameter_overrides", {})
             LOG.debug("Default map: %s", default_map)
