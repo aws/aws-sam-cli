@@ -136,14 +136,14 @@ class CfnParameterOverridesType(click.ParamType):
                     file_manager = FILE_MANAGER_MAPPER.get(filepath.suffix, None)
                     if not file_manager:
                         self.fail(f"{value} uses an unsupported extension", param, ctx)
-                    parameters |= self._normalize_parameters(file_manager.read(filepath), param, ctx)
+                    parameters.update(self._normalize_parameters(file_manager.read(filepath), param, ctx))
                 else:
                     # Legacy parameter matching
                     normalized_value = " " + value.strip()
                     for pattern in self.ordered_pattern_match:
                         groups = re.findall(pattern, normalized_value)
                         if groups:
-                            parameters |= groups
+                            parameters.update(groups)
                             break
                     else:
                         self.fail(
