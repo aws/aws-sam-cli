@@ -152,126 +152,33 @@ class TestCfnParameterOverridesType(TestCase):
 
     @parameterized.expand(
         [
-            ("", "", {}, ),
-            (("A=1 A=2"), ("A=3 A=4",), {"A": "4"}),
-            (("Path=C:\\Windows\\System32"),("Path=/usr/bin",), {"Path": "/usr/bin"}),
             (
-                ("A=1 B=2"),
-                ("ParameterKey=C,ParameterValue=3", "ParameterKey=D,ParameterValue=4",),
-                {"A": "1", "B": "2", "C": "3", "D": "4"},
-            ),
-            (
-                ('Quoted="Hello, World!"'),
-                ('ParameterKey=Quoted,ParameterValue="\'Hi\'"',),
-                {"Quoted": "'Hi'"}
-            ),
-            (
-                ("A=1 B=2"),
-                ("ParameterKey=A,ParameterValue=3", "ParameterKey=D,ParameterValue=4",),
-                {"A": "3", "B": "2", "D": "4"},
-            ),
-            (
-                ["A=1", "B=2"],
-                ("ParameterKey=A,ParameterValue=3", "ParameterKey=D,ParameterValue=4",),
-                {"A": "3", "B": "2", "D": "4"},
-            ),
-            (
-                ("A=1,2,3 B=1,2,3"),
-                ("ParameterKey=A,ParameterValue=2,2", "ParameterKey=D,ParameterValue=4,5,6",),
-                {"A": "2,2", "B": "1,2,3", "D": "4,5,6"},
-            ),
-            (
-                ("A=1 B=2 C=3"),
-                ("C=4",),
-                {"A": "1", "B": "2", "C": "4"},
-            ),
-            (
-                {"Flag": False},
-                ("Flag=True",),
-                {"Flag": "True"}
-            ),
-            (
-                ("A=1 B=2"),
-                "A=3 D=4", # String not tuple
-                {"A": "3", "D": "4"}
-            ),
-            (
-                ("A=1 B=2 C=3"),
-                ["C=4"], # List not tuple
-                {"C": "4"},
-            ),
-            (
-                [[[[[[[[[[[[[[[[[[]]]]]]]]]]]], {"A": "1"}, [[[{"B": "2"}]]]]]]]]],
-                ("A=3",),
-                {"A": "3", "B": "2"},
-            ),
-            (
-                {"A": "1"},
-                ("B=2",),
-                {"A": "1", "B": "2"},
-            ),
-            (
-                {"Spaces": "String with spaces"},
-                ("Pam='Param Pam Pam Param'",),
-                {"Spaces": "String with spaces", "Pam": "Param Pam Pam Param"},
-            ),
-            (
-                [None, {"Empty": None}],
-                ("None=None",),
-                {"Empty": "", "None": "None"}
-            ),
-            (
-                {"List": ["  A  ", 1, False, "", None]},
-                ("OtherList='A,1,False'",),
-                {"List": "A,1,False", "OtherList": 'A,1,False'},
-            ),
-            (
-                {"List": ["  A  ", "'  B  '", 1, False, "", None]},
-                ("List2='   A   ,1,False'",),
-                {"List": "A,'  B  ',1,False", "List2": '   A   ,1,False'},
-            ),
-        ]
-    )
-    def test_merge_default_map_parsing(self, file_overrides, cli_overrides, expected):
-        ctx = MagicMock()
-        ctx.default_map = {"parameter_overrides": file_overrides}
-        result = self.param_type.convert(cli_overrides, None, ctx)
-        self.assertEqual(result, expected, msg="Failed with Input = " + str(cli_overrides))
-
-    @parameterized.expand(
-        [
-            (
-                ("A=1 B=2"),
                 ("file://params.toml",),
                 {"A": "toml", "B": "toml", "Toml": "toml"},
             ),
             (
-                ("A=1 B=2"),
                 ("file://params.toml", "D=4"),
                 {"A": "toml", "B": "toml", "Toml": "toml", "D": "4"},
             ),
             (
-                ("A=1 B=2"),
                 ("ParameterKey=Y,ParameterValue=y", "file://params.toml", "D=4", "file://params.yaml", "A=6"),
                 {"A": "6", "B": "yaml", "Y": "y", "Toml": "toml", "D": "4", "Yaml": "yaml"},
             ),
             (
-                ("A=1 B=2"),
-                ("file://list.yaml",),
-                {"A": "a", "B": "2", "List": "1,2,3", "Yaml": "yaml"},
+                ("file://params.yaml", "file://list.yaml",),
+                {"A": "a", "B": "yaml", "List": "1,2,3", "Yaml": "yaml"},
             ),
             (
-                ("A=1 B=2"),
                 ("file://nested.yaml",),
                 {"A": "yaml", "B": "yaml", "Toml": "toml", "Yaml": "yaml"},
             ),
         ]
     )
-    def test_merge_file_parsing(self, file_overrides, cli_overrides, expected):
+    def test_merge_file_parsing(self, inputs, expected):
         mock_files = {
             "params.toml": 'A = "toml"\nB = "toml"\nToml = "toml"',
             "params.yaml": "A: yaml\nB: yaml\nYaml: yaml",
-            "list.yaml": "- - - - - - A: a\n- List:\n    - 1\n    - 2\n    - 3\n- Yaml: yaml",
+            "list.yaml": "- - - - - - A: a\n- List:\n    - 1\n    - 2\n    - 3\n",
             "nested.yaml": "- file://params.toml\n- file://params.yaml",
         }
 
@@ -283,12 +190,9 @@ class TestCfnParameterOverridesType(TestCase):
             return file_path.name in mock_files
 
         with patch("pathlib.Path.is_file", new=mock_is_file), patch("pathlib.Path.read_text", new=mock_read_text):
-            ctx = MagicMock()
-            ctx.default_map = {"parameter_overrides": file_overrides}
-
-            result = self.param_type.convert(cli_overrides, None, ctx)
+            result = self.param_type.convert(inputs, None, MagicMock())
             print(result)
-            self.assertEqual(result, expected, msg="Failed with Input = " + str(cli_overrides))
+            self.assertEqual(result, expected, msg="Failed with Input = " + str(inputs))
 
 
 

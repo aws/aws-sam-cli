@@ -113,10 +113,9 @@ class CfnParameterOverridesType(click.ParamType):
 
     ordered_pattern_match = [_pattern_1, _pattern_2]
 
-    def _normalize_parameters(self, values, param, ctx):
+    def convert(self, values, param, ctx):
         """
-        Normalizes parameter overrides into key-value pairs of strings
-        Later keys overwrite previous ones in case of key conflict
+        Normalizes different parameter overrides formats into key-value pairs of strings
         """
         if values in (("",), "", None) or values == {}:
             LOG.debug("Empty parameter set (%s)", values)
@@ -136,7 +135,7 @@ class CfnParameterOverridesType(click.ParamType):
                     file_manager = FILE_MANAGER_MAPPER.get(filepath.suffix, None)
                     if not file_manager:
                         self.fail(f"{value} uses an unsupported extension", param, ctx)
-                    parameters.update(self._normalize_parameters(file_manager.read(filepath), param, ctx))
+                    parameters.update(self.convert(file_manager.read(filepath), param, ctx))
                 else:
                     # Legacy parameter matching
                     normalized_value = " " + value.strip()
@@ -176,19 +175,6 @@ class CfnParameterOverridesType(click.ParamType):
             result[_unquote_wrapped_quotes(key)] = _unquote_wrapped_quotes(param_value)
         LOG.debug("Output parameters: %s", result)
         return result
-
-    def convert(self, values, param, ctx):
-        # Merge samconfig with CLI parameter-overrides
-        if isinstance(values, tuple) and ctx: # ctx isn't set in all unit tests
-            # default_map was populated from samconfig
-            default_map = ctx.default_map.get("parameter_overrides", {})
-            LOG.debug("Default map: %s", default_map)
-            LOG.debug("Current values: %s", values)
-            # Easy merge - will flatten later
-            values = [default_map] + [values]
-        result = self._normalize_parameters(values, param, ctx)
-        return result
-
 
 class CfnMetadataType(click.ParamType):
     """
