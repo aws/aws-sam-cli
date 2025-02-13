@@ -572,6 +572,71 @@ class TestSamConfigForAllCommands(TestCase):
                 {},
                 ("image",),
                 None,
+                None,
+            )
+
+    @patch("samcli.commands.local.invoke.cli.do_cli")
+    def test_local_invoke_with_runtime_params(self, do_cli_mock):
+        config_values = {
+            "function_logical_id": "foo",
+            "template_file": "mytemplate.yaml",
+            "event": "event",
+            "no_event": False,
+            "env_vars": "envvar.json",
+            "debug_port": [1, 2, 3],
+            "debug_args": "args",
+            "debugger_path": "mypath",
+            "container_env_vars": "container-envvar.json",
+            "docker_volume_basedir": "basedir",
+            "docker_network": "mynetwork",
+            "log_file": "logfile",
+            "layer_cache_basedir": "basedir",
+            "skip_pull_image": True,
+            "force_image_build": True,
+            "shutdown": True,
+            "parameter_overrides": "ParameterKey=Key,ParameterValue=Value ParameterKey=Key2,ParameterValue=Value2",
+            "invoke_image": ["image"],
+        }
+
+        # NOTE: Because we don't load the full Click BaseCommand here, this is mounted as top-level command
+        with samconfig_parameters(["invoke"], self.scratch_dir, **config_values) as config_path:
+            from samcli.commands.local.invoke.cli import cli
+
+            LOG.debug(Path(config_path).read_text())
+            runner = CliRunner()
+            result = runner.invoke(cli, ["--runtime", "python3.11"])
+
+            LOG.info(result.output)
+            LOG.info(result.exception)
+            if result.exception:
+                LOG.exception("Command failed", exc_info=result.exc_info)
+            self.assertIsNone(result.exception)
+
+            do_cli_mock.assert_called_with(
+                ANY,
+                "foo",
+                str(Path(os.getcwd(), "mytemplate.yaml")),
+                "event",
+                False,
+                "envvar.json",
+                (1, 2, 3),
+                "args",
+                "mypath",
+                "container-envvar.json",
+                "basedir",
+                "mynetwork",
+                "logfile",
+                "basedir",
+                True,
+                True,
+                True,
+                {"Key": "Value", "Key2": "Value2"},
+                "localhost",
+                "127.0.0.1",
+                {},
+                ("image",),
+                None,
+                "python3.11",
             )
 
     @patch("samcli.commands.local.start_api.cli.do_cli")
