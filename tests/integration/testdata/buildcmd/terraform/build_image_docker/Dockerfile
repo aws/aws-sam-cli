@@ -1,12 +1,5 @@
 FROM public.ecr.aws/amazonlinux/amazonlinux:2023
 
-RUN yum -y update \
-    && yum install -y unzip tar gzip ed less \
-    && rm -rf /var/cache/yum
-
-RUN yum -y install make \
-    && yum -y install zip
-
 RUN yum install -y yum-utils \
     && yum-config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo \
     && yum -y install terraform \
