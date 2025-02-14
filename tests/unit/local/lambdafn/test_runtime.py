@@ -94,6 +94,7 @@ class LambdaRuntime_create(TestCase):
             container_host_interface=None,
             extra_hosts=None,
             function_full_path=self.full_path,
+            mount_symlinks=False,
         )
         # Run the container and get results
         self.manager_mock.create.assert_called_with(container, ContainerContext.INVOKE)
@@ -128,7 +129,7 @@ class LambdaRuntime_create(TestCase):
         debug_options = Mock()
         lambda_image_mock = Mock()
 
-        self.runtime = LambdaRuntime(self.manager_mock, lambda_image_mock)
+        self.runtime = LambdaRuntime(self.manager_mock, lambda_image_mock, mount_symlinks=True)
 
         # Using MagicMock to mock the context manager
         self.runtime._get_code_dir = MagicMock()
@@ -165,6 +166,7 @@ class LambdaRuntime_create(TestCase):
             container_host_interface=None,
             extra_hosts=None,
             function_full_path=self.full_path,
+            mount_symlinks=True,
         )
         # Run the container and get results
         self.manager_mock.create.assert_called_with(container, ContainerContext.INVOKE)
@@ -350,6 +352,7 @@ class LambdaRuntime_invoke(TestCase):
             container_host_interface=None,
             extra_hosts=None,
             function_full_path=self.full_path,
+            mount_symlinks=False,
         )
 
         # Run the container and get results
@@ -711,6 +714,7 @@ class TestWarmLambdaRuntime_invoke(TestCase):
             container_host_interface=None,
             extra_hosts=None,
             function_full_path=self.full_path,
+            mount_symlinks=False,
         )
 
         # Run the container and get results
@@ -813,6 +817,7 @@ class TestWarmLambdaRuntime_create(TestCase):
             container_host_interface=None,
             extra_hosts=None,
             function_full_path=self.full_path,
+            mount_symlinks=False,
         )
 
         self.manager_mock.create.assert_called_with(container, ContainerContext.INVOKE)
@@ -860,6 +865,7 @@ class TestWarmLambdaRuntime_create(TestCase):
                     container_host_interface=None,
                     extra_hosts=None,
                     function_full_path=self.full_path,
+                    mount_symlinks=False,
                 ),
                 call(
                     self.lang,
@@ -878,6 +884,7 @@ class TestWarmLambdaRuntime_create(TestCase):
                     container_host_interface=None,
                     extra_hosts=None,
                     function_full_path=self.full_path,
+                    mount_symlinks=False,
                 ),
             ]
         )
@@ -952,6 +959,7 @@ class TestWarmLambdaRuntime_create(TestCase):
             container_host_interface=None,
             extra_hosts=None,
             function_full_path=self.full_path,
+            mount_symlinks=False,
         )
         self.manager_mock.create.assert_called_with(container, ContainerContext.INVOKE)
         # validate that the created container got cached

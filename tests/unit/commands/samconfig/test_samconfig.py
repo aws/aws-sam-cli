@@ -122,6 +122,7 @@ class TestSamConfigForAllCommands(TestCase):
             "build_image": [("")],
             "exclude": [("")],
             "mount_with": "read",
+            "mount_symlinks": True,
         }
 
         with samconfig_parameters(["build"], self.scratch_dir, **config_values) as config_path:
@@ -160,6 +161,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 False,
                 "READ",
+                True,
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -219,6 +221,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 False,
                 "READ",
+                False,
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -277,6 +280,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 False,
                 "READ",
+                False,
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -336,6 +340,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 False,
                 "READ",
+                False,
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -396,6 +401,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 False,
                 "READ",
+                False,
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -453,6 +459,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 False,
                 "READ",
+                False,
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -509,6 +516,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 False,
                 "READ",
+                False,
             )
 
     @patch("samcli.commands.local.invoke.cli.do_cli")
@@ -532,6 +540,7 @@ class TestSamConfigForAllCommands(TestCase):
             "shutdown": True,
             "parameter_overrides": "ParameterKey=Key,ParameterValue=Value ParameterKey=Key2,ParameterValue=Value2",
             "invoke_image": ["image"],
+            "mount_symlinks": True,
         }
 
         # NOTE: Because we don't load the full Click BaseCommand here, this is mounted as top-level command
@@ -572,6 +581,7 @@ class TestSamConfigForAllCommands(TestCase):
                 {},
                 ("image",),
                 None,
+                True,
             )
 
     @patch("samcli.commands.local.start_api.cli.do_cli")
