@@ -10,6 +10,7 @@ from samcli.cli.cli_config_file import ConfigProvider, configuration_option, sav
 from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
 from samcli.cli.main import common_options as cli_framework_options
 from samcli.commands._utils.option_value_processor import process_image_options
+from samcli.commands.init.init_flow_helpers import get_sorted_runtimes
 from samcli.commands._utils.options import (
     hook_name_click_option,
     mount_symlinks_option,
@@ -21,6 +22,7 @@ from samcli.commands.local.invoke.core.command import InvokeCommand
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.version_checker import check_newer_version
+from samcli.local.common.runtime_template import INIT_RUNTIMES
 from samcli.local.docker.exceptions import (
     ContainerNotStartableException,
     DockerContainerCreationFailedException,
@@ -65,6 +67,13 @@ STDIN_FILE_NAME = "-"
     "is not specified, no event is assumed. Pass in the value '-' to input JSON via stdin",
 )
 @click.option("--no-event", is_flag=True, default=True, help="DEPRECATED: By default no event is assumed.", hidden=True)
+@click.option(
+    "-r",
+    "--runtime",
+    type=click.Choice(get_sorted_runtimes(INIT_RUNTIMES)),
+    help="Lambda runtime for application."
+    + click.style(f"\n\nRuntimes: {', '.join(get_sorted_runtimes(INIT_RUNTIMES))}", bold=True),
+)
 @mount_symlinks_option
 @invoke_common_options
 @local_common_options
@@ -105,6 +114,7 @@ def cli(
     hook_name,
     skip_prepare_infra,
     terraform_plan_file,
+    runtime, 
     mount_symlinks,
 ):
     """
@@ -136,6 +146,7 @@ def cli(
         add_host,
         invoke_image,
         hook_name,
+        runtime,
         mount_symlinks,
     )  # pragma: no cover
 
@@ -164,6 +175,7 @@ def do_cli(  # pylint: disable=R0914
     add_host,
     invoke_image,
     hook_name,
+    runtime,
     mount_symlinks,
 ):
     """
@@ -217,7 +229,11 @@ def do_cli(  # pylint: disable=R0914
         ) as context:
             # Invoke the function
             context.local_lambda_runner.invoke(
-                context.function_identifier, event=event_data, stdout=context.stdout, stderr=context.stderr
+                context.function_identifier,
+                event=event_data,
+                stdout=context.stdout,
+                stderr=context.stderr,
+                override_runtime=runtime,
             )
 
     except FunctionNotFound as ex:
