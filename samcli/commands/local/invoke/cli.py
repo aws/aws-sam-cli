@@ -66,12 +66,6 @@ STDIN_FILE_NAME = "-"
 )
 @click.option("--no-event", is_flag=True, default=True, help="DEPRECATED: By default no event is assumed.", hidden=True)
 @mount_symlinks_option
-@click.option(
-    "--no-memory-limit",
-    default=False,
-    is_flag=True,
-    help="Remove the Memory limit during local invoke. This runs the container without the --memory parameter",
-)
 @invoke_common_options
 @local_common_options
 @cli_framework_options
