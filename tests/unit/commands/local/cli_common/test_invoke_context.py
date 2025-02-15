@@ -611,6 +611,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
             aws_profile="profile",
             aws_region="region",
             mount_symlinks=True,
+            no_mem_limit=True,
         )
         self.context.get_cwd = Mock()
         self.context.get_cwd.return_value = cwd
@@ -629,7 +630,9 @@ class TestInvokeContext_local_lambda_runner(TestCase):
             result = self.context.local_lambda_runner
             self.assertEqual(result, runner_mock)
 
-            LambdaRuntimeMock.assert_called_with(container_manager_mock, image_mock, mount_symlinks=True)
+            LambdaRuntimeMock.assert_called_with(
+                container_manager_mock, image_mock, mount_symlinks=True, no_mem_limit=True
+            )
             lambda_image_patch.assert_called_once_with(download_mock, True, True, invoke_images=None)
             LocalLambdaMock.assert_called_with(
                 local_runtime=runtime_mock,
@@ -694,6 +697,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
             aws_region="region",
             warm_container_initialization_mode=ContainersInitializationMode.EAGER,
             mount_symlinks=False,
+            no_mem_limit=False,
         )
         self.context.get_cwd = Mock()
         self.context.get_cwd.return_value = cwd
@@ -712,7 +716,9 @@ class TestInvokeContext_local_lambda_runner(TestCase):
             result = self.context.local_lambda_runner
             self.assertEqual(result, runner_mock)
 
-            WarmLambdaRuntimeMock.assert_called_with(container_manager_mock, image_mock, mount_symlinks=False)
+            WarmLambdaRuntimeMock.assert_called_with(
+                container_manager_mock, image_mock, mount_symlinks=False, no_mem_limit=False
+            )
             lambda_image_patch.assert_called_once_with(download_mock, True, True, invoke_images=None)
             LocalLambdaMock.assert_called_with(
                 local_runtime=runtime_mock,
@@ -783,6 +789,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
             container_host="abcdef",
             container_host_interface="192.168.100.101",
             mount_symlinks=False,
+            no_mem_limit=False,
         )
         self.context.get_cwd = Mock()
         self.context.get_cwd.return_value = cwd
@@ -801,7 +808,9 @@ class TestInvokeContext_local_lambda_runner(TestCase):
             result = self.context.local_lambda_runner
             self.assertEqual(result, runner_mock)
 
-            LambdaRuntimeMock.assert_called_with(container_manager_mock, image_mock, mount_symlinks=False)
+            LambdaRuntimeMock.assert_called_with(
+                container_manager_mock, image_mock, mount_symlinks=False, no_mem_limit=False
+            )
             lambda_image_patch.assert_called_once_with(download_mock, True, True, invoke_images=None)
             LocalLambdaMock.assert_called_with(
                 local_runtime=runtime_mock,
@@ -872,6 +881,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
             container_host="abcdef",
             add_host={"prod-na.host": "10.11.12.13", "gamma-na.host": "10.22.23.24"},
             mount_symlinks=False,
+            no_mem_limit=False,
         )
         self.context.get_cwd = Mock()
         self.context.get_cwd.return_value = cwd
@@ -890,7 +900,9 @@ class TestInvokeContext_local_lambda_runner(TestCase):
             result = self.context.local_lambda_runner
             self.assertEqual(result, runner_mock)
 
-            LambdaRuntimeMock.assert_called_with(container_manager_mock, image_mock, mount_symlinks=False)
+            LambdaRuntimeMock.assert_called_with(
+                container_manager_mock, image_mock, mount_symlinks=False, no_mem_limit=False
+            )
             lambda_image_patch.assert_called_once_with(download_mock, True, True, invoke_images=None)
             LocalLambdaMock.assert_called_with(
                 local_runtime=runtime_mock,
@@ -963,6 +975,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
             aws_region="region",
             invoke_images={None: "image"},
             mount_symlinks=False,
+            no_mem_limit=False,
         )
         self.context.get_cwd = Mock()
         self.context.get_cwd.return_value = cwd
@@ -981,7 +994,9 @@ class TestInvokeContext_local_lambda_runner(TestCase):
             result = self.context.local_lambda_runner
             self.assertEqual(result, runner_mock)
 
-            LambdaRuntimeMock.assert_called_with(container_manager_mock, image_mock, mount_symlinks=False)
+            LambdaRuntimeMock.assert_called_with(
+                container_manager_mock, image_mock, mount_symlinks=False, no_mem_limit=False
+            )
             lambda_image_patch.assert_called_once_with(download_mock, True, True, invoke_images={None: "image"})
             LocalLambdaMock.assert_called_with(
                 local_runtime=runtime_mock,

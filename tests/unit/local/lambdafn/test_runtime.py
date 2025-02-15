@@ -99,6 +99,56 @@ class LambdaRuntime_create(TestCase):
         # Run the container and get results
         self.manager_mock.create.assert_called_with(container, ContainerContext.INVOKE)
 
+    @patch("samcli.local.lambdafn.runtime.LOG")
+    @patch("samcli.local.lambdafn.runtime.LambdaContainer")
+    def test_must_create_lambda_container_without_mem_limit(self, LambdaContainerMock, LogMock):
+        code_dir = "some code dir"
+
+        container = Mock()
+        debug_options = Mock()
+        lambda_image_mock = Mock()
+
+        self.runtime = LambdaRuntime(self.manager_mock, lambda_image_mock, no_mem_limit=True)
+
+        # Using MagicMock to mock the context manager
+        self.runtime._get_code_dir = MagicMock()
+        self.runtime._get_code_dir.return_value = code_dir
+
+        LambdaContainerMock.return_value = container
+
+        self.runtime.create(self.func_config, debug_context=debug_options)
+
+        LogMock.assert_not_called()
+
+        # Make sure env-vars get resolved
+        self.env_vars.resolve.assert_called_with()
+
+        # Make sure the context manager is called to return the code directory
+        self.runtime._get_code_dir.assert_called_with(self.code_path)
+
+        # Make sure the container is created with proper values
+        LambdaContainerMock.assert_called_with(
+            self.lang,
+            self.imageuri,
+            self.handler,
+            self.packagetype,
+            self.imageconfig,
+            code_dir,
+            self.layers,
+            lambda_image_mock,
+            self.architecture,
+            debug_options=debug_options,
+            env_vars=self.env_var_value,
+            memory_mb=None,  # No memory limit
+            container_host=None,
+            container_host_interface=None,
+            extra_hosts=None,
+            function_full_path=self.full_path,
+            mount_symlinks=False,
+        )
+        # Run the container and get results
+        self.manager_mock.create.assert_called_with(container, ContainerContext.INVOKE)
+
     @patch("samcli.local.lambdafn.runtime.LambdaContainer")
     def test_keyboard_interrupt_must_raise(self, LambdaContainerMock):
         code_dir = "some code dir"

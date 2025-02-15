@@ -106,6 +106,7 @@ def cli(
     skip_prepare_infra,
     terraform_plan_file,
     mount_symlinks,
+    no_memory_limit,
 ):
     """
     `sam local invoke` command entry point
@@ -137,6 +138,7 @@ def cli(
         invoke_image,
         hook_name,
         mount_symlinks,
+        no_memory_limit,
     )  # pragma: no cover
 
 
@@ -165,6 +167,7 @@ def do_cli(  # pylint: disable=R0914
     invoke_image,
     hook_name,
     mount_symlinks,
+    no_mem_limit,
 ):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
@@ -214,6 +217,7 @@ def do_cli(  # pylint: disable=R0914
             add_host=add_host,
             invoke_images=processed_invoke_images,
             mount_symlinks=mount_symlinks,
+            no_mem_limit=no_mem_limit,
         ) as context:
             # Invoke the function
             context.local_lambda_runner.invoke(
