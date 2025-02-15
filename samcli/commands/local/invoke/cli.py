@@ -10,8 +10,13 @@ from samcli.cli.cli_config_file import ConfigProvider, configuration_option, sav
 from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
 from samcli.cli.main import common_options as cli_framework_options
 from samcli.commands._utils.option_value_processor import process_image_options
-from samcli.commands._utils.options import hook_name_click_option, skip_prepare_infra_option, terraform_plan_file_option
 from samcli.commands.init.init_flow_helpers import get_sorted_runtimes
+from samcli.commands._utils.options import (
+    hook_name_click_option,
+    mount_symlinks_option,
+    skip_prepare_infra_option,
+    terraform_plan_file_option,
+)
 from samcli.commands.local.cli_common.options import invoke_common_options, local_common_options
 from samcli.commands.local.invoke.core.command import InvokeCommand
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
@@ -69,6 +74,7 @@ STDIN_FILE_NAME = "-"
     help="Lambda runtime for application."
     + click.style(f"\n\nRuntimes: {', '.join(get_sorted_runtimes(INIT_RUNTIMES))}", bold=True),
 )
+@mount_symlinks_option
 @invoke_common_options
 @local_common_options
 @cli_framework_options
@@ -108,7 +114,8 @@ def cli(
     hook_name,
     skip_prepare_infra,
     terraform_plan_file,
-    runtime,
+    runtime, 
+    mount_symlinks,
 ):
     """
     `sam local invoke` command entry point
@@ -140,6 +147,7 @@ def cli(
         invoke_image,
         hook_name,
         runtime,
+        mount_symlinks,
     )  # pragma: no cover
 
 
@@ -168,6 +176,7 @@ def do_cli(  # pylint: disable=R0914
     invoke_image,
     hook_name,
     runtime,
+    mount_symlinks,
 ):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
@@ -216,6 +225,7 @@ def do_cli(  # pylint: disable=R0914
             container_host_interface=container_host_interface,
             add_host=add_host,
             invoke_images=processed_invoke_images,
+            mount_symlinks=mount_symlinks,
         ) as context:
             # Invoke the function
             context.local_lambda_runner.invoke(

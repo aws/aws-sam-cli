@@ -101,6 +101,7 @@ class InvokeContext:
         container_host_interface: Optional[str] = None,
         add_host: Optional[dict] = None,
         invoke_images: Optional[str] = None,
+        mount_symlinks: Optional[bool] = False,
     ) -> None:
         """
         Initialize the context
@@ -155,7 +156,10 @@ class InvokeContext:
             Optional. Docker extra hosts support from --add-host parameters
         invoke_images dict
             Optional. A dictionary that defines the custom invoke image URI of each function
+        mount_symlinks bool
+            Optional. Indicates if symlinks should be mounted inside the container
         """
+
         self._template_file = template_file
         self._function_identifier = function_identifier
         self._env_vars_file = env_vars_file
@@ -196,6 +200,8 @@ class InvokeContext:
             self._containers_initializing_mode = ContainersInitializationMode(warm_container_initialization_mode)
 
         self._debug_function = debug_function
+
+        self._mount_symlinks: Optional[bool] = mount_symlinks
 
         # Note(xinhol): despite self._function_provider and self._stacks are initialized as None
         # they will be assigned with a non-None value in __enter__() and
@@ -402,10 +408,15 @@ class InvokeContext:
                 layer_downloader, self._skip_pull_image, self._force_image_build, invoke_images=self._invoke_images
             )
             self._lambda_runtimes = {
-                ContainersMode.WARM: WarmLambdaRuntime(self._container_manager, image_builder),
-                ContainersMode.COLD: LambdaRuntime(self._container_manager, image_builder),
+                ContainersMode.WARM: WarmLambdaRuntime(
+                    self._container_manager,
+                    image_builder,
+                    mount_symlinks=self._mount_symlinks,
+                ),
+                ContainersMode.COLD: LambdaRuntime(
+                    self._container_manager, image_builder, mount_symlinks=self._mount_symlinks
+                ),
             }
-
         return self._lambda_runtimes[self._containers_mode]
 
     @property

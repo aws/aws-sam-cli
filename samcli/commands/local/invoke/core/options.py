@@ -36,6 +36,7 @@ CONTAINER_OPTION_NAMES: List[str] = [
     "add_host",
     "invoke_image",
     "runtime",
+    "mount_symlinks",
 ]
 
 CONFIGURATION_OPTION_NAMES: List[str] = ["config_env", "config_file"] + SAVE_PARAMS_OPTIONS
