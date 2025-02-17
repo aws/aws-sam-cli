@@ -101,6 +101,7 @@ class Container:
         mount_with_write: bool = False,
         host_tmp_dir: Optional[str] = None,
         extra_hosts: Optional[dict] = None,
+        mount_symlinks: Optional[bool] = False,
     ):
         """
         Initializes the class with given configuration. This does not automatically create or run the container.
@@ -123,6 +124,7 @@ class Container:
             building on container
         :param string host_tmp_dir: Optional. Temporary directory on the host when mounting with write permissions.
         :param dict extra_hosts: Optional. Dict of hostname to IP resolutions
+        :param bool mount_symlinks: Optional. True if symlinks should be mounted in the container
         """
 
         self._image = image
@@ -155,6 +157,7 @@ class Container:
         self._container_host_interface = container_host_interface
         self._mount_with_write = mount_with_write
         self._host_tmp_dir = host_tmp_dir
+        self._mount_symlinks = mount_symlinks
 
         try:
             self.rapid_port_host = find_free_port(
@@ -183,7 +186,10 @@ class Container:
         if self._host_dir:
             mount_mode = "rw,delegated" if self._mount_with_write else "ro,delegated"
             LOG.info("Mounting %s as %s:%s, inside runtime container", self._host_dir, self._working_dir, mount_mode)
-            mapped_symlinks = self._create_mapped_symlink_files() if self._resolve_symlinks(context) else {}
+            if self._resolve_symlinks_in_context(context) or self._mount_symlinks:
+                mapped_symlinks = self._create_mapped_symlink_files()
+            else:
+                mapped_symlinks = {}
 
             _volumes = {
                 self._host_dir: {
@@ -270,9 +276,10 @@ class Container:
 
     def _create_mapped_symlink_files(self) -> Dict[str, Dict[str, str]]:
         """
-        Resolves any top level symlinked files and folders that are found on the
+        Resolves top level symlinked files and folders that are found on the
         host directory and creates additional bind mounts to correctly map them
         inside of the container.
+        By default only `node_modules` are mounted unless self.mount_symlinks is True
 
         Returns
         -------
@@ -280,6 +287,7 @@ class Container:
             A dictonary representing the resolved file or directory and the bound path
             on the container
         """
+
         mount_mode = "ro,delegated"
         additional_volumes: Dict[str, Dict[str, str]] = {}
 
@@ -291,10 +299,15 @@ class Container:
             for file in directory_iterator:
                 if not file.is_symlink():
                     continue
-
                 host_resolved_path = os.path.realpath(file.path)
+                if not self._resolve_symlinks_for_file(file) and not self._mount_symlinks:
+                    LOG.info(
+                        "Not mounting symlink (%s -> %s) by default. "
+                        "Use --mount-symlinks to always mount symlinks in the container"
+                        % (file.path, host_resolved_path)
+                    )
+                    continue
                 container_full_path = pathlib.Path(self._working_dir, file.name).as_posix()
-
                 additional_volumes[host_resolved_path] = {
                     "bind": container_full_path,
                     "mode": mount_mode,
@@ -659,12 +672,12 @@ class Container:
         except docker.errors.NotFound:
             return False
 
-    def _resolve_symlinks(self, context) -> bool:
-        """_summary_
+    def _resolve_symlinks_in_context(self, context) -> bool:
+        """
 
         Parameters
         ----------
-        context : sacli.local.docker.container.ContainerContext
+        context : samcli.local.docker.container.ContainerContext
             Context for the container management to run. (build, invoke)
 
         Returns
@@ -673,3 +686,21 @@ class Container:
             True, if given these parameters it should resolve symlinks or not
         """
         return bool(context != ContainerContext.BUILD)
+
+    def _resolve_symlinks_for_file(self, file: os.DirEntry) -> bool:
+        """
+
+        Parameters
+        ----------
+        file : os.DirEntry
+           File to check if it should be resolved
+
+        Returns
+        -------
+        bool
+            True if the file should be resolved as a symlink to mount in the container.
+            By default, the only symlinks resolved are `node_modules` used by build-in-source
+        """
+        resolved_path = os.path.realpath(file.path)  # resolved symlink
+        resolved_name = os.path.basename(resolved_path)
+        return bool(resolved_name == "node_modules")

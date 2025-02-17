@@ -98,6 +98,13 @@ def local_common_options(f):
             "If a function does not have invoke image specified, the default AWS SAM CLI "
             "emulation image will be used.",
         ),
+        click.option(
+            "--no-memory-limit",
+            default=False,
+            is_flag=True,
+            help="Removes the Memory limit during emulation. "
+            "With this parameter, the underlying container will run without a --memory parameter",
+        ),
     ]
 
     # Reverse the list to maintain ordering of options in help text printed with --help

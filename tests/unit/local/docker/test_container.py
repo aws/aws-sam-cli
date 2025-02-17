@@ -1078,13 +1078,15 @@ class TestContainer_create_mapped_symlink_files(TestCase):
         self.assertEqual(volumes, {})
 
     @patch("samcli.local.docker.container.os.scandir")
+    @patch("samcli.local.docker.container.os.path.basename")
     @patch("samcli.local.docker.container.os.path.realpath")
     @patch("samcli.local.docker.container.pathlib.Path")
-    def test_resolves_symlink(self, mock_path, mock_realpath, mock_scandir):
+    def test_resolves_symlink(self, mock_path, mock_realpath, mock_basename, mock_scandir):
         host_path = Mock()
         container_path = Mock()
 
         mock_realpath.return_value = host_path
+        mock_basename.return_value = "node_modules"
         mock_as_posix = Mock()
         mock_as_posix.as_posix = Mock(return_value=container_path)
         mock_path.return_value = mock_as_posix

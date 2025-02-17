@@ -56,6 +56,7 @@ class TestCli(TestCase):
         self.container_host = "localhost"
         self.container_host_interface = "127.0.0.1"
         self.invoke_image = ()
+        self.no_mem_limit = False
 
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     @patch("samcli.commands.local.lib.local_api_service.LocalApiService")
@@ -97,6 +98,7 @@ class TestCli(TestCase):
             container_host_interface=self.container_host_interface,
             add_host=self.add_host,
             invoke_images={},
+            no_mem_limit=self.no_mem_limit,
         )
 
         local_api_service_mock.assert_called_with(
@@ -228,4 +230,5 @@ class TestCli(TestCase):
             ssl_key_file=self.ssl_key_file,
             disable_authorizer=self.disable_authorizer,
             add_host=self.add_host,
+            no_mem_limit=self.no_mem_limit,
         )

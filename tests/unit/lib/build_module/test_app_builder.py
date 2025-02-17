@@ -2939,6 +2939,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
             build_in_source=False,
             mount_with_write=False,
             build_dir="/build/dir",
+            mount_symlinks=False,
         )
 
         self.container_manager.run.assert_called_with(container_mock, context=ContainerContext.BUILD)

@@ -56,6 +56,7 @@ class LambdaContainer(Container):
         container_host_interface=DEFAULT_CONTAINER_HOST_INTERFACE,
         extra_hosts=None,
         function_full_path=None,
+        mount_symlinks=False,
     ):
         """
         Initializes the class
@@ -96,6 +97,8 @@ class LambdaContainer(Container):
             Optional. Dict of hostname to IP resolutions
         function_full_path str
             Optional. The function full path, unique in all stacks
+        mount_symlinks bool
+            Optional. True is symlinks should be mounted in the container
         """
         if not Runtime.has_value(runtime) and not packagetype == IMAGE:
             raise InvalidRuntimeException(INVALID_RUNTIME_MESSAGE.format(runtime=runtime))
@@ -146,6 +149,7 @@ class LambdaContainer(Container):
             container_host=container_host,
             container_host_interface=container_host_interface,
             extra_hosts=extra_hosts,
+            mount_symlinks=mount_symlinks,
         )
 
     @staticmethod

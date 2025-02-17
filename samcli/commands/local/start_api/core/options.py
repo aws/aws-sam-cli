@@ -35,6 +35,7 @@ CONTAINER_OPTION_NAMES: List[str] = [
     "skip_pull_image",
     "docker_network",
     "force_image_build",
+    "no_memory_limit",
     "warm_containers",
     "shutdown",
     "container_host",
