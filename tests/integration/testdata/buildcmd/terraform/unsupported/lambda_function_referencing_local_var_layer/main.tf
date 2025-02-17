@@ -55,7 +55,7 @@ resource "aws_lambda_function" "function1" {
     s3_bucket = aws_s3_bucket.lambda_code_bucket.bucket
     s3_key = aws_s3_object.lambda_function_code.key
     handler = "app.lambda_handler"
-    runtime = "python3.8"
+    runtime = "python3.9"
     function_name = "${var.namespace}-function1-${random_uuid.s3_bucket.result}"
     role = aws_iam_role.iam_for_lambda.arn
     timeout = 300
@@ -69,6 +69,6 @@ resource "aws_lambda_function" "function1" {
 resource "aws_lambda_layer_version" "layer1" {
     filename = "${local.src_path}/${local.layer1_artifact_filename}"
     layer_name = "${var.namespace}_lambda_layer1"
-    compatible_runtimes = ["python3.8", "python3.9"]
+    compatible_runtimes = ["python3.9"]
 }
 ## */

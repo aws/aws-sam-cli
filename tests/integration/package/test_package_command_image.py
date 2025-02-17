@@ -26,13 +26,13 @@ class TestPackageImage(PackageIntegBase):
     def setUpClass(cls):
         cls.docker_client = docker.from_env()
         cls.local_images = [
-            ("public.ecr.aws/sam/emulation-python3.8", "latest"),
+            ("public.ecr.aws/sam/emulation-python3.9", "latest"),
         ]
         # setup some images locally by pulling them.
         for repo, tag in cls.local_images:
             cls.docker_client.api.pull(repository=repo, tag=tag)
-            cls.docker_client.api.tag(f"{repo}:{tag}", "emulation-python3.8", tag="latest")
-            cls.docker_client.api.tag(f"{repo}:{tag}", "emulation-python3.8-2", tag="latest")
+            cls.docker_client.api.tag(f"{repo}:{tag}", "emulation-python3.9", tag="latest")
+            cls.docker_client.api.tag(f"{repo}:{tag}", "emulation-python3.9-2", tag="latest")
             cls.docker_client.api.tag(f"{repo}:{tag}", "colorsrandomfunctionf61b9209", tag="latest")
 
         super(TestPackageImage, cls).setUpClass()
@@ -264,8 +264,8 @@ class TestPackageImage(PackageIntegBase):
 
         # verify all function images are pushed
         images = [
-            ("emulation-python3.8", "latest"),
-            ("emulation-python3.8-2", "latest"),
+            ("emulation-python3.9", "latest"),
+            ("emulation-python3.9-2", "latest"),
         ]
         for image, tag in images:
             # check string like this:

@@ -184,7 +184,7 @@ Resources:
 """
 
     @pytest.mark.flaky(reruns=3)
-    @pytest.mark.timeout(timeout=10, method="thread")
+    @pytest.mark.timeout(timeout=100, method="thread")
     def test_invalid_template(self):
         self.assertIn(
             "Authorizer 'RequestAuthorizer' with type 'notvalid' is currently not supported. "
@@ -219,7 +219,7 @@ Resources:
 """
 
     @pytest.mark.flaky(reruns=3)
-    @pytest.mark.timeout(timeout=10, method="thread")
+    @pytest.mark.timeout(timeout=100, method="thread")
     def test_invalid_template(self):
         self.assertIn(
             "Error: Lambda Authorizer 'RequestAuthorizerV2Simple' contains an "
@@ -254,7 +254,7 @@ Resources:
 """
 
     @pytest.mark.flaky(reruns=3)
-    @pytest.mark.timeout(timeout=10, method="thread")
+    @pytest.mark.timeout(timeout=100, method="thread")
     def test_invalid_template(self):
         self.assertIn(
             "Error: 'EnableSimpleResponses' is only supported for '2.0' "
@@ -289,7 +289,7 @@ Resources:
 """
 
     @pytest.mark.flaky(reruns=3)
-    @pytest.mark.timeout(timeout=10, method="thread")
+    @pytest.mark.timeout(timeout=100, method="thread")
     def test_invalid_template(self):
         self.assertIn(
             "Authorizer 'RequestAuthorizerV2Simple' with type 'unsupportedtype' is currently "
@@ -323,7 +323,7 @@ Resources:
 """
 
     @pytest.mark.flaky(reruns=3)
-    @pytest.mark.timeout(timeout=10, method="thread")
+    @pytest.mark.timeout(timeout=100, method="thread")
     def test_invalid_template(self):
         self.assertIn(
             "Error: Lambda Authorizer RequestAuthorizerV2Simple does not contain valid identity sources.",

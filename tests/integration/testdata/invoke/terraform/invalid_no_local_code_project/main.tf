@@ -34,7 +34,7 @@ resource "aws_lambda_function" "function" {
     s3_bucket = aws_s3_bucket.lambda_functions_code_bucket.id
     s3_key = "s3_lambda_code_key"
     handler = "app.lambda_handler"
-    runtime = "python3.8"
+    runtime = "python3.9"
     function_name = "s3_lambda_function"
     timeout = 500
     role = aws_iam_role.iam_for_lambda.arn

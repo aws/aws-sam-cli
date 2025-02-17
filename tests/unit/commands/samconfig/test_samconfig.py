@@ -122,6 +122,7 @@ class TestSamConfigForAllCommands(TestCase):
             "build_image": [("")],
             "exclude": [("")],
             "mount_with": "read",
+            "mount_symlinks": True,
         }
 
         with samconfig_parameters(["build"], self.scratch_dir, **config_values) as config_path:
@@ -160,6 +161,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 False,
                 "READ",
+                True,
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -219,6 +221,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 False,
                 "READ",
+                False,
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -277,6 +280,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 False,
                 "READ",
+                False,
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -336,6 +340,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 False,
                 "READ",
+                False,
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -396,6 +401,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 False,
                 "READ",
+                False,
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -453,6 +459,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 False,
                 "READ",
+                False,
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -509,6 +516,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 False,
                 "READ",
+                False,
             )
 
     @patch("samcli.commands.local.invoke.cli.do_cli")
@@ -532,6 +540,8 @@ class TestSamConfigForAllCommands(TestCase):
             "shutdown": True,
             "parameter_overrides": "ParameterKey=Key,ParameterValue=Value ParameterKey=Key2,ParameterValue=Value2",
             "invoke_image": ["image"],
+            "mount_symlinks": True,
+            "no_memory_limit": True,
         }
 
         # NOTE: Because we don't load the full Click BaseCommand here, this is mounted as top-level command
@@ -572,6 +582,8 @@ class TestSamConfigForAllCommands(TestCase):
                 {},
                 ("image",),
                 None,
+                True,
+                True,
             )
 
     @patch("samcli.commands.local.start_api.cli.do_cli")
@@ -596,6 +608,7 @@ class TestSamConfigForAllCommands(TestCase):
             "shutdown": False,
             "parameter_overrides": "ParameterKey=Key,ParameterValue=Value ParameterKey=Key2,ParameterValue=Value2",
             "invoke_image": ["image"],
+            "no_memory_limit": False,
         }
 
         # NOTE: Because we don't load the full Click BaseCommand here, this is mounted as top-level command
@@ -641,6 +654,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 None,
                 None,
+                False,
             )
 
     @patch("samcli.commands.local.start_lambda.cli.do_cli")
@@ -663,6 +677,7 @@ class TestSamConfigForAllCommands(TestCase):
             "shutdown": False,
             "parameter_overrides": "ParameterKey=Key,ParameterValue=Value",
             "invoke_image": ["image"],
+            "no_memory_limit": False,
         }
 
         # NOTE: Because we don't load the full Click BaseCommand here, this is mounted as top-level command
@@ -704,6 +719,7 @@ class TestSamConfigForAllCommands(TestCase):
                 {},
                 ("image",),
                 None,
+                False,
             )
 
     @patch("samcli.lib.cli_validation.image_repository_validation._is_all_image_funcs_provided")
@@ -1595,6 +1611,7 @@ class TestSamConfigWithOverrides(TestCase):
                 {},
                 ("image",),
                 None,
+                False,
             )
 
     @patch("samcli.commands.local.start_lambda.cli.do_cli")
@@ -1616,6 +1633,7 @@ class TestSamConfigWithOverrides(TestCase):
             "force_image_build": False,
             "shutdown": False,
             "invoke_image": ["image"],
+            "no_memory_limit": True,
         }
 
         # NOTE: Because we don't load the full Click BaseCommand here, this is mounted as top-level command
@@ -1692,6 +1710,7 @@ class TestSamConfigWithOverrides(TestCase):
                 {},
                 ("image",),
                 None,
+                True,
             )
 
     @patch("samcli.commands.validate.validate.do_cli")

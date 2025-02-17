@@ -141,6 +141,7 @@ def cli(
     terraform_plan_file,
     ssl_cert_file,
     ssl_key_file,
+    no_memory_limit,
 ):
     """
     `sam local start-api` command entry point
@@ -176,6 +177,7 @@ def cli(
         hook_name,
         ssl_cert_file,
         ssl_key_file,
+        no_memory_limit,
     )  # pragma: no cover
 
 
@@ -208,6 +210,7 @@ def do_cli(  # pylint: disable=R0914
     hook_name,
     ssl_cert_file,
     ssl_key_file,
+    no_mem_limit,
 ):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
@@ -253,6 +256,7 @@ def do_cli(  # pylint: disable=R0914
             container_host_interface=container_host_interface,
             invoke_images=processed_invoke_images,
             add_host=add_host,
+            no_mem_limit=no_mem_limit,
         ) as invoke_context:
             ssl_context = (ssl_cert_file, ssl_key_file) if ssl_cert_file else None
             service = LocalApiService(

@@ -65,7 +65,7 @@ Resources:
     Properties:
       CodeUri: ./
       Handler: app.lambda_handler
-      Runtime: python3.8
+      Runtime: python3.9
       Architectures:
         - x86_64
   HelloWorldFunctionPermission:
@@ -82,7 +82,7 @@ Resources:
     Properties:
       CodeUri: ./
       Handler: !Ref AuthHandler
-      Runtime: python3.8
+      Runtime: python3.9
       Architectures:
         - x86_64
   AuthorizerFunctionPermission:

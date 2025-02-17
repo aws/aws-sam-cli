@@ -65,7 +65,7 @@ resource "aws_lambda_layer_version" "layer4" {
   filename   = "./artifacts/simple_layer4.zip"
   layer_name = "lambda_layer4_${random_pet.this.id}"
 
-  compatible_runtimes = ["python3.8"]
+  compatible_runtimes = ["python3.9"]
 }
 
 module "layer5" {
@@ -84,7 +84,7 @@ resource "aws_lambda_layer_version" "layer6" {
   s3_bucket = aws_s3_bucket.lambda_functions_code_bucket.id
   s3_key = "layer6_code"
   layer_name = "lambda_layer6_${random_pet.this.id}"
-  compatible_runtimes = ["python3.8"]
+  compatible_runtimes = ["python3.9"]
 }
 
 resource "aws_s3_object" "layer7_code" {
@@ -97,13 +97,13 @@ resource "aws_lambda_layer_version" "layer7" {
   s3_bucket = var.BUCKET_NAME
   s3_key = "layer7_code"
   layer_name = "lambda_layer7_${random_pet.this.id}"
-  compatible_runtimes = ["python3.8"]
+  compatible_runtimes = ["python3.9"]
 }
 
 resource "aws_lambda_function" "function1" {
     filename = "./artifacts/HelloWorldFunction.zip"
     handler = "app.lambda_handler"
-    runtime = "python3.8"
+    runtime = "python3.9"
     function_name = "function1_${random_pet.this.id}"
     role = aws_iam_role.iam_for_lambda.arn
     timeout = 300
@@ -115,7 +115,7 @@ resource "aws_lambda_function" "function1" {
 resource "aws_lambda_function" "function2" {
     filename = "./artifacts/HelloWorldFunction.zip"
     handler = "app.lambda_handler"
-    runtime = "python3.8"
+    runtime = "python3.9"
     function_name = "function2_${random_pet.this.id}"
     role = aws_iam_role.iam_for_lambda.arn
     timeout = 300
@@ -127,7 +127,7 @@ resource "aws_lambda_function" "function2" {
 resource "aws_lambda_function" "function3" {
     filename = "./artifacts/HelloWorldFunction.zip"
     handler = "app.lambda_handler"
-    runtime = "python3.8"
+    runtime = "python3.9"
     function_name = "function3_${random_pet.this.id}"
     role = aws_iam_role.iam_for_lambda.arn
     timeout = 300
@@ -139,7 +139,7 @@ resource "aws_lambda_function" "function3" {
 resource "aws_lambda_function" "function4" {
     filename = "./artifacts/HelloWorldFunction.zip"
     handler = "app.lambda_handler"
-    runtime = "python3.8"
+    runtime = "python3.9"
     function_name = "function4_${random_pet.this.id}"
     role = aws_iam_role.iam_for_lambda.arn
     timeout = 300
@@ -166,7 +166,7 @@ resource "aws_lambda_function" "function6" {
     s3_bucket = aws_s3_bucket.lambda_functions_code_bucket.id
     s3_key = "function6_code"
     handler = "app.lambda_handler"
-    runtime = "python3.8"
+    runtime = "python3.9"
     function_name = "function6_${random_pet.this.id}"
     role = aws_iam_role.iam_for_lambda.arn
     timeout = 300
@@ -185,7 +185,7 @@ resource "aws_lambda_function" "function7" {
     s3_bucket = var.BUCKET_NAME
     s3_key = "function7_code"
     handler = "app.lambda_handler"
-    runtime = "python3.8"
+    runtime = "python3.9"
     function_name = "function7_${random_pet.this.id}"
     role = aws_iam_role.iam_for_lambda.arn
     timeout = 300
@@ -201,8 +201,8 @@ module "layer8" {
   create_layer = true
   create_package = false
   layer_name = "lambda_layer8_${random_pet.this.id}"
-  compatible_runtimes = ["python3.8"]
-  runtime = "python3.8"
+  compatible_runtimes = ["python3.9"]
+  runtime = "python3.9"
   local_existing_package = "./artifacts/simple_layer8.zip"
 }
 
@@ -222,8 +222,8 @@ module "layer9" {
     key = "layer9_code"
   }
   layer_name = "lambda_layer9_${random_pet.this.id}"
-  compatible_runtimes = ["python3.8"]
-  runtime = "python3.8"
+  compatible_runtimes = ["python3.9"]
+  runtime = "python3.9"
 }
 
 module "function8" {
@@ -232,7 +232,7 @@ module "function8" {
   create_package = false
   function_name = "function8_${random_pet.this.id}"
   handler       = "app.lambda_handler"
-  runtime       = "python3.8"
+  runtime       = "python3.9"
   timeout = 300
   layers = [module.layer8.lambda_layer_arn]
 
@@ -256,7 +256,7 @@ module "function9" {
   timeout = 300
   function_name = "function9_${random_pet.this.id}"
   handler       = "app.lambda_handler"
-  runtime       = "python3.8"
+  runtime       = "python3.9"
   layers = [module.layer9.lambda_layer_arn]
 }
 

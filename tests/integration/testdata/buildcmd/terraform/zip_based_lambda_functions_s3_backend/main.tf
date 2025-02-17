@@ -99,7 +99,7 @@ resource "null_resource" "build_layer_version" {
 resource "aws_lambda_function" "from_localfile" {
   filename      = "${local.building_path}/${local.lambda_code_filename}"
   handler       = "index.lambda_handler"
-  runtime       = "python3.8"
+  runtime       = "python3.9"
   function_name = "my_function_from_localfile"
   role          = aws_iam_role.iam_for_lambda.arn
   timeout       = 300
@@ -126,7 +126,7 @@ resource "aws_lambda_function" "from_s3" {
   s3_bucket     = aws_s3_bucket.lambda_code_bucket.bucket
   s3_key        = aws_s3_object.s3_lambda_code.key
   handler       = "index.lambda_handler"
-  runtime       = "python3.8"
+  runtime       = "python3.9"
   function_name = "my_function_from_s3"
   role          = aws_iam_role.iam_for_lambda.arn
   timeout       = 300
@@ -192,7 +192,7 @@ resource "aws_lambda_layer_version" "from_local" {
   filename   = "${local.building_path}/${local.layer_code_filename}"
   layer_name = "my_layer"
 
-  compatible_runtimes = ["python3.8", "python3.9"]
+  compatible_runtimes = ["python3.9"]
 }
 
 resource "null_resource" "sam_metadata_aws_lambda_layer_version_from_local" {
@@ -251,7 +251,7 @@ resource "aws_lambda_layer_version" "layer1" {
   count               = 1
   filename            = "${local.building_path}/${local.layer1_artifact_file_name}"
   layer_name          = "lambda_layer1"
-  compatible_runtimes = ["python3.8"]
+  compatible_runtimes = ["python3.9"]
   depends_on = [
     null_resource.build_layer1_version
   ]
@@ -334,7 +334,7 @@ resource "aws_lambda_layer_version" "layer3" {
   s3_bucket           = aws_s3_bucket.lambda_code_bucket.id
   s3_key              = "layer3_code"
   layer_name          = each.value
-  compatible_runtimes = ["python3.8"]
+  compatible_runtimes = ["python3.9"]
   depends_on = [
     null_resource.build_layer3_version, aws_s3_object.layer3_code
   ]
@@ -378,7 +378,7 @@ resource "aws_lambda_layer_version" "layer4" {
   s3_bucket           = "existing_s3_bucket_name"
   s3_key              = "layer4_code"
   layer_name          = "lambda_layer4"
-  compatible_runtimes = ["python3.8"]
+  compatible_runtimes = ["python3.9"]
   depends_on = [
     null_resource.build_layer4_version, aws_s3_object.layer4_code
   ]
@@ -420,7 +420,7 @@ resource "aws_lambda_layer_version" "layer5" {
   s3_bucket           = "existing_s3_bucket_name"
   s3_key              = "layer5_code"
   layer_name          = "lambda_layer5"
-  compatible_runtimes = ["python3.8"]
+  compatible_runtimes = ["python3.9"]
   depends_on = [
     null_resource.build_layer5_version, aws_s3_object.layer5_code
   ]
@@ -452,7 +452,7 @@ resource "null_resource" "sam_metadata_aws_lambda_layer_version_layer6" {
 resource "aws_lambda_layer_version" "layer6" {
   filename            = "${local.building_path}/${local.layer6_artifact_file_name}"
   layer_name          = "lambda_layer6"
-  compatible_runtimes = ["python3.8"]
+  compatible_runtimes = ["python3.9"]
   depends_on = [
     null_resource.build_layer6_version
   ]
@@ -476,7 +476,7 @@ resource "null_resource" "sam_metadata_aws_lambda_function1" {
 resource "aws_lambda_function" "function1" {
   filename      = "${local.building_path}/${local.hello_world_artifact_file_name}"
   handler       = "app.lambda_handler"
-  runtime       = "python3.8"
+  runtime       = "python3.9"
   function_name = "function1"
   role          = aws_iam_role.iam_for_lambda.arn
   timeout       = 300
@@ -539,7 +539,7 @@ resource "aws_lambda_function" "function3" {
   s3_bucket     = aws_s3_bucket.lambda_code_bucket.id
   s3_key        = "function3_code"
   handler       = "app.lambda_handler"
-  runtime       = "python3.8"
+  runtime       = "python3.9"
   function_name = "function3"
   role          = aws_iam_role.iam_for_lambda.arn
   timeout       = 300
@@ -578,7 +578,7 @@ resource "aws_lambda_function" "function4" {
   s3_bucket     = "existing_s3_bucket_name"
   s3_key        = "function4_code"
   handler       = "app.lambda_handler"
-  runtime       = "python3.8"
+  runtime       = "python3.9"
   function_name = "function4"
   role          = aws_iam_role.iam_for_lambda.arn
   timeout       = 300
@@ -616,7 +616,7 @@ resource "aws_lambda_function" "function5" {
   s3_bucket     = "existing_s3_bucket_name"
   s3_key        = "function5_code"
   handler       = "app.lambda_handler"
-  runtime       = "python3.8"
+  runtime       = "python3.9"
   function_name = "function5"
   role          = aws_iam_role.iam_for_lambda.arn
   timeout       = 300
@@ -645,7 +645,7 @@ resource "null_resource" "sam_metadata_aws_lambda_function6" {
 resource "aws_lambda_function" "function6" {
   filename      = "${local.building_path}/${local.hello_world_artifact_file_name}"
   handler       = "app.lambda_handler"
-  runtime       = "python3.8"
+  runtime       = "python3.9"
   function_name = "function6"
   role          = aws_iam_role.iam_for_lambda.arn
   timeout       = 300
@@ -664,8 +664,8 @@ module "layer7" {
   version             = "4.6.0"
   create_layer        = true
   layer_name          = "lambda_layer7"
-  compatible_runtimes = ["python3.8"]
-  runtime             = "python3.8"
+  compatible_runtimes = ["python3.9"]
+  runtime             = "python3.9"
   source_path = {
     path             = local.layer7_src_path
     prefix_in_zip    = "python"
@@ -680,7 +680,7 @@ module "function7" {
   function_name = "function7"
   timeout       = 300
   handler       = "app.lambda_handler"
-  runtime       = "python3.8"
+  runtime       = "python3.9"
   layers        = [module.layer7.lambda_layer_arn]
 }
 
@@ -689,8 +689,8 @@ module "layer8" {
   version             = "4.6.0"
   create_layer        = true
   layer_name          = "lambda_layer8"
-  compatible_runtimes = ["python3.8"]
-  runtime             = "python3.8"
+  compatible_runtimes = ["python3.9"]
+  runtime             = "python3.9"
   store_on_s3         = true
   s3_bucket           = "existing_s3_bucket"
   source_path = {
@@ -707,7 +707,7 @@ module "function8" {
   function_name = "function8"
   timeout       = 300
   handler       = "app.lambda_handler"
-  runtime       = "python3.8"
+  runtime       = "python3.9"
   layers        = [module.layer8.lambda_layer_arn]
   store_on_s3   = true
   s3_bucket     = "existing_s3_bucket"
@@ -742,8 +742,8 @@ module "layer9" {
   create_layer           = true
   create_package         = false
   layer_name             = "lambda_layer9"
-  compatible_runtimes    = ["python3.8"]
-  runtime                = "python3.8"
+  compatible_runtimes    = ["python3.9"]
+  runtime                = "python3.9"
   s3_bucket              = "existing_s3_bucket"
   local_existing_package = "${local.building_path}/${local.layer9_artifact_file_name}"
 }
@@ -771,7 +771,7 @@ module "function9" {
   timeout                = 300
   function_name          = "function9"
   handler                = "app.lambda_handler"
-  runtime                = "python3.8"
+  runtime                = "python3.9"
   layers                 = [module.layer9.lambda_layer_arn]
 }
 ## /* function9 connected to layer9
@@ -782,8 +782,8 @@ module "layer10" {
   version             = "4.6.0"
   create_layer        = true
   layer_name          = "lambda_layer10"
-  compatible_runtimes = ["python3.8"]
-  runtime             = "python3.8"
+  compatible_runtimes = ["python3.9"]
+  runtime             = "python3.9"
   store_on_s3         = true
   s3_bucket           = aws_s3_bucket.lambda_code_bucket.id
   source_path = {
@@ -800,7 +800,7 @@ module "function10" {
   function_name = "function10"
   timeout       = 300
   handler       = "app.lambda_handler"
-  runtime       = "python3.8"
+  runtime       = "python3.9"
   layers        = [module.layer10.lambda_layer_arn]
   store_on_s3   = true
   s3_bucket     = aws_s3_bucket.lambda_code_bucket.id
@@ -811,8 +811,8 @@ module "layer11" {
   version             = "4.6.0"
   create_layer        = true
   layer_name          = "lambda_layer11"
-  compatible_runtimes = ["python3.8"]
-  runtime             = "python3.8"
+  compatible_runtimes = ["python3.9"]
+  runtime             = "python3.9"
   source_path = [{
     path             = local.layer11_src_path
     prefix_in_zip    = "python"
@@ -829,6 +829,6 @@ module "function11" {
   }]
   function_name = "function11"
   handler       = "app.lambda_handler"
-  runtime       = "python3.8"
+  runtime       = "python3.9"
   layers        = [module.layer11.lambda_layer_arn]
 }

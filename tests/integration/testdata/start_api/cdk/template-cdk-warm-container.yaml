@@ -47,7 +47,7 @@ Resources:
             Ref: ModeEnvVariable
       FunctionName: HelloWorldFunction
       Handler: main.handler
-      Runtime: python3.8
+      Runtime: python3.9
     DependsOn:
       - helloworldfunctionServiceRole306F1141
     Metadata:
@@ -431,7 +431,7 @@ Resources:
             Ref: ModeEnvVariable
       FunctionName: EchoEventFunction
       Handler: main.echo_event_handler
-      Runtime: python3.8
+      Runtime: python3.9
     DependsOn:
       - echoeventfunctionServiceRole47C73665
     Metadata:

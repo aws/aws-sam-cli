@@ -22,6 +22,7 @@ CONTAINER_OPTION_NAMES: List[str] = [
     "mount_with",
     "skip_pull_image",
     "docker_network",
+    "mount_symlinks",
 ]
 
 CONFIGURATION_OPTION_NAMES: List[str] = ["config_env", "config_file"] + SAVE_PARAMS_OPTIONS

@@ -7,7 +7,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: app.handler
-      Runtime: python3.8
+      Runtime: python3.9
       CodeUri: s3://some/path
       Timeout: 600
 
@@ -15,7 +15,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: app.handler
-      Runtime: python3.8
+      Runtime: python3.9
       CodeUri:
         Bucket: some-bucket
         Key: some-key
@@ -25,7 +25,7 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       Handler: app.handler
-      Runtime: python3.8
+      Runtime: python3.9
       Code: s3://some/path
       Timeout: 600
 
@@ -33,7 +33,7 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       Handler: app.handler
-      Runtime: python3.8
+      Runtime: python3.9
       Code:
         S3Bucket: some-bucket
         S3Key: some-key
@@ -44,7 +44,7 @@ Resources:
     Properties:
       ContentUri: s3://some/path
       CompatibleRuntimes:
-        - python3.8
+        - python3.9
 
   IgnoreServerlessLayer2:
     Type: AWS::Serverless::LayerVersion
@@ -53,14 +53,14 @@ Resources:
         Bucket: some-bucket
         Key: some-key
       CompatibleRuntimes:
-        - python3.8
+        - python3.9
 
   IgnoreLambdaLayer:
     Type: AWS::Lambda::LayerVersion
     Properties:
       Content: s3://some/path
       CompatibleRuntimes:
-        - python3.8
+        - python3.9
 
   IgnoreLambdaLayer2:
     Type: AWS::Lambda::LayerVersion
@@ -69,14 +69,14 @@ Resources:
         S3Bucket: some-bucket
         S3Key: some-key
       CompatibleRuntimes:
-        - python3.8
+        - python3.9
 
   # the two functions below should still be built even all layers are not available
   ServerlessFunction:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.8
+      Runtime: python3.9
       CodeUri: Python
       Timeout: 600
       Layers:
@@ -89,7 +89,7 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       Handler: main.handler
-      Runtime: python3.8
+      Runtime: python3.9
       Code: Python
       Timeout: 600
       Layers:

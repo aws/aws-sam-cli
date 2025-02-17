@@ -14,7 +14,7 @@ from typing import Dict, Optional, Union
 from samcli.lib.telemetry.metric import capture_parameter
 from samcli.lib.utils.file_observer import LambdaFunctionObserver
 from samcli.lib.utils.packagetype import ZIP
-from samcli.local.docker.container import Container
+from samcli.local.docker.container import Container, ContainerContext
 from samcli.local.docker.container_analyzer import ContainerAnalyzer
 from samcli.local.docker.exceptions import ContainerFailureError, DockerContainerCreationFailedException
 from samcli.local.docker.lambda_container import LambdaContainer
@@ -35,7 +35,7 @@ class LambdaRuntime:
 
     SUPPORTED_ARCHIVE_EXTENSIONS = (".zip", ".jar", ".ZIP", ".JAR")
 
-    def __init__(self, container_manager, image_builder):
+    def __init__(self, container_manager, image_builder, mount_symlinks=False, no_mem_limit=False):
         """
         Initialize the Local Lambda runtime
 
@@ -45,11 +45,15 @@ class LambdaRuntime:
             Instance of the ContainerManager class that can run a local Docker container
         image_builder samcli.local.docker.lambda_image.LambdaImage
             Instance of the LambdaImage class that can create am image
+        mount_symlinks bool
+            Optional. True is symlinks should be mounted in the container
         """
         self._container_manager = container_manager
         self._image_builder = image_builder
         self._temp_uncompressed_paths_to_be_cleaned = []
         self._lock = threading.Lock()
+        self._mount_symlinks = mount_symlinks
+        self._no_mem_limit = no_mem_limit
 
     def create(
         self, function_config, debug_context=None, container_host=None, container_host_interface=None, extra_hosts=None
@@ -103,17 +107,18 @@ class LambdaRuntime:
             layers,
             self._image_builder,
             function_config.architecture,
-            memory_mb=function_config.memory,
+            memory_mb=(None if self._no_mem_limit else function_config.memory),
             env_vars=env_vars,
             debug_options=debug_context,
             container_host=container_host,
             container_host_interface=container_host_interface,
             extra_hosts=extra_hosts,
             function_full_path=function_config.full_path,
+            mount_symlinks=self._mount_symlinks,
         )
         try:
             # create the container.
-            self._container_manager.create(container)
+            self._container_manager.create(container, ContainerContext.INVOKE)
             return container
 
         except DockerContainerCreationFailedException:
@@ -174,7 +179,7 @@ class LambdaRuntime:
 
         try:
             # start the container.
-            self._container_manager.run(container)
+            self._container_manager.run(container, ContainerContext.INVOKE)
             return container
 
         except KeyboardInterrupt:
@@ -390,7 +395,7 @@ class WarmLambdaRuntime(LambdaRuntime):
     warm containers life cycle.
     """
 
-    def __init__(self, container_manager, image_builder, observer=None):
+    def __init__(self, container_manager, image_builder, observer=None, mount_symlinks=False, no_mem_limit=False):
         """
         Initialize the Local Lambda runtime
 
@@ -408,7 +413,7 @@ class WarmLambdaRuntime(LambdaRuntime):
 
         self._observer = observer if observer else LambdaFunctionObserver(self._on_code_change)
 
-        super().__init__(container_manager, image_builder)
+        super().__init__(container_manager, image_builder, mount_symlinks=mount_symlinks, no_mem_limit=no_mem_limit)
 
     def create(
         self, function_config, debug_context=None, container_host=None, container_host_interface=None, extra_hosts=None

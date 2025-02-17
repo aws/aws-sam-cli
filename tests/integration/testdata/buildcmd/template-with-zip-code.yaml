@@ -7,7 +7,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: app.handler
-      Runtime: python3.8
+      Runtime: python3.9
       CodeUri: /some/path/file.zip
       Timeout: 600
 
@@ -15,7 +15,7 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       Handler: app.handler
-      Runtime: python3.8
+      Runtime: python3.9
       Code: some/path/file.zip
       Timeout: 600
 
@@ -24,11 +24,11 @@ Resources:
     Properties:
       ContentUri: ./some.zip
       CompatibleRuntimes:
-        - python3.8
+        - python3.9
 
   IgnoreLambdaLayer:
     Type: AWS::Lambda::LayerVersion
     Properties:
       Content: some.zip
       CompatibleRuntimes:
-        - python3.8
+        - python3.9

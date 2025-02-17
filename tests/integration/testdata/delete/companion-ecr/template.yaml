@@ -11,4 +11,4 @@ Resources:
     Metadata:
       Dockerfile: Dockerfile
       DockerContext: ./hello_world
-      DockerTag: python3.8-v1
+      DockerTag: python3.9-v1

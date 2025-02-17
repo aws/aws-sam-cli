@@ -22,8 +22,10 @@ class TestRuntime(TestCase):
             ("nodejs18.x", "nodejs:18-x86_64"),
             ("nodejs20.x", "nodejs:20-x86_64"),
             ("nodejs22.x", "nodejs:22-x86_64"),
-            ("python3.8", "python:3.8-x86_64"),
             ("python3.9", "python:3.9-x86_64"),
+            ("python3.10", "python:3.10-x86_64"),
+            ("python3.11", "python:3.11-x86_64"),
+            ("python3.12", "python:3.12-x86_64"),
             ("ruby3.2", "ruby:3.2-x86_64"),
             ("java8.al2", "java:8.al2-x86_64"),
             ("java11", "java:11-x86_64"),
@@ -253,7 +255,7 @@ class TestLambdaImage(TestCase):
     @parameterized.expand(
         [
             ("python3.12", "python:3.12-x86_64", "public.ecr.aws/lambda/python:3.12-x86_64"),
-            ("python3.8", "python:3.8-x86_64", "public.ecr.aws/lambda/python:3.8-x86_64"),
+            ("python3.9", "python:3.9-x86_64", "public.ecr.aws/lambda/python:3.9-x86_64"),
         ]
     )
     @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
@@ -293,7 +295,7 @@ class TestLambdaImage(TestCase):
     @parameterized.expand(
         [
             ("python3.12", "python:3.12-x86_64", "public.ecr.aws/lambda/python:3.12-x86_64"),
-            ("python3.8", "python:3.8-x86_64", "public.ecr.aws/lambda/python:3.8-x86_64"),
+            ("python3.9", "python:3.9-x86_64", "public.ecr.aws/lambda/python:3.9-x86_64"),
         ]
     )
     @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
@@ -333,7 +335,7 @@ class TestLambdaImage(TestCase):
     @parameterized.expand(
         [
             ("python3.12", "python:3.12-x86_64", "public.ecr.aws/lambda/python:3.12-x86_64"),
-            ("python3.8", "python:3.8-x86_64", "public.ecr.aws/lambda/python:3.8-x86_64"),
+            ("python3.9", "python:3.9-x86_64", "public.ecr.aws/lambda/python:3.9-x86_64"),
         ]
     )
     @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
@@ -359,7 +361,7 @@ class TestLambdaImage(TestCase):
     @parameterized.expand(
         [
             ("python3.12", "python:3.12-arm64", "public.ecr.aws/lambda/python:3.12-arm64"),
-            ("python3.8", "python:3.8-arm64", "public.ecr.aws/lambda/python:3.8-arm64"),
+            ("python3.9", "python:3.9-arm64", "public.ecr.aws/lambda/python:3.9-arm64"),
         ]
     )
     @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
@@ -627,8 +629,8 @@ class TestLambdaImage(TestCase):
         docker_full_path_mock.unlink.assert_called_once()
 
     def test_building_new_rapid_image_removes_old_rapid_images(self):
-        old_repo = "public.ecr.aws/sam/emulation-python3.8"
-        repo = "public.ecr.aws/lambda/python:3.8"
+        old_repo = "public.ecr.aws/sam/emulation-python3.9"
+        repo = "public.ecr.aws/lambda/python:3.9"
         docker_client_mock = Mock()
         docker_client_mock.api.build.return_value = ["mock"]
         docker_client_mock.images.get.side_effect = ImageNotFound("image not found")
@@ -648,7 +650,7 @@ class TestLambdaImage(TestCase):
         lambda_image = LambdaImage(layer_downloader_mock, False, False, docker_client=docker_client_mock)
 
         self.assertEqual(
-            lambda_image.build("python3.8", ZIP, None, [], X86_64, function_name="function"),
+            lambda_image.build("python3.9", ZIP, None, [], X86_64, function_name="function"),
             f"{repo}-{RAPID_IMAGE_TAG_PREFIX}-x86_64",
         )
 
@@ -693,8 +695,8 @@ class TestLambdaImage(TestCase):
         )
 
     def test_building_existing_rapid_image_does_not_remove_old_rapid_images(self):
-        old_repo = "public.ecr.aws/sam/emulation-python3.8"
-        repo = "public.ecr.aws/lambda/python:3.8"
+        old_repo = "public.ecr.aws/sam/emulation-python3.9"
+        repo = "public.ecr.aws/lambda/python:3.9"
         docker_client_mock = Mock()
         docker_client_mock.api.build.return_value = ["mock"]
         docker_client_mock.images.list.return_value = [
@@ -709,7 +711,7 @@ class TestLambdaImage(TestCase):
         lambda_image.is_base_image_current = Mock(return_value=True)
 
         self.assertEqual(
-            lambda_image.build("python3.8", ZIP, None, [], X86_64, function_name="function"),
+            lambda_image.build("python3.9", ZIP, None, [], X86_64, function_name="function"),
             f"{repo}-{RAPID_IMAGE_TAG_PREFIX}-x86_64",
         )
 
@@ -727,9 +729,8 @@ class TestLambdaImage(TestCase):
             ("public.ecr.aws/sam/emulation-python3.9:rapid", False),
             ("public.ecr.aws/sam/emulation-python3.9:rapid-1.29.0", True),
             ("public.ecr.aws/lambda/python:3.9-rapid-arm64", True),
-            ("public.ecr.aws/lambda/python:3.8.v1-rapid-x86_64", True),
+            ("public.ecr.aws/lambda/python:3.9.v1-rapid-x86_64", True),
             ("public.ecr.aws/lambda/java:11-rapid-x86_64", True),
-            ("public.ecr.aws/lambda/python:3.8", False),
             ("public.ecr.aws/lambda/latest", False),
         ]
     )

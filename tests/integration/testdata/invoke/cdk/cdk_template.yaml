@@ -46,7 +46,7 @@ Resources:
             Ref: ModeEnvVariable
       FunctionName: HelloWorldFunction
       Handler: app.hello_world_handler
-      Runtime: python3.8
+      Runtime: python3.9
     DependsOn:
       - helloworldfunctionServiceRole306F1141
     Metadata:
@@ -100,7 +100,7 @@ Resources:
           MODE:
             Ref: ModeEnvVariable
       Handler: app.handler
-      Runtime: python3.8
+      Runtime: python3.9
     DependsOn:
       - helloworldserverlessfunctionServiceRole98ADBB39
     Metadata:
@@ -150,7 +150,7 @@ Resources:
           - timeoutfunctionServiceRoleA84BD66C
           - Arn
       Handler: app.timeout_handler
-      Runtime: python3.8
+      Runtime: python3.9
       Timeout: 5
     DependsOn:
       - timeoutfunctionServiceRoleA84BD66C
@@ -204,7 +204,7 @@ Resources:
         Variables:
           CustomEnvVar: MyVar
       Handler: app.custom_env_var_echo_handler
-      Runtime: python3.8
+      Runtime: python3.9
     DependsOn:
       - customenvvarsfunctionServiceRoleAD9C51EC
     Metadata:
@@ -254,7 +254,7 @@ Resources:
           - writetostdoutfunctionServiceRole5A54371E
           - Arn
       Handler: app.write_to_stdout
-      Runtime: python3.8
+      Runtime: python3.9
     DependsOn:
       - writetostdoutfunctionServiceRole5A54371E
     Metadata:
@@ -304,7 +304,7 @@ Resources:
           - writetostderrfunctionServiceRole8B1BE086
           - Arn
       Handler: app.write_to_stderr
-      Runtime: python3.8
+      Runtime: python3.9
     DependsOn:
       - writetostderrfunctionServiceRole8B1BE086
     Metadata:
@@ -355,7 +355,7 @@ Resources:
           - Arn
       FunctionName: CDKEchoEventFunction
       Handler: app.echo_event
-      Runtime: python3.8
+      Runtime: python3.9
     DependsOn:
       - echoeventfunctionServiceRole8CA711AF
     Metadata:
@@ -409,7 +409,7 @@ Resources:
           MyRuntimeVersion:
             Ref: MyRuntimeVersion
       Handler: app.parameter_echo_handler
-      Runtime: python3.8
+      Runtime: python3.9
     DependsOn:
       - echoenvwithparametersServiceRoleB848F593
     Metadata:
