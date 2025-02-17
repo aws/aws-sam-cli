@@ -180,7 +180,7 @@ def copytree(source, destination, ignore=None):
             copytree(new_source, new_destination, ignore=ignore)
         else:
             try:
-                shutil.copy2(new_source, new_destination)
+                shutil.copy2(new_source, new_destination, follow_symlinks=False)
             except OSError as e:
                 if e.errno != errno.EINVAL:
                     raise e

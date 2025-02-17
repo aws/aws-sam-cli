@@ -111,6 +111,7 @@ class ApplicationBuilder:
         combine_dependencies: bool = True,
         build_in_source: Optional[bool] = None,
         mount_with_write: bool = False,
+        mount_symlinks: Optional[bool] = False,
     ) -> None:
         """
         Initialize the class
@@ -156,6 +157,8 @@ class ApplicationBuilder:
             Set to True to build in the source directory.
         mount_with_write: bool
             Mount source code directory with write permissions when building inside container.
+        mount_symlinks: Optional[bool]
+            True if symlinks should be mounted in the container.
         """
         self._resources_to_build = resources_to_build
         self._build_dir = build_dir
@@ -179,6 +182,7 @@ class ApplicationBuilder:
         self._combine_dependencies = combine_dependencies
         self._build_in_source = build_in_source
         self._mount_with_write = mount_with_write
+        self._mount_symlinks = mount_symlinks
 
     def build(self) -> ApplicationBuildResult:
         """
@@ -943,7 +947,6 @@ class ApplicationBuilder:
         log_level = LOG.getEffectiveLevel()
 
         container_env_vars = container_env_vars or {}
-
         container = LambdaBuildContainer(
             lambda_builders_protocol_version,
             config.language,
@@ -965,6 +968,7 @@ class ApplicationBuilder:
             build_in_source=self._build_in_source,
             mount_with_write=self._mount_with_write,
             build_dir=self._build_dir,
+            mount_symlinks=self._mount_symlinks,
         )
 
         try:
