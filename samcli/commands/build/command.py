@@ -24,6 +24,7 @@ from samcli.commands._utils.options import (
     docker_common_options,
     hook_name_click_option,
     manifest_option,
+    mount_symlinks_option,
     parameter_override_option,
     skip_prepare_infra_option,
     template_option_without_build,
@@ -115,6 +116,7 @@ DESCRIPTION = """
     "be changed/added by the build process. By default the source code directory is read only.",
     cls=ContainerOptions,
 )
+@mount_symlinks_option
 @build_dir_option
 @cache_dir_option
 @base_dir_option
@@ -158,6 +160,7 @@ def cli(
     mount_with: str,
     terraform_project_root_path: Optional[str],
     build_in_source: Optional[bool],
+    mount_symlinks: Optional[bool],
 ) -> None:
     """
     `sam build` command entry point
@@ -189,6 +192,7 @@ def cli(
         hook_name,
         build_in_source,
         mount_with,
+        mount_symlinks,
     )  # pragma: no cover
 
 
@@ -215,6 +219,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     hook_name: Optional[str],
     build_in_source: Optional[bool],
     mount_with: str,
+    mount_symlinks: Optional[bool],
 ) -> None:
     """
     Implementation of the ``cli`` method
@@ -254,6 +259,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
         hook_name=hook_name,
         build_in_source=build_in_source,
         mount_with=mount_with,
+        mount_symlinks=mount_symlinks,
     ) as ctx:
         ctx.run()
 
