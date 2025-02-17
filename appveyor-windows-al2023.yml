@@ -13,10 +13,10 @@ environment:
   TMPDIR: "%TEMP%"
   TMP: "%TEMP%"
 
-  # MSI Installers only use Py3.8. It is sufficient to test with this version here.
-  PYTHON_HOME: "C:\\Python38-x64"
-  PYTHON_SCRIPTS: "C:\\Python38-x64\\Scripts"
-  PYTHON_EXE: "C:\\Python38-x64\\python.exe"
+  # MSI Installers use Py3.9. It is sufficient to test with this version here.
+  PYTHON_HOME: "C:\\Python39-x64"
+  PYTHON_SCRIPTS: "C:\\Python39-x64\\Scripts"
+  PYTHON_EXE: "C:\\Python39-x64\\python.exe"
   PYTHON_ARCH: "64"
   HOME: 'C:\Users\appveyor'
   HOMEDRIVE: "C:"

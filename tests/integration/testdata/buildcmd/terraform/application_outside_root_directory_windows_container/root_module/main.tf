@@ -61,7 +61,7 @@ resource "aws_lambda_layer_version" "layer1" {
   count               = 1
   filename            = "${local.building_path}/${local.layer1_artifact_file_name}"
   layer_name          = "lambda_layer1"
-  compatible_runtimes = ["python3.8"]
+  compatible_runtimes = ["python3.9"]
   depends_on = [
     null_resource.build_layer1_version
   ]
@@ -96,7 +96,7 @@ resource "null_resource" "sam_metadata_aws_lambda_function1" {
 resource "aws_lambda_function" "function1" {
   filename      = "${local.building_path}/${local.hello_world_artifact_file_name}"
   handler       = "app.lambda_handler"
-  runtime       = "python3.8"
+  runtime       = "python3.9"
   function_name = "function1"
   timeout       = 300
   role          = aws_iam_role.iam_for_lambda.arn

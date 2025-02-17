@@ -16,8 +16,8 @@ configuration:
   - OtherAndEndToEndTesting
 
 environment:
-  PYTHON_HOME: "$HOME/venv3.8/bin"
-  PYTHON_VERSION: '3.8'
+  PYTHON_HOME: "$HOME/venv3.9/bin"
+  PYTHON_VERSION: '3.9'
   AWS_DEFAULT_REGION: us-east-1
   SAM_CLI_DEV: 1
   NODE_VERSION: "18.18.2"

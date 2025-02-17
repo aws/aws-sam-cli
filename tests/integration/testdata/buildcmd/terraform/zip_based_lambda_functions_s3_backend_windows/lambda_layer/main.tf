@@ -10,7 +10,7 @@ resource "aws_lambda_layer_version" "layer" {
   filename   = var.source_code
   layer_name = var.name
 
-  compatible_runtimes = ["python3.8"]
+  compatible_runtimes = ["python3.9"]
 }
 
 output "arn" {

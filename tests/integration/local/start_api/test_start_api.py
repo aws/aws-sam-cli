@@ -1549,9 +1549,9 @@ class TestServiceCorsSwaggerRequestsWithRestAPI(StartApiIntegBaseClass):
         self.assertEqual(response.headers.get("Access-Control-Allow-Credentials"), "true")
         self.assertEqual(response.headers.get("Access-Control-Max-Age"), "510")
 
+    @parameterized.expand(["https://abc", None])
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
-    @parameterized.expand(["https://abc", None])
     def test_cors_swagger_options(self, origin):
         """
         This tests that the Cors headers are added to OPTIONS responses
@@ -1559,9 +1559,9 @@ class TestServiceCorsSwaggerRequestsWithRestAPI(StartApiIntegBaseClass):
         response = requests.options(self.url + "/echobase64eventbody", **_create_request_params(origin))
         self.assert_cors(response)
 
+    @parameterized.expand(["https://abc", None])
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
-    @parameterized.expand(["https://abc", None])
     def test_cors_swagger_get(self, origin):
         """
         This tests that the Cors headers are added to _other_ method responses
@@ -1685,9 +1685,9 @@ class TestServiceCorsGlobalRequests(StartApiIntegBaseClass):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
+    @parameterized.expand(["https://abc", None])
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
-    @parameterized.expand(["https://abc", None])
     def test_cors_global(self, origin):
         """
         This tests that the Cors headers are added to OPTIONS response when the global property is set
