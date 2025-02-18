@@ -64,7 +64,7 @@ def _unquote_wrapped_quotes(value):
     return value.replace("\\ ", " ").replace('\\"', '"').replace("\\'", "'")
 
 
-def _flatten_list(data: list | tuple) -> list:
+def _flatten_list(data: Union[list, tuple]) -> list:
     """
         Recursively flattens lists and other list-like types for easy sequential processing.
         This also helps with lists combined with YAML anchors & aliases.
