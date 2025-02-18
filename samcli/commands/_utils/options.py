@@ -862,6 +862,34 @@ def use_container_build_option(f):
     return use_container_build_click_option()(f)
 
 
+def mount_symlinks_click_option():
+    return click.option(
+        "--mount-symlinks/--no-mount-symlinks",
+        default=False,
+        is_flag=True,
+        help="Specify if symlinks at the top level of the code should be mounted inside the container. "
+        "Activating this flag could allow access to locations outside of your workspace by using a symbolic link. "
+        "By default symlinks are not mounted.",
+    )
+
+
+def mount_symlinks_option(f):
+    return mount_symlinks_click_option()(f)
+
+
+def no_memory_limit_click_option():
+    return click.option(
+        "--no-memory-limit",
+        default=False,
+        is_flag=True,
+        help="Remove the Memory limit during emulation. This runs the container without the --memory parameter",
+    )
+
+
+def no_memory_limit_option(f):
+    return no_memory_limit_click_option()(f)
+
+
 def terraform_plan_file_callback(ctx, param, provided_value):
     """
     Callback for --terraform-plan-file to check if --hook-name is also specified

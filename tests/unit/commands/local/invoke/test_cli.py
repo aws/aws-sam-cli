@@ -50,6 +50,8 @@ class TestCli(TestCase):
         self.add_host = (["prod-na.host:10.11.12.13"],)
         self.invoke_image = ("amazon/aws-sam-cli-emulation-image-python3.9",)
         self.hook_name = None
+        self.mount_symlinks = False
+        self.no_mem_limit = False
 
         self.ctx_mock = Mock()
         self.ctx_mock.region = self.region_name
@@ -80,6 +82,8 @@ class TestCli(TestCase):
             add_host=self.add_host,
             invoke_image=self.invoke_image,
             hook_name=self.hook_name,
+            mount_symlinks=self.mount_symlinks,
+            no_mem_limit=self.no_mem_limit,
         )
 
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
@@ -116,6 +120,8 @@ class TestCli(TestCase):
             container_host_interface=self.container_host_interface,
             add_host=self.add_host,
             invoke_images={None: "amazon/aws-sam-cli-emulation-image-python3.9"},
+            mount_symlinks=self.mount_symlinks,
+            no_mem_limit=self.no_mem_limit,
         )
 
         context_mock.local_lambda_runner.invoke.assert_called_with(
@@ -156,6 +162,8 @@ class TestCli(TestCase):
             container_host_interface=self.container_host_interface,
             add_host=self.add_host,
             invoke_images={None: "amazon/aws-sam-cli-emulation-image-python3.9"},
+            mount_symlinks=self.mount_symlinks,
+            no_mem_limit=self.no_mem_limit,
         )
 
         get_event_mock.assert_not_called()

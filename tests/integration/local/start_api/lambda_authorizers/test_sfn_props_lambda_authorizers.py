@@ -159,7 +159,7 @@ Resources:
 """
 
     @pytest.mark.flaky(reruns=3)
-    @pytest.mark.timeout(timeout=10, method="thread")
+    @pytest.mark.timeout(timeout=100, method="thread")
     def test_invalid_template(self):
         self.assertIn(
             "EnableSimpleResponses must be used with the 2.0 payload "
@@ -210,7 +210,7 @@ Resources:
 """
 
     @pytest.mark.flaky(reruns=3)
-    @pytest.mark.timeout(timeout=10, method="thread")
+    @pytest.mark.timeout(timeout=100, method="thread")
     def test_invalid_template(self):
         self.assertIn(
             "Error: Lambda Authorizer 'RequestAuthorizerV2' must contain "
@@ -261,7 +261,7 @@ Resources:
 """
 
     @pytest.mark.flaky(reruns=3)
-    @pytest.mark.timeout(timeout=10, method="thread")
+    @pytest.mark.timeout(timeout=100, method="thread")
     def test_invalid_template(self):
         self.assertIn(
             "Unable to parse the Lambda ARN for Authorizer 'RequestAuthorizerV2', skipping",

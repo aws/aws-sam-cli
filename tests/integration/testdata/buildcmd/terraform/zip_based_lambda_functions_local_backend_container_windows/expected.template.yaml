@@ -135,7 +135,6 @@ Resources:
       LayerName: my_layer
       CompatibleRuntimes:
       - python3.9
-      - python3.9
       Content: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/my_layer_code
     Metadata:
       SamResourceId: aws_lambda_layer_version.from_local

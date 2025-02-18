@@ -107,7 +107,7 @@ class Test_copytree(TestCase):
         osutils.copytree(source_path, destination_path)
 
         patched_os.path.join.assert_called()
-        patched_copy2.assert_called_with(source_path, destination_path)
+        patched_copy2.assert_called_with(source_path, destination_path, follow_symlinks=False)
 
     @patch("samcli.lib.utils.osutils.Path")
     @patch("samcli.lib.utils.osutils.os")
@@ -127,7 +127,7 @@ class Test_copytree(TestCase):
             osutils.copytree(source_path, destination_path)
 
         patched_os.path.join.assert_called()
-        patched_copy2.assert_called_with(source_path, destination_path)
+        patched_copy2.assert_called_with(source_path, destination_path, follow_symlinks=False)
 
     @patch("samcli.lib.utils.osutils.create_symlink_or_copy")
     @patch("samcli.lib.utils.osutils.Path")
@@ -149,7 +149,7 @@ class Test_copytree(TestCase):
         osutils.copytree(source_path, destination_path)
 
         patched_os.path.join.assert_called()
-        patched_copy2.assert_called_with(source_path, destination_path)
+        patched_copy2.assert_called_with(source_path, destination_path, follow_symlinks=False)
         patched_create_symlink_or_copy.assert_called_with(source_path, destination_path)
 
 
