@@ -113,7 +113,7 @@ class CfnParameterOverridesType(click.ParamType):
 
     ordered_pattern_match = [_pattern_1, _pattern_2]
 
-    name = "string,list"
+    name = "list,object,string"
 
     def convert(self, values, param, ctx):
         """
@@ -177,6 +177,7 @@ class CfnParameterOverridesType(click.ParamType):
             result[_unquote_wrapped_quotes(key)] = _unquote_wrapped_quotes(param_value)
         LOG.debug("Output parameters: %s", result)
         return result
+
 
 class CfnMetadataType(click.ParamType):
     """

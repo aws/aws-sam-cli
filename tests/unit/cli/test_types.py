@@ -195,7 +195,6 @@ class TestCfnParameterOverridesType(TestCase):
             self.assertEqual(result, expected, msg="Failed with Input = " + str(inputs))
 
 
-
 class TestCfnMetadataType(TestCase):
 
     def setUp(self):
