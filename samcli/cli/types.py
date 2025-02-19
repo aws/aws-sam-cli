@@ -113,6 +113,8 @@ class CfnParameterOverridesType(click.ParamType):
 
     ordered_pattern_match = [_pattern_1, _pattern_2]
 
+    name = "string,list"
+
     def convert(self, values, param, ctx):
         """
         Normalizes different parameter overrides formats into key-value pairs of strings
