@@ -14,11 +14,11 @@ types-pywin32==308.0.0.20250128; python_version>="3.9"
 types-pywin32==308.0.0.20241221; python_version<"3.9"
 types-PyYAML==6.0.12.20241230
 types-chevron==0.14.2.20250103
-types-psutil==6.1.0.20241221
-types-setuptools==75.8.0.20250110
-types-Pygments==2.19.0.20250107 
+types-psutil==7.0.0.20250218
+types-setuptools==75.8.0.20250210
+types-Pygments==2.19.0.20250219 
 types-colorama==0.4.15.20240311
-types-dateparser==1.2.0.20240420
+types-dateparser==1.2.0.20250208
 types-docutils==0.21.0.20241128
 types-jsonschema==4.23.0.20241208
 types-pyOpenSSL==24.1.0.20240722
@@ -48,4 +48,4 @@ filelock==3.16.1;  python_version<"3.9"
 # formatter
 black==24.10.0; python_version>="3.9"
 black==24.8.0; python_version<"3.9"
-psutil==6.1.1
+psutil==7.0.0
