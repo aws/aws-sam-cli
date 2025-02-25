@@ -102,6 +102,7 @@ class InvokeContext:
         add_host: Optional[dict] = None,
         invoke_images: Optional[str] = None,
         mount_symlinks: Optional[bool] = False,
+        no_mem_limit: Optional[bool] = False,
     ) -> None:
         """
         Initialize the context
@@ -202,6 +203,7 @@ class InvokeContext:
         self._debug_function = debug_function
 
         self._mount_symlinks: Optional[bool] = mount_symlinks
+        self._no_mem_limit = no_mem_limit
 
         # Note(xinhol): despite self._function_provider and self._stacks are initialized as None
         # they will be assigned with a non-None value in __enter__() and
@@ -412,9 +414,13 @@ class InvokeContext:
                     self._container_manager,
                     image_builder,
                     mount_symlinks=self._mount_symlinks,
+                    no_mem_limit=self._no_mem_limit,
                 ),
                 ContainersMode.COLD: LambdaRuntime(
-                    self._container_manager, image_builder, mount_symlinks=self._mount_symlinks
+                    self._container_manager,
+                    image_builder,
+                    mount_symlinks=self._mount_symlinks,
+                    no_mem_limit=self._no_mem_limit,
                 ),
             }
         return self._lambda_runtimes[self._containers_mode]

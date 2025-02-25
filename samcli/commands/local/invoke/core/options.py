@@ -37,6 +37,7 @@ CONTAINER_OPTION_NAMES: List[str] = [
     "invoke_image",
     "runtime",
     "mount_symlinks",
+    "no_memory_limit",
 ]
 
 CONFIGURATION_OPTION_NAMES: List[str] = ["config_env", "config_file"] + SAVE_PARAMS_OPTIONS
