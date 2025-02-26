@@ -10,13 +10,13 @@ from samcli.cli.cli_config_file import ConfigProvider, configuration_option, sav
 from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
 from samcli.cli.main import common_options as cli_framework_options
 from samcli.commands._utils.option_value_processor import process_image_options
-from samcli.commands.init.init_flow_helpers import get_sorted_runtimes
 from samcli.commands._utils.options import (
     hook_name_click_option,
     mount_symlinks_option,
     skip_prepare_infra_option,
     terraform_plan_file_option,
 )
+from samcli.commands.init.init_flow_helpers import get_sorted_runtimes
 from samcli.commands.local.cli_common.options import invoke_common_options, local_common_options
 from samcli.commands.local.invoke.core.command import InvokeCommand
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
@@ -114,7 +114,7 @@ def cli(
     hook_name,
     skip_prepare_infra,
     terraform_plan_file,
-    runtime, 
+    runtime,
     mount_symlinks,
     no_memory_limit,
 ):
