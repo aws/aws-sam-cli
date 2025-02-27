@@ -583,6 +583,8 @@ class TestSamConfigForAllCommands(TestCase):
                 ("image",),
                 None,
                 None,
+                True,
+                True,
             )
 
     @patch("samcli.commands.local.invoke.cli.do_cli")
@@ -606,6 +608,8 @@ class TestSamConfigForAllCommands(TestCase):
             "shutdown": True,
             "parameter_overrides": "ParameterKey=Key,ParameterValue=Value ParameterKey=Key2,ParameterValue=Value2",
             "invoke_image": ["image"],
+            "mount_symlinks": True,
+            "no_memory_limit": True,
         }
 
         # NOTE: Because we don't load the full Click BaseCommand here, this is mounted as top-level command
