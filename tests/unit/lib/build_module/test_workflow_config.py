@@ -17,7 +17,7 @@ class Test_get_workflow_config(TestCase):
         EventTracker.clear_trackers()
 
     @parameterized.expand(
-        [("python3.8",), ("python3.9",), ("python3.10",), ("python3.11",), ("python3.12",), ("python3.13",)]
+        [("python3.9",), ("python3.10",), ("python3.11",), ("python3.12",), ("python3.13",)]
     )
     def test_must_work_for_python(self, runtime):
         result = get_workflow_config(runtime, self.code_dir, self.project_dir)

@@ -69,8 +69,8 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
 
     @parameterized.expand(
         [
-            *[(runtime, "Dockerfile") for runtime in ["3.8", "3.9", "3.10", "3.11"]],
-            *[(runtime, "Dockerfile.production") for runtime in ["3.8", "3.9", "3.10", "3.11"]],
+            *[(runtime, "Dockerfile") for runtime in ["3.9", "3.10", "3.11"]],
+            *[(runtime, "Dockerfile.production") for runtime in ["3.9", "3.10", "3.11"]],
         ]
     )
     def test_with_default_requirements(self, runtime, dockerfile):
@@ -158,8 +158,8 @@ class TestBuildCommand_PythonFunctions_ImagesWithSharedCode(BuildIntegBase):
 
     @parameterized.expand(
         [
-            *[(runtime, "feature_phi/Dockerfile", {"phi": "1.62"}) for runtime in ["3.8", "3.9", "3.10", "3.11"]],
-            *[(runtime, "feature_pi/Dockerfile", {"pi": "3.14"}) for runtime in ["3.8", "3.9", "3.10", "3.11"]],
+            *[(runtime, "feature_phi/Dockerfile", {"phi": "1.62"}) for runtime in ["3.9", "3.10", "3.11"]],
+            *[(runtime, "feature_pi/Dockerfile", {"pi": "3.14"}) for runtime in ["3.9", "3.10", "3.11"]],
         ]
     )
     def test_with_default_requirements(self, runtime, dockerfile, expected):

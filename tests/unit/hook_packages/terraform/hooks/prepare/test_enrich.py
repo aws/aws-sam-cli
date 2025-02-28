@@ -1203,10 +1203,7 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
 
     @parameterized.expand(
         [
-            ([CalledProcessError(-2, "python3 --version"), Mock(stdout="Python 3.8.10")], "py3"),
-            ([Mock(stdout="Python 3.8")], "python3"),
-            ([Mock(stdout="Python 3.8.0")], "python3"),
-            ([Mock(stdout="Python 3.8.12")], "python3"),
+            ([CalledProcessError(-2, "python3 --version"), Mock(stdout="Python 3.9.12")], "py3"),
             ([Mock(stdout="Python 3.9")], "python3"),
             ([Mock(stdout="Python 3.9.0")], "python3"),
             ([Mock(stdout="Python 3.9.12")], "python3"),
@@ -1215,9 +1212,6 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
             ([Mock(stdout="Python 3.10.12")], "python3"),
             (
                 [
-                    Mock(stdout="Python 3.6.10"),
-                    Mock(stdout="Python 3.0.10"),
-                    Mock(stdout="Python 2.7.10"),
                     Mock(stdout="Python 3.12.1"),
                 ],
                 "py",

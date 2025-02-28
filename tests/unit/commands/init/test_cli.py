@@ -1669,7 +1669,7 @@ N
             "--name",
             "untitled6",
             "--base-image",
-            "amazon/python3.8-base",
+            "amazon/python3.9-base",
             "--dependency-manager",
             "pip",
             "--no-structured-logging",
@@ -1680,7 +1680,7 @@ N
         # THEN we should receive no errors
         self.assertFalse(result.exception)
         generate_project_patch.assert_called_once_with(
-            ANY, IMAGE, "python3.8", "pip", ".", "untitled6", True, ANY, False, False, False
+            ANY, IMAGE, "python3.9", "pip", ".", "untitled6", True, ANY, False, False, False
         )
 
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
@@ -1691,14 +1691,14 @@ N
     ):
         init_options_from_manifest_mock.return_value = [
             {
-                "directory": "python3.8-image/cookiecutter-aws-sam-hello-python-lambda-image",
+                "directory": "python3.9-image/cookiecutter-aws-sam-hello-python-lambda-image",
                 "displayName": "Hello World Lambda Image Example",
                 "dependencyManager": "pip",
                 "appTemplate": "hello-world-lambda-image",
                 "packageType": "Image",
             },
             {
-                "directory": "python3.8-image/cookiecutter-ml-apigw-pytorch",
+                "directory": "python3.9-image/cookiecutter-ml-apigw-pytorch",
                 "displayName": "PyTorch Machine Learning Inference API",
                 "dependencyManager": "pip",
                 "appTemplate": "ml-apigw-pytorch",
@@ -1712,7 +1712,7 @@ N
                 pt_explicit=self.pt_explicit,
                 package_type="Image",
                 architecture=None,
-                base_image="amazon/python3.8-base",
+                base_image="amazon/python3.9-base",
                 dependency_manager="pip",
                 app_template=None,
                 name=self.name,
@@ -1734,14 +1734,14 @@ N
     ):
         init_options_from_manifest_mock.return_value = [
             {
-                "directory": "python3.8-image/cookiecutter-aws-sam-hello-python-lambda-image",
+                "directory": "python3.9-image/cookiecutter-aws-sam-hello-python-lambda-image",
                 "displayName": "Hello World Lambda Image Example",
                 "dependencyManager": "pip",
                 "appTemplate": "hello-world-lambda-image",
                 "packageType": "Image",
             },
             {
-                "directory": "python3.8-image/cookiecutter-ml-apigw-pytorch",
+                "directory": "python3.9-image/cookiecutter-ml-apigw-pytorch",
                 "displayName": "PyTorch Machine Learning Inference API",
                 "dependencyManager": "pip",
                 "appTemplate": "ml-apigw-pytorch",
@@ -1755,7 +1755,7 @@ N
                 pt_explicit=self.pt_explicit,
                 package_type="Image",
                 architecture=X86_64,
-                base_image="amazon/python3.8-base",
+                base_image="amazon/python3.9-base",
                 dependency_manager="pip",
                 app_template="Not-ml-apigw-pytorch",  # different value than appTemplates shown in the manifest above
                 name=self.name,
@@ -1779,14 +1779,14 @@ N
     ):
         init_options_from_manifest_mock.return_value = [
             {
-                "directory": "python3.8-image/cookiecutter-aws-sam-hello-python-lambda-image",
+                "directory": "python3.9-image/cookiecutter-aws-sam-hello-python-lambda-image",
                 "displayName": "Hello World Lambda Image Example",
                 "dependencyManager": "pip",
                 "appTemplate": "hello-world-lambda-image",
                 "packageType": "Image",
             },
             {
-                "directory": "python3.8-image/cookiecutter-ml-apigw-pytorch",
+                "directory": "python3.9-image/cookiecutter-ml-apigw-pytorch",
                 "displayName": "PyTorch Machine Learning Inference API",
                 "dependencyManager": "pip",
                 "appTemplate": "ml-apigw-pytorch",
@@ -1799,7 +1799,7 @@ N
             pt_explicit=True,
             package_type="Image",
             architecture=None,
-            base_image="amazon/python3.8-base",
+            base_image="amazon/python3.9-base",
             dependency_manager="pip",
             app_template="ml-apigw-pytorch",  # same value as one appTemplate in the manifest above
             name=self.name,
@@ -1815,7 +1815,7 @@ N
         generate_project_patch.assert_called_once_with(
             ANY,  # location
             "Image",  # package_type
-            "python3.8",  # runtime
+            "python3.9",  # runtime
             "pip",  # dependency_manager
             self.output_dir,
             self.name,
@@ -1836,7 +1836,7 @@ N
     ):
         init_options_from_manifest_mock.return_value = [
             {
-                "directory": "python3.8-image/cookiecutter-ml-apigw-pytorch",
+                "directory": "python3.9-image/cookiecutter-ml-apigw-pytorch",
                 "displayName": "PyTorch Machine Learning Inference API",
                 "dependencyManager": "pip",
                 "appTemplate": "ml-apigw-pytorch",
@@ -1848,7 +1848,7 @@ N
             no_interactive=True,
             pt_explicit=True,
             package_type="Image",
-            base_image="amazon/python3.8-base",
+            base_image="amazon/python3.9-base",
             dependency_manager="pip",
             app_template=None,
             name=self.name,
@@ -1865,7 +1865,7 @@ N
         generate_project_patch.assert_called_once_with(
             ANY,  # location
             "Image",  # package_type
-            "python3.8",  # runtime
+            "python3.9",  # runtime
             "pip",  # dependency_manager
             self.output_dir,
             self.name,

@@ -599,7 +599,6 @@ Resources:
   LambdaLayerVersion:
     Properties:
       CompatibleRuntimes:
-      - python3.8
       - python3.9
       ContentUri:
         Bucket: <%REPO_BUCKET%>
