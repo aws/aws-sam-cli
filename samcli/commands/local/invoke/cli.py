@@ -71,7 +71,7 @@ STDIN_FILE_NAME = "-"
     "-r",
     "--runtime",
     type=click.Choice(get_sorted_runtimes(INIT_RUNTIMES)),
-    help="Lambda runtime for application."
+    help="Lambda runtime used to invoke the function."
     + click.style(f"\n\nRuntimes: {', '.join(get_sorted_runtimes(INIT_RUNTIMES))}", bold=True),
 )
 @mount_symlinks_option
