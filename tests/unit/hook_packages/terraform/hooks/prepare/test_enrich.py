@@ -1212,6 +1212,9 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
             ([Mock(stdout="Python 3.10.12")], "python3"),
             (
                 [
+                    Mock(stdout="Python 3.6.10"),
+                    Mock(stdout="Python 3.0.10"),
+                    Mock(stdout="Python 2.7.10"),
                     Mock(stdout="Python 3.12.1"),
                 ],
                 "py",
