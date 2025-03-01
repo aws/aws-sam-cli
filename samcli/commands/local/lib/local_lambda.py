@@ -100,6 +100,7 @@ class LocalLambdaRunner:
         event: str,
         stdout: Optional[StreamWriter] = None,
         stderr: Optional[StreamWriter] = None,
+        override_runtime: Optional[str] = None,
     ) -> None:
         """
         Find the Lambda function with given name and invoke it. Pass the given event to the function and return
@@ -117,6 +118,8 @@ class LocalLambdaRunner:
             Stream writer to write the output of the Lambda function to.
         stderr samcli.lib.utils.stream_writer.StreamWriter
             Stream writer to write the Lambda runtime logs to.
+        Runtime: str
+            To use instead of the runtime specified in the function configuration
 
         Raises
         ------
@@ -151,7 +154,7 @@ class LocalLambdaRunner:
             LOG.info("Invoking Container created from %s", function.imageuri)
 
         validate_architecture_runtime(function)
-        config = self.get_invoke_config(function)
+        config = self.get_invoke_config(function, override_runtime)
 
         if (
             function.metadata
@@ -204,7 +207,7 @@ class LocalLambdaRunner:
         """
         return bool(self.debug_context)
 
-    def get_invoke_config(self, function: Function) -> FunctionConfig:
+    def get_invoke_config(self, function: Function, override_runtime: Optional[str] = None) -> FunctionConfig:
         """
         Returns invoke configuration to pass to Lambda Runtime to invoke the given function
 
@@ -232,7 +235,9 @@ class LocalLambdaRunner:
         return FunctionConfig(
             name=function.name,
             full_path=function.full_path,
-            runtime=function.runtime,
+            # override_runtime allows testing Lambda functions with a different
+            # runtime than specified in the function configuration
+            runtime=override_runtime if override_runtime else function.runtime,
             handler=function.handler,
             imageuri=function.imageuri,
             imageconfig=function.imageconfig,
