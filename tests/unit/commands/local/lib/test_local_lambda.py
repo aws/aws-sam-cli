@@ -473,6 +473,74 @@ class TestLocalLambda_get_invoke_config(TestCase):
     @patch("samcli.commands.local.lib.local_lambda.resolve_code_path")
     @patch("samcli.commands.local.lib.local_lambda.LocalLambdaRunner.is_debugging")
     @patch("samcli.commands.local.lib.local_lambda.FunctionConfig")
+    def test_must_work_with_runtime_option(self, FunctionConfigMock, is_debugging_mock, resolve_code_path_patch):
+        is_debugging_mock.return_value = False
+
+        env_vars = "envvars"
+        self.local_lambda._make_env_vars = Mock()
+        self.local_lambda._make_env_vars.return_value = env_vars
+
+        codepath = "codepath"
+        resolve_code_path_patch.return_value = codepath
+
+        layers = ["layer1", "layer2"]
+
+        function = Function(
+            stack_path="",
+            function_id="function_name",
+            name="function_name",
+            functionname="function_name",
+            runtime="runtime",
+            memory=1234,
+            timeout=12,
+            handler="handler",
+            codeuri="codeuri",
+            environment=None,
+            rolearn=None,
+            layers=layers,
+            events=None,
+            metadata=None,
+            inlinecode=None,
+            imageuri=None,
+            imageconfig=None,
+            packagetype=ZIP,
+            architectures=[ARM64],
+            codesign_config_arn=None,
+            function_url_config=None,
+            runtime_management_config=None,
+            function_build_info=FunctionBuildInfo.BuildableZip,
+        )
+
+        config = "someconfig"
+        override_runtime = "python3.11"
+        FunctionConfigMock.return_value = config
+        actual = self.local_lambda.get_invoke_config(function, override_runtime)
+        self.assertEqual(actual, config)
+
+        FunctionConfigMock.assert_called_with(
+            imageconfig=function.imageconfig,
+            imageuri=function.imageuri,
+            name=function.functionname,
+            packagetype=function.packagetype,
+            runtime=override_runtime,
+            handler=function.handler,
+            code_abs_path=codepath,
+            layers=layers,
+            memory=function.memory,
+            timeout=function.timeout,
+            env_vars=env_vars,
+            architecture=ARM64,
+            full_path=function.full_path,
+            runtime_management_config=function.runtime_management_config,
+            code_real_path=codepath,
+        )
+
+        resolve_code_path_patch.assert_called_with(self.real_path, function.codeuri)
+        self.local_lambda._make_env_vars.assert_called_with(function)
+
+    @patch("samcli.commands.local.lib.local_lambda.resolve_code_path")
+    @patch("samcli.commands.local.lib.local_lambda.LocalLambdaRunner.is_debugging")
+    @patch("samcli.commands.local.lib.local_lambda.FunctionConfig")
     def test_timeout_set_to_max_during_debugging(
         self,
         FunctionConfigMock,

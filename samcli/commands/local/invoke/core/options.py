@@ -35,6 +35,7 @@ CONTAINER_OPTION_NAMES: List[str] = [
     "container_host_interface",
     "add_host",
     "invoke_image",
+    "runtime",
     "mount_symlinks",
     "no_memory_limit",
 ]
