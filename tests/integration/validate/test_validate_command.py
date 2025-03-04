@@ -157,7 +157,7 @@ class TestValidate(TestCase):
             self.assertEqual(command_result.process.returncode, 1)
             self.assertRegex(
                 output,
-                f"\\[\\[W2531: Check if EOL Lambda Function Runtimes are used] "
+                f"\\[\\[W2531: Validate if lambda runtime is deprecated] "
                 f"\\(Runtime \\'{runtime}'\\ was deprecated on.*",
             )
 
