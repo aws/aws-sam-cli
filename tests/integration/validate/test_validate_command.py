@@ -157,8 +157,8 @@ class TestValidate(TestCase):
             self.assertEqual(command_result.process.returncode, 1)
             self.assertRegex(
                 output,
-                f"\\[\\[W2531: Validate if lambda runtime is deprecated] "
-                f"\\(Runtime \\'{runtime}'\\ was deprecated on.*",
+                f"\\[\\[E2531: Validate if lambda runtime is deprecated\\] "
+                f"\\(Runtime '{runtime}' was deprecated on.*",
             )
 
     def test_lint_supported_runtimes(self):
