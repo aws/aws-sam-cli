@@ -67,9 +67,10 @@ class Resource:
     EXPORT_DESTINATION: Destination
     ARTIFACT_TYPE: Optional[str] = None
 
-    def __init__(self, uploaders: Uploaders, code_signer):
+    def __init__(self, uploaders: Uploaders, code_signer, cache: Optional[Dict] = None):
         self.uploaders = uploaders
         self.code_signer = code_signer
+        self.cache = cache
 
     @property
     def uploader(self) -> Union[S3Uploader, ECRUploader]:
@@ -167,6 +168,7 @@ class ResourceZip(Resource):
             uploader,
             artifact_extension,
             local_path,
+            self.cache,
         )
         if should_sign_package:
             uploaded_url = self.code_signer.sign_package(
