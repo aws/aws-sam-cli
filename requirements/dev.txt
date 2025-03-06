@@ -25,7 +25,7 @@ types-pyOpenSSL==24.1.0.20240722
 # lucashuy: pin `types-request` based on the Python version since newer versions of
 # the types require a newer version of requests, which is only installed in newer versions of Python
 types-requests==2.31.0.6; python_version<"3.10"
-types-requests==2.32.0.20250301; python_version>="3.10"
+types-requests==2.32.0.20250306; python_version>="3.10"
 types-urllib3==1.26.25.14
 
 # Test requirements
