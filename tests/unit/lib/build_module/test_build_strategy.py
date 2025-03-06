@@ -345,7 +345,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
 
 class CachedBuildStrategyTest(BuildStrategyBaseTest):
     CODEURI = "hello_world_python/"
-    RUNTIME = "python3.8"
+    RUNTIME = "python3.9"
     FUNCTION_UUID = "3c1c254e-cd4b-4d94-8c74-7ab870b36063"
     SOURCE_HASH = "cae49aa393d669e850bd49869905099d"
     LAYER_UUID = "761ce752-d1c8-4e07-86a0-f64778cdd108"

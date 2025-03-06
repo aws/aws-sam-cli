@@ -119,7 +119,7 @@ class TestSyncFlowFactory(TestCase):
     ):
         build_context = MagicMock()
         build_context.function_provider.get.return_value = Mock(
-            packagetype=ZIP, build_info=FunctionBuildInfo.BuildableZip, runtime="python3.8"
+            packagetype=ZIP, build_info=FunctionBuildInfo.BuildableZip, runtime="python3.9"
         )
         factory = self.create_factory(True, build_context=build_context)
         result = factory._create_lambda_flow("Function1", pre_build_artifacts)

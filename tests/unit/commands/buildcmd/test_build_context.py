@@ -251,7 +251,7 @@ class TestBuildContext__enter__(TestCase):
         func_provider_mock.get.return_value = None
         funcprovider = SamFunctionProviderMock.return_value = func_provider_mock
 
-        layer1 = DummyLayer("layer1", "python3.8")
+        layer1 = DummyLayer("layer1", "python3.9")
         layer_provider_mock = Mock()
         layer_provider_mock.get.return_value = layer1
         layerprovider = SamLayerProviderMock.return_value = layer_provider_mock
@@ -303,7 +303,7 @@ class TestBuildContext__enter__(TestCase):
         stack.template_dict = template_dict
         get_buildable_stacks_mock.return_value = ([stack], [])
 
-        layer1 = DummyLayer("layer1", "python3.8")
+        layer1 = DummyLayer("layer1", "python3.9")
         layer2 = DummyLayer("layer2", None)
         layer_provider_mock = Mock()
         layer_provider_mock.get.return_value = layer1
@@ -699,7 +699,7 @@ class TestBuildContext__enter__(TestCase):
         builder_mock.update_template.side_effect = [modified_template_root, modified_template_child]
 
         get_buildable_stacks_mock.return_value = ([root_stack, child_stack], [])
-        layer1 = DummyLayer("layer1", "python3.8")
+        layer1 = DummyLayer("layer1", "python3.9")
         layer_provider_mock = Mock()
         layer_provider_mock.get.return_value = layer1
         layerprovider = SamLayerProviderMock.return_value = layer_provider_mock
@@ -960,7 +960,7 @@ class TestBuildContext_run(TestCase):
         builder_mock.update_template.side_effect = [modified_template_root, modified_template_child]
 
         get_buildable_stacks_mock.return_value = ([root_stack, child_stack], [])
-        layer1 = DummyLayer("layer1", "python3.8")
+        layer1 = DummyLayer("layer1", "python3.9")
         layer_provider_mock = Mock()
         layer_provider_mock.get.return_value = layer1
         layerprovider = SamLayerProviderMock.return_value = layer_provider_mock
@@ -1134,7 +1134,7 @@ class TestBuildContext_run(TestCase):
         builder_mock.update_template.side_effect = [modified_template_root, modified_template_child]
 
         get_buildable_stacks_mock.return_value = ([stack], [])
-        layer1 = DummyLayer("layer1", "python3.8")
+        layer1 = DummyLayer("layer1", "python3.9")
         layer_provider_mock = Mock()
         layer_provider_mock.get.return_value = layer1
         layerprovider = SamLayerProviderMock.return_value = layer_provider_mock
@@ -1212,7 +1212,7 @@ class TestBuildContext_run(TestCase):
         builder_mock.update_template.side_effect = [modified_template_root, modified_template_child]
 
         get_buildable_stacks_mock.return_value = ([stack], [])
-        layer1 = DummyLayer("layer1", "python3.8")
+        layer1 = DummyLayer("layer1", "python3.9")
         layer_provider_mock = Mock()
         layer_provider_mock.get.return_value = layer1
         layerprovider = SamLayerProviderMock.return_value = layer_provider_mock

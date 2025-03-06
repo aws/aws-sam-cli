@@ -274,7 +274,7 @@ class PrepareHookUnitBase(TestCase):
             "environment": [{"variables": {"hi": "there"}}],
             "handler": "index.handler2",
             "package_type": "Zip",
-            "runtime": "python3.8",
+            "runtime": "python3.9",
             "layers": ["layer_arn"],
             "filename": "file2.zip",
         }
@@ -292,7 +292,7 @@ class PrepareHookUnitBase(TestCase):
             "Environment": {"Variables": {"hi": "there"}},
             "Handler": "index.handler2",
             "PackageType": "Zip",
-            "Runtime": "python3.8",
+            "Runtime": "python3.9",
             "Layers": ["layer_arn"],
             "Code": "file2.zip",
         }

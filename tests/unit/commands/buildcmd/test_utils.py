@@ -18,7 +18,7 @@ class TestBuildUtils(TestCase):
 
         # dotnet6 need write permissions
         metadata1 = {"BuildMethod": "dotnet6"}
-        metadata2 = {"BuildMethod": "python3.8"}
+        metadata2 = {"BuildMethod": "python3.9"}
         layer1 = LayerVersion(
             "layer1",
             codeuri="codeuri",
@@ -35,7 +35,7 @@ class TestBuildUtils(TestCase):
             function_id="function_id",
             name="logical_id",
             functionname="function_name",
-            runtime="python3.8",
+            runtime="python3.9",
             memory=1234,
             timeout=12,
             handler="handler",
@@ -68,7 +68,7 @@ class TestBuildUtils(TestCase):
     def test_must_prompt_for_function(self, prompt_mock):
         base_dir = "/mybase"
 
-        metadata = {"BuildMethod": "python3.8"}
+        metadata = {"BuildMethod": "python3.9"}
         layer1 = LayerVersion(
             "layer1",
             codeuri="codeuri",
@@ -118,7 +118,7 @@ class TestBuildUtils(TestCase):
     def test_must_prompt_for_function_with_specified_workflow(self, prompt_mock):
         base_dir = "/mybase"
 
-        metadata1 = {"BuildMethod": "python3.8"}
+        metadata1 = {"BuildMethod": "python3.9"}
         layer1 = LayerVersion(
             "layer1",
             codeuri="codeuri",
@@ -170,7 +170,7 @@ class TestBuildUtils(TestCase):
     def test_must_not_prompt_for_image_function(self, prompt_mock):
         base_dir = "/mybase"
 
-        metadata = {"BuildMethod": "python3.8"}
+        metadata = {"BuildMethod": "python3.9"}
         layer1 = LayerVersion(
             "layer1",
             codeuri="codeuri",
@@ -220,7 +220,7 @@ class TestBuildUtils(TestCase):
     def test_must_not_prompt(self, prompt_mock):
         base_dir = "/mybase"
 
-        metadata = {"BuildMethod": "python3.8"}
+        metadata = {"BuildMethod": "python3.9"}
         layer1 = LayerVersion(
             "layer1",
             codeuri="codeuri",
@@ -237,7 +237,7 @@ class TestBuildUtils(TestCase):
             function_id="function_id",
             name="logical_id",
             functionname="function_name",
-            runtime="python3.8",
+            runtime="python3.9",
             memory=1234,
             timeout=12,
             handler="handler",

@@ -29,9 +29,9 @@
             "useCaseName": "Hello World Example"
         }
     ],
-    "amazon/python3.8-base": [
+    "amazon/python3.9-base": [
         {
-            "directory": "python3.8-image/cookiecutter-aws-sam-hello-python-lambda-image",
+            "directory": "python3.9-image/cookiecutter-aws-sam-hello-python-lambda-image",
             "displayName": "Hello World Lambda Image Example",
             "dependencyManager": "pip",
             "appTemplate": "hello-world-lambda-image",
