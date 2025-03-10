@@ -25,9 +25,9 @@ jobs:
           script: |
             const maintainers = [
               'aws-sam-cli-bot',
-              'hawflau', 'mndeveci',
-              'mildaniel', 'marekaiv',
-              'lucashuy', 'hnnasit', 'jysheng123', 'bentvelj', 'sidhujus', 'dependabot[bot]'
+              'seshubaws', 'valerena',
+              'Vandita2020', 'roger-zhangg',
+              'mbfreder', 'vicheey', 'rachdry', 'dependabot[bot]'
             ]
             if (maintainers.includes(context.payload.sender.login)) {
               github.rest.issues.addLabels({

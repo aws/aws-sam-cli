@@ -8,7 +8,7 @@ import tarfile
 from contextlib import contextmanager
 from pathlib import Path
 from tempfile import TemporaryFile
-from typing import IO, Callable, Dict, List, Optional, Union
+from typing import IO, Callable, Dict, List, Literal, Optional, Union
 
 LOG = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ LOG = logging.getLogger(__name__)
 def create_tarball(
     tar_paths: Dict[Union[str, Path], str],
     tar_filter: Optional[Callable[[tarfile.TarInfo], Union[None, tarfile.TarInfo]]] = None,
-    mode: str = "w",
+    mode: Literal["x", "x:", "a", "a:", "w", "w:", "w:tar"] = "w",
     dereference: bool = False,
 ):
     """
