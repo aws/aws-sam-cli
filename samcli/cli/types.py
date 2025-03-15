@@ -6,10 +6,13 @@ import json
 import logging
 import re
 from json import JSONDecodeError
+from pathlib import Path
 from typing import Dict, List, Optional, Union
 
 import click
+from ruamel.yaml.comments import CommentedMap, CommentedSeq
 
+from samcli.lib.config.file_manager import FILE_MANAGER_MAPPER
 from samcli.lib.package.ecr_utils import is_ecr_url
 
 PARAM_AND_METADATA_KEY_REGEX = """([A-Za-z0-9\\"\']+)"""
@@ -61,6 +64,29 @@ def _unquote_wrapped_quotes(value):
     return value.replace("\\ ", " ").replace('\\"', '"').replace("\\'", "'")
 
 
+def _flatten_list(data: Union[list, tuple]) -> list:
+    """
+        Recursively flattens lists and other list-like types for easy sequential processing.
+        This also helps with lists combined with YAML anchors & aliases.
+
+    Parameters
+    ----------
+    value : data
+        List to flatten
+
+    Returns
+    -------
+    Flattened list
+    """
+    flat_data = []
+    for item in data:
+        if isinstance(item, (tuple, list, CommentedSeq)):
+            flat_data.extend(_flatten_list(item))
+        else:
+            flat_data.append(item)
+    return flat_data
+
+
 class CfnParameterOverridesType(click.ParamType):
     """
     Custom Click options type to accept values for CloudFormation template parameters. You can pass values for
@@ -69,6 +95,7 @@ class CfnParameterOverridesType(click.ParamType):
 
     __EXAMPLE_1 = "ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro"
     __EXAMPLE_2 = "KeyPairName=MyKey InstanceType=t1.micro"
+    __EXAMPLE_3 = "file://MyParams.yaml"
 
     # Regex that parses CloudFormation parameter key-value pairs:
     # https://regex101.com/r/xqfSjW/2
@@ -86,45 +113,69 @@ class CfnParameterOverridesType(click.ParamType):
 
     ordered_pattern_match = [_pattern_1, _pattern_2]
 
-    name = "string,list"
+    name = "list,object,string"
 
-    def convert(self, value, param, ctx):
-        result = {}
+    def convert(self, values, param, ctx):
+        """
+        Normalizes different parameter overrides formats into key-value pairs of strings
+        """
+        if values in (("",), "", None) or values == {}:
+            LOG.debug("Empty parameter set (%s)", values)
+            return {}
 
-        # Empty tuple
-        if value == ("",):
-            return result
+        LOG.debug("Input parameters: %s", values)
+        values = _flatten_list([values])
+        LOG.debug("Flattened parameters: %s", values)
 
-        value = (value,) if isinstance(value, str) else value
-        for val in value:
-            # Add empty string to start of the string to help match `_pattern2`
-            normalized_val = " " + val.strip()
-
-            try:
-                # NOTE(TheSriram): find the first regex that matched.
-                # pylint is concerned that we are checking at the same `val` within the loop,
-                # but that is the point, so disabling it.
-                pattern = next(
-                    i
-                    for i in filter(
-                        lambda item: re.findall(item, normalized_val), self.ordered_pattern_match
-                    )  # pylint: disable=cell-var-from-loop
-                )
-            except StopIteration:
-                return self.fail(
-                    "{} is not in valid format. It must look something like '{}' or '{}'".format(
-                        val, self.__EXAMPLE_1, self.__EXAMPLE_2
-                    ),
+        parameters = {}
+        for value in values:
+            if isinstance(value, str):
+                if value.startswith("file://"):
+                    filepath = Path(value[7:])
+                    if not filepath.is_file():
+                        self.fail(f"{value} was not found or is a directory", param, ctx)
+                    file_manager = FILE_MANAGER_MAPPER.get(filepath.suffix, None)
+                    if not file_manager:
+                        self.fail(f"{value} uses an unsupported extension", param, ctx)
+                    parameters.update(self.convert(file_manager.read(filepath), param, ctx))
+                else:
+                    # Legacy parameter matching
+                    normalized_value = " " + value.strip()
+                    for pattern in self.ordered_pattern_match:
+                        groups = re.findall(pattern, normalized_value)
+                        if groups:
+                            parameters.update(groups)
+                            break
+                    else:
+                        self.fail(
+                            f"{value} is not a valid format. It must look something like "
+                            f"'{self.__EXAMPLE_1}', '{self.__EXAMPLE_2}', or '{self.__EXAMPLE_3}'",
+                            param,
+                            ctx,
+                        )
+            elif isinstance(value, (dict, CommentedMap)):
+                # e.g. YAML key-value pairs
+                for k, v in value.items():
+                    if v is None:
+                        parameters[str(k)] = ""
+                    elif isinstance(v, (list, CommentedSeq)):
+                        # Collapse list values to comma delimited, ignore empty strings and remove extra spaces
+                        parameters[str(k)] = ",".join(str(x).strip() for x in v if x not in (None, ""))
+                    else:
+                        parameters[str(k)] = str(v)
+            elif value is None:
+                continue
+            else:
+                self.fail(
+                    f"{value} is not valid in a way the code doesn't expect",
                     param,
                     ctx,
                 )
 
-            groups = re.findall(pattern, normalized_val)
-
-            # 'groups' variable is a list of tuples ex: [(key1, value1), (key2, value2)]
-            for key, param_value in groups:
-                result[_unquote_wrapped_quotes(key)] = _unquote_wrapped_quotes(param_value)
-
+        result = {}
+        for key, param_value in parameters.items():
+            result[_unquote_wrapped_quotes(key)] = _unquote_wrapped_quotes(param_value)
+        LOG.debug("Output parameters: %s", result)
         return result
 
 
