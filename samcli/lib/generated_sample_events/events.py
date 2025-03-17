@@ -95,6 +95,9 @@ class Events:
         if hashing is not None:
             transformed = self.hash(hashing, transformed)
 
+        if properties.get("type") == "dict":
+            transformed = json.loads(transformed)
+
         return transformed
 
     @staticmethod
@@ -180,4 +183,19 @@ class Events:
         data = json.dumps(data, indent=2)
 
         # return the substituted file (A string containing the rendered template.)
-        return renderer.render(data, values_to_sub)
+        rendered = renderer.render(data, values_to_sub)
+
+        # Parse the rendered result
+        rendered_json = json.loads(rendered)
+
+        key_map = {k.lower(): k for k in rendered_json.keys()}
+
+        # Update dictionary values in rendered result
+        for key, value in values_to_sub.items():
+            if isinstance(value, dict):
+                original_key = key_map.get(key.lower())
+                if original_key and isinstance(rendered_json[original_key], str):
+                    rendered_json[original_key] = value
+
+        # Return the final JSON with proper dictionary values
+        return json.dumps(rendered_json, indent=2)
