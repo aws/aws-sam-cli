@@ -18,5 +18,15 @@
             "packageType": "Zip",
             "useCaseName": "Hello World Example"
         }
+    ],
+    "python3.9": [
+        {
+            "directory": "python3.9/cookiecutter-aws-sam-hello",
+            "displayName": "Hello World Example",
+            "dependencyManager": "pip",
+            "appTemplate": "hello-world",
+            "packageType": "Zip",
+            "useCaseName": "Hello World Example"
+        }
     ]
 }
