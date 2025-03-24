@@ -85,13 +85,13 @@ class TestValidateCli(TestCase):
     @patch("samcli.commands.validate.validate._read_sam_file")
     @patch("samcli.commands.validate.validate.click")
     @patch("samcli.commands.validate.validate._lint")
-    def test_lint_template_passes(self, click_patch, lint_patch, read_sam_file_patch):
+    def test_lint_template_passes(self, lint_patch, click_patch, read_sam_file_patch):
         template_path = "path_to_template"
 
         read_sam_file_patch.return_value = SamTemplate(serialized="{}", deserialized={})
         lint_patch.return_value = True
 
-        do_cli(ctx=ctx_lint_mock(debug=False, region="region"), template=template_path, lint=True)
+        do_cli(ctx=ctx_lint_mock(debug=False, region="region"), template=template_path, lint=True, serverless_rules=False)
 
     @patch("cfnlint.api.lint")
     @patch("samcli.commands.validate.validate.click")
@@ -105,6 +105,7 @@ class TestValidateCli(TestCase):
                     ctx=ctx_lint_mock(debug=False, region="region"),
                     template=template_contents,
                     template_path=template_path,
+                    serverless_rules=False
                 )
             track_patch.assert_called_with("UsedFeature", "CFNLint")
 
@@ -118,9 +119,56 @@ class TestValidateCli(TestCase):
 
         with self.assertRaises(LinterRuleMatchedException) as ex:
             _lint(
-                ctx=ctx_lint_mock(debug=False, region="region"), template=template_contents, template_path=template_path
+                ctx=ctx_lint_mock(debug=False, region="region"), 
+                template=template_contents, 
+                template_path=template_path,
+                serverless_rules=False
             )
 
         self.assertEqual(
             ex.exception.message, "Linting failed. At least one linting rule was matched to the provided template."
         )
+        
+    @patch("cfnlint.api.lint")
+    @patch("samcli.commands.validate.validate.click")
+    @patch("importlib.util.find_spec")
+    def test_serverless_rules_enabled(self, find_spec_mock, click_patch, lint_patch):
+        template_path = "path_to_template"
+        template_contents = "{}"
+        find_spec_mock.return_value = True
+        lint_patch.return_value = []
+
+        with patch("samcli.lib.telemetry.event.EventTracker.track_event") as track_patch:
+            _lint(
+                ctx=ctx_lint_mock(debug=False, region="region"),
+                template=template_contents,
+                template_path=template_path,
+                serverless_rules=True
+            )
+            # Check that both CFNLint and ServerlessRules events are tracked
+            track_patch.assert_any_call("UsedFeature", "CFNLint")
+            track_patch.assert_any_call("UsedFeature", "ServerlessRules")
+            
+        # Check that the lint function was called with the serverless rules
+        lint_patch.assert_called_once()
+        args, kwargs = lint_patch.call_args
+        self.assertEqual(args[0], template_contents)
+        self.assertEqual(kwargs["config"].append_rules, ["cfn_lint_serverless.rules"])
+        
+    @patch("cfnlint.api.lint")
+    @patch("samcli.commands.validate.validate.click")
+    @patch("importlib.util.find_spec")
+    def test_serverless_rules_package_not_installed(self, find_spec_mock, click_patch, lint_patch):
+        template_path = "path_to_template"
+        template_contents = "{}"
+        find_spec_mock.return_value = None
+
+        with self.assertRaises(UserException) as ex:
+            _lint(
+                ctx=ctx_lint_mock(debug=False, region="region"),
+                template=template_contents,
+                template_path=template_path,
+                serverless_rules=True
+            )
+            
+        self.assertIn("Serverless Rules package (cfn-lint-serverless) is not installed", ex.exception.message)

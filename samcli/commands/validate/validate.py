@@ -57,6 +57,13 @@ class SamTemplate:
     "Create a cfnlintrc config file to specify additional parameters. "
     "For more information, see: https://github.com/aws-cloudformation/cfn-lint",
 )
+@click.option(
+    "--serverless-rules",
+    is_flag=True,
+    help="Enable Serverless Rules for linting validation. "
+    "Requires the cfn-lint-serverless package to be installed. "
+    "For more information, see: https://github.com/awslabs/serverless-rules",
+)
 @save_params_option
 @pass_context
 @track_command
@@ -64,13 +71,13 @@ class SamTemplate:
 @print_cmdline_args
 @unsupported_command_cdk(alternative_command="cdk doctor")
 @command_exception_handler
-def cli(ctx, template_file, config_file, config_env, lint, save_params):
+def cli(ctx, template_file, config_file, config_env, lint, save_params, serverless_rules):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
-    do_cli(ctx, template_file, lint)  # pragma: no cover
+    do_cli(ctx, template_file, lint, serverless_rules)  # pragma: no cover
 
 
-def do_cli(ctx, template, lint):
+def do_cli(ctx, template, lint, serverless_rules):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
@@ -84,7 +91,7 @@ def do_cli(ctx, template, lint):
     sam_template = _read_sam_file(template)
 
     if lint:
-        _lint(ctx, sam_template.serialized, template)
+        _lint(ctx, sam_template.serialized, template, serverless_rules)
     else:
         iam_client = boto3.client("iam")
         validator = SamTemplateValidator(
@@ -136,7 +143,7 @@ def _read_sam_file(template) -> SamTemplate:
     return SamTemplate(serialized=template_string, deserialized=sam_template)
 
 
-def _lint(ctx: Context, template: str, template_path: str) -> None:
+def _lint(ctx: Context, template: str, template_path: str, serverless_rules: bool) -> None:
     """
     Parses provided SAM template and maps errors from CloudFormation template back to SAM template.
 
@@ -153,6 +160,8 @@ def _lint(ctx: Context, template: str, template_path: str) -> None:
         Contents of sam template as a string
     template_path
         Path to the sam template
+    serverless_rules
+        Flag to enable Serverless Rules for linting
     """
 
     from cfnlint.api import ManualArgs, lint
@@ -169,6 +178,39 @@ def _lint(ctx: Context, template: str, template_path: str) -> None:
     if ctx.debug:
         cfn_lint_logger.propagate = True
         cfn_lint_logger.setLevel(logging.DEBUG)
+
+    # Add Serverless Rules if enabled
+    if serverless_rules:
+        try:
+            # Track usage of Serverless Rules
+            EventTracker.track_event("UsedFeature", "ServerlessRules")
+            
+            # Check if cfn-lint-serverless is installed
+            import importlib.util
+            if importlib.util.find_spec("cfn_lint_serverless") is None:
+                click.secho(
+                    "Serverless Rules package (cfn-lint-serverless) is not installed. "
+                    "Please install it using: pip install cfn-lint-serverless",
+                    fg="red",
+                )
+                raise UserException(
+                    "Serverless Rules package (cfn-lint-serverless) is not installed. "
+                    "Please install it using: pip install cfn-lint-serverless"
+                )
+            
+            # Add Serverless Rules to the linter config
+            linter_config["append_rules"] = ["cfn_lint_serverless.rules"]
+            click.secho("Serverless Rules enabled for linting", fg="green")
+        except ImportError:
+            click.secho(
+                "Serverless Rules package (cfn-lint-serverless) is not installed. "
+                "Please install it using: pip install cfn-lint-serverless",
+                fg="red",
+            )
+            raise UserException(
+                "Serverless Rules package (cfn-lint-serverless) is not installed. "
+                "Please install it using: pip install cfn-lint-serverless"
+            )
 
     config = ManualArgs(**linter_config)
 
