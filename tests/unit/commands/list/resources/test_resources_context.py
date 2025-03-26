@@ -32,7 +32,7 @@ TRANSLATED_DICT_RETURN = {
                 "Code": {"S3Bucket": "bucket", "S3Key": "value"},
                 "Handler": "app.lambda_handler",
                 "Role": {"Fn::GetAtt": ["HelloWorldFunctionRole", "Arn"]},
-                "Runtime": "python3.8",
+                "Runtime": "python3.9",
                 "Tags": [{"Key": "lambda:createdBy", "Value": "SAM"}],
                 "Timeout": 3,
                 "TracingConfig": {"Mode": "Active"},
@@ -127,7 +127,7 @@ SAM_FILE_READER_RETURN = {
                 "CodeUri": "hello_world/",
                 "Handler": "app.lambda_handler",
                 "Architectures": ["x86_64"],
-                "Runtime": "python3.8",
+                "Runtime": "python3.9",
                 "Events": {"HelloWorld": {"Type": "Api", "Properties": {"Path": "/hello", "Method": "get"}}},
             },
         }
@@ -319,7 +319,7 @@ class TestGetTranslatedDict(TestCase):
                         "CodeUri": "hello_world/",
                         "Handler": "app.lambda_handler",
                         "Architectures": ["x86_64"],
-                        "Runtime": "python3.8",
+                        "Runtime": "python3.9",
                         "Events": {"HelloWorld": {"Type": "Api", "Properties": {"Path": "/hello", "Method": "get"}}},
                     },
                 }

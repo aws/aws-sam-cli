@@ -1238,7 +1238,7 @@ class TestRequireContainerReloading(TestCase):
         updated_func = FunctionConfig(
             "name",
             "stack/name",
-            "python3.8",
+            "python3.9",
             "app.handler",
             None,
             None,

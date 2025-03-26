@@ -83,7 +83,7 @@ class TestNestedStackManager(TestCase):
         resources = {
             "MyFunction": {
                 "Type": AWS_SERVERLESS_FUNCTION,
-                "Properties": {"Runtime": "python3.8", "Handler": "FakeHandler"},
+                "Properties": {"Runtime": "python3.9", "Handler": "FakeHandler"},
             }
         }
         self.stack.resources = resources
@@ -102,7 +102,7 @@ class TestNestedStackManager(TestCase):
         resources = {
             "MyFunction": {
                 "Type": AWS_SERVERLESS_FUNCTION,
-                "Properties": {"Runtime": "python3.8", "Handler": "FakeHandler"},
+                "Properties": {"Runtime": "python3.9", "Handler": "FakeHandler"},
             }
         }
         self.stack.resources = resources
@@ -124,7 +124,7 @@ class TestNestedStackManager(TestCase):
         resources = {
             "MyFunction": {
                 "Type": AWS_SERVERLESS_FUNCTION,
-                "Properties": {"Runtime": "python3.8", "Handler": "FakeHandler"},
+                "Properties": {"Runtime": "python3.9", "Handler": "FakeHandler"},
             }
         }
         self.stack.resources = resources
@@ -241,6 +241,6 @@ class TestNestedStackManager(TestCase):
         patched_osutils.copytree.assert_not_called()
         patched_add_layer_readme.assert_called_with(str(layer_root_folder), function_logical_id)
 
-    @parameterized.expand([("python3.8", True), ("ruby3.2", False)])
+    @parameterized.expand([("python3.9", True), ("ruby3.2", False)])
     def test_is_runtime_supported(self, runtime, supported):
         self.assertEqual(NestedStackManager.is_runtime_supported(runtime), supported)

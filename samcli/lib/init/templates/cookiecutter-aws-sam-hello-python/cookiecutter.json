@@ -1,6 +1,6 @@
 {
     "project_name": "Name of the project",
-    "runtime": "python3.8",
+    "runtime": "python3.13",
     "architectures": {
         "value": [
             "x86_64"

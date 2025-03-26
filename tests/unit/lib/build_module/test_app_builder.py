@@ -476,6 +476,7 @@ class TestApplicationBuilder_build(TestCase):
             ("python2.7",),
             ("python3.6",),
             ("python3.7",),
+            ("python3.8",),
             ("ruby2.5",),
             ("ruby2.7",),
             ("nodejs10.x",),
@@ -588,7 +589,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
         build_function_in_process_mock = Mock()
 
         self.builder._build_function_in_process = build_function_in_process_mock
-        self.builder._build_layer("layer_name", "code_uri", "python3.8", ["python3.8"], ARM64, "full_path")
+        self.builder._build_layer("layer_name", "code_uri", "python3.9", ["python3.9"], ARM64, "full_path")
 
         build_function_in_process_mock.assert_called_once_with(
             config_mock,
@@ -596,7 +597,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             PathValidator("python"),
             "scratch",
             PathValidator("manifest_name"),
-            "python3.8",
+            "python3.9",
             ARM64,
             None,
             None,
@@ -679,7 +680,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
         ApplicationBuilder._get_build_options = get_build_options_mock
         builder._build_function_in_process = build_function_in_process_mock
         builder._build_layer(
-            "layer_name", "code_uri", "provided", ["python3.8"], ARM64, "full_path", layer_metadata=metadata
+            "layer_name", "code_uri", "provided", ["python3.9"], ARM64, "full_path", layer_metadata=metadata
         )
         ApplicationBuilder._get_build_options = get_build_options
 
@@ -745,7 +746,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
         ApplicationBuilder._get_build_options = get_build_options_mock
         builder._build_function_in_process = build_function_in_process_mock
         builder._build_layer(
-            "layer_name", "code_uri", "provided", ["python3.8"], ARM64, "full_path", layer_metadata=metadata
+            "layer_name", "code_uri", "provided", ["python3.9"], ARM64, "full_path", layer_metadata=metadata
         )
         ApplicationBuilder._get_build_options = get_build_options
 
@@ -813,7 +814,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
         ApplicationBuilder._get_build_options = get_build_options_mock
         builder._build_function_in_process = build_function_in_process_mock
         builder._build_layer(
-            "layer_name", "code_uri", "provided", ["python3.8"], ARM64, "full_path", layer_metadata=metadata
+            "layer_name", "code_uri", "provided", ["python3.9"], ARM64, "full_path", layer_metadata=metadata
         )
         ApplicationBuilder._get_build_options = get_build_options
 
@@ -878,7 +879,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
         ApplicationBuilder._get_build_options = get_build_options_mock
         builder._build_function_in_process = build_function_in_process_mock
         builder._build_layer(
-            "layer_name", "code_uri", "provided", ["python3.8"], ARM64, "full_path", layer_metadata=metadata
+            "layer_name", "code_uri", "provided", ["python3.9"], ARM64, "full_path", layer_metadata=metadata
         )
         ApplicationBuilder._get_build_options = get_build_options
 
@@ -943,7 +944,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
         ApplicationBuilder._get_build_options = get_build_options_mock
         builder._build_function_in_process = build_function_in_process_mock
         builder._build_layer(
-            "layer_name", "code_uri", "provided", ["python3.8"], ARM64, "full_path", layer_metadata=metadata
+            "layer_name", "code_uri", "provided", ["python3.9"], ARM64, "full_path", layer_metadata=metadata
         )
         ApplicationBuilder._get_build_options = get_build_options
 
@@ -1006,7 +1007,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
         ApplicationBuilder._get_build_options = get_build_options_mock
         builder._build_function_in_process = build_function_in_process_mock
         builder._build_layer(
-            "layer_name", "code_uri", "provided", ["python3.8"], ARM64, "full_path", layer_metadata=metadata
+            "layer_name", "code_uri", "provided", ["python3.9"], ARM64, "full_path", layer_metadata=metadata
         )
         ApplicationBuilder._get_build_options = get_build_options
 
@@ -1052,13 +1053,13 @@ class TestApplicationBuilderForLayerBuild(TestCase):
         build_function_on_container_mock = Mock()
 
         self.builder._build_function_on_container = build_function_on_container_mock
-        self.builder._build_layer("layer_name", "code_uri", "python3.8", ["python3.8"], X86_64, "full_path")
+        self.builder._build_layer("layer_name", "code_uri", "python3.9", ["python3.9"], X86_64, "full_path")
         build_function_on_container_mock.assert_called_once_with(
             config_mock,
             PathValidator("code_uri"),
             PathValidator("python"),
             PathValidator("manifest_name"),
-            "python3.8",
+            "python3.9",
             X86_64,
             None,
             None,
@@ -1088,13 +1089,13 @@ class TestApplicationBuilderForLayerBuild(TestCase):
         build_images = {None: "test_image"}
         self.builder._build_images = build_images
         self.builder._build_function_on_container = build_function_on_container_mock
-        self.builder._build_layer("layer_name", "code_uri", "python3.8", ["python3.8"], X86_64, "full_path")
+        self.builder._build_layer("layer_name", "code_uri", "python3.9", ["python3.9"], X86_64, "full_path")
         build_function_on_container_mock.assert_called_once_with(
             config_mock,
             PathValidator("code_uri"),
             PathValidator("python"),
             PathValidator("manifest_name"),
-            "python3.8",
+            "python3.9",
             X86_64,
             None,
             None,
@@ -1124,13 +1125,13 @@ class TestApplicationBuilderForLayerBuild(TestCase):
         build_images = {"layer_name": "test_image"}
         self.builder._build_images = build_images
         self.builder._build_function_on_container = build_function_on_container_mock
-        self.builder._build_layer("layer_name", "code_uri", "python3.8", ["python3.8"], ARM64, "full_path")
+        self.builder._build_layer("layer_name", "code_uri", "python3.9", ["python3.9"], ARM64, "full_path")
         build_function_on_container_mock.assert_called_once_with(
             config_mock,
             PathValidator("code_uri"),
             PathValidator("python"),
             PathValidator("manifest_name"),
-            "python3.8",
+            "python3.9",
             ARM64,
             None,
             None,
@@ -1163,19 +1164,19 @@ class TestApplicationBuilderForLayerBuild(TestCase):
         self.builder._build_function_on_container = build_function_on_container_mock
         supports_specified_workflow_mock.return_value = True
 
-        self.builder._build_layer("layer_name", "code_uri", "python3.8", ["python3.8"], ARM64, "full_path")
+        self.builder._build_layer("layer_name", "code_uri", "python3.9", ["python3.9"], ARM64, "full_path")
         build_function_on_container_mock.assert_called_once_with(
             config_mock,
             PathValidator("code_uri"),
             PathValidator("python"),
             PathValidator("manifest_name"),
-            "python3.8",
+            "python3.9",
             ARM64,
             None,
             None,
             "test_image",
             is_building_layer=True,
-            specified_workflow="python3.8",
+            specified_workflow="python3.9",
         )
 
 
@@ -1237,12 +1238,12 @@ class TestApplicationBuilder_update_template(TestCase):
                 "MyServerlessLayer": {
                     "Type": "AWS::Serverless::LayerVersion",
                     "Properties": {"ContentUri": "oldvalue"},
-                    "Metadata": {"BuildMethod": "python3.8"},
+                    "Metadata": {"BuildMethod": "python3.9"},
                 },
                 "MyLambdaLayer": {
                     "Type": "AWS::Lambda::LayerVersion",
                     "Properties": {"Content": "oldvalue"},
-                    "Metadata": {"BuildMethod": "python3.8"},
+                    "Metadata": {"BuildMethod": "python3.9"},
                 },
             }
         }
@@ -1313,12 +1314,12 @@ class TestApplicationBuilder_update_template(TestCase):
                 "MyServerlessLayer": {
                     "Type": "AWS::Serverless::LayerVersion",
                     "Properties": {"ContentUri": os.path.join("build", "ServerlessLayer")},
-                    "Metadata": {"BuildMethod": "python3.8"},
+                    "Metadata": {"BuildMethod": "python3.9"},
                 },
                 "MyLambdaLayer": {
                     "Type": "AWS::Lambda::LayerVersion",
                     "Properties": {"Content": os.path.join("build", "LambdaLayer")},
-                    "Metadata": {"BuildMethod": "python3.8"},
+                    "Metadata": {"BuildMethod": "python3.9"},
                 },
             }
         }
@@ -1417,12 +1418,12 @@ class TestApplicationBuilder_update_template(TestCase):
                 "MyServerlessLayer": {
                     "Type": "AWS::Serverless::LayerVersion",
                     "Properties": {"ContentUri": os.path.join("build", "ChildStackXXX", "ServerlessLayer")},
-                    "Metadata": {"BuildMethod": "python3.8"},
+                    "Metadata": {"BuildMethod": "python3.9"},
                 },
                 "MyLambdaLayer": {
                     "Type": "AWS::Lambda::LayerVersion",
                     "Properties": {"Content": os.path.join("build", "ChildStackXXX", "LambdaLayer")},
-                    "Metadata": {"BuildMethod": "python3.8"},
+                    "Metadata": {"BuildMethod": "python3.9"},
                 },
             }
         }

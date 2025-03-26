@@ -355,7 +355,7 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
                         "Code": "file2.zip",
                         "Handler": "index.handler2",
                         "PackageType": "Zip",
-                        "Runtime": "python3.8",
+                        "Runtime": "python3.9",
                         "Layers": ["layer_arn"],
                     },
                     {},

@@ -72,6 +72,6 @@ class TestArchitecture(TestCase):
 
         self.assertEqual(str(ex.exception), f"Runtime {runtime} is not supported on '{arch}' architecture")
 
-    @parameterized.expand([("python3.8", True), ("python3.9", True)])
+    @parameterized.expand([("python3.9", True)])
     def test_multi_arch_image(self, runtime, result):
         self.assertEqual(has_runtime_multi_arch_image(runtime), result)
