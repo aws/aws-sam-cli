@@ -18,9 +18,9 @@ attrs==24.2.0 \
     # via
     #   jsonschema
     #   referencing
-aws-lambda-builders==1.53.0 \
-    --hash=sha256:ca9ddd99214aef8a113a3fcd7d7fe3951ef0e078478484f03c398a3bdee04ccb \
-    --hash=sha256:d08bfa947fff590f1bedd16c2f4ec7722cbb8869aae80764d99215a41ff284a1
+aws-lambda-builders==1.54.0 \
+    --hash=sha256:168ccca3ee70c68a499741ecf5dc984fc16b169ae7b95baf8118091315b42eb5 \
+    --hash=sha256:c74353b6f4dfda981f3b01aa1e39180a492cbd323852122b6f6451faeb4d15f0
     # via aws-sam-cli (setup.py)
 aws-sam-translator==1.95.0 \
     --hash=sha256:c9e0f22cbe83c768f7d20a3afb7e654bd6bfc087b387528bd48e98366b82ae40 \
