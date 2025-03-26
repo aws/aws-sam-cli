@@ -1,11 +1,12 @@
-FROM public.ecr.aws/amazonlinux/amazonlinux:2023
+FROM public.ecr.aws/amazonlinux/amazonlinux:2
 
 RUN yum -y update \
-    && yum install -y unzip tar gzip ed less \
+    && yum install -y unzip tar gzip ed less wget \
     && rm -rf /var/cache/yum
 
-RUN yum -y install make \
-    && yum -y install zip
+RUN yum -y groupinstall "Development Tools"
+
+RUN yum -y install openssl-devel bzip2-devel libffi-devel
 
 RUN yum install -y yum-utils \
     && yum-config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo \
@@ -13,9 +14,16 @@ RUN yum install -y yum-utils \
     && terraform --version
 
 # AWS Lambda Builders
-# AL2023 uses Python3.9 by default. This might fail in the future if that changes. We just need the proper version
-RUN curl -L get-pip.io | python3.9
-RUN pip3 install aws-lambda-builders
+RUN cd /tmp \
+    && wget https://www.python.org/ftp/python/3.9.17/Python-3.9.17.tgz \
+    && tar xvf Python-3.9.17.tgz \
+    && cd Python-3.9.17 \
+    && ./configure --enable-optimizations \
+    && make install
+
+RUN python3 -m ensurepip
+RUN python3 -m pip install --upgrade pip
+RUN python3 -m pip install aws-lambda-builders
 RUN python3 --version
 
 VOLUME /project

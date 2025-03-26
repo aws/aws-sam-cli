@@ -50,6 +50,7 @@ class TestCli(TestCase):
         self.add_host = (["prod-na.host:10.11.12.13"],)
         self.invoke_image = ("amazon/aws-sam-cli-emulation-image-python3.9",)
         self.hook_name = None
+        self.overide_runtime = None
         self.mount_symlinks = False
         self.no_mem_limit = False
 
@@ -82,6 +83,7 @@ class TestCli(TestCase):
             add_host=self.add_host,
             invoke_image=self.invoke_image,
             hook_name=self.hook_name,
+            runtime=self.overide_runtime,
             mount_symlinks=self.mount_symlinks,
             no_mem_limit=self.no_mem_limit,
         )
@@ -125,7 +127,11 @@ class TestCli(TestCase):
         )
 
         context_mock.local_lambda_runner.invoke.assert_called_with(
-            context_mock.function_identifier, event=event_data, stdout=context_mock.stdout, stderr=context_mock.stderr
+            context_mock.function_identifier,
+            event=event_data,
+            stdout=context_mock.stdout,
+            stderr=context_mock.stderr,
+            override_runtime=None,
         )
         get_event_mock.assert_called_with(self.eventfile, exception_class=UserException)
 
@@ -168,7 +174,11 @@ class TestCli(TestCase):
 
         get_event_mock.assert_not_called()
         context_mock.local_lambda_runner.invoke.assert_called_with(
-            context_mock.function_identifier, event="{}", stdout=context_mock.stdout, stderr=context_mock.stderr
+            context_mock.function_identifier,
+            event="{}",
+            stdout=context_mock.stdout,
+            stderr=context_mock.stderr,
+            override_runtime=None,
         )
 
     @parameterized.expand(
