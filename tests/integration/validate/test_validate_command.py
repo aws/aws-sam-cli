@@ -158,7 +158,7 @@ class TestValidate(TestCase):
             self.assertRegex(
                 output,
                 f"\\[\\[W2531: Check if EOL Lambda Function Runtimes are used] "
-                f"\\(Runtime \\'{runtime}'\\ was deprecated on.*",
+                f"\\(Runtime '{runtime}' was deprecated on.*",
             )
 
     def test_lint_supported_runtimes(self):
