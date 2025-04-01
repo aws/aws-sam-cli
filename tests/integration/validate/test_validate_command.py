@@ -157,8 +157,8 @@ class TestValidate(TestCase):
             self.assertEqual(command_result.process.returncode, 1)
             self.assertRegex(
                 output,
-                f"\\[\\[E2531: Validate if lambda runtime is deprecated\\] "
-                f"\\(Runtime '{runtime}' was deprecated on.*",
+                f"\\[\\[W2531: Check if EOL Lambda Function Runtimes are used] "
+                f"\\(Runtime \\'{runtime}'\\ was deprecated on.*",
             )
 
     def test_lint_supported_runtimes(self):
@@ -243,9 +243,9 @@ class TestValidate(TestCase):
 
         warning_message = (
             "[[E0000: Parsing error found when parsing the template] "
-            '(Duplicate found "HelloWorldFunction" (line 5)) matched 5, '
+            "(Duplicate found 'HelloWorldFunction' (line 5)) matched 5, "
             "[E0000: Parsing error found when parsing the template] "
-            '(Duplicate found "HelloWorldFunction" (line 12)) matched 12]\n'
+            "(Duplicate found 'HelloWorldFunction' (line 12)) matched 12]\n"
         )
 
         self.assertIn(warning_message, output)
