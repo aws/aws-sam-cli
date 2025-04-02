@@ -272,7 +272,7 @@ class TestBuildCommand_RubyFunctions(BuildIntegRubyBase):
 
         self._test_with_default_gemfile("ruby3.2", use_container, "Ruby", self.test_data_path)
 
-    @parameterized.expand([("ruby3.3",)])
+    @parameterized.expand([("ruby3.3",), ("ruby3.4",)])
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     @pytest.mark.al2023
     def test_building_ruby_al2023(self, runtime):
@@ -288,7 +288,14 @@ class TestBuildCommand_RubyFunctions_With_Architecture(BuildIntegRubyBase):
             self.skipTest(SKIP_DOCKER_MESSAGE)
         self._test_with_default_gemfile("ruby3.2", use_container, "Ruby32", self.test_data_path, "x86_64")
 
-    @parameterized.expand([("ruby3.3", "Ruby33", False), ("ruby3.3", "Ruby33", True)])
+    @parameterized.expand(
+        [
+            ("ruby3.3", "Ruby33", False),
+            ("ruby3.3", "Ruby33", True),
+            ("ruby3.4", "Ruby34", False),
+            ("ruby3.4", "Ruby34", True),
+        ]
+    )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     @pytest.mark.al2023
     def test_building_ruby_al2023(self, runtime, codeuri, use_container):
@@ -301,7 +308,7 @@ class TestBuildCommand_RubyFunctionsWithGemfileInTheRoot(BuildIntegRubyBase):
     This doesn't apply to containerized build, since it copies only the function folder to the container
     """
 
-    @parameterized.expand([("ruby3.2"), ("ruby3.3")])
+    @parameterized.expand([("ruby3.2",), ("ruby3.3",), ("ruby3.4",)])
     def test_building_ruby_in_process_with_root_gemfile(self, runtime):
         self._prepare_application_environment(runtime)
         self._test_with_default_gemfile(runtime, False, "RubyWithRootGemfile", self.working_dir)
@@ -948,7 +955,7 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
             ),
             (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs20.x"),
             (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
-            (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.2"),
+            (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.4"),
             # container
             (
                 True,
@@ -959,7 +966,7 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
             ),
             (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs20.x"),
             (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
-            (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.2"),
+            (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.4"),
         ]
     )
     def test_dedup_build(self, use_container, code_uri, function1_handler, function2_handler, runtime):
@@ -1079,7 +1086,7 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
             ),
             (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs20.x"),
             (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
-            (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.2"),
+            (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.4"),
             # container
             (
                 True,
@@ -1090,7 +1097,7 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
             ),
             (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs20.x"),
             (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
-            (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.2"),
+            (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.4"),
         ]
     )
     def test_cache_build(self, use_container, code_uri, function1_handler, function2_handler, runtime):
@@ -1270,7 +1277,7 @@ class TestParallelBuilds(DedupBuildIntegBase):
             ),
             (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs20.x"),
             (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
-            (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.2"),
+            (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.4"),
             # container
             (
                 True,
@@ -1281,7 +1288,7 @@ class TestParallelBuilds(DedupBuildIntegBase):
             ),
             (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs20.x"),
             (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
-            (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.2"),
+            (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.4"),
         ]
     )
     def test_dedup_build(self, use_container, code_uri, function1_handler, function2_handler, runtime):
