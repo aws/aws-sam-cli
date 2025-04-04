@@ -12,10 +12,10 @@ pytest-cov==5.0.0; python_version<"3.9"
 mypy==1.15.0
 types-pywin32==310.0.0.20250319; python_version>="3.9"
 types-pywin32==308.0.0.20241221; python_version<"3.9"
-types-PyYAML==6.0.12.20250326
+types-PyYAML==6.0.12.20250402
 types-chevron==0.14.2.20250103
-types-psutil==7.0.0.20250218
-types-setuptools==77.0.2.20250328
+types-psutil==7.0.0.20250401
+types-setuptools==78.1.0.20250329
 types-Pygments==2.19.0.20250305 
 types-colorama==0.4.15.20240311
 types-dateparser==1.2.0.20250208
