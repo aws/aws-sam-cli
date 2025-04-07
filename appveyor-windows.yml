@@ -62,8 +62,6 @@ install:
   - choco upgrade gradle --version=8.4.0
   - "gradle -v"
   - "mvn --version"
-  - choco install ruby --version=3.3.0.1
-  - choco install ruby --version=3.4.2.1
 
   # Make sure the temp directory exists for Python to use.
   - ps: "mkdir -Force C:\\tmp"
