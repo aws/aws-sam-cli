@@ -292,7 +292,7 @@ class TestBuildCommand_RubyFunctions_With_Architecture(BuildIntegRubyBase):
         [
             ("ruby3.3", "Ruby33", False),
             ("ruby3.3", "Ruby33", True),
-            ("ruby3.4", "Ruby34", False),
+            # ("ruby3.4", "Ruby34", False), # Skipping because of AppVeyor configuration
             ("ruby3.4", "Ruby34", True),
         ]
     )
