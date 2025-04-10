@@ -6,7 +6,7 @@ jmespath~=1.0.1
 ruamel_yaml~=0.18.6
 PyYAML~=6.0
 cookiecutter~=2.6.0
-aws-sam-translator==1.95.0
+aws-sam-translator==1.96.0
 #docker minor version updates can include breaking changes. Auto update micro version only.
 docker~=7.1.0
 dateparser~=1.2
@@ -31,7 +31,7 @@ regex!=2021.10.8
 tzlocal==5.2
 
 #Adding cfn-lint dependency for SAM validate
-cfn-lint~=1.25.1
+cfn-lint~=1.32.3
 
 # Type checking boto3 objects
 boto3-stubs[apigateway,cloudformation,ecr,iam,lambda,s3,schemas,secretsmanager,signer,stepfunctions,sts,xray,sqs,kinesis]==1.35.71
