@@ -1,30 +1,20 @@
 import functools
 import json
-import platform
-import tempfile
 import os
-import string
+import platform
 import random
-import zipfile
+import string
+import tempfile
 import unittest
-
+import zipfile
 from contextlib import contextmanager, closing
+from typing import Optional, Dict
 from unittest import mock
 from unittest.mock import call, patch, Mock, MagicMock
 
-from samcli.commands.package.exceptions import ExportFailedError
-from samcli.lib.package.permissions import (
-    WindowsFilePermissionPermissionMapper,
-    WindowsDirPermissionPermissionMapper,
-    AdditiveFilePermissionPermissionMapper,
-    AdditiveDirPermissionPermissionMapper,
-)
-from samcli.lib.package.uploaders import Destination
-from samcli.lib.package.utils import zip_folder, make_zip, make_zip_with_lambda_permissions, make_zip_with_permissions
-from samcli.lib.utils.packagetype import ZIP, IMAGE
-from samcli.lib.utils.resources import LAMBDA_LOCAL_RESOURCES, RESOURCES_WITH_LOCAL_PATHS
-from tests.testing_utils import FileCreator
+from samcli.commands._utils.experimental import ExperimentalFlag
 from samcli.commands.package import exceptions
+from samcli.commands.package.exceptions import ExportFailedError
 from samcli.lib.package.artifact_exporter import (
     is_local_folder,
     make_abs_path,
@@ -68,6 +58,17 @@ from samcli.lib.package.packageable_resources import (
     ResourceImageDict,
     ECRResource,
 )
+from samcli.lib.package.permissions import (
+    WindowsFilePermissionPermissionMapper,
+    WindowsDirPermissionPermissionMapper,
+    AdditiveFilePermissionPermissionMapper,
+    AdditiveDirPermissionPermissionMapper,
+)
+from samcli.lib.package.uploaders import Destination
+from samcli.lib.package.utils import zip_folder, make_zip, make_zip_with_lambda_permissions, make_zip_with_permissions
+from samcli.lib.utils.packagetype import ZIP, IMAGE
+from samcli.lib.utils.resources import LAMBDA_LOCAL_RESOURCES, RESOURCES_WITH_LOCAL_PATHS
+from tests.testing_utils import FileCreator
 
 
 class TestArtifactExporter(unittest.TestCase):
@@ -197,6 +198,7 @@ class TestArtifactExporter(unittest.TestCase):
                         s3_uploader_mock,
                         None,
                         self.graphql_api_local_paths[0],
+                        None,
                     ),
                     call(
                         test_class.RESOURCE_TYPE,
@@ -207,6 +209,7 @@ class TestArtifactExporter(unittest.TestCase):
                         s3_uploader_mock,
                         None,
                         self.graphql_api_local_paths[1],
+                        None,
                     ),
                     call(
                         test_class.RESOURCE_TYPE,
@@ -217,6 +220,7 @@ class TestArtifactExporter(unittest.TestCase):
                         s3_uploader_mock,
                         None,
                         self.graphql_api_local_paths[2],
+                        None,
                     ),
                 ],
                 any_order=True,
@@ -243,6 +247,7 @@ class TestArtifactExporter(unittest.TestCase):
                 test_class.PROPERTY_NAME,
                 parent_dir,
                 s3_uploader_mock,
+                None,
                 None,
                 None,
             )
@@ -332,6 +337,39 @@ class TestArtifactExporter(unittest.TestCase):
             zip_and_upload_mock.assert_not_called()
 
     @patch("samcli.lib.package.utils.zip_and_upload")
+    def test_upload_local_artifacts_local_file_with_cache(self, zip_and_upload_mock):
+        # Case 1: Artifact path is a relative path
+        # Verifies that we package local artifacts appropriately
+        property_name = "property"
+        resource_id = "resource_id"
+        resource_type = "resource_type"
+        expected_s3_url = "s3://foo/bar?versionId=baz"
+
+        with tempfile.NamedTemporaryFile() as handle:
+            # Artifact is a file in the temporary directory
+            artifact_path = handle.name
+            parent_dir = tempfile.gettempdir()
+            absolute_artifact_path = make_abs_path(parent_dir, artifact_path)
+
+            resource_dict = {property_name: artifact_path}
+            result = upload_local_artifacts(
+                resource_type,
+                resource_id,
+                resource_dict,
+                property_name,
+                parent_dir,
+                self.s3_uploader_mock,
+                previously_uploaded={
+                    absolute_artifact_path: expected_s3_url,
+                    absolute_artifact_path + "wrong path": expected_s3_url + "wrong url",
+                },
+            )
+            self.assertEqual(result, expected_s3_url)
+
+            self.s3_uploader_mock.upload_with_dedup.assert_not_called()
+            zip_and_upload_mock.assert_not_called()
+
+    @patch("samcli.lib.package.utils.zip_and_upload")
     def test_upload_local_artifacts_local_file_abs_path(self, zip_and_upload_mock):
         # Case 2: Artifact path is an absolute path
         # Verifies that we package local artifacts appropriately
@@ -353,6 +391,39 @@ class TestArtifactExporter(unittest.TestCase):
             self.assertEqual(result, expected_s3_url)
 
             self.s3_uploader_mock.upload_with_dedup.assert_called_with(artifact_path)
+            zip_and_upload_mock.assert_not_called()
+
+    @patch("samcli.lib.package.utils.zip_and_upload")
+    def test_upload_local_artifacts_local_file_abs_path_with_cache(self, zip_and_upload_mock):
+        # Case 2: Artifact path is an absolute path
+        # Verifies that we package local artifacts appropriately
+        property_name = "property"
+        resource_id = "resource_id"
+        resource_type = "resource_type"
+        expected_s3_url = "s3://foo/bar?versionId=baz"
+
+        self.s3_uploader_mock.upload_with_dedup.return_value = expected_s3_url
+
+        with tempfile.NamedTemporaryFile() as handle:
+            parent_dir = tempfile.gettempdir()
+            artifact_path = make_abs_path(parent_dir, handle.name)
+
+            resource_dict = {property_name: artifact_path}
+            result = upload_local_artifacts(
+                resource_type,
+                resource_id,
+                resource_dict,
+                property_name,
+                parent_dir,
+                self.s3_uploader_mock,
+                previously_uploaded={
+                    artifact_path: expected_s3_url,
+                    artifact_path + "wrong path": expected_s3_url + "wrong url",
+                },
+            )
+            self.assertEqual(result, expected_s3_url)
+
+            self.s3_uploader_mock.upload_with_dedup.assert_not_called()
             zip_and_upload_mock.assert_not_called()
 
     @patch("samcli.lib.package.utils.zip_and_upload")
@@ -378,6 +449,38 @@ class TestArtifactExporter(unittest.TestCase):
             absolute_artifact_path = make_abs_path(parent_dir, artifact_path)
 
             zip_and_upload_mock.assert_called_once_with(absolute_artifact_path, mock.ANY, None, zip_method=make_zip)
+
+    @patch("samcli.lib.package.utils.zip_and_upload")
+    def test_upload_local_artifacts_local_folder_with_cache(self, zip_and_upload_mock):
+        property_name = "property"
+        resource_id = "resource_id"
+        resource_type = "resource_type"
+        expected_s3_url = "s3://foo/bar?versionId=baz"
+
+        zip_and_upload_mock.return_value = expected_s3_url
+
+        #  Artifact path is a Directory
+        with self.make_temp_dir() as artifact_path:
+            # Artifact is a file in the temporary directory
+            parent_dir = tempfile.gettempdir()
+            resource_dict = {property_name: artifact_path}
+            absolute_artifact_path = make_abs_path(parent_dir, artifact_path)
+
+            result = upload_local_artifacts(
+                resource_type,
+                resource_id,
+                resource_dict,
+                property_name,
+                parent_dir,
+                Mock(),
+                previously_uploaded={
+                    absolute_artifact_path: expected_s3_url,
+                    absolute_artifact_path + "wrong path": expected_s3_url + "wrong url",
+                },
+            )
+            self.assertEqual(result, expected_s3_url)
+
+            zip_and_upload_mock.assert_not_called()
 
     @patch("samcli.lib.package.utils.zip_and_upload")
     def test_upload_local_artifacts_local_folder_lambda_resources(self, zip_and_upload_mock):
@@ -413,6 +516,37 @@ class TestArtifactExporter(unittest.TestCase):
                 zip_and_upload_mock.reset_mock()
 
     @patch("samcli.lib.package.utils.zip_and_upload")
+    def test_upload_local_artifacts_local_folder_lambda_resources_with_cache(self, zip_and_upload_mock):
+        for resource_type in LAMBDA_LOCAL_RESOURCES:
+            property_name = "property"
+            resource_id = "resource_id"
+            expected_s3_url = "s3://foo/bar?versionId=baz"
+
+            zip_and_upload_mock.return_value = expected_s3_url
+            #  Artifact path is a Directory
+            with self.make_temp_dir() as artifact_path:
+                # Artifact is a file in the temporary directory
+                parent_dir = tempfile.gettempdir()
+                resource_dict = {property_name: artifact_path}
+                absolute_artifact_path = make_abs_path(parent_dir, artifact_path)
+
+                result = upload_local_artifacts(
+                    resource_type,
+                    resource_id,
+                    resource_dict,
+                    property_name,
+                    parent_dir,
+                    Mock(),
+                    previously_uploaded={
+                        absolute_artifact_path: expected_s3_url,
+                        absolute_artifact_path + "wrong path": expected_s3_url + "wrong url",
+                    },
+                )
+                self.assertEqual(result, expected_s3_url)
+
+                zip_and_upload_mock.assert_not_called()
+
+    @patch("samcli.lib.package.utils.zip_and_upload")
     def test_upload_local_artifacts_local_folder_non_lambda_resources(self, zip_and_upload_mock):
         non_lambda_resources = RESOURCES_WITH_LOCAL_PATHS.keys() - LAMBDA_LOCAL_RESOURCES
         for resource_type in non_lambda_resources:
@@ -445,6 +579,37 @@ class TestArtifactExporter(unittest.TestCase):
                 zip_and_upload_mock.reset_mock()
 
     @patch("samcli.lib.package.utils.zip_and_upload")
+    def test_upload_local_artifacts_local_folder_non_lambda_resources_with_cache(self, zip_and_upload_mock):
+        non_lambda_resources = RESOURCES_WITH_LOCAL_PATHS.keys() - LAMBDA_LOCAL_RESOURCES
+        for resource_type in non_lambda_resources:
+            property_name = "property"
+            resource_id = "resource_id"
+            expected_s3_url = "s3://foo/bar?versionId=baz"
+
+            zip_and_upload_mock.return_value = expected_s3_url
+            #  Artifact path is a Directory
+            with self.make_temp_dir() as artifact_path:
+                # Artifact is a file in the temporary directory
+                parent_dir = tempfile.gettempdir()
+                resource_dict = {property_name: artifact_path}
+                absolute_artifact_path = make_abs_path(parent_dir, artifact_path)
+
+                result = upload_local_artifacts(
+                    resource_type,
+                    resource_id,
+                    resource_dict,
+                    property_name,
+                    parent_dir,
+                    Mock(),
+                    previously_uploaded={
+                        absolute_artifact_path: expected_s3_url,
+                        absolute_artifact_path + "wrong path": expected_s3_url + "wrong url",
+                    },
+                )
+                self.assertEqual(result, expected_s3_url)
+                zip_and_upload_mock.assert_not_called()
+
+    @patch("samcli.lib.package.utils.zip_and_upload")
     def test_upload_local_artifacts_no_path(self, zip_and_upload_mock):
         property_name = "property"
         resource_id = "resource_id"
@@ -463,6 +628,31 @@ class TestArtifactExporter(unittest.TestCase):
         self.assertEqual(result, expected_s3_url)
 
         zip_and_upload_mock.assert_called_once_with(parent_dir, mock.ANY, None, zip_method=make_zip)
+        self.s3_uploader_mock.upload_with_dedup.assert_not_called()
+
+    @patch("samcli.lib.package.utils.zip_and_upload")
+    def test_upload_local_artifacts_no_path_with_cache(self, zip_and_upload_mock):
+        property_name = "property"
+        resource_id = "resource_id"
+        resource_type = "resource_type"
+        expected_s3_url = "s3://foo/bar?versionId=baz"
+
+        # If you don't specify a path, we will default to Current Working Dir
+        resource_dict = {}
+        parent_dir = tempfile.gettempdir()
+
+        result = upload_local_artifacts(
+            resource_type,
+            resource_id,
+            resource_dict,
+            property_name,
+            parent_dir,
+            self.s3_uploader_mock,
+            previously_uploaded={parent_dir: expected_s3_url, parent_dir + "wrong path": expected_s3_url + "wrong url"},
+        )
+        self.assertEqual(result, expected_s3_url)
+
+        zip_and_upload_mock.assert_not_called()
         self.s3_uploader_mock.upload_with_dedup.assert_not_called()
 
     @patch("samcli.lib.package.utils.zip_and_upload")
@@ -545,6 +735,7 @@ class TestArtifactExporter(unittest.TestCase):
             resource.PROPERTY_NAME,
             parent_dir,
             self.s3_uploader_mock,
+            None,
             None,
             None,
         )
@@ -826,6 +1017,7 @@ class TestArtifactExporter(unittest.TestCase):
             resource.PROPERTY_NAME,
             parent_dir,
             self.s3_uploader_mock,
+            None,
             None,
             None,
         )
@@ -1346,10 +1538,89 @@ class TestArtifactExporter(unittest.TestCase):
 
             self.assertEqual(1, yaml_parse_mock.call_count)
 
-            resource_type1_class.assert_called_once_with(self.uploaders_mock, self.code_signer_mock)
+            resource_type1_class.assert_called_once_with(self.uploaders_mock, self.code_signer_mock, None)
             resource_type1_instance.export.assert_called_once_with("Resource1", mock.ANY, template_dir)
-            resource_type2_class.assert_called_once_with(self.uploaders_mock, self.code_signer_mock)
+            resource_type2_class.assert_called_once_with(self.uploaders_mock, self.code_signer_mock, None)
             resource_type2_instance.export.assert_called_once_with("Resource2", mock.ANY, template_dir)
+
+    @patch("samcli.lib.package.artifact_exporter.is_experimental_enabled")
+    @patch("samcli.lib.package.artifact_exporter.yaml_parse")
+    def test_template_export_with_experimental_flag(self, yaml_parse_mock, is_experimental_enabled_mock):
+
+        is_experimental_enabled_mock.side_effect = lambda *args: {
+            (ExperimentalFlag.PackagePerformance,): True,
+        }.get(args, False)
+
+        _cache: Optional[Dict] = None
+
+        def mock_class_init_function(mock_instance):
+            def init_cache(uploaders, code_signer, cache):
+                nonlocal _cache
+                if _cache is None:
+                    _cache = cache
+                return mock_instance
+
+            return init_cache
+
+        def mock_export_function(cache_key, cache_value):
+            def export_set_cache(*args):
+                nonlocal _cache
+                _cache[cache_key] = cache_value
+
+            return export_set_cache
+
+        parent_dir = os.path.sep
+        template_dir = os.path.join(parent_dir, "foo", "bar")
+        template_path = os.path.join(template_dir, "path")
+        template_str = self.example_yaml_template()
+
+        resource_type1_class = Mock()
+        resource_type1_class.RESOURCE_TYPE = "resource_type1"
+        resource_type1_class.ARTIFACT_TYPE = ZIP
+        resource_type1_class.EXPORT_DESTINATION = Destination.S3
+        resource_type1_instance = Mock()
+        resource_type1_instance.export.side_effect = mock_export_function("key1", "value1")
+        resource_type1_class.side_effect = mock_class_init_function(resource_type1_instance)
+        resource_type2_class = Mock()
+        resource_type2_class.RESOURCE_TYPE = "resource_type2"
+        resource_type2_class.ARTIFACT_TYPE = ZIP
+        resource_type2_class.EXPORT_DESTINATION = Destination.S3
+        resource_type2_instance = Mock()
+        resource_type2_instance.export.side_effect = mock_export_function("key2", "value2")
+        resource_type2_class.side_effect = mock_class_init_function(resource_type2_instance)
+
+        resources_to_export = [resource_type1_class, resource_type2_class]
+
+        properties = {"foo": "bar"}
+        template_dict = {
+            "Resources": {
+                "Resource1": {"Type": "resource_type1", "Properties": properties},
+                "Resource2": {"Type": "resource_type2", "Properties": properties},
+                "Resource3": {"Type": "some-other-type", "Properties": properties},
+            }
+        }
+
+        open_mock = mock.mock_open()
+        yaml_parse_mock.return_value = template_dict
+
+        # Patch the file open method to return template string
+        with patch("samcli.lib.package.artifact_exporter.open", open_mock(read_data=template_str)) as open_mock:
+            template_exporter = Template(
+                template_path, parent_dir, self.uploaders_mock, self.code_signer_mock, resources_to_export
+            )
+            exported_template = template_exporter.export()
+            self.assertEqual(exported_template, template_dict)
+
+            open_mock.assert_called_once_with(make_abs_path(parent_dir, template_path), "r")
+
+            self.assertEqual(1, yaml_parse_mock.call_count)
+
+            resource_type1_class.assert_called_once_with(self.uploaders_mock, self.code_signer_mock, mock.ANY)
+            resource_type1_instance.export.assert_called_once_with("Resource1", mock.ANY, template_dir)
+            resource_type2_class.assert_called_once_with(self.uploaders_mock, self.code_signer_mock, mock.ANY)
+            resource_type2_instance.export.assert_called_once_with("Resource2", mock.ANY, template_dir)
+
+        self.assertEqual({"key1": "value1", "key2": "value2"}, _cache)
 
     @patch("samcli.lib.package.artifact_exporter.yaml_parse")
     def test_cdk_template_export(self, yaml_parse_mock):
@@ -1407,7 +1678,7 @@ class TestArtifactExporter(unittest.TestCase):
 
             self.assertEqual(1, yaml_parse_mock.call_count)
 
-            resource_type1_class.assert_called_once_with(self.uploaders_mock, self.code_signer_mock)
+            resource_type1_class.assert_called_once_with(self.uploaders_mock, self.code_signer_mock, None)
             expected_resource_properties = {
                 "Code": "/path/code",
             }
@@ -1476,7 +1747,7 @@ class TestArtifactExporter(unittest.TestCase):
 
             self.assertEqual(1, yaml_parse_mock.call_count)
 
-            resource_type1_class.assert_called_once_with(self.uploaders_mock, self.code_signer_mock)
+            resource_type1_class.assert_called_once_with(self.uploaders_mock, self.code_signer_mock, None)
             expected_resource_properties = {
                 "Code": "/path/code",
             }

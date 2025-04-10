@@ -19,6 +19,7 @@ from typing import Dict, List, Optional
 
 from botocore.utils import set_value_from_jmespath
 
+from samcli.commands._utils.experimental import ExperimentalFlag, is_experimental_enabled
 from samcli.commands.package import exceptions
 from samcli.lib.package.code_signer import CodeSigner
 from samcli.lib.package.local_files_utils import get_uploaded_s3_object_name, mktempfile
@@ -275,6 +276,10 @@ class Template:
         self._apply_global_values()
         self.template_dict = self._export_global_artifacts(self.template_dict)
 
+        cache: Optional[Dict] = None
+        if is_experimental_enabled(ExperimentalFlag.PackagePerformance):
+            cache = {}
+
         for resource_logical_id, resource in self.template_dict["Resources"].items():
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", {})
@@ -287,7 +292,7 @@ class Template:
                 if resource_dict.get("PackageType", ZIP) != exporter_class.ARTIFACT_TYPE:
                     continue
                 # Export code resources
-                exporter = exporter_class(self.uploaders, self.code_signer)
+                exporter = exporter_class(self.uploaders, self.code_signer, cache)
                 exporter.export(full_path, resource_dict, self.template_dir)
 
         return self.template_dict
