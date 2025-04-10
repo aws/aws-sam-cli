@@ -46,6 +46,9 @@ class ExperimentalFlag:
     BuildPerformance = ExperimentalEntry(
         "experimentalBuildPerformance", EXPERIMENTAL_ENV_VAR_PREFIX + "BUILD_PERFORMANCE"
     )
+    PackagePerformance = ExperimentalEntry(
+        "experimentalPackagePerformance", EXPERIMENTAL_ENV_VAR_PREFIX + "PACKAGE_PERFORMANCE"
+    )
     IaCsSupport = {
         "terraform": ExperimentalEntry(
             "experimentalTerraformSupport", EXPERIMENTAL_ENV_VAR_PREFIX + "TERRAFORM_SUPPORT"
