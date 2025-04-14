@@ -187,14 +187,14 @@ class TestValidateCli(TestCase):
         
     @patch("samcli.commands.validate.validate._read_sam_file")
     def test_cli_with_extra_lint_rules(self, mock_read_sam_file):
-        # 테스트 준비
+        # Prepare test
         template = "template"
         extra_lint_rules = "cfn_lint_serverless.rules"
         mock_read_sam_file.return_value = SamTemplate(serialized="", deserialized={})
         
-        # do_cli 함수를 직접 테스트
+        # Test the do_cli function directly
         with patch("samcli.commands.validate.validate._lint") as mock_lint:
-            # do_cli 호출
+            # Call do_cli
             do_cli(
                 ctx=ctx_mock(profile="profile", region="region"), 
                 template=template, 
@@ -203,30 +203,30 @@ class TestValidateCli(TestCase):
                 extra_lint_rules=extra_lint_rules
             )
             
-            # _lint이 올바른 파라미터로 호출되는지 확인
+            # Verify that _lint is called with the correct parameters
             mock_lint.assert_called_once()
             args, kwargs = mock_lint.call_args
-            self.assertEqual(args[2], template)  # template_path 파라미터
-            self.assertEqual(args[3], False)     # serverless_rules 파라미터
-            self.assertEqual(args[4], extra_lint_rules)  # extra_lint_rules 파라미터
+            self.assertEqual(args[2], template)  # template_path parameter
+            self.assertEqual(args[3], False)     # serverless_rules parameter
+            self.assertEqual(args[4], extra_lint_rules)  # extra_lint_rules parameter
         
     @patch("cfnlint.api.lint")
     @patch("samcli.commands.validate.validate.click")
     def test_lint_with_extra_lint_rules(self, click_patch, lint_patch):
-        # 테스트 준비
+        # Prepare test
         template_path = "path_to_template"
         template_contents = "{}"
         extra_lint_rules = "custom.rules.module"
         lint_patch.return_value = []
         
-        # ManualArgs 클래스를 모킹하여 append_rules 속성이 올바르게 설정되는지 확인
+        # Mock ManualArgs class to verify that append_rules property is set correctly
         with patch("samcli.lib.telemetry.event.EventTracker.track_event") as track_patch:
             with patch("cfnlint.api.ManualArgs") as manual_args_mock:
-                # ManualArgs 객체가 append_rules 속성을 가지도록 설정
+                # Set up ManualArgs object to have append_rules property
                 manual_args_instance = Mock()
                 manual_args_mock.return_value = manual_args_instance
                 
-                # 테스트 실행
+                # Run test
                 _lint(
                     ctx=ctx_lint_mock(debug=False, region="region"),
                     template=template_contents,
@@ -235,11 +235,11 @@ class TestValidateCli(TestCase):
                     extra_lint_rules=extra_lint_rules
                 )
                 
-                # 이벤트 추적 확인 - ExtraLintRules 이벤트가 추적되는지 확인
+                # Verify event tracking - confirm ExtraLintRules event is being tracked
                 track_patch.assert_any_call("UsedFeature", "CFNLint")
                 track_patch.assert_any_call("UsedFeature", "ExtraLintRules")
                 
-                # ManualArgs가 올바른 인자와 함께 호출되는지 확인
+                # Verify ManualArgs is called with correct arguments
                 manual_args_mock.assert_called_once()
                 args, kwargs = manual_args_mock.call_args
                 self.assertIn("append_rules", kwargs)
@@ -248,20 +248,20 @@ class TestValidateCli(TestCase):
     @patch("cfnlint.api.lint")
     @patch("samcli.commands.validate.validate.click")
     def test_lint_with_multiple_comma_separated_extra_lint_rules(self, click_patch, lint_patch):
-        # 테스트 준비
+        # Prepare test
         template_path = "path_to_template"
         template_contents = "{}"
-        # 콤마로 구분된 여러 규칙 모듈 지정
+        # Specify multiple rule modules separated by commas
         extra_lint_rules = "module1.rules,module2.rules,module3.rules"
         lint_patch.return_value = []
         
-        # ManualArgs 클래스를 모킹하여 append_rules 속성이 올바르게 설정되는지 확인
+        # Mock ManualArgs class to verify that append_rules property is set correctly
         with patch("samcli.lib.telemetry.event.EventTracker.track_event"):
             with patch("cfnlint.api.ManualArgs") as manual_args_mock:
                 manual_args_instance = Mock()
                 manual_args_mock.return_value = manual_args_instance
                 
-                # 테스트 실행
+                # Run test
                 _lint(
                     ctx=ctx_lint_mock(debug=False, region="region"),
                     template=template_contents,
@@ -270,11 +270,11 @@ class TestValidateCli(TestCase):
                     extra_lint_rules=extra_lint_rules
                 )
                 
-                # ManualArgs가 올바른 인자와 함께 호출되는지 확인
+                # Verify ManualArgs is called with correct arguments
                 manual_args_mock.assert_called_once()
                 args, kwargs = manual_args_mock.call_args
                 self.assertIn("append_rules", kwargs)
-                # 콤마로 구분된 각 모듈이 분리되어 리스트에 추가되는지 확인
+                # Verify each comma-separated module is split and added to the list
                 expected_rules = ["module1.rules", "module2.rules", "module3.rules"]
                 self.assertEqual(set(kwargs["append_rules"]), set(expected_rules))
                 
@@ -282,19 +282,19 @@ class TestValidateCli(TestCase):
     @patch("samcli.commands.validate.validate.click")
     @patch("importlib.util.find_spec")
     def test_serverless_rules_deprecated_with_extra_lint_rules(self, find_spec_mock, click_patch, lint_patch):
-        # 테스트 준비
+        # Prepare test
         template_path = "path_to_template"
         template_contents = "{}"
         find_spec_mock.return_value = True
         lint_patch.return_value = []
         
-        # 두 옵션이 모두 제공되었을 때 extra_lint_rules가 우선되는지 확인
+        # Verify when both options are provided, both rules are included
         with patch("samcli.lib.telemetry.event.EventTracker.track_event"):
             with patch("cfnlint.api.ManualArgs") as manual_args_mock:
                 manual_args_instance = Mock()
                 manual_args_mock.return_value = manual_args_instance
                 
-                # 테스트 실행 - 두 옵션 모두 사용
+                # Run test - use both options
                 _lint(
                     ctx=ctx_lint_mock(debug=False, region="region"),
                     template=template_contents,
@@ -303,7 +303,7 @@ class TestValidateCli(TestCase):
                     extra_lint_rules="custom.rules.module"
                 )
                 
-                # 검증 - 두 규칙이 모두 추가되는지 확인
+                # Verify both rules are added
                 manual_args_mock.assert_called_once()
                 args, kwargs = manual_args_mock.call_args
                 self.assertIn("append_rules", kwargs)
