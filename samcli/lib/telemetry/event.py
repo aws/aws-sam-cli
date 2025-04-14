@@ -4,7 +4,7 @@ Represents Events and their values.
 
 import logging
 import threading
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from typing import List, Optional
 from uuid import UUID, uuid4
@@ -110,7 +110,7 @@ class Event:
         if not thread_id:
             thread_id = uuid4()
         self.thread_id = thread_id
-        self.time_stamp = str(datetime.utcnow())[:-3]  # format microseconds from 6 -> 3 figures to allow SQL casting
+        self.time_stamp = str(datetime.now(UTC))[:-3]  # format microseconds from 6 -> 3 figures to allow SQL casting
         self.exception_name = exception_name
 
     def __eq__(self, other):
