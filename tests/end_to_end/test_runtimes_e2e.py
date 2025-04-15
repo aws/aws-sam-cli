@@ -1,4 +1,3 @@
-# This avoids the type incompatibility issue
 import shutil
 import os
 from unittest import skipIf
