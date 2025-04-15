@@ -1,4 +1,3 @@
-# Use shutil.copytree directly instead of distutils.dir_util.copy_tree
 # This avoids the type incompatibility issue
 import shutil
 import os
