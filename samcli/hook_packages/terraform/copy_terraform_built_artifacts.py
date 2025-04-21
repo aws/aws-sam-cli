@@ -1,5 +1,5 @@
 """
-Python script that prepares artifacts for SAM CLI to invoke. 
+Python script that prepares artifacts for SAM CLI to invoke.
 This script will work in both Linux/MacOS and Windows.
 
 It consists of 5 steps:
@@ -7,7 +7,7 @@ It consists of 5 steps:
 2. run `terraform init -reconfigure`
 3. run `terraform apply` on the SAM CLI Metadata resource
 4. run `terraform out` to produce an output
-5. parse the output to locate the built artifact, and move it to the SAM CLI 
+5. parse the output to locate the built artifact, and move it to the SAM CLI
 build artifact directory (find_and_copy_assets)
 
 Note: This script intentionally does not use Python3 specific syntax.
