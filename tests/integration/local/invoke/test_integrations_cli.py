@@ -220,7 +220,7 @@ class TestSamPythonHelloWorldIntegration(IntegrationCliIntegBase):
         process_stdout = stdout.strip()
         self.assertEqual(process_stdout.decode("utf-8"), '"MyVar"')
 
-    @parameterized.expand([("EchoGlobalCustomEnvVarFunction")])
+    @parameterized.expand(["EchoGlobalCustomEnvVarFunction"])
     @pytest.mark.flaky(reruns=3)
     def test_invoke_with_global_env_vars_function(self, function_name):
         command_list = InvokeIntegBase.get_command_list(
