@@ -1,4 +1,4 @@
-""" Application Environment """
+"""Application Environment"""
 
 import hashlib
 import json

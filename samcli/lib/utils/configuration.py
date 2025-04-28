@@ -1,4 +1,4 @@
-""" Read info from runtime_config.json file"""
+"""Read info from runtime_config.json file"""
 
 import json
 import logging
