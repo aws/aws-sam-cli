@@ -1,10 +1,8 @@
-from distutils.dir_util import copy_tree
+import shutil
+import os
 from unittest import skipIf
-
 import json
 from pathlib import Path
-
-import os
 from parameterized import parameterized_class
 
 from tests.end_to_end.end_to_end_base import EndToEndBase
@@ -181,7 +179,7 @@ class TestEsbuildDatadogLayerIntegration(EndToEndBase):
         with EndToEndTestContext(self.app_name) as e2e_context:
             project_path = str(self.e2e_test_data_path / "esbuild-datadog-integration")
             os.mkdir(e2e_context.project_directory)
-            copy_tree(project_path, e2e_context.project_directory)
+            shutil.copytree(project_path, e2e_context.project_directory, dirs_exist_ok=True)
             self.template_path = e2e_context.template_path
             build_command_list = self.get_command_list()
             deploy_command_list = self._get_deploy_command(stack_name)

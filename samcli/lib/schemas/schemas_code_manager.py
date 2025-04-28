@@ -1,4 +1,4 @@
-""" Isolates code download and merge logic for dynamic Schemas template """
+"""Isolates code download and merge logic for dynamic Schemas template"""
 
 import json
 import os
