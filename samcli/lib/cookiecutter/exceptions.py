@@ -1,4 +1,4 @@
-""" Exceptions raised from the cookiecutter workflow"""
+"""Exceptions raised from the cookiecutter workflow"""
 
 
 class CookiecutterErrorException(Exception):

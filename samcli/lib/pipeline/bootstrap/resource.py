@@ -1,4 +1,4 @@
-""" Represents AWS resource"""
+"""Represents AWS resource"""
 
 from typing import Optional
 
