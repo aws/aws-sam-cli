@@ -3,6 +3,7 @@ Provides methods to generate and send metrics
 """
 
 import logging
+import os
 import platform
 import uuid
 from dataclasses import dataclass
@@ -10,6 +11,7 @@ from functools import reduce, wraps
 from pathlib import Path
 from timeit import default_timer
 from typing import Any, Dict, Optional
+from urllib.parse import urlparse
 
 import click
 
@@ -436,6 +438,7 @@ class Metric:
         self._data["installationId"] = self._gc.installation_id
         self._data["sessionId"] = self._session_id
         self._data["executionEnvironment"] = self._get_execution_environment()
+        self._data["dockerHost"] = self._get_docker_host()
         self._data["ci"] = bool(self._cicd_detector.platform())
         self._data["pyversion"] = platform.python_version()
         self._data["samcliVersion"] = samcli_version
@@ -475,6 +478,28 @@ class Metric:
         if cicd_platform:
             return cicd_platform.name
         return "CLI"
+
+    def _get_docker_host(self) -> str:
+        """
+        Returns the last part of a DOCKER_HOST string. Has conditional logic to properly parse
+        URLs and local file system paths. If the DOCKER_HOST is not set, returns an empty string.
+
+        Examples:
+            - unix:///var/run/docker.sock -> docker.sock
+            - tcp://localhost:1234 -> localhost:1234
+            - /var/run/docker.sock -> docker.sock
+        """
+
+        parsed = urlparse(self._gc.docker_host)
+        if not parsed.scheme == '':
+            if os.path.exists():
+                # self._gc.docker_host is a file path
+                return os.path.basename(os.path.normpath(self._gc.docker_host))
+        else:
+            # self._gc.docker_host is a URI
+            return os.path.basename(parsed.path)
+
+        return ""
 
 
 class MetricDataNotList(Exception):
