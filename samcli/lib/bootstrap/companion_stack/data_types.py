@@ -1,5 +1,5 @@
 """
-    Date type classes for companion stacks
+Date type classes for companion stacks
 """
 
 import posixpath

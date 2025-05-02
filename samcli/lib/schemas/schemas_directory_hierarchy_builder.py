@@ -1,4 +1,4 @@
-""" Responsible for building schema code directory hierarchy based on schema name """
+"""Responsible for building schema code directory hierarchy based on schema name"""
 
 import re
 

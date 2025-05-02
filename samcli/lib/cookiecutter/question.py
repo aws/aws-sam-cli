@@ -1,4 +1,4 @@
-""" This module represents the questions to ask to the user to fulfill the cookiecutter context. """
+"""This module represents the questions to ask to the user to fulfill the cookiecutter context."""
 
 from abc import ABC, abstractmethod
 from enum import Enum

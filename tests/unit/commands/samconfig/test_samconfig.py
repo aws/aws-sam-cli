@@ -117,10 +117,10 @@ class TestSamConfigForAllCommands(TestCase):
             "docker_network": "mynetwork",
             "skip_pull_image": True,
             "parameter_overrides": "ParameterKey=Key,ParameterValue=Value ParameterKey=Key2,ParameterValue=Value2",
-            "container_env_var": [("")],
+            "container_env_var": [""],
             "container_env_var_file": "file",
-            "build_image": [("")],
-            "exclude": [("")],
+            "build_image": [""],
+            "exclude": [""],
             "mount_with": "read",
             "mount_symlinks": True,
         }
@@ -178,10 +178,10 @@ class TestSamConfigForAllCommands(TestCase):
             "docker_network": "mynetwork",
             "skip_pull_image": True,
             "parameter_overrides": "ParameterKey=Key,ParameterValue=Value ParameterKey=Key2,ParameterValue=Value2",
-            "container_env_var": [("")],
+            "container_env_var": [""],
             "container_env_var_file": "file",
-            "build_image": [("")],
-            "exclude": [("")],
+            "build_image": [""],
+            "exclude": [""],
             "mount_with": "read",
         }
 
@@ -237,10 +237,10 @@ class TestSamConfigForAllCommands(TestCase):
             "docker_network": "mynetwork",
             "skip_pull_image": True,
             "parameter_overrides": "ParameterKey=Key,ParameterValue=Value ParameterKey=Key2,ParameterValue=Value2",
-            "container_env_var": [("")],
+            "container_env_var": [""],
             "container_env_var_file": "file",
-            "build_image": [("")],
-            "exclude": [("")],
+            "build_image": [""],
+            "exclude": [""],
             "mount_with": "read",
         }
 
@@ -297,10 +297,10 @@ class TestSamConfigForAllCommands(TestCase):
             "docker_network": "mynetwork",
             "skip_pull_image": True,
             "parameter_overrides": "ParameterKey=Key,ParameterValue=Value ParameterKey=Key2,ParameterValue=Value2",
-            "container_env_var": [("")],
+            "container_env_var": [""],
             "container_env_var_file": "file",
-            "build_image": [("")],
-            "exclude": [("")],
+            "build_image": [""],
+            "exclude": [""],
             "mount_with": "read",
         }
 
@@ -358,10 +358,10 @@ class TestSamConfigForAllCommands(TestCase):
             "docker_network": "mynetwork",
             "skip_pull_image": True,
             "parameter_overrides": "ParameterKey=Key,ParameterValue=Value ParameterKey=Key2,ParameterValue=Value2",
-            "container_env_var": [("")],
+            "container_env_var": [""],
             "container_env_var_file": "file",
-            "build_image": [("")],
-            "exclude": [("")],
+            "build_image": [""],
+            "exclude": [""],
             "mount_with": "read",
         }
 
@@ -418,7 +418,7 @@ class TestSamConfigForAllCommands(TestCase):
             "docker_network": "mynetwork",
             "skip_pull_image": True,
             "parameter_overrides": "ParameterKey=Key,ParameterValue=Value ParameterKey=Key2,ParameterValue=Value2",
-            "container_env_var": [("")],
+            "container_env_var": [""],
             "container_env_var_file": "env_vars_file",
             "mount_with": "read",
         }
