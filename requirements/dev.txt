@@ -35,7 +35,7 @@ pytest==8.3.5
 parameterized==0.9.0
 pytest-xdist==3.6.1
 pytest-forked==1.6.0
-pytest-timeout==2.3.1
+pytest-timeout==2.4.0
 pytest-rerunfailures==15.0;  python_version>="3.9"
 pytest-rerunfailures==14.0;  python_version<"3.9"
 # NOTE (hawflau): DO NOT upgrade pytest-metadata and pytest-json-report unless pytest-json-report addresses https://github.com/numirias/pytest-json-report/issues/89
