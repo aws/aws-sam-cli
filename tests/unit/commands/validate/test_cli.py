@@ -16,7 +16,7 @@ ctx_lint_mock = namedtuple("ctx_lint_mock", ["debug", "region"])
 
 class TestValidateCli(TestCase):
     def setUp(self):
-        # datetime.utcnow() 사용에 대한 경고 무시
+        # Ignore warnings about datetime.utcnow() usage
         warnings.filterwarnings("ignore", category=DeprecationWarning, message="datetime.datetime.utcnow()")
 
     @patch("samcli.commands.validate.validate.click")
@@ -56,7 +56,7 @@ class TestValidateCli(TestCase):
         template_validator.return_value = get_translated_template_if_valid_mock
 
         with self.assertRaises(InvalidSamTemplateException):
-            do_cli(ctx=ctx_mock(profile="profile", region="region"), template=template_path, lint=False, serverless_rules=False)
+            do_cli(ctx=ctx_mock(profile="profile", region="region"), template=template_path, lint=False)
 
     @patch("samcli.lib.translate.sam_template_validator.SamTemplateValidator")
     @patch("samcli.commands.validate.validate.click")
@@ -71,7 +71,7 @@ class TestValidateCli(TestCase):
         template_validator.return_value = get_translated_template_if_valid_mock
 
         with self.assertRaises(UserException):
-            do_cli(ctx=ctx_mock(profile="profile", region="region"), template=template_path, lint=False, serverless_rules=False)
+            do_cli(ctx=ctx_mock(profile="profile", region="region"), template=template_path, lint=False)
 
     @patch("samcli.lib.translate.sam_template_validator.SamTemplateValidator")
     @patch("samcli.commands.validate.validate.click")
@@ -96,7 +96,7 @@ class TestValidateCli(TestCase):
         read_sam_file_patch.return_value = SamTemplate(serialized="{}", deserialized={})
         lint_patch.return_value = True
 
-        do_cli(ctx=ctx_lint_mock(debug=False, region="region"), template=template_path, lint=True, serverless_rules=False)
+        do_cli(ctx=ctx_lint_mock(debug=False, region="region"), template=template_path, lint=True)
 
     @patch("cfnlint.api.lint")
     @patch("samcli.commands.validate.validate.click")
@@ -109,8 +109,7 @@ class TestValidateCli(TestCase):
                 _lint(
                     ctx=ctx_lint_mock(debug=False, region="region"),
                     template=template_contents,
-                    template_path=template_path,
-                    serverless_rules=False
+                    template_path=template_path
                 )
             track_patch.assert_called_with("UsedFeature", "CFNLint")
 
@@ -126,70 +125,18 @@ class TestValidateCli(TestCase):
             _lint(
                 ctx=ctx_lint_mock(debug=False, region="region"), 
                 template=template_contents, 
-                template_path=template_path,
-                serverless_rules=False
+                template_path=template_path
             )
 
         self.assertEqual(
             ex.exception.message, "Linting failed. At least one linting rule was matched to the provided template."
         )
         
-    @patch("cfnlint.api.lint")
-    @patch("samcli.commands.validate.validate.click")
-    @patch("importlib.util.find_spec")
-    def test_serverless_rules_enabled(self, find_spec_mock, click_patch, lint_patch):
-        template_path = "path_to_template"
-        template_contents = "{}"
-        find_spec_mock.return_value = True
-        lint_patch.return_value = []
-
-        # ManualArgs 클래스를 모킹하여 append_rules 속성이 올바르게 설정되도록 함
-        with patch("samcli.lib.telemetry.event.EventTracker.track_event") as track_patch:
-            with patch("cfnlint.api.ManualArgs") as manual_args_mock:
-                # ManualArgs 객체가 append_rules 속성을 가지도록 설정
-                manual_args_instance = Mock()
-                manual_args_mock.return_value = manual_args_instance
-                
-                _lint(
-                    ctx=ctx_lint_mock(debug=False, region="region"),
-                    template=template_contents,
-                    template_path=template_path,
-                    serverless_rules=True
-                )
-                
-                # Check that both CFNLint and ServerlessRules events are tracked
-                track_patch.assert_any_call("UsedFeature", "CFNLint")
-                track_patch.assert_any_call("UsedFeature", "ServerlessRules")
-                
-                # Check that the ManualArgs was called with the serverless rules
-                manual_args_mock.assert_called_once()
-                args, kwargs = manual_args_mock.call_args
-                self.assertIn("append_rules", kwargs)
-                self.assertEqual(kwargs["append_rules"], ["cfn_lint_serverless.rules"])
-                
-    @patch("cfnlint.api.lint")
-    @patch("samcli.commands.validate.validate.click")
-    @patch("importlib.util.find_spec")
-    def test_serverless_rules_package_not_installed(self, find_spec_mock, click_patch, lint_patch):
-        template_path = "path_to_template"
-        template_contents = "{}"
-        find_spec_mock.return_value = None
-
-        with self.assertRaises(UserException) as ex:
-            _lint(
-                ctx=ctx_lint_mock(debug=False, region="region"),
-                template=template_contents,
-                template_path=template_path,
-                serverless_rules=True
-            )
-            
-        self.assertIn("Serverless Rules package (cfn-lint-serverless) is not installed", ex.exception.message)
-        
     @patch("samcli.commands.validate.validate._read_sam_file")
     def test_cli_with_extra_lint_rules(self, mock_read_sam_file):
         # Prepare test
         template = "template"
-        extra_lint_rules = "cfn_lint_serverless.rules"
+        extra_lint_rules = ("cfn_lint_serverless.rules",)  # 튜플 형태로 변경
         mock_read_sam_file.return_value = SamTemplate(serialized="", deserialized={})
         
         # Test the do_cli function directly
@@ -199,7 +146,6 @@ class TestValidateCli(TestCase):
                 ctx=ctx_mock(profile="profile", region="region"), 
                 template=template, 
                 lint=True, 
-                serverless_rules=False,
                 extra_lint_rules=extra_lint_rules
             )
             
@@ -207,8 +153,7 @@ class TestValidateCli(TestCase):
             mock_lint.assert_called_once()
             args, kwargs = mock_lint.call_args
             self.assertEqual(args[2], template)  # template_path parameter
-            self.assertEqual(args[3], False)     # serverless_rules parameter
-            self.assertEqual(args[4], extra_lint_rules)  # extra_lint_rules parameter
+            self.assertEqual(args[3], extra_lint_rules)  # extra_lint_rules parameter
         
     @patch("cfnlint.api.lint")
     @patch("samcli.commands.validate.validate.click")
@@ -216,7 +161,7 @@ class TestValidateCli(TestCase):
         # Prepare test
         template_path = "path_to_template"
         template_contents = "{}"
-        extra_lint_rules = "custom.rules.module"
+        extra_lint_rules = ("custom.rules.module",)  # Tuple format for multiple=True
         lint_patch.return_value = []
         
         # Mock ManualArgs class to verify that append_rules property is set correctly
@@ -231,7 +176,6 @@ class TestValidateCli(TestCase):
                     ctx=ctx_lint_mock(debug=False, region="region"),
                     template=template_contents,
                     template_path=template_path,
-                    serverless_rules=False,
                     extra_lint_rules=extra_lint_rules
                 )
                 
@@ -243,7 +187,8 @@ class TestValidateCli(TestCase):
                 manual_args_mock.assert_called_once()
                 args, kwargs = manual_args_mock.call_args
                 self.assertIn("append_rules", kwargs)
-                self.assertEqual(kwargs["append_rules"], [extra_lint_rules])
+                # We expect the first item from the tuple to be processed
+                self.assertEqual(kwargs["append_rules"], ["custom.rules.module"])
                 
     @patch("cfnlint.api.lint")
     @patch("samcli.commands.validate.validate.click")
@@ -252,7 +197,7 @@ class TestValidateCli(TestCase):
         template_path = "path_to_template"
         template_contents = "{}"
         # Specify multiple rule modules separated by commas
-        extra_lint_rules = "module1.rules,module2.rules,module3.rules"
+        extra_lint_rules = ("module1.rules,module2.rules,module3.rules",)
         lint_patch.return_value = []
         
         # Mock ManualArgs class to verify that append_rules property is set correctly
@@ -266,7 +211,6 @@ class TestValidateCli(TestCase):
                     ctx=ctx_lint_mock(debug=False, region="region"),
                     template=template_contents,
                     template_path=template_path,
-                    serverless_rules=False,
                     extra_lint_rules=extra_lint_rules
                 )
                 
@@ -278,35 +222,4 @@ class TestValidateCli(TestCase):
                 expected_rules = ["module1.rules", "module2.rules", "module3.rules"]
                 self.assertEqual(set(kwargs["append_rules"]), set(expected_rules))
                 
-    @patch("cfnlint.api.lint")
-    @patch("samcli.commands.validate.validate.click")
-    @patch("importlib.util.find_spec")
-    def test_serverless_rules_deprecated_with_extra_lint_rules(self, find_spec_mock, click_patch, lint_patch):
-        # Prepare test
-        template_path = "path_to_template"
-        template_contents = "{}"
-        find_spec_mock.return_value = True
-        lint_patch.return_value = []
-        
-        # Verify when both options are provided, both rules are included
-        with patch("samcli.lib.telemetry.event.EventTracker.track_event"):
-            with patch("cfnlint.api.ManualArgs") as manual_args_mock:
-                manual_args_instance = Mock()
-                manual_args_mock.return_value = manual_args_instance
-                
-                # Run test - use both options
-                _lint(
-                    ctx=ctx_lint_mock(debug=False, region="region"),
-                    template=template_contents,
-                    template_path=template_path,
-                    serverless_rules=True,
-                    extra_lint_rules="custom.rules.module"
-                )
-                
-                # Verify both rules are added
-                manual_args_mock.assert_called_once()
-                args, kwargs = manual_args_mock.call_args
-                self.assertIn("append_rules", kwargs)
-                self.assertEqual(len(kwargs["append_rules"]), 2)
-                self.assertIn("cfn_lint_serverless.rules", kwargs["append_rules"])
-                self.assertIn("custom.rules.module", kwargs["append_rules"])
+    # Removed test_serverless_rules_deprecated_with_extra_lint_rules as the feature is no longer supported

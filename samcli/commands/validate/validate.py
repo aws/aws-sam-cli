@@ -58,18 +58,12 @@ class SamTemplate:
     "For more information, see: https://github.com/aws-cloudformation/cfn-lint",
 )
 @click.option(
-    "--serverless-rules",
-    is_flag=True,
-    help="[DEPRECATED] Enable Serverless Rules for linting validation. "
-    "Requires the cfn-lint-serverless package to be installed. "
-    "Use --extra-lint-rules=\"cfn_lint_serverless.rules\" instead. "
-    "For more information, see: https://github.com/awslabs/serverless-rules",
-)
-@click.option(
     "--extra-lint-rules",
     help="Specify additional lint rules to be used with cfn-lint. "
-         "Format: module.path (e.g. 'cfn_lint_serverless.rules')",
-    default=None
+         "Format: module.path (e.g. 'cfn_lint_serverless.rules'). "
+         "Multiple rule modules can be specified by separating with commas or using this option multiple times.",
+    default=None,
+    multiple=True
 )
 @save_params_option
 @pass_context
@@ -78,22 +72,12 @@ class SamTemplate:
 @print_cmdline_args
 @unsupported_command_cdk(alternative_command="cdk doctor")
 @command_exception_handler
-def cli(ctx, template_file, config_file, config_env, lint, save_params, serverless_rules, extra_lint_rules):
+def cli(ctx, template_file, config_file, config_env, lint, save_params, extra_lint_rules):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
-
-    # Show warning and convert to extra_lint_rules if serverless_rules is used
-    if serverless_rules and not extra_lint_rules:
-        click.secho(
-            "Warning: --serverless-rules is deprecated. Please use --extra-lint-rules=\"cfn_lint_serverless.rules\" instead.",
-            fg="yellow"
-        )
-        # Convert old option to new option
-        extra_lint_rules = "cfn_lint_serverless.rules"
-
-    do_cli(ctx, template_file, lint, serverless_rules, extra_lint_rules)  # pragma: no cover
+    do_cli(ctx, template_file, lint, extra_lint_rules)  # pragma: no cover
 
 
-def do_cli(ctx, template, lint, serverless_rules, extra_lint_rules=None):
+def do_cli(ctx, template, lint, extra_lint_rules=None):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
@@ -107,7 +91,7 @@ def do_cli(ctx, template, lint, serverless_rules, extra_lint_rules=None):
     sam_template = _read_sam_file(template)
 
     if lint:
-        _lint(ctx, sam_template.serialized, template, serverless_rules, extra_lint_rules)
+        _lint(ctx, sam_template.serialized, template, extra_lint_rules)
     else:
         iam_client = boto3.client("iam")
         validator = SamTemplateValidator(
@@ -159,137 +143,190 @@ def _read_sam_file(template) -> SamTemplate:
     return SamTemplate(serialized=template_string, deserialized=sam_template)
 
 
-def _lint(ctx: Context, template: str, template_path: str, serverless_rules: bool = False, extra_lint_rules: str = None) -> None:
+def _lint(ctx: Context, template: str, template_path: str, extra_lint_rules=None):
     """
     Parses provided SAM template and maps errors from CloudFormation template back to SAM template.
 
     Cfn-lint loggers are added to the SAM cli logging hierarchy which at the root logger
-    configures with INFO level logging and a different formatting. This exposes and duplicates
-    some cfn-lint logs that are not typically shown to customers. Explicitly setting the level to
-    WARNING and propagate to be False remediates these issues.
+    formatter and handlers are defined. This ensures that logging is output correctly when used from SAM cli
+    for CLI consumers.
 
     Parameters
-    -----------
+    ----------
     ctx
-        Click context object
+        Click Context
     template
-        Contents of sam template as a string
+        SAM template contents
     template_path
         Path to the sam template
-    serverless_rules
-        Flag to enable Serverless Rules for linting
+    extra_lint_rules
+        List of additional rule modules to apply
     """
+    import logging
+    import importlib.util
+    import cfnlint
 
-    from cfnlint.api import ManualArgs, lint
+    from cfnlint.api import lint, ManualArgs
     from cfnlint.runner import InvalidRegionException
+    # Import only what is necessary
+
+    # To track events, we need to enable telemetry
     from samcli.lib.telemetry.event import EventTracker
 
-    # Add debug information
-    print(f"Debug info: serverless_rules option value = {serverless_rules}")
+    LOG = logging.getLogger(__name__)
+    LOG.debug("Starting template validation with linting")
 
-    cfn_lint_logger = logging.getLogger(CNT_LINT_LOGGER_NAME)
-    cfn_lint_logger.propagate = False
+    # Set up cfnlint logger verbosity using context provided
+    cfnlint_logger = logging.getLogger(CNT_LINT_LOGGER_NAME)
+    cfnlint_logger.propagate = False
+    
+    if ctx and ctx.debug:
+        cfnlint_logger.propagate = True
+        cfnlint_logger.setLevel(logging.DEBUG)
+    else:
+        cfnlint_logger.setLevel(logging.INFO)
 
+    # Track linting in telemetry
     EventTracker.track_event("UsedFeature", "CFNLint")
-
+    
+    # Create linter configuration
     linter_config = {}
     if ctx.region:
         linter_config["regions"] = [ctx.region]
-    if ctx.debug:
-        cfn_lint_logger.propagate = True
-        cfn_lint_logger.setLevel(logging.DEBUG)
-
-    print(f"Debug info: initial linter_config = {linter_config}")
-
-    # Initialize variable to handle both options together
+    
+    # Process extra lint rules if provided
     rules_to_append = []
-    
-    # Support for previous serverless_rules option (deprecated)
-    if serverless_rules:
-        print("Debug info: serverless_rules option is activated.")
-        # Track usage of Serverless Rules
-        EventTracker.track_event("UsedFeature", "ServerlessRules")
-        
-        # Check if cfn-lint-serverless is installed
-        import importlib.util
-        serverless_spec = importlib.util.find_spec("cfn_lint_serverless")
-        print(f"Debug info: cfn_lint_serverless package installed = {serverless_spec is not None}")
-        
-        if serverless_spec is None:
-            print("Debug info: cfn_lint_serverless package is not installed.")
-            click.secho(
-                "Serverless Rules package (cfn-lint-serverless) is not installed. "
-                "Please install it using: pip install cfn-lint-serverless",
-                fg="red",
-            )
-            raise UserException(
-                "Serverless Rules package (cfn-lint-serverless) is not installed. "
-                "Please install it using: pip install cfn-lint-serverless"
-            )
-            
-        try:
-            # Try to import the package
-            import cfn_lint_serverless
-            print("Debug info: cfn_lint_serverless package import successful")
-            
-            # Add Serverless Rules to the rule list
-            rules_to_append.append("cfn_lint_serverless.rules")
-            click.secho("Serverless Rules enabled for linting", fg="green")
-        except ImportError as e:
-            print(f"Debug info: cfn_lint_serverless import error = {e}")
-            click.secho(
-                "Serverless Rules package (cfn-lint-serverless) is not installed. "
-                "Please install it using: pip install cfn-lint-serverless",
-                fg="red",
-            )
-            raise UserException(
-                "Serverless Rules package (cfn-lint-serverless) is not installed. "
-                "Please install it using: pip install cfn-lint-serverless"
-            )
-    
-    # Support for the new extra_lint_rules option
     if extra_lint_rules:
-        print(f"Debug info: extra_lint_rules option is activated. Value: {extra_lint_rules}")
         # Track usage of Extra Lint Rules
         EventTracker.track_event("UsedFeature", "ExtraLintRules")
         
-        # Parse comma-separated rule modules
-        modules = [module.strip() for module in extra_lint_rules.split(',') if module.strip()]
-        print(f"Debug info: parsed rule modules list = {modules}")
+        # Process each rule option (multiple=True gives us a list)
+        for rule_option in extra_lint_rules:
+            # Handle comma-separated rule modules
+            for module in rule_option.split(','):
+                module = module.strip()
+                if not module:
+                    continue
+                    
+                LOG.debug("Processing lint rule module: %s", module)
+                if _is_module_available(module):
+                    rules_to_append.append(module)
+                    LOG.debug("Module %s is available and will be used", module)
+                else:
+                    module_name = module.split('.')[0].replace('_', '-')
+                    _handle_missing_module(module_name, 
+                                        f"The rule module '{module}' was specified but is not available.",
+                                        ctx.debug)
         
-        # Add each module to the rule list
-        rules_to_append.extend(modules)
-        click.secho(f"Extra lint rules enabled: {extra_lint_rules}", fg="green")
-    
-    # Add rules to linter_config if any exist
-    if rules_to_append:
-        print(f"Debug info: rules to append = {rules_to_append}")
-        linter_config["append_rules"] = rules_to_append
-        print(f"Debug info: updated linter_config = {linter_config}")
-
-    config = ManualArgs(**linter_config)
-    print(f"Debug info: config creation completed")
+        if rules_to_append:
+            module_names = ', '.join(rules_to_append)
+            click.secho(f"Extra lint rules enabled: {module_names}", fg="green")
+            linter_config["append_rules"] = rules_to_append
+            LOG.debug("Linter configuration updated with rules: %s", rules_to_append)
 
     try:
-        print(f"Debug info: starting lint function call")
+        # Create linter configuration and execute linting
+        config = ManualArgs(**linter_config)
+        LOG.debug("Executing linting with configuration")
         matches = lint(template, config=config)
-        print(f"Debug info: lint function call completed, matches = {matches}")
+        
+        if not matches:
+            click.secho("{} is a valid SAM Template".format(template_path), fg="green")
+            return
+
+        # Display validation failures
+        click.secho(matches)
+        raise LinterRuleMatchedException("Linting failed. At least one linting rule was matched to the provided template.")
+        
     except InvalidRegionException as ex:
-        print(f"Debug info: InvalidRegionException occurred = {ex}")
+        LOG.debug("Region validation failed: %s", ex)
         raise UserException(
             f"AWS Region was not found. Please configure your region through the --region option.\n{ex}",
             wrapped_from=ex.__class__.__name__,
         ) from ex
     except Exception as e:
-        print(f"Debug info: exception occurred = {e}")
+        LOG.debug("Unexpected exception during linting: %s", e)
         raise
 
-    if not matches:
-        print(f"Debug info: template validation successful")
-        click.secho("{} is a valid SAM Template".format(template_path), fg="green")
-        return
 
-    print(f"Debug info: template validation failed, matches = {matches}")
-    click.secho(matches)
+def _is_module_available(module_path: str) -> bool:
+    """
+    Check if a module is available for import.
+    Works with both standard pip installations and installer-based SAM CLI.
+    
+    Parameters
+    ----------
+    module_path
+        Full module path (e.g. 'cfn_lint_serverless.rules')
+        
+    Returns
+    -------
+    bool
+        True if module can be imported, False otherwise
+    """
+    LOG = logging.getLogger(__name__)
+    
+    # Try using importlib.util which is safer
+    try:
+        root_module = module_path.split('.')[0]
+        spec = importlib.util.find_spec(root_module)
+        if spec is None:
+            LOG.debug("Module %s not found with importlib.util.find_spec", root_module)
+            return False
+            
+        # For deeper paths, try actually importing
+        try:
+            __import__(module_path)
+            return True
+        except (ImportError, ModuleNotFoundError) as e:
+            LOG.debug("Could not import module %s: %s", module_path, e)
+            return False
+    except Exception as e:
+        LOG.debug("Unexpected error checking for module %s: %s", module_path, e)
+        # Fallback to direct import attempt
+        try:
+            __import__(module_path)
+            return True
+        except (ImportError, ModuleNotFoundError):
+            return False
 
-    raise LinterRuleMatchedException("Linting failed. At least one linting rule was matched to the provided template.")
+
+def _handle_missing_module(package_name: str, error_context: str, debug_mode: bool = False):
+    """
+    Handle missing module by providing appropriate error message that works
+    in both pip and installer environments.
+    
+    Parameters
+    ----------
+    package_name
+        Name of the package (for pip install instructions)
+    error_context
+        Contextual message describing what feature requires this package
+    debug_mode
+        Whether to include detailed instructions for different install methods
+    
+    Raises
+    ------
+    UserException
+        With appropriate error message
+    """
+    LOG = logging.getLogger(__name__)
+    LOG.debug("Module %s is missing: %s", package_name, error_context)
+    
+    base_message = error_context
+    install_instruction = f"Please install it using: pip install {package_name}"
+    
+    if debug_mode:
+        # In debug mode, provide more comprehensive instructions
+        message = (
+            f"{base_message}\n\n"
+            f"The package '{package_name}' is not available. Installation options:\n"
+            f"1. If using pip-installed SAM CLI: {install_instruction}\n"
+            f"2. If using installer-based SAM CLI: You need to install the package in the same Python environment\n"
+            f"   that SAM CLI uses. Check the SAM CLI installation documentation for details."
+        )
+    else:
+        message = f"{base_message}\n\n{package_name} package is not installed. {install_instruction}"
+    
+    click.secho(message, fg="red")
+    raise UserException(message)
