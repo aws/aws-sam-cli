@@ -183,7 +183,7 @@ class GuidedContext:
         click.echo("\n\tLooking for resources needed for deployment:")
         managed_s3_bucket = manage_stack(profile=self.profile, region=region)
         print_managed_s3_bucket_info(managed_s3_bucket, bold=True, show_s3_bucket_option=False)
-        click.echo("\tAuto resolution of buckets turned off by setting resolve_s3=False")
+        click.echo("\tAuto resolution of buckets can be turned off by setting resolve_s3=False")
 
         image_repositories = (
             sync_ecr_stack(
