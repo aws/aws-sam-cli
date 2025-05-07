@@ -35,7 +35,10 @@ def manage_stack(profile, region):
     # This bucket name is what we would write to a config file
     return bucket_name
 
-def print_managed_s3_bucket_info(s3_bucket, bold=False, show_s3_bucket_option=True):
+
+def print_managed_s3_bucket_info(
+    s3_bucket: str, bold: Optional[bool] = False, show_s3_bucket_option: Optional[bool] = True
+):
     """
     Print information about the managed S3 bucket.
 
