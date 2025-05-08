@@ -1,4 +1,4 @@
-""" To isolate Schemas API calls """
+"""To isolate Schemas API calls"""
 
 import json
 import logging
