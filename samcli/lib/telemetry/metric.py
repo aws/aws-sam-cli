@@ -492,12 +492,12 @@ class Metric:
 
         parsed = urlparse(self._gc.docker_host)
         if not parsed.scheme == '':
-            if os.path.exists():
+            if os.path.exists(self._gc.docker_host):
                 # self._gc.docker_host is a file path
-                return os.path.basename(os.path.normpath(self._gc.docker_host))
+                return str(os.path.basename(os.path.normpath(self._gc.docker_host)))
         else:
             # self._gc.docker_host is a URI
-            return os.path.basename(parsed.path)
+            return str(os.path.basename(parsed.path))
 
         return ""
 
