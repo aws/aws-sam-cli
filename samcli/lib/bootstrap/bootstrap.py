@@ -36,9 +36,7 @@ def manage_stack(profile, region):
     return bucket_name
 
 
-def print_managed_s3_bucket_info(
-    s3_bucket: str, bold: Optional[bool] = False, show_s3_bucket_option: Optional[bool] = True
-):
+def print_managed_s3_bucket_info(s3_bucket: str):
     """
     Print information about the managed S3 bucket.
 
@@ -46,16 +44,12 @@ def print_managed_s3_bucket_info(
     ----------
     s3_bucket : str
         The name of the managed S3 bucket
-    bold : bool, optional
-        Whether to print the message in bold, by default False
-    show_s3_bucket_option : bool, optional
-        Whether to show the s3-bucket option message, by default True
     """
     message = f"\n\tManaged S3 bucket: {s3_bucket}"
-    click.secho(message, bold=bold)
-    click.echo("\tA different default S3 bucket can be set in samconfig.toml")
-    if show_s3_bucket_option:
-        click.echo("\tOr by specifying --s3-bucket explicitly.")
+    click.secho(message, bold=True)
+    click.echo("\tAuto resolution of buckets can be turned off by setting resolve_s3=False")
+    click.echo("\tTo use a specific S3 bucket, set --s3-bucket=<bucket_name>")
+    click.echo("\tAbove settings can be stored in samconfig.toml")
 
 
 def get_current_account_id(profile: Optional[str] = None):
