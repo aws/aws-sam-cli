@@ -7,6 +7,7 @@ import logging
 from typing import Optional
 
 import boto3
+import click
 from botocore.exceptions import ClientError
 
 from samcli import __version__
@@ -33,6 +34,22 @@ def manage_stack(profile, region):
         raise UserException(msg)
     # This bucket name is what we would write to a config file
     return bucket_name
+
+
+def print_managed_s3_bucket_info(s3_bucket: str):
+    """
+    Print information about the managed S3 bucket.
+
+    Parameters
+    ----------
+    s3_bucket : str
+        The name of the managed S3 bucket
+    """
+    message = f"\n\tManaged S3 bucket: {s3_bucket}"
+    click.secho(message, bold=True)
+    click.echo("\tAuto resolution of buckets can be turned off by setting resolve_s3=False")
+    click.echo("\tTo use a specific S3 bucket, set --s3-bucket=<bucket_name>")
+    click.echo("\tAbove settings can be stored in samconfig.toml")
 
 
 def get_current_account_id(profile: Optional[str] = None):
