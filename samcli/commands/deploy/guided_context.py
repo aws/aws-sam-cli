@@ -23,7 +23,7 @@ from samcli.commands.deploy.code_signer_utils import (
 from samcli.commands.deploy.exceptions import GuidedDeployFailedError
 from samcli.commands.deploy.guided_config import GuidedConfig
 from samcli.commands.deploy.utils import sanitize_parameter_overrides
-from samcli.lib.bootstrap.bootstrap import manage_stack
+from samcli.lib.bootstrap.bootstrap import manage_stack, print_managed_s3_bucket_info
 from samcli.lib.bootstrap.companion_stack.companion_stack_manager import CompanionStackManager, sync_ecr_stack
 from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME, DEFAULT_ENV
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
@@ -182,11 +182,7 @@ class GuidedContext:
 
         click.echo("\n\tLooking for resources needed for deployment:")
         managed_s3_bucket = manage_stack(profile=self.profile, region=region)
-        click.secho(f"\n\tManaged S3 bucket: {managed_s3_bucket}", bold=True)
-        click.echo(
-            "\tA different default S3 bucket can be set in samconfig.toml"
-            " and auto resolution of buckets turned off by setting resolve_s3=False"
-        )
+        print_managed_s3_bucket_info(managed_s3_bucket)
 
         image_repositories = (
             sync_ecr_stack(
