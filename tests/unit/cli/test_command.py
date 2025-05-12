@@ -1,7 +1,6 @@
 from contextlib import contextmanager
 
-import click
-
+from click import Group
 from unittest import TestCase
 from unittest.mock import Mock, patch, call
 from samcli.cli.command import BaseCommand
@@ -59,7 +58,7 @@ class TestBaseCommand(TestCase):
 
     def test_must_inherit(self):
         cmd = BaseCommand()
-        self.assertTrue(isinstance(cmd, click.MultiCommand))
+        self.assertTrue(isinstance(cmd, Group))
 
     def test_check_formatter(self):
         cmd = BaseCommand()
