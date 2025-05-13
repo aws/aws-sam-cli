@@ -7,6 +7,7 @@ import logging
 from collections import OrderedDict
 
 import click
+from click import Group
 
 from samcli.cli.formatters import RootCommandHelpTextFormatter
 from samcli.cli.root.command_list import SAM_CLI_COMMANDS
@@ -37,7 +38,7 @@ _SAM_CLI_COMMAND_PACKAGES = [
 ]
 
 
-class BaseCommand(click.MultiCommand):
+class BaseCommand(Group):
     """
     Dynamically loads commands. It takes a list of names of Python packages representing the commands, loads
     these packages, and initializes them as Click commands. If a command "hello" is available in a Python package
@@ -244,7 +245,7 @@ class BaseCommand(click.MultiCommand):
 
     def get_command(self, ctx, cmd_name):
         """
-        Overrides method from ``click.MultiCommand`` that returns Click CLI object for given command name, if found.
+        Overrides method from ``Group`` that returns Click CLI object for given command name, if found.
 
         :param ctx: Click context
         :param cmd_name: Top-level command name

@@ -36,7 +36,7 @@ from samcli.commands._utils.options import (
 )
 from samcli.commands.deploy.core.command import DeployCommand
 from samcli.commands.deploy.utils import sanitize_parameter_overrides
-from samcli.lib.bootstrap.bootstrap import manage_stack
+from samcli.lib.bootstrap.bootstrap import manage_stack, print_managed_s3_bucket_info
 from samcli.lib.bootstrap.companion_stack.companion_stack_manager import sync_ecr_stack
 from samcli.lib.cli_validation.image_repository_validation import image_repository_validation
 from samcli.lib.telemetry.metric import track_command
@@ -307,9 +307,7 @@ def do_cli(
             if bool(s3_bucket):
                 raise DeployResolveS3AndS3SetError()
             s3_bucket = manage_stack(profile=profile, region=region)
-            click.echo(f"\n\t\tManaged S3 bucket: {s3_bucket}")
-            click.echo("\t\tA different default S3 bucket can be set in samconfig.toml")
-            click.echo("\t\tOr by specifying --s3-bucket explicitly.")
+            print_managed_s3_bucket_info(s3_bucket)
 
         # TODO Refactor resolve-s3 and resolve-image-repos into one place
         # after we figure out how to enable resolve-images-repos in package

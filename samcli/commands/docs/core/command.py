@@ -5,7 +5,7 @@ Module contains classes for creating the docs command from click
 import os
 from typing import List, Optional
 
-from click import Command, Context, MultiCommand, style
+from click import Command, Context, Group, style
 
 from samcli.cli.row_modifiers import RowDefinition
 from samcli.commands.docs.command_context import COMMAND_NAME, DocsCommandContext
@@ -90,19 +90,19 @@ class DocsBaseCommand(Command):
         self.format_sub_commands(formatter)
 
 
-class DocsSubCommand(MultiCommand):
-    def __init__(self, command: Optional[List[str]] = None, *args, **kwargs):
+class DocsSubCommand(Group):
+    def __init__(self, command_list: Optional[List[str]] = None, *args, **kwargs):
         """
         Constructor for instantiating a sub-command for the docs command
 
         Parameters
         ----------
-        command: Optional[List[str]]
+        command_list: Optional[List[str]]
             Optional list of strings representing the fully resolved command name (e.g. ["docs", "local", "invoke"])
         """
         super().__init__(*args, **kwargs)
         self.docs_command = DocsCommandContext()
-        self.command = command or self.docs_command.sub_commands
+        self.command_list = command_list or self.docs_command.sub_commands.copy()
         self.command_string = self.docs_command.sub_command_string
         self.command_callback = self.docs_command.command_callback
 
@@ -127,14 +127,19 @@ class DocsSubCommand(MultiCommand):
             or the leaf command to be invoked by the command handler
 
         """
-        next_command = self.command.pop(0)
-        if not self.command:
+        if not self.command_list:
+            return None  # type: ignore # This is expected by Click's interface
+
+        next_command = self.command_list[0]
+        remaining_commands = self.command_list[1:] if len(self.command_list) > 1 else []
+
+        if not remaining_commands:
             return DocsBaseCommand(
                 name=next_command,
                 short_help=f"Documentation for {self.command_string}",
                 callback=self.command_callback,
             )
-        return DocsSubCommand(command=self.command)
+        return DocsSubCommand(command_list=remaining_commands)
 
     def list_commands(self, ctx: Context) -> List[str]:
         """
