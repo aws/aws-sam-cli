@@ -43,6 +43,7 @@ class TestSendInstalledMetric(TestCase):
         telemetry_mock = TelemetryClassMock.return_value = Mock()
 
         self.gc_mock.return_value.telemetry_enabled = False
+        self.gc_mock.return_value.docker_host = ""
         send_installed_metric()
         args, _ = telemetry_mock.emit.call_args_list[0]
         metric = args[0]
@@ -73,6 +74,7 @@ class TestTrackWarning(TestCase):
 
         # Enable telemetry so we can actually run the tests
         self.gc_instance_mock.telemetry_enabled = True
+        self.gc_instance_mock.docker_host = ""
 
     def tearDown(self):
         self.telemetry_class_patcher.stop()
@@ -310,6 +312,7 @@ class TestSendCommandMetrics(TestCase):
 
         # Enable telemetry so we can actually run the tests
         self.gc_instance_mock.telemetry_enabled = True
+        self.gc_instance_mock.docker_host = ""
 
     def tearDown(self):
         self.telemetry_class_patcher.stop()
@@ -524,6 +527,7 @@ class TestMetric(TestCase):
     ):
         request_id = uuid_mock.uuid4.return_value = "fake requestId"
         installation_id = gc_mock.return_value.installation_id = "fake installation id"
+        docker_host =  gc_mock.return_value.docker_host = "fake docker host"
         session_id = context_mock.get_current_context.return_value.session_id = "fake installation id"
         python_version = platform_mock.python_version.return_value = "8.8.0"
         cicd_platform_mock.return_value = cicd_platform
@@ -540,10 +544,11 @@ class TestMetric(TestCase):
             assert metric.get_data()["userAgent"] == user_agent
         assert metric.get_data()["pyversion"] == python_version
         assert metric.get_data()["samcliVersion"] == samcli.__version__
+        assert metric.get_data()["dockerHost"] == docker_host
 
 
 def _ignore_common_attributes(data):
-    common_attrs = ["requestId", "installationId", "sessionId", "executionEnvironment", "pyversion", "samcliVersion"]
+    common_attrs = ["requestId", "installationId", "sessionId", "executionEnvironment", "pyversion", "samcliVersion", "dockerHost"]
     for a in common_attrs:
         if a not in data:
             data[a] = ANY

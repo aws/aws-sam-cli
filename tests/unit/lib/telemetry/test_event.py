@@ -167,6 +167,7 @@ class TestEventTracker(TestCase):
             "pyversion": ANY,
             "samcliVersion": ANY,
             "commandName": ANY,
+            "dockerHost": ANY,
             "metricSpecificAttributes": {
                 "events": [
                     {
