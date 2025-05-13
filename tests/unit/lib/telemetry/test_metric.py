@@ -527,7 +527,7 @@ class TestMetric(TestCase):
     ):
         request_id = uuid_mock.uuid4.return_value = "fake requestId"
         installation_id = gc_mock.return_value.installation_id = "fake installation id"
-        docker_host =  gc_mock.return_value.docker_host = "fake docker host"
+        docker_host = gc_mock.return_value.docker_host = "fake docker host"
         session_id = context_mock.get_current_context.return_value.session_id = "fake installation id"
         python_version = platform_mock.python_version.return_value = "8.8.0"
         cicd_platform_mock.return_value = cicd_platform
@@ -548,7 +548,15 @@ class TestMetric(TestCase):
 
 
 def _ignore_common_attributes(data):
-    common_attrs = ["requestId", "installationId", "sessionId", "executionEnvironment", "pyversion", "samcliVersion", "dockerHost"]
+    common_attrs = [
+        "requestId",
+        "installationId",
+        "sessionId",
+        "executionEnvironment",
+        "pyversion",
+        "samcliVersion",
+        "dockerHost",
+    ]
     for a in common_attrs:
         if a not in data:
             data[a] = ANY
