@@ -28,7 +28,7 @@ class InvokeCommand(CoreCommand):
                             text="\n",
                         ),
                         RowDefinition(
-                            name=style(f"${ctx.command_path}"),
+                            name=style(f"$ {ctx.command_path}"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
                     ]
@@ -40,7 +40,7 @@ class InvokeCommand(CoreCommand):
                             text="\n",
                         ),
                         RowDefinition(
-                            name=style(f"${ctx.command_path} HelloWorldFunction"),
+                            name=style(f"$ {ctx.command_path} HelloWorldFunction"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
                     ]
@@ -52,7 +52,7 @@ class InvokeCommand(CoreCommand):
                             text="\n",
                         ),
                         RowDefinition(
-                            name=style(f"${ctx.command_path} HelloWorldFunction -e event.json"),
+                            name=style(f"$ {ctx.command_path} HelloWorldFunction -e event.json"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
                     ]

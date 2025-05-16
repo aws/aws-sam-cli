@@ -28,7 +28,7 @@ class RemoteInvokeCommand(CoreCommand):
                     formatter.write_rd(
                         [
                             RowDefinition(
-                                name=style(f"${ctx.command_path} --stack-name hello-world"),
+                                name=style(f"$ {ctx.command_path} --stack-name hello-world"),
                                 extra_row_modifiers=[ShowcaseRowModifier()],
                             ),
                         ]
@@ -40,7 +40,7 @@ class RemoteInvokeCommand(CoreCommand):
                         [
                             RowDefinition(
                                 name=style(
-                                    f"${ctx.command_path} --stack-name hello-world -e"
+                                    f"$ {ctx.command_path} --stack-name hello-world -e"
                                     f" '{json.dumps({'message':'hello!'})}'"
                                 ),
                                 extra_row_modifiers=[ShowcaseRowModifier()],
@@ -54,7 +54,7 @@ class RemoteInvokeCommand(CoreCommand):
                         [
                             RowDefinition(
                                 name=style(
-                                    f"${ctx.command_path} --stack-name "
+                                    f"$ {ctx.command_path} --stack-name "
                                     f"hello-world HelloWorldFunction --event-file event.json"
                                 ),
                                 extra_row_modifiers=[ShowcaseRowModifier()],
@@ -80,7 +80,7 @@ class RemoteInvokeCommand(CoreCommand):
                         [
                             RowDefinition(
                                 name=style(
-                                    f"${ctx.command_path} arn:aws:lambda:us-west-2:123456789012:function:my-function"
+                                    f"$ {ctx.command_path} arn:aws:lambda:us-west-2:123456789012:function:my-function"
                                     f" -e <> --output json"
                                 ),
                                 extra_row_modifiers=[ShowcaseRowModifier()],
@@ -94,7 +94,7 @@ class RemoteInvokeCommand(CoreCommand):
                         [
                             RowDefinition(
                                 name=style(
-                                    f"${ctx.command_path} HelloWorldFunction -e <> "
+                                    f"$ {ctx.command_path} HelloWorldFunction -e <> "
                                     f"--parameter InvocationType=Event --parameter Qualifier=MyQualifier"
                                 ),
                                 extra_row_modifiers=[ShowcaseRowModifier()],
@@ -109,7 +109,7 @@ class RemoteInvokeCommand(CoreCommand):
                         [
                             RowDefinition(
                                 name=style(
-                                    f"${ctx.command_path} HelloWorldFunction -e <> --output json "
+                                    f"$ {ctx.command_path} HelloWorldFunction -e <> --output json "
                                     f"--parameter InvocationType=DryRun"
                                 ),
                                 extra_row_modifiers=[ShowcaseRowModifier()],
@@ -125,7 +125,7 @@ class RemoteInvokeCommand(CoreCommand):
                         [
                             RowDefinition(
                                 name=style(
-                                    f"${ctx.command_path} --stack-name mock-stack StockTradingStateMachine"
+                                    f"$ {ctx.command_path} --stack-name mock-stack StockTradingStateMachine"
                                     f" -e '{json.dumps({'message':'hello!'})}'"
                                 ),
                                 extra_row_modifiers=[ShowcaseRowModifier()],
@@ -140,7 +140,7 @@ class RemoteInvokeCommand(CoreCommand):
                         [
                             RowDefinition(
                                 name=style(
-                                    f"${ctx.command_path} arn:aws:states:us-east-1:123456789012:stateMachine:MySFN"
+                                    f"$ {ctx.command_path} arn:aws:states:us-east-1:123456789012:stateMachine:MySFN"
                                     f" -e <> --parameter name=mock-execution-name"
                                 ),
                                 extra_row_modifiers=[ShowcaseRowModifier()],
@@ -155,7 +155,7 @@ class RemoteInvokeCommand(CoreCommand):
                         [
                             RowDefinition(
                                 name=style(
-                                    f"${ctx.command_path} --stack-name mock-stack StockTradingStateMachine"
+                                    f"$ {ctx.command_path} --stack-name mock-stack StockTradingStateMachine"
                                     f" --event-file event.json --output json"
                                 ),
                                 extra_row_modifiers=[ShowcaseRowModifier()],
@@ -171,7 +171,7 @@ class RemoteInvokeCommand(CoreCommand):
                             RowDefinition(
                                 name=style(
                                     f"$ echo '{json.dumps({'message':'hello!'})}' | "
-                                    f"${ctx.command_path} --stack-name mock-stack StockTradingStateMachine"
+                                    f"{ctx.command_path} --stack-name mock-stack StockTradingStateMachine"
                                     f" --parameter traceHeader=<>"
                                 ),
                                 extra_row_modifiers=[ShowcaseRowModifier()],
@@ -186,7 +186,7 @@ class RemoteInvokeCommand(CoreCommand):
                     formatter.write_rd(
                         [
                             RowDefinition(
-                                name=style(f"${ctx.command_path} --stack-name mock-stack MySQSQueue -e hello-world"),
+                                name=style(f"$ {ctx.command_path} --stack-name mock-stack MySQSQueue -e hello-world"),
                                 extra_row_modifiers=[ShowcaseRowModifier()],
                             ),
                         ]
@@ -199,7 +199,7 @@ class RemoteInvokeCommand(CoreCommand):
                         [
                             RowDefinition(
                                 name=style(
-                                    f"${ctx.command_path} https://sqs.us-east-1.amazonaws.com/12345678910/QueueName"
+                                    f"$ {ctx.command_path} https://sqs.us-east-1.amazonaws.com/12345678910/QueueName"
                                     f" --event-file event.json"
                                 ),
                                 extra_row_modifiers=[ShowcaseRowModifier()],
@@ -214,7 +214,7 @@ class RemoteInvokeCommand(CoreCommand):
                         [
                             RowDefinition(
                                 name=style(
-                                    f"${ctx.command_path} arn:aws:sqs:region:account_id:queue_name -e hello-world"
+                                    f"$ {ctx.command_path} arn:aws:sqs:region:account_id:queue_name -e hello-world"
                                     f" --parameter DelaySeconds=10"
                                 ),
                                 extra_row_modifiers=[ShowcaseRowModifier()],
@@ -229,7 +229,7 @@ class RemoteInvokeCommand(CoreCommand):
                         [
                             RowDefinition(
                                 name=style(
-                                    f"${ctx.command_path} --stack-name mock-stack MySQSQueue -e hello-world"
+                                    f"$ {ctx.command_path} --stack-name mock-stack MySQSQueue -e hello-world"
                                     f" --output json --parameter MessageAttributes="
                                     f"'{json.dumps({'City': {'DataType': 'String', 'StringValue': 'City'}})}'"
                                 ),
@@ -246,7 +246,7 @@ class RemoteInvokeCommand(CoreCommand):
                         [
                             RowDefinition(
                                 name=style(
-                                    f"${ctx.command_path} --stack-name mock-stack MySQSQueue -e hello-world"
+                                    f"$ {ctx.command_path} --stack-name mock-stack MySQSQueue -e hello-world"
                                     f" --parameter MessageGroupId=mock-message-group"
                                     f" --parameter MessageDeduplicationId=mock-dedup-id"
                                 ),
@@ -263,7 +263,7 @@ class RemoteInvokeCommand(CoreCommand):
                         [
                             RowDefinition(
                                 name=style(
-                                    f"${ctx.command_path} --stack-name mock-stack MyKinesisStream -e"
+                                    f"$ {ctx.command_path} --stack-name mock-stack MyKinesisStream -e"
                                     f" '{json.dumps({'message':'hello!'})}'"
                                 ),
                                 extra_row_modifiers=[ShowcaseRowModifier()],
@@ -277,7 +277,7 @@ class RemoteInvokeCommand(CoreCommand):
                     formatter.write_rd(
                         [
                             RowDefinition(
-                                name=style(f"${ctx.command_path} MyKinesisStreamName" f" --event-file event.json"),
+                                name=style(f"$ {ctx.command_path} MyKinesisStreamName" f" --event-file event.json"),
                                 extra_row_modifiers=[ShowcaseRowModifier()],
                             ),
                         ]
@@ -290,7 +290,7 @@ class RemoteInvokeCommand(CoreCommand):
                         [
                             RowDefinition(
                                 name=style(
-                                    f"${ctx.command_path}"
+                                    f"$ {ctx.command_path}"
                                     f" arn:aws:kinesis:us-east-2:123456789012:stream/mystream"
                                     f" --event-file event.json --parameter ExplicitHashKey=<>"
                                 ),
@@ -306,7 +306,7 @@ class RemoteInvokeCommand(CoreCommand):
                         [
                             RowDefinition(
                                 name=style(
-                                    f"${ctx.command_path} MyKinesisStreamName"
+                                    f"$ {ctx.command_path} MyKinesisStreamName"
                                     f" --event hello-world --parameter SequenceNumberForOrdering=<>"
                                     f" --parameter PartitionKey=<>"
                                 ),

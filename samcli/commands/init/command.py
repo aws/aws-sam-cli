@@ -197,7 +197,7 @@ def non_interactive_validation(func):
 @click.option(
     "--app-template",
     help="Identifier of the managed application template to be used. "
-    "Alternatively, run '$sam init' without options for an interactive workflow.",
+    "Alternatively, run '$ sam init' without options for an interactive workflow.",
     cls=ClickMutex,
     incompatible_params=["location"],
     incompatible_params_hint=INCOMPATIBLE_PARAMS_HINT,
