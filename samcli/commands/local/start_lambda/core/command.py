@@ -40,7 +40,7 @@ class InvokeLambdaCommand(CoreCommand):
                             name="Start the local lambda endpoint.",
                         ),
                         RowDefinition(
-                            name=style(f"${ctx.command_path}"),
+                            name=style(f"$ {ctx.command_path}"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
                     ]

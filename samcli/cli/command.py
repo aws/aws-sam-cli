@@ -125,7 +125,7 @@ class BaseCommand(click.MultiCommand):
                     ),
                     RowDefinition(
                         name="Get Started:",
-                        text=click.style(f"${ctx.command_path} init"),
+                        text=click.style(f"$ {ctx.command_path} init"),
                         extra_row_modifiers=[ShowcaseRowModifier()],
                     ),
                 ],

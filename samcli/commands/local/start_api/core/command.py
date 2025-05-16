@@ -25,7 +25,7 @@ class InvokeAPICommand(CoreCommand):
                         text="\n",
                     ),
                     RowDefinition(
-                        name=style(f"${ctx.command_path}"),
+                        name=style(f"$ {ctx.command_path}"),
                         extra_row_modifiers=[ShowcaseRowModifier()],
                     ),
                 ]
