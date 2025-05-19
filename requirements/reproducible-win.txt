@@ -963,9 +963,9 @@ ruamel-yaml-clib==0.2.12 \
     --hash=sha256:fc4b630cd3fa2cf7fce38afa91d7cfe844a9f75d7f0f36393fa98815e911d987 \
     --hash=sha256:fd5415dded15c3822597455bc02bcd66e81ef8b7a48cb71a33628fc9fdde39df
     # via ruamel-yaml
-s3transfer==0.10.4 \
-    --hash=sha256:244a76a24355363a68164241438de1b72f8781664920260c48465896b712a41e \
-    --hash=sha256:29edc09801743c21eb5ecbc617a152df41d3c287f67b615f73e5f750583666a7
+s3transfer==0.12.0 \
+    --hash=sha256:35b314d7d82865756edab59f7baebc6b477189e6ab4c53050e28c1de4d9cce18 \
+    --hash=sha256:8ac58bc1989a3fdb7c7f3ee0918a66b160d038a147c7b5db1500930a607e9a1c
     # via boto3
 six==1.17.0 \
     --hash=sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274 \
