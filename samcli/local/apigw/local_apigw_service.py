@@ -19,6 +19,7 @@ from samcli.lib.providers.exceptions import MissingFunctionNameException
 from samcli.lib.providers.provider import Api, Cors
 from samcli.lib.telemetry.event import EventName, EventTracker, UsedFeature
 from samcli.lib.utils.stream_writer import StreamWriter
+from samcli.local.apigw.authorizers.authorizer import Authorizer
 from samcli.local.apigw.authorizers.lambda_authorizer import LambdaAuthorizer
 from samcli.local.apigw.event_constructor import construct_v1_event, construct_v2_event_http
 from samcli.local.apigw.exceptions import (
@@ -652,7 +653,7 @@ class LocalApigwService(BaseLocalService):
         request_origin = request.headers.get("Origin")
         cors_headers = Cors.cors_to_headers(self.api.cors, request_origin, route.event_type)
 
-        lambda_authorizer = route.authorizer_object
+        lambda_authorizer: Optional[Authorizer] = route.authorizer_object
 
         # payloadFormatVersion can only support 2 values: "1.0" and "2.0"
         # so we want to do strict validation to make sure it has proper value if provided

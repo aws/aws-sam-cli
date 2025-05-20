@@ -36,13 +36,13 @@ class TestDocsBaseCommand(TestCase):
 class TestDocsSubCommand(TestCase):
     def test_get_command_with_sub_commands(self):
         command = ["local", "invoke"]
-        sub_command = DocsSubCommand(command=command)
+        sub_command = DocsSubCommand(command_list=command)
         resolved_command = sub_command.get_command(ctx=None, cmd_name="local")
         self.assertTrue(isinstance(resolved_command, DocsSubCommand))
 
     def test_get_command_with_base_command(self):
         command = ["local"]
-        sub_command = DocsSubCommand(command=command)
+        sub_command = DocsSubCommand(command_list=command)
         resolved_command = sub_command.get_command(ctx=None, cmd_name="local")
         self.assertTrue(isinstance(resolved_command, DocsBaseCommand))
 
