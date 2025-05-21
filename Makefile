@@ -63,13 +63,13 @@ pr: init dev schema black-check
 # to consider combining these files again
 update-reproducible-linux-reqs:
 	python3.11 -m venv venv-update-reproducible-linux
-	venv-update-reproducible-linux/bin/pip install --upgrade pip-tools pip
+	venv-update-reproducible-linux/bin/pip install pip==24.0 pip-tools==7.4.1
 	venv-update-reproducible-linux/bin/pip install -r requirements/base.txt
 	venv-update-reproducible-linux/bin/pip-compile --generate-hashes --allow-unsafe -o requirements/reproducible-linux.txt
 
 update-reproducible-mac-reqs:
 	python3.11 -m venv venv-update-reproducible-mac
-	venv-update-reproducible-mac/bin/pip install --upgrade pip-tools pip
+	venv-update-reproducible-mac/bin/pip install pip==24.0 pip-tools==7.4.1
 	venv-update-reproducible-mac/bin/pip install -r requirements/base.txt
 	venv-update-reproducible-mac/bin/pip-compile --generate-hashes --allow-unsafe -o requirements/reproducible-mac.txt
 
@@ -77,7 +77,7 @@ update-reproducible-mac-reqs:
 update-reproducible-win-reqs:
 	python -m venv venv-update-reproducible-win
 	.\venv-update-reproducible-win\Scripts\activate
-	python.exe -m pip install --upgrade pip-tools pip
+	python.exe -m pip install pip==24.0 pip-tools==7.4.1
 	pip install -r requirements\base.txt
 	pip-compile --generate-hashes --allow-unsafe -o requirements\reproducible-win.txt
 
