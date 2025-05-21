@@ -55,19 +55,19 @@ class TestLocalGenerateEventCommand(unittest.TestCase):
             ],
             "Customize event by adding parameter flags.": [
                 ("", ""),
-                ("$sam local generate-event s3 " "[put/delete] --help\x1b[0m", ""),
-                ("$sam local generate-event s3 " "[put/delete] --bucket " "<bucket> --key <key>\x1b[0m", ""),
+                ("$ sam local generate-event s3 " "[put/delete] --help\x1b[0m", ""),
+                ("$ sam local generate-event s3 " "[put/delete] --bucket " "<bucket> --key <key>\x1b[0m", ""),
             ],
             "Description": [(cmd.description + cmd.description_addendum, "")],
             "Examples": [],
             "Generate event S3 sends to local Lambda function": [
                 ("", ""),
-                ("$sam local " "generate-event s3 " "[put/delete]\x1b[0m", ""),
+                ("$ sam local " "generate-event s3 " "[put/delete]\x1b[0m", ""),
             ],
             "Test generated event with serverless function locally!": [
                 ("", ""),
                 (
-                    "$sam local "
+                    "$ sam local "
                     "generate-event "
                     "s3 [put/delete] "
                     "--bucket "

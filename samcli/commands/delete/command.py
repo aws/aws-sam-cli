@@ -18,11 +18,6 @@ SHORT_HELP = "Delete an AWS SAM application and the artifacts created by sam dep
 
 HELP_TEXT = """The sam delete command deletes the CloudFormation
 stack and all the artifacts which were created using sam deploy.
-
-\b
-e.g. sam delete
-
-\b
 """
 
 LOG = logging.getLogger(__name__)

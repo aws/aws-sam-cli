@@ -46,18 +46,18 @@ class TestLocalInvokeCommand(unittest.TestCase):
             "Extension Options": [("", ""), ("--hook_name", ""), ("", "")],
             "Terraform Hook Options": [("", ""), ("--terraform-plan-file", ""), ("", "")],
             "Beta Options": [("", ""), ("--beta-features", ""), ("", "")],
-            "Invoke default lambda function with no event": [("", ""), ("$sam local invoke\x1b[0m", "")],
+            "Invoke default lambda function with no event": [("", ""), ("$ sam local invoke\x1b[0m", "")],
             "Invoke lambda function with stdin input": [
                 ("", ""),
                 ('$ echo {"message": "hello!"} | ' "sam local invoke " "HelloWorldFunction -e -\x1b[0m", ""),
             ],
             "Invoke named lambda function with an event file": [
                 ("", ""),
-                ("$sam local invoke " "HelloWorldFunction -e " "event.json\x1b[0m", ""),
+                ("$ sam local invoke " "HelloWorldFunction -e " "event.json\x1b[0m", ""),
             ],
             "Invoke named lambda function with no event": [
                 ("", ""),
-                ("$sam local invoke " "HelloWorldFunction\x1b[0m", ""),
+                ("$ sam local invoke " "HelloWorldFunction\x1b[0m", ""),
             ],
             "Other Options": [("", ""), ("--debug", ""), ("", "")],
             "Required Options": [("", ""), ("--template-file", ""), ("", "")],

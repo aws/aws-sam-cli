@@ -25,27 +25,27 @@ class BuildCommand(CoreCommand):
                         text="\n",
                     ),
                     RowDefinition(
-                        name=style(f"${ctx.command_path}"),
+                        name=style(f"$ {ctx.command_path}"),
                         extra_row_modifiers=[ShowcaseRowModifier()],
                     ),
                     RowDefinition(
-                        name=style(f"${ctx.command_path} FUNCTION_LOGICAL_ID"),
+                        name=style(f"$ {ctx.command_path} FUNCTION_LOGICAL_ID"),
                         extra_row_modifiers=[ShowcaseRowModifier()],
                     ),
                     RowDefinition(
-                        name=style(f"${ctx.command_path} --use-container"),
+                        name=style(f"$ {ctx.command_path} --use-container"),
                         extra_row_modifiers=[ShowcaseRowModifier()],
                     ),
                     RowDefinition(
-                        name=style(f"${ctx.command_path} --use-container --container-env-var-file env.json"),
+                        name=style(f"$ {ctx.command_path} --use-container --container-env-var-file env.json"),
                         extra_row_modifiers=[ShowcaseRowModifier()],
                     ),
                     RowDefinition(
-                        name=style(f"${ctx.command_path} && {ctx.parent.command_path} local invoke"),  # type: ignore
+                        name=style(f"$ {ctx.command_path} && {ctx.parent.command_path} local invoke"),  # type: ignore
                         extra_row_modifiers=[ShowcaseRowModifier()],
                     ),
                     RowDefinition(
-                        name=style(f"${ctx.command_path} && {ctx.parent.command_path} deploy"),  # type: ignore
+                        name=style(f"$ {ctx.command_path} && {ctx.parent.command_path} deploy"),  # type: ignore
                         extra_row_modifiers=[ShowcaseRowModifier()],
                     ),
                 ],

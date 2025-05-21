@@ -44,7 +44,7 @@ class TestLocalStartLambdaCommand(unittest.TestCase):
             "Description": [(cmd.description + cmd.description_addendum, "")],
             "Examples": [],
             "Terraform Hook Options": [("", ""), ("--terraform-plan-file", ""), ("", "")],
-            "Setup": [("", ""), ("Start the local lambda endpoint.", ""), ("$sam local start-lambda\x1b[0m", "")],
+            "Setup": [("", ""), ("Start the local lambda endpoint.", ""), ("$ sam local start-lambda\x1b[0m", "")],
             "Template Options": [("", ""), ("--parameter-overrides", ""), ("", "")],
             "Using AWS CLI": [
                 ("", ""),

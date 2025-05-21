@@ -25,16 +25,16 @@ class SyncCommand(CoreCommand):
                         text="\n",
                     ),
                     RowDefinition(
-                        name=style(f"${ctx.command_path} " f"--watch --stack-name {{stack}}"),
+                        name=style(f"$ {ctx.command_path} " f"--watch --stack-name {{stack}}"),
                         extra_row_modifiers=[ShowcaseRowModifier()],
                     ),
                     RowDefinition(
-                        name=style(f"${ctx.command_path} " f"--code --watch --stack-name {{stack}}"),
+                        name=style(f"$ {ctx.command_path} " f"--code --watch --stack-name {{stack}}"),
                         extra_row_modifiers=[ShowcaseRowModifier()],
                     ),
                     RowDefinition(
                         name=style(
-                            f"${ctx.command_path} "
+                            f"$ {ctx.command_path} "
                             f"--code --stack-name {{stack}} --resource-id {{ChildStack}}/{{ResourceId}}"
                         ),
                         extra_row_modifiers=[ShowcaseRowModifier()],
