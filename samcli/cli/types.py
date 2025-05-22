@@ -66,17 +66,26 @@ def _unquote_wrapped_quotes(value):
 
 def _flatten_list(data: Union[list, tuple]) -> list:
     """
-        Recursively flattens lists and other list-like types for easy sequential processing.
-        This also helps with lists combined with YAML anchors & aliases.
+    Recursively flattens nested lists, tuples, and list-like sequences into a single flat list.
+
+    This function is the first step in normalizing inputs parsed from
+    various file formats (e.g., YAML, TOML, JSON), where nested sequences can
+    appear due to format-specific constructs such as YAML anchors/aliases, explicit
+    nested arrays in TOML or JSON, or user-defined nested data structures.
+
+    By flattening these nested lists/sequences, subsequent processing can
+    uniformly handle all values as a simple sequential list before further
+    normalization (e.g., converting all values to strings).
 
     Parameters
     ----------
-    value : data
+    data : list or tuple
         List to flatten
 
     Returns
     -------
-    Flattened list
+    list
+        A single flat list containing all atomic elements from the nested input, preserving order.
     """
     flat_data = []
     for item in data:
@@ -117,29 +126,53 @@ class CfnParameterOverridesType(click.ParamType):
 
     def convert(self, values, param, ctx):
         """
-        Normalizes different parameter overrides formats into key-value pairs of strings
+        Takes parameter overrides loaded from various supported config file formats and
+        flattens and normalizes them into a dictionary where all keys and values are strings.
+
+        The input `values` can be nested lists, dictionaries, or strings representing
+        parameter overrides, potentially including file references. This method
+        recursively resolves file inputs, validates formats, and standardizes output.
+
+        Parameters
+        ----------
+        values : Any
+            Input parameter overrides from config files or CLI (could be nested lists, dicts, strings).
+        param : click.Parameter
+            Parameter metadata (from Click library), used for error handling.
+        ctx : click.Context
+            Click context for error reporting.
+
+        Returns
+        -------
+        dict
+            Flattened and normalized parameter overrides as a dictionary of string keys and values.
         """
-        if values in (("",), "", None) or values == {}:
+        # Handle empty or trivial input cases early
+        if values in [("",), "", None] or values == {}:
             LOG.debug("Empty parameter set (%s)", values)
             return {}
 
         LOG.debug("Input parameters: %s", values)
+
+        # Flatten any nested objects to a simple list for uniform processing
         values = _flatten_list([values])
         LOG.debug("Flattened parameters: %s", values)
 
         parameters = {}
         for value in values:
             if isinstance(value, str):
+                # If the string is a file reference (e.g., 'file://params.yaml')
                 if value.startswith("file://"):
-                    filepath = Path(value[7:])
-                    if not filepath.is_file():
+                    file_path = Path(value[7:])
+                    if not file_path.is_file():
                         self.fail(f"{value} was not found or is a directory", param, ctx)
-                    file_manager = FILE_MANAGER_MAPPER.get(filepath.suffix, None)
+                    file_manager = FILE_MANAGER_MAPPER.get(file_path.suffix, None)
                     if not file_manager:
                         self.fail(f"{value} uses an unsupported extension", param, ctx)
-                    parameters.update(self.convert(file_manager.read(filepath), param, ctx))
+                    # Recursively process the file's contents and update parameters
+                    parameters.update(self.convert(file_manager.read(file_path), param, ctx))
                 else:
-                    # Legacy parameter matching
+                    # Legacy parameter matching (e.g. "X=Y" and "ParameterKey=X,ParameterValue=Y")
                     normalized_value = " " + value.strip()
                     for pattern in self.ordered_pattern_match:
                         groups = re.findall(pattern, normalized_value)
@@ -154,20 +187,24 @@ class CfnParameterOverridesType(click.ParamType):
                             ctx,
                         )
             elif isinstance(value, (dict, CommentedMap)):
-                # e.g. YAML key-value pairs
+                # Handle dictionary-like objects (e.g. YAML mappings)
                 for k, v in value.items():
                     if v is None:
+                        # Unset value if previously set
                         parameters[str(k)] = ""
                     elif isinstance(v, (list, CommentedSeq)):
-                        # Collapse list values to comma delimited, ignore empty strings and remove extra spaces
+                        # Join list elements into comma-separated string, strip whitespace and ignore empty entries
                         parameters[str(k)] = ",".join(str(x).strip() for x in v if x not in (None, ""))
                     else:
+                        # Convert other values (numbers, booleans) to strings
                         parameters[str(k)] = str(v)
             elif value is None:
+                # Ignore empty list items since it means both the key and value are empty
                 continue
             else:
+                # Fail on unexpected types to avoid silent errors
                 self.fail(
-                    f"{value} is not valid in a way the code doesn't expect",
+                    f"{value} is invalid in a way the code doesn't expect",
                     param,
                     ctx,
                 )
@@ -175,7 +212,7 @@ class CfnParameterOverridesType(click.ParamType):
         result = {}
         for key, param_value in parameters.items():
             result[_unquote_wrapped_quotes(key)] = _unquote_wrapped_quotes(param_value)
-        LOG.debug("Output parameters: %s", result)
+        LOG.debug("Converted %d parameters: %s", len(result), result)
         return result
 
 

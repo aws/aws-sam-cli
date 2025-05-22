@@ -148,14 +148,17 @@ def format_param(param: click.core.Option) -> SamCliParameterSchema:
     formatted_param_types = sorted(list(set(formatted_param_types)))  # deduplicate
 
     # Allow nested arrays of objects and strings
-    parameter_overrides_ref = { "$ref": "#/$defs/parameter_overrides_items" }
+    parameter_overrides_ref = {"$ref": "#/$defs/parameter_overrides_items"}
 
     formatted_param: SamCliParameterSchema = SamCliParameterSchema(
         param.name or "",
         formatted_param_types if len(formatted_param_types) > 1 else formatted_param_types[0],
         clean_text(param.help or ""),
-        items=parameter_overrides_ref if param.name == "parameter_overrides"
-            else "string" if "array" in formatted_param_types else None,
+        items=(
+            parameter_overrides_ref
+            if param.name == "parameter_overrides"
+            else "string" if "array" in formatted_param_types else None
+        ),
     )
 
     if param.default and param.name not in PARAMS_TO_OMIT_DEFAULT_FIELD:
@@ -240,26 +243,21 @@ def generate_schema() -> dict:
     schema["required"] = ["version"]
     schema["additionalProperties"] = False
     # Allows objects and strings beneath variably nested arrays
-    schema["$defs"]= {
+    schema["$defs"] = {
         "parameter_overrides_items": {
             "anyOf": [
-                {
-                    "type": "array",
-                    "items": { "$ref": "#/$defs/parameter_overrides_items" }
-                },
+                {"type": "array", "items": {"$ref": "#/$defs/parameter_overrides_items"}},
                 {
                     "type": "object",
                     "additionalProperties": {
-                        "anyOf": [ 
-                            { "type": "string" },
-                            { "type": "integer" }, # Allow cooler types if it's a dict
-                            { "type": "boolean" },
+                        "anyOf": [
+                            {"type": "string"},
+                            {"type": "integer"},  # Allow cooler types if it's a dict
+                            {"type": "boolean"},
                         ]
                     },
                 },
-                {
-                    "type": "string"
-                },
+                {"type": "string"},
             ]
         }
     }

@@ -149,7 +149,6 @@ class TestCfnParameterOverridesType(TestCase):
         result = self.param_type.convert(input, None, None)
         self.assertEqual(result, expected, msg="Failed with Input = " + str(input))
 
-
     @parameterized.expand(
         [
             (
@@ -165,7 +164,10 @@ class TestCfnParameterOverridesType(TestCase):
                 {"A": "6", "B": "yaml", "Y": "y", "Toml": "toml", "D": "4", "Yaml": "yaml"},
             ),
             (
-                ("file://params.yaml", "file://list.yaml",),
+                (
+                    "file://params.yaml",
+                    "file://list.yaml",
+                ),
                 {"A": "a", "B": "yaml", "List": "1,2,3", "Yaml": "yaml"},
             ),
             (
