@@ -983,17 +983,17 @@ tomlkit==0.13.2 \
     --hash=sha256:7a974427f6e119197f670fbbbeae7bef749a6c14e793db934baefc1b5f03efde \
     --hash=sha256:fff5fe59a87295b278abd31bec92c15d9bc4a06885ab12bcea52c71119392e79
     # via aws-sam-cli (setup.py)
-types-awscrt==0.23.1 \
-    --hash=sha256:0d362a5d62d68ca4216f458172f41c1123ec04791d68364de8ee8b61b528b262 \
-    --hash=sha256:a20b425dabb258bc3d07a5e7de503fd9558dd1542d72de796e74e402c6d493b2
+types-awscrt==0.27.2 \
+    --hash=sha256:49a045f25bbd5ad2865f314512afced933aed35ddbafc252e2268efa8a787e4e \
+    --hash=sha256:acd04f57119eb15626ab0ba9157fc24672421de56e7bd7b9f61681fedee44e91
     # via botocore-stubs
-types-python-dateutil==2.9.0.20241003 \
-    --hash=sha256:250e1d8e80e7bbc3a6c99b907762711d1a1cdd00e978ad39cb5940f6f0a87f3d \
-    --hash=sha256:58cb85449b2a56d6684e41aeefb4c4280631246a0da1a719bdbe6f3fb0317446
+types-python-dateutil==2.9.0.20250516 \
+    --hash=sha256:13e80d6c9c47df23ad773d54b2826bd52dbbb41be87c3f339381c1700ad21ee5 \
+    --hash=sha256:2b2b3f57f9c6a61fba26a9c0ffb9ea5681c9b83e69cd897c6b5f668d9c0cab93
     # via arrow
-types-s3transfer==0.10.4 \
-    --hash=sha256:03123477e3064c81efe712bf9d372c7c72f2790711431f9baa59cf96ea607267 \
-    --hash=sha256:22ac1aabc98f9d7f2928eb3fb4d5c02bf7435687f0913345a97dd3b84d0c217d
+types-s3transfer==0.12.0 \
+    --hash=sha256:101bbc5b7f00b71512374df881f480fc6bf63c948b5098ab024bf3370fbfb0e8 \
+    --hash=sha256:f8f59201481e904362873bf0be3267f259d60ad946ebdfcb847d092a1fa26f98
     # via boto3-stubs
 typing-extensions==4.12.2 \
     --hash=sha256:04e5ca0351e0f3f85c6853954072df659d0d13fac324d0072316b67d7794700d \
