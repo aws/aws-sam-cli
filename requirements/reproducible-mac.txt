@@ -1008,6 +1008,7 @@ typing-extensions==4.12.2 \
     #   mypy-boto3-xray
     #   pydantic
     #   pydantic-core
+    #   referencing
 tzlocal==5.3.1 \
     --hash=sha256:cceffc7edecefea1f595541dbd6e990cb1ea3d19bf01b2809f362a03dd7921fd \
     --hash=sha256:eb1a66c3ef5847adf7a834f1be0800581b683b5608e74f86ecbcef8ab91bb85d
