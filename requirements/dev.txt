@@ -33,7 +33,7 @@ types-urllib3==1.26.25.14
 pytest==8.3.5
 
 parameterized==0.9.0
-pytest-xdist==3.6.1
+pytest-xdist==3.7.0
 pytest-forked==1.6.0
 pytest-timeout==2.4.0
 pytest-rerunfailures==15.1;  python_version>="3.9"
