@@ -1009,6 +1009,7 @@ typing-extensions==4.12.2 \
     #   cfn-lint
     #   pydantic
     #   pydantic-core
+    #   referencing
 tzdata==2024.2 \
     --hash=sha256:7d85cc416e9382e69095b7bdf4afd9e3880418a2413feec7069d533d6b4e31cc \
     --hash=sha256:a48093786cdcde33cad18c2555e8532f34422074448fbc874186f0abd79565cd
