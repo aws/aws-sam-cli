@@ -921,9 +921,9 @@ rpds-py==0.22.3 \
     # via
     #   jsonschema
     #   referencing
-ruamel-yaml==0.18.6 \
-    --hash=sha256:57b53ba33def16c4f3d807c0ccbc00f8a6081827e81ba2491691b76882d0c636 \
-    --hash=sha256:8b27e6a217e786c6fbe5634d8f3f11bc63e0f80f6a5890f28863d9c45aac311b
+ruamel-yaml==0.18.12 \
+    --hash=sha256:5a38fd5ce39d223bebb9e3a6779e86b9427a03fb0bf9f270060f8b149cffe5e2 \
+    --hash=sha256:790ba4c48b6a6e6b12b532a7308779eb12d2aaab3a80fdb8389216f28ea2b287
     # via aws-sam-cli (setup.py)
 ruamel-yaml-clib==0.2.12 \
     --hash=sha256:040ae85536960525ea62868b642bdb0c2cc6021c9f9d507810c0c604e66f5a7b \
