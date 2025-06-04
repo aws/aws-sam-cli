@@ -36,25 +36,25 @@ blinker==1.9.0 \
     --hash=sha256:b4ce2265a7abece45e7cc896e98dbebe6cead56bcf805a3d23136d145f5445bf \
     --hash=sha256:ba0efaa9080b619ff2f3459d1d500c57bddea4a6b424b60a91141db6fd2f08bc
     # via flask
-boto3==1.38.27 \
-    --hash=sha256:94bd7fdd92d5701b362d4df100d21e28f8307a67ff56b6a8b0398119cf22f859 \
-    --hash=sha256:95f5fe688795303a8a15e8b7e7f255cadab35eae459d00cc281a4fd77252ea80
+boto3==1.38.29 \
+    --hash=sha256:0777a87e8d28ebae09a086017a53bcaf25ec7c094d8f7e4122b265aa48e273f5 \
+    --hash=sha256:90a9b1a08122b840216b0e33b7b0dbe4ef50f12d00a573bf7b030cddeda9c507
     # via
     #   aws-sam-cli (setup.py)
     #   aws-sam-translator
-boto3-stubs[apigateway,cloudformation,ecr,iam,kinesis,lambda,s3,schemas,secretsmanager,signer,sqs,stepfunctions,sts,xray]==1.38.27 \
-    --hash=sha256:87e6c47b76173df91f55387a91fd1f382f130821e4492e14748fe49d46598bc5 \
-    --hash=sha256:8a45f32b83d29ec3db28b37ea68ea5f179b141863211497ef92ba18e2a896aec
+boto3-stubs[apigateway,cloudformation,ecr,iam,kinesis,lambda,s3,schemas,secretsmanager,signer,sqs,stepfunctions,sts,xray]==1.38.29 \
+    --hash=sha256:3e73caa9fb5311980daeeb3a61bea035426d39b7cd162d4738beb4b1968a2fc2 \
+    --hash=sha256:e0b8b4f6cd742a473ed5772701485623606b61784be7f1217c0c90077efcbf2f
     # via aws-sam-cli (setup.py)
-botocore==1.38.27 \
-    --hash=sha256:9788f7efe974328a38cbade64cc0b1e67d27944b899f88cb786ae362973133b6 \
-    --hash=sha256:a785d5e9a5eda88ad6ab9ed8b87d1f2ac409d0226bba6ff801c55359e94d91a8
+botocore==1.38.29 \
+    --hash=sha256:4d623f54326eb66d1a633f0c1780992c80f3db317a91c9afe31d5c700290621e \
+    --hash=sha256:98c42b1bbb52f4086282e7db8aa724c9cb0f7278b7827d6736d872511c856e4f
     # via
     #   boto3
     #   s3transfer
-botocore-stubs==1.38.27 \
-    --hash=sha256:408158a72199d0611b6c91043e3d654171e974b89b94007cc10488f192e0a20f \
-    --hash=sha256:58315d1318b79d8f8bd2888b1587d90fa4ffa6100a58b610946110e88570b995
+botocore-stubs==1.38.29 \
+    --hash=sha256:2586db911c496213a8231a19c3ae2946f665d8584525dcff23d437ba859e7d92 \
+    --hash=sha256:85c1852bc08cb6db25e26c8f07fec7e35433537a7a07f0bb91953f4689e262f5
     # via boto3-stubs
 certifi==2025.4.26 \
     --hash=sha256:0a816057ea3cdefcef70270d2c515e4506bbc954f417fa5ade2021213bb8f0c6 \
@@ -420,9 +420,9 @@ mpmath==1.3.0 \
     --hash=sha256:7a28eb2a9774d00c7bc92411c19a89209d5da7c4c9a9e227be8330a23a25b91f \
     --hash=sha256:a0b2b9fe80bbcd81a6647ff13108738cfb482d481d826cc0e02f5b35e5c88d2c
     # via sympy
-mypy-boto3-apigateway==1.38.0 \
-    --hash=sha256:2808f1bfea23a3bc531afcde1c27684001c35dcb84914e5240f29b9a9963979c \
-    --hash=sha256:6c3842d2c7448cacf935da42c2e69710906106e83f63c78633491ada33f46938
+mypy-boto3-apigateway==1.38.29 \
+    --hash=sha256:3ca765382e0b8bb74802ad8b66a97d5d1b120a7e178f55b991554d25866c01d3 \
+    --hash=sha256:9713d97219e5a020d4342cb59f69038b502a2e3ee69463dee97a0f2054760e6a
     # via boto3-stubs
 mypy-boto3-cloudformation==1.38.0 \
     --hash=sha256:563399166c07e91e0695fb1e58103a248b2bee0db5e2c3f07155776dd6311805 \
@@ -895,9 +895,9 @@ rpds-py==0.22.3 \
     # via
     #   jsonschema
     #   referencing
-ruamel-yaml==0.18.6 \
-    --hash=sha256:57b53ba33def16c4f3d807c0ccbc00f8a6081827e81ba2491691b76882d0c636 \
-    --hash=sha256:8b27e6a217e786c6fbe5634d8f3f11bc63e0f80f6a5890f28863d9c45aac311b
+ruamel-yaml==0.18.12 \
+    --hash=sha256:5a38fd5ce39d223bebb9e3a6779e86b9427a03fb0bf9f270060f8b149cffe5e2 \
+    --hash=sha256:790ba4c48b6a6e6b12b532a7308779eb12d2aaab3a80fdb8389216f28ea2b287
     # via aws-sam-cli (setup.py)
 ruamel-yaml-clib==0.2.8 \
     --hash=sha256:024cfe1fc7c7f4e1aff4a81e718109e13409767e4f871443cbff3dba3578203d \
@@ -1019,9 +1019,9 @@ tzlocal==5.3.1 \
     # via
     #   aws-sam-cli (setup.py)
     #   dateparser
-urllib3==1.26.20 \
-    --hash=sha256:0ed14ccfbf1c30a9072c7ca157e4319b70d65f623e91e7b32fadb2853431016e \
-    --hash=sha256:40c2dc0c681e47eb8f90e7e27bf6ff7df2e677421fd46756da1161c39ca70d32
+urllib3==2.4.0 \
+    --hash=sha256:414bc6535b787febd7567804cc015fee39daab8ad86268f1310a9250697de466 \
+    --hash=sha256:4e16665048960a0900c702d4a66415956a584919c03361cac9f1df5c5dd7e813
     # via
     #   botocore
     #   docker
