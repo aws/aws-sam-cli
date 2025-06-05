@@ -1006,6 +1006,7 @@ typing-extensions==4.13.2 \
     #   cfn-lint
     #   pydantic
     #   pydantic-core
+    #   pyopenssl
     #   referencing
     #   typing-inspection
 typing-inspection==0.4.1 \
