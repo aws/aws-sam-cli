@@ -1007,6 +1007,7 @@ typing-extensions==4.13.2 \
     #   mypy-boto3-xray
     #   pydantic
     #   pydantic-core
+    #   pyopenssl
     #   referencing
     #   typing-inspection
 typing-inspection==0.4.1 \
