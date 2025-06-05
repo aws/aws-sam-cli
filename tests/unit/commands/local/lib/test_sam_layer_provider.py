@@ -56,6 +56,23 @@ class TestSamLayerProvider(TestCase):
                     "aws:asset:property": "Content",
                 },
             },
+            "CDKLambdaLayerWithInvalidCDKPath": {
+                "Type": "AWS::Lambda::LayerVersion",
+                "Properties": {
+                    "LayerName": "Layer1",
+                    "Content": {
+                        "S3Bucket": "bucket",
+                        "S3Key": "key",
+                    },
+                    "CompatibleRuntimes": ["python3.9"],
+                },
+                "Metadata": {
+                    "BuildMethod": "python3.9",
+                    "aws:cdk:path": "stack/CDKLambdaLayer-x/Lambda/Resource",
+                    "aws:asset:path": "PyLayer/",
+                    "aws:asset:property": "Content",
+                },
+            },
             "ServerlessLayerNoBuild": {
                 "Type": "AWS::Serverless::LayerVersion",
                 "Properties": {
@@ -257,6 +274,23 @@ class TestSamLayerProvider(TestCase):
                 ),
             ),
             (
+                "CDKLambdaLayerWithInvalidCDKPath",
+                LayerVersion(
+                    "CDKLambdaLayerWithInvalidCDKPath",
+                    "PyLayer",
+                    ["python3.9"],
+                    {
+                        "BuildMethod": "python3.9",
+                        "aws:cdk:path": "stack/CDKLambdaLayer-x/Lambda/Resource",
+                        "aws:asset:path": "PyLayer/",
+                        "aws:asset:property": "Content",
+                        "SamNormalized": True,
+                        "SamResourceId": "CDKLambdaLayerWithInvalidCDKPath",
+                    },
+                    stack_path="",
+                ),
+            ),
+            (
                 "CDKLambdaLayerInChild-x",
                 LayerVersion(
                     "CDKLambdaLayerInChild",
@@ -326,6 +360,7 @@ class TestSamLayerProvider(TestCase):
             "LambdaLayer",
             "LambdaLayerWithCustomId-x",
             "CDKLambdaLayer-x",
+            "CDKLambdaLayerWithInvalidCDKPath",
             "ServerlessLayerNoBuild",
             "LambdaLayerNoBuild",
             posixpath.join("ChildStack", "SamLayerInChild"),
