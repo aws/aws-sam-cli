@@ -3,12 +3,11 @@ Provides methods to generate and send metrics
 """
 
 import logging
-import os
 import platform
 import uuid
 from dataclasses import dataclass
 from functools import reduce, wraps
-from pathlib import Path
+from pathlib import Path, PurePath
 from timeit import default_timer
 from typing import Any, Dict, Optional
 from urllib.parse import urlparse
@@ -481,8 +480,8 @@ class Metric:
 
     def _get_docker_host(self) -> str:
         """
-        Returns the last part of a DOCKER_HOST string. Has conditional logic to properly parse
-        URLs and local file system paths. If the DOCKER_HOST is not set, returns an empty string.
+        Returns the last part of a DOCKER_HOST string.
+        If the DOCKER_HOST is not set, returns an empty string.
 
         Examples:
             - unix:///var/run/docker.sock -> docker.sock
@@ -490,16 +489,10 @@ class Metric:
             - /var/run/docker.sock -> docker.sock
         """
 
-        parsed = urlparse(self._gc.docker_host)
-        if parsed.scheme == "":
-            if os.path.exists(self._gc.docker_host):
-                # self._gc.docker_host is a file path
-                return str(os.path.basename(os.path.normpath(self._gc.docker_host)))
-        else:
-            # self._gc.docker_host is a URI
-            return str(os.path.basename(parsed.path))
-
-        return ""
+        try:
+            return PurePath(self._gc.docker_host).name
+        except:
+            return ""
 
 
 class MetricDataNotList(Exception):
