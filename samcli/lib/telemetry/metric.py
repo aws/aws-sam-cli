@@ -10,7 +10,6 @@ from functools import reduce, wraps
 from pathlib import Path, PurePath
 from timeit import default_timer
 from typing import Any, Dict, Optional
-from urllib.parse import urlparse
 
 import click
 
@@ -491,7 +490,7 @@ class Metric:
 
         try:
             return PurePath(self._gc.docker_host).name
-        except:
+        except TypeError:
             return ""
 
 
