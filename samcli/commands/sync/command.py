@@ -77,7 +77,7 @@ HELP_TEXT = """
 """
 
 DESCRIPTION = """
-  By default, `$sam sync` runs a full AWS Cloudformation stack update.
+  By default, `$ sam sync` runs a full AWS Cloudformation stack update.
 
   Running `sam sync --watch` with `--code` will provide a way to run just code
   synchronization, speeding up start time skipping template changes.
@@ -85,7 +85,7 @@ DESCRIPTION = """
   Remember to update the deployed stack by running
   without --code for infrastructure changes.
 
-  `$sam sync` also supports nested stacks and nested stack resources.
+  `$ sam sync` also supports nested stacks and nested stack resources.
 """
 
 

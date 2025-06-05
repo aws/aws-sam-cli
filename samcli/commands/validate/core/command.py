@@ -26,7 +26,7 @@ class ValidateCommand(CoreCommand):
                             text="\n",
                         ),
                         RowDefinition(
-                            name=style(f"${ctx.command_path} --lint"),
+                            name=style(f"$ {ctx.command_path} --lint"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
                     ]
