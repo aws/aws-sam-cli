@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import datetime
-from time import time_ns()
+from time import time_ns
 from typing import Any, Dict
 
 from samcli.local.apigw.route import Route
