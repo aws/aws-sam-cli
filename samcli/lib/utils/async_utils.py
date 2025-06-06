@@ -131,7 +131,11 @@ class AsyncContext:
         List of result of the executions in order
         """
         event_loop = new_event_loop()
-        if not default_executor:
-            with ThreadPoolExecutor() as self.executor:
-                return run_given_tasks_async(self._async_tasks, event_loop, self.executor)
-        return run_given_tasks_async(self._async_tasks, event_loop)
+        try:
+            if not default_executor:
+                with ThreadPoolExecutor() as self.executor:
+                    return run_given_tasks_async(self._async_tasks, event_loop, self.executor)
+            return run_given_tasks_async(self._async_tasks, event_loop)
+        finally:
+            # Close the event loop to prevent memory leaks
+            event_loop.close()
