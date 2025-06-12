@@ -47,9 +47,9 @@ install:
   - sh: "ls /usr/"
   # install latest maven which is compatible with jdk17
   - sh: "sudo apt-get -y remove maven"
-  - sh: "wget https://dlcdn.apache.org/maven/maven-3/3.9.5/binaries/apache-maven-3.9.5-bin.zip -P /tmp"
+  - sh: "wget https://dlcdn.apache.org/maven/maven-3/3.9.10/binaries/apache-maven-3.9.10-bin.zip -P /tmp"
   - sh: "sudo unzip -d /opt/mvn /tmp/apache-maven-*.zip"
-  - sh: "PATH=/opt/mvn/apache-maven-3.9.5/bin:$PATH"
+  - sh: "PATH=/opt/mvn/apache-maven-3.9.10/bin:$PATH"
   - sh: "mvn --version"
 
   - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
