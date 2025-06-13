@@ -470,9 +470,9 @@ mypy-boto3-xray==1.38.0 \
     --hash=sha256:13dadd42be39f0b3e139d3d3a0021c24e617d67eb8b0d09dac3d7d7795b30384 \
     --hash=sha256:6c2eeb4e7e675e978e18761ced7af95866d01df7b5c21548e452c53c255237b8
     # via boto3-stubs
-networkx==3.4.2 \
-    --hash=sha256:307c3669428c5362aab27c8a1260aa8f47c4e91d3891f48be0141738d8d053e1 \
-    --hash=sha256:df5d4365b724cf81b8c6a7312509d0c22386097011ad1abe274afd5e9d3bbc5f
+networkx==3.5 \
+    --hash=sha256:0030d386a9a06dee3565298b4a734b68589749a544acbb6c412dc9e2489ec6ec \
+    --hash=sha256:d4c6f9cf81f52d69230866796b82afbccdec3db7ae4fbd1b65ea750feed50037
     # via cfn-lint
 pycparser==2.22 \
     --hash=sha256:491c8be9c040f5390f5bf44a5b07752bd07f56edf992381b05c701439eec10f6 \
