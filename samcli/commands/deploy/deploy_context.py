@@ -72,6 +72,7 @@ class DeployContext:
         signing_profiles,
         use_changeset,
         disable_rollback,
+        import_existing_resources,
         poll_delay,
         on_failure,
         max_wait_duration,
@@ -104,6 +105,7 @@ class DeployContext:
         self.signing_profiles = signing_profiles
         self.use_changeset = use_changeset
         self.disable_rollback = disable_rollback
+        self.import_existing_resources = import_existing_resources
         self.poll_delay = poll_delay
         self.on_failure = FailureMode(on_failure) if on_failure else FailureMode.ROLLBACK
         self._max_template_size = 51200
@@ -164,6 +166,7 @@ class DeployContext:
             self.signing_profiles,
             self.use_changeset,
             self.disable_rollback,
+            self.import_existing_resources,
         )
         return self.deploy(
             self.stack_name,
@@ -180,6 +183,7 @@ class DeployContext:
             self.confirm_changeset,
             self.use_changeset,
             self.disable_rollback,
+            self.import_existing_resources,
         )
 
     def deploy(
@@ -198,6 +202,7 @@ class DeployContext:
         confirm_changeset: bool = False,
         use_changeset: bool = True,
         disable_rollback: bool = False,
+        import_existing_resources: bool = False,
     ):
         """
         Deploy the stack to cloudformation.
@@ -234,6 +239,8 @@ class DeployContext:
             Involve creation of changesets, false when using sam sync
         disable_rollback : bool
             Preserves the state of previously provisioned resources when an operation fails
+        import_existing_resources : bool
+            Changeset should attempt to import existing resources as supported by cloudformation
         """
         stacks, _ = SamLocalStackProvider.get_stacks(
             self.template_file,
@@ -257,6 +264,7 @@ class DeployContext:
                     notification_arns=notification_arns,
                     s3_uploader=s3_uploader,
                     tags=tags,
+                    import_existing_resources=import_existing_resources,
                 )
                 click.echo(self.MSG_SHOWCASE_CHANGESET.format(changeset_id=result["Id"]))
 
