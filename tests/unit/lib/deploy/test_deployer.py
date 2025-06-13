@@ -134,6 +134,7 @@ class TestDeployer(CustomTestCase):
             notification_arns=[],
             s3_uploader=S3Uploader(s3_client=self.s3_client, bucket_name="test_bucket"),
             tags={"unit": "true"},
+            import_existing_resources=False,
         )
 
         self.assertEqual(self.deployer._client.create_change_set.call_count, 1)
@@ -147,6 +148,7 @@ class TestDeployer(CustomTestCase):
             RoleARN="role-arn",
             StackName="test",
             Tags={"unit": "true"},
+            ImportExistingResources=False,
             TemplateURL=ANY,
         )
 
@@ -164,6 +166,7 @@ class TestDeployer(CustomTestCase):
             notification_arns=[],
             s3_uploader=S3Uploader(s3_client=self.s3_client, bucket_name="test_bucket"),
             tags={"unit": "true"},
+            import_existing_resources=False,
         )
 
         self.assertEqual(self.deployer._client.create_change_set.call_count, 1)
@@ -177,6 +180,7 @@ class TestDeployer(CustomTestCase):
             RoleARN="role-arn",
             StackName="test",
             Tags={"unit": "true"},
+            ImportExistingResources=False,
             TemplateURL=ANY,
         )
 
@@ -196,6 +200,7 @@ class TestDeployer(CustomTestCase):
                 notification_arns=[],
                 s3_uploader=S3Uploader(s3_client=self.s3_client, bucket_name="test_bucket"),
                 tags={"unit": "true"},
+                import_existing_resources=False,
             )
 
     def test_create_changeset_ClientErrorException(self):
@@ -226,6 +231,7 @@ class TestDeployer(CustomTestCase):
                 notification_arns=[],
                 s3_uploader=S3Uploader(s3_client=self.s3_client, bucket_name="test_bucket"),
                 tags={"unit": "true"},
+                import_existing_resources=False,
             )
 
     def test_create_changeset_ClientErrorException_generic(self):
@@ -246,6 +252,7 @@ class TestDeployer(CustomTestCase):
                 notification_arns=[],
                 s3_uploader=S3Uploader(s3_client=self.s3_client, bucket_name="test_bucket"),
                 tags={"unit": "true"},
+                import_existing_resources=False,
             )
 
     def test_create_changeset_pass_through_optional_arguments_only_if_having_values(self):
@@ -263,6 +270,7 @@ class TestDeployer(CustomTestCase):
             notification_arns=[],
             s3_uploader=S3Uploader(s3_client=self.s3_client, bucket_name="test_bucket"),
             tags={"unit": "true"},
+            import_existing_resources=False,
         )
         self.deployer._client.create_change_set.assert_called_with(
             Capabilities=["CAPABILITY_IAM"],
@@ -274,6 +282,7 @@ class TestDeployer(CustomTestCase):
             Parameters=[{"ParameterKey": "a", "ParameterValue": "b"}],
             StackName="test",
             Tags={"unit": "true"},
+            ImportExistingResources=False,
             TemplateURL=ANY,
         )
         # assert that the arguments; Capabilities, RoleARN & NotificationARNs are not passed through if no values
@@ -289,6 +298,7 @@ class TestDeployer(CustomTestCase):
             notification_arns=None,
             s3_uploader=S3Uploader(s3_client=self.s3_client, bucket_name="test_bucket"),
             tags={"unit": "true"},
+            import_existing_resources=False,
         )
         self.deployer._client.create_change_set.assert_called_with(
             ChangeSetName=ANY,
@@ -297,6 +307,7 @@ class TestDeployer(CustomTestCase):
             Parameters=[{"ParameterKey": "a", "ParameterValue": "b"}],
             StackName="test",
             Tags={"unit": "true"},
+            ImportExistingResources=False,
             TemplateURL=ANY,
         )
 
@@ -330,6 +341,7 @@ class TestDeployer(CustomTestCase):
                 ],
                 "Modify": [],
                 "Remove": [],
+                "Import": [],
             },
         )
 
@@ -337,7 +349,7 @@ class TestDeployer(CustomTestCase):
         response = [{"Changes": []}]
         self.deployer._client.get_paginator = MagicMock(return_value=MockPaginator(resp=response))
         changes = self.deployer.describe_changeset("change_id", "test")
-        self.assertEqual(changes, {"Add": [], "Modify": [], "Remove": []})
+        self.assertEqual(changes, {"Add": [], "Modify": [], "Remove": [], "Import": []})
 
     def test_wait_for_changeset(self):
         self.deployer._client.get_waiter = MagicMock(return_value=MockChangesetWaiter())
@@ -1093,6 +1105,7 @@ class TestDeployer(CustomTestCase):
             notification_arns=[],
             s3_uploader=S3Uploader(s3_client=self.s3_client, bucket_name="test_bucket"),
             tags={"unit": "true"},
+            import_existing_resources=False,
         )
 
         self.assertEqual(result, ({"Id": "test"}, "create"))
@@ -1116,6 +1129,7 @@ class TestDeployer(CustomTestCase):
                 notification_arns=[],
                 s3_uploader=S3Uploader(s3_client=self.s3_client, bucket_name="test_bucket"),
                 tags={"unit": "true"},
+                import_existing_resources=False,
             )
 
     def test_get_stack_outputs(self):

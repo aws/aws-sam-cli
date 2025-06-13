@@ -398,6 +398,7 @@ def do_cli(
                     force_upload=True,
                     signing_profiles=None,
                     disable_rollback=False,
+                    import_existing_resources=False,
                     poll_delay=poll_delay,
                     on_failure=None,
                     max_wait_duration=60,
