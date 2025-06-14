@@ -129,9 +129,9 @@ cffi==1.17.1 \
     --hash=sha256:f7f5baafcc48261359e14bcd6d9bff6d4b28d9103847c9e136694cb0501aef87 \
     --hash=sha256:fc48c783f9c87e60831201f2cce7f3b2e4846bf4d8728eabe54d60700b318a0b
     # via cryptography
-cfn-lint==1.35.4 \
-    --hash=sha256:4649797b4a6975a8ca5ebbf51e568a52383fa5b7d591f92266b8803735e5a52f \
-    --hash=sha256:da38218367217b909884ec2efe361b3992868f140b1d5f37dc64a9e328d9ddb9
+cfn-lint==1.36.0 \
+    --hash=sha256:132e174686c97c9387fda4b78c7a911baebabab78fbd1242a9784b31216e45fa \
+    --hash=sha256:47721fe23755663e69b7d84fec61b1c15fab4e7d8c75ab624e738913bcb59489
     # via aws-sam-cli (setup.py)
 chardet==5.2.0 \
     --hash=sha256:1b3b6ff479a8c414bc3fa2c0852995695c4a026dcd6d0633b2dd092ca39c1cf7 \
@@ -470,9 +470,9 @@ mypy-boto3-xray==1.38.0 \
     --hash=sha256:13dadd42be39f0b3e139d3d3a0021c24e617d67eb8b0d09dac3d7d7795b30384 \
     --hash=sha256:6c2eeb4e7e675e978e18761ced7af95866d01df7b5c21548e452c53c255237b8
     # via boto3-stubs
-networkx==3.4.2 \
-    --hash=sha256:307c3669428c5362aab27c8a1260aa8f47c4e91d3891f48be0141738d8d053e1 \
-    --hash=sha256:df5d4365b724cf81b8c6a7312509d0c22386097011ad1abe274afd5e9d3bbc5f
+networkx==3.5 \
+    --hash=sha256:0030d386a9a06dee3565298b4a734b68589749a544acbb6c412dc9e2489ec6ec \
+    --hash=sha256:d4c6f9cf81f52d69230866796b82afbccdec3db7ae4fbd1b65ea750feed50037
     # via cfn-lint
 pycparser==2.22 \
     --hash=sha256:491c8be9c040f5390f5bf44a5b07752bd07f56edf992381b05c701439eec10f6 \
