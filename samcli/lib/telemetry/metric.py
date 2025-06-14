@@ -7,7 +7,7 @@ import platform
 import uuid
 from dataclasses import dataclass
 from functools import reduce, wraps
-from pathlib import Path
+from pathlib import Path, PurePath
 from timeit import default_timer
 from typing import Any, Dict, Optional
 
@@ -436,6 +436,7 @@ class Metric:
         self._data["installationId"] = self._gc.installation_id
         self._data["sessionId"] = self._session_id
         self._data["executionEnvironment"] = self._get_execution_environment()
+        self._data["dockerHost"] = self._get_docker_host()
         self._data["ci"] = bool(self._cicd_detector.platform())
         self._data["pyversion"] = platform.python_version()
         self._data["samcliVersion"] = samcli_version
@@ -475,6 +476,22 @@ class Metric:
         if cicd_platform:
             return cicd_platform.name
         return "CLI"
+
+    def _get_docker_host(self) -> str:
+        """
+        Returns the last part of a DOCKER_HOST string.
+        If the DOCKER_HOST is not set, returns an empty string.
+
+        Examples:
+            - unix:///var/run/docker.sock -> docker.sock
+            - tcp://localhost:1234 -> localhost:1234
+            - /var/run/docker.sock -> docker.sock
+        """
+
+        try:
+            return PurePath(self._gc.docker_host).name
+        except TypeError:
+            return ""
 
 
 class MetricDataNotList(Exception):
