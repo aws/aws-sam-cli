@@ -81,36 +81,44 @@ def do_cli(ctx, template, lint):
     from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
     from samcli.lib.translate.sam_template_validator import SamTemplateValidator
 
+    # Read the SAM Template from the file
     sam_template = _read_sam_file(template)
 
     if lint:
+        # Lint the template if --lint flag is set
         _lint(ctx, sam_template.serialized, template)
     else:
         iam_client = boto3.client("iam")
+        # Initialize the SAM template validator
         validator = SamTemplateValidator(
             sam_template.deserialized, ManagedPolicyLoader(iam_client), profile=ctx.profile, region=ctx.region
         )
 
         try:
+            # Validate the SAM template
             validator.get_translated_template_if_valid()
         except InvalidSamDocumentException as e:
-            click.secho("Template provided at '{}' was invalid SAM Template.".format(template), bg="red")
+            click.secho(f"Template provided at '{template}' was invalid SAM Template.", bg="red")
             raise InvalidSamTemplateException(str(e)) from e
         except NoRegionFound as no_region_found_e:
+            # Handle missing region in the AWS profile or context
             raise UserException(
                 "AWS Region was not found. Please configure your region through a profile or --region option",
                 wrapped_from=no_region_found_e.__class__.__name__,
             ) from no_region_found_e
         except NoCredentialsError as e:
+            # Handle missing AWS credentials
             raise UserException(
                 "AWS Credentials are required. Please configure your credentials.", wrapped_from=e.__class__.__name__
             ) from e
 
+        # Success message after validation
         click.secho(
-            "{} is a valid SAM Template. This is according to basic SAM Validation, "
-            'for additional validation, please run with "--lint" option'.format(template),
+            f"{template} is a valid SAM Template. This is according to basic SAM Validation, "
+            'for additional validation, please run with "--lint" option.',
             fg="green",
         )
+
 
 
 def _read_sam_file(template) -> SamTemplate:

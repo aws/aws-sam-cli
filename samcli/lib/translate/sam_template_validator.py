@@ -35,7 +35,7 @@ class SamTemplateValidator:
         Design Details:
 
         managed_policy_loader is injected into the `__init__` to allow future expansion
-        and overriding capabilities. A typically pattern is to pass the name of the class into
+        and overriding capabilities. A typical pattern is to pass the name of the class into
         the `__init__` as keyword args. As long as the class 'conforms' to the same 'interface'.
         This allows the class to be changed by the client and allowing customization of the class being
         initialized. Something I had in mind would be allowing a template to be run and checked
@@ -64,14 +64,13 @@ class SamTemplateValidator:
     def get_translated_template_if_valid(self):
         """
         Runs the SAM Translator to determine if the template provided is valid. This is similar to running a
-        ChangeSet in CloudFormation for a SAM Template
+        ChangeSet in CloudFormation for a SAM Template.
 
         Raises
         -------
         InvalidSamDocumentException
-             If the template is not valid, an InvalidSamDocumentException is raised
+            If the template is not valid, an InvalidSamDocumentException is raised.
         """
-
         sam_translator = Translator(
             managed_policy_map=None,
             sam_parser=self.sam_parser,
@@ -83,13 +82,20 @@ class SamTemplateValidator:
         self._replace_local_image()
 
         try:
+            # Translate the SAM template
             template = sam_translator.translate(
                 sam_template=self.sam_template,
                 parameter_values=self.parameter_overrides,
                 get_managed_policy_map=self._get_managed_policy_map,
             )
+
+            # If translation returns None, raise an exception
+            if template is None:
+                raise InvalidSamDocumentException("The translated template is None. The SAM Template is invalid.")
+
             LOG.debug("Translated template is:\n%s", yaml_dump(template))
             return yaml_dump(template)
+
         except InvalidDocumentException as e:
             raise InvalidSamDocumentException(
                 functools.reduce(lambda message, error: message + " " + str(error), e.causes, str(e))
@@ -112,7 +118,7 @@ class SamTemplateValidator:
         """
         Replaces the CodeUri in AWS::Serverless::Function and DefinitionUri in AWS::Serverless::Api and
         AWS::Serverless::HttpApi to a fake S3 Uri. This is to support running the SAM Translator with
-        valid values for these fields. If this in not done, the template is invalid in the eyes of SAM
+        valid values for these fields. If this is not done, the template is invalid in the eyes of SAM
         Translator (the translator does not support local paths)
         """
 
@@ -183,7 +189,6 @@ class SamTemplateValidator:
         -------
         bool
             Returns True if the uri given is an S3 uri, otherwise False
-
         """
         return isinstance(uri, str) and uri.startswith("s3://")
 
@@ -192,7 +197,7 @@ class SamTemplateValidator:
         """
         Updates the 'property_key' in the 'resource_property_dict' to the value of 's3_uri_value'
 
-        Note: The function will mutate the resource_property_dict that is pass in
+        Note: The function will mutate the resource_property_dict that is passed in
 
         Parameters
         ----------
