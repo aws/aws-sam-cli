@@ -958,9 +958,9 @@ six==1.17.0 \
     --hash=sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274 \
     --hash=sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81
     # via python-dateutil
-sympy==1.13.3 \
-    --hash=sha256:54612cf55a62755ee71824ce692986f23c88ffa77207b30c1368eda4a7060f73 \
-    --hash=sha256:b27fd2c6530e0ab39e275fc9b683895367e51d5da91baa8d3d64db2565fec4d9
+sympy==1.14.0 \
+    --hash=sha256:d3d3fe8df1e5a0b42f0e7bdf50541697dbe7d23746e894990c030e2b05e72517 \
+    --hash=sha256:e091cc3e99d2141a0ba2847328f5479b05d94a6635cb96148ccb3f34671bd8f5
     # via cfn-lint
 text-unidecode==1.3 \
     --hash=sha256:1311f10e8b895935241623731c2ba64f4c455287888b18189350b67134a822e8 \
@@ -982,9 +982,9 @@ types-s3transfer==0.13.0 \
     --hash=sha256:203dadcb9865c2f68fb44bc0440e1dc05b79197ba4a641c0976c26c9af75ef52 \
     --hash=sha256:79c8375cbf48a64bff7654c02df1ec4b20d74f8c5672fc13e382f593ca5565b3
     # via boto3-stubs
-typing-extensions==4.13.2 \
-    --hash=sha256:a439e7c04b49fec3e5d3e2beaa21755cadbbdc391694e28ccdd36ca4a1408f8c \
-    --hash=sha256:e6c81219bd689f51865d9e372991c540bda33a0379d5573cddb9a3a23f7caaef
+typing-extensions==4.14.0 \
+    --hash=sha256:8676b788e32f02ab42d9e7c61324048ae4c6d844a399eebace3d4979d75ceef4 \
+    --hash=sha256:a1514509136dd0b477638fc68d6a91497af5076466ad0fa6c338e44e359944af
     # via
     #   aws-sam-cli (setup.py)
     #   aws-sam-translator
