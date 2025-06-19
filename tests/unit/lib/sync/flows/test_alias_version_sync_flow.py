@@ -7,11 +7,11 @@ from samcli.lib.utils.hash import str_checksum
 
 
 class TestAliasVersionSyncFlow(TestCase):
-    def create_sync_flow(self, delete_old_alias=False):
+    def create_sync_flow(self, delete_old_alias_version=False):
         sync_flow = AliasVersionSyncFlow(
             "Function1",
             "Alias1",
-            delete_old_alias,
+            delete_old_alias_version,
             build_context=MagicMock(),
             deploy_context=MagicMock(),
             sync_context=MagicMock(),

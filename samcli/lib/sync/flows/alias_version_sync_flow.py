@@ -23,14 +23,14 @@ class AliasVersionSyncFlow(SyncFlow):
 
     _function_identifier: str
     _alias_name: str
-    _delete_old_alias: bool
+    _delete_old_alias_version: bool
     _lambda_client: Any
 
     def __init__(
         self,
         function_identifier: str,
         alias_name: str,
-        delete_old_alias: bool,
+        delete_old_alias_version: bool,
         build_context: "BuildContext",
         deploy_context: "DeployContext",
         sync_context: "SyncContext",
@@ -66,7 +66,7 @@ class AliasVersionSyncFlow(SyncFlow):
         self._function_identifier = function_identifier
         self._alias_name = alias_name
         self._lambda_client = None
-        self._delete_old_alias = delete_old_alias
+        self._delete_old_alias_version = delete_old_alias_version
 
     @property
     def sync_state_identifier(self) -> str:
@@ -101,7 +101,7 @@ class AliasVersionSyncFlow(SyncFlow):
             self._lambda_client.update_alias(
                 FunctionName=function_physical_id, Name=self._alias_name, FunctionVersion=version
             )
-            if self._delete_old_alias and current_alias_version:
+            if self._delete_old_alias_version and current_alias_version:
                 formatted_function_name_version = "{}:{}".format(function_physical_id, current_alias_version)
                 LOG.debug("%Deleting Old Version Alias: %s", self.log_prefix, current_alias_version)
                 self._lambda_client.delete_function(FunctionName=formatted_function_name_version)
