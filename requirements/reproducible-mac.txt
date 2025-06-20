@@ -22,9 +22,9 @@ aws-lambda-builders==1.54.0 \
     --hash=sha256:168ccca3ee70c68a499741ecf5dc984fc16b169ae7b95baf8118091315b42eb5 \
     --hash=sha256:c74353b6f4dfda981f3b01aa1e39180a492cbd323852122b6f6451faeb4d15f0
     # via aws-sam-cli (setup.py)
-aws-sam-translator==1.98.0 \
-    --hash=sha256:65e7afffdda2e6f715debc251ddae5deba079af41db5dd9ecd370d658b9d728e \
-    --hash=sha256:fe9fdf51b593aca4cde29f555e272b00d90662315c8078e9f5f3448dd962c66b
+aws-sam-translator==1.99.0 \
+    --hash=sha256:b1997e09da876342655eb568e66098280ffd137213009f0136b57f4e7694c98c \
+    --hash=sha256:be326054a7ee2f535fcd914db85e5d50bdf4054313c14888af69b6de3187cdf8
     # via
     #   aws-sam-cli (setup.py)
     #   cfn-lint
@@ -477,9 +477,9 @@ pycparser==2.22 \
     --hash=sha256:491c8be9c040f5390f5bf44a5b07752bd07f56edf992381b05c701439eec10f6 \
     --hash=sha256:c3702b6d3dd8c7abc1afa565d7e63d53a1d0bd86cdc24edd75470f4de499cfcc
     # via cffi
-pydantic==2.11.5 \
-    --hash=sha256:7f853db3d0ce78ce8bbb148c401c2cdd6431b3473c0cdff2755c7690952a7b7a \
-    --hash=sha256:f9c26ba06f9747749ca1e5c94d6a85cb84254577553c8785576fd38fa64dc0f7
+pydantic==2.11.7 \
+    --hash=sha256:d989c3c6cb79469287b1569f7447a17848c998458d49ebe294e975b9baf0f0db \
+    --hash=sha256:dde5df002701f6de26248661f6835bbe296a47bf73990135c7d07ce741b9623b
     # via aws-sam-translator
 pydantic-core==2.33.2 \
     --hash=sha256:0069c9acc3f3981b9ff4cdfaf088e98d83440a4c7ea1bc07460af3d4dc22e72d \
