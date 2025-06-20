@@ -41,7 +41,7 @@ class TestValidateCommand(unittest.TestCase):
             "Beta Options": [("", ""), ("--beta-features", ""), ("", "")],
             "Description": [(cmd.description + cmd.description_addendum, "")],
             "Examples": [],
-            "Validate and Lint": [("", ""), ("$sam validate --lint\x1b[0m", "")],
+            "Validate and Lint": [("", ""), ("$ sam validate --lint\x1b[0m", "")],
         }
 
         cmd.format_options(ctx, formatter)
