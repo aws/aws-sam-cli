@@ -1,2 +1,2 @@
-numpy
+numpy==2.2.6
 requests
