@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import datetime
-from time import time
+from time import time_ns
 from typing import Any, Dict
 
 from samcli.local.apigw.route import Route
@@ -84,7 +84,7 @@ class RequestContext:
         path=None,
         protocol=None,
         domain_name=None,
-        request_time_epoch=int(time()),
+        request_time_epoch=int(time_ns() // 1_000_000),
         request_time=datetime.utcnow().strftime("%d/%b/%Y:%H:%M:%S +0000"),
         operation_name=None,
     ):
