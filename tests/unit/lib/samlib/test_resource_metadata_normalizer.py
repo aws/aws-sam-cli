@@ -521,9 +521,19 @@ class TestResourceMetadataNormalizerGetResourceId(TestCase):
 
         self.assertEqual(expected_resource_id, resource_id)
 
-    def test_use_logical_id_as_resource_id_incase_of_invalid_cdk_path(self):
+    @parameterized.expand(
+        [
+            ("func_cdk_id"),
+            ("stack_id/construct_id/lambda/Resource"),
+        ]
+    )
+    def test_use_logical_id_as_resource_id_incase_of_invalid_cdk_path(self, cdk_path):
         resource_id = ResourceMetadataNormalizer.get_resource_id(
-            {"Type": "any:value", "Properties": {"key": "value"}, "Metadata": {"aws:cdk:path": "func_cdk_id"}},
+            {
+                "Type": "any:value",
+                "Properties": {"key": "value"},
+                "Metadata": {"aws:cdk:path": cdk_path},
+            },
             "logical_id",
         )
 
