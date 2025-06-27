@@ -171,7 +171,8 @@ on_finish:
   - sh: 'export AWS_SECRET_ACCESS_KEY=$CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY'
   - sh: 'export AWS_SESSION_TOKEN=$CI_ACCESS_ROLE_AWS_SESSION_TOKEN'
 
-  - sh: 'aws stepfunctions send-task-success --task-token "$TASK_TOKEN" --task-output "{}" --region us-west-2'
+  - sh: >
+      aws lambda invoke --function-name "$ACCOUNT_RESET_LAMBDA_ARN" --payload "{\"taskToken\": \"$TASK_TOKEN\", \"output\": \"{}\"}" /dev/null --region us-west-2
 
 for:
   # Integ testing build
