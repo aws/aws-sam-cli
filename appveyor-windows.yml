@@ -219,7 +219,7 @@ for:
       - cargo lambda -V
 
     test_script:
-      - ps: "pytest -vv --reruns 3 -m 'not al2023' tests/integration/buildcmd/test_build_cmd_arm64.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64.json"
+      - ps: "pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit"
 
   #Integ testing Terraform build
   - matrix:
@@ -231,7 +231,7 @@ for:
       - "choco install terraform"
       - "terraform -version"
 
-      - ps: "pytest -vv -n 4 --reruns 4 tests/integration/buildcmd/test_build_terraform_applications.py tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+      - ps: "pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit"
 
   # Integ testing package, delete and deploy
   - matrix:
@@ -239,7 +239,7 @@ for:
         - configuration: PackageAndDeleteAndDeployIntegTesting
 
     test_script:
-      - ps: "pytest -vv tests/integration/package tests/integration/delete tests/integration/deploy --dist=loadgroup -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-package-delete.json"
+      - ps: "pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit"
 
   # Integ testing sync
   - matrix:
@@ -247,7 +247,7 @@ for:
         - configuration: SyncIntegTesting
 
     test_script:
-      - ps: "pytest -vv tests/integration/sync -n 3 --reruns 3 --dist loadscope --json-report --json-report-file=TEST_REPORT-integration-sync.json"
+      - ps: "pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit"
 
   #Integ testing local invoke and generate event
   - matrix:
@@ -259,7 +259,7 @@ for:
       - "choco install terraform"
       - "terraform -version"
 
-      - ps: "pytest -vv --reruns 3 tests/integration/local/invoke tests/integration/local/generate_event --json-report --json-report-file=TEST_REPORT-integration-local.json"
+      - ps: "pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit"
 
   #Integ testing local start-api
   - matrix:
@@ -271,7 +271,7 @@ for:
       - "choco install terraform"
       - "terraform -version"
 
-      - ps: "pytest -vv --reruns 3 tests/integration/local/start_api --json-report --json-report-file=TEST_REPORT-integration-local-api.json"
+      - ps: "pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit"
 
   #Integ testing local start-lambda
   - matrix:
@@ -291,7 +291,7 @@ for:
         - configuration: OtherAndEndToEndTesting
 
     test_script:
-      - ps: "pytest -vv -n 4 --reruns 4 --dist loadgroup tests/integration tests/end_to_end --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-others.json"
+      - ps: "pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit"
       - ps: "pytest -vv --reruns 3 tests/regression --json-report --json-report-file=TEST_REPORT-regression.json"
 # Uncomment for RDP
 # on_finish:

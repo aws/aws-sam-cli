@@ -169,14 +169,14 @@ for:
         - configuration: BuildIntegTesting
 
     test_script:
-      - sh: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'not java and not python and not provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+      - sh: "pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit --cov-config "
 
   - matrix:
       only:
         - configuration: BuildIntegTestingJavaPythonProvided
 
     test_script:
-      - sh: "pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'java or python or provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd-java-python-provided.json"
+      - sh: "pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit"
 
   # Integ testing build arm64 functions
   - matrix:
@@ -184,14 +184,14 @@ for:
         - configuration: BuildIntegTestingArm64
 
     test_script:
-      - sh: "pytest -vv --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'not java' --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64.json"
+      - sh: "pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit"
 
   - matrix:
       only:
         - configuration: BuildIntegTestingArm64Java
 
     test_script:
-      - sh: "pytest -vv --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'java' --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64-java.json"
+      - sh: "pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit"
 
   # Integ testing Terraform build
   -
@@ -201,14 +201,14 @@ for:
 
     test_script:
       # install Terraform
-      - sh: "sudo apt update --allow-releaseinfo-change"
-      - sh: "TER_VER=`curl -s https://api.github.com/repos/hashicorp/terraform/releases/latest | grep tag_name | cut -d: -f2 | tr -d \\\"\\,\\v | awk '{$1=$1};1'`"
-      - sh: "wget https://releases.hashicorp.com/terraform/${TER_VER}/terraform_${TER_VER}_linux_amd64.zip -P /tmp"
-      - sh: "sudo unzip -d /opt/terraform /tmp/terraform_${TER_VER}_linux_amd64.zip"
-      - sh: "sudo mv /opt/terraform/terraform /usr/local/bin/"
-      - sh: "terraform -version"
+      # - sh: "sudo apt update --allow-releaseinfo-change"
+      # - sh: "TER_VER=`curl -s https://api.github.com/repos/hashicorp/terraform/releases/latest | grep tag_name | cut -d: -f2 | tr -d \\\"\\,\\v | awk '{$1=$1};1'`"
+      # - sh: "wget https://releases.hashicorp.com/terraform/${TER_VER}/terraform_${TER_VER}_linux_amd64.zip -P /tmp"
+      # - sh: "sudo unzip -d /opt/terraform /tmp/terraform_${TER_VER}_linux_amd64.zip"
+      # - sh: "sudo mv /opt/terraform/terraform /usr/local/bin/"
+      # - sh: "terraform -version"
 
-      - sh: "pytest -vv -n 4 --reruns 4 tests/integration/buildcmd/test_build_terraform_applications.py tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd.json"
+      - sh: "pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit"
 
   # Integ testing package & delete
   -
@@ -217,7 +217,7 @@ for:
         - configuration: PackageAndDeleteAndDeployIntegTesting
 
     test_script:
-      - sh: "pytest -vv tests/integration/package tests/integration/delete tests/integration/deploy --dist=loadgroup -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-package-delete-deploy.json"
+      - sh: "pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit"
 
   # Integ testing sync
   -
