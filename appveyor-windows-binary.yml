@@ -180,7 +180,8 @@ on_finish:
         $env:AWS_ACCESS_KEY_ID = $env:CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID;
         $env:AWS_SECRET_ACCESS_KEY = $env:CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY;
         $env:AWS_SESSION_TOKEN = $env:CI_ACCESS_ROLE_AWS_SESSION_TOKEN;
-        aws stepfunctions send-task-success --task-token "$env:TASK_TOKEN" --task-output "{}" --region us-west-2;
+        aws lambda invoke --function-name "$env:ACCOUNT_RESET_LAMBDA_ARN" --payload "{\`"taskToken\`": \`"$env:TASK_TOKEN\`", \`"output\`": \`"{}\`"}" lambda-output.txt --region us-west-2;
+        cat lambda-output.txt
       }
 
 
