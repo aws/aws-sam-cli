@@ -1,6 +1,6 @@
 -r pre-dev.txt
 
-coverage==7.8.2; python_version>="3.9"
+coverage==7.9.1; python_version>="3.9"
 coverage==7.6.1; python_version<"3.9"
 pytest-cov==6.2.1; python_version>="3.9"
 pytest-cov==5.0.0; python_version<"3.9"
@@ -18,7 +18,7 @@ types-psutil==7.0.0.20250601
 types-setuptools==80.9.0.20250529
 types-Pygments==2.19.0.20250516 
 types-colorama==0.4.15.20240311
-types-dateparser==1.2.0.20250601
+types-dateparser==1.2.2.20250627
 types-docutils==0.21.0.20250604
 types-jsonschema==4.24.0.20250528
 types-pyOpenSSL==24.1.0.20240722
