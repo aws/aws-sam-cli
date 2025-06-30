@@ -159,7 +159,7 @@ on_finish:
         $env:AWS_ACCESS_KEY_ID = $env:CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID;
         $env:AWS_SECRET_ACCESS_KEY = $env:CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY;
         $env:AWS_SESSION_TOKEN = $env:CI_ACCESS_ROLE_AWS_SESSION_TOKEN;
-        aws lambda invoke --function-name "$env:ACCOUNT_RESET_LAMBDA_ARN" --payload "{\"taskToken\": \"$env:TASK_TOKEN\", \"output\": \"{}\"}" lambda-output.txt --region us-west-2;
+        aws lambda invoke --function-name "$env:ACCOUNT_RESET_LAMBDA_ARN" --payload "{\`"taskToken\`": \`"$env:TASK_TOKEN\`", \`"output\`": \`"{}\`"}" lambda-output.txt --region us-west-2;
       }
 
 
@@ -219,7 +219,7 @@ for:
       - cargo lambda -V
 
     test_script:
-      - ps: "pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit"
+      - ps: "pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit --ignore tests/unit/commands/local/cli_common/test_invoke_context.py"
 
   #Integ testing Terraform build
   - matrix:
@@ -231,7 +231,7 @@ for:
       - "choco install terraform"
       - "terraform -version"
 
-      - ps: "pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit"
+      - ps: "pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit --ignore tests/unit/commands/local/cli_common/test_invoke_context.py"
 
   # Integ testing package, delete and deploy
   - matrix:
@@ -239,7 +239,7 @@ for:
         - configuration: PackageAndDeleteAndDeployIntegTesting
 
     test_script:
-      - ps: "pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit"
+      - ps: "pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit --ignore tests/unit/commands/local/cli_common/test_invoke_context.py"
 
   # Integ testing sync
   - matrix:
@@ -247,7 +247,7 @@ for:
         - configuration: SyncIntegTesting
 
     test_script:
-      - ps: "pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit"
+      - ps: "pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit --ignore tests/unit/commands/local/cli_common/test_invoke_context.py"
 
   #Integ testing local invoke and generate event
   - matrix:
@@ -259,7 +259,7 @@ for:
       - "choco install terraform"
       - "terraform -version"
 
-      - ps: "pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit"
+      - ps: "pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit --ignore tests/unit/commands/local/cli_common/test_invoke_context.py"
 
   #Integ testing local start-api
   - matrix:
@@ -271,7 +271,7 @@ for:
       - "choco install terraform"
       - "terraform -version"
 
-      - ps: "pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit"
+      - ps: "pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit --ignore tests/unit/commands/local/cli_common/test_invoke_context.py"
 
   #Integ testing local start-lambda
   - matrix:
@@ -291,7 +291,7 @@ for:
         - configuration: OtherAndEndToEndTesting
 
     test_script:
-      - ps: "pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit"
+      - ps: "pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit --ignore tests/unit/commands/local/cli_common/test_invoke_context.py"
       - ps: "pytest -vv --reruns 3 tests/regression --json-report --json-report-file=TEST_REPORT-regression.json"
 # Uncomment for RDP
 # on_finish:

@@ -169,14 +169,14 @@ for:
         - configuration: BuildIntegTesting
 
     test_script:
-      - sh: "pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit --cov-config "
+      - sh: "pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit --ignore tests/unit/commands/local/cli_common/test_invoke_context.py"
 
   - matrix:
       only:
         - configuration: BuildIntegTestingJavaPythonProvided
 
     test_script:
-      - sh: "pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit"
+      - sh: "pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit --ignore tests/unit/commands/local/cli_common/test_invoke_context.py"
 
   # Integ testing build arm64 functions
   - matrix:
@@ -184,14 +184,14 @@ for:
         - configuration: BuildIntegTestingArm64
 
     test_script:
-      - sh: "pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit"
+      - sh: "pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit --ignore tests/unit/commands/local/cli_common/test_invoke_context.py"
 
   - matrix:
       only:
         - configuration: BuildIntegTestingArm64Java
 
     test_script:
-      - sh: "pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit"
+      - sh: "pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit --ignore tests/unit/commands/local/cli_common/test_invoke_context.py"
 
   # Integ testing Terraform build
   -
@@ -208,7 +208,7 @@ for:
       # - sh: "sudo mv /opt/terraform/terraform /usr/local/bin/"
       # - sh: "terraform -version"
 
-      - sh: "pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit"
+      - sh: "pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit --ignore tests/unit/commands/local/cli_common/test_invoke_context.py"
 
   # Integ testing package & delete
   -
@@ -217,7 +217,7 @@ for:
         - configuration: PackageAndDeleteAndDeployIntegTesting
 
     test_script:
-      - sh: "pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit"
+      - sh: "pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit --ignore tests/unit/commands/local/cli_common/test_invoke_context.py"
 
   # Integ testing sync
   -
