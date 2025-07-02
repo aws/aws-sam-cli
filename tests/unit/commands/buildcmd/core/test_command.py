@@ -52,12 +52,12 @@ class TestBuildCommand(unittest.TestCase):
             "Description": [(cmd.description + cmd.description_addendum, "")],
             "Examples": [
                 ("", ""),
-                ("$sam build\x1b[0m", ""),
-                ("$sam build FUNCTION_LOGICAL_ID\x1b[0m", ""),
-                ("$sam build --use-container\x1b[0m", ""),
-                ("$sam build --use-container --container-env-var-file env.json\x1b[0m", ""),
-                ("$sam build && sam local invoke\x1b[0m", ""),
-                ("$sam build && sam deploy\x1b[0m", ""),
+                ("$ sam build\x1b[0m", ""),
+                ("$ sam build FUNCTION_LOGICAL_ID\x1b[0m", ""),
+                ("$ sam build --use-container\x1b[0m", ""),
+                ("$ sam build --use-container --container-env-var-file env.json\x1b[0m", ""),
+                ("$ sam build && sam local invoke\x1b[0m", ""),
+                ("$ sam build && sam deploy\x1b[0m", ""),
             ],
         }
 
