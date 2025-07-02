@@ -124,7 +124,7 @@ class CfnParameterOverridesType(click.ParamType):
 
     name = "list,object,string"
 
-    def convert(self, values, param, ctx):
+    def convert(self, values, param, ctx, seen_files=None):
         """
         Takes parameter overrides loaded from various supported config file formats and
         flattens and normalizes them into a dictionary where all keys and values are strings.
@@ -141,6 +141,8 @@ class CfnParameterOverridesType(click.ParamType):
             Parameter metadata (from Click library), used for error handling.
         ctx : click.Context
             Click context for error reporting.
+        seen_files : set
+            List of files processed in the current execution branch, used to detect infinite recursion
 
         Returns
         -------
@@ -151,6 +153,9 @@ class CfnParameterOverridesType(click.ParamType):
         if values in [("",), "", None] or values == {}:
             LOG.debug("Empty parameter set (%s)", values)
             return {}
+
+        if seen_files is None:
+            seen_files = set()
 
         LOG.debug("Input parameters: %s", values)
 
@@ -169,8 +174,16 @@ class CfnParameterOverridesType(click.ParamType):
                     file_manager = FILE_MANAGER_MAPPER.get(file_path.suffix, None)
                     if not file_manager:
                         self.fail(f"{value} uses an unsupported extension", param, ctx)
+
                     # Recursively process the file's contents and update parameters
-                    parameters.update(self.convert(file_manager.read(file_path), param, ctx))
+                    if file_path in seen_files:
+                        self.fail(f"Infinite recursion detected in file references: {file_path}", param, ctx)
+                    seen_files.add(file_path)
+                    try:
+                        nested_values = file_manager.read(file_path)
+                        parameters.update(self.convert(nested_values, param, ctx, seen_files))
+                    finally:
+                        seen_files.remove(file_path)
                 else:
                     # Legacy parameter matching (e.g. "X=Y" and "ParameterKey=X,ParameterValue=Y")
                     normalized_value = " " + value.strip()
