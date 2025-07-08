@@ -19,8 +19,8 @@ types-setuptools==80.9.0.20250529
 types-Pygments==2.19.0.20250516 
 types-colorama==0.4.15.20240311
 types-dateparser==1.2.2.20250627
-types-docutils==0.21.0.20250604
-types-jsonschema==4.24.0.20250528
+types-docutils==0.21.0.20250708
+types-jsonschema==4.24.0.20250708
 types-pyOpenSSL==24.1.0.20240722
 # lucashuy: pin `types-request` based on the Python version since newer versions of
 # the types require a newer version of requests, which is only installed in newer versions of Python
