@@ -40,7 +40,7 @@ from samcli.local.docker.utils import NoFreePortsError, find_free_port
 LOG = logging.getLogger(__name__)
 
 
-CONTAINER_CONNECTION_TIMEOUT = float(os.environ.get("SAM_CLI_CONTAINER_CONNECTION_TIMEOUT", 20))
+CONTAINER_CONNECTION_TIMEOUT = float(os.environ.get("SAM_CLI_CONTAINER_CONNECTION_TIMEOUT", "20"))
 DEFAULT_CONTAINER_HOST_INTERFACE = "127.0.0.1"
 
 # Keep a lock instance to access the locks for individual containers (see dict below)

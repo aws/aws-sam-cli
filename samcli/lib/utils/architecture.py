@@ -27,6 +27,7 @@ SUPPORTED_RUNTIMES: Dict[str, List[str]] = {
     "python3.13": [ARM64, X86_64],
     "ruby3.2": [ARM64, X86_64],
     "ruby3.3": [ARM64, X86_64],
+    "ruby3.4": [ARM64, X86_64],
     "java8.al2": [ARM64, X86_64],
     "java11": [ARM64, X86_64],
     "java17": [ARM64, X86_64],
