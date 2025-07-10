@@ -23,7 +23,7 @@ from samcli.commands._utils.options import (
     use_json_option,
 )
 from samcli.commands.package.core.command import PackageCommand
-from samcli.lib.bootstrap.bootstrap import manage_stack
+from samcli.lib.bootstrap.bootstrap import manage_stack, print_managed_s3_bucket_info
 from samcli.lib.cli_validation.image_repository_validation import image_repository_validation
 from samcli.lib.telemetry.metric import track_command, track_template_warnings
 from samcli.lib.utils.resources import resources_generator
@@ -168,9 +168,7 @@ def do_cli(
 
     if resolve_s3:
         s3_bucket = manage_stack(profile=profile, region=region)
-        click.echo(f"\n\t\tManaged S3 bucket: {s3_bucket}")
-        click.echo("\t\tA different default S3 bucket can be set in samconfig.toml")
-        click.echo("\t\tOr by specifying --s3-bucket explicitly.")
+        print_managed_s3_bucket_info(s3_bucket)
 
     with PackageContext(
         template_file=template_file,

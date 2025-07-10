@@ -42,7 +42,7 @@ class TestLocalStartAPICommand(unittest.TestCase):
             "Configuration Options": [("", ""), ("--config-file", ""), ("", "")],
             "Container Options": [("", ""), ("--host", ""), ("", "")],
             "Description": [(cmd.description + cmd.description_addendum, "")],
-            "Examples": [("", ""), ("$sam local start-api\x1b[0m", "")],
+            "Examples": [("", ""), ("$ sam local start-api\x1b[0m", "")],
             "Extension Options": [("", ""), ("--hook_name", ""), ("", "")],
             "Terraform Hook Options": [("", ""), ("--terraform-plan-file", ""), ("", "")],
             "Other Options": [("", ""), ("--debug", ""), ("", "")],

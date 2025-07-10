@@ -1,5 +1,5 @@
 """
-    Companion stack template builder
+Companion stack template builder
 """
 
 from typing import Dict, cast

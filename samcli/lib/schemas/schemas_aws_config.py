@@ -1,4 +1,4 @@
-""" configure Schemas client based on AWS configuration provided by user """
+"""configure Schemas client based on AWS configuration provided by user"""
 
 import click
 from boto3.session import Session

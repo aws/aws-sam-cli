@@ -141,6 +141,7 @@ def upload_local_artifacts(
     uploader: S3Uploader,
     extension: Optional[str] = None,
     local_path: Optional[str] = None,
+    previously_uploaded: Optional[Dict] = None,
 ) -> str:
     """
     Upload local artifacts referenced by the property at given resource and
@@ -154,18 +155,20 @@ def upload_local_artifacts(
 
     If path is already a path to S3 object, this method does nothing.
 
-    :param resource_type:   Type of the CloudFormation resource
-    :param resource_id:     Id of the CloudFormation resource
-    :param resource_dict:   Dictionary containing resource definition
-    :param property_path:   Json path to the property of SAM or CloudFormation resource where the
-                            local path is present
-    :param parent_dir:      Resolve all relative paths with respect to this
-                            directory
-    :param uploader:        Method to upload files to S3
-    :param extension:       Extension of the uploaded artifact
-    :param local_path:      Local path for the cases when search return more than single result
-    :return:                S3 URL of the uploaded object
-    :raise:                 ValueError if path is not a S3 URL or a local path
+    :param resource_type:         Type of the CloudFormation resource
+    :param resource_id:           Id of the CloudFormation resource
+    :param resource_dict:         Dictionary containing resource definition
+    :param property_path:         Json path to the property of SAM or CloudFormation resource
+                                  where the local path is present
+    :param parent_dir:            Resolve all relative paths with respect to this
+                                  directory
+    :param uploader:              Method to upload files to S3
+    :param extension:             Extension of the uploaded artifact
+    :param local_path:            Local path for the cases when search return more than single result
+    :param previously_uploaded:   Cache mapping from (evaluated) local path to previous result of
+                                  this function
+    :return:                      S3 URL of the uploaded object
+    :raise:                       ValueError if path is not a S3 URL or a local path
     """
 
     if local_path is None:
@@ -183,18 +186,29 @@ def upload_local_artifacts(
 
     local_path = make_abs_path(parent_dir, local_path)
 
+    if previously_uploaded and local_path in previously_uploaded:
+        result = previously_uploaded[local_path]
+        LOG.debug("Skipping upload of %s since is already uploaded to %s", local_path, result)
+        return cast(str, result)
+
     # Or, pointing to a folder. Zip the folder and upload (zip_method is changed based on resource type)
     if is_local_folder(local_path):
-        return zip_and_upload(
+        result = zip_and_upload(
             local_path,
             uploader,
             extension,
             zip_method=make_zip_with_lambda_permissions if resource_type in LAMBDA_LOCAL_RESOURCES else make_zip,
         )
+        if previously_uploaded is not None:
+            previously_uploaded[local_path] = result
+        return cast(str, result)
 
     # Path could be pointing to a file. Upload the file
     if is_local_file(local_path):
-        return uploader.upload_with_dedup(local_path)
+        result = uploader.upload_with_dedup(local_path)
+        if previously_uploaded is not None:
+            previously_uploaded[local_path] = result
+        return cast(str, result)
 
     raise InvalidLocalPathError(resource_id=resource_id, property_name=property_path, local_path=local_path)
 

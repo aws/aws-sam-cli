@@ -1,4 +1,4 @@
-""" Manage Git repo """
+"""Manage Git repo"""
 
 import logging
 import os
