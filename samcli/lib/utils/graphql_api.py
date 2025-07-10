@@ -1,5 +1,4 @@
-"""Helper functions to work with SAM GraphQLApi resource
-"""
+"""Helper functions to work with SAM GraphQLApi resource"""
 
 from typing import Any, Dict, List, Tuple, Union
 

@@ -296,7 +296,7 @@ def _update_stack(
 
 
 def _generate_stack_parameters(
-    parameter_overrides: Optional[Dict[str, Union[str, List[str]]]] = None
+    parameter_overrides: Optional[Dict[str, Union[str, List[str]]]] = None,
 ) -> List[Dict[str, str]]:
     parameters = []
     if parameter_overrides:

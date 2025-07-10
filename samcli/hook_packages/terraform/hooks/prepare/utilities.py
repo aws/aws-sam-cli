@@ -1,4 +1,4 @@
-""" Maintain the utilities functions used in prepare hook """
+"""Maintain the utilities functions used in prepare hook"""
 
 from samcli.hook_packages.terraform.hooks.prepare.constants import COMPILED_REGULAR_EXPRESSION
 

@@ -52,7 +52,7 @@ def build_cfn_logical_id(tf_address: str) -> str:
 
 
 def _calculate_configuration_attribute_value_hash(
-    configuration_attribute_value: Union[str, List[Union[ConstantValue, ResolvedReference]]]
+    configuration_attribute_value: Union[str, List[Union[ConstantValue, ResolvedReference]]],
 ) -> str:
     """
     Create a hash value of an attribute value of the resource configuration.

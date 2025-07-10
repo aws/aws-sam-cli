@@ -1,5 +1,5 @@
 """
-    Companion stack manager
+Companion stack manager
 """
 
 import logging
