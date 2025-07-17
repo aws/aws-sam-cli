@@ -160,7 +160,7 @@ on_finish:
     # When we update to AWS CLI v2, we need to add the `--cli-binary-format raw-in-base64-out` option to pass the payload as a JSON string
   - sh: >
       aws lambda invoke --function-name "$ACCOUNT_RESET_LAMBDA_ARN" --payload "{\"taskToken\": \"$TASK_TOKEN\", \"output\": \"{}\"}" ./lambda-output.txt --region us-west-2
-      cat ./lambda-output.txt
+  - sh: 'cat ./lambda-output.txt'
 
 for:
   # Integ testing build
