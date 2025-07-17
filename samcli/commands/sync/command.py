@@ -364,7 +364,7 @@ def do_cli(
                 region=region,
                 profile=profile,
                 use_json=False,
-                force_upload=True,
+                force_upload=False,
             ) as package_context:
                 # 500ms of sleep time between stack checks and describe stack events.
                 DEFAULT_POLL_DELAY = 0.5
@@ -395,7 +395,7 @@ def do_cli(
                     fail_on_empty_changeset=True,
                     confirm_changeset=False,
                     use_changeset=False,
-                    force_upload=True,
+                    force_upload=False,
                     signing_profiles=None,
                     disable_rollback=False,
                     poll_delay=poll_delay,
