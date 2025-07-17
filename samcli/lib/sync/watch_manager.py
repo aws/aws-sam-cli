@@ -22,7 +22,7 @@ from samcli.lib.utils.code_trigger_factory import CodeTriggerFactory
 from samcli.lib.utils.colors import Colored, Colors
 from samcli.lib.utils.path_observer import HandlerObserver
 from samcli.lib.utils.resource_trigger import OnChangeCallback, TemplateTrigger
-from samcli.local.lambdafn.exceptions import ResourceNotFound
+from samcli.local.lambdafn.exceptions import ResourceNotFound, FunctionNotFound
 
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.build.build_context import BuildContext
@@ -152,7 +152,7 @@ class WatchManager:
                     extra=dict(markup=True),
                 )
                 continue
-            except ResourceNotFound:
+            except (ResourceNotFound, FunctionNotFound):
                 LOG.warning(
                     self._color.color_log(
                         msg="CodeTrigger not created as %s is not found or is with a S3 Location.",
