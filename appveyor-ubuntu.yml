@@ -47,9 +47,9 @@ install:
   - sh: "ls /usr/"
   # install latest maven which is compatible with jdk17
   - sh: "sudo apt-get -y remove maven"
-  - sh: "wget https://dlcdn.apache.org/maven/maven-3/3.9.10/binaries/apache-maven-3.9.10-bin.zip -P /tmp"
+  - sh: "wget https://dlcdn.apache.org/maven/maven-3/3.9.11/binaries/apache-maven-3.9.11-bin.zip -P /tmp"
   - sh: "sudo unzip -d /opt/mvn /tmp/apache-maven-*.zip"
-  - sh: "PATH=/opt/mvn/apache-maven-3.9.10/bin:$PATH"
+  - sh: "PATH=/opt/mvn/apache-maven-3.9.11/bin:$PATH"
   - sh: "mvn --version"
 
   - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
@@ -157,7 +157,10 @@ on_finish:
   - sh: 'export AWS_SECRET_ACCESS_KEY=$CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY'
   - sh: 'export AWS_SESSION_TOKEN=$CI_ACCESS_ROLE_AWS_SESSION_TOKEN'
 
-  - sh: 'aws stepfunctions send-task-success --task-token "$TASK_TOKEN" --task-output "{}" --region us-west-2'
+    # When we update to AWS CLI v2, we need to add the `--cli-binary-format raw-in-base64-out` option to pass the payload as a JSON string
+  - sh: >
+      aws lambda invoke --function-name "$ACCOUNT_RESET_LAMBDA_ARN" --payload "{\"taskToken\": \"$TASK_TOKEN\", \"output\": \"{}\"}" ./lambda-output.txt --region us-west-2
+  - sh: 'cat ./lambda-output.txt'
 
 for:
   # Integ testing build
