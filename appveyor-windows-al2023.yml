@@ -137,22 +137,23 @@ install:
 on_finish:
   # Upload test reports as artifacts
   - ps: Get-ChildItem .\TEST_REPORT-*.json | % { Push-AppveyorArtifact $_.FullName -FileName $_.Name }
-  - ps: '
-  If (Test-Path env:BY_CANARY){
-    $env:AWS_ACCESS_KEY_ID = $env:TEST_REPORT_S3_BUCKET_ACCESS_KEY_ID;
-    $env:AWS_SECRET_ACCESS_KEY = $env:TEST_REPORT_S3_BUCKET_SECRET_ACCESS_KEY;
-    $env:AWS_SESSION_TOKEN = $env:TEST_REPORT_S3_BUCKET_SESSION_TOKEN;
-    aws s3 cp ".\" "s3://$env:TEST_REPORT_S3_BUCKET_NAME/appveyor/$env:APPVEYOR_PROJECT_SLUG/$env:APPVEYOR_BUILD_ID/$env:APPVEYOR_JOB_ID/" --recursive --exclude "*" --include "TEST_REPORT-*.json" --region us-west-2
-  }'
+  - ps: |
+      If (Test-Path env:BY_CANARY){
+        $env:AWS_ACCESS_KEY_ID = $env:TEST_REPORT_S3_BUCKET_ACCESS_KEY_ID;
+        $env:AWS_SECRET_ACCESS_KEY = $env:TEST_REPORT_S3_BUCKET_SECRET_ACCESS_KEY;
+        $env:AWS_SESSION_TOKEN = $env:TEST_REPORT_S3_BUCKET_SESSION_TOKEN;
+        aws s3 cp ".\" "s3://$env:TEST_REPORT_S3_BUCKET_NAME/appveyor/$env:APPVEYOR_PROJECT_SLUG/$env:APPVEYOR_BUILD_ID/$env:APPVEYOR_JOB_ID/" --recursive --exclude "*" --include "TEST_REPORT-*.json" --region us-west-2
+      }
 
   # notify success
-  - ps: "
-  If (Test-Path env:BY_CANARY){
-    $env:AWS_ACCESS_KEY_ID = $env:CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID;
-    $env:AWS_SECRET_ACCESS_KEY = $env:CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY;
-    $env:AWS_SESSION_TOKEN = $env:CI_ACCESS_ROLE_AWS_SESSION_TOKEN;
-    aws stepfunctions send-task-success --task-token \"$env:TASK_TOKEN\" --task-output \"{}\" --region us-west-2;
-  }"
+  - ps: |
+      If (Test-Path env:BY_CANARY){
+        $env:AWS_ACCESS_KEY_ID = $env:CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID;
+        $env:AWS_SECRET_ACCESS_KEY = $env:CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY;
+        $env:AWS_SESSION_TOKEN = $env:CI_ACCESS_ROLE_AWS_SESSION_TOKEN;
+        aws lambda invoke --function-name "$env:ACCOUNT_RESET_LAMBDA_ARN" --payload "{\`"taskToken\`": \`"$env:TASK_TOKEN\`", \`"output\`": \`"{}\`"}" lambda-output.txt --region us-west-2;
+        cat lambda-output.txt
+      }
 
 build_script:
   # install Rust in build_script to not override the default "install" actions
