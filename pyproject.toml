@@ -11,7 +11,7 @@ select = [
     "PL", # pylint
     "I",  # isort
 ]
-ignore = ["PLR0913"]
+ignore = ["PLR0913", "PLC0415", "PLW1641"]
 
 [tool.ruff.lint.pylint]
 max-branches = 25
