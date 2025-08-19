@@ -59,7 +59,10 @@ install:
   - 'set PATH=%JAVA_HOME%\bin;%PATH%'
   - java --version
   - javac --version
-  - choco upgrade gradle --version=8.4.0
+  - choco upgrade gradle --version=9.0.0
+  - choco install ruby --version=3.2.7.1
+  - choco install ruby --version=3.3.7.1
+  - choco install ruby --version=3.4.2.1
   - "gradle -v"
   - "mvn --version"
 
@@ -72,6 +75,7 @@ install:
   - ps: "Restart-Service docker"
   # Switch to Docker Linux containers
   - ps: '& $Env:ProgramFiles\Docker\Docker\DockerCli.exe -SwitchLinuxEngine'
+  - "ruby --version"
   - "docker info"
   - "docker version"
 

@@ -60,10 +60,11 @@ install:
   - 'set PATH=%JAVA_HOME%\bin;%PATH%'
   - java --version
   - javac --version
-  - choco upgrade gradle --version=8.4.0
+  - choco upgrade gradle --version=9.0.0
   - "gradle -v"
   - "mvn --version"
-  - choco install ruby --version=3.3.0.1
+  - choco install ruby --version=3.2.7.1
+  - choco install ruby --version=3.3.7.1
   - choco install ruby --version=3.4.2.1
 
   # Make sure the temp directory exists for Python to use.
