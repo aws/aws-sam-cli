@@ -51,6 +51,7 @@ init:
 
 install:
   # upgrade chocolately
+  - ps: "Restart-Service docker"
   - choco upgrade chocolatey
   # setup make
   - "choco install make"
@@ -73,22 +74,9 @@ install:
   - "echo %PYTHON_HOME%"
   - "echo %PATH%"
   - "python --version"
-  - ps: "Restart-Service docker"
 
   # Switch to Docker Linux containers
-  - ps: |
-      $dockerCliPath = "$Env:ProgramFiles\Docker\Docker\DockerCli.exe"
-      if (Test-Path $dockerCliPath) {
-        & $dockerCliPath -SwitchLinuxEngine
-        Write-Host "Docker successfully switched to Linux container mode"
-      } else {
-        Write-Host "DockerCli.exe not found at expected location. Installing tree and exploring Docker directory structure..."
-        choco install tree
-        tree "$Env:ProgramFiles\Docker" /F /A
-        Switch-DockerLinux
-        Write-Host "Build stopped for Docker CLI investigation."
-        exit 1
-      }
+  - ps: Switch-DockerLinux
   - "docker info"
   - "docker version"
 

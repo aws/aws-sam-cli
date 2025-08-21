@@ -37,6 +37,7 @@ init:
   - ps: git config --system core.longpaths true
 
 install:
+  - ps: "Restart-Service docker"
   # upgrade chocolately
   - choco upgrade chocolatey
   # setup make
@@ -63,7 +64,6 @@ install:
   - "echo %PATH%"
   - "python --version"
   - "ruby --version"
-  - ps: "Restart-Service docker"
   # Switch to Docker Linux containers
   - ps: Switch-DockerLinux
   - "docker info"
