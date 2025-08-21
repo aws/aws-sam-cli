@@ -85,6 +85,7 @@ install:
         Write-Host "DockerCli.exe not found at expected location. Installing tree and exploring Docker directory structure..."
         choco install tree
         tree "$Env:ProgramFiles\Docker" /F /A
+        Switch-DockerLinux
         Write-Host "Build stopped for Docker CLI investigation."
         exit 1
       }
