@@ -35,9 +35,10 @@ from samcli.local.docker.exceptions import (
     DockerContainerCreationFailedException,
     PortAlreadyInUse,
 )
-from samcli.local.docker.utils import NoFreePortsError, find_free_port, to_posix_path
+from samcli.local.docker.utils import NoFreePortsError, find_free_port
 
 LOG = logging.getLogger(__name__)
+
 
 CONTAINER_CONNECTION_TIMEOUT = float(os.environ.get("SAM_CLI_CONTAINER_CONNECTION_TIMEOUT", "20"))
 DEFAULT_CONTAINER_HOST_INTERFACE = "127.0.0.1"
@@ -225,9 +226,6 @@ class Container:
 
         if self._additional_volumes:
             kwargs["volumes"].update(self._additional_volumes)
-
-        # Make sure all mounts are of posix path style.
-        kwargs["volumes"] = {to_posix_path(host_dir): mount for host_dir, mount in kwargs["volumes"].items()}
 
         if self._env_vars:
             kwargs["environment"] = self._env_vars
