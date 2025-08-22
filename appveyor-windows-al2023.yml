@@ -65,7 +65,7 @@ install:
   - "ruby --version"
   - ps: "Restart-Service docker"
   # Switch to Docker Linux containers
-  - ps: '& $Env:ProgramFiles\Docker\Docker\DockerCli.exe -SwitchLinuxEngine'4
+  - ps: '& $Env:ProgramFiles\Docker\Docker\DockerCli.exe -SwitchLinuxEngine'
   - "docker info"
   - "docker version"
 
