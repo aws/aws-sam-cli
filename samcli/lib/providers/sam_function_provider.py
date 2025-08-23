@@ -800,6 +800,7 @@ class RefreshableSamFunctionProvider(SamFunctionProvider):
         global_parameter_overrides: Optional[Dict] = None,
         use_raw_codeuri: bool = False,
         ignore_code_extraction_warnings: bool = False,
+        no_watch: bool = False,
     ) -> None:
         """
         Initialize the class with SAM template data. The SAM template passed to this provider is assumed
@@ -831,9 +832,14 @@ class RefreshableSamFunctionProvider(SamFunctionProvider):
                 self.parent_templates_paths.append(stack.location)
 
         self.is_changed = False
-        self._observer = FileObserver(self._set_templates_changed)
-        self._observer.start()
-        self._watch_stack_templates(stacks)
+        
+        # Only initialize file watcher if no_watch is False
+        if not no_watch:
+            self._observer = FileObserver(self._set_templates_changed)
+            self._observer.start()
+            self._watch_stack_templates(stacks)
+        else:
+            self._observer = None
 
     @property
     def stacks(self) -> List[Stack]:
@@ -896,15 +902,17 @@ class RefreshableSamFunctionProvider(SamFunctionProvider):
             ", ".join(paths),
         )
         self.is_changed = True
-        for stack in self._stacks:
-            self._observer.unwatch(stack.location)
+        if self._observer:
+            for stack in self._stacks:
+                self._observer.unwatch(stack.location)
 
     def _watch_stack_templates(self, stacks: List[Stack]) -> None:
         """
         initialize the list of stack template watchers
         """
-        for stack in stacks:
-            self._observer.watch(stack.location)
+        if self._observer:
+            for stack in stacks:
+                self._observer.watch(stack.location)
 
     def _refresh_loaded_functions(self) -> None:
         """
@@ -934,4 +942,5 @@ class RefreshableSamFunctionProvider(SamFunctionProvider):
         """
         Stop Observing.
         """
-        self._observer.stop()
+        if self._observer:
+            self._observer.stop()

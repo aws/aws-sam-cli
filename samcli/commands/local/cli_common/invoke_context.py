@@ -103,6 +103,7 @@ class InvokeContext:
         invoke_images: Optional[str] = None,
         mount_symlinks: Optional[bool] = False,
         no_mem_limit: Optional[bool] = False,
+        no_watch: Optional[bool] = False,
     ) -> None:
         """
         Initialize the context
@@ -204,6 +205,7 @@ class InvokeContext:
 
         self._mount_symlinks: Optional[bool] = mount_symlinks
         self._no_mem_limit = no_mem_limit
+        self._no_watch = no_watch
 
         # Note(xinhol): despite self._function_provider and self._stacks are initialized as None
         # they will be assigned with a non-None value in __enter__() and
@@ -245,9 +247,17 @@ class InvokeContext:
         if self._docker_volume_basedir:
             _function_providers_args[self._containers_mode].append(True)
 
-        self._function_provider = _function_providers_class[self._containers_mode](
-            *_function_providers_args[self._containers_mode]
-        )
+        # For RefreshableSamFunctionProvider, we need to pass additional parameters including no_watch
+        if self._containers_mode == ContainersMode.WARM:
+            # Create RefreshableSamFunctionProvider with no_watch parameter
+            self._function_provider = RefreshableSamFunctionProvider(
+                *_function_providers_args[self._containers_mode],
+                no_watch=self._no_watch
+            )
+        else:
+            self._function_provider = _function_providers_class[self._containers_mode](
+                *_function_providers_args[self._containers_mode]
+            )
 
         self._env_vars_value = self._get_env_vars_value(self._env_vars_file)
         self._container_env_vars_value = self._get_env_vars_value(self._container_env_vars_file)
@@ -415,6 +425,7 @@ class InvokeContext:
                     image_builder,
                     mount_symlinks=self._mount_symlinks,
                     no_mem_limit=self._no_mem_limit,
+                    no_watch=self._no_watch,
                 ),
                 ContainersMode.COLD: LambdaRuntime(
                     self._container_manager,
