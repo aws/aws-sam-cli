@@ -53,6 +53,11 @@ install:
   - sh: "mvn --version"
 
   - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
+  - sh: "rbenv install 3.3.7"
+  - sh: "rbenv install 3.4.2"
+  - sh: "rbenv install 3.2.7"
+  - sh: "rbenv global 3.3.7"
+  - sh: "ruby --version"
   - sh: "docker info"
   - sh: "docker version"
   - sh: "nvm install ${NODE_VERSION}"
@@ -61,9 +66,9 @@ install:
 
   # Install latest gradle
   - sh: "sudo apt-get -y remove gradle"
-  - sh: "wget https://services.gradle.org/distributions/gradle-8.4-bin.zip -P /tmp"
+  - sh: "wget https://services.gradle.org/distributions/gradle-9.0.0-bin.zip -P /tmp"
   - sh: "sudo unzip -d /opt/gradle /tmp/gradle-*.zip"
-  - sh: "PATH=/opt/gradle/gradle-8.4/bin:$PATH"
+  - sh: "PATH=/opt/gradle/gradle-9.0.0/bin:$PATH"
   - sh: "gradle --version"
 
   # Install dotnet8 SDK
