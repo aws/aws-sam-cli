@@ -7,7 +7,7 @@ import platform
 import uuid
 from dataclasses import dataclass
 from functools import reduce, wraps
-from pathlib import Path
+from pathlib import Path, PurePath
 from timeit import default_timer
 from typing import Any, Dict, Optional
 
@@ -237,6 +237,9 @@ def _send_command_run_metrics(ctx: Context, duration: int, exit_reason: str, exi
         metric_specific_attributes["projectName"] = get_project_name()
         metric_specific_attributes["initialCommit"] = get_initial_commit_hash()
 
+    # Add container host information for all command runs
+    metric_specific_attributes["containerHost"] = Metric("")._get_container_host()
+
     metric.add_data("metricSpecificAttributes", metric_specific_attributes)
     # Metric about command's execution characteristics
     metric.add_data("duration", duration)
@@ -436,6 +439,7 @@ class Metric:
         self._data["installationId"] = self._gc.installation_id
         self._data["sessionId"] = self._session_id
         self._data["executionEnvironment"] = self._get_execution_environment()
+
         self._data["ci"] = bool(self._cicd_detector.platform())
         self._data["pyversion"] = platform.python_version()
         self._data["samcliVersion"] = samcli_version
@@ -475,6 +479,22 @@ class Metric:
         if cicd_platform:
             return cicd_platform.name
         return "CLI"
+
+    def _get_container_host(self) -> str:
+        """
+        Returns the last part of a DOCKER_HOST string.
+        If the DOCKER_HOST is not set, returns an empty string.
+
+        Examples:
+            - unix:///var/run/docker.sock -> docker.sock
+            - tcp://localhost:1234 -> localhost:1234
+            - /var/run/docker.sock -> docker.sock
+        """
+
+        try:
+            return PurePath(self._gc.docker_host).name
+        except TypeError:
+            return ""
 
 
 class MetricDataNotList(Exception):

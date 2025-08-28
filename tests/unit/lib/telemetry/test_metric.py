@@ -394,6 +394,33 @@ class TestSendCommandMetrics(TestCase):
 
         send_events_mock.assert_called()
 
+    @patch("samcli.lib.telemetry.metric.Metric._get_container_host")
+    @patch("samcli.lib.telemetry.event.EventTracker.send_events", return_value=None)
+    def test_collects_container_host(self, send_mock, container_host_mock):
+        container_host_mock.return_value = "docker.sock"
+
+        _send_command_run_metrics(self.context_mock, 0, "success", 0)
+
+        # Verify containerHost is included in metricSpecificAttributes
+        args, _ = self.telemetry_instance.emit.call_args_list[0]
+        metric_specific_attributes = args[0]._data["metricSpecificAttributes"]
+        self.assertEqual(metric_specific_attributes["containerHost"], "docker.sock")
+        container_host_mock.assert_called_once()
+
+    @parameterized.expand(
+        [
+            ("unix:///var/run/docker.sock", "docker.sock"),
+            ("tcp://localhost:1234", "localhost:1234"),
+            ("/var/run/docker.sock", "docker.sock"),
+            (None, ""),
+            ("", ""),
+        ]
+    )
+    def test_get_container_host(self, docker_host, expected):
+        metric = Metric("")
+        metric._gc.docker_host = docker_host
+        self.assertEqual(metric._get_container_host(), expected)
+
 
 class TestParameterCapture(TestCase):
     def setUp(self):
@@ -543,7 +570,14 @@ class TestMetric(TestCase):
 
 
 def _ignore_common_attributes(data):
-    common_attrs = ["requestId", "installationId", "sessionId", "executionEnvironment", "pyversion", "samcliVersion"]
+    common_attrs = [
+        "requestId",
+        "installationId",
+        "sessionId",
+        "executionEnvironment",
+        "pyversion",
+        "samcliVersion",
+    ]
     for a in common_attrs:
         if a not in data:
             data[a] = ANY
