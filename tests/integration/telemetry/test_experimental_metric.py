@@ -58,8 +58,8 @@ class TestExperimentalMetric(IntegBase):
                             "debugFlagProvided": ANY,
                             "region": ANY,
                             "commandName": ANY,
-                            "dockerHost": ANY,
                             "metricSpecificAttributes": {
+                                "containerHost": ANY,
                                 "experimentalAll": False,
                                 "experimentalEsbuild": False,
                                 "gitOrigin": ANY,
@@ -116,8 +116,8 @@ class TestExperimentalMetric(IntegBase):
                             "debugFlagProvided": ANY,
                             "region": ANY,
                             "commandName": ANY,
-                            "dockerHost": ANY,
                             "metricSpecificAttributes": {
+                                "containerHost": ANY,
                                 "experimentalAll": True,
                                 "experimentalEsbuild": True,
                                 "gitOrigin": ANY,
@@ -184,8 +184,8 @@ class TestExperimentalMetric(IntegBase):
                             "debugFlagProvided": ANY,
                             "region": ANY,
                             "commandName": ANY,
-                            "dockerHost": ANY,
                             "metricSpecificAttributes": {
+                                "containerHost": ANY,
                                 "projectType": "CDK",
                                 "gitOrigin": ANY,
                                 "projectName": ANY,
@@ -235,7 +235,6 @@ class TestExperimentalMetric(IntegBase):
                             "executionEnvironment": ANY,
                             "ci": ANY,
                             "pyversion": ANY,
-                            "dockerHost": ANY,
                             "samcliVersion": SAM_CLI_VERSION,
                             "awsProfileProvided": ANY,
                             "debugFlagProvided": ANY,

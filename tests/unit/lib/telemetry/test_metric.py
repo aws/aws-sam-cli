@@ -544,7 +544,6 @@ class TestMetric(TestCase):
             assert metric.get_data()["userAgent"] == user_agent
         assert metric.get_data()["pyversion"] == python_version
         assert metric.get_data()["samcliVersion"] == samcli.__version__
-        assert metric.get_data()["dockerHost"] == docker_host
 
 
 def _ignore_common_attributes(data):
@@ -555,7 +554,6 @@ def _ignore_common_attributes(data):
         "executionEnvironment",
         "pyversion",
         "samcliVersion",
-        "dockerHost",
     ]
     for a in common_attrs:
         if a not in data:
