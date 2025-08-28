@@ -54,12 +54,14 @@ def construct_v1_event(
     if is_base_64:
         LOG.debug("Incoming Request seems to be binary. Base64 encoding the request data before sending to Lambda.")
         request_data = base64.b64encode(request_data)
-
-    if request_data:
-        # Flask does not parse/decode the request data. We should do it ourselves
-        # Note(xinhol): here we change request_data's type from bytes to str and confused mypy
-        # We might want to consider to use a new variable here.
-        request_data = request_data.decode("utf-8")
+        request_data = request_data.decode("utf-8") if request_data else ""
+    elif isinstance(request_data, bytes):
+        try:
+            request_data = request_data.decode("utf-8")
+        except UnicodeDecodeError:
+            LOG.debug("Failed to decode request data as UTF-8, falling back to base64 encoding")
+            request_data = base64.b64encode(request_data).decode("utf-8")
+            is_base_64 = True
 
     query_string_dict, multi_value_query_string_dict = _query_string_params(flask_request)
 
@@ -131,10 +133,14 @@ def construct_v2_event_http(
     if is_base_64:
         LOG.debug("Incoming Request seems to be binary. Base64 encoding the request data before sending to Lambda.")
         request_data = base64.b64encode(request_data)
-
-    if request_data is not None:
-        # Flask does not parse/decode the request data. We should do it ourselves
-        request_data = request_data.decode("utf-8")
+        request_data = request_data.decode("utf-8") if request_data else ""
+    elif isinstance(request_data, bytes):
+        try:
+            request_data = request_data.decode("utf-8")
+        except UnicodeDecodeError:
+            LOG.debug("Failed to decode request data as UTF-8, falling back to base64 encoding")
+            request_data = base64.b64encode(request_data).decode("utf-8")
+            is_base_64 = True
 
     query_string_dict = _query_string_params_v_2_0(flask_request)
 
@@ -328,4 +334,24 @@ def _should_base64_encode(binary_types, request_mimetype):
         True if the data should be encoded to Base64 otherwise False
 
     """
-    return request_mimetype in binary_types or "*/*" in binary_types
+    # 1. Handle multipart form data with potential binary content
+    if request_mimetype and request_mimetype.startswith("multipart/form-data"):
+        return True
+
+    # 2. Check for wildcard match - this should work even if request_mimetype is None
+    if "*/*" in binary_types:
+        return True
+
+    # 3. If no MIME type, we can't do specific matching
+    if not request_mimetype:
+        return False
+
+    # 4. Strip parameters from MIME type (e.g., "text/plain; charset=utf-8" -> "text/plain")
+    #    and check for exact match
+    base_mimetype = request_mimetype.split(";")[0].strip()
+    if base_mimetype in binary_types:
+        return True
+
+    # 6. Check for type/* wildcard (e.g., "image/*" matches "image/png")
+    type_prefix = base_mimetype.split("/")[0] + "/*"
+    return type_prefix in binary_types
