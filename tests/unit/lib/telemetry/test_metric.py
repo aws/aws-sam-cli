@@ -43,7 +43,6 @@ class TestSendInstalledMetric(TestCase):
         telemetry_mock = TelemetryClassMock.return_value = Mock()
 
         self.gc_mock.return_value.telemetry_enabled = False
-        self.gc_mock.return_value.docker_host = ""
         send_installed_metric()
         args, _ = telemetry_mock.emit.call_args_list[0]
         metric = args[0]
@@ -74,7 +73,6 @@ class TestTrackWarning(TestCase):
 
         # Enable telemetry so we can actually run the tests
         self.gc_instance_mock.telemetry_enabled = True
-        self.gc_instance_mock.docker_host = ""
 
     def tearDown(self):
         self.telemetry_class_patcher.stop()
@@ -312,7 +310,6 @@ class TestSendCommandMetrics(TestCase):
 
         # Enable telemetry so we can actually run the tests
         self.gc_instance_mock.telemetry_enabled = True
-        self.gc_instance_mock.docker_host = ""
 
     def tearDown(self):
         self.telemetry_class_patcher.stop()
@@ -396,6 +393,33 @@ class TestSendCommandMetrics(TestCase):
         self.assertEqual(metrics.get("exitCode"), expected_code)
 
         send_events_mock.assert_called()
+
+    @patch("samcli.lib.telemetry.metric.Metric._get_container_host")
+    @patch("samcli.lib.telemetry.event.EventTracker.send_events", return_value=None)
+    def test_collects_container_host(self, send_mock, container_host_mock):
+        container_host_mock.return_value = "docker.sock"
+
+        _send_command_run_metrics(self.context_mock, 0, "success", 0)
+
+        # Verify containerHost is included in metricSpecificAttributes
+        args, _ = self.telemetry_instance.emit.call_args_list[0]
+        metric_specific_attributes = args[0]._data["metricSpecificAttributes"]
+        self.assertEqual(metric_specific_attributes["containerHost"], "docker.sock")
+        container_host_mock.assert_called_once()
+
+    @parameterized.expand(
+        [
+            ("unix:///var/run/docker.sock", "docker.sock"),
+            ("tcp://localhost:1234", "localhost:1234"),
+            ("/var/run/docker.sock", "docker.sock"),
+            (None, ""),
+            ("", ""),
+        ]
+    )
+    def test_get_container_host(self, docker_host, expected):
+        metric = Metric("")
+        metric._gc.docker_host = docker_host
+        self.assertEqual(metric._get_container_host(), expected)
 
 
 class TestParameterCapture(TestCase):
@@ -527,7 +551,6 @@ class TestMetric(TestCase):
     ):
         request_id = uuid_mock.uuid4.return_value = "fake requestId"
         installation_id = gc_mock.return_value.installation_id = "fake installation id"
-        docker_host = gc_mock.return_value.docker_host = "fake docker host"
         session_id = context_mock.get_current_context.return_value.session_id = "fake installation id"
         python_version = platform_mock.python_version.return_value = "8.8.0"
         cicd_platform_mock.return_value = cicd_platform
