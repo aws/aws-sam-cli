@@ -14,6 +14,10 @@ capabilities = "CAPABILITY_IAM"
 confirm_changeset = true
 resolve_s3 = true
 
+[default.deploy.parameters.parameter_overrides]
+A = "foo"
+B = "bar"
+
 [default.sync.parameters]
 watch = true
 
