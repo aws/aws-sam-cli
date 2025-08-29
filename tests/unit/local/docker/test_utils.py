@@ -8,25 +8,8 @@ from unittest import TestCase
 from unittest.mock import patch, Mock
 
 from samcli.lib.utils.architecture import ARM64, InvalidArchitecture, X86_64
-from samcli.local.docker.utils import to_posix_path, find_free_port, get_rapid_name, get_docker_platform, get_image_arch
+from samcli.local.docker.utils import find_free_port, get_rapid_name, get_docker_platform, get_image_arch
 from samcli.local.docker.exceptions import NoFreePortsError
-
-
-class TestPosixPath(TestCase):
-    def setUp(self):
-        self.ntpath = "C:\\Users\\UserName\\AppData\\Local\\Temp\\temp1337"
-        self.posixpath = "/c/Users/UserName/AppData/Local/Temp/temp1337"
-        self.current_working_dir = os.getcwd()
-
-    @patch("samcli.local.docker.utils.os")
-    def test_convert_posix_path_if_windows_style_path(self, mock_os):
-        mock_os.name = "nt"
-        self.assertEqual(self.posixpath, to_posix_path(self.ntpath))
-
-    @patch("samcli.local.docker.utils.os")
-    def test_do_not_convert_posix_path(self, mock_os):
-        mock_os.name = "posix"
-        self.assertEqual(self.current_working_dir, to_posix_path(self.current_working_dir))
 
 
 class TestFreePorts(TestCase):
