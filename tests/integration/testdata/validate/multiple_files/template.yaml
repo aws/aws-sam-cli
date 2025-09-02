@@ -7,4 +7,4 @@ Resources:
     Properties:
       CodeUri: HelloWorldFunction
       Handler: app.lambdaHandler
-      Runtime: nodejs18.x
+      Runtime: nodejs22.x
