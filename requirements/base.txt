@@ -34,4 +34,4 @@ tzlocal==5.3.1
 cfn-lint~=1.38.1
 
 # Type checking boto3 objects
-boto3-stubs[apigateway,cloudformation,ecr,iam,lambda,s3,schemas,secretsmanager,signer,stepfunctions,sts,xray,sqs,kinesis]==1.39.7
+boto3-stubs[apigateway,cloudformation,ecr,iam,lambda,s3,schemas,secretsmanager,signer,stepfunctions,sts,xray,sqs,kinesis]==1.40.21
