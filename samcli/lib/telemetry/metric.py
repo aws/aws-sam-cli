@@ -484,7 +484,7 @@ class Metric:
         Returns a normalized container engine identifier based on DOCKER_HOST.
         Maps various DOCKER_HOST patterns to standardized container engine names.
 
-        Translation:    
+        Translation:
             Value                                          Final Value
 
             # Case 1: Not set
