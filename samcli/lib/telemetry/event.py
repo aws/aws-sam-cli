@@ -283,11 +283,12 @@ class EventTracker:
             msa["events"] = [e.to_json() for e in EventTracker._events]
             EventTracker._events = []  # Manual clear_trackers() since we're within the lock
 
-        # Add container host information for all event runs
-        msa["containerHost"] = Metric("")._get_container_host()
-
         telemetry = Telemetry()
         metric = Metric("events")
+
+        # Add container engine information for all event runs
+        msa["containerEngine"] = metric._get_container_host()
+
         metric.add_data("sessionId", EventTracker._session_id)
         metric.add_data("commandName", EventTracker._command_name)
         metric.add_data("metricSpecificAttributes", msa)

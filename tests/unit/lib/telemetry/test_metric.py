@@ -397,23 +397,31 @@ class TestSendCommandMetrics(TestCase):
     @patch("samcli.lib.telemetry.metric.Metric._get_container_host")
     @patch("samcli.lib.telemetry.event.EventTracker.send_events", return_value=None)
     def test_collects_container_host(self, send_mock, container_host_mock):
-        container_host_mock.return_value = "docker.sock"
+        container_host_mock.return_value = "docker"
 
         _send_command_run_metrics(self.context_mock, 0, "success", 0)
 
-        # Verify containerHost is included in metricSpecificAttributes
+        # Verify containerEngine is included in metricSpecificAttributes
         args, _ = self.telemetry_instance.emit.call_args_list[0]
         metric_specific_attributes = args[0]._data["metricSpecificAttributes"]
-        self.assertEqual(metric_specific_attributes["containerHost"], "docker.sock")
+        self.assertEqual(metric_specific_attributes["containerEngine"], "docker")
         container_host_mock.assert_called_once()
 
     @parameterized.expand(
         [
-            ("unix:///var/run/docker.sock", "docker.sock"),
-            ("tcp://localhost:1234", "localhost:1234"),
-            ("/var/run/docker.sock", "docker.sock"),
-            (None, ""),
-            ("", ""),
+            ("unix:///var/run/docker.sock", "docker"),
+            ("unix://~/.finch/finch.sock", "finch"),
+            ("unix:///run/user/1000/podman/podman.sock", "podman"),
+            ("unix://~/.colima/default/docker.sock", "colima"),
+            ("unix://~/.lima/default/sock/docker.sock", "lima"),
+            ("unix://~/.rd/docker.sock", "rancher-desktop"),
+            ("unix://~/.orbstack/run/docker.sock", "orbstack"),
+            ("tcp://localhost:2375", "tcp-local"),
+            ("tcp://localhost:2376", "tcp-local"),
+            ("tcp://host.docker.internal:2376", "tcp-remote"),
+            (None, "docker-default"),
+            ("", "docker-default"),
+            ("some-random-value", "unknown"),
         ]
     )
     def test_get_container_host(self, docker_host, expected):

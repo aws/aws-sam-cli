@@ -7,7 +7,7 @@ import platform
 import uuid
 from dataclasses import dataclass
 from functools import reduce, wraps
-from pathlib import Path, PurePath
+from pathlib import Path
 from timeit import default_timer
 from typing import Any, Dict, Optional
 
@@ -237,8 +237,8 @@ def _send_command_run_metrics(ctx: Context, duration: int, exit_reason: str, exi
         metric_specific_attributes["projectName"] = get_project_name()
         metric_specific_attributes["initialCommit"] = get_initial_commit_hash()
 
-    # Add container host information for all command runs
-    metric_specific_attributes["containerHost"] = Metric("")._get_container_host()
+    # Add container engine information for all command runs
+    metric_specific_attributes["containerEngine"] = metric._get_container_host()
 
     metric.add_data("metricSpecificAttributes", metric_specific_attributes)
     # Metric about command's execution characteristics
@@ -439,7 +439,6 @@ class Metric:
         self._data["installationId"] = self._gc.installation_id
         self._data["sessionId"] = self._session_id
         self._data["executionEnvironment"] = self._get_execution_environment()
-
         self._data["ci"] = bool(self._cicd_detector.platform())
         self._data["pyversion"] = platform.python_version()
         self._data["samcliVersion"] = samcli_version
@@ -482,19 +481,45 @@ class Metric:
 
     def _get_container_host(self) -> str:
         """
-        Returns the last part of a DOCKER_HOST string.
-        If the DOCKER_HOST is not set, returns an empty string.
+        Returns a normalized container engine identifier based on DOCKER_HOST.
+        Maps various DOCKER_HOST patterns to standardized container engine names.
 
         Examples:
-            - unix:///var/run/docker.sock -> docker.sock
-            - tcp://localhost:1234 -> localhost:1234
-            - /var/run/docker.sock -> docker.sock
+            - unix:///var/run/docker.sock -> docker
+            - unix://~/.finch/finch.sock -> finch
+            - unix:///run/user/1000/podman/podman.sock -> podman
+            - tcp://localhost:2375 -> tcp-local
+            - (unset) -> docker-default
+            - (other values) -> unknown
         """
+        if not self._gc.docker_host or not isinstance(self._gc.docker_host, str):
+            return "docker-default"
 
-        try:
-            return PurePath(self._gc.docker_host).name
-        except TypeError:
-            return ""
+        docker_host = self._gc.docker_host.lower()
+
+        # Socket mappings
+        socket_map = {"finch.sock": "finch", "podman.sock": "podman", "docker.sock": "docker"}
+
+        # Path-specific mappings (checked first for specificity)
+        path_map = {"colima": "colima", "lima": "lima", "orbstack": "orbstack", ".rd": "rancher-desktop"}
+
+        # Check path-specific patterns first
+        for path, engine in path_map.items():
+            if path in docker_host and "docker.sock" in docker_host:
+                return engine
+
+        # Check socket patterns
+        for sock, engine in socket_map.items():
+            if sock in docker_host:
+                return engine
+
+        # TCP patterns
+        if docker_host.startswith("tcp://"):
+            local_hosts = ["localhost:", "127.0.0.1:"]
+            is_local = any(host in docker_host for host in local_hosts)
+            return "tcp-local" if is_local else "tcp-remote"
+
+        return "unknown"
 
 
 class MetricDataNotList(Exception):

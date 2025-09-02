@@ -168,7 +168,7 @@ class TestEventTracker(TestCase):
             "samcliVersion": ANY,
             "commandName": ANY,
             "metricSpecificAttributes": {
-                "containerHost": ANY,
+                "containerEngine": ANY,
                 "events": [
                     {
                         "event_name": "Test",
