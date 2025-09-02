@@ -484,28 +484,30 @@ class Metric:
         Returns a normalized container engine identifier based on DOCKER_HOST.
         Maps various DOCKER_HOST patterns to standardized container engine names.
 
-        Translation:
+        Translation:    
+            Value                                          Final Value
+
             # Case 1: Not set
-            - (unset)	                                -> ""(empty)	            -> docker-default
+            - (unset)	                                -> docker-default
 
             # Case 2: Check Path-specific
-            - unix://~/.colima/default/docker.sock	    -> colima.sock	            -> colina
-            - unix://~/.lima/default/sock/docker.sock	-> lima.sock	            -> lima
-            - unix://~/.rd/docker.sock                  -> 	rancher-desktop.sock	-> rancher-desktop
-            - unix://~/.orbstack/run/docker.sock        -> 	orbstack.sock	        -> orbstack
+            - unix://~/.colima/default/docker.sock	    -> colima
+            - unix://~/.lima/default/sock/docker.sock   -> lima
+            - unix://~/.rd/docker.sock                  -> rancher-desktop
+            - unix://~/.orbstack/run/docker.sock        -> orbstack
 
             # Case 3: Check Socket value
-            - unix://~/.finch/finch.sock	            -> finch.sock	            -> finch
-            - unix:///var/run/docker.sock	            -> docker.sock	            -> docker
-            - unix:///run/user/1000/podman/podman.sock	-> podman.sock	            -> podman
+            - unix://~/.finch/finch.sock	            -> finch
+            - unix:///var/run/docker.sock	            -> docker
+            - unix:///run/user/1000/podman/podman.sock  -> podman
 
             # Case 4: Check TCP
-            - tcp://localhost:2375	                    -> localhost:2375	        -> tpc-local
-            - tcp://localhost:2376	                    -> localhost:2376	        -> tpc-local
-            - tcp://host.docker.internal:*	            -> host.docker.internal:*	-> tpc-remote
+            - tcp://localhost:2375	                    -> tpc-local
+            - tcp://localhost:2376	                    -> tpc-local
+            - tcp://host.docker.internal:*	            -> tpc-remote
 
             # Case 5: Other
-            - other value	                            -> 	(other)                 -> unknown
+            - other value	                            -> unknown
 
         """
         if not self._gc.docker_host or not isinstance(self._gc.docker_host, str):
@@ -518,7 +520,7 @@ class Metric:
 
         # Check path-specific patterns first
         for path, engine in path_map.items():
-            if path in docker_host and "docker.sock" in docker_host:
+            if path in docker_host and docker_host.endswith("docker.sock"):
                 return engine
 
         # Socket mappings
@@ -526,7 +528,7 @@ class Metric:
 
         # Check socket patterns
         for sock, engine in socket_map.items():
-            if sock in docker_host:
+            if docker_host.endswith(sock):
                 return engine
 
         # TCP patterns
