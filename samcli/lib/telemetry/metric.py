@@ -484,29 +484,45 @@ class Metric:
         Returns a normalized container engine identifier based on DOCKER_HOST.
         Maps various DOCKER_HOST patterns to standardized container engine names.
 
-        Examples:
-            - unix:///var/run/docker.sock -> docker
-            - unix://~/.finch/finch.sock -> finch
-            - unix:///run/user/1000/podman/podman.sock -> podman
-            - tcp://localhost:2375 -> tcp-local
-            - (unset) -> docker-default
-            - (other values) -> unknown
+        Translation:
+            # Case 1: Not set
+            - (unset)	                                -> ""(empty)	            -> docker-default
+
+            # Case 2: Check Path-specific
+            - unix://~/.colima/default/docker.sock	    -> colima.sock	            -> colina
+            - unix://~/.lima/default/sock/docker.sock	-> lima.sock	            -> lima
+            - unix://~/.rd/docker.sock                  -> 	rancher-desktop.sock	-> rancher-desktop
+            - unix://~/.orbstack/run/docker.sock        -> 	orbstack.sock	        -> orbstack
+
+            # Case 3: Check Socket value
+            - unix://~/.finch/finch.sock	            -> finch.sock	            -> finch
+            - unix:///var/run/docker.sock	            -> docker.sock	            -> docker
+            - unix:///run/user/1000/podman/podman.sock	-> podman.sock	            -> podman
+
+            # Case 4: Check TCP
+            - tcp://localhost:2375	                    -> localhost:2375	        -> tpc-local
+            - tcp://localhost:2376	                    -> localhost:2376	        -> tpc-local
+            - tcp://host.docker.internal:*	            -> host.docker.internal:*	-> tpc-remote
+
+            # Case 5: Other
+            - other value	                            -> 	(other)                 -> unknown
+
         """
         if not self._gc.docker_host or not isinstance(self._gc.docker_host, str):
             return "docker-default"
 
         docker_host = self._gc.docker_host.lower()
 
-        # Socket mappings
-        socket_map = {"finch.sock": "finch", "podman.sock": "podman", "docker.sock": "docker"}
-
         # Path-specific mappings (checked first for specificity)
-        path_map = {"colima": "colima", "lima": "lima", "orbstack": "orbstack", ".rd": "rancher-desktop"}
+        path_map = {".colima/": "colima", ".lima/": "lima", ".orbstack/": "orbstack", ".rd/": "rancher-desktop"}
 
         # Check path-specific patterns first
         for path, engine in path_map.items():
             if path in docker_host and "docker.sock" in docker_host:
                 return engine
+
+        # Socket mappings
+        socket_map = {"docker.sock": "docker", "finch.sock": "finch", "podman.sock": "podman"}
 
         # Check socket patterns
         for sock, engine in socket_map.items():
