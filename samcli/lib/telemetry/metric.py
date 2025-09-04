@@ -237,6 +237,9 @@ def _send_command_run_metrics(ctx: Context, duration: int, exit_reason: str, exi
         metric_specific_attributes["projectName"] = get_project_name()
         metric_specific_attributes["initialCommit"] = get_initial_commit_hash()
 
+    # Add container engine information for all command runs
+    metric_specific_attributes["containerEngine"] = metric._get_container_host()
+
     metric.add_data("metricSpecificAttributes", metric_specific_attributes)
     # Metric about command's execution characteristics
     metric.add_data("duration", duration)
@@ -475,6 +478,66 @@ class Metric:
         if cicd_platform:
             return cicd_platform.name
         return "CLI"
+
+    def _get_container_host(self) -> str:
+        """
+        Returns a normalized container engine identifier based on DOCKER_HOST.
+        Maps various DOCKER_HOST patterns to standardized container engine names.
+
+        Translation:
+            Value                                          Final Value
+
+            # Case 1: Not set
+            - (unset)	                                -> docker-default
+
+            # Case 2: Check Path-specific
+            - unix://~/.colima/default/docker.sock	    -> colima
+            - unix://~/.lima/default/sock/docker.sock   -> lima
+            - unix://~/.rd/docker.sock                  -> rancher-desktop
+            - unix://~/.orbstack/run/docker.sock        -> orbstack
+
+            # Case 3: Check Socket value
+            - unix://~/.finch/finch.sock	            -> finch
+            - unix:///var/run/docker.sock	            -> docker
+            - unix:///run/user/1000/podman/podman.sock  -> podman
+
+            # Case 4: Check TCP
+            - tcp://localhost:2375	                    -> tpc-local
+            - tcp://localhost:2376	                    -> tpc-local
+            - tcp://host.docker.internal:*	            -> tpc-remote
+
+            # Case 5: Other
+            - other value	                            -> unknown
+
+        """
+        if not self._gc.docker_host or not isinstance(self._gc.docker_host, str):
+            return "docker-default"
+
+        docker_host = self._gc.docker_host.lower()
+
+        # Path-specific mappings (checked first for specificity)
+        path_map = {".colima/": "colima", ".lima/": "lima", ".orbstack/": "orbstack", ".rd/": "rancher-desktop"}
+
+        # Check path-specific patterns first
+        for path, engine in path_map.items():
+            if path in docker_host and docker_host.endswith("docker.sock"):
+                return engine
+
+        # Socket mappings
+        socket_map = {"docker.sock": "docker", "finch.sock": "finch", "podman.sock": "podman"}
+
+        # Check socket patterns
+        for sock, engine in socket_map.items():
+            if docker_host.endswith(sock):
+                return engine
+
+        # TCP patterns
+        if docker_host.startswith("tcp://"):
+            local_hosts = ["localhost:", "127.0.0.1:"]
+            is_local = any(host in docker_host for host in local_hosts)
+            return "tcp-local" if is_local else "tcp-remote"
+
+        return "unknown"
 
 
 class MetricDataNotList(Exception):
