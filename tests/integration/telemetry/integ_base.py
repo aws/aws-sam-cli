@@ -39,6 +39,7 @@ class IntegBase(TestCase):
         self.config_dir = tempfile.mkdtemp()
         self._gc = GlobalConfig()
         self._gc.config_dir = Path(self.config_dir)
+        self._gc.docker_host = ""
 
     def tearDown(self):
         self.config_dir and shutil.rmtree(self.config_dir)
