@@ -1,38 +1,35 @@
-from collections import OrderedDict
+import json
 import os
 import posixpath
 import sys
-
-import docker
-import json
-
+from collections import OrderedDict
+from pathlib import Path, WindowsPath
+from unittest import TestCase
+from unittest.mock import ANY, MagicMock, Mock, call, mock_open, patch
 from uuid import uuid4
 
-from unittest import TestCase
-from unittest.mock import Mock, MagicMock, call, mock_open, patch, ANY
-from pathlib import Path, WindowsPath
-
+import docker
 from parameterized import parameterized
 
-from samcli.lib.build.workflow_config import UnsupportedRuntimeException
-from samcli.lib.providers.provider import ResourcesToBuildCollector, Function, FunctionBuildInfo
+from samcli.commands.local.cli_common.user_exceptions import InvalidFunctionPropertyType
 from samcli.lib.build.app_builder import (
     ApplicationBuilder,
-    UnsupportedBuilderLibraryVersionError,
     BuildError,
-    LambdaBuilderError,
     BuildInsideContainerError,
-    DockerfileOutSideOfContext,
     DockerBuildFailed,
     DockerConnectionError,
+    DockerfileOutSideOfContext,
+    LambdaBuilderError,
+    UnsupportedBuilderLibraryVersionError,
 )
-from samcli.commands.local.cli_common.user_exceptions import InvalidFunctionPropertyType
-from samcli.lib.telemetry.event import EventName, EventTracker
-from samcli.lib.utils.architecture import X86_64, ARM64
+from samcli.lib.build.workflow_config import UnsupportedRuntimeException
+from samcli.lib.providers.provider import Function, FunctionBuildInfo, ResourcesToBuildCollector
+from samcli.lib.telemetry.event import EventTracker
+from samcli.lib.utils.architecture import ARM64, X86_64
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.stream_writer import StreamWriter
-from samcli.local.docker.manager import DockerImagePullFailedException
 from samcli.local.docker.container import ContainerContext
+from samcli.local.docker.manager import DockerImagePullFailedException
 from tests.unit.lib.build_module.test_build_graph import generate_function
 
 
@@ -2956,7 +2953,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
         container_mock.executable_name = "myexecutable"
 
         self.container_manager.run.side_effect = docker.errors.APIError(
-            "Bad Request: 'lambda-builders' " "executable file not found in $PATH"
+            "Bad Request: 'lambda-builders' executable file not found in $PATH"
         )
 
         with self.assertRaises(UnsupportedBuilderLibraryVersionError) as ctx:
@@ -3203,6 +3200,31 @@ class TestApplicationBuilder_get_build_options(TestCase):
         ApplicationBuilder._get_working_directory_path = get_working_directory_path
         self.assertEqual(options, expected_properties)
         get_working_directory_path_mock.assert_called_once_with("base_dir", metadata, "source_dir", "scratch_dir")
+
+    def test_python_parent_package_mode_explicit(self):
+        build_properties = {"ParentPackageMode": "explicit", "ParentPackages": "src.function"}
+        metadata = {"BuildProperties": build_properties}
+        expected_properties = {"parent_python_packages": "src.function"}
+        options = ApplicationBuilder._get_build_options("Function", "python", "base_dir", "handler", "pip", metadata)
+        self.assertEqual(options, expected_properties)
+
+    @parameterized.expand(
+        [
+            ("src.function.index.handler", "src/function", "src.function"),
+            ("src.index.handler", "../../src", "src"),
+            ("index.handler", "src/function", None),
+            ("index.handler", None, None),
+            (None, "src/function", None),
+            ("app.function.index.handler", "src/function", None),
+        ]
+    )
+    def test_python_parent_package_mode_auto(self, handler, source_code_path, expected_parent_packages):
+        build_properties = {"ParentPackageMode": "auto"}
+        metadata = {"BuildProperties": build_properties}
+        options = ApplicationBuilder._get_build_options(
+            "Function", "python", "base_dir", handler, "pip", metadata, source_code_path
+        )
+        self.assertEqual(options, {"parent_python_packages": expected_parent_packages})
 
 
 class TestApplicationBuilderGetWorkingDirectoryPath(TestCase):
