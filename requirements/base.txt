@@ -3,15 +3,15 @@ click==8.1.8
 Flask<3.2
 boto3>=1.29.2,<2
 jmespath~=1.0.1
-ruamel_yaml~=0.18.14
+ruamel_yaml~=0.18.15
 PyYAML~=6.0
 cookiecutter~=2.6.0
-aws-sam-translator==1.99.0
+aws-sam-translator==1.100.0
 #docker minor version updates can include breaking changes. Auto update micro version only.
 docker~=7.1.0
 dateparser~=1.2
 requests~=2.32.4
-aws_lambda_builders==1.57.0
+aws_lambda_builders==1.58.0
 tomlkit==0.13.3
 # NOTE: For supporting watchdog in Python3.8, version is pinned to 4.0.2 as 
 # version 5.0.2 introduced some breaking changes for versions > Python3.8
@@ -31,7 +31,7 @@ regex!=2021.10.8
 tzlocal==5.3.1
 
 #Adding cfn-lint dependency for SAM validate
-cfn-lint~=1.38.1
+cfn-lint~=1.39.1
 
 # Type checking boto3 objects
-boto3-stubs[apigateway,cloudformation,ecr,iam,lambda,s3,schemas,secretsmanager,signer,stepfunctions,sts,xray,sqs,kinesis]==1.39.7
+boto3-stubs[apigateway,cloudformation,ecr,iam,lambda,s3,schemas,secretsmanager,signer,stepfunctions,sts,xray,sqs,kinesis]==1.40.24

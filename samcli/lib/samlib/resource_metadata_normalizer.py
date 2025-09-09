@@ -253,10 +253,14 @@ class ResourceMetadataNormalizer:
         # Design doc of CDK path: https://github.com/aws/aws-cdk/blob/master/design/construct-tree.md
         cdk_path_partitions = resource_cdk_path.split("/")
         min_cdk_path_partitions_length = 2
+        max_cdk_path_partitions_length = 3
 
         LOG.debug("CDK Path for resource %s is %s", logical_id, cdk_path_partitions)
 
-        if len(cdk_path_partitions) < min_cdk_path_partitions_length:
+        if (
+            len(cdk_path_partitions) < min_cdk_path_partitions_length
+            or len(cdk_path_partitions) > max_cdk_path_partitions_length
+        ):
             LOG.warning(
                 "Cannot detect function id from aws:cdk:path metadata '%s', using default logical id", resource_cdk_path
             )
