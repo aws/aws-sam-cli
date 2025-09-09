@@ -26,7 +26,7 @@ class CoreGenerateEventCommand(CoreCommand, GenerateEventCommand):
                             text="\n",
                         ),
                         RowDefinition(
-                            name=style(f"${ctx.command_path} s3 [put/delete]"),
+                            name=style(f"$ {ctx.command_path} s3 [put/delete]"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
                     ]
@@ -38,11 +38,11 @@ class CoreGenerateEventCommand(CoreCommand, GenerateEventCommand):
                             text="\n",
                         ),
                         RowDefinition(
-                            name=style(f"${ctx.command_path} s3 [put/delete] --help"),
+                            name=style(f"$ {ctx.command_path} s3 [put/delete] --help"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
                         RowDefinition(
-                            name=style(f"${ctx.command_path} s3 [put/delete] --bucket <bucket> --key <key>"),
+                            name=style(f"$ {ctx.command_path} s3 [put/delete] --bucket <bucket> --key <key>"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
                     ]
@@ -57,7 +57,7 @@ class CoreGenerateEventCommand(CoreCommand, GenerateEventCommand):
                         ),
                         RowDefinition(
                             name=style(
-                                f"${ctx.command_path} s3 [put/delete] --bucket <bucket> --key <key> | "
+                                f"$ {ctx.command_path} s3 [put/delete] --bucket <bucket> --key <key> | "
                                 f"{getattr(ctx.parent, 'command_path')} invoke -e -"
                             ),
                             extra_row_modifiers=[ShowcaseRowModifier()],

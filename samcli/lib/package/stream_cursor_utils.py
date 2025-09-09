@@ -7,7 +7,7 @@ import platform
 
 # NOTE: ANSI escape codes.
 # NOTE: Still needs investigation on non terminal environments.
-ESC = "\u001B["
+ESC = "\u001b["
 
 # Enables ANSI escape codes on Windows
 if platform.system().lower() == "windows":

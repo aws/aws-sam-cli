@@ -1,4 +1,4 @@
-""" Constant related to Schemas """
+"""Constant related to Schemas"""
 
 # cookiecutter template parameter
 SCHEMAS_REGISTRY = "AWS_Schema_registry"

@@ -1,26 +1,26 @@
 chevron~=0.12
-click~=8.1
+click==8.1.8
 Flask<3.2
 boto3>=1.29.2,<2
 jmespath~=1.0.1
-ruamel_yaml~=0.18.6
+ruamel_yaml~=0.18.15
 PyYAML~=6.0
 cookiecutter~=2.6.0
-aws-sam-translator==1.97.0
+aws-sam-translator==1.100.0
 #docker minor version updates can include breaking changes. Auto update micro version only.
 docker~=7.1.0
 dateparser~=1.2
-requests~=2.32.3
-aws_lambda_builders==1.54.0
-tomlkit==0.13.2
+requests~=2.32.5
+aws_lambda_builders==1.58.0
+tomlkit==0.13.3
 # NOTE: For supporting watchdog in Python3.8, version is pinned to 4.0.2 as 
 # version 5.0.2 introduced some breaking changes for versions > Python3.8
 watchdog==4.0.2
 
-rich~=13.9.4
-pyopenssl~=24.3.0
+rich~=14.1.0
+pyopenssl~=25.1.0
 # Pin to <4.18 to until SAM-T no longer uses RefResolver
-jsonschema<4.24
+jsonschema<4.26
 
 # Needed for supporting Protocol in Python 3.7, Protocol class became public with python3.8
 typing_extensions>=4.4.0,<5
@@ -28,10 +28,10 @@ typing_extensions>=4.4.0,<5
 # NOTE: regex is not a direct dependency of SAM CLI, exclude version 2021.10.8 due to not working on M1 Mac - https://github.com/mrabarnett/mrab-regex/issues/399
 regex!=2021.10.8
 # NOTE: tzlocal is not a direct dependency of SAM CLI, but pin to 3.0 as 4.0 break appveyor jobs
-tzlocal==5.2
+tzlocal==5.3.1
 
 #Adding cfn-lint dependency for SAM validate
-cfn-lint~=1.32.3
+cfn-lint~=1.39.1
 
 # Type checking boto3 objects
-boto3-stubs[apigateway,cloudformation,ecr,iam,lambda,s3,schemas,secretsmanager,signer,stepfunctions,sts,xray,sqs,kinesis]==1.35.71
+boto3-stubs[apigateway,cloudformation,ecr,iam,lambda,s3,schemas,secretsmanager,signer,stepfunctions,sts,xray,sqs,kinesis]==1.40.26

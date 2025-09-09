@@ -3,7 +3,7 @@
 
 # AWS SAM CLI
 
-![Apache 2.0 License](https://img.shields.io/github/license/aws/aws-sam-cli)
+[![Apache 2.0 License](https://img.shields.io/github/license/aws/aws-sam-cli)](https://github.com/aws/aws-sam-cli/blob/develop/LICENSE)
 ![SAM CLI Version](https://img.shields.io/github/release/aws/aws-sam-cli.svg?label=CLI%20Version)
 ![Install](https://img.shields.io/badge/brew-aws/tap/aws--sam--cli-orange)
 ![pip](https://img.shields.io/badge/pip-aws--sam--cli-9cf)

@@ -46,14 +46,16 @@ install:
   - sh: "ls /usr/"
   # install latest maven which is compatible with jdk17
   - sh: "sudo apt-get -y remove maven"
-  - sh: "wget https://dlcdn.apache.org/maven/maven-3/3.9.5/binaries/apache-maven-3.9.5-bin.zip -P /tmp"
+  - sh: "wget https://dlcdn.apache.org/maven/maven-3/3.9.11/binaries/apache-maven-3.9.11-bin.zip -P /tmp"
   - sh: "sudo unzip -d /opt/mvn /tmp/apache-maven-*.zip"
-  - sh: "PATH=/opt/mvn/apache-maven-3.9.5/bin:$PATH"
+  - sh: "PATH=/opt/mvn/apache-maven-3.9.11/bin:$PATH"
   - sh: "mvn --version"
 
   - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
-  - sh: "rbenv install 3.3.0"
-  - sh: "rbenv global 3.3.0"
+  - sh: "rbenv install 3.3.7"
+  - sh: "rbenv install 3.4.2"
+  - sh: "rbenv install 3.2.7"
+  - sh: "rbenv global 3.3.7"
   - sh: "ruby --version"
   - sh: "docker info"
   - sh: "docker version"
@@ -63,9 +65,9 @@ install:
 
   # Install latest gradle
   - sh: "sudo apt-get -y remove gradle"
-  - sh: "wget https://services.gradle.org/distributions/gradle-8.4-bin.zip -P /tmp"
+  - sh: "wget https://services.gradle.org/distributions/gradle-9.0.0-bin.zip -P /tmp"
   - sh: "sudo unzip -d /opt/gradle /tmp/gradle-*.zip"
-  - sh: "PATH=/opt/gradle/gradle-8.4/bin:$PATH"
+  - sh: "PATH=/opt/gradle/gradle-9.0.0/bin:$PATH"
   - sh: "gradle --version"
 
   # Install dotnet8 SDK
@@ -171,7 +173,10 @@ on_finish:
   - sh: 'export AWS_SECRET_ACCESS_KEY=$CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY'
   - sh: 'export AWS_SESSION_TOKEN=$CI_ACCESS_ROLE_AWS_SESSION_TOKEN'
 
-  - sh: 'aws stepfunctions send-task-success --task-token "$TASK_TOKEN" --task-output "{}" --region us-west-2'
+    # When we update to AWS CLI v2, we need to add the `--cli-binary-format raw-in-base64-out` option to pass the payload as a JSON string
+  - sh: >
+      aws lambda invoke --function-name "$ACCOUNT_RESET_LAMBDA_ARN" --payload "{\"taskToken\": \"$TASK_TOKEN\", \"output\": \"{}\"}" ./lambda-output.txt --region us-west-2
+  - sh: 'cat ./lambda-output.txt'
 
 for:
   # Integ testing build
