@@ -168,6 +168,7 @@ class TestEventTracker(TestCase):
             "samcliVersion": ANY,
             "commandName": ANY,
             "metricSpecificAttributes": {
+                "containerEngine": ANY,
                 "events": [
                     {
                         "event_name": "Test",
@@ -176,7 +177,7 @@ class TestEventTracker(TestCase):
                         "time_stamp": ANY,
                         "exception_name": ANY,
                     }
-                ]
+                ],
             },
         }
         self.assertEqual(len(metric_data["metricSpecificAttributes"]["events"]), 1)  # There is one event captured
