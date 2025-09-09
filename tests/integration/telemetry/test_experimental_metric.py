@@ -59,6 +59,7 @@ class TestExperimentalMetric(IntegBase):
                             "region": ANY,
                             "commandName": ANY,
                             "metricSpecificAttributes": {
+                                "containerEngine": ANY,
                                 "experimentalAll": False,
                                 "experimentalEsbuild": False,
                                 "gitOrigin": ANY,
@@ -116,6 +117,7 @@ class TestExperimentalMetric(IntegBase):
                             "region": ANY,
                             "commandName": ANY,
                             "metricSpecificAttributes": {
+                                "containerEngine": ANY,
                                 "experimentalAll": True,
                                 "experimentalEsbuild": True,
                                 "gitOrigin": ANY,
@@ -183,6 +185,7 @@ class TestExperimentalMetric(IntegBase):
                             "region": ANY,
                             "commandName": ANY,
                             "metricSpecificAttributes": {
+                                "containerEngine": ANY,
                                 "projectType": "CDK",
                                 "gitOrigin": ANY,
                                 "projectName": ANY,
