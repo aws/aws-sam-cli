@@ -336,9 +336,9 @@ jsonschema==4.25.1 \
     # via
     #   aws-sam-cli (setup.py)
     #   aws-sam-translator
-jsonschema-specifications==2025.4.1 \
-    --hash=sha256:4653bffbd6584f7de83a67e0d620ef16900b390ddc7939d56684d6c81e33f1af \
-    --hash=sha256:630159c9f4dbea161a6a2205c3011cc4f18ff381b189fff48bb39b9bf26ae608
+jsonschema-specifications==2025.9.1 \
+    --hash=sha256:98802fee3a11ee76ecaca44429fda8a41bff98b00a0f2838151b113f210cc6fe \
+    --hash=sha256:b540987f239e745613c7a9176f3edb72b832a4ac465cf02712288397832b5e8d
     # via jsonschema
 markdown-it-py==4.0.0 \
     --hash=sha256:87327c59b172c5011896038353a81343b6754500a08cd7a4973bb48c6d578147 \
