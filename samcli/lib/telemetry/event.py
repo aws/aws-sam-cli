@@ -285,6 +285,10 @@ class EventTracker:
 
         telemetry = Telemetry()
         metric = Metric("events")
+
+        # Add container engine information for all event runs
+        msa["containerEngine"] = metric._get_container_host()
+
         metric.add_data("sessionId", EventTracker._session_id)
         metric.add_data("commandName", EventTracker._command_name)
         metric.add_data("metricSpecificAttributes", msa)
