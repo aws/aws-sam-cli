@@ -82,7 +82,6 @@ def do_cli(
     Implimentation of cli method
     """
     from samcli.commands.exceptions import UserException
-    from samcli.commands.local.cli_common.user_exceptions import ResourceNotFound
     from samcli.commands.remote.remote_invoke_context import RemoteInvokeContext
     from samcli.lib.remote_invoke.exceptions import (
         ErrorBotoApiCallException,
