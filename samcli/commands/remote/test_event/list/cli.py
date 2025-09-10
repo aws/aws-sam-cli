@@ -90,6 +90,7 @@ def do_cli(
         InvalidResourceBotoParameterException,
     )
     from samcli.lib.utils.boto_utils import get_boto_client_provider_with_config, get_boto_resource_provider_with_config
+
     boto_client_provider = get_boto_client_provider_with_config(region_name=region, profile=profile)
     boto_resource_provider = get_boto_resource_provider_with_config(region_name=region, profile=profile)
 
