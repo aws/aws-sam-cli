@@ -82,6 +82,7 @@ def do_cli(
     Implimentation of cli method
     """
     from samcli.commands.exceptions import UserException
+    from samcli.commands.local.cli_common.user_exceptions import ResourceNotFound
     from samcli.commands.remote.remote_invoke_context import RemoteInvokeContext
     from samcli.lib.remote_invoke.exceptions import (
         ErrorBotoApiCallException,
@@ -89,7 +90,6 @@ def do_cli(
         InvalidResourceBotoParameterException,
     )
     from samcli.lib.utils.boto_utils import get_boto_client_provider_with_config, get_boto_resource_provider_with_config
-
     boto_client_provider = get_boto_client_provider_with_config(region_name=region, profile=profile)
     boto_resource_provider = get_boto_resource_provider_with_config(region_name=region, profile=profile)
 
@@ -110,5 +110,13 @@ def do_cli(
         raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
 
     LOG.debug("Listing remote events for resource: %s", function_resource)
-    output = lambda_test_event.list_events(function_resource)
-    click.echo(output)
+    try:
+        output = lambda_test_event.list_events(function_resource)
+        click.echo(output)
+    except ResourceNotFound as ex:
+        if "registry not found" in str(ex) or "No events found for function" in str(ex):
+            LOG.info("No test events found for function")
+            function_name = resource_id or function_resource.get("LogicalResourceId", "unknown")
+            click.echo("No events found for function %s" % function_name)
+        else:
+            raise
