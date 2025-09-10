@@ -423,11 +423,8 @@ class TestSchemasCommand(TestCase):
             {"Error": {"Code": "NotFoundException", "Message": "NotFoundException"}}, "operation"
         )
 
-        with self.assertRaises(ResourceNotFound) as ctx:
-            lambda_test_event.list_events(self._cfn_resource("MyFunction"))
-
-            msg = "No events found for function myFunction"
-            self.assertEqual(str(ctx.exception), msg)
+        output = lambda_test_event.list_events(self._cfn_resource("MyFunction"))
+        self.assertEqual(output, "")
 
 
 class TestNoPermissionWrapper(TestCase):

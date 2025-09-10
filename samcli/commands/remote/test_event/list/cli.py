@@ -111,13 +111,5 @@ def do_cli(
         raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
 
     LOG.debug("Listing remote events for resource: %s", function_resource)
-    try:
-        output = lambda_test_event.list_events(function_resource)
-        click.echo(output)
-    except ResourceNotFound as ex:
-        if "registry not found" in str(ex) or "No events found for function" in str(ex):
-            LOG.info("No test events found for function")
-            function_name = resource_id or function_resource.get("LogicalResourceId", "unknown")
-            click.echo("No events found for function %s" % function_name)
-        else:
-            raise
+    output = lambda_test_event.list_events(function_resource)
+    click.echo(output)
