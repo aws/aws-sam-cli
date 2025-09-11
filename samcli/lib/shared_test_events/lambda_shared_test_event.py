@@ -408,14 +408,16 @@ class LambdaSharedTestEvent:
         api_caller = self._api_caller
 
         if not api_caller.check_registry_exists(registry_name):
-            raise ResourceNotFound(f"{registry_name} registry not found. There are no saved events.")
+            LOG.info(f"{registry_name} registry not found. There are no saved events.")
+            return ""
 
         schema_name = self._get_schema_name(function_resource)
         schema = api_caller.get_schema(registry_name, schema_name)
         function_name = function_resource.logical_resource_id
 
         if not schema:
-            raise ResourceNotFound(f"No events found for function {function_name}")
+            LOG.info(f"No events found for function {function_name}")
+            return ""
 
         try:
             schema_dict = json.loads(schema)
