@@ -186,10 +186,8 @@ def do_cli(
     """
     from samcli.commands.exceptions import UserException
     from samcli.commands.local.cli_common.invoke_context import InvokeContext, DockerIsNotReachableException
-    from samcli.commands.local.lib.function_url_manager import (
-        FunctionUrlManager,
-        NoFunctionUrlsDefined,
-    )
+    from samcli.commands.local.lib.local_function_url_service import LocalFunctionUrlService
+    from samcli.commands.local.lib.exceptions import NoFunctionUrlsDefined
     from samcli.commands._utils.option_value_processor import process_image_options
     from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
     from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
@@ -204,9 +202,6 @@ def do_cli(
     else:
         start_port = int(port_range)
         end_port = start_port + 10
-    
-    # Parse SSL context if provided (future enhancement)
-    ssl_context = None
     
     try:
         with InvokeContext(
@@ -235,22 +230,21 @@ def do_cli(
             invoke_images=processed_invoke_images,
             no_mem_limit=no_mem_limit,
         ) as invoke_context:
-            # Create Function URL manager
-            manager = FunctionUrlManager(
-                invoke_context=invoke_context,
-                host=host,
+            # Create Function URL service
+            service = LocalFunctionUrlService(
+                lambda_invoke_context=invoke_context,
                 port_range=(start_port, end_port),
-                disable_authorizer=disable_authorizer,
-                ssl_context=ssl_context
+                host=host,
+                disable_authorizer=disable_authorizer
             )
             
-            # Start specific function or all functions
-            if function_name:
-                # Start specific function
-                manager.start_function(function_name, port)
+            # Start the service
+            if function_name and port:
+                # Start specific function on specific port
+                service.start_function(function_name, port)
             else:
-                # Start all functions with Function URLs
-                manager.start_all()
+                # Start all functions
+                service.start_all()
                 
     except NoFunctionUrlsDefined as ex:
         raise UserException(str(ex)) from ex

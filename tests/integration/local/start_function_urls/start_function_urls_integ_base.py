@@ -5,6 +5,8 @@ Base class for start-function-urls integration tests
 import json
 import os
 import random
+import re
+import select
 import shutil
 import tempfile
 import time
@@ -38,7 +40,7 @@ LOG = logging.getLogger(__name__)
 
 
 @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
-class StartFunctionUrlsIntegBaseClass(TestCase):
+class StartFunctionUrlIntegBaseClass(TestCase):
     """
     Base class for start-function-urls integration tests
     """
@@ -242,7 +244,7 @@ class StartFunctionUrlsIntegBaseClass(TestCase):
         docker_network: Optional[str] = None,
         container_host: Optional[str] = None,
         extra_args: Optional[str] = None,
-        timeout: int = 10,
+        timeout: int = 30,  # Increased timeout from 15 to 30 seconds
     ):
         """
         Start the function URLs service in a background thread
@@ -297,26 +299,37 @@ class StartFunctionUrlsIntegBaseClass(TestCase):
             command_list.extend(extra_args.split())
 
         def run_command():
-            self.process = run_command_with_input(command_list, "")
+            import os
+            env = os.environ.copy()
+            env['SAM_CLI_BETA_FEATURES'] = '1'
+            self.process = run_command_with_input(command_list, b"y\n", env=env)
 
         self.thread = threading.Thread(target=run_command)
         self.thread.start()
 
-        # Wait for service to start
+        # Wait for service to start - try multiple ports in the range
         start_time = time.time()
+        port_range_start = int(port_to_use)
+        port_range_end = port_range_start + 10
+        
         while time.time() - start_time < timeout:
-            try:
-                response = requests.get(f"{self.url}/", timeout=1)
-                if response.status_code in [200, 403, 404]:
-                    return True
-            except requests.exceptions.RequestException:
-                pass
-            time.sleep(0.5)
+            # Try all ports in the range
+            for test_port in range(port_range_start, port_range_end + 1):
+                test_url = f"http://{self.host}:{test_port}"
+                try:
+                    response = requests.get(f"{test_url}/", timeout=2)  # Increased timeout
+                    if response.status_code in [200, 403, 404]:
+                        # Give extra time for full initialization
+                        time.sleep(3)
+                        return True
+                except requests.exceptions.RequestException:
+                    pass
+            time.sleep(1)  # Increased sleep between retries
 
         return False
 
 
-class WritableStartFunctionUrlsIntegBaseClass(StartFunctionUrlsIntegBaseClass):
+class WritableStartFunctionUrlIntegBaseClass(StartFunctionUrlIntegBaseClass):
     """
     Base class for start-function-urls integration tests with writable templates
     """

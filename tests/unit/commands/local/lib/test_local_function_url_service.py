@@ -3,144 +3,11 @@ Unit tests for LocalFunctionUrlService
 """
 
 import unittest
-import json
-import base64
 from unittest.mock import Mock, MagicMock, patch, call
 from parameterized import parameterized
 
-from samcli.commands.local.lib.local_function_url_service import (
-    LocalFunctionUrlService,
-    FunctionUrlPayloadFormatter,
-)
-
-
-class TestFunctionUrlPayloadFormatter(unittest.TestCase):
-    """Test the FunctionUrlPayloadFormatter class"""
-    
-    def test_format_request_get(self):
-        """Test formatting GET request to Lambda v2.0 payload"""
-        result = FunctionUrlPayloadFormatter.format_request(
-            method="GET",
-            path="/test",
-            headers={"Host": "localhost", "User-Agent": "test"},
-            query_params={"foo": "bar"},
-            body=None,
-            source_ip="127.0.0.1",
-            user_agent="test-agent",
-            host="localhost",
-            port=3001
-        )
-        
-        self.assertEqual(result["version"], "2.0")
-        self.assertEqual(result["routeKey"], "$default")
-        self.assertEqual(result["rawPath"], "/test")
-        self.assertEqual(result["rawQueryString"], "foo=bar")
-        self.assertEqual(result["requestContext"]["http"]["method"], "GET")
-        self.assertEqual(result["queryStringParameters"], {"foo": "bar"})
-        self.assertIsNone(result["body"])
-        self.assertFalse(result["isBase64Encoded"])
-    
-    def test_format_request_post_with_body(self):
-        """Test formatting POST request with body"""
-        result = FunctionUrlPayloadFormatter.format_request(
-            method="POST",
-            path="/test",
-            headers={"Content-Type": "application/json"},
-            query_params={},
-            body='{"key": "value"}',
-            source_ip="127.0.0.1",
-            user_agent="test-agent",
-            host="localhost",
-            port=3001
-        )
-        
-        self.assertEqual(result["requestContext"]["http"]["method"], "POST")
-        self.assertEqual(result["body"], '{"key": "value"}')
-        self.assertFalse(result["isBase64Encoded"])
-    
-    def test_format_request_with_cookies(self):
-        """Test formatting request with cookies"""
-        headers = {"Cookie": "session=abc123; user=john"}
-        result = FunctionUrlPayloadFormatter.format_request(
-            method="GET",
-            path="/",
-            headers=headers,
-            query_params={},
-            body=None,
-            source_ip="127.0.0.1",
-            user_agent="test",
-            host="localhost",
-            port=3001
-        )
-        
-        self.assertEqual(result["cookies"], ["session=abc123", "user=john"])
-    
-    def test_format_response_simple_string(self):
-        """Test formatting simple string response"""
-        status, headers, body = FunctionUrlPayloadFormatter.format_response("Hello World")
-        
-        self.assertEqual(status, 200)
-        self.assertEqual(headers, {})
-        self.assertEqual(body, "Hello World")
-    
-    def test_format_response_with_status_and_headers(self):
-        """Test formatting response with status code and headers"""
-        lambda_response = {
-            "statusCode": 201,
-            "headers": {"Content-Type": "application/json"},
-            "body": '{"created": true}'
-        }
-        
-        status, headers, body = FunctionUrlPayloadFormatter.format_response(lambda_response)
-        
-        self.assertEqual(status, 201)
-        self.assertEqual(headers["Content-Type"], "application/json")
-        self.assertEqual(body, '{"created": true}')
-    
-    def test_format_response_base64_encoded(self):
-        """Test formatting base64 encoded response"""
-        original_body = b"binary data"
-        encoded_body = base64.b64encode(original_body).decode()
-        
-        lambda_response = {
-            "statusCode": 200,
-            "body": encoded_body,
-            "isBase64Encoded": True
-        }
-        
-        status, headers, body = FunctionUrlPayloadFormatter.format_response(lambda_response)
-        
-        self.assertEqual(status, 200)
-        self.assertEqual(body, original_body)
-    
-    def test_format_response_multi_value_headers(self):
-        """Test formatting response with multi-value headers"""
-        lambda_response = {
-            "statusCode": 200,
-            "headers": {"Content-Type": "text/plain"},
-            "multiValueHeaders": {
-                "Set-Cookie": ["cookie1=value1", "cookie2=value2"]
-            },
-            "body": "test"
-        }
-        
-        status, headers, body = FunctionUrlPayloadFormatter.format_response(lambda_response)
-        
-        self.assertEqual(status, 200)
-        self.assertEqual(headers["Set-Cookie"], "cookie1=value1, cookie2=value2")
-    
-    def test_format_response_with_cookies(self):
-        """Test formatting response with cookies"""
-        lambda_response = {
-            "statusCode": 200,
-            "cookies": ["session=xyz789", "theme=dark"],
-            "body": "test"
-        }
-        
-        status, headers, body = FunctionUrlPayloadFormatter.format_response(lambda_response)
-        
-        self.assertEqual(status, 200)
-        self.assertEqual(headers["Set-Cookie"], "session=xyz789; theme=dark")
+from samcli.commands.local.lib.local_function_url_service import LocalFunctionUrlService, PortExhaustedException
+from samcli.commands.local.lib.exceptions import NoFunctionUrlsDefined
 
 
 class TestLocalFunctionUrlService(unittest.TestCase):
@@ -148,406 +15,410 @@ class TestLocalFunctionUrlService(unittest.TestCase):
     
     def setUp(self):
         """Set up test fixtures"""
-        self.function_name = "TestFunction"
-        self.function_config = {
-            "auth_type": "NONE",
-            "cors": {
-                "AllowOrigins": ["*"],
-                "AllowMethods": ["GET", "POST"],
-                "AllowHeaders": ["Content-Type"],
-                "MaxAge": 86400
-            }
-        }
-        self.lambda_runner = Mock()
-        self.port = 3001
+        # Create mock InvokeContext
+        self.invoke_context = Mock()
+        self.invoke_context.local_lambda_runner = Mock()
+        self.invoke_context.stderr = Mock()
+        self.invoke_context.stacks = []
+        
+        # Mock the port range
+        self.port_range = (3001, 3010)
         self.host = "127.0.0.1"
-        self.disable_authorizer = False
-        self.ssl_context = None
-        self.stderr = Mock()
-        self.is_debugging = False
+        
+    @patch("samcli.lib.providers.sam_function_provider.SamFunctionProvider")
+    def test_init_no_function_urls(self, mock_provider_class):
+        """Test initialization when no functions have Function URLs"""
+        # Setup
+        mock_provider = Mock()
+        mock_provider_class.return_value = mock_provider
+        mock_provider.get_all.return_value = []  # No functions
+        
+        # Execute and verify
+        with self.assertRaises(NoFunctionUrlsDefined):
+            LocalFunctionUrlService(
+                lambda_invoke_context=self.invoke_context,
+                port_range=self.port_range,
+                host=self.host
+            )
     
-    @patch("samcli.commands.local.lib.local_function_url_service.Flask")
-    def test_init_creates_flask_app(self, flask_mock):
-        """Test that LocalFunctionUrlService initializes Flask app correctly"""
-        app_mock = Mock()
-        flask_mock.return_value = app_mock
+    @patch("samcli.lib.providers.sam_function_provider.SamFunctionProvider")
+    def test_init_with_function_urls(self, mock_provider_class):
+        """Test initialization with functions that have Function URLs"""
+        # Setup
+        mock_function = Mock()
+        mock_function.name = "TestFunction"
+        mock_function.function_url_config = {
+            "AuthType": "NONE",
+            "Cors": {"AllowOrigins": ["*"]}
+        }
+        
+        mock_provider = Mock()
+        mock_provider_class.return_value = mock_provider
+        mock_provider.get_all.return_value = [mock_function]
+        
+        # Execute
+        service = LocalFunctionUrlService(
+            lambda_invoke_context=self.invoke_context,
+            port_range=self.port_range,
+            host=self.host
+        )
+        
+        # Verify
+        self.assertEqual(service.host, self.host)
+        self.assertEqual(service.port_range, self.port_range)
+        self.assertIn("TestFunction", service.function_urls)
+        self.assertEqual(service.function_urls["TestFunction"]["auth_type"], "NONE")
+    
+    @patch("samcli.lib.providers.sam_function_provider.SamFunctionProvider")
+    def test_discover_function_urls(self, mock_provider_class):
+        """Test discovering functions with Function URL configurations"""
+        # Setup
+        func1 = Mock()
+        func1.name = "Function1"
+        func1.function_url_config = {"AuthType": "AWS_IAM"}
+        
+        func2 = Mock()
+        func2.name = "Function2"
+        func2.function_url_config = {"AuthType": "NONE", "InvokeMode": "RESPONSE_STREAM"}
+        
+        func3 = Mock()
+        func3.name = "Function3"
+        func3.function_url_config = None  # No Function URL
+        
+        mock_provider = Mock()
+        mock_provider_class.return_value = mock_provider
+        mock_provider.get_all.return_value = [func1, func2, func3]
+        
+        # Execute
+        service = LocalFunctionUrlService(
+            lambda_invoke_context=self.invoke_context,
+            port_range=self.port_range,
+            host=self.host
+        )
+        
+        # Verify
+        self.assertEqual(len(service.function_urls), 2)
+        self.assertIn("Function1", service.function_urls)
+        self.assertIn("Function2", service.function_urls)
+        self.assertNotIn("Function3", service.function_urls)
+        self.assertEqual(service.function_urls["Function1"]["auth_type"], "AWS_IAM")
+        self.assertEqual(service.function_urls["Function2"]["invoke_mode"], "RESPONSE_STREAM")
+    
+    @patch("samcli.lib.providers.sam_function_provider.SamFunctionProvider")
+    def test_allocate_port(self, mock_provider_class):
+        """Test port allocation"""
+        # Setup
+        mock_function = Mock()
+        mock_function.name = "TestFunction"
+        mock_function.function_url_config = {"AuthType": "NONE"}
+        
+        mock_provider = Mock()
+        mock_provider_class.return_value = mock_provider
+        mock_provider.get_all.return_value = [mock_function]
         
         service = LocalFunctionUrlService(
-            function_name=self.function_name,
-            function_config=self.function_config,
-            lambda_runner=self.lambda_runner,
-            port=self.port,
-            host=self.host,
-            disable_authorizer=self.disable_authorizer,
-            ssl_context=self.ssl_context,
-            stderr=self.stderr,
-            is_debugging=self.is_debugging
+            lambda_invoke_context=self.invoke_context,
+            port_range=self.port_range,
+            host=self.host
         )
         
-        # Flask is initialized with the module name
-        flask_mock.assert_called_once_with("samcli.commands.local.lib.local_function_url_service")
-        self.assertEqual(service.app, app_mock)
-        self.assertEqual(service.function_name, self.function_name)
-        self.assertEqual(service.lambda_runner, self.lambda_runner)
+        # Mock _is_port_available
+        with patch.object(service, '_is_port_available') as mock_is_available:
+            mock_is_available.return_value = True
+            
+            # Execute
+            port = service._allocate_port()
+            
+            # Verify
+            self.assertEqual(port, 3001)
+            self.assertIn(3001, service._used_ports)
+            mock_is_available.assert_called_once_with(3001)
     
-    @patch("samcli.commands.local.lib.local_function_url_service.Thread")
-    @patch("samcli.commands.local.lib.local_function_url_service.Flask")
-    def test_start_service(self, flask_mock, thread_mock):
-        """Test starting the service"""
-        app_mock = Mock()
-        flask_mock.return_value = app_mock
-        thread_instance = Mock()
-        thread_mock.return_value = thread_instance
+    @patch("samcli.lib.providers.sam_function_provider.SamFunctionProvider")
+    def test_allocate_port_exhausted(self, mock_provider_class):
+        """Test port allocation when all ports are used"""
+        # Setup
+        mock_function = Mock()
+        mock_function.name = "TestFunction"
+        mock_function.function_url_config = {"AuthType": "NONE"}
+        
+        mock_provider = Mock()
+        mock_provider_class.return_value = mock_provider
+        mock_provider.get_all.return_value = [mock_function]
         
         service = LocalFunctionUrlService(
-            function_name=self.function_name,
-            function_config=self.function_config,
-            lambda_runner=self.lambda_runner,
-            port=self.port,
-            host=self.host,
-            disable_authorizer=self.disable_authorizer,
-            ssl_context=self.ssl_context,
-            stderr=self.stderr,
-            is_debugging=self.is_debugging
+            lambda_invoke_context=self.invoke_context,
+            port_range=(3001, 3002),  # Only 2 ports
+            host=self.host
         )
         
-        service.start()
+        # Use up all ports
+        service._used_ports = {3001, 3002}
         
-        # Verify thread was created and started
-        thread_mock.assert_called_once()
-        thread_instance.start.assert_called_once()
+        # Mock _is_port_available
+        with patch.object(service, '_is_port_available') as mock_is_available:
+            mock_is_available.return_value = False
+            
+            # Execute and verify
+            with self.assertRaises(PortExhaustedException):
+                service._allocate_port()
     
-    @patch("samcli.commands.local.lib.local_function_url_service.Flask")
-    def test_run_flask(self, flask_mock):
-        """Test the Flask app.run is called with correct parameters"""
-        app_mock = Mock()
-        flask_mock.return_value = app_mock
+    @patch("socket.socket")
+    @patch("samcli.lib.providers.sam_function_provider.SamFunctionProvider")
+    def test_is_port_available_true(self, mock_provider_class, mock_socket_class):
+        """Test port availability check when port is available"""
+        # Setup
+        mock_function = Mock()
+        mock_function.name = "TestFunction"
+        mock_function.function_url_config = {"AuthType": "NONE"}
+        
+        mock_provider = Mock()
+        mock_provider_class.return_value = mock_provider
+        mock_provider.get_all.return_value = [mock_function]
         
         service = LocalFunctionUrlService(
-            function_name=self.function_name,
-            function_config=self.function_config,
-            lambda_runner=self.lambda_runner,
-            port=self.port,
-            host=self.host,
-            disable_authorizer=self.disable_authorizer,
-            ssl_context=self.ssl_context,
-            stderr=self.stderr,
-            is_debugging=self.is_debugging
+            lambda_invoke_context=self.invoke_context,
+            port_range=self.port_range,
+            host=self.host
         )
         
-        # Call the internal _run_flask method directly
-        service._run_flask()
+        # Mock socket
+        mock_socket = Mock()
+        mock_socket_class.return_value.__enter__.return_value = mock_socket
+        mock_socket.bind.return_value = None  # Success
         
-        # Verify Flask app.run was called with correct parameters
-        app_mock.run.assert_called_once_with(
-            host=self.host,
-            port=self.port,
-            ssl_context=self.ssl_context,
-            threaded=True,
-            use_reloader=False,
-            use_debugger=False,
-            debug=False
-        )
-    
-    @patch("samcli.commands.local.lib.local_function_url_service.Flask")
-    def test_stop_service(self, flask_mock):
-        """Test stopping the service"""
-        app_mock = Mock()
-        flask_mock.return_value = app_mock
+        # Execute
+        result = service._is_port_available(3001)
         
-        service = LocalFunctionUrlService(
-            function_name=self.function_name,
-            function_config=self.function_config,
-            lambda_runner=self.lambda_runner,
-            port=self.port,
-            host=self.host,
-            disable_authorizer=self.disable_authorizer,
-            ssl_context=self.ssl_context,
-            stderr=self.stderr,
-            is_debugging=self.is_debugging
-        )
-        
-        # Stop should not raise any exceptions
-        service.stop()
-    
-    @patch("samcli.commands.local.lib.local_function_url_service.Flask")
-    def test_configure_routes(self, flask_mock):
-        """Test that routes are configured correctly"""
-        app_mock = Mock()
-        flask_mock.return_value = app_mock
-        
-        service = LocalFunctionUrlService(
-            function_name=self.function_name,
-            function_config=self.function_config,
-            lambda_runner=self.lambda_runner,
-            port=self.port,
-            host=self.host,
-            disable_authorizer=self.disable_authorizer,
-            ssl_context=self.ssl_context,
-            stderr=self.stderr,
-            is_debugging=self.is_debugging
-        )
-        
-        # Verify routes were registered
-        self.assertEqual(app_mock.route.call_count, 2)  # Two route decorators
-        
-        # Check the route paths
-        first_call = app_mock.route.call_args_list[0]
-        second_call = app_mock.route.call_args_list[1]
-        
-        self.assertEqual(first_call[0][0], '/')
-        self.assertEqual(first_call[1]['defaults'], {'path': ''})
-        self.assertIn('GET', first_call[1]['methods'])
-        self.assertIn('POST', first_call[1]['methods'])
-        
-        self.assertEqual(second_call[0][0], '/<path:path>')
-        self.assertIn('GET', second_call[1]['methods'])
-        self.assertIn('POST', second_call[1]['methods'])
-    
-    @patch("samcli.commands.local.lib.local_function_url_service.Flask")
-    def test_handle_cors_preflight(self, flask_mock):
-        """Test CORS preflight handling"""
-        app_mock = Mock()
-        flask_mock.return_value = app_mock
-        
-        service = LocalFunctionUrlService(
-            function_name=self.function_name,
-            function_config=self.function_config,
-            lambda_runner=self.lambda_runner,
-            port=self.port,
-            host=self.host,
-            disable_authorizer=self.disable_authorizer,
-            ssl_context=self.ssl_context,
-            stderr=self.stderr,
-            is_debugging=self.is_debugging
-        )
-        
-        response = service._handle_cors_preflight()
-        
-        self.assertEqual(response.status_code, 200)
-        self.assertIn("Access-Control-Allow-Origin", response.headers)
-        self.assertIn("Access-Control-Allow-Methods", response.headers)
-        self.assertIn("Access-Control-Allow-Headers", response.headers)
-        self.assertIn("Access-Control-Max-Age", response.headers)
-    
-    @patch("samcli.commands.local.lib.local_function_url_service.Flask")
-    def test_get_cors_headers(self, flask_mock):
-        """Test getting CORS headers from configuration"""
-        app_mock = Mock()
-        flask_mock.return_value = app_mock
-        
-        service = LocalFunctionUrlService(
-            function_name=self.function_name,
-            function_config=self.function_config,
-            lambda_runner=self.lambda_runner,
-            port=self.port,
-            host=self.host,
-            disable_authorizer=self.disable_authorizer,
-            ssl_context=self.ssl_context,
-            stderr=self.stderr,
-            is_debugging=self.is_debugging
-        )
-        
-        headers = service._get_cors_headers()
-        
-        self.assertIn("Access-Control-Allow-Origin", headers)
-        self.assertEqual(headers["Access-Control-Allow-Origin"], "*")
-    
-    @patch("samcli.commands.local.lib.local_function_url_service.Flask")
-    def test_get_cors_headers_with_credentials(self, flask_mock):
-        """Test getting CORS headers with credentials enabled"""
-        app_mock = Mock()
-        flask_mock.return_value = app_mock
-        
-        self.function_config["cors"]["AllowCredentials"] = True
-        self.function_config["cors"]["ExposeHeaders"] = ["X-Custom-Header"]
-        
-        service = LocalFunctionUrlService(
-            function_name=self.function_name,
-            function_config=self.function_config,
-            lambda_runner=self.lambda_runner,
-            port=self.port,
-            host=self.host,
-            disable_authorizer=self.disable_authorizer,
-            ssl_context=self.ssl_context,
-            stderr=self.stderr,
-            is_debugging=self.is_debugging
-        )
-        
-        headers = service._get_cors_headers()
-        
-        self.assertEqual(headers["Access-Control-Allow-Credentials"], "true")
-        self.assertEqual(headers["Access-Control-Expose-Headers"], "X-Custom-Header")
-    
-    @patch("samcli.commands.local.lib.local_function_url_service.Flask")
-    def test_get_cors_headers_no_config(self, flask_mock):
-        """Test getting CORS headers when no config exists"""
-        app_mock = Mock()
-        flask_mock.return_value = app_mock
-        
-        self.function_config["cors"] = None
-        
-        service = LocalFunctionUrlService(
-            function_name=self.function_name,
-            function_config=self.function_config,
-            lambda_runner=self.lambda_runner,
-            port=self.port,
-            host=self.host,
-            disable_authorizer=self.disable_authorizer,
-            ssl_context=self.ssl_context,
-            stderr=self.stderr,
-            is_debugging=self.is_debugging
-        )
-        
-        headers = service._get_cors_headers()
-        
-        self.assertEqual(headers, {})
-    
-    @patch("samcli.commands.local.lib.local_function_url_service.Flask")
-    def test_validate_iam_auth_with_valid_header(self, flask_mock):
-        """Test IAM auth validation with valid header"""
-        app_mock = Mock()
-        flask_mock.return_value = app_mock
-        
-        self.function_config["auth_type"] = "AWS_IAM"
-        
-        service = LocalFunctionUrlService(
-            function_name=self.function_name,
-            function_config=self.function_config,
-            lambda_runner=self.lambda_runner,
-            port=self.port,
-            host=self.host,
-            disable_authorizer=self.disable_authorizer,
-            ssl_context=self.ssl_context,
-            stderr=self.stderr,
-            is_debugging=self.is_debugging
-        )
-        
-        # Create a mock request with valid auth header
-        mock_request = Mock()
-        mock_request.headers = {"Authorization": "AWS4-HMAC-SHA256 Credential=..."}
-        
-        result = service._validate_iam_auth(mock_request)
-        
+        # Verify
         self.assertTrue(result)
+        mock_socket.bind.assert_called_once_with(("127.0.0.1", 3001))
     
-    @patch("samcli.commands.local.lib.local_function_url_service.Flask")
-    def test_validate_iam_auth_with_invalid_header(self, flask_mock):
-        """Test IAM auth validation with invalid header"""
-        app_mock = Mock()
-        flask_mock.return_value = app_mock
+    @patch("socket.socket")
+    @patch("samcli.lib.providers.sam_function_provider.SamFunctionProvider")
+    def test_is_port_available_false(self, mock_provider_class, mock_socket_class):
+        """Test port availability check when port is in use"""
+        # Setup
+        mock_function = Mock()
+        mock_function.name = "TestFunction"
+        mock_function.function_url_config = {"AuthType": "NONE"}
         
-        self.function_config["auth_type"] = "AWS_IAM"
+        mock_provider = Mock()
+        mock_provider_class.return_value = mock_provider
+        mock_provider.get_all.return_value = [mock_function]
         
         service = LocalFunctionUrlService(
-            function_name=self.function_name,
-            function_config=self.function_config,
-            lambda_runner=self.lambda_runner,
-            port=self.port,
-            host=self.host,
-            disable_authorizer=self.disable_authorizer,
-            ssl_context=self.ssl_context,
-            stderr=self.stderr,
-            is_debugging=self.is_debugging
+            lambda_invoke_context=self.invoke_context,
+            port_range=self.port_range,
+            host=self.host
         )
         
-        # Create a mock request with invalid auth header
-        mock_request = Mock()
-        mock_request.headers = {"Authorization": "Bearer token123"}
+        # Mock socket
+        mock_socket = Mock()
+        mock_socket_class.return_value.__enter__.return_value = mock_socket
+        mock_socket.bind.side_effect = OSError("Port in use")
         
-        result = service._validate_iam_auth(mock_request)
+        # Execute
+        result = service._is_port_available(3001)
         
+        # Verify
         self.assertFalse(result)
     
-    @patch("samcli.commands.local.lib.local_function_url_service.Flask")
-    def test_validate_iam_auth_with_no_header(self, flask_mock):
-        """Test IAM auth validation with no header"""
-        app_mock = Mock()
-        flask_mock.return_value = app_mock
+    @patch("samcli.commands.local.lib.local_function_url_service.FunctionUrlHandler")
+    @patch("samcli.lib.providers.sam_function_provider.SamFunctionProvider")
+    def test_start_function_service(self, mock_provider_class, mock_handler_class):
+        """Test starting an individual function service"""
+        # Setup
+        mock_function = Mock()
+        mock_function.name = "TestFunction"
+        mock_function.function_url_config = {"AuthType": "NONE"}
         
-        self.function_config["auth_type"] = "AWS_IAM"
+        mock_provider = Mock()
+        mock_provider_class.return_value = mock_provider
+        mock_provider.get_all.return_value = [mock_function]
+        
+        mock_handler = Mock()
+        mock_handler_class.return_value = mock_handler
         
         service = LocalFunctionUrlService(
-            function_name=self.function_name,
-            function_config=self.function_config,
-            lambda_runner=self.lambda_runner,
-            port=self.port,
-            host=self.host,
-            disable_authorizer=self.disable_authorizer,
-            ssl_context=self.ssl_context,
-            stderr=self.stderr,
-            is_debugging=self.is_debugging
+            lambda_invoke_context=self.invoke_context,
+            port_range=self.port_range,
+            host=self.host
         )
         
-        # Create a mock request with no auth header
-        mock_request = Mock()
-        mock_request.headers = {}
+        # Execute
+        result = service._start_function_service(
+            func_name="TestFunction",
+            func_config={"auth_type": "NONE"},
+            port=3001
+        )
         
-        result = service._validate_iam_auth(mock_request)
-        
-        self.assertFalse(result)
+        # Verify
+        self.assertEqual(result, mock_handler)
+        mock_handler_class.assert_called_once_with(
+            function_name="TestFunction",
+            function_config={"auth_type": "NONE"},
+            local_lambda_runner=self.invoke_context.local_lambda_runner,
+            port=3001,
+            host="127.0.0.1",
+            disable_authorizer=False,
+            stderr=self.invoke_context.stderr,
+            ssl_context=None
+        )
     
-    @patch("samcli.commands.local.lib.local_function_url_service.Flask")
-    def test_validate_iam_auth_with_disable_flag(self, flask_mock):
-        """Test IAM auth validation when disabled"""
-        app_mock = Mock()
-        flask_mock.return_value = app_mock
+    @patch("samcli.commands.local.lib.local_function_url_service.signal")
+    @patch("samcli.commands.local.lib.local_function_url_service.ThreadPoolExecutor")
+    @patch("samcli.commands.local.lib.local_function_url_service.FunctionUrlHandler")
+    @patch("samcli.lib.providers.sam_function_provider.SamFunctionProvider")
+    def test_start_with_no_urls(self, mock_provider_class, mock_handler_class, 
+                                 mock_executor_class, mock_signal):
+        """Test starting service when no Function URLs are configured"""
+        # Setup
+        mock_provider = Mock()
+        mock_provider_class.return_value = mock_provider
+        mock_provider.get_all.return_value = []  # No functions
         
-        self.function_config["auth_type"] = "AWS_IAM"
-        self.disable_authorizer = True
-        
-        service = LocalFunctionUrlService(
-            function_name=self.function_name,
-            function_config=self.function_config,
-            lambda_runner=self.lambda_runner,
-            port=self.port,
-            host=self.host,
-            disable_authorizer=self.disable_authorizer,
-            ssl_context=self.ssl_context,
-            stderr=self.stderr,
-            is_debugging=self.is_debugging
-        )
-        
-        # Create a mock request with no auth header
-        mock_request = Mock()
-        mock_request.headers = {}
-        
-        result = service._validate_iam_auth(mock_request)
-        
-        # Should return True when authorizer is disabled
-        self.assertTrue(result)
+        # Execute and verify
+        with self.assertRaises(NoFunctionUrlsDefined):
+            service = LocalFunctionUrlService(
+                lambda_invoke_context=self.invoke_context,
+                port_range=self.port_range,
+                host=self.host
+            )
+            service.start()
     
-    @parameterized.expand([
-        ("GET",),
-        ("POST",),
-        ("PUT",),
-        ("DELETE",),
-        ("PATCH",),
-        ("HEAD",),
-        ("OPTIONS",),
-    ])
-    @patch("samcli.commands.local.lib.local_function_url_service.Flask")
-    def test_http_methods_support(self, method, flask_mock):
-        """Test that all HTTP methods are supported"""
-        app_mock = Mock()
-        flask_mock.return_value = app_mock
+    @patch("samcli.commands.local.lib.local_function_url_service.signal")
+    @patch("samcli.commands.local.lib.local_function_url_service.ThreadPoolExecutor")
+    @patch("samcli.commands.local.lib.local_function_url_service.FunctionUrlHandler")
+    @patch("samcli.lib.providers.sam_function_provider.SamFunctionProvider")
+    def test_start_function_specific(self, mock_provider_class, mock_handler_class,
+                                     mock_executor_class, mock_signal):
+        """Test starting a specific function"""
+        # Setup
+        mock_function = Mock()
+        mock_function.name = "TestFunction"
+        mock_function.function_url_config = {"AuthType": "NONE"}
+        
+        mock_provider = Mock()
+        mock_provider_class.return_value = mock_provider
+        mock_provider.get_all.return_value = [mock_function]
+        
+        mock_handler = Mock()
+        mock_handler_class.return_value = mock_handler
+        
+        mock_executor = Mock()
+        mock_executor_class.return_value = mock_executor
         
         service = LocalFunctionUrlService(
-            function_name=self.function_name,
-            function_config=self.function_config,
-            lambda_runner=self.lambda_runner,
-            port=self.port,
-            host=self.host,
-            disable_authorizer=self.disable_authorizer,
-            ssl_context=self.ssl_context,
-            stderr=self.stderr,
-            is_debugging=self.is_debugging
+            lambda_invoke_context=self.invoke_context,
+            port_range=self.port_range,
+            host=self.host
         )
         
-        # Check that the method is in the allowed methods for both routes
-        for call in app_mock.route.call_args_list:
-            if 'methods' in call[1]:
-                self.assertIn(method, call[1]['methods'])
+        # Mock the shutdown event
+        with patch.object(service._shutdown_event, 'wait'):
+            service._shutdown_event.wait.side_effect = KeyboardInterrupt()
+            
+            # Execute
+            try:
+                service.start_function("TestFunction", 3001)
+            except KeyboardInterrupt:
+                pass
+            
+            # Verify
+            mock_handler.start.assert_called_once()
+            self.assertIn("TestFunction", service.services)
+    
+    @patch("samcli.lib.providers.sam_function_provider.SamFunctionProvider")
+    def test_start_function_not_found(self, mock_provider_class):
+        """Test starting a function that doesn't have Function URL"""
+        # Setup
+        mock_function = Mock()
+        mock_function.name = "TestFunction"
+        mock_function.function_url_config = {"AuthType": "NONE"}
+        
+        mock_provider = Mock()
+        mock_provider_class.return_value = mock_provider
+        mock_provider.get_all.return_value = [mock_function]
+        
+        service = LocalFunctionUrlService(
+            lambda_invoke_context=self.invoke_context,
+            port_range=self.port_range,
+            host=self.host
+        )
+        
+        # Execute and verify
+        with self.assertRaises(NoFunctionUrlsDefined):
+            service.start_function("NonExistentFunction", 3001)
+    
+    @patch("samcli.lib.providers.sam_function_provider.SamFunctionProvider")
+    def test_get_service_status(self, mock_provider_class):
+        """Test getting service status"""
+        # Setup
+        mock_function = Mock()
+        mock_function.name = "TestFunction"
+        mock_function.function_url_config = {"AuthType": "NONE"}
+        
+        mock_provider = Mock()
+        mock_provider_class.return_value = mock_provider
+        mock_provider.get_all.return_value = [mock_function]
+        
+        service = LocalFunctionUrlService(
+            lambda_invoke_context=self.invoke_context,
+            port_range=self.port_range,
+            host=self.host
+        )
+        
+        # Add a mock service
+        mock_service = Mock()
+        mock_service.port = 3001
+        service.services["TestFunction"] = mock_service
+        
+        # Execute
+        status = service.get_service_status()
+        
+        # Verify
+        self.assertIn("TestFunction", status)
+        self.assertEqual(status["TestFunction"]["port"], 3001)
+        self.assertEqual(status["TestFunction"]["auth_type"], "NONE")
+    
+    @patch("samcli.lib.providers.sam_function_provider.SamFunctionProvider")
+    def test_shutdown_services(self, mock_provider_class):
+        """Test shutting down services"""
+        # Setup
+        mock_function = Mock()
+        mock_function.name = "TestFunction"
+        mock_function.function_url_config = {"AuthType": "NONE"}
+        
+        mock_provider = Mock()
+        mock_provider_class.return_value = mock_provider
+        mock_provider.get_all.return_value = [mock_function]
+        
+        service = LocalFunctionUrlService(
+            lambda_invoke_context=self.invoke_context,
+            port_range=self.port_range,
+            host=self.host
+        )
+        
+        # Add mock services
+        mock_service1 = Mock()
+        mock_service2 = Mock()
+        service.services = {
+            "Function1": mock_service1,
+            "Function2": mock_service2
+        }
+        
+        # Add mock executor
+        mock_executor = Mock()
+        service.executor = mock_executor
+        
+        # Execute
+        service._shutdown_services()
+        
+        # Verify
+        mock_service1.stop.assert_called_once()
+        mock_service2.stop.assert_called_once()
+        mock_executor.shutdown.assert_called_once_with(wait=True)
 
 
 if __name__ == "__main__":

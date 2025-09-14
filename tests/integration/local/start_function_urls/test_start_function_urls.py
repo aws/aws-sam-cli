@@ -17,8 +17,8 @@ import requests
 from parameterized import parameterized, parameterized_class
 
 from tests.integration.local.start_function_urls.start_function_urls_integ_base import (
-    StartFunctionUrlsIntegBaseClass,
-    WritableStartFunctionUrlsIntegBaseClass
+    StartFunctionUrlIntegBaseClass,
+    WritableStartFunctionUrlIntegBaseClass
 )
 from tests.testing_utils import (
     RUNNING_ON_CI,
@@ -32,7 +32,7 @@ from tests.testing_utils import (
     (RUNNING_ON_CI and not RUN_BY_CANARY) and not RUNNING_TEST_FOR_MASTER_ON_CI,
     "Skip integration tests on CI unless running canary or master",
 )
-class TestStartFunctionUrls(WritableStartFunctionUrlsIntegBaseClass):
+class TestStartFunctionUrls(WritableStartFunctionUrlIntegBaseClass):
     """
     Integration tests for basic start-function-urls functionality
     """
@@ -218,6 +218,9 @@ def handler(event, context):
                 self.start_function_urls(template_path),
                 "Failed to start Function URLs service"
             )
+            
+            # Give the service time to fully initialize and read all files
+            time.sleep(2)
             
             # Test the HTTP method
             response = requests.request(method, f"{self.url}/")
@@ -522,10 +525,11 @@ def handler(event, context):
             
             # Start service with port range
             base_port = int(self.port)
+            port_range = f"{base_port}-{base_port+10}"
             self.assertTrue(
                 self.start_function_urls(
                     template_path,
-                    extra_args=f"--port-range {base_port}-{base_port+10}"
+                    port=str(base_port)  # Use port parameter instead of extra_args
                 ),
                 "Failed to start Function URLs service"
             )

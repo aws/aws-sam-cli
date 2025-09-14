@@ -63,11 +63,12 @@ class TestCli(TestCase):
         process_image_mock.return_value = {}
         
         from samcli.commands.local.start_function_urls.cli import do_cli as start_function_urls_cli
-        from samcli.commands.local.lib.function_url_manager import FunctionUrlManager, NoFunctionUrlsDefined
+        from samcli.commands.local.lib.local_function_url_service import LocalFunctionUrlService
+        from samcli.commands.local.lib.exceptions import NoFunctionUrlsDefined
         
-        with patch("samcli.commands.local.lib.function_url_manager.FunctionUrlManager") as function_url_manager_mock:
+        with patch("samcli.commands.local.lib.local_function_url_service.LocalFunctionUrlService") as service_mock:
             manager_mock = Mock()
-            function_url_manager_mock.return_value = manager_mock
+            service_mock.return_value = manager_mock
         
             self.call_cli()
         
@@ -98,26 +99,25 @@ class TestCli(TestCase):
             no_mem_limit=self.no_mem_limit,
             )
         
-            function_url_manager_mock.assert_called_with(
-                invoke_context=context_mock,
-                host=self.host,
+            service_mock.assert_called_with(
+                lambda_invoke_context=context_mock,
                 port_range=(3001, 3010),
-                disable_authorizer=self.disable_authorizer,
-                ssl_context=None
+                host=self.host,
+                disable_authorizer=self.disable_authorizer
             )
         
             manager_mock.start_all.assert_called_with()
 
     @patch("samcli.commands.local.start_function_urls.cli.process_image_options")
-    @patch("samcli.commands.local.lib.function_url_manager.FunctionUrlManager")
+    @patch("samcli.commands.local.lib.local_function_url_service.LocalFunctionUrlService")
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
-    def test_cli_must_start_specific_function_when_provided(self, invoke_context_mock, function_url_manager_mock, process_image_mock):
+    def test_cli_must_start_specific_function_when_provided(self, invoke_context_mock, service_mock, process_image_mock):
         # Mock the __enter__ method to return a object inside a context manager
         context_mock = Mock()
         invoke_context_mock.return_value.__enter__.return_value = context_mock
         
         manager_mock = Mock()
-        function_url_manager_mock.return_value = manager_mock
+        service_mock.return_value = manager_mock
         
         process_image_mock.return_value = {}
         
@@ -131,20 +131,20 @@ class TestCli(TestCase):
         manager_mock.start_function.assert_called_with("MyFunction", 3005)
 
     @patch("samcli.commands.local.start_function_urls.cli.process_image_options")
-    @patch("samcli.commands.local.lib.function_url_manager.FunctionUrlManager")
+    @patch("samcli.commands.local.lib.local_function_url_service.LocalFunctionUrlService")
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
-    def test_must_raise_if_no_function_urls_defined(self, invoke_context_mock, function_url_manager_mock, process_image_mock):
+    def test_must_raise_if_no_function_urls_defined(self, invoke_context_mock, service_mock, process_image_mock):
         # Mock the __enter__ method to return a object inside a context manager
         context_mock = Mock()
         invoke_context_mock.return_value.__enter__.return_value = context_mock
         
         manager_mock = Mock()
-        function_url_manager_mock.return_value = manager_mock
+        service_mock.return_value = manager_mock
         
         process_image_mock.return_value = {}
         
         from samcli.commands.local.start_function_urls.cli import do_cli as start_function_urls_cli
-        from samcli.commands.local.lib.function_url_manager import NoFunctionUrlsDefined
+        from samcli.commands.local.lib.exceptions import NoFunctionUrlsDefined
         
         manager_mock.start_all.side_effect = NoFunctionUrlsDefined("no function urls")
         
@@ -195,19 +195,18 @@ class TestCli(TestCase):
         # Test with single port (no dash)
         self.port_range = "3001"
         
-        with patch("samcli.commands.local.lib.function_url_manager.FunctionUrlManager") as function_url_manager_mock:
+        with patch("samcli.commands.local.lib.local_function_url_service.LocalFunctionUrlService") as service_mock:
             manager_mock = Mock()
-            function_url_manager_mock.return_value = manager_mock
+            service_mock.return_value = manager_mock
             
             self.call_cli()
             
             # Should parse as 3001-3011 (single port + 10)
-            function_url_manager_mock.assert_called_with(
-                invoke_context=context_mock,
+            service_mock.assert_called_with(
+                lambda_invoke_context=context_mock,
                 host=self.host,
                 port_range=(3001, 3011),
-                disable_authorizer=self.disable_authorizer,
-                ssl_context=None
+                disable_authorizer=self.disable_authorizer
             )
 
     @patch("samcli.commands.local.start_function_urls.cli.process_image_options")
@@ -228,16 +227,16 @@ class TestCli(TestCase):
         self.assertEqual(context.exception.wrapped_from, "DockerIsNotReachableException")
 
     @patch("samcli.commands.local.start_function_urls.cli.process_image_options")
-    @patch("samcli.commands.local.lib.function_url_manager.FunctionUrlManager")
+    @patch("samcli.commands.local.lib.local_function_url_service.LocalFunctionUrlService")
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
-    def test_cli_with_keyboard_interrupt(self, invoke_context_mock, function_url_manager_mock, process_image_mock):
+    def test_cli_with_keyboard_interrupt(self, invoke_context_mock, service_mock, process_image_mock):
         """Test CLI handles KeyboardInterrupt gracefully"""
         context_mock = Mock()
         invoke_context_mock.return_value.__enter__.return_value = context_mock
         process_image_mock.return_value = {}
         
         manager_mock = Mock()
-        function_url_manager_mock.return_value = manager_mock
+        service_mock.return_value = manager_mock
         manager_mock.start_all.side_effect = KeyboardInterrupt()
         
         from samcli.commands.local.start_function_urls.cli import do_cli as start_function_urls_cli
@@ -249,16 +248,16 @@ class TestCli(TestCase):
         manager_mock.start_all.assert_called_once()
 
     @patch("samcli.commands.local.start_function_urls.cli.process_image_options")
-    @patch("samcli.commands.local.lib.function_url_manager.FunctionUrlManager")
+    @patch("samcli.commands.local.lib.local_function_url_service.LocalFunctionUrlService")
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
-    def test_cli_with_generic_exception(self, invoke_context_mock, function_url_manager_mock, process_image_mock):
+    def test_cli_with_generic_exception(self, invoke_context_mock, service_mock, process_image_mock):
         """Test CLI handles generic exceptions"""
         context_mock = Mock()
         invoke_context_mock.return_value.__enter__.return_value = context_mock
         process_image_mock.return_value = {}
         
         manager_mock = Mock()
-        function_url_manager_mock.return_value = manager_mock
+        service_mock.return_value = manager_mock
         manager_mock.start_all.side_effect = RuntimeError("Something went wrong")
         
         from samcli.commands.local.start_function_urls.cli import do_cli as start_function_urls_cli
@@ -283,9 +282,9 @@ class TestCli(TestCase):
         # Set ctx to None to test the None check
         self.ctx_mock = None
         
-        with patch("samcli.commands.local.lib.function_url_manager.FunctionUrlManager") as function_url_manager_mock:
+        with patch("samcli.commands.local.lib.local_function_url_service.LocalFunctionUrlService") as service_mock:
             manager_mock = Mock()
-            function_url_manager_mock.return_value = manager_mock
+            service_mock.return_value = manager_mock
             
             self.call_cli()
             

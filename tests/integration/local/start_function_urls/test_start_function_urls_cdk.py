@@ -5,14 +5,15 @@ Integration tests for sam local start-function-urls command with CDK templates
 import json
 import os
 import tempfile
+import time
 from unittest import TestCase, skipIf
 
 import requests
 from parameterized import parameterized
 
 from tests.integration.local.start_function_urls.start_function_urls_integ_base import (
-    StartFunctionUrlsIntegBaseClass,
-    WritableStartFunctionUrlsIntegBaseClass
+    StartFunctionUrlIntegBaseClass,
+    WritableStartFunctionUrlIntegBaseClass
 )
 from tests.testing_utils import (
     RUNNING_ON_CI,
@@ -25,7 +26,7 @@ from tests.testing_utils import (
     (RUNNING_ON_CI and not RUN_BY_CANARY) and not RUNNING_TEST_FOR_MASTER_ON_CI,
     "Skip integration tests on CI unless running canary or master",
 )
-class TestStartFunctionUrlsCDK(WritableStartFunctionUrlsIntegBaseClass):
+class TestStartFunctionUrlsCDK(WritableStartFunctionUrlIntegBaseClass):
     """
     Integration tests for start-function-urls with CDK templates
     """
@@ -177,6 +178,9 @@ def handler(event, context):
                 self.start_function_urls(template_path),
                 f"Failed to start Function URLs service with CDK {auth_type} auth template"
             )
+            
+            # Give the service time to fully initialize and read all files
+            time.sleep(2)
             
             # Test request
             response = requests.get(f"{self.url}/")
@@ -341,6 +345,9 @@ def handler(event, context):
                 self.start_function_urls(template_path),
                 "Failed to start Function URLs service with CDK environment variables"
             )
+            
+            # Give the service time to fully initialize and read all files
+            time.sleep(2)
             
             # Test environment variables
             response = requests.get(f"{self.url}/")
