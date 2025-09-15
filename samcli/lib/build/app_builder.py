@@ -829,6 +829,17 @@ class ApplicationBuilder:
         if language == "rust" and "Binary" in build_props:
             options = options if options else {}
             options["artifact_executable_name"] = build_props["Binary"]
+
+        if language == "python" and "ParentPackageMode" in build_props:
+            options = options if options else {}
+            package_root_mode = build_props["ParentPackageMode"]
+            if package_root_mode == "auto":
+                options["parent_python_packages"] = ApplicationBuilder._infer_parent_python_packages(
+                    handler, source_code_path
+                )
+            elif package_root_mode == "explicit":
+                options["parent_python_packages"] = build_props.get("ParentPackages", None)
+
         return options
 
     @staticmethod
@@ -1045,3 +1056,51 @@ class ApplicationBuilder:
             raise ValueError(msg)
 
         return cast(Dict, response)
+
+    @staticmethod
+    def _infer_parent_python_packages(handler: Optional[str], source_code_path: Optional[str]) -> Optional[str]:
+        """
+        Infers the parent python packages from the handler and source code path. The parent packages are the
+        packages are the union of the handler's parent packages and the source code path's parent packages.
+
+        Parameters
+        ----------
+        handler: str
+            The handler value of the function
+        source_code_path: str
+            The directory path to the source code of the function
+        Returns
+        -------
+        str
+
+        """
+        MODULE_PART_COUNT = 2  # file name and function name
+        if not handler or not source_code_path:
+            LOG.warning(
+                "Both function Handler and CodeUri must be provided when using PackageRootMode 'auto'."
+                + "Continuing without parent packages."
+            )
+            return None
+        if handler.count(".") < MODULE_PART_COUNT:
+            # Handler does not have any parent packages
+            LOG.warning("Handler '%s' does not have any parent python packages", handler)
+            return None
+
+        handler_parts = handler.split(".")[0:-MODULE_PART_COUNT]
+        code_path_parts = list(pathlib.Path(source_code_path).parts)
+
+        # Remove parts from the start of the path until we find the first part of the handler
+        while len(code_path_parts) > 0 and code_path_parts[0] != handler_parts[0]:
+            code_path_parts.pop(0)
+
+        if len(code_path_parts) > 0:
+            parent_packages = ".".join(code_path_parts[0 : len(handler_parts)])
+            LOG.debug("Inferred parent python packages '%s'", parent_packages)
+            return parent_packages
+        LOG.warning(
+            "Could not infer parent python packages from Handler '%s' and CodeUri '%s'."
+            + "Continuing without parent packages.",
+            handler,
+            source_code_path,
+        )
+        return None
