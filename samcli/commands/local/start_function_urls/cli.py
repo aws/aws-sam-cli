@@ -3,16 +3,14 @@ CLI command for "local start-function-urls" command
 """
 
 import logging
+
 import click
 
-from samcli.cli.cli_config_file import ConfigProvider, configuration_option, save_params_option
+from samcli.cli.cli_config_file import ConfigProvider, configuration_option
 from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
 from samcli.cli.main import common_options as cli_framework_options
 from samcli.commands._utils.experimental import force_experimental
 from samcli.commands._utils.option_value_processor import process_image_options
-from samcli.commands._utils.options import (
-    generate_next_command_recommendation,
-)
 from samcli.commands.local.cli_common.options import (
     invoke_common_options,
     local_common_options,
@@ -38,6 +36,7 @@ DESCRIPTION = """
   each Function URL has its own unique domain. This port-based approach maintains production
   parity while enabling local testing.
 """
+
 
 @click.command(
     "start-function-urls",
@@ -185,28 +184,26 @@ def do_cli(
     Implementation of the ``cli`` method
     """
     from samcli.commands.exceptions import UserException
-    from samcli.commands.local.cli_common.invoke_context import InvokeContext, DockerIsNotReachableException
+    from samcli.commands.local.cli_common.invoke_context import DockerIsNotReachableException, InvokeContext
+    from samcli.commands.local.lib.exceptions import NoFunctionUrlsDefined, OverridesNotWellDefinedError
     from samcli.commands.local.lib.local_function_url_service import LocalFunctionUrlService
-    from samcli.commands.local.lib.exceptions import NoFunctionUrlsDefined
-    from samcli.commands._utils.option_value_processor import process_image_options
     from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
-    from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
-    
+
     LOG.debug("local start-function-urls command is called")
-    
+
     processed_invoke_images = process_image_options(invoke_image)
-    
+
     # Parse port range
     if "-" in port_range:
         start_port, end_port = map(int, port_range.split("-"))
     else:
         start_port = int(port_range)
         end_port = start_port + 10
-    
+
     try:
         with InvokeContext(
             template_file=template,
-            function_identifier=None,  
+            function_identifier=None,
             env_vars_file=env_vars,
             docker_volume_basedir=docker_volume_basedir,
             docker_network=docker_network,
@@ -235,9 +232,9 @@ def do_cli(
                 lambda_invoke_context=invoke_context,
                 port_range=(start_port, end_port),
                 host=host,
-                disable_authorizer=disable_authorizer
+                disable_authorizer=disable_authorizer,
             )
-            
+
             # Start the service
             if function_name and port:
                 # Start specific function on specific port
@@ -245,7 +242,7 @@ def do_cli(
             else:
                 # Start all functions
                 service.start_all()
-                
+
     except NoFunctionUrlsDefined as ex:
         raise UserException(str(ex)) from ex
     except DockerIsNotReachableException as ex:
@@ -256,6 +253,5 @@ def do_cli(
         LOG.info("Keyboard interrupt received")
     except Exception as ex:
         raise UserException(
-            f"Error starting Function URL services: {str(ex)}",
-            wrapped_from=ex.__class__.__name__
+            f"Error starting Function URL services: {str(ex)}", wrapped_from=ex.__class__.__name__
         ) from ex

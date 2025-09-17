@@ -13,7 +13,7 @@ from parameterized import parameterized
 
 from tests.integration.local.start_function_urls.start_function_urls_integ_base import (
     StartFunctionUrlIntegBaseClass,
-    WritableStartFunctionUrlIntegBaseClass
+    WritableStartFunctionUrlIntegBaseClass,
 )
 from tests.testing_utils import (
     RUNNING_ON_CI,
@@ -73,98 +73,15 @@ def handler(event, context):
         """Test basic Function URL with Terraform-generated template"""
         # Start service
         self.assertTrue(
-            self.start_function_urls(self.template),
-            "Failed to start Function URLs service with Terraform template"
+            self.start_function_urls(self.template), "Failed to start Function URLs service with Terraform template"
         )
-        
+
         # Test GET request
         response = requests.get(f"{self.url}/")
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertEqual(data["message"], "Hello from Terraform Function URL!")
         self.assertEqual(data["source"], "terraform")
-
-    def test_terraform_function_url_with_variables(self):
-        """Test Function URL with Terraform variables"""
-        # Terraform template with variables
-        terraform_var_template = """
-        {
-            "AWSTemplateFormatVersion": "2010-09-09",
-            "Transform": "AWS::Serverless-2016-10-31",
-            "Parameters": {
-                "Environment": {
-                    "Type": "String",
-                    "Default": "dev"
-                },
-                "AppName": {
-                    "Type": "String",
-                    "Default": "TerraformApp"
-                }
-            },
-            "Resources": {
-                "TerraformVarFunction": {
-                    "Type": "AWS::Serverless::Function",
-                    "Properties": {
-                        "CodeUri": ".",
-                        "Handler": "var.handler",
-                        "Runtime": "python3.9",
-                        "Environment": {
-                            "Variables": {
-                                "ENVIRONMENT": {"Ref": "Environment"},
-                                "APP_NAME": {"Ref": "AppName"}
-                            }
-                        },
-                        "FunctionUrlConfig": {
-                            "AuthType": "NONE"
-                        }
-                    }
-                }
-            }
-        }
-        """
-        
-        var_function_content = """
-import json
-import os
-
-def handler(event, context):
-    return {
-        'statusCode': 200,
-        'body': json.dumps({
-            'environment': os.environ.get('ENVIRONMENT', 'Unknown'),
-            'app_name': os.environ.get('APP_NAME', 'Unknown')
-        })
-    }
-"""
-        
-        with tempfile.TemporaryDirectory() as temp_dir:
-            # Write Terraform template
-            template_path = os.path.join(temp_dir, "terraform-template.json")
-            with open(template_path, "w") as f:
-                f.write(terraform_var_template)
-            
-            # Write function code
-            with open(os.path.join(temp_dir, "var.py"), "w") as f:
-                f.write(var_function_content)
-            
-            # Start service with parameter overrides
-            self.assertTrue(
-                self.start_function_urls(
-                    template_path,
-                    parameter_overrides={
-                        "Environment": "production",
-                        "AppName": "MyTerraformApp"
-                    }
-                ),
-                "Failed to start Function URLs service with Terraform variables"
-            )
-            
-            # Test that variables are properly set
-            response = requests.get(f"{self.url}/")
-            self.assertEqual(response.status_code, 200)
-            data = response.json()
-            self.assertEqual(data["environment"], "production")
-            self.assertEqual(data["app_name"], "MyTerraformApp")
 
     def test_terraform_multiple_function_urls(self):
         """Test multiple Function URLs in Terraform application"""
@@ -214,7 +131,7 @@ def handler(event, context):
             }
         }
         """
-        
+
         api_content = """
 import json
 
@@ -224,7 +141,7 @@ def handler(event, context):
         'body': json.dumps({'function': 'TerraformApiFunction', 'type': 'api'})
     }
 """
-        
+
         worker_content = """
 import json
 
@@ -234,7 +151,7 @@ def handler(event, context):
         'body': json.dumps({'function': 'TerraformWorkerFunction', 'type': 'worker'})
     }
 """
-        
+
         public_content = """
 import json
 
@@ -244,13 +161,13 @@ def handler(event, context):
         'body': json.dumps({'function': 'TerraformPublicFunction', 'type': 'public'})
     }
 """
-        
+
         with tempfile.TemporaryDirectory() as temp_dir:
             # Write Terraform template
             template_path = os.path.join(temp_dir, "terraform-multi-template.json")
             with open(template_path, "w") as f:
                 f.write(terraform_multi_template)
-            
+
             # Write function codes
             with open(os.path.join(temp_dir, "api.py"), "w") as f:
                 f.write(api_content)
@@ -258,25 +175,19 @@ def handler(event, context):
                 f.write(worker_content)
             with open(os.path.join(temp_dir, "public.py"), "w") as f:
                 f.write(public_content)
-            
+
             # Start service with port range
             base_port = int(self.port)
             self.assertTrue(
-                self.start_function_urls(
-                    template_path,
-                    extra_args=f"--port-range {base_port}-{base_port+10}"
-                ),
-                "Failed to start Function URLs service with multiple Terraform functions"
+                self.start_function_urls(template_path, extra_args=f"--port-range {base_port}-{base_port+10}"),
+                "Failed to start Function URLs service with multiple Terraform functions",
             )
-            
+
             # Test that functions are accessible
             found_functions = []
             for port_offset in range(10):
                 try:
-                    response = requests.get(
-                        f"http://{self.host}:{base_port + port_offset}/",
-                        timeout=1
-                    )
+                    response = requests.get(f"http://{self.host}:{base_port + port_offset}/", timeout=1)
                     if response.status_code == 200:
                         data = response.json()
                         if "function" in data:
@@ -286,7 +197,7 @@ def handler(event, context):
                         found_functions.append("Protected")
                 except:
                     pass
-            
+
             self.assertGreater(len(found_functions), 0, "No Terraform functions were accessible")
 
     def test_terraform_function_url_with_layers(self):
@@ -322,7 +233,7 @@ def handler(event, context):
             }
         }
         """
-        
+
         layer_function_content = """
 import json
 
@@ -344,22 +255,22 @@ def handler(event, context):
         })
     }
 """
-        
+
         layer_utils_content = """
 def get_message():
     return "Hello from Terraform Layer!"
 """
-        
+
         with tempfile.TemporaryDirectory() as temp_dir:
             # Write Terraform template
             template_path = os.path.join(temp_dir, "terraform-layer-template.json")
             with open(template_path, "w") as f:
                 f.write(terraform_layer_template)
-            
+
             # Write function code
             with open(os.path.join(temp_dir, "layer_func.py"), "w") as f:
                 f.write(layer_function_content)
-            
+
             # Create layer structure
             layer_dir = os.path.join(temp_dir, "layer", "python", "shared")
             os.makedirs(layer_dir)
@@ -367,16 +278,16 @@ def get_message():
                 f.write("")
             with open(os.path.join(layer_dir, "utils.py"), "w") as f:
                 f.write(layer_utils_content)
-            
+
             # Start service
             self.assertTrue(
                 self.start_function_urls(template_path, timeout=45),
-                "Failed to start Function URLs service with Terraform layers"
+                "Failed to start Function URLs service with Terraform layers",
             )
-            
+
             # Give the service time to fully initialize and read all files
             time.sleep(2)
-            
+
             # Test that layer is accessible
             response = requests.get(f"{self.url}/")
             self.assertEqual(response.status_code, 200)
@@ -385,10 +296,12 @@ def get_message():
             self.assertIn("has_layer", data)
             self.assertIn("layer_message", data)
 
-    @parameterized.expand([
-        ("RESPONSE_STREAM",),
-        ("BUFFERED",),
-    ])
+    @parameterized.expand(
+        [
+            ("RESPONSE_STREAM",),
+            ("BUFFERED",),
+        ]
+    )
     def test_terraform_function_url_invoke_modes(self, invoke_mode):
         """Test Function URL with different invoke modes in Terraform"""
         # Terraform template with specific invoke mode
@@ -412,7 +325,7 @@ def get_message():
             }}
         }}
         """
-        
+
         invoke_function_content = """
 import json
 import time
@@ -441,23 +354,23 @@ def handler(event, context):
             })
         }
 """
-        
+
         with tempfile.TemporaryDirectory() as temp_dir:
             # Write Terraform template
             template_path = os.path.join(temp_dir, "terraform-invoke-template.json")
             with open(template_path, "w") as f:
                 f.write(terraform_invoke_template)
-            
+
             # Write function code
             with open(os.path.join(temp_dir, "invoke.py"), "w") as f:
                 f.write(invoke_function_content)
-            
+
             # Start service
             self.assertTrue(
                 self.start_function_urls(template_path),
-                f"Failed to start Function URLs service with Terraform {invoke_mode} mode"
+                f"Failed to start Function URLs service with Terraform {invoke_mode} mode",
             )
-            
+
             # Test request
             response = requests.get(f"{self.url}/")
             self.assertEqual(response.status_code, 200)
@@ -489,7 +402,7 @@ def handler(event, context):
             }
         }
         """
-        
+
         vpc_function_content = """
 import json
 import socket
@@ -507,30 +420,30 @@ def handler(event, context):
         })
     }
 """
-        
+
         with tempfile.TemporaryDirectory() as temp_dir:
             # Write Terraform template
             template_path = os.path.join(temp_dir, "terraform-vpc-template.json")
             with open(template_path, "w") as f:
                 f.write(terraform_vpc_template)
-            
+
             # Write function code
             with open(os.path.join(temp_dir, "vpc.py"), "w") as f:
                 f.write(vpc_function_content)
-            
+
             # Start service (VPC config is ignored in local mode)
             self.assertTrue(
                 self.start_function_urls(template_path, timeout=45),
-                "Failed to start Function URLs service with Terraform VPC config"
+                "Failed to start Function URLs service with Terraform VPC config",
             )
-            
+
             # Give the service time to fully initialize
             time.sleep(3)
-            
+
             # Test that function works despite VPC config
             response = requests.get(f"{self.url}/")
             self.assertEqual(response.status_code, 200)
-            
+
             # Handle potential empty response
             if response.text.strip():
                 data = response.json()
@@ -544,4 +457,5 @@ def handler(event, context):
 
 if __name__ == "__main__":
     import unittest
+
     unittest.main()

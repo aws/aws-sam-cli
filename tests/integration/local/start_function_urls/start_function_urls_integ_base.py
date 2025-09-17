@@ -44,6 +44,7 @@ class StartFunctionUrlIntegBaseClass(TestCase):
     """
     Base class for start-function-urls integration tests
     """
+
     template: Optional[str] = None
     container_mode: Optional[str] = None
     parameter_overrides: Optional[Dict[str, str]] = None
@@ -67,8 +68,8 @@ class StartFunctionUrlIntegBaseClass(TestCase):
         # This is the directory for tests/integration which will be used to find the testdata
         # files for integ tests
         cls.integration_dir = str(Path(__file__).resolve().parents[2])
-        
-        if hasattr(cls, 'template_path'):
+
+        if hasattr(cls, "template_path"):
             cls.template = cls.integration_dir + cls.template_path
 
         if cls.binary_data_file:
@@ -84,7 +85,7 @@ class StartFunctionUrlIntegBaseClass(TestCase):
                 cls.docker_client.api.remove_container(container, force=True)
             except APIError as ex:
                 LOG.error("Failed to remove container %s", container, exc_info=ex)
-        
+
         # Start the function URLs service
         cls.start_function_urls_with_retry()
 
@@ -178,15 +179,15 @@ class StartFunctionUrlIntegBaseClass(TestCase):
         """Tear down test class"""
         # After all the tests run, we need to kill the start-function-urls process
         cls.stop_reading_thread = True
-        
+
         # Stop the reading threads first
-        if hasattr(cls, 'read_threading'):
+        if hasattr(cls, "read_threading"):
             cls.read_threading.join(timeout=1)
-        if hasattr(cls, 'read_threading2'):
+        if hasattr(cls, "read_threading2"):
             cls.read_threading2.join(timeout=1)
-            
+
         try:
-            if hasattr(cls, 'start_function_urls_process'):
+            if hasattr(cls, "start_function_urls_process"):
                 # First try to terminate gracefully
                 cls.start_function_urls_process.terminate()
                 try:
@@ -248,7 +249,7 @@ class StartFunctionUrlIntegBaseClass(TestCase):
     ):
         """
         Start the function URLs service in a background thread
-        
+
         Parameters
         ----------
         template_path : str
@@ -300,8 +301,9 @@ class StartFunctionUrlIntegBaseClass(TestCase):
 
         def run_command():
             import os
+
             env = os.environ.copy()
-            env['SAM_CLI_BETA_FEATURES'] = '1'
+            env["SAM_CLI_BETA_FEATURES"] = "1"
             self.process = run_command_with_input(command_list, b"y\n", env=env)
 
         self.thread = threading.Thread(target=run_command)
@@ -311,7 +313,7 @@ class StartFunctionUrlIntegBaseClass(TestCase):
         start_time = time.time()
         port_range_start = int(port_to_use)
         port_range_end = port_range_start + 10
-        
+
         while time.time() - start_time < timeout:
             # Try all ports in the range
             for test_port in range(port_range_start, port_range_end + 1):
@@ -333,6 +335,7 @@ class WritableStartFunctionUrlIntegBaseClass(StartFunctionUrlIntegBaseClass):
     """
     Base class for start-function-urls integration tests with writable templates
     """
+
     temp_path: Optional[str] = None
     template_path: Optional[str] = None
     code_path: Optional[str] = None
@@ -347,7 +350,7 @@ class WritableStartFunctionUrlIntegBaseClass(StartFunctionUrlIntegBaseClass):
         """Set up test class with writable templates"""
         # Set up the integration directory first
         cls.integration_dir = str(Path(__file__).resolve().parents[2])
-        
+
         # Create temporary directory for test files
         cls.temp_path = str(uuid.uuid4()).replace("-", "")[:10]
         working_dir = str(Path(cls.integration_dir).resolve().joinpath(cls.temp_path))
@@ -355,7 +358,7 @@ class WritableStartFunctionUrlIntegBaseClass(StartFunctionUrlIntegBaseClass):
             shutil.rmtree(working_dir, ignore_errors=True)
         os.mkdir(working_dir)
         os.mkdir(Path(cls.integration_dir).resolve().joinpath(cls.temp_path).joinpath("dir"))
-        
+
         # Set up file paths
         cls.template_path = f"/{cls.temp_path}/template.yaml"
         cls.code_path = f"/{cls.temp_path}/main.py"

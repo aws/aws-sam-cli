@@ -18,7 +18,7 @@ from parameterized import parameterized, parameterized_class
 
 from tests.integration.local.start_function_urls.start_function_urls_integ_base import (
     StartFunctionUrlIntegBaseClass,
-    WritableStartFunctionUrlIntegBaseClass
+    WritableStartFunctionUrlIntegBaseClass,
 )
 from tests.testing_utils import (
     RUNNING_ON_CI,
@@ -36,7 +36,7 @@ class TestStartFunctionUrls(WritableStartFunctionUrlIntegBaseClass):
     """
     Integration tests for basic start-function-urls functionality
     """
-    
+
     template_content = """
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
@@ -51,7 +51,7 @@ Resources:
       FunctionUrlConfig:
         AuthType: NONE
 """
-    
+
     code_content = """
 import json
 
@@ -67,13 +67,12 @@ def handler(event, context):
         # The service is already started by the base class in setUpClass
         # Use the class variable port that was set during setUpClass
         base_url = f"http://127.0.0.1:{self.__class__.port}"
-        
+
         # Test GET request
         response = requests.get(f"{base_url}/")
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertEqual(data["message"], "Hello from Function URL!")
-
 
     def test_function_url_with_post_payload(self):
         """Test POST request with JSON payload to a Function URL"""
@@ -91,7 +90,7 @@ Resources:
       FunctionUrlConfig:
         AuthType: NONE
 """
-        
+
         function_content = """
 import json
 
@@ -117,46 +116,41 @@ def handler(event, context):
         })
     }
 """
-        
+
         with tempfile.TemporaryDirectory() as temp_dir:
             # Create template
             template_path = os.path.join(temp_dir, "template.yaml")
             with open(template_path, "w") as f:
                 f.write(template_content)
-            
+
             # Create function
             functions_dir = os.path.join(temp_dir, "functions")
             os.makedirs(functions_dir)
             with open(os.path.join(functions_dir, "echo.py"), "w") as f:
                 f.write(function_content)
-            
+
             # Start service
-            self.assertTrue(
-                self.start_function_urls(template_path),
-                "Failed to start Function URLs service"
-            )
-            
+            self.assertTrue(self.start_function_urls(template_path), "Failed to start Function URLs service")
+
             # Test POST request with JSON payload
             test_payload = {"name": "test", "value": 123, "nested": {"key": "value"}}
-            response = requests.post(
-                f"{self.url}/",
-                json=test_payload,
-                headers={"Content-Type": "application/json"}
-            )
+            response = requests.post(f"{self.url}/", json=test_payload, headers={"Content-Type": "application/json"})
             self.assertEqual(response.status_code, 200)
             data = response.json()
             self.assertEqual(data["received"], test_payload)
             self.assertEqual(data["method"], "POST")
 
-    @parameterized.expand([
-        ("GET",),
-        ("POST",),
-        ("PUT",),
-        ("DELETE",),
-        ("PATCH",),
-        ("HEAD",),
-        ("OPTIONS",),
-    ])
+    @parameterized.expand(
+        [
+            ("GET",),
+            ("POST",),
+            ("PUT",),
+            ("DELETE",),
+            ("PATCH",),
+            ("HEAD",),
+            ("OPTIONS",),
+        ]
+    )
     def test_function_url_http_methods(self, method):
         """Test different HTTP methods with Function URLs"""
         template_content = """
@@ -173,7 +167,7 @@ Resources:
       FunctionUrlConfig:
         AuthType: NONE
 """
-        
+
         function_content = """
 import json
 
@@ -198,7 +192,7 @@ def handler(event, context):
         'body': json.dumps(response_body)
     }
 """
-        
+
         # Create temporary directory manually to control its lifecycle
         temp_dir = tempfile.mkdtemp()
         try:
@@ -206,26 +200,23 @@ def handler(event, context):
             template_path = os.path.join(temp_dir, "template.yaml")
             with open(template_path, "w") as f:
                 f.write(template_content)
-            
+
             # Create function
             functions_dir = os.path.join(temp_dir, "functions")
             os.makedirs(functions_dir)
             with open(os.path.join(functions_dir, "method_test.py"), "w") as f:
                 f.write(function_content)
-            
+
             # Start service
-            self.assertTrue(
-                self.start_function_urls(template_path),
-                "Failed to start Function URLs service"
-            )
-            
+            self.assertTrue(self.start_function_urls(template_path), "Failed to start Function URLs service")
+
             # Give the service time to fully initialize and read all files
             time.sleep(2)
-            
+
             # Test the HTTP method
             response = requests.request(method, f"{self.url}/")
             self.assertEqual(response.status_code, 200)
-            
+
             # HEAD and OPTIONS requests may not have a body
             if method not in ["HEAD", "OPTIONS"]:
                 data = response.json()
@@ -264,7 +255,7 @@ Resources:
             - X-Custom-Header
           MaxAge: 300
 """
-        
+
         function_content = """
 import json
 
@@ -274,33 +265,30 @@ def handler(event, context):
         'body': json.dumps({'message': 'CORS test'})
     }
 """
-        
+
         with tempfile.TemporaryDirectory() as temp_dir:
             # Create template
             template_path = os.path.join(temp_dir, "template.yaml")
             with open(template_path, "w") as f:
                 f.write(template_content)
-            
+
             # Create function
             functions_dir = os.path.join(temp_dir, "functions")
             os.makedirs(functions_dir)
             with open(os.path.join(functions_dir, "cors.py"), "w") as f:
                 f.write(function_content)
-            
+
             # Start service
-            self.assertTrue(
-                self.start_function_urls(template_path),
-                "Failed to start Function URLs service"
-            )
-            
+            self.assertTrue(self.start_function_urls(template_path), "Failed to start Function URLs service")
+
             # Test CORS preflight request
             response = requests.options(
                 f"{self.url}/",
                 headers={
                     "Origin": "https://example.com",
                     "Access-Control-Request-Method": "POST",
-                    "Access-Control-Request-Headers": "Content-Type"
-                }
+                    "Access-Control-Request-Headers": "Content-Type",
+                },
             )
             self.assertEqual(response.status_code, 200)
             self.assertIn("Access-Control-Allow-Origin", response.headers)
@@ -322,7 +310,7 @@ Resources:
       FunctionUrlConfig:
         AuthType: NONE
 """
-        
+
         function_content = """
 import json
 
@@ -337,25 +325,22 @@ def handler(event, context):
         })
     }
 """
-        
+
         with tempfile.TemporaryDirectory() as temp_dir:
             # Create template
             template_path = os.path.join(temp_dir, "template.yaml")
             with open(template_path, "w") as f:
                 f.write(template_content)
-            
+
             # Create function
             functions_dir = os.path.join(temp_dir, "functions")
             os.makedirs(functions_dir)
             with open(os.path.join(functions_dir, "query.py"), "w") as f:
                 f.write(function_content)
-            
+
             # Start service
-            self.assertTrue(
-                self.start_function_urls(template_path),
-                "Failed to start Function URLs service"
-            )
-            
+            self.assertTrue(self.start_function_urls(template_path), "Failed to start Function URLs service")
+
             # Test with query parameters
             params = {"name": "test", "id": "123", "active": "true"}
             response = requests.get(f"{self.url}/", params=params)
@@ -384,7 +369,7 @@ Resources:
       FunctionUrlConfig:
         AuthType: NONE
 """
-        
+
         function_content = """
 import json
 import os
@@ -399,7 +384,7 @@ def handler(event, context):
         })
     }
 """
-        
+
         env_vars_content = """
 {
     "EnvVarFunction": {
@@ -407,30 +392,29 @@ def handler(event, context):
     }
 }
 """
-        
+
         with tempfile.TemporaryDirectory() as temp_dir:
             # Create template
             template_path = os.path.join(temp_dir, "template.yaml")
             with open(template_path, "w") as f:
                 f.write(template_content)
-            
+
             # Create function
             functions_dir = os.path.join(temp_dir, "functions")
             os.makedirs(functions_dir)
             with open(os.path.join(functions_dir, "env.py"), "w") as f:
                 f.write(function_content)
-            
+
             # Create env vars file
             env_vars_path = os.path.join(temp_dir, "env.json")
             with open(env_vars_path, "w") as f:
                 f.write(env_vars_content)
-            
+
             # Start service with env vars
             self.assertTrue(
-                self.start_function_urls(template_path, env_vars=env_vars_path),
-                "Failed to start Function URLs service"
+                self.start_function_urls(template_path, env_vars=env_vars_path), "Failed to start Function URLs service"
             )
-            
+
             # Test environment variables
             response = requests.get(f"{self.url}/")
             self.assertEqual(response.status_code, 200)
@@ -476,7 +460,7 @@ Resources:
           AllowOrigins:
             - "*"
 """
-        
+
         func1_content = """
 import json
 
@@ -486,7 +470,7 @@ def handler(event, context):
         'body': json.dumps({'function': 'Function1'})
     }
 """
-        
+
         func2_content = """
 import json
 
@@ -496,7 +480,7 @@ def handler(event, context):
         'body': json.dumps({'function': 'Function2'})
     }
 """
-        
+
         func3_content = """
 import json
 
@@ -506,13 +490,13 @@ def handler(event, context):
         'body': json.dumps({'function': 'Function3'})
     }
 """
-        
+
         with tempfile.TemporaryDirectory() as temp_dir:
             # Create template
             template_path = os.path.join(temp_dir, "template.yaml")
             with open(template_path, "w") as f:
                 f.write(template_content)
-            
+
             # Create functions
             functions_dir = os.path.join(temp_dir, "functions")
             os.makedirs(functions_dir)
@@ -522,35 +506,31 @@ def handler(event, context):
                 f.write(func2_content)
             with open(os.path.join(functions_dir, "func3.py"), "w") as f:
                 f.write(func3_content)
-            
+
             # Start service with port range
             base_port = int(self.port)
             port_range = f"{base_port}-{base_port+10}"
             self.assertTrue(
                 self.start_function_urls(
-                    template_path,
-                    port=str(base_port)  # Use port parameter instead of extra_args
+                    template_path, port=str(base_port)  # Use port parameter instead of extra_args
                 ),
-                "Failed to start Function URLs service"
+                "Failed to start Function URLs service",
             )
-            
+
             # Test that functions are accessible on different ports
             # Note: The actual port assignment would need to be parsed from output
             # For now, we'll test that at least one function is accessible
             found_functions = []
             for port_offset in range(10):
                 try:
-                    response = requests.get(
-                        f"http://{self.host}:{base_port + port_offset}/",
-                        timeout=1
-                    )
+                    response = requests.get(f"http://{self.host}:{base_port + port_offset}/", timeout=1)
                     if response.status_code == 200:
                         data = response.json()
                         if "function" in data:
                             found_functions.append(data["function"])
                 except:
                     pass
-            
+
             # We should find at least one function (Function1 or Function3, as Function2 has IAM auth)
             self.assertGreater(len(found_functions), 0, "No functions were accessible")
 
@@ -570,7 +550,7 @@ Resources:
       FunctionUrlConfig:
         AuthType: NONE
 """
-        
+
         function_content = """
 import json
 
@@ -597,33 +577,30 @@ def handler(event, context):
             'body': json.dumps({'status': 'ok'})
         }
 """
-        
+
         with tempfile.TemporaryDirectory() as temp_dir:
             # Create template
             template_path = os.path.join(temp_dir, "template.yaml")
             with open(template_path, "w") as f:
                 f.write(template_content)
-            
+
             # Create function
             functions_dir = os.path.join(temp_dir, "functions")
             os.makedirs(functions_dir)
             with open(os.path.join(functions_dir, "error.py"), "w") as f:
                 f.write(function_content)
-            
+
             # Start service
-            self.assertTrue(
-                self.start_function_urls(template_path),
-                "Failed to start Function URLs service"
-            )
-            
+            self.assertTrue(self.start_function_urls(template_path), "Failed to start Function URLs service")
+
             # Test normal response
             response = requests.get(f"{self.url}/")
             self.assertEqual(response.status_code, 200)
-            
+
             # Test 404 response
             response = requests.get(f"{self.url}/", params={"test": "404"})
             self.assertEqual(response.status_code, 404)
-            
+
             # Test error response (should return 502)
             # TODO: Fix error handling in start-function-urls to return 502 for Lambda errors
             # Currently returns 200 even when Lambda raises an exception
@@ -648,7 +625,7 @@ Resources:
       FunctionUrlConfig:
         AuthType: NONE
 """
-        
+
         function_content = """
 import json
 import base64
@@ -668,25 +645,22 @@ def handler(event, context):
         'isBase64Encoded': True
     }
 """
-        
+
         with tempfile.TemporaryDirectory() as temp_dir:
             # Create template
             template_path = os.path.join(temp_dir, "template.yaml")
             with open(template_path, "w") as f:
                 f.write(template_content)
-            
+
             # Create function
             functions_dir = os.path.join(temp_dir, "functions")
             os.makedirs(functions_dir)
             with open(os.path.join(functions_dir, "binary.py"), "w") as f:
                 f.write(function_content)
-            
+
             # Start service
-            self.assertTrue(
-                self.start_function_urls(template_path),
-                "Failed to start Function URLs service"
-            )
-            
+            self.assertTrue(self.start_function_urls(template_path), "Failed to start Function URLs service")
+
             # Test binary response
             response = requests.get(f"{self.url}/")
             self.assertEqual(response.status_code, 200)
@@ -696,4 +670,5 @@ def handler(event, context):
 
 if __name__ == "__main__":
     import unittest
+
     unittest.main()
