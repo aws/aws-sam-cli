@@ -561,6 +561,7 @@ class TestMetric(TestCase):
         installation_id = gc_mock.return_value.installation_id = "fake installation id"
         session_id = context_mock.get_current_context.return_value.session_id = "fake installation id"
         python_version = platform_mock.python_version.return_value = "8.8.0"
+        os_platform = platform_mock.system.return_value = "Linux"
         cicd_platform_mock.return_value = cicd_platform
         get_user_agent_mock.return_value = user_agent
 
@@ -575,6 +576,7 @@ class TestMetric(TestCase):
             assert metric.get_data()["userAgent"] == user_agent
         assert metric.get_data()["pyversion"] == python_version
         assert metric.get_data()["samcliVersion"] == samcli.__version__
+        assert metric.get_data()["osPlatform"] == os_platform
 
 
 def _ignore_common_attributes(data):
@@ -585,6 +587,7 @@ def _ignore_common_attributes(data):
         "executionEnvironment",
         "pyversion",
         "samcliVersion",
+        "osPlatform",
     ]
     for a in common_attrs:
         if a not in data:
