@@ -442,6 +442,7 @@ class Metric:
         self._data["ci"] = bool(self._cicd_detector.platform())
         self._data["pyversion"] = platform.python_version()
         self._data["samcliVersion"] = samcli_version
+        self._data["osPlatform"] = platform.system()
 
         user_agent = get_user_agent_string()
         if user_agent:
