@@ -53,67 +53,9 @@ class TestCli(TestCase):
         self.invoke_image = ()
         self.no_mem_limit = False
 
-    @patch("samcli.commands.local.start_function_urls.cli.process_image_options")
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
-    def test_cli_must_setup_context_and_start_all_services(self, invoke_context_mock, process_image_mock):
-        # Mock the __enter__ method to return a object inside a context manager
-        context_mock = Mock()
-        invoke_context_mock.return_value.__enter__.return_value = context_mock
-
-        process_image_mock.return_value = {}
-
-        from samcli.commands.local.start_function_urls.cli import do_cli as start_function_urls_cli
-        from samcli.commands.local.lib.local_function_url_service import LocalFunctionUrlService
-        from samcli.commands.local.lib.exceptions import NoFunctionUrlsDefined
-
-        with patch("samcli.commands.local.lib.local_function_url_service.LocalFunctionUrlService") as service_mock:
-            manager_mock = Mock()
-            service_mock.return_value = manager_mock
-
-            self.call_cli()
-
-            invoke_context_mock.assert_called_with(
-                template_file=self.template,
-                function_identifier=None,
-                env_vars_file=self.env_vars,
-                docker_volume_basedir=self.docker_volume_basedir,
-                docker_network=self.docker_network,
-                log_file=self.log_file,
-                skip_pull_image=self.skip_pull_image,
-                debug_ports=self.debug_ports,
-                debug_args=self.debug_args,
-                debugger_path=self.debugger_path,
-                container_env_vars_file=self.container_env_vars,
-                parameter_overrides=self.parameter_overrides,
-                layer_cache_basedir=self.layer_cache_basedir,
-                force_image_build=self.force_image_build,
-                aws_region=self.region_name,
-                aws_profile=self.profile,
-                warm_container_initialization_mode=self.warm_containers,
-                debug_function=self.debug_function,
-                shutdown=self.shutdown,
-                container_host=self.container_host,
-                container_host_interface=self.container_host_interface,
-                add_host=self.add_host,
-                invoke_images={},
-                no_mem_limit=self.no_mem_limit,
-            )
-
-            service_mock.assert_called_with(
-                lambda_invoke_context=context_mock,
-                port_range=(3001, 3010),
-                host=self.host,
-                disable_authorizer=self.disable_authorizer,
-            )
-
-            manager_mock.start_all.assert_called_with()
-
-    @patch("samcli.commands.local.start_function_urls.cli.process_image_options")
     @patch("samcli.commands.local.lib.local_function_url_service.LocalFunctionUrlService")
-    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
-    def test_cli_must_start_specific_function_when_provided(
-        self, invoke_context_mock, service_mock, process_image_mock
-    ):
+    def test_cli_must_setup_context_and_start_all_services(self, service_mock, invoke_context_mock):
         # Mock the __enter__ method to return a object inside a context manager
         context_mock = Mock()
         invoke_context_mock.return_value.__enter__.return_value = context_mock
@@ -121,9 +63,53 @@ class TestCli(TestCase):
         manager_mock = Mock()
         service_mock.return_value = manager_mock
 
-        process_image_mock.return_value = {}
+        self.call_cli()
 
-        from samcli.commands.local.start_function_urls.cli import do_cli as start_function_urls_cli
+        invoke_context_mock.assert_called_with(
+            template_file=self.template,
+            function_identifier=None,
+            env_vars_file=self.env_vars,
+            docker_volume_basedir=self.docker_volume_basedir,
+            docker_network=self.docker_network,
+            log_file=self.log_file,
+            skip_pull_image=self.skip_pull_image,
+            debug_ports=self.debug_ports,
+            debug_args=self.debug_args,
+            debugger_path=self.debugger_path,
+            container_env_vars_file=self.container_env_vars,
+            parameter_overrides=self.parameter_overrides,
+            layer_cache_basedir=self.layer_cache_basedir,
+            force_image_build=self.force_image_build,
+            aws_region=self.region_name,
+            aws_profile=self.profile,
+            warm_container_initialization_mode=self.warm_containers,
+            debug_function=self.debug_function,
+            shutdown=self.shutdown,
+            container_host=self.container_host,
+            container_host_interface=self.container_host_interface,
+            add_host=self.add_host,
+            invoke_images={},
+            no_mem_limit=self.no_mem_limit,
+        )
+
+        service_mock.assert_called_with(
+            lambda_invoke_context=context_mock,
+            port_range=(3001, 3010),
+            host=self.host,
+            disable_authorizer=self.disable_authorizer,
+        )
+
+        manager_mock.start_all.assert_called_with()
+
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
+    @patch("samcli.commands.local.lib.local_function_url_service.LocalFunctionUrlService")
+    def test_cli_must_start_specific_function_when_provided(self, service_mock, invoke_context_mock):
+        # Mock the __enter__ method to return a object inside a context manager
+        context_mock = Mock()
+        invoke_context_mock.return_value.__enter__.return_value = context_mock
+
+        manager_mock = Mock()
+        service_mock.return_value = manager_mock
 
         self.function_name = "MyFunction"
         self.port = 3005
@@ -132,10 +118,9 @@ class TestCli(TestCase):
 
         manager_mock.start_function.assert_called_with("MyFunction", 3005)
 
-    @patch("samcli.commands.local.start_function_urls.cli.process_image_options")
-    @patch("samcli.commands.local.lib.local_function_url_service.LocalFunctionUrlService")
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
-    def test_must_raise_if_no_function_urls_defined(self, invoke_context_mock, service_mock, process_image_mock):
+    @patch("samcli.commands.local.lib.local_function_url_service.LocalFunctionUrlService")
+    def test_must_raise_if_no_function_urls_defined(self, service_mock, invoke_context_mock):
         # Mock the __enter__ method to return a object inside a context manager
         context_mock = Mock()
         invoke_context_mock.return_value.__enter__.return_value = context_mock
@@ -143,9 +128,6 @@ class TestCli(TestCase):
         manager_mock = Mock()
         service_mock.return_value = manager_mock
 
-        process_image_mock.return_value = {}
-
-        from samcli.commands.local.start_function_urls.cli import do_cli as start_function_urls_cli
         from samcli.commands.local.lib.exceptions import NoFunctionUrlsDefined
 
         manager_mock.start_all.side_effect = NoFunctionUrlsDefined("no function urls")
@@ -184,43 +166,35 @@ class TestCli(TestCase):
         msg = str(context.exception)
         self.assertIn("no free ports", msg)
 
-    @patch("samcli.commands.local.start_function_urls.cli.process_image_options")
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
-    def test_cli_with_single_port_range(self, invoke_context_mock, process_image_mock):
+    @patch("samcli.commands.local.lib.local_function_url_service.LocalFunctionUrlService")
+    def test_cli_with_single_port_range(self, service_mock, invoke_context_mock):
         """Test CLI with single port (no range)"""
         context_mock = Mock()
         invoke_context_mock.return_value.__enter__.return_value = context_mock
-        process_image_mock.return_value = {}
-
-        from samcli.commands.local.start_function_urls.cli import do_cli as start_function_urls_cli
 
         # Test with single port (no dash)
         self.port_range = "3001"
 
-        with patch("samcli.commands.local.lib.local_function_url_service.LocalFunctionUrlService") as service_mock:
-            manager_mock = Mock()
-            service_mock.return_value = manager_mock
+        manager_mock = Mock()
+        service_mock.return_value = manager_mock
 
-            self.call_cli()
+        self.call_cli()
 
-            # Should parse as 3001-3011 (single port + 10)
-            service_mock.assert_called_with(
-                lambda_invoke_context=context_mock,
-                host=self.host,
-                port_range=(3001, 3011),
-                disable_authorizer=self.disable_authorizer,
-            )
+        # Should parse as 3001-3011 (single port + 10)
+        service_mock.assert_called_with(
+            lambda_invoke_context=context_mock,
+            host=self.host,
+            port_range=(3001, 3011),
+            disable_authorizer=self.disable_authorizer,
+        )
 
-    @patch("samcli.commands.local.start_function_urls.cli.process_image_options")
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
-    def test_cli_with_docker_not_reachable(self, invoke_context_mock, process_image_mock):
+    def test_cli_with_docker_not_reachable(self, invoke_context_mock):
         """Test CLI when Docker is not reachable"""
-        process_image_mock.return_value = {}
 
         # Mock Docker not reachable exception
         invoke_context_mock.return_value.__enter__.side_effect = DockerIsNotReachableException("Docker not running")
-
-        from samcli.commands.local.start_function_urls.cli import do_cli as start_function_urls_cli
 
         with self.assertRaises(UserException) as context:
             self.call_cli()
@@ -228,20 +202,16 @@ class TestCli(TestCase):
         self.assertIn("Docker not running", str(context.exception))
         self.assertEqual(context.exception.wrapped_from, "DockerIsNotReachableException")
 
-    @patch("samcli.commands.local.start_function_urls.cli.process_image_options")
-    @patch("samcli.commands.local.lib.local_function_url_service.LocalFunctionUrlService")
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
-    def test_cli_with_keyboard_interrupt(self, invoke_context_mock, service_mock, process_image_mock):
+    @patch("samcli.commands.local.lib.local_function_url_service.LocalFunctionUrlService")
+    def test_cli_with_keyboard_interrupt(self, service_mock, invoke_context_mock):
         """Test CLI handles KeyboardInterrupt gracefully"""
         context_mock = Mock()
         invoke_context_mock.return_value.__enter__.return_value = context_mock
-        process_image_mock.return_value = {}
 
         manager_mock = Mock()
         service_mock.return_value = manager_mock
         manager_mock.start_all.side_effect = KeyboardInterrupt()
-
-        from samcli.commands.local.start_function_urls.cli import do_cli as start_function_urls_cli
 
         # Should not raise, just log and exit
         self.call_cli()
@@ -249,20 +219,16 @@ class TestCli(TestCase):
         # Verify start_all was called before interrupt
         manager_mock.start_all.assert_called_once()
 
-    @patch("samcli.commands.local.start_function_urls.cli.process_image_options")
-    @patch("samcli.commands.local.lib.local_function_url_service.LocalFunctionUrlService")
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
-    def test_cli_with_generic_exception(self, invoke_context_mock, service_mock, process_image_mock):
+    @patch("samcli.commands.local.lib.local_function_url_service.LocalFunctionUrlService")
+    def test_cli_with_generic_exception(self, service_mock, invoke_context_mock):
         """Test CLI handles generic exceptions"""
         context_mock = Mock()
         invoke_context_mock.return_value.__enter__.return_value = context_mock
-        process_image_mock.return_value = {}
 
         manager_mock = Mock()
         service_mock.return_value = manager_mock
         manager_mock.start_all.side_effect = RuntimeError("Something went wrong")
-
-        from samcli.commands.local.start_function_urls.cli import do_cli as start_function_urls_cli
 
         with self.assertRaises(UserException) as context:
             self.call_cli()
@@ -271,30 +237,26 @@ class TestCli(TestCase):
         self.assertIn("Something went wrong", str(context.exception))
         self.assertEqual(context.exception.wrapped_from, "RuntimeError")
 
-    @patch("samcli.commands.local.start_function_urls.cli.process_image_options")
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
-    def test_cli_with_no_context(self, invoke_context_mock, process_image_mock):
+    @patch("samcli.commands.local.lib.local_function_url_service.LocalFunctionUrlService")
+    def test_cli_with_no_context(self, service_mock, invoke_context_mock):
         """Test CLI with no context (ctx=None)"""
         context_mock = Mock()
         invoke_context_mock.return_value.__enter__.return_value = context_mock
-        process_image_mock.return_value = {}
-
-        from samcli.commands.local.start_function_urls.cli import do_cli as start_function_urls_cli
 
         # Set ctx to None to test the None check
         self.ctx_mock = None
 
-        with patch("samcli.commands.local.lib.local_function_url_service.LocalFunctionUrlService") as service_mock:
-            manager_mock = Mock()
-            service_mock.return_value = manager_mock
+        manager_mock = Mock()
+        service_mock.return_value = manager_mock
 
-            self.call_cli()
+        self.call_cli()
 
-            # Should pass None for aws_region and aws_profile
-            invoke_context_mock.assert_called_once()
-            call_kwargs = invoke_context_mock.call_args[1]
-            self.assertIsNone(call_kwargs["aws_region"])
-            self.assertIsNone(call_kwargs["aws_profile"])
+        # Should pass None for aws_region and aws_profile
+        invoke_context_mock.assert_called_once()
+        call_kwargs = invoke_context_mock.call_args[1]
+        self.assertIsNone(call_kwargs["aws_region"])
+        self.assertIsNone(call_kwargs["aws_profile"])
 
     def call_cli(self):
         from samcli.commands.local.start_function_urls.cli import do_cli as start_function_urls_cli
