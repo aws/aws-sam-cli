@@ -800,7 +800,7 @@ class RefreshableSamFunctionProvider(SamFunctionProvider):
         global_parameter_overrides: Optional[Dict] = None,
         use_raw_codeuri: bool = False,
         ignore_code_extraction_warnings: bool = False,
-        no_watch: bool = False,
+        no_watch: Optional[bool] = False,
     ) -> None:
         """
         Initialize the class with SAM template data. The SAM template passed to this provider is assumed
@@ -835,7 +835,7 @@ class RefreshableSamFunctionProvider(SamFunctionProvider):
         
         # Only initialize file watcher if no_watch is False
         if not no_watch:
-            self._observer = FileObserver(self._set_templates_changed)
+            self._observer: Optional[FileObserver] = FileObserver(self._set_templates_changed)
             self._observer.start()
             self._watch_stack_templates(stacks)
         else:

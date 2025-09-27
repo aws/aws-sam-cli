@@ -99,7 +99,7 @@ DESCRIPTION = """
     "--no-watch",
     is_flag=True,
     default=False,
-    help="Disable file watching. Template file and nested stacks will not be monitored for changes.",
+    help="Disable file watching. Local code changes will not reset running docker container.",
 )
 @invoke_common_options
 @warm_containers_common_options

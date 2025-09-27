@@ -236,28 +236,22 @@ class InvokeContext:
             ContainersMode.WARM: RefreshableSamFunctionProvider,
             ContainersMode.COLD: SamFunctionProvider,
         }
-
         _function_providers_args: Dict[ContainersMode, List[Any]] = {
             ContainersMode.WARM: [self._stacks, self._parameter_overrides, self._global_parameter_overrides],
             ContainersMode.COLD: [self._stacks],
         }
-
         # don't resolve the code URI immediately if we passed in docker vol by passing True for use_raw_codeuri
         # this way at the end the code URI will get resolved against the basedir option
         if self._docker_volume_basedir:
             _function_providers_args[self._containers_mode].append(True)
+            if self._no_watch:
+                _function_providers_args[self._containers_mode].extend([False, True])
+        elif self._no_watch:
+            _function_providers_args[self._containers_mode].extend([False, False, True])
 
-        # For RefreshableSamFunctionProvider, we need to pass additional parameters including no_watch
-        if self._containers_mode == ContainersMode.WARM:
-            # Create RefreshableSamFunctionProvider with no_watch parameter
-            self._function_provider = RefreshableSamFunctionProvider(
-                *_function_providers_args[self._containers_mode],
-                no_watch=self._no_watch
-            )
-        else:
-            self._function_provider = _function_providers_class[self._containers_mode](
-                *_function_providers_args[self._containers_mode]
-            )
+        self._function_provider = _function_providers_class[self._containers_mode](
+            *_function_providers_args[self._containers_mode]
+        )
 
         self._env_vars_value = self._get_env_vars_value(self._env_vars_file)
         self._container_env_vars_value = self._get_env_vars_value(self._container_env_vars_file)

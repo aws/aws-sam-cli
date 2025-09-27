@@ -717,7 +717,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
             self.assertEqual(result, runner_mock)
 
             WarmLambdaRuntimeMock.assert_called_with(
-                container_manager_mock, image_mock, mount_symlinks=False, no_mem_limit=False
+                container_manager_mock, image_mock, mount_symlinks=False, no_mem_limit=False, no_watch=False
             )
             lambda_image_patch.assert_called_once_with(download_mock, True, True, invoke_images=None)
             LocalLambdaMock.assert_called_with(
@@ -1401,7 +1401,13 @@ class TestInvokeContext_get_stacks(TestCase):
 
 
 class TestInvokeContext_add_account_id_to_global(TestCase):
-    def test_must_work_with_no_token(self):
+    @patch("samcli.commands.local.cli_common.invoke_context.get_boto_client_provider_with_config")
+    def test_must_work_with_no_token(self, get_boto_client_provider_with_config_mock):
+        # Mock the STS client to raise an exception (simulating no credentials). Or test might pickup system credential
+        sts_mock = Mock()
+        sts_mock.get_caller_identity.side_effect = Exception("No credentials")
+        get_boto_client_provider_with_config_mock.return_value.return_value = sts_mock
+        
         invoke_context = InvokeContext("template_file")
         invoke_context._add_account_id_to_global()
         self.assertIsNone(invoke_context._global_parameter_overrides)

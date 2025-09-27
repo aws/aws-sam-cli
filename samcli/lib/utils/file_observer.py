@@ -3,7 +3,6 @@ Wraps watchdog to observe file system for any change.
 """
 
 import logging
-import os
 import platform
 import threading
 import uuid
@@ -424,17 +423,6 @@ class SingletonFileObserver(metaclass=Singleton):
     A Singleton class that will observe some file system paths for any change for multiple purposes.
     """
 
-    # Ignore patterns for file watching to avoid infinite loops and unnecessary events
-    DEFAULT_IGNORE_PATTERNS = [
-        "*/node_modules/*/*",  # Ignore changes within packages, but allow new packages
-        "*.tmp",               # Ignore temporary files
-        "*.temp",              # Ignore temporary files
-        "*/.git/*",            # Ignore git directories
-        "*/__pycache__/*",     # Ignore Python cache
-        "*.pyc",               # Ignore Python compiled files
-        "*.log"                # Ignore log files
-    ]
-
     def __init__(self) -> None:
         """
         Initialize the file observer
@@ -445,21 +433,12 @@ class SingletonFileObserver(metaclass=Singleton):
         self._watch_dog_observed_paths: Dict[str, List[str]] = {}
         self._observer: BaseObserver = Observer()
         
-        # Use environment variable to control ignore patterns (default: enabled)
-        use_ignore_patterns = os.environ.get("SAM_USE_IGNORE_PATTERN", "true").lower() == "true"
-        ignore_patterns = self.DEFAULT_IGNORE_PATTERNS if use_ignore_patterns else []
-        
-        if use_ignore_patterns:
-            LOG.debug("File observer using ignore patterns: %s", ignore_patterns)
-        else:
-            LOG.debug("File observer ignore patterns disabled via SAM_CLI_FILE_OBSERVER_IGNORE_PATTERNS")
-        
         self._code_modification_handler: PatternMatchingEventHandler = PatternMatchingEventHandler(
-            patterns=["*"], ignore_patterns=ignore_patterns, ignore_directories=False
+            patterns=["*"], ignore_patterns=[], ignore_directories=False
         )
 
         self._code_deletion_handler: PatternMatchingEventHandler = PatternMatchingEventHandler(
-            patterns=["*"], ignore_patterns=ignore_patterns, ignore_directories=False
+            patterns=["*"], ignore_patterns=[], ignore_directories=False
         )
 
         self._code_modification_handler.on_modified = self.on_change  # type: ignore

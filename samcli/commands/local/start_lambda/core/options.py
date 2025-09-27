@@ -38,6 +38,7 @@ CONTAINER_OPTION_NAMES: List[str] = [
     "add_host",
     "invoke_image",
     "no_memory_limit",
+    "no_watch",
 ]
 
 ARTIFACT_LOCATION_OPTIONS: List[str] = [
