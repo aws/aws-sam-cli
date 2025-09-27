@@ -394,6 +394,41 @@ class TestSendCommandMetrics(TestCase):
 
         send_events_mock.assert_called()
 
+    @patch("samcli.lib.telemetry.metric.Metric._get_container_host")
+    @patch("samcli.lib.telemetry.event.EventTracker.send_events", return_value=None)
+    def test_collects_container_host(self, send_mock, container_host_mock):
+        container_host_mock.return_value = "docker"
+
+        _send_command_run_metrics(self.context_mock, 0, "success", 0)
+
+        # Verify containerEngine is included in metricSpecificAttributes
+        args, _ = self.telemetry_instance.emit.call_args_list[0]
+        metric_specific_attributes = args[0]._data["metricSpecificAttributes"]
+        self.assertEqual(metric_specific_attributes["containerEngine"], "docker")
+        container_host_mock.assert_called_once()
+
+    @parameterized.expand(
+        [
+            ("unix:///var/run/docker.sock", "docker"),
+            ("unix://~/.finch/finch.sock", "finch"),
+            ("unix:///run/user/1000/podman/podman.sock", "podman"),
+            ("unix://~/.colima/default/docker.sock", "colima"),
+            ("unix://~/.lima/default/sock/docker.sock", "lima"),
+            ("unix://~/.rd/docker.sock", "rancher-desktop"),
+            ("unix://~/.orbstack/run/docker.sock", "orbstack"),
+            ("tcp://localhost:2375", "tcp-local"),
+            ("tcp://localhost:2376", "tcp-local"),
+            ("tcp://host.docker.internal:2376", "tcp-remote"),
+            (None, "docker-default"),
+            ("", "docker-default"),
+            ("some-random-value", "unknown"),
+        ]
+    )
+    def test_get_container_host(self, docker_host, expected):
+        metric = Metric("")
+        metric._gc.docker_host = docker_host
+        self.assertEqual(metric._get_container_host(), expected)
+
 
 class TestParameterCapture(TestCase):
     def setUp(self):
@@ -526,6 +561,7 @@ class TestMetric(TestCase):
         installation_id = gc_mock.return_value.installation_id = "fake installation id"
         session_id = context_mock.get_current_context.return_value.session_id = "fake installation id"
         python_version = platform_mock.python_version.return_value = "8.8.0"
+        os_platform = platform_mock.system.return_value = "Linux"
         cicd_platform_mock.return_value = cicd_platform
         get_user_agent_mock.return_value = user_agent
 
@@ -540,10 +576,19 @@ class TestMetric(TestCase):
             assert metric.get_data()["userAgent"] == user_agent
         assert metric.get_data()["pyversion"] == python_version
         assert metric.get_data()["samcliVersion"] == samcli.__version__
+        assert metric.get_data()["osPlatform"] == os_platform
 
 
 def _ignore_common_attributes(data):
-    common_attrs = ["requestId", "installationId", "sessionId", "executionEnvironment", "pyversion", "samcliVersion"]
+    common_attrs = [
+        "requestId",
+        "installationId",
+        "sessionId",
+        "executionEnvironment",
+        "pyversion",
+        "samcliVersion",
+        "osPlatform",
+    ]
     for a in common_attrs:
         if a not in data:
             data[a] = ANY
