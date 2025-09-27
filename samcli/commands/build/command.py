@@ -12,6 +12,7 @@ from samcli.cli.cli_config_file import ConfigProvider, configuration_option, sav
 from samcli.cli.context import Context
 from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
 from samcli.cli.main import common_options as cli_framework_options
+from samcli.commands._utils.click_mutex import ClickMutex
 from samcli.commands._utils.option_value_processor import process_env_var, process_image_options
 from samcli.commands._utils.options import (
     base_dir_option,
@@ -30,6 +31,7 @@ from samcli.commands._utils.options import (
     template_option_without_build,
     terraform_project_root_path_option,
     use_container_build_option,
+    watch_exclude_option,
 )
 from samcli.commands.build.click_container import ContainerOptions
 from samcli.commands.build.core.command import BuildCommand
@@ -45,7 +47,10 @@ HELP_TEXT = """
 
 DESCRIPTION = """
   Build AWS serverless function code to generate artifacts targeting
-  AWS Lambda execution environment.\n
+  AWS Lambda execution environment.
+  
+  Use --watch to automatically rebuild when source files change,
+  similar to 'sam sync --watch' for local development workflows.\n
   \b
   Supported Resource Types
   ------------------------
@@ -107,6 +112,11 @@ DESCRIPTION = """
     "--parallel", "-p", is_flag=True, help="Enable parallel builds for AWS SAM template's functions and layers."
 )
 @click.option(
+    "--watch/--no-watch",
+    is_flag=True,
+    help="Watch local files and automatically rebuild when changes are detected.",
+)
+@click.option(
     "--mount-with",
     "-mw",
     type=click.Choice(MountMode.values(), case_sensitive=False),
@@ -117,6 +127,7 @@ DESCRIPTION = """
     cls=ContainerOptions,
 )
 @mount_symlinks_option
+@watch_exclude_option
 @build_dir_option
 @cache_dir_option
 @base_dir_option
@@ -144,6 +155,8 @@ def cli(
     use_container: bool,
     cached: bool,
     parallel: bool,
+    watch: bool,
+    watch_exclude: Optional[Dict[str, List[str]]],
     manifest: Optional[str],
     docker_network: Optional[str],
     container_env_var: Optional[Tuple[str]],
@@ -180,6 +193,8 @@ def cli(
         use_container,
         cached,
         parallel,
+        watch,
+        watch_exclude,
         manifest,
         docker_network,
         skip_pull_image,
@@ -207,6 +222,8 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     use_container: bool,
     cached: bool,
     parallel: bool,
+    watch: bool,
+    watch_exclude: Optional[Dict[str, List[str]]],
     manifest_path: Optional[str],
     docker_network: Optional[str],
     skip_pull_image: bool,
@@ -261,7 +278,41 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
         mount_with=mount_with,
         mount_symlinks=mount_symlinks,
     ) as ctx:
-        ctx.run()
+        if watch:
+            watch_excludes_filter = watch_exclude or {}
+            execute_build_watch(
+                template=template,
+                build_context=ctx,
+                watch_exclude=watch_excludes_filter,
+            )
+        else:
+            ctx.run()
+
+
+def execute_build_watch(
+    template: str,
+    build_context: "BuildContext",
+    watch_exclude: Dict[str, List[str]],
+) -> None:
+    """Start build watch execution
+
+    Parameters
+    ----------
+    template : str
+        Template file path
+    build_context : BuildContext
+        BuildContext for build operations
+    watch_exclude : Dict[str, List[str]]
+        Dictionary of watch exclusion patterns per resource
+    """
+    from samcli.lib.build.watch_manager import BuildWatchManager
+
+    build_watch_manager = BuildWatchManager(
+        template,
+        build_context,
+        watch_exclude,
+    )
+    build_watch_manager.start()
 
 
 def _get_mode_value_from_envvar(name: str, choices: List[str]) -> Optional[str]:
