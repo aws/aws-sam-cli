@@ -20,6 +20,10 @@ DEFAULT_CONFIG_FILE_NAME = DEFAULT_CONFIG_FILE + DEFAULT_CONFIG_FILE_EXTENSION
 DEFAULT_ENV = "default"
 DEFAULT_GLOBAL_CMDNAME = "global"
 
+# New section names for enhanced parameter support
+TEMPLATE_PARAMETERS_SECTION = "parameters.template_parameters"
+TEMPLATE_TAGS_SECTION = "parameters.template_tags"
+
 
 class SamConfig:
     """
@@ -282,6 +286,154 @@ class SamConfig:
     def _version_sanity_check(version: Any) -> None:
         if not isinstance(version, float):
             raise SamConfigVersionException(f"'{VERSION_KEY}' key is not present or is in unrecognized format. ")
+
+    def get_template_parameters(self, cmd_names, env=DEFAULT_ENV):
+        """
+        Gets template parameters from the new [env.command.parameters.template_parameters] section format.
+        Falls back to parsing legacy parameter_overrides string if new format not found.
+
+        Parameters
+        ----------
+        cmd_names : list(str)
+            List representing the entire command. Ex: ["deploy"]
+        env : str
+            Optional, Name of the environment
+
+        Returns
+        -------
+        dict
+            Dictionary of template parameters. Empty dict if none found.
+        """
+        env = env or DEFAULT_ENV
+        
+        try:
+            # Try new format first
+            template_params = self.get_all(cmd_names, TEMPLATE_PARAMETERS_SECTION, env)
+            if template_params:
+                return template_params
+        except KeyError:
+            pass
+
+        # Fall back to parsing legacy parameter_overrides
+        try:
+            legacy_params = self.get_all(cmd_names, "parameters", env)
+            parameter_overrides = legacy_params.get("parameter_overrides", "")
+            if parameter_overrides:
+                return self._parse_parameter_overrides(parameter_overrides)
+        except KeyError:
+            pass
+
+        return {}
+
+    def get_template_tags(self, cmd_names, env=DEFAULT_ENV):
+        """
+        Gets template tags from the new [env.command.parameters.template_tags] section format.
+        Falls back to parsing legacy tags string if new format not found.
+
+        Parameters
+        ----------
+        cmd_names : list(str)
+            List representing the entire command. Ex: ["deploy"]
+        env : str
+            Optional, Name of the environment
+
+        Returns
+        -------
+        dict
+            Dictionary of template tags. Empty dict if none found.
+        """
+        env = env or DEFAULT_ENV
+        
+        try:
+            # Try new format first
+            template_tags = self.get_all(cmd_names, TEMPLATE_TAGS_SECTION, env)
+            if template_tags:
+                return template_tags
+        except KeyError:
+            pass
+
+        # Fall back to parsing legacy tags
+        try:
+            legacy_params = self.get_all(cmd_names, "parameters", env)
+            tags = legacy_params.get("tags", "")
+            if tags:
+                return self._parse_parameter_overrides(tags)
+        except KeyError:
+            pass
+
+        return {}
+
+    def put_template_parameter(self, cmd_names, key, value, env=DEFAULT_ENV):
+        """
+        Stores a template parameter in the new [env.command.parameters.template_parameters] section format.
+
+        Parameters
+        ----------
+        cmd_names : list(str)
+            List representing the entire command. Ex: ["deploy"]
+        key : str
+            Parameter name
+        value : Any
+            Parameter value
+        env : str
+            Optional, Name of the environment
+        """
+        self.put(cmd_names, TEMPLATE_PARAMETERS_SECTION, key, value, env)
+
+    def put_template_tag(self, cmd_names, key, value, env=DEFAULT_ENV):
+        """
+        Stores a template tag in the new [env.command.parameters.template_tags] section format.
+
+        Parameters
+        ----------
+        cmd_names : list(str)
+            List representing the entire command. Ex: ["deploy"]
+        key : str
+            Tag name
+        value : Any
+            Tag value
+        env : str
+            Optional, Name of the environment
+        """
+        self.put(cmd_names, TEMPLATE_TAGS_SECTION, key, value, env)
+
+    @staticmethod
+    def _parse_parameter_overrides(parameter_overrides_str):
+        """
+        Parse legacy parameter_overrides string format into dictionary.
+        Handles space-separated key=value pairs.
+
+        Parameters
+        ----------
+        parameter_overrides_str : str
+            String in format "Key1=Value1 Key2=Value2"
+
+        Returns
+        -------
+        dict
+            Dictionary of parsed parameters
+        """
+        if not parameter_overrides_str or not isinstance(parameter_overrides_str, str):
+            return {}
+
+        params = {}
+        # Split by spaces, but handle quoted values
+        import shlex
+        try:
+            pairs = shlex.split(parameter_overrides_str)
+            for pair in pairs:
+                if "=" in pair:
+                    key, value = pair.split("=", 1)
+                    params[key.strip()] = value.strip()
+        except ValueError:
+            # If shlex parsing fails, fall back to simple split
+            pairs = parameter_overrides_str.split()
+            for pair in pairs:
+                if "=" in pair:
+                    key, value = pair.split("=", 1)
+                    params[key.strip()] = value.strip()
+
+        return params
 
     @staticmethod
     def to_key(cmd_names: Iterable[str]) -> str:
