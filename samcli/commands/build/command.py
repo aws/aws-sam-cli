@@ -4,15 +4,17 @@ CLI command for "build" command
 
 import logging
 import os
-from typing import Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 import click
+
+if TYPE_CHECKING:
+    from samcli.commands.build.build_context import BuildContext
 
 from samcli.cli.cli_config_file import ConfigProvider, configuration_option, save_params_option
 from samcli.cli.context import Context
 from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
 from samcli.cli.main import common_options as cli_framework_options
-from samcli.commands._utils.click_mutex import ClickMutex
 from samcli.commands._utils.option_value_processor import process_env_var, process_image_options
 from samcli.commands._utils.options import (
     base_dir_option,

@@ -12,13 +12,13 @@ from typing import TYPE_CHECKING, Dict, List, Optional
 
 from watchdog.events import EVENT_TYPE_MODIFIED, EVENT_TYPE_OPENED, FileSystemEvent
 
-from samcli.lib.providers.exceptions import InvalidTemplateFile, MissingCodeUri, MissingLocalDefinition
+from samcli.lib.providers.exceptions import MissingCodeUri, MissingLocalDefinition
 from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_all_resource_ids
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.code_trigger_factory import CodeTriggerFactory
 from samcli.lib.utils.colors import Colored, Colors
 from samcli.lib.utils.path_observer import HandlerObserver
-from samcli.lib.utils.resource_trigger import OnChangeCallback, TemplateTrigger
+from samcli.lib.utils.resource_trigger import OnChangeCallback
 from samcli.local.lambdafn.exceptions import ResourceNotFound
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -84,7 +84,9 @@ class BuildWatchManager:
         # Validate safety upfront
         self._validate_watch_safety(build_context)
 
-    def _build_smart_exclusions(self, build_context: "BuildContext", watch_exclude: Dict[str, List[str]]) -> Dict[str, List[str]]:
+    def _build_smart_exclusions(
+        self, build_context: "BuildContext", watch_exclude: Dict[str, List[str]]
+    ) -> Dict[str, List[str]]:
         """Build exclusions that prevent recursion based on build config"""
         from samcli.lib.utils.resource_trigger import DEFAULT_WATCH_IGNORED_RESOURCES
         
@@ -352,7 +354,9 @@ class BuildWatchManager:
             self._start()
         except KeyboardInterrupt:
             LOG.info(
-                self._color.color_log(msg="Shutting down build watch...", color=Colors.PROGRESS), extra=dict(markup=True)
+                self._color.color_log(
+                    msg="Shutting down build watch...", color=Colors.PROGRESS
+                ), extra=dict(markup=True)
             )
             self._observer.stop()
             # Cancel any pending build timer
@@ -386,7 +390,9 @@ class BuildWatchManager:
             )
         else:
             LOG.info(
-                self._color.color_log(msg="File changes detected. Starting build.", color=Colors.PROGRESS), extra=dict(markup=True)
+                self._color.color_log(
+                    msg="File changes detected. Starting build.", color=Colors.PROGRESS
+                ), extra=dict(markup=True)
             )
         
         self._waiting_build = False
