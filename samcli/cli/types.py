@@ -96,7 +96,12 @@ class CfnParameterOverridesType(click.ParamType):
             return result
 
         value = (value,) if isinstance(value, str) else value
-        for val in value:
+        
+        # Separate file URLs from direct parameters
+        file_parameters, direct_parameters = self._process_parameter_files(value, param, ctx)
+        
+        # Process direct parameters with existing logic
+        for val in direct_parameters:
             # Add empty string to start of the string to help match `_pattern2`
             normalized_val = " " + val.strip()
 
@@ -112,7 +117,7 @@ class CfnParameterOverridesType(click.ParamType):
                 )
             except StopIteration:
                 return self.fail(
-                    "{} is not in valid format. It must look something like '{}' or '{}'".format(
+                    "{} is not in valid format. It must look something like '{}', '{}' or 'file://params.json'".format(
                         val, self.__EXAMPLE_1, self.__EXAMPLE_2
                     ),
                     param,
@@ -125,7 +130,43 @@ class CfnParameterOverridesType(click.ParamType):
             for key, param_value in groups:
                 result[_unquote_wrapped_quotes(key)] = _unquote_wrapped_quotes(param_value)
 
-        return result
+        # Merge file and direct parameters (direct parameters override file)
+        merged_result = {}
+        merged_result.update(file_parameters)  # File parameters first
+        merged_result.update(result)  # Direct parameters override
+        
+        return merged_result
+
+    def _process_parameter_files(self, value, param, ctx):
+        """Process parameter files and return file parameters and remaining direct parameters."""
+        file_parameters = {}
+        direct_parameters = []
+        
+        for val in value:
+            if self._is_parameter_file(val):
+                # Process parameter file
+                try:
+                    file_params = self._load_parameter_file(val)
+                    file_parameters.update(file_params)
+                except (FileNotFoundError, json.JSONDecodeError, ValueError, Exception) as e:
+                    return self.fail(str(e), param, ctx)
+            else:
+                direct_parameters.append(val)
+        
+        return file_parameters, direct_parameters
+
+    @staticmethod
+    def _is_parameter_file(value: str) -> bool:
+        """Check if a parameter value is a file:// URL."""
+        return isinstance(value, str) and value.strip().startswith("file://")
+
+    @staticmethod
+    def _load_parameter_file(file_url: str) -> Dict[str, str]:
+        """Load parameters from a file:// URL."""
+        from samcli.commands.deploy.parameter_file_processor import ParameterFileProcessor  # type: ignore
+        
+        file_path = ParameterFileProcessor.parse_file_url(file_url)
+        return ParameterFileProcessor.load_parameter_file(file_path)  # type: ignore
 
 
 class CfnMetadataType(click.ParamType):

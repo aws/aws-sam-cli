@@ -5,7 +5,7 @@ Parameters:
 
   MyDomainCert:
     Type: String
-    Default: arn:aws:acm:us-east-1:123455353535:certificate/6c911401-620d-4d41-b89e-366c238bb2f3
+    Default: arn:aws:acm:us-east-1:123456789012:certificate/12345678-1234-1234-1234-123456789012
 
 Globals:
   HttpApi:
