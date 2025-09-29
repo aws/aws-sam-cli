@@ -108,7 +108,7 @@ class TestCli(TestCase):
         self.no_watch = True
         self.warm_containers = None
         self.debug_function = None
-        
+
         self.call_cli()
 
         # Verify that no_watch=True was passed to InvokeContext

@@ -395,12 +395,9 @@ class WarmLambdaRuntime(LambdaRuntime):
     warm containers life cycle.
     """
 
-    def __init__(self, container_manager, 
-                 image_builder, 
-                 observer=None, 
-                 mount_symlinks=False, 
-                 no_mem_limit=False, 
-                 no_watch=False):
+    def __init__(
+        self, container_manager, image_builder, observer=None, mount_symlinks=False, no_mem_limit=False, no_watch=False
+    ):
         """
         Initialize the Local Lambda runtime
 

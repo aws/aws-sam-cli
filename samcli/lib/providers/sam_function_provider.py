@@ -832,7 +832,7 @@ class RefreshableSamFunctionProvider(SamFunctionProvider):
                 self.parent_templates_paths.append(stack.location)
 
         self.is_changed = False
-        
+
         # Only initialize file watcher if no_watch is False
         if not no_watch:
             self._observer: Optional[FileObserver] = FileObserver(self._set_templates_changed)

@@ -1407,7 +1407,7 @@ class TestInvokeContext_add_account_id_to_global(TestCase):
         sts_mock = Mock()
         sts_mock.get_caller_identity.side_effect = Exception("No credentials")
         get_boto_client_provider_with_config_mock.return_value.return_value = sts_mock
-        
+
         invoke_context = InvokeContext("template_file")
         invoke_context._add_account_id_to_global()
         self.assertIsNone(invoke_context._global_parameter_overrides)

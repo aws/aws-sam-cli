@@ -183,15 +183,22 @@ class LambdaFunctionObserver:
         package_type: str
             determine if the changed resource is a source code path or an image name
         """
-        LOG.debug("Acquiring lock for _on_change to process %s %s resource changes: %s", 
-                 len(resources), package_type, resources)
+        LOG.debug(
+            "Acquiring lock for _on_change to process %s %s resource changes: %s",
+            len(resources),
+            package_type,
+            resources,
+        )
         with self._watch_lock:
             changed_functions: List[FunctionConfig] = []
             for resource in resources:
                 if self._observed_functions[package_type].get(resource, None):
                     changed_functions += self._observed_functions[package_type][resource]
-            LOG.debug("Acquired lock and processing %s changed functions from %s resources", 
-                     len(changed_functions), len(resources))
+            LOG.debug(
+                "Acquired lock and processing %s changed functions from %s resources",
+                len(changed_functions),
+                len(resources),
+            )
             self._input_on_change(changed_functions)
 
     def watch(self, function_config: FunctionConfig) -> None:
@@ -208,13 +215,18 @@ class LambdaFunctionObserver:
         ObserverException:
             if not able to observe the input function source path/image
         """
-        LOG.debug("Acquiring lock for watch to observe %s function: %s", 
-                 function_config.packagetype, function_config.name)
+        LOG.debug(
+            "Acquiring lock for watch to observe %s function: %s", function_config.packagetype, function_config.name
+        )
         with self._watch_lock:
             if self.get_resources.get(function_config.packagetype, None):
                 resources = self.get_resources[function_config.packagetype](function_config)
-                LOG.debug("Acquired lock for watch, observing %s resources for function %s: %s", 
-                         len(resources), function_config.name, resources)
+                LOG.debug(
+                    "Acquired lock for watch, observing %s resources for function %s: %s",
+                    len(resources),
+                    function_config.name,
+                    resources,
+                )
                 for resource in resources:
                     functions = self._observed_functions[function_config.packagetype].get(resource, [])
                     functions += [function_config]
@@ -432,7 +444,7 @@ class SingletonFileObserver(metaclass=Singleton):
         self._observed_watches: Dict[str, ObservedWatch] = {}
         self._watch_dog_observed_paths: Dict[str, List[str]] = {}
         self._observer: BaseObserver = Observer()
-        
+
         self._code_modification_handler: PatternMatchingEventHandler = PatternMatchingEventHandler(
             patterns=["*"], ignore_patterns=[], ignore_directories=False
         )
