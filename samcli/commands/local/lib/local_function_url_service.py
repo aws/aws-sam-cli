@@ -3,7 +3,6 @@ Local Lambda Function URL Service implementation
 """
 
 import logging
-import signal
 import socket
 import sys
 import time
@@ -14,6 +13,7 @@ from typing import Any, Dict, Optional, Set, Tuple
 from samcli.commands.local.cli_common.invoke_context import InvokeContext
 from samcli.commands.local.lib.exceptions import NoFunctionUrlsDefined
 from samcli.commands.local.lib.function_url_handler import FunctionUrlHandler
+from samcli.local.docker.utils import find_free_port
 
 LOG = logging.getLogger(__name__)
 
@@ -106,7 +106,7 @@ class LocalFunctionUrlService:
 
     def _allocate_port(self) -> int:
         """
-        Allocate next available port in range
+        Allocate next available port in range using existing find_free_port utility
 
         Returns
         -------
@@ -118,36 +118,20 @@ class LocalFunctionUrlService:
         PortExhaustedException
             When no ports are available in the specified range
         """
-        for port in range(self._port_start, self._port_end + 1):
-            if port not in self._used_ports:
-                # Actually check if the port is available by trying to bind to it
-                if self._is_port_available(port):
-                    self._used_ports.add(port)
-                    return port
-        raise PortExhaustedException(f"No available ports in range {self._port_start}-{self._port_end}")
-
-    def _is_port_available(self, port: int) -> bool:
-        """
-        Check if a port is available by attempting to bind to it
-
-        Parameters
-        ----------
-        port : int
-            Port number to check
-
-        Returns
-        -------
-        bool
-            True if port is available, False otherwise
-        """
+        # Try to find a free port in the specified range
+        # find_free_port signature: (network_interface: str, start: int, end: int)
+        # find_free_port raises NoFreePortsError if no ports available
         try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-                sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                sock.bind((self.host, port))
-                return True
-        except OSError:
-            LOG.debug(f"Port {port} is already in use")
-            return False
+            port = find_free_port(network_interface=self.host, start=self._port_start, end=self._port_end)
+            if port and port not in self._used_ports:
+                self._used_ports.add(port)
+                return port
+        except Exception:
+            # NoFreePortsError or any other exception
+            raise PortExhaustedException(f"No available ports in range {self._port_start}-{self._port_end}")
+        
+        # If port was None or already used, raise exception
+        raise PortExhaustedException(f"No available ports in range {self._port_start}-{self._port_end}")
 
     def _start_function_service(self, func_name: str, func_config: Dict, port: int) -> FunctionUrlHandler:
         """Start individual function URL service"""
@@ -163,37 +147,45 @@ class LocalFunctionUrlService:
         )
         return service
 
-    def start(self):
+    def start(self, function_name: Optional[str] = None, port: Optional[int] = None):
         """
         Start the Function URL services. This method will block until stopped.
+        
+        Parameters
+        ----------
+        function_name : Optional[str]
+            If specified, only start this function. If None, start all functions.
+        port : Optional[int]
+            If specified (with function_name), use this port. Otherwise auto-allocate.
         """
         if not self.function_urls:
             raise NoFunctionUrlsDefined("No Function URLs found to start")
 
-        # Setup signal handlers
-        def signal_handler(sig, frame):
-            LOG.info("Received interrupt signal. Shutting down...")
-            self._shutdown_event.set()
-
-        signal.signal(signal.SIGINT, signal_handler)
-        signal.signal(signal.SIGTERM, signal_handler)
+        # Determine which functions to start
+        if function_name:
+            if function_name not in self.function_urls:
+                raise NoFunctionUrlsDefined(f"Function {function_name} does not have a Function URL configured")
+            functions_to_start = {function_name: self.function_urls[function_name]}
+        else:
+            functions_to_start = self.function_urls
 
         # Start services
-        self.executor = ThreadPoolExecutor(max_workers=len(self.function_urls))
+        self.executor = ThreadPoolExecutor(max_workers=len(functions_to_start))
 
         try:
             # Start each function service
-            for func_name, func_config in self.function_urls.items():
-                port = self._allocate_port()
-                service = self._start_function_service(func_name, func_config, port)
+            for func_name, func_config in functions_to_start.items():
+                # Use specified port for single function, otherwise allocate
+                service_port = port if function_name and port else self._allocate_port()
+                service = self._start_function_service(func_name, func_config, service_port)
                 self.services[func_name] = service
 
                 # Start the service (this runs Flask in a thread)
                 service.start()
 
                 # Wait for the service to be ready
-                if not self._wait_for_service(port):
-                    LOG.warning(f"Service for {func_name} on port {port} did not start properly")
+                if not self._wait_for_service(service_port):
+                    LOG.warning(f"Service for {func_name} on port {service_port} did not start properly")
 
             # Print startup info
             self._print_startup_info()
@@ -208,60 +200,9 @@ class LocalFunctionUrlService:
 
     def start_all(self):
         """
-        Start all Function URL services. Alias for start() method.
+        Start all Function URL services. Alias for start() without parameters.
         """
         return self.start()
-
-    def start_function(self, function_name: str, port: int):
-        """
-        Start a specific function URL service on the given port.
-
-        Args:
-            function_name: Name of the function to start
-            port: Port to bind the service to
-        """
-        if function_name not in self.function_urls:
-            raise NoFunctionUrlsDefined(f"Function {function_name} does not have a Function URL configured")
-
-        # Setup signal handlers
-        def signal_handler(sig, frame):
-            LOG.info("Received interrupt signal. Shutting down...")
-            self._shutdown_event.set()
-
-        signal.signal(signal.SIGINT, signal_handler)
-        signal.signal(signal.SIGTERM, signal_handler)
-
-        function_url_config = self.function_urls[function_name]
-        service = self._start_function_service(function_name, function_url_config, port)
-        self.services[function_name] = service
-
-        # Start the service (this runs Flask in a thread)
-        service.start()
-
-        # Start service in thread
-        self.executor = ThreadPoolExecutor(max_workers=1)
-
-        # Print startup info for single function
-        url = f"http://{self.host}:{port}/"
-        auth_type = function_url_config["auth_type"]
-        cors_enabled = bool(function_url_config.get("cors"))
-
-        print("\\n" + "=" * 60)
-        print("SAM Local Function URL")
-        print("=" * 60)
-        print(f"\\n  {function_name}:")
-        print(f"    URL: {url}")
-        print(f"    Auth: {auth_type}")
-        print(f"    CORS: {'Enabled' if cors_enabled else 'Disabled'}")
-        print("\\n" + "=" * 60)
-
-        try:
-            # Wait for shutdown signal
-            self._shutdown_event.wait()
-        except KeyboardInterrupt:
-            LOG.info("Received keyboard interrupt")
-        finally:
-            self._shutdown_services()
 
     def _wait_for_service(self, port: int, timeout: int = 5) -> bool:
         """

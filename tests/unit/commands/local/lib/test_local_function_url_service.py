@@ -95,9 +95,10 @@ class TestLocalFunctionUrlService(unittest.TestCase):
         self.assertEqual(service.function_urls["Function1"]["auth_type"], "AWS_IAM")
         self.assertEqual(service.function_urls["Function2"]["invoke_mode"], "RESPONSE_STREAM")
 
+    @patch("samcli.commands.local.lib.local_function_url_service.find_free_port")
     @patch("samcli.lib.providers.sam_function_provider.SamFunctionProvider")
-    def test_allocate_port(self, mock_provider_class):
-        """Test port allocation"""
+    def test_allocate_port(self, mock_provider_class, mock_find_free_port):
+        """Test port allocation using find_free_port utility"""
         # Setup
         mock_function = Mock()
         mock_function.name = "TestFunction"
@@ -111,22 +112,24 @@ class TestLocalFunctionUrlService(unittest.TestCase):
             lambda_invoke_context=self.invoke_context, port_range=self.port_range, host=self.host
         )
 
-        # Mock _is_port_available
-        with patch.object(service, "_is_port_available") as mock_is_available:
-            mock_is_available.return_value = True
+        # Mock find_free_port to return a port
+        mock_find_free_port.return_value = 3001
 
-            # Execute
-            port = service._allocate_port()
+        # Execute
+        port = service._allocate_port()
 
-            # Verify
-            self.assertEqual(port, 3001)
-            self.assertIn(3001, service._used_ports)
-            mock_is_available.assert_called_once_with(3001)
+        # Verify
+        self.assertEqual(port, 3001)
+        self.assertIn(3001, service._used_ports)
+        mock_find_free_port.assert_called()
 
+    @patch("samcli.commands.local.lib.local_function_url_service.find_free_port")
     @patch("samcli.lib.providers.sam_function_provider.SamFunctionProvider")
-    def test_allocate_port_exhausted(self, mock_provider_class):
+    def test_allocate_port_exhausted(self, mock_provider_class, mock_find_free_port):
         """Test port allocation when all ports are used"""
         # Setup
+        from samcli.local.docker.exceptions import NoFreePortsError
+        
         mock_function = Mock()
         mock_function.name = "TestFunction"
         mock_function.function_url_config = {"AuthType": "NONE"}
@@ -139,73 +142,12 @@ class TestLocalFunctionUrlService(unittest.TestCase):
             lambda_invoke_context=self.invoke_context, port_range=(3001, 3002), host=self.host  # Only 2 ports
         )
 
-        # Use up all ports
-        service._used_ports = {3001, 3002}
+        # Mock find_free_port to raise NoFreePortsError (no ports available)
+        mock_find_free_port.side_effect = NoFreePortsError("No free ports")
 
-        # Mock _is_port_available
-        with patch.object(service, "_is_port_available") as mock_is_available:
-            mock_is_available.return_value = False
-
-            # Execute and verify
-            with self.assertRaises(PortExhaustedException):
-                service._allocate_port()
-
-    @patch("socket.socket")
-    @patch("samcli.lib.providers.sam_function_provider.SamFunctionProvider")
-    def test_is_port_available_true(self, mock_provider_class, mock_socket_class):
-        """Test port availability check when port is available"""
-        # Setup
-        mock_function = Mock()
-        mock_function.name = "TestFunction"
-        mock_function.function_url_config = {"AuthType": "NONE"}
-
-        mock_provider = Mock()
-        mock_provider_class.return_value = mock_provider
-        mock_provider.get_all.return_value = [mock_function]
-
-        service = LocalFunctionUrlService(
-            lambda_invoke_context=self.invoke_context, port_range=self.port_range, host=self.host
-        )
-
-        # Mock socket
-        mock_socket = Mock()
-        mock_socket_class.return_value.__enter__.return_value = mock_socket
-        mock_socket.bind.return_value = None  # Success
-
-        # Execute
-        result = service._is_port_available(3001)
-
-        # Verify
-        self.assertTrue(result)
-        mock_socket.bind.assert_called_once_with(("127.0.0.1", 3001))
-
-    @patch("socket.socket")
-    @patch("samcli.lib.providers.sam_function_provider.SamFunctionProvider")
-    def test_is_port_available_false(self, mock_provider_class, mock_socket_class):
-        """Test port availability check when port is in use"""
-        # Setup
-        mock_function = Mock()
-        mock_function.name = "TestFunction"
-        mock_function.function_url_config = {"AuthType": "NONE"}
-
-        mock_provider = Mock()
-        mock_provider_class.return_value = mock_provider
-        mock_provider.get_all.return_value = [mock_function]
-
-        service = LocalFunctionUrlService(
-            lambda_invoke_context=self.invoke_context, port_range=self.port_range, host=self.host
-        )
-
-        # Mock socket
-        mock_socket = Mock()
-        mock_socket_class.return_value.__enter__.return_value = mock_socket
-        mock_socket.bind.side_effect = OSError("Port in use")
-
-        # Execute
-        result = service._is_port_available(3001)
-
-        # Verify
-        self.assertFalse(result)
+        # Execute and verify
+        with self.assertRaises(PortExhaustedException):
+            service._allocate_port()
 
     @patch("samcli.commands.local.lib.local_function_url_service.FunctionUrlHandler")
     @patch("samcli.lib.providers.sam_function_provider.SamFunctionProvider")
@@ -243,30 +185,25 @@ class TestLocalFunctionUrlService(unittest.TestCase):
             ssl_context=None,
         )
 
-    @patch("samcli.commands.local.lib.local_function_url_service.signal")
-    @patch("samcli.commands.local.lib.local_function_url_service.ThreadPoolExecutor")
-    @patch("samcli.commands.local.lib.local_function_url_service.FunctionUrlHandler")
     @patch("samcli.lib.providers.sam_function_provider.SamFunctionProvider")
-    def test_start_with_no_urls(self, mock_provider_class, mock_handler_class, mock_executor_class, mock_signal):
+    def test_start_with_no_urls(self, mock_provider_class):
         """Test starting service when no Function URLs are configured"""
         # Setup
         mock_provider = Mock()
         mock_provider_class.return_value = mock_provider
         mock_provider.get_all.return_value = []  # No functions
 
-        # Execute and verify
+        # Execute and verify - initialization itself should raise NoFunctionUrlsDefined
         with self.assertRaises(NoFunctionUrlsDefined):
-            service = LocalFunctionUrlService(
+            LocalFunctionUrlService(
                 lambda_invoke_context=self.invoke_context, port_range=self.port_range, host=self.host
             )
-            service.start()
 
-    @patch("samcli.commands.local.lib.local_function_url_service.signal")
     @patch("samcli.commands.local.lib.local_function_url_service.ThreadPoolExecutor")
     @patch("samcli.commands.local.lib.local_function_url_service.FunctionUrlHandler")
     @patch("samcli.lib.providers.sam_function_provider.SamFunctionProvider")
-    def test_start_function_specific(self, mock_provider_class, mock_handler_class, mock_executor_class, mock_signal):
-        """Test starting a specific function"""
+    def test_start_function_specific(self, mock_provider_class, mock_handler_class, mock_executor_class):
+        """Test starting a specific function using consolidated start() method"""
         # Setup
         mock_function = Mock()
         mock_function.name = "TestFunction"
@@ -286,13 +223,13 @@ class TestLocalFunctionUrlService(unittest.TestCase):
             lambda_invoke_context=self.invoke_context, port_range=self.port_range, host=self.host
         )
 
-        # Mock the shutdown event
-        with patch.object(service._shutdown_event, "wait"):
+        # Mock the shutdown event and wait_for_service
+        with patch.object(service._shutdown_event, "wait"), patch.object(service, "_wait_for_service", return_value=True):
             service._shutdown_event.wait.side_effect = KeyboardInterrupt()
 
-            # Execute
+            # Execute - using consolidated start() method with function_name parameter
             try:
-                service.start_function("TestFunction", 3001)
+                service.start(function_name="TestFunction", port=3001)
             except KeyboardInterrupt:
                 pass
 
@@ -302,7 +239,7 @@ class TestLocalFunctionUrlService(unittest.TestCase):
 
     @patch("samcli.lib.providers.sam_function_provider.SamFunctionProvider")
     def test_start_function_not_found(self, mock_provider_class):
-        """Test starting a function that doesn't have Function URL"""
+        """Test starting a function that doesn't have Function URL using consolidated start() method"""
         # Setup
         mock_function = Mock()
         mock_function.name = "TestFunction"
@@ -316,9 +253,9 @@ class TestLocalFunctionUrlService(unittest.TestCase):
             lambda_invoke_context=self.invoke_context, port_range=self.port_range, host=self.host
         )
 
-        # Execute and verify
+        # Execute and verify - using consolidated start() method with function_name parameter
         with self.assertRaises(NoFunctionUrlsDefined):
-            service.start_function("NonExistentFunction", 3001)
+            service.start(function_name="NonExistentFunction", port=3001)
 
     @patch("samcli.lib.providers.sam_function_provider.SamFunctionProvider")
     def test_get_service_status(self, mock_provider_class):

@@ -155,12 +155,8 @@ class TestFunctionUrlHandler(unittest.TestCase):
         self.stderr = Mock()
         self.is_debugging = False
 
-    @patch("samcli.commands.local.lib.function_url_handler.Flask")
-    def test_init_creates_flask_app(self, flask_mock):
-        """Test that FunctionUrlHandler initializes Flask app correctly"""
-        app_mock = Mock()
-        flask_mock.return_value = app_mock
-
+    def test_init_creates_flask_app(self):
+        """Test that FunctionUrlHandler initializes correctly (Flask created in create())"""
         service = FunctionUrlHandler(
             function_name=self.function_name,
             function_config=self.function_config,
@@ -172,69 +168,41 @@ class TestFunctionUrlHandler(unittest.TestCase):
             is_debugging=self.is_debugging,
         )
 
-        # Flask is initialized with the module name
-        flask_mock.assert_called_once_with("samcli.commands.local.lib.function_url_handler")
-        self.assertEqual(service.app, app_mock)
+        # Verify service properties (Flask app created via create() method)
         self.assertEqual(service.function_name, self.function_name)
         self.assertEqual(service.local_lambda_runner, self.local_lambda_runner)
+        self.assertEqual(service.port, self.port)
+        self.assertEqual(service.host, self.host)
+        self.assertIsNone(service._app)  # Not created until create() is called
 
-    @patch("samcli.commands.local.lib.function_url_handler.Thread")
-    @patch("samcli.commands.local.lib.function_url_handler.Flask")
-    def test_start_service(self, flask_mock, thread_mock):
-        """Test starting the service"""
-        app_mock = Mock()
-        flask_mock.return_value = app_mock
-        thread_instance = Mock()
-        thread_mock.return_value = thread_instance
+    def test_create_flask_app(self):
+        """Test that create() method initializes Flask app correctly"""
+        with patch("flask.Flask") as flask_mock:
+            app_mock = Mock()
+            flask_mock.return_value = app_mock
 
-        service = FunctionUrlHandler(
-            function_name=self.function_name,
-            function_config=self.function_config,
-            local_lambda_runner=self.local_lambda_runner,
-            port=self.port,
-            host=self.host,
-            disable_authorizer=self.disable_authorizer,
-            stderr=self.stderr,
-            is_debugging=self.is_debugging,
-        )
+            service = FunctionUrlHandler(
+                function_name=self.function_name,
+                function_config=self.function_config,
+                local_lambda_runner=self.local_lambda_runner,
+                port=self.port,
+                host=self.host,
+                disable_authorizer=self.disable_authorizer,
+                stderr=self.stderr,
+                is_debugging=self.is_debugging,
+            )
 
-        service.start()
+            # Call create method (Flask imported inside)
+            result = service.create()
 
-        # Verify thread was created and started
-        thread_mock.assert_called_once()
-        thread_instance.start.assert_called_once()
+            # Verify Flask was created with the function_url_handler module name
+            flask_mock.assert_called_once_with('samcli.commands.local.lib.function_url_handler')
+            self.assertEqual(service._app, app_mock)
+            self.assertEqual(result, app_mock)
+            self.assertEqual(app_mock.route.call_count, 2)  # Two route decorators
 
-    @patch("samcli.commands.local.lib.function_url_handler.Flask")
-    def test_run_flask(self, flask_mock):
-        """Test the Flask app.run is called with correct parameters"""
-        app_mock = Mock()
-        flask_mock.return_value = app_mock
-
-        service = FunctionUrlHandler(
-            function_name=self.function_name,
-            function_config=self.function_config,
-            local_lambda_runner=self.local_lambda_runner,
-            port=self.port,
-            host=self.host,
-            disable_authorizer=self.disable_authorizer,
-            stderr=self.stderr,
-            is_debugging=self.is_debugging,
-        )
-
-        # Call the internal _run_flask method directly
-        service._run_flask()
-
-        # Verify Flask app.run was called with correct parameters
-        app_mock.run.assert_called_once_with(
-            host=self.host, port=self.port, threaded=True, use_reloader=False, use_debugger=False, debug=False
-        )
-
-    @patch("samcli.commands.local.lib.function_url_handler.Flask")
-    def test_stop_service(self, flask_mock):
+    def test_stop_service(self):
         """Test stopping the service"""
-        app_mock = Mock()
-        flask_mock.return_value = app_mock
-
         service = FunctionUrlHandler(
             function_name=self.function_name,
             function_config=self.function_config,
@@ -249,45 +217,44 @@ class TestFunctionUrlHandler(unittest.TestCase):
         # Stop should not raise any exceptions
         service.stop()
 
-    @patch("samcli.commands.local.lib.function_url_handler.Flask")
-    def test_configure_routes(self, flask_mock):
+    def test_configure_routes(self):
         """Test that routes are configured correctly"""
-        app_mock = Mock()
-        flask_mock.return_value = app_mock
+        with patch("flask.Flask") as flask_mock:
+            app_mock = Mock()
+            flask_mock.return_value = app_mock
 
-        service = FunctionUrlHandler(
-            function_name=self.function_name,
-            function_config=self.function_config,
-            local_lambda_runner=self.local_lambda_runner,
-            port=self.port,
-            host=self.host,
-            disable_authorizer=self.disable_authorizer,
-            stderr=self.stderr,
-            is_debugging=self.is_debugging,
-        )
+            service = FunctionUrlHandler(
+                function_name=self.function_name,
+                function_config=self.function_config,
+                local_lambda_runner=self.local_lambda_runner,
+                port=self.port,
+                host=self.host,
+                disable_authorizer=self.disable_authorizer,
+                stderr=self.stderr,
+                is_debugging=self.is_debugging,
+            )
 
-        # Verify routes were registered
-        self.assertEqual(app_mock.route.call_count, 2)  # Two route decorators
+            # Create the app to trigger route configuration
+            service.create()
 
-        # Check the route paths
-        first_call = app_mock.route.call_args_list[0]
-        second_call = app_mock.route.call_args_list[1]
+            # Verify routes were registered
+            self.assertEqual(app_mock.route.call_count, 2)  # Two route decorators
 
-        self.assertEqual(first_call[0][0], "/")
-        self.assertEqual(first_call[1]["defaults"], {"path": ""})
-        self.assertIn("GET", first_call[1]["methods"])
-        self.assertIn("POST", first_call[1]["methods"])
+            # Check the route paths
+            first_call = app_mock.route.call_args_list[0]
+            second_call = app_mock.route.call_args_list[1]
 
-        self.assertEqual(second_call[0][0], "/<path:path>")
-        self.assertIn("GET", second_call[1]["methods"])
-        self.assertIn("POST", second_call[1]["methods"])
+            self.assertEqual(first_call[0][0], "/")
+            self.assertEqual(first_call[1]["defaults"], {"path": ""})
+            self.assertIn("GET", first_call[1]["methods"])
+            self.assertIn("POST", first_call[1]["methods"])
 
-    @patch("samcli.commands.local.lib.function_url_handler.Flask")
-    def test_handle_cors_preflight(self, flask_mock):
+            self.assertEqual(second_call[0][0], "/<path:path>")
+            self.assertIn("GET", second_call[1]["methods"])
+            self.assertIn("POST", second_call[1]["methods"])
+
+    def test_handle_cors_preflight(self):
         """Test CORS preflight handling"""
-        app_mock = Mock()
-        flask_mock.return_value = app_mock
-
         service = FunctionUrlHandler(
             function_name=self.function_name,
             function_config=self.function_config,
@@ -307,12 +274,8 @@ class TestFunctionUrlHandler(unittest.TestCase):
         self.assertIn("Access-Control-Allow-Headers", response.headers)
         self.assertIn("Access-Control-Max-Age", response.headers)
 
-    @patch("samcli.commands.local.lib.function_url_handler.Flask")
-    def test_get_cors_headers(self, flask_mock):
+    def test_get_cors_headers(self):
         """Test getting CORS headers from configuration"""
-        app_mock = Mock()
-        flask_mock.return_value = app_mock
-
         service = FunctionUrlHandler(
             function_name=self.function_name,
             function_config=self.function_config,
@@ -329,12 +292,8 @@ class TestFunctionUrlHandler(unittest.TestCase):
         self.assertIn("Access-Control-Allow-Origin", headers)
         self.assertEqual(headers["Access-Control-Allow-Origin"], "*")
 
-    @patch("samcli.commands.local.lib.function_url_handler.Flask")
-    def test_get_cors_headers_with_credentials(self, flask_mock):
+    def test_get_cors_headers_with_credentials(self):
         """Test getting CORS headers with credentials enabled"""
-        app_mock = Mock()
-        flask_mock.return_value = app_mock
-
         self.function_config["cors"]["AllowCredentials"] = True
         self.function_config["cors"]["ExposeHeaders"] = ["X-Custom-Header"]
 
@@ -354,12 +313,8 @@ class TestFunctionUrlHandler(unittest.TestCase):
         self.assertEqual(headers["Access-Control-Allow-Credentials"], "true")
         self.assertEqual(headers["Access-Control-Expose-Headers"], "X-Custom-Header")
 
-    @patch("samcli.commands.local.lib.function_url_handler.Flask")
-    def test_get_cors_headers_no_config(self, flask_mock):
+    def test_get_cors_headers_no_config(self):
         """Test getting CORS headers when no config exists"""
-        app_mock = Mock()
-        flask_mock.return_value = app_mock
-
         self.function_config["cors"] = None
 
         service = FunctionUrlHandler(
@@ -377,12 +332,8 @@ class TestFunctionUrlHandler(unittest.TestCase):
 
         self.assertEqual(headers, {})
 
-    @patch("samcli.commands.local.lib.function_url_handler.Flask")
-    def test_validate_iam_auth_with_valid_header(self, flask_mock):
+    def test_validate_iam_auth_with_valid_header(self):
         """Test IAM auth validation with valid header"""
-        app_mock = Mock()
-        flask_mock.return_value = app_mock
-
         self.function_config["auth_type"] = "AWS_IAM"
 
         service = FunctionUrlHandler(
@@ -404,12 +355,8 @@ class TestFunctionUrlHandler(unittest.TestCase):
 
         self.assertTrue(result)
 
-    @patch("samcli.commands.local.lib.function_url_handler.Flask")
-    def test_validate_iam_auth_with_invalid_header(self, flask_mock):
+    def test_validate_iam_auth_with_invalid_header(self):
         """Test IAM auth validation with invalid header"""
-        app_mock = Mock()
-        flask_mock.return_value = app_mock
-
         self.function_config["auth_type"] = "AWS_IAM"
 
         service = FunctionUrlHandler(
@@ -431,12 +378,8 @@ class TestFunctionUrlHandler(unittest.TestCase):
 
         self.assertFalse(result)
 
-    @patch("samcli.commands.local.lib.function_url_handler.Flask")
-    def test_validate_iam_auth_with_no_header(self, flask_mock):
+    def test_validate_iam_auth_with_no_header(self):
         """Test IAM auth validation with no header"""
-        app_mock = Mock()
-        flask_mock.return_value = app_mock
-
         self.function_config["auth_type"] = "AWS_IAM"
 
         service = FunctionUrlHandler(
@@ -458,12 +401,8 @@ class TestFunctionUrlHandler(unittest.TestCase):
 
         self.assertFalse(result)
 
-    @patch("samcli.commands.local.lib.function_url_handler.Flask")
-    def test_validate_iam_auth_with_disable_flag(self, flask_mock):
+    def test_validate_iam_auth_with_disable_flag(self):
         """Test IAM auth validation when disabled"""
-        app_mock = Mock()
-        flask_mock.return_value = app_mock
-
         self.function_config["auth_type"] = "AWS_IAM"
         self.disable_authorizer = True
 
@@ -498,27 +437,30 @@ class TestFunctionUrlHandler(unittest.TestCase):
             ("OPTIONS",),
         ]
     )
-    @patch("samcli.commands.local.lib.function_url_handler.Flask")
-    def test_http_methods_support(self, method, flask_mock):
+    def test_http_methods_support(self, method):
         """Test that all HTTP methods are supported"""
-        app_mock = Mock()
-        flask_mock.return_value = app_mock
+        with patch("flask.Flask") as flask_mock:
+            app_mock = Mock()
+            flask_mock.return_value = app_mock
 
-        service = FunctionUrlHandler(
-            function_name=self.function_name,
-            function_config=self.function_config,
-            local_lambda_runner=self.local_lambda_runner,
-            port=self.port,
-            host=self.host,
-            disable_authorizer=self.disable_authorizer,
-            stderr=self.stderr,
-            is_debugging=self.is_debugging,
-        )
+            service = FunctionUrlHandler(
+                function_name=self.function_name,
+                function_config=self.function_config,
+                local_lambda_runner=self.local_lambda_runner,
+                port=self.port,
+                host=self.host,
+                disable_authorizer=self.disable_authorizer,
+                stderr=self.stderr,
+                is_debugging=self.is_debugging,
+            )
 
-        # Check that the method is in the allowed methods for both routes
-        for call in app_mock.route.call_args_list:
-            if "methods" in call[1]:
-                self.assertIn(method, call[1]["methods"])
+            # Create app to configure routes
+            service.create()
+
+            # Check that the method is in the allowed methods for both routes
+            for call in app_mock.route.call_args_list:
+                if "methods" in call[1]:
+                    self.assertIn(method, call[1]["methods"])
 
 
 if __name__ == "__main__":

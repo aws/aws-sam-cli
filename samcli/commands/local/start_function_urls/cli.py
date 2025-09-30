@@ -236,12 +236,12 @@ def do_cli(
             )
 
             # Start the service
-            if function_name and port:
-                # Start specific function on specific port
-                service.start_function(function_name, port)
+            if function_name:
+                # Start specific function (with optional specific port)
+                service.start(function_name=function_name, port=port)
             else:
                 # Start all functions
-                service.start_all()
+                service.start()
 
     except NoFunctionUrlsDefined as ex:
         raise UserException(str(ex)) from ex

@@ -10,10 +10,9 @@ import sys
 import time
 import uuid
 from datetime import datetime, timezone
-from threading import Thread
 from typing import Any, Dict, Optional, Tuple, Union
 
-from flask import Flask, Response, jsonify, request
+from flask import Response, jsonify, request
 
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.services.base_local_service import BaseLocalService
@@ -176,17 +175,25 @@ class FunctionUrlHandler(BaseLocalService):
         self.local_lambda_runner = local_lambda_runner
         self.disable_authorizer = disable_authorizer
         self.stderr = stderr or StreamWriter(sys.stderr)
-        self.app = Flask(__name__)
+
+    def create(self):
+        """
+        Create the Flask application with routes configured.
+        This is called by the base class before starting the service.
+        """
+        from flask import Flask
+        
+        self._app = Flask(__name__)
         self._configure_routes()
-        self._server_thread = None
+        return self._app
 
     def _configure_routes(self):
         """Configure Flask routes for Function URL"""
 
-        @self.app.route(
+        @self._app.route(
             "/", defaults={"path": ""}, methods=["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"]
         )
-        @self.app.route("/<path:path>", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"])
+        @self._app.route("/<path:path>", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"])
         def handle_request(path):
             """Handle all HTTP requests to Function URL"""
 
@@ -290,12 +297,12 @@ class FunctionUrlHandler(BaseLocalService):
                     headers={"Content-Type": "application/json"},
                 )
 
-        @self.app.errorhandler(404)
+        @self._app.errorhandler(404)
         def not_found(e):
             """Handle 404 errors"""
             return jsonify({"message": "Not found"}), 404
 
-        @self.app.errorhandler(500)
+        @self._app.errorhandler(500)
         def internal_error(e):
             """Handle 500 errors"""
             LOG.error(f"Internal server error: {e}")
@@ -380,28 +387,20 @@ class FunctionUrlHandler(BaseLocalService):
         return False
 
     def start(self):
-        """Start the Function URL service"""
-        LOG.info(f"Starting Function URL for {self.function_name} at " f"http://{self.host}:{self.port}/")
-
-        # Run Flask app in a separate thread
-        self._server_thread = Thread(target=self._run_flask, daemon=True)
+        """Start the Function URL service in a background thread"""
+        LOG.info(f"Starting Function URL for {self.function_name} at http://{self.host}:{self.port}/")
+        
+        # Create the Flask app if not already created
+        if not self._app:
+            self.create()
+        
+        # Start Flask in a separate thread since run() is blocking
+        from threading import Thread
+        self._server_thread = Thread(target=self.run, daemon=True)
         self._server_thread.start()
-
-    def _run_flask(self):
-        """Run the Flask application"""
-        try:
-            self.app.run(
-                host=self.host, port=self.port, threaded=True, use_reloader=False, use_debugger=False, debug=False
-            )
-        except OSError as e:
-            if "Address already in use" in str(e):
-                LOG.error(f"Port {self.port} is already in use for {self.function_name}")
-            else:
-                LOG.error(f"Failed to start Function URL service: {e}")
-            raise
-        except Exception as e:
-            LOG.error(f"Failed to start Function URL service: {e}")
-            raise
+        
+        # Give Flask a moment to start
+        time.sleep(0.5)
 
     def stop(self):
         """Stop the Function URL service"""

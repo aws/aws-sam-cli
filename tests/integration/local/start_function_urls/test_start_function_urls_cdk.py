@@ -34,17 +34,25 @@ class TestStartFunctionUrlsCDK(WritableStartFunctionUrlIntegBaseClass):
     template_content = """
     {
         "AWSTemplateFormatVersion": "2010-09-09",
-        "Transform": "AWS::Serverless-2016-10-31",
         "Resources": {
             "CDKFunction": {
-                "Type": "AWS::Serverless::Function",
+                "Type": "AWS::Lambda::Function",
                 "Properties": {
-                    "CodeUri": ".",
-                    "Handler": "main.handler",
+                    "Code": {
+                        "ZipFile": "import json\\ndef handler(event, context):\\n    return {'statusCode': 200, 'body': json.dumps({'message': 'Hello from CDK Function URL!', 'source': 'cdk'})}"
+                    },
+                    "Handler": "index.handler",
                     "Runtime": "python3.9",
-                    "FunctionUrlConfig": {
-                        "AuthType": "NONE"
-                    }
+                    "Role": "arn:aws:iam::123456789012:role/lambda-role"
+                }
+            },
+            "CDKFunctionUrl": {
+                "Type": "AWS::Lambda::Url",
+                "Properties": {
+                    "TargetFunctionArn": {
+                        "Fn::GetAtt": ["CDKFunction", "Arn"]
+                    },
+                    "AuthType": "NONE"
                 }
             }
         }

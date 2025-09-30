@@ -99,7 +99,7 @@ class TestCli(TestCase):
             disable_authorizer=self.disable_authorizer,
         )
 
-        manager_mock.start_all.assert_called_with()
+        manager_mock.start.assert_called_with()
 
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     @patch("samcli.commands.local.lib.local_function_url_service.LocalFunctionUrlService")
@@ -116,7 +116,7 @@ class TestCli(TestCase):
 
         self.call_cli()
 
-        manager_mock.start_function.assert_called_with("MyFunction", 3005)
+        manager_mock.start.assert_called_with(function_name="MyFunction", port=3005)
 
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     @patch("samcli.commands.local.lib.local_function_url_service.LocalFunctionUrlService")
@@ -130,7 +130,7 @@ class TestCli(TestCase):
 
         from samcli.commands.local.lib.exceptions import NoFunctionUrlsDefined
 
-        manager_mock.start_all.side_effect = NoFunctionUrlsDefined("no function urls")
+        manager_mock.start.side_effect = NoFunctionUrlsDefined("no function urls")
 
         with self.assertRaises(UserException) as context:
             self.call_cli()
@@ -211,13 +211,13 @@ class TestCli(TestCase):
 
         manager_mock = Mock()
         service_mock.return_value = manager_mock
-        manager_mock.start_all.side_effect = KeyboardInterrupt()
+        manager_mock.start.side_effect = KeyboardInterrupt()
 
         # Should not raise, just log and exit
         self.call_cli()
 
-        # Verify start_all was called before interrupt
-        manager_mock.start_all.assert_called_once()
+        # Verify start was called before interrupt
+        manager_mock.start.assert_called_once()
 
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     @patch("samcli.commands.local.lib.local_function_url_service.LocalFunctionUrlService")
@@ -228,7 +228,7 @@ class TestCli(TestCase):
 
         manager_mock = Mock()
         service_mock.return_value = manager_mock
-        manager_mock.start_all.side_effect = RuntimeError("Something went wrong")
+        manager_mock.start.side_effect = RuntimeError("Something went wrong")
 
         with self.assertRaises(UserException) as context:
             self.call_cli()
