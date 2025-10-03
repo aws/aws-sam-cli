@@ -172,7 +172,7 @@ class LocalLambdaInvokeService(BaseLocalService):
             normalized_function_name = normalize_lambda_function_name(function_name)
         except InvalidFunctionNameException as e:
             LOG.error("Invalid function name: %s", str(e))
-            return LambdaErrorResponses.invalid_request_content(str(e))
+            return LambdaErrorResponses.validation_exception(str(e))
 
         stdout_stream_string = io.StringIO()
         stdout_stream_bytes = io.BytesIO()

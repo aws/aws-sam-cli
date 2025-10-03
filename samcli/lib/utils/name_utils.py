@@ -9,11 +9,10 @@ from samcli.lib.utils.arn_utils import ARNParts, InvalidArnValue
 # Constants for ARN parsing
 PARTIAL_ARN_MIN_PARTS = 3
 FUNCTION_ALIAS_PARTS = 2
+MIN_ARN_PARTS = 5  # Minimum parts for a valid ARN structure
 
-# AWS Lambda function name validation pattern (same as AWS Lambda service)
 LAMBDA_FUNCTION_NAME_PATTERN = (
-    r"^(arn:(aws[a-zA-Z-]*)?:lambda:)?((eusc-)?[a-z]{2}((-gov)|(-iso([a-z]?)))?-[a-z]+-\d{1}:)?"
-    r"(\d{12}:)?(function:)?([a-zA-Z0-9-_\.]+)(:(\$LATEST(\.PUBLISHED)?|[a-zA-Z0-9-_]+))?$"
+    r"^(arn:[^:]+:lambda:[^:]*:\d{12}:function:|\d{12}:function:)?[a-zA-Z0-9-_\.]+(:[\w$-]+)?$"
 )
 
 
@@ -65,13 +64,6 @@ def normalize_lambda_function_name(function_identifier: str) -> str:
     >>> normalize_lambda_function_name("123456789012:function:my-function")
     "my-function"
     """
-    if not re.match(LAMBDA_FUNCTION_NAME_PATTERN, function_identifier):
-        raise InvalidFunctionNameException(
-            f"1 validation error detected: Value '{function_identifier}' at 'functionName' "
-            f"failed to satisfy constraint: Member must satisfy regular expression pattern: "
-            f"{LAMBDA_FUNCTION_NAME_PATTERN}"
-        )
-
     # Handle full ARN format: arn:aws:lambda:region:account-id:function:function-name[:version]
     if function_identifier.startswith("arn:"):
         try:
@@ -82,9 +74,23 @@ def normalize_lambda_function_name(function_identifier: str) -> str:
                 # Handle versioned functions by splitting on ':'
                 function_name = arn_parts.resource_id.split(":")[0] if arn_parts.resource_id else ""
                 return function_name if function_name else function_identifier
+            elif arn_parts.service != "lambda":
+                # Non-Lambda ARNs should raise an exception
+                raise InvalidFunctionNameException(
+                    f"1 validation error detected: Value '{function_identifier}' at 'functionName' "
+                    f"failed to satisfy constraint: Member must satisfy regular expression pattern: "
+                    f"{LAMBDA_FUNCTION_NAME_PATTERN}"
+                )
         except InvalidArnValue:
-            # If ARN parsing fails, return the original input
-            pass
+            # Very malformed ARNs (like "arn:aws:lambda") should raise an exception
+            if len(function_identifier.split(":")) < MIN_ARN_PARTS:  # ARNs with less than 5 parts are too malformed
+                raise InvalidFunctionNameException(
+                    f"1 validation error detected: Value '{function_identifier}' at 'functionName' "
+                    f"failed to satisfy constraint: Member must satisfy regular expression pattern: "
+                    f"{LAMBDA_FUNCTION_NAME_PATTERN}"
+                )
+            # Other malformed ARNs are returned unchanged
+            return function_identifier
 
     # Handle partial ARN format: account-id:function:function-name[:version]
     # This format has at least 3 parts separated by colons
@@ -95,15 +101,33 @@ def normalize_lambda_function_name(function_identifier: str) -> str:
             # Extract function name (3rd part) and remove any version suffix
             function_name = parts[2]
             return function_name if function_name else function_identifier
+        # Invalid partial ARNs (like empty function name) should raise exception if they look like partial ARNs
+        elif len(parts) >= PARTIAL_ARN_MIN_PARTS and parts[1] == "function":
+            # This looks like a partial ARN but has invalid structure
+            raise InvalidFunctionNameException(
+                f"1 validation error detected: Value '{function_identifier}' at 'functionName' "
+                f"failed to satisfy constraint: Member must satisfy regular expression pattern: "
+                f"{LAMBDA_FUNCTION_NAME_PATTERN}"
+            )
+        # Other invalid partial ARNs are returned unchanged
+        return function_identifier
 
     # Handle function name with alias: my-function:alias
     # This is a simple function name with a single colon for alias/version
     # But exclude partial ARN patterns like "account:function" (missing function name)
     elif ":" in function_identifier:
         parts = function_identifier.split(":")
-        if len(parts) == FUNCTION_ALIAS_PARTS and parts[1] != "function" and parts[0]:
-            # Return just the function name part (before the colon) if it's not empty
+        if len(parts) == FUNCTION_ALIAS_PARTS and parts[1] != "function" and parts[0] and parts[1]:
+            # Return just the function name part (before the colon) if both parts are not empty
             return parts[0]
+
+    # Validate plain function names against the pattern
+    if not re.match(LAMBDA_FUNCTION_NAME_PATTERN, function_identifier):
+        raise InvalidFunctionNameException(
+            f"1 validation error detected: Value '{function_identifier}' at 'functionName' "
+            f"failed to satisfy constraint: Member must satisfy regular expression pattern: "
+            f"{LAMBDA_FUNCTION_NAME_PATTERN}"
+        )
 
     # Handle plain function name: my-function
     return function_identifier

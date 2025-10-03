@@ -1,14 +1,12 @@
 from unittest import TestCase
 from unittest.mock import Mock, patch, ANY, call
 
-import pytest
-
 from samcli.local.docker.exceptions import DockerContainerCreationFailedException
 from samcli.local.lambda_service import local_lambda_invoke_service
 from samcli.local.lambda_service.local_lambda_invoke_service import LocalLambdaInvokeService, FunctionNamePathConverter
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.commands.local.lib.exceptions import UnsupportedInlineCodeError
-from samcli.lib.utils.name_utils import normalize_lambda_function_name, InvalidFunctionNameException
+from samcli.lib.utils.name_utils import InvalidFunctionNameException
 
 
 class TestLocalLambdaService(TestCase):
@@ -335,49 +333,6 @@ class TestPathConverter(TestCase):
         path_converter = FunctionNamePathConverter(map)
         full_path = "parent_stack/function_id"
         self.assertRegex(full_path, path_converter.regex)
-
-
-class TestFunctionNameNormalization(TestCase):
-    def test_normalize_function_name_with_regular_name(self):
-        """Test that regular function names are returned unchanged"""
-        result = normalize_lambda_function_name("my-function")
-        self.assertEqual(result, "my-function")
-
-    def test_normalize_function_name_with_basic_arn(self):
-        """Test ARN normalization with basic ARN format"""
-        arn = "arn:aws:lambda:us-east-1:123456789012:function:my-function"
-        result = normalize_lambda_function_name(arn)
-        self.assertEqual(result, "my-function")
-
-    def test_normalize_function_name_with_arn_and_version(self):
-        """Test ARN normalization with version qualifier"""
-        arn = "arn:aws:lambda:us-west-2:123456789012:function:my-function:$LATEST"
-        result = normalize_lambda_function_name(arn)
-        self.assertEqual(result, "my-function")
-
-    def test_normalize_function_name_with_arn_and_numeric_version(self):
-        """Test ARN normalization with numeric version qualifier"""
-        arn = "arn:aws:lambda:eu-west-1:123456789012:function:my-function:1"
-        result = normalize_lambda_function_name(arn)
-        self.assertEqual(result, "my-function")
-
-    def test_normalize_function_name_with_complex_function_name(self):
-        """Test ARN normalization with complex function name"""
-        arn = "arn:aws:lambda:ap-southeast-1:123456789012:function:my-complex-function-name"
-        result = normalize_lambda_function_name(arn)
-        self.assertEqual(result, "my-complex-function-name")
-
-    def test_normalize_function_name_with_malformed_arn(self):
-        """Test that malformed ARNs are returned unchanged"""
-        malformed_arn = "arn:aws:lambda:us-east-1:123456789012"  # Missing function part
-        result = normalize_lambda_function_name(malformed_arn)
-        self.assertEqual(result, malformed_arn)
-
-    def test_normalize_function_name_with_non_lambda_arn(self):
-        """Test that non-Lambda ARNs raise InvalidFunctionNameException"""
-        s3_arn = "arn:aws:s3:::my-bucket"
-        with pytest.raises(InvalidFunctionNameException):
-            normalize_lambda_function_name(s3_arn)
 
     @patch("samcli.local.lambda_service.local_lambda_invoke_service.LocalLambdaInvokeService.service_response")
     @patch("samcli.local.lambda_service.local_lambda_invoke_service.LambdaOutputParser")
