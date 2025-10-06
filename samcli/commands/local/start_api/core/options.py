@@ -26,6 +26,7 @@ CONTAINER_OPTION_NAMES: List[str] = [
     "ssl_cert_file",
     "ssl_key_file",
     "env_vars",
+    "dotenv",
     "container_env_vars",
     "debug_port",
     "debugger_path",

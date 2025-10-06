@@ -77,6 +77,7 @@ def cli(
     # Common Options for Lambda Invoke
     template_file,
     env_vars,
+    dotenv,
     debug_port,
     debug_args,
     debugger_path,
@@ -114,6 +115,7 @@ def cli(
         port,
         template_file,
         env_vars,
+        dotenv,
         debug_port,
         debug_args,
         debugger_path,
@@ -143,6 +145,7 @@ def do_cli(  # pylint: disable=R0914
     port,
     template,
     env_vars,
+    dotenv,
     debug_port,
     debug_args,
     debugger_path,
@@ -188,6 +191,7 @@ def do_cli(  # pylint: disable=R0914
             template_file=template,
             function_identifier=None,  # Don't scope to one particular function
             env_vars_file=env_vars,
+            dotenv_file=dotenv,
             docker_volume_basedir=docker_volume_basedir,
             docker_network=docker_network,
             log_file=log_file,

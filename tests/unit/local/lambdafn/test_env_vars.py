@@ -200,6 +200,9 @@ class TestEnvironmentVariables_resolve(TestCase):
             "none_var": "",
             "true_var": "true",
             "false_var": "false",
+            # This variable is from shell_env but not in template variables
+            # With the new behavior, it should be included
+            "myothervar": "somevalue",
         }
 
         environ = EnvironmentVariables(
@@ -242,6 +245,10 @@ class TestEnvironmentVariables_resolve(TestCase):
             "none_var": "",
             "true_var": "true",
             "false_var": "false",
+            # These variables are from shell_env/overrides but not in template variables
+            # With the new behavior, they should be included
+            "myothervar": "somevalue",
+            "unknown_var": "newvalue",
         }
 
         environ = EnvironmentVariables(

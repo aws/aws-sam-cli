@@ -30,6 +30,7 @@ class TestCli(TestCase):
         self.template = "template"
         self.eventfile = "eventfile"
         self.env_vars = "env-vars"
+        self.dotenv = None
         self.container_env_vars = "debug-env-vars"
         self.debug_ports = [123]
         self.debug_args = "args"
@@ -66,6 +67,7 @@ class TestCli(TestCase):
             event=self.eventfile,
             no_event=self.no_event,
             env_vars=self.env_vars,
+            dotenv=self.dotenv,
             debug_port=self.debug_ports,
             debug_args=self.debug_args,
             debugger_path=self.debugger_path,
@@ -104,6 +106,7 @@ class TestCli(TestCase):
             template_file=self.template,
             function_identifier=self.function_id,
             env_vars_file=self.env_vars,
+            dotenv_file=self.dotenv,
             docker_volume_basedir=self.docker_volume_basedir,
             docker_network=self.docker_network,
             log_file=self.log_file,
@@ -150,6 +153,7 @@ class TestCli(TestCase):
             template_file=self.template,
             function_identifier=self.function_id,
             env_vars_file=self.env_vars,
+            dotenv_file=self.dotenv,
             docker_volume_basedir=self.docker_volume_basedir,
             docker_network=self.docker_network,
             log_file=self.log_file,

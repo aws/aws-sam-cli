@@ -10,6 +10,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, TextIO, Tuple, Type, cast
 
+from dotenv import dotenv_values
+
 from samcli.commands._utils.template import TemplateFailedParsingException, TemplateNotFoundException
 from samcli.commands.exceptions import ContainersInitializationException
 from samcli.commands.local.cli_common.user_exceptions import DebugContextException, InvokeContextException
@@ -81,6 +83,7 @@ class InvokeContext:
         template_file: str,
         function_identifier: Optional[str] = None,
         env_vars_file: Optional[str] = None,
+        dotenv_file: Optional[str] = None,
         docker_volume_basedir: Optional[str] = None,
         docker_network: Optional[str] = None,
         log_file: Optional[str] = None,
@@ -164,6 +167,7 @@ class InvokeContext:
         self._template_file = template_file
         self._function_identifier = function_identifier
         self._env_vars_file = env_vars_file
+        self._dotenv_file = dotenv_file
         self._docker_volume_basedir = docker_volume_basedir
         self._docker_network = docker_network
         self._log_file = log_file
@@ -249,7 +253,31 @@ class InvokeContext:
             *_function_providers_args[self._containers_mode]
         )
 
-        self._env_vars_value = self._get_env_vars_value(self._env_vars_file)
+        # Load environment variables from both dotenv and JSON files
+        # dotenv values are loaded first, then env_vars JSON can override them
+        dotenv_vars = self._get_dotenv_values(self._dotenv_file)
+        env_vars = self._get_env_vars_value(self._env_vars_file)
+
+        # Wrap dotenv vars in "Parameters" key for proper format
+        # The env_vars system expects: {"Parameters": {key:value}} or {FunctionName: {key:value}}
+        dotenv_wrapped = {"Parameters": dotenv_vars} if dotenv_vars else None
+
+        # Merge dotenv and env_vars, with env_vars taking precedence
+        if dotenv_wrapped and env_vars:
+            # If both exist, merge the Parameters sections if present
+            merged = {**dotenv_wrapped}
+            for key, value in env_vars.items():
+                if key == "Parameters" and "Parameters" in merged:
+                    # Merge Parameters, with env_vars taking precedence
+                    merged["Parameters"] = {**merged["Parameters"], **value}
+                else:
+                    merged[key] = value
+            self._env_vars_value = merged
+        elif dotenv_wrapped:
+            self._env_vars_value = dotenv_wrapped
+        else:
+            self._env_vars_value = env_vars
+
         self._container_env_vars_value = self._get_env_vars_value(self._container_env_vars_file)
         self._log_file_handle = self._setup_log_file(self._log_file)
 
@@ -519,6 +547,29 @@ class InvokeContext:
         except (TemplateNotFoundException, TemplateFailedParsingException) as ex:
             LOG.debug("Can't read stacks information, either template is not found or it is invalid", exc_info=ex)
             raise ex
+
+    @staticmethod
+    def _get_dotenv_values(filename: Optional[str]) -> Optional[Dict]:
+        """
+        If the user provided a .env file, this method will read the file and return its values as a dictionary
+
+        :param string filename: Path to .env file containing environment variable values
+        :return dict: Value of environment variables from .env file, if provided. None otherwise
+        :raises InvokeContextException: If the file was not found or could not be parsed
+        """
+        if not filename:
+            return None
+
+        try:
+            # dotenv_values returns a dictionary with all variables from the .env file
+            # It handles comments, quotes, multiline values, etc.
+            env_dict = dotenv_values(filename)
+            # Filter out None values and convert to strings
+            return {k: str(v) if v is not None else "" for k, v in env_dict.items()}
+        except Exception as ex:
+            raise InvalidEnvironmentVariablesFileException(
+                "Could not read environment variables from .env file {}: {}".format(filename, str(ex))
+            ) from ex
 
     @staticmethod
     def _get_env_vars_value(filename: Optional[str]) -> Optional[Dict]:

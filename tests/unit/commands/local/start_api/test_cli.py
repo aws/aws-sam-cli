@@ -21,6 +21,7 @@ class TestCli(TestCase):
     def setUp(self):
         self.template = "template"
         self.env_vars = "env-vars"
+        self.dotenv = None
         self.debug_ports = [123]
         self.debug_args = "args"
         self.debugger_path = "/test/path"
@@ -78,6 +79,7 @@ class TestCli(TestCase):
             template_file=self.template,
             function_identifier=None,
             env_vars_file=self.env_vars,
+            dotenv_file=self.dotenv,
             docker_volume_basedir=self.docker_volume_basedir,
             docker_network=self.docker_network,
             log_file=self.log_file,
@@ -208,6 +210,7 @@ class TestCli(TestCase):
             static_dir=self.static_dir,
             template=self.template,
             env_vars=self.env_vars,
+            dotenv=self.dotenv,
             debug_port=self.debug_ports,
             debug_args=self.debug_args,
             debugger_path=self.debugger_path,
