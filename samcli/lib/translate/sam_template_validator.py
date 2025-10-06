@@ -13,6 +13,7 @@ from samtranslator.translator.managed_policy_translator import ManagedPolicyLoad
 from samtranslator.translator.translator import Translator
 
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
+from samcli.lib.utils.foreach_handler import filter_foreach_constructs
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.resources import AWS_SERVERLESS_FUNCTION
 from samcli.yamlhelper import yaml_dump
@@ -82,18 +83,32 @@ class SamTemplateValidator:
         self._replace_local_codeuri()
         self._replace_local_image()
 
+        # Filter out Fn::ForEach constructs before translation
+        # CloudFormation will handle these server-side
+        template_to_translate, foreach_constructs = filter_foreach_constructs(self.sam_template)
+
         try:
             template = sam_translator.translate(
-                sam_template=self.sam_template,
+                sam_template=template_to_translate,
                 parameter_values=self.parameter_overrides,
                 get_managed_policy_map=self._get_managed_policy_map,
             )
+
+            # Add back Fn::ForEach constructs after translation
+            if foreach_constructs:
+                if "Resources" not in template:
+                    template["Resources"] = {}
+                template["Resources"].update(foreach_constructs)
+                LOG.debug("Preserved %d Fn::ForEach construct(s) in template", len(foreach_constructs))
+
             LOG.debug("Translated template is:\n%s", yaml_dump(template))
             return yaml_dump(template)
         except InvalidDocumentException as e:
             raise InvalidSamDocumentException(
                 functools.reduce(lambda message, error: message + " " + str(error), e.causes, str(e))
             ) from e
+
+    # Removed: _filter_foreach_constructs() now uses shared utility from samcli.lib.utils.foreach_handler
 
     @functools.lru_cache(maxsize=None)
     def _get_managed_policy_map(self) -> Dict[str, str]:
@@ -130,7 +145,11 @@ class SamTemplateValidator:
                 ):
                     SamTemplateValidator._update_to_s3_uri("CodeUri", properties)
 
-        for _, resource in all_resources.items():
+        for resource_id, resource in all_resources.items():
+            # Skip Fn::ForEach constructs which are lists, not dicts
+            if resource_id.startswith("Fn::ForEach::") or not isinstance(resource, dict):
+                continue
+
             resource_type = resource.get("Type")
             resource_dict = resource.get("Properties", {})
 
@@ -158,7 +177,11 @@ class SamTemplateValidator:
         This ensures sam validate works without having to package the app or use ImageUri.
         """
         resources = self.sam_template.get("Resources", {})
-        for _, resource in resources.items():
+        for resource_id, resource in resources.items():
+            # Skip Fn::ForEach constructs which are lists, not dicts
+            if resource_id.startswith("Fn::ForEach::") or not isinstance(resource, dict):
+                continue
+
             resource_type = resource.get("Type")
             properties = resource.get("Properties", {})
 
