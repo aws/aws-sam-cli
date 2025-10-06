@@ -4,6 +4,9 @@
 #
 #    pip-compile --allow-unsafe --generate-hashes --output-file=requirements/reproducible-mac.txt
 #
+--extra-index-url https://plugin.us-east-1.prod.workshops.aws
+--trusted-host plugin.us-east-1.prod.workshops.aws
+
 annotated-types==0.7.0 \
     --hash=sha256:1f02e8b43a8fbbc3f3e0d4f0f4bfc8131bcb4eebe8849b8e5c773f3a1c582a53 \
     --hash=sha256:aff07c09a53a08bc8cfccb9c85b05f1aa9a2a6f23728d790723543408344ce89
@@ -601,6 +604,10 @@ python-dateutil==2.9.0.post0 \
     #   arrow
     #   botocore
     #   dateparser
+python-dotenv==1.0.1 \
+    --hash=sha256:e324ee90a023d808f1959c46bcbc04446a10ced277783dc6ee09987c37ec10ca \
+    --hash=sha256:f7b63ef50f1b690dddf550d03497b66d609393b40b564ed0d674909a68ebf16a
+    # via aws-sam-cli (setup.py)
 python-slugify==8.0.4 \
     --hash=sha256:276540b79961052b66b7d116620b36518847f52d5fd9e3a70164fc8c50faa6b8 \
     --hash=sha256:59202371d1d05b54a9e7720c5e038f928f45daaffe41dd10822f3907b937c856
