@@ -28,7 +28,7 @@ class TestDoCli(TestCase):
             "cached",
             "parallel",
             False,  # watch
-            None,   # watch_exclude
+            None,  # watch_exclude
             "manifest_path",
             "docker_network",
             "skip_pull_image",
@@ -36,8 +36,8 @@ class TestDoCli(TestCase):
             "mode",
             (""),
             "container_env_var_file",
-            (),     # build_image
-            (),     # exclude
+            (),  # build_image
+            (),  # exclude
             hook_name=None,
             build_in_source=False,
             mount_with=MountMode.READ,

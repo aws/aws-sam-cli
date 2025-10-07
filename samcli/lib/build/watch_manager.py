@@ -32,10 +32,10 @@ class BuildWatchManager:
     """Manager for build watch execution logic.
     This manager will observe template and its code resources.
     Automatically execute builds when changes are detected.
-    
+
     Follows the same patterns as WatchManager but adapted for build operations.
     """
-    
+
     _stacks: Optional[List[Stack]]
     _template: str
     _build_context: "BuildContext"
@@ -69,18 +69,18 @@ class BuildWatchManager:
         self._stacks = None
         self._template = template
         self._build_context = build_context
-        
+
         self._observer = HandlerObserver()
         self._trigger_factory = None
-        
+
         self._waiting_build = False
         self._build_timer = None
         self._build_lock = threading.Lock()
         self._color = Colored()
-        
+
         # Build smart exclusions based on build configuration
         self._watch_exclude = self._build_smart_exclusions(build_context, watch_exclude)
-        
+
         # Validate safety upfront
         self._validate_watch_safety(build_context)
 
@@ -89,33 +89,35 @@ class BuildWatchManager:
     ) -> Dict[str, List[str]]:
         """Build exclusions that prevent recursion based on build config"""
         from samcli.lib.utils.resource_trigger import DEFAULT_WATCH_IGNORED_RESOURCES
-        
+
         # Base exclusions from resource_trigger.py
         base_exclusions = [*DEFAULT_WATCH_IGNORED_RESOURCES]
-        
+
         # Add build-specific exclusions
         if build_context.build_in_source:
-            base_exclusions.extend([
-                r"^.*\.pyc$",           # Python bytecode
-                r"^.*__pycache__.*$",   # Python cache
-                r"^.*\.class$",         # Java classes  
-                r"^.*target/.*$",       # Maven target
-                r"^.*build/.*$",        # Gradle build
-            ])
-        
+            base_exclusions.extend(
+                [
+                    r"^.*\.pyc$",  # Python bytecode
+                    r"^.*__pycache__.*$",  # Python cache
+                    r"^.*\.class$",  # Java classes
+                    r"^.*target/.*$",  # Maven target
+                    r"^.*build/.*$",  # Gradle build
+                ]
+            )
+
         # Exclude cache directory if under project
         cache_exclusions = self._get_cache_exclusions(build_context)
         base_exclusions.extend(cache_exclusions)
-        
+
         # Exclude build directory if under project
         build_exclusions = self._get_build_exclusions(build_context)
         base_exclusions.extend(build_exclusions)
-        
+
         # Apply base exclusions to all resources, merging with user-provided exclusions
         result = {}
         for resource_id, user_excludes in watch_exclude.items():
             result[resource_id] = base_exclusions + user_excludes
-        
+
         # For resources not specified by user, use base exclusions
         return result if result else {"*": base_exclusions}
 
@@ -123,9 +125,9 @@ class BuildWatchManager:
         """Exclude cache directory from watching"""
         cache_dir = Path(build_context.cache_dir).resolve()
         base_dir = Path(build_context.base_dir).resolve()
-        
+
         try:
-            # If cache_dir is under base_dir, add it to exclusions  
+            # If cache_dir is under base_dir, add it to exclusions
             rel_cache_path = cache_dir.relative_to(base_dir)
             return [f"^.*{re.escape(str(rel_cache_path))}.*$"]
         except ValueError:
@@ -136,9 +138,9 @@ class BuildWatchManager:
         """Exclude build directory from watching"""
         build_dir = Path(build_context.build_dir).resolve()
         base_dir = Path(build_context.base_dir).resolve()
-        
+
         try:
-            # If build_dir is under base_dir, add it to exclusions  
+            # If build_dir is under base_dir, add it to exclusions
             rel_build_path = build_dir.relative_to(base_dir)
             return [f"^.*{re.escape(str(rel_build_path))}.*$"]
         except ValueError:
@@ -150,9 +152,9 @@ class BuildWatchManager:
         base_dir = Path(build_context.base_dir).resolve()
         cache_dir = Path(build_context.cache_dir).resolve()
         build_dir = Path(build_context.build_dir).resolve()
-        
+
         warnings = []
-        
+
         # Check if cache dir is under a source directory
         if build_context.build_in_source:
             try:
@@ -163,7 +165,7 @@ class BuildWatchManager:
                     )
             except (OSError, ValueError):
                 pass
-        
+
         # Check if build dir is under base dir when not using default
         default_build_dir = base_dir / ".aws-sam" / "build"
         if build_dir != default_build_dir:
@@ -175,7 +177,7 @@ class BuildWatchManager:
                     )
             except (OSError, ValueError):
                 pass
-        
+
         # Log warnings but don't fail - let users proceed with caution
         for warning in warnings:
             LOG.warning(self._color.yellow(f"Build watch safety warning: {warning}"))
@@ -188,7 +190,7 @@ class BuildWatchManager:
 
     def queue_debounced_build(self, wait_time: float = DEFAULT_BUILD_WAIT_TIME) -> None:
         """Queue up a debounced build operation to handle rapid file changes.
-        
+
         Parameters
         ----------
         wait_time : float
@@ -198,7 +200,7 @@ class BuildWatchManager:
             # Cancel any pending build timer
             if self._build_timer and self._build_timer.is_alive():
                 self._build_timer.cancel()
-            
+
             # Schedule new build after wait_time
             self._build_timer = threading.Timer(wait_time, self._execute_debounced_build)
             self._build_timer.start()
@@ -259,55 +261,52 @@ class BuildWatchManager:
     def _add_template_triggers(self) -> None:
         """Create template file watcher with polling fallback"""
         from watchdog.events import FileSystemEventHandler
-        
+
         template_path = Path(self._template).resolve()
         LOG.info(f"Setting up template monitoring for {template_path}")
-        
+
         # Create a custom event handler class
         class TemplateEventHandler(FileSystemEventHandler):
             def __init__(self, manager: "BuildWatchManager", template_path: Path):
                 self.manager = manager
                 self.template_path = template_path
-            
+
             def on_any_event(self, event: FileSystemEvent) -> None:
-                if event and hasattr(event, 'src_path'):
+                if event and hasattr(event, "src_path"):
                     event_path = Path(event.src_path).resolve()
                     if event_path == self.template_path:
                         LOG.info(
                             self.manager._color.color_log(
                                 msg=f"Template change detected: {event.event_type} on {event.src_path}",
-                                color=Colors.PROGRESS
+                                color=Colors.PROGRESS,
                             ),
-                            extra=dict(markup=True)
+                            extra=dict(markup=True),
                         )
                         self.manager.queue_build()
-        
+
         template_handler = TemplateEventHandler(self, template_path)
-        
+
         # Create PathHandler for the template directory
         from samcli.lib.utils.path_observer import PathHandler
-        template_path_handler = PathHandler(
-            path=template_path.parent,
-            event_handler=template_handler,
-            recursive=False
-        )
-        
+
+        template_path_handler = PathHandler(path=template_path.parent, event_handler=template_handler, recursive=False)
+
         self._observer.schedule_handlers([template_path_handler])
         LOG.info(f"Template pattern watcher registered for {template_path}")
-        
+
         # Add periodic template check as fallback
         self._start_template_polling()
-    
+
     def _start_template_polling(self) -> None:
         """Start periodic template file checking as fallback"""
         template_path = Path(self._template).resolve()
-        
-        if not hasattr(self, '_template_mtime'):
+
+        if not hasattr(self, "_template_mtime"):
             try:
                 self._template_mtime = template_path.stat().st_mtime
             except OSError:
                 self._template_mtime = 0
-        
+
         def check_template_periodically() -> None:
             while True:
                 try:
@@ -316,16 +315,16 @@ class BuildWatchManager:
                         LOG.info(
                             self._color.color_log(
                                 msg="Template modification detected via polling. Starting build...",
-                                color=Colors.PROGRESS
+                                color=Colors.PROGRESS,
                             ),
-                            extra=dict(markup=True)
+                            extra=dict(markup=True),
                         )
                         self._template_mtime = current_mtime
                         self.queue_build()
                 except OSError:
                     pass
                 time.sleep(2)  # Check every 2 seconds
-        
+
         # Start polling in a daemon thread
         polling_thread = threading.Thread(target=check_template_periodically, daemon=True)
         polling_thread.start()
@@ -339,15 +338,12 @@ class BuildWatchManager:
         try:
             self.queue_build()
             self._start_watch()
-            LOG.info(
-                self._color.color_log(msg="Build watch started.", color=Colors.SUCCESS), extra=dict(markup=True)
-            )
+            LOG.info(self._color.color_log(msg="Build watch started.", color=Colors.SUCCESS), extra=dict(markup=True))
             self._start()
         except KeyboardInterrupt:
             LOG.info(
-                self._color.color_log(
-                    msg="Shutting down build watch...", color=Colors.PROGRESS
-                ), extra=dict(markup=True)
+                self._color.color_log(msg="Shutting down build watch...", color=Colors.PROGRESS),
+                extra=dict(markup=True),
             )
             self._observer.stop()
             # Cancel any pending build timer
@@ -381,31 +377,28 @@ class BuildWatchManager:
             )
         else:
             LOG.info(
-                self._color.color_log(
-                    msg="File changes detected. Starting build.", color=Colors.PROGRESS
-                ), extra=dict(markup=True)
+                self._color.color_log(msg="File changes detected. Starting build.", color=Colors.PROGRESS),
+                extra=dict(markup=True),
             )
-        
+
         self._waiting_build = False
-        
+
         try:
             # CRITICAL FIX: Re-parse template BEFORE building to pick up new resources
             if not first_build:
                 LOG.debug("Refreshing build context with latest template data")
                 self._build_context.set_up()
-            
+
             self._build_context.run()
             LOG.info(self._color.color_log(msg="Build completed.", color=Colors.SUCCESS), extra=dict(markup=True))
         except Exception as e:
             LOG.error(
-                self._color.color_log(
-                    msg="Build failed. Watching for file changes to retry.", color=Colors.FAILURE
-                ),
+                self._color.color_log(msg="Build failed. Watching for file changes to retry.", color=Colors.FAILURE),
                 exc_info=e,
                 extra=dict(markup=True),
             )
             # Don't stop watching on build failure - let users fix the issue and retry
-        
+
         # Update stacks and repopulate triggers after build
         # This ensures we pick up any template changes from the build
         self._start_watch()
