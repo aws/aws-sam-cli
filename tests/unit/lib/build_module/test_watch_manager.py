@@ -1,6 +1,7 @@
 from unittest.case import TestCase
 from unittest.mock import MagicMock, patch, ANY
 from pathlib import Path
+from typing import Dict, List
 from samcli.lib.build.watch_manager import BuildWatchManager
 
 
@@ -8,7 +9,7 @@ class TestBuildWatchManager(TestCase):
     def setUp(self) -> None:
         self.template = "template.yaml"
         self.build_context = MagicMock()
-        self.watch_exclude = {}
+        self.watch_exclude: Dict[str, List[str]] = {}
         
         self.path_observer_patch = patch("samcli.lib.build.watch_manager.HandlerObserver")
         self.path_observer_mock = self.path_observer_patch.start()
