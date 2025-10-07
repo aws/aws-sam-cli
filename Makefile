@@ -56,7 +56,7 @@ schema:
 	python -m schema.make_schema
 
 # Verifications to run before sending a pull request
-pr: init dev schema black-check
+pr: init schema black-check dev
 
 # lucashuy: Linux and MacOS are on the same Python version,
 # however we should follow up in a different change
