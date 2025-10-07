@@ -258,40 +258,31 @@ class BuildWatchManager:
 
     def _add_template_triggers(self) -> None:
         """Create template file watcher with polling fallback"""
-        from watchdog.events import PatternMatchingEventHandler
+        from watchdog.events import FileSystemEventHandler
         
         template_path = Path(self._template).resolve()
         LOG.info(f"Setting up template monitoring for {template_path}")
         
-        # Create a pattern-based handler that watches for template file changes
-        patterns = [str(template_path), str(template_path.name)]
+        # Create a custom event handler class
+        class TemplateEventHandler(FileSystemEventHandler):
+            def __init__(self, manager: "BuildWatchManager", template_path: Path):
+                self.manager = manager
+                self.template_path = template_path
+            
+            def on_any_event(self, event: FileSystemEvent) -> None:
+                if event and hasattr(event, 'src_path'):
+                    event_path = Path(event.src_path).resolve()
+                    if event_path == self.template_path:
+                        LOG.info(
+                            self.manager._color.color_log(
+                                msg=f"Template change detected: {event.event_type} on {event.src_path}",
+                                color=Colors.PROGRESS
+                            ),
+                            extra=dict(markup=True)
+                        )
+                        self.manager.queue_build()
         
-        def on_template_change(event):
-            if event and hasattr(event, 'src_path'):
-                event_path = Path(event.src_path).resolve()
-                if event_path == template_path:
-                    LOG.info(
-                        self._color.color_log(
-                            msg=f"Template change detected: {event.event_type} on {event.src_path}",
-                            color=Colors.PROGRESS
-                        ),
-                        extra=dict(markup=True)
-                    )
-                    self.queue_build()
-        
-        # Create pattern matching handler
-        template_handler = PatternMatchingEventHandler(
-            patterns=patterns,
-            ignore_patterns=[],
-            ignore_directories=True,
-            case_sensitive=True
-        )
-        
-        # Assign callback to all event types
-        template_handler.on_modified = on_template_change
-        template_handler.on_created = on_template_change
-        template_handler.on_deleted = on_template_change
-        template_handler.on_moved = on_template_change
+        template_handler = TemplateEventHandler(self, template_path)
         
         # Create PathHandler for the template directory
         from samcli.lib.utils.path_observer import PathHandler
@@ -317,7 +308,7 @@ class BuildWatchManager:
             except OSError:
                 self._template_mtime = 0
         
-        def check_template_periodically():
+        def check_template_periodically() -> None:
             while True:
                 try:
                     current_mtime = template_path.stat().st_mtime
