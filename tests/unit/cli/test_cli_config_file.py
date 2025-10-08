@@ -253,7 +253,15 @@ class TestCliConfiguration(TestCase):
         mock_config_file = {}
 
         def mock_put_func(cmd_names, section, key, value, env):
-            mock_config_file.update({env: {cmd_names[0]: {section: {key: value}}}})
+            # Create nested structure if it doesn't exist
+            if env not in mock_config_file:
+                mock_config_file[env] = {}
+            if cmd_names[0] not in mock_config_file[env]:
+                mock_config_file[env][cmd_names[0]] = {}
+            if section not in mock_config_file[env][cmd_names[0]]:
+                mock_config_file[env][cmd_names[0]][section] = {}
+            # Set the value
+            mock_config_file[env][cmd_names[0]][section][key] = value
 
         mock_put = MagicMock()
         mock_put.side_effect = mock_put_func
@@ -278,8 +286,17 @@ class TestCliConfiguration(TestCase):
 
         mock_samconfig.flush.assert_not_called()
 
-    def test_save_command_line_args(self):
+    @patch("samcli.cli.cli_config_file.get_default_aws_region")
+    @patch("samcli.cli.cli_config_file.Context")
+    def test_save_command_line_args(self, mock_context_class, mock_get_default_aws_region):
         mock_samconfig, mock_config_file = self._setup_mock_samconfig()
+
+        # Setup mock context for region handling
+        mock_sam_context = MagicMock()
+        mock_sam_context.region = None
+        mock_context_class.get_current_context.return_value = mock_sam_context
+        mock_get_default_aws_region.return_value = "us-east-1"
+
         self.ctx = self._setup_context(
             params={
                 "save_params": True,
@@ -309,8 +326,17 @@ class TestCliConfiguration(TestCase):
         self.assertIn("value", params.values(), "Param value should be saved to config file")
         mock_samconfig.flush.assert_called_once()  # everything should be flushed to config file
 
-    def test_dont_save_arguments_not_from_command_line(self):
+    @patch("samcli.cli.cli_config_file.get_default_aws_region")
+    @patch("samcli.cli.cli_config_file.Context")
+    def test_dont_save_arguments_not_from_command_line(self, mock_context_class, mock_get_default_aws_region):
         mock_samconfig, mock_config_file = self._setup_mock_samconfig()
+
+        # Setup mock context for region handling
+        mock_sam_context = MagicMock()
+        mock_sam_context.region = None
+        mock_context_class.get_current_context.return_value = mock_sam_context
+        mock_get_default_aws_region.return_value = "us-east-1"
+
         self.ctx = self._setup_context(
             params={
                 "save_params": True,
@@ -339,8 +365,17 @@ class TestCliConfiguration(TestCase):
             "param_not_from_commandline", params.keys(), "Param not passed in via COMMANDLINE should not be saved"
         )
 
-    def test_dont_save_command_line_args_if_value_is_none(self):
+    @patch("samcli.cli.cli_config_file.get_default_aws_region")
+    @patch("samcli.cli.cli_config_file.Context")
+    def test_dont_save_command_line_args_if_value_is_none(self, mock_context_class, mock_get_default_aws_region):
         mock_samconfig, mock_config_file = self._setup_mock_samconfig()
+
+        # Setup mock context for region handling
+        mock_sam_context = MagicMock()
+        mock_sam_context.region = None
+        mock_context_class.get_current_context.return_value = mock_sam_context
+        mock_get_default_aws_region.return_value = "us-east-1"
+
         self.ctx = self._setup_context(
             params={
                 "save_params": True,
@@ -367,6 +402,142 @@ class TestCliConfiguration(TestCase):
         self.assertNotIn("save_params", params.keys(), "--save-params should not be saved to config")
         self.assertNotIn("none_param", params.keys(), "Param with None value should not be saved to config")
         self.assertNotIn(None, params.values(), "None value should not be saved to config")
+
+    @patch("samcli.cli.cli_config_file.get_default_aws_region")
+    @patch("samcli.cli.cli_config_file.Context")
+    def test_save_region_when_context_has_region(self, mock_context_class, mock_get_default_aws_region):
+        """Test that region from context is saved to global parameters"""
+        mock_samconfig, mock_config_file = self._setup_mock_samconfig()
+
+        # Setup mock context with region
+        mock_sam_context = MagicMock()
+        mock_sam_context.region = "us-west-2"
+        mock_context_class.get_current_context.return_value = mock_sam_context
+
+        self.ctx = self._setup_context(
+            params={
+                "save_params": True,
+                "some_param": "value",
+            },
+            parameter_source={
+                "save_params": ParameterSource.COMMANDLINE,
+                "some_param": ParameterSource.COMMANDLINE,
+            },
+        )
+
+        save_command_line_args_to_config(self.ctx, ["command"], "default", mock_samconfig)
+
+        # Verify region was saved to global parameters
+        self.assertIn("default", mock_config_file.keys())
+        self.assertIn("global", mock_config_file["default"].keys())
+        self.assertIn("parameters", mock_config_file["default"]["global"].keys())
+        self.assertEqual(mock_config_file["default"]["global"]["parameters"]["region"], "us-west-2")
+
+        # Verify default region function was not called since context had region
+        mock_get_default_aws_region.assert_not_called()
+        mock_samconfig.flush.assert_called_once()
+
+    @patch("samcli.cli.cli_config_file.get_default_aws_region")
+    @patch("samcli.cli.cli_config_file.Context")
+    def test_save_default_region_when_context_has_no_region(self, mock_context_class, mock_get_default_aws_region):
+        """Test that default region is saved when context has no region"""
+        mock_samconfig, mock_config_file = self._setup_mock_samconfig()
+
+        # Setup mock context without region
+        mock_sam_context = MagicMock()
+        mock_sam_context.region = None
+        mock_context_class.get_current_context.return_value = mock_sam_context
+
+        # Setup default region
+        mock_get_default_aws_region.return_value = "us-east-1"
+
+        self.ctx = self._setup_context(
+            params={
+                "save_params": True,
+                "some_param": "value",
+            },
+            parameter_source={
+                "save_params": ParameterSource.COMMANDLINE,
+                "some_param": ParameterSource.COMMANDLINE,
+            },
+        )
+
+        save_command_line_args_to_config(self.ctx, ["command"], "default", mock_samconfig)
+
+        # Verify default region was saved to global parameters
+        self.assertIn("default", mock_config_file.keys())
+        self.assertIn("global", mock_config_file["default"].keys())
+        self.assertIn("parameters", mock_config_file["default"]["global"].keys())
+        self.assertEqual(mock_config_file["default"]["global"]["parameters"]["region"], "us-east-1")
+
+        # Verify default region function was called
+        mock_get_default_aws_region.assert_called_once()
+        mock_samconfig.flush.assert_called_once()
+
+    @patch("samcli.cli.cli_config_file.get_default_aws_region")
+    @patch("samcli.cli.cli_config_file.Context")
+    def test_save_default_region_when_no_sam_context(self, mock_context_class, mock_get_default_aws_region):
+        """Test that default region is saved when there's no SAM context"""
+        mock_samconfig, mock_config_file = self._setup_mock_samconfig()
+
+        # Setup no SAM context
+        mock_context_class.get_current_context.return_value = None
+
+        # Setup default region
+        mock_get_default_aws_region.return_value = "us-east-1"
+
+        self.ctx = self._setup_context(
+            params={
+                "save_params": True,
+                "some_param": "value",
+            },
+            parameter_source={
+                "save_params": ParameterSource.COMMANDLINE,
+                "some_param": ParameterSource.COMMANDLINE,
+            },
+        )
+
+        save_command_line_args_to_config(self.ctx, ["command"], "default", mock_samconfig)
+
+        # Verify default region was saved to global parameters
+        self.assertIn("default", mock_config_file.keys())
+        self.assertIn("global", mock_config_file["default"].keys())
+        self.assertIn("parameters", mock_config_file["default"]["global"].keys())
+        self.assertEqual(mock_config_file["default"]["global"]["parameters"]["region"], "us-east-1")
+
+        # Verify default region function was called
+        mock_get_default_aws_region.assert_called_once()
+        mock_samconfig.flush.assert_called_once()
+
+    @patch("samcli.cli.cli_config_file.get_default_aws_region")
+    @patch("samcli.cli.cli_config_file.Context")
+    def test_save_region_with_custom_config_env(self, mock_context_class, mock_get_default_aws_region):
+        """Test that region is saved under the correct config environment"""
+        mock_samconfig, mock_config_file = self._setup_mock_samconfig()
+
+        # Setup mock context with region
+        mock_sam_context = MagicMock()
+        mock_sam_context.region = "eu-west-1"
+        mock_context_class.get_current_context.return_value = mock_sam_context
+
+        self.ctx = self._setup_context(
+            params={
+                "save_params": True,
+            },
+            parameter_source={
+                "save_params": ParameterSource.COMMANDLINE,
+            },
+        )
+
+        # Use custom config environment
+        save_command_line_args_to_config(self.ctx, ["command"], "production", mock_samconfig)
+
+        # Verify region was saved under production environment
+        self.assertIn("production", mock_config_file.keys())
+        self.assertIn("global", mock_config_file["production"].keys())
+        self.assertIn("parameters", mock_config_file["production"]["global"].keys())
+        self.assertEqual(mock_config_file["production"]["global"]["parameters"]["region"], "eu-west-1")
+        mock_samconfig.flush.assert_called_once()
 
 
 @dataclass
