@@ -17,7 +17,7 @@ from samcli.commands.generate.openapi.command import cli as openapi_cli
 def cli(ctx):
     """
     Generate artifacts from SAM templates.
-    
+
     This command group provides subcommands to generate various artifacts
     from your SAM templates, such as OpenAPI specifications, CloudFormation
     templates, and more.

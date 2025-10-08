@@ -21,9 +21,7 @@ class GenerateOpenApiIntegBase(TestCase):
         cls.test_data_path = str(Path(integration_dir, "testdata", "generate", "openapi"))
 
     def setUp(self):
-        self.scratch_dir = str(
-            Path(__file__).resolve().parent.joinpath("tmp", str(uuid.uuid4()).replace("-", "")[:10])
-        )
+        self.scratch_dir = str(Path(__file__).resolve().parent.joinpath("tmp", str(uuid.uuid4()).replace("-", "")[:10]))
         shutil.rmtree(self.scratch_dir, ignore_errors=True)
         os.makedirs(self.scratch_dir)
 

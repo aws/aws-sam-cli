@@ -13,17 +13,15 @@ class TestOpenApiConverter(TestCase):
             "swagger": "2.0",
             "info": {"title": "Test API", "version": "1.0"},
             "paths": {"/test": {"get": {}}},
-            "securityDefinitions": {
-                "ApiKey": {"type": "apiKey", "in": "header", "name": "X-API-Key"}
-            }
+            "securityDefinitions": {"ApiKey": {"type": "apiKey", "in": "header", "name": "X-API-Key"}},
         }
-        
+
         result = OpenApiConverter.swagger_to_openapi3(swagger_doc)
-        
+
         # Version changed
         self.assertEqual(result["openapi"], "3.0.0")
         self.assertNotIn("swagger", result)
-        
+
         # SecurityDefinitions moved
         self.assertIn("components", result)
         self.assertIn("securitySchemes", result["components"])
@@ -32,14 +30,10 @@ class TestOpenApiConverter(TestCase):
 
     def test_already_openapi3(self):
         """Test that OpenAPI 3.0 docs are returned unchanged"""
-        openapi_doc = {
-            "openapi": "3.0.0",
-            "info": {"title": "Test"},
-            "paths": {}
-        }
-        
+        openapi_doc = {"openapi": "3.0.0", "info": {"title": "Test"}, "paths": {}}
+
         result = OpenApiConverter.swagger_to_openapi3(openapi_doc)
-        
+
         self.assertEqual(result["openapi"], "3.0.0")
         self.assertEqual(result, openapi_doc)
 
@@ -51,13 +45,9 @@ class TestOpenApiConverter(TestCase):
 
     def test_no_security_definitions(self):
         """Test conversion without security definitions"""
-        swagger_doc = {
-            "swagger": "2.0",
-            "info": {"title": "Test"},
-            "paths": {}
-        }
-        
+        swagger_doc = {"swagger": "2.0", "info": {"title": "Test"}, "paths": {}}
+
         result = OpenApiConverter.swagger_to_openapi3(swagger_doc)
-        
+
         self.assertEqual(result["openapi"], "3.0.0")
         self.assertNotIn("securityDefinitions", result)

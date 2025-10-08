@@ -24,7 +24,7 @@ class TestGenerateOpenApiCommand(GenerateOpenApiIntegBase):
 
         self.assertEqual(command_result.process.returncode, 0)
         stdout = command_result.stdout.decode("utf-8")
-        
+
         # Verify OpenAPI structure
         openapi_doc = yaml_parse(stdout)
         self.assertIn("swagger", openapi_doc)
@@ -41,7 +41,7 @@ class TestGenerateOpenApiCommand(GenerateOpenApiIntegBase):
 
         self.assertEqual(command_result.process.returncode, 0)
         self.assertTrue(self.output_file_path.exists())
-        
+
         # Verify file contents
         with open(output_file, "r") as f:
             openapi_doc = yaml_parse(f.read())
@@ -57,7 +57,7 @@ class TestGenerateOpenApiCommand(GenerateOpenApiIntegBase):
 
         self.assertEqual(command_result.process.returncode, 0)
         stdout = command_result.stdout.decode("utf-8")
-        
+
         # Verify JSON format
         openapi_doc = json.loads(stdout)
         self.assertIn("paths", openapi_doc)
