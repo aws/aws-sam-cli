@@ -1,8 +1,8 @@
 -r pre-dev.txt
 
-coverage==7.10.2; python_version>="3.9"
+coverage==7.10.7; python_version>="3.9"
 coverage==7.6.1; python_version<"3.9"
-pytest-cov==6.3.0; python_version>="3.9"
+pytest-cov==7.0.0; python_version>="3.9"
 pytest-cov==5.0.0; python_version<"3.9"
 
 
