@@ -201,6 +201,83 @@ class TestCli(TestCase):
         expected = "invalid imageuri"
         self.assertEqual(msg, expected)
 
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
+    @patch("samcli.commands.local.lib.local_api_service.LocalApiService")
+    def test_cli_with_filesystem_parameter(self, local_api_service_mock, invoke_context_mock):
+        """
+        Test that filesystem parameter is correctly passed to InvokeContext
+        """
+        # Mock the __enter__ method to return a object inside a context manager
+        context_mock = Mock()
+        invoke_context_mock.return_value.__enter__.return_value = context_mock
+
+        service_mock = Mock()
+        local_api_service_mock.return_value = service_mock
+
+        filesystem_path = "/path/to/efs"
+
+        start_api_cli(
+            ctx=self.ctx_mock,
+            host=self.host,
+            port=self.port,
+            static_dir=self.static_dir,
+            template=self.template,
+            env_vars=self.env_vars,
+            debug_port=self.debug_ports,
+            debug_args=self.debug_args,
+            debugger_path=self.debugger_path,
+            container_env_vars=self.container_env_vars,
+            docker_volume_basedir=self.docker_volume_basedir,
+            docker_network=self.docker_network,
+            log_file=self.log_file,
+            layer_cache_basedir=self.layer_cache_basedir,
+            filesystem=filesystem_path,
+            skip_pull_image=self.skip_pull_image,
+            parameter_overrides=self.parameter_overrides,
+            force_image_build=self.force_image_build,
+            warm_containers=self.warm_containers,
+            debug_function=self.debug_function,
+            shutdown=self.shutdown,
+            container_host=self.container_host,
+            container_host_interface=self.container_host_interface,
+            invoke_image=self.invoke_image,
+            hook_name=self.hook_name,
+            ssl_cert_file=self.ssl_cert_file,
+            ssl_key_file=self.ssl_key_file,
+            disable_authorizer=self.disable_authorizer,
+            add_host=self.add_host,
+            no_mem_limit=self.no_mem_limit,
+        )
+
+        # Assert filesystem_dir was passed to InvokeContext
+        invoke_context_mock.assert_called_with(
+            template_file=self.template,
+            function_identifier=None,
+            env_vars_file=self.env_vars,
+            docker_volume_basedir=self.docker_volume_basedir,
+            docker_network=self.docker_network,
+            log_file=self.log_file,
+            skip_pull_image=self.skip_pull_image,
+            debug_ports=self.debug_ports,
+            debug_args=self.debug_args,
+            debugger_path=self.debugger_path,
+            container_env_vars_file=self.container_env_vars,
+            parameter_overrides=self.parameter_overrides,
+            layer_cache_basedir=self.layer_cache_basedir,
+            force_image_build=self.force_image_build,
+            aws_region=self.region_name,
+            aws_profile=self.profile,
+            warm_container_initialization_mode=self.warm_containers,
+            debug_function=self.debug_function,
+            shutdown=self.shutdown,
+            container_host=self.container_host,
+            container_host_interface=self.container_host_interface,
+            add_host=self.add_host,
+            invoke_images={},
+            filesystem_dir=filesystem_path,
+            no_mem_limit=self.no_mem_limit,
+        )
+
     def call_cli(self):
         start_api_cli(
             ctx=self.ctx_mock,

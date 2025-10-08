@@ -732,7 +732,6 @@ class TestInvokeContext_local_lambda_runner(TestCase):
                 container_host=None,
                 container_host_interface=None,
                 extra_hosts=None,
-                filesystem_dir=None,
             )
 
             result = self.context.local_lambda_runner
@@ -825,7 +824,6 @@ class TestInvokeContext_local_lambda_runner(TestCase):
                 container_host="abcdef",
                 container_host_interface="192.168.100.101",
                 extra_hosts=None,
-                filesystem_dir=None,
             )
 
             result = self.context.local_lambda_runner
@@ -1403,7 +1401,12 @@ class TestInvokeContext_get_stacks(TestCase):
 
 
 class TestInvokeContext_add_account_id_to_global(TestCase):
-    def test_must_work_with_no_token(self):
+    @patch("samcli.commands.local.cli_common.invoke_context.get_boto_client_provider_with_config")
+    def test_must_work_with_no_token(self, get_boto_client_provider_with_config_mock):
+        # Mock to return no credentials
+        get_boto_client_provider_with_config_mock.return_value.return_value.get_caller_identity.side_effect = Exception(
+            "No credentials"
+        )
         invoke_context = InvokeContext("template_file")
         invoke_context._add_account_id_to_global()
         self.assertIsNone(invoke_context._global_parameter_overrides)
