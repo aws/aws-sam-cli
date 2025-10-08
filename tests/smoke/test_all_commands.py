@@ -51,8 +51,18 @@ class TestAllCommands(TestCase):
         sam_cmd = "samdev" if os.getenv("SAM_CLI_DEV", 0) else "sam"
         # if a previous smoke test run have been killed, re-running them will fail. so run them in a temp folder
         with tempfile.TemporaryDirectory() as temp:
+            # Create isolated config directory for each test to prevent metadata.json conflicts
+            env = os.environ.copy()
+            # Use a unique subdirectory for SAM CLI config to avoid concurrent access issues
+            config_dir = os.path.join(temp, ".aws-sam")
+            env["__SAM_CLI_APP_DIR"] = config_dir
+
             process = subprocess.Popen(
-                [sam_cmd, cmd_name] + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=temp
+                [sam_cmd, cmd_name] + args,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                cwd=temp,
+                env=env,  # Use modified environment with isolated config dir
             )
             stdout, stderr = process.communicate()
 
