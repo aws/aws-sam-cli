@@ -219,7 +219,6 @@ class TestCfnParameterOverridesType(TestCase):
 
 
 class TestCfnMetadataType(TestCase):
-
     def setUp(self):
         self.param_type = CfnMetadataType()
 
