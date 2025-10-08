@@ -18,7 +18,7 @@ tomlkit==0.13.3
 watchdog==4.0.2
 
 rich~=14.1.0
-pyopenssl~=25.1.0
+pyopenssl~=25.3.0
 # Pin to <4.18 to until SAM-T no longer uses RefResolver
 jsonschema<4.26
 
