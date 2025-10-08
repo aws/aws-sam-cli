@@ -732,6 +732,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
                 container_host=None,
                 container_host_interface=None,
                 extra_hosts=None,
+                filesystem_dir=None,
             )
 
             result = self.context.local_lambda_runner
@@ -824,6 +825,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
                 container_host="abcdef",
                 container_host_interface="192.168.100.101",
                 extra_hosts=None,
+                filesystem_dir=None,
             )
 
             result = self.context.local_lambda_runner

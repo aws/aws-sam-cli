@@ -85,6 +85,7 @@ def cli(
     docker_network,
     log_file,
     layer_cache_basedir,
+    filesystem,
     skip_pull_image,
     force_image_build,
     parameter_overrides,
@@ -122,6 +123,7 @@ def cli(
         docker_network,
         log_file,
         layer_cache_basedir,
+        filesystem,
         skip_pull_image,
         force_image_build,
         parameter_overrides,
@@ -151,6 +153,7 @@ def do_cli(  # pylint: disable=R0914
     docker_network,
     log_file,
     layer_cache_basedir,
+    filesystem,
     skip_pull_image,
     force_image_build,
     parameter_overrides,
@@ -208,6 +211,7 @@ def do_cli(  # pylint: disable=R0914
             container_host_interface=container_host_interface,
             add_host=add_host,
             invoke_images=processed_invoke_images,
+            filesystem_dir=filesystem,
             no_mem_limit=no_mem_limit,
         ) as invoke_context:
             service = LocalLambdaService(lambda_invoke_context=invoke_context, port=port, host=host)

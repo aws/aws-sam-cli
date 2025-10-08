@@ -168,6 +168,7 @@ class TestCli(TestCase):
             container_host_interface=self.container_host_interface,
             add_host=self.add_host,
             invoke_images={None: "amazon/aws-sam-cli-emulation-image-python3.9"},
+            filesystem_dir=self.filesystem,
             mount_symlinks=self.mount_symlinks,
             no_mem_limit=self.no_mem_limit,
         )

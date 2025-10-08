@@ -120,7 +120,7 @@ class TestLambdaContainer_init(TestCase):
         get_exposed_ports_mock.assert_called_with(self.debug_options)
         get_debug_settings_mock.assert_called_with(self.runtime, self.debug_options)
         get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
-        get_additional_volumes_mock.assert_called_with(self.runtime, self.debug_options)
+        get_additional_volumes_mock.assert_called_with(self.runtime, self.debug_options, None)
 
     @patch.object(LambdaContainer, "_get_config")
     @patch.object(LambdaContainer, "_get_image")
@@ -193,7 +193,7 @@ class TestLambdaContainer_init(TestCase):
         )
         get_exposed_ports_mock.assert_called_with(self.debug_options)
         get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
-        get_additional_volumes_mock.assert_called_with(self.runtime, self.debug_options)
+        get_additional_volumes_mock.assert_called_with(self.runtime, self.debug_options, None)
 
     @patch.object(LambdaContainer, "_get_config")
     @patch.object(LambdaContainer, "_get_image")
@@ -269,7 +269,7 @@ class TestLambdaContainer_init(TestCase):
         )
         get_exposed_ports_mock.assert_called_with(self.debug_options)
         get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
-        get_additional_volumes_mock.assert_called_with(self.runtime, self.debug_options)
+        get_additional_volumes_mock.assert_called_with(self.runtime, self.debug_options, None)
 
     @patch.object(LambdaContainer, "_get_config")
     @patch.object(LambdaContainer, "_get_image")
@@ -346,7 +346,7 @@ class TestLambdaContainer_init(TestCase):
         )
         get_exposed_ports_mock.assert_called_with(self.debug_options)
         get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
-        get_additional_volumes_mock.assert_called_with(self.runtime, self.debug_options)
+        get_additional_volumes_mock.assert_called_with(self.runtime, self.debug_options, None)
 
     @patch.object(LambdaContainer, "_get_config")
     @patch.object(LambdaContainer, "_get_image")
@@ -428,7 +428,7 @@ class TestLambdaContainer_init(TestCase):
         )
         get_exposed_ports_mock.assert_called_with(self.debug_options)
         get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
-        get_additional_volumes_mock.assert_called_with(self.runtime, self.debug_options)
+        get_additional_volumes_mock.assert_called_with(self.runtime, self.debug_options, None)
 
     def test_must_fail_for_unsupported_runtime(self):
         runtime = "foo"
