@@ -90,7 +90,7 @@ jobs:
         shell: bash
 
   integration-tests:
-    name: Integ / ${{ matrix.os }} / ${{ matrix.python }} / ${{ matrix.tests_config }}
+    name: Integ / ${{ matrix.os }} / ${{ matrix.python }} / ${{ matrix.tests_config.name }}
     if: github.repository_owner == 'aws'
     runs-on: ${{ matrix.os }}
     env:
@@ -114,23 +114,33 @@ jobs:
           - "3.11"
         # folders that is commented below requires credentials, no need to spare time to run them
         tests_config:
-          - "-n 2 --reruns 3 tests/integration/buildcmd"
+          - name: "integ-buildcmd-lang"
+            cmd: "-n 4 --reruns 3 tests/integration/buildcmd/test_build_cmd_python.py tests/integration/buildcmd/test_build_cmd_java.py tests/integration/buildcmd/test_build_cmd_dotnet.py tests/integration/buildcmd/test_build_cmd_node.py tests/integration/buildcmd/test_build_cmd_rust.py tests/integration/buildcmd/test_build_cmd_provided.py tests/integration/buildcmd/test_build_cmd_arm64.py"
+          - name: "integ-buildcmd-other"
+            cmd: "-n 4 --reruns 3 tests/integration/buildcmd --ignore=tests/integration/buildcmd/test_build_cmd_python.py --ignore=tests/integration/buildcmd/test_build_cmd_java.py --ignore=tests/integration/buildcmd/test_build_cmd_dotnet.py --ignore=tests/integration/buildcmd/test_build_cmd_node.py --ignore=tests/integration/buildcmd/test_build_cmd_rust.py --ignore=tests/integration/buildcmd/test_build_cmd_provided.py --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py"
           #- "delete"
           #- "deploy"
-          - "tests/integration/init"
+          - name: "integ-init"
+            cmd: "tests/integration/init"
           #- "list"
-          - "tests/integration/local"
+          - name: "integ-local"
+            cmd: "tests/integration/local"
           #- "logs"
           #- "package"
-          - "tests/integration/pipeline"
+          - name: "integ-pipeline"
+            cmd: "tests/integration/pipeline"
           #- "publish"
-          - "tests/integration/root"
-          - "tests/integration/scripts"
+          - name: "integ-root"
+            cmd: "tests/integration/root"
+          - name: "integ-scripts"
+            cmd: "tests/integration/scripts"
           #- "sync"
-          - "tests/integration/telemetry"
+          - name: "integ-telemetry"
+            cmd: "tests/integration/telemetry"
           #- "traces"
           #- "validate"
-          - "tests/integration/docs"
+          - name: "integ-docs"
+            cmd: "tests/integration/docs"
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -189,8 +199,8 @@ jobs:
 
       - name: Init samdev
         run: make init
-      - name: Run integration tests for ${{ matrix.tests_config }}
-        run: pytest -vv ${{ matrix.tests_config }}
+      - name: Run integration tests for ${{ matrix.tests_config.name }}
+        run: pytest -vv ${{ matrix.tests_config.cmd }}
 
   smoke-and-functional-tests:
     name: Functional & Smoke Tests / ${{ matrix.os }} / ${{ matrix.python }}
@@ -220,7 +230,7 @@ jobs:
       - name: Init samdev
         run: make init
       - name: Run functional & smoke tests
-        run: pytest -vv -n 4 tests/functional tests/smoke
+        run: pytest -vv -n 16 tests/functional tests/smoke
 
   docker-disabled:
     name: Docker-disabled Tests / ${{ matrix.os }}
