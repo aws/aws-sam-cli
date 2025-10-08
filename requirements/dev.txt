@@ -46,6 +46,6 @@ filelock==3.19.1;  python_version>="3.9"
 filelock==3.16.1;  python_version<"3.9"
 
 # formatter
-black==25.1.0; python_version>="3.9"
+black==25.9.0; python_version>="3.9"
 black==24.8.0; python_version<"3.9"
 psutil==7.1.0
