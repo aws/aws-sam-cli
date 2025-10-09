@@ -7,7 +7,24 @@ from unittest import TestCase
 
 
 TEMPLATE_FOLDER = os.path.join(os.path.dirname(__file__), "templates", "sar")
-TEMPLATE_FILE_NAMES = [v for v in os.listdir(TEMPLATE_FOLDER) if "yaml" in v]
+
+# Get all template files and sort them for consistent ordering
+ALL_TEMPLATE_FILE_NAMES = sorted([v for v in os.listdir(TEMPLATE_FOLDER) if "yaml" in v])
+
+# Check environment variable to determine which subset to use
+SMOKE_TEST_SUBSET = os.environ.get("SMOKE_TEST_SUBSET", "").lower()
+
+if SMOKE_TEST_SUBSET == "first-half":
+    # Select first half of templates
+    mid_point = len(ALL_TEMPLATE_FILE_NAMES) // 2
+    TEMPLATE_FILE_NAMES = ALL_TEMPLATE_FILE_NAMES[:mid_point]
+elif SMOKE_TEST_SUBSET == "second-half":
+    # Select second half of templates
+    mid_point = len(ALL_TEMPLATE_FILE_NAMES) // 2
+    TEMPLATE_FILE_NAMES = ALL_TEMPLATE_FILE_NAMES[mid_point:]
+else:
+    # Default: select all templates
+    TEMPLATE_FILE_NAMES = ALL_TEMPLATE_FILE_NAMES
 
 
 class TestAllCommands(TestCase):
