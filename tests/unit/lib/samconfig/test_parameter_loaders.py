@@ -24,6 +24,7 @@ class TestParameterFileLoader(unittest.TestCase):
     def tearDown(self):
         """Clean up test fixtures"""
         import shutil
+
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def test_is_file_url_valid(self):
@@ -54,7 +55,7 @@ class TestParameterFileLoader(unittest.TestCase):
 
     def test_parse_file_url_with_env_vars(self):
         """Test parsing file URLs with environment variables"""
-        with patch.dict(os.environ, {'TEST_VAR': 'test_value'}, clear=False):
+        with patch.dict(os.environ, {"TEST_VAR": "test_value"}, clear=False):
             url = "file://$TEST_VAR/file.json"
             result = ParameterFileLoader.parse_file_url(url)
             self.assertEqual(result, "test_value/file.json")
@@ -102,12 +103,7 @@ nested:
         yaml_file.write_text(yaml_content)
 
         result = ParameterFileLoader.load_from_file(str(yaml_file))
-        expected = {
-            "param1": "value1",
-            "param2": "value2", 
-            "param3": 123,
-            "nested": {"key": "nested_value"}
-        }
+        expected = {"param1": "value1", "param2": "value2", "param3": 123, "nested": {"key": "nested_value"}}
         self.assertEqual(result, expected)
 
     def test_load_yaml_file_empty(self):
@@ -143,31 +139,27 @@ PARAM3=123
 
     def test_load_env_file_quoted_values(self):
         """Test loading ENV file with quoted values"""
-        env_content = '''
+        env_content = """
 SIMPLE=value
 QUOTED="quoted value with spaces"
 MULTILINE="line1
 line2
 line3"
-'''
+"""
         env_file = self.temp_path / "params.env"
         env_file.write_text(env_content)
 
         result = ParameterFileLoader.load_from_file(str(env_file))
-        expected = {
-            "SIMPLE": "value",
-            "QUOTED": "quoted value with spaces",
-            "MULTILINE": "line1\nline2\nline3"
-        }
+        expected = {"SIMPLE": "value", "QUOTED": "quoted value with spaces", "MULTILINE": "line1\nline2\nline3"}
         self.assertEqual(result, expected)
 
     def test_load_env_file_malformed_multiline(self):
         """Test loading ENV file with malformed multiline value"""
-        env_content = '''
+        env_content = """
 PARAM1=value1
 UNTERMINATED="unclosed quote
 PARAM2=value2
-'''
+"""
         env_file = self.temp_path / "params.env"
         env_file.write_text(env_content)
 
@@ -253,13 +245,13 @@ PARAM2=value2
 
     def test_expand_environment_variables(self):
         """Test expanding environment variables in parameter values"""
-        with patch.dict(os.environ, {'TEST_VAR': 'expanded'}, clear=False):
+        with patch.dict(os.environ, {"TEST_VAR": "expanded"}, clear=False):
             params = {
                 "NoVar": "simple_value",
                 "WithVar": "$TEST_VAR",
                 "WithBraces": "${TEST_VAR}_suffix",
                 "NonExistent": "$NON_EXISTENT_VAR",
-                "NumericValue": 123
+                "NumericValue": 123,
             }
 
             result = ParameterFileLoader.expand_environment_variables(params)
@@ -269,11 +261,11 @@ PARAM2=value2
                 "WithVar": "expanded",
                 "WithBraces": "expanded_suffix",
                 "NonExistent": "$NON_EXISTENT_VAR",  # Unexpanded if var doesn't exist
-                "NumericValue": 123  # Non-string values unchanged
+                "NumericValue": 123,  # Non-string values unchanged
             }
             self.assertEqual(result, expected)
 
-    @patch('samcli.lib.config.parameter_loaders.LOG')
+    @patch("samcli.lib.config.parameter_loaders.LOG")
     def test_resolve_parameter_files_logs_info(self, mock_log):
         """Test that file parameter loading logs info messages"""
         json_data = {"param": "value"}
@@ -286,7 +278,7 @@ PARAM2=value2
         mock_log.info.assert_called_once()
         self.assertIn("Loaded 1 parameters from file", mock_log.info.call_args[0][0])
 
-    @patch('samcli.lib.config.parameter_loaders.LOG')
+    @patch("samcli.lib.config.parameter_loaders.LOG")
     def test_resolve_parameter_files_logs_warning_invalid_format(self, mock_log):
         """Test that invalid parameter formats log warnings"""
         param_string = "ValidParam=Value InvalidFormat"
@@ -299,5 +291,5 @@ PARAM2=value2
         mock_log.warning.assert_called_once_with("Skipping invalid parameter format: InvalidFormat")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

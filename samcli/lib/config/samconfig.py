@@ -305,7 +305,7 @@ class SamConfig:
             Dictionary of template parameters. Empty dict if none found.
         """
         env = env or DEFAULT_ENV
-        
+
         try:
             # Try new format first
             template_params = self.get_all(cmd_names, TEMPLATE_PARAMETERS_SECTION, env)
@@ -343,7 +343,7 @@ class SamConfig:
             Dictionary of template tags. Empty dict if none found.
         """
         env = env or DEFAULT_ENV
-        
+
         try:
             # Try new format first
             template_tags = self.get_all(cmd_names, TEMPLATE_TAGS_SECTION, env)
@@ -419,6 +419,7 @@ class SamConfig:
         params = {}
         # Split by spaces, but handle quoted values
         import shlex
+
         try:
             pairs = shlex.split(parameter_overrides_str)
             for pair in pairs:
