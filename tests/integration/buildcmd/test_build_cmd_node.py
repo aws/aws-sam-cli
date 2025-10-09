@@ -123,6 +123,8 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture(BuildIntegNodeB
         [
             ("nodejs20.x", False, "x86_64"),
             ("nodejs22.x", False, "x86_64"),
+            ("nodejs20.x", "use_container", "x86_64"),
+            ("nodejs22.x", "use_container", "x86_64"),
         ]
     )
     def test_building_default_package_json(self, runtime, use_container, architecture):
