@@ -68,6 +68,9 @@ class GuidedConfig:
                 v = " ".join(val for val in v)
             if v:
                 samconfig.put(cmd_names, self.section, key, v, env=config_env)
+                # Also save region to global parameters section for Toolkit AppBuilder
+                if key == "region":
+                    samconfig.put(["global"], "parameters", "region", v, env=config_env)
 
         self._save_parameter_overrides(cmd_names, config_env, parameter_overrides, samconfig)
         self._save_image_repositories(cmd_names, config_env, samconfig, image_repositories)
