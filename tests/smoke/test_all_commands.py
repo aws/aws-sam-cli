@@ -14,13 +14,15 @@ ALL_TEMPLATE_FILE_NAMES = sorted([v for v in os.listdir(TEMPLATE_FOLDER) if "yam
 # Check environment variable to determine which subset to use
 SMOKE_TEST_SUBSET = os.environ.get("SMOKE_TEST_SUBSET", "").lower()
 
+mid_point = len(ALL_TEMPLATE_FILE_NAMES) // 2 
+if mid_point > 5:
+    # second half will also run function test
+    mid_point = mid_point - 4
 if SMOKE_TEST_SUBSET == "first-half":
     # Select first half of templates
-    mid_point = len(ALL_TEMPLATE_FILE_NAMES) // 2
     TEMPLATE_FILE_NAMES = ALL_TEMPLATE_FILE_NAMES[:mid_point]
 elif SMOKE_TEST_SUBSET == "second-half":
     # Select second half of templates
-    mid_point = len(ALL_TEMPLATE_FILE_NAMES) // 2
     TEMPLATE_FILE_NAMES = ALL_TEMPLATE_FILE_NAMES[mid_point:]
 else:
     # Default: select all templates
