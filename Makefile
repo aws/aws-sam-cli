@@ -9,7 +9,11 @@ init:
 
 # Initialize environment specifically for integration tests using uv
 init-uv:
-	SAM_CLI_DEV=1 uv pip install -e '.[dev]'
+	@if [ "$$GITHUB_ACTIONS" = "true" ]; then \
+		SAM_CLI_DEV=1 uv pip install --system -e '.[dev]'; \
+	else \
+		SAM_CLI_DEV=1 uv pip install -e '.[dev]'; \
+	fi
 
 test:
 	# Run unit tests

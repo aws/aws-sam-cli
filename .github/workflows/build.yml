@@ -62,10 +62,7 @@ jobs:
     - uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python }}
-    - name: Install uv
-      run: pip install uv
     - run: test -f "./.github/ISSUE_TEMPLATE/Bug_report.md"  # prevent Bug_report.md from being renamed or deleted
-    - run: make init-uv
     - run: make pr
 
   validate-schema:
@@ -187,12 +184,12 @@ jobs:
       
       - name: Upgrade pip and setuptools in Python3.12 (Linux)
         run: |
-          uv pip install --python python3.12 --upgrade pip setuptools
+          uv pip install --system --python python3.12 --upgrade pip setuptools
         if: ${{ matrix.os == 'ubuntu-latest' }}
 
       - name: Upgrade pip and setuptools in Python3.12 (Windows)
         run: |
-          uv pip install --python py -3.12 --upgrade pip setuptools
+          uv pip install --system --python py -3.12 --upgrade pip setuptools
         if: ${{ matrix.os == 'windows-latest' }}
       - name: Init samdev
         run: make init-uv
@@ -278,12 +275,12 @@ jobs:
       
       - name: Upgrade pip and setuptools in Python3.12 (Linux)
         run: |
-          uv pip install --python python3.12 --upgrade pip setuptools
+          uv pip install --system --python python3.12 --upgrade pip setuptools
         if: ${{ matrix.os == 'ubuntu-latest' }}
       
       - name: Upgrade pip and setuptools in Python3.12 (Windows)
         run: |
-          uv pip install --python py -3.12 --upgrade pip setuptools
+          uv pip install --system --python py -3.12 --upgrade pip setuptools
         if: ${{ matrix.os == 'windows-latest' }}
       - name: Check Docker not Running
         run: docker info
