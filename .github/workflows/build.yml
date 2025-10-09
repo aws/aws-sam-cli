@@ -182,15 +182,8 @@ jobs:
       - name: Install uv
         run: pip install uv
       
-      - name: Upgrade pip and setuptools in Python3.12 (Linux)
-        run: |
-          uv pip install --system --python python3.12 --upgrade pip setuptools
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-
-      - name: Upgrade pip and setuptools in Python3.12 (Windows)
-        run: |
-          uv pip install --system --python py -3.12 --upgrade pip setuptools
-        if: ${{ matrix.os == 'windows-latest' }}
+      - name: uv install setuptools in Python3.12
+        run: uv pip install --system --python python3.12 --upgrade pip setuptools
       - name: Init samdev
         run: make init-uv
       - name: Run integration tests for ${{ matrix.tests_config.name }}
@@ -273,15 +266,8 @@ jobs:
       - name: Install uv
         run: pip install uv
       
-      - name: Upgrade pip and setuptools in Python3.12 (Linux)
-        run: |
-          uv pip install --system --python python3.12 --upgrade pip setuptools
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-      
-      - name: Upgrade pip and setuptools in Python3.12 (Windows)
-        run: |
-          uv pip install --system --python py -3.12 --upgrade pip setuptools
-        if: ${{ matrix.os == 'windows-latest' }}
+      - name: uv install setuptools in Python3.12
+        run: uv pip install --system --python python3.12 --upgrade pip setuptools
       - name: Check Docker not Running
         run: docker info
         id: run-docker-info
