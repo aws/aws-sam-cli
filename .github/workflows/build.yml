@@ -58,6 +58,7 @@ jobs:
           - "3.9"
           - "3.11"
     steps:
+    # This allows temp file creation on drive D, which won't trigger windows defender scan and leads to faster IO
     - name: Set TEMP to D:/Temp
       run: |
         mkdir "D:\\Temp"
@@ -68,8 +69,6 @@ jobs:
       with:
         python-version: ${{ matrix.python }}
     - run: test -f "./.github/ISSUE_TEMPLATE/Bug_report.md"  # prevent Bug_report.md from being renamed or deleted
-    - name: Install uv
-      run: pip install uv
     - run: make pr
 
   validate-schema:
@@ -85,8 +84,6 @@ jobs:
         name: Install Python 3.11
         with:
           python-version: 3.11
-      - name: Install uv
-        run: pip install uv
       - run: make init
       - run: |
           diff <( cat schema/samcli.json ) <( python -m schema.make_schema && cat schema/samcli.json ) && \
@@ -123,17 +120,17 @@ jobs:
         # folders that is commented below requires credentials, no need to spare time to run them
         tests_config:
           - name: "integ-buildcmd-arm64"
-            cmd: "-n 2 --reruns 3  tests/integration/buildcmd/test_build_cmd_arm64.py"
+            params: "-n 2 --reruns 3  tests/integration/buildcmd/test_build_cmd_arm64.py"
           - name: "integ-buildcmd-main"
-            cmd: "-n 2 --reruns 3 tests/integration/buildcmd/test_build_cmd_dotnet.py tests/integration/buildcmd/test_build_cmd_provided.py tests/integration/buildcmd/test_build_cmd_rust.py tests/integration/buildcmd/test_build_cmd_python.py tests/integration/buildcmd/test_build_cmd_node.py"
+            params: "-n 2 --reruns 3 tests/integration/buildcmd/test_build_cmd_dotnet.py tests/integration/buildcmd/test_build_cmd_provided.py tests/integration/buildcmd/test_build_cmd_rust.py tests/integration/buildcmd/test_build_cmd_python.py tests/integration/buildcmd/test_build_cmd_node.py"
           - name: "integ-buildcmd-java"
-            cmd: "-n 2 --reruns 5 tests/integration/buildcmd/test_build_cmd_java.py"
+            params: "-n 2 --reruns 5 tests/integration/buildcmd/test_build_cmd_java.py"
           - name: "integ-buildcmd-other"
-            cmd: "-n 2 --reruns 3 tests/integration/buildcmd --ignore=tests/integration/buildcmd/test_build_cmd_python.py --ignore=tests/integration/buildcmd/test_build_cmd_java.py --ignore=tests/integration/buildcmd/test_build_cmd_dotnet.py --ignore=tests/integration/buildcmd/test_build_cmd_node.py --ignore=tests/integration/buildcmd/test_build_cmd_rust.py --ignore=tests/integration/buildcmd/test_build_cmd_provided.py --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py"
+            params: "-n 2 --reruns 3 tests/integration/buildcmd --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_cmd_dotnet.py --ignore=tests/integration/buildcmd/test_build_cmd_provided.py --ignore=tests/integration/buildcmd/test_build_cmd_rust.py --ignore=tests/integration/buildcmd/test_build_cmd_python.py --ignore=tests/integration/buildcmd/test_build_cmd_node.py --ignore=tests/integration/buildcmd/test_build_cmd_java.py"
           #- "delete"
           #- "deploy"
           - name: "integ-all-other"
-            cmd: "-n 2 --reruns 3 tests/integration/init tests/integration/local tests/integration/pipeline tests/integration/root tests/integration/scripts tests/integration/telemetry tests/integration/docs"
+            params: "-n 2 --reruns 3 tests/integration/init tests/integration/local tests/integration/pipeline tests/integration/root tests/integration/scripts tests/integration/telemetry tests/integration/docs"
           #- "list"
           #- "logs"
           #- "package"
@@ -158,6 +155,7 @@ jobs:
             3.12
             3.13
             ${{ matrix.python }}
+          cache: 'pip'
       - uses: actions/setup-go@v6
         with:
           go-version: '1.19'
@@ -188,16 +186,12 @@ jobs:
           rustup default stable
           pip install cargo-lambda==$CARGO_LAMBDA_VERSION
           echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-      - name: Install uv
-        run: pip install uv
-      
-      - name: uv install setuptools in Python3.12
-        run: uv pip install --system --python python3.12 --upgrade pip setuptools
       - name: Init samdev
         run: make init
+      - name: uv install setuptools in Python3.12
+        run: uv pip install --system --python python3.12 --upgrade pip setuptools
       - name: Run integration tests for ${{ matrix.tests_config.name }}
-        run: pytest -vv ${{ matrix.tests_config.cmd }}
+        run: pytest -vv ${{ matrix.tests_config.params }}
 
   smoke-and-functional-tests:
     name: ${{ matrix.tests_config.name }} / ${{ matrix.tests_config.os }} / ${{ matrix.python }}
@@ -219,19 +213,19 @@ jobs:
         tests_config:
           - name: "Smoke & Functional Tests - All"
             os: ubuntu-latest
-            cmd: "-n 4 tests/smoke tests/functional"
+            params: "-n 4 tests/smoke tests/functional"
             env_vars: "all"
           - name: "Smoke Tests - First Third"
             os: windows-latest
-            cmd: "-n 4 tests/smoke"
+            params: "-n 4 tests/smoke"
             env_vars: "first-third"
           - name: "Smoke Tests - Second Third"
             os: windows-latest
-            cmd: "-n 4 tests/smoke"
+            params: "-n 4 tests/smoke"
             env_vars: "second-third"
           - name: "Smoke Tests - Third Third & Functional Tests"
             os: windows-latest
-            cmd: "-n 4 tests/smoke tests/functional"
+            params: "-n 4 tests/smoke tests/functional"
             env_vars: "third-third"
     steps:
       - uses: actions/checkout@v5
@@ -243,12 +237,11 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
-      - name: Install uv
-        run: pip install uv
+          cache: 'pip'
       - name: Init samdev
         run: make init
       - name: Run ${{ matrix.tests_config.name }}
-        run: pytest -vv ${{ matrix.tests_config.cmd }}
+        run: pytest -vv ${{ matrix.tests_config.params }}
         env:
           SMOKE_TEST_SUBSET: ${{ matrix.tests_config.env_vars }}
 
@@ -290,9 +283,8 @@ jobs:
         if: ${{ matrix.os == 'windows-latest' }}
         shell: pwsh
         run: stop-service docker
-      - name: Install uv
-        run: pip install uv
-      
+      - name: Init samdev
+        run: make init
       - name: uv install setuptools in Python3.12
         run: uv pip install --system --python python3.12 --upgrade pip setuptools
       - name: Check Docker not Running
@@ -302,7 +294,5 @@ jobs:
       - name: Report failure
         if: steps.run-docker-info.outcome == 'success'
         run: exit 1
-      - name: Init samdev
-        run: make init
       - name: Run tests without Docker
         run: pytest -vv tests/integration/buildcmd/test_build_cmd_python.py -k TestBuildCommand_PythonFunctions_WithoutDocker
