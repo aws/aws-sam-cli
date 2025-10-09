@@ -96,6 +96,10 @@ class EnvironmentVariables:
         result = self._get_aws_variables()
 
         # Collect all variable names from all sources
+        # Previously, only variables defined in the template (self.variables) were processed,
+        # which meant shell_env and override values for undeclared variables were ignored.
+        # Now we collect ALL variable names from all three sources to ensure variables from
+        # shell environment and override files (like .env) are included even if not in template.
         all_var_names = (
             set(self.variables.keys()) | set(self.shell_env_values.keys()) | set(self.override_values.keys())
         )

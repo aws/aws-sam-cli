@@ -279,12 +279,18 @@ class LambdaContainer(Container):
 
         entry = LambdaContainer._get_default_entry_point()
         if not debug_options:
+            LOG.debug("No debug_options provided, returning empty container env vars")
             return entry, {}
 
         debug_ports = debug_options.debug_ports
-        container_env_vars = debug_options.container_env_vars
+        container_env_vars = debug_options.container_env_vars if debug_options.container_env_vars else {}
+
+        LOG.debug("Debug settings - debug_ports: %s, container_env_vars: %s", debug_ports, container_env_vars)
+
         if not debug_ports:
-            return entry, {}
+            # Even without debug ports, we should still return container env vars if they exist
+            LOG.debug("No debug ports, but returning container_env_vars: %s", container_env_vars)
+            return entry, container_env_vars
 
         debug_port = debug_ports[0]
         debug_args_list = []

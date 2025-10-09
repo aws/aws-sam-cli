@@ -21,6 +21,7 @@ class TestCli(TestCase):
         self.debug_args = "args"
         self.debugger_path = "/test/path"
         self.container_env_vars = "container-env-vars"
+        self.container_dotenv = None
         self.docker_volume_basedir = "basedir"
         self.docker_network = "network"
         self.log_file = "logfile"
@@ -68,6 +69,7 @@ class TestCli(TestCase):
             env_vars_file=self.env_vars,
             dotenv_file=self.dotenv,
             container_env_vars_file=self.container_env_vars,
+            container_dotenv_file=self.container_dotenv,
             docker_volume_basedir=self.docker_volume_basedir,
             docker_network=self.docker_network,
             log_file=self.log_file,
@@ -175,6 +177,7 @@ class TestCli(TestCase):
             debug_args=self.debug_args,
             debugger_path=self.debugger_path,
             container_env_vars=self.container_env_vars,
+            container_dotenv=self.container_dotenv,
             docker_volume_basedir=self.docker_volume_basedir,
             docker_network=self.docker_network,
             log_file=self.log_file,

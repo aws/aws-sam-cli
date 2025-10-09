@@ -200,8 +200,9 @@ class TestEnvironmentVariables_resolve(TestCase):
             "none_var": "",
             "true_var": "true",
             "false_var": "false",
-            # This variable is from shell_env but not in template variables
-            # With the new behavior, it should be included
+            # This variable is from shell_env but not defined in template variables.
+            # The resolve() method now collects variable names from all sources (template, shell, overrides),
+            # so variables from shell_env are included even if they're not in the template.
             "myothervar": "somevalue",
         }
 

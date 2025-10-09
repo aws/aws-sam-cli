@@ -92,6 +92,7 @@ class InvokeContext:
         debug_args: Optional[str] = None,
         debugger_path: Optional[str] = None,
         container_env_vars_file: Optional[str] = None,
+        container_dotenv_file: Optional[str] = None,
         parameter_overrides: Optional[Dict] = None,
         layer_cache_basedir: Optional[str] = None,
         force_image_build: Optional[bool] = None,
@@ -118,6 +119,8 @@ class InvokeContext:
             Identifier of the function to invoke
         env_vars_file str
             Path to a file containing values for environment variables
+        dotenv_file str
+            Path to .env file containing environment variables
         docker_volume_basedir str
             Directory for the Docker volume
         docker_network str
@@ -134,6 +137,10 @@ class InvokeContext:
             Additional arguments passed to the debugger
         debugger_path str
             Path to the directory of the debugger to mount on Docker
+        container_env_vars_file str
+            Path to a file containing values for container environment variables
+        container_dotenv_file str
+            Path to .env file containing container environment variables
         parameter_overrides dict
             Values for the template parameters
         layer_cache_basedir str
@@ -176,6 +183,7 @@ class InvokeContext:
         self._debug_args = debug_args
         self._debugger_path = debugger_path
         self._container_env_vars_file = container_env_vars_file
+        self._container_dotenv_file = container_dotenv_file
 
         self._parameter_overrides = parameter_overrides
         # Override certain CloudFormation pseudo-parameters based on values provided by customer
@@ -264,13 +272,15 @@ class InvokeContext:
 
         # Merge dotenv and env_vars, with env_vars taking precedence
         if dotenv_wrapped and env_vars:
-            # If both exist, merge the Parameters sections if present
+            # If both exist, merge them with env_vars taking precedence
             merged = {**dotenv_wrapped}
             for key, value in env_vars.items():
-                if key == "Parameters" and "Parameters" in merged:
-                    # Merge Parameters, with env_vars taking precedence
+                if key == "Parameters":
+                    # Merge Parameters sections, with env_vars taking precedence
+                    # dotenv_wrapped always has "Parameters" key when it exists
                     merged["Parameters"] = {**merged["Parameters"], **value}
                 else:
+                    # For function-specific overrides like {FunctionName: {key:value}}
                     merged[key] = value
             self._env_vars_value = merged
         elif dotenv_wrapped:
@@ -278,7 +288,27 @@ class InvokeContext:
         else:
             self._env_vars_value = env_vars
 
-        self._container_env_vars_value = self._get_env_vars_value(self._container_env_vars_file)
+        # Load container environment variables from both dotenv and JSON files
+        # Container env vars are used for debugging and should be flat key-value pairs
+        container_dotenv_vars = self._get_dotenv_values(self._container_dotenv_file)
+        container_env_vars = self._get_env_vars_value(self._container_env_vars_file)
+
+        # Debug logging
+        LOG.debug("Container dotenv vars loaded: %s", container_dotenv_vars)
+        LOG.debug("Container env vars (JSON) loaded: %s", container_env_vars)
+
+        # Merge container dotenv and container env_vars, with container env_vars taking precedence
+        # Unlike regular env_vars, container env_vars stay flat (no Parameters wrapping) for debugging
+        if container_dotenv_vars and container_env_vars:
+            # If both exist, merge them with container env_vars taking precedence
+            self._container_env_vars_value = {**container_dotenv_vars, **container_env_vars}
+        elif container_dotenv_vars:
+            self._container_env_vars_value = container_dotenv_vars
+        else:
+            self._container_env_vars_value = container_env_vars
+
+        LOG.debug("Final container env vars value: %s", self._container_env_vars_value)
+
         self._log_file_handle = self._setup_log_file(self._log_file)
 
         # in case of warm containers && debugging is enabled && if debug-function property is not provided, so

@@ -25,7 +25,8 @@ class DebugContext:
         self.container_env_vars = container_env_vars
 
     def __bool__(self):
-        return bool(self.debug_ports)
+        # DebugContext is "truthy" if we have either debug ports OR container env vars
+        return bool(self.debug_ports or self.container_env_vars)
 
     def __nonzero__(self):
         return self.__bool__()

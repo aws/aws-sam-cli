@@ -28,6 +28,7 @@ CONTAINER_OPTION_NAMES: List[str] = [
     "env_vars",
     "dotenv",
     "container_env_vars",
+    "container_dotenv",
     "debug_port",
     "debugger_path",
     "debug_args",
