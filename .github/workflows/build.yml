@@ -62,7 +62,10 @@ jobs:
     - uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python }}
+    - name: Install uv
+      run: pip install uv
     - run: test -f "./.github/ISSUE_TEMPLATE/Bug_report.md"  # prevent Bug_report.md from being renamed or deleted
+    - run: make init-uv
     - run: make pr
 
   validate-schema:
@@ -79,7 +82,7 @@ jobs:
         with:
           python-version: 3.11
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        run: pip install uv
       - run: make init-uv
       - run: |
           diff <( cat schema/samcli.json ) <( python -m schema.make_schema && cat schema/samcli.json ) && \
@@ -180,7 +183,7 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        run: pip install uv
       
       - name: Upgrade pip and setuptools in Python3.12 (Linux)
         run: |
@@ -229,7 +232,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        run: pip install uv
       - name: Init samdev
         run: make init-uv
       - name: Run ${{ matrix.tests_config.name }}
@@ -271,7 +274,7 @@ jobs:
         shell: pwsh
         run: stop-service docker
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        run: pip install uv
       
       - name: Upgrade pip and setuptools in Python3.12 (Linux)
         run: |
