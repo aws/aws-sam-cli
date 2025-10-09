@@ -58,11 +58,12 @@ jobs:
           - "3.9"
           - "3.11"
     steps:
-    - uses: actions/checkout@v5
-    - name: Disable Windows Defender real-time monitoring
+    - name: Set TEMP to D:/Temp
+      run: |
+        mkdir "D:\\Temp"
+        echo "TEMP=D:\\Temp" >> $env:GITHUB_ENV  
       if: ${{ matrix.os == 'windows-latest' }}
-      shell: pwsh
-      run: Set-MpPreference -DisableRealtimeMonitoring $true
+    - uses: actions/checkout@v5
     - uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python }}
@@ -144,10 +145,11 @@ jobs:
           #- "validate"
     steps:
       - uses: actions/checkout@v5
-      - name: Disable Windows Defender real-time monitoring
+      - name: Set TEMP to D:/Temp
+        run: |
+          mkdir "D:\\Temp"
+          echo "TEMP=D:\\Temp" >> $env:GITHUB_ENV  
         if: ${{ matrix.os == 'windows-latest' }}
-        shell: pwsh
-        run: Set-MpPreference -DisableRealtimeMonitoring $true
       - uses: actions/setup-python@v6
         with:
           # set last version as the one in matrix to make it default
@@ -228,10 +230,11 @@ jobs:
             env_vars: "second-half"
     steps:
       - uses: actions/checkout@v5
-      - name: Disable Windows Defender real-time monitoring
+      - name: Set TEMP to D:/Temp
+        run: |
+          mkdir "D:\\Temp"
+          echo "TEMP=D:\\Temp" >> $env:GITHUB_ENV  
         if: ${{ matrix.os == 'windows-latest' }}
-        shell: pwsh
-        run: Set-MpPreference -DisableRealtimeMonitoring $true
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
@@ -258,10 +261,11 @@ jobs:
           - windows-latest
     steps:
       - uses: actions/checkout@v5
-      - name: Disable Windows Defender real-time monitoring
+      - name: Set TEMP to D:/Temp
+        run: |
+          mkdir "D:\\Temp"
+          echo "TEMP=D:\\Temp" >> $env:GITHUB_ENV  
         if: ${{ matrix.os == 'windows-latest' }}
-        shell: pwsh
-        run: Set-MpPreference -DisableRealtimeMonitoring $true
       - uses: actions/setup-python@v6
         with:
           # These are the versions of Python that correspond to the supported Lambda runtimes
