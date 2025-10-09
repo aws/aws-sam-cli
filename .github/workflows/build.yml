@@ -123,7 +123,7 @@ jobs:
           #- "delete"
           #- "deploy"
           - name: "integ-all-other"
-            cmd: "-n 2 --rerun 3 tests/integration/init tests/integration/local tests/integration/pipeline tests/integration/root tests/integration/scripts tests/integration/telemetry tests/integration/docs"
+            cmd: "-n 2 --reruns 3 tests/integration/init tests/integration/local tests/integration/pipeline tests/integration/root tests/integration/scripts tests/integration/telemetry tests/integration/docs"
           #- "list"
           #- "logs"
           #- "package"
