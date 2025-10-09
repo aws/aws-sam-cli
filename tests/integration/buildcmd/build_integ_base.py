@@ -636,7 +636,6 @@ class BuildIntegJavaBase(BuildIntegBase):
         if code_path == self.USING_GRADLEW_PATH and use_container and IS_WINDOWS:
             osutils.convert_to_unix_line_ending(os.path.join(self.test_data_path, self.USING_GRADLEW_PATH, "gradlew"))
         env = os.environ.copy()
-        # Run with modified environment and increased timeout
         run_command(cmdlist, cwd=self.working_dir, timeout=900, env=env)
 
         self._verify_built_artifact(
