@@ -115,9 +115,9 @@ jobs:
         # folders that is commented below requires credentials, no need to spare time to run them
         tests_config:
           - name: "integ-buildcmd-lang1"
-            cmd: "-n 4 --reruns 3 tests/integration/buildcmd/test_build_cmd_node.py tests/integration/buildcmd/test_build_cmd_rust.py tests/integration/buildcmd/test_build_cmd_arm64.py"
+            cmd: "-n 4 --reruns 3 tests/integration/buildcmd/test_build_cmd_node.py tests/integration/buildcmd/test_build_cmd_arm64.py"
           - name: "integ-buildcmd-lang2"
-            cmd: "-n 4 --reruns 3 tests/integration/buildcmd/test_build_cmd_python.py tests/integration/buildcmd/test_build_cmd_java.py tests/integration/buildcmd/test_build_cmd_dotnet.py tests/integration/buildcmd/test_build_cmd_provided.py"
+            cmd: "-n 4 --reruns 3 tests/integration/buildcmd/test_build_cmd_python.py tests/integration/buildcmd/test_build_cmd_java.py tests/integration/buildcmd/test_build_cmd_dotnet.py tests/integration/buildcmd/test_build_cmd_provided.py tests/integration/buildcmd/test_build_cmd_rust.py"
           - name: "integ-buildcmd-other"
             cmd: "-n 4 --reruns 3 tests/integration/buildcmd --ignore=tests/integration/buildcmd/test_build_cmd_python.py --ignore=tests/integration/buildcmd/test_build_cmd_java.py --ignore=tests/integration/buildcmd/test_build_cmd_dotnet.py --ignore=tests/integration/buildcmd/test_build_cmd_node.py --ignore=tests/integration/buildcmd/test_build_cmd_rust.py --ignore=tests/integration/buildcmd/test_build_cmd_provided.py --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py"
           #- "delete"
@@ -228,8 +228,8 @@ jobs:
           - name: "Smoke Tests - First Half"
             cmd: "-n 4 tests/smoke"
             env_vars: "first-half"
-          - name: "Functional Tests & Smoke Tests - Second Half"
-            cmd: "-n 4 tests/smoke tests/functiona"
+          - name: "Smoke Tests - Second Half & Functional Tests"
+            cmd: "-n 4 tests/smoke tests/functional"
             env_vars: "second-half"
     steps:
       - uses: actions/checkout@v5
