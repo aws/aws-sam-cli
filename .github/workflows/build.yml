@@ -123,7 +123,7 @@ jobs:
         # folders that is commented below requires credentials, no need to spare time to run them
         tests_config:
           - name: "integ-buildcmd-arm64"
-            cmd: "-n 4 --reruns 3  tests/integration/buildcmd/test_build_cmd_arm64.py"
+            cmd: "-n 2 --reruns 3  tests/integration/buildcmd/test_build_cmd_arm64.py"
           - name: "integ-buildcmd-main"
             cmd: "-n 2 --reruns 3 tests/integration/buildcmd/test_build_cmd_dotnet.py tests/integration/buildcmd/test_build_cmd_provided.py tests/integration/buildcmd/test_build_cmd_rust.py tests/integration/buildcmd/test_build_cmd_python.py tests/integration/buildcmd/test_build_cmd_node.py"
           - name: "integ-buildcmd-java"
