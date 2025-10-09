@@ -56,9 +56,9 @@ botocore-stubs==1.40.33 \
     --hash=sha256:89c51ae0b28d9d79fde8c497cf908ddf872ce027d2737d4d4ba473fde9cdaa82 \
     --hash=sha256:ad21fee32cbdc7ad4730f29baf88424c7086bf88a745f8e43660ca3e9a7e5f89
     # via boto3-stubs
-certifi==2025.7.14 \
-    --hash=sha256:6b31f564a415d79ee77df69d757bb49a5bb53bd9f756cbbe24394ffd6fc1f4b2 \
-    --hash=sha256:8ea99dbdfaaf2ba2f9bac77b9249ef62ec5218e7c2b2e903378ed5fccf765995
+certifi==2025.10.5 \
+    --hash=sha256:0f212c2744a9bb6de0c56639a6f68afe01ecd92d91f14ae897c4fe7bbeeef0de \
+    --hash=sha256:47c09d31ccf2acf0be3f701ea53595ee7e0b8fa08801c6624be771df09ae7b43
     # via requests
 cffi==2.0.0 \
     --hash=sha256:00bdf7acc5f795150faa6957054fbbca2439db2f775ce831222b66f192f03beb \
