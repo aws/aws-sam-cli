@@ -14,19 +14,28 @@ ALL_TEMPLATE_FILE_NAMES = sorted([v for v in os.listdir(TEMPLATE_FOLDER) if "yam
 # Check environment variable to determine which subset to use
 SMOKE_TEST_SUBSET = os.environ.get("SMOKE_TEST_SUBSET", "").lower()
 
-mid_point = len(ALL_TEMPLATE_FILE_NAMES) // 2
-if mid_point > 2:
-    # second half will also run function test, add more test to first half
-    mid_point = mid_point + 2
-if SMOKE_TEST_SUBSET == "first-half":
-    # Select first half of templates
-    TEMPLATE_FILE_NAMES = ALL_TEMPLATE_FILE_NAMES[:mid_point]
-elif SMOKE_TEST_SUBSET == "second-half":
-    # Select second half of templates
-    TEMPLATE_FILE_NAMES = ALL_TEMPLATE_FILE_NAMES[mid_point:]
-else:
-    # Default: select all templates
-    TEMPLATE_FILE_NAMES = ALL_TEMPLATE_FILE_NAMES
+# Calculate split points for dividing into thirds
+total_count = len(ALL_TEMPLATE_FILE_NAMES)
+first_third = total_count // 3
+second_third = (total_count * 2) // 3
+
+# Adjust split points to balance load (since the third part also runs functional tests)
+if second_third > 2:
+    # third part will also run functional tests, distribute more tests to earlier parts
+    first_third = first_third + 1
+    second_third = second_third + 2
+
+TEMPLATE_FILE_NAMES = ALL_TEMPLATE_FILE_NAMES
+# Select appropriate subset based on environment variable
+if SMOKE_TEST_SUBSET == "first-third":
+    # Select first third of templates
+    TEMPLATE_FILE_NAMES = ALL_TEMPLATE_FILE_NAMES[:first_third]
+elif SMOKE_TEST_SUBSET == "second-third":
+    # Select second third of templates
+    TEMPLATE_FILE_NAMES = ALL_TEMPLATE_FILE_NAMES[first_third:second_third]
+elif SMOKE_TEST_SUBSET == "third-third":
+    # Select last third of templates
+    TEMPLATE_FILE_NAMES = ALL_TEMPLATE_FILE_NAMES[second_third:]
 
 
 class TestAllCommands(TestCase):

@@ -123,14 +123,14 @@ jobs:
         # folders that is commented below requires credentials, no need to spare time to run them
         tests_config:
           - name: "integ-buildcmd-lang1"
-            cmd: "-n 2 --reruns 3 tests/integration/buildcmd/test_build_cmd_node.py"
+            cmd: "-n 2 --reruns 3  tests/integration/buildcmd/test_build_cmd_arm64.py"
           - name: "integ-buildcmd-lang2"
             cmd: "-n 2 --reruns 3 tests/integration/buildcmd/test_build_cmd_dotnet.py tests/integration/buildcmd/test_build_cmd_provided.py tests/integration/buildcmd/test_build_cmd_rust.py"
-          - name: "integ-buildcmd-python"
-            cmd: "-n 2 --reruns 3 tests/integration/buildcmd/test_build_cmd_python.py"
+          - name: "integ-buildcmd-lang3"
+            cmd: "-n 2 --reruns 3 tests/integration/buildcmd/test_build_cmd_python.py tests/integration/buildcmd/test_build_cmd_node.py"
           - name: "integ-buildcmd-java"
             cmd: "-n 2 --reruns 5 tests/integration/buildcmd/test_build_cmd_java.py"
-          - name: "integ-buildcmd-other tests/integration/buildcmd/test_build_cmd_arm64.py"
+          - name: "integ-buildcmd-other"
             cmd: "-n 2 --reruns 3 tests/integration/buildcmd --ignore=tests/integration/buildcmd/test_build_cmd_python.py --ignore=tests/integration/buildcmd/test_build_cmd_java.py --ignore=tests/integration/buildcmd/test_build_cmd_dotnet.py --ignore=tests/integration/buildcmd/test_build_cmd_node.py --ignore=tests/integration/buildcmd/test_build_cmd_rust.py --ignore=tests/integration/buildcmd/test_build_cmd_provided.py --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py"
           #- "delete"
           #- "deploy"
@@ -202,9 +202,9 @@ jobs:
         run: pytest -vv ${{ matrix.tests_config.cmd }}
 
   smoke-and-functional-tests:
-    name: ${{ matrix.tests_config.name }} / ${{ matrix.os }} / ${{ matrix.python }}
+    name: ${{ matrix.tests_config.name }} / ${{ matrix.tests_config.os }} / ${{ matrix.python }}
     if: github.repository_owner == 'aws'
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.tests_config.os }}
     env:
       AWS_DEFAULT_REGION: us-east-1
       SAM_CLI_DEV: "1"
@@ -215,19 +215,26 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os:
-          - ubuntu-latest
-          - windows-latest
         python:
           - "3.9"
           - "3.11"
         tests_config:
-          - name: "Smoke Tests - First Half"
-            cmd: "-n 8 tests/smoke"
-            env_vars: "first-half"
-          - name: "Smoke Tests - Second Half & Functional Tests"
-            cmd: "-n 8 tests/smoke tests/functional"
-            env_vars: "second-half"
+          - name: "Smoke & Functional Tests - All"
+            os: ubuntu-latest
+            cmd: "-n 4 tests/smoke tests/functional"
+            env_vars: "all"
+          - name: "Smoke Tests - First Third"
+            os: windows-latest
+            cmd: "-n 4 tests/smoke"
+            env_vars: "first-third"
+          - name: "Smoke Tests - Second Third"
+            os: windows-latest
+            cmd: "-n 4 tests/smoke"
+            env_vars: "second-third"
+          - name: "Smoke Tests - Third Third & Functional Tests"
+            os: windows-latest
+            cmd: "-n 4 tests/smoke tests/functional"
+            env_vars: "third-third"
     steps:
       - uses: actions/checkout@v5
       - name: Set TEMP to D:/Temp
