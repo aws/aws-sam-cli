@@ -9,7 +9,7 @@ pytest-cov==5.0.0; python_version<"3.9"
 # type checking and related stubs
 # mypy adds new rules in new minor versions, which could cause our PR check to fail
 # here we fix its version and upgrade it manually in the future
-mypy==1.15.0
+mypy==1.18.2
 types-pywin32==311.0.0.20251008; python_version>="3.9"
 types-pywin32==308.0.0.20241221; python_version<"3.9"
 types-PyYAML==6.0.12.20250915

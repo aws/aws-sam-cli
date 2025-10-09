@@ -912,7 +912,8 @@ class LocalApigwService(BaseLocalService):
                     binary_types, flask_request, headers, is_base_64_encoded
                 )
             ):
-                body = base64.b64decode(body)
+                if body:
+                    body = base64.b64decode(body)  # type: ignore[arg-type]
         except ValueError as ex:
             LambdaResponseParseException(str(ex))
 
@@ -1012,10 +1013,10 @@ class LocalApigwService(BaseLocalService):
         try:
             # HTTP API Gateway always decode the lambda response only if isBase64Encoded field in response is True
             # regardless the response content-type
-            if is_base_64_encoded:
+            if is_base_64_encoded and body:
                 # Note(xinhol): here in this method we change the type of the variable body multiple times
                 # and confused mypy, we might want to avoid this and use multiple variables here.
-                body = base64.b64decode(body)  # type: ignore
+                body = base64.b64decode(str(body))
         except ValueError as ex:
             LambdaResponseParseException(str(ex))
 
