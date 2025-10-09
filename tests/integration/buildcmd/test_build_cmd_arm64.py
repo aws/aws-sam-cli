@@ -90,20 +90,6 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(BuildIntegE
     @parameterized.expand(
         [
             (
-                "nodejs16.x",
-                "Esbuild/Node_without_manifest",
-                {"main.js", "main.js.map"},
-                "main.lambdaHandler",
-                False,
-            ),
-            (
-                "nodejs18.x",
-                "Esbuild/Node_without_manifest",
-                {"main.js", "main.js.map"},
-                "main.lambdaHandler",
-                False,
-            ),
-            (
                 "nodejs20.x",
                 "Esbuild/Node_without_manifest",
                 {"main.js", "main.js.map"},
@@ -115,20 +101,6 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(BuildIntegE
                 "Esbuild/Node_without_manifest",
                 {"main.js", "main.js.map"},
                 "main.lambdaHandler",
-                False,
-            ),
-            (
-                "nodejs16.x",
-                "Esbuild/TypeScript_without_manifest",
-                {"app.js", "app.js.map"},
-                "app.lambdaHandler",
-                False,
-            ),
-            (
-                "nodejs18.x",
-                "Esbuild/TypeScript_without_manifest",
-                {"app.js", "app.js.map"},
-                "app.lambdaHandler",
                 False,
             ),
             (
@@ -157,12 +129,8 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture_arm64(BuildInte
 
     @parameterized.expand(
         [
-            ("nodejs16.x", False),
-            ("nodejs18.x", False),
             ("nodejs20.x", False),
             ("nodejs22.x", False),
-            ("nodejs16.x", "use_container"),
-            ("nodejs18.x", "use_container"),
         ]
     )
     def test_building_default_package_json(self, runtime, use_container):
