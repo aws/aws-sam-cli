@@ -4,12 +4,12 @@ SAM_CLI_TELEMETRY ?= 0
 
 .PHONY: schema
 
-# Initialize environment specifically for integration tests using uv
+# Initialize environment specifically for Github action tests using uv
 init:
 	@if [ "$$GITHUB_ACTIONS" = "true" ]; then \
 		pip install uv==0.9.1 && SAM_CLI_DEV=1 uv pip install --system -e '.[dev]'; \
 	else \
-		SAM_CLI_DEV=1 pip install --no-compile -e '.[dev]'; \
+		SAM_CLI_DEV=1 pip install -e '.[dev]'; \
 	fi
 
 test:
