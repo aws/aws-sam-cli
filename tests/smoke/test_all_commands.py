@@ -16,8 +16,8 @@ SMOKE_TEST_SUBSET = os.environ.get("SMOKE_TEST_SUBSET", "").lower()
 
 mid_point = len(ALL_TEMPLATE_FILE_NAMES) // 2
 if mid_point > 5:
-    # second half will also run function test
-    mid_point = mid_point - 5
+    # second half will also run function test, add more test to first half
+    mid_point = mid_point + 5
 if SMOKE_TEST_SUBSET == "first-half":
     # Select first half of templates
     TEMPLATE_FILE_NAMES = ALL_TEMPLATE_FILE_NAMES[:mid_point]
