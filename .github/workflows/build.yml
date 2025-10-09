@@ -63,6 +63,8 @@ jobs:
       with:
         python-version: ${{ matrix.python }}
     - run: test -f "./.github/ISSUE_TEMPLATE/Bug_report.md"  # prevent Bug_report.md from being renamed or deleted
+    - name: Install uv
+      run: pip install uv
     - run: make pr
 
   validate-schema:
@@ -80,7 +82,7 @@ jobs:
           python-version: 3.11
       - name: Install uv
         run: pip install uv
-      - run: make init-uv
+      - run: make init
       - run: |
           diff <( cat schema/samcli.json ) <( python -m schema.make_schema && cat schema/samcli.json ) && \
             echo "No changes found." && \
@@ -122,7 +124,7 @@ jobs:
           - name: "integ-buildcmd-python"
             cmd: "-n 2 --reruns 3 tests/integration/buildcmd/test_build_cmd_python.py"
           - name: "integ-buildcmd-java"
-            cmd: "-n 2 --reruns 3 tests/integration/buildcmd/test_build_cmd_java.py"
+            cmd: "-n 1 --reruns 3 tests/integration/buildcmd/test_build_cmd_java.py"
           - name: "integ-buildcmd-other"
             cmd: "-n 2 --reruns 3 tests/integration/buildcmd --ignore=tests/integration/buildcmd/test_build_cmd_python.py --ignore=tests/integration/buildcmd/test_build_cmd_java.py --ignore=tests/integration/buildcmd/test_build_cmd_dotnet.py --ignore=tests/integration/buildcmd/test_build_cmd_node.py --ignore=tests/integration/buildcmd/test_build_cmd_rust.py --ignore=tests/integration/buildcmd/test_build_cmd_provided.py --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py"
           #- "delete"
@@ -185,7 +187,7 @@ jobs:
       - name: uv install setuptools in Python3.12
         run: uv pip install --system --python python3.12 --upgrade pip setuptools
       - name: Init samdev
-        run: make init-uv
+        run: make init
       - name: Run integration tests for ${{ matrix.tests_config.name }}
         run: pytest -vv ${{ matrix.tests_config.cmd }}
 
@@ -224,7 +226,7 @@ jobs:
       - name: Install uv
         run: pip install uv
       - name: Init samdev
-        run: make init-uv
+        run: make init
       - name: Run ${{ matrix.tests_config.name }}
         run: pytest -vv ${{ matrix.tests_config.cmd }}
         env:
@@ -276,6 +278,6 @@ jobs:
         if: steps.run-docker-info.outcome == 'success'
         run: exit 1
       - name: Init samdev
-        run: make init-uv
+        run: make init
       - name: Run tests without Docker
         run: pytest -vv tests/integration/buildcmd/test_build_cmd_python.py -k TestBuildCommand_PythonFunctions_WithoutDocker

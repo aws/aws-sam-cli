@@ -4,15 +4,12 @@ SAM_CLI_TELEMETRY ?= 0
 
 .PHONY: schema
 
-init:
-	SAM_CLI_DEV=1 pip install -e '.[dev]'
-
 # Initialize environment specifically for integration tests using uv
-init-uv:
+init:
 	@if [ "$$GITHUB_ACTIONS" = "true" ]; then \
 		SAM_CLI_DEV=1 uv pip install --system -e '.[dev]'; \
 	else \
-		SAM_CLI_DEV=1 uv pip install -e '.[dev]'; \
+		SAM_CLI_DEV=1 pip install -e '.[dev]'; \
 	fi
 
 test:
