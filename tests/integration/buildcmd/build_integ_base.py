@@ -635,7 +635,9 @@ class BuildIntegJavaBase(BuildIntegBase):
         cmdlist += ["--skip-pull-image"]
         if code_path == self.USING_GRADLEW_PATH and use_container and IS_WINDOWS:
             osutils.convert_to_unix_line_ending(os.path.join(self.test_data_path, self.USING_GRADLEW_PATH, "gradlew"))
-        run_command(cmdlist, cwd=self.working_dir, timeout=900)
+        # Use shorter timeout in GitHub Actions to fail faster
+        timeout = 90 if os.environ.get("GITHUB_ACTIONS") else 900
+        run_command(cmdlist, cwd=self.working_dir, timeout=timeout)
 
         self._verify_built_artifact(
             self.default_build_dir, self.FUNCTION_LOGICAL_ID, expected_files, expected_dependencies
