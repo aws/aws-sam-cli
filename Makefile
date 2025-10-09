@@ -7,6 +7,10 @@ SAM_CLI_TELEMETRY ?= 0
 init:
 	SAM_CLI_DEV=1 pip install -e '.[dev]'
 
+# Initialize environment specifically for integration tests using uv
+init-uv:
+	SAM_CLI_DEV=1 uv pip install -e '.[dev]'
+
 test:
 	# Run unit tests
 	# Fail if coverage falls below 95%

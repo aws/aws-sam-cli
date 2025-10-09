@@ -607,6 +607,53 @@ class BuildIntegJavaBase(BuildIntegBase):
     USING_GRADLEW_PATH = os.path.join("Java", "gradlew")
     USING_GRADLE_KOTLIN_PATH = os.path.join("Java", "gradle-kotlin")
     USING_MAVEN_PATH = os.path.join("Java", "maven")
+    
+    def setUp(self):
+        """Override setUp to ensure clean state for Java builds"""
+        super().setUp()
+        # Clean up any potential Gradle cache directories
+        self._cleanup_gradle_caches()
+    
+    def tearDown(self):
+        """Override tearDown to ensure thorough cleanup of Java build artifacts"""
+        try:
+            # Clean up Gradle-specific directories first
+            self._cleanup_gradle_caches()
+            
+            # Clean up .gradle directories in working dir
+            if self.working_dir and os.path.exists(self.working_dir):
+                for root, dirs, files in os.walk(self.working_dir):
+                    if '.gradle' in dirs:
+                        gradle_dir = os.path.join(root, '.gradle')
+                        shutil.rmtree(gradle_dir, ignore_errors=True)
+                    if 'build' in dirs:
+                        build_dir = os.path.join(root, 'build')
+                        shutil.rmtree(build_dir, ignore_errors=True)
+        except Exception as e:
+            LOG.warning(f"Error during Java-specific cleanup: {e}")
+        finally:
+            # Call parent tearDown for standard cleanup
+            super().tearDown()
+    
+    def _cleanup_gradle_caches(self):
+        """Clean up Gradle cache directories that might interfere with tests"""
+        # Clean up user .gradle directory if using custom GRADLE_USER_HOME
+        gradle_user_home = os.environ.get('GRADLE_USER_HOME')
+        if gradle_user_home and os.path.exists(gradle_user_home):
+            try:
+                shutil.rmtree(gradle_user_home, ignore_errors=True)
+            except Exception:
+                pass
+        
+        # Clean up any .gradle directories in temp
+        if IS_WINDOWS:
+            temp_dir = os.environ.get('TEMP', os.environ.get('TMP', '/tmp'))
+            temp_gradle = os.path.join(temp_dir, '.gradle')
+            if os.path.exists(temp_gradle):
+                try:
+                    shutil.rmtree(temp_gradle, ignore_errors=True)
+                except Exception:
+                    pass
 
     def _test_with_building_java(
         self,
