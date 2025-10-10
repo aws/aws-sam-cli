@@ -19,7 +19,7 @@ tomlkit==0.13.3
 watchdog==4.0.2
 
 rich~=14.1.0
-pyopenssl~=25.1.0
+pyopenssl~=25.3.0
 # Pin to <4.18 to until SAM-T no longer uses RefResolver
 jsonschema<4.26
 
@@ -32,7 +32,7 @@ regex!=2021.10.8
 tzlocal==5.3.1
 
 #Adding cfn-lint dependency for SAM validate
-cfn-lint~=1.39.1
+cfn-lint~=1.40.0
 
 # Type checking boto3 objects
-boto3-stubs[apigateway,cloudformation,ecr,iam,lambda,s3,schemas,secretsmanager,signer,stepfunctions,sts,xray,sqs,kinesis]==1.40.26
+boto3-stubs[apigateway,cloudformation,ecr,iam,lambda,s3,schemas,secretsmanager,signer,stepfunctions,sts,xray,sqs,kinesis]==1.40.48
