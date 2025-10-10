@@ -8,8 +8,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from io import TextIOWrapper
-from pathlib import Path
-from typing import Any, Callable, Generic, Iterable, List, Optional, TypeVar, Union, cast
+from typing import Generic, Iterable, List, Optional, TypeVar, Union, cast
 
 from typing_extensions import TypeAlias
 
@@ -227,19 +226,13 @@ class BotoActionExecutor(ABC):
         RemoteInvokeIterableResponseType
             Returns iterable response, see response type definition for details
         """
-        action_executor: Callable[[Any], Iterable[Union[RemoteInvokeResponse, RemoteInvokeLogOutput]]]
-        payload: Union[str, Path]
-
         # if a file pointed is provided for payload, use specific payload and its function here
         if remote_invoke_input.is_file_provided():
-            action_executor = self._execute_action_file
-            payload = cast(Path, remote_invoke_input.payload_file_path)
+            payload_file = cast(TextIOWrapper, remote_invoke_input.payload_file_path)
+            return self._execute_action_file(payload_file)
         else:
-            action_executor = self._execute_action
-            payload = cast(str, remote_invoke_input.payload)
-
-        # execute boto3 API, and update result if it is successful, update exception otherwise
-        return action_executor(payload)
+            payload_str = cast(str, remote_invoke_input.payload)
+            return self._execute_action(payload_str)
 
 
 class RemoteInvokeExecutor:
