@@ -246,8 +246,10 @@ class TestEnvironmentVariables_resolve(TestCase):
             "none_var": "",
             "true_var": "true",
             "false_var": "false",
-            # These variables are from shell_env/overrides but not in template variables
-            # With the new behavior, they should be included
+            # These variables are from shell_env/overrides but not defined in template variables.
+            # The resolve() method now collects variable names from all sources (template, shell, overrides),
+            # so variables from shell_env and override_values are included even if they're not in the template.
+            # This allows .env files to add new variables, not just override existing template variables.
             "myothervar": "somevalue",
             "unknown_var": "newvalue",
         }

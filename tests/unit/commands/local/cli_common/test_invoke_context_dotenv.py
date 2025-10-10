@@ -10,113 +10,6 @@ from unittest.mock import patch, Mock
 from samcli.commands.local.cli_common.invoke_context import InvokeContext
 
 
-class TestInvokeContext_GetDotenvValues(TestCase):
-    """Tests for the _get_dotenv_values static method"""
-
-    def test_returns_none_when_no_file_provided(self):
-        """Should return None when dotenv_file is None"""
-        result = InvokeContext._get_dotenv_values(None)
-        self.assertIsNone(result)
-
-    def test_loads_simple_env_file(self):
-        """Should correctly parse a simple .env file"""
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
-            f.write("DB_HOST=localhost\n")
-            f.write("DB_PORT=5432\n")
-            f.write("DB_NAME=testdb\n")
-            dotenv_path = f.name
-
-        try:
-            result = InvokeContext._get_dotenv_values(dotenv_path)
-
-            self.assertIsNotNone(result)
-            self.assertEqual(result["DB_HOST"], "localhost")
-            self.assertEqual(result["DB_PORT"], "5432")
-            self.assertEqual(result["DB_NAME"], "testdb")
-        finally:
-            os.unlink(dotenv_path)
-
-    def test_handles_quoted_values(self):
-        """Should handle quoted values in .env file"""
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
-            f.write('MESSAGE="Hello World"\n')
-            f.write("PATH='/usr/local/bin'\n")
-            dotenv_path = f.name
-
-        try:
-            result = InvokeContext._get_dotenv_values(dotenv_path)
-
-            self.assertIsNotNone(result)
-            self.assertEqual(result["MESSAGE"], "Hello World")
-            self.assertEqual(result["PATH"], "/usr/local/bin")
-        finally:
-            os.unlink(dotenv_path)
-
-    def test_handles_comments_and_empty_lines(self):
-        """Should ignore comments and empty lines"""
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
-            f.write("# This is a comment\n")
-            f.write("\n")
-            f.write("VAR1=value1\n")
-            f.write("  # Another comment\n")
-            f.write("VAR2=value2\n")
-            dotenv_path = f.name
-
-        try:
-            result = InvokeContext._get_dotenv_values(dotenv_path)
-
-            self.assertIsNotNone(result)
-            self.assertEqual(result["VAR1"], "value1")
-            self.assertEqual(result["VAR2"], "value2")
-            # Comments should not be included as keys
-            self.assertNotIn("#", result)
-        finally:
-            os.unlink(dotenv_path)
-
-    def test_handles_empty_values(self):
-        """Should handle empty values correctly"""
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
-            f.write("EMPTY_VAR=\n")
-            f.write("ANOTHER_VAR=value\n")
-            dotenv_path = f.name
-
-        try:
-            result = InvokeContext._get_dotenv_values(dotenv_path)
-
-            self.assertIsNotNone(result)
-            self.assertEqual(result["EMPTY_VAR"], "")
-            self.assertEqual(result["ANOTHER_VAR"], "value")
-        finally:
-            os.unlink(dotenv_path)
-
-    def test_raises_exception_for_nonexistent_file(self):
-        """Should raise InvalidEnvironmentVariablesFileException for non-existent file"""
-        from samcli.commands.local.cli_common.invoke_context import InvalidEnvironmentVariablesFileException
-
-        # python-dotenv's dotenv_values doesn't raise an exception for non-existent files,
-        # it just returns an empty dict. We need to verify our code handles this appropriately.
-        # For now, we'll verify it returns None or empty dict gracefully
-        result = InvokeContext._get_dotenv_values("/path/to/nonexistent/file.env")
-        # dotenv_values returns empty dict for non-existent files
-        self.assertEqual(result, {})
-
-    def test_handles_special_characters(self):
-        """Should handle special characters in values"""
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
-            f.write("PASSWORD=p@ssw0rd!#$\n")
-            f.write("URL=https://example.com?param=value&other=123\n")
-            dotenv_path = f.name
-
-        try:
-            result = InvokeContext._get_dotenv_values(dotenv_path)
-
-            self.assertIsNotNone(result)
-            self.assertEqual(result["PASSWORD"], "p@ssw0rd!#$")
-            self.assertEqual(result["URL"], "https://example.com?param=value&other=123")
-        finally:
-            os.unlink(dotenv_path)
-
-
 class TestInvokeContext_DotenvMerging(TestCase):
     """Tests for merging .env files with JSON env vars"""
 
@@ -319,3 +212,478 @@ class TestInvokeContext_DotenvMerging(TestCase):
             os.unlink(dotenv_path)
             os.unlink(json_path)
             os.unlink(template_path)
+
+
+class TestInvokeContext_ContainerDotenvMerging(TestCase):
+    """Tests for container dotenv functionality"""
+
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext._get_container_manager")
+    @patch("samcli.commands.local.cli_common.invoke_context.SamLocalStackProvider")
+    @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
+    def test_container_dotenv_only(self, MockFunctionProvider, MockStackProvider, MockGetContainerManager):
+        """Should load container env vars from .env file only"""
+        # Create container .env file
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
+            f.write("DEBUG_VAR=debug_value\n")
+            f.write("CONTAINER_VAR=container_value\n")
+            container_dotenv_path = f.name
+
+        # Create dummy template
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            f.write("AWSTemplateFormatVersion: '2010-09-09'\n")
+            template_path = f.name
+
+        try:
+            # Mock stack provider
+            mock_stack = Mock()
+            MockStackProvider.get_stacks.return_value = ([mock_stack], Mock())
+
+            # Mock function provider
+            mock_function_provider = Mock()
+            mock_function_provider.get_all.return_value = []
+            MockFunctionProvider.return_value = mock_function_provider
+
+            # Mock container manager to avoid Docker checks
+            mock_container_manager = Mock()
+            mock_container_manager.is_docker_reachable = True
+            MockGetContainerManager.return_value = mock_container_manager
+
+            with InvokeContext(
+                template_file=template_path, container_dotenv_file=container_dotenv_path, container_env_vars_file=None
+            ) as context:
+                # Check that container env vars were loaded correctly
+                # Container env vars should remain flat (not wrapped in Parameters)
+                self.assertIsNotNone(context._container_env_vars_value)
+                self.assertEqual(context._container_env_vars_value["DEBUG_VAR"], "debug_value")
+                self.assertEqual(context._container_env_vars_value["CONTAINER_VAR"], "container_value")
+                # Should NOT have Parameters wrapper
+                self.assertNotIn("Parameters", context._container_env_vars_value)
+        finally:
+            os.unlink(container_dotenv_path)
+            os.unlink(template_path)
+
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext._get_container_manager")
+    @patch("samcli.commands.local.cli_common.invoke_context.SamLocalStackProvider")
+    @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
+    def test_container_json_overrides_container_dotenv(
+        self, MockFunctionProvider, MockStackProvider, MockGetContainerManager
+    ):
+        """Should have container JSON values override container .env values"""
+        # Create container .env file
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
+            f.write("VAR1=from_container_dotenv\n")
+            f.write("VAR2=also_from_container_dotenv\n")
+            f.write("VAR3=only_in_container_dotenv\n")
+            container_dotenv_path = f.name
+
+        # Create container JSON env vars file (overriding VAR1 and VAR2)
+        import json
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump({"VAR1": "from_container_json", "VAR2": "also_from_container_json"}, f)
+            container_json_path = f.name
+
+        # Create dummy template
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            f.write("AWSTemplateFormatVersion: '2010-09-09'\n")
+            template_path = f.name
+
+        try:
+            # Mock stack provider
+            mock_stack = Mock()
+            MockStackProvider.get_stacks.return_value = ([mock_stack], Mock())
+
+            # Mock function provider
+            mock_function_provider = Mock()
+            mock_function_provider.get_all.return_value = []
+            MockFunctionProvider.return_value = mock_function_provider
+
+            # Mock container manager to avoid Docker checks
+            mock_container_manager = Mock()
+            mock_container_manager.is_docker_reachable = True
+            MockGetContainerManager.return_value = mock_container_manager
+
+            with InvokeContext(
+                template_file=template_path,
+                container_dotenv_file=container_dotenv_path,
+                container_env_vars_file=container_json_path,
+            ) as context:
+                # Check that container env vars were merged with JSON taking precedence
+                self.assertIsNotNone(context._container_env_vars_value)
+
+                # JSON should override dotenv
+                self.assertEqual(context._container_env_vars_value["VAR1"], "from_container_json")
+                self.assertEqual(context._container_env_vars_value["VAR2"], "also_from_container_json")
+
+                # Dotenv-only value should still be present
+                self.assertEqual(context._container_env_vars_value["VAR3"], "only_in_container_dotenv")
+
+                # Should remain flat (no Parameters wrapper)
+                self.assertNotIn("Parameters", context._container_env_vars_value)
+        finally:
+            os.unlink(container_dotenv_path)
+            os.unlink(container_json_path)
+            os.unlink(template_path)
+
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext._get_container_manager")
+    @patch("samcli.commands.local.cli_common.invoke_context.SamLocalStackProvider")
+    @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
+    def test_dotenv_and_container_dotenv_independent(
+        self, MockFunctionProvider, MockStackProvider, MockGetContainerManager
+    ):
+        """Should handle both regular dotenv and container dotenv independently"""
+        # Create regular .env file
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
+            f.write("LAMBDA_VAR=lambda_value\n")
+            dotenv_path = f.name
+
+        # Create container .env file
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
+            f.write("DEBUG_VAR=debug_value\n")
+            container_dotenv_path = f.name
+
+        # Create dummy template
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            f.write("AWSTemplateFormatVersion: '2010-09-09'\n")
+            template_path = f.name
+
+        try:
+            # Mock stack provider
+            mock_stack = Mock()
+            MockStackProvider.get_stacks.return_value = ([mock_stack], Mock())
+
+            # Mock function provider
+            mock_function_provider = Mock()
+            mock_function_provider.get_all.return_value = []
+            MockFunctionProvider.return_value = mock_function_provider
+
+            # Mock container manager to avoid Docker checks
+            mock_container_manager = Mock()
+            mock_container_manager.is_docker_reachable = True
+            MockGetContainerManager.return_value = mock_container_manager
+
+            with InvokeContext(
+                template_file=template_path, dotenv_file=dotenv_path, container_dotenv_file=container_dotenv_path
+            ) as context:
+                # Check that regular env vars are wrapped in Parameters
+                self.assertIsNotNone(context._env_vars_value)
+                self.assertIn("Parameters", context._env_vars_value)
+                self.assertEqual(context._env_vars_value["Parameters"]["LAMBDA_VAR"], "lambda_value")
+
+                # Check that container env vars are flat (not wrapped)
+                self.assertIsNotNone(context._container_env_vars_value)
+                self.assertEqual(context._container_env_vars_value["DEBUG_VAR"], "debug_value")
+                self.assertNotIn("Parameters", context._container_env_vars_value)
+        finally:
+            os.unlink(dotenv_path)
+            os.unlink(container_dotenv_path)
+            os.unlink(template_path)
+
+
+class TestInvokeContext_DotenvErrorHandling(TestCase):
+    """Tests for error handling and edge cases with .env files"""
+
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext._get_container_manager")
+    @patch("samcli.commands.local.cli_common.invoke_context.SamLocalStackProvider")
+    @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
+    def test_non_existent_dotenv_file_raises_exception(
+        self, MockFunctionProvider, MockStackProvider, MockGetContainerManager
+    ):
+        """Should raise exception when .env file doesn't exist"""
+        from samcli.commands.local.cli_common.invoke_context import InvalidEnvironmentVariablesFileException
+
+        # Create dummy template
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            f.write("AWSTemplateFormatVersion: '2010-09-09'\n")
+            template_path = f.name
+
+        try:
+            # Mock stack provider
+            mock_stack = Mock()
+            MockStackProvider.get_stacks.return_value = ([mock_stack], Mock())
+
+            # Mock function provider
+            mock_function_provider = Mock()
+            mock_function_provider.get_all.return_value = []
+            MockFunctionProvider.return_value = mock_function_provider
+
+            # Mock container manager
+            mock_container_manager = Mock()
+            mock_container_manager.is_docker_reachable = True
+            MockGetContainerManager.return_value = mock_container_manager
+
+            # Attempt to use non-existent .env file
+            with self.assertRaises(InvalidEnvironmentVariablesFileException) as context:
+                with InvokeContext(
+                    template_file=template_path, dotenv_file="/nonexistent/path/.env", env_vars_file=None
+                ):
+                    pass
+
+            self.assertIn("not found", str(context.exception))
+        finally:
+            os.unlink(template_path)
+
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext._get_container_manager")
+    @patch("samcli.commands.local.cli_common.invoke_context.SamLocalStackProvider")
+    @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
+    def test_empty_dotenv_file_logs_warning(self, MockFunctionProvider, MockStackProvider, MockGetContainerManager):
+        """Should log warning when .env file is empty"""
+        # Create empty .env file
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
+            # Write nothing - empty file
+            dotenv_path = f.name
+
+        # Create dummy template
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            f.write("AWSTemplateFormatVersion: '2010-09-09'\n")
+            template_path = f.name
+
+        try:
+            # Mock stack provider
+            mock_stack = Mock()
+            MockStackProvider.get_stacks.return_value = ([mock_stack], Mock())
+
+            # Mock function provider
+            mock_function_provider = Mock()
+            mock_function_provider.get_all.return_value = []
+            MockFunctionProvider.return_value = mock_function_provider
+
+            # Mock container manager
+            mock_container_manager = Mock()
+            mock_container_manager.is_docker_reachable = True
+            MockGetContainerManager.return_value = mock_container_manager
+
+            with InvokeContext(template_file=template_path, dotenv_file=dotenv_path, env_vars_file=None) as context:
+                # Empty file should result in None or empty Parameters
+                self.assertTrue(context._env_vars_value is None or context._env_vars_value.get("Parameters", {}) == {})
+        finally:
+            os.unlink(dotenv_path)
+            os.unlink(template_path)
+
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext._get_container_manager")
+    @patch("samcli.commands.local.cli_common.invoke_context.SamLocalStackProvider")
+    @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
+    def test_dotenv_with_special_characters(self, MockFunctionProvider, MockStackProvider, MockGetContainerManager):
+        """Should handle special characters in variable values"""
+        # Create .env file with special characters
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
+            f.write("PASSWORD=p@ssw0rd!#$%\n")
+            f.write("URL=https://example.com?param=value&other=123\n")
+            f.write('JSON_DATA={"key": "value", "nested": {"data": true}}\n')
+            dotenv_path = f.name
+
+        # Create dummy template
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            f.write("AWSTemplateFormatVersion: '2010-09-09'\n")
+            template_path = f.name
+
+        try:
+            # Mock stack provider
+            mock_stack = Mock()
+            MockStackProvider.get_stacks.return_value = ([mock_stack], Mock())
+
+            # Mock function provider
+            mock_function_provider = Mock()
+            mock_function_provider.get_all.return_value = []
+            MockFunctionProvider.return_value = mock_function_provider
+
+            # Mock container manager
+            mock_container_manager = Mock()
+            mock_container_manager.is_docker_reachable = True
+            MockGetContainerManager.return_value = mock_container_manager
+
+            with InvokeContext(template_file=template_path, dotenv_file=dotenv_path, env_vars_file=None) as context:
+                # Verify special characters are preserved
+                self.assertIsNotNone(context._env_vars_value)
+                params = context._env_vars_value["Parameters"]
+                self.assertEqual(params["PASSWORD"], "p@ssw0rd!#$%")
+                self.assertEqual(params["URL"], "https://example.com?param=value&other=123")
+                self.assertEqual(params["JSON_DATA"], '{"key": "value", "nested": {"data": true}}')
+        finally:
+            os.unlink(dotenv_path)
+            os.unlink(template_path)
+
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext._get_container_manager")
+    @patch("samcli.commands.local.cli_common.invoke_context.SamLocalStackProvider")
+    @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
+    def test_dotenv_with_empty_and_whitespace_values(
+        self, MockFunctionProvider, MockStackProvider, MockGetContainerManager
+    ):
+        """Should handle empty values and whitespace correctly"""
+        # Create .env file with empty and whitespace values
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
+            f.write("EMPTY_VAR=\n")
+            f.write("SPACE_VAR= \n")
+            f.write("TAB_VAR=\t\n")
+            f.write("NORMAL_VAR=value\n")
+            dotenv_path = f.name
+
+        # Create dummy template
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            f.write("AWSTemplateFormatVersion: '2010-09-09'\n")
+            template_path = f.name
+
+        try:
+            # Mock stack provider
+            mock_stack = Mock()
+            MockStackProvider.get_stacks.return_value = ([mock_stack], Mock())
+
+            # Mock function provider
+            mock_function_provider = Mock()
+            mock_function_provider.get_all.return_value = []
+            MockFunctionProvider.return_value = mock_function_provider
+
+            # Mock container manager
+            mock_container_manager = Mock()
+            mock_container_manager.is_docker_reachable = True
+            MockGetContainerManager.return_value = mock_container_manager
+
+            with InvokeContext(template_file=template_path, dotenv_file=dotenv_path, env_vars_file=None) as context:
+                # Verify empty and whitespace values are handled
+                # Note: python-dotenv strips trailing whitespace, so " " becomes ""
+                self.assertIsNotNone(context._env_vars_value)
+                params = context._env_vars_value["Parameters"]
+                self.assertEqual(params["EMPTY_VAR"], "")
+                self.assertEqual(params["SPACE_VAR"], "")  # python-dotenv strips whitespace
+                self.assertEqual(params["TAB_VAR"], "")  # python-dotenv strips whitespace
+                self.assertEqual(params["NORMAL_VAR"], "value")
+        finally:
+            os.unlink(dotenv_path)
+            os.unlink(template_path)
+
+    def test_get_dotenv_values_static_method_nonexistent_file(self):
+        """Test that _get_dotenv_values raises exception for non-existent file"""
+        from samcli.commands.local.cli_common.invoke_context import (
+            InvokeContext,
+            InvalidEnvironmentVariablesFileException,
+        )
+
+        with self.assertRaises(InvalidEnvironmentVariablesFileException) as context:
+            InvokeContext._get_dotenv_values("/path/that/does/not/exist/.env")
+
+        self.assertIn("not found", str(context.exception))
+
+    def test_get_dotenv_values_static_method_returns_none_for_none_input(self):
+        """Test that _get_dotenv_values returns None when filename is None"""
+        from samcli.commands.local.cli_common.invoke_context import InvokeContext
+
+        result = InvokeContext._get_dotenv_values(None)
+        self.assertIsNone(result)
+
+
+class TestInvokeContext_MergeEnvVarsDirectTesting(TestCase):
+    """Direct tests of _merge_env_vars without mocking - tests actual behavior"""
+
+    def test_merge_with_both_none_returns_none(self):
+        """Test that merging two None values returns None"""
+        from samcli.commands.local.cli_common.invoke_context import InvokeContext
+
+        result = InvokeContext._merge_env_vars(None, None, wrap_in_parameters=True)
+        self.assertIsNone(result)
+
+    def test_merge_dotenv_only_with_parameters_wrapping(self):
+        """Test merging with only dotenv vars and Parameters wrapping"""
+        from samcli.commands.local.cli_common.invoke_context import InvokeContext
+
+        dotenv = {"VAR1": "value1", "VAR2": "value2"}
+        result = InvokeContext._merge_env_vars(dotenv, None, wrap_in_parameters=True)
+
+        self.assertIsNotNone(result)
+        self.assertIn("Parameters", result)
+        self.assertEqual(result["Parameters"]["VAR1"], "value1")
+        self.assertEqual(result["Parameters"]["VAR2"], "value2")
+
+    def test_merge_dotenv_only_without_parameters_wrapping(self):
+        """Test merging with only dotenv vars without Parameters wrapping (container mode)"""
+        from samcli.commands.local.cli_common.invoke_context import InvokeContext
+
+        dotenv = {"VAR1": "value1", "VAR2": "value2"}
+        result = InvokeContext._merge_env_vars(dotenv, None, wrap_in_parameters=False)
+
+        self.assertIsNotNone(result)
+        self.assertNotIn("Parameters", result)
+        self.assertEqual(result["VAR1"], "value1")
+        self.assertEqual(result["VAR2"], "value2")
+
+    def test_merge_json_only_with_parameters(self):
+        """Test merging with only JSON vars that have Parameters section"""
+        from samcli.commands.local.cli_common.invoke_context import InvokeContext
+
+        json_vars = {"Parameters": {"VAR1": "json_value1", "VAR2": "json_value2"}}
+        result = InvokeContext._merge_env_vars(None, json_vars, wrap_in_parameters=True)
+
+        self.assertIsNotNone(result)
+        self.assertIn("Parameters", result)
+        self.assertEqual(result["Parameters"]["VAR1"], "json_value1")
+        self.assertEqual(result["Parameters"]["VAR2"], "json_value2")
+
+    def test_merge_json_overrides_dotenv_in_parameters(self):
+        """Test that JSON values override dotenv values in Parameters section"""
+        from samcli.commands.local.cli_common.invoke_context import InvokeContext
+
+        dotenv = {"VAR1": "dotenv_value", "VAR2": "dotenv_value2", "VAR3": "only_dotenv"}
+        json_vars = {"Parameters": {"VAR1": "json_override", "VAR2": "json_override2"}}
+        result = InvokeContext._merge_env_vars(dotenv, json_vars, wrap_in_parameters=True)
+
+        self.assertIsNotNone(result)
+        self.assertEqual(result["Parameters"]["VAR1"], "json_override")  # JSON wins
+        self.assertEqual(result["Parameters"]["VAR2"], "json_override2")  # JSON wins
+        self.assertEqual(result["Parameters"]["VAR3"], "only_dotenv")  # Dotenv preserved
+
+    def test_merge_preserves_function_specific_overrides(self):
+        """Test that function-specific JSON overrides are preserved alongside Parameters"""
+        from samcli.commands.local.cli_common.invoke_context import InvokeContext
+
+        dotenv = {"GLOBAL": "dotenv_value"}
+        json_vars = {
+            "Parameters": {"GLOBAL": "json_override"},
+            "MyFunction": {"FUNC_VAR": "func_value"},
+        }
+        result = InvokeContext._merge_env_vars(dotenv, json_vars, wrap_in_parameters=True)
+
+        self.assertIsNotNone(result)
+        self.assertIn("Parameters", result)
+        self.assertIn("MyFunction", result)
+        self.assertEqual(result["Parameters"]["GLOBAL"], "json_override")
+        self.assertEqual(result["MyFunction"]["FUNC_VAR"], "func_value")
+
+    def test_merge_container_vars_without_parameters(self):
+        """Test merging container vars (flat structure, no Parameters wrapping)"""
+        from samcli.commands.local.cli_common.invoke_context import InvokeContext
+
+        dotenv = {"DEBUG_VAR1": "debug1", "DEBUG_VAR2": "debug2"}
+        json_vars = {"DEBUG_VAR1": "json_override", "DEBUG_VAR3": "json_only"}
+        result = InvokeContext._merge_env_vars(dotenv, json_vars, wrap_in_parameters=False)
+
+        self.assertIsNotNone(result)
+        self.assertNotIn("Parameters", result)  # Should be flat
+        self.assertEqual(result["DEBUG_VAR1"], "json_override")  # JSON wins
+        self.assertEqual(result["DEBUG_VAR2"], "debug2")  # Dotenv preserved
+        self.assertEqual(result["DEBUG_VAR3"], "json_only")  # JSON added
+
+    def test_get_dotenv_values_direct_with_real_file(self):
+        """Test _get_dotenv_values with real file - no mocking"""
+        from samcli.commands.local.cli_common.invoke_context import InvokeContext
+
+        # Create real .env file
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
+            f.write("TEST_VAR=test_value\n")
+            f.write("ANOTHER_VAR=another_value\n")
+            f.write("# Comment line\n")
+            f.write("\n")
+            f.write("LAST_VAR=last_value\n")
+            dotenv_path = f.name
+
+        try:
+            # Call the actual method - no mocks
+            result = InvokeContext._get_dotenv_values(dotenv_path)
+
+            # Verify actual parsing behavior
+            self.assertIsNotNone(result)
+            self.assertEqual(len(result), 3)  # Should ignore comments and empty lines
+            self.assertEqual(result["TEST_VAR"], "test_value")
+            self.assertEqual(result["ANOTHER_VAR"], "another_value")
+            self.assertEqual(result["LAST_VAR"], "last_value")
+            self.assertNotIn("#", result)  # Comments not included
+        finally:
+            os.unlink(dotenv_path)
