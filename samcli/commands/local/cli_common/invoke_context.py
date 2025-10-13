@@ -23,6 +23,7 @@ from samcli.lib.utils.async_utils import AsyncContext
 from samcli.lib.utils.boto_utils import get_boto_client_provider_with_config
 from samcli.lib.utils.packagetype import ZIP
 from samcli.lib.utils.stream_writer import StreamWriter
+from samcli.local.docker.container_client import ContainerClient
 from samcli.local.docker.exceptions import PortAlreadyInUse
 from samcli.local.docker.lambda_image import LambdaImage
 from samcli.local.docker.manager import ContainerManager
@@ -30,12 +31,6 @@ from samcli.local.lambdafn.runtime import LambdaRuntime, WarmLambdaRuntime
 from samcli.local.layers.layer_downloader import LayerDownloader
 
 LOG = logging.getLogger(__name__)
-
-
-class DockerIsNotReachableException(InvokeContextException):
-    """
-    Docker is not installed or not running at the moment
-    """
 
 
 class InvalidEnvironmentVariablesFileException(InvokeContextException):
@@ -220,6 +215,7 @@ class InvokeContext:
         self._lambda_runtimes: Optional[Dict[ContainersMode, LambdaRuntime]] = None
 
         self._local_lambda_runner: Optional[LocalLambdaRunner] = None
+        self._initialized_container_ids: List[str] = []
 
     def __enter__(self) -> "InvokeContext":
         """
@@ -280,14 +276,9 @@ class InvokeContext:
             self._docker_network, self._skip_pull_image, self._shutdown
         )
 
-        if not self._container_manager.is_docker_reachable:
-            raise DockerIsNotReachableException(
-                "Running AWS SAM projects locally requires Docker. Have you got it installed and running?"
-            )
-
         # initialize all lambda function containers upfront
         if self._containers_initializing_mode == ContainersInitializationMode.EAGER:
-            self._initialize_all_functions_containers()
+            self._initialized_container_ids = self._initialize_all_functions_containers()
 
         for func in self._function_provider.get_all():
             if func.packagetype == ZIP and func.inlinecode:
@@ -312,15 +303,20 @@ class InvokeContext:
         if self._containers_mode == ContainersMode.WARM:
             self._clean_running_containers_and_related_resources()
 
-    def _initialize_all_functions_containers(self) -> None:
+    def _initialize_all_functions_containers(self) -> List[str]:
         """
         Create and run a container for each available lambda function
+
+        Returns:
+            List[str]: List of container IDs that were created and started
         """
         LOG.info("Initializing the lambda functions containers.")
 
+        container_ids = []
+
         def initialize_function_container(function: Function) -> None:
             function_config = self.local_lambda_runner.get_invoke_config(function)
-            self.lambda_runtime.run(
+            container = self.lambda_runtime.run(
                 container=None,
                 function_config=function_config,
                 debug_context=self._debug_context,
@@ -329,13 +325,27 @@ class InvokeContext:
                 extra_hosts=self._extra_hosts,
             )
 
+            # Collect container ID in a thread-safe way
+            if container and hasattr(container, "id"):
+                container_ids.append(container.id)
+
         try:
             async_context = AsyncContext()
             for function in self._function_provider.get_all():
                 async_context.add_async_task(initialize_function_container, function)
 
             async_context.run_async(default_executor=False)
-            LOG.info("Containers Initialization is done.")
+            LOG.info("Containers created. Waiting for readiness...")
+            LOG.debug("Initialized container IDs: %s", container_ids)
+
+            # Wait for all containers to be ready before returning
+            if container_ids:
+                self._wait_for_containers_readiness(container_ids)
+                LOG.info("All containers are ready.")
+            else:
+                LOG.info("No containers were created.")
+
+            return container_ids
         except KeyboardInterrupt:
             LOG.debug("Ctrl+C was pressed. Aborting containers initialization")
             self._clean_running_containers_and_related_resources()
@@ -346,6 +356,89 @@ class InvokeContext:
             LOG.error("Lambda functions containers initialization failed because of %s", ex)
             self._clean_running_containers_and_related_resources()
             raise ContainersInitializationException("Lambda functions containers initialization failed") from ex
+
+    def _wait_for_containers_readiness(self, container_ids: List[str], max_wait_seconds: int = 30) -> None:
+        """
+        Wait for all containers to be running using native Docker container status.
+
+        Args:
+            container_ids: List of container IDs to check
+            max_wait_seconds: Maximum time to wait for all containers to be running
+        """
+        import time
+
+        from samcli.local.docker.utils import get_validated_container_client
+
+        if not container_ids:
+            return
+
+        LOG.info("Waiting for %d containers to be running...", len(container_ids))
+        docker_client = get_validated_container_client()
+        start_time = time.time()
+
+        while time.time() - start_time < max_wait_seconds:
+            running_containers = 0
+
+            for container_id in container_ids:
+                try:
+                    container = docker_client.containers.get(container_id)
+
+                    # Check if container is running
+                    if container.status == "running":
+                        running_containers += 1
+
+                except Exception as e:
+                    LOG.debug("Error checking container %s: %s", container_id[:12], e)
+                    continue
+
+            if running_containers == len(container_ids):
+                elapsed = time.time() - start_time
+                LOG.info("All %d containers running after %.1f seconds", len(container_ids), elapsed)
+                return
+
+            # Log progress every 10 seconds
+            elapsed = time.time() - start_time
+            if int(elapsed) % 10 == 0 and elapsed > 0:
+                LOG.info(
+                    "Container status: %d/%d running after %.1f seconds",
+                    running_containers,
+                    len(container_ids),
+                    elapsed,
+                )
+
+            time.sleep(0.5)  # Check every 500ms
+
+        # Timeout reached
+        elapsed = time.time() - start_time
+        running_containers = sum(1 for cid in container_ids if self._is_container_running(docker_client, cid))
+
+        if running_containers < len(container_ids):
+            LOG.warning(
+                "Container startup timeout after %.1f seconds. %d/%d containers running",
+                elapsed,
+                running_containers,
+                len(container_ids),
+            )
+        else:
+            LOG.info("All containers running after %.1f seconds", elapsed)
+
+    def _is_container_running(self, docker_client: ContainerClient, container_id: str) -> bool:
+        """
+        Check if a container is currently running.
+
+        Args:
+            docker_client: Docker client instance
+            container_id: Container ID to check
+
+        Returns:
+            bool: True if container is running, False otherwise
+        """
+        try:
+            container = docker_client.containers.get(container_id)
+            return bool(container.status == "running")
+        except Exception as e:
+            LOG.debug("Error checking container %s: %s", container_id[:12], e)
+            return False
 
     def _clean_running_containers_and_related_resources(self) -> None:
         """
@@ -452,6 +545,16 @@ class InvokeContext:
             extra_hosts=self._extra_hosts,
         )
         return self._local_lambda_runner
+
+    @property
+    def initialized_container_ids(self) -> List[str]:
+        """
+        Returns the list of container IDs that were initialized in EAGER mode
+
+        Returns:
+            List[str]: List of container IDs, empty if not in EAGER mode or not initialized
+        """
+        return self._initialized_container_ids
 
     @property
     def stdout(self) -> StreamWriter:

@@ -30,20 +30,19 @@ class TestSystemInfo(TestCase):
         result = gather_additional_dependencies_info()
         self.assertEqual(result, {"docker_engine": "1.1.1", "aws_cdk": "2.2.2", "terraform": "3.3.3"})
 
-    @patch("docker.from_env")
-    @patch("samcli.local.docker.utils.is_docker_reachable")
-    def test_gather_docker_info_when_client_is_reachable(self, is_docker_reachable_mock, from_env_mock):
+    @patch("samcli.local.docker.container_client_factory.ContainerClientFactory.create_client")
+    def test_gather_docker_info_when_client_is_reachable(self, mock_create_client):
         docker_client_mock = Mock()
-        is_docker_reachable_mock.return_value = True
         docker_client_mock.version.return_value = {"Version": "1.1.1"}
-        from_env_mock.return_value = docker_client_mock
+        mock_create_client.return_value = docker_client_mock
         result = _gather_docker_info()
         self.assertEqual(result, "1.1.1")
 
-    @patch("docker.from_env")
-    @patch("samcli.local.docker.utils.is_docker_reachable")
-    def test_gather_docker_info_when_client_is_not_reachable(self, is_docker_reachable_mock, from_env_mock):
-        is_docker_reachable_mock.return_value = False
+    @patch("samcli.local.docker.container_client_factory.ContainerClientFactory.create_client")
+    def test_gather_docker_info_when_client_is_not_reachable(self, mock_create_client):
+        from samcli.local.docker.exceptions import ContainerNotReachableException
+
+        mock_create_client.side_effect = ContainerNotReachableException("No container runtime available")
         result = _gather_docker_info()
         self.assertEqual(result, "Not available")
 

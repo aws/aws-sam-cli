@@ -10,7 +10,6 @@ import json
 from typing import Optional
 from unittest import TestCase
 
-import docker
 import jmespath
 from pathlib import Path
 
@@ -20,6 +19,7 @@ from parameterized import parameterized_class
 from samcli.lib.utils import osutils
 from samcli.lib.utils.architecture import ARM64, X86_64
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
+from samcli.local.docker.utils import get_validated_container_client
 from samcli.yamlhelper import yaml_parse
 from tests.testing_utils import (
     IS_WINDOWS,
@@ -31,6 +31,7 @@ from tests.testing_utils import (
     get_sam_command,
     run_command_with_input,
 )
+
 
 LOG = logging.getLogger(__name__)
 
@@ -167,40 +168,40 @@ class BuildIntegBase(TestCase):
     def verify_docker_container_cleanedup(self, runtime):
         if IS_WINDOWS:
             time.sleep(1)
-        docker_client = docker.from_env()
-        samcli_containers = docker_client.containers.list(
-            all=True, filters={"ancestor": f"{LambdaBuildContainer._IMAGE_URI_PREFIX}-{runtime}"}
+
+        docker_client = get_validated_container_client()
+
+        # Use strategy pattern method for unified container listing across runtimes
+        samcli_containers = docker_client.list_containers_by_image(
+            f"{LambdaBuildContainer._IMAGE_URI_PREFIX}-{runtime}", all_containers=True
         )
+
         self.assertFalse(bool(samcli_containers), "Build containers have not been removed")
 
     def get_number_of_created_containers(self):
         if IS_WINDOWS:
             time.sleep(1)
-        docker_client = docker.from_env()
+
+        docker_client = get_validated_container_client()
         containers = docker_client.containers.list(all=True, filters={"status": "exited"})
         return len(containers)
 
     def verify_pulled_image(self, runtime, architecture=X86_64):
-        docker_client = docker.from_env()
+        docker_client = get_validated_container_client()
         image_name = f"{LambdaBuildContainer._IMAGE_URI_PREFIX}-{runtime}"
-        images = docker_client.images.list(name=image_name)
         architecture = architecture if architecture and "provided" not in runtime else X86_64
         tag_name = LambdaBuildContainer.get_image_tag(architecture)
-        self.assertGreater(
-            len(images),
-            0,
-            f"Image {image_name} was not pulled",
-        )
-        self.assertIn(
-            len(images),
-            [1, 2],
-            f"Other version of the build image {image_name} was pulled. Currently pulled images: {images}, architecture: {architecture}, tag: {tag_name}",
-        )
+
+        # Use strategy pattern method for unified image validation across runtimes
+        is_valid = docker_client.validate_image_count(image_name, expected_count_range=(1, 2))
+        self.assertTrue(is_valid, f"Image validation failed for {image_name}")
+
+        # Verify the specific tag exists by getting the images and checking tags
+        images = docker_client.images.list(name=image_name)
         image_tag = f"{image_name}:{tag_name}"
         for t in [tag for image in images for tag in image.tags]:
             if t == image_tag:
-                # Found, pass
-                return
+                return  # Found, pass
         self.fail(f"{image_tag} was not pulled")
 
     def _make_parameter_override_arg(self, overrides):

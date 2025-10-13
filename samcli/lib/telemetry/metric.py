@@ -240,6 +240,10 @@ def _send_command_run_metrics(ctx: Context, duration: int, exit_reason: str, exi
     # Add container engine information for all command runs
     metric_specific_attributes["containerEngine"] = metric._get_container_host()
 
+    # Add admin container preference (None if not set)
+    admin_pref = getattr(ctx, "admin_container_preference", None)
+    metric_specific_attributes["adminContainerPreference"] = admin_pref
+
     metric.add_data("metricSpecificAttributes", metric_specific_attributes)
     # Metric about command's execution characteristics
     metric.add_data("duration", duration)

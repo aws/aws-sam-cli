@@ -50,16 +50,12 @@ def _gather_docker_info() -> str:
     str
         Version number of Docker Engine if available. Otherwise "Not available"
     """
-    import contextlib
+    try:
+        from samcli.local.docker.container_client_factory import ContainerClientFactory
 
-    import docker
-
-    from samcli.lib.constants import DOCKER_MIN_API_VERSION
-    from samcli.local.docker.utils import is_docker_reachable
-
-    with contextlib.closing(docker.from_env(version=DOCKER_MIN_API_VERSION)) as client:
-        if is_docker_reachable(client):
-            return cast(str, client.version().get("Version", "Not available"))
+        client = ContainerClientFactory.create_client()
+        return cast(str, client.version().get("Version", "Not available"))
+    except Exception:
         return "Not available"
 
 

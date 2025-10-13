@@ -184,9 +184,9 @@ class PostProcessHandler(TestCase):
         expected_path = (Path("src") / "functions" / "FunctionName" / "app.js").as_posix()
         self.assertEqual(file, expected_path)
 
-    @patch("samcli.lib.build.bundler.Path.__init__")
-    def test_check_invalid_lambda_handler(self, mock_path):
-        mock_path.return_value = None
+    @patch("samcli.lib.build.bundler.Path.is_file")
+    def test_check_invalid_lambda_handler(self, mock_is_file):
+        mock_is_file.return_value = False
         bundler_manager = EsbuildBundlerManager(Mock(), build_dir="/build/dir")
         bundler_manager._get_path_and_filename_from_handler = Mock()
         bundler_manager._get_path_and_filename_from_handler.return_value = "some-path"

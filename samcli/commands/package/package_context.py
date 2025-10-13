@@ -21,10 +21,8 @@ from typing import List, Optional
 
 import boto3
 import click
-import docker
 
 from samcli.commands.package.exceptions import PackageFailedError
-from samcli.lib.constants import DOCKER_MIN_API_VERSION
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.package.artifact_exporter import Template
 from samcli.lib.package.code_signer import CodeSigner
@@ -36,6 +34,7 @@ from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.boto_utils import get_boto_config_with_user_agent
 from samcli.lib.utils.preview_runtimes import PREVIEW_RUNTIMES
 from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION, AWS_SERVERLESS_FUNCTION
+from samcli.local.docker.utils import get_validated_container_client
 from samcli.yamlhelper import yaml_dump
 
 LOG = logging.getLogger(__name__)
@@ -124,7 +123,7 @@ class PackageContext:
         )
         ecr_client = boto3.client("ecr", config=get_boto_config_with_user_agent(region_name=region_name))
 
-        docker_client = docker.from_env(version=DOCKER_MIN_API_VERSION)
+        docker_client = get_validated_container_client()
 
         s3_uploader = S3Uploader(
             s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, self.force_upload, self.no_progressbar
