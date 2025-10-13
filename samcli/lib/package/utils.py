@@ -201,14 +201,14 @@ def upload_local_artifacts(
         )
         if previously_uploaded is not None:
             previously_uploaded[local_path] = result
-        return cast(str, result)
+        return result
 
     # Path could be pointing to a file. Upload the file
     if is_local_file(local_path):
         result = uploader.upload_with_dedup(local_path)
         if previously_uploaded is not None:
             previously_uploaded[local_path] = result
-        return cast(str, result)
+        return result
 
     raise InvalidLocalPathError(resource_id=resource_id, property_name=property_path, local_path=local_path)
 
