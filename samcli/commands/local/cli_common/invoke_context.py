@@ -103,6 +103,7 @@ class InvokeContext:
         invoke_images: Optional[str] = None,
         mount_symlinks: Optional[bool] = False,
         no_mem_limit: Optional[bool] = False,
+        no_watch: Optional[bool] = False,
     ) -> None:
         """
         Initialize the context
@@ -204,6 +205,7 @@ class InvokeContext:
 
         self._mount_symlinks: Optional[bool] = mount_symlinks
         self._no_mem_limit = no_mem_limit
+        self._no_watch = no_watch
 
         # Note(xinhol): despite self._function_provider and self._stacks are initialized as None
         # they will be assigned with a non-None value in __enter__() and
@@ -234,16 +236,26 @@ class InvokeContext:
             ContainersMode.WARM: RefreshableSamFunctionProvider,
             ContainersMode.COLD: SamFunctionProvider,
         }
-
         _function_providers_args: Dict[ContainersMode, List[Any]] = {
             ContainersMode.WARM: [self._stacks, self._parameter_overrides, self._global_parameter_overrides],
             ContainersMode.COLD: [self._stacks],
         }
 
+        # ignore no_watch if _containers_mode is cold
+        if self._no_watch and self._containers_mode == ContainersMode.COLD:
+            self._no_watch = False
+            LOG.info(
+                "Warning: you supplied --no-watch but you did not specify --warm-containers, --no-watch will be ignored"
+            )
+
         # don't resolve the code URI immediately if we passed in docker vol by passing True for use_raw_codeuri
         # this way at the end the code URI will get resolved against the basedir option
         if self._docker_volume_basedir:
             _function_providers_args[self._containers_mode].append(True)
+            if self._no_watch:
+                _function_providers_args[self._containers_mode].extend([False, True])
+        elif self._no_watch:
+            _function_providers_args[self._containers_mode].extend([False, False, True])
 
         self._function_provider = _function_providers_class[self._containers_mode](
             *_function_providers_args[self._containers_mode]
@@ -415,6 +427,7 @@ class InvokeContext:
                     image_builder,
                     mount_symlinks=self._mount_symlinks,
                     no_mem_limit=self._no_mem_limit,
+                    no_watch=self._no_watch,
                 ),
                 ContainersMode.COLD: LambdaRuntime(
                     self._container_manager,

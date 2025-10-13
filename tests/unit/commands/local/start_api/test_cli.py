@@ -57,6 +57,7 @@ class TestCli(TestCase):
         self.container_host_interface = "127.0.0.1"
         self.invoke_image = ()
         self.no_mem_limit = False
+        self.no_watch = False
 
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     @patch("samcli.commands.local.lib.local_api_service.LocalApiService")
@@ -99,6 +100,7 @@ class TestCli(TestCase):
             add_host=self.add_host,
             invoke_images={},
             no_mem_limit=self.no_mem_limit,
+            no_watch=self.no_watch,
         )
 
         local_api_service_mock.assert_called_with(
@@ -108,6 +110,55 @@ class TestCli(TestCase):
             ssl_context=None,
             static_dir=self.static_dir,
             disable_authorizer=self.disable_authorizer,
+        )
+
+        service_mock.start.assert_called_with()
+
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
+    @patch("samcli.commands.local.lib.local_api_service.LocalApiService")
+    def test_cli_must_pass_no_watch_flag_when_set(self, local_api_service_mock, invoke_context_mock):
+        # Mock the __enter__ method to return a object inside a context manager
+        context_mock = Mock()
+        invoke_context_mock.return_value.__enter__.return_value = context_mock
+
+        service_mock = Mock()
+        local_api_service_mock.return_value = service_mock
+
+        # Set no_watch to True
+        self.no_watch = True
+        self.warm_containers = None
+        self.debug_function = None
+        self.disable_authorizer = False
+
+        self.call_cli()
+
+        # Verify that no_watch=True was passed to InvokeContext
+        invoke_context_mock.assert_called_with(
+            template_file=self.template,
+            function_identifier=None,
+            env_vars_file=self.env_vars,
+            docker_volume_basedir=self.docker_volume_basedir,
+            docker_network=self.docker_network,
+            log_file=self.log_file,
+            skip_pull_image=self.skip_pull_image,
+            debug_ports=self.debug_ports,
+            debug_args=self.debug_args,
+            debugger_path=self.debugger_path,
+            container_env_vars_file=self.container_env_vars,
+            parameter_overrides=self.parameter_overrides,
+            layer_cache_basedir=self.layer_cache_basedir,
+            force_image_build=self.force_image_build,
+            aws_region=self.region_name,
+            aws_profile=self.profile,
+            warm_container_initialization_mode=self.warm_containers,
+            debug_function=self.debug_function,
+            shutdown=self.shutdown,
+            container_host=self.container_host,
+            container_host_interface=self.container_host_interface,
+            add_host=self.add_host,
+            invoke_images={},
+            no_mem_limit=self.no_mem_limit,
+            no_watch=True,  # Verify this is True
         )
 
         service_mock.start.assert_called_with()
@@ -231,4 +282,5 @@ class TestCli(TestCase):
             disable_authorizer=self.disable_authorizer,
             add_host=self.add_host,
             no_mem_limit=self.no_mem_limit,
+            no_watch=self.no_watch,
         )

@@ -724,6 +724,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 None,
                 False,
+                False,
             )
 
     @patch("samcli.commands.local.start_lambda.cli.do_cli")
@@ -788,6 +789,7 @@ class TestSamConfigForAllCommands(TestCase):
                 {},
                 ("image",),
                 None,
+                False,
                 False,
             )
 
@@ -1681,6 +1683,7 @@ class TestSamConfigWithOverrides(TestCase):
                 ("image",),
                 None,
                 False,
+                False,
             )
 
     @patch("samcli.commands.local.start_lambda.cli.do_cli")
@@ -1780,6 +1783,7 @@ class TestSamConfigWithOverrides(TestCase):
                 ("image",),
                 None,
                 True,
+                False,
             )
 
     @patch("samcli.commands.validate.validate.do_cli")

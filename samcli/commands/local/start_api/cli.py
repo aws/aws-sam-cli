@@ -141,6 +141,7 @@ def cli(
     terraform_plan_file,
     ssl_cert_file,
     ssl_key_file,
+    no_watch,
     no_memory_limit,
 ):
     """
@@ -178,6 +179,7 @@ def cli(
         ssl_cert_file,
         ssl_key_file,
         no_memory_limit,
+        no_watch,
     )  # pragma: no cover
 
 
@@ -211,6 +213,7 @@ def do_cli(  # pylint: disable=R0914
     ssl_cert_file,
     ssl_key_file,
     no_mem_limit,
+    no_watch,
 ):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
@@ -257,6 +260,7 @@ def do_cli(  # pylint: disable=R0914
             invoke_images=processed_invoke_images,
             add_host=add_host,
             no_mem_limit=no_mem_limit,
+            no_watch=no_watch,
         ) as invoke_context:
             ssl_context = (ssl_cert_file, ssl_key_file) if ssl_cert_file else None
             service = LocalApiService(

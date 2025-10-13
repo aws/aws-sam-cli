@@ -101,6 +101,7 @@ def cli(
     hook_name,
     skip_prepare_infra,
     terraform_plan_file,
+    no_watch,
     no_memory_limit,
 ):
     """
@@ -134,6 +135,7 @@ def cli(
         invoke_image,
         hook_name,
         no_memory_limit,
+        no_watch,
     )  # pragma: no cover
 
 
@@ -163,6 +165,7 @@ def do_cli(  # pylint: disable=R0914
     invoke_image,
     hook_name,
     no_mem_limit,
+    no_watch,
 ):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
@@ -209,6 +212,7 @@ def do_cli(  # pylint: disable=R0914
             add_host=add_host,
             invoke_images=processed_invoke_images,
             no_mem_limit=no_mem_limit,
+            no_watch=no_watch,
         ) as invoke_context:
             service = LocalLambdaService(lambda_invoke_context=invoke_context, port=port, host=host)
             service.start()
