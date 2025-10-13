@@ -212,6 +212,13 @@ def invoke_common_options(f):
                 help="Specify the location basedir where the lambda layers used by the template will be downloaded to.",
                 default=get_default_layer_cache_dir(),
             ),
+            click.option(
+                "--filesystem",
+                type=click.Path(exists=True, file_okay=False, dir_okay=True, resolve_path=True),
+                help="Local directory to mount as EFS filesystem for Lambda functions. "
+                "Maps to the LocalMountPath specified in the function's FileSystemConfigs. "
+                "If no FileSystemConfigs is specified, defaults to /mnt/efs",
+            ),
         ]
         + docker_click_options()
         + [

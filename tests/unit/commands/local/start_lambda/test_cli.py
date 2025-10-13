@@ -45,6 +45,7 @@ class TestCli(TestCase):
         self.add_host = {}
         self.invoke_image = ()
         self.hook_name = None
+        self.filesystem = None
         self.no_mem_limit = False
 
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
@@ -85,6 +86,7 @@ class TestCli(TestCase):
             container_host_interface=self.container_host_interface,
             add_host=self.add_host,
             invoke_images={},
+            filesystem_dir=self.filesystem,
             no_mem_limit=self.no_mem_limit,
         )
 
@@ -178,6 +180,7 @@ class TestCli(TestCase):
             skip_pull_image=self.skip_pull_image,
             parameter_overrides=self.parameter_overrides,
             layer_cache_basedir=self.layer_cache_basedir,
+            filesystem=self.filesystem,
             force_image_build=self.force_image_build,
             warm_containers=self.warm_containers,
             debug_function=self.debug_function,

@@ -1,0 +1,30 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+  FileSystemFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handler
+      Runtime: python3.11
+      CodeUri: code/
+      Timeout: 30
+      FileSystemConfigs:
+        - Arn: "arn:aws:elasticfilesystem:us-east-1:123456789012:access-point/fsap-test"
+          LocalMountPath: "/mnt/efs"
+      Events:
+        ReadFile:
+          Type: Api
+          Properties:
+            Path: /read-file
+            Method: GET
+        WriteFile:
+          Type: Api
+          Properties:
+            Path: /write-file
+            Method: POST
+        ListFiles:
+          Type: Api
+          Properties:
+            Path: /list-files
+            Method: GET

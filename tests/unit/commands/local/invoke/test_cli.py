@@ -53,6 +53,7 @@ class TestCli(TestCase):
         self.overide_runtime = None
         self.mount_symlinks = False
         self.no_mem_limit = False
+        self.filesystem = None
 
         self.ctx_mock = Mock()
         self.ctx_mock.region = self.region_name
@@ -73,9 +74,10 @@ class TestCli(TestCase):
             docker_volume_basedir=self.docker_volume_basedir,
             docker_network=self.docker_network,
             log_file=self.log_file,
+            layer_cache_basedir=self.layer_cache_basedir,
+            filesystem=self.filesystem,
             skip_pull_image=self.skip_pull_image,
             parameter_overrides=self.parameter_overrides,
-            layer_cache_basedir=self.layer_cache_basedir,
             force_image_build=self.force_image_build,
             shutdown=self.shutdown,
             container_host=self.container_host,
@@ -161,9 +163,9 @@ class TestCli(TestCase):
             parameter_overrides=self.parameter_overrides,
             layer_cache_basedir=self.layer_cache_basedir,
             force_image_build=self.force_image_build,
-            shutdown=self.shutdown,
             aws_region=self.region_name,
             aws_profile=self.profile,
+            shutdown=self.shutdown,
             container_host=self.container_host,
             container_host_interface=self.container_host_interface,
             add_host=self.add_host,
