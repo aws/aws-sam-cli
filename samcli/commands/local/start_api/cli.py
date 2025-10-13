@@ -95,12 +95,6 @@ DESCRIPTION = """
     required_param_lists=[["ssl_cert_file"]],
     help="Path to SSL key file (default: None)",
 )
-@click.option(
-    "--no-watch",
-    is_flag=True,
-    default=False,
-    help="Disable file watching. Local code changes will not reset running docker container.",
-)
 @invoke_common_options
 @warm_containers_common_options
 @local_common_options

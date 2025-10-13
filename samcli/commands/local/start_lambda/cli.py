@@ -59,12 +59,6 @@ DESCRIPTION = """
 )
 @skip_prepare_infra_option
 @service_common_options(3001)
-@click.option(
-    "--no-watch",
-    is_flag=True,
-    default=False,
-    help="Disable file watching. Local code changes will not reset running docker container.",
-)
 @invoke_common_options
 @warm_containers_common_options
 @local_common_options

@@ -264,6 +264,13 @@ def warm_containers_common_options(f):
             type=click.STRING,
             multiple=False,
         ),
+        click.option(
+            "--no-watch",
+            is_flag=True,
+            default=False,
+            help="Disable file watching when --warm-containers is set. "
+            "Local code changes will not reset running docker container.",
+        ),
     ]
 
     # Reverse the list to maintain ordering of options in help text printed with --help

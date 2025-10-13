@@ -240,6 +240,14 @@ class InvokeContext:
             ContainersMode.WARM: [self._stacks, self._parameter_overrides, self._global_parameter_overrides],
             ContainersMode.COLD: [self._stacks],
         }
+
+        # ignore no_watch if _containers_mode is cold
+        if self._no_watch and self._containers_mode == ContainersMode.COLD:
+            self._no_watch = False
+            LOG.info(
+                "Warning: you supplied --no-watch but you did not specify --warm-containers, --no-watch will be ignored"
+            )
+
         # don't resolve the code URI immediately if we passed in docker vol by passing True for use_raw_codeuri
         # this way at the end the code URI will get resolved against the basedir option
         if self._docker_volume_basedir:
