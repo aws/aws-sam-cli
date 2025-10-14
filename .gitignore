@@ -425,3 +425,4 @@ samcli/lib/init/templates/cookiecutter-aws-sam-hello-java-gradle/**/.gradle/
 # Installer build folder
 .build
 
+.kiro

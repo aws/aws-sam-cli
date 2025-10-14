@@ -21,7 +21,7 @@ class TestInfraSyncExecutor(TestCase):
     @patch("samcli.lib.sync.infra_sync_executor.Session")
     @patch("samcli.lib.sync.infra_sync_executor.datetime")
     def test_execute_infra_sync(self, auto_skip_infra_sync, datetime_mock, session_mock, auto_skip_infra_sync_mock):
-        datetime_mock.utcnow.return_value = datetime(2023, 2, 8, 12, 12, 12)
+        datetime_mock.now.return_value = datetime(2023, 2, 8, 12, 12, 12)
         last_infra_sync_time = datetime(2023, 2, 4, 12, 12, 12)
         self.sync_context.skip_deploy_sync = True
         self.sync_context.get_latest_infra_sync_time.return_value = last_infra_sync_time
@@ -58,7 +58,7 @@ class TestInfraSyncExecutor(TestCase):
     @patch("samcli.lib.sync.infra_sync_executor.Session")
     @patch("samcli.lib.sync.infra_sync_executor.datetime")
     def test_7_days_auto_execute_infra_sync(self, datetime_mock, session_mock, auto_skip_infra_sync_mock):
-        datetime_mock.utcnow.return_value = datetime(2023, 2, 8, 12, 12, 12)
+        datetime_mock.now.return_value = datetime(2023, 2, 8, 12, 12, 12)
         last_infra_sync_time = datetime(2023, 1, 31, 12, 12, 12)
         self.sync_context.skip_deploy_sync = True
         self.sync_context.get_latest_infra_sync_time.return_value = last_infra_sync_time
@@ -88,7 +88,7 @@ class TestInfraSyncExecutor(TestCase):
     @patch("samcli.lib.sync.infra_sync_executor.Session")
     @patch("samcli.lib.sync.infra_sync_executor.datetime")
     def test_execute_infra_sync_exceed_threshold(self, datetime_mock, session_mock, auto_skip_infra_sync_mock):
-        datetime_mock.utcnow.return_value = datetime(2023, 2, 8, 12, 12, 12)
+        datetime_mock.now.return_value = datetime(2023, 2, 8, 12, 12, 12)
         last_infra_sync_time = datetime(2023, 2, 4, 12, 12, 12)
         self.sync_context.skip_deploy_sync = True
         self.sync_context.get_latest_infra_sync_time.return_value = last_infra_sync_time

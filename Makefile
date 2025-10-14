@@ -4,8 +4,13 @@ SAM_CLI_TELEMETRY ?= 0
 
 .PHONY: schema
 
+# Initialize environment specifically for Github action tests using uv
 init:
-	SAM_CLI_DEV=1 pip install -e '.[dev]'
+	@if [ "$$GITHUB_ACTIONS" = "true" ]; then \
+		pip install uv==0.9.1 && SAM_CLI_DEV=1 uv pip install --system -e '.[dev]'; \
+	else \
+		SAM_CLI_DEV=1 pip install -e '.[dev]'; \
+	fi
 
 test:
 	# Run unit tests
@@ -56,7 +61,7 @@ schema:
 	python -m schema.make_schema
 
 # Verifications to run before sending a pull request
-pr: init dev schema black-check
+pr: init schema black-check dev
 
 # lucashuy: Linux and MacOS are on the same Python version,
 # however we should follow up in a different change

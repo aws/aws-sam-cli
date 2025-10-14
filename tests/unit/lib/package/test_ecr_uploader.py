@@ -208,7 +208,10 @@ class TestECRUploader(TestCase):
         id = f"sha256:{digest}"
         image = "./path/to/archive.tar.gz"
 
-        self.docker_client.images.load.return_value = [Mock(id=id)]
+        # Mock the container client's load_image_from_archive method
+        mock_image = Mock()
+        mock_image.id = id
+        self.docker_client.load_image_from_archive.return_value = mock_image
         self.docker_client.api.push.return_value.__iter__.return_value = iter(
             [
                 {"status": "Pushing to xyz"},
@@ -279,7 +282,10 @@ class TestECRUploader(TestCase):
         resource_name = "HelloWorldFunction"
         image = "./path/to/archive.tar.gz"
 
-        self.docker_client.images.load.return_value = [Mock(), Mock()]
+        # Mock the container client's load_image_from_archive method to raise an exception for multiple images
+        self.docker_client.load_image_from_archive.side_effect = DockerPushFailedError(
+            "Archive represents multiple images"
+        )
 
         ecr_uploader = ECRUploader(
             docker_client=self.docker_client,

@@ -10,7 +10,6 @@ from typing import Dict
 
 import botocore
 import click
-import docker
 from docker.errors import APIError, BuildError
 
 from samcli.commands.package.exceptions import (
@@ -19,11 +18,12 @@ from samcli.commands.package.exceptions import (
     DockerPushFailedError,
     ECRAuthorizationError,
 )
-from samcli.lib.constants import DOCKER_MIN_API_VERSION
 from samcli.lib.docker.log_streamer import LogStreamer, LogStreamError
 from samcli.lib.package.image_utils import tag_translation
 from samcli.lib.utils.osutils import stderr
 from samcli.lib.utils.stream_writer import StreamWriter
+from samcli.local.docker.exceptions import ContainerArchiveImageLoadFailedException
+from samcli.local.docker.utils import get_validated_container_client
 
 LOG = logging.getLogger(__name__)
 
@@ -38,7 +38,7 @@ class ECRUploader:
     def __init__(
         self, docker_client, ecr_client, ecr_repo, ecr_repo_multi, no_progressbar=False, tag="latest", stream=stderr()
     ):
-        self.docker_client = docker_client if docker_client else docker.from_env(version=DOCKER_MIN_API_VERSION)
+        self.docker_client = docker_client if docker_client else get_validated_container_client()
         self.ecr_client = ecr_client
         self.ecr_repo = ecr_repo
         self.ecr_repo_multi = ecr_repo_multi
@@ -84,9 +84,7 @@ class ECRUploader:
         try:
             if Path(image).is_file():
                 with open(image, mode="rb") as image_archive:
-                    [docker_img, *rest] = self.docker_client.images.load(image_archive)
-                    if len(rest) != 0:
-                        raise DockerPushFailedError("Archive must represent a single image")
+                    docker_img = self.docker_client.load_image_from_archive(image_archive)
                     _tag = tag_translation(resource_name, docker_image_id=docker_img.id, gen_tag=self.tag)
             else:
                 # If it's not a file, it's gotta be a {repo}:{tag} or a sha256:{digest}
@@ -115,7 +113,7 @@ class ECRUploader:
                 _log_streamer = LogStreamer(stream=StreamWriter(stream=StringIO(), auto_flush=True))
                 _log_streamer.stream_progress(push_logs)
 
-        except (BuildError, APIError, LogStreamError) as ex:
+        except (BuildError, APIError, LogStreamError, ContainerArchiveImageLoadFailedException) as ex:
             raise DockerPushFailedError(msg=str(ex)) from ex
 
         return f"{repository}:{_tag}"
