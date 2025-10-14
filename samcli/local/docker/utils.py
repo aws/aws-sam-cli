@@ -3,12 +3,8 @@ Helper methods that aid interactions within docker containers.
 """
 
 import logging
-import os
-import pathlib
 import platform
-import posixpath
 import random
-import re
 import socket
 
 import docker
@@ -18,37 +14,6 @@ from samcli.lib.utils.architecture import ARM64, validate_architecture
 from samcli.local.docker.exceptions import NoFreePortsError
 
 LOG = logging.getLogger(__name__)
-
-
-def to_posix_path(code_path):
-    """
-    Change the code_path to be of unix-style if running on windows when supplied with an absolute windows path.
-
-    Parameters
-    ----------
-    code_path : str
-        Directory in the host operating system that should be mounted within the container.
-    Returns
-    -------
-    str
-        Posix equivalent of absolute windows style path.
-    Examples
-    --------
-    >>> to_posix_path('/Users/UserName/sam-app')
-    /Users/UserName/sam-app
-    >>> to_posix_path('C:\\\\Users\\\\UserName\\\\AppData\\\\Local\\\\Temp\\\\mydir')
-    /c/Users/UserName/AppData/Local/Temp/mydir
-    """
-
-    return (
-        re.sub(
-            "^([A-Za-z])+:",
-            lambda match: posixpath.sep + match.group().replace(":", "").lower(),
-            pathlib.PureWindowsPath(code_path).as_posix(),
-        )
-        if os.name == "nt"
-        else code_path
-    )
 
 
 def find_free_port(network_interface: str, start: int = 5000, end: int = 9000) -> int:

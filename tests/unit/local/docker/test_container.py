@@ -181,67 +181,6 @@ class TestContainer_create(TestCase):
         self.mock_docker_client.networks.get.assert_not_called()
         mock_resolve_symlinks.assert_not_called()  # When context is BUILD
 
-    @patch("samcli.local.docker.utils.os")
-    @patch("samcli.local.docker.container.Container._create_mapped_symlink_files")
-    def test_must_create_container_translate_volume_path(self, mock_resolve_symlinks, os_mock):
-        """
-        Create a container with required and optional values, with windows style volume mount.
-        :return:
-        """
-
-        os_mock.name = "nt"
-        host_dir = "C:\\Users\\Username\\AppData\\Local\\Temp\\tmp1337"
-        additional_volumes = {"C:\\Users\\Username\\AppData\\Local\\Temp\\tmp1338": {"blah": "blah value"}}
-
-        translated_volumes = {
-            "/c/Users/Username/AppData/Local/Temp/tmp1337": {"bind": self.working_dir, "mode": "ro,delegated"}
-        }
-
-        translated_additional_volumes = {"/c/Users/Username/AppData/Local/Temp/tmp1338": {"blah": "blah value"}}
-
-        translated_volumes.update(translated_additional_volumes)
-        expected_memory = "{}m".format(self.memory_mb)
-
-        generated_id = "fooobar"
-        self.mock_docker_client.containers.create.return_value = Mock()
-        self.mock_docker_client.containers.create.return_value.id = generated_id
-
-        container = Container(
-            self.image,
-            self.cmd,
-            self.working_dir,
-            host_dir,
-            memory_limit_mb=self.memory_mb,
-            exposed_ports=self.exposed_ports,
-            entrypoint=self.entrypoint,
-            env_vars=self.env_vars,
-            docker_client=self.mock_docker_client,
-            container_opts=self.container_opts,
-            additional_volumes=additional_volumes,
-        )
-
-        container_id = container.create(self.container_context)
-        self.assertEqual(container_id, generated_id)
-        self.assertEqual(container.id, generated_id)
-
-        self.mock_docker_client.containers.create.assert_called_with(
-            self.image,
-            command=self.cmd,
-            working_dir=self.working_dir,
-            volumes=translated_volumes,
-            tty=False,
-            use_config_proxy=True,
-            environment=self.env_vars,
-            ports={
-                container_port: ("127.0.0.1", host_port)
-                for container_port, host_port in {**self.exposed_ports, **self.always_exposed_ports}.items()
-            },
-            entrypoint=self.entrypoint,
-            mem_limit=expected_memory,
-            container="opts",
-        )
-        self.mock_docker_client.networks.get.assert_not_called()
-
     @patch("samcli.local.docker.container.Container._create_mapped_symlink_files")
     def test_must_connect_to_network_on_create(self, mock_resolve_symlinks):
         """
