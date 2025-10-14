@@ -3,7 +3,7 @@ Utils for gathering system related info, mainly for use in `sam --info`
 """
 
 import json
-from typing import Dict, cast
+from typing import Dict
 
 
 def gather_system_info() -> Dict[str, str]:
@@ -34,27 +34,37 @@ def gather_additional_dependencies_info() -> Dict[str, str]:
         and value being the version number
     """
     info = {
-        "docker_engine": _gather_docker_info(),
+        "container_engine": _gather_container_engine_info(),
         "aws_cdk": _gather_cdk_info(),
         "terraform": _gather_terraform_info(),
     }
     return info
 
 
-def _gather_docker_info() -> str:
+def _gather_container_engine_info() -> str:
     """
-    Get Docker Engine version
+    Get container engine version and type (Docker or Finch)
 
     Returns
     -------
     str
-        Version number of Docker Engine if available. Otherwise "Not available"
+        Container engine type and version if available. Otherwise "Not available"
     """
     try:
         from samcli.local.docker.container_client_factory import ContainerClientFactory
 
         client = ContainerClientFactory.create_client()
-        return cast(str, client.version().get("Version", "Not available"))
+        version = client.version().get("Version", "Not available")
+
+        # If version is not available, return early
+        if version == "Not available":
+            return "Not available"
+
+        # Check if we're using Finch by looking at the runtime type
+        if hasattr(client, "get_runtime_type") and client.get_runtime_type() == "finch":
+            return f"Finch(v{version})"
+        else:
+            return f"Docker({version})"
     except Exception:
         return "Not available"
 
