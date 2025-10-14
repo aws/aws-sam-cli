@@ -5,17 +5,16 @@ Helper methods that aid interactions within docker containers.
 import logging
 import os
 import pathlib
-import platform
 import posixpath
 import random
 import re
 import socket
 
-import docker
-import requests
-
 from samcli.lib.utils.architecture import ARM64, validate_architecture
-from samcli.local.docker.exceptions import NoFreePortsError
+from samcli.local.docker.container_client_factory import ContainerClientFactory
+from samcli.local.docker.exceptions import (
+    NoFreePortsError,
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -69,30 +68,6 @@ def find_free_port(network_interface: str, start: int = 5000, end: int = 9000) -
         except OSError:
             continue
     raise NoFreePortsError(f"No free ports on the host machine from {start} to {end}")
-
-
-def is_docker_reachable(docker_client):
-    """
-    Checks if Docker daemon is running.
-
-    :param docker_client : docker.from_env() - docker client object
-    :returns True, if Docker is available, False otherwise.
-    """
-    errors = (docker.errors.APIError, requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout)
-    if platform.system() == "Windows":
-        import pywintypes  # pylint: disable=import-error
-
-        errors += (pywintypes.error,)
-
-    try:
-        docker_client.ping()
-        return True
-
-    # When Docker is not installed, a request.exceptions.ConnectionError is thrown.
-    # and also windows-specific errors
-    except errors:
-        LOG.debug("Docker is not reachable", exc_info=True)
-        return False
 
 
 def get_rapid_name(architecture: str) -> str:
@@ -151,3 +126,10 @@ def get_docker_platform(architecture: str) -> str:
     validate_architecture(architecture)
 
     return f"linux/{get_image_arch(architecture)}"
+
+
+def get_validated_container_client():
+    """
+    Get validated container client using strategy pattern.
+    """
+    return ContainerClientFactory.create_client()

@@ -32,19 +32,29 @@ class TestPackageCommand(TestCase):
             profile=None,
         )
 
+    @patch("samcli.commands.package.package_context.get_validated_container_client")
     @patch.object(SamLocalStackProvider, "get_stacks")
     @patch.object(Template, "export", MagicMock(sideeffect=OSError))
     @patch("boto3.client")
-    def test_template_permissions_error(self, patched_boto, patched_get_stacks):
+    def test_template_permissions_error(self, patched_boto, patched_get_stacks, mock_get_validated_client):
+        # Mock the docker client
+        docker_client_mock = Mock()
+        mock_get_validated_client.return_value = docker_client_mock
+
         patched_get_stacks.return_value = Mock(), Mock()
         with self.assertRaises(PackageFailedError):
             with patch.object(self.package_command_context, "_warn_preview_runtime") as patched_warn_preview_runtime:
                 self.package_command_context.run()
 
+    @patch("samcli.commands.package.package_context.get_validated_container_client")
     @patch.object(ResourceMetadataNormalizer, "normalize", MagicMock())
     @patch.object(Template, "export", MagicMock(return_value={}))
     @patch("boto3.client")
-    def test_template_path_valid_with_output_template(self, patched_boto):
+    def test_template_path_valid_with_output_template(self, patched_boto, mock_get_validated_client):
+        # Mock the docker client
+        docker_client_mock = Mock()
+        mock_get_validated_client.return_value = docker_client_mock
+
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as temp_template_file:
             with tempfile.NamedTemporaryFile(mode="w", delete=False) as temp_output_template_file:
                 package_command_context = PackageContext(
@@ -64,10 +74,15 @@ class TestPackageCommand(TestCase):
                 )
                 package_command_context.run()
 
+    @patch("samcli.commands.package.package_context.get_validated_container_client")
     @patch.object(ResourceMetadataNormalizer, "normalize", MagicMock())
     @patch.object(Template, "export", MagicMock(return_value={}))
     @patch("boto3.client")
-    def test_template_path_valid(self, patched_boto):
+    def test_template_path_valid(self, patched_boto, mock_get_validated_client):
+        # Mock the docker client
+        docker_client_mock = Mock()
+        mock_get_validated_client.return_value = docker_client_mock
+
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as temp_template_file:
             package_command_context = PackageContext(
                 template_file=temp_template_file.name,
@@ -86,10 +101,15 @@ class TestPackageCommand(TestCase):
             )
             package_command_context.run()
 
+    @patch("samcli.commands.package.package_context.get_validated_container_client")
     @patch.object(ResourceMetadataNormalizer, "normalize", MagicMock())
     @patch.object(Template, "export", MagicMock(return_value={}))
     @patch("boto3.client")
-    def test_template_path_valid_no_json(self, patched_boto):
+    def test_template_path_valid_no_json(self, patched_boto, mock_get_validated_client):
+        # Mock the docker client
+        docker_client_mock = Mock()
+        mock_get_validated_client.return_value = docker_client_mock
+
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as temp_template_file:
             package_command_context = PackageContext(
                 template_file=temp_template_file.name,
@@ -108,6 +128,7 @@ class TestPackageCommand(TestCase):
             )
             package_command_context.run()
 
+    @patch("samcli.commands.package.package_context.get_validated_container_client")
     @patch("samcli.commands.package.package_context.PackageContext._warn_preview_runtime")
     @patch("samcli.commands.package.package_context.get_resource_full_path_by_id")
     @patch.object(SamLocalStackProvider, "get_stacks")
@@ -123,7 +144,12 @@ class TestPackageCommand(TestCase):
         patched_get_stacks,
         patched_get_resource_full_path_by_id,
         patched_warn_preview_runtime,
+        mock_get_validated_client,
     ):
+        # Mock the docker client
+        docker_client_mock = Mock()
+        mock_get_validated_client.return_value = docker_client_mock
+
         patched_get_stacks.return_value = Mock(), Mock()
         patched_get_resource_full_path_by_id.return_value = None
         with self.assertRaises(PackageFailedError):
