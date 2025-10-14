@@ -26,7 +26,7 @@ class TestNestedStackChangesetDisplay(DeployIntegBase):
     def test_deploy_with_nested_stack_shows_nested_changes(self):
         """
         Test that deploying a stack with nested stacks displays nested stack changes in changeset
-        
+
         This test verifies:
         1. Parent stack changes are displayed
         2. Nested stack header is shown
@@ -51,13 +51,13 @@ class TestNestedStackChangesetDisplay(DeployIntegBase):
 
         # Verify deployment was successful (changeset created)
         self.assertEqual(deploy_result.process.returncode, 0)
-        
+
         # Verify output contains key indicators of nested stack support
         stdout = deploy_result.stdout.decode("utf-8")
-        
+
         # Should contain parent stack changes
         self.assertIn("CloudFormation stack changeset", stdout)
-        
+
         # For a stack with nested resources, verify the changes are shown
         # The actual nested stack display depends on the template structure
         # At minimum, verify no errors occurred and changeset was created
@@ -87,12 +87,12 @@ class TestNestedStackChangesetDisplay(DeployIntegBase):
 
         # Verify successful changeset creation
         self.assertEqual(deploy_result.process.returncode, 0)
-        
+
         stdout = deploy_result.stdout.decode("utf-8")
-        
+
         # Verify changeset was created
         self.assertIn("CloudFormation stack changeset", stdout)
-        
+
         # Verify no errors
         self.assertNotIn("Error", stdout)
         self.assertNotIn("Failed", stdout)
