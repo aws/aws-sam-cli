@@ -43,3 +43,22 @@ class DockerContainerCreationFailedException(UserException):
     """
     Docker Container Creation failed. It could be due to invalid template
     """
+
+
+class ContainerNotReachableException(UserException):
+    """
+    Container engine (Docker or Finch) is not installed or not running at the moment
+    """
+
+
+class ContainerEnforcementException(UserException):
+    """
+    Administrator container preference detected yet the preferred container engine is not running or
+    available
+    """
+
+
+class ContainerArchiveImageLoadFailedException(UserException):
+    """
+    Failed to load Docker/Finch container image from archive file
+    """

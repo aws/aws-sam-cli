@@ -3,11 +3,12 @@ import time
 from unittest import skipIf
 
 import boto3
-import docker
+
 from botocore.exceptions import ClientError
 from parameterized import parameterized
 from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME
 
+from samcli.local.docker.utils import get_validated_container_client
 from tests.integration.delete.delete_integ_base import DeleteIntegBase
 from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY, CommandResult
 from tests.testing_utils import (
@@ -29,7 +30,7 @@ CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".
 class TestDelete(DeleteIntegBase):
     @classmethod
     def setUpClass(cls):
-        cls.docker_client = docker.from_env()
+        cls.docker_client = get_validated_container_client()
         cls.local_images = [
             ("alpine", "latest"),
         ]

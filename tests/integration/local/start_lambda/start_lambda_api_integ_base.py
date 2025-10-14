@@ -8,11 +8,12 @@ import os
 import logging
 from pathlib import Path
 
-import docker
 from docker.errors import APIError
 from psutil import NoSuchProcess
 
+from samcli.local.docker.utils import get_validated_container_client
 from tests.integration.local.common_utils import random_port, InvalidAddressException, wait_for_local_process
+
 from tests.testing_utils import (
     SKIP_DOCKER_TESTS,
     SKIP_DOCKER_MESSAGE,
@@ -53,13 +54,22 @@ class StartLambdaIntegBaseClass(TestCase):
         if cls.build_before_invoke:
             cls.build()
 
-        # remove all containers if there
-        cls.docker_client = docker.from_env()
-        for container in cls.docker_client.api.containers():
-            try:
-                cls.docker_client.api.remove_container(container, force=True)
-            except APIError as ex:
-                LOG.error("Failed to remove container %s", container, exc_info=ex)
+        # Create the Docker client with automatic container selection
+        cls.docker_client = get_validated_container_client()
+
+        # Only remove containers with SAM CLI labels to avoid interfering with other processes
+        try:
+            sam_containers = cls.docker_client.containers.list(
+                all=True, filters={"label": "sam.cli.container.type=lambda"}
+            )
+            for container in sam_containers:
+                try:
+                    container.remove(force=True)
+                    LOG.info("Removed existing SAM CLI container %s", container.short_id)
+                except APIError as ex:
+                    LOG.error("Failed to remove existing SAM CLI container %s", container.short_id, exc_info=ex)
+        except Exception as ex:
+            LOG.error("Failed to clean up existing SAM CLI containers", exc_info=ex)
 
         cls.start_lambda_with_retry()
 
@@ -151,6 +161,8 @@ class StartLambdaIntegBaseClass(TestCase):
             terraform_plan_file=cls.terraform_plan_file,
         )
 
+        # Container labels are no longer needed - container IDs are parsed from output
+
         cls.start_lambda_process = Popen(command_list, stderr=PIPE, stdin=PIPE, env=env, cwd=cls.working_dir)
         cls.start_lambda_process_output = ""
 
@@ -166,7 +178,10 @@ class StartLambdaIntegBaseClass(TestCase):
 
         def read_sub_process_stderr():
             while not cls.stop_reading_thread:
-                cls.start_lambda_process.stderr.readline()
+                line = cls.start_lambda_process.stderr.readline()
+                if line:
+                    line_str = line.decode("utf-8").strip()
+                    cls.start_lambda_process_output += line_str + "\n"
 
         cls.read_threading = threading.Thread(target=read_sub_process_stderr, daemon=True)
         cls.read_threading.start()
@@ -183,6 +198,20 @@ class StartLambdaIntegBaseClass(TestCase):
             kill_process(cls.start_lambda_process)
         except NoSuchProcess:
             LOG.info("Process has already been terminated")
+
+        # Clean up any remaining SAM CLI containers
+        try:
+            docker_client = get_validated_container_client()
+            # Only remove containers with SAM CLI labels to avoid interfering with other processes
+            sam_containers = docker_client.containers.list(all=True, filters={"label": "sam.cli.container.type=lambda"})
+            for container in sam_containers:
+                try:
+                    container.remove(force=True)
+                    LOG.info("Removed SAM CLI container %s", container.short_id)
+                except APIError as ex:
+                    LOG.error("Failed to remove SAM CLI container %s", container.short_id, exc_info=ex)
+        except Exception as ex:
+            LOG.error("Failed to clean up SAM CLI containers", exc_info=ex)
 
 
 class WatchWarmContainersIntegBaseClass(StartLambdaIntegBaseClass):

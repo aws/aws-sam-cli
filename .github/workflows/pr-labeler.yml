@@ -27,7 +27,8 @@ jobs:
               'aws-sam-cli-bot',
               'seshubaws', 'valerena',
               'Vandita2020', 'roger-zhangg',
-              'mbfreder', 'vicheey', 'rachdry', 'dependabot[bot]'
+              'vicheey', 'bnusunny', 'tobixlea', 
+              'reedham-aws', 'licjun', 'dependabot[bot]'
             ]
             if (maintainers.includes(context.payload.sender.login)) {
               github.rest.issues.addLabels({

@@ -58,12 +58,17 @@ jobs:
           - "3.9"
           - "3.11"
     steps:
+    # This allows temp file creation on drive D, which won't trigger windows defender scan and leads to faster IO
+    - name: Set TEMP to D:/Temp
+      run: |
+        mkdir "D:\\Temp"
+        echo "TEMP=D:\\Temp" >> $env:GITHUB_ENV  
+      if: ${{ matrix.os == 'windows-latest' }}
     - uses: actions/checkout@v5
     - uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python }}
     - run: test -f "./.github/ISSUE_TEMPLATE/Bug_report.md"  # prevent Bug_report.md from being renamed or deleted
-    - run: make init
     - run: make pr
 
   validate-schema:
@@ -90,7 +95,7 @@ jobs:
         shell: bash
 
   integration-tests:
-    name: Integ / ${{ matrix.os }} / ${{ matrix.python }} / ${{ matrix.tests_config }}
+    name: Integ / ${{ matrix.os }} / ${{ matrix.python }} / ${{ matrix.tests_config.name }}
     if: github.repository_owner == 'aws'
     runs-on: ${{ matrix.os }}
     env:
@@ -114,25 +119,32 @@ jobs:
           - "3.11"
         # folders that is commented below requires credentials, no need to spare time to run them
         tests_config:
-          - "-n 2 --reruns 3 tests/integration/buildcmd"
+          - name: "integ-buildcmd-arm64"
+            params: "-n 2 --reruns 3  tests/integration/buildcmd/test_build_cmd_arm64.py"
+          - name: "integ-buildcmd-main"
+            params: "-n 2 --reruns 3 tests/integration/buildcmd/test_build_cmd_dotnet.py tests/integration/buildcmd/test_build_cmd_provided.py tests/integration/buildcmd/test_build_cmd_rust.py tests/integration/buildcmd/test_build_cmd_python.py tests/integration/buildcmd/test_build_cmd_node.py"
+          - name: "integ-buildcmd-java"
+            params: "-n 2 --reruns 5 tests/integration/buildcmd/test_build_cmd_java.py"
+          - name: "integ-buildcmd-other"
+            params: "-n 2 --reruns 3 tests/integration/buildcmd --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_cmd_dotnet.py --ignore=tests/integration/buildcmd/test_build_cmd_provided.py --ignore=tests/integration/buildcmd/test_build_cmd_rust.py --ignore=tests/integration/buildcmd/test_build_cmd_python.py --ignore=tests/integration/buildcmd/test_build_cmd_node.py --ignore=tests/integration/buildcmd/test_build_cmd_java.py"
           #- "delete"
           #- "deploy"
-          - "tests/integration/init"
+          - name: "integ-all-other"
+            params: "-n 2 --reruns 3 tests/integration/init tests/integration/local tests/integration/pipeline tests/integration/root tests/integration/scripts tests/integration/telemetry tests/integration/docs"
           #- "list"
-          - "tests/integration/local"
           #- "logs"
           #- "package"
-          - "tests/integration/pipeline"
           #- "publish"
-          - "tests/integration/root"
-          - "tests/integration/scripts"
           #- "sync"
-          - "tests/integration/telemetry"
           #- "traces"
           #- "validate"
-          - "tests/integration/docs"
     steps:
       - uses: actions/checkout@v5
+      - name: Set TEMP to D:/Temp
+        run: |
+          mkdir "D:\\Temp"
+          echo "TEMP=D:\\Temp" >> $env:GITHUB_ENV  
+        if: ${{ matrix.os == 'windows-latest' }}
       - uses: actions/setup-python@v6
         with:
           # set last version as the one in matrix to make it default
@@ -143,6 +155,7 @@ jobs:
             3.12
             3.13
             ${{ matrix.python }}
+          cache: 'pip'
       - uses: actions/setup-go@v6
         with:
           go-version: '1.19'
@@ -173,29 +186,17 @@ jobs:
           rustup default stable
           pip install cargo-lambda==$CARGO_LAMBDA_VERSION
           echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-      - name: Upgrade pip in Python3.12 (Linux)
-        run: |
-          python3.12 -m pip install pip --upgrade 
-          python3.12 -m pip install setuptools --upgrade
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-
-      - name: Upgrade pip in Python3.12 (Windows)
-        run: |
-          py -3.12 -m pip install pip --upgrade 
-          py -3.12 -m pip install setuptools --upgrade
-        if: ${{ matrix.os == 'windows-latest' }}
-
-
       - name: Init samdev
         run: make init
-      - name: Run integration tests for ${{ matrix.tests_config }}
-        run: pytest -vv ${{ matrix.tests_config }}
+      - name: uv install setuptools in Python3.12
+        run: uv pip install --system --python python3.12 --upgrade pip setuptools
+      - name: Run integration tests for ${{ matrix.tests_config.name }}
+        run: pytest -vv ${{ matrix.tests_config.params }}
 
   smoke-and-functional-tests:
-    name: Functional & Smoke Tests / ${{ matrix.os }} / ${{ matrix.python }}
+    name: ${{ matrix.tests_config.name }} / ${{ matrix.tests_config.os }} / ${{ matrix.python }}
     if: github.repository_owner == 'aws'
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.tests_config.os }}
     env:
       AWS_DEFAULT_REGION: us-east-1
       SAM_CLI_DEV: "1"
@@ -206,21 +207,43 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os:
-          - ubuntu-latest
-          - windows-latest
         python:
           - "3.9"
           - "3.11"
+        tests_config:
+          - name: "Smoke & Functional Tests - All"
+            os: ubuntu-latest
+            params: "-n 4 tests/smoke tests/functional"
+            env_vars: "all"
+          - name: "Smoke Tests - First Third"
+            os: windows-latest
+            params: "-n 4 tests/smoke"
+            env_vars: "first-third"
+          - name: "Smoke Tests - Second Third"
+            os: windows-latest
+            params: "-n 4 tests/smoke"
+            env_vars: "second-third"
+          - name: "Smoke Tests - Third Third & Functional Tests"
+            os: windows-latest
+            params: "-n 4 tests/smoke tests/functional"
+            env_vars: "third-third"
     steps:
       - uses: actions/checkout@v5
+      - name: Set TEMP to D:/Temp
+        run: |
+          mkdir "D:\\Temp"
+          echo "TEMP=D:\\Temp" >> $env:GITHUB_ENV  
+        if: ${{ matrix.os == 'windows-latest' }}
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
+          cache: 'pip'
       - name: Init samdev
         run: make init
-      - name: Run functional & smoke tests
-        run: pytest -vv -n 4 tests/functional tests/smoke
+      - name: Run ${{ matrix.tests_config.name }}
+        run: pytest -vv ${{ matrix.tests_config.params }}
+        env:
+          SMOKE_TEST_SUBSET: ${{ matrix.tests_config.env_vars }}
 
   docker-disabled:
     name: Docker-disabled Tests / ${{ matrix.os }}
@@ -236,6 +259,11 @@ jobs:
           - windows-latest
     steps:
       - uses: actions/checkout@v5
+      - name: Set TEMP to D:/Temp
+        run: |
+          mkdir "D:\\Temp"
+          echo "TEMP=D:\\Temp" >> $env:GITHUB_ENV  
+        if: ${{ matrix.os == 'windows-latest' }}
       - uses: actions/setup-python@v6
         with:
           # These are the versions of Python that correspond to the supported Lambda runtimes
@@ -255,16 +283,10 @@ jobs:
         if: ${{ matrix.os == 'windows-latest' }}
         shell: pwsh
         run: stop-service docker
-      - name: Upgrade pip in Python3.12 (Linux)
-        run: |
-          python3.12 -m pip install pip --upgrade 
-          python3.12 -m pip install setuptools --upgrade
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-      - name: Upgrade pip in Python3.12 (Windows)
-        run: |
-          py -3.12 -m pip install pip --upgrade 
-          py -3.12 -m pip install setuptools --upgrade
-        if: ${{ matrix.os == 'windows-latest' }}
+      - name: Init samdev
+        run: make init
+      - name: uv install setuptools in Python3.12
+        run: uv pip install --system --python python3.12 --upgrade pip setuptools
       - name: Check Docker not Running
         run: docker info
         id: run-docker-info
@@ -272,7 +294,5 @@ jobs:
       - name: Report failure
         if: steps.run-docker-info.outcome == 'success'
         run: exit 1
-      - name: Init samdev
-        run: make init
       - name: Run tests without Docker
         run: pytest -vv tests/integration/buildcmd/test_build_cmd_python.py -k TestBuildCommand_PythonFunctions_WithoutDocker

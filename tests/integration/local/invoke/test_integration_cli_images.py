@@ -8,8 +8,8 @@ from parameterized import parameterized
 from subprocess import Popen, PIPE, TimeoutExpired
 from timeit import default_timer as timer
 import pytest
-import docker
 
+from samcli.local.docker.utils import get_validated_container_client
 from tests.integration.local.invoke.invoke_integ_base import IntegrationCliIntegBase, InvokeIntegBase
 from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, CI_OVERRIDE
 
@@ -32,7 +32,7 @@ class TestSamPython36HelloWorldIntegrationImages(IntegrationCliIntegBase):
     @classmethod
     def setUpClass(cls):
         super(TestSamPython36HelloWorldIntegrationImages, cls).setUpClass()
-        cls.client = docker.from_env()
+        cls.client = get_validated_container_client()
         cls.image_name = "sam-test-lambdaimage"
         cls.docker_tag = f"{cls.image_name}:v1"
         cls.test_data_invoke_path = str(Path(__file__).resolve().parents[2].joinpath("testdata", "invoke"))
@@ -45,9 +45,12 @@ class TestSamPython36HelloWorldIntegrationImages(IntegrationCliIntegBase):
     @classmethod
     def tearDownClass(cls):
         try:
-            cls.client.api.remove_image(cls.docker_tag)
-            cls.client.api.remove_image(f"{cls.image_name}:{RAPID_IMAGE_TAG_PREFIX}-{X86_64}")
-        except APIError:
+            cls.client.api.remove_image(cls.docker_tag, force=True)
+        except (APIError, ImageNotFound):
+            pass
+        try:
+            cls.client.api.remove_image(f"{cls.image_name}:{RAPID_IMAGE_TAG_PREFIX}-{X86_64}", force=True)
+        except (APIError, ImageNotFound):
             pass
 
     @pytest.mark.flaky(reruns=3)
@@ -401,6 +404,7 @@ class TestSamPython36HelloWorldIntegrationImages(IntegrationCliIntegBase):
 
         self.assertEqual(process_stdout.decode("utf-8"), '"Hello world"')
 
+    @pytest.mark.flaky(reruns=3)
     def test_invoke_with_error_during_image_build(self):
         command_list = InvokeIntegBase.get_command_list(
             "ImageDoesntExistFunction", template_path=self.template_path, event_path=self.event_path
@@ -414,9 +418,14 @@ class TestSamPython36HelloWorldIntegrationImages(IntegrationCliIntegBase):
             raise
 
         process_stderr = stderr.strip()
-        self.assertRegex(
-            process_stderr.decode("utf-8"),
-            "Error: Error building docker image: pull access denied for non-existing-image",
+        stderr_text = process_stderr.decode("utf-8")
+
+        # Check for either Docker or Finch error message
+        self.assertTrue(
+            "Error: Error building docker image: pull access denied for non-existing-image" in stderr_text
+            or "Error: Error building docker image: no image was built" in stderr_text
+            or "Error: Error building docker image: exit status 1" in stderr_text,
+            f"Expected error message not found in: {stderr_text}",
         )
         self.assertEqual(process.returncode, 1)
 
@@ -427,7 +436,7 @@ class TestDeleteOldRapidImages(InvokeIntegBase):
     @classmethod
     def setUpClass(cls):
         super(TestDeleteOldRapidImages, cls).setUpClass()
-        cls.client = docker.from_env()
+        cls.client = get_validated_container_client()
         cls.repo = "sam-test-lambdaimage"
         cls.tag = f"{cls.repo}:v1"
         cls.test_data_invoke_path = str(Path(__file__).resolve().parents[2].joinpath("testdata", "invoke"))
@@ -442,8 +451,8 @@ class TestDeleteOldRapidImages(InvokeIntegBase):
     @classmethod
     def tearDownClass(cls):
         try:
-            cls.client.api.remove_image(cls.tag)
-        except APIError:
+            cls.client.api.remove_image(cls.tag, force=True)
+        except (APIError, ImageNotFound):
             pass
 
     def setUp(self):
@@ -461,7 +470,7 @@ class TestDeleteOldRapidImages(InvokeIntegBase):
     def tearDown(self):
         for tag in self.old_rapid_image_tags + [self.new_rapid_image_tag] + self.other_repo_tags:
             try:
-                self.client.api.remove_image(tag)
+                self.client.api.remove_image(tag, force=True)
             except APIError:
                 pass
 

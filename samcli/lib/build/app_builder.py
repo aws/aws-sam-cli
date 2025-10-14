@@ -31,11 +31,10 @@ from samcli.lib.build.exceptions import (
     BuildError,
     BuildInsideContainerError,
     DockerBuildFailed,
-    DockerConnectionError,
     DockerfileOutSideOfContext,
     UnsupportedBuilderLibraryVersionError,
 )
-from samcli.lib.build.utils import _make_env_vars
+from samcli.lib.build.utils import _make_env_vars, warn_cross_architecture_build
 from samcli.lib.build.workflow_config import (
     CONFIG,
     UnsupportedRuntimeException,
@@ -43,7 +42,6 @@ from samcli.lib.build.workflow_config import (
     get_workflow_config,
     supports_specified_workflow,
 )
-from samcli.lib.constants import DOCKER_MIN_API_VERSION
 from samcli.lib.docker.log_streamer import LogStreamer, LogStreamError
 from samcli.lib.providers.provider import ResourcesToBuildCollector, Stack, get_full_path
 from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
@@ -62,9 +60,13 @@ from samcli.lib.utils.resources import (
 )
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker.container import ContainerContext
+from samcli.local.docker.exceptions import ContainerArchiveImageLoadFailedException
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from samcli.local.docker.manager import ContainerManager, DockerImagePullFailedException
-from samcli.local.docker.utils import get_docker_platform, is_docker_reachable
+from samcli.local.docker.utils import (
+    get_docker_platform,
+    get_validated_container_client,
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -172,7 +174,12 @@ class ApplicationBuilder:
         self._parallel = parallel
         self._mode = mode
         self._stream_writer = stream_writer if stream_writer else StreamWriter(stream=osutils.stderr(), auto_flush=True)
-        self._docker_client = docker_client if docker_client else docker.from_env(version=DOCKER_MIN_API_VERSION)
+
+        # Store docker_client parameter for lazy initialization
+        # Only validate container runtime when Docker client is actually accessed
+        # This prevents unnecessary validation for builds that don't require containers
+        self._docker_client_param = docker_client
+        self._validated_docker_client: Optional[docker.DockerClient] = None
 
         self._deprecated_runtimes = DEPRECATED_RUNTIMES
         self._colored = Colored()
@@ -183,6 +190,16 @@ class ApplicationBuilder:
         self._build_in_source = build_in_source
         self._mount_with_write = mount_with_write
         self._mount_symlinks = mount_symlinks
+
+    @property
+    def _docker_client(self) -> docker.DockerClient:
+        """
+        Lazy initialization of Docker client. Only validates container runtime when actually accessed.
+        This prevents unnecessary container runtime validation for builds that don't require containers.
+        """
+        if self._validated_docker_client is None:
+            self._validated_docker_client = self._docker_client_param or get_validated_container_client()
+        return self._validated_docker_client
 
     def build(self) -> ApplicationBuildResult:
         """
@@ -195,6 +212,13 @@ class ApplicationBuilder:
             to the path string
         """
         build_graph = self._get_build_graph(self._container_env_var, self._container_env_var_file)
+
+        # Add cross-architecture warning when using containers
+        if self._container_manager:
+            functions = self._resources_to_build.functions
+            container_runtime = self._container_manager.container_client.get_runtime_type()
+            warn_cross_architecture_build(functions, container_runtime)
+
         build_strategy: BuildStrategy = DefaultBuildStrategy(
             build_graph, self._build_dir, self._build_function, self._build_layer, self._cached
         )
@@ -409,8 +433,6 @@ class ApplicationBuilder:
             raise DockerBuildFailed("DockerBuildArgs needs to be a dictionary!")
 
         docker_context_dir = pathlib.Path(self._base_dir, docker_context).resolve()
-        if not is_docker_reachable(self._docker_client):
-            raise DockerConnectionError(msg=f"Building image for {function_name} requires Docker. is Docker running?")
 
         if os.environ.get("SAM_BUILD_MODE") and isinstance(docker_build_args, dict):
             docker_build_args["SAM_BUILD_MODE"] = os.environ.get("SAM_BUILD_MODE")
@@ -437,13 +459,19 @@ class ApplicationBuilder:
             LOG.error("Failed building function %s", function_name)
             self._stream_lambda_image_build_logs(ex.build_log, function_name, False)
             raise DockerBuildFailed(str(ex)) from ex
+        except docker.errors.APIError as e:
+            if self._docker_client.is_dockerfile_error(e):
+                raise DockerfileOutSideOfContext(e.explanation) from e
+
+            # Re-raise other API errors
+            raise
 
         # The Docker-py low level api will stream logs back but if an exception is raised by the api
         # this is raised when accessing the generator. So we need to wrap accessing build_logs in a try: except.
         try:
             self._stream_lambda_image_build_logs(build_logs, function_name)
         except docker.errors.APIError as e:
-            if e.is_server_error and "Cannot locate specified Dockerfile" in e.explanation:
+            if self._docker_client.is_dockerfile_error(e):
                 raise DockerfileOutSideOfContext(e.explanation) from e
 
             # Not sure what else can be raise that we should be catching but re-raising for now
@@ -473,11 +501,9 @@ class ApplicationBuilder:
     def _load_lambda_image(self, image_archive_path: str) -> str:
         try:
             with open(image_archive_path, mode="rb") as image_archive:
-                [image, *rest] = self._docker_client.images.load(image_archive)
-                if len(rest) != 0:
-                    raise DockerBuildFailed("Archive must represent a single image")
+                image = self._docker_client.load_image_from_archive(image_archive)
                 return f"{image.id}"
-        except (docker.errors.APIError, OSError) as ex:
+        except (docker.errors.APIError, OSError, ContainerArchiveImageLoadFailedException) as ex:
             raise DockerBuildFailed(msg=str(ex)) from ex
 
     def _build_layer(
@@ -829,6 +855,17 @@ class ApplicationBuilder:
         if language == "rust" and "Binary" in build_props:
             options = options if options else {}
             options["artifact_executable_name"] = build_props["Binary"]
+
+        if language == "python" and "ParentPackageMode" in build_props:
+            options = options if options else {}
+            package_root_mode = build_props["ParentPackageMode"]
+            if package_root_mode == "auto":
+                options["parent_python_packages"] = ApplicationBuilder._infer_parent_python_packages(
+                    handler, source_code_path
+                )
+            elif package_root_mode == "explicit":
+                options["parent_python_packages"] = build_props.get("ParentPackages", None)
+
         return options
 
     @staticmethod
@@ -938,11 +975,6 @@ class ApplicationBuilder:
         if not self._container_manager:
             raise RuntimeError("_build_function_on_container() is called when self._container_manager is None.")
 
-        if not self._container_manager.is_docker_reachable:
-            raise BuildInsideContainerError(
-                "Docker is unreachable. Docker needs to be running to build inside a container."
-            )
-
         # If we are printing debug logs in SAM CLI, the builder library should also print debug logs
         log_level = LOG.getEffectiveLevel()
 
@@ -1045,3 +1077,51 @@ class ApplicationBuilder:
             raise ValueError(msg)
 
         return cast(Dict, response)
+
+    @staticmethod
+    def _infer_parent_python_packages(handler: Optional[str], source_code_path: Optional[str]) -> Optional[str]:
+        """
+        Infers the parent python packages from the handler and source code path. The parent packages are the
+        packages are the union of the handler's parent packages and the source code path's parent packages.
+
+        Parameters
+        ----------
+        handler: str
+            The handler value of the function
+        source_code_path: str
+            The directory path to the source code of the function
+        Returns
+        -------
+        str
+
+        """
+        MODULE_PART_COUNT = 2  # file name and function name
+        if not handler or not source_code_path:
+            LOG.warning(
+                "Both function Handler and CodeUri must be provided when using PackageRootMode 'auto'."
+                + "Continuing without parent packages."
+            )
+            return None
+        if handler.count(".") < MODULE_PART_COUNT:
+            # Handler does not have any parent packages
+            LOG.warning("Handler '%s' does not have any parent python packages", handler)
+            return None
+
+        handler_parts = handler.split(".")[0:-MODULE_PART_COUNT]
+        code_path_parts = list(pathlib.Path(source_code_path).parts)
+
+        # Remove parts from the start of the path until we find the first part of the handler
+        while len(code_path_parts) > 0 and code_path_parts[0] != handler_parts[0]:
+            code_path_parts.pop(0)
+
+        if len(code_path_parts) > 0:
+            parent_packages = ".".join(code_path_parts[0 : len(handler_parts)])
+            LOG.debug("Inferred parent python packages '%s'", parent_packages)
+            return parent_packages
+        LOG.warning(
+            "Could not infer parent python packages from Handler '%s' and CodeUri '%s'."
+            + "Continuing without parent packages.",
+            handler,
+            source_code_path,
+        )
+        return None
