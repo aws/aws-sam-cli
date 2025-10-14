@@ -75,6 +75,7 @@ class TestContainerEngineMetrics(TestCase):
         metric_attrs = metric_data["metricSpecificAttributes"]
         self.assertEqual(metric_attrs["containerEngine"], "finch")
 
+    @patch("samcli.cli.context.Context.get_current_context")
     @patch("samcli.lib.telemetry.metric.Telemetry")
     @patch("samcli.lib.telemetry.event.EventTracker.send_events")
     @patch("samcli.lib.telemetry.metric.get_all_experimental_statues")
@@ -89,6 +90,7 @@ class TestContainerEngineMetrics(TestCase):
         mock_experimental,
         mock_send_events,
         mock_telemetry,
+        mock_get_context,
     ):
         """Test that container engine is retrieved from context when Docker is used"""
         # Setup mocks
@@ -98,8 +100,11 @@ class TestContainerEngineMetrics(TestCase):
         mock_initial_commit.return_value = "abc123"
 
         # Set actual container runtime in context
-        self.mock_ctx.actual_container_runtime = "docker"
+        self.mock_ctx.actual_container_runtime = "rancher-desktop"
         self.mock_ctx.template_dict = {}
+
+        # Mock the context access for the Metric instance
+        mock_get_context.return_value = self.mock_ctx
 
         # Call the function
         _send_command_run_metrics(self.mock_ctx, 1000, "success", 0)
@@ -117,7 +122,7 @@ class TestContainerEngineMetrics(TestCase):
         # Verify container engine is correctly reported as docker
         self.assertIn("metricSpecificAttributes", metric_data)
         metric_attrs = metric_data["metricSpecificAttributes"]
-        self.assertEqual(metric_attrs["containerEngine"], "docker")
+        self.assertEqual(metric_attrs["containerEngine"], "rancher-desktop")
 
     @patch("samcli.cli.context.Context.get_current_context")
     @patch("samcli.lib.telemetry.metric.Telemetry")
