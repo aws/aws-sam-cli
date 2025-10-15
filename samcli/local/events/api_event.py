@@ -1,7 +1,7 @@
 """Holds Classes for API Gateway to Lambda Events"""
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from time import time_ns
 from typing import Any, Dict
 
@@ -85,7 +85,7 @@ class RequestContext:
         protocol=None,
         domain_name=None,
         request_time_epoch=int(time_ns() // 1_000_000),
-        request_time=datetime.utcnow().strftime("%d/%b/%Y:%H:%M:%S +0000"),
+        request_time=datetime.now(timezone.utc).strftime("%d/%b/%Y:%H:%M:%S +0000"),
         operation_name=None,
     ):
         """

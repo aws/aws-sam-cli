@@ -3,7 +3,7 @@
 import base64
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from io import StringIO
 from time import time
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -541,7 +541,7 @@ class LocalApigwService(BaseLocalService):
         route_key = self._v2_route_key(method, apigw_endpoint, route.is_default_route)
 
         request_time_epoch = int(time())
-        request_time = datetime.utcnow().strftime("%d/%b/%Y:%H:%M:%S +0000")
+        request_time = datetime.now(timezone.utc).strftime("%d/%b/%Y:%H:%M:%S +0000")
 
         context_http = ContextHTTP(method=method, path=request.path, source_ip=request.remote_addr)
         context = RequestContextV2(
