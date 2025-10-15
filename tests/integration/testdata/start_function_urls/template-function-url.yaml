@@ -1,0 +1,62 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Sample SAM Template with Lambda Function URLs for testing
+
+Globals:
+  Function:
+    Timeout: 3
+    MemorySize: 128
+    Runtime: python3.9
+
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: hello_world/
+      Handler: app.lambda_handler
+      FunctionUrlConfig:
+        AuthType: NONE
+        Cors:
+          AllowOrigins:
+            - "*"
+          AllowMethods:
+            - GET
+            - POST
+          MaxAge: 86400
+
+  AuthenticatedFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: authenticated/
+      Handler: app.lambda_handler
+      FunctionUrlConfig:
+        AuthType: AWS_IAM
+
+  DataProcessorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: data_processor/
+      Handler: app.lambda_handler
+      FunctionUrlConfig:
+        AuthType: NONE
+        Cors:
+          AllowOrigins:
+            - "https://example.com"
+          AllowMethods:
+            - POST
+            - PUT
+            - DELETE
+
+Outputs:
+  HelloWorldFunctionUrl:
+    Description: "Function URL for HelloWorld function"
+    Value: !GetAtt HelloWorldFunctionUrl.FunctionUrl
+  
+  AuthenticatedFunctionUrl:
+    Description: "Function URL for Authenticated function"
+    Value: !GetAtt AuthenticatedFunctionUrl.FunctionUrl
+  
+  DataProcessorFunctionUrl:
+    Description: "Function URL for DataProcessor function"
+    Value: !GetAtt DataProcessorFunctionUrl.FunctionUrl
