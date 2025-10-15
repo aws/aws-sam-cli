@@ -23,7 +23,7 @@ from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.utils.architecture import validate_architecture_runtime
 from samcli.lib.utils.codeuri import resolve_code_path
 from samcli.lib.utils.colors import Colored
-from samcli.lib.utils.name_utils import normalize_lambda_function_name
+from samcli.lib.utils.name_utils import normalize_sam_function_identifier
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker.container import ContainerConnectionTimeoutException, ContainerResponseException
@@ -129,7 +129,7 @@ class LocalLambdaRunner:
         """
 
         # Normalize function identifier from ARN if provided
-        normalized_function_identifier = normalize_lambda_function_name(function_identifier)
+        normalized_function_identifier = normalize_sam_function_identifier(function_identifier)
 
         # Generate the correct configuration based on given inputs
         function = self.provider.get(normalized_function_identifier)

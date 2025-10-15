@@ -22,6 +22,25 @@ class InvalidFunctionNameException(Exception):
     pass
 
 
+def normalize_sam_function_identifier(function_identifier: str) -> str:
+    """
+    Normalize a SAM CLI function identifier, handling nested stack paths.
+
+    Examples:
+    - "MyFunction" -> normalize("MyFunction")
+    - "Stack/MyFunction" -> "Stack/" + normalize("MyFunction")
+    - "Stack1/Stack2/MyFunction" -> "Stack1/Stack2/" + normalize("MyFunction")
+    - "Stack/arn:aws:lambda:..." -> "Stack/" + normalize("arn:aws:lambda:...")
+    """
+    if "/" in function_identifier:
+        # Split on last / to separate stack path from function identifier
+        stack_path, func_identifier = function_identifier.rsplit("/", 1)
+        normalized_func = normalize_lambda_function_name(func_identifier)
+        return f"{stack_path}/{normalized_func}"
+
+    return normalize_lambda_function_name(function_identifier)
+
+
 def normalize_lambda_function_name(function_identifier: str) -> str:
     """
     Normalize a Lambda function identifier by extracting the function name from various formats.
