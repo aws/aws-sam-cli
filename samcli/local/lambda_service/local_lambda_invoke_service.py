@@ -8,7 +8,7 @@ from flask import Flask, request
 from werkzeug.routing import BaseConverter
 
 from samcli.commands.local.lib.exceptions import UnsupportedInlineCodeError
-from samcli.lib.utils.name_utils import InvalidFunctionNameException, normalize_lambda_function_name
+from samcli.lib.utils.name_utils import InvalidFunctionNameException, normalize_sam_function_identifier
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker.exceptions import DockerContainerCreationFailedException
 from samcli.local.lambdafn.exceptions import FunctionNotFound
@@ -169,7 +169,7 @@ class LocalLambdaInvokeService(BaseLocalService):
 
         # Normalize function name from ARN if provided
         try:
-            normalized_function_name = normalize_lambda_function_name(function_name)
+            normalized_function_name = normalize_sam_function_identifier(function_name)
         except InvalidFunctionNameException as e:
             LOG.error("Invalid function name: %s", str(e))
             return LambdaErrorResponses.validation_exception(str(e))
