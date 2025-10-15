@@ -8,6 +8,7 @@ from flask import Flask, request
 from werkzeug.routing import BaseConverter
 
 from samcli.commands.local.lib.exceptions import UnsupportedInlineCodeError
+from samcli.lib.utils.name_utils import InvalidFunctionNameException, normalize_lambda_function_name
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker.exceptions import DockerContainerCreationFailedException
 from samcli.local.lambdafn.exceptions import FunctionNotFound
@@ -151,7 +152,7 @@ class LocalLambdaInvokeService(BaseLocalService):
         Parameters
         ----------
         function_name str
-            Name of the function to invoke
+            Name or ARN of the function to invoke
 
         Returns
         -------
@@ -166,15 +167,24 @@ class LocalLambdaInvokeService(BaseLocalService):
 
         request_data = request_data.decode("utf-8")
 
+        # Normalize function name from ARN if provided
+        try:
+            normalized_function_name = normalize_lambda_function_name(function_name)
+        except InvalidFunctionNameException as e:
+            LOG.error("Invalid function name: %s", str(e))
+            return LambdaErrorResponses.validation_exception(str(e))
+
         stdout_stream_string = io.StringIO()
         stdout_stream_bytes = io.BytesIO()
         stdout_stream_writer = StreamWriter(stdout_stream_string, stdout_stream_bytes, auto_flush=True)
 
         try:
-            self.lambda_runner.invoke(function_name, request_data, stdout=stdout_stream_writer, stderr=self.stderr)
+            self.lambda_runner.invoke(
+                normalized_function_name, request_data, stdout=stdout_stream_writer, stderr=self.stderr
+            )
         except FunctionNotFound:
-            LOG.debug("%s was not found to invoke.", function_name)
-            return LambdaErrorResponses.resource_not_found(function_name)
+            LOG.debug("%s was not found to invoke.", normalized_function_name)
+            return LambdaErrorResponses.resource_not_found(normalized_function_name)
         except UnsupportedInlineCodeError:
             return LambdaErrorResponses.not_implemented_locally(
                 "Inline code is not supported for sam local commands. Please write your code in a separate file."
