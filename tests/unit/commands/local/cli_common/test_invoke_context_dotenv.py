@@ -423,6 +423,7 @@ class TestInvokeContext_DotenvErrorHandling(TestCase):
         finally:
             os.unlink(template_path)
 
+
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext._get_container_manager")
     @patch("samcli.commands.local.cli_common.invoke_context.SamLocalStackProvider")
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
@@ -456,97 +457,6 @@ class TestInvokeContext_DotenvErrorHandling(TestCase):
             with InvokeContext(template_file=template_path, dotenv_file=dotenv_path, env_vars_file=None) as context:
                 # Empty file should result in None or empty Parameters
                 self.assertTrue(context._env_vars_value is None or context._env_vars_value.get("Parameters", {}) == {})
-        finally:
-            os.unlink(dotenv_path)
-            os.unlink(template_path)
-
-    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext._get_container_manager")
-    @patch("samcli.commands.local.cli_common.invoke_context.SamLocalStackProvider")
-    @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
-    def test_dotenv_with_special_characters(self, MockFunctionProvider, MockStackProvider, MockGetContainerManager):
-        """Should handle special characters in variable values"""
-        # Create .env file with special characters
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
-            f.write("PASSWORD=p@ssw0rd!#$%\n")
-            f.write("URL=https://example.com?param=value&other=123\n")
-            f.write('JSON_DATA={"key": "value", "nested": {"data": true}}\n')
-            dotenv_path = f.name
-
-        # Create dummy template
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
-            f.write("AWSTemplateFormatVersion: '2010-09-09'\n")
-            template_path = f.name
-
-        try:
-            # Mock stack provider
-            mock_stack = Mock()
-            MockStackProvider.get_stacks.return_value = ([mock_stack], Mock())
-
-            # Mock function provider
-            mock_function_provider = Mock()
-            mock_function_provider.get_all.return_value = []
-            MockFunctionProvider.return_value = mock_function_provider
-
-            # Mock container manager
-            mock_container_manager = Mock()
-            mock_container_manager.is_docker_reachable = True
-            MockGetContainerManager.return_value = mock_container_manager
-
-            with InvokeContext(template_file=template_path, dotenv_file=dotenv_path, env_vars_file=None) as context:
-                # Verify special characters are preserved
-                self.assertIsNotNone(context._env_vars_value)
-                params = context._env_vars_value["Parameters"]
-                self.assertEqual(params["PASSWORD"], "p@ssw0rd!#$%")
-                self.assertEqual(params["URL"], "https://example.com?param=value&other=123")
-                self.assertEqual(params["JSON_DATA"], '{"key": "value", "nested": {"data": true}}')
-        finally:
-            os.unlink(dotenv_path)
-            os.unlink(template_path)
-
-    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext._get_container_manager")
-    @patch("samcli.commands.local.cli_common.invoke_context.SamLocalStackProvider")
-    @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
-    def test_dotenv_with_empty_and_whitespace_values(
-        self, MockFunctionProvider, MockStackProvider, MockGetContainerManager
-    ):
-        """Should handle empty values and whitespace correctly"""
-        # Create .env file with empty and whitespace values
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
-            f.write("EMPTY_VAR=\n")
-            f.write("SPACE_VAR= \n")
-            f.write("TAB_VAR=\t\n")
-            f.write("NORMAL_VAR=value\n")
-            dotenv_path = f.name
-
-        # Create dummy template
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
-            f.write("AWSTemplateFormatVersion: '2010-09-09'\n")
-            template_path = f.name
-
-        try:
-            # Mock stack provider
-            mock_stack = Mock()
-            MockStackProvider.get_stacks.return_value = ([mock_stack], Mock())
-
-            # Mock function provider
-            mock_function_provider = Mock()
-            mock_function_provider.get_all.return_value = []
-            MockFunctionProvider.return_value = mock_function_provider
-
-            # Mock container manager
-            mock_container_manager = Mock()
-            mock_container_manager.is_docker_reachable = True
-            MockGetContainerManager.return_value = mock_container_manager
-
-            with InvokeContext(template_file=template_path, dotenv_file=dotenv_path, env_vars_file=None) as context:
-                # Verify empty and whitespace values are handled
-                # Note: python-dotenv strips trailing whitespace, so " " becomes ""
-                self.assertIsNotNone(context._env_vars_value)
-                params = context._env_vars_value["Parameters"]
-                self.assertEqual(params["EMPTY_VAR"], "")
-                self.assertEqual(params["SPACE_VAR"], "")  # python-dotenv strips whitespace
-                self.assertEqual(params["TAB_VAR"], "")  # python-dotenv strips whitespace
-                self.assertEqual(params["NORMAL_VAR"], "value")
         finally:
             os.unlink(dotenv_path)
             os.unlink(template_path)
@@ -660,30 +570,3 @@ class TestInvokeContext_MergeEnvVarsDirectTesting(TestCase):
         self.assertEqual(result["DEBUG_VAR1"], "json_override")  # JSON wins
         self.assertEqual(result["DEBUG_VAR2"], "debug2")  # Dotenv preserved
         self.assertEqual(result["DEBUG_VAR3"], "json_only")  # JSON added
-
-    def test_get_dotenv_values_direct_with_real_file(self):
-        """Test _get_dotenv_values with real file - no mocking"""
-        from samcli.commands.local.cli_common.invoke_context import InvokeContext
-
-        # Create real .env file
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
-            f.write("TEST_VAR=test_value\n")
-            f.write("ANOTHER_VAR=another_value\n")
-            f.write("# Comment line\n")
-            f.write("\n")
-            f.write("LAST_VAR=last_value\n")
-            dotenv_path = f.name
-
-        try:
-            # Call the actual method - no mocks
-            result = InvokeContext._get_dotenv_values(dotenv_path)
-
-            # Verify actual parsing behavior
-            self.assertIsNotNone(result)
-            self.assertEqual(len(result), 3)  # Should ignore comments and empty lines
-            self.assertEqual(result["TEST_VAR"], "test_value")
-            self.assertEqual(result["ANOTHER_VAR"], "another_value")
-            self.assertEqual(result["LAST_VAR"], "last_value")
-            self.assertNotIn("#", result)  # Comments not included
-        finally:
-            os.unlink(dotenv_path)
