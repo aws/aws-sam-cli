@@ -116,7 +116,12 @@ DESCRIPTION = """
 @click.option(
     "--watch/--no-watch",
     is_flag=True,
-    help="Watch local files and automatically rebuild when changes are detected.",
+    help="Watch local files and automatically rebuild when changes are detected. "
+    "When enabled, monitors your source code and template for changes and "
+    "triggers automatic rebuilds. Changes are debounced to avoid excessive rebuilds "
+    "during rapid file modifications. Build artifacts, cache directories, and "
+    "temporary files are automatically excluded from monitoring. "
+    "Press Ctrl+C to stop watch mode. Similar to 'sam sync --watch' workflow.",
 )
 @click.option(
     "--mount-with",
