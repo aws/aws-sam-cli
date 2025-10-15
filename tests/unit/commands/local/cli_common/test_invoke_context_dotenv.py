@@ -423,7 +423,6 @@ class TestInvokeContext_DotenvErrorHandling(TestCase):
         finally:
             os.unlink(template_path)
 
-
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext._get_container_manager")
     @patch("samcli.commands.local.cli_common.invoke_context.SamLocalStackProvider")
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
