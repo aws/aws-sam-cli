@@ -49,6 +49,84 @@ class TestECRUploader(TestCase):
             tag=self.tag,
         )
 
+    def test_ecr_uploader_init_with_none_docker_client(self):
+        """Test ECRUploader initialization with None docker_client (lazy initialization)"""
+        ecr_uploader = ECRUploader(
+            docker_client=None,  # Pass None to trigger lazy initialization
+            ecr_client=self.ecr_client,
+            ecr_repo=self.ecr_repo,
+            ecr_repo_multi=self.ecr_repo_multi,
+            tag=self.tag,
+        )
+
+        # Docker client should not be validated yet
+        self.assertIsNone(ecr_uploader._docker_client_param)
+        self.assertIsNone(ecr_uploader._validated_docker_client)
+
+    @patch("samcli.lib.package.ecr_uploader.get_validated_container_client")
+    def test_lazy_docker_client_validation_on_first_access(self, mock_get_validated_client):
+        """Test that Docker client is only validated when first accessed"""
+        mock_docker_client = MagicMock()
+        mock_get_validated_client.return_value = mock_docker_client
+
+        ecr_uploader = ECRUploader(
+            docker_client=None,  # Trigger lazy initialization
+            ecr_client=self.ecr_client,
+            ecr_repo=self.ecr_repo,
+            ecr_repo_multi=self.ecr_repo_multi,
+            tag=self.tag,
+        )
+
+        # Docker client should not be validated yet
+        self.assertIsNone(ecr_uploader._validated_docker_client)
+        mock_get_validated_client.assert_not_called()
+
+        # First access should trigger validation
+        docker_client = ecr_uploader.docker_client
+
+        # Validation should have been called
+        mock_get_validated_client.assert_called_once()
+        self.assertEqual(docker_client, mock_docker_client)
+        self.assertEqual(ecr_uploader._validated_docker_client, mock_docker_client)
+
+    @patch("samcli.lib.package.ecr_uploader.get_validated_container_client")
+    def test_lazy_docker_client_validation_cached_after_first_access(self, mock_get_validated_client):
+        """Test that Docker client validation is cached after first access"""
+        mock_docker_client = MagicMock()
+        mock_get_validated_client.return_value = mock_docker_client
+
+        ecr_uploader = ECRUploader(
+            docker_client=None,
+            ecr_client=self.ecr_client,
+            ecr_repo=self.ecr_repo,
+            ecr_repo_multi=self.ecr_repo_multi,
+            tag=self.tag,
+        )
+
+        # First access
+        docker_client1 = ecr_uploader.docker_client
+        # Second access
+        docker_client2 = ecr_uploader.docker_client
+
+        # Validation should only be called once
+        mock_get_validated_client.assert_called_once()
+        self.assertEqual(docker_client1, docker_client2)
+        self.assertEqual(docker_client1, mock_docker_client)
+
+    def test_docker_client_property_with_provided_client(self):
+        """Test that provided Docker client is used without validation"""
+        ecr_uploader = ECRUploader(
+            docker_client=self.docker_client,  # Provide actual client
+            ecr_client=self.ecr_client,
+            ecr_repo=self.ecr_repo,
+            ecr_repo_multi=self.ecr_repo_multi,
+            tag=self.tag,
+        )
+
+        # Should return the provided client
+        docker_client = ecr_uploader.docker_client
+        self.assertEqual(docker_client, self.docker_client)
+
         self.assertEqual(ecr_uploader.docker_client, self.docker_client)
         self.assertEqual(ecr_uploader.ecr_repo, self.ecr_repo)
         self.assertEqual(ecr_uploader.tag, self.tag)
