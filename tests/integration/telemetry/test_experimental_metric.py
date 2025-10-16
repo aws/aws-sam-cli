@@ -193,6 +193,7 @@ class TestExperimentalMetric(IntegBase):
                                 "gitOrigin": ANY,
                                 "projectName": ANY,
                                 "initialCommit": ANY,
+                                "adminContainerPreference": ANY,
                             },
                             "duration": ANY,
                             "exitReason": ANY,

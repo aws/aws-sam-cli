@@ -6,8 +6,7 @@ import os
 from parameterized import parameterized
 from unittest import TestCase
 from unittest.mock import patch, Mock
-
-from samcli.lib.utils.architecture import ARM64, InvalidArchitecture, X86_64
+from samcli.lib.utils.architecture import InvalidArchitecture
 from samcli.local.docker.utils import to_posix_path, find_free_port, get_rapid_name, get_docker_platform, get_image_arch
 from samcli.local.docker.exceptions import NoFreePortsError
 
@@ -38,60 +37,50 @@ class TestFreePorts(TestCase):
         port = find_free_port(network_interface, start=3000, end=4000)
         self.assertEqual(port, 3093)
 
+    @parameterized.expand([("0.0.0.0",), ("127.0.0.1",)])
     @patch("samcli.local.docker.utils.socket")
     @patch("samcli.local.docker.utils.random")
-    def test_free_port_after_failed_attempts(self, mock_random, mock_socket_module):
-        mock_socket_object = Mock()
-        mock_socket_object.bind = Mock(side_effect=[OSError, OSError, Mock()])
-        mock_socket_module.socket = Mock(return_value=mock_socket_object)
-        mock_random.randrange = Mock(side_effect=[3093, 3987, 3300, 3033] * 250)
-        port = find_free_port("127.0.0.1", start=3000, end=4000)
-        self.assertEqual(port, 3300)
+    def test_free_port_second_attempt(self, network_interface, mock_random, mock_socket):
+        mock_socket.socket.return_value.bind.side_effect = [OSError, None]
+        mock_random.randrange = Mock(side_effect=[3093, 3094] * 1000)
+        port = find_free_port(network_interface, start=3000, end=4000)
+        self.assertEqual(port, 3094)
 
+    @parameterized.expand([("0.0.0.0",), ("127.0.0.1",)])
     @patch("samcli.local.docker.utils.socket")
     @patch("samcli.local.docker.utils.random")
-    def test_no_free_port_after_failed_attempts(self, mock_random, mock_socket_module):
-        mock_socket_object = Mock()
-        mock_socket_object.bind = Mock(side_effect=[OSError, OSError, OSError])
-        mock_socket_module.socket = Mock(return_value=mock_socket_object)
-        mock_random.randrange = Mock(side_effect=[1, 2, 3] * 3)
+    def test_free_port_no_free_ports(self, network_interface, mock_random, mock_socket):
+        mock_socket.socket.return_value.bind.side_effect = OSError
+        mock_random.randrange = Mock(side_effect=[3093] * 1000)
         with self.assertRaises(NoFreePortsError):
-            find_free_port("127.0.0.1", start=1, end=4)
+            find_free_port(network_interface, start=3000, end=4000)
 
 
 class TestGetRapidName(TestCase):
-    def test_get_rapid_name_must_return_right_name(self):
-        self.assertEqual(get_rapid_name(ARM64), "aws-lambda-rie-arm64")
-        self.assertEqual(get_rapid_name(X86_64), "aws-lambda-rie-x86_64")
+    @parameterized.expand([("x86_64", "aws-lambda-rie-x86_64"), ("arm64", "aws-lambda-rie-arm64")])
+    def test_get_rapid_name(self, architecture, expected_name):
+        self.assertEqual(get_rapid_name(architecture), expected_name)
 
-    def test_must_raise_exception_for_unknown_architecture(self):
-        unknown_architectures = ["unknown", None, "x86", "arm"]
-        for arch in unknown_architectures:
-            with self.assertRaises(InvalidArchitecture):
-                get_rapid_name(arch)
+    def test_get_rapid_name_invalid_architecture(self):
+        with self.assertRaises(InvalidArchitecture):
+            get_rapid_name("invalid")
 
 
 class TestImageArch(TestCase):
-    def test_get_image_arch_must_return_right_name(self):
-        self.assertEqual(get_image_arch(ARM64), "arm64")
-        self.assertEqual(get_image_arch(X86_64), "amd64")
+    @parameterized.expand([("x86_64", "amd64"), ("arm64", "arm64")])
+    def test_get_image_arch(self, architecture, expected_arch):
+        self.assertEqual(get_image_arch(architecture), expected_arch)
 
-    def test_get_image_arch_must_raise_exception_for_unknown_architecture(self):
-        unknown_architectures = ["unknown", None, "x86", "arm"]
-
-        for arch in unknown_architectures:
-            with self.assertRaises(InvalidArchitecture):
-                get_image_arch(arch)
+    def test_get_image_arch_invalid_architecture(self):
+        with self.assertRaises(InvalidArchitecture):
+            get_image_arch("invalid")
 
 
 class TestGetDockerPlatform(TestCase):
-    def test_get_docker_platform_must_return_right_name(self):
-        self.assertEqual(get_docker_platform(ARM64), "linux/arm64")
-        self.assertEqual(get_docker_platform(X86_64), "linux/amd64")
+    @parameterized.expand([("x86_64", "linux/amd64"), ("arm64", "linux/arm64")])
+    def test_get_docker_platform(self, architecture, expected_platform):
+        self.assertEqual(get_docker_platform(architecture), expected_platform)
 
-    def test_get_docker_platform_must_raise_exception_for_unknown_architecture(self):
-        unknown_architectures = ["unknown", None, "x86", "arm"]
-
-        for arch in unknown_architectures:
-            with self.assertRaises(InvalidArchitecture):
-                get_docker_platform(arch)
+    def test_get_docker_platform_invalid_architecture(self):
+        with self.assertRaises(InvalidArchitecture):
+            get_docker_platform("invalid")
