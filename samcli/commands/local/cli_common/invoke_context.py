@@ -258,15 +258,16 @@ class InvokeContext:
         )
 
         # Load and merge Lambda runtime environment variables
-        # Dotenv values are loaded first, then JSON env_vars can override them
-        # Lambda env vars are wrapped in "Parameters" key for compatibility
-        dotenv_vars = self._get_dotenv_values(self._dotenv_file)
+        # Dotenv values are loaded first with function-specific parsing enabled
+        # Then JSON env_vars can override them
+        # Lambda env vars support hierarchical structure with Parameters and function-specific sections
+        dotenv_vars = self._get_dotenv_values(self._dotenv_file, parse_function_specific=True)
         env_vars = self._get_env_vars_value(self._env_vars_file)
         self._env_vars_value = self._merge_env_vars(dotenv_vars, env_vars, wrap_in_parameters=True)
 
         # Load and merge container environment variables (used for debugging)
-        # Container env vars remain flat (not wrapped in Parameters)
-        container_dotenv_vars = self._get_dotenv_values(self._container_dotenv_file)
+        # Container env vars remain flat (not wrapped in Parameters, no function-specific parsing)
+        container_dotenv_vars = self._get_dotenv_values(self._container_dotenv_file, parse_function_specific=False)
         container_env_vars = self._get_env_vars_value(self._container_env_vars_file)
         self._container_env_vars_value = self._merge_env_vars(
             container_dotenv_vars, container_env_vars, wrap_in_parameters=False
@@ -658,9 +659,18 @@ class InvokeContext:
         """
         Merge environment variables from .env file and JSON file, with JSON taking precedence.
 
-        :param dict dotenv_vars: Variables loaded from .env file
+        When wrap_in_parameters=True (Lambda env vars):
+        - dotenv_vars may already have hierarchical structure: {"Parameters": {...}, "FunctionName": {...}}
+        - If dotenv_vars is flat, wrap it in Parameters
+        - json_env_vars merges with Parameters section and preserves function-specific sections
+
+        When wrap_in_parameters=False (container env vars):
+        - Both dotenv_vars and json_env_vars should be flat
+        - Simple key-value merge with JSON taking precedence
+
+        :param dict dotenv_vars: Variables loaded from .env file (may be hierarchical or flat)
         :param dict json_env_vars: Variables loaded from JSON file
-        :param bool wrap_in_parameters: If True, wrap dotenv vars in "Parameters" key
+        :param bool wrap_in_parameters: If True, ensure hierarchical structure for Lambda env vars
         :return dict: Merged environment variables, or None if both inputs are None
         """
         # Handle mocked test scenarios where json_env_vars might not be a dict
@@ -672,36 +682,58 @@ class InvokeContext:
         if not dotenv_vars and not json_env_vars:
             return None
 
-        # Wrap dotenv vars if requested
-        if wrap_in_parameters and dotenv_vars:
-            result = {"Parameters": dotenv_vars}
-        elif dotenv_vars:
-            result = dotenv_vars.copy()
-        else:
+        # Initialize result based on dotenv_vars structure
+        if not dotenv_vars:
             result = {}
+        elif wrap_in_parameters:
+            # Check if dotenv_vars is already hierarchical (has Parameters key)
+            if "Parameters" in dotenv_vars:
+                # Already hierarchical from parse_function_specific=True
+                result = {k: v.copy() if isinstance(v, dict) else v for k, v in dotenv_vars.items()}
+            else:
+                # Flat structure, wrap in Parameters
+                result = {"Parameters": dotenv_vars.copy()}
+        else:
+            # Container mode: keep flat
+            result = dotenv_vars.copy()
 
         # Merge JSON env vars with precedence
         if json_env_vars:
-            if wrap_in_parameters and "Parameters" in json_env_vars:
-                # Merge Parameters sections, with json_env_vars taking precedence
-                result["Parameters"] = {**result.get("Parameters", {}), **json_env_vars["Parameters"]}
-                # Add function-specific overrides
+            if wrap_in_parameters:
+                # Lambda env vars mode: handle hierarchical structure
+                if "Parameters" in json_env_vars:
+                    # Merge Parameters sections, with json_env_vars taking precedence
+                    if "Parameters" not in result:
+                        result["Parameters"] = {}
+                    result["Parameters"] = {**result.get("Parameters", {}), **json_env_vars["Parameters"]}
+
+                # Merge function-specific sections and other keys
                 for key, value in json_env_vars.items():
                     if key != "Parameters":
-                        result[key] = value
+                        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+                            # Merge function-specific dicts, JSON takes precedence
+                            result[key] = {**result[key], **value}
+                        else:
+                            # Simple override
+                            result[key] = value
             else:
-                # For container env vars (flat structure), simple merge
+                # Container env vars mode: simple flat merge
                 result.update(json_env_vars)
 
         return result if result else None
 
     @staticmethod
-    def _get_dotenv_values(filename: Optional[str]) -> Optional[Dict]:
+    def _get_dotenv_values(filename: Optional[str], parse_function_specific: bool = False) -> Optional[Dict]:
         """
-        If the user provided a .env file, this method will read the file and return its values as a dictionary
+        If the user provided a .env file, this method will read the file and return its values as a dictionary.
+        Optionally parses function-specific environment variables using FunctionName_VAR pattern.
 
         :param string filename: Path to .env file containing environment variable values
+        :param bool parse_function_specific: If True, parse variables with FunctionName_VAR pattern into
+                                            function-specific sections. If False, returns flat dictionary.
         :return dict: Value of environment variables from .env file, if provided. None otherwise
+                     When parse_function_specific=True, returns hierarchical structure:
+                     {"Parameters": {...global vars...}, "FunctionName": {...function vars...}}
         :raises InvokeContextException: If the file was not found or could not be parsed
         """
         if not filename:
@@ -721,11 +753,70 @@ class InvokeContext:
                 LOG.warning("The .env file '%s' is empty or contains no valid environment variables", filename)
 
             # Filter out None values and convert to strings
-            return {k: str(v) if v is not None else "" for k, v in env_dict.items()}
+            clean_dict = {k: str(v) if v is not None else "" for k, v in env_dict.items()}
+
+            # If not parsing function-specific vars, return flat structure
+            if not parse_function_specific:
+                return clean_dict
+
+            # Parse function-specific variables
+            return InvokeContext._parse_function_specific_env_vars(clean_dict)
+
         except Exception as ex:
             raise InvalidEnvironmentVariablesFileException(
                 "Could not read environment variables from .env file {}: {}".format(filename, str(ex))
             ) from ex
+
+    @staticmethod
+    def _parse_function_specific_env_vars(env_dict: Dict[str, str]) -> Dict:
+        """
+        Parse environment variables to separate global from function-specific variables.
+
+        Variables are classified as function-specific if they match the pattern: FunctionName_VAR
+        where FunctionName starts with an uppercase letter (PascalCase).
+
+        Examples:
+            MyFunction_API_KEY -> Function-specific for MyFunction
+            HelloWorld_TIMEOUT -> Function-specific for HelloWorld
+            LAMBDA_VAR -> Global (all uppercase, not PascalCase)
+            API_KEY -> Global (no underscore)
+            database_url -> Global (starts with lowercase)
+
+        :param dict env_dict: Flat dictionary of environment variables
+        :return dict: Hierarchical structure with Parameters and function-specific sections
+        """
+        result: Dict[str, Dict[str, str]] = {"Parameters": {}}
+
+        for key, value in env_dict.items():
+            # Check if variable contains underscore
+            if "_" not in key:
+                # No underscore -> global variable
+                result["Parameters"][key] = value
+                continue
+
+            # Split by first underscore to get function name prefix and variable name
+            parts = key.split("_", 1)
+            if len(parts) < 2:  # noqa: PLR2004
+                # Edge case: variable has underscore but split failed somehow
+                result["Parameters"][key] = value
+                continue
+
+            prefix, var_name = parts
+
+            # Check if prefix is PascalCase (starts with uppercase, not all uppercase)
+            # PascalCase: First char is uppercase AND not all chars are uppercase
+            is_pascal_case = prefix[0].isupper() and not prefix.isupper()
+
+            if is_pascal_case:
+                # Function-specific variable: FunctionName_VAR
+                if prefix not in result:
+                    result[prefix] = {}
+                result[prefix][var_name] = value
+            else:
+                # Global variable (ALL_CAPS, snake_case, etc.)
+                result["Parameters"][key] = value
+
+        return result
 
     @staticmethod
     def _get_env_vars_value(filename: Optional[str]) -> Optional[Dict]:
