@@ -190,6 +190,7 @@ def do_cli(  # pylint: disable=R0914
     from samcli.commands.local.lib.exceptions import NoPrivilegeException, OverridesNotWellDefinedError
     from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
     from samcli.lib.providers.exceptions import InvalidLayerReference
+    from samcli.lib.utils.name_utils import InvalidFunctionNameException
     from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported
     from samcli.local.docker.manager import DockerImagePullFailedException
     from samcli.local.lambdafn.exceptions import FunctionNotFound
@@ -247,6 +248,7 @@ def do_cli(  # pylint: disable=R0914
     except (
         InvalidSamDocumentException,
         OverridesNotWellDefinedError,
+        InvalidFunctionNameException,
         InvalidLayerReference,
         InvalidIntermediateImageError,
         DebuggingNotSupported,

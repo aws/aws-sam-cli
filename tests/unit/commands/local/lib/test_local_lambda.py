@@ -818,6 +818,32 @@ class TestLocalLambda_invoke(TestCase):
         with self.assertRaises(UnsupportedInlineCodeError):
             self.local_lambda.invoke(name, event, stdout, stderr)
 
+    @patch("samcli.commands.local.lib.local_lambda.validate_architecture_runtime")
+    def test_must_work_with_nested_stack_name(self, patched_validate_architecture_runtime):
+        name = "NestedStack/FunctionName"
+        event = "event"
+        stdout = "stdout"
+        stderr = "stderr"
+        function = Mock(functionname="NestedStack/FunctionName")
+        invoke_config = "config"
+
+        self.function_provider_mock.get.return_value = function
+        self.local_lambda.get_invoke_config = Mock()
+        self.local_lambda.get_invoke_config.return_value = invoke_config
+
+        self.local_lambda.invoke(name, event, stdout, stderr)
+
+        self.runtime_mock.invoke.assert_called_with(
+            invoke_config,
+            event,
+            debug_context=None,
+            stdout=stdout,
+            stderr=stderr,
+            container_host=None,
+            container_host_interface=None,
+            extra_hosts=None,
+        )
+
 
 class TestLocalLambda_invoke_with_container_host_option(TestCase):
     def setUp(self):
