@@ -4,6 +4,22 @@ Container client strategy pattern implementation.
 This module provides an abstract base class for container clients that enables
 a strategy pattern for handling different container runtimes (Docker, Finch, etc.)
 while maintaining full API compatibility with docker.DockerClient.
+
+Architecture:
+    ContainerClient: Base class that handles environment variable processing and merging
+    DockerContainerClient: Standard Docker client using system environment variables
+    FinchContainerClient: Finch client that overrides DOCKER_HOST with Finch socket path
+
+Usage:
+    # Standard Docker client
+    docker_client = DockerContainerClient()
+
+    # Finch client with automatic socket detection
+    finch_client = FinchContainerClient()
+
+    # Both provide full DockerClient API compatibility
+    docker_client.images.list()
+    finch_client.get_runtime_type()  # Returns "finch"
 """
 
 import logging
@@ -14,8 +30,10 @@ from abc import ABC, abstractmethod
 from typing import Any, List, Tuple, Union
 
 import docker
+from docker.utils import kwargs_from_env
 
 from samcli.local.docker.exceptions import ContainerArchiveImageLoadFailedException
+from samcli.local.docker.platform_config import get_finch_socket_path
 
 LOG = logging.getLogger(__name__)
 
@@ -29,33 +47,49 @@ class ContainerClient(docker.DockerClient, ABC):
     This class implements the strategy pattern to handle runtime-specific behaviors
     while maintaining backward compatibility with existing code that expects
     docker.DockerClient instances.
+
+    The class handles environment variable processing by:
+    1. Starting with system environment variables (os.environ)
+    2. Applying any environment overrides passed by subclasses
+    3. Processing the merged environment with Docker's kwargs_from_env()
+    4. Initializing DockerClient with the processed parameters
+
+    Subclasses should call super().__init__(**env_overrides) to provide
+    environment variable overrides (e.g., DOCKER_HOST for Finch socket).
     """
 
-    def __init__(self, *args, **kwargs):
-        """Initialize the container client with docker.DockerClient compatibility."""
-        super().__init__(*args, **kwargs)
-
-    @classmethod
-    def from_existing_client(cls, existing_client: docker.DockerClient):
+    def __init__(self, **override_env_params):
         """
-        Create strategy client from existing docker client.
+        Initialize the container client with environment variable processing and overrides.
 
-        This method allows wrapping an existing docker.DockerClient instance
-        with the appropriate strategy implementation.
+        This constructor implements the core environment variable processing logic:
+        1. Starts with system environment variables (os.environ)
+        2. Applies any environment overrides provided by subclasses
+        3. Processes the merged environment using Docker's kwargs_from_env()
+        4. Initializes DockerClient with the processed parameters
+
+        This design allows subclasses to override specific environment variables
+        (like DOCKER_HOST for Finch) while maintaining full Docker compatibility.
 
         Args:
-            existing_client: An existing docker.DockerClient instance
+            **override_env_params: Environment variable overrides. Common examples:
+                - DOCKER_HOST: Override Docker daemon URL (e.g., 'unix:///tmp/finch.sock')
+                - DOCKER_TLS_VERIFY: Override TLS verification setting
+                - DOCKER_CERT_PATH: Override certificate path
 
-        Returns:
-            ContainerClient: A new instance of the appropriate strategy class
+        Example:
+            # DockerContainerClient calls: super().__init__()
+            # FinchContainerClient calls: super().__init__(DOCKER_HOST='unix:///tmp/finch.sock')
         """
-        # Extract connection details from existing client
-        base_url = existing_client.api.base_url if hasattr(existing_client, "api") else None
-        version = existing_client.api._version if hasattr(existing_client, "api") else None
 
-        # Create new instance with same connection parameters
-        instance = cls(base_url=base_url, version=version)
-        return instance
+        # Start with system environment variables
+        current_env = os.environ.copy()
+        current_env.update(override_env_params)
+        env_params = kwargs_from_env(environment=current_env)
+
+        # Initialize DockerClient with processed parameters
+        LOG.debug(f"Creating container client with parameters: {env_params}")
+        super().__init__(**env_params)
 
     def is_available(self) -> bool:
         """
@@ -213,7 +247,47 @@ class DockerContainerClient(ContainerClient):
 
     This class provides Docker-specific implementations of container operations
     while maintaining full compatibility with the docker.DockerClient API.
+
+    The DockerContainerClient uses the standard Docker environment variables:
+    - DOCKER_HOST: Docker daemon URL (default: unix:///var/run/docker.sock)
+    - DOCKER_TLS_VERIFY: Enable TLS verification
+    - DOCKER_CERT_PATH: Path to TLS certificates
+
+    Usage:
+        client = DockerContainerClient()
+        client.images.list()  # Standard DockerClient API
+        client.get_runtime_type()  # Returns "docker"
     """
+
+    def __init__(self):
+        """
+        Initialize DockerContainerClient using system environment variables.
+
+        Creates a Docker client using the standard Docker environment variables
+        without any modifications. This provides the standard Docker behavior
+        that users expect.
+
+        The client will use:
+        - System DOCKER_HOST environment variable (if set)
+        - System DOCKER_TLS_VERIFY environment variable (if set)
+        - System DOCKER_CERT_PATH environment variable (if set)
+        - Docker's default socket path if no DOCKER_HOST is set
+
+        Example:
+            # Uses system environment variables
+            client = DockerContainerClient()
+
+            # Full DockerClient API available
+            containers = client.containers.list()
+            images = client.images.list()
+        """
+        # Check if DOCKER_HOST points to Finch (should not be considered Docker)
+        socket_path = os.environ.get("DOCKER_HOST")
+        if socket_path and socket_path == get_finch_socket_path():
+            return None
+
+        LOG.debug(f"Creating Docker container client with DOCKER_HOST={socket_path}")
+        super().__init__()
 
     def get_runtime_type(self) -> str:
         """
@@ -347,28 +421,6 @@ class DockerContainerClient(ContainerClient):
             LOG.warning(f"Failed to validate image count for {image_name}: {e}")
             return False
 
-    @classmethod
-    def from_existing_client(cls, existing_client: docker.DockerClient):
-        """
-        Create DockerContainerClient from existing docker client.
-
-        This method allows wrapping an existing docker.DockerClient instance
-        with the DockerContainerClient strategy implementation.
-
-        Args:
-            existing_client: An existing docker.DockerClient instance
-
-        Returns:
-            DockerContainerClient: A new instance wrapping the existing client
-        """
-        # Extract connection details from existing client
-        base_url = existing_client.api.base_url if hasattr(existing_client, "api") else None
-        version = existing_client.api._version if hasattr(existing_client, "api") else None
-
-        # Create new instance with same connection parameters
-        instance = cls(base_url=base_url, version=version)
-        return instance
-
 
 class FinchContainerClient(ContainerClient):
     """
@@ -378,20 +430,59 @@ class FinchContainerClient(ContainerClient):
     while maintaining full compatibility with the docker.DockerClient API.
     Handles Finch-specific behaviors like overlayfs issues, manual container filtering,
     and container dependency cleanup.
+
+    The FinchContainerClient automatically detects the Finch socket path and
+    overrides the DOCKER_HOST environment variable to connect to Finch instead
+    of Docker. All other Docker environment variables (TLS settings, etc.) are
+    preserved from the system environment.
+
+    Key differences from DockerContainerClient:
+    - Automatically detects and uses Finch socket path
+    - Handles Finch-specific overlayfs issues in image loading
+    - Uses manual container filtering (no ancestor filter support)
+    - Performs container dependency cleanup before image removal
+
+    Usage:
+        client = FinchContainerClient()
+        client.images.list()  # Same API as DockerClient
+        client.get_runtime_type()  # Returns "finch"
     """
 
-    def __init__(self, *args, **kwargs):
-        """Initialize Finch container client with automatic socket configuration."""
-        # Import here to avoid circular imports
-        from samcli.local.docker.container_client_factory import ContainerClientFactory
+    def __init__(self):
+        """
+        Initialize FinchContainerClient with automatic Finch socket detection.
 
-        # Get Finch socket path if not explicitly provided
-        if "base_url" not in kwargs:
-            socket_path = ContainerClientFactory._get_finch_socket_path()
-            if socket_path:
-                kwargs["base_url"] = socket_path
+        Automatically detects the Finch socket path and overrides the DOCKER_HOST
+        environment variable to connect to Finch. If no Finch socket is found,
+        falls back to using the system environment variables.
 
-        super().__init__(*args, **kwargs)
+        The initialization process:
+        1. Detects Finch socket path using ContainerClientFactory
+        2. If found, overrides DOCKER_HOST with the Finch socket path
+        3. Passes the override to parent ContainerClient for processing
+        4. Parent merges with system environment and initializes DockerClient
+
+        Environment variable precedence:
+        1. Finch socket path (if detected) overrides DOCKER_HOST
+        2. All other system environment variables are preserved
+        3. Standard Docker environment processing applies
+
+        Example:
+            # Automatically uses Finch socket if available
+            client = FinchContainerClient()
+
+            # Full DockerClient API with Finch-specific optimizations
+            containers = client.containers.list()
+            runtime_type = client.get_runtime_type()  # Returns "finch"
+        """
+
+        # Get Finch socket path and create environment override
+        socket_path = get_finch_socket_path()
+        if not socket_path:
+            # If socket_path=None mean the platform does not support Finch. Do not create client
+            return None
+        LOG.debug(f"Creating Finch container client with DOCKER_HOST={socket_path}")
+        super().__init__(DOCKER_HOST=socket_path)
 
     def get_runtime_type(self) -> str:
         """
@@ -670,25 +761,3 @@ class FinchContainerClient(ContainerClient):
         except docker.errors.APIError as e:
             LOG.warning(f"Failed to validate image count for {image_name}: {e}")
             return False
-
-    @classmethod
-    def from_existing_client(cls, existing_client: docker.DockerClient):
-        """
-        Create FinchContainerClient from existing docker client for wrapping existing Finch clients.
-
-        This method allows wrapping an existing docker.DockerClient instance
-        (which may be connected to Finch) with the FinchContainerClient strategy implementation.
-
-        Args:
-            existing_client: An existing docker.DockerClient instance connected to Finch
-
-        Returns:
-            FinchContainerClient: A new instance wrapping the existing client
-        """
-        # Extract connection details from existing client
-        base_url = existing_client.api.base_url if hasattr(existing_client, "api") else None
-        version = existing_client.api._version if hasattr(existing_client, "api") else None
-
-        # Create new instance with same connection parameters
-        instance = cls(base_url=base_url, version=version)
-        return instance

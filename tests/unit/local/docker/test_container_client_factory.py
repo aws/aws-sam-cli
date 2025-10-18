@@ -159,10 +159,8 @@ class TestContainerClientFactory(TestCase):
             ContainerClientFactory._create_auto_detected_client()
 
     @patch("samcli.local.docker.container_client_factory.DockerContainerClient")
-    @patch("samcli.local.docker.container_client_factory.ContainerClientFactory._is_finch_socket")
-    def test_try_create_docker_client_success(self, mock_is_finch, mock_docker_class):
+    def test_try_create_docker_client_success(self, mock_docker_class):
         """Test successful Docker client creation"""
-        mock_is_finch.return_value = False
         mock_client = Mock()
         mock_docker_class.return_value = mock_client
 
@@ -170,16 +168,6 @@ class TestContainerClientFactory(TestCase):
 
         self.assertEqual(result, mock_client)
         mock_docker_class.assert_called_once()
-
-    @patch("samcli.local.docker.container_client_factory.ContainerClientFactory._is_finch_socket")
-    def test_try_create_docker_client_finch_socket(self, mock_is_finch):
-        """Test Docker client creation when DOCKER_HOST points to Finch"""
-        os.environ["DOCKER_HOST"] = "unix:///tmp/finch.sock"
-        mock_is_finch.return_value = True
-
-        result = ContainerClientFactory._try_create_docker_client()
-
-        self.assertIsNone(result)
 
     @patch("samcli.local.docker.container_client_factory.DockerContainerClient")
     @patch("samcli.local.docker.container_client_factory.LOG")
@@ -190,66 +178,27 @@ class TestContainerClientFactory(TestCase):
         result = ContainerClientFactory._try_create_docker_client()
 
         self.assertIsNone(result)
-        mock_log.debug.assert_any_call("Attempting to create Docker client")
-        mock_log.debug.assert_any_call("Failed to create Docker client: Connection failed")
+        mock_log.debug.assert_called_with("Failed to create Docker client: Connection failed")
 
     @patch("samcli.local.docker.container_client_factory.FinchContainerClient")
-    @patch("samcli.local.docker.container_client_factory.ContainerClientFactory._get_finch_socket_path")
-    def test_try_create_finch_client_success(self, mock_get_socket, mock_finch_class):
+    def test_try_create_finch_client_success(self, mock_finch_class):
         """Test successful Finch client creation"""
-        mock_get_socket.return_value = "unix:///tmp/finch.sock"
         mock_client = Mock()
         mock_finch_class.return_value = mock_client
 
         result = ContainerClientFactory._try_create_finch_client()
 
         self.assertEqual(result, mock_client)
-        # DOCKER_HOST is restored to original value (None) in finally block
-        self.assertIsNone(os.environ.get("DOCKER_HOST"))
+        mock_finch_class.assert_called_once_with()
 
-    @patch("samcli.local.docker.container_client_factory.ContainerClientFactory._get_finch_socket_path")
-    def test_try_create_finch_client_no_socket(self, mock_get_socket):
-        """Test Finch client creation when no socket path available"""
-        mock_get_socket.return_value = None
+    @patch("samcli.local.docker.container_client_factory.FinchContainerClient")
+    def test_try_create_finch_client_exception(self, mock_finch_class):
+        """Test Finch client creation when constructor fails"""
+        mock_finch_class.side_effect = Exception("Finch not available")
 
         result = ContainerClientFactory._try_create_finch_client()
 
         self.assertIsNone(result)
-
-    @patch("samcli.local.docker.container_client_factory.get_platform_handler")
-    def test_get_finch_socket_path_success(self, mock_get_handler):
-        """Test getting Finch socket path"""
-        mock_handler = Mock()
-        mock_handler.supports_finch.return_value = True
-        mock_handler.get_finch_socket_path.return_value = "unix:///tmp/finch.sock"
-        mock_get_handler.return_value = mock_handler
-
-        result = ContainerClientFactory._get_finch_socket_path()
-
-        self.assertEqual(result, "unix:///tmp/finch.sock")
-
-    @patch("samcli.local.docker.container_client_factory.get_platform_handler")
-    def test_get_finch_socket_path_not_supported(self, mock_get_handler):
-        """Test getting Finch socket path when not supported"""
-        mock_handler = Mock()
-        mock_handler.supports_finch.return_value = False
-        mock_get_handler.return_value = mock_handler
-
-        result = ContainerClientFactory._get_finch_socket_path()
-
-        self.assertIsNone(result)
-
-    def test_is_finch_socket_true(self):
-        """Test Finch socket detection returns True"""
-        with patch.object(ContainerClientFactory, "_get_finch_socket_path", return_value="unix:///tmp/finch.sock"):
-            result = ContainerClientFactory._is_finch_socket("unix:///tmp/finch.sock")
-            self.assertTrue(result)
-
-    def test_is_finch_socket_false(self):
-        """Test Finch socket detection returns False"""
-        with patch.object(ContainerClientFactory, "_get_finch_socket_path", return_value="unix:///tmp/finch.sock"):
-            result = ContainerClientFactory._is_finch_socket("unix:///var/run/docker.sock")
-            self.assertFalse(result)
 
     @patch("samcli.local.docker.container_client_factory.get_platform_handler")
     def test_get_error_message_with_handler(self, mock_get_handler):
@@ -309,33 +258,6 @@ class TestContainerClientFactory(TestCase):
         """Test validating None admin container preference"""
         result = ContainerClientFactory._get_validate_admin_container_preference(None)
         self.assertIsNone(result)
-
-
-class TestGetFinchSocketPath(TestCase):
-    @parameterized.expand(
-        [
-            ("Linux", "unix:///var/run/finch.sock"),
-            ("Darwin", "unix:////Applications/Finch/lima/data/finch/sock/finch.sock"),
-            ("Windows", None),
-        ]
-    )
-    @patch("samcli.local.docker.platform_config.platform.system")
-    def test_get_finch_socket_path_returns_correct_path(self, platform_name, expected_path, mock_system):
-        """Test that get_finch_socket_path returns the correct path based on platform"""
-        mock_system.return_value = platform_name
-
-        result = ContainerClientFactory._get_finch_socket_path()
-        self.assertEqual(result, expected_path)
-        mock_system.assert_called_once()
-
-    @patch("samcli.local.docker.container_client_factory.get_platform_handler")
-    def test_get_finch_socket_path_returns_none_when_no_handler(self, mock_get_handler):
-        """Test that get_finch_socket_path returns None when no platform handler available"""
-        mock_get_handler.return_value = None
-
-        result = ContainerClientFactory._get_finch_socket_path()
-        self.assertEqual(result, None)
-        mock_get_handler.assert_called_once()
 
 
 class TestValidateAdminContainerPreference(TestCase):

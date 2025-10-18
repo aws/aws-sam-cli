@@ -7,7 +7,13 @@ import unittest
 from unittest.mock import patch, mock_open, Mock
 from parameterized import parameterized
 
-from samcli.local.docker.platform_config import MacOSHandler, LinuxHandler, WindowsHandler, get_platform_handler
+from samcli.local.docker.platform_config import (
+    MacOSHandler,
+    LinuxHandler,
+    WindowsHandler,
+    get_platform_handler,
+    get_finch_socket_path,
+)
 from samcli.local.docker.container_engine import ContainerEngine
 
 
@@ -257,6 +263,56 @@ class TestGetPlatformHandler(unittest.TestCase):
 
         self.assertIsNone(handler)
         mock_system.assert_called_once()
+
+
+class TestGetFinchSocketPath(unittest.TestCase):
+    """Tests for get_finch_socket_path utility function"""
+
+    @parameterized.expand(
+        [
+            ("Linux", "unix:///var/run/finch.sock"),
+            ("Darwin", "unix:////Applications/Finch/lima/data/finch/sock/finch.sock"),
+            ("Windows", None),
+        ]
+    )
+    @patch("samcli.local.docker.platform_config.platform.system")
+    def test_get_finch_socket_path_returns_correct_path(self, platform_name, expected_path, mock_system):
+        """Test that get_finch_socket_path returns the correct path based on platform"""
+        mock_system.return_value = platform_name
+
+        result = get_finch_socket_path()
+        self.assertEqual(result, expected_path)
+        mock_system.assert_called_once()
+
+    @patch("samcli.local.docker.platform_config.get_platform_handler")
+    def test_get_finch_socket_path_returns_none_when_no_handler(self, mock_get_handler):
+        """Test that get_finch_socket_path returns None when no platform handler available"""
+        mock_get_handler.return_value = None
+
+        result = get_finch_socket_path()
+        self.assertEqual(result, None)
+        mock_get_handler.assert_called_once()
+
+    @patch("samcli.local.docker.platform_config.get_platform_handler")
+    def test_get_finch_socket_path_handler_not_supports_finch(self, mock_get_handler):
+        """Test that get_finch_socket_path returns None when handler doesn't support Finch"""
+        mock_handler = Mock()
+        mock_handler.supports_finch.return_value = False
+        mock_get_handler.return_value = mock_handler
+
+        result = get_finch_socket_path()
+        self.assertEqual(result, None)
+
+    @patch("samcli.local.docker.platform_config.get_platform_handler")
+    def test_get_finch_socket_path_handler_supports_finch(self, mock_get_handler):
+        """Test that get_finch_socket_path returns path when handler supports Finch"""
+        mock_handler = Mock()
+        mock_handler.supports_finch.return_value = True
+        mock_handler.get_finch_socket_path.return_value = "unix:///custom/finch.sock"
+        mock_get_handler.return_value = mock_handler
+
+        result = get_finch_socket_path()
+        self.assertEqual(result, "unix:///custom/finch.sock")
 
 
 class TestMacOSHandlerIntegration(unittest.TestCase):

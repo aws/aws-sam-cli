@@ -7,7 +7,6 @@ for container runtime management with instance-based availability detection.
 """
 
 import logging
-import os
 from typing import Optional
 
 from samcli.cli.context import Context
@@ -147,17 +146,10 @@ class ContainerClientFactory:
             DockerContainerClient or None: Client instance if creation succeeds, None if it fails
         """
         try:
-            LOG.debug("Attempting to create Docker client")
-            # Check if DOCKER_HOST points to Finch (should not be considered Docker)
-            docker_host = os.environ.get("DOCKER_HOST", "")
-            if docker_host and ContainerClientFactory._is_finch_socket(docker_host):
-                return None
-
-            # Create Docker client using default connection
+            # Create Docker client using constructor
             client = DockerContainerClient()
             LOG.debug("DockerContainerClient instance created successfully")
             return client
-
         except Exception as e:
             LOG.debug(f"Failed to create Docker client: {e}")
             return None
@@ -170,54 +162,15 @@ class ContainerClientFactory:
         Returns:
             FinchContainerClient or None: Client instance if creation succeeds, None if it fails
         """
-        # Store original DOCKER_HOST value to restore later
-        original_docker_host = os.environ.get("DOCKER_HOST")
-
         try:
-            LOG.debug("Attempting to create Finch client")
-
-            # Check if Finch is supported on this platform
-            socket_path = ContainerClientFactory._get_finch_socket_path()
-            LOG.debug(f"Finch socket path: {socket_path}")
-            if not socket_path:
-                return None
-
-            # Configure environment for Finch
-            LOG.debug(f"Setting DOCKER_HOST to: {socket_path}")
-            os.environ["DOCKER_HOST"] = socket_path
-
-            # Create Finch client
-            LOG.debug("Creating FinchContainerClient instance")
+            # Create Finch client using constructor
+            # The constructor handles socket path detection and falls back to system environment
             client = FinchContainerClient()
             LOG.debug("FinchContainerClient instance created successfully")
             return client
-
         except Exception as e:
             LOG.debug(f"Failed to create Finch client: {e}")
             return None
-        finally:
-            # Restore original DOCKER_HOST value
-            if original_docker_host is not None:
-                os.environ["DOCKER_HOST"] = original_docker_host
-            elif "DOCKER_HOST" in os.environ:
-                del os.environ["DOCKER_HOST"]
-
-    @staticmethod
-    def _is_finch_socket(docker_host: str) -> bool:
-        """Check if DOCKER_HOST points to a Finch socket."""
-        finch_socket_path = ContainerClientFactory._get_finch_socket_path()
-        return bool(finch_socket_path and docker_host == finch_socket_path)
-
-    @staticmethod
-    def _get_finch_socket_path() -> Optional[str]:
-        """Get Finch socket path for this platform."""
-        LOG.debug("Getting platform handler for Finch socket path")
-        handler = get_platform_handler()
-        if not handler or not handler.supports_finch():
-            return None
-        socket_path = handler.get_finch_socket_path()
-        LOG.debug(f"Platform handler returned Finch socket path: {socket_path}")
-        return socket_path
 
     @staticmethod
     def get_admin_container_preference() -> Optional[str]:
