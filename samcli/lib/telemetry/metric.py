@@ -44,6 +44,10 @@ Decorators should be used to minimize logic involving telemetry.
 """
 _METRICS = dict()
 
+# Global container socket and runtime information for telemetry
+# This persists across context boundaries to ensure accurate telemetry reporting
+_CONTAINER_RUNTIME_INFO: Dict[str, Optional[str]] = {"container_socket_path": None, "admin_preference": None}
+
 
 @dataclass
 class ProjectDetails:
@@ -241,9 +245,8 @@ def _send_command_run_metrics(ctx: Context, duration: int, exit_reason: str, exi
     # Add container engine information for all command runs
     metric_specific_attributes["containerEngine"] = metric._get_container_host()
 
-    # Add admin container preference (None if not set)
-    admin_pref = getattr(ctx, "admin_container_preference", None)
-    metric_specific_attributes["adminContainerPreference"] = admin_pref
+    # Add admin container preference from global storage (set by container client factory)
+    metric_specific_attributes["adminContainerPreference"] = metric._get_container_admin_preference()
 
     metric.add_data("metricSpecificAttributes", metric_specific_attributes)
     # Metric about command's execution characteristics
@@ -404,6 +407,37 @@ def emit_all_metrics():
         emit_metric(key)
 
 
+def set_container_socket_host_telemetry(
+    container_socket_path: Optional[str] = None, admin_preference: Optional[str] = None
+):
+    """
+    Set container socket path and admin preference for telemetry collection.
+
+    This function stores container socket information globally to ensure it persists
+    across context boundaries and is available during telemetry collection.
+
+    Args:
+        container_socket_path: The socket path being used (e.g., "unix:///var/run/docker.sock", "unix://~/.finch/finch.sock")
+        admin_preference: The administrator's container preference (e.g., "finch", "docker", None)
+    """
+    if container_socket_path is not None:
+        _CONTAINER_RUNTIME_INFO["container_socket_path"] = container_socket_path
+        LOG.debug(f"Set global container socket path: container_socket_path={container_socket_path}")
+    if admin_preference is not None:
+        _CONTAINER_RUNTIME_INFO["admin_preference"] = admin_preference
+        LOG.debug(f"Set global container runtime info: admin_preference={admin_preference}")
+
+
+def get_container_runtime_telemetry_info() -> Dict[str, Optional[str]]:
+    """
+    Get container socket path and runtime information for telemetry collection.
+
+    Returns:
+        Dict containing container_socket_path and admin_preference
+    """
+    return _CONTAINER_RUNTIME_INFO
+
+
 class Metric:
     """
     Metric class to store metric data and adding common attributes
@@ -487,35 +521,31 @@ class Metric:
 
     def _get_container_host(self) -> str:
         """
-        Returns the container engine being used with context-first detection:
-        1. If actual runtime type is stored in context, use that (for native SAM CLI clients like Finch)
+        Returns the container engine being used with socket path detection:
+        1. Check global container socket path (set by container client factory)
         2. Otherwise, fall back to DOCKER_HOST environment variable detection (for custom configurations)
         """
-        try:
-            # First, try to get the actual runtime type from context (same pattern as admin_container_preference)
-            ctx = Context.get_current_context()
-            if ctx:
-                actual_runtime = getattr(ctx, "actual_container_runtime", None)
-                if actual_runtime:
-                    return str(actual_runtime)
-        except (RuntimeError, ImportError):
-            # No Click context available
-            pass
+        # First, check global container socket path (set by container client factory)
+        global_runtime_info = get_container_runtime_telemetry_info()
+        if global_runtime_info["container_socket_path"]:
+            LOG.debug(f"Using global container socket path: {global_runtime_info['container_socket_path']}")
+            return self._get_container_engine_from_socket_path(global_runtime_info["container_socket_path"])
 
         # Fall back to environment variable detection for custom DOCKER_HOST configurations
-        LOG.debug("No container runtime in context, falling back to DOCKER_HOST detection")
-        return self._get_container_host_from_env()
+        docker_host = os.environ.get("DOCKER_HOST", "")
+        LOG.debug(f"No container socket path in global storage, falling back to DOCKER_HOST detection: {docker_host}")
+        return self._get_container_engine_from_socket_path(docker_host)
 
-    def _get_container_host_from_env(self) -> str:
+    def _get_container_engine_from_socket_path(self, socket_path: str) -> str:
         """
-        Detect container engine from environment variables for custom DOCKER_HOST configurations.
-        This handles cases where customers manually set DOCKER_HOST to non-native runtimes.
+        Detect container engine from socket path.
+        This handles detection for any socket path, whether from stored telemetry or environment.
 
         Translation:
             Value                                          Final Value
 
-            # Case 1: Not set
-            - (unset)	                                -> docker-default
+            # Case 1: Empty/None
+            - ""                                        -> docker-default
 
             # Case 2: Check Path-specific
             - unix://~/.colima/default/docker.sock	    -> colima
@@ -536,20 +566,17 @@ class Metric:
             # Case 5: Other
             - other value	                            -> unknown
         """
-        # Read current DOCKER_HOST directly from environment instead of cached value
-        docker_host = os.environ.get("DOCKER_HOST", "")
-
-        if not docker_host:
+        if not socket_path:
             return "docker-default"
 
-        docker_host = docker_host.lower()
+        socket_path_lower = socket_path.lower()
 
         # Path-specific mappings (checked first for specificity)
         path_map = {".colima/": "colima", ".lima/": "lima", ".orbstack/": "orbstack", ".rd/": "rancher-desktop"}
 
         # Check path-specific patterns first
         for path, engine in path_map.items():
-            if path in docker_host and docker_host.endswith("docker.sock"):
+            if path in socket_path_lower and socket_path_lower.endswith("docker.sock"):
                 return engine
 
         # Socket mappings
@@ -557,16 +584,26 @@ class Metric:
 
         # Check socket patterns
         for sock, engine in socket_map.items():
-            if docker_host.endswith(sock):
+            if socket_path_lower.endswith(sock):
                 return engine
 
         # TCP patterns
-        if docker_host.startswith("tcp://"):
+        if socket_path_lower.startswith("tcp://"):
             local_hosts = ["localhost:", "127.0.0.1:"]
-            is_local = any(host in docker_host for host in local_hosts)
+            is_local = any(host in socket_path_lower for host in local_hosts)
             return "tcp-local" if is_local else "tcp-remote"
 
         return "unknown"
+
+    def _get_container_admin_preference(self) -> Optional[str]:
+        """
+        Get the administrator's container preference from global storage.
+
+        Returns:
+            Optional[str]: Admin preference value ("finch", "docker", "other", or None)
+        """
+        global_runtime_info = get_container_runtime_telemetry_info()
+        return global_runtime_info["admin_preference"]
 
 
 class MetricDataNotList(Exception):

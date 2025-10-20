@@ -27,6 +27,9 @@ from samcli.local.docker.exceptions import (
 class ConcreteContainerClient(ContainerClient):
     """Concrete implementation of ContainerClient for testing purposes"""
 
+    def get_socket_path(self):
+        return "unix:///var/run/docker.sock"
+
     def get_runtime_type(self):
         return "test"
 
@@ -65,6 +68,7 @@ class TestContainerClientAbstractClass(TestCase):
         """Test that all required abstract methods are defined"""
         abstract_methods = {
             "get_runtime_type",
+            "get_socket_path",
             "load_image_from_archive",
             "is_dockerfile_error",
             "list_containers_by_image",
@@ -167,50 +171,45 @@ class TestDockerContainerClientInit(TestCase):
         # The client object is still created, but not properly initialized (early return behavior)
         self.assertIsNotNone(client)
 
+    @parameterized.expand(
+        [
+            ("tcp://localhost:2375",),
+            ("unix:///var/run/docker.sock",),
+            ("ssh://user@host",),
+        ]
+    )
     @patch("samcli.local.docker.container_client.get_finch_socket_path")
     @patch("samcli.local.docker.container_client.kwargs_from_env")
     @patch("samcli.local.docker.container_client.docker.DockerClient.__init__")
     @patch("samcli.local.docker.container_client.LOG")
     def test_init_with_various_docker_host_values(
-        self, mock_log, mock_docker_init, mock_kwargs_from_env, mock_get_finch_socket
+        self, docker_host, mock_log, mock_docker_init, mock_kwargs_from_env, mock_get_finch_socket
     ):
         """Test DockerContainerClient init with various DOCKER_HOST values"""
         finch_socket = "unix:///tmp/finch.sock"
         mock_get_finch_socket.return_value = finch_socket
         mock_docker_init.return_value = None
+        expected_kwargs = {"base_url": docker_host, "timeout": 60}
+        mock_kwargs_from_env.return_value = expected_kwargs
 
-        test_cases = [
-            ("tcp://localhost:2375", True),  # Should initialize
-            ("unix:///var/run/docker.sock", True),  # Should initialize
-            ("ssh://user@host", True),  # Should initialize
-        ]
+        with patch("os.environ", {"DOCKER_HOST": docker_host}):
+            client = DockerContainerClient()
 
-        for docker_host, should_initialize in test_cases:
-            with self.subTest(docker_host=docker_host):
-                mock_kwargs_from_env.reset_mock()
-                mock_docker_init.reset_mock()
-                mock_log.reset_mock()
-                expected_kwargs = {"base_url": docker_host, "timeout": 60}
-                mock_kwargs_from_env.return_value = expected_kwargs
+            # Verify both log calls: DockerContainerClient and ContainerClient base class
+            expected_calls = [
+                call(f"Creating Docker container client with DOCKER_HOST={docker_host}"),
+                call(f"Creating container client with parameters: {expected_kwargs}"),
+            ]
+            mock_log.debug.assert_has_calls(expected_calls)
 
-                with patch("os.environ", {"DOCKER_HOST": docker_host}):
-                    client = DockerContainerClient()
+            # Verify kwargs_from_env was called with environment containing DOCKER_HOST
+            mock_kwargs_from_env.assert_called_once()
+            env_arg = mock_kwargs_from_env.call_args[1]["environment"]
+            self.assertEqual(env_arg["DOCKER_HOST"], docker_host)
 
-                    # Verify both log calls: DockerContainerClient and ContainerClient base class
-                    expected_calls = [
-                        call(f"Creating Docker container client with DOCKER_HOST={docker_host}"),
-                        call(f"Creating container client with parameters: {expected_kwargs}"),
-                    ]
-                    mock_log.debug.assert_has_calls(expected_calls)
-
-                    # Verify kwargs_from_env was called with environment containing DOCKER_HOST
-                    mock_kwargs_from_env.assert_called_once()
-                    env_arg = mock_kwargs_from_env.call_args[1]["environment"]
-                    self.assertEqual(env_arg["DOCKER_HOST"], docker_host)
-
-                    # Verify docker.DockerClient.__init__ was called with exact parameters from kwargs_from_env
-                    mock_docker_init.assert_called_once_with(**expected_kwargs)
-                    self.assertIsNotNone(client)
+            # Verify docker.DockerClient.__init__ was called with exact parameters from kwargs_from_env
+            mock_docker_init.assert_called_once_with(**expected_kwargs)
+            self.assertIsNotNone(client)
 
     @patch("samcli.local.docker.container_client.get_finch_socket_path")
     @patch("samcli.local.docker.container_client.kwargs_from_env")
@@ -244,6 +243,7 @@ class TestDockerContainerClient(TestCase):
 
         # Set up the methods we need to test
         self.client.get_runtime_type = DockerContainerClient.get_runtime_type.__get__(self.client)
+        self.client.get_socket_path = DockerContainerClient.get_socket_path.__get__(self.client)
         self.client.is_docker = DockerContainerClient.is_docker.__get__(self.client)
         self.client.is_finch = DockerContainerClient.is_finch.__get__(self.client)
         self.client.is_available = DockerContainerClient.is_available.__get__(self.client)
@@ -260,6 +260,7 @@ class TestDockerContainerClient(TestCase):
         self.client.images = Mock()
         self.client.containers = Mock()
         self.client.ping = Mock(return_value=True)
+        self.client.socket_path = None  # Initialize socket_path attribute for DockerContainerClient
 
     @parameterized.expand(
         [
@@ -303,24 +304,23 @@ class TestDockerContainerClient(TestCase):
         self.assertEqual(result, mock_image)
         self.client.images.load.assert_called_once_with(mock_archive)
 
-    @parameterized.expand(
-        [
-            ("multiple_images", [Mock(), Mock()], ContainerArchiveImageLoadFailedException, "single image"),
-            ("empty_archive", [], ValueError, None),
-        ]
-    )
-    def test_load_image_from_archive_invalid_content(
-        self, test_case, images_result, expected_exception, expected_message
-    ):
-        """Test error handling when archive contains invalid content"""
-        self.client.images.load.return_value = images_result
+    def test_load_image_from_archive_multiple_images(self):
+        """Test error handling when archive contains multiple images"""
+        self.client.images.load.return_value = [Mock(), Mock()]
         mock_archive = Mock()
 
-        with self.assertRaises(expected_exception) as context:
+        with self.assertRaises(ContainerArchiveImageLoadFailedException) as context:
             self.client.load_image_from_archive(mock_archive)
 
-        if expected_message:
-            self.assertIn(expected_message, str(context.exception))
+        self.assertIn("single image", str(context.exception))
+
+    def test_load_image_from_archive_empty_archive(self):
+        """Test error handling when archive is empty"""
+        self.client.images.load.return_value = []
+        mock_archive = Mock()
+
+        with self.assertRaises(ValueError):
+            self.client.load_image_from_archive(mock_archive)
 
     def test_load_image_from_archive_api_error(self):
         """Test error handling when Docker API fails"""
@@ -388,19 +388,14 @@ class TestDockerContainerClient(TestCase):
         self.assertEqual(result, mock_containers)
         self.client.containers.list.assert_called_once_with(all=all_containers, filters={"ancestor": "test-image"})
 
-    @parameterized.expand(
-        [
-            (True,),  # Explicit force=True
-            (None,),  # Default force parameter (should default to True)
-        ]
-    )
-    def test_remove_image_safely(self, force_param):
-        """Test image removal with different force parameter values"""
-        if force_param is None:
-            self.client.remove_image_safely("test-image")
-        else:
-            self.client.remove_image_safely("test-image", force=force_param)
+    def test_remove_image_safely_with_explicit_force_true(self):
+        """Test image removal with explicit force=True"""
+        self.client.remove_image_safely("test-image", force=True)
+        self.client.images.remove.assert_called_once_with("test-image", force=True)
 
+    def test_remove_image_safely_with_default_force(self):
+        """Test image removal with default force parameter (should default to True)"""
+        self.client.remove_image_safely("test-image")
         self.client.images.remove.assert_called_once_with("test-image", force=True)
 
     def test_remove_image_safely_image_not_found(self):
@@ -421,7 +416,6 @@ class TestDockerContainerClient(TestCase):
 
     @parameterized.expand(
         [
-            # Test cases: (image_count, range_tuple, expected_result)
             (2, (1, 3), True),  # Within range
             (1, (1, 3), True),  # At minimum
             (3, (1, 3), True),  # At maximum
@@ -468,6 +462,40 @@ class TestDockerContainerClient(TestCase):
         self.client.containers.get.assert_called_once_with(container_id)
         mock_container.get_archive.assert_called_once_with(path)
 
+    @parameterized.expand(
+        [
+            ({}, None, "no DOCKER_HOST set"),
+            ({"DOCKER_HOST": "unix:///var/run/docker.sock"}, "unix:///var/run/docker.sock", "Docker socket"),
+            ({"DOCKER_HOST": "unix://~/.finch/finch.sock"}, None, "Finch socket (should return None)"),
+            ({"DOCKER_HOST": "tcp://localhost:2375"}, "tcp://localhost:2375", "TCP socket"),
+        ]
+    )
+    @patch("samcli.local.docker.container_client.get_finch_socket_path")
+    def test_get_socket_path_scenarios(self, env_vars, expected_result, description, mock_get_finch_socket_path):
+        """Test get_socket_path with various DOCKER_HOST scenarios"""
+        mock_get_finch_socket_path.return_value = "unix://~/.finch/finch.sock"
+
+        with patch.dict("os.environ", env_vars, clear=True):
+            result = self.client.get_socket_path()
+
+        self.assertEqual(result, expected_result, f"Failed for {description}")
+
+    @patch("samcli.local.docker.container_client.get_finch_socket_path")
+    @patch.dict("os.environ", {"DOCKER_HOST": "unix:///var/run/docker.sock"}, clear=True)
+    def test_get_socket_path_caching(self, mock_get_finch_socket_path):
+        """Test that get_socket_path caches the result"""
+        mock_get_finch_socket_path.return_value = "unix://~/.finch/finch.sock"
+
+        # First call
+        result1 = self.client.get_socket_path()
+        # Second call should use cached value
+        result2 = self.client.get_socket_path()
+
+        self.assertEqual(result1, "unix:///var/run/docker.sock")
+        self.assertEqual(result2, "unix:///var/run/docker.sock")
+        # get_finch_socket_path should only be called once due to caching
+        mock_get_finch_socket_path.assert_called_once()
+
 
 class TestFinchContainerClient(TestCase):
     """Test the FinchContainerClient implementation"""
@@ -479,6 +507,7 @@ class TestFinchContainerClient(TestCase):
 
         # Set up the methods we need to test
         self.client.get_runtime_type = FinchContainerClient.get_runtime_type.__get__(self.client)
+        self.client.get_socket_path = FinchContainerClient.get_socket_path.__get__(self.client)
         self.client.is_docker = FinchContainerClient.is_docker.__get__(self.client)
         self.client.is_finch = FinchContainerClient.is_finch.__get__(self.client)
         self.client.load_image_from_archive = FinchContainerClient.load_image_from_archive.__get__(self.client)
@@ -497,6 +526,7 @@ class TestFinchContainerClient(TestCase):
         self.client.images = Mock()
         self.client.containers = Mock()
         self.client.ping = Mock(return_value=True)
+        self.client.socket_path = None  # Initialize socket_path attribute for FinchContainerClient
 
     @parameterized.expand(
         [
@@ -817,7 +847,6 @@ class TestFinchContainerClient(TestCase):
 
     @parameterized.expand(
         [
-            # Test cases: (image_count, range_tuple, expected_result)
             (1, (1, 3), True),  # Meets minimum
             (2, (1, 3), True),  # Above minimum
             (5, (1, 2), True),  # Finch uses flexible validation - passes if >= minimum
@@ -937,6 +966,41 @@ class TestFinchContainerClient(TestCase):
 
         self.assertFalse(result)
         mock_log.warning.assert_called_once()
+
+    @patch("samcli.local.docker.container_client.get_finch_socket_path")
+    def test_get_socket_path_first_call(self, mock_get_finch_socket_path):
+        """Test get_socket_path on first call"""
+        mock_get_finch_socket_path.return_value = "unix://~/.finch/finch.sock"
+
+        result = self.client.get_socket_path()
+
+        self.assertEqual(result, "unix://~/.finch/finch.sock")
+        mock_get_finch_socket_path.assert_called_once()
+
+    @patch("samcli.local.docker.container_client.get_finch_socket_path")
+    def test_get_socket_path_caching(self, mock_get_finch_socket_path):
+        """Test that get_socket_path caches the result"""
+        mock_get_finch_socket_path.return_value = "unix://~/.finch/finch.sock"
+
+        # First call
+        result1 = self.client.get_socket_path()
+        # Second call should use cached value
+        result2 = self.client.get_socket_path()
+
+        self.assertEqual(result1, "unix://~/.finch/finch.sock")
+        self.assertEqual(result2, "unix://~/.finch/finch.sock")
+        # get_finch_socket_path should only be called once due to caching
+        mock_get_finch_socket_path.assert_called_once()
+
+    @patch("samcli.local.docker.container_client.get_finch_socket_path")
+    def test_get_socket_path_with_none_result(self, mock_get_finch_socket_path):
+        """Test get_socket_path when get_finch_socket_path returns None"""
+        mock_get_finch_socket_path.return_value = None
+
+        result = self.client.get_socket_path()
+
+        self.assertIsNone(result)
+        mock_get_finch_socket_path.assert_called_once()
 
 
 class TestFinchContainerClientInit(TestCase):

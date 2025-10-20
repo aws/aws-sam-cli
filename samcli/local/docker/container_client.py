@@ -27,7 +27,7 @@ import os
 import tarfile
 import tempfile
 from abc import ABC, abstractmethod
-from typing import Any, List, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 import docker
 from docker.utils import kwargs_from_env
@@ -57,6 +57,9 @@ class ContainerClient(docker.DockerClient, ABC):
     Subclasses should call super().__init__(**env_overrides) to provide
     environment variable overrides (e.g., DOCKER_HOST for Finch socket).
     """
+
+    # Initialize socket_path
+    socket_path: Optional[str] = None
 
     def __init__(self, **override_env_params):
         """
@@ -108,6 +111,16 @@ class ContainerClient(docker.DockerClient, ABC):
         except Exception as e:
             LOG.debug(f"Container client availability check failed: {e}")
             return False
+
+    @abstractmethod
+    def get_socket_path(self) -> Optional[str]:
+        """
+        Return the socket path being used by this client.
+
+        Returns:
+            str: Socket path (e.g., 'unix:///var/run/docker.sock', 'unix://~/.finch/finch.sock')
+        """
+        pass
 
     @abstractmethod
     def get_runtime_type(self) -> str:
@@ -298,6 +311,24 @@ class DockerContainerClient(ContainerClient):
         """
         return "docker"
 
+    def get_socket_path(self) -> Optional[str]:
+        """
+        Return the socket path being used by this client.
+
+        Returns:
+            str: Socket path
+        """
+        if self.socket_path:
+            return self.socket_path
+
+        socket_path = os.environ.get("DOCKER_HOST")
+        if socket_path and socket_path == get_finch_socket_path():
+            self.socket_path = None
+            return self.socket_path
+
+        self.socket_path = socket_path
+        return self.socket_path
+
     def load_image_from_archive(self, image_archive) -> Any:
         """
         Load image from archive using standard Docker image loading logic.
@@ -477,12 +508,25 @@ class FinchContainerClient(ContainerClient):
         """
 
         # Get Finch socket path and create environment override
-        socket_path = get_finch_socket_path()
+        socket_path = self.get_socket_path()
         if not socket_path:
             # If socket_path=None mean the platform does not support Finch. Do not create client
             return None
         LOG.debug(f"Creating Finch container client with DOCKER_HOST={socket_path}")
         super().__init__(DOCKER_HOST=socket_path)
+
+    def get_socket_path(self) -> Optional[str]:
+        """
+        Return the socket path being used by this Finch client.
+
+        Returns:
+            str: Socket path
+        """
+        if self.socket_path:
+            return self.socket_path
+
+        self.socket_path = get_finch_socket_path()
+        return self.socket_path
 
     def get_runtime_type(self) -> str:
         """

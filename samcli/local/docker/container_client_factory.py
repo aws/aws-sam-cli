@@ -9,7 +9,7 @@ for container runtime management with instance-based availability detection.
 import logging
 from typing import Optional
 
-from samcli.cli.context import Context
+from samcli.lib.telemetry.metric import set_container_socket_host_telemetry
 from samcli.local.docker.container_client import ContainerClient, DockerContainerClient, FinchContainerClient
 from samcli.local.docker.container_engine import ContainerEngine
 from samcli.local.docker.exceptions import (
@@ -80,6 +80,8 @@ class ContainerClientFactory:
             docker_client = ContainerClientFactory._try_create_docker_client()
             if docker_client and docker_client.is_available():
                 LOG.debug("Using Docker as Container Engine (enforced).")
+                # Store socket path for telemetry
+                set_container_socket_host_telemetry(container_socket_path=docker_client.get_socket_path())
                 return docker_client
             raise ContainerEnforcementException(
                 ContainerClientFactory._get_error_message(
@@ -92,7 +94,8 @@ class ContainerClientFactory:
             finch_client = ContainerClientFactory._try_create_finch_client()
             if finch_client and finch_client.is_available():
                 LOG.debug("Using Finch as Container Engine (enforced).")
-                ContainerClientFactory._set_context_runtime_type(finch_client)
+                # Store socket path for telemetry
+                set_container_socket_host_telemetry(container_socket_path=finch_client.get_socket_path())
                 return finch_client
             raise ContainerEnforcementException(
                 ContainerClientFactory._get_error_message(
@@ -121,6 +124,8 @@ class ContainerClientFactory:
         docker_client = ContainerClientFactory._try_create_docker_client()
         if docker_client and docker_client.is_available():
             LOG.debug("Using Docker as Container Engine.")
+            # Store socket path for telemetry
+            set_container_socket_host_telemetry(container_socket_path=docker_client.get_socket_path())
             return docker_client
 
         LOG.debug("Docker client not available, trying Finch")
@@ -128,7 +133,8 @@ class ContainerClientFactory:
         finch_client = ContainerClientFactory._try_create_finch_client()
         if finch_client and finch_client.is_available():
             LOG.debug("Using Finch as Container Engine.")
-            ContainerClientFactory._set_context_runtime_type(finch_client)
+            # Store socket path for telemetry
+            set_container_socket_host_telemetry(container_socket_path=finch_client.get_socket_path())
             return finch_client
 
         LOG.debug("No container runtime available")
@@ -186,19 +192,6 @@ class ContainerClientFactory:
         return ContainerClientFactory._get_validate_admin_container_preference(enterprise_preference)
 
     @staticmethod
-    def _set_context_runtime_type(client: ContainerClient) -> None:
-        """Store the actual container runtime type in context for telemetry."""
-        try:
-            ctx = Context.get_current_context()
-            if ctx:
-                runtime_type = client.get_runtime_type()
-                setattr(ctx, "actual_container_runtime", runtime_type)
-                LOG.debug(f"Stored actual container runtime in context: {runtime_type}")
-        except (RuntimeError, ImportError):
-            # No Click context available (e.g., in tests) or import error
-            pass
-
-    @staticmethod
     def _get_validate_admin_container_preference(container_preference: Optional[str]) -> Optional[str]:
         """
         Validates the administrator container preference.
@@ -213,13 +206,9 @@ class ContainerClientFactory:
         supported_containers = {container.value for container in ContainerEngine}
 
         def _set_context_preference(value: str) -> None:
-            try:
-                ctx = Context.get_current_context()
-                if ctx:
-                    setattr(ctx, "admin_container_preference", value)
-            except (RuntimeError, ImportError):
-                # No Click context available (e.g., in tests) or import error
-                pass
+            # Store in global telemetry storage (reliable across all contexts)
+            set_container_socket_host_telemetry(admin_preference=value)
+            LOG.debug(f"Stored admin container preference in global storage: {value}")
 
         if normalized_preference in supported_containers:
             LOG.info("Valid administrator container preference: %s.", normalized_preference.capitalize())
