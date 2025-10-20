@@ -119,7 +119,6 @@ class LinuxHandler(PlatformHandler):
         TODO: Reads the Linux configuration file to determine the administrator container preference.
         Placeholder for future implementation.
         """
-        LOG.debug("Linux administrator config reading not implemented yet.")
         return None
 
     def get_finch_socket_path(self) -> Optional[str]:
@@ -165,7 +164,6 @@ class WindowsHandler(PlatformHandler):
         TODO: Reads the Windows configuration file to determine the administrator container preference.
         Placeholder for future implementation.
         """
-        LOG.debug("Windows administrator config reading not implemented yet.")
         return None
 
     def get_finch_socket_path(self) -> Optional[str]:

@@ -128,7 +128,7 @@ class ContainerClientFactory:
             set_container_socket_host_telemetry(container_socket_path=docker_client.get_socket_path())
             return docker_client
 
-        LOG.debug("Docker client not available, trying Finch")
+        LOG.debug("Docker client not created, trying creating Finch client.")
         # Try Finch as fallback
         finch_client = ContainerClientFactory._try_create_finch_client()
         if finch_client and finch_client.is_available():
@@ -154,7 +154,7 @@ class ContainerClientFactory:
         try:
             # Create Docker client using constructor
             client = DockerContainerClient()
-            LOG.debug("DockerContainerClient instance created successfully")
+            LOG.debug("DockerContainerClient created successfully")
             return client
         except Exception as e:
             LOG.debug(f"Failed to create Docker client: {e}")
@@ -172,7 +172,7 @@ class ContainerClientFactory:
             # Create Finch client using constructor
             # The constructor handles socket path detection and falls back to system environment
             client = FinchContainerClient()
-            LOG.debug("FinchContainerClient instance created successfully")
+            LOG.debug("FinchContainerClient created successfully")
             return client
         except Exception as e:
             LOG.debug(f"Failed to create Finch client: {e}")

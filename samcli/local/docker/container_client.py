@@ -32,7 +32,8 @@ from typing import Any, List, Optional, Tuple, Union
 import docker
 from docker.utils import kwargs_from_env
 
-from samcli.local.docker.exceptions import ContainerArchiveImageLoadFailedException
+from samcli.lib.constants import DOCKER_MIN_API_VERSION
+from samcli.local.docker.exceptions import ContainerArchiveImageLoadFailedException, ContainerInvalidSocketPathException
 from samcli.local.docker.platform_config import get_finch_socket_path
 
 LOG = logging.getLogger(__name__)
@@ -48,51 +49,56 @@ class ContainerClient(docker.DockerClient, ABC):
     while maintaining backward compatibility with existing code that expects
     docker.DockerClient instances.
 
-    The class handles environment variable processing by:
+    The class handles Docker client initialization by:
     1. Starting with system environment variables (os.environ)
     2. Applying any environment overrides passed by subclasses
     3. Processing the merged environment with Docker's kwargs_from_env()
-    4. Initializing DockerClient with the processed parameters
+    4. Overriding base_url if explicitly provided as a parameter
+    5. Initializing DockerClient with the processed parameters
 
-    Subclasses should call super().__init__(**env_overrides) to provide
-    environment variable overrides (e.g., DOCKER_HOST for Finch socket).
+    Subclasses can call super().__init__(base_url=...) for explicit URL override
     """
 
     # Initialize socket_path
     socket_path: Optional[str] = None
 
-    def __init__(self, **override_env_params):
+    def __init__(self, base_url=None):
         """
         Initialize the container client with environment variable processing and overrides.
 
         This constructor implements the core environment variable processing logic:
         1. Starts with system environment variables (os.environ)
-        2. Applies any environment overrides provided by subclasses
-        3. Processes the merged environment using Docker's kwargs_from_env()
+        2. Processes the environment using Docker's kwargs_from_env()
+        3. Override the base_url if provide
         4. Initializes DockerClient with the processed parameters
 
-        This design allows subclasses to override specific environment variables
-        (like DOCKER_HOST for Finch) while maintaining full Docker compatibility.
 
         Args:
-            **override_env_params: Environment variable overrides. Common examples:
-                - DOCKER_HOST: Override Docker daemon URL (e.g., 'unix:///tmp/finch.sock')
-                - DOCKER_TLS_VERIFY: Override TLS verification setting
-                - DOCKER_CERT_PATH: Override certificate path
+            base_url: Docker daemon URL (e.g., 'unix:///var/run/docker.sock', 'tcp://localhost:2375')
+                    If provided, overrides the base_url from environment variables
 
         Example:
-            # DockerContainerClient calls: super().__init__()
-            # FinchContainerClient calls: super().__init__(DOCKER_HOST='unix:///tmp/finch.sock')
+            # Uses environment variables and Docker's default connection
+            client = ContainerClient()
+
+            # Uses explicit base_url (overrides environment DOCKER_HOST)
+            client = ContainerClient(base_url='unix:///var/run/docker.sock')
         """
 
-        # Start with system environment variables
+        # Always start with environment variables
         current_env = os.environ.copy()
-        current_env.update(override_env_params)
-        env_params = kwargs_from_env(environment=current_env)
+        client_params = kwargs_from_env(environment=current_env)
+
+        # Override base_url if explicitly provided
+        if base_url is not None:
+            client_params["base_url"] = base_url
+
+        # Specify minimum version
+        client_params["version"] = DOCKER_MIN_API_VERSION
 
         # Initialize DockerClient with processed parameters
-        LOG.debug(f"Creating container client with parameters: {env_params}")
-        super().__init__(**env_params)
+        LOG.debug(f"Creating container client with parameters: {client_params}")
+        super().__init__(**client_params)
 
     def is_available(self) -> bool:
         """
@@ -109,16 +115,19 @@ class ContainerClient(docker.DockerClient, ABC):
             self.ping()
             return True
         except Exception as e:
-            LOG.debug(f"Container client availability check failed: {e}")
+            LOG.debug(f"Container daemon availability check failed: {e}")
             return False
 
     @abstractmethod
-    def get_socket_path(self) -> Optional[str]:
+    def get_socket_path(self) -> str:
         """
         Return the socket path being used by this client.
 
         Returns:
             str: Socket path (e.g., 'unix:///var/run/docker.sock', 'unix://~/.finch/finch.sock')
+
+        Raises:
+            ContainerInvalidSocketPathException: When the socket path is invalid or inaccessible
         """
         pass
 
@@ -261,11 +270,6 @@ class DockerContainerClient(ContainerClient):
     This class provides Docker-specific implementations of container operations
     while maintaining full compatibility with the docker.DockerClient API.
 
-    The DockerContainerClient uses the standard Docker environment variables:
-    - DOCKER_HOST: Docker daemon URL (default: unix:///var/run/docker.sock)
-    - DOCKER_TLS_VERIFY: Enable TLS verification
-    - DOCKER_CERT_PATH: Path to TLS certificates
-
     Usage:
         client = DockerContainerClient()
         client.images.list()  # Standard DockerClient API
@@ -274,17 +278,7 @@ class DockerContainerClient(ContainerClient):
 
     def __init__(self):
         """
-        Initialize DockerContainerClient using system environment variables.
-
-        Creates a Docker client using the standard Docker environment variables
-        without any modifications. This provides the standard Docker behavior
-        that users expect.
-
-        The client will use:
-        - System DOCKER_HOST environment variable (if set)
-        - System DOCKER_TLS_VERIFY environment variable (if set)
-        - System DOCKER_CERT_PATH environment variable (if set)
-        - Docker's default socket path if no DOCKER_HOST is set
+        Initialize DockerContainerClient using Docker client parameters.
 
         Example:
             # Uses system environment variables
@@ -294,13 +288,14 @@ class DockerContainerClient(ContainerClient):
             containers = client.containers.list()
             images = client.images.list()
         """
-        # Check if DOCKER_HOST points to Finch (should not be considered Docker)
-        socket_path = os.environ.get("DOCKER_HOST")
-        if socket_path and socket_path == get_finch_socket_path():
-            return None
+        socket_path = self.get_socket_path()
 
-        LOG.debug(f"Creating Docker container client with DOCKER_HOST={socket_path}")
-        super().__init__()
+        if socket_path:
+            LOG.debug(f"Creating Docker container client with base_url={socket_path}.")
+            super().__init__(base_url=socket_path)
+        else:
+            LOG.debug("Creating Docker container client from environment variable.")
+            super().__init__()
 
     def get_runtime_type(self) -> str:
         """
@@ -311,22 +306,33 @@ class DockerContainerClient(ContainerClient):
         """
         return "docker"
 
-    def get_socket_path(self) -> Optional[str]:
+    def get_socket_path(self) -> str:
         """
         Return the socket path being used by this client.
 
         Returns:
-            str: Socket path
+            str: Socket path. Return empty string if DOCKER_HOST is not set.
+
+        Raises:
+            ContainerInvalidSocketPathException: When the socket path is set to Finch socket path.
         """
-        if self.socket_path:
+        # Explicitly use 'is not None' condition because self.socket_path = "" is a valid path
+        if self.socket_path is not None:
             return self.socket_path
 
-        socket_path = os.environ.get("DOCKER_HOST")
-        if socket_path and socket_path == get_finch_socket_path():
-            self.socket_path = None
-            return self.socket_path
+        # Explicitly use "" instead of None
+        env_socket_path = os.environ.get("DOCKER_HOST", "")
 
-        self.socket_path = socket_path
+        # Either str or None
+        finch_socket_path = get_finch_socket_path()
+
+        # Verify that DOCKER_HOST is not set to Finch socket path; The socket_path can be empty
+        if env_socket_path and env_socket_path == finch_socket_path:
+            raise ContainerInvalidSocketPathException(
+                f"DOCKER_HOST is set to Finch socket path {finch_socket_path}! Abort creating Docker client."
+            )
+
+        self.socket_path = env_socket_path
         return self.socket_path
 
     def load_image_from_archive(self, image_archive) -> Any:
@@ -463,7 +469,7 @@ class FinchContainerClient(ContainerClient):
     and container dependency cleanup.
 
     The FinchContainerClient automatically detects the Finch socket path and
-    overrides the DOCKER_HOST environment variable to connect to Finch instead
+    overrides the base_url when creating client to connect to Finch daemon instead
     of Docker. All other Docker environment variables (TLS settings, etc.) are
     preserved from the system environment.
 
@@ -483,49 +489,37 @@ class FinchContainerClient(ContainerClient):
         """
         Initialize FinchContainerClient with automatic Finch socket detection.
 
-        Automatically detects the Finch socket path and overrides the DOCKER_HOST
-        environment variable to connect to Finch. If no Finch socket is found,
-        falls back to using the system environment variables.
-
-        The initialization process:
-        1. Detects Finch socket path using ContainerClientFactory
-        2. If found, overrides DOCKER_HOST with the Finch socket path
-        3. Passes the override to parent ContainerClient for processing
-        4. Parent merges with system environment and initializes DockerClient
-
-        Environment variable precedence:
-        1. Finch socket path (if detected) overrides DOCKER_HOST
-        2. All other system environment variables are preserved
-        3. Standard Docker environment processing applies
+        Args:
+            base_url: Finch daemon URL (e.g., 'unix:///tmp/finch.sock')
+                     If None, automatically detects the Finch socket path
 
         Example:
             # Automatically uses Finch socket if available
             client = FinchContainerClient()
-
-            # Full DockerClient API with Finch-specific optimizations
-            containers = client.containers.list()
-            runtime_type = client.get_runtime_type()  # Returns "finch"
         """
 
-        # Get Finch socket path and create environment override
         socket_path = self.get_socket_path()
         if not socket_path:
             # If socket_path=None mean the platform does not support Finch. Do not create client
             return None
-        LOG.debug(f"Creating Finch container client with DOCKER_HOST={socket_path}")
-        super().__init__(DOCKER_HOST=socket_path)
 
-    def get_socket_path(self) -> Optional[str]:
+        LOG.debug(f"Creating Finch container client with base_url={socket_path}")
+        super().__init__(base_url=socket_path)
+
+    def get_socket_path(self) -> str:
         """
         Return the socket path being used by this Finch client.
 
         Returns:
             str: Socket path
         """
-        if self.socket_path:
+        if self.socket_path is not None:
             return self.socket_path
 
-        self.socket_path = get_finch_socket_path()
+        finch_socket_path = get_finch_socket_path()
+        if finch_socket_path is None:
+            raise ContainerInvalidSocketPathException("Finch is not supported on current platform!")
+        self.socket_path = finch_socket_path
         return self.socket_path
 
     def get_runtime_type(self) -> str:
