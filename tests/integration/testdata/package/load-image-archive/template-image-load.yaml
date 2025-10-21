@@ -13,7 +13,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       PackageType: Image
-      ImageUri: ./archive.tar.gz
+      ImageUri: ./archive_x86_64.tar.gz
       Events:
         HelloWorld:
           Type: Api

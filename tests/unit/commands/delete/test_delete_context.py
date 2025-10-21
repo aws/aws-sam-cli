@@ -18,13 +18,22 @@ from samcli.commands.delete.exceptions import CfDeleteFailedStatusError
 
 
 class TestDeleteContext(TestCase):
+    @patch("samcli.lib.package.ecr_uploader.get_validated_container_client")
     @patch("samcli.commands.delete.delete_context.click.echo")
     @patch("samcli.commands.delete.delete_context.click.get_current_context")
     @patch.object(CfnUtils, "can_delete_stack", MagicMock(return_value=(False)))
     @patch("samcli.commands.delete.delete_context.get_boto_client_provider_with_config")
     def test_delete_context_stack_does_not_exist(
-        self, get_boto_client_provider_mock, patched_click_get_current_context, patched_click_echo
+        self,
+        get_boto_client_provider_mock,
+        patched_click_get_current_context,
+        patched_click_echo,
+        mock_get_validated_client,
     ):
+        # Mock the docker client
+        docker_client_mock = MagicMock()
+        mock_get_validated_client.return_value = docker_client_mock
+
         with DeleteContext(
             stack_name="test",
             region="us-east-1",
@@ -67,14 +76,24 @@ class TestDeleteContext(TestCase):
             )
         ),
     )
+    @patch("samcli.lib.package.ecr_uploader.get_validated_container_client")
     @patch("samcli.commands.delete.delete_context.prompt")
     @patch("samcli.commands.delete.delete_context.confirm")
     @patch("samcli.commands.delete.delete_context.click.get_current_context")
     @patch.object(CfnUtils, "can_delete_stack", MagicMock(return_value=(False)))
     @patch("samcli.commands.delete.delete_context.get_boto_client_provider_with_config")
     def test_delete_no_user_input(
-        self, get_boto_client_provider_mock, patched_click_get_current_context, patched_confirm, patched_prompt
+        self,
+        get_boto_client_provider_mock,
+        patched_click_get_current_context,
+        patched_confirm,
+        patched_prompt,
+        mock_get_validated_client,
     ):
+        # Mock the docker client
+        docker_client_mock = MagicMock()
+        mock_get_validated_client.return_value = docker_client_mock
+
         patched_click_get_current_context = MagicMock()
         with DeleteContext(
             stack_name=None,
@@ -116,9 +135,16 @@ class TestDeleteContext(TestCase):
     @patch.object(CfnUtils, "wait_for_delete", MagicMock())
     @patch.object(Template, "get_ecr_repos", MagicMock(return_value=({"logical_id": {"Repository": "test_id"}})))
     @patch.object(S3Uploader, "delete_prefix_artifacts", MagicMock())
+    @patch("samcli.lib.package.ecr_uploader.get_validated_container_client")
     @patch("samcli.commands.delete.delete_context.click.get_current_context")
     @patch("samcli.commands.delete.delete_context.get_boto_client_provider_with_config")
-    def test_delete_context_valid_execute_run(self, get_boto_client_provider_mock, patched_click_get_current_context):
+    def test_delete_context_valid_execute_run(
+        self, get_boto_client_provider_mock, patched_click_get_current_context, mock_get_validated_client
+    ):
+        # Mock the docker client
+        docker_client_mock = MagicMock()
+        mock_get_validated_client.return_value = docker_client_mock
+
         patched_click_get_current_context = MagicMock()
         with DeleteContext(
             stack_name="test",
@@ -137,6 +163,7 @@ class TestDeleteContext(TestCase):
             self.assertEqual(S3Uploader.delete_prefix_artifacts.call_count, 1)
             self.assertEqual(Template.get_ecr_repos.call_count, 2)
 
+    @patch("samcli.lib.package.ecr_uploader.get_validated_container_client")
     @patch("samcli.commands.delete.delete_context.click.echo")
     @patch("samcli.commands.deploy.guided_context.click.secho")
     @patch("samcli.commands.delete.delete_context.click.get_current_context")
@@ -146,8 +173,17 @@ class TestDeleteContext(TestCase):
     @patch.object(CfnUtils, "wait_for_delete", MagicMock())
     @patch("samcli.commands.delete.delete_context.get_boto_client_provider_with_config")
     def test_delete_context_no_s3_bucket(
-        self, get_boto_client_provider_mock, patched_click_get_current_context, patched_click_secho, patched_click_echo
+        self,
+        get_boto_client_provider_mock,
+        patched_click_get_current_context,
+        patched_click_secho,
+        patched_click_echo,
+        mock_get_validated_client,
     ):
+        # Mock the docker client
+        docker_client_mock = MagicMock()
+        mock_get_validated_client.return_value = docker_client_mock
+
         with DeleteContext(
             stack_name="test",
             region="us-east-1",
@@ -174,6 +210,7 @@ class TestDeleteContext(TestCase):
             ]
             self.assertEqual(expected_click_echo_calls, patched_click_echo.call_args_list)
 
+    @patch("samcli.lib.package.ecr_uploader.get_validated_container_client")
     @patch("samcli.commands.delete.delete_context.get_uploaded_s3_object_name")
     @patch("samcli.commands.delete.delete_context.confirm")
     @patch("samcli.commands.delete.delete_context.click.get_current_context")
@@ -189,7 +226,12 @@ class TestDeleteContext(TestCase):
         patched_click_get_current_context,
         patched_confirm,
         patched_get_cf_template_name,
+        mock_get_validated_client,
     ):
+        # Mock the docker client
+        docker_client_mock = MagicMock()
+        mock_get_validated_client.return_value = docker_client_mock
+
         patched_get_cf_template_name.return_value = "hello.template"
         with DeleteContext(
             stack_name="test",
@@ -234,6 +276,7 @@ class TestDeleteContext(TestCase):
             self.assertFalse(delete_context.delete_artifacts_folder)
             self.assertTrue(delete_context.delete_cf_template_file)
 
+    @patch("samcli.lib.package.ecr_uploader.get_validated_container_client")
     @patch("samcli.commands.delete.delete_context.get_uploaded_s3_object_name")
     @patch("samcli.commands.delete.delete_context.confirm")
     @patch("samcli.commands.delete.delete_context.click.get_current_context")
@@ -250,7 +293,12 @@ class TestDeleteContext(TestCase):
         patched_click_get_current_context,
         patched_confirm,
         patched_get_cf_template_name,
+        mock_get_validated_client,
     ):
+        # Mock the docker client
+        docker_client_mock = MagicMock()
+        mock_get_validated_client.return_value = docker_client_mock
+
         patched_get_cf_template_name.return_value = "hello.template"
         with DeleteContext(
             stack_name="test",
@@ -285,6 +333,7 @@ class TestDeleteContext(TestCase):
             self.assertEqual(expected_confirmation_calls, patched_confirm.call_args_list)
             self.assertTrue(delete_context.delete_cf_template_file)
 
+    @patch("samcli.lib.package.ecr_uploader.get_validated_container_client")
     @patch("samcli.commands.delete.delete_context.get_uploaded_s3_object_name")
     @patch("samcli.commands.delete.delete_context.confirm")
     @patch("samcli.commands.delete.delete_context.click.get_current_context")
@@ -303,7 +352,12 @@ class TestDeleteContext(TestCase):
         patched_click_get_current_context,
         patched_confirm,
         patched_get_cf_template_name,
+        mock_get_validated_client,
     ):
+        # Mock the docker client
+        docker_client_mock = MagicMock()
+        mock_get_validated_client.return_value = docker_client_mock
+
         patched_get_cf_template_name.return_value = "hello.template"
         with DeleteContext(
             stack_name="test",
@@ -364,6 +418,7 @@ class TestDeleteContext(TestCase):
             self.assertFalse(delete_context.delete_artifacts_folder)
             self.assertTrue(delete_context.delete_cf_template_file)
 
+    @patch("samcli.lib.package.ecr_uploader.get_validated_container_client")
     @patch("samcli.commands.delete.delete_context.get_uploaded_s3_object_name")
     @patch("samcli.commands.delete.delete_context.click.echo")
     @patch("samcli.commands.delete.delete_context.click.get_current_context")
@@ -382,7 +437,12 @@ class TestDeleteContext(TestCase):
         patched_click_get_current_context,
         patched_click_echo,
         patched_get_cf_template_name,
+        mock_get_validated_client,
     ):
+        # Mock the docker client
+        docker_client_mock = MagicMock()
+        mock_get_validated_client.return_value = docker_client_mock
+
         CfnUtils.get_stack_template.return_value = json.dumps(
             {"Metadata": {"CompanionStackname": "Companion-Stack-Name"}}
         )
@@ -424,11 +484,20 @@ class TestDeleteContext(TestCase):
     )
     @patch.object(S3Uploader, "delete_prefix_artifacts", MagicMock())
     @patch.object(ECRUploader, "delete_ecr_repository", MagicMock())
+    @patch("samcli.lib.package.ecr_uploader.get_validated_container_client")
     @patch.object(Template, "get_ecr_repos", MagicMock(side_effect=({}, {"logical_id": {"Repository": "test_id"}})))
     @patch("samcli.commands.delete.delete_context.get_boto_client_provider_with_config")
     def test_retain_resources_delete_stack(
-        self, get_boto_client_provider_mock, patched_click_get_current_context, patched_get_cf_template_name
+        self,
+        get_boto_client_provider_mock,
+        patched_click_get_current_context,
+        patched_get_cf_template_name,
+        mock_get_validated_client,
     ):
+        # Mock the docker client
+        docker_client_mock = MagicMock()
+        mock_get_validated_client.return_value = docker_client_mock
+
         patched_get_cf_template_name.return_value = "hello.template"
         with DeleteContext(
             stack_name="test",

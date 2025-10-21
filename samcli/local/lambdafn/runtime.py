@@ -56,7 +56,12 @@ class LambdaRuntime:
         self._no_mem_limit = no_mem_limit
 
     def create(
-        self, function_config, debug_context=None, container_host=None, container_host_interface=None, extra_hosts=None
+        self,
+        function_config,
+        debug_context=None,
+        container_host=None,
+        container_host_interface=None,
+        extra_hosts=None,
     ):
         """
         Create a new Container for the passed function, then store it in a dictionary using the function name,
@@ -229,7 +234,14 @@ class LambdaRuntime:
             container = self.create(
                 function_config, debug_context, container_host, container_host_interface, extra_hosts
             )
-            container = self.run(container, function_config, debug_context)
+            container = self.run(
+                container,
+                function_config,
+                debug_context,
+                container_host,
+                container_host_interface,
+                extra_hosts,
+            )
             # Setup appropriate interrupt - timeout or Ctrl+C - before function starts executing and
             # get callback function to start timeout timer
             start_timer = self._configure_interrupt(
@@ -416,7 +428,12 @@ class WarmLambdaRuntime(LambdaRuntime):
         super().__init__(container_manager, image_builder, mount_symlinks=mount_symlinks, no_mem_limit=no_mem_limit)
 
     def create(
-        self, function_config, debug_context=None, container_host=None, container_host_interface=None, extra_hosts=None
+        self,
+        function_config,
+        debug_context=None,
+        container_host=None,
+        container_host_interface=None,
+        extra_hosts=None,
     ):
         """
         Create a new Container for the passed function, then store it in a dictionary using the function name,
