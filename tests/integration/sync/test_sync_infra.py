@@ -463,6 +463,16 @@ class TestSyncInfraCDKTemplates(SyncIntegBase):
 
         template_path = str(self.test_data_path.joinpath("infra/cdk").joinpath(template_after))
 
+        after_asset_path = self.test_data_path.joinpath("infra/cdk").joinpath(
+            "after/asset.6598609927b272b36fdf01072092f9851ddcd1b41ba294f736ce77091f5cc456"
+        )
+        layer_method_file = str(after_asset_path.joinpath("layer_method.py"))
+        main_file = str(after_asset_path.joinpath("main.py"))
+
+        # touch layer_method_file and main_file
+        Path(layer_method_file).touch()
+        Path(main_file).touch()
+
         # Run infra sync
         sync_command_list = self.get_sync_command_list(
             template_file=template_path,

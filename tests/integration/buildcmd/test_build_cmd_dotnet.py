@@ -9,6 +9,7 @@ from tests.testing_utils import (
     SKIP_DOCKER_TESTS,
     SKIP_DOCKER_BUILD,
     SKIP_DOCKER_MESSAGE,
+    USING_FINCH_RUNTIME,
     run_command_with_input,
 )
 from tests.integration.buildcmd.build_integ_base import (
@@ -30,6 +31,18 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegDotnetBase):
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_dotnet_al2(self, runtime, code_uri, mode, mount_mode):
+        # Skip specific test case when using Finch runtime
+        if (
+            runtime == "provided.al2"
+            and code_uri == "Dotnet7"
+            and mode is None
+            and mount_mode is None
+            and USING_FINCH_RUNTIME
+        ):
+            self.skipTest(
+                "Skip test when using Finch runtime: Terraform uses Docker provider that connect to Finch daemon via Docker socket"
+            )
+
         overrides = {
             "Runtime": runtime,
             "CodeUri": code_uri,

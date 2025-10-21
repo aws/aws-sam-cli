@@ -5,12 +5,12 @@ from pathlib import Path
 from unittest import skipIf
 
 import botocore
-import docker
 from botocore.exceptions import ClientError
 from parameterized import parameterized
 
 from samcli.lib.bootstrap.bootstrap import SAM_CLI_STACK_NAME
 from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME, SamConfig
+from samcli.local.docker.utils import get_validated_container_client
 from tests.integration.deploy.deploy_integ_base import DeployIntegBase
 from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY, UpdatableSARTemplate
 
@@ -24,9 +24,9 @@ CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".
 class TestDeploy(DeployIntegBase):
     @classmethod
     def setUpClass(cls):
-        cls.docker_client = docker.from_env()
+        cls.docker_client = get_validated_container_client()
         cls.local_images = [
-            ("public.ecr.aws/sam/emulation-python3.9", "latest"),
+            ("public.ecr.aws/sam/emulation-python3.9", "latest-x86_64"),
         ]
         # setup some images locally by pulling them.
         for repo, tag in cls.local_images:
