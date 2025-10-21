@@ -2,13 +2,13 @@
 Unit tests for Container Client Strategy Pattern
 
 This module tests the ContainerClient abstract base class, DockerContainerClient
-and FinchContainerClient implementations, and ContainerClientFactory.
+and FinchContainerClient implementations.
 """
 
 import io
 import os
 from unittest import TestCase
-from unittest.mock import Mock, patch, MagicMock, call
+from unittest.mock import Mock, patch
 
 import docker
 from parameterized import parameterized
@@ -20,7 +20,102 @@ from samcli.local.docker.container_client import (
 )
 from samcli.local.docker.exceptions import (
     ContainerArchiveImageLoadFailedException,
+    ContainerInvalidSocketPathException,
 )
+
+
+class BaseContainerClientTestCase(TestCase):
+    """Base test case with common helper methods for container client testing"""
+
+    def setUp(self):
+        """Set up common test fixtures"""
+        self.finch_socket = "unix:///tmp/finch.sock"
+        self.docker_socket = "unix:///var/run/docker.sock"
+        self.default_version = "1.35"
+
+    def create_mock_container_client(self, client_class, methods_to_bind=None):
+        """Create a mock container client with bound methods for testing."""
+        client = Mock(spec=client_class)
+
+        # Default methods to bind
+        default_methods = [
+            "get_runtime_type",
+            "get_socket_path",
+            "is_docker",
+            "is_finch",
+            "is_available",
+            "load_image_from_archive",
+            "is_dockerfile_error",
+            "list_containers_by_image",
+            "remove_image_safely",
+            "validate_image_count",
+            "get_archive",
+        ]
+
+        methods_to_bind = methods_to_bind or default_methods
+
+        # Bind methods from the actual class
+        for method_name in methods_to_bind:
+            if hasattr(client_class, method_name):
+                setattr(client, method_name, getattr(client_class, method_name).__get__(client))
+
+        # Set up common mock attributes
+        client.api = Mock()
+        client.images = Mock()
+        client.containers = Mock()
+        client.ping = Mock(return_value=True)
+        client.socket_path = None
+
+        return client
+
+    def create_mock_containers(self, container_configs):
+        """Create mock containers with specified configurations."""
+        containers = []
+        for config in container_configs:
+            container = Mock()
+
+            # Set up image attributes
+            if "tags" in config or "image_id" in config:
+                container.image = Mock()
+                container.image.tags = config.get("tags", [])
+                container.image.id = config.get("image_id", "sha256:default")
+
+            # Set up container attributes
+            container.status = config.get("status", "running")
+            container.id = config.get("id", f"container-{len(containers)}")
+
+            containers.append(container)
+
+        return containers
+
+
+# Shared test implementation of ContainerClient for testing abstract base class
+class ConcreteContainerClient(ContainerClient):
+    """Concrete implementation of ContainerClient for testing purposes"""
+
+    def get_socket_path(self):
+        return "unix:///var/run/docker.sock"
+
+    def get_runtime_type(self):
+        return "test"
+
+    def get_archive(self, container_id, path):
+        pass
+
+    def is_dockerfile_error(self, error):
+        pass
+
+    def list_containers_by_image(self, image_name, all_containers=True):
+        pass
+
+    def load_image_from_archive(self, archive):
+        pass
+
+    def remove_image_safely(self, image_name, force=True):
+        pass
+
+    def validate_image_count(self, image_name, expected_count_range=(1, 2)):
+        pass
 
 
 class TestContainerClientAbstractClass(TestCase):
@@ -39,6 +134,7 @@ class TestContainerClientAbstractClass(TestCase):
         """Test that all required abstract methods are defined"""
         abstract_methods = {
             "get_runtime_type",
+            "get_socket_path",
             "load_image_from_archive",
             "is_dockerfile_error",
             "list_containers_by_image",
@@ -53,44 +149,92 @@ class TestContainerClientAbstractClass(TestCase):
         self.assertEqual(abstract_methods, actual_abstract_methods)
 
 
-class TestDockerContainerClient(TestCase):
+class TestDockerContainerClientInit(BaseContainerClientTestCase):
+    """Test the DockerContainerClient __init__ method"""
+
+    @patch("docker.DockerClient.__init__", return_value=None)
+    def test_init_success_no_docker_host(self, mock_docker_init):
+        """Test DockerContainerClient init when no DOCKER_HOST is set"""
+        with patch.dict("os.environ", {}, clear=True), patch(
+            "samcli.local.docker.container_client.get_finch_socket_path", return_value=self.finch_socket
+        ):
+            client = DockerContainerClient()
+
+        # Verify DockerClient.__init__ was called with expected parameters
+        mock_docker_init.assert_called_once()
+        call_kwargs = mock_docker_init.call_args.kwargs
+        self.assertEqual(call_kwargs["version"], self.default_version)
+
+    @patch("docker.DockerClient.__init__", return_value=None)
+    def test_init_success_with_docker_host(self, mock_docker_init):
+        """Test DockerContainerClient init when DOCKER_HOST is set to Docker socket"""
+        with patch.dict("os.environ", {"DOCKER_HOST": self.docker_socket}, clear=True), patch(
+            "samcli.local.docker.container_client.get_finch_socket_path", return_value=self.finch_socket
+        ):
+            client = DockerContainerClient()
+
+        # Verify DockerClient.__init__ was called with expected parameters
+        mock_docker_init.assert_called_once()
+        call_kwargs = mock_docker_init.call_args.kwargs
+        self.assertEqual(call_kwargs["version"], self.default_version)
+        self.assertEqual(call_kwargs["base_url"], self.docker_socket)
+
+    def test_init_raises_exception_when_docker_host_points_to_finch(self):
+        """Test DockerContainerClient init raises exception when DOCKER_HOST points to Finch socket"""
+        with patch.dict("os.environ", {"DOCKER_HOST": self.finch_socket}, clear=True), patch(
+            "samcli.local.docker.container_client.get_finch_socket_path", return_value=self.finch_socket
+        ):
+            with self.assertRaises(ContainerInvalidSocketPathException) as context:
+                DockerContainerClient()
+
+        self.assertIn("DOCKER_HOST is set to Finch socket path", str(context.exception))
+
+    @parameterized.expand(
+        [
+            ("tcp://localhost:2375",),
+            ("unix:///var/run/docker.sock",),
+            ("tcp://host.docker.internal:2357",),
+        ]
+    )
+    @patch("docker.DockerClient.__init__", return_value=None)
+    @patch("samcli.local.docker.container_client.LOG")
+    def test_init_with_various_docker_host_values(self, docker_host, mock_log, mock_docker_init):
+        """Test DockerContainerClient init with various DOCKER_HOST values"""
+        with patch.dict("os.environ", {"DOCKER_HOST": docker_host}, clear=True), patch(
+            "samcli.local.docker.container_client.get_finch_socket_path", return_value=self.finch_socket
+        ):
+            client = DockerContainerClient()
+
+        # Verify DockerClient.__init__ was called with expected parameters
+        mock_docker_init.assert_called_once()
+        call_kwargs = mock_docker_init.call_args.kwargs
+        self.assertEqual(call_kwargs["version"], self.default_version)
+        self.assertEqual(call_kwargs["base_url"], docker_host)
+
+        # Verify log call
+        mock_log.debug.assert_any_call(f"Creating Docker container client with base_url={docker_host}.")
+
+
+class TestDockerContainerClient(BaseContainerClientTestCase):
     """Test the DockerContainerClient implementation"""
 
     def setUp(self):
         """Set up test fixtures"""
-        # Create a mock client that doesn't inherit from docker.DockerClient
-        self.client = Mock(spec=DockerContainerClient)
+        super().setUp()
+        self.client = self.create_mock_container_client(DockerContainerClient)
 
-        # Set up the methods we need to test
-        self.client.get_runtime_type = DockerContainerClient.get_runtime_type.__get__(self.client)
-        self.client.is_docker = DockerContainerClient.is_docker.__get__(self.client)
-        self.client.is_finch = DockerContainerClient.is_finch.__get__(self.client)
-        self.client.is_available = DockerContainerClient.is_available.__get__(self.client)
-        self.client.load_image_from_archive = DockerContainerClient.load_image_from_archive.__get__(self.client)
-        self.client.is_dockerfile_error = DockerContainerClient.is_dockerfile_error.__get__(self.client)
-        self.client.list_containers_by_image = DockerContainerClient.list_containers_by_image.__get__(self.client)
-
-        self.client.remove_image_safely = DockerContainerClient.remove_image_safely.__get__(self.client)
-        self.client.validate_image_count = DockerContainerClient.validate_image_count.__get__(self.client)
-        self.client.get_archive = DockerContainerClient.get_archive.__get__(self.client)
-
-        # Set up the mocked docker client attributes
-        self.client.api = Mock()
-        self.client.images = Mock()
-        self.client.containers = Mock()
-        self.client.ping = Mock(return_value=True)
-
-    def test_get_runtime_type(self):
-        """Test that DockerContainerClient returns 'docker' as runtime type"""
-        self.assertEqual(self.client.get_runtime_type(), "docker")
-
-    def test_is_docker_returns_true(self):
-        """Test that is_docker() returns True for DockerContainerClient"""
-        self.assertTrue(self.client.is_docker())
-
-    def test_is_finch_returns_false(self):
-        """Test that is_finch() returns False for DockerContainerClient"""
-        self.assertFalse(self.client.is_finch())
+    @parameterized.expand(
+        [
+            ("get_runtime_type", "docker"),
+            ("is_docker", True),
+            ("is_finch", False),
+        ]
+    )
+    def test_docker_client_runtime_properties(self, method_name, expected_value):
+        """Test DockerContainerClient runtime-related properties"""
+        method = getattr(self.client, method_name)
+        result = method()
+        self.assertEqual(result, expected_value)
 
     def test_is_available_when_ping_succeeds(self):
         """Test is_available() returns True when ping succeeds"""
@@ -121,12 +265,9 @@ class TestDockerContainerClient(TestCase):
         self.assertEqual(result, mock_image)
         self.client.images.load.assert_called_once_with(mock_archive)
 
-    def test_load_image_from_archive_multiple_images_error(self):
-        """Test error when archive contains multiple images"""
-        mock_image1 = Mock()
-        mock_image2 = Mock()
-        self.client.images.load.return_value = [mock_image1, mock_image2]
-
+    def test_load_image_from_archive_multiple_images(self):
+        """Test error handling when archive contains multiple images"""
+        self.client.images.load.return_value = [Mock(), Mock()]
         mock_archive = Mock()
 
         with self.assertRaises(ContainerArchiveImageLoadFailedException) as context:
@@ -134,10 +275,9 @@ class TestDockerContainerClient(TestCase):
 
         self.assertIn("single image", str(context.exception))
 
-    def test_load_image_from_archive_empty_archive_error(self):
-        """Test error when archive contains no images"""
+    def test_load_image_from_archive_empty_archive(self):
+        """Test error handling when archive is empty"""
         self.client.images.load.return_value = []
-
         mock_archive = Mock()
 
         with self.assertRaises(ValueError):
@@ -156,27 +296,20 @@ class TestDockerContainerClient(TestCase):
 
     @parameterized.expand(
         [
-            # Test with APIError containing dockerfile error
             (
                 docker.errors.APIError("Server error", response=Mock(status_code=500)),
                 "Cannot locate specified Dockerfile",
                 True,
             ),
-            # Test with APIError not containing dockerfile error
             (docker.errors.APIError("Server error", response=Mock(status_code=500)), "Some other error", False),
-            # Test with client error (not server error)
             (
                 docker.errors.APIError("Client error", response=Mock(status_code=400)),
                 "Cannot locate specified Dockerfile",
                 False,
             ),
-            # Test with string containing dockerfile error
             ("Cannot locate specified Dockerfile in /path", None, True),
-            # Test with string not containing dockerfile error
             ("Some other error message", None, False),
-            # Test with other exception type
             (ValueError("Some error"), None, False),
-            # Test with APIError and None explanation
             (
                 docker.errors.APIError("Server error", response=Mock(status_code=500)),
                 None,
@@ -209,13 +342,13 @@ class TestDockerContainerClient(TestCase):
         self.assertEqual(result, mock_containers)
         self.client.containers.list.assert_called_once_with(all=all_containers, filters={"ancestor": "test-image"})
 
-    def test_remove_image_safely_success(self):
-        """Test successful image removal"""
+    def test_remove_image_safely_with_explicit_force_true(self):
+        """Test image removal with explicit force=True"""
         self.client.remove_image_safely("test-image", force=True)
         self.client.images.remove.assert_called_once_with("test-image", force=True)
 
     def test_remove_image_safely_with_default_force(self):
-        """Test image removal with default force parameter"""
+        """Test image removal with default force parameter (should default to True)"""
         self.client.remove_image_safely("test-image")
         self.client.images.remove.assert_called_once_with("test-image", force=True)
 
@@ -237,14 +370,13 @@ class TestDockerContainerClient(TestCase):
 
     @parameterized.expand(
         [
-            # Test cases: (image_count, range_tuple, expected_result)
-            (2, (1, 3), True),  # Within range
-            (1, (1, 3), True),  # At minimum
-            (3, (1, 3), True),  # At maximum
-            (0, (1, 3), False),  # Below minimum
-            (4, (1, 3), False),  # Above maximum
-            (0, (0, 1), True),  # Zero images within range
-            (1, (0, 1), True),  # One image within range
+            (2, (1, 3), True),
+            (1, (1, 3), True),
+            (3, (1, 3), True),
+            (0, (1, 3), False),
+            (4, (1, 3), False),
+            (0, (0, 1), True),
+            (1, (0, 1), True),
         ]
     )
     def test_validate_image_count(self, image_count, range_tuple, expected_result):
@@ -284,60 +416,88 @@ class TestDockerContainerClient(TestCase):
         self.client.containers.get.assert_called_once_with(container_id)
         mock_container.get_archive.assert_called_once_with(path)
 
-    @patch("samcli.local.docker.container_client.DockerContainerClient.__init__", return_value=None)
-    def test_from_existing_client(self, mock_init):
-        """Test creating DockerContainerClient from existing client"""
-        existing_client = Mock()
-        existing_client.api = Mock()
-        existing_client.api.base_url = "unix://var/run/docker.sock"
-        existing_client.api._version = "1.41"
+    @parameterized.expand(
+        [
+            ({}, ""),
+            ({"DOCKER_HOST": "unix:///var/run/docker.sock"}, "unix:///var/run/docker.sock"),
+            ({"DOCKER_HOST": "tcp://localhost:2375"}, "tcp://localhost:2375"),
+            ({"DOCKER_HOST": ""}, ""),
+        ]
+    )
+    @patch("samcli.local.docker.container_client.get_finch_socket_path")
+    def test_get_socket_path_scenarios(self, env_vars, expected_result, mock_get_finch_socket_path):
+        """Test get_socket_path with various DOCKER_HOST scenarios"""
+        mock_get_finch_socket_path.return_value = "unix://~/.finch/finch.sock"
 
-        result = DockerContainerClient.from_existing_client(existing_client)
+        with patch.dict("os.environ", env_vars, clear=True):
+            result = self.client.get_socket_path()
 
-        self.assertIsInstance(result, DockerContainerClient)
-        mock_init.assert_called_once_with(base_url="unix://var/run/docker.sock", version="1.41")
+        self.assertEqual(result, expected_result)
+
+    @patch("samcli.local.docker.container_client.get_finch_socket_path")
+    def test_get_socket_path_scenarios_finch_socket_raises_exception(self, mock_get_finch_socket_path):
+        """Test get_socket_path raises exception when DOCKER_HOST is set to Finch socket"""
+        mock_get_finch_socket_path.return_value = "unix://~/.finch/finch.sock"
+
+        with patch.dict("os.environ", {"DOCKER_HOST": "unix://~/.finch/finch.sock"}, clear=True):
+            # Should raise ContainerInvalidSocketPathException
+            with self.assertRaises(ContainerInvalidSocketPathException) as context:
+                self.client.get_socket_path()
+
+            self.assertIn("DOCKER_HOST is set to Finch socket path", str(context.exception))
+
+    @patch("samcli.local.docker.container_client.get_finch_socket_path")
+    @patch.dict("os.environ", {"DOCKER_HOST": "unix:///var/run/docker.sock"}, clear=True)
+    def test_get_socket_path_caching(self, mock_get_finch_socket_path):
+        """Test that get_socket_path caches the result"""
+        mock_get_finch_socket_path.return_value = "unix://~/.finch/finch.sock"
+
+        # First call
+        result1 = self.client.get_socket_path()
+        # Second call should use cached value
+        result2 = self.client.get_socket_path()
+
+        self.assertEqual(result1, "unix:///var/run/docker.sock")
+        self.assertEqual(result2, "unix:///var/run/docker.sock")
+        # get_finch_socket_path should only be called once due to caching
+        mock_get_finch_socket_path.assert_called_once()
 
 
-class TestFinchContainerClient(TestCase):
+class TestFinchContainerClient(BaseContainerClientTestCase):
     """Test the FinchContainerClient implementation"""
 
     def setUp(self):
         """Set up test fixtures"""
-        # Create a mock client that doesn't inherit from docker.DockerClient
-        self.client = Mock(spec=FinchContainerClient)
+        super().setUp()
+        # Include Finch-specific methods
+        finch_methods = [
+            "get_runtime_type",
+            "get_socket_path",
+            "is_docker",
+            "is_finch",
+            "load_image_from_archive",
+            "is_dockerfile_error",
+            "list_containers_by_image",
+            "remove_image_safely",
+            "validate_image_count",
+            "get_archive",
+            "_load_with_raw_api",
+            "_get_archive_from_mount",
+        ]
+        self.client = self.create_mock_container_client(FinchContainerClient, finch_methods)
 
-        # Set up the methods we need to test
-        self.client.get_runtime_type = FinchContainerClient.get_runtime_type.__get__(self.client)
-        self.client.is_docker = FinchContainerClient.is_docker.__get__(self.client)
-        self.client.is_finch = FinchContainerClient.is_finch.__get__(self.client)
-        self.client.load_image_from_archive = FinchContainerClient.load_image_from_archive.__get__(self.client)
-        self.client.is_dockerfile_error = FinchContainerClient.is_dockerfile_error.__get__(self.client)
-        self.client.list_containers_by_image = FinchContainerClient.list_containers_by_image.__get__(self.client)
-
-        self.client.remove_image_safely = FinchContainerClient.remove_image_safely.__get__(self.client)
-        self.client.validate_image_count = FinchContainerClient.validate_image_count.__get__(self.client)
-        self.client._load_with_raw_api = FinchContainerClient._load_with_raw_api.__get__(self.client)
-        self.client.get_archive = FinchContainerClient.get_archive.__get__(self.client)
-
-        self.client._get_archive_from_mount = FinchContainerClient._get_archive_from_mount.__get__(self.client)
-
-        # Set up the mocked docker client attributes
-        self.client.api = Mock()
-        self.client.images = Mock()
-        self.client.containers = Mock()
-        self.client.ping = Mock(return_value=True)
-
-    def test_get_runtime_type(self):
-        """Test that FinchContainerClient returns 'finch' as runtime type"""
-        self.assertEqual(self.client.get_runtime_type(), "finch")
-
-    def test_is_finch_returns_true(self):
-        """Test that is_finch() returns True for FinchContainerClient"""
-        self.assertTrue(self.client.is_finch())
-
-    def test_is_docker_returns_false(self):
-        """Test that is_docker() returns False for FinchContainerClient"""
-        self.assertFalse(self.client.is_docker())
+    @parameterized.expand(
+        [
+            ("get_runtime_type", "finch"),
+            ("is_finch", True),
+            ("is_docker", False),
+        ]
+    )
+    def test_finch_client_runtime_properties(self, method_name, expected_value):
+        """Test FinchContainerClient runtime-related properties"""
+        method = getattr(self.client, method_name)
+        result = method()
+        self.assertEqual(result, expected_value)
 
     def test_load_image_from_archive_success(self):
         """Test successful image loading from archive"""
@@ -374,82 +534,14 @@ class TestFinchContainerClient(TestCase):
         self.client.api.load_image.assert_called_once()
         self.client.images.get.assert_called_once_with("sha256:abc123")
 
-    def test_load_image_from_archive_overlayfs_fallback_no_digest(self):
-        """Test overlayfs fallback when no valid digest is found"""
-        self.client.images.load.side_effect = docker.errors.APIError("overlayfs error")
-
-        # Mock response with overlayfs artifact
-        mock_response = [
-            {"stream": "Loading image..."},
-            {"stream": "Loaded image: overlayfs:"},
-        ]
-        self.client.api.load_image.return_value = mock_response
-
-        mock_archive = io.BytesIO(b"fake archive data")
-
-        with self.assertRaises(ContainerArchiveImageLoadFailedException):
-            self.client.load_image_from_archive(mock_archive)
-
-    def test_load_image_from_archive_overlayfs_fallback_api_error(self):
-        """Test overlayfs fallback when raw API also fails"""
-        self.client.images.load.side_effect = docker.errors.APIError("overlayfs error")
-        self.client.api.load_image.side_effect = docker.errors.APIError("Raw API also failed")
-
-        mock_archive = io.BytesIO(b"fake archive data")
-
-        with self.assertRaises(ContainerArchiveImageLoadFailedException):
-            self.client.load_image_from_archive(mock_archive)
-
-    @patch("samcli.local.docker.container_client.LOG")
-    def test_load_image_from_archive_image_not_found_fallback(self, mock_log):
-        """Test image loading with ImageNotFound triggering fallback"""
-        # First call fails with ImageNotFound, triggering fallback
-        self.client.images.load.side_effect = docker.errors.ImageNotFound("Image not found")
-
-        # Mock the raw API response
-        mock_response = [
-            {"stream": "Loading image..."},
-            {"stream": "Loaded image: sha256:def456"},
-        ]
-        self.client.api.load_image.return_value = mock_response
-
-        # Mock the image retrieval
-        mock_image = Mock()
-        self.client.images.get.return_value = mock_image
-
-        mock_archive = io.BytesIO(b"fake archive data")
-        result = self.client.load_image_from_archive(mock_archive)
-
-        self.assertEqual(result, mock_image)
-        self.client.api.load_image.assert_called_once()
-        self.client.images.get.assert_called_once_with("sha256:def456")
-
-    def test_load_image_from_archive_multiple_images_error(self):
-        """Test error when archive contains multiple images"""
-        mock_image1 = Mock()
-        mock_image2 = Mock()
-        self.client.images.load.return_value = [mock_image1, mock_image2]
-
-        mock_archive = Mock()
-
-        with self.assertRaises(ContainerArchiveImageLoadFailedException) as context:
-            self.client.load_image_from_archive(mock_archive)
-
-        self.assertIn("single image", str(context.exception))
-
     @parameterized.expand(
         [
-            # Test with APIError containing finch dockerfile error
             (docker.errors.APIError("Server error", response=Mock(status_code=500)), "no such file or directory", True),
-            # Test with APIError not containing finch dockerfile error
             (docker.errors.APIError("Server error", response=Mock(status_code=500)), "Some other error", False),
-            # Test with string containing finch dockerfile error (case variations)
             ("No such file or directory: /path/Dockerfile", None, True),
             ("NO SUCH FILE OR DIRECTORY", None, True),
             ("no such file or directory", None, True),
-            # Test with string not containing finch dockerfile error
             ("Some other error message", None, False),
-            # Test with other exception type
             (ValueError("Some error"), None, False),
         ]
     )
@@ -464,193 +556,30 @@ class TestFinchContainerClient(TestCase):
 
     def test_list_containers_by_image_success_by_tag(self):
         """Test listing containers by image tag with manual filtering"""
-        # Mock containers with different images
-        container1 = Mock()
-        container1.image.tags = ["test-image:latest", "test-image:v1.0"]
-        container1.image.id = "sha256:abc123"
+        containers = self.create_mock_containers(
+            [
+                {"tags": ["test-image:latest", "test-image:v1.0"], "image_id": "sha256:abc123"},
+                {"tags": ["other-image:latest"], "image_id": "sha256:def456"},
+                {"tags": ["test-image:v2.0"], "image_id": "sha256:ghi789"},
+            ]
+        )
 
-        container2 = Mock()
-        container2.image.tags = ["other-image:latest"]
-        container2.image.id = "sha256:def456"
-
-        container3 = Mock()
-        container3.image.tags = ["test-image:v2.0"]
-        container3.image.id = "sha256:ghi789"
-
-        self.client.containers.list.return_value = [container1, container2, container3]
-
+        self.client.containers.list.return_value = containers
         result = self.client.list_containers_by_image("test-image", all_containers=True)
 
-        # Should return containers 1 and 3 (both have test-image in tags)
+        # Should return containers 0 and 2 (both have test-image in tags)
         self.assertEqual(len(result), 2)
-        self.assertIn(container1, result)
-        self.assertIn(container3, result)
-        self.assertNotIn(container2, result)
-
-    def test_list_containers_by_image_success_by_id(self):
-        """Test listing containers by image ID"""
-        container1 = Mock()
-        container1.image.tags = ["other-image:latest"]
-        container1.image.id = "sha256:abc123"
-
-        self.client.containers.list.return_value = [container1]
-
-        result = self.client.list_containers_by_image("abc123", all_containers=True)
-
-        self.assertEqual(len(result), 1)
-        self.assertIn(container1, result)
-
-    @patch("samcli.local.docker.container_client.LOG")
-    def test_list_containers_by_image_inspection_error(self, mock_log):
-        """Test container listing when container inspection fails"""
-        container1 = Mock()
-        container1.image = None  # This will cause an error during inspection
-
-        container2 = Mock()
-        container2.image.tags = ["test-image:latest"]
-
-        self.client.containers.list.return_value = [container1, container2]
-
-        result = self.client.list_containers_by_image("test-image", all_containers=True)
-
-        # Should skip container1 and return container2
-        self.assertEqual(len(result), 1)
-        self.assertIn(container2, result)
-
-    def test_list_containers_by_image_missing_image_attribute(self):
-        """Test container listing when containers have missing image attributes"""
-        container_with_image = Mock()
-        container_with_image.image.tags = ["test-image:latest"]
-
-        container_without_image = Mock()
-        del container_without_image.image  # Simulate missing image attribute
-
-        container_with_none_image = Mock()
-        container_with_none_image.image = None
-
-        self.client.containers.list.return_value = [
-            container_with_image,
-            container_without_image,
-            container_with_none_image,
-        ]
-
-        result = self.client.list_containers_by_image("test-image")
-
-        # Should only return the container with valid image
-        self.assertEqual(len(result), 1)
-        self.assertEqual(result[0], container_with_image)
-
-    @patch("samcli.local.docker.container_client.LOG")
-    def test_list_containers_by_image_api_error(self, mock_log):
-        """Test container listing with API error"""
-        self.client.containers.list.side_effect = docker.errors.APIError("List failed")
-
-        result = self.client.list_containers_by_image("test-image")
-
-        self.assertEqual(result, [])
-        mock_log.warning.assert_called_once()
-
-    @patch("samcli.local.docker.container_client.LOG")
-    def test_remove_image_safely_with_running_containers(self, mock_log):
-        """Test image removal with running container cleanup"""
-        # Mock running container using the image
-        container = Mock()
-        container.status = "running"
-        container.id = "container1"
-
-        # Mock list_containers_by_image to return this container
-        with patch.object(self.client, "list_containers_by_image", return_value=[container]):
-            self.client.remove_image_safely("test-image", force=True)
-
-        # Verify container was stopped and removed
-        container.stop.assert_called_once()
-        container.remove.assert_called_once_with(force=True)
-
-        # Verify image was removed
-        self.client.images.remove.assert_called_once_with("test-image", force=True)
-
-    @patch("samcli.local.docker.container_client.LOG")
-    def test_remove_image_safely_with_exited_containers(self, mock_log):
-        """Test image removal with exited container cleanup"""
-        # Mock exited container using the image
-        container = Mock()
-        container.status = "exited"
-        container.id = "container2"
-
-        # Mock list_containers_by_image to return this container
-        with patch.object(self.client, "list_containers_by_image", return_value=[container]):
-            self.client.remove_image_safely("test-image", force=True)
-
-        # Verify container was removed but not stopped (already exited)
-        container.stop.assert_not_called()
-        container.remove.assert_called_once_with(force=True)
-
-        # Verify image was removed
-        self.client.images.remove.assert_called_once_with("test-image", force=True)
-
-    @patch("samcli.local.docker.container_client.LOG")
-    def test_remove_image_safely_container_stop_failure(self, mock_log):
-        """Test image removal when container stop fails"""
-        container = Mock()
-        container.status = "running"
-        container.id = "test-container"
-        container.stop.side_effect = docker.errors.APIError("Stop failed")
-
-        with patch.object(self.client, "list_containers_by_image", return_value=[container]):
-            self.client.remove_image_safely("test-image")
-
-        # Should try to stop the container, but when it fails, remove is skipped
-        container.stop.assert_called_once()
-        container.remove.assert_not_called()  # Remove is skipped due to exception
-
-        # Should still try to remove the image
-        self.client.images.remove.assert_called_once_with("test-image", force=True)
-
-    @patch("samcli.local.docker.container_client.LOG")
-    def test_remove_image_safely_container_remove_failure(self, mock_log):
-        """Test image removal when container remove fails"""
-        container = Mock()
-        container.status = "running"
-        container.remove.side_effect = docker.errors.APIError("Remove failed")
-
-        with patch.object(self.client, "list_containers_by_image", return_value=[container]):
-            self.client.remove_image_safely("test-image", force=True)
-
-        # Should continue with image removal despite container cleanup failure
-        self.client.images.remove.assert_called_once_with("test-image", force=True)
-
-    @patch("samcli.local.docker.container_client.LOG")
-    def test_remove_image_safely_image_not_found(self, mock_log):
-        """Test image removal when image is not found"""
-        # Mock no containers using the image
-        with patch.object(self.client, "list_containers_by_image", return_value=[]):
-            self.client.images.remove.side_effect = docker.errors.ImageNotFound("Image not found")
-
-            # Should not raise exception
-            self.client.remove_image_safely("test-image", force=True)
-
-            mock_log.debug.assert_called_once()
-
-    @patch("samcli.local.docker.container_client.LOG")
-    def test_remove_image_safely_api_error(self, mock_log):
-        """Test image removal with API error"""
-        # Mock no containers using the image
-        with patch.object(self.client, "list_containers_by_image", return_value=[]):
-            self.client.images.remove.side_effect = docker.errors.APIError("Remove failed")
-
-            # Should not raise exception, but should log warning
-            self.client.remove_image_safely("test-image", force=True)
-
-            mock_log.warning.assert_called_once()
+        self.assertIn(containers[0], result)
+        self.assertIn(containers[2], result)
+        self.assertNotIn(containers[1], result)
 
     @parameterized.expand(
         [
-            # Test cases: (image_count, range_tuple, expected_result)
-            (1, (1, 3), True),  # Meets minimum
-            (2, (1, 3), True),  # Above minimum
-            (5, (1, 2), True),  # Finch uses flexible validation - passes if >= minimum
-            (0, (1, 3), False),  # Below minimum
-            (0, (0, 1), True),  # Zero images meets minimum of 0
+            (1, (1, 3), True),
+            (2, (1, 3), True),
+            (5, (1, 2), True),
+            (0, (1, 3), False),
+            (0, (0, 1), True),
         ]
     )
     def test_validate_image_count_flexible_validation(self, image_count, range_tuple, expected_result):
@@ -662,112 +591,6 @@ class TestFinchContainerClient(TestCase):
 
         self.assertEqual(result, expected_result)
 
-    def test_get_archive_success(self):
-        """Test successful get_archive with standard Docker API"""
-        container_id = "test-container-id"
-        path = "/path/to/extract"
-        expected_result = (b"archive_data", {"metadata": "info"})
-
-        # Mock the container and its get_archive method
-        mock_container = Mock()
-        mock_container.get_archive.return_value = expected_result
-        self.client.containers.get.return_value = mock_container
-
-        result = self.client.get_archive(container_id, path)
-
-        self.assertEqual(result, expected_result)
-        self.client.containers.get.assert_called_once_with(container_id)
-        mock_container.get_archive.assert_called_once_with(path)
-
-    @patch("samcli.local.docker.container_client.LOG")
-    def test_get_archive_finch_mount_fallback(self, mock_log):
-        """Test get_archive with Finch mount fallback when standard API fails"""
-        container_id = "test-container-id"
-        path = "/tmp/samcli/artifacts"
-
-        # Mock container that fails get_archive with Finch-specific error
-        mock_container = Mock()
-        mock_container.get_archive.side_effect = Exception("mount-snapshot error")
-        mock_container.attrs = {
-            "Mounts": [{"Type": "bind", "Source": "/host/tmp/samcli", "Destination": "/tmp/samcli"}]
-        }
-        self.client.containers.get.return_value = mock_container
-
-        # Mock os.path.exists to return True for the host path
-        with patch("os.path.exists", return_value=True), patch("tempfile.NamedTemporaryFile") as mock_temp, patch(
-            "tarfile.open"
-        ) as mock_tar:
-
-            # Mock the temporary file and tar operations
-            mock_temp_file = Mock()
-            mock_temp_file.name = "/tmp/test.tar"
-            mock_temp_file.seek = Mock()
-            mock_temp_file.read.return_value = b"tar_data"
-            mock_temp.return_value.__enter__.return_value = mock_temp_file
-
-            mock_tar_obj = Mock()
-            mock_tar.return_value.__enter__.return_value = mock_tar_obj
-
-            result = self.client.get_archive(container_id, path)
-
-            # Should return the tar data as an iterator
-            self.assertEqual(result[1], {})  # Check metadata
-            # Check that the first element is an iterator with the expected data
-            result_data = list(result[0])
-            self.assertEqual(result_data, [b"tar_data"])
-            mock_log.debug.assert_called_once()
-
-    def test_get_archive_finch_mount_fallback_no_artifacts(self):
-        """Test get_archive mount fallback when artifacts don't exist on host"""
-        container_id = "test-container-id"
-        path = "/tmp/samcli/artifacts"
-
-        # Mock container that fails get_archive
-        mock_container = Mock()
-        mock_container.get_archive.side_effect = Exception("mount-snapshot error")
-        mock_container.attrs = {
-            "Mounts": [{"Type": "bind", "Source": "/host/tmp/samcli", "Destination": "/tmp/samcli"}]
-        }
-        self.client.containers.get.return_value = mock_container
-
-        # Mock os.path.exists to return False
-        with patch("os.path.exists", return_value=False):
-            with self.assertRaises(RuntimeError) as context:
-                self.client.get_archive(container_id, path)
-
-            self.assertIn("Could not find artifacts in Finch mounts", str(context.exception))
-
-    def test_get_archive_finch_mount_fallback_no_samcli_mount(self):
-        """Test get_archive mount fallback when no samcli mount is found"""
-        container_id = "test-container-id"
-        path = "/tmp/samcli/artifacts"
-
-        # Mock container with no samcli mounts
-        mock_container = Mock()
-        mock_container.get_archive.side_effect = Exception("mount-snapshot error")
-        mock_container.attrs = {"Mounts": [{"Type": "bind", "Source": "/host/other", "Destination": "/other"}]}
-        self.client.containers.get.return_value = mock_container
-
-        with self.assertRaises(RuntimeError) as context:
-            self.client.get_archive(container_id, path)
-
-        self.assertIn("Could not find artifacts in Finch mounts", str(context.exception))
-
-    def test_get_archive_non_finch_error_reraises(self):
-        """Test get_archive re-raises non-Finch specific errors"""
-        container_id = "test-container-id"
-        path = "/path/to/extract"
-
-        # Mock container that fails with non-Finch error
-        mock_container = Mock()
-        mock_container.get_archive.side_effect = Exception("Generic error")
-        self.client.containers.get.return_value = mock_container
-
-        with self.assertRaises(Exception) as context:
-            self.client.get_archive(container_id, path)
-
-        self.assertEqual(str(context.exception), "Generic error")
-
     @patch("samcli.local.docker.container_client.LOG")
     def test_validate_image_count_api_error(self, mock_log):
         """Test validate_image_count with API error"""
@@ -778,69 +601,147 @@ class TestFinchContainerClient(TestCase):
         self.assertFalse(result)
         mock_log.warning.assert_called_once()
 
-    @patch("samcli.local.docker.container_client.FinchContainerClient.__init__", return_value=None)
-    def test_from_existing_client(self, mock_init):
-        """Test creating FinchContainerClient from existing client"""
-        existing_client = Mock()
-        existing_client.api = Mock()
-        existing_client.api.base_url = "unix://var/run/finch.sock"
-        existing_client.api._version = "1.41"
+    def test_get_socket_path_first_call(self):
+        """Test get_socket_path on first call"""
+        with patch("samcli.local.docker.container_client.get_finch_socket_path", return_value=self.finch_socket):
+            result = self.client.get_socket_path()
 
-        result = FinchContainerClient.from_existing_client(existing_client)
+        self.assertEqual(result, self.finch_socket)
 
-        self.assertIsInstance(result, FinchContainerClient)
-        mock_init.assert_called_once_with(base_url="unix://var/run/finch.sock", version="1.41")
+    def test_get_socket_path_caching(self):
+        """Test that get_socket_path caches the result"""
+        with patch("samcli.local.docker.container_client.get_finch_socket_path") as mock_get_finch:
+            mock_get_finch.return_value = self.finch_socket
 
-    @patch("samcli.local.docker.container_client.FinchContainerClient.__init__", return_value=None)
-    def test_from_existing_client_no_api(self, mock_init):
-        """Test creating FinchContainerClient from existing client without API"""
-        existing_client = Mock()
-        del existing_client.api
+            # First call
+            result1 = self.client.get_socket_path()
+            # Second call should use cached value
+            result2 = self.client.get_socket_path()
 
-        result = FinchContainerClient.from_existing_client(existing_client)
+            self.assertEqual(result1, self.finch_socket)
+            self.assertEqual(result2, self.finch_socket)
+            # get_finch_socket_path should only be called once due to caching
+            mock_get_finch.assert_called_once()
 
-        self.assertIsInstance(result, FinchContainerClient)
-        mock_init.assert_called_once_with(base_url=None, version=None)
+    def test_get_socket_path_with_none_result_raises_exception(self):
+        """Test get_socket_path raises exception when get_finch_socket_path returns None"""
+        with patch("samcli.local.docker.container_client.get_finch_socket_path", return_value=None):
+            with self.assertRaises(ContainerInvalidSocketPathException) as context:
+                self.client.get_socket_path()
+
+            self.assertIn("Finch is not supported on current platform!", str(context.exception))
+
+    def test_remove_image_safely_with_running_containers(self):
+        """Test image removal with running container cleanup"""
+        containers = self.create_mock_containers([{"status": "running", "id": "container1"}])
+
+        with patch.object(self.client, "list_containers_by_image", return_value=containers):
+            self.client.remove_image_safely("test-image", force=True)
+
+        # Verify container was stopped and removed
+        containers[0].stop.assert_called_once()
+        containers[0].remove.assert_called_once_with(force=True)
+        self.client.images.remove.assert_called_once_with("test-image", force=True)
+
+    @patch("samcli.local.docker.container_client.LOG")
+    def test_remove_image_safely_image_not_found(self, mock_log):
+        """Test image removal when image is not found"""
+        with patch.object(self.client, "list_containers_by_image", return_value=[]):
+            self.client.images.remove.side_effect = docker.errors.ImageNotFound("Image not found")
+
+            # Should not raise exception
+            self.client.remove_image_safely("test-image", force=True)
+
+            mock_log.debug.assert_called_once()
+
+    @patch("samcli.local.docker.container_client.LOG")
+    def test_list_containers_by_image_api_error(self, mock_log):
+        """Test container listing with API error"""
+        self.client.containers.list.side_effect = docker.errors.APIError("List failed")
+
+        result = self.client.list_containers_by_image("test-image")
+
+        self.assertEqual(result, [])
+        mock_log.warning.assert_called_once()
 
 
-class TestFinchContainerClientInit(TestCase):
+class TestFinchContainerClientInit(BaseContainerClientTestCase):
     """Test the FinchContainerClient __init__ method"""
 
-    @patch("samcli.local.docker.container_client_factory.ContainerClientFactory")
-    @patch("samcli.local.docker.container_client.docker.DockerClient.__init__")
-    def test_init_with_base_url_provided(self, mock_docker_init, mock_factory):
-        """Test FinchContainerClient init when base_url is provided"""
-        mock_docker_init.return_value = None
+    @patch("docker.DockerClient.__init__", return_value=None)
+    @patch("samcli.local.docker.container_client.LOG")
+    def test_init_with_socket_path_success(self, mock_log, mock_docker_init):
+        """Test FinchContainerClient init with socket path available"""
+        with patch("samcli.local.docker.container_client.get_finch_socket_path", return_value=self.finch_socket):
+            client = FinchContainerClient()
 
-        # When base_url is provided, should not call factory
-        client = FinchContainerClient(base_url="unix://test.sock")
+        # Verify DockerClient.__init__ was called with expected parameters
+        mock_docker_init.assert_called_once()
+        call_kwargs = mock_docker_init.call_args.kwargs
+        self.assertEqual(call_kwargs["version"], self.default_version)
+        self.assertEqual(call_kwargs["base_url"], self.finch_socket)
 
-        mock_factory._get_finch_socket_path.assert_not_called()
-        mock_docker_init.assert_called_once_with(base_url="unix://test.sock")
+        # Verify log call
+        mock_log.debug.assert_any_call(f"Creating Finch container client with base_url={self.finch_socket}")
 
-    @patch("samcli.local.docker.container_client_factory.ContainerClientFactory")
-    @patch("samcli.local.docker.container_client.docker.DockerClient.__init__")
-    def test_init_without_base_url_with_socket_path(self, mock_docker_init, mock_factory):
-        """Test FinchContainerClient init without base_url but with socket path from factory"""
-        mock_docker_init.return_value = None
-        mock_factory._get_finch_socket_path.return_value = "unix://finch.sock"
+    def test_init_no_socket_path_raises_exception(self):
+        """Test FinchContainerClient init raises exception when no socket path available"""
+        with patch("samcli.local.docker.container_client.get_finch_socket_path", return_value=None):
+            with self.assertRaises(ContainerInvalidSocketPathException) as context:
+                FinchContainerClient()
 
-        client = FinchContainerClient()
+        self.assertIn("Finch is not supported on current platform!", str(context.exception))
 
-        mock_factory._get_finch_socket_path.assert_called_once()
-        mock_docker_init.assert_called_once_with(base_url="unix://finch.sock")
+    @patch("docker.DockerClient.__init__", return_value=None)
+    def test_init_with_empty_socket_path_skips_docker_init(self, mock_docker_init):
+        """Test FinchContainerClient init skips Docker initialization when socket path is empty
 
-    @patch("samcli.local.docker.container_client_factory.ContainerClientFactory")
-    @patch("samcli.local.docker.container_client.docker.DockerClient.__init__")
-    def test_init_without_base_url_no_socket_path(self, mock_docker_init, mock_factory):
-        """Test FinchContainerClient init without base_url and no socket path from factory"""
-        mock_docker_init.return_value = None
-        mock_factory._get_finch_socket_path.return_value = None
+        This is a defensive test to ensure that if get_socket_path() ever returns
+        an empty string (even though get_finch_socket_path() currently only returns
+        a valid path or None), the FinchContainerClient.__init__ method skips calling
+        super().__init__() instead of trying to create a client with an empty socket path.
+        This prevents customers from breaking this assumption in future changes.
+        """
+        # Mock get_socket_path to return empty string directly to test the __init__ logic
+        with patch.object(FinchContainerClient, "get_socket_path", return_value=""):
+            result = FinchContainerClient()
 
-        client = FinchContainerClient()
+            # The object is created but super().__init__() should not be called
+            self.assertIsNotNone(result)
+            mock_docker_init.assert_not_called()
 
-        mock_factory._get_finch_socket_path.assert_called_once()
-        mock_docker_init.assert_called_once_with()
+
+class TestContainerClientBaseInit(BaseContainerClientTestCase):
+    """Test the ContainerClient base class __init__ method"""
+
+    @patch("docker.DockerClient.__init__", return_value=None)
+    @patch("samcli.local.docker.container_client.LOG")
+    def test_init_no_overrides(self, mock_log, mock_docker_init):
+        """Test ContainerClient init with no environment overrides"""
+        with patch.dict("os.environ", {}, clear=True):
+            client = ConcreteContainerClient()
+
+        # Verify DockerClient.__init__ was called with expected parameters
+        mock_docker_init.assert_called_once()
+        call_kwargs = mock_docker_init.call_args.kwargs
+        self.assertEqual(call_kwargs["version"], self.default_version)
+        self.assertTrue(mock_log.debug.called)
+
+    @patch("docker.DockerClient.__init__", return_value=None)
+    @patch("samcli.local.docker.container_client.LOG")
+    def test_init_with_base_url_override(self, mock_log, mock_docker_init):
+        """Test ContainerClient init with base_url override"""
+        override_url = "unix:///tmp/finch.sock"
+
+        with patch.dict("os.environ", {}, clear=True):
+            client = ConcreteContainerClient(base_url=override_url)
+
+        # Verify DockerClient.__init__ was called with expected parameters
+        mock_docker_init.assert_called_once()
+        call_kwargs = mock_docker_init.call_args.kwargs
+        self.assertEqual(call_kwargs["version"], self.default_version)
+        self.assertEqual(call_kwargs["base_url"], override_url)
+        self.assertTrue(mock_log.debug.called)
 
 
 class TestContainerClientBaseClass(TestCase):
@@ -852,7 +753,6 @@ class TestContainerClientBaseClass(TestCase):
         self.client = Mock(spec=ContainerClient)
 
         # Set up the methods we need to test
-        self.client.from_existing_client = ContainerClient.from_existing_client.__get__(self.client)
         self.client.is_available = ContainerClient.is_available.__get__(self.client)
         self.client.is_finch = ContainerClient.is_finch.__get__(self.client)
         self.client.is_docker = ContainerClient.is_docker.__get__(self.client)
@@ -860,29 +760,6 @@ class TestContainerClientBaseClass(TestCase):
         # Set up the mocked docker client attributes
         self.client.ping = Mock(return_value=True)
         self.client.get_runtime_type = Mock(return_value="docker")
-
-    def test_from_existing_client_with_api_attributes(self):
-        """Test creating client from existing client with API attributes"""
-        existing_client = Mock()
-        existing_client.api = Mock()
-        existing_client.api.base_url = "unix://var/run/docker.sock"
-        existing_client.api._version = "1.41"
-
-        # Test the logic by using DockerContainerClient instead of abstract ContainerClient
-        result = DockerContainerClient.from_existing_client(existing_client)
-        self.assertIsInstance(result, DockerContainerClient)
-
-    @patch("samcli.local.docker.container_client.docker.DockerClient.__init__", return_value=None)
-    def test_from_existing_client_without_api_attributes(self, mock_init):
-        """Test creating client from existing client without API attributes"""
-        existing_client = Mock()
-        # Remove api attribute
-        del existing_client.api
-
-        # Test the logic by using DockerContainerClient instead of abstract ContainerClient
-        result = DockerContainerClient.from_existing_client(existing_client)
-        self.assertIsInstance(result, DockerContainerClient)
-        mock_init.assert_called_once_with(base_url=None, version=None)
 
     def test_is_available_success(self):
         """Test is_available returns True when ping succeeds"""
@@ -896,344 +773,17 @@ class TestContainerClientBaseClass(TestCase):
         self.assertFalse(self.client.is_available())
         mock_log.debug.assert_called_once()
 
-    def test_is_finch_when_runtime_is_finch(self):
-        """Test is_finch returns True when runtime type is finch"""
-        self.client.get_runtime_type.return_value = "finch"
-        self.assertTrue(self.client.is_finch())
-
-    def test_is_finch_when_runtime_is_not_finch(self):
-        """Test is_finch returns False when runtime type is not finch"""
-        self.client.get_runtime_type.return_value = "docker"
-        self.assertFalse(self.client.is_finch())
-
-    def test_is_docker_when_runtime_is_docker(self):
-        """Test is_docker returns True when runtime type is docker"""
-        self.client.get_runtime_type.return_value = "docker"
-        self.assertTrue(self.client.is_docker())
-
-    def test_is_docker_when_runtime_is_not_docker(self):
-        """Test is_docker returns False when runtime type is not docker"""
-        self.client.get_runtime_type.return_value = "finch"
-        self.assertFalse(self.client.is_docker())
-
-
-class TestContainerClientBehavioralDifferences(TestCase):
-    """Test behavioral differences between Docker and Finch clients"""
-
-    def setUp(self):
-        """Set up test fixtures"""
-        # Create mock clients
-        self.docker_client = Mock(spec=DockerContainerClient)
-        self.finch_client = Mock(spec=FinchContainerClient)
-
-        # Set up Docker client methods
-        self.docker_client.is_dockerfile_error = DockerContainerClient.is_dockerfile_error.__get__(self.docker_client)
-        self.docker_client.list_containers_by_image = DockerContainerClient.list_containers_by_image.__get__(
-            self.docker_client
-        )
-        self.docker_client.remove_image_safely = DockerContainerClient.remove_image_safely.__get__(self.docker_client)
-        self.docker_client.validate_image_count = DockerContainerClient.validate_image_count.__get__(self.docker_client)
-        self.docker_client.load_image_from_archive = DockerContainerClient.load_image_from_archive.__get__(
-            self.docker_client
-        )
-
-        # Set up Finch client methods
-        self.finch_client.is_dockerfile_error = FinchContainerClient.is_dockerfile_error.__get__(self.finch_client)
-        self.finch_client.list_containers_by_image = FinchContainerClient.list_containers_by_image.__get__(
-            self.finch_client
-        )
-        self.finch_client.remove_image_safely = FinchContainerClient.remove_image_safely.__get__(self.finch_client)
-        self.finch_client.validate_image_count = FinchContainerClient.validate_image_count.__get__(self.finch_client)
-        self.finch_client.load_image_from_archive = FinchContainerClient.load_image_from_archive.__get__(
-            self.finch_client
-        )
-        self.finch_client._load_with_raw_api = FinchContainerClient._load_with_raw_api.__get__(self.finch_client)
-
-        # Set up common mocks
-        for client in [self.docker_client, self.finch_client]:
-            client.api = Mock()
-            client.images = Mock()
-            client.containers = Mock()
-            client.ping = Mock(return_value=True)
-
-    def test_dockerfile_error_patterns_docker_specific(self):
-        """Test Docker-specific dockerfile error detection"""
-        docker_error = docker.errors.APIError("Server error", response=Mock(status_code=500))
-        docker_error.is_server_error = True
-        docker_error.explanation = "Cannot locate specified Dockerfile"
-
-        finch_error = docker.errors.APIError("Server error", response=Mock(status_code=500))
-        finch_error.is_server_error = True
-        finch_error.explanation = "no such file or directory"
-
-        # Docker should detect Docker-specific error but not Finch-specific
-        self.assertTrue(self.docker_client.is_dockerfile_error(docker_error))
-        self.assertFalse(self.docker_client.is_dockerfile_error(finch_error))
-
-    def test_dockerfile_error_patterns_finch_specific(self):
-        """Test Finch-specific dockerfile error detection"""
-        docker_error = docker.errors.APIError("Server error", response=Mock(status_code=500))
-        docker_error.is_server_error = True
-        docker_error.explanation = "Cannot locate specified Dockerfile"
-
-        finch_error = docker.errors.APIError("Server error", response=Mock(status_code=500))
-        finch_error.is_server_error = True
-        finch_error.explanation = "no such file or directory"
-
-        # Finch should detect Finch-specific error but not Docker-specific
-        self.assertTrue(self.finch_client.is_dockerfile_error(finch_error))
-        self.assertFalse(self.finch_client.is_dockerfile_error(docker_error))
-
-    def test_container_filtering_docker_uses_ancestor_filter(self):
-        """Test Docker uses ancestor filter for container listing"""
-        mock_containers = [Mock(), Mock()]
-        self.docker_client.containers.list.return_value = mock_containers
-
-        result = self.docker_client.list_containers_by_image("test-image")
-
-        self.docker_client.containers.list.assert_called_with(all=True, filters={"ancestor": "test-image"})
-        self.assertEqual(result, mock_containers)
-
-    def test_container_filtering_finch_uses_manual_filtering(self):
-        """Test Finch uses manual filtering for container listing"""
-        mock_container = Mock()
-        mock_container.image.tags = ["test-image:latest"]
-        self.finch_client.containers.list.return_value = [mock_container]
-
-        result = self.finch_client.list_containers_by_image("test-image")
-
-        # Should call list without filters and do manual filtering
-        self.finch_client.containers.list.assert_called_with(all=True)
-        self.assertEqual(len(result), 1)
-
-    def test_image_validation_docker_strict_vs_finch_flexible(self):
-        """Test different image validation approaches between Docker and Finch"""
-        mock_images = [Mock()]
-
-        # Set up both clients with same image list
-        self.docker_client.images.list.return_value = mock_images
-        self.finch_client.images.list.return_value = mock_images
-
-        # Docker uses strict validation (within range)
-        docker_result = self.docker_client.validate_image_count("test-image", (2, 3))
-        self.assertFalse(docker_result)  # 1 image not in range 2-3
-
-        # Finch uses flexible validation (minimum only)
-        finch_result = self.finch_client.validate_image_count("test-image", (1, 3))
-        self.assertTrue(finch_result)  # 1 image meets minimum of 1
-
-    def test_image_removal_cleanup_differences(self):
-        """Test different image removal cleanup approaches"""
-        # Docker: simple removal
-        self.docker_client.remove_image_safely("test-image")
-        self.docker_client.images.remove.assert_called_once_with("test-image", force=True)
-
-        # Finch: container cleanup first
-        mock_container = Mock()
-        mock_container.status = "running"
-
-        with patch.object(self.finch_client, "list_containers_by_image", return_value=[mock_container]):
-            self.finch_client.remove_image_safely("test-image")
-
-        # Should stop and remove container first, then image
-        mock_container.stop.assert_called_once()
-        mock_container.remove.assert_called_once_with(force=True)
-        self.finch_client.images.remove.assert_called_once_with("test-image", force=True)
-
-    def test_overlayfs_handling_difference(self):
-        """Test overlayfs handling difference between Docker and Finch"""
-        # Docker: no special overlayfs handling
-        mock_image = Mock()
-        self.docker_client.images.load.return_value = [mock_image]
-
-        result = self.docker_client.load_image_from_archive(Mock())
-        self.assertEqual(result, mock_image)
-
-        # Finch: overlayfs fallback when standard loading fails
-        self.finch_client.images.load.side_effect = docker.errors.APIError("overlayfs error")
-
-        # Mock raw API response
-        mock_response = [{"stream": "Loaded image: sha256:abc123"}]
-        self.finch_client.api.load_image.return_value = mock_response
-        self.finch_client.images.get.return_value = mock_image
-
-        result = self.finch_client.load_image_from_archive(io.BytesIO(b"data"))
-
-        # Should use raw API fallback
-        self.finch_client.api.load_image.assert_called_once()
-        self.finch_client.images.get.assert_called_once_with("sha256:abc123")
-        self.assertEqual(result, mock_image)
-
-
-class TestContainerClientEdgeCases(TestCase):
-    """Test edge cases and error scenarios for container clients"""
-
-    def setUp(self):
-        """Set up test fixtures"""
-        self.docker_client = Mock(spec=DockerContainerClient)
-        self.finch_client = Mock(spec=FinchContainerClient)
-
-        # Set up methods for both clients
-        for client_class, client_instance in [
-            (DockerContainerClient, self.docker_client),
-            (FinchContainerClient, self.finch_client),
-        ]:
-            client_instance.is_available = client_class.is_available.__get__(client_instance)
-            client_instance.load_image_from_archive = client_class.load_image_from_archive.__get__(client_instance)
-            client_instance.is_dockerfile_error = client_class.is_dockerfile_error.__get__(client_instance)
-            client_instance.list_containers_by_image = client_class.list_containers_by_image.__get__(client_instance)
-            client_instance.remove_image_safely = client_class.remove_image_safely.__get__(client_instance)
-            client_instance.validate_image_count = client_class.validate_image_count.__get__(client_instance)
-
-            # Set up mocked attributes
-            client_instance.api = Mock()
-            client_instance.images = Mock()
-            client_instance.containers = Mock()
-            client_instance.ping = Mock()
-
-        # Set up Finch-specific methods
-        self.finch_client._load_with_raw_api = FinchContainerClient._load_with_raw_api.__get__(self.finch_client)
-
     @parameterized.expand(
         [
-            ("docker", "docker_client"),
-            ("finch", "finch_client"),
+            ("is_finch", "finch", True),
+            ("is_finch", "docker", False),
+            ("is_docker", "docker", True),
+            ("is_docker", "finch", False),
         ]
     )
-    def test_client_ping_timeout(self, client_type, client_attr):
-        """Test client availability check with timeout"""
-        client = getattr(self, client_attr)
-        client.ping.side_effect = TimeoutError("Connection timeout")
-
-        result = client.is_available()
-
-        self.assertFalse(result)
-
-    @parameterized.expand(
-        [
-            ("docker", "docker_client"),
-            ("finch", "finch_client"),
-        ]
-    )
-    def test_client_ping_connection_error(self, client_type, client_attr):
-        """Test client availability check with connection error"""
-        client = getattr(self, client_attr)
-        client.ping.side_effect = ConnectionError("Connection refused")
-
-        result = client.is_available()
-
-        self.assertFalse(result)
-
-    def test_docker_load_image_empty_archive(self):
-        """Test Docker image loading with empty archive"""
-        self.docker_client.images.load.return_value = []
-
-        with self.assertRaises(ValueError):
-            self.docker_client.load_image_from_archive(Mock())
-
-    def test_finch_load_image_corrupted_archive(self):
-        """Test Finch image loading with corrupted archive that fails both methods"""
-        self.finch_client.images.load.side_effect = docker.errors.APIError("Corrupted archive")
-        self.finch_client.api.load_image.side_effect = docker.errors.APIError("Raw API also failed")
-
-        with self.assertRaises(ContainerArchiveImageLoadFailedException):
-            self.finch_client.load_image_from_archive(io.BytesIO(b"corrupted"))
-
-
-class TestContainerClientIntegrationScenarios(TestCase):
-    """Test integration scenarios that simulate real-world usage"""
-
-    def setUp(self):
-        """Set up test fixtures"""
-        self.docker_client = Mock(spec=DockerContainerClient)
-        self.finch_client = Mock(spec=FinchContainerClient)
-
-        # Set up methods for both clients
-        for client_class, client_instance in [
-            (DockerContainerClient, self.docker_client),
-            (FinchContainerClient, self.finch_client),
-        ]:
-            client_instance.get_runtime_type = client_class.get_runtime_type.__get__(client_instance)
-            client_instance.is_docker = client_class.is_docker.__get__(client_instance)
-            client_instance.is_finch = client_class.is_finch.__get__(client_instance)
-            client_instance.load_image_from_archive = client_class.load_image_from_archive.__get__(client_instance)
-            client_instance.list_containers_by_image = client_class.list_containers_by_image.__get__(client_instance)
-            client_instance.remove_image_safely = client_class.remove_image_safely.__get__(client_instance)
-
-            # Set up mocked attributes
-            client_instance.api = Mock()
-            client_instance.images = Mock()
-            client_instance.containers = Mock()
-
-        # Set up Finch-specific methods
-        self.finch_client._load_with_raw_api = FinchContainerClient._load_with_raw_api.__get__(self.finch_client)
-
-    def test_sam_build_workflow_docker(self):
-        """Test typical SAM build workflow with Docker client"""
-        # Simulate loading a build image
-        mock_image = Mock()
-        self.docker_client.images.load.return_value = [mock_image]
-
-        # Load image from archive
-        result = self.docker_client.load_image_from_archive(Mock())
-        self.assertEqual(result, mock_image)
-
-        # Check runtime type for conditional logic
-        self.assertEqual(self.docker_client.get_runtime_type(), "docker")
-        self.assertTrue(self.docker_client.is_docker())
-
-        # List containers for cleanup
-        mock_containers = [Mock(), Mock()]
-        self.docker_client.containers.list.return_value = mock_containers
-        result = self.docker_client.list_containers_by_image("sam-build-image")
-        self.assertEqual(result, mock_containers)
-
-    def test_sam_build_workflow_finch(self):
-        """Test typical SAM build workflow with Finch client"""
-        # Simulate Finch overlayfs issue requiring fallback
-        self.finch_client.images.load.side_effect = docker.errors.APIError("overlayfs error")
-
-        # Mock successful raw API fallback
-        mock_response = [{"stream": "Loaded image: sha256:abc123"}]
-        self.finch_client.api.load_image.return_value = mock_response
-        mock_image = Mock()
-        self.finch_client.images.get.return_value = mock_image
-
-        # Load image with fallback
-        result = self.finch_client.load_image_from_archive(io.BytesIO(b"archive"))
-        self.assertEqual(result, mock_image)
-
-        # Check runtime type
-        self.assertEqual(self.finch_client.get_runtime_type(), "finch")
-        self.assertTrue(self.finch_client.is_finch())
-
-        # List containers with manual filtering
-        container1 = Mock()
-        container1.image.tags = ["sam-build-image:latest"]
-        container2 = Mock()
-        container2.image.tags = ["other-image:latest"]
-
-        self.finch_client.containers.list.return_value = [container1, container2]
-        result = self.finch_client.list_containers_by_image("sam-build-image")
-
-        # Should only return matching container
-        self.assertEqual(len(result), 1)
-        self.assertEqual(result[0], container1)
-
-    def test_cleanup_workflow_comparison(self):
-        """Test cleanup workflow differences between Docker and Finch"""
-        # Docker: simple cleanup
-        self.docker_client.remove_image_safely("test-image")
-        self.docker_client.images.remove.assert_called_once_with("test-image", force=True)
-
-        # Finch: cleanup with container dependency handling
-        container = Mock()
-        container.status = "running"
-
-        with patch.object(self.finch_client, "list_containers_by_image", return_value=[container]):
-            self.finch_client.remove_image_safely("test-image")
-
-        # Should stop and remove container first, then image
-        container.stop.assert_called_once()
-        container.remove.assert_called_once_with(force=True)
-        self.finch_client.images.remove.assert_called_once_with("test-image", force=True)
+    def test_runtime_type_detection(self, method_name, runtime_type, expected_result):
+        """Test runtime type detection methods"""
+        self.client.get_runtime_type.return_value = runtime_type
+        method = getattr(self.client, method_name)
+        result = method()
+        self.assertEqual(result, expected_result)
