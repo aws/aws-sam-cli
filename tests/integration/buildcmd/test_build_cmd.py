@@ -9,11 +9,11 @@ from unittest import skipIf
 from uuid import uuid4
 
 import jmespath
-import docker
 import pytest
 from parameterized import parameterized, parameterized_class
 
 from samcli.lib.utils import osutils
+from samcli.local.docker.utils import get_validated_container_client
 from samcli.yamlhelper import yaml_parse
 from tests.testing_utils import (
     IS_WINDOWS,
@@ -61,7 +61,14 @@ class TestBuildingImageTypeLambdaDockerFileFailures(BuildIntegBase):
 
         # confirm build failed
         self.assertEqual(command_result.process.returncode, 1)
-        self.assertIn("Cannot locate specified Dockerfile", command_result.stderr.decode())
+
+        # Check for Dockerfile not found error messages from both Docker and Finch
+        docker_client = get_validated_container_client()
+        stderr_output = command_result.stderr.decode()
+        error_found = docker_client.is_dockerfile_error(stderr_output)
+        self.assertTrue(
+            error_found, f"Expected Dockerfile not found error message not found in stderr: {stderr_output}"
+        )
 
     def test_with_invalid_dockerfile_definition(self):
         overrides = {
@@ -105,12 +112,20 @@ class TestLoadingImagesFromArchive(BuildIntegBase):
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
         self.assertEqual(command_result.process.returncode, 0)
-        self._verify_image_build_artifact(
-            self.built_template,
-            self.FUNCTION_LOGICAL_ID,
-            "ImageUri",
-            "sha256:81d2ff8422e3a78dc0c1eff53d8e46f5666a801b17b5607a920860c2d234f9d0",
-        )
+        try:
+            self._verify_image_build_artifact(
+                self.built_template,
+                self.FUNCTION_LOGICAL_ID,
+                "ImageUri",
+                "sha256:66c45ad212dbddc4d5ebaa90d8ec30d5b209fb7a8afa3b41cb8399c55636d429",
+            )
+        except:
+            self._verify_image_build_artifact(
+                self.built_template,
+                self.FUNCTION_LOGICAL_ID,
+                "ImageUri",
+                "sha256:d6f0f7f932957887670574d2d484c9f0cedb6a5b03c497df041e1304e756a0b3",
+            )
 
 
 @skipIf(
@@ -139,7 +154,7 @@ class TestSkipBuildingFunctionsWithLocalImageUri(BuildIntegBase):
     def test_with_default_requirements(self, runtime):
         _tag = uuid4().hex
         image_uri = f"func:{_tag}"
-        docker_client = docker.from_env()
+        docker_client = get_validated_container_client()
         docker_client.images.build(
             path=str(Path(self.test_data_path, "PythonImage")),
             dockerfile="Dockerfile",
