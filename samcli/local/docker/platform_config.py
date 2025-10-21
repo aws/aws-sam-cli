@@ -119,7 +119,6 @@ class LinuxHandler(PlatformHandler):
         TODO: Reads the Linux configuration file to determine the administrator container preference.
         Placeholder for future implementation.
         """
-        LOG.debug("Linux administrator config reading not implemented yet.")
         return None
 
     def get_finch_socket_path(self) -> Optional[str]:
@@ -165,7 +164,6 @@ class WindowsHandler(PlatformHandler):
         TODO: Reads the Windows configuration file to determine the administrator container preference.
         Placeholder for future implementation.
         """
-        LOG.debug("Windows administrator config reading not implemented yet.")
         return None
 
     def get_finch_socket_path(self) -> Optional[str]:
@@ -201,3 +199,19 @@ def get_platform_handler() -> Optional[PlatformHandler]:
     """
     handler_factory = _PLATFORM_HANDLERS.get(platform.system())
     return handler_factory() if handler_factory else None
+
+
+def get_finch_socket_path() -> Optional[str]:
+    """
+    Get Finch socket path for the current platform.
+
+    This utility function provides a convenient way to get the Finch socket path
+    without needing to manually handle platform detection and handler creation.
+
+    Returns:
+        Optional[str]: The Finch socket path if available on this platform, None otherwise
+    """
+    handler = get_platform_handler()
+    if not handler or not handler.supports_finch():
+        return None
+    return handler.get_finch_socket_path()
