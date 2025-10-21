@@ -62,3 +62,9 @@ class ContainerArchiveImageLoadFailedException(UserException):
     """
     Failed to load Docker/Finch container image from archive file
     """
+
+
+class ContainerInvalidSocketPathException(UserException):
+    """
+    Failed to load Docker/Finch container image from archive file
+    """

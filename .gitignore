@@ -414,11 +414,9 @@ coverage.xml
 tests/integration/buildcmd/scratch
 tests/integration/testdata/buildcmd/Dotnet*/bin
 tests/integration/testdata/buildcmd/Dotnet*/obj
-tests/integration/testdata/buildcmd/Java/**/build/
 tests/integration/testdata/invoke/credential_tests/inprocess/dotnet/STS/obj
 tests/integration/testdata/sync/code/after/dotnet_function/src/HelloWorld/obj/
 tests/integration/testdata/sync/code/before/dotnet_function/src/HelloWorld/obj/
-samcli/lib/init/templates/cookiecutter-aws-sam-hello-java-gradle/**/.gradle/
 
 # End of https://www.gitignore.io/api/osx,node,macos,linux,python,windows,pycharm,intellij,sublimetext,visualstudiocode
 
