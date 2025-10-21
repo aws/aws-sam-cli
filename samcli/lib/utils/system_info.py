@@ -62,9 +62,9 @@ def _gather_container_engine_info() -> str:
 
         # Check if we're using Finch by looking at the runtime type
         if hasattr(client, "get_runtime_type") and client.get_runtime_type() == "finch":
-            return f"Finch(v{version})"
+            return f"Finch({version})"
         else:
-            return f"Docker({version})"
+            return f"Docker(v{version})"
     except Exception:
         return "Not available"
 
