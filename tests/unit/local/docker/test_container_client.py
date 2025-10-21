@@ -591,6 +591,79 @@ class TestFinchContainerClient(BaseContainerClientTestCase):
 
         self.assertEqual(result, expected_result)
 
+    @patch("samcli.local.docker.container_client.LOG")
+    def test_validate_image_count_api_error(self, mock_log):
+        """Test validate_image_count with API error"""
+        self.client.images.list.side_effect = docker.errors.APIError("List failed")
+
+        result = self.client.validate_image_count("test-image", (1, 2))
+
+        self.assertFalse(result)
+        mock_log.warning.assert_called_once()
+
+    def test_get_socket_path_first_call(self):
+        """Test get_socket_path on first call"""
+        with patch("samcli.local.docker.container_client.get_finch_socket_path", return_value=self.finch_socket):
+            result = self.client.get_socket_path()
+
+        self.assertEqual(result, self.finch_socket)
+
+    def test_get_socket_path_caching(self):
+        """Test that get_socket_path caches the result"""
+        with patch("samcli.local.docker.container_client.get_finch_socket_path") as mock_get_finch:
+            mock_get_finch.return_value = self.finch_socket
+
+            # First call
+            result1 = self.client.get_socket_path()
+            # Second call should use cached value
+            result2 = self.client.get_socket_path()
+
+            self.assertEqual(result1, self.finch_socket)
+            self.assertEqual(result2, self.finch_socket)
+            # get_finch_socket_path should only be called once due to caching
+            mock_get_finch.assert_called_once()
+
+    def test_get_socket_path_with_none_result_raises_exception(self):
+        """Test get_socket_path raises exception when get_finch_socket_path returns None"""
+        with patch("samcli.local.docker.container_client.get_finch_socket_path", return_value=None):
+            with self.assertRaises(ContainerInvalidSocketPathException) as context:
+                self.client.get_socket_path()
+
+            self.assertIn("Finch is not supported on current platform!", str(context.exception))
+
+    def test_remove_image_safely_with_running_containers(self):
+        """Test image removal with running container cleanup"""
+        containers = self.create_mock_containers([{"status": "running", "id": "container1"}])
+
+        with patch.object(self.client, "list_containers_by_image", return_value=containers):
+            self.client.remove_image_safely("test-image", force=True)
+
+        # Verify container was stopped and removed
+        containers[0].stop.assert_called_once()
+        containers[0].remove.assert_called_once_with(force=True)
+        self.client.images.remove.assert_called_once_with("test-image", force=True)
+
+    @patch("samcli.local.docker.container_client.LOG")
+    def test_remove_image_safely_image_not_found(self, mock_log):
+        """Test image removal when image is not found"""
+        with patch.object(self.client, "list_containers_by_image", return_value=[]):
+            self.client.images.remove.side_effect = docker.errors.ImageNotFound("Image not found")
+
+            # Should not raise exception
+            self.client.remove_image_safely("test-image", force=True)
+
+            mock_log.debug.assert_called_once()
+
+    @patch("samcli.local.docker.container_client.LOG")
+    def test_list_containers_by_image_api_error(self, mock_log):
+        """Test container listing with API error"""
+        self.client.containers.list.side_effect = docker.errors.APIError("List failed")
+
+        result = self.client.list_containers_by_image("test-image")
+
+        self.assertEqual(result, [])
+        mock_log.warning.assert_called_once()
+
 
 class TestFinchContainerClientInit(BaseContainerClientTestCase):
     """Test the FinchContainerClient __init__ method"""
@@ -618,6 +691,24 @@ class TestFinchContainerClientInit(BaseContainerClientTestCase):
                 FinchContainerClient()
 
         self.assertIn("Finch is not supported on current platform!", str(context.exception))
+
+    @patch("docker.DockerClient.__init__", return_value=None)
+    def test_init_with_empty_socket_path_skips_docker_init(self, mock_docker_init):
+        """Test FinchContainerClient init skips Docker initialization when socket path is empty
+
+        This is a defensive test to ensure that if get_socket_path() ever returns
+        an empty string (even though get_finch_socket_path() currently only returns
+        a valid path or None), the FinchContainerClient.__init__ method skips calling
+        super().__init__() instead of trying to create a client with an empty socket path.
+        This prevents customers from breaking this assumption in future changes.
+        """
+        # Mock get_socket_path to return empty string directly to test the __init__ logic
+        with patch.object(FinchContainerClient, "get_socket_path", return_value=""):
+            result = FinchContainerClient()
+
+            # The object is created but super().__init__() should not be called
+            self.assertIsNotNone(result)
+            mock_docker_init.assert_not_called()
 
 
 class TestContainerClientBaseInit(BaseContainerClientTestCase):
