@@ -11,15 +11,16 @@ from typing import Optional
 from unittest import skipIf
 
 import boto3
-import docker
 import pytest
 
 from parameterized import parameterized_class
 
+from samcli.local.docker.utils import get_validated_container_client
 from samcli.yamlhelper import yaml_parse
 from tests.integration.buildcmd.build_integ_base import BuildIntegBase
-from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS, RUN_BY_CANARY
+from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS, RUN_BY_CANARY, USING_FINCH_RUNTIME
 from tests.testing_utils import run_command as static_run_command
+
 
 LOG = logging.getLogger(__name__)
 S3_SLEEP = 3
@@ -38,7 +39,7 @@ class BuildTerraformApplicationIntegBase(BuildIntegBase):
         super(BuildTerraformApplicationIntegBase, cls).setUpClass()
         cls.terraform_application_path = str(Path(cls.test_data_path, cls.terraform_application))
         if cls.build_in_container:
-            cls.client = docker.from_env()
+            cls.client = get_validated_container_client()
             cls.image_name = "sam-terraform-python-build"
             cls.docker_tag = f"{cls.image_name}:v1"
             cls.terraform_sam_build_image_context_path = str(
@@ -385,6 +386,10 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(Build
     (not RUN_BY_CANARY and not CI_OVERRIDE),
     "Skip Terraform test cases unless running in CI",
 )
+@skipIf(
+    USING_FINCH_RUNTIME,
+    "Skip test when using Finch runtime: Terraform uses Docker provider that connect to Finch daemon via Docker socket",
+)
 class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndLocalBackend(BuildTerraformApplicationIntegBase):
     function_identifier = "aws_lambda_function.function_with_non_image_uri"
     terraform_application = Path("terraform/image_based_lambda_functions_local_backend")
@@ -406,6 +411,10 @@ class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndLocalBackend(
 @skipIf(
     (not RUN_BY_CANARY and not CI_OVERRIDE),
     "Skip Terraform test cases unless running in CI",
+)
+@skipIf(
+    USING_FINCH_RUNTIME,
+    "Skip test when using Finch runtime: Terraform Docker provider cannot connect to Finch daemon via Docker socket",
 )
 class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndS3Backend(
     BuildTerraformApplicationS3BackendIntegBase
