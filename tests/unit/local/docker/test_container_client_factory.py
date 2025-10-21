@@ -421,11 +421,6 @@ class TestAdminContainerPreference(TestCase):
         mock_log.info.assert_not_called()
 
 
-# TestSetContextRuntimeType and TestCreateClientWithContextStorage classes removed
-# These tests are no longer relevant since _set_context_runtime_type method was removed
-# in favor of the new global telemetry storage approach
-
-
 class TestCreateClientIntegration(TestCase):
     """Integration tests for create_client method - tests the real method by mocking its dependencies"""
 

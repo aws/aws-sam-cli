@@ -29,9 +29,8 @@ class TestContainerEngineMetrics(TestCase):
 
     @parameterized.expand(
         [
-            # (socket_path, expected_engine, test_description)
-            ("unix://~/.finch/finch.sock", "finch", "Finch container engine from global storage"),
-            ("unix://~/.rd/docker.sock", "rancher-desktop", "Rancher Desktop container engine from global storage"),
+            ("unix://~/.finch/finch.sock", "finch"),
+            ("unix://~/.rd/docker.sock", "rancher-desktop"),
         ]
     )
     @patch("samcli.lib.telemetry.metric.get_container_runtime_telemetry_info")
@@ -45,7 +44,6 @@ class TestContainerEngineMetrics(TestCase):
         self,
         socket_path,
         expected_engine,
-        description,
         mock_initial_commit,
         mock_project_name,
         mock_git_origin,
@@ -85,7 +83,7 @@ class TestContainerEngineMetrics(TestCase):
         # Verify container engine is correctly reported
         self.assertIn("metricSpecificAttributes", metric_data)
         metric_attrs = metric_data["metricSpecificAttributes"]
-        self.assertEqual(metric_attrs["containerEngine"], expected_engine, f"Failed for {description}")
+        self.assertEqual(metric_attrs["containerEngine"], expected_engine)
 
     @parameterized.expand(
         [
