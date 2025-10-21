@@ -3,7 +3,7 @@
 import base64
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from io import StringIO
 from time import time
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -541,7 +541,7 @@ class LocalApigwService(BaseLocalService):
         route_key = self._v2_route_key(method, apigw_endpoint, route.is_default_route)
 
         request_time_epoch = int(time())
-        request_time = datetime.utcnow().strftime("%d/%b/%Y:%H:%M:%S +0000")
+        request_time = datetime.now(timezone.utc).strftime("%d/%b/%Y:%H:%M:%S +0000")
 
         context_http = ContextHTTP(method=method, path=request.path, source_ip=request.remote_addr)
         context = RequestContextV2(
@@ -912,7 +912,8 @@ class LocalApigwService(BaseLocalService):
                     binary_types, flask_request, headers, is_base_64_encoded
                 )
             ):
-                body = base64.b64decode(body)
+                if body:
+                    body = base64.b64decode(body)  # type: ignore[arg-type]
         except ValueError as ex:
             LambdaResponseParseException(str(ex))
 
@@ -1012,10 +1013,10 @@ class LocalApigwService(BaseLocalService):
         try:
             # HTTP API Gateway always decode the lambda response only if isBase64Encoded field in response is True
             # regardless the response content-type
-            if is_base_64_encoded:
+            if is_base_64_encoded and body:
                 # Note(xinhol): here in this method we change the type of the variable body multiple times
                 # and confused mypy, we might want to avoid this and use multiple variables here.
-                body = base64.b64decode(body)  # type: ignore
+                body = base64.b64decode(str(body))
         except ValueError as ex:
             LambdaResponseParseException(str(ex))
 

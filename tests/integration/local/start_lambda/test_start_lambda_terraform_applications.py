@@ -13,11 +13,11 @@ import logging
 import boto3
 from botocore import UNSIGNED
 from botocore.config import Config
-import docker
 import pytest
 from docker.errors import APIError
 from parameterized import parameterized, parameterized_class
 
+from samcli.local.docker.utils import get_validated_container_client
 from tests.integration.local.common_utils import random_port
 from tests.integration.local.invoke.layer_utils import LayerUtils
 from tests.integration.local.start_lambda.start_lambda_api_integ_base import StartLambdaIntegBaseClass
@@ -48,7 +48,7 @@ class StartLambdaTerraformApplicationIntegBase(StartLambdaIntegBaseClass):
             cls.build()
 
         # remove all containers if there
-        cls.docker_client = docker.from_env()
+        cls.docker_client = get_validated_container_client()
         for container in cls.docker_client.api.containers():
             try:
                 cls.docker_client.api.remove_container(container, force=True)
@@ -338,7 +338,7 @@ class TestInvalidTerraformApplicationThatReferToS3BucketNotCreatedYet(StartLambd
         self.port = str(random_port())
 
         # remove all containers if there
-        self.docker_client = docker.from_env()
+        self.docker_client = get_validated_container_client()
         for container in self.docker_client.api.containers():
             try:
                 self.docker_client.api.remove_container(container, force=True)
@@ -452,7 +452,7 @@ class TestLocalStartLambdaTerraformApplicationWithLocalImageUri(StartLambdaTerra
         if cls.build_before_invoke:
             cls.build()
 
-        cls.docker_client = docker.from_env()
+        cls.docker_client = get_validated_container_client()
         cls.image_name = "sam-test-lambdaimage"
         cls.docker_tag = f"{cls.image_name}:v1"
         cls.test_data_invoke_path = str(Path(__file__).resolve().parents[2].joinpath("testdata", "invoke"))

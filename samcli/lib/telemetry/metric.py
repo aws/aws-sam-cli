@@ -3,6 +3,7 @@ Provides methods to generate and send metrics
 """
 
 import logging
+import os
 import platform
 import uuid
 from dataclasses import dataclass
@@ -239,6 +240,10 @@ def _send_command_run_metrics(ctx: Context, duration: int, exit_reason: str, exi
 
     # Add container engine information for all command runs
     metric_specific_attributes["containerEngine"] = metric._get_container_host()
+
+    # Add admin container preference (None if not set)
+    admin_pref = getattr(ctx, "admin_container_preference", None)
+    metric_specific_attributes["adminContainerPreference"] = admin_pref
 
     metric.add_data("metricSpecificAttributes", metric_specific_attributes)
     # Metric about command's execution characteristics
@@ -482,8 +487,29 @@ class Metric:
 
     def _get_container_host(self) -> str:
         """
-        Returns a normalized container engine identifier based on DOCKER_HOST.
-        Maps various DOCKER_HOST patterns to standardized container engine names.
+        Returns the container engine being used with context-first detection:
+        1. If actual runtime type is stored in context, use that (for native SAM CLI clients like Finch)
+        2. Otherwise, fall back to DOCKER_HOST environment variable detection (for custom configurations)
+        """
+        try:
+            # First, try to get the actual runtime type from context (same pattern as admin_container_preference)
+            ctx = Context.get_current_context()
+            if ctx:
+                actual_runtime = getattr(ctx, "actual_container_runtime", None)
+                if actual_runtime:
+                    return str(actual_runtime)
+        except (RuntimeError, ImportError):
+            # No Click context available
+            pass
+
+        # Fall back to environment variable detection for custom DOCKER_HOST configurations
+        LOG.debug("No container runtime in context, falling back to DOCKER_HOST detection")
+        return self._get_container_host_from_env()
+
+    def _get_container_host_from_env(self) -> str:
+        """
+        Detect container engine from environment variables for custom DOCKER_HOST configurations.
+        This handles cases where customers manually set DOCKER_HOST to non-native runtimes.
 
         Translation:
             Value                                          Final Value
@@ -503,18 +529,20 @@ class Metric:
             - unix:///run/user/1000/podman/podman.sock  -> podman
 
             # Case 4: Check TCP
-            - tcp://localhost:2375	                    -> tpc-local
-            - tcp://localhost:2376	                    -> tpc-local
-            - tcp://host.docker.internal:*	            -> tpc-remote
+            - tcp://localhost:2375	                    -> tcp-local
+            - tcp://localhost:2376	                    -> tcp-local
+            - tcp://host.docker.internal:*	            -> tcp-remote
 
             # Case 5: Other
             - other value	                            -> unknown
-
         """
-        if not self._gc.docker_host or not isinstance(self._gc.docker_host, str):
+        # Read current DOCKER_HOST directly from environment instead of cached value
+        docker_host = os.environ.get("DOCKER_HOST", "")
+
+        if not docker_host:
             return "docker-default"
 
-        docker_host = self._gc.docker_host.lower()
+        docker_host = docker_host.lower()
 
         # Path-specific mappings (checked first for specificity)
         path_map = {".colima/": "colima", ".lima/": "lima", ".orbstack/": "orbstack", ".rd/": "rancher-desktop"}
