@@ -1156,10 +1156,6 @@ types-awscrt==0.28.1 \
     --hash=sha256:66d77ec283e1dc907526a44511a12624118723a396c36d3f3dd9855cb614ce14 \
     --hash=sha256:d88f43ef779f90b841ba99badb72fe153077225a4e426ae79e943184827b4443
     # via botocore-stubs
-types-python-dateutil==2.9.0.20251008 \
-    --hash=sha256:b9a5232c8921cf7661b29c163ccc56055c418ab2c6eabe8f917cbcc73a4c4157 \
-    --hash=sha256:c3826289c170c93ebd8360c3485311187df740166dbab9dd3b792e69f2bc1f9c
-    # via arrow
 types-s3transfer==0.14.0 \
     --hash=sha256:108134854069a38b048e9b710b9b35904d22a9d0f37e4e1889c2e6b58e5b3253 \
     --hash=sha256:17f800a87c7eafab0434e9d87452c809c290ae906c2024c24261c564479e9c95
@@ -1183,7 +1179,9 @@ typing-inspection==0.4.2 \
 tzdata==2025.2 \
     --hash=sha256:1a403fada01ff9221ca8044d701868fa132215d84beb92242d9acd2147f667a8 \
     --hash=sha256:b60a638fcc0daffadf82fe0f57e53d06bdec2f36c4df66280ae79bce6bd6f2b9
-    # via tzlocal
+    # via
+    #   arrow
+    #   tzlocal
 tzlocal==5.3.1 \
     --hash=sha256:cceffc7edecefea1f595541dbd6e990cb1ea3d19bf01b2809f362a03dd7921fd \
     --hash=sha256:eb1a66c3ef5847adf7a834f1be0800581b683b5608e74f86ecbcef8ab91bb85d
