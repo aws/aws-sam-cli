@@ -171,21 +171,6 @@ jobs:
             docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
           fi
 
-      - name: Get testing resources
-        run: |
-          python3.9 -m venv .venv_env_vars
-          .venv_env_vars/bin/pip install boto3
-          test_env_var=$(.venv_env_vars/bin/python tests/get_testing_resources.py)
-          
-          echo "AWS_ACCESS_KEY_ID=$(echo "$test_env_var" | jq -j ".accessKeyID")" >> $GITHUB_ENV
-          echo "AWS_SECRET_ACCESS_KEY=$(echo "$test_env_var" | jq -j ".secretAccessKey")" >> $GITHUB_ENV
-          echo "AWS_SESSION_TOKEN=$(echo "$test_env_var" | jq -j ".sessionToken")" >> $GITHUB_ENV
-          echo "AWS_S3_TESTING=$(echo "$test_env_var" | jq -j ".TestBucketName")" >> $GITHUB_ENV
-          echo "AWS_ECR_TESTING=$(echo "$test_env_var" | jq -j ".TestECRURI")" >> $GITHUB_ENV
-          echo "AWS_KMS_KEY=$(echo "$test_env_var" | jq -j ".TestKMSKeyArn")" >> $GITHUB_ENV
-          echo "AWS_SIGNING_PROFILE_NAME=$(echo "$test_env_var" | jq -j ".TestSigningProfileName")" >> $GITHUB_ENV
-          echo "AWS_SIGNING_PROFILE_VERSION_ARN=$(echo "$test_env_var" | jq -j ".TestSigningProfileARN")" >> $GITHUB_ENV
-
       - name: Initialize project
         run: |
           export CONTAINER_RUNTIME=${{ matrix.container_runtime }}
@@ -325,18 +310,6 @@ jobs:
             docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
           fi
 
-      - name: Get testing resources
-        run: |
-          python3.9 -m venv .venv_env_vars
-          .venv_env_vars/bin/pip install boto3
-          test_env_var=$(.venv_env_vars/bin/python tests/get_testing_resources.py)
-          
-          echo "AWS_ACCESS_KEY_ID=$(echo "$test_env_var" | jq -j ".accessKeyID")" >> $GITHUB_ENV
-          echo "AWS_SECRET_ACCESS_KEY=$(echo "$test_env_var" | jq -j ".secretAccessKey")" >> $GITHUB_ENV
-          echo "AWS_SESSION_TOKEN=$(echo "$test_env_var" | jq -j ".sessionToken")" >> $GITHUB_ENV
-          echo "AWS_S3_TESTING=$(echo "$test_env_var" | jq -j ".TestBucketName")" >> $GITHUB_ENV
-          echo "AWS_ECR_TESTING=$(echo "$test_env_var" | jq -j ".TestECRURI")" >> $GITHUB_ENV
-          echo "AWS_KMS_KEY=$(echo "$test_env_var" | jq -j ".TestKMSKeyArn")" >> $GITHUB_ENV
           echo "AWS_SIGNING_PROFILE_NAME=$(echo "$test_env_var" | jq -j ".TestSigningProfileName")" >> $GITHUB_ENV
           echo "AWS_SIGNING_PROFILE_VERSION_ARN=$(echo "$test_env_var" | jq -j ".TestSigningProfileARN")" >> $GITHUB_ENV
 
@@ -468,18 +441,6 @@ jobs:
             docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
           fi
 
-      - name: Get testing resources
-        run: |
-          python3.9 -m venv .venv_env_vars
-          .venv_env_vars/bin/pip install boto3
-          test_env_var=$(.venv_env_vars/bin/python tests/get_testing_resources.py)
-          
-          echo "AWS_ACCESS_KEY_ID=$(echo "$test_env_var" | jq -j ".accessKeyID")" >> $GITHUB_ENV
-          echo "AWS_SECRET_ACCESS_KEY=$(echo "$test_env_var" | jq -j ".secretAccessKey")" >> $GITHUB_ENV
-          echo "AWS_SESSION_TOKEN=$(echo "$test_env_var" | jq -j ".sessionToken")" >> $GITHUB_ENV
-          echo "AWS_S3_TESTING=$(echo "$test_env_var" | jq -j ".TestBucketName")" >> $GITHUB_ENV
-          echo "AWS_ECR_TESTING=$(echo "$test_env_var" | jq -j ".TestECRURI")" >> $GITHUB_ENV
-          echo "AWS_KMS_KEY=$(echo "$test_env_var" | jq -j ".TestKMSKeyArn")" >> $GITHUB_ENV
           echo "AWS_SIGNING_PROFILE_NAME=$(echo "$test_env_var" | jq -j ".TestSigningProfileName")" >> $GITHUB_ENV
           echo "AWS_SIGNING_PROFILE_VERSION_ARN=$(echo "$test_env_var" | jq -j ".TestSigningProfileARN")" >> $GITHUB_ENV
 
@@ -578,18 +539,6 @@ jobs:
             docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
           fi
 
-      - name: Get testing resources
-        run: |
-          python3.9 -m venv .venv_env_vars
-          .venv_env_vars/bin/pip install boto3
-          test_env_var=$(.venv_env_vars/bin/python tests/get_testing_resources.py)
-          
-          echo "AWS_ACCESS_KEY_ID=$(echo "$test_env_var" | jq -j ".accessKeyID")" >> $GITHUB_ENV
-          echo "AWS_SECRET_ACCESS_KEY=$(echo "$test_env_var" | jq -j ".secretAccessKey")" >> $GITHUB_ENV
-          echo "AWS_SESSION_TOKEN=$(echo "$test_env_var" | jq -j ".sessionToken")" >> $GITHUB_ENV
-          echo "AWS_S3_TESTING=$(echo "$test_env_var" | jq -j ".TestBucketName")" >> $GITHUB_ENV
-          echo "AWS_ECR_TESTING=$(echo "$test_env_var" | jq -j ".TestECRURI")" >> $GITHUB_ENV
-          echo "AWS_KMS_KEY=$(echo "$test_env_var" | jq -j ".TestKMSKeyArn")" >> $GITHUB_ENV
           echo "AWS_SIGNING_PROFILE_NAME=$(echo "$test_env_var" | jq -j ".TestSigningProfileName")" >> $GITHUB_ENV
           echo "AWS_SIGNING_PROFILE_VERSION_ARN=$(echo "$test_env_var" | jq -j ".TestSigningProfileARN")" >> $GITHUB_ENV
 
@@ -672,18 +621,6 @@ jobs:
           sudo chmod 666 /var/lib/finch/buildkit/buildkitd.sock
           sudo chmod 666 /run/buildkit-*/buildkitd.sock
 
-      - name: Get testing resources
-        run: |
-          python3.9 -m venv .venv_env_vars
-          .venv_env_vars/bin/pip install boto3
-          test_env_var=$(.venv_env_vars/bin/python tests/get_testing_resources.py)
-          
-          echo "AWS_ACCESS_KEY_ID=$(echo "$test_env_var" | jq -j ".accessKeyID")" >> $GITHUB_ENV
-          echo "AWS_SECRET_ACCESS_KEY=$(echo "$test_env_var" | jq -j ".secretAccessKey")" >> $GITHUB_ENV
-          echo "AWS_SESSION_TOKEN=$(echo "$test_env_var" | jq -j ".sessionToken")" >> $GITHUB_ENV
-          echo "AWS_S3_TESTING=$(echo "$test_env_var" | jq -j ".TestBucketName")" >> $GITHUB_ENV
-          echo "AWS_ECR_TESTING=$(echo "$test_env_var" | jq -j ".TestECRURI")" >> $GITHUB_ENV
-
       - name: Initialize project
         run: |
           export CONTAINER_RUNTIME=${{ matrix.container_runtime }}
@@ -754,18 +691,6 @@ jobs:
           sudo ln -sf /var/lib/finch/buildkit/buildkitd.sock /run/buildkit/buildkitd.sock
           sudo chmod 666 /var/lib/finch/buildkit/buildkitd.sock
           sudo chmod 666 /run/buildkit-*/buildkitd.sock
-
-      - name: Get testing resources
-        run: |
-          python3.9 -m venv .venv_env_vars
-          .venv_env_vars/bin/pip install boto3
-          test_env_var=$(.venv_env_vars/bin/python tests/get_testing_resources.py)
-          
-          echo "AWS_ACCESS_KEY_ID=$(echo "$test_env_var" | jq -j ".accessKeyID")" >> $GITHUB_ENV
-          echo "AWS_SECRET_ACCESS_KEY=$(echo "$test_env_var" | jq -j ".secretAccessKey")" >> $GITHUB_ENV
-          echo "AWS_SESSION_TOKEN=$(echo "$test_env_var" | jq -j ".sessionToken")" >> $GITHUB_ENV
-          echo "AWS_S3_TESTING=$(echo "$test_env_var" | jq -j ".TestBucketName")" >> $GITHUB_ENV
-          echo "AWS_ECR_TESTING=$(echo "$test_env_var" | jq -j ".TestECRURI")" >> $GITHUB_ENV
 
       - name: Initialize project
         run: |
@@ -842,18 +767,6 @@ jobs:
           sudo ln -sf /var/lib/finch/buildkit/buildkitd.sock /run/buildkit/buildkitd.sock
           sudo chmod 666 /var/lib/finch/buildkit/buildkitd.sock
           sudo chmod 666 /run/buildkit-*/buildkitd.sock
-
-      - name: Get testing resources
-        run: |
-          python3.9 -m venv .venv_env_vars
-          .venv_env_vars/bin/pip install boto3
-          test_env_var=$(.venv_env_vars/bin/python tests/get_testing_resources.py)
-          
-          echo "AWS_ACCESS_KEY_ID=$(echo "$test_env_var" | jq -j ".accessKeyID")" >> $GITHUB_ENV
-          echo "AWS_SECRET_ACCESS_KEY=$(echo "$test_env_var" | jq -j ".secretAccessKey")" >> $GITHUB_ENV
-          echo "AWS_SESSION_TOKEN=$(echo "$test_env_var" | jq -j ".sessionToken")" >> $GITHUB_ENV
-          echo "AWS_S3_TESTING=$(echo "$test_env_var" | jq -j ".TestBucketName")" >> $GITHUB_ENV
-          echo "AWS_ECR_TESTING=$(echo "$test_env_var" | jq -j ".TestECRURI")" >> $GITHUB_ENV
 
       - name: Initialize project
         run: |
@@ -934,18 +847,6 @@ jobs:
           sudo chmod 666 /var/lib/finch/buildkit/buildkitd.sock
           sudo chmod 666 /run/buildkit-*/buildkitd.sock
 
-      - name: Get testing resources
-        run: |
-          python3.9 -m venv .venv_env_vars
-          .venv_env_vars/bin/pip install boto3
-          test_env_var=$(.venv_env_vars/bin/python tests/get_testing_resources.py)
-          
-          echo "AWS_ACCESS_KEY_ID=$(echo "$test_env_var" | jq -j ".accessKeyID")" >> $GITHUB_ENV
-          echo "AWS_SECRET_ACCESS_KEY=$(echo "$test_env_var" | jq -j ".secretAccessKey")" >> $GITHUB_ENV
-          echo "AWS_SESSION_TOKEN=$(echo "$test_env_var" | jq -j ".sessionToken")" >> $GITHUB_ENV
-          echo "AWS_S3_TESTING=$(echo "$test_env_var" | jq -j ".TestBucketName")" >> $GITHUB_ENV
-          echo "AWS_ECR_TESTING=$(echo "$test_env_var" | jq -j ".TestECRURI")" >> $GITHUB_ENV
-
       - name: Initialize project
         run: |
           export CONTAINER_RUNTIME=${{ matrix.container_runtime }}
@@ -1025,18 +926,6 @@ jobs:
           sudo chmod 666 /var/lib/finch/buildkit/buildkitd.sock
           sudo chmod 666 /run/buildkit-*/buildkitd.sock
 
-      - name: Get testing resources
-        run: |
-          python3.9 -m venv .venv_env_vars
-          .venv_env_vars/bin/pip install boto3
-          test_env_var=$(.venv_env_vars/bin/python tests/get_testing_resources.py)
-          
-          echo "AWS_ACCESS_KEY_ID=$(echo "$test_env_var" | jq -j ".accessKeyID")" >> $GITHUB_ENV
-          echo "AWS_SECRET_ACCESS_KEY=$(echo "$test_env_var" | jq -j ".secretAccessKey")" >> $GITHUB_ENV
-          echo "AWS_SESSION_TOKEN=$(echo "$test_env_var" | jq -j ".sessionToken")" >> $GITHUB_ENV
-          echo "AWS_S3_TESTING=$(echo "$test_env_var" | jq -j ".TestBucketName")" >> $GITHUB_ENV
-          echo "AWS_ECR_TESTING=$(echo "$test_env_var" | jq -j ".TestECRURI")" >> $GITHUB_ENV
-
       - name: Initialize project
         run: |
           export CONTAINER_RUNTIME=${{ matrix.container_runtime }}
@@ -1112,18 +1001,6 @@ jobs:
           sudo ln -sf /var/lib/finch/buildkit/buildkitd.sock /run/buildkit/buildkitd.sock
           sudo chmod 666 /var/lib/finch/buildkit/buildkitd.sock
           sudo chmod 666 /run/buildkit-*/buildkitd.sock
-
-      - name: Get testing resources
-        run: |
-          python3.9 -m venv .venv_env_vars
-          .venv_env_vars/bin/pip install boto3
-          test_env_var=$(.venv_env_vars/bin/python tests/get_testing_resources.py)
-          
-          echo "AWS_ACCESS_KEY_ID=$(echo "$test_env_var" | jq -j ".accessKeyID")" >> $GITHUB_ENV
-          echo "AWS_SECRET_ACCESS_KEY=$(echo "$test_env_var" | jq -j ".secretAccessKey")" >> $GITHUB_ENV
-          echo "AWS_SESSION_TOKEN=$(echo "$test_env_var" | jq -j ".sessionToken")" >> $GITHUB_ENV
-          echo "AWS_S3_TESTING=$(echo "$test_env_var" | jq -j ".TestBucketName")" >> $GITHUB_ENV
-          echo "AWS_ECR_TESTING=$(echo "$test_env_var" | jq -j ".TestECRURI")" >> $GITHUB_ENV
 
       - name: Initialize project
         run: |
