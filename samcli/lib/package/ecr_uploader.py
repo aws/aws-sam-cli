@@ -38,7 +38,9 @@ class ECRUploader:
     def __init__(
         self, docker_client, ecr_client, ecr_repo, ecr_repo_multi, no_progressbar=False, tag="latest", stream=stderr()
     ):
-        self.docker_client = docker_client if docker_client else get_validated_container_client()
+        # Allow None docker_client, validate only when needed
+        self._docker_client_param = docker_client
+        self._validated_docker_client = None
         self.ecr_client = ecr_client
         self.ecr_repo = ecr_repo
         self.ecr_repo_multi = ecr_repo_multi
@@ -48,6 +50,17 @@ class ECRUploader:
         self.stream = StreamWriter(stream=stream, auto_flush=True)
         self.log_streamer = LogStreamer(stream=self.stream)
         self.login_session_active = False
+
+    @property
+    def docker_client(self):
+        """Lazy initialization of Docker client - only validates when ECR operations are needed."""
+        if self._validated_docker_client is None:
+            if self._docker_client_param is None:
+                # Only validate Docker client when ECR operations are actually needed
+                self._validated_docker_client = get_validated_container_client()
+            else:
+                self._validated_docker_client = self._docker_client_param
+        return self._validated_docker_client
 
     def login(self):
         """

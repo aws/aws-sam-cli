@@ -24,6 +24,7 @@ class TestAdminPreferenceMetrics(TestCase):
     def setUp(self):
         self.mock_ctx = MockContext()
 
+    @patch("samcli.lib.telemetry.metric.get_container_runtime_telemetry_info")
     @patch("samcli.lib.telemetry.metric.Telemetry")
     @patch("samcli.lib.telemetry.event.EventTracker.send_events")
     @patch("samcli.lib.telemetry.metric.get_all_experimental_statues")
@@ -38,16 +39,20 @@ class TestAdminPreferenceMetrics(TestCase):
         mock_experimental,
         mock_send_events,
         mock_telemetry,
+        mock_get_runtime_info,
     ):
-        """Test that admin preference is retrieved from context when available"""
+        """Test that admin preference is retrieved from global storage when available"""
         # Setup mocks
         mock_experimental.return_value = {}
         mock_git_origin.return_value = "origin"
         mock_project_name.return_value = "test-project"
         mock_initial_commit.return_value = "abc123"
 
-        # Set admin preference in context
-        self.mock_ctx.admin_container_preference = "finch"
+        # Mock global storage to return admin preference
+        mock_get_runtime_info.return_value = {
+            "container_socket_path": None,
+            "admin_preference": "finch",
+        }
 
         # Mock template_dict to avoid AttributeError
         self.mock_ctx.template_dict = {}
@@ -70,6 +75,7 @@ class TestAdminPreferenceMetrics(TestCase):
         metric_attrs = metric_data["metricSpecificAttributes"]
         self.assertEqual(metric_attrs["adminContainerPreference"], "finch")
 
+    @patch("samcli.lib.telemetry.metric.get_container_runtime_telemetry_info")
     @patch("samcli.lib.telemetry.metric.Telemetry")
     @patch("samcli.lib.telemetry.event.EventTracker.send_events")
     @patch("samcli.lib.telemetry.metric.get_all_experimental_statues")
@@ -84,6 +90,7 @@ class TestAdminPreferenceMetrics(TestCase):
         mock_experimental,
         mock_send_events,
         mock_telemetry,
+        mock_get_runtime_info,
     ):
         """Test that admin preference is not read when not in context (no fallback)"""
         # Setup mocks
@@ -91,6 +98,12 @@ class TestAdminPreferenceMetrics(TestCase):
         mock_git_origin.return_value = "origin"
         mock_project_name.return_value = "test-project"
         mock_initial_commit.return_value = "abc123"
+
+        # Mock global storage to return no admin preference
+        mock_get_runtime_info.return_value = {
+            "container_socket_path": None,
+            "admin_preference": None,
+        }
 
         # No admin preference in context
         self.mock_ctx.admin_container_preference = None
@@ -114,6 +127,7 @@ class TestAdminPreferenceMetrics(TestCase):
         metric_attrs = metric_data["metricSpecificAttributes"]
         self.assertEqual(metric_attrs["adminContainerPreference"], None)
 
+    @patch("samcli.lib.telemetry.metric.get_container_runtime_telemetry_info")
     @patch("samcli.lib.telemetry.metric.Telemetry")
     @patch("samcli.lib.telemetry.event.EventTracker.send_events")
     @patch("samcli.lib.telemetry.metric.get_all_experimental_statues")
@@ -130,6 +144,7 @@ class TestAdminPreferenceMetrics(TestCase):
         mock_experimental,
         mock_send_events,
         mock_telemetry,
+        mock_get_runtime_info,
     ):
         """Test that None admin preference is not included in metrics"""
         # Setup mocks
@@ -138,6 +153,12 @@ class TestAdminPreferenceMetrics(TestCase):
         mock_project_name.return_value = "test-project"
         mock_initial_commit.return_value = "abc123"
         mock_admin_pref.return_value = None
+
+        # Mock global storage to return no admin preference
+        mock_get_runtime_info.return_value = {
+            "container_socket_path": None,
+            "admin_preference": None,
+        }
 
         # No admin preference in context
         self.mock_ctx.admin_container_preference = None
@@ -161,6 +182,7 @@ class TestAdminPreferenceMetrics(TestCase):
         metric_attrs = metric_data["metricSpecificAttributes"]
         self.assertEqual(metric_attrs["adminContainerPreference"], None)
 
+    @patch("samcli.lib.telemetry.metric.get_container_runtime_telemetry_info")
     @patch("samcli.lib.telemetry.metric.Telemetry")
     @patch("samcli.lib.telemetry.event.EventTracker.send_events")
     @patch("samcli.lib.telemetry.metric.get_all_experimental_statues")
@@ -175,6 +197,7 @@ class TestAdminPreferenceMetrics(TestCase):
         mock_experimental,
         mock_send_events,
         mock_telemetry,
+        mock_get_runtime_info,
     ):
         """Test that admin preference defaults to None when attribute doesn't exist"""
         # Setup mocks
@@ -182,6 +205,12 @@ class TestAdminPreferenceMetrics(TestCase):
         mock_git_origin.return_value = "origin"
         mock_project_name.return_value = "test-project"
         mock_initial_commit.return_value = "abc123"
+
+        # Mock global storage to return no admin preference
+        mock_get_runtime_info.return_value = {
+            "container_socket_path": None,
+            "admin_preference": None,
+        }
 
         # Don't set admin_container_preference attribute at all
         self.mock_ctx.template_dict = {}

@@ -33,7 +33,7 @@ class TestSystemInfo(TestCase):
     @patch("samcli.local.docker.container_client_factory.ContainerClientFactory.create_client")
     def test_gather_container_engine_info_when_docker_client_is_reachable(self, mock_create_client):
         docker_client_mock = Mock()
-        docker_client_mock.version.return_value = {"Version": "v1.1.1"}
+        docker_client_mock.version.return_value = {"Version": "1.1.1"}
         docker_client_mock.get_runtime_type.return_value = "docker"
         mock_create_client.return_value = docker_client_mock
         result = _gather_container_engine_info()
@@ -42,7 +42,7 @@ class TestSystemInfo(TestCase):
     @patch("samcli.local.docker.container_client_factory.ContainerClientFactory.create_client")
     def test_gather_container_engine_info_when_finch_client_is_reachable(self, mock_create_client):
         finch_client_mock = Mock()
-        finch_client_mock.version.return_value = {"Version": "0.20.0"}
+        finch_client_mock.version.return_value = {"Version": "v0.20.0"}
         finch_client_mock.get_runtime_type.return_value = "finch"
         mock_create_client.return_value = finch_client_mock
         result = _gather_container_engine_info()
@@ -70,7 +70,7 @@ class TestSystemInfo(TestCase):
     def test_gather_container_engine_info_when_client_has_no_runtime_type(self, mock_create_client):
         # Test legacy client without get_runtime_type method
         client_mock = Mock()
-        client_mock.version.return_value = {"Version": "v1.1.1"}
+        client_mock.version.return_value = {"Version": "1.1.1"}
         del client_mock.get_runtime_type  # Remove the method
         mock_create_client.return_value = client_mock
         result = _gather_container_engine_info()

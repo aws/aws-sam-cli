@@ -8,6 +8,17 @@ documentation, we greatly value feedback and contributions from our community.
 Please read through this document before submitting any issues or pull requests to ensure we have all the necessary 
 information to effectively respond to your bug report or contribution.
 
+## AI Usage
+
+While using generative AI is allowed when contributing to this project, please keep the following points in mind:
+
+* Review all code yourself before you submit it.
+* Understand all the code you have submitted in order to answer any questions the maintainers could have when reviewing your PR.
+* Avoid being overly verbose in code and testing - extra code can be hard to review.
+  * For example, avoid writing unit tests that duplicate existing ones, or test libraries that you're using.
+* Keep PR descriptions, comments, and follow ups concise.
+* Ensure AI-generated code meets the same quality standards as human-written code.
+
 ## Development Guide
 
 Refer to the [Development Guide](DEVELOPMENT_GUIDE.md) for help with environment setup, running tests, submitting a PR, or anything that will make you more productive.
