@@ -48,11 +48,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: |
-          3.9
-          3.10
-          3.11
-          3.12
-          3.13
+            3.9
+            3.10
+            3.11
+            3.12
+            3.13
 
       - name: Set up Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4
@@ -225,11 +225,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: |
-          3.9
-          3.10
-          3.11
-          3.12
-          3.13
+            3.9
+            3.10
+            3.11
+            3.12
+            3.13
 
       - name: Set up Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4
@@ -370,11 +370,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: |
-          3.9
-          3.10
-          3.11
-          3.12
-          3.13
+            3.9
+            3.10
+            3.11
+            3.12
+            3.13
 
       - name: Set up Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4
@@ -514,11 +514,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: |
-          3.9
-          3.10
-          3.11
-          3.12
-          3.13
+            3.9
+            3.10
+            3.11
+            3.12
+            3.13
 
       - name: Set up Java 21
         uses: actions/setup-java@v4
@@ -615,11 +615,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: |
-          3.9
-          3.10
-          3.11
-          3.12
-          3.13
+            3.9
+            3.10
+            3.11
+            3.12
+            3.13
 
       - name: Install Terraform
         run: |
@@ -699,11 +699,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: |
-          3.9
-          3.10
-          3.11
-          3.12
-          3.13
+            3.9
+            3.10
+            3.11
+            3.12
+            3.13
 
       - name: Setup Finch runtime
         if: matrix.container_runtime == 'finch'
@@ -775,11 +775,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: |
-          3.9
-          3.10
-          3.11
-          3.12
-          3.13
+            3.9
+            3.10
+            3.11
+            3.12
+            3.13
 
       - name: Set up Ruby 3.2.7
         uses: ruby/setup-ruby@v1
@@ -866,11 +866,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: |
-          3.9
-          3.10
-          3.11
-          3.12
-          3.13
+            3.9
+            3.10
+            3.11
+            3.12
+            3.13
 
       - name: Install Terraform
         run: |
@@ -950,11 +950,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: |
-          3.9
-          3.10
-          3.11
-          3.12
-          3.13
+            3.9
+            3.10
+            3.11
+            3.12
+            3.13
 
       - name: Install Terraform
         run: |
@@ -1034,11 +1034,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: |
-          3.9
-          3.10
-          3.11
-          3.12
-          3.13
+            3.9
+            3.10
+            3.11
+            3.12
+            3.13
 
       - name: Set up Ruby 3.2.7
         uses: ruby/setup-ruby@v1
