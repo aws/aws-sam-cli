@@ -242,6 +242,8 @@ class TestEnvironmentVariables_resolve(TestCase):
             "none_var": "",
             "true_var": "true",
             "false_var": "false",
+            # New behavior: override values not in template are now included
+            "unknown_var": "newvalue",
         }
 
         environ = EnvironmentVariables(
