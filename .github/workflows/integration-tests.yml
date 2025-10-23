@@ -10,7 +10,6 @@ permissions:
   contents: read
 
 env:
-  AWS_DEFAULT_REGION: us-west-2
   SAM_CLI_DEV: 1
   SAM_CLI_TELEMETRY: 0
   SAM_CLI_CONTAINER_CONNECTION_TIMEOUT: 60
@@ -306,10 +305,10 @@ jobs:
           export AWS_SECRET_ACCESS_KEY=$CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY
           export AWS_SESSION_TOKEN=$CI_ACCESS_ROLE_AWS_SESSION_TOKEN
           
-          # Invoke account reset Lambda
+          # Invoke account reset Lambda with properly formatted payload
           aws lambda invoke \
             --function-name "$ACCOUNT_RESET_LAMBDA_ARN" \
-            --payload "{\"taskToken\": \"$TASK_TOKEN\", \"output\": \"{}\"}" \
+            --payload '{"taskToken": "'"$TASK_TOKEN"'", "output": "{}"}' \
             ./lambda-output.txt \
             --region us-west-2
           
