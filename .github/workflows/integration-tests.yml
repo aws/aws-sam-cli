@@ -66,15 +66,8 @@ jobs:
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::881620123898:role/GitHubActionsAdminRole
-          aws-region: us-west-2
-
-      - name: Assume TAM caller role
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
           role-to-assume: arn:aws:iam::670246014611:role/aws-sam-cli-canary-tam-caller-TAMCallerRole-dgaIJ7W7Byha
           aws-region: us-west-2
-          role-chaining: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
