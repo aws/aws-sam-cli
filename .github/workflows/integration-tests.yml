@@ -19,6 +19,7 @@ env:
   NOSE_PARAMETERIZED_NO_WARN: 1
   GITHUB_ACTIONS_INTEG: true
   BY_CANARY: true
+  UV_PYTHON: python3.11
 
 jobs:
   integration-tests:
@@ -44,25 +45,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Free up disk space
+      - name: Free up disk space (background)
         run: |
           echo "Disk space before cleanup:"
           df -h
           
-          # Remove unnecessary software (but keep Python)
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
-          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          # Run cleanup in background to not block workflow
+          nohup bash -c '
+            sudo apt-get clean
+            sudo rm -rf /usr/share/dotnet
+            sudo rm -rf /usr/local/lib/android
+            sudo rm -rf /opt/ghc
+            sudo rm -rf /opt/hostedtoolcache/CodeQL
+          ' > /dev/null 2>&1 &
           
-          # Clean apt cache
-          sudo apt-get clean
-          
-          # Remove docker images
-          docker rmi $(docker images -q) 2>/dev/null || true
-          
-          echo "Disk space after cleanup:"
-          df -h
+          echo "Cleanup started in background"
 
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
@@ -237,35 +234,35 @@ jobs:
           
           case "${{ matrix.test_suite }}" in
             "build-integ")
-              python3.11 -m pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'not java and not python and not provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd-${{ matrix.container_runtime }}.json
+              pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'not java and not python and not provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd-${{ matrix.container_runtime }}.json
               ;;
             "build-integ-java-python-provided")
-              python3.11 -m pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'java or python or provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd-java-python-provided-${{ matrix.container_runtime }}.json
+              pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'java or python or provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd-java-python-provided-${{ matrix.container_runtime }}.json
               ;;
             "build-integ-arm64")
-              python3.11 -m pytest -vv --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'not java' --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64-${{ matrix.container_runtime }}.json
+              pytest -vv --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'not java' --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64-${{ matrix.container_runtime }}.json
               ;;
             "build-integ-arm64-java")
-              python3.11 -m pytest -vv --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'java' --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64-java-${{ matrix.container_runtime }}.json
+              pytest -vv --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'java' --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64-java-${{ matrix.container_runtime }}.json
               ;;
             "terraform-build")
-              python3.11 -m pytest -vv -n 4 --reruns 4 tests/integration/buildcmd/test_build_terraform_applications.py tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-terraform-${{ matrix.container_runtime }}.json
+              pytest -vv -n 4 --reruns 4 tests/integration/buildcmd/test_build_terraform_applications.py tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-terraform-${{ matrix.container_runtime }}.json
               ;;
             "package-delete-deploy")
-              python3.11 -m pytest -vv tests/integration/package tests/integration/delete tests/integration/deploy --dist=loadgroup -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-package-delete-deploy-${{ matrix.container_runtime }}.json
+              pytest -vv tests/integration/package tests/integration/delete tests/integration/deploy --dist=loadgroup -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-package-delete-deploy-${{ matrix.container_runtime }}.json
               ;;
             "sync")
-              python3.11 -m pytest -vv tests/integration/sync -n 3 --reruns 3 --dist loadscope --json-report --json-report-file=TEST_REPORT-integration-sync-${{ matrix.container_runtime }}.json
+              pytest -vv tests/integration/sync -n 3 --reruns 3 --dist loadscope --json-report --json-report-file=TEST_REPORT-integration-sync-${{ matrix.container_runtime }}.json
               ;;
             "local-invoke")
-              python3.11 -m pytest -vv --reruns 3 tests/integration/local/invoke tests/integration/local/generate_event --json-report --json-report-file=TEST_REPORT-integration-local-invoke-${{ matrix.container_runtime }}.json
+              pytest -vv --reruns 3 tests/integration/local/invoke tests/integration/local/generate_event --json-report --json-report-file=TEST_REPORT-integration-local-invoke-${{ matrix.container_runtime }}.json
               ;;
             "local-start")
-              python3.11 -m pytest -vv --reruns 3 tests/integration/local/start_api tests/integration/local/start_lambda --json-report --json-report-file=TEST_REPORT-integration-local-start-${{ matrix.container_runtime }}.json
+              pytest -vv --reruns 3 tests/integration/local/start_api tests/integration/local/start_lambda --json-report --json-report-file=TEST_REPORT-integration-local-start-${{ matrix.container_runtime }}.json
               ;;
             "other-and-e2e")
-              python3.11 -m pytest -vv -n 4 --reruns 4 --dist loadgroup tests/integration tests/end_to_end --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-others-${{ matrix.container_runtime }}.json
-              python3.11 -m pytest -vv --reruns 3 tests/regression --json-report --json-report-file=TEST_REPORT-regression-${{ matrix.container_runtime }}.json
+              pytest -vv -n 4 --reruns 4 --dist loadgroup tests/integration tests/end_to_end --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-others-${{ matrix.container_runtime }}.json
+              pytest -vv --reruns 3 tests/regression --json-report --json-report-file=TEST_REPORT-regression-${{ matrix.container_runtime }}.json
               ;;
           esac
 
