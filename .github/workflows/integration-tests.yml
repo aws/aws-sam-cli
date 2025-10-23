@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 env:
-  AWS_DEFAULT_REGION: us-east-1
+  AWS_DEFAULT_REGION: us-west-2
   SAM_CLI_DEV: 1
   SAM_CLI_TELEMETRY: 0
   SAM_CLI_CONTAINER_CONNECTION_TIMEOUT: 60
@@ -19,7 +19,9 @@ env:
   NOSE_PARAMETERIZED_NO_WARN: 1
   GITHUB_ACTIONS_INTEG: true
   BY_CANARY: true
-  UV_PYTHON: python3.11
+  UV_PYTHON: python3.9
+  CREDENTIAL_DISTRIBUTION_LAMBDA_ARN: arn:aws:lambda:us-west-2:123087993316:function:test-account-management-CredentialDistributionLamb-o1sEaa8lvO1L
+  ACCOUNT_RESET_LAMBDA_ARN: arn:aws:lambda:us-west-2:123087993316:function:test-account-management-AccountResetLambdaFunction-nBZDo6oLCH80
 
 jobs:
   integration-tests:
@@ -65,11 +67,14 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::881620123898:role/GitHubActionsAdminRole
-          aws-region: us-east-1
+          aws-region: us-west-2
 
-      - name: Verify AWS identity
-        if: matrix.test_suite == 'build-integ'
-        run: aws sts get-caller-identity
+      - name: Assume TAM caller role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::670246014611:role/aws-sam-cli-canary-tam-caller-TAMCallerRole-dgaIJ7W7Byha
+          aws-region: us-west-2
+          role-chaining: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -165,6 +170,33 @@ jobs:
             echo "Terraform installation attempt $i failed, retrying..."
             sleep 5
           done
+
+      - name: Get testing resources and credentials
+        run: |
+          python3.9 -m venv .venv_env_vars
+          .venv_env_vars/bin/pip install boto3
+          test_env_var=$(.venv_env_vars/bin/python tests/get_testing_resources.py)
+          
+          if [ $? -ne 0 ]; then
+            echo "get_testing_resources failed. Failed to acquire credentials or test resources."
+            exit 1
+          fi
+          
+          # Save current credentials for account reset later
+          echo "CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> $GITHUB_ENV
+          echo "CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" >> $GITHUB_ENV
+          echo "CI_ACCESS_ROLE_AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN" >> $GITHUB_ENV
+          
+          # Set test credentials
+          echo "AWS_ACCESS_KEY_ID=$(echo "$test_env_var" | jq -j ".accessKeyID")" >> $GITHUB_ENV
+          echo "AWS_SECRET_ACCESS_KEY=$(echo "$test_env_var" | jq -j ".secretAccessKey")" >> $GITHUB_ENV
+          echo "AWS_SESSION_TOKEN=$(echo "$test_env_var" | jq -j ".sessionToken")" >> $GITHUB_ENV
+          echo "TASK_TOKEN=$(echo "$test_env_var" | jq -j ".taskToken")" >> $GITHUB_ENV
+          echo "AWS_S3_TESTING=$(echo "$test_env_var" | jq -j ".TestBucketName")" >> $GITHUB_ENV
+          echo "AWS_ECR_TESTING=$(echo "$test_env_var" | jq -j ".TestECRURI")" >> $GITHUB_ENV
+          echo "AWS_KMS_KEY=$(echo "$test_env_var" | jq -j ".TestKMSKeyArn")" >> $GITHUB_ENV
+          echo "AWS_SIGNING_PROFILE_NAME=$(echo "$test_env_var" | jq -j ".TestSigningProfileName")" >> $GITHUB_ENV
+          echo "AWS_SIGNING_PROFILE_VERSION_ARN=$(echo "$test_env_var" | jq -j ".TestSigningProfileARN")" >> $GITHUB_ENV
 
       - name: Setup Finch runtime
         if: matrix.container_runtime == 'finch'
@@ -272,3 +304,20 @@ jobs:
         with:
           name: test-results-${{ matrix.test_suite }}-${{ matrix.container_runtime }}
           path: TEST_REPORT-*.json
+
+      - name: Reset test account
+        if: always()
+        run: |
+          # Switch back to TAM caller role credentials
+          export AWS_ACCESS_KEY_ID=$CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID
+          export AWS_SECRET_ACCESS_KEY=$CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY
+          export AWS_SESSION_TOKEN=$CI_ACCESS_ROLE_AWS_SESSION_TOKEN
+          
+          # Invoke account reset Lambda
+          aws lambda invoke \
+            --function-name "$ACCOUNT_RESET_LAMBDA_ARN" \
+            --payload "{\"taskToken\": \"$TASK_TOKEN\", \"output\": \"{}\"}" \
+            ./lambda-output.txt \
+            --region us-west-2
+          
+          cat ./lambda-output.txt
