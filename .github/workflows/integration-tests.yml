@@ -67,7 +67,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::670246014611:role/aws-sam-cli-canary-tam-caller-TAMCallerRole-dgaIJ7W7Byha
-          aws-region: us-west-2
+          aws-region: us-east-1
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -306,8 +306,8 @@ jobs:
           export AWS_SECRET_ACCESS_KEY=$CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY
           export AWS_SESSION_TOKEN=$CI_ACCESS_ROLE_AWS_SESSION_TOKEN
           
-          # Create payload file to avoid escaping issues
-          echo "{\"taskToken\": \"$TASK_TOKEN\", \"output\": \"{}\"}" > ./lambda-payload.json
+          # Create payload file using Python to handle special characters properly
+          python3.9 -c "import json; print(json.dumps({'taskToken': '$TASK_TOKEN', 'output': '{}'}))" > ./lambda-payload.json
           
           # Invoke account reset Lambda
           aws lambda invoke \
