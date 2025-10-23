@@ -19,6 +19,9 @@ class LambdaErrorResponses:
     # The request body could not be parsed as JSON.
     InvalidRequestContentException = ("InvalidRequestContent", 400)
 
+    # One or more parameters values were invalid.
+    ValidationException = ("ValidationException", 400)
+
     NotImplementedException = ("NotImplemented", 501)
 
     ContainerCreationFailed = ("ContainerCreationFailed", 501)
@@ -78,6 +81,29 @@ class LambdaErrorResponses:
             A response object representing the InvalidRequestContent Error
         """
         exception_tuple = LambdaErrorResponses.InvalidRequestContentException
+
+        return BaseLocalService.service_response(
+            LambdaErrorResponses._construct_error_response_body(LambdaErrorResponses.USER_ERROR, message),
+            LambdaErrorResponses._construct_headers(exception_tuple[0]),
+            exception_tuple[1],
+        )
+
+    @staticmethod
+    def validation_exception(message):
+        """
+        Creates a Lambda Service ValidationException Response
+
+        Parameters
+        ----------
+        message str
+            Message to be added to the body of the response
+
+        Returns
+        -------
+        Flask.Response
+            A response object representing the ValidationException Error
+        """
+        exception_tuple = LambdaErrorResponses.ValidationException
 
         return BaseLocalService.service_response(
             LambdaErrorResponses._construct_error_response_body(LambdaErrorResponses.USER_ERROR, message),
