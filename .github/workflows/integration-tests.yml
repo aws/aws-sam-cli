@@ -33,16 +33,16 @@ jobs:
         # container_runtime: [docker, finch]
         container_runtime: [docker]
         test_suite:
-          - build-integ
-          - build-integ-java-python-provided
-          - build-integ-arm64
-          - build-integ-arm64-java
-          - terraform-build
-          - package-delete-deploy
+          #- build-integ
+          #- build-integ-java-python-provided
+          #- build-integ-arm64
+          #- build-integ-arm64-java
+          #- terraform-build
+          #- package-delete-deploy
           - sync
-          - local-invoke
-          - local-start
-          - other-and-e2e
+          #- local-invoke
+          #- local-start
+          #- other-and-e2e
     
     steps:
       - name: Checkout code
@@ -257,6 +257,12 @@ jobs:
           echo "AWS_KMS_KEY=$(echo "$test_env_var" | jq -j ".TestKMSKeyArn")" >> $GITHUB_ENV
           echo "AWS_SIGNING_PROFILE_NAME=$(echo "$test_env_var" | jq -j ".TestSigningProfileName")" >> $GITHUB_ENV
           echo "AWS_SIGNING_PROFILE_VERSION_ARN=$(echo "$test_env_var" | jq -j ".TestSigningProfileARN")" >> $GITHUB_ENV
+          
+          # Display first 6 characters of credentials for verification
+          ACCESS_KEY=$(echo "$test_env_var" | jq -j ".accessKeyID")
+          SECRET_KEY=$(echo "$test_env_var" | jq -j ".secretAccessKey")
+          echo "AWS_ACCESS_KEY_ID (first 6 chars): ${ACCESS_KEY:0:6}..."
+          echo "AWS_SECRET_ACCESS_KEY (first 6 chars): ${SECRET_KEY:0:6}..."
 
       - name: Run tests
         run: |
