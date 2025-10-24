@@ -6,6 +6,7 @@ from samcli.local.lambda_service import local_lambda_invoke_service
 from samcli.local.lambda_service.local_lambda_invoke_service import LocalLambdaInvokeService, FunctionNamePathConverter
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.commands.local.lib.exceptions import UnsupportedInlineCodeError
+from samcli.lib.utils.name_utils import InvalidFunctionNameException
 
 
 class TestLocalLambdaService(TestCase):
@@ -332,3 +333,53 @@ class TestPathConverter(TestCase):
         path_converter = FunctionNamePathConverter(map)
         full_path = "parent_stack/function_id"
         self.assertRegex(full_path, path_converter.regex)
+
+    @patch("samcli.local.lambda_service.local_lambda_invoke_service.LocalLambdaInvokeService.service_response")
+    @patch("samcli.local.lambda_service.local_lambda_invoke_service.LambdaOutputParser")
+    def test_invoke_request_handler_with_arn(self, lambda_output_parser_mock, service_response_mock):
+        """Test that invoke request handler correctly normalizes ARN to function name"""
+        lambda_output_parser_mock.get_lambda_output.return_value = "hello world", False
+        service_response_mock.return_value = "request response"
+
+        request_mock = Mock()
+        request_mock.get_data.return_value = b"{}"
+        local_lambda_invoke_service.request = request_mock
+
+        lambda_runner_mock = Mock()
+        service = LocalLambdaInvokeService(lambda_runner=lambda_runner_mock, port=3000, host="localhost")
+
+        # Call with ARN instead of function name
+        arn = "arn:aws:lambda:us-east-1:123456789012:function:HelloWorld"
+        response = service._invoke_request_handler(function_name=arn)
+
+        self.assertEqual(response, "request response")
+
+        # Verify that the lambda runner was called with the normalized function name
+        lambda_runner_mock.invoke.assert_called_once_with("HelloWorld", "{}", stdout=ANY, stderr=None)
+        service_response_mock.assert_called_once_with("hello world", {"Content-Type": "application/json"}, 200)
+
+    @patch("samcli.local.lambda_service.local_lambda_invoke_service.LambdaErrorResponses")
+    def test_invoke_request_handler_function_not_found_with_arn(self, lambda_error_responses_mock):
+        """Test that error handling uses normalized function name when ARN is provided"""
+        request_mock = Mock()
+        request_mock.get_data.return_value = b"{}"
+        local_lambda_invoke_service.request = request_mock
+
+        lambda_runner_mock = Mock()
+        lambda_runner_mock.invoke.side_effect = FunctionNotFound
+
+        lambda_error_responses_mock.resource_not_found.return_value = "Couldn't find Lambda"
+
+        service = LocalLambdaInvokeService(lambda_runner=lambda_runner_mock, port=3000, host="localhost")
+
+        # Call with ARN instead of function name
+        arn = "arn:aws:lambda:us-east-1:123456789012:function:NotFound"
+        response = service._invoke_request_handler(function_name=arn)
+
+        self.assertEqual(response, "Couldn't find Lambda")
+
+        # Verify that the lambda runner was called with the normalized function name
+        lambda_runner_mock.invoke.assert_called_once_with("NotFound", "{}", stdout=ANY, stderr=None)
+
+        # Verify that error response uses the normalized function name
+        lambda_error_responses_mock.resource_not_found.assert_called_once_with("NotFound")
