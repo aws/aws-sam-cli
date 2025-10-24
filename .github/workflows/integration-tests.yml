@@ -171,33 +171,6 @@ jobs:
             sleep 5
           done
 
-      - name: Get testing resources and credentials
-        run: |
-          uv venv .venv_env_vars --python python3.9
-          uv pip install --python .venv_env_vars boto3
-          test_env_var=$(.venv_env_vars/bin/python tests/get_testing_resources.py)
-          
-          if [ $? -ne 0 ]; then
-            echo "get_testing_resources failed. Failed to acquire credentials or test resources."
-            exit 1
-          fi
-          
-          # Save current credentials for account reset later
-          echo "CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> $GITHUB_ENV
-          echo "CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" >> $GITHUB_ENV
-          echo "CI_ACCESS_ROLE_AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN" >> $GITHUB_ENV
-          
-          # Set test credentials
-          echo "AWS_ACCESS_KEY_ID=$(echo "$test_env_var" | jq -j ".accessKeyID")" >> $GITHUB_ENV
-          echo "AWS_SECRET_ACCESS_KEY=$(echo "$test_env_var" | jq -j ".secretAccessKey")" >> $GITHUB_ENV
-          echo "AWS_SESSION_TOKEN=$(echo "$test_env_var" | jq -j ".sessionToken")" >> $GITHUB_ENV
-          echo "TASK_TOKEN=$(echo "$test_env_var" | jq -j ".taskToken")" >> $GITHUB_ENV
-          echo "AWS_S3_TESTING=$(echo "$test_env_var" | jq -j ".TestBucketName")" >> $GITHUB_ENV
-          echo "AWS_ECR_TESTING=$(echo "$test_env_var" | jq -j ".TestECRURI")" >> $GITHUB_ENV
-          echo "AWS_KMS_KEY=$(echo "$test_env_var" | jq -j ".TestKMSKeyArn")" >> $GITHUB_ENV
-          echo "AWS_SIGNING_PROFILE_NAME=$(echo "$test_env_var" | jq -j ".TestSigningProfileName")" >> $GITHUB_ENV
-          echo "AWS_SIGNING_PROFILE_VERSION_ARN=$(echo "$test_env_var" | jq -j ".TestSigningProfileARN")" >> $GITHUB_ENV
-
       - name: Setup Finch runtime
         if: matrix.container_runtime == 'finch'
         run: |
@@ -259,6 +232,31 @@ jobs:
         run: |
           export CONTAINER_RUNTIME=${{ matrix.container_runtime }}
           make init
+
+      - name: Get testing resources and credentials
+        run: |
+          test_env_var=$(python3.9 tests/get_testing_resources.py)
+          
+          if [ $? -ne 0 ]; then
+            echo "get_testing_resources failed. Failed to acquire credentials or test resources."
+            exit 1
+          fi
+          
+          # Save current credentials for account reset later
+          echo "CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> $GITHUB_ENV
+          echo "CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" >> $GITHUB_ENV
+          echo "CI_ACCESS_ROLE_AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN" >> $GITHUB_ENV
+          
+          # Set test credentials
+          echo "AWS_ACCESS_KEY_ID=$(echo "$test_env_var" | jq -j ".accessKeyID")" >> $GITHUB_ENV
+          echo "AWS_SECRET_ACCESS_KEY=$(echo "$test_env_var" | jq -j ".secretAccessKey")" >> $GITHUB_ENV
+          echo "AWS_SESSION_TOKEN=$(echo "$test_env_var" | jq -j ".sessionToken")" >> $GITHUB_ENV
+          echo "TASK_TOKEN=$(echo "$test_env_var" | jq -j ".taskToken")" >> $GITHUB_ENV
+          echo "AWS_S3_TESTING=$(echo "$test_env_var" | jq -j ".TestBucketName")" >> $GITHUB_ENV
+          echo "AWS_ECR_TESTING=$(echo "$test_env_var" | jq -j ".TestECRURI")" >> $GITHUB_ENV
+          echo "AWS_KMS_KEY=$(echo "$test_env_var" | jq -j ".TestKMSKeyArn")" >> $GITHUB_ENV
+          echo "AWS_SIGNING_PROFILE_NAME=$(echo "$test_env_var" | jq -j ".TestSigningProfileName")" >> $GITHUB_ENV
+          echo "AWS_SIGNING_PROFILE_VERSION_ARN=$(echo "$test_env_var" | jq -j ".TestSigningProfileARN")" >> $GITHUB_ENV
 
       - name: Run tests
         run: |
