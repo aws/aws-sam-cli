@@ -20,7 +20,7 @@ env:
   GITHUB_ACTIONS_INTEG: true
   BY_CANARY: true
   UV_PYTHON: python3.9
-  CREDENTIAL_DISTRIBUTION_LAMBDA_ARN: arn:aws:lambda:us-west-2:123087993316:function:test-account-management-CredentialDistributionLamb-o1sEaa8lvO1L
+  CREDENTIAL_DISTRIBUTION_LAMBDA_ARN: arn:aws:lambda:us-west-2:123087993316:function:test-account-management-CredentialDistributionLamb-7CwJ4B8P4hth
   ACCOUNT_RESET_LAMBDA_ARN: arn:aws:lambda:us-west-2:123087993316:function:test-account-management-AccountResetLambdaFunction-nBZDo6oLCH80
 
 jobs:
@@ -30,7 +30,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        container_runtime: [docker, finch]
+        # container_runtime: [docker, finch]
+        container_runtime: [docker]
         test_suite:
           - build-integ
           - build-integ-java-python-provided
@@ -132,6 +133,12 @@ jobs:
         with:
           ruby-version: '3.4.2'
 
+      - name: Set Ruby 3.3.7 as global
+        if: contains(fromJSON('["build-integ", "build-integ-arm64", "sync", "other-and-e2e"]'), matrix.test_suite)
+        run: |
+          echo "$(ruby-3.3.7 -e 'puts RbConfig::CONFIG["bindir"]')" >> $GITHUB_PATH
+          ruby --version
+
       - name: Install Rust toolchain
         if: contains(fromJSON('["build-integ", "build-integ-java-python-provided", "build-integ-arm64"]'), matrix.test_suite)
         run: |
@@ -166,8 +173,8 @@ jobs:
 
       - name: Get testing resources and credentials
         run: |
-          python3.9 -m venv .venv_env_vars
-          .venv_env_vars/bin/pip install boto3
+          uv venv .venv_env_vars --python python3.9
+          uv pip install --python .venv_env_vars boto3
           test_env_var=$(.venv_env_vars/bin/python tests/get_testing_resources.py)
           
           if [ $? -ne 0 ]; then
@@ -306,14 +313,12 @@ jobs:
           export AWS_SECRET_ACCESS_KEY=$CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY
           export AWS_SESSION_TOKEN=$CI_ACCESS_ROLE_AWS_SESSION_TOKEN
           
-          # Create payload file using Python to handle special characters properly
-          python3.9 -c "import json; print(json.dumps({'taskToken': '$TASK_TOKEN', 'output': '{}'}))" > ./lambda-payload.json
-          
-          # Invoke account reset Lambda
+          # Invoke account reset Lambda with raw binary format
           aws lambda invoke \
             --function-name "$ACCOUNT_RESET_LAMBDA_ARN" \
-            --payload file://./lambda-payload.json \
+            --payload "{\"taskToken\": \"$TASK_TOKEN\", \"output\": \"{}\"}" \
             ./lambda-output.txt \
-            --region us-west-2
+            --region us-west-2 \
+            --cli-binary-format raw-in-base64-out
           
           cat ./lambda-output.txt
