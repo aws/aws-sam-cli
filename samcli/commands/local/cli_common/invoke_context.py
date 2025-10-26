@@ -772,15 +772,19 @@ class InvokeContext:
         """
         Parse environment variables to separate global from function-specific variables.
 
-        Variables are classified as function-specific if they match the pattern: FunctionName_VAR
-        where FunctionName starts with an uppercase letter (PascalCase).
+        Variables are classified as function-specific if they match the pattern: FunctionName*VAR
+        (note the asterisk separator). This unambiguous separator works with any function
+        naming convention (PascalCase, camelCase, snake_case, etc.) and cannot be used in
+        CloudFormation logical IDs.
 
         Examples:
-            MyFunction_API_KEY -> Function-specific for MyFunction
-            HelloWorld_TIMEOUT -> Function-specific for HelloWorld
-            LAMBDA_VAR -> Global (all uppercase, not PascalCase)
-            API_KEY -> Global (no underscore)
-            database_url -> Global (starts with lowercase)
+            MyFunction*API_KEY -> Function-specific for MyFunction
+            HelloWorld*TIMEOUT -> Function-specific for HelloWorld
+            myFunction*API_KEY -> Function-specific for myFunction
+            my_function*TIMEOUT -> Function-specific for my_function
+            LAMBDA_VAR -> Global (no asterisk)
+            API_KEY -> Global (no asterisk)
+            MY_FUNCTION_VAR -> Global (underscore, not asterisk)
 
         :param dict env_dict: Flat dictionary of environment variables
         :return dict: Hierarchical structure with Parameters and function-specific sections
@@ -788,33 +792,31 @@ class InvokeContext:
         result: Dict[str, Dict[str, str]] = {"Parameters": {}}
 
         for key, value in env_dict.items():
-            # Check if variable contains underscore
-            if "_" not in key:
-                # No underscore -> global variable
+            # Check if variable contains asterisk separator
+            if "*" not in key:
+                # No asterisk -> global variable
                 result["Parameters"][key] = value
                 continue
 
-            # Split by first underscore to get function name prefix and variable name
-            parts = key.split("_", 1)
+            # Split by first occurrence of asterisk to get function name and variable name
+            parts = key.split("*", 1)
             if len(parts) < 2:  # noqa: PLR2004
-                # Edge case: variable has underscore but split failed somehow
+                # Edge case: variable has asterisk but split failed somehow
                 result["Parameters"][key] = value
                 continue
 
-            prefix, var_name = parts
+            function_name, var_name = parts
 
-            # Check if prefix is PascalCase (starts with uppercase, not all uppercase)
-            # PascalCase: First char is uppercase AND not all chars are uppercase
-            is_pascal_case = prefix[0].isupper() and not prefix.isupper()
-
-            if is_pascal_case:
-                # Function-specific variable: FunctionName_VAR
-                if prefix not in result:
-                    result[prefix] = {}
-                result[prefix][var_name] = value
-            else:
-                # Global variable (ALL_CAPS, snake_case, etc.)
+            # Validate that both parts are non-empty
+            if not function_name or not var_name:
+                # Treat as global if either part is empty (e.g., "*VAR" or "FUNCTION*")
                 result["Parameters"][key] = value
+                continue
+
+            # Function-specific variable: FunctionName*VAR
+            if function_name not in result:
+                result[function_name] = {}
+            result[function_name][var_name] = value
 
         return result
 

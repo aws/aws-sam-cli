@@ -14,11 +14,11 @@ class TestParseFunctionSpecificEnvVars(TestCase):
     """Tests for _parse_function_specific_env_vars() method"""
 
     def test_parse_function_specific_basic(self):
-        """Test basic function-specific parsing"""
+        """Test basic function-specific parsing with asterisk separator"""
         env_dict = {
             "GLOBAL_VAR": "global_value",
-            "MyFunction_API_KEY": "function_key",
-            "MyFunction_TIMEOUT": "30",
+            "MyFunction*API_KEY": "function_key",
+            "MyFunction*TIMEOUT": "30",
         }
 
         result = InvokeContext._parse_function_specific_env_vars(env_dict)
@@ -60,31 +60,35 @@ class TestParseFunctionSpecificEnvVars(TestCase):
         self.assertEqual(result["Parameters"]["api_version"], "v1")
         self.assertEqual(len(result), 1)  # Only Parameters
 
-    def test_parse_pascalcase_as_function_specific(self):
-        """Test that PascalCase_VAR are function-specific"""
+    def test_parse_any_naming_convention_with_asterisk(self):
+        """Test that any naming convention works with asterisk separator"""
         env_dict = {
-            "MyFunction_VAR1": "value1",
-            "HelloWorld_VAR2": "value2",
-            "TestFunc_VAR3": "value3",
+            "MyFunction*VAR1": "value1",  # PascalCase
+            "myFunction*VAR2": "value2",  # camelCase
+            "my_function*VAR3": "value3",  # snake_case
+            "MYFUNCTION*VAR4": "value4",  # UPPERCASE
         }
 
         result = InvokeContext._parse_function_specific_env_vars(env_dict)
 
         self.assertIn("MyFunction", result)
-        self.assertIn("HelloWorld", result)
-        self.assertIn("TestFunc", result)
+        self.assertIn("myFunction", result)
+        self.assertIn("my_function", result)
+        self.assertIn("MYFUNCTION", result)
         self.assertEqual(result["MyFunction"]["VAR1"], "value1")
-        self.assertEqual(result["HelloWorld"]["VAR2"], "value2")
-        self.assertEqual(result["TestFunc"]["VAR3"], "value3")
+        self.assertEqual(result["myFunction"]["VAR2"], "value2")
+        self.assertEqual(result["my_function"]["VAR3"], "value3")
+        self.assertEqual(result["MYFUNCTION"]["VAR4"], "value4")
 
     def test_parse_mixed_variables(self):
         """Test parsing mixed global and function-specific variables"""
         env_dict = {
             "DATABASE_URL": "postgres://localhost",
-            "MyFunction_API_KEY": "func_key",
+            "MyFunction*API_KEY": "func_key",
             "LAMBDA_RUNTIME": "python3.11",
-            "HelloWorld_TIMEOUT": "30",
+            "HelloWorld*TIMEOUT": "30",
             "API_VERSION": "v1",
+            "MY_FUNCTION_VAR": "underscore_is_global",  # Underscore without asterisk = global
         }
 
         result = InvokeContext._parse_function_specific_env_vars(env_dict)
@@ -93,6 +97,7 @@ class TestParseFunctionSpecificEnvVars(TestCase):
         self.assertEqual(result["Parameters"]["DATABASE_URL"], "postgres://localhost")
         self.assertEqual(result["Parameters"]["LAMBDA_RUNTIME"], "python3.11")
         self.assertEqual(result["Parameters"]["API_VERSION"], "v1")
+        self.assertEqual(result["Parameters"]["MY_FUNCTION_VAR"], "underscore_is_global")
 
         # Check function-specific vars
         self.assertEqual(result["MyFunction"]["API_KEY"], "func_key")
@@ -117,9 +122,9 @@ class TestParseFunctionSpecificEnvVars(TestCase):
     def test_parse_multiple_vars_same_function(self):
         """Test multiple variables for the same function"""
         env_dict = {
-            "MyFunction_VAR1": "value1",
-            "MyFunction_VAR2": "value2",
-            "MyFunction_VAR3": "value3",
+            "MyFunction*VAR1": "value1",
+            "MyFunction*VAR2": "value2",
+            "MyFunction*VAR3": "value3",
         }
 
         result = InvokeContext._parse_function_specific_env_vars(env_dict)
@@ -138,7 +143,7 @@ class TestGetDotenvValuesWithParsing(TestCase):
         """Test that parse_function_specific=False returns flat structure"""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
             f.write("GLOBAL_VAR=global\n")
-            f.write("MyFunction_API_KEY=function_key\n")
+            f.write("MyFunction*API_KEY=function_key\n")
             dotenv_path = f.name
 
         try:
@@ -148,7 +153,7 @@ class TestGetDotenvValuesWithParsing(TestCase):
             self.assertNotIn("Parameters", result)
             self.assertNotIn("MyFunction", result)
             self.assertEqual(result["GLOBAL_VAR"], "global")
-            self.assertEqual(result["MyFunction_API_KEY"], "function_key")
+            self.assertEqual(result["MyFunction*API_KEY"], "function_key")
         finally:
             os.unlink(dotenv_path)
 
@@ -156,7 +161,7 @@ class TestGetDotenvValuesWithParsing(TestCase):
         """Test that parse_function_specific=True returns hierarchical structure"""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
             f.write("GLOBAL_VAR=global\n")
-            f.write("MyFunction_API_KEY=function_key\n")
+            f.write("MyFunction*API_KEY=function_key\n")
             dotenv_path = f.name
 
         try:
@@ -182,9 +187,9 @@ class TestInvokeContextWithFunctionSpecific(TestCase):
         # Create .env file with function-specific vars
         with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
             f.write("DATABASE_URL=postgres://localhost\n")
-            f.write("MyFunction_API_KEY=my_function_key\n")
-            f.write("MyFunction_DEBUG=true\n")
-            f.write("HelloWorld_TIMEOUT=30\n")
+            f.write("MyFunction*API_KEY=my_function_key\n")
+            f.write("MyFunction*DEBUG=true\n")
+            f.write("HelloWorld*TIMEOUT=30\n")
             dotenv_path = f.name
 
         # Create dummy template
@@ -237,8 +242,8 @@ class TestInvokeContextWithFunctionSpecific(TestCase):
         # Create .env file
         with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
             f.write("DATABASE_URL=from_dotenv\n")
-            f.write("MyFunction_API_KEY=dotenv_key\n")
-            f.write("MyFunction_DEBUG=true\n")
+            f.write("MyFunction*API_KEY=dotenv_key\n")
+            f.write("MyFunction*DEBUG=true\n")
             dotenv_path = f.name
 
         # Create JSON file with overrides
@@ -296,7 +301,7 @@ class TestInvokeContextWithFunctionSpecific(TestCase):
         # Create container .env file with would-be function-specific vars
         with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
             f.write("DEBUG_VAR=debug\n")
-            f.write("MyFunction_API_KEY=key\n")  # Should stay flat
+            f.write("MyFunction*API_KEY=key\n")  # Should stay flat (not parsed for containers)
             container_dotenv_path = f.name
 
         # Create dummy template
@@ -327,7 +332,7 @@ class TestInvokeContextWithFunctionSpecific(TestCase):
 
                 # Variables should be in flat structure
                 self.assertEqual(context._container_env_vars_value["DEBUG_VAR"], "debug")
-                self.assertEqual(context._container_env_vars_value["MyFunction_API_KEY"], "key")
+                self.assertEqual(context._container_env_vars_value["MyFunction*API_KEY"], "key")
         finally:
             os.unlink(container_dotenv_path)
             os.unlink(template_path)
