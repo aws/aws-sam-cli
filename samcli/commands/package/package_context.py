@@ -34,7 +34,6 @@ from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.boto_utils import get_boto_config_with_user_agent
 from samcli.lib.utils.preview_runtimes import PREVIEW_RUNTIMES
 from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION, AWS_SERVERLESS_FUNCTION
-from samcli.local.docker.utils import get_validated_container_client
 from samcli.yamlhelper import yaml_dump
 
 LOG = logging.getLogger(__name__)
@@ -123,7 +122,8 @@ class PackageContext:
         )
         ecr_client = boto3.client("ecr", config=get_boto_config_with_user_agent(region_name=region_name))
 
-        docker_client = get_validated_container_client()
+        # Pass None instead of validating Docker client upfront - ECRUploader will validate only when needed
+        docker_client = None
 
         s3_uploader = S3Uploader(
             s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, self.force_upload, self.no_progressbar
