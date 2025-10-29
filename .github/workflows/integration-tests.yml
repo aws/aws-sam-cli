@@ -127,17 +127,18 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
+      - name: Set up Ruby 3.3.7
+        if: contains(fromJSON('["build-integ", "build-integ-arm64", "sync", "other-and-e2e"]'), matrix.test_suite)
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3.7'
+
       - name: Set up Ruby 3.2.7
         if: contains(fromJSON('["build-integ", "build-integ-arm64", "sync", "other-and-e2e"]'), matrix.test_suite)
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.2.7'
 
-      - name: Set up Ruby 3.3.7
-        if: contains(fromJSON('["build-integ", "build-integ-arm64", "sync", "other-and-e2e"]'), matrix.test_suite)
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.3.7'
 
       - name: Set up Ruby 3.4.2
         if: contains(fromJSON('["build-integ", "build-integ-arm64", "sync", "other-and-e2e"]'), matrix.test_suite)
@@ -145,11 +146,6 @@ jobs:
         with:
           ruby-version: '3.4.2'
 
-      - name: Set Ruby 3.3.7 as global
-        if: contains(fromJSON('["build-integ", "build-integ-arm64", "sync", "other-and-e2e"]'), matrix.test_suite)
-        run: |
-          echo "$(ruby-3.3.7 -e 'puts RbConfig::CONFIG["bindir"]')" >> $GITHUB_PATH
-          ruby --version
 
       - name: Install Rust toolchain
         if: contains(fromJSON('["build-integ", "build-integ-java-python-provided", "build-integ-arm64"]'), matrix.test_suite)
@@ -284,7 +280,13 @@ jobs:
 
       - name: Run tests
         run: |
+          # Set up PATH like AppVeyor does
+          export PATH="/opt/mvn/apache-maven-3.9.11/bin:/opt/gradle/gradle-9.0.0/bin:$PATH"
           export CONTAINER_RUNTIME=${{ matrix.container_runtime }}
+          
+          # Verify Maven version before running tests
+          which mvn
+          mvn --version
           
           case "${{ matrix.test_suite }}" in
             "build-integ")
