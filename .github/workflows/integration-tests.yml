@@ -33,13 +33,13 @@ jobs:
         # container_runtime: [docker, finch]
         container_runtime: [docker]
         test_suite:
-          #- build-integ
-          #- build-integ-java-python-provided
-          #- build-integ-arm64
-          #- build-integ-arm64-java
-          #- terraform-build
+          - build-integ
+          - build-integ-java-python-provided
+          - build-integ-arm64
+          - build-integ-arm64-java
+          - terraform-build
           #- package-delete-deploy
-          - sync
+          # - sync # good
           #- local-invoke
           #- local-start
           #- other-and-e2e
@@ -53,6 +53,11 @@ jobs:
           echo "Disk space before cleanup:"
           df -h
           
+          # Remove all existing Docker images to free up space
+          echo "Removing all existing Docker images..."
+          docker image prune -af || true
+          docker system prune -af --volumes || true
+          
           # Run cleanup in background to not block workflow
           nohup bash -c '
             sudo apt-get clean
@@ -62,6 +67,8 @@ jobs:
           ' > /dev/null 2>&1 &
           
           echo "Cleanup started in background"
+          echo "Disk space after Docker cleanup:"
+          df -h
 
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
@@ -295,10 +302,10 @@ jobs:
               pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'java or python or provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd-java-python-provided-${{ matrix.container_runtime }}.json
               ;;
             "build-integ-arm64")
-              pytest -vv --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'not java' --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64-${{ matrix.container_runtime }}.json
+              pytest -vv -n 2 --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'not java' --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64-${{ matrix.container_runtime }}.json
               ;;
             "build-integ-arm64-java")
-              pytest -vv --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'java' --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64-java-${{ matrix.container_runtime }}.json
+              pytest -vv -n 2 --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'java' --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64-java-${{ matrix.container_runtime }}.json
               ;;
             "terraform-build")
               pytest -vv -n 4 --reruns 4 tests/integration/buildcmd/test_build_terraform_applications.py tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-terraform-${{ matrix.container_runtime }}.json
