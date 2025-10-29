@@ -287,14 +287,6 @@ jobs:
 
       - name: Run tests
         run: |
-          # Set up PATH like AppVeyor does
-          export PATH="/opt/mvn/apache-maven-3.9.11/bin:/opt/gradle/gradle-9.0.0/bin:$PATH"
-          export CONTAINER_RUNTIME=${{ matrix.container_runtime }}
-          
-          # Verify Maven version before running tests
-          which mvn
-          mvn --version
-          
           case "${{ matrix.test_suite }}" in
             "build-integ")
               pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'not java and not python and not provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd-${{ matrix.container_runtime }}.json
@@ -315,7 +307,7 @@ jobs:
               pytest -vv tests/integration/package tests/integration/delete tests/integration/deploy --dist=loadgroup -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-package-delete-deploy-${{ matrix.container_runtime }}.json
               ;;
             "sync")
-              pytest -vv tests/integration/sync/test_sync_infra.py -n 6 --reruns 1 --dist loadscope --json-report --json-report-file=TEST_REPORT-integration-sync-${{ matrix.container_runtime }}.json
+              pytest -vv tests/integration/sync -n 6 --reruns 3 --dist loadscope --json-report --json-report-file=TEST_REPORT-integration-sync-${{ matrix.container_runtime }}.json
               ;;
             "local-invoke")
               pytest -vv --reruns 3 tests/integration/local/invoke tests/integration/local/generate_event --json-report --json-report-file=TEST_REPORT-integration-local-invoke-${{ matrix.container_runtime }}.json
