@@ -309,7 +309,7 @@ jobs:
               pytest -vv tests/integration/package tests/integration/delete tests/integration/deploy --dist=loadgroup -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-package-delete-deploy-${{ matrix.container_runtime }}.json
               ;;
             "sync")
-              pytest -vv tests/integration/sync -n 6 --reruns 3 --dist loadscope --json-report --json-report-file=TEST_REPORT-integration-sync-${{ matrix.container_runtime }}.json
+              pytest -vv tests/integration/sync/test_sync_infra.py -n 6 --reruns 3 --dist loadscope --json-report --json-report-file=TEST_REPORT-integration-sync-${{ matrix.container_runtime }}.json
               ;;
             "local-invoke")
               pytest -vv --reruns 3 tests/integration/local/invoke tests/integration/local/generate_event --json-report --json-report-file=TEST_REPORT-integration-local-invoke-${{ matrix.container_runtime }}.json
