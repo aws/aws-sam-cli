@@ -3,7 +3,7 @@ click==8.1.8
 Flask<3.2
 boto3>=1.29.2,<2
 jmespath~=1.0.1
-ruamel_yaml~=0.18.15
+ruamel_yaml~=0.18.16
 PyYAML~=6.0
 cookiecutter~=2.6.0
 aws-sam-translator==1.101.0
