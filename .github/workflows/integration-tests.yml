@@ -86,7 +86,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Set up Java 21
-        if: contains(fromJSON('["build-integ", "build-integ-java-python-provided", "build-integ-arm64", "build-integ-arm64-java"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-integ", "sync", "build-integ-java-python-provided", "build-integ-arm64", "build-integ-arm64-java"]'), matrix.test_suite)
         uses: actions/setup-java@v4
         with:
           distribution: 'corretto'
