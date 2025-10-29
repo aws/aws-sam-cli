@@ -60,7 +60,7 @@ def _extract(file_info, output_dir, zip_ref):
     # make leading dirs if needed
     leading_dirs = os.path.dirname(link_name)
     if not os.path.exists(leading_dirs):
-        os.makedirs(leading_dirs)
+        os.makedirs(leading_dirs, exist_ok=True)
 
     # If the link already exists, delete it or symlink() fails
     if os.path.lexists(link_name):

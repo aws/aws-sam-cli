@@ -5,7 +5,7 @@ InfraSyncExecutor class which runs build, package and deploy contexts
 import copy
 import logging
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Optional, Set, cast
 from uuid import uuid4
@@ -172,7 +172,7 @@ class InfraSyncExecutor:
         last_infra_sync_time = self._sync_context.get_latest_infra_sync_time()
         days_since_last_infra_sync = 0
         if last_infra_sync_time:
-            current_time = datetime.utcnow()
+            current_time = datetime.now(timezone.utc)
             days_since_last_infra_sync = (current_time - last_infra_sync_time).days
 
         # Will not combine the comparisons in order to save operation cost
