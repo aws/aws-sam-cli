@@ -166,10 +166,15 @@ def do_cli(
                 and remote_invoke_context.resource_summary
                 and remote_invoke_context.resource_summary.resource_type == AWS_LAMBDA_FUNCTION
             ):
-                lambda_test_event = remote_invoke_context.get_lambda_shared_test_event_provider()
                 LOG.debug("Retrieving remote event %s", test_event_name)
-                event = lambda_test_event.get_event(test_event_name, remote_invoke_context.resource_summary)
+                lambda_test_event = remote_invoke_context.get_lambda_shared_test_event_provider().get_event(
+                    test_event_name, remote_invoke_context.resource_summary
+                )
+                event = lambda_test_event["json"]
                 LOG.debug("Remote event contents: %s", event)
+                metadata = lambda_test_event["metadata"]
+                if "invocationType" in metadata:
+                    parameter.setdefault("InvocationType", metadata["invocationType"])
             elif test_event_name:
                 LOG.info("Note: remote event is only supported for AWS Lambda Function resource.")
                 test_event_name = ""
