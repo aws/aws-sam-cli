@@ -127,9 +127,8 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      # sync test only need ruby 3.3.7
       - name: Set up Ruby 3.3.7
-        if: contains(fromJSON('["build-integ", "build-integ-arm64", "sync", "other-and-e2e"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-integ", "build-integ-arm64",  "other-and-e2e"]'), matrix.test_suite)
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.3.7'
@@ -140,9 +139,9 @@ jobs:
         with:
           ruby-version: '3.2.7'
 
-
+      # sync test only need ruby 3.4
       - name: Set up Ruby 3.4.2
-        if: contains(fromJSON('["build-integ", "build-integ-arm64", "other-and-e2e"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-integ", "build-integ-arm64", "sync", "other-and-e2e"]'), matrix.test_suite)
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.4.2'
@@ -309,7 +308,7 @@ jobs:
               pytest -vv tests/integration/package tests/integration/delete tests/integration/deploy --dist=loadgroup -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-package-delete-deploy-${{ matrix.container_runtime }}.json
               ;;
             "sync")
-              pytest -vv tests/integration/sync/test_sync_infra.py -n 6 --reruns 3 --dist loadscope --json-report --json-report-file=TEST_REPORT-integration-sync-${{ matrix.container_runtime }}.json
+              pytest -vv tests/integration/sync/test_sync_infra.py -n 6 --reruns 1 --dist loadscope --json-report --json-report-file=TEST_REPORT-integration-sync-${{ matrix.container_runtime }}.json
               ;;
             "local-invoke")
               pytest -vv --reruns 3 tests/integration/local/invoke tests/integration/local/generate_event --json-report --json-report-file=TEST_REPORT-integration-local-invoke-${{ matrix.container_runtime }}.json

@@ -500,58 +500,58 @@ class TestSyncInfra(SyncIntegBase):
 #             self.assertEqual(lambda_response.get("message"), "9")
 
 
-# @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
-# @parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
-# class TestSyncInfraWithJava(SyncIntegBase):
-#     ecr_repo_name = None
-#     kms_key = None
-#     parameter_overrides: Dict[str, str] = {}
+@skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
+@parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
+class TestSyncInfraWithJava(SyncIntegBase):
+    ecr_repo_name = None
+    kms_key = None
+    parameter_overrides: Dict[str, str] = {}
 
-#     @classmethod
-#     def setUpClass(cls) -> None:
-#         super().setUpClass()
-#         cls.parameter_overrides = {"HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]}
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        cls.parameter_overrides = {"HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]}
 
-#     @parameterized.expand(["infra/template-java.yaml"])
-#     def test_sync_infra_with_java(self, template_file):
-#         """This will test a case where user will flip ADL flag between sync sessions"""
-#         template_path = str(self.test_data_path.joinpath(template_file))
-#         stack_name = self._method_to_stack_name(self.id())
-#         self.stacks.append({"name": stack_name})
+    @parameterized.expand(["infra/template-java.yaml"])
+    def test_sync_infra_with_java(self, template_file):
+        """This will test a case where user will flip ADL flag between sync sessions"""
+        template_path = str(self.test_data_path.joinpath(template_file))
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
 
-#         # first run with current dependency layer value
-#         self._run_sync_and_validate_lambda_call(self.dependency_layer, template_path, stack_name)
+        # first run with current dependency layer value
+        self._run_sync_and_validate_lambda_call(self.dependency_layer, template_path, stack_name)
 
-#         # now flip the dependency layer value and re-run the sync & tests
-#         self._run_sync_and_validate_lambda_call(not self.dependency_layer, template_path, stack_name)
+        # now flip the dependency layer value and re-run the sync & tests
+        self._run_sync_and_validate_lambda_call(not self.dependency_layer, template_path, stack_name)
 
-#     def _run_sync_and_validate_lambda_call(self, dependency_layer: bool, template_path: str, stack_name: str) -> None:
-#         # Run infra sync
-#         sync_command_list = self.get_sync_command_list(
-#             template_file=template_path,
-#             code=False,
-#             watch=False,
-#             dependency_layer=dependency_layer,
-#             stack_name=stack_name,
-#             parameter_overrides=self.parameter_overrides,
-#             image_repository=self.ecr_repo_name,
-#             s3_prefix=self.s3_prefix,
-#             kms_key_id=self.kms_key,
-#             capabilities_list=["CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND"],
-#             tags="integ=true clarity=yes foo_bar=baz",
-#         )
-#         sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
-#         self.assertEqual(sync_process_execute.process.returncode, 0)
-#         self.assertIn("Sync infra completed.", str(sync_process_execute.stderr))
+    def _run_sync_and_validate_lambda_call(self, dependency_layer: bool, template_path: str, stack_name: str) -> None:
+        # Run infra sync
+        sync_command_list = self.get_sync_command_list(
+            template_file=template_path,
+            code=False,
+            watch=False,
+            dependency_layer=dependency_layer,
+            stack_name=stack_name,
+            parameter_overrides=self.parameter_overrides,
+            image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            capabilities_list=["CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND"],
+            tags="integ=true clarity=yes foo_bar=baz",
+        )
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
+        self.assertEqual(sync_process_execute.process.returncode, 0)
+        self.assertIn("Sync infra completed.", str(sync_process_execute.stderr))
 
-#         self.stack_resources = self._get_stacks(stack_name)
-#         lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
-#         for lambda_function in lambda_functions:
-#             lambda_response = json.loads(self._get_lambda_response(lambda_function))
-#             self.assertIn("message", lambda_response)
-#             self.assertIn("sum", lambda_response)
-#             self.assertEqual(lambda_response.get("message"), "hello world")
-#             self.assertEqual(lambda_response.get("sum"), 12)
+        self.stack_resources = self._get_stacks(stack_name)
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        for lambda_function in lambda_functions:
+            lambda_response = json.loads(self._get_lambda_response(lambda_function))
+            self.assertIn("message", lambda_response)
+            self.assertIn("sum", lambda_response)
+            self.assertEqual(lambda_response.get("message"), "hello world")
+            self.assertEqual(lambda_response.get("sum"), 12)
 
 
 # @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
