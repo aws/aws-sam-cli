@@ -62,7 +62,7 @@ jobs:
           # Remove all existing Docker images to free up space
           echo "Removing all existing Docker images..."
           # docker image prune -af || true
-          docker system prune -af --volumes || true
+          nohup docker system prune -af --volumes || true &
           
           # Run cleanup in background to not block workflow
           nohup bash -c '
@@ -72,9 +72,6 @@ jobs:
             sudo rm -rf /opt/hostedtoolcache/CodeQL
           ' > /dev/null 2>&1 &
           
-          echo "Cleanup started in background"
-          echo "Disk space after Docker cleanup:"
-          df -h
 
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
@@ -249,6 +246,7 @@ jobs:
           docker version
 
       - name: Setup QEMU for ARM64 emulation
+        if: matrix.container_runtime != 'no-container'
         run: |
           if [ "${{ matrix.container_runtime }}" = "finch" ]; then
             sudo finch run --rm --privileged multiarch/qemu-user-static --reset -p yes
@@ -303,7 +301,7 @@ jobs:
           # Determine test filtering based on container_runtime
           if [ "${{ matrix.container_runtime }}" = "no-container" ]; then
             # For no-container mode, deselect tests with "container" in the name
-            CONTAINER_FILTER="--deselect-by-keyword=container"
+            CONTAINER_FILTER="-k 'not container'"
           elif [ "${{ matrix.container_runtime }}" = "docker" ] || [ "${{ matrix.container_runtime }}" = "finch" ]; then
             # For docker/finch mode, only select tests with "container" in the name
             CONTAINER_FILTER="-k container"

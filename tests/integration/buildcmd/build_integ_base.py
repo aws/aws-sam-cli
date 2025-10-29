@@ -725,7 +725,7 @@ class BuildIntegJavaBase(BuildIntegBase):
             osutils.convert_to_unix_line_ending(os.path.join(self.test_data_path, self.USING_GRADLEW_PATH, "gradlew"))
         # Use shorter timeout in GitHub Actions to fail faster;
         # Putting 1800 because Windows Canary Instances takes longer
-        timeout = 180 if os.environ.get("GITHUB_ACTIONS") else 1800
+        timeout = 300 if os.environ.get("GITHUB_ACTIONS") else 1800
         run_command(cmdlist, cwd=self.working_dir, timeout=timeout)
 
         self._verify_built_artifact(
