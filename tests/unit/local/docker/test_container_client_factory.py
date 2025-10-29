@@ -159,10 +159,8 @@ class TestContainerClientFactory(TestCase):
             ContainerClientFactory._create_auto_detected_client()
 
     @patch("samcli.local.docker.container_client_factory.DockerContainerClient")
-    @patch("samcli.local.docker.container_client_factory.ContainerClientFactory._is_finch_socket")
-    def test_try_create_docker_client_success(self, mock_is_finch, mock_docker_class):
+    def test_try_create_docker_client_success(self, mock_docker_class):
         """Test successful Docker client creation"""
-        mock_is_finch.return_value = False
         mock_client = Mock()
         mock_docker_class.return_value = mock_client
 
@@ -170,16 +168,6 @@ class TestContainerClientFactory(TestCase):
 
         self.assertEqual(result, mock_client)
         mock_docker_class.assert_called_once()
-
-    @patch("samcli.local.docker.container_client_factory.ContainerClientFactory._is_finch_socket")
-    def test_try_create_docker_client_finch_socket(self, mock_is_finch):
-        """Test Docker client creation when DOCKER_HOST points to Finch"""
-        os.environ["DOCKER_HOST"] = "unix:///tmp/finch.sock"
-        mock_is_finch.return_value = True
-
-        result = ContainerClientFactory._try_create_docker_client()
-
-        self.assertIsNone(result)
 
     @patch("samcli.local.docker.container_client_factory.DockerContainerClient")
     @patch("samcli.local.docker.container_client_factory.LOG")
@@ -190,66 +178,27 @@ class TestContainerClientFactory(TestCase):
         result = ContainerClientFactory._try_create_docker_client()
 
         self.assertIsNone(result)
-        mock_log.debug.assert_any_call("Attempting to create Docker client")
-        mock_log.debug.assert_any_call("Failed to create Docker client: Connection failed")
+        mock_log.debug.assert_called_with("Failed to create Docker client: Connection failed")
 
     @patch("samcli.local.docker.container_client_factory.FinchContainerClient")
-    @patch("samcli.local.docker.container_client_factory.ContainerClientFactory._get_finch_socket_path")
-    def test_try_create_finch_client_success(self, mock_get_socket, mock_finch_class):
+    def test_try_create_finch_client_success(self, mock_finch_class):
         """Test successful Finch client creation"""
-        mock_get_socket.return_value = "unix:///tmp/finch.sock"
         mock_client = Mock()
         mock_finch_class.return_value = mock_client
 
         result = ContainerClientFactory._try_create_finch_client()
 
         self.assertEqual(result, mock_client)
-        # DOCKER_HOST is restored to original value (None) in finally block
-        self.assertIsNone(os.environ.get("DOCKER_HOST"))
+        mock_finch_class.assert_called_once_with()
 
-    @patch("samcli.local.docker.container_client_factory.ContainerClientFactory._get_finch_socket_path")
-    def test_try_create_finch_client_no_socket(self, mock_get_socket):
-        """Test Finch client creation when no socket path available"""
-        mock_get_socket.return_value = None
+    @patch("samcli.local.docker.container_client_factory.FinchContainerClient")
+    def test_try_create_finch_client_exception(self, mock_finch_class):
+        """Test Finch client creation when constructor fails"""
+        mock_finch_class.side_effect = Exception("Finch not available")
 
         result = ContainerClientFactory._try_create_finch_client()
 
         self.assertIsNone(result)
-
-    @patch("samcli.local.docker.container_client_factory.get_platform_handler")
-    def test_get_finch_socket_path_success(self, mock_get_handler):
-        """Test getting Finch socket path"""
-        mock_handler = Mock()
-        mock_handler.supports_finch.return_value = True
-        mock_handler.get_finch_socket_path.return_value = "unix:///tmp/finch.sock"
-        mock_get_handler.return_value = mock_handler
-
-        result = ContainerClientFactory._get_finch_socket_path()
-
-        self.assertEqual(result, "unix:///tmp/finch.sock")
-
-    @patch("samcli.local.docker.container_client_factory.get_platform_handler")
-    def test_get_finch_socket_path_not_supported(self, mock_get_handler):
-        """Test getting Finch socket path when not supported"""
-        mock_handler = Mock()
-        mock_handler.supports_finch.return_value = False
-        mock_get_handler.return_value = mock_handler
-
-        result = ContainerClientFactory._get_finch_socket_path()
-
-        self.assertIsNone(result)
-
-    def test_is_finch_socket_true(self):
-        """Test Finch socket detection returns True"""
-        with patch.object(ContainerClientFactory, "_get_finch_socket_path", return_value="unix:///tmp/finch.sock"):
-            result = ContainerClientFactory._is_finch_socket("unix:///tmp/finch.sock")
-            self.assertTrue(result)
-
-    def test_is_finch_socket_false(self):
-        """Test Finch socket detection returns False"""
-        with patch.object(ContainerClientFactory, "_get_finch_socket_path", return_value="unix:///tmp/finch.sock"):
-            result = ContainerClientFactory._is_finch_socket("unix:///var/run/docker.sock")
-            self.assertFalse(result)
 
     @patch("samcli.local.docker.container_client_factory.get_platform_handler")
     def test_get_error_message_with_handler(self, mock_get_handler):
@@ -311,33 +260,6 @@ class TestContainerClientFactory(TestCase):
         self.assertIsNone(result)
 
 
-class TestGetFinchSocketPath(TestCase):
-    @parameterized.expand(
-        [
-            ("Linux", "unix:///var/run/finch.sock"),
-            ("Darwin", "unix:////Applications/Finch/lima/data/finch/sock/finch.sock"),
-            ("Windows", None),
-        ]
-    )
-    @patch("samcli.local.docker.platform_config.platform.system")
-    def test_get_finch_socket_path_returns_correct_path(self, platform_name, expected_path, mock_system):
-        """Test that get_finch_socket_path returns the correct path based on platform"""
-        mock_system.return_value = platform_name
-
-        result = ContainerClientFactory._get_finch_socket_path()
-        self.assertEqual(result, expected_path)
-        mock_system.assert_called_once()
-
-    @patch("samcli.local.docker.container_client_factory.get_platform_handler")
-    def test_get_finch_socket_path_returns_none_when_no_handler(self, mock_get_handler):
-        """Test that get_finch_socket_path returns None when no platform handler available"""
-        mock_get_handler.return_value = None
-
-        result = ContainerClientFactory._get_finch_socket_path()
-        self.assertEqual(result, None)
-        mock_get_handler.assert_called_once()
-
-
 class TestValidateAdminContainerPreference(TestCase):
     @parameterized.expand(
         [  # input_value, normalize_value, log_value
@@ -351,22 +273,19 @@ class TestValidateAdminContainerPreference(TestCase):
             ("  docker  ", "docker", "Docker"),
         ]
     )
-    @patch("samcli.local.docker.container_client_factory.Context.get_current_context")
+    @patch("samcli.local.docker.container_client_factory.set_container_socket_host_telemetry")
     @patch("samcli.local.docker.container_client_factory.LOG")
     def test_validate_admin_container_preference_valid_inputs(
-        self, input_value, expected_output, log_value, mock_log, mock_get_context
+        self, input_value, expected_output, log_value, mock_log, mock_set_telemetry
     ):
         """Test validation with valid container runtime inputs"""
 
-        # Create a real Context object (setattr will dynamically add the attribute)
-        real_ctx = Context()
-        mock_get_context.return_value = real_ctx
-
         result = ContainerClientFactory._get_validate_admin_container_preference(input_value)
         self.assertEqual(result, expected_output)
-        # The setattr call in _set_context_preference should have added this attribute
-        self.assertTrue(hasattr(real_ctx, "admin_container_preference"))
-        self.assertEqual(real_ctx.admin_container_preference, expected_output)
+
+        # Verify telemetry storage was called with the expected value
+        mock_set_telemetry.assert_called_once_with(admin_preference=expected_output)
+
         mock_log.info.assert_has_calls(
             [
                 call("Administrator container preference detected."),
@@ -385,19 +304,17 @@ class TestValidateAdminContainerPreference(TestCase):
             ("docker-test",),
         ]
     )
-    @patch("samcli.local.docker.container_client_factory.Context.get_current_context")
+    @patch("samcli.local.docker.container_client_factory.set_container_socket_host_telemetry")
     @patch("samcli.local.docker.container_client_factory.LOG")
-    def test_validate_admin_container_preference_invalid_inputs(self, input_value, mock_log, mock_get_context):
+    def test_validate_admin_container_preference_invalid_inputs(self, input_value, mock_log, mock_set_telemetry):
         """Test validation with invalid container runtime inputs"""
-
-        # Create a real Context object
-        real_ctx = Context()
-        mock_get_context.return_value = real_ctx
 
         result = ContainerClientFactory._get_validate_admin_container_preference(input_value)
         self.assertIsNone(result)
-        self.assertTrue(hasattr(real_ctx, "admin_container_preference"))
-        self.assertEqual(real_ctx.admin_container_preference, "other")
+
+        # Verify telemetry storage was called with "other" for invalid inputs
+        mock_set_telemetry.assert_called_once_with(admin_preference="other")
+
         mock_log.info.assert_has_calls(
             [
                 call("Administrator container preference detected."),
@@ -421,19 +338,16 @@ class TestAdminContainerPreference(TestCase):
             ("FINCH", "finch"),
         ]
     )
-    @patch("samcli.local.docker.container_client_factory.Context.get_current_context")
+    @patch("samcli.local.docker.container_client_factory.set_container_socket_host_telemetry")
     @patch("samcli.local.docker.container_client_factory.LOG")
     @patch("samcli.local.docker.container_client_factory.get_platform_handler")
     def test_admin_preference_valid_inputs(
-        self, raw_config, expected_result, mock_get_handler, mock_log, mock_get_context
+        self, raw_config, expected_result, mock_get_handler, mock_log, mock_set_telemetry
     ):
         """Test administrator preference verification logic with valid inputs"""
         mock_handler = Mock()
         mock_handler.read_config.return_value = raw_config
         mock_get_handler.return_value = mock_handler
-
-        real_ctx = Context()
-        mock_get_context.return_value = real_ctx
 
         result = ContainerClientFactory.get_admin_container_preference()
 
@@ -441,8 +355,8 @@ class TestAdminContainerPreference(TestCase):
         mock_get_handler.assert_called_once()
         mock_handler.read_config.assert_called_once()
 
-        self.assertTrue(hasattr(real_ctx, "admin_container_preference"))
-        self.assertEqual(real_ctx.admin_container_preference, expected_result)
+        # Verify telemetry storage was called with the expected value
+        mock_set_telemetry.assert_called_once_with(admin_preference=expected_result)
 
         # Validate log messages and order
         mock_log.info.assert_has_calls(
@@ -459,22 +373,19 @@ class TestAdminContainerPreference(TestCase):
             ("containerd",),
         ]
     )
-    @patch("samcli.local.docker.container_client_factory.Context.get_current_context")
+    @patch("samcli.local.docker.container_client_factory.set_container_socket_host_telemetry")
     @patch("samcli.local.docker.container_client_factory.LOG")
     @patch("samcli.local.docker.container_client_factory.get_platform_handler")
-    def test_admin_preference_invalid_inputs(self, raw_config, mock_get_handler, mock_log, mock_get_context):
+    def test_admin_preference_invalid_inputs(self, raw_config, mock_get_handler, mock_log, mock_set_telemetry):
         """Test administrator preference verification logic with invalid inputs"""
         mock_handler = Mock()
         mock_handler.read_config.return_value = raw_config
         mock_get_handler.return_value = mock_handler
 
-        real_ctx = Context()
-        mock_get_context.return_value = real_ctx
-
         result = ContainerClientFactory.get_admin_container_preference()
 
-        self.assertTrue(hasattr(real_ctx, "admin_container_preference"))
-        self.assertEqual(real_ctx.admin_container_preference, "other")
+        # Verify telemetry storage was called with "other" for invalid inputs
+        mock_set_telemetry.assert_called_once_with(admin_preference="other")
         self.assertEqual(result, None)
         mock_log.info.assert_has_calls(
             [
@@ -508,149 +419,6 @@ class TestAdminContainerPreference(TestCase):
         self.assertEqual(result, None)
         mock_handler.read_config.assert_called_once()
         mock_log.info.assert_not_called()
-
-
-class TestSetContextRuntimeType(TestCase):
-    """Test the _set_context_runtime_type method"""
-
-    @patch("samcli.cli.context.Context.get_current_context")
-    def test_set_context_runtime_type_finch(self, mock_get_context):
-        """Test storing Finch runtime type in context"""
-        mock_ctx = Mock()
-        mock_get_context.return_value = mock_ctx
-
-        # Create a mock Finch client
-        mock_client = Mock()
-        mock_client.get_runtime_type.return_value = "finch"
-
-        # Call the method
-        ContainerClientFactory._set_context_runtime_type(mock_client)
-
-        # Verify the runtime type was stored in context
-        mock_client.get_runtime_type.assert_called_once()
-        self.assertEqual(mock_ctx.actual_container_runtime, "finch")
-
-    @patch("samcli.cli.context.Context.get_current_context")
-    def test_set_context_runtime_type_docker(self, mock_get_context):
-        """Test storing Docker runtime type in context"""
-        mock_ctx = Mock()
-        mock_get_context.return_value = mock_ctx
-
-        # Create a mock Docker client
-        mock_client = Mock()
-        mock_client.get_runtime_type.return_value = "docker"
-
-        # Call the method
-        ContainerClientFactory._set_context_runtime_type(mock_client)
-
-        # Verify the runtime type was stored in context
-        mock_client.get_runtime_type.assert_called_once()
-        self.assertEqual(mock_ctx.actual_container_runtime, "docker")
-
-    @patch("samcli.cli.context.Context.get_current_context")
-    def test_set_context_runtime_type_no_context(self, mock_get_context):
-        """Test storing runtime type when no context is available"""
-        mock_get_context.side_effect = RuntimeError("No context available")
-
-        # Create a mock client
-        mock_client = Mock()
-        mock_client.get_runtime_type.return_value = "finch"
-
-        # Call the method - should not raise exception
-        ContainerClientFactory._set_context_runtime_type(mock_client)
-
-        # Verify the client method was not called since context failed
-        mock_client.get_runtime_type.assert_not_called()
-
-    @patch("samcli.cli.context.Context.get_current_context")
-    def test_set_context_runtime_type_import_error(self, mock_get_context):
-        """Test storing runtime type when import fails"""
-        mock_get_context.side_effect = ImportError("Import failed")
-
-        # Create a mock client
-        mock_client = Mock()
-        mock_client.get_runtime_type.return_value = "finch"
-
-        # Call the method - should not raise exception
-        ContainerClientFactory._set_context_runtime_type(mock_client)
-
-        # Verify the client method was not called since import failed
-        mock_client.get_runtime_type.assert_not_called()
-
-
-class TestCreateClientWithContextStorage(TestCase):
-    """Test that create_client methods properly store runtime type in context for Finch"""
-
-    @patch("samcli.local.docker.container_client_factory.ContainerClientFactory._set_context_runtime_type")
-    @patch("samcli.local.docker.container_client_factory.ContainerClientFactory._try_create_finch_client")
-    @patch("samcli.local.docker.container_client_factory.LOG")
-    def test_create_enforced_client_finch_stores_context(self, mock_log, mock_try_finch, mock_set_context):
-        """Test enforced Finch client creation stores runtime type in context"""
-        mock_client = Mock()
-        mock_client.is_available.return_value = True
-        mock_try_finch.return_value = mock_client
-
-        result = ContainerClientFactory._create_enforced_client(ContainerEngine.FINCH.value)
-
-        self.assertEqual(result, mock_client)
-        mock_log.debug.assert_called_with("Using Finch as Container Engine (enforced).")
-        mock_set_context.assert_called_once_with(mock_client)
-
-    @patch("samcli.local.docker.container_client_factory.ContainerClientFactory._set_context_runtime_type")
-    @patch("samcli.local.docker.container_client_factory.ContainerClientFactory._try_create_docker_client")
-    @patch("samcli.local.docker.container_client_factory.LOG")
-    def test_create_enforced_client_docker_does_not_store_context(self, mock_log, mock_try_docker, mock_set_context):
-        """Test enforced Docker client creation does NOT store runtime type in context"""
-        mock_client = Mock()
-        mock_client.is_available.return_value = True
-        mock_try_docker.return_value = mock_client
-
-        result = ContainerClientFactory._create_enforced_client(ContainerEngine.DOCKER.value)
-
-        self.assertEqual(result, mock_client)
-        mock_log.debug.assert_called_with("Using Docker as Container Engine (enforced).")
-        mock_set_context.assert_not_called()
-
-    @patch("samcli.local.docker.container_client_factory.ContainerClientFactory._set_context_runtime_type")
-    @patch("samcli.local.docker.container_client_factory.ContainerClientFactory._try_create_docker_client")
-    @patch("samcli.local.docker.container_client_factory.ContainerClientFactory._try_create_finch_client")
-    @patch("samcli.local.docker.container_client_factory.LOG")
-    def test_create_auto_detected_client_finch_stores_context(
-        self, mock_log, mock_try_finch, mock_try_docker, mock_set_context
-    ):
-        """Test auto-detected Finch client creation stores runtime type in context"""
-        # Docker unavailable
-        docker_client = Mock()
-        docker_client.is_available.return_value = False
-        mock_try_docker.return_value = docker_client
-
-        # Finch available
-        finch_client = Mock()
-        finch_client.is_available.return_value = True
-        mock_try_finch.return_value = finch_client
-
-        result = ContainerClientFactory._create_auto_detected_client()
-
-        self.assertEqual(result, finch_client)
-        mock_log.debug.assert_called_with("Using Finch as Container Engine.")
-        mock_set_context.assert_called_once_with(finch_client)
-
-    @patch("samcli.local.docker.container_client_factory.ContainerClientFactory._set_context_runtime_type")
-    @patch("samcli.local.docker.container_client_factory.ContainerClientFactory._try_create_docker_client")
-    @patch("samcli.local.docker.container_client_factory.LOG")
-    def test_create_auto_detected_client_docker_does_not_store_context(
-        self, mock_log, mock_try_docker, mock_set_context
-    ):
-        """Test auto-detected Docker client creation does NOT store runtime type in context"""
-        mock_client = Mock()
-        mock_client.is_available.return_value = True
-        mock_try_docker.return_value = mock_client
-
-        result = ContainerClientFactory._create_auto_detected_client()
-
-        self.assertEqual(result, mock_client)
-        mock_log.debug.assert_called_with("Using Docker as Container Engine.")
-        mock_set_context.assert_not_called()
 
 
 class TestCreateClientIntegration(TestCase):
