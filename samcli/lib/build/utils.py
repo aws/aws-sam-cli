@@ -3,7 +3,8 @@ build utilities
 """
 
 import logging
-from typing import Dict, Optional, Union
+import platform
+from typing import Dict, List, Optional, Union
 
 from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
 from samcli.lib.build.build_graph import LayerBuildDefinition
@@ -15,6 +16,76 @@ LOG = logging.getLogger(__name__)
 
 def valid_architecture(architecture: str) -> bool:
     return architecture in [X86_64, ARM64]
+
+
+def _get_host_architecture() -> str:
+    """
+    Get host architecture using platform.machine().
+
+    Returns
+    -------
+    str
+        Host architecture (ARM64 or X86_64)
+    """
+    machine = platform.machine().lower()
+    if machine in ["arm64", "aarch64"]:
+        return ARM64
+    return X86_64
+
+
+def _get_function_architecture(function: Function) -> str:
+    """
+    Get function architecture, defaulting to x86_64.
+
+    Parameters
+    ----------
+    function : Function
+        Lambda function object
+
+    Returns
+    -------
+    str
+        Function architecture (ARM64 or X86_64)
+    """
+    if function.architectures:
+        return function.architectures[0]
+    return X86_64
+
+
+def warn_cross_architecture_build(functions: List[Function], container_runtime: str) -> None:
+    """
+    Log warning for cross-architecture builds that may fail.
+
+    Iterates through functions, compares host vs function architecture, and logs warnings
+    for mismatches. Includes container runtime in warning message for context.
+
+    Parameters
+    ----------
+    functions : List[Function]
+        List of Lambda functions to check
+    container_runtime : str
+        Container runtime being used (docker/finch)
+    """
+    try:
+        host_arch = _get_host_architecture()
+    except Exception:
+        # If host architecture detection fails, skip warnings
+        LOG.debug("Failed to detect host architecture, skipping cross-architecture warnings")
+        return
+
+    for function in functions:
+        function_arch = _get_function_architecture(function)
+        if host_arch != function_arch:
+            LOG.warning(
+                "Cross-architecture build detected: Building %s function '%s' on %s host. "
+                "This may cause build failures with %s. "
+                "Consider updating the function architecture to '%s' in template.yaml",
+                function_arch,
+                function.name,
+                host_arch,
+                container_runtime,
+                host_arch,
+            )
 
 
 def warn_on_invalid_architecture(layer_definition: LayerBuildDefinition) -> None:

@@ -4,7 +4,7 @@ Lambda event construction and generation
 
 import base64
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from time import time
 from typing import Any, Dict
 
@@ -105,7 +105,7 @@ def construct_v2_event_http(
     stage_variables=None,
     route_key=None,
     request_time_epoch=int(time()),
-    request_time=datetime.utcnow().strftime("%d/%b/%Y:%H:%M:%S +0000"),
+    request_time=datetime.now(timezone.utc).strftime("%d/%b/%Y:%H:%M:%S +0000"),
 ) -> Dict[str, Any]:
     """
     Helper method that constructs the Event 2.0 to be passed to Lambda
