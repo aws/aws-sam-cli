@@ -20,7 +20,7 @@ env:
   GITHUB_ACTIONS_INTEG: true
   BY_CANARY: true
   UV_PYTHON: python3.9
-  CREDENTIAL_DISTRIBUTION_LAMBDA_ARN: arn:aws:lambda:us-west-2:123087993316:function:test-account-management-CredentialDistributionLamb-7CwJ4B8P4hth
+  CREDENTIAL_DISTRIBUTION_LAMBDA_ARN: arn:aws:lambda:us-west-2:123087993316:function:test-account-management-CredentialDistributionLamb-o1sEaa8lvO1L
   ACCOUNT_RESET_LAMBDA_ARN: arn:aws:lambda:us-west-2:123087993316:function:test-account-management-AccountResetLambdaFunction-nBZDo6oLCH80
 
 jobs:
@@ -247,11 +247,17 @@ jobs:
 
       - name: Get testing resources and credentials
         run: |
-          test_env_var=$(python3.9 tests/get_testing_resources.py)
+          # Try with skip_role_deletion parameter first
+          test_env_var=$(python3.9 tests/get_testing_resources.py skip_role_deletion 2>&1)
           
           if [ $? -ne 0 ]; then
-            echo "get_testing_resources failed. Failed to acquire credentials or test resources."
-            exit 1
+            echo "First attempt with skip_role_deletion failed, trying without parameter..."
+            test_env_var=$(python3.9 tests/get_testing_resources.py)
+            
+            if [ $? -ne 0 ]; then
+              echo "get_testing_resources failed. Failed to acquire credentials or test resources."
+              exit 1
+            fi
           fi
           
           # Save current credentials for account reset later

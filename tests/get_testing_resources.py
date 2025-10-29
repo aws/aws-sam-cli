@@ -5,6 +5,7 @@ The output will be a json string with creds and resource names.
 
 import json
 import os
+import sys
 
 import boto3
 from boto3.session import Session
@@ -16,7 +17,8 @@ LAMBDA_TIME_OUT = 300
 
 
 def main():
-    env_vars = get_testing_credentials()
+    skip_role_deletion = len(sys.argv) > 1 and sys.argv[1] == "skip_role_deletion"
+    env_vars = get_testing_credentials(skip_role_deletion)
     # Assume testing account credential in order to access managed test resource stack
     test_session = Session(
         aws_access_key_id=env_vars["accessKeyID"],
@@ -37,7 +39,7 @@ def get_managed_test_resource_outputs(session: Session):
     return outputs_dict
 
 
-def get_testing_credentials():
+def get_testing_credentials(skip_role_deletion=False):
     lambda_arn = os.environ["CREDENTIAL_DISTRIBUTION_LAMBDA_ARN"]
     # Max attempts to 0 so that boto3 will not invoke multiple times
     lambda_client = boto3.client(
@@ -49,7 +51,14 @@ def get_testing_credentials():
         ),
         region_name="us-west-2",
     )
-    response = lambda_client.invoke(FunctionName=lambda_arn)
+    
+    # Prepare payload if skip_role_deletion is True
+    if skip_role_deletion:
+        payload_data = json.dumps({"skip_role_deletion": True})
+        response = lambda_client.invoke(FunctionName=lambda_arn, Payload=payload_data)
+    else:
+        response = lambda_client.invoke(FunctionName=lambda_arn)
+    
     payload = json.loads(response["Payload"].read())
     if response.get("FunctionError"):
         raise ValueError(f"Failed to get credential. {payload['errorType']}")
