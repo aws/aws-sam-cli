@@ -30,8 +30,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # container_runtime: [docker, finch]
-        container_runtime: [docker]
+        # container_runtime: [docker, finch, no-container]
+        container_runtime: [docker, finch , no-container]
         test_suite:
           - build-integ
           - build-integ-java-python-provided
@@ -43,6 +43,12 @@ jobs:
           #- local-invoke
           #- local-start
           #- other-and-e2e
+        exclude:
+          # no-container mode only applies to build-integ test suites
+          - container_runtime: no-container
+            test_suite: terraform-build
+          - container_runtime: no-container
+            test_suite: sync
     
     steps:
       - name: Checkout code
@@ -55,7 +61,7 @@ jobs:
           
           # Remove all existing Docker images to free up space
           echo "Removing all existing Docker images..."
-          docker image prune -af || true
+          # docker image prune -af || true
           docker system prune -af --volumes || true
           
           # Run cleanup in background to not block workflow
@@ -106,7 +112,7 @@ jobs:
           go-version: '1.25'
 
       - name: Install Maven and Gradle
-        if: contains(fromJSON('["build-integ", "sync", "build-integ-java-python-provided", "build-integ-arm64", "build-integ-arm64-java"]'), matrix.test_suite)
+        if: (contains(fromJSON('["build-integ", "build-integ-java-python-provided", "build-integ-arm64", "build-integ-arm64-java"]'), matrix.test_suite) && matrix.container_runtime == 'no-container') || matrix.test_suite == 'sync'
         run: |
           # Remove system Maven if it exists
           sudo apt-get remove -y maven || true
@@ -294,18 +300,29 @@ jobs:
 
       - name: Run tests
         run: |
+          # Determine test filtering based on container_runtime
+          if [ "${{ matrix.container_runtime }}" = "no-container" ]; then
+            # For no-container mode, deselect tests with "container" in the name
+            CONTAINER_FILTER="--deselect-by-keyword=container"
+          elif [ "${{ matrix.container_runtime }}" = "docker" ] || [ "${{ matrix.container_runtime }}" = "finch" ]; then
+            # For docker/finch mode, only select tests with "container" in the name
+            CONTAINER_FILTER="-k container"
+          else
+            CONTAINER_FILTER=""
+          fi
+          
           case "${{ matrix.test_suite }}" in
             "build-integ")
-              pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'not java and not python and not provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd-${{ matrix.container_runtime }}.json
+              pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'not java and not python and not provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py $CONTAINER_FILTER --json-report --json-report-file=TEST_REPORT-integration-buildcmd-${{ matrix.container_runtime }}.json
               ;;
             "build-integ-java-python-provided")
-              pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'java or python or provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-buildcmd-java-python-provided-${{ matrix.container_runtime }}.json
+              pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'java or python or provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py $CONTAINER_FILTER --json-report --json-report-file=TEST_REPORT-integration-buildcmd-java-python-provided-${{ matrix.container_runtime }}.json
               ;;
             "build-integ-arm64")
-              pytest -vv -n 2 --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'not java' --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64-${{ matrix.container_runtime }}.json
+              pytest -vv -n 2 --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'not java' $CONTAINER_FILTER --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64-${{ matrix.container_runtime }}.json
               ;;
             "build-integ-arm64-java")
-              pytest -vv -n 2 --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'java' --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64-java-${{ matrix.container_runtime }}.json
+              pytest -vv -n 2 --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'java' $CONTAINER_FILTER --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64-java-${{ matrix.container_runtime }}.json
               ;;
             "terraform-build")
               pytest -vv -n 4 --reruns 4 tests/integration/buildcmd/test_build_terraform_applications.py tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-terraform-${{ matrix.container_runtime }}.json
