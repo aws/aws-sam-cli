@@ -112,9 +112,16 @@ jobs:
           wget https://services.gradle.org/distributions/gradle-9.0.0-bin.zip -P /tmp
           sudo unzip -d /opt/gradle /tmp/gradle-*.zip
           
+          # Create symlinks to ensure our Maven is used
+          sudo ln -sf /opt/mvn/apache-maven-3.9.11/bin/mvn /usr/local/bin/mvn
+          sudo ln -sf /opt/gradle/gradle-9.0.0/bin/gradle /usr/local/bin/gradle
+          
           # Add to PATH (prepend to ensure our versions are used first)
           echo "/opt/mvn/apache-maven-3.9.11/bin" >> $GITHUB_PATH
           echo "/opt/gradle/gradle-9.0.0/bin" >> $GITHUB_PATH
+          
+          # Set MAVEN_HOME
+          echo "MAVEN_HOME=/opt/mvn/apache-maven-3.9.11" >> $GITHUB_ENV
           
           # Verify versions
           export PATH="/opt/mvn/apache-maven-3.9.11/bin:/opt/gradle/gradle-9.0.0/bin:$PATH"
@@ -144,7 +151,7 @@ jobs:
         if: contains(fromJSON('["build-integ", "build-integ-arm64", "sync", "other-and-e2e"]'), matrix.test_suite)
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.4.2'
+          ruby-version: '3.4.7'
 
 
       - name: Install Rust toolchain
