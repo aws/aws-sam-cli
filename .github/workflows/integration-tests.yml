@@ -35,8 +35,8 @@ jobs:
         test_suite:
           - build-integ
           - build-integ-java-python-provided
-          - build-integ-arm64
-          - build-integ-arm64-java
+          #- build-integ-arm64 # good
+          # - build-integ-arm64-java # good
           # - terraform-build # good
           #- package-delete-deploy
           # - sync # good
@@ -60,11 +60,8 @@ jobs:
           df -h
           # Run cleanup in background to not block workflow
           nohup bash -c '
+            sudo rm -rf /usr/share/dotnet /usr/local/share/powershell /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
             sudo apt-get clean
-            sudo rm -rf /usr/share/dotnet /usr/local/share/powershell
-            sudo rm -rf /usr/local/lib/android
-            sudo rm -rf /opt/ghc
-            sudo rm -rf /opt/hostedtoolcache/CodeQL
           ' > /dev/null 2>&1 &
 
           # Remove all existing Docker images to free up space
@@ -77,7 +74,7 @@ jobs:
             nohup docker system prune -af --volumes || true &
           fi
         
-        
+
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:

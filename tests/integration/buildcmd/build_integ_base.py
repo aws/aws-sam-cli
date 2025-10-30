@@ -119,70 +119,70 @@ class BuildIntegBase(TestCase):
         This helps prevent disk space issues from accumulating test artifacts.
         Excludes official SAM build images from public.ecr.aws/sam/build*.
         """
-        # if SKIP_DOCKER_TESTS:
-        #     return
+        if SKIP_DOCKER_TESTS:
+            return
 
-        # try:
-        #     docker_client = get_validated_container_client()
-        #     current_time = datetime.now(timezone.utc)
-        #     five_minutes_ago = current_time.timestamp() - 300  # 5 minutes in seconds
+        try:
+            docker_client = get_validated_container_client()
+            current_time = datetime.now(timezone.utc)
+            five_minutes_ago = current_time.timestamp() - 600  # 5 minutes in seconds
 
-        #     # Get all images
-        #     all_images = docker_client.images.list()
-        #     removed_count = 0
+            # Get all images
+            all_images = docker_client.images.list()
+            removed_count = 0
 
-        #     for image in all_images:
-        #         try:
-        #             # Get image tags for logging and filtering
-        #             image_tags = image.tags if image.tags else [image.id]
+            for image in all_images:
+                try:
+                    # Get image tags for logging and filtering
+                    image_tags = image.tags if image.tags else [image.id]
                     
-        #             # Skip official SAM build images from public.ecr.aws/sam/build*
-        #             should_skip = False
-        #             for tag in image_tags:
-        #                 if isinstance(tag, str) and tag.startswith("public.ecr.aws/sam"):
-        #                     should_skip = True
-        #                     LOG.debug(f"Skipping official SAM build image: {tag}")
-        #                     break
+                    # Skip official SAM build images from public.ecr.aws/sam/build*
+                    should_skip = False
+                    for tag in image_tags:
+                        if isinstance(tag, str) and tag.startswith("public.ecr.aws/sam"):
+                            should_skip = True
+                            LOG.debug(f"Skipping official SAM build image: {tag}")
+                            break
                     
-        #             if should_skip:
-        #                 continue
+                    if should_skip:
+                        continue
 
-        #             # Get image creation time
-        #             image_created = image.attrs.get('Created', '')
-        #             if not image_created:
-        #                 continue
+                    # Get image creation time
+                    image_created = image.attrs.get('Created', '')
+                    if not image_created:
+                        continue
 
-        #             # Parse the creation timestamp
-        #             # Docker API returns ISO 8601 format with nanoseconds
-        #             if isinstance(image_created, str):
-        #                 # Remove nanoseconds and parse
-        #                 created_dt = datetime.fromisoformat(image_created.replace('Z', '+00:00').split('.')[0] + '+00:00')
-        #                 created_timestamp = created_dt.timestamp()
-        #             else:
-        #                 created_timestamp = image_created
+                    # Parse the creation timestamp
+                    # Docker API returns ISO 8601 format with nanoseconds
+                    if isinstance(image_created, str):
+                        # Remove nanoseconds and parse
+                        created_dt = datetime.fromisoformat(image_created.replace('Z', '+00:00').split('.')[0] + '+00:00')
+                        created_timestamp = created_dt.timestamp()
+                    else:
+                        created_timestamp = image_created
 
-        #             # Check if image was created more than 5 minutes ago
-        #             if created_timestamp < five_minutes_ago:
-        #                 try:
-        #                     # Force remove the image (including layers)
-        #                     docker_client.images.remove(image.id, force=True)
-        #                     removed_count += 1
-        #                     LOG.debug(f"Removed old Docker image: {image_tags}")
-        #                 except Exception as remove_error:
-        #                     # Image might be in use or already removed, log but continue
-        #                     LOG.debug(f"Could not remove Docker image {image_tags}: {remove_error}")
+                    # Check if image was created more than 5 minutes ago
+                    if created_timestamp < five_minutes_ago:
+                        try:
+                            # Force remove the image (including layers)
+                            docker_client.images.remove(image.id, force=True)
+                            removed_count += 1
+                            LOG.debug(f"Removed old Docker image: {image_tags}")
+                        except Exception as remove_error:
+                            # Image might be in use or already removed, log but continue
+                            LOG.debug(f"Could not remove Docker image {image_tags}: {remove_error}")
 
-        #         except Exception as image_error:
-        #             # Continue with other images if one fails
-        #             LOG.debug(f"Error processing Docker image: {image_error}")
-        #             continue
+                except Exception as image_error:
+                    # Continue with other images if one fails
+                    LOG.debug(f"Error processing Docker image: {image_error}")
+                    continue
 
-        #     if removed_count > 0:
-        #         LOG.info(f"Cleaned up {removed_count} old Docker image(s)")
+            if removed_count > 0:
+                LOG.info(f"Cleaned up {removed_count} old Docker image(s)")
 
-        # except Exception as e:
-        #     # Don't fail the test if Docker cleanup fails
-        #     LOG.warning(f"Failed to clean up old Docker images: {e}")
+        except Exception as e:
+            # Don't fail the test if Docker cleanup fails
+            LOG.warning(f"Failed to clean up old Docker images: {e}")
 
     def get_command_list(
         self,
