@@ -115,7 +115,7 @@ class TestBuildCommand_Dotnet_cli_package_interactive(BuildIntegDotnetBase):
             ("provided.al2", "Dotnet7", None),
         ]
     )
-    def test_dotnet_al2(self, runtime, code_uri, mode):
+    def test_dotnet_al2_in_container(self, runtime, code_uri, mode):
         overrides = {
             "Runtime": runtime,
             "CodeUri": code_uri,
@@ -135,7 +135,7 @@ class TestBuildCommand_Dotnet_cli_package_interactive(BuildIntegDotnetBase):
             ("dotnet6", "Dotnet6", "debug"),
         ]
     )
-    def test_dotnet_6(self, runtime, code_uri, mode):
+    def test_dotnet_6_in_container(self, runtime, code_uri, mode):
         overrides = {
             "Runtime": runtime,
             "CodeUri": code_uri,
@@ -155,7 +155,7 @@ class TestBuildCommand_Dotnet_cli_package_interactive(BuildIntegDotnetBase):
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     @pytest.mark.al2023
-    def test_dotnet_al2023(self, runtime, code_uri, mode):
+    def test_dotnet_al2023_in_container(self, runtime, code_uri, mode):
         overrides = {
             "Runtime": runtime,
             "CodeUri": code_uri,

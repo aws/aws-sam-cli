@@ -35,30 +35,43 @@ class TestBuildCommand_ProvidedFunctions(BuildIntegProvidedBase):
     # if the makefile is present.
     @parameterized.expand(
         [
-            ("provided", False, None),
-            ("provided", "use_container", "Makefile-container"),
-            ("provided.al2", False, None),
-            ("provided.al2", "use_container", "Makefile-container"),
+            ("provided", None),
+            ("provided.al2", None),
         ]
     )
-    def test_building_Makefile(self, runtime, use_container, manifest):
-        if use_container:
-            if SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
-                self.skipTest(SKIP_DOCKER_MESSAGE)
-        self._test_with_Makefile(runtime, use_container, manifest)
+    def test_building_Makefile(self, runtime, manifest):
+        self._test_with_Makefile(runtime, False, manifest)
 
     @parameterized.expand(
         [
-            ("provided.al2023", False, None),
-            ("provided.al2023", "use_container", "Makefile-container"),
+            ("provided", "Makefile-container"),
+            ("provided.al2", "Makefile-container"),
+        ]
+    )
+    def test_building_Makefile_in_container(self, runtime, manifest):
+        if SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+        self._test_with_Makefile(runtime, "use_container", manifest)
+
+    @parameterized.expand(
+        [
+            ("provided.al2023", None),
         ]
     )
     @pytest.mark.al2023
-    def test_building_Makefile_al2023(self, runtime, use_container, manifest):
-        if use_container:
-            if SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
-                self.skipTest(SKIP_DOCKER_MESSAGE)
-        self._test_with_Makefile(runtime, use_container, manifest)
+    def test_building_Makefile_al2023(self, runtime, manifest):
+        self._test_with_Makefile(runtime, False, manifest)
+
+    @parameterized.expand(
+        [
+            ("provided.al2023", "Makefile-container"),
+        ]
+    )
+    @pytest.mark.al2023
+    def test_building_Makefile_in_container_al2023(self, runtime, manifest):
+        if SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+        self._test_with_Makefile(runtime, "use_container", manifest)
 
 
 @parameterized_class(
@@ -73,24 +86,39 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture(BuildIntegP
     # if the makefile is present.
     @parameterized.expand(
         [
-            ("provided", False, None, "x86_64"),
-            ("provided", "use_container", "Makefile-container", "x86_64"),
-            ("provided.al2", False, None, "x86_64"),
-            ("provided.al2", "use_container", "Makefile-container", "x86_64"),
+            ("provided", None, "x86_64"),
+            ("provided.al2", None, "x86_64"),
         ]
     )
-    def test_building_Makefile(self, runtime, use_container, manifest, architecture):
-        self._test_with_Makefile(runtime, use_container, manifest, architecture)
+    def test_building_Makefile(self, runtime, manifest, architecture):
+        self._test_with_Makefile(runtime, False, manifest, architecture)
 
     @parameterized.expand(
         [
-            ("provided.al2023", False, None, "x86_64"),
-            ("provided.al2023", "use_container", "Makefile-container", "x86_64"),
+            ("provided", "Makefile-container", "x86_64"),
+            ("provided.al2", "Makefile-container", "x86_64"),
+        ]
+    )
+    def test_building_Makefile_in_container(self, runtime, manifest, architecture):
+        self._test_with_Makefile(runtime, "use_container", manifest, architecture)
+
+    @parameterized.expand(
+        [
+            ("provided.al2023", None, "x86_64"),
         ]
     )
     @pytest.mark.al2023
-    def test_building_Makefile_al2023(self, runtime, use_container, manifest, architecture):
-        self._test_with_Makefile(runtime, use_container, manifest, architecture)
+    def test_building_Makefile_al2023(self, runtime, manifest, architecture):
+        self._test_with_Makefile(runtime, False, manifest, architecture)
+
+    @parameterized.expand(
+        [
+            ("provided.al2023", "Makefile-container", "x86_64"),
+        ]
+    )
+    @pytest.mark.al2023
+    def test_building_Makefile_in_container_al2023(self, runtime, manifest, architecture):
+        self._test_with_Makefile(runtime, "use_container", manifest, architecture)
 
 
 @parameterized_class(

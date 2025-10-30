@@ -280,41 +280,53 @@ class TestSkipBuildingFlaggedFunctions(BuildIntegPythonBase):
 
 @pytest.mark.ruby
 class TestBuildCommand_RubyFunctions(BuildIntegRubyBase):
-    @parameterized.expand([(False,), ("use_container",)])
-    def test_building_ruby_3_2(self, use_container):
-        if use_container and SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
-            self.skipTest(SKIP_DOCKER_MESSAGE)
+    def test_building_ruby_3_2(self):
+        self._test_with_default_gemfile("ruby3.2", False, "Ruby", self.test_data_path)
 
-        self._test_with_default_gemfile("ruby3.2", use_container, "Ruby", self.test_data_path)
+    def test_building_ruby_3_2_in_container(self):
+        if SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+        self._test_with_default_gemfile("ruby3.2", "use_container", "Ruby", self.test_data_path)
 
     @parameterized.expand([("ruby3.3",), ("ruby3.4",)])
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     @pytest.mark.al2023
-    def test_building_ruby_al2023(self, runtime):
+    def test_building_ruby_in_container_al2023(self, runtime):
         self._test_with_default_gemfile(runtime, "use_container", "Ruby", self.test_data_path)
 
 
 class TestBuildCommand_RubyFunctions_With_Architecture(BuildIntegRubyBase):
     template = "template_with_architecture.yaml"
 
-    @parameterized.expand([(False,), ("use_container",)])
-    def test_building_ruby_3_2(self, use_container):
-        if use_container and SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
+    def test_building_ruby_3_2(self):
+        self._test_with_default_gemfile("ruby3.2", False, "Ruby32", self.test_data_path, "x86_64")
+
+    def test_building_ruby_3_2_in_container(self):
+        if SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
             self.skipTest(SKIP_DOCKER_MESSAGE)
-        self._test_with_default_gemfile("ruby3.2", use_container, "Ruby32", self.test_data_path, "x86_64")
+        self._test_with_default_gemfile("ruby3.2", "use_container", "Ruby32", self.test_data_path, "x86_64")
 
     @parameterized.expand(
         [
-            ("ruby3.3", "Ruby33", False),
-            ("ruby3.3", "Ruby33", True),
-            # ("ruby3.4", "Ruby34", False), # TODO: Try to make this work in AppVeyor (windows-al2023)
-            ("ruby3.4", "Ruby34", True),
+            ("ruby3.3", "Ruby33"),
+            # ("ruby3.4", "Ruby34"), # TODO: Try to make this work in AppVeyor (windows-al2023)
         ]
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     @pytest.mark.al2023
-    def test_building_ruby_al2023(self, runtime, codeuri, use_container):
-        self._test_with_default_gemfile(runtime, use_container, codeuri, self.test_data_path, "x86_64")
+    def test_building_ruby_al2023(self, runtime, codeuri):
+        self._test_with_default_gemfile(runtime, False, codeuri, self.test_data_path, "x86_64")
+
+    @parameterized.expand(
+        [
+            ("ruby3.3", "Ruby33"),
+            ("ruby3.4", "Ruby34"),
+        ]
+    )
+    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
+    @pytest.mark.al2023
+    def test_building_ruby_in_container_al2023(self, runtime, codeuri):
+        self._test_with_default_gemfile(runtime, "use_container", codeuri, self.test_data_path, "x86_64")
 
 
 class TestBuildCommand_RubyFunctionsWithGemfileInTheRoot(BuildIntegRubyBase):

@@ -464,36 +464,55 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPyt
 
     @parameterized.expand(
         [
-            ("python3.9", "Python", False, "x86_64"),
-            ("python3.10", "Python", False, "x86_64"),
-            ("python3.11", "Python", False, "x86_64"),
-            ("python3.9", "PythonPEP600", False, "x86_64"),
-            ("python3.10", "PythonPEP600", False, "x86_64"),
-            ("python3.11", "PythonPEP600", False, "x86_64"),
-            ("python3.9", "Python", "use_container", "x86_64"),
-            ("python3.10", "Python", "use_container", "x86_64"),
-            ("python3.11", "Python", "use_container", "x86_64"),
+            ("python3.9", "Python", "x86_64"),
+            ("python3.10", "Python", "x86_64"),
+            ("python3.11", "Python", "x86_64"),
+            ("python3.9", "PythonPEP600", "x86_64"),
+            ("python3.10", "PythonPEP600", "x86_64"),
+            ("python3.11", "PythonPEP600", "x86_64"),
         ]
     )
-    def test_with_default_requirements(self, runtime, codeuri, use_container, architecture):
+    def test_with_default_requirements(self, runtime, codeuri, architecture):
         self._test_with_default_requirements(
-            runtime, codeuri, use_container, self.test_data_path, architecture=architecture
+            runtime, codeuri, False, self.test_data_path, architecture=architecture
         )
 
     @parameterized.expand(
         [
-            ("python3.12", "Python", False, "x86_64"),
-            ("python3.12", "PythonPEP600", False, "x86_64"),
-            ("python3.12", "Python", "use_container", "x86_64"),
-            ("python3.13", "Python", False, "x86_64"),
-            ("python3.13", "PythonPEP600", False, "x86_64"),
-            ("python3.13", "Python", "use_container", "x86_64"),
+            ("python3.9", "Python", "x86_64"),
+            ("python3.10", "Python", "x86_64"),
+            ("python3.11", "Python", "x86_64"),
+        ]
+    )
+    def test_with_default_requirements_in_container(self, runtime, codeuri, architecture):
+        self._test_with_default_requirements(
+            runtime, codeuri, "use_container", self.test_data_path, architecture=architecture
+        )
+
+    @parameterized.expand(
+        [
+            ("python3.12", "Python", "x86_64"),
+            ("python3.12", "PythonPEP600", "x86_64"),
+            ("python3.13", "Python", "x86_64"),
+            ("python3.13", "PythonPEP600", "x86_64"),
         ]
     )
     @pytest.mark.al2023
-    def test_with_default_requirements_al2023(self, runtime, codeuri, use_container, architecture):
+    def test_with_default_requirements_al2023(self, runtime, codeuri, architecture):
         self._test_with_default_requirements(
-            runtime, codeuri, use_container, self.test_data_path, architecture=architecture
+            runtime, codeuri, False, self.test_data_path, architecture=architecture
+        )
+
+    @parameterized.expand(
+        [
+            ("python3.12", "Python", "x86_64"),
+            ("python3.13", "Python", "x86_64"),
+        ]
+    )
+    @pytest.mark.al2023
+    def test_with_default_requirements_in_container_al2023(self, runtime, codeuri, architecture):
+        self._test_with_default_requirements(
+            runtime, codeuri, "use_container", self.test_data_path, architecture=architecture
         )
 
     def test_invalid_architecture(self):
