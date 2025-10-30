@@ -32,40 +32,33 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture_arm64(BuildIn
 
     @parameterized.expand(
         [
-            ("python3.9", "Python"),
-            ("python3.10", "Python"),
-            ("python3.11", "Python"),
-            ("python3.12", "Python"),
-            ("python3.13", "Python"),
-            ("python3.9", "PythonPEP600"),
-            ("python3.10", "PythonPEP600"),
-            ("python3.11", "PythonPEP600"),
-            ("python3.12", "PythonPEP600"),
-            ("python3.13", "PythonPEP600"),
+            ("python3.9", "Python", False),
+            ("python3.10", "Python", False),
+            ("python3.11", "Python", False),
+            ("python3.12", "Python", False),
+            ("python3.13", "Python", False),
+            ("python3.9", "PythonPEP600", False),
+            ("python3.10", "PythonPEP600", False),
+            ("python3.11", "PythonPEP600", False),
+            ("python3.12", "PythonPEP600", False),
+            ("python3.13", "PythonPEP600", False),
+            ("python3.9", "Python", "use_container"),
+            ("python3.10", "Python", "use_container"),
+            ("python3.11", "Python", "use_container"),
         ]
     )
-    def test_with_default_requirements(self, runtime, codeuri):
-        self._test_with_default_requirements(runtime, codeuri, False, self.test_data_path, architecture=ARM64)
+    def test_with_default_requirements(self, runtime, codeuri, use_container):
+        self._test_with_default_requirements(runtime, codeuri, use_container, self.test_data_path, architecture=ARM64)
 
     @parameterized.expand(
         [
-            ("python3.9", "Python"),
-            ("python3.10", "Python"),
-            ("python3.11", "Python"),
-        ]
-    )
-    def test_with_default_requirements_in_container(self, runtime, codeuri):
-        self._test_with_default_requirements(runtime, codeuri, "use_container", self.test_data_path, architecture=ARM64)
-
-    @parameterized.expand(
-        [
-            ("python3.12", "Python"),
-            ("python3.13", "Python"),
+            ("python3.12", "Python", "use_container"),
+            ("python3.13", "Python", "use_container"),
         ]
     )
     @pytest.mark.al2023
-    def test_with_default_requirements_in_container_al2023(self, runtime, codeuri):
-        self._test_with_default_requirements(runtime, codeuri, "use_container", self.test_data_path, architecture=ARM64)
+    def test_with_default_requirements_al2023(self, runtime, codeuri, use_container):
+        self._test_with_default_requirements(runtime, codeuri, use_container, self.test_data_path, architecture=ARM64)
 
 
 class TestBuildCommand_EsbuildFunctions_arm64(BuildIntegEsbuildBase):
@@ -73,21 +66,20 @@ class TestBuildCommand_EsbuildFunctions_arm64(BuildIntegEsbuildBase):
 
     @parameterized.expand(
         [
-            ("nodejs20.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler"),
-            ("nodejs20.x", "Esbuild/TypeScript", {"app.js", "app.js.map"}, "app.lambdaHandler"),
+            ("nodejs20.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", False),
+            ("nodejs20.x", "Esbuild/TypeScript", {"app.js", "app.js.map"}, "app.lambdaHandler", False),
+            ("nodejs20.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", "use_container"),
+            (
+                "nodejs20.x",
+                "Esbuild/TypeScript",
+                {"app.js", "app.js.map"},
+                "app.lambdaHandler",
+                "use_container",
+            ),
         ]
     )
-    def test_building_default_package_json(self, runtime, code_uri, expected_files, handler):
-        self._test_with_default_package_json(runtime, False, code_uri, expected_files, handler, ARM64)
-
-    @parameterized.expand(
-        [
-            ("nodejs20.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler"),
-            ("nodejs20.x", "Esbuild/TypeScript", {"app.js", "app.js.map"}, "app.lambdaHandler"),
-        ]
-    )
-    def test_building_default_package_json_in_container(self, runtime, code_uri, expected_files, handler):
-        self._test_with_default_package_json(runtime, "use_container", code_uri, expected_files, handler, ARM64)
+    def test_building_default_package_json(self, runtime, code_uri, expected_files, handler, use_container):
+        self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, ARM64)
 
 
 @pytest.mark.nodejs
@@ -137,22 +129,22 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture_arm64(BuildInte
 
     @parameterized.expand(
         [
-            ("nodejs20.x",),
-            ("nodejs22.x",),
+            ("nodejs20.x", False),
+            ("nodejs22.x", False),
         ]
     )
-    def test_building_default_package_json(self, runtime):
-        self._test_with_default_package_json(runtime, False, self.test_data_path, ARM64)
+    def test_building_default_package_json(self, runtime, use_container):
+        self._test_with_default_package_json(runtime, use_container, self.test_data_path, ARM64)
 
     @parameterized.expand(
         [
-            ("nodejs20.x",),
-            ("nodejs22.x",),
+            ("nodejs20.x", "use_container"),
+            ("nodejs22.x", "use_container"),
         ]
     )
     @pytest.mark.al2023
-    def test_building_default_package_json_in_container_al2023(self, runtime):
-        self._test_with_default_package_json(runtime, "use_container", self.test_data_path, ARM64)
+    def test_building_default_package_json_al2023(self, runtime, use_container):
+        self._test_with_default_package_json(runtime, use_container, self.test_data_path, ARM64)
 
 
 class TestBuildCommand_RubyFunctions_With_Architecture_arm64(BuildIntegRubyBase):
@@ -486,31 +478,48 @@ class TestBuildCommand_Go_Modules_With_Specified_Architecture_arm64(BuildIntegGo
 class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture_arm64(BuildIntegProvidedBase):
     @parameterized.expand(
         [
-            ("provided", None),
-            ("provided.al2023", None),
-            ("provided.al2", None),
+            (
+                "provided",
+                False,
+                None,
+            ),
+            (
+                "provided.al2023",
+                False,
+                None,
+            ),
+            (
+                "provided",
+                "use_container",
+                "Makefile-container",
+            ),
+            (
+                "provided.al2",
+                False,
+                None,
+            ),
+            (
+                "provided.al2",
+                "use_container",
+                "Makefile-container",
+            ),
         ]
     )
-    def test_building_Makefile(self, runtime, manifest):
-        self._test_with_Makefile(runtime, False, manifest, ARM64)
+    def test_building_Makefile(self, runtime, use_container, manifest):
+        self._test_with_Makefile(runtime, use_container, manifest, ARM64)
 
     @parameterized.expand(
         [
-            ("provided", "Makefile-container"),
-            ("provided.al2", "Makefile-container"),
-        ]
-    )
-    def test_building_Makefile_in_container(self, runtime, manifest):
-        self._test_with_Makefile(runtime, "use_container", manifest, ARM64)
-
-    @parameterized.expand(
-        [
-            ("provided.al2023", "Makefile-container"),
+            (
+                "provided.al2023",
+                "use_container",
+                "Makefile-container",
+            ),
         ]
     )
     @pytest.mark.al2023
-    def test_building_Makefile_in_container_al2023(self, runtime, manifest):
-        self._test_with_Makefile(runtime, "use_container", manifest, ARM64)
+    def test_building_Makefile_al2023(self, runtime, use_container, manifest):
+        self._test_with_Makefile(runtime, use_container, manifest, ARM64)
 
 
 @skipIf(

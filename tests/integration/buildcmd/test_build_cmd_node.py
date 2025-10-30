@@ -121,18 +121,11 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture(BuildIntegNodeB
 
     @parameterized.expand(
         [
-            ("nodejs20.x", "x86_64"),
-            ("nodejs22.x", "x86_64"),
+            ("nodejs20.x", False, "x86_64"),
+            ("nodejs22.x", False, "x86_64"),
+            ("nodejs20.x", "use_container", "x86_64"),
+            ("nodejs22.x", "use_container", "x86_64"),
         ]
     )
-    def test_building_default_package_json(self, runtime, architecture):
-        self._test_with_default_package_json(runtime, False, self.test_data_path, architecture)
-
-    @parameterized.expand(
-        [
-            ("nodejs20.x", "x86_64"),
-            ("nodejs22.x", "x86_64"),
-        ]
-    )
-    def test_building_default_package_json_in_container(self, runtime, architecture):
-        self._test_with_default_package_json(runtime, "use_container", self.test_data_path, architecture)
+    def test_building_default_package_json(self, runtime, use_container, architecture):
+        self._test_with_default_package_json(runtime, use_container, self.test_data_path, architecture)

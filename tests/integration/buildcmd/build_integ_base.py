@@ -67,6 +67,8 @@ class BuildIntegBase(TestCase):
         Clean up all test-generated artifacts after each test.
         Cleanup order is important: child directories before parent directories.
         """
+        # Clean up Docker images and layers created more than 5 minutes ago
+        self._cleanup_old_docker_images()
 
         # Clean up custom build directory if it exists
         if self.custom_build_dir and os.path.exists(self.custom_build_dir):
@@ -92,6 +94,64 @@ class BuildIntegBase(TestCase):
             except Exception as e:
                 LOG.warning(f"Failed to clean up scratch_dir {self.scratch_dir}: {e}")
 
+    def _cleanup_old_docker_images(self):
+        """
+        Clean up Docker images and layers that were created more than 3 minutes ago.
+        This helps prevent disk space issues from accumulating test artifacts.
+        """
+        if SKIP_DOCKER_TESTS:
+            return
+
+        try:
+            docker_client = get_validated_container_client()
+            current_time = datetime.now(timezone.utc)
+            five_minutes_ago = current_time.timestamp() - 300  # 5 minutes in seconds
+
+            # Get all images
+            all_images = docker_client.images.list()
+            removed_count = 0
+
+            for image in all_images:
+                try:
+                    # Get image creation time
+                    image_created = image.attrs.get('Created', '')
+                    if not image_created:
+                        continue
+
+                    # Parse the creation timestamp
+                    # Docker API returns ISO 8601 format with nanoseconds
+                    if isinstance(image_created, str):
+                        # Remove nanoseconds and parse
+                        created_dt = datetime.fromisoformat(image_created.replace('Z', '+00:00').split('.')[0] + '+00:00')
+                        created_timestamp = created_dt.timestamp()
+                    else:
+                        created_timestamp = image_created
+
+                    # Check if image was created more than 3 minutes ago
+                    if created_timestamp < five_minutes_ago:
+                        # Get image tags for logging
+                        image_tags = image.tags if image.tags else [image.id[:12]]
+                        
+                        try:
+                            # Force remove the image (including layers)
+                            docker_client.images.remove(image.id, force=True)
+                            removed_count += 1
+                            LOG.debug(f"Removed old Docker image: {image_tags}")
+                        except Exception as remove_error:
+                            # Image might be in use or already removed, log but continue
+                            LOG.debug(f"Could not remove Docker image {image_tags}: {remove_error}")
+
+                except Exception as image_error:
+                    # Continue with other images if one fails
+                    LOG.debug(f"Error processing Docker image: {image_error}")
+                    continue
+
+            if removed_count > 0:
+                LOG.info(f"Cleaned up {removed_count} old Docker image(s)")
+
+        except Exception as e:
+            # Don't fail the test if Docker cleanup fails
+            LOG.warning(f"Failed to clean up old Docker images: {e}")
 
     def get_command_list(
         self,
@@ -665,7 +725,7 @@ class BuildIntegJavaBase(BuildIntegBase):
             osutils.convert_to_unix_line_ending(os.path.join(self.test_data_path, self.USING_GRADLEW_PATH, "gradlew"))
         # Use shorter timeout in GitHub Actions to fail faster;
         # Putting 1800 because Windows Canary Instances takes longer
-        timeout = 600 if os.environ.get("GITHUB_ACTIONS") else 1800
+        timeout = 300 if os.environ.get("GITHUB_ACTIONS") else 1800
         run_command(cmdlist, cwd=self.working_dir, timeout=timeout)
 
         self._verify_built_artifact(
