@@ -10,6 +10,7 @@ from parameterized import parameterized, parameterized_class
 from tests.integration.buildcmd.build_integ_base import (
     BuildIntegBase,
     BuildIntegPythonBase,
+    show_container_in_test_name,
 )
 from tests.testing_utils import (
     CI_OVERRIDE,
@@ -348,7 +349,7 @@ class TestBuildCommand_PythonFunctions_WithDocker(BuildIntegPythonBase):
             ("python3.11",),
         ]
     )
-    def test_with_default_requirements(self, runtime):
+    def test_with_default_requirements_in_container(self, runtime):
         self._test_with_default_requirements(
             runtime,
             self.codeuri,
@@ -365,7 +366,7 @@ class TestBuildCommand_PythonFunctions_WithDocker(BuildIntegPythonBase):
         ]
     )
     @pytest.mark.al2023
-    def test_with_default_requirements_al2023(self, runtime):
+    def test_with_default_requirements_al2023_in_container(self, runtime):
         self._test_with_default_requirements(
             runtime,
             self.codeuri,
@@ -473,7 +474,8 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPyt
             ("python3.9", "Python", "use_container", "x86_64"),
             ("python3.10", "Python", "use_container", "x86_64"),
             ("python3.11", "Python", "use_container", "x86_64"),
-        ]
+        ],
+        name_func=show_container_in_test_name
     )
     def test_with_default_requirements(self, runtime, codeuri, use_container, architecture):
         self._test_with_default_requirements(
@@ -488,7 +490,8 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPyt
             ("python3.13", "Python", False, "x86_64"),
             ("python3.13", "PythonPEP600", False, "x86_64"),
             ("python3.13", "Python", "use_container", "x86_64"),
-        ]
+        ],
+        name_func=show_container_in_test_name
     )
     @pytest.mark.al2023
     def test_with_default_requirements_al2023(self, runtime, codeuri, use_container, architecture):

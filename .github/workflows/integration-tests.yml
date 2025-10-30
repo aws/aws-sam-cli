@@ -3,7 +3,7 @@ name: Integration Tests
 on:
   push:
     branches:
-      - main
+      - integ
 
 permissions:
   id-token: write   # Required for OIDC

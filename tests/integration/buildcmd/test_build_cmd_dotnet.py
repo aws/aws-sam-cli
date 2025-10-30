@@ -115,7 +115,7 @@ class TestBuildCommand_Dotnet_cli_package_interactive(BuildIntegDotnetBase):
             ("provided.al2", "Dotnet7", None),
         ]
     )
-    def test_dotnet_al2_on_container(self, runtime, code_uri, mode):
+    def test_dotnet_al2_in_container(self, runtime, code_uri, mode):
         overrides = {
             "Runtime": runtime,
             "CodeUri": code_uri,
@@ -135,7 +135,7 @@ class TestBuildCommand_Dotnet_cli_package_interactive(BuildIntegDotnetBase):
             ("dotnet6", "Dotnet6", "debug"),
         ]
     )
-    def test_dotnet_6_on_container(self, runtime, code_uri, mode):
+    def test_dotnet_6_in_container(self, runtime, code_uri, mode):
         overrides = {
             "Runtime": runtime,
             "CodeUri": code_uri,
@@ -155,7 +155,7 @@ class TestBuildCommand_Dotnet_cli_package_interactive(BuildIntegDotnetBase):
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     @pytest.mark.al2023
-    def test_dotnet_al2023_on_container(self, runtime, code_uri, mode):
+    def test_dotnet_al2023_in_container(self, runtime, code_uri, mode):
         overrides = {
             "Runtime": runtime,
             "CodeUri": code_uri,
@@ -168,7 +168,7 @@ class TestBuildCommand_Dotnet_cli_package_interactive(BuildIntegDotnetBase):
         self.validate_invoke_command(overrides, runtime)
 
     @parameterized.expand([("dotnet6", "Dotnet6"), ("dotnet8", "Dotnet8")])
-    def test_must_fail_on_container_mount_without_write_interactive(self, runtime, code_uri):
+    def test_must_fail_in_container_mount_without_write_interactive(self, runtime, code_uri):
         use_container = True
         overrides = {
             "Runtime": runtime,

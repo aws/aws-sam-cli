@@ -36,6 +36,25 @@ from tests.testing_utils import (
 
 LOG = logging.getLogger(__name__)
 
+def show_container_in_test_name(testcase_func, param_num, param):
+    """
+    Generates a custom name for parameterized test cases.
+    Adds '_in_container' suffix when any parameter contains 'container' in its string representation.
+    """
+    # Get the base test name
+    base_name = f"{testcase_func.__name__}_{param_num}"
+    
+    # Check if any parameter contains "container" in its string representation
+    for arg in param.args:
+        if isinstance(arg, str) and "container" in arg.lower():
+            base_name += "_in_container"
+            break
+        elif arg is True:  # Also check for boolean True which might indicate use_container
+            # Check if this might be a use_container parameter by position
+            # This is a fallback for cases where True is used instead of "use_container"
+            continue
+    
+    return base_name
 
 class BuildIntegBase(TestCase):
     template: Optional[str] = "template.yaml"
