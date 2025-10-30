@@ -54,25 +54,30 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Free up disk space (background)
+      - name: Free up disk space
         run: |
           echo "Disk space before cleanup:"
           df -h
-          
-          # Remove all existing Docker images to free up space
-          echo "Removing all existing Docker images..."
-          # docker image prune -af || true
-          nohup docker system prune -af --volumes || true &
-          
           # Run cleanup in background to not block workflow
           nohup bash -c '
             sudo apt-get clean
+            sudo rm -rf /usr/share/dotnet /usr/local/share/powershell
             sudo rm -rf /usr/local/lib/android
             sudo rm -rf /opt/ghc
             sudo rm -rf /opt/hostedtoolcache/CodeQL
           ' > /dev/null 2>&1 &
-          
 
+          # Remove all existing Docker images to free up space
+          echo "Removing all existing Docker images..."
+          if [ "${{ matrix.container_runtime }}" = "finch" ]; then
+            # For finch, run as blocking command to ensure cleanup completes
+            docker system prune -af --volumes || true
+          else
+            # For docker and no-container, run in background
+            nohup docker system prune -af --volumes || true &
+          fi
+        
+        
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
