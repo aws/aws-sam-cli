@@ -115,8 +115,9 @@ class BuildIntegBase(TestCase):
 
     def _cleanup_old_docker_images(self):
         """
-        Clean up Docker images and layers that were created more than 3 minutes ago.
+        Clean up Docker images and layers that were created more than 5 minutes ago.
         This helps prevent disk space issues from accumulating test artifacts.
+        Excludes official SAM build images from public.ecr.aws/sam/build*.
         """
         if SKIP_DOCKER_TESTS:
             return
@@ -132,6 +133,20 @@ class BuildIntegBase(TestCase):
 
             for image in all_images:
                 try:
+                    # Get image tags for logging and filtering
+                    image_tags = image.tags if image.tags else [image.id[:12]]
+                    
+                    # Skip official SAM build images from public.ecr.aws/sam/build*
+                    should_skip = False
+                    for tag in image_tags:
+                        if isinstance(tag, str) and tag.startswith("public.ecr.aws"):
+                            should_skip = True
+                            LOG.debug(f"Skipping official SAM build image: {tag}")
+                            break
+                    
+                    if should_skip:
+                        continue
+
                     # Get image creation time
                     image_created = image.attrs.get('Created', '')
                     if not image_created:
@@ -146,11 +161,8 @@ class BuildIntegBase(TestCase):
                     else:
                         created_timestamp = image_created
 
-                    # Check if image was created more than 3 minutes ago
+                    # Check if image was created more than 5 minutes ago
                     if created_timestamp < five_minutes_ago:
-                        # Get image tags for logging
-                        image_tags = image.tags if image.tags else [image.id[:12]]
-                        
                         try:
                             # Force remove the image (including layers)
                             docker_client.images.remove(image.id, force=True)
@@ -648,6 +660,17 @@ class BuildIntegGoBase(BuildIntegBase):
 
         newenv["GOPROXY"] = "direct"
         newenv["GOPATH"] = str(self.working_dir)
+        
+        # Build with musl target to avoid glibc compatibility issues
+        # This ensures the binary works in the Lambda execution environment
+        if architecture == ARM64:
+            newenv["GOOS"] = "linux"
+            newenv["GOARCH"] = "arm64"
+            newenv["CGO_ENABLED"] = "0"
+        else:
+            newenv["GOOS"] = "linux"
+            newenv["GOARCH"] = "amd64"
+            newenv["CGO_ENABLED"] = "0"
 
         run_command(cmdlist, cwd=self.working_dir, env=newenv)
 
@@ -744,7 +767,7 @@ class BuildIntegJavaBase(BuildIntegBase):
             osutils.convert_to_unix_line_ending(os.path.join(self.test_data_path, self.USING_GRADLEW_PATH, "gradlew"))
         # Use shorter timeout in GitHub Actions to fail faster;
         # Putting 1800 because Windows Canary Instances takes longer
-        timeout = 300 if os.environ.get("GITHUB_ACTIONS") else 1800
+        timeout = 1800 if os.environ.get("BY_CANARY") else 180
         run_command(cmdlist, cwd=self.working_dir, timeout=timeout)
 
         self._verify_built_artifact(

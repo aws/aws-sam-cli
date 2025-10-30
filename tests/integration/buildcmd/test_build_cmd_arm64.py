@@ -27,6 +27,7 @@ from tests.testing_utils import (
 )
 
 
+# this test will use docker to invoke in the end, we need to mark all these test as in_container
 @pytest.mark.python
 class TestBuildCommand_PythonFunctions_With_Specified_Architecture_arm64(BuildIntegPythonBase):
     template = "template_with_architecture.yaml"
@@ -46,10 +47,9 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture_arm64(BuildIn
             ("python3.9", "Python", "use_container"),
             ("python3.10", "Python", "use_container"),
             ("python3.11", "Python", "use_container"),
-        ],
-        name_func=show_container_in_test_name
+        ]
     )
-    def test_with_default_requirements(self, runtime, codeuri, use_container):
+    def test_with_default_requirements_invoke_in_container(self, runtime, codeuri, use_container):
         self._test_with_default_requirements(runtime, codeuri, use_container, self.test_data_path, architecture=ARM64)
 
     @parameterized.expand(

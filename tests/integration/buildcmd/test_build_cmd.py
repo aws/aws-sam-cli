@@ -224,7 +224,7 @@ class TestSkipBuildingFunctionsWithLocalImageUriContainer(BuildIntegBase):
         ),
     ],
 )
-class TestSkipBuildingFlaggedFunctions(BuildIntegPythonBase):
+class TestSkipBuildingFlaggedFunctionsContainer(BuildIntegPythonBase):
     template = "template_cfn_function_flagged_to_skip_build.yaml"
     SKIPPED_FUNCTION_LOGICAL_ID = "SkippedFunction"
     src_code_path = "PreBuiltPython"
@@ -417,7 +417,7 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
             ("python3.11", "use_container", "FunctionTwo"),
         ],name_func=show_container_in_test_name
     )
-    def test_build_single_function(self, runtime, use_container, function_identifier):
+    def test_build_single_function_invoke_in_container(self, runtime, use_container, function_identifier):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
@@ -733,7 +733,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
 
     @parameterized.expand([("python3.12", False), ("python3.12", "use_container")],
         name_func=show_container_in_test_name)
-    def test_build_function_and_layer(self, runtime, use_container):
+    def test_build_function_and_layer_invoke_in_conatiner(self, runtime, use_container):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
@@ -769,7 +769,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
 
     @parameterized.expand([("python3.12", False), ("python3.12", "use_container")],
         name_func=show_container_in_test_name)
-    def test_build_function_with_dependent_layer(self, runtime, use_container):
+    def test_build_function_with_dependent_layer_invoke_in_container(self, runtime, use_container):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
@@ -841,7 +841,7 @@ class TestBuildWithBuildMethod(BuildIntegBase):
 
     @parameterized.expand([(False, None, "makefile"), ("use_container", "Makefile-container", "makefile")],
         name_func=show_container_in_test_name)
-    def test_with_makefile_builder_specified_python_runtime(self, use_container, manifest, build_method):
+    def test_with_makefile_builder_specified_python_runtime_invoke_in_container(self, use_container, manifest, build_method):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
@@ -878,7 +878,7 @@ class TestBuildWithBuildMethod(BuildIntegBase):
 
     @parameterized.expand([(False,), ("use_container")],
         name_func=show_container_in_test_name)
-    def test_with_native_builder_specified_python_runtime(self, use_container):
+    def test_with_native_builder_specified_python_runtime_invoke_in_container(self, use_container):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
@@ -1032,7 +1032,7 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
 class TestBuildWithDedupImageBuilds(DedupBuildIntegBase):
     template = "dedup-functions-image-template.yaml"
 
-    def test_dedup_build(self):
+    def test_dedup_build_invoke_in_container(self):
         """
         Build template above and verify that each function call returns as expected
         """
@@ -1359,7 +1359,7 @@ class TestParallelBuildsJavaWithLayers(DedupBuildIntegBase):
     template = "template-java-maven-with-layers.yaml"
     beta_features = False  # parameterized
 
-    def test_dedup_build(self):
+    def test_dedup_build_invoke_in_container(self):
         """
         Build template above and verify that each function call returns as expected
         """
@@ -1548,7 +1548,7 @@ class TestBuildWithNestedStacks(NestedBuildIntegBase):
         ],
         name_func=show_container_in_test_name
     )
-    def test_nested_build(self, use_container, cached, parallel):
+    def test_nested_build_invoke_in_container(self, use_container, cached, parallel):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
@@ -1767,7 +1767,7 @@ class TestBuildWithNestedStacksImage(NestedBuildIntegBase):
         ],
         name_func=show_container_in_test_name
     )
-    def test_nested_build(self, use_container, cached, parallel):
+    def test_nested_build_invoke_in_container(self, use_container, cached, parallel):
         """
         Build template above and verify that each function call returns as expected
         """
