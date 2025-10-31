@@ -1,9 +1,23 @@
 name: Integration Tests
 
 on:
-  push:
+  schedule:
+    # Run at 7pm PST (3am UTC next day) Monday-Friday
+    # This translates to Tuesday-Saturday 3am UTC
+    - cron: '0 3 * * 2-6'
+  workflow_dispatch:  # Allow manual triggering
     branches:
-      - integ
+      - develop  # Allow manual trigger on develop branch
+      - main     # Allow manual trigger on main branch
+    inputs:
+      branch:
+        description: 'Branch to run tests on'
+        required: false
+        default: 'develop'
+        type: choice
+        options:
+          - develop
+          - main
 
 permissions:
   id-token: write   # Required for OIDC
@@ -21,8 +35,8 @@ env:
   NOSE_PARAMETERIZED_NO_WARN: 1
   BY_CANARY: true
   UV_PYTHON: python3.9
-  CREDENTIAL_DISTRIBUTION_LAMBDA_ARN: arn:aws:lambda:us-west-2:123087993316:function:test-account-management-CredentialDistributionLamb-o1sEaa8lvO1L
-  ACCOUNT_RESET_LAMBDA_ARN: arn:aws:lambda:us-west-2:123087993316:function:test-account-management-AccountResetLambdaFunction-nBZDo6oLCH80
+  CREDENTIAL_DISTRIBUTION_LAMBDA_ARN: ${{ secrets.CREDENTIAL_DISTRIBUTION_LAMBDA_ARN }}
+  ACCOUNT_RESET_LAMBDA_ARN: ${{ secrets.ACCOUNT_RESET_LAMBDA_ARN }}
 
 jobs:
   integration-tests:
@@ -64,8 +78,23 @@ jobs:
             test_suite: other-and-e2e
 
     steps:
+      - name: Determine branch to checkout
+        id: determine-branch
+        run: |
+          # For scheduled runs, always use develop
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            echo "branch=develop" >> $GITHUB_OUTPUT
+          # For manual runs, use the input branch or default to develop
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "branch=${{ inputs.branch || 'develop' }}" >> $GITHUB_OUTPUT
+          else
+            echo "branch=develop" >> $GITHUB_OUTPUT
+          fi
+
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.determine-branch.outputs.branch }}
 
       - name: Free up disk space
         run: |
