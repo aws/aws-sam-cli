@@ -135,7 +135,7 @@ class BuildIntegBase(TestCase):
         try:
             docker_client = get_validated_container_client()
             current_time = datetime.now(timezone.utc)
-            five_minutes_ago = current_time.timestamp() - 600  # 5 minutes in seconds
+            five_minutes_ago = current_time.timestamp() - 300  # 5 minutes in seconds
 
             # Get all images
             all_images = docker_client.images.list()
