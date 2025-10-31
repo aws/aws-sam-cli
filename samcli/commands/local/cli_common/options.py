@@ -174,6 +174,14 @@ def invoke_common_options(f):
                 type=click.Path(exists=True),
                 help="JSON file containing values for Lambda function's environment variables.",
             ),
+            click.option(
+                "--dotenv",
+                type=click.Path(exists=True),
+                help="Path to a .env file containing environment variables for Lambda functions. "
+                "Variables defined here will apply to all functions. "
+                "If both --env-vars and --dotenv are provided, variables from both will be merged "
+                "with --env-vars taking precedence.",
+            ),
             parameter_override_click_option(),
             click.option(
                 "--debug-port",
@@ -195,6 +203,14 @@ def invoke_common_options(f):
                 type=click.Path(exists=True),
                 help="JSON file containing additional environment variables to be set within the container when "
                 "used in a debugging session locally.",
+            ),
+            click.option(
+                "--container-dotenv",
+                type=click.Path(exists=True),
+                help="Path to a .env file containing additional environment variables to be set within the container "
+                "when used in a debugging session locally. "
+                "If both --container-env-vars and --container-dotenv are provided, variables from both will be merged "
+                "with --container-env-vars taking precedence.",
             ),
             click.option(
                 "--docker-volume-basedir",
