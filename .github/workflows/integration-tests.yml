@@ -71,6 +71,13 @@ jobs:
         run: |
           echo "Disk space before cleanup:"
           df -h
+          
+          # Remove .NET if not needed (not other-and-e2e and not no-container)
+          if [ "${{ matrix.test_suite }}" != "other-and-e2e" ] && [ "${{ matrix.container_runtime }}" != "no-container" ]; then
+            echo "Removing .NET to free up disk space..."
+            nohup sudo rm -rf /usr/share/dotnet &
+          fi
+          
           # Run cleanup in background to not block workflow
           nohup bash -c '
             sudo rm -rf /usr/local/share/powershell /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
@@ -86,7 +93,6 @@ jobs:
             # For docker and no-container, run in background
             nohup docker system prune -af --volumes || true &
           fi
-        
 
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
@@ -154,7 +160,7 @@ jobs:
           gradle --version
 
       - name: Install .NET 8 SDK
-        if: contains(fromJSON('["build-integ", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container' || matrix.test_suite == 'other-and-e2e'
+        if: contains(fromJSON('["build-integ-java-python-provided", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container' || matrix.test_suite == 'other-and-e2e'
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
@@ -335,10 +341,10 @@ jobs:
           
           case "${{ matrix.test_suite }}" in
             "build-integ")
-              pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'not java and not python and not provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py -k "${CONTAINER_FILTER}" --json-report --json-report-file=TEST_REPORT-integration-buildcmd-${{ matrix.container_runtime }}.json
+              pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'not java and not python and not provided and not dotnet' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py -k "${CONTAINER_FILTER}" --json-report --json-report-file=TEST_REPORT-integration-buildcmd-${{ matrix.container_runtime }}.json
               ;;
             "build-integ-java-python-provided")
-              pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'java or python or provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py -k "${CONTAINER_FILTER}" --json-report --json-report-file=TEST_REPORT-integration-buildcmd-java-python-provided-${{ matrix.container_runtime }}.json
+              pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'java or python or provided or dotnet' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py -k "${CONTAINER_FILTER}" --json-report --json-report-file=TEST_REPORT-integration-buildcmd-java-python-provided-${{ matrix.container_runtime }}.json
               ;;
             "build-integ-arm64")
               pytest -vv -n 2 --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'not java' -k "${CONTAINER_FILTER}" --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64-${{ matrix.container_runtime }}.json
