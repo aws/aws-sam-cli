@@ -41,7 +41,7 @@ class TestBuildCommand_ProvidedFunctions(BuildIntegProvidedBase):
             ("provided.al2", False, None),
             ("provided.al2", "use_container", "Makefile-container"),
         ],
-        name_func=show_container_in_test_name
+        name_func=show_container_in_test_name,
     )
     def test_building_Makefile(self, runtime, use_container, manifest):
         if use_container:
@@ -54,7 +54,7 @@ class TestBuildCommand_ProvidedFunctions(BuildIntegProvidedBase):
             ("provided.al2023", False, None),
             ("provided.al2023", "use_container", "Makefile-container"),
         ],
-        name_func=show_container_in_test_name
+        name_func=show_container_in_test_name,
     )
     @pytest.mark.al2023
     def test_building_Makefile_al2023(self, runtime, use_container, manifest):
@@ -118,7 +118,7 @@ class TestBuildCommand_ProvidedFunctionsWithCustomMetadata(BuildIntegProvidedBas
             ("provided", False, None),
             ("provided.al2", False, None),
         ],
-        name_func=show_container_in_test_name
+        name_func=show_container_in_test_name,
     )
     def test_building_Makefile(self, runtime, use_container, manifest):
         self._test_with_Makefile(runtime, use_container, manifest)
@@ -127,7 +127,7 @@ class TestBuildCommand_ProvidedFunctionsWithCustomMetadata(BuildIntegProvidedBas
         [
             ("provided.al2023", False, None),
         ],
-        name_func=show_container_in_test_name
+        name_func=show_container_in_test_name,
     )
     @pytest.mark.al2023
     def test_building_Makefile_al2023(self, runtime, use_container, manifest):

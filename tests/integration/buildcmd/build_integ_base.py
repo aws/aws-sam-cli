@@ -36,6 +36,7 @@ from tests.testing_utils import (
 
 LOG = logging.getLogger(__name__)
 
+
 def show_container_in_test_name(testcase_func, param_num, param):
     """
     Generates a custom name for parameterized test cases.
@@ -43,7 +44,7 @@ def show_container_in_test_name(testcase_func, param_num, param):
     """
     # Get the base test name
     base_name = f"{testcase_func.__name__}_{param_num}"
-    
+
     # Check if any parameter contains "container" in its string representation
     for arg in param.args:
         if isinstance(arg, str) and "container" in arg.lower():
@@ -53,8 +54,9 @@ def show_container_in_test_name(testcase_func, param_num, param):
             # Check if this might be a use_container parameter by position
             # This is a fallback for cases where True is used instead of "use_container"
             continue
-    
+
     return base_name
+
 
 class BuildIntegBase(TestCase):
     template: Optional[str] = "template.yaml"
@@ -117,7 +119,7 @@ class BuildIntegBase(TestCase):
         try:
             if not SKIP_DOCKER_TESTS:
                 docker_client = get_validated_container_client()
-                if hasattr(docker_client, 'close'):
+                if hasattr(docker_client, "close"):
                     docker_client.close()
                     LOG.debug("Closed Docker client connection")
         except Exception as e:
@@ -145,7 +147,7 @@ class BuildIntegBase(TestCase):
                 try:
                     # Get image tags for logging and filtering
                     image_tags = image.tags if image.tags else [image.id]
-                    
+
                     # Skip official SAM build images from public.ecr.aws/sam/build*
                     should_skip = False
                     for tag in image_tags:
@@ -153,12 +155,12 @@ class BuildIntegBase(TestCase):
                             should_skip = True
                             LOG.debug(f"Skipping official SAM build image: {tag}")
                             break
-                    
+
                     if should_skip:
                         continue
 
                     # Get image creation time
-                    image_created = image.attrs.get('Created', '')
+                    image_created = image.attrs.get("Created", "")
                     if not image_created:
                         continue
 
@@ -166,7 +168,9 @@ class BuildIntegBase(TestCase):
                     # Docker API returns ISO 8601 format with nanoseconds
                     if isinstance(image_created, str):
                         # Remove nanoseconds and parse
-                        created_dt = datetime.fromisoformat(image_created.replace('Z', '+00:00').split('.')[0] + '+00:00')
+                        created_dt = datetime.fromisoformat(
+                            image_created.replace("Z", "+00:00").split(".")[0] + "+00:00"
+                        )
                         created_timestamp = created_dt.timestamp()
                     else:
                         created_timestamp = image_created
@@ -670,7 +674,7 @@ class BuildIntegGoBase(BuildIntegBase):
 
         newenv["GOPROXY"] = "direct"
         newenv["GOPATH"] = str(self.working_dir)
-        
+
         # Build with musl target to avoid glibc compatibility issues
         # This ensures the binary works in the Lambda execution environment
         if architecture == ARM64:

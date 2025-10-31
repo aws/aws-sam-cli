@@ -281,7 +281,7 @@ class TestSkipBuildingFlaggedFunctionsContainer(BuildIntegPythonBase):
 
 @pytest.mark.ruby
 class TestBuildCommand_RubyFunctions(BuildIntegRubyBase):
-    @parameterized.expand([(False,), ("use_container",)],name_func=show_container_in_test_name)
+    @parameterized.expand([(False,), ("use_container",)], name_func=show_container_in_test_name)
     def test_building_ruby_3_2(self, use_container):
         if use_container and SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
             self.skipTest(SKIP_DOCKER_MESSAGE)
@@ -298,7 +298,7 @@ class TestBuildCommand_RubyFunctions(BuildIntegRubyBase):
 class TestBuildCommand_RubyFunctions_With_Architecture(BuildIntegRubyBase):
     template = "template_with_architecture.yaml"
 
-    @parameterized.expand([(False,), ("use_container",)],name_func=show_container_in_test_name)
+    @parameterized.expand([(False,), ("use_container",)], name_func=show_container_in_test_name)
     def test_building_ruby_3_2(self, use_container):
         if use_container and SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
             self.skipTest(SKIP_DOCKER_MESSAGE)
@@ -311,7 +311,7 @@ class TestBuildCommand_RubyFunctions_With_Architecture(BuildIntegRubyBase):
             # ("ruby3.4", "Ruby34", False), # TODO: Try to make this work in AppVeyor (windows-al2023)
             ("ruby3.4", "Ruby34", "use_container"),
         ],
-        name_func=show_container_in_test_name
+        name_func=show_container_in_test_name,
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     @pytest.mark.al2023
@@ -359,7 +359,9 @@ class TestBuildCommand_RubyFunctionsWithGemfileInTheRoot(BuildIntegRubyBase):
 
 
 class TestBuildCommand_Go_Modules(BuildIntegGoBase):
-    @parameterized.expand([("go1.x", "Go", None, False), ("go1.x", "Go", "debug", "use_container")],name_func=show_container_in_test_name)
+    @parameterized.expand(
+        [("go1.x", "Go", None, False), ("go1.x", "Go", "debug", "use_container")], name_func=show_container_in_test_name
+    )
     def test_building_go(self, runtime, code_uri, mode, use_container):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
@@ -415,7 +417,8 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
             ("python3.11", "use_container", "FunctionOne"),
             ("python3.11", False, "FunctionTwo"),
             ("python3.11", "use_container", "FunctionTwo"),
-        ],name_func=show_container_in_test_name
+        ],
+        name_func=show_container_in_test_name,
     )
     def test_build_single_function_invoke_in_container(self, runtime, use_container, function_identifier):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
@@ -521,7 +524,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             ("python3.12", False, "LambdaLayerOne", "Content"),
             ("python3.12", "use_container", "LambdaLayerOne", "Content"),
         ],
-        name_func=show_container_in_test_name
+        name_func=show_container_in_test_name,
     )
     def test_build_single_layer(self, runtime, use_container, layer_identifier, content_property):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
@@ -546,7 +549,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
 
     @parameterized.expand(
         [("makefile", False, "LayerWithMakefile"), ("makefile", "use_container", "LayerWithMakefile")],
-        name_func=show_container_in_test_name
+        name_func=show_container_in_test_name,
     )
     def test_build_layer_with_makefile(self, build_method, use_container, layer_identifier):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
@@ -594,7 +597,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
 
     @parameterized.expand(
         [("makefile", False), ("makefile", "use_container"), ("python3.9", False), ("python3.9", "use_container")],
-        name_func=show_container_in_test_name
+        name_func=show_container_in_test_name,
     )
     def test_build_layer_with_architecture_not_compatible(self, build_method, use_container):
         # The BuildArchitecture is not one of the listed CompatibleArchitectures
@@ -622,8 +625,9 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         # Build should still succeed
         self.assertEqual(command_result.process.returncode, 0)
 
-    @parameterized.expand([("python3.11", False), ("python3.11", "use_container")],
-        name_func=show_container_in_test_name)
+    @parameterized.expand(
+        [("python3.11", False), ("python3.11", "use_container")], name_func=show_container_in_test_name
+    )
     def test_build_arch_no_compatible_arch(self, runtime, use_container):
         # BuildArchitecture is present, but CompatibleArchitectures section is missing
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
@@ -649,8 +653,9 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         # Build should still succeed
         self.assertEqual(command_result.process.returncode, 0)
 
-    @parameterized.expand([("python3.11", False), ("python3.11", "use_container")],
-        name_func=show_container_in_test_name)
+    @parameterized.expand(
+        [("python3.11", False), ("python3.11", "use_container")], name_func=show_container_in_test_name
+    )
     def test_compatible_arch_no_build_arch(self, runtime, use_container):
         # CompatibleArchitectures is present, but BuildArchitecture section is missing
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
@@ -701,8 +706,10 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         # Build should still succeed
         self.assertEqual(command_result.process.returncode, 0)
 
-    @parameterized.expand([("python3.12", False, "LayerTwo"), ("python3.12", "use_container", "LayerTwo")],
-        name_func=show_container_in_test_name)
+    @parameterized.expand(
+        [("python3.12", False, "LayerTwo"), ("python3.12", "use_container", "LayerTwo")],
+        name_func=show_container_in_test_name,
+    )
     def test_build_fails_with_missing_metadata(self, runtime, use_container, layer_identifier):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
@@ -716,8 +723,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         self.assertEqual(command_result.process.returncode, 1)
         self.assertFalse(self.default_build_dir.joinpath(layer_identifier).exists())
 
-    @parameterized.expand([False, "use_container"],
-        name_func=show_container_in_test_name)
+    @parameterized.expand([False, "use_container"], name_func=show_container_in_test_name)
     def test_function_build_succeeds_with_referenced_layer(self, use_container):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
@@ -731,8 +737,9 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command_result.process.returncode, 0)
 
-    @parameterized.expand([("python3.12", False), ("python3.12", "use_container")],
-        name_func=show_container_in_test_name)
+    @parameterized.expand(
+        [("python3.12", False), ("python3.12", "use_container")], name_func=show_container_in_test_name
+    )
     def test_build_function_and_layer_invoke_in_conatiner(self, runtime, use_container):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
@@ -767,8 +774,9 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             self.verify_docker_container_cleanedup(runtime)
             self.verify_pulled_image(runtime)
 
-    @parameterized.expand([("python3.12", False), ("python3.12", "use_container")],
-        name_func=show_container_in_test_name)
+    @parameterized.expand(
+        [("python3.12", False), ("python3.12", "use_container")], name_func=show_container_in_test_name
+    )
     def test_build_function_with_dependent_layer_invoke_in_container(self, runtime, use_container):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
@@ -839,9 +847,13 @@ class TestBuildWithBuildMethod(BuildIntegBase):
 
     FUNCTION_LOGICAL_ID = "Function"
 
-    @parameterized.expand([(False, None, "makefile"), ("use_container", "Makefile-container", "makefile")],
-        name_func=show_container_in_test_name)
-    def test_with_makefile_builder_specified_python_runtime_invoke_in_container(self, use_container, manifest, build_method):
+    @parameterized.expand(
+        [(False, None, "makefile"), ("use_container", "Makefile-container", "makefile")],
+        name_func=show_container_in_test_name,
+    )
+    def test_with_makefile_builder_specified_python_runtime_invoke_in_container(
+        self, use_container, manifest, build_method
+    ):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
@@ -876,8 +888,7 @@ class TestBuildWithBuildMethod(BuildIntegBase):
             self.verify_docker_container_cleanedup(runtime)
             self.verify_pulled_image(runtime)
 
-    @parameterized.expand([(False,), ("use_container")],
-        name_func=show_container_in_test_name)
+    @parameterized.expand([(False,), ("use_container")], name_func=show_container_in_test_name)
     def test_with_native_builder_specified_python_runtime_invoke_in_container(self, use_container):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
@@ -996,7 +1007,7 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
             ("use_container", "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             ("use_container", "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.4"),
         ],
-        name_func=show_container_in_test_name
+        name_func=show_container_in_test_name,
     )
     def test_dedup_build(self, use_container, code_uri, function1_handler, function2_handler, runtime):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
@@ -1128,7 +1139,7 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
             ("use_container", "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             ("use_container", "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.4"),
         ],
-        name_func=show_container_in_test_name
+        name_func=show_container_in_test_name,
     )
     def test_cache_build(self, use_container, code_uri, function1_handler, function2_handler, runtime):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
@@ -1229,8 +1240,7 @@ class TestRepeatedBuildHitsCache(BuildIntegBase):
     # Use template containing both functions and layers
     template = "layers-functions-template.yaml"
 
-    @parameterized.expand([("use_container",), (False,)],
-        name_func=show_container_in_test_name)
+    @parameterized.expand([("use_container",), (False,)], name_func=show_container_in_test_name)
     def test_repeated_cached_build_hits_cache(self, use_container):
         """
         Build 2 times to verify that second time hits the cached build
@@ -1321,7 +1331,7 @@ class TestParallelBuilds(DedupBuildIntegBase):
             ("use_container", "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
             ("use_container", "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.4"),
         ],
-        name_func=show_container_in_test_name
+        name_func=show_container_in_test_name,
     )
     def test_dedup_build(self, use_container, code_uri, function1_handler, function2_handler, runtime):
         """
@@ -1392,7 +1402,7 @@ class TestBuildWithInlineCode(BuildIntegBase):
             (False,),
             ("use_container",),
         ],
-        name_func=show_container_in_test_name
+        name_func=show_container_in_test_name,
     )
     def test_inline_not_built(self, use_container):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
@@ -1440,7 +1450,7 @@ class TestBuildWithJsonContainerEnvVars(BuildIntegBase):
             ("use_container", "env_vars_function.json"),
             ("use_container", "env_vars_parameters.json"),
         ],
-        name_func=show_container_in_test_name
+        name_func=show_container_in_test_name,
     )
     def test_json_env_vars_passed(self, use_container, env_vars_file):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
@@ -1491,7 +1501,7 @@ class TestBuildWithInlineContainerEnvVars(BuildIntegBase):
             ("use_container", "TEST_ENV_VAR=MyVar"),
             ("use_container", "CheckEnvVarsFunction.TEST_ENV_VAR=MyVar"),
         ],
-        name_func=show_container_in_test_name
+        name_func=show_container_in_test_name,
     )
     def test_inline_env_vars_passed(self, use_container, inline_env_var):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
@@ -1546,7 +1556,7 @@ class TestBuildWithNestedStacks(NestedBuildIntegBase):
                 True,
             ),
         ],
-        name_func=show_container_in_test_name
+        name_func=show_container_in_test_name,
     )
     def test_nested_build_invoke_in_container(self, use_container, cached, parallel):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
@@ -1765,7 +1775,7 @@ class TestBuildWithNestedStacksImage(NestedBuildIntegBase):
                 True,
             ),
         ],
-        name_func=show_container_in_test_name
+        name_func=show_container_in_test_name,
     )
     def test_nested_build_invoke_in_container(self, use_container, cached, parallel):
         """
@@ -1826,7 +1836,7 @@ class TestBuildWithCustomBuildImage(BuildIntegBase):
             ("use_container", None),
             ("use_container", "public.ecr.aws/sam/build-python3.11:latest-x86_64"),
         ],
-        name_func=show_container_in_test_name
+        name_func=show_container_in_test_name,
     )
     def test_custom_build_image_succeeds(self, use_container, build_image):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
@@ -1998,7 +2008,7 @@ class TestBuildSAR(BuildIntegBase):
             (False, "eu-west-1"),
             (False, None),
         ],
-        name_func=show_container_in_test_name
+        name_func=show_container_in_test_name,
     )
     def test_sar_application_with_location_resolved_from_map(self, use_container, region):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):

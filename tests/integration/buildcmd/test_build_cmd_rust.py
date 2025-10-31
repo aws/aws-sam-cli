@@ -34,7 +34,7 @@ class TestBuildCommand_Rust(BuildIntegRustBase):
             ("provided.al2023", "x86_64", None, False),
             ("provided.al2023", "x86_64", "debug", False),
         ],
-        name_func=show_container_in_test_name
+        name_func=show_container_in_test_name,
     )
     def test_build(self, runtime, architecture, build_mode, use_container):
         self._test_with_rust_cargo_lambda(

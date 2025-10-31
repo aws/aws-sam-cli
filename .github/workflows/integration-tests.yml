@@ -37,11 +37,12 @@ jobs:
         test_suite:
           - build-integ
           - build-integ-java-python-provided
-          #- build-integ-arm64 # good
-          # - build-integ-arm64-java # good
-          # - terraform-build # good
+          - build-integ-dotnet-node-ruby
+          - build-integ-arm64
+          - build-integ-arm64-java
+          - terraform-build
           - package-delete-deploy
-          # - sync # good
+          - sync
           - local-invoke
           - local-start
           - local-start2
@@ -111,7 +112,7 @@ jobs:
             3.13
 
       - name: Set up Node.js
-        if: contains(fromJSON('["build-integ", "build-integ-java-python-provided", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container'
+        if: contains(fromJSON('["build-integ", "build-integ-java-python-provided", "build-integ-dotnet-node-ruby", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container'
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -160,26 +161,26 @@ jobs:
           gradle --version
 
       - name: Install .NET 8 SDK
-        if: contains(fromJSON('["build-integ-java-python-provided", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container' || matrix.test_suite == 'other-and-e2e'
+        if: contains(fromJSON('["build-integ-java-python-provided", "build-integ-dotnet-node-ruby", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container' || matrix.test_suite == 'other-and-e2e'
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
 
       - name: Set up Ruby 3.3.7
-        if: (contains(fromJSON('["build-integ", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container') || matrix.test_suite == 'other-and-e2e'
+        if: (contains(fromJSON('["build-integ","build-integ-dotnet-node-ruby", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container') || matrix.test_suite == 'other-and-e2e'
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.3.7'
 
       - name: Set up Ruby 3.2.7
-        if: (contains(fromJSON('["build-integ", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container') || matrix.test_suite == 'other-and-e2e'
+        if: (contains(fromJSON('["build-integ","build-integ-dotnet-node-ruby", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container') || matrix.test_suite == 'other-and-e2e'
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.2.7'
 
       # sync test only need ruby 3.4
       - name: Set up Ruby 3.4.2
-        if: (contains(fromJSON('["build-integ", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container') || contains(fromJSON('["sync", "other-and-e2e"]'), matrix.test_suite)
+        if: (contains(fromJSON('["build-integ","build-integ-dotnet-node-ruby", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container') || contains(fromJSON('["sync", "other-and-e2e"]'), matrix.test_suite)
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.4.7'
@@ -341,10 +342,13 @@ jobs:
           
           case "${{ matrix.test_suite }}" in
             "build-integ")
-              pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'not java and not python and not provided and not dotnet' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py -k "${CONTAINER_FILTER}" --json-report --json-report-file=TEST_REPORT-integration-buildcmd-${{ matrix.container_runtime }}.json
+              pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'not java and not python and not provided and not dotnet and not nodejs and not ruby' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py -k "${CONTAINER_FILTER}" --json-report --json-report-file=TEST_REPORT-integration-buildcmd-${{ matrix.container_runtime }}.json
               ;;
             "build-integ-java-python-provided")
-              pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'java or python or provided or dotnet' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py -k "${CONTAINER_FILTER}" --json-report --json-report-file=TEST_REPORT-integration-buildcmd-java-python-provided-${{ matrix.container_runtime }}.json
+              pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'java or python or provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py -k "${CONTAINER_FILTER}" --json-report --json-report-file=TEST_REPORT-integration-buildcmd-java-python-provided-${{ matrix.container_runtime }}.json
+              ;;
+            "build-integ-dotnet-node-ruby")
+              pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'dotnet or nodejs or ruby' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py -k "${CONTAINER_FILTER}" --json-report --json-report-file=TEST_REPORT-build-integ-dotnet-node-ruby-${{ matrix.container_runtime }}.json
               ;;
             "build-integ-arm64")
               pytest -vv -n 2 --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'not java' -k "${CONTAINER_FILTER}" --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64-${{ matrix.container_runtime }}.json

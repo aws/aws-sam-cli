@@ -30,7 +30,7 @@ RUNNING_TEST_FOR_MASTER_ON_CI = (
     os.environ.get("APPVEYOR_REPO_BRANCH", os.environ.get("GITHUB_REF_NAME", "master")) != "master"
 )
 CI_OVERRIDE = (
-    os.environ.get("APPVEYOR_CI_OVERRIDE", False) 
+    os.environ.get("APPVEYOR_CI_OVERRIDE", False)
     or os.environ.get("CI_OVERRIDE", False)
     or os.environ.get("GITHUB_ACTIONS_INTEG", False)
 )

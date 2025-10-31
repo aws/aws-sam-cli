@@ -475,7 +475,7 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPyt
             ("python3.10", "Python", "use_container", "x86_64"),
             ("python3.11", "Python", "use_container", "x86_64"),
         ],
-        name_func=show_container_in_test_name
+        name_func=show_container_in_test_name,
     )
     def test_with_default_requirements(self, runtime, codeuri, use_container, architecture):
         self._test_with_default_requirements(
@@ -491,7 +491,7 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPyt
             ("python3.13", "PythonPEP600", False, "x86_64"),
             ("python3.13", "Python", "use_container", "x86_64"),
         ],
-        name_func=show_container_in_test_name
+        name_func=show_container_in_test_name,
     )
     @pytest.mark.al2023
     def test_with_default_requirements_al2023(self, runtime, codeuri, use_container, architecture):

@@ -57,7 +57,7 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture_arm64(BuildIn
             ("python3.12", "Python", "use_container"),
             ("python3.13", "Python", "use_container"),
         ],
-        name_func=show_container_in_test_name
+        name_func=show_container_in_test_name,
     )
     @pytest.mark.al2023
     def test_with_default_requirements_al2023(self, runtime, codeuri, use_container):
@@ -80,7 +80,7 @@ class TestBuildCommand_EsbuildFunctions_arm64(BuildIntegEsbuildBase):
                 "use_container",
             ),
         ],
-        name_func=show_container_in_test_name
+        name_func=show_container_in_test_name,
     )
     def test_building_default_package_json(self, runtime, code_uri, expected_files, handler, use_container):
         self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, ARM64)
@@ -122,7 +122,7 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(BuildIntegE
                 False,
             ),
         ],
-        name_func=show_container_in_test_name
+        name_func=show_container_in_test_name,
     )
     def test_building_default_package_json(self, runtime, code_uri, expected_files, handler, use_container):
         self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, ARM64)
@@ -137,7 +137,7 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture_arm64(BuildInte
             ("nodejs20.x", False),
             ("nodejs22.x", False),
         ],
-        name_func=show_container_in_test_name
+        name_func=show_container_in_test_name,
     )
     def test_building_default_package_json(self, runtime, use_container):
         self._test_with_default_package_json(runtime, use_container, self.test_data_path, ARM64)
@@ -147,7 +147,7 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture_arm64(BuildInte
             ("nodejs20.x", "use_container"),
             ("nodejs22.x", "use_container"),
         ],
-        name_func=show_container_in_test_name
+        name_func=show_container_in_test_name,
     )
     @pytest.mark.al2023
     def test_building_default_package_json_al2023(self, runtime, use_container):
@@ -523,7 +523,7 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture_arm64(Build
                 "Makefile-container",
             ),
         ],
-        name_func=show_container_in_test_name
+        name_func=show_container_in_test_name,
     )
     @pytest.mark.al2023
     def test_building_Makefile_al2023(self, runtime, use_container, manifest):
@@ -544,7 +544,7 @@ class TestBuildCommand_Rust_arm64(BuildIntegRustBase):
             ("provided.al2023", None, False),
             ("provided.al2023", "debug", False),
         ],
-        name_func=show_container_in_test_name
+        name_func=show_container_in_test_name,
     )
     def test_build(self, runtime, build_mode, use_container):
         self._test_with_rust_cargo_lambda(

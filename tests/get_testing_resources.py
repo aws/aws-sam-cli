@@ -51,14 +51,14 @@ def get_testing_credentials(skip_role_deletion=False):
         ),
         region_name="us-west-2",
     )
-    
+
     # Prepare payload if skip_role_deletion is True
     if skip_role_deletion:
         payload_data = json.dumps({"skip_role_deletion": True})
         response = lambda_client.invoke(FunctionName=lambda_arn, Payload=payload_data)
     else:
         response = lambda_client.invoke(FunctionName=lambda_arn)
-    
+
     payload = json.loads(response["Payload"].read())
     if response.get("FunctionError"):
         raise ValueError(f"Failed to get credential. {payload['errorType']}")
