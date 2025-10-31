@@ -15,6 +15,8 @@ env:
   SAM_CLI_TELEMETRY: 0
   SAM_CLI_CONTAINER_CONNECTION_TIMEOUT: 60
   NODE_VERSION: "22.21.1"
+  AWS_S3: 'AWS_S3_TESTING'
+  AWS_ECR: 'AWS_ECR_TESTING'
   CARGO_LAMBDA_VERSION: "v0.17.1"
   NOSE_PARAMETERIZED_NO_WARN: 1
   GITHUB_ACTIONS_INTEG: true
@@ -269,13 +271,16 @@ jobs:
 
       - name: Login to Public ECR
         if: matrix.container_runtime != 'no-container' && env.BY_CANARY == 'true'
+        env:
+          CI_DOCKER_USER: ${{ secrets.CI_DOCKER_USER }}
+          CI_DOCKER_PASSWD: ${{ secrets.CI_DOCKER_PASSWD }}
         run: |
           if [ "${{ matrix.container_runtime }}" = "finch" ]; then
             echo "Logging in Public ECR with Finch"
-            aws ecr-public get-login-password --region us-east-1 | sudo finch login --username AWS --password-stdin public.ecr.aws || { echo "FATAL: Finch Public ECR login failed"; exit 1; }
+            echo "$CI_DOCKER_PASSWD" | sudo finch login --username "$CI_DOCKER_USER" --password-stdin public.ecr.aws || { echo "FATAL: Finch Public ECR login failed"; exit 1; }
           else
             echo "Logging in Public ECR with Docker"
-            aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws || { echo "FATAL: Docker Public ECR login failed"; exit 1; }
+            echo "$CI_DOCKER_PASSWD" | docker login --username "$CI_DOCKER_USER" --password-stdin public.ecr.aws || { echo "FATAL: Docker Public ECR login failed"; exit 1; }
           fi
           echo "Public ECR authentication completed successfully"
 
