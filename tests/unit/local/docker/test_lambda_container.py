@@ -27,11 +27,13 @@ RUNTIMES_WITH_BOOTSTRAP_ENTRYPOINT = [
     Runtime.python311.value,
     Runtime.python312.value,
     Runtime.python313.value,
+    Runtime.python314.value,
     Runtime.dotnet6.value,
     Runtime.dotnet8.value,
 ]
 
 RUNTIMES_WITH_DEBUG_ENV_VARS_ONLY = [
+    Runtime.java25.value,
     Runtime.java21.value,
     Runtime.java17.value,
     Runtime.java11.value,

@@ -154,6 +154,7 @@ jobs:
             3.11
             3.12
             3.13
+            3.14
             ${{ matrix.python }}
           cache: 'pip'
       - uses: actions/setup-go@v6
@@ -169,6 +170,7 @@ jobs:
         with:
           distribution: 'corretto'
           java-version: |
+            25
             8
             11
             17
@@ -268,6 +270,7 @@ jobs:
         with:
           # These are the versions of Python that correspond to the supported Lambda runtimes
           python-version: |
+            3.14
             3.9
             3.10
             3.11
