@@ -152,7 +152,7 @@ jobs:
           gradle --version
 
       - name: Install .NET 8 SDK
-        if: contains(fromJSON('["build-integ", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container'
+        if: contains(fromJSON('["build-integ", "build-integ-arm64", "other-and-e2e"]'), matrix.test_suite) && matrix.container_runtime == 'no-container'
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
@@ -320,10 +320,10 @@ jobs:
           
           case "${{ matrix.test_suite }}" in
             "build-integ")
-              pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'not java and not python and not provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py -k "${CONTAINER_FILTER}" --json-report --json-report-file=TEST_REPORT-integration-buildcmd-${{ matrix.container_runtime }}.json
+              pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'not java and not python and not dotnet and not ruby and not provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py -k "${CONTAINER_FILTER}" --json-report --json-report-file=TEST_REPORT-integration-buildcmd-${{ matrix.container_runtime }}.json
               ;;
             "build-integ-java-python-provided")
-              pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'java or python or provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py -k "${CONTAINER_FILTER}" --json-report --json-report-file=TEST_REPORT-integration-buildcmd-java-python-provided-${{ matrix.container_runtime }}.json
+              pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'java or python or dotnet or ruby or provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py -k "${CONTAINER_FILTER}" --json-report --json-report-file=TEST_REPORT-integration-buildcmd-java-python-provided-${{ matrix.container_runtime }}.json
               ;;
             "build-integ-arm64")
               pytest -vv -n 2 --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'not java' -k "${CONTAINER_FILTER}" --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64-${{ matrix.container_runtime }}.json
@@ -335,7 +335,7 @@ jobs:
               pytest -vv -n 4 --reruns 4 tests/integration/buildcmd/test_build_terraform_applications.py tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-terraform-${{ matrix.container_runtime }}.json
               ;;
             "package-delete-deploy")
-              pytest -vv tests/integration/package tests/integration/delete tests/integration/deploy --dist=loadgroup -n 4 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-package-delete-deploy-${{ matrix.container_runtime }}.json
+              pytest -vv tests/integration/package tests/integration/delete tests/integration/deploy --dist=loadgroup -n 6 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-package-delete-deploy-${{ matrix.container_runtime }}.json
               ;;
             "sync")
               pytest -vv tests/integration/sync -n 6 --reruns 3 --dist loadscope --json-report --json-report-file=TEST_REPORT-integration-sync-${{ matrix.container_runtime }}.json
@@ -344,10 +344,10 @@ jobs:
               pytest -vv --reruns 3 tests/integration/local/invoke tests/integration/local/generate_event --json-report --json-report-file=TEST_REPORT-integration-local-invoke-${{ matrix.container_runtime }}.json
               ;;
             "local-start")
-              pytest -vv --reruns 3 tests/integration/local/start_api/test_start_api.py --json-report --json-report-file=TEST_REPORT-integration-local-start-${{ matrix.container_runtime }}.json
+              pytest -vv --reruns 3 tests/integration/local/start_api --json-report --json-report-file=TEST_REPORT-integration-local-start-${{ matrix.container_runtime }}.json
               ;;
             "local-start2")
-              pytest -vv --reruns 3 tests/integration/local/start_api tests/integration/local/start_lambda --ignore=tests/integration/local/start_api/test_start_api.py --json-report --json-report-file=TEST_REPORT-integration-local-start2-${{ matrix.container_runtime }}.json
+              pytest -vv --reruns 3 tests/integration/local/start_lambda --json-report --json-report-file=TEST_REPORT-integration-local-start2-${{ matrix.container_runtime }}.json
               ;;
             "other-and-e2e")
               pytest -vv -n 4 --reruns 4 --dist loadgroup tests/integration tests/end_to_end --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-others-${{ matrix.container_runtime }}.json
