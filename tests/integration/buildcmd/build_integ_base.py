@@ -7,6 +7,7 @@ import tempfile
 import time
 import logging
 import json
+from datetime import datetime, timezone
 from typing import Optional
 from unittest import TestCase
 
@@ -34,6 +35,27 @@ from tests.testing_utils import (
 
 
 LOG = logging.getLogger(__name__)
+
+
+def show_container_in_test_name(testcase_func, param_num, param):
+    """
+    Generates a custom name for parameterized test cases.
+    Adds '_in_container' suffix when any parameter contains 'container' in its string representation.
+    """
+    # Get the base test name
+    base_name = f"{testcase_func.__name__}_{param_num}"
+
+    # Check if any parameter contains "container" in its string representation
+    for arg in param.args:
+        if isinstance(arg, str) and "container" in arg.lower():
+            base_name += "_in_container"
+            break
+        elif arg is True:  # Also check for boolean True which might indicate use_container
+            # Check if this might be a use_container parameter by position
+            # This is a fallback for cases where True is used instead of "use_container"
+            continue
+
+    return base_name
 
 
 class BuildIntegBase(TestCase):
@@ -543,6 +565,17 @@ class BuildIntegGoBase(BuildIntegBase):
         newenv["GOPROXY"] = "direct"
         newenv["GOPATH"] = str(self.working_dir)
 
+        # Build with musl target to avoid glibc compatibility issues
+        # This ensures the binary works in the Lambda execution environment
+        if architecture == ARM64:
+            newenv["GOOS"] = "linux"
+            newenv["GOARCH"] = "arm64"
+            newenv["CGO_ENABLED"] = "0"
+        else:
+            newenv["GOOS"] = "linux"
+            newenv["GOARCH"] = "amd64"
+            newenv["CGO_ENABLED"] = "0"
+
         run_command(cmdlist, cwd=self.working_dir, env=newenv)
 
         self._verify_built_artifact(
@@ -638,7 +671,7 @@ class BuildIntegJavaBase(BuildIntegBase):
             osutils.convert_to_unix_line_ending(os.path.join(self.test_data_path, self.USING_GRADLEW_PATH, "gradlew"))
         # Use shorter timeout in GitHub Actions to fail faster;
         # Putting 1800 because Windows Canary Instances takes longer
-        timeout = 90 if os.environ.get("GITHUB_ACTIONS") else 1800
+        timeout = 1800 if os.environ.get("BY_CANARY") else 180
         run_command(cmdlist, cwd=self.working_dir, timeout=timeout)
 
         self._verify_built_artifact(

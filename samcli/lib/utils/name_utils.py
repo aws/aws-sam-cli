@@ -12,7 +12,7 @@ FUNCTION_ALIAS_PARTS = 2
 MIN_ARN_PARTS = 5  # Minimum parts for a valid ARN structure
 
 LAMBDA_FUNCTION_NAME_PATTERN = (
-    r"^(arn:[^:]+:lambda:[^:]*:\d{12}:function:|\d{12}:function:)?[a-zA-Z0-9-_\.]+(:[\w$-]+)?$"
+    r"^(arn:[^:]+:lambda:[^:]*:\d{12}:function:|\d{12}:function:)?[a-zA-Z0-9-_\.\[\]]+(:[\w$-]+)?$"
 )
 
 
