@@ -19,7 +19,6 @@ env:
   AWS_ECR: "AWS_ECR_TESTING"
   CARGO_LAMBDA_VERSION: "v0.17.1"
   NOSE_PARAMETERIZED_NO_WARN: 1
-  GITHUB_ACTIONS_INTEG: true
   BY_CANARY: true
   UV_PYTHON: python3.9
   CREDENTIAL_DISTRIBUTION_LAMBDA_ARN: arn:aws:lambda:us-west-2:123087993316:function:test-account-management-CredentialDistributionLamb-o1sEaa8lvO1L
@@ -74,7 +73,7 @@ jobs:
           df -h
           
           # Remove .NET if not needed (not other-and-e2e and not no-container)
-          if [ "${{ matrix.test_suite }}" != "other-and-e2e" ] && [ "${{ matrix.container_runtime }}" != "no-container" ]; then
+          if [ "${{ matrix.test_suite }}" != "other-and-e2e" ] && [ "${{ matrix.test_suite }}" != "sync" ] && [ "${{ matrix.container_runtime }}" != "no-container" ]; then
             echo "Removing .NET to free up disk space..."
             nohup sudo rm -rf /usr/share/dotnet &
           fi

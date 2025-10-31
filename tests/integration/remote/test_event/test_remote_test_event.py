@@ -64,7 +64,6 @@ class TestRemoteTestEvent(RemoteTestEventIntegBase):
         # Check two events
         self.list_events_and_check(self.stack_name, function_to_check, os.linesep.join(["event1", "event2"]))
 
-        time.sleep(2)
         # Invoke with two events (function returns the same event that it receives)
         self.remote_invoke_and_check(self.stack_name, function_to_check, "event1", event_contents1)
         self.remote_invoke_and_check(self.stack_name, function_to_check, "event2", event_contents2)

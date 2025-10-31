@@ -542,9 +542,6 @@ class SamFunctionProvider(SamBaseProvider):
                 )
                 if found_layer:
                     layers.append(found_layer)
-            # When locate_layer_nested is True, we've already processed all layers from the template
-            # Return early to avoid processing them again from list_of_layers
-            return layers
 
         for layer in list_of_layers:
             if layer == "arn:aws:lambda:::awslayer:AmazonLinux1803":
