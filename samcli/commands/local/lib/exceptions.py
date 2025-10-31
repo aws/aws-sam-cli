@@ -46,3 +46,9 @@ class InvalidHandlerPathError(UserException):
     """
     Raises when the handler is in an unexpected format and can't be parsed
     """
+
+
+class NoFunctionUrlsDefined(UserException):
+    """
+    Exception raised when no Function URLs are found in the template
+    """

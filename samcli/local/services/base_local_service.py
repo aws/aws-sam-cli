@@ -73,8 +73,15 @@ class BaseLocalService:
             LOG.debug("Caught SIGTERM interrupt")
             raise ProcessSigTermException()
 
-        LOG.debug("Setting SIGTERM interrupt handler")
-        signal.signal(signal.SIGTERM, interrupt_handler)
+        # Only set signal handler if we're in the main thread
+        # signal.signal() raises ValueError if called from a thread
+        try:
+            LOG.debug("Setting SIGTERM interrupt handler")
+            signal.signal(signal.SIGTERM, interrupt_handler)
+        except ValueError:
+            # This is expected when running in a thread (e.g., for start-function-urls)
+            # Signal handlers can only be set in the main thread
+            LOG.debug("Skipping SIGTERM handler setup (not in main thread)")
 
         self._app.run(threaded=multi_threaded, host=self.host, port=self.port, ssl_context=self.ssl_context)
 
