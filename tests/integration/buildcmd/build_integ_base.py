@@ -113,6 +113,16 @@ class BuildIntegBase(TestCase):
             except Exception as e:
                 LOG.warning(f"Failed to clean up scratch_dir {self.scratch_dir}: {e}")
 
+        # Close any Docker client connections to prevent socket warnings
+        try:
+            if not SKIP_DOCKER_TESTS:
+                docker_client = get_validated_container_client()
+                if hasattr(docker_client, 'close'):
+                    docker_client.close()
+                    LOG.debug("Closed Docker client connection")
+        except Exception as e:
+            LOG.debug(f"Could not close Docker client: {e}")
+
     def _cleanup_old_docker_images(self):
         """
         Clean up Docker images and layers that were created more than 5 minutes ago.
