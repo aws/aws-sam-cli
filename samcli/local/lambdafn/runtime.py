@@ -9,7 +9,8 @@ import shutil
 import signal
 import tempfile
 import threading
-from typing import Dict, Optional, Union
+from collections import defaultdict
+from typing import Dict, List, Optional, Union
 
 from samcli.lib.telemetry.metric import capture_parameter
 from samcli.lib.utils.file_observer import LambdaFunctionObserver
@@ -421,11 +422,159 @@ class WarmLambdaRuntime(LambdaRuntime):
             Determines if the warm containers is enabled or not.
         """
         self._function_configs = {}
-        self._containers = {}
+        # Changed from Dict[str, Container] to Dict[str, List[Container]] to support multiple containers per function
+        # Using defaultdict to automatically initialize empty lists for new function paths
+        self._containers: Dict[str, List[Container]] = defaultdict(list)
+        # Thread-safe access to container collections
+        self._container_lock = threading.Lock()
 
         self._observer = observer if observer else LambdaFunctionObserver(self._on_code_change)
 
         super().__init__(container_manager, image_builder, mount_symlinks=mount_symlinks, no_mem_limit=no_mem_limit)
+
+    def _find_available_container(self, function_path: str) -> Optional[Container]:
+        """
+        Find the first available container for the given function using capacity-based selection.
+        Iterates through the containers list and checks each container's capacity using has_capacity().
+        Returns the first container with capacity, or None if all are busy.
+        Uses simple first-available iteration (not round-robin).
+        This method should be called while holding self._container_lock.
+
+        Parameters
+        ----------
+        function_path : str
+            The full path of the function
+
+        Returns
+        -------
+        Optional[Container]
+            The first available container if one has capacity, None otherwise
+        """
+        containers = self._containers.get(function_path, [])
+        for container in containers:
+            if container.is_created() and container.has_capacity():
+                return container
+        return None
+
+    def _acquire_container(
+        self,
+        function_config,
+        debug_context=None,
+        container_host=None,
+        container_host_interface=None,
+        extra_hosts=None,
+    ) -> Container:
+        """
+        Acquire a container for the function using capacity-based selection.
+        Acquires runtime lock before container operations, calls _find_available_container()
+        to check for available containers, reuses container if one has capacity,
+        creates new container if all are at capacity, appends new containers to list (doesn't overwrite),
+        and handles function config changes (reloads all containers for function).
+
+        Parameters
+        ----------
+        function_config : FunctionConfig
+            Configuration of the function
+        debug_context : DebugContext, optional
+            Debugging context for the function
+        container_host : str, optional
+            Host of locally emulated Lambda container
+        container_host_interface : str, optional
+            Interface that Docker host binds ports to
+        extra_hosts : Dict, optional
+            Dict of hostname to IP resolutions
+
+        Returns
+        -------
+        Container
+            The acquired container (either reused or newly created)
+        """
+        # Acquire runtime lock before container operations
+        with self._container_lock:
+            function_path = function_config.full_path
+
+            # Check for configuration changes requiring container reload
+            # Handle function config changes (reload all containers for function)
+            exist_function_config = self._function_configs.get(function_path, None)
+            if exist_function_config and _require_container_reloading(exist_function_config, function_config):
+                LOG.info(
+                    "Lambda Function '%s' definition has been changed in the stack template, "
+                    "terminate all warm containers.",
+                    function_path,
+                )
+                self._stop_all_containers_for_function(function_path)
+
+            # Call _find_available_container() to check for available containers
+            # Reuse container if one has capacity
+            available_container = self._find_available_container(function_path)
+            if available_container:
+                LOG.info("Reusing warm container with capacity for Lambda function '%s'", function_path)
+                # CRITICAL: Mark container as busy BEFORE releasing the lock to prevent race conditions
+                # This ensures concurrent requests don't see this container as available
+                available_container._mark_busy()
+                return available_container
+
+            # Create new container if all are at capacity
+            LOG.info("Creating new warm container for Lambda function '%s'", function_path)
+
+            # debug_context should be used only if the function name is the one defined
+            # in debug-function option
+            if debug_context and debug_context.debug_function != function_config.name:
+                LOG.debug(
+                    "Disable the debugging for Lambda Function %s, as the passed debug function is %s",
+                    function_config.name,
+                    debug_context.debug_function,
+                )
+                debug_context = None
+
+            # Start observer if not already watching
+            self._observer.watch(function_config)
+            self._observer.start()
+
+            # Create new container using parent class method
+            container = super(WarmLambdaRuntime, self).create(
+                function_config, debug_context, container_host, container_host_interface, extra_hosts
+            )
+
+            # CRITICAL: Mark container as busy BEFORE releasing the lock to prevent race conditions
+            # This ensures concurrent requests don't see this container as available
+            container._mark_busy()
+
+            # Append new containers to list (defaultdict automatically creates list if needed)
+            self._containers[function_path].append(container)
+
+            # Update function config
+            self._function_configs[function_path] = function_config
+
+            return container
+
+    def _stop_all_containers_for_function(self, function_path: str) -> None:
+        """
+        Stop all containers for a specific function.
+        This method should be called while holding self._container_lock.
+        Iterates container list and stops each one, handles errors gracefully,
+        and clears list after stopping all.
+
+        Parameters
+        ----------
+        function_path : str
+            The full path of the function
+        """
+        containers = self._containers.get(function_path, [])
+        for container in containers:
+            try:
+                self._container_manager.stop(container)
+            except Exception as ex:
+                LOG.debug("Failed to stop container %s: %s", container.id, str(ex))
+
+        # Unwatch the function config before removing it
+        exist_function_config = self._function_configs.get(function_path, None)
+        if exist_function_config:
+            self._observer.unwatch(exist_function_config)
+
+        # Clear containers list and function config
+        self._containers[function_path] = []
+        self._function_configs.pop(function_path, None)
 
     def create(
         self,
@@ -436,9 +585,10 @@ class WarmLambdaRuntime(LambdaRuntime):
         extra_hosts=None,
     ):
         """
-        Create a new Container for the passed function, then store it in a dictionary using the function name,
-        so it can be retrieved later and used in the other functions. Make sure to use the debug_context only
-        if the function_config.name equals debug_context.debug-function or the warm_containers option is disabled
+        Create a new Container for the passed function, then store it in a list using the function name,
+        so it can be retrieved later and used in the other functions. Supports multiple containers per function
+        for concurrent requests. Make sure to use the debug_context only if the function_config.name equals
+        debug_context.debug-function or the warm_containers option is disabled.
 
         Parameters
         ----------
@@ -450,63 +600,80 @@ class WarmLambdaRuntime(LambdaRuntime):
             Host of locally emulated Lambda container
         container_host_interface string
             Interface that Docker host binds ports to
+        extra_hosts Dict
+            Optional. Dict of hostname to IP resolutions
 
         Returns
         -------
         Container
-            the created container
+            the created or reused container
         """
-
-        # reuse the cached container if it is created, and if the function configuration is not changed
-        exist_function_config = self._function_configs.get(function_config.full_path, None)
-        container = self._containers.get(function_config.full_path, None)
-        if exist_function_config and _require_container_reloading(exist_function_config, function_config):
-            LOG.info(
-                "Lambda Function '%s' definition has been changed in the stack template, "
-                "terminate the created warm container.",
-                function_config.full_path,
-            )
-            self._function_configs.pop(exist_function_config.full_path, None)
-            if container:
-                self._container_manager.stop(container)
-                self._containers.pop(exist_function_config.full_path, None)
-            self._observer.unwatch(exist_function_config)
-        elif container and container.is_created():
-            LOG.info("Reuse the created warm container for Lambda function '%s'", function_config.full_path)
-            return container
-
-        # debug_context should be used only if the function name is the one defined
-        # in debug-function option
-        if debug_context and debug_context.debug_function != function_config.name:
-            LOG.debug(
-                "Disable the debugging for Lambda Function %s, as the passed debug function is %s",
-                function_config.name,
-                debug_context.debug_function,
-            )
-            debug_context = None
-
-        self._observer.watch(function_config)
-        self._observer.start()
-
-        container = super().create(
+        # Use the new acquisition logic that handles container reuse and creation
+        return self._acquire_container(
             function_config, debug_context, container_host, container_host_interface, extra_hosts
         )
-        self._function_configs[function_config.full_path] = function_config
-        self._containers[function_config.full_path] = container
+
+    def run(
+        self,
+        container,
+        function_config,
+        debug_context,
+        container_host=None,
+        container_host_interface=None,
+        extra_hosts=None,
+    ):
+        """
+        Override parent's run method to handle EAGER mode container initialization.
+        Containers are marked as busy in _acquire_container() to prevent race conditions.
+        For EAGER pre-warming, we mark them idle after starting so they're available for requests.
+
+        Parameters
+        ----------
+        container Container
+            the created container to be run
+        function_config FunctionConfig
+            Configuration of the function to run its created container.
+        debug_context DebugContext
+            Debugging context for the function (includes port, args, and path)
+        container_host string
+            Host of locally emulated Lambda container
+        container_host_interface string
+            Optional. Interface that Docker host binds ports to
+        extra_hosts Dict
+            Optional. Dict of hostname to IP resolutions
+
+        Returns
+        -------
+        Container
+            the running container
+        """
+        # Call parent's run method to start the container
+        container = super().run(
+            container, function_config, debug_context, container_host, container_host_interface, extra_hosts
+        )
+
+        # For EAGER mode: containers are pre-warmed but not immediately invoked
+        # Mark them as idle so they're available for actual requests
+        # For normal invoke flow: wait_for_result() will call _mark_busy() again (idempotent)
+        if container and container._is_at_capacity:
+            container._mark_idle()
 
         return container
 
     def _on_invoke_done(self, container):
         """
-        Cleanup the created resources, just before the invoke function ends.
-        In warm containers, the running containers will be closed just before the end of te command execution,
-        so no action is done here
+        Override parent's cleanup to preserve warm containers.
+        In warm containers mode, containers persist and are not stopped after each invocation.
+        The container automatically marks itself as idle via _mark_idle() in wait_for_result's finally block.
 
         Parameters
         ----------
         container: Container
            The current running container
         """
+        # Do NOT stop the container - warm containers persist between invocations
+        # Container state is managed internally by the Container class itself
+        pass
 
     def _configure_interrupt(self, function_full_path, timeout, container, is_debugging):
         """
@@ -555,40 +722,74 @@ class WarmLambdaRuntime(LambdaRuntime):
 
     def clean_running_containers_and_related_resources(self):
         """
-        Clean the running containers, the decompressed code dirs, and stop the created observer
+        Clean all running containers, the decompressed code dirs, and stop the created observer.
+        Handles multiple containers per function and errors gracefully.
+        Iterates over all containers in all lists, stops each with error handling,
+        tracks successful and failed cleanups, and logs a summary at debug level.
+        Continues cleanup even if individual containers fail.
         """
         LOG.debug("Terminating all running warm containers")
-        for function_name, container in self._containers.items():
-            LOG.debug("Terminate running warm container for Lambda Function '%s'", function_name)
-            self._container_manager.stop(container)
-        self._clean_decompressed_paths()
-        self._observer.stop()
+
+        cleanup_errors = []
+        successful_cleanups = 0
+        total_containers = 0
+
+        with self._container_lock:
+            for function_name, containers in self._containers.items():
+                total_containers += len(containers)
+                for container in containers:
+                    try:
+                        LOG.debug("Terminate warm container %s for function '%s'", container.id[:12], function_name)
+                        self._container_manager.stop(container)
+                        successful_cleanups += 1
+                    except Exception as ex:
+                        LOG.debug("Failed to stop container %s: %s", container.id[:12], str(ex))
+                        cleanup_errors.append((function_name, container.id, ex))
+
+        # Log cleanup summary at debug level
+        LOG.debug(
+            "Container cleanup complete: %d/%d successful, %d failed",
+            successful_cleanups,
+            total_containers,
+            len(cleanup_errors),
+        )
+
+        # Clean up other resources - best effort, don't fail if these error
+        try:
+            self._clean_decompressed_paths()
+        except Exception as ex:
+            LOG.debug("Failed to clean decompressed paths: %s", str(ex))
+
+        try:
+            self._observer.stop()
+        except Exception as ex:
+            LOG.debug("Failed to stop observer: %s", str(ex))
 
     def _on_code_change(self, functions):
         """
         Handles the lambda function code change event. it determines if there is a real change in the code
         by comparing the checksum of the code path before and after the event.
+        Stops all containers for the changed function (not just one), clears entire list,
+        and unwatches function config.
 
         Parameters
         ----------
         functions: list [FunctionConfig]
             the lambda functions that their source code or images got changed
         """
-        for function_config in functions:
-            function_full_path = function_config.full_path
-            resource = "source code" if function_config.packagetype == ZIP else f"{function_config.imageuri} image"
-            LOG.info(
-                "Lambda Function '%s' %s has been changed, terminate its warm container. "
-                "The new container will be created in lazy mode",
-                function_full_path,
-                resource,
-            )
-            self._observer.unwatch(function_config)
-            self._function_configs.pop(function_full_path, None)
-            container = self._containers.get(function_full_path, None)
-            if container:
-                self._container_manager.stop(container)
-                self._containers.pop(function_full_path, None)
+        with self._container_lock:
+            for function_config in functions:
+                function_full_path = function_config.full_path
+                resource = "source code" if function_config.packagetype == ZIP else f"{function_config.imageuri} image"
+                LOG.info(
+                    "Lambda Function '%s' %s has been changed, terminate all warm containers. "
+                    "New containers will be created in lazy mode",
+                    function_full_path,
+                    resource,
+                )
+
+                # Stop all containers for this function using the helper method
+                self._stop_all_containers_for_function(function_full_path)
 
 
 def _unzip_file(filepath):

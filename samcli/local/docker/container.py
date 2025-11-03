@@ -152,6 +152,10 @@ class Container:
         # Runtime properties of the container. They won't have value until container is created or started
         self.id: Optional[str] = None
 
+        # Container capacity signaling for concurrent request management
+        self._is_at_capacity = False
+        self._busy_lock = threading.Lock()
+
         # aws-lambda-rie defaults to 8080 as the port, however that's a common port. A port is chosen by
         # selecting the first free port in a range that's not ephemeral.
         self._start_port_range = 5000
@@ -483,37 +487,44 @@ class Container:
         # NOTE(sriram-mv): All logging is re-directed to stderr, so that only the lambda function return
         # will be written to stdout.
 
-        # the log thread will not be closed until the container itself got deleted,
-        # so as long as the container is still there, no need to start a new log thread
-        if not self._logs_thread or not self._logs_thread.is_alive():
-            self._logs_thread_event = self._create_threading_event()
-            self._logs_thread = threading.Thread(
-                target=self.wait_for_logs, args=(stderr, stderr, self._logs_thread_event), daemon=True
-            )
-            self._logs_thread.start()
+        # Mark container as busy at the start of request processing
+        self._mark_busy()
 
-        # wait_for_http_response will attempt to establish a connection to the socket
-        # but it'll fail if the socket is not listening yet, so we wait for the socket
-        self._wait_for_socket_connection()
+        try:
+            # the log thread will not be closed until the container itself got deleted,
+            # so as long as the container is still there, no need to start a new log thread
+            if not self._logs_thread or not self._logs_thread.is_alive():
+                self._logs_thread_event = self._create_threading_event()
+                self._logs_thread = threading.Thread(
+                    target=self.wait_for_logs, args=(stderr, stderr, self._logs_thread_event), daemon=True
+                )
+                self._logs_thread.start()
 
-        # start the timer for function timeout right before executing the function, as waiting for the socket
-        # can take some time
-        timer = start_timer() if start_timer else None
-        response, is_image = self.wait_for_http_response(full_path, event, stdout)
-        if timer:
-            timer.cancel()
+            # wait_for_http_response will attempt to establish a connection to the socket
+            # but it'll fail if the socket is not listening yet, so we wait for the socket
+            self._wait_for_socket_connection()
 
-        self._logs_thread_event.wait(timeout=1)
-        if isinstance(response, str):
-            stdout.write_str(response)
-        elif isinstance(response, bytes) and is_image:
-            stdout.write_bytes(response)
-        elif isinstance(response, bytes):
-            stdout.write_str(response.decode("utf-8"))
-        stdout.flush()
-        stderr.write_str("\n")
-        stderr.flush()
-        self._logs_thread_event.clear()
+            # start the timer for function timeout right before executing the function, as waiting for the socket
+            # can take some time
+            timer = start_timer() if start_timer else None
+            response, is_image = self.wait_for_http_response(full_path, event, stdout)
+            if timer:
+                timer.cancel()
+
+            self._logs_thread_event.wait(timeout=1)
+            if isinstance(response, str):
+                stdout.write_str(response)
+            elif isinstance(response, bytes) and is_image:
+                stdout.write_bytes(response)
+            elif isinstance(response, bytes):
+                stdout.write_str(response.decode("utf-8"))
+            stdout.flush()
+            stderr.write_str("\n")
+            stderr.flush()
+            self._logs_thread_event.clear()
+        finally:
+            # Always mark container as idle when request completes, even if an exception occurred
+            self._mark_idle()
 
     def wait_for_logs(
         self,
@@ -701,6 +712,37 @@ class Container:
             return real_container.status == "running"
         except docker.errors.NotFound:
             return False
+
+    def has_capacity(self) -> bool:
+        """
+        Checks if the container has capacity to handle a new request.
+        Thread-safe method that returns True if the container is idle and can accept a request.
+
+        Returns
+        -------
+        bool
+            True if the container is not busy and can handle a request, False otherwise
+        """
+        with self._busy_lock:
+            return not self._is_at_capacity
+
+    def _mark_busy(self) -> None:
+        """
+        Marks the container as busy, indicating it is currently processing a request.
+        Thread-safe method that sets the busy state.
+        """
+        with self._busy_lock:
+            self._is_at_capacity = True
+            LOG.debug("Container %s marked as busy", self.id[:12] if self.id else "unknown")
+
+    def _mark_idle(self) -> None:
+        """
+        Marks the container as idle, indicating it is available to handle new requests.
+        Thread-safe method that clears the busy state.
+        """
+        with self._busy_lock:
+            self._is_at_capacity = False
+            LOG.debug("Container %s marked as idle", self.id[:12] if self.id else "unknown")
 
     def _resolve_symlinks_in_context(self, context) -> bool:
         """

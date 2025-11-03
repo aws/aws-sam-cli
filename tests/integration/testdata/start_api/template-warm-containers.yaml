@@ -36,6 +36,23 @@ Resources:
             Method: GET
             Path: /proxypath/{proxy+}
 
+  SleepFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.sleep_10_sec_handler
+      Runtime: python3.13
+      CodeUri: .
+      Timeout: 600
+      Environment:
+        Variables:
+          MODE: !Ref ModeEnvVariable
+      Events:
+        SleepPath:
+          Type: Api
+          Properties:
+            Method: POST
+            Path: /sleep
+
   EchoEventFunction:
     Type: AWS::Serverless::Function
     Properties:

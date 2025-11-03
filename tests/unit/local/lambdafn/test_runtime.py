@@ -872,7 +872,7 @@ class TestWarmLambdaRuntime_create(TestCase):
 
         self.manager_mock.create.assert_called_with(container, ContainerContext.INVOKE)
         # validate that the created container got cached
-        self.assertEqual(self.runtime._containers[self.full_path], container)
+        self.assertIn(container, self.runtime._containers[self.full_path])
         lambda_function_observer_mock.watch.assert_called_with(self.func_config)
         lambda_function_observer_mock.start.assert_called_with()
 
@@ -944,7 +944,7 @@ class TestWarmLambdaRuntime_create(TestCase):
         )
         self.manager_mock.stop.assert_called_with(container)
         # validate that the created container got cached
-        self.assertEqual(self.runtime._containers[self.full_path], container2)
+        self.assertIn(container2, self.runtime._containers[self.full_path])
         self.assertEqual(result, container2)
 
     @patch("samcli.local.lambdafn.runtime.LambdaFunctionObserver")
@@ -1013,7 +1013,7 @@ class TestWarmLambdaRuntime_create(TestCase):
         )
         self.manager_mock.create.assert_called_with(container, ContainerContext.INVOKE)
         # validate that the created container got cached
-        self.assertEqual(self.runtime._containers[self.full_path], container)
+        self.assertIn(container, self.runtime._containers[self.full_path])
 
 
 class TestWarmLambdaRuntime_get_code_dir(TestCase):
@@ -1057,10 +1057,12 @@ class TestWarmLambdaRuntime_clean_warm_containers_related_resources(TestCase):
         self.runtime = WarmLambdaRuntime(self.manager_mock, lambda_image_mock, self.observer_mock)
 
         self.func1_container_mock = Mock()
+        self.func1_container_mock.id = "container1_id"
         self.func2_container_mock = Mock()
+        self.func2_container_mock.id = "container2_id"
         self.runtime._containers = {
-            "func_name1": self.func1_container_mock,
-            "func_name2": self.func2_container_mock,
+            "func_name1": [self.func1_container_mock],
+            "func_name2": [self.func2_container_mock],
         }
         self.runtime._temp_uncompressed_paths_to_be_cleaned = ["path1", "path2"]
         self.runtime._lock = MagicMock()
@@ -1140,8 +1142,12 @@ class TestWarmLambdaRuntime_on_code_change(TestCase):
         self.func1_container_mock = Mock()
         self.func2_container_mock = Mock()
         self.runtime._containers = {
-            self.func1_full_path: self.func1_container_mock,
-            self.func2_full_path: self.func2_container_mock,
+            self.func1_full_path: [self.func1_container_mock],
+            self.func2_full_path: [self.func2_container_mock],
+        }
+        self.runtime._function_configs = {
+            self.func1_full_path: self.func_config1,
+            self.func2_full_path: self.func_config2,
         }
 
     def test_only_one_container_get_stopped_when_its_code_dir_got_changed(self):
@@ -1151,7 +1157,8 @@ class TestWarmLambdaRuntime_on_code_change(TestCase):
         self.assertEqual(
             self.runtime._containers,
             {
-                self.func2_full_path: self.func2_container_mock,
+                self.func1_full_path: [],
+                self.func2_full_path: [self.func2_container_mock],
             },
         )
 
@@ -1167,7 +1174,7 @@ class TestWarmLambdaRuntime_on_code_change(TestCase):
                 call(self.func2_container_mock),
             ],
         )
-        self.assertEqual(self.runtime._containers, {})
+        self.assertEqual(self.runtime._containers, {self.func1_full_path: [], self.func2_full_path: []})
 
         self.assertEqual(
             self.observer_mock.unwatch.call_args_list,
@@ -1769,7 +1776,7 @@ class TestWarmLambdaRuntime_create_container_branch(TestCase):
 
         # Set up existing config but no container
         self.runtime._function_configs[self.full_path] = existing_config
-        self.runtime._containers[self.full_path] = None  # No container
+        self.runtime._containers[self.full_path] = []  # No container
 
         container = Mock()
         LambdaContainerMock.return_value = container
@@ -1784,7 +1791,7 @@ class TestWarmLambdaRuntime_create_container_branch(TestCase):
         self.observer_mock.unwatch.assert_called_once_with(existing_config)
         # Verify new container was created and stored
         self.assertEqual(result, container)
-        self.assertEqual(self.runtime._containers[self.full_path], container)
+        self.assertIn(container, self.runtime._containers[self.full_path])
         # Verify new function config was stored (the old one was replaced)
         self.assertIn(self.full_path, self.runtime._function_configs)
         self.assertEqual(self.runtime._function_configs[self.full_path], self.func_config)
@@ -1912,7 +1919,7 @@ class TestWarmLambdaRuntime_on_code_change_container_branch(TestCase):
         """Test _on_code_change when no container exists for the function - lines 589->577"""
         # Set up function config but no container
         self.runtime._function_configs[self.func_config.full_path] = self.func_config
-        self.runtime._containers[self.func_config.full_path] = None  # No container
+        self.runtime._containers[self.func_config.full_path] = []  # No container
 
         with patch("samcli.local.lambdafn.runtime.LOG") as LogMock:
             self.runtime._on_code_change([self.func_config])
@@ -1932,15 +1939,15 @@ class TestWarmLambdaRuntime_on_code_change_container_branch(TestCase):
 
         # Set up function config and container
         self.runtime._function_configs[self.func_config.full_path] = self.func_config
-        self.runtime._containers[self.func_config.full_path] = container
+        self.runtime._containers[self.func_config.full_path] = [container]
 
         with patch("samcli.local.lambdafn.runtime.LOG") as LogMock:
             self.runtime._on_code_change([self.func_config])
 
         # Verify function config was removed
         self.assertNotIn(self.func_config.full_path, self.runtime._function_configs)
-        # Verify container was removed
-        self.assertNotIn(self.func_config.full_path, self.runtime._containers)
+        # Verify container list was cleared
+        self.assertEqual(self.runtime._containers[self.func_config.full_path], [])
         # Verify container stop was called
         self.manager_mock.stop.assert_called_once_with(container)
         # Verify observer unwatch was called
@@ -1968,7 +1975,7 @@ class TestWarmLambdaRuntime_on_code_change_container_branch(TestCase):
 
         container = Mock()
         self.runtime._function_configs[image_func_config.full_path] = image_func_config
-        self.runtime._containers[image_func_config.full_path] = container
+        self.runtime._containers[image_func_config.full_path] = [container]
 
         with patch("samcli.local.lambdafn.runtime.LOG") as LogMock:
             self.runtime._on_code_change([image_func_config])
@@ -1979,3 +1986,821 @@ class TestWarmLambdaRuntime_on_code_change_container_branch(TestCase):
         # The log format is: "Lambda Function '%s' %s has been changed..."
         # where %s is function_full_path and %s is resource (imageuri + " image")
         self.assertIn("my-image:latest image", log_call_args[2])
+
+
+class TestWarmLambdaRuntime_CleanupLogic(TestCase):
+    """Test cleanup logic for WarmLambdaRuntime"""
+
+    def setUp(self):
+        self.manager_mock = Mock()
+        self.lambda_image_mock = Mock()
+        self.observer_mock = Mock()
+        self.runtime = WarmLambdaRuntime(self.manager_mock, self.lambda_image_mock, observer=self.observer_mock)
+
+    def test_cleanup_with_multiple_containers_per_function(self):
+        """Test cleanup stops all containers when multiple containers exist for a single function"""
+        from collections import defaultdict
+
+        # Create 3 containers for the same function
+        container1 = Mock()
+        container1.id = "container1_id_12345"
+        container2 = Mock()
+        container2.id = "container2_id_12345"
+        container3 = Mock()
+        container3.id = "container3_id_12345"
+
+        # Set up containers list for one function
+        self.runtime._containers = defaultdict(list)
+        self.runtime._containers["stack/function1"] = [container1, container2, container3]
+
+        with patch("samcli.local.lambdafn.runtime.LOG") as LogMock:
+            self.runtime.clean_running_containers_and_related_resources()
+
+        # Verify all 3 containers were stopped
+        self.assertEqual(self.manager_mock.stop.call_count, 3)
+        self.manager_mock.stop.assert_any_call(container1)
+        self.manager_mock.stop.assert_any_call(container2)
+        self.manager_mock.stop.assert_any_call(container3)
+
+        # Verify cleanup summary was logged
+        LogMock.debug.assert_any_call(
+            "Container cleanup complete: %d/%d successful, %d failed",
+            3,  # successful
+            3,  # total
+            0,  # failed
+        )
+
+    def test_cleanup_with_multiple_functions(self):
+        """Test cleanup stops all containers across multiple functions"""
+        from collections import defaultdict
+
+        # Create containers for 3 different functions
+        func1_container1 = Mock()
+        func1_container1.id = "func1_container1_id"
+        func1_container2 = Mock()
+        func1_container2.id = "func1_container2_id"
+
+        func2_container1 = Mock()
+        func2_container1.id = "func2_container1_id"
+
+        func3_container1 = Mock()
+        func3_container1.id = "func3_container1_id"
+        func3_container2 = Mock()
+        func3_container2.id = "func3_container2_id"
+        func3_container3 = Mock()
+        func3_container3.id = "func3_container3_id"
+
+        # Set up containers for multiple functions
+        self.runtime._containers = defaultdict(list)
+        self.runtime._containers["stack/function1"] = [func1_container1, func1_container2]
+        self.runtime._containers["stack/function2"] = [func2_container1]
+        self.runtime._containers["stack/function3"] = [func3_container1, func3_container2, func3_container3]
+
+        with patch("samcli.local.lambdafn.runtime.LOG") as LogMock:
+            self.runtime.clean_running_containers_and_related_resources()
+
+        # Verify all 6 containers were stopped
+        self.assertEqual(self.manager_mock.stop.call_count, 6)
+        self.manager_mock.stop.assert_any_call(func1_container1)
+        self.manager_mock.stop.assert_any_call(func1_container2)
+        self.manager_mock.stop.assert_any_call(func2_container1)
+        self.manager_mock.stop.assert_any_call(func3_container1)
+        self.manager_mock.stop.assert_any_call(func3_container2)
+        self.manager_mock.stop.assert_any_call(func3_container3)
+
+        # Verify cleanup summary was logged
+        LogMock.debug.assert_any_call(
+            "Container cleanup complete: %d/%d successful, %d failed",
+            6,  # successful
+            6,  # total
+            0,  # failed
+        )
+
+    def test_cleanup_continues_after_individual_failures(self):
+        """Test cleanup continues even when individual container stops fail"""
+        from collections import defaultdict
+
+        container1 = Mock()
+        container1.id = "container1_id_12345"
+        container2 = Mock()
+        container2.id = "container2_id_12345"
+        container3 = Mock()
+        container3.id = "container3_id_12345"
+        container4 = Mock()
+        container4.id = "container4_id_12345"
+
+        # Set up containers
+        self.runtime._containers = defaultdict(list)
+        self.runtime._containers["stack/function1"] = [container1, container2]
+        self.runtime._containers["stack/function2"] = [container3, container4]
+
+        # Make container2 and container3 fail to stop
+        def stop_side_effect(container):
+            if container in [container2, container3]:
+                raise Exception(f"Failed to stop {container.id}")
+
+        self.manager_mock.stop.side_effect = stop_side_effect
+
+        with patch("samcli.local.lambdafn.runtime.LOG") as LogMock:
+            self.runtime.clean_running_containers_and_related_resources()
+
+        # Verify all 4 containers were attempted to be stopped
+        self.assertEqual(self.manager_mock.stop.call_count, 4)
+
+        # Verify cleanup summary shows 2 successful, 2 failed
+        LogMock.debug.assert_any_call(
+            "Container cleanup complete: %d/%d successful, %d failed",
+            2,  # successful (container1 and container4)
+            4,  # total
+            2,  # failed (container2 and container3)
+        )
+
+        # Verify that debug logging was called for failures
+        debug_calls = [str(call) for call in LogMock.debug.call_args_list]
+        failure_logs = [call for call in debug_calls if "Failed to stop container" in call]
+        self.assertEqual(len(failure_logs), 2, "Should have logged 2 container stop failures")
+
+    def test_cleanup_is_idempotent(self):
+        """Test cleanup can be called multiple times without errors"""
+        from collections import defaultdict
+
+        container1 = Mock()
+        container1.id = "container1_id"
+        container2 = Mock()
+        container2.id = "container2_id"
+
+        self.runtime._containers = defaultdict(list)
+        self.runtime._containers["stack/function1"] = [container1, container2]
+
+        # First cleanup
+        with patch("samcli.local.lambdafn.runtime.LOG"):
+            self.runtime.clean_running_containers_and_related_resources()
+
+        # Verify containers were stopped
+        self.assertEqual(self.manager_mock.stop.call_count, 2)
+
+        # Reset mock
+        self.manager_mock.reset_mock()
+
+        # Second cleanup - containers list is still there but should handle gracefully
+        with patch("samcli.local.lambdafn.runtime.LOG") as LogMock:
+            self.runtime.clean_running_containers_and_related_resources()
+
+        # Verify cleanup ran again (containers are still in the dict)
+        self.assertEqual(self.manager_mock.stop.call_count, 2)
+
+        # Verify cleanup summary was logged
+        LogMock.debug.assert_any_call(
+            "Container cleanup complete: %d/%d successful, %d failed",
+            2,
+            2,
+            0,
+        )
+
+    def test_cleanup_summary_logging(self):
+        """Test cleanup logs summary with success/failure counts"""
+        from collections import defaultdict
+
+        container1 = Mock()
+        container1.id = "container1_id_12345"
+        container2 = Mock()
+        container2.id = "container2_id_12345"
+        container3 = Mock()
+        container3.id = "container3_id_12345"
+
+        self.runtime._containers = defaultdict(list)
+        self.runtime._containers["stack/function1"] = [container1, container2, container3]
+
+        # Make container2 fail
+        def stop_side_effect(container):
+            if container == container2:
+                raise Exception("Stop failed")
+
+        self.manager_mock.stop.side_effect = stop_side_effect
+
+        with patch("samcli.local.lambdafn.runtime.LOG") as LogMock:
+            self.runtime.clean_running_containers_and_related_resources()
+
+        # Verify summary log was called with correct counts
+        LogMock.debug.assert_any_call(
+            "Container cleanup complete: %d/%d successful, %d failed",
+            2,  # successful (container1 and container3)
+            3,  # total
+            1,  # failed (container2)
+        )
+
+        # Verify individual container cleanup was logged
+        debug_calls = [str(call) for call in LogMock.debug.call_args_list]
+        terminate_logs = [call for call in debug_calls if "Terminate warm container" in call]
+        self.assertEqual(len(terminate_logs), 3, "Should have logged 3 container termination attempts")
+
+    def test_on_invoke_done_does_not_stop_containers_in_warm_mode(self):
+        """Test _on_invoke_done does NOT stop containers in warm mode (containers persist)"""
+        container = Mock()
+        container.id = "container_id"
+
+        # Call _on_invoke_done
+        self.runtime._on_invoke_done(container)
+
+        # Verify container was NOT stopped (warm containers persist)
+        self.manager_mock.stop.assert_not_called()
+
+        # Verify no other cleanup was performed
+        self.observer_mock.stop.assert_not_called()
+
+    def test_on_invoke_done_with_none_container(self):
+        """Test _on_invoke_done handles None container gracefully"""
+        # Call _on_invoke_done with None
+        self.runtime._on_invoke_done(None)
+
+        # Verify no errors and no cleanup was performed
+        self.manager_mock.stop.assert_not_called()
+        self.observer_mock.stop.assert_not_called()
+
+
+class TestWarmLambdaRuntime_StopAllContainersForFunction(TestCase):
+    """Test _stop_all_containers_for_function helper method - Task 4.5"""
+
+    def setUp(self):
+        self.manager_mock = Mock()
+        self.lambda_image_mock = Mock()
+        self.observer_mock = Mock()
+        self.runtime = WarmLambdaRuntime(self.manager_mock, self.lambda_image_mock, observer=self.observer_mock)
+
+    def test_stop_all_containers_for_function_stops_all_containers(self):
+        """Test _stop_all_containers_for_function stops all containers for a specific function"""
+        from collections import defaultdict
+
+        container1 = Mock()
+        container1.id = "container1_id"
+        container2 = Mock()
+        container2.id = "container2_id"
+        container3 = Mock()
+        container3.id = "container3_id"
+
+        # Set up function config
+        func_config = FunctionConfig(
+            "function1",
+            "stack/function1",
+            "python3.9",
+            "handler",
+            None,
+            None,
+            ZIP,
+            "code-path",
+            [],
+            "x86_64",
+        )
+
+        self.runtime._containers = defaultdict(list)
+        self.runtime._containers["stack/function1"] = [container1, container2, container3]
+        self.runtime._function_configs["stack/function1"] = func_config
+
+        with patch("samcli.local.lambdafn.runtime.LOG"):
+            self.runtime._stop_all_containers_for_function("stack/function1")
+
+        # Verify all 3 containers were stopped
+        self.assertEqual(self.manager_mock.stop.call_count, 3)
+        self.manager_mock.stop.assert_any_call(container1)
+        self.manager_mock.stop.assert_any_call(container2)
+        self.manager_mock.stop.assert_any_call(container3)
+
+        # Verify containers list was cleared
+        self.assertEqual(self.runtime._containers["stack/function1"], [])
+
+        # Verify function config was removed
+        self.assertNotIn("stack/function1", self.runtime._function_configs)
+
+        # Verify observer unwatch was called
+        self.observer_mock.unwatch.assert_called_once_with(func_config)
+
+    def test_stop_all_containers_handles_errors_gracefully(self):
+        """Test _stop_all_containers_for_function handles errors gracefully"""
+        from collections import defaultdict
+
+        container1 = Mock()
+        container1.id = "container1_id"
+        container2 = Mock()
+        container2.id = "container2_id"
+
+        func_config = FunctionConfig(
+            "function1",
+            "stack/function1",
+            "python3.9",
+            "handler",
+            None,
+            None,
+            ZIP,
+            "code-path",
+            [],
+            "x86_64",
+        )
+
+        self.runtime._containers = defaultdict(list)
+        self.runtime._containers["stack/function1"] = [container1, container2]
+        self.runtime._function_configs["stack/function1"] = func_config
+
+        # Make container1 fail to stop
+        def stop_side_effect(container):
+            if container == container1:
+                raise Exception("Stop failed")
+
+        self.manager_mock.stop.side_effect = stop_side_effect
+
+        with patch("samcli.local.lambdafn.runtime.LOG") as LogMock:
+            self.runtime._stop_all_containers_for_function("stack/function1")
+
+        # Verify both containers were attempted to be stopped
+        self.assertEqual(self.manager_mock.stop.call_count, 2)
+
+        # Verify error was logged
+        LogMock.debug.assert_any_call("Failed to stop container %s: %s", "container1_id", "Stop failed")
+
+        # Verify cleanup still completed (list cleared, config removed)
+        self.assertEqual(self.runtime._containers["stack/function1"], [])
+        self.assertNotIn("stack/function1", self.runtime._function_configs)
+
+    def test_stop_all_containers_with_no_containers(self):
+        """Test _stop_all_containers_for_function handles function with no containers"""
+        from collections import defaultdict
+
+        func_config = FunctionConfig(
+            "function1",
+            "stack/function1",
+            "python3.9",
+            "handler",
+            None,
+            None,
+            ZIP,
+            "code-path",
+            [],
+            "x86_64",
+        )
+
+        self.runtime._containers = defaultdict(list)
+        self.runtime._containers["stack/function1"] = []
+        self.runtime._function_configs["stack/function1"] = func_config
+
+        with patch("samcli.local.lambdafn.runtime.LOG"):
+            self.runtime._stop_all_containers_for_function("stack/function1")
+
+        # Verify no containers were stopped
+        self.manager_mock.stop.assert_not_called()
+
+        # Verify cleanup still completed
+        self.assertEqual(self.runtime._containers["stack/function1"], [])
+        self.assertNotIn("stack/function1", self.runtime._function_configs)
+        self.observer_mock.unwatch.assert_called_once_with(func_config)
+
+    def test_stop_all_containers_with_nonexistent_function(self):
+        """Test _stop_all_containers_for_function handles nonexistent function gracefully"""
+        from collections import defaultdict
+
+        self.runtime._containers = defaultdict(list)
+        self.runtime._function_configs = {}
+
+        with patch("samcli.local.lambdafn.runtime.LOG"):
+            # Should not raise any errors
+            self.runtime._stop_all_containers_for_function("stack/nonexistent")
+
+        # Verify no containers were stopped
+        self.manager_mock.stop.assert_not_called()
+
+        # Verify observer unwatch was not called (no config exists)
+        self.observer_mock.unwatch.assert_not_called()
+
+
+class TestWarmLambdaRuntime_CleanupResourcesHandling(TestCase):
+    """Test cleanup handles decompressed paths and observer cleanup - Task 4.5"""
+
+    def setUp(self):
+        self.manager_mock = Mock()
+        self.lambda_image_mock = Mock()
+        self.observer_mock = Mock()
+        self.runtime = WarmLambdaRuntime(self.manager_mock, self.lambda_image_mock, observer=self.observer_mock)
+
+    def test_cleanup_calls_clean_decompressed_paths(self):
+        """Test cleanup calls _clean_decompressed_paths"""
+        from collections import defaultdict
+
+        self.runtime._containers = defaultdict(list)
+        self.runtime._clean_decompressed_paths = Mock()
+
+        with patch("samcli.local.lambdafn.runtime.LOG"):
+            self.runtime.clean_running_containers_and_related_resources()
+
+        # Verify _clean_decompressed_paths was called
+        self.runtime._clean_decompressed_paths.assert_called_once()
+
+    def test_cleanup_calls_observer_stop(self):
+        """Test cleanup calls observer.stop()"""
+        from collections import defaultdict
+
+        self.runtime._containers = defaultdict(list)
+
+        with patch("samcli.local.lambdafn.runtime.LOG"):
+            self.runtime.clean_running_containers_and_related_resources()
+
+        # Verify observer.stop() was called
+        self.observer_mock.stop.assert_called_once()
+
+    def test_cleanup_handles_decompressed_paths_error(self):
+        """Test cleanup continues if _clean_decompressed_paths fails"""
+        from collections import defaultdict
+
+        container = Mock()
+        container.id = "container_id"
+
+        self.runtime._containers = defaultdict(list)
+        self.runtime._containers["stack/function1"] = [container]
+        self.runtime._clean_decompressed_paths = Mock(side_effect=Exception("Cleanup failed"))
+
+        with patch("samcli.local.lambdafn.runtime.LOG") as LogMock:
+            # Should not raise exception
+            self.runtime.clean_running_containers_and_related_resources()
+
+        # Verify container was still stopped
+        self.manager_mock.stop.assert_called_once_with(container)
+
+        # Verify error was logged
+        LogMock.debug.assert_any_call("Failed to clean decompressed paths: %s", "Cleanup failed")
+
+        # Verify observer.stop() was still called
+        self.observer_mock.stop.assert_called_once()
+
+    def test_cleanup_handles_observer_stop_error(self):
+        """Test cleanup continues if observer.stop() fails"""
+        from collections import defaultdict
+
+        container = Mock()
+        container.id = "container_id"
+
+        self.runtime._containers = defaultdict(list)
+        self.runtime._containers["stack/function1"] = [container]
+        self.observer_mock.stop.side_effect = Exception("Observer stop failed")
+
+        with patch("samcli.local.lambdafn.runtime.LOG") as LogMock:
+            # Should not raise exception
+            self.runtime.clean_running_containers_and_related_resources()
+
+        # Verify container was still stopped
+        self.manager_mock.stop.assert_called_once_with(container)
+
+        # Verify error was logged
+        LogMock.debug.assert_any_call("Failed to stop observer: %s", "Observer stop failed")
+
+
+class TestWarmLambdaRuntime_ContainerSelection(TestCase):
+    """Tests for container selection logic in WarmLambdaRuntime"""
+
+    def setUp(self):
+        self.manager_mock = Mock()
+        self.lambda_image_mock = Mock()
+        self.observer_mock = Mock()
+        self.runtime = WarmLambdaRuntime(self.manager_mock, self.lambda_image_mock, self.observer_mock)
+
+        self.name = "test_function"
+        self.full_path = "stack/test_function"
+        self.lang = "python3.11"
+        self.handler = "app.handler"
+        self.code_path = "/code"
+        self.layers = []
+        self.imageuri = None
+        self.packagetype = ZIP
+        self.imageconfig = None
+        self.architecture = "x86_64"
+
+        self.func_config = FunctionConfig(
+            self.name,
+            self.full_path,
+            self.lang,
+            self.handler,
+            self.imageuri,
+            self.imageconfig,
+            self.packagetype,
+            self.code_path,
+            self.layers,
+            self.architecture,
+        )
+
+    def test_list_initialization_with_defaultdict(self):
+        """Test that _containers uses defaultdict(list) for automatic list initialization"""
+        from collections import defaultdict
+
+        # Verify _containers is a defaultdict
+        self.assertIsInstance(self.runtime._containers, defaultdict)
+
+        # Verify accessing a new key creates an empty list
+        function_path = "stack/new_function"
+        containers_list = self.runtime._containers[function_path]
+        self.assertIsInstance(containers_list, list)
+        self.assertEqual(len(containers_list), 0)
+
+    def test_list_appending_with_multiple_containers(self):
+        """Test that containers are appended to list, not overwritten"""
+        from collections import defaultdict
+
+        container1 = Mock()
+        container1.id = "container1"
+        container2 = Mock()
+        container2.id = "container2"
+        container3 = Mock()
+        container3.id = "container3"
+
+        # Manually append containers to simulate concurrent creation
+        self.runtime._containers[self.full_path].append(container1)
+        self.runtime._containers[self.full_path].append(container2)
+        self.runtime._containers[self.full_path].append(container3)
+
+        # Verify all containers are in the list
+        containers = self.runtime._containers[self.full_path]
+        self.assertEqual(len(containers), 3)
+        self.assertEqual(containers[0].id, "container1")
+        self.assertEqual(containers[1].id, "container2")
+        self.assertEqual(containers[2].id, "container3")
+
+    def test_find_available_container_returns_first_with_capacity(self):
+        """Test _find_available_container returns first container with capacity"""
+        container1 = Mock()
+        container1.is_created.return_value = True
+        container1.has_capacity.return_value = False  # Busy
+
+        container2 = Mock()
+        container2.is_created.return_value = True
+        container2.has_capacity.return_value = True  # Available
+
+        container3 = Mock()
+        container3.is_created.return_value = True
+        container3.has_capacity.return_value = True  # Also available
+
+        self.runtime._containers[self.full_path] = [container1, container2, container3]
+
+        result = self.runtime._find_available_container(self.full_path)
+
+        # Should return container2 (first available)
+        self.assertEqual(result, container2)
+        container1.has_capacity.assert_called_once()
+        container2.has_capacity.assert_called_once()
+        # container3 should not be checked (first-available strategy)
+        container3.has_capacity.assert_not_called()
+
+    def test_find_available_container_returns_none_when_all_busy(self):
+        """Test _find_available_container returns None when all containers are busy"""
+        container1 = Mock()
+        container1.is_created.return_value = True
+        container1.has_capacity.return_value = False
+
+        container2 = Mock()
+        container2.is_created.return_value = True
+        container2.has_capacity.return_value = False
+
+        self.runtime._containers[self.full_path] = [container1, container2]
+
+        result = self.runtime._find_available_container(self.full_path)
+
+        self.assertIsNone(result)
+        container1.has_capacity.assert_called_once()
+        container2.has_capacity.assert_called_once()
+
+    def test_find_available_container_returns_none_when_no_containers(self):
+        """Test _find_available_container returns None when no containers exist"""
+        result = self.runtime._find_available_container(self.full_path)
+        self.assertIsNone(result)
+
+    @patch("samcli.local.lambdafn.runtime.LambdaContainer")
+    def test_acquire_container_creates_new_when_all_at_capacity(self, LambdaContainerMock):
+        """Test _acquire_container creates new container when all are at capacity"""
+        # Setup existing busy containers
+        container1 = Mock()
+        container1.is_created.return_value = True
+        container1.has_capacity.return_value = False
+        container1._mark_busy = Mock()
+
+        self.runtime._containers[self.full_path] = [container1]
+
+        # Setup new container creation
+        new_container = Mock()
+        new_container._mark_busy = Mock()
+        LambdaContainerMock.return_value = new_container
+
+        self.runtime._get_code_dir = MagicMock(return_value="/code/dir")
+
+        # Call _acquire_container
+        result = self.runtime._acquire_container(self.func_config)
+
+        # Verify new container was created
+        self.assertEqual(result, new_container)
+
+        # Verify new container was marked busy before returning
+        new_container._mark_busy.assert_called_once()
+
+        # Verify new container was appended to list
+        self.assertEqual(len(self.runtime._containers[self.full_path]), 2)
+        self.assertEqual(self.runtime._containers[self.full_path][1], new_container)
+
+    @patch("samcli.local.lambdafn.runtime.LambdaContainer")
+    def test_acquire_container_reuses_available_container(self, LambdaContainerMock):
+        """Test _acquire_container reuses available container instead of creating new one"""
+        # Setup available container
+        available_container = Mock()
+        available_container.is_created.return_value = True
+        available_container.has_capacity.return_value = True
+        available_container._mark_busy = Mock()
+
+        self.runtime._containers[self.full_path] = [available_container]
+        self.runtime._function_configs[self.full_path] = self.func_config
+
+        # Call _acquire_container
+        result = self.runtime._acquire_container(self.func_config)
+
+        # Verify available container was reused
+        self.assertEqual(result, available_container)
+
+        # Verify container was marked busy before returning
+        available_container._mark_busy.assert_called_once()
+
+        # Verify no new container was created
+        LambdaContainerMock.assert_not_called()
+
+        # Verify list still has only one container
+        self.assertEqual(len(self.runtime._containers[self.full_path]), 1)
+
+    def test_mark_busy_called_before_releasing_lock_for_reused_container(self):
+        """Test that _mark_busy is called before releasing lock when reusing container"""
+        # Setup available container
+        available_container = Mock()
+        available_container.is_created.return_value = True
+        available_container.has_capacity.return_value = True
+        available_container._mark_busy = Mock()
+
+        self.runtime._containers[self.full_path] = [available_container]
+        self.runtime._function_configs[self.full_path] = self.func_config
+
+        # Track lock state when _mark_busy is called
+        lock_held_during_mark_busy = []
+
+        def track_mark_busy():
+            # Check if lock is held by trying to acquire it (should fail if held)
+            lock_held = self.runtime._container_lock.locked()
+            lock_held_during_mark_busy.append(lock_held)
+
+        available_container._mark_busy.side_effect = track_mark_busy
+
+        # Call _acquire_container
+        self.runtime._acquire_container(self.func_config)
+
+        # Verify _mark_busy was called while lock was held
+        self.assertTrue(lock_held_during_mark_busy[0], "_mark_busy should be called while lock is held")
+
+    @patch("samcli.local.lambdafn.runtime.LambdaContainer")
+    def test_mark_busy_called_before_releasing_lock_for_new_container(self, LambdaContainerMock):
+        """Test that _mark_busy is called before releasing lock when creating new container"""
+        # Setup new container
+        new_container = Mock()
+        new_container._mark_busy = Mock()
+        LambdaContainerMock.return_value = new_container
+
+        self.runtime._get_code_dir = MagicMock(return_value="/code/dir")
+
+        # Track lock state when _mark_busy is called
+        lock_held_during_mark_busy = []
+
+        def track_mark_busy():
+            lock_held = self.runtime._container_lock.locked()
+            lock_held_during_mark_busy.append(lock_held)
+
+        new_container._mark_busy.side_effect = track_mark_busy
+
+        # Call _acquire_container
+        self.runtime._acquire_container(self.func_config)
+
+        # Verify _mark_busy was called while lock was held
+        self.assertTrue(lock_held_during_mark_busy[0], "_mark_busy should be called while lock is held")
+
+    def test_thread_safe_concurrent_access(self):
+        """Test thread-safe concurrent access to container list"""
+        import threading
+
+        # Setup multiple containers that become busy after being acquired
+        containers = []
+        for i in range(3):
+            container = Mock()
+            container.id = f"container{i}"
+            container.is_created.return_value = True
+
+            # Initially has capacity, but becomes busy after _mark_busy is called
+            capacity_state = [True]  # Use list to allow modification in closure
+
+            def make_has_capacity(state):
+                def has_capacity():
+                    return state[0]
+
+                return has_capacity
+
+            def make_mark_busy(state):
+                def mark_busy():
+                    state[0] = False  # Mark as busy
+
+                return mark_busy
+
+            container.has_capacity = make_has_capacity(capacity_state)
+            container._mark_busy = make_mark_busy(capacity_state)
+            containers.append(container)
+
+        self.runtime._containers[self.full_path] = containers
+        self.runtime._function_configs[self.full_path] = self.func_config
+
+        # Track which containers were acquired
+        acquired_containers = []
+        errors = []
+
+        def acquire_container_thread():
+            try:
+                container = self.runtime._acquire_container(self.func_config)
+                acquired_containers.append(container)
+            except Exception as e:
+                errors.append(e)
+
+        # Create multiple threads to acquire containers concurrently
+        threads = []
+        for _ in range(3):
+            thread = threading.Thread(target=acquire_container_thread)
+            threads.append(thread)
+
+        # Start all threads
+        for thread in threads:
+            thread.start()
+
+        # Wait for all threads to complete
+        for thread in threads:
+            thread.join(timeout=5)
+
+        # Verify no errors occurred
+        self.assertEqual(len(errors), 0, f"Errors occurred during concurrent access: {errors}")
+
+        # Verify all threads acquired containers
+        self.assertEqual(len(acquired_containers), 3)
+
+        # Verify different containers were acquired (due to thread-safe locking)
+        acquired_ids = [c.id for c in acquired_containers]
+        self.assertEqual(len(set(acquired_ids)), 3, "Each thread should acquire a different container")
+
+    def test_eager_mode_containers_marked_idle_after_run(self):
+        """Test that EAGER mode containers are marked idle after run()"""
+        container = Mock()
+        container._is_at_capacity = True  # Container is marked busy
+        container._mark_idle = Mock()
+
+        # Mock parent's run method to return the container
+        with patch.object(LambdaRuntime, "run", return_value=container):
+            result = self.runtime.run(
+                container, self.func_config, debug_context=None, container_host=None, container_host_interface=None
+            )
+
+        # Verify container was marked idle after starting
+        container._mark_idle.assert_called_once()
+        self.assertEqual(result, container)
+
+    def test_eager_mode_containers_not_marked_idle_if_already_idle(self):
+        """Test that containers already idle are not marked idle again"""
+        container = Mock()
+        container._is_at_capacity = False  # Container is already idle
+        container._mark_idle = Mock()
+
+        # Mock parent's run method to return the container
+        with patch.object(LambdaRuntime, "run", return_value=container):
+            result = self.runtime.run(
+                container, self.func_config, debug_context=None, container_host=None, container_host_interface=None
+            )
+
+        # Verify _mark_idle was not called (container already idle)
+        container._mark_idle.assert_not_called()
+        self.assertEqual(result, container)
+
+    def test_capacity_checking_integration(self):
+        """Test integration of capacity checking with container selection"""
+        # Create containers with different capacity states
+        busy_container = Mock()
+        busy_container.is_created.return_value = True
+        busy_container.has_capacity.return_value = False
+
+        idle_container = Mock()
+        idle_container.is_created.return_value = True
+        idle_container.has_capacity.return_value = True
+        idle_container._mark_busy = Mock()
+
+        self.runtime._containers[self.full_path] = [busy_container, idle_container]
+        self.runtime._function_configs[self.full_path] = self.func_config
+
+        # Acquire container
+        result = self.runtime._acquire_container(self.func_config)
+
+        # Verify idle container was selected
+        self.assertEqual(result, idle_container)
+
+        # Verify capacity was checked
+        busy_container.has_capacity.assert_called_once()
+        idle_container.has_capacity.assert_called_once()
+
+        # Verify selected container was marked busy
+        idle_container._mark_busy.assert_called_once()

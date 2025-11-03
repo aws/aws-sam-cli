@@ -2,6 +2,8 @@
 import logging
 import random
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Callable, List, Optional
 
 LOG = logging.getLogger(__name__)
 
@@ -36,3 +38,27 @@ def wait_for_local_process(process, port, collect_output=False) -> str:
 
 def random_port():
     return random.randint(30000, 40000)
+
+
+def send_concurrent_requests(request_func: Callable, count: int, timeout: int = 300) -> List:
+    """
+    Send multiple concurrent requests using ThreadPoolExecutor.
+
+    Args:
+        request_func: Callable that performs a single request (e.g., lambda: requests.post(url))
+        count: Number of concurrent requests to send
+        timeout: Timeout for the entire operation in seconds
+
+    Returns:
+        List of results from all requests
+
+    Example:
+        results = send_concurrent_requests(
+            lambda: requests.post(url + "/endpoint", timeout=300),
+            count=3
+        )
+    """
+    with ThreadPoolExecutor(max_workers=count) as thread_pool:
+        futures = [thread_pool.submit(request_func) for _ in range(count)]
+        results = [future.result() for future in as_completed(futures, timeout=timeout)]
+    return results

@@ -17,6 +17,7 @@ from botocore.exceptions import ClientError
 from samcli.commands.local.cli_common.invoke_context import ContainersInitializationMode
 from tests.testing_utils import IS_WINDOWS
 from .start_lambda_api_integ_base import StartLambdaIntegBaseClass, WatchWarmContainersIntegBaseClass
+from ..common_utils import send_concurrent_requests
 
 
 class TestParallelRequests(StartLambdaIntegBaseClass):
@@ -318,19 +319,32 @@ class TestWarmContainersBaseClass(StartLambdaIntegBaseClass):
             region_name="us-east-1",
             use_ssl=False,
             verify=False,
-            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
+            config=Config(
+                signature_version=UNSIGNED,
+                read_timeout=120,
+                retries={"max_attempts": 0},
+                max_pool_connections=20,  # Increase pool size for concurrent requests
+            ),
         )
 
     def count_running_containers(self):
-        """Count containers created by this test using Docker client directly."""
-        # Use Docker client to find containers with SAM CLI labels
+        """
+        Count containers created by this test using Docker client directly.
+
+        Filters containers by:
+        1. SAM CLI label (sam.cli.container.type=lambda)
+        2. MODE environment variable (unique per test class)
+
+        This ensures test isolation when running multiple test classes in parallel.
+        Note: Test methods within the same class share the same MODE and are NOT isolated.
+        """
         try:
             # Get running containers with SAM CLI lambda container label
             sam_containers = self.docker_client.containers.list(
                 all=False, filters={"label": "sam.cli.container.type=lambda"}
             )
 
-            # Filter by our test's mode environment variable if possible
+            # Filter by our test's mode environment variable for isolation
             test_containers = []
             for container in sam_containers:
                 try:
@@ -538,6 +552,286 @@ class TestLazyContainersMultipleInvoke(TestWarmContainersBaseClass):
 
         # only one container is initialized
         self.assertEqual(initiated_containers, initiated_containers_before_any_invoke + 1)
+
+
+class TestLazyWarmContainersConcurrency(TestWarmContainersBaseClass):
+    """
+    Test LAZY mode warm containers concurrency behavior.
+
+    Note: Each test class creates isolated container environments to avoid noisy neighbor
+    issues where containers from one test affect another test's behavior.
+
+    Verifies fixes for:
+    - Issue 1: Multiple containers tracked and cleaned up (not just one)
+    - Issue 2: All containers reused consistently (not just one)
+    """
+
+    template_path = "/testdata/start_api/template-warm-containers.yaml"
+    container_mode = ContainersInitializationMode.LAZY.value
+    mode_env_variable = str(uuid.uuid4())
+    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_concurrent_invocations_all_succeed(self):
+        """Concurrent invocations create multiple containers and all succeed."""
+        initial_count = self.count_running_containers()
+        self.assertEqual(initial_count, 0)
+
+        results = send_concurrent_requests(
+            lambda: self.lambda_client.invoke(FunctionName="HelloWorldFunction"), count=3
+        )
+
+        self.assertEqual(len(results), 3)
+        for result in results:
+            self.assertEqual(result.get("StatusCode"), 200)
+            response = json.loads(result.get("Payload").read().decode("utf-8"))
+            self.assertEqual(response.get("statusCode"), 200)
+
+
+class TestLazyWarmContainersReuse(TestWarmContainersBaseClass):
+    """
+    Test LAZY mode warm containers reuse behavior.
+
+    Note: Each test class creates isolated container environments to avoid noisy neighbor
+    issues where containers from one test affect another test's behavior.
+    """
+
+    template_path = "/testdata/start_api/template-warm-containers.yaml"
+    container_mode = ContainersInitializationMode.LAZY.value
+    mode_env_variable = str(uuid.uuid4())
+    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_containers_reused_across_batches(self):
+        """Subsequent invocations reuse all available containers."""
+        # First batch
+        first_batch = send_concurrent_requests(
+            lambda: self.lambda_client.invoke(FunctionName="HelloWorldFunction"), count=3
+        )
+        self.assertEqual(len(first_batch), 3)
+        for result in first_batch:
+            self.assertEqual(result.get("StatusCode"), 200)
+
+        sleep(2)
+
+        # Second batch should reuse containers
+        second_batch = send_concurrent_requests(
+            lambda: self.lambda_client.invoke(FunctionName="HelloWorldFunction"), count=3
+        )
+        self.assertEqual(len(second_batch), 3)
+        for result in second_batch:
+            self.assertEqual(result.get("StatusCode"), 200)
+
+
+class TestLazyWarmContainersMultipleFunctions(TestWarmContainersBaseClass):
+    """
+    Test LAZY mode warm containers with multiple functions.
+
+    Note: Each test class creates isolated container environments to avoid noisy neighbor
+    issues where containers from one test affect another test's behavior.
+    """
+
+    template_path = "/testdata/start_api/template-warm-containers.yaml"
+    container_mode = ContainersInitializationMode.LAZY.value
+    mode_env_variable = str(uuid.uuid4())
+    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_multiple_functions_work_correctly(self):
+        """Multiple functions each get their own containers."""
+        function1_results = send_concurrent_requests(
+            lambda: self.lambda_client.invoke(FunctionName="HelloWorldFunction"), count=2
+        )
+        function2_results = send_concurrent_requests(
+            lambda: self.lambda_client.invoke(FunctionName="EchoEventFunction"), count=2
+        )
+
+        self.assertEqual(len(function1_results), 2)
+        self.assertEqual(len(function2_results), 2)
+        for result in function1_results + function2_results:
+            self.assertEqual(result.get("StatusCode"), 200)
+
+
+class TestLazyWarmContainersCleanup(TestWarmContainersBaseClass):
+    """
+    Test LAZY mode SIGTERM cleanup in isolation.
+
+    Note: Each test class creates isolated container environments to avoid noisy neighbor
+    issues where containers from one test affect another test's behavior. This is especially
+    important for SIGTERM tests since they terminate the server process.
+    """
+
+    template_path = "/testdata/start_api/template-warm-containers.yaml"
+    container_mode = ContainersInitializationMode.LAZY.value
+    mode_env_variable = str(uuid.uuid4())
+    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
+
+    @skipIf(IS_WINDOWS, "SIGTERM interrupt doesn't exist on Windows")
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_sigterm_cleans_up_all_containers(self):
+        """SIGTERM triggers complete cleanup of all containers."""
+        result = self.lambda_client.invoke(FunctionName="HelloWorldFunction")
+        self.assertEqual(result.get("StatusCode"), 200)
+
+        self.start_lambda_process.send_signal(signal.SIGTERM)
+        sleep(10)
+
+        remaining_containers = self.count_running_containers()
+        self.assertEqual(remaining_containers, 0)
+        self.assertEqual(self.start_lambda_process.poll(), 0)
+
+
+class TestEagerWarmContainersScaleUp(TestWarmContainersBaseClass):
+    """
+    Test EAGER mode warm containers scale-up behavior.
+
+    Note: Each test class creates isolated container environments to avoid noisy neighbor
+    issues where containers from one test affect another test's behavior.
+    """
+
+    template_path = "/testdata/start_api/template-warm-containers.yaml"
+    container_mode = ContainersInitializationMode.EAGER.value
+    mode_env_variable = str(uuid.uuid4())
+    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_scales_up_under_load(self):
+        """Concurrent invocations beyond initial containers trigger scale-up."""
+        from concurrent.futures import ThreadPoolExecutor
+        import time
+
+        initial_count = self.count_running_containers()
+        # EAGER mode creates one container per function at startup
+        # Template has 3 functions: HelloWorldFunction, EchoEventFunction, SleepFunction
+        self.assertEqual(initial_count, 3)
+
+        def invoke_sleep():
+            return self.lambda_client.invoke(FunctionName="SleepFunction")
+
+        # Use SleepFunction to ensure invocations are truly concurrent
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            # Submit all futures first to ensure true concurrency
+            futures = []
+            for i in range(10):
+                future = executor.submit(invoke_sleep)
+                futures.append(future)
+
+            time.sleep(1.5)
+            container_count = self.count_running_containers()
+            self.assertGreater(container_count, 3, "Should scale up to handle concurrent invocations")
+            results = [f.result() for f in futures]
+
+        for result in results:
+            self.assertEqual(result.get("StatusCode"), 200)
+
+        sleep(2)  # Wait for containers to finish processing
+
+
+class TestEagerWarmContainersReuse(TestWarmContainersBaseClass):
+    """
+    Test EAGER mode warm containers reuse behavior.
+
+    Note: Each test class creates isolated container environments to avoid noisy neighbor
+    issues where containers from one test affect another test's behavior.
+    """
+
+    template_path = "/testdata/start_api/template-warm-containers.yaml"
+    container_mode = ContainersInitializationMode.EAGER.value
+    mode_env_variable = str(uuid.uuid4())
+    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_scaled_containers_reused(self):
+        """Scaled containers are reused in subsequent invocations."""
+        from concurrent.futures import ThreadPoolExecutor
+        import time
+
+        def invoke_sleep():
+            return self.lambda_client.invoke(FunctionName="SleepFunction")
+
+        # First batch: scale up using SleepFunction
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            # Submit all futures first to ensure true concurrency
+            futures = []
+            for i in range(10):
+                future = executor.submit(invoke_sleep)
+                futures.append(future)
+
+            time.sleep(1.5)
+            container_count_after_scale = self.count_running_containers()
+            self.assertGreater(container_count_after_scale, 3, "Should scale up during first batch")
+            first_batch = [f.result() for f in futures]
+
+        for result in first_batch:
+            self.assertEqual(result.get("StatusCode"), 200)
+
+        sleep(2)  # Wait for containers to finish processing
+
+        # Second batch: verify containers are reused (no additional scale-up)
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            # Submit all futures first to ensure true concurrency
+            futures = []
+            for i in range(10):
+                future = executor.submit(invoke_sleep)
+                futures.append(future)
+
+            time.sleep(1.5)
+            container_count_after_reuse = self.count_running_containers()
+            self.assertEqual(
+                container_count_after_reuse, container_count_after_scale, "Should reuse existing containers"
+            )
+            second_batch = [f.result() for f in futures]
+
+        for result in second_batch:
+            self.assertEqual(result.get("StatusCode"), 200)
+
+        sleep(2)  # Wait for containers to finish processing
+
+
+class TestEagerWarmContainersCleanup(TestWarmContainersBaseClass):
+    """
+    Test EAGER mode warm containers cleanup behavior.
+
+    Note: Each test class creates isolated container environments to avoid noisy neighbor
+    issues where containers from one test affect another test's behavior. This is especially
+    important for SIGTERM tests since they terminate the server process.
+    """
+
+    template_path = "/testdata/start_api/template-warm-containers.yaml"
+    container_mode = ContainersInitializationMode.EAGER.value
+    mode_env_variable = str(uuid.uuid4())
+    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
+
+    @skipIf(IS_WINDOWS, "SIGTERM interrupt doesn't exist on Windows")
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_sigterm_cleans_up_all_containers(self):
+        """SIGTERM cleans up all containers including scaled ones."""
+        initial_count = self.count_running_containers()
+        self.assertEqual(initial_count, 2)
+
+        results = send_concurrent_requests(
+            lambda: self.lambda_client.invoke(FunctionName="HelloWorldFunction"), count=5
+        )
+        for result in results:
+            self.assertEqual(result.get("StatusCode"), 200)
+
+        sleep(2)  # Wait for containers to finish processing
+        scaled_count = self.count_running_containers()
+        self.assertGreater(scaled_count, initial_count)
+
+        self.start_lambda_process.send_signal(signal.SIGTERM)
+        sleep(10)
+
+        remaining_containers = self.count_running_containers()
+        self.assertEqual(remaining_containers, 0)
+        self.assertEqual(self.start_lambda_process.poll(), 0)
 
 
 class TestImagePackageType(StartLambdaIntegBaseClass):

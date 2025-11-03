@@ -1350,3 +1350,197 @@ class TestContainer_create_mapped_symlink_files(TestCase):
         volumes = self.container._create_mapped_symlink_files()
 
         self.assertEqual(volumes, {host_path: {"bind": container_path, "mode": ANY}})
+
+
+class TestContainer_capacity_signaling(TestCase):
+    """Tests for container capacity signaling interface"""
+
+    def setUp(self):
+        self.image = IMAGE
+        self.cmd = "cmd"
+        self.working_dir = "working_dir"
+        self.host_dir = "host_dir"
+        self.mock_docker_client = Mock()
+
+        self.container = Container(
+            self.image,
+            self.cmd,
+            self.working_dir,
+            self.host_dir,
+            docker_client=self.mock_docker_client,
+        )
+        self.container.id = "test_container_id"
+
+    @parameterized.expand(
+        [
+            (True, False),
+            (False, True),
+        ]
+    )
+    def test_has_capacity_returns_correct_result(self, is_at_capacity, expected_has_capacity):
+        """Test has_capacity() returns correct result"""
+        self.container._is_at_capacity = is_at_capacity
+
+        result = self.container.has_capacity()
+
+        self.assertEqual(expected_has_capacity, result)
+
+    @patch("samcli.local.docker.container.LOG")
+    def test_mark_busy_sets_is_at_capacity_true(self, mock_log):
+        """Test _mark_busy() sets _is_at_capacity to True"""
+        self.container._is_at_capacity = False
+
+        self.container._mark_busy()
+
+        mock_log.debug.assert_called_once()
+        call_args = mock_log.debug.call_args[0]
+        self.assertIn("marked as busy", call_args[0])
+        self.assertTrue(self.container._is_at_capacity)
+
+    @patch("samcli.local.docker.container.LOG")
+    def test_mark_idle_sets_is_at_capacity_false(self, mock_log):
+        """Test _mark_idle() sets _is_at_capacity to False"""
+        self.container._is_at_capacity = True
+
+        self.container._mark_idle()
+
+        mock_log.debug.assert_called_once()
+        call_args = mock_log.debug.call_args[0]
+        self.assertIn("marked as idle", call_args[0])
+        self.assertFalse(self.container._is_at_capacity)
+
+    def test_thread_safe_concurrent_access_to_state(self):
+        """Test thread-safe concurrent access to container state with _busy_lock"""
+        import threading
+
+        self.container._is_at_capacity = False
+        state_changes = []
+
+        def mark_busy_multiple_times():
+            for _ in range(10):
+                self.container._mark_busy()
+                state_changes.append(("busy", self.container._is_at_capacity))
+                self.container._mark_idle()
+                state_changes.append(("idle", self.container._is_at_capacity))
+
+        def check_capacity_multiple_times():
+            for _ in range(10):
+                capacity = self.container.has_capacity()
+                state_changes.append(("check", capacity))
+
+        # Create threads that will access state concurrently
+        thread1 = threading.Thread(target=mark_busy_multiple_times)
+        thread2 = threading.Thread(target=check_capacity_multiple_times)
+
+        thread1.start()
+        thread2.start()
+
+        thread1.join()
+        thread2.join()
+
+        # Verify all state changes are consistent (no corrupted state)
+        for change_type, value in state_changes:
+            if change_type == "busy":
+                self.assertTrue(value, "State should be True after _mark_busy()")
+            elif change_type == "idle":
+                self.assertFalse(value, "State should be False after _mark_idle()")
+            # check operations can return either True or False depending on timing
+
+    @patch("socket.socket")
+    @patch("samcli.local.docker.container.requests")
+    def test_wait_for_result_marks_busy_at_start(self, mock_requests, patched_socket):
+        """Test wait_for_result() marks container busy at start"""
+        self.container.is_created = Mock(return_value=True)
+        self.container._is_at_capacity = False
+
+        # Setup mocks
+        real_container_mock = Mock()
+        self.mock_docker_client.containers.get.return_value = real_container_mock
+        real_container_mock.attach.return_value = Mock()
+
+        response = Mock()
+        response.content = b'{"result": "success"}'
+        response.headers = {"Content-Type": "application/json"}
+        mock_requests.post.return_value = response
+
+        socket_mock = Mock()
+        socket_mock.connect_ex.return_value = 0
+        patched_socket.return_value = socket_mock
+
+        stdout_mock = Mock()
+        stderr_mock = Mock()
+
+        # Call wait_for_result
+        self.container.wait_for_result(event="{}", full_path="test_function", stdout=stdout_mock, stderr=stderr_mock)
+
+        # Container should be idle after completion (marked busy then idle in finally)
+        self.assertFalse(self.container._is_at_capacity)
+
+    @patch("socket.socket")
+    @patch("samcli.local.docker.container.requests")
+    def test_wait_for_result_marks_idle_in_finally_block(self, mock_requests, patched_socket):
+        """Test wait_for_result() marks container idle in finally block even on exception"""
+        self.container.is_created = Mock(return_value=True)
+        self.container._is_at_capacity = False
+
+        # Setup mocks to raise exception
+        real_container_mock = Mock()
+        self.mock_docker_client.containers.get.return_value = real_container_mock
+        real_container_mock.attach.return_value = Mock()
+
+        mock_requests.post.side_effect = ContainerResponseException("Test exception")
+
+        socket_mock = Mock()
+        socket_mock.connect_ex.return_value = 0
+        patched_socket.return_value = socket_mock
+
+        stdout_mock = Mock()
+        stderr_mock = Mock()
+
+        # Call wait_for_result and expect exception
+        with self.assertRaises(ContainerResponseException):
+            self.container.wait_for_result(
+                event="{}", full_path="test_function", stdout=stdout_mock, stderr=stderr_mock
+            )
+
+        # Container should still be marked idle even though exception occurred
+        self.assertFalse(self.container._is_at_capacity)
+
+    def test_state_transitions_during_request_lifecycle(self):
+        """Test complete state transitions during request lifecycle"""
+        # Initial state should be idle
+        self.assertFalse(self.container._is_at_capacity)
+        self.assertTrue(self.container.has_capacity())
+
+        # Mark busy (simulating request start)
+        self.container._mark_busy()
+        self.assertTrue(self.container._is_at_capacity)
+        self.assertFalse(self.container.has_capacity())
+
+        # Mark idle (simulating request completion)
+        self.container._mark_idle()
+        self.assertFalse(self.container._is_at_capacity)
+        self.assertTrue(self.container.has_capacity())
+
+    def test_multiple_state_transitions(self):
+        """Test multiple state transitions work correctly"""
+        # Start idle
+        self.assertFalse(self.container._is_at_capacity)
+
+        # First request
+        self.container._mark_busy()
+        self.assertTrue(self.container._is_at_capacity)
+        self.container._mark_idle()
+        self.assertFalse(self.container._is_at_capacity)
+
+        # Second request
+        self.container._mark_busy()
+        self.assertTrue(self.container._is_at_capacity)
+        self.container._mark_idle()
+        self.assertFalse(self.container._is_at_capacity)
+
+        # Third request
+        self.container._mark_busy()
+        self.assertTrue(self.container._is_at_capacity)
+        self.container._mark_idle()
+        self.assertFalse(self.container._is_at_capacity)
