@@ -532,7 +532,7 @@ class WarmLambdaRuntime(LambdaRuntime):
             self._observer.start()
 
             # Create new container using parent class method
-            container = super(WarmLambdaRuntime, self).create(
+            container: Container = super(WarmLambdaRuntime, self).create(
                 function_config, debug_context, container_host, container_host_interface, extra_hosts
             )
 
