@@ -1446,64 +1446,45 @@ class TestContainer_capacity_signaling(TestCase):
                 self.assertFalse(value, "State should be False after _mark_idle()")
             # check operations can return either True or False depending on timing
 
-    @patch("socket.socket")
-    @patch("samcli.local.docker.container.requests")
-    def test_wait_for_result_marks_busy_at_start(self, mock_requests, patched_socket):
-        """Test wait_for_result() marks container busy at start"""
+    def _setup_wait_for_result_mocks(self, patched_socket):
+        """Helper to setup common mocks for wait_for_result tests"""
         self.container.is_created = Mock(return_value=True)
         self.container._is_at_capacity = False
 
-        # Setup mocks
         real_container_mock = Mock()
         self.mock_docker_client.containers.get.return_value = real_container_mock
         real_container_mock.attach.return_value = Mock()
+
+        socket_mock = Mock()
+        socket_mock.connect_ex.return_value = 0
+        patched_socket.return_value = socket_mock
+
+    @patch("socket.socket")
+    @patch("samcli.local.docker.container.requests")
+    def test_wait_for_result_marks_idle_after_success(self, mock_requests, patched_socket):
+        """Test wait_for_result() marks container idle after successful execution"""
+        self._setup_wait_for_result_mocks(patched_socket)
 
         response = Mock()
         response.content = b'{"result": "success"}'
         response.headers = {"Content-Type": "application/json"}
         mock_requests.post.return_value = response
 
-        socket_mock = Mock()
-        socket_mock.connect_ex.return_value = 0
-        patched_socket.return_value = socket_mock
+        self.container.wait_for_result(event="{}", full_path="test_function", stdout=Mock(), stderr=Mock())
 
-        stdout_mock = Mock()
-        stderr_mock = Mock()
-
-        # Call wait_for_result
-        self.container.wait_for_result(event="{}", full_path="test_function", stdout=stdout_mock, stderr=stderr_mock)
-
-        # Container should be idle after completion (marked busy then idle in finally)
         self.assertFalse(self.container._is_at_capacity)
 
     @patch("socket.socket")
     @patch("samcli.local.docker.container.requests")
-    def test_wait_for_result_marks_idle_in_finally_block(self, mock_requests, patched_socket):
+    def test_wait_for_result_marks_idle_after_exception(self, mock_requests, patched_socket):
         """Test wait_for_result() marks container idle in finally block even on exception"""
-        self.container.is_created = Mock(return_value=True)
-        self.container._is_at_capacity = False
-
-        # Setup mocks to raise exception
-        real_container_mock = Mock()
-        self.mock_docker_client.containers.get.return_value = real_container_mock
-        real_container_mock.attach.return_value = Mock()
+        self._setup_wait_for_result_mocks(patched_socket)
 
         mock_requests.post.side_effect = ContainerResponseException("Test exception")
 
-        socket_mock = Mock()
-        socket_mock.connect_ex.return_value = 0
-        patched_socket.return_value = socket_mock
-
-        stdout_mock = Mock()
-        stderr_mock = Mock()
-
-        # Call wait_for_result and expect exception
         with self.assertRaises(ContainerResponseException):
-            self.container.wait_for_result(
-                event="{}", full_path="test_function", stdout=stdout_mock, stderr=stderr_mock
-            )
+            self.container.wait_for_result(event="{}", full_path="test_function", stdout=Mock(), stderr=Mock())
 
-        # Container should still be marked idle even though exception occurred
         self.assertFalse(self.container._is_at_capacity)
 
     def test_state_transitions_during_request_lifecycle(self):
