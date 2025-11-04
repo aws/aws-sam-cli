@@ -567,14 +567,9 @@ class BuildIntegGoBase(BuildIntegBase):
 
         # Build with musl target to avoid glibc compatibility issues
         # This ensures the binary works in the Lambda execution environment
-        if architecture == ARM64:
-            newenv["GOOS"] = "linux"
-            newenv["GOARCH"] = "arm64"
-            newenv["CGO_ENABLED"] = "0"
-        else:
-            newenv["GOOS"] = "linux"
-            newenv["GOARCH"] = "amd64"
-            newenv["CGO_ENABLED"] = "0"
+        newenv["GOOS"] = "linux"
+        newenv["GOARCH"] = "arm64" if architecture == ARM64 else "amd64"
+        newenv["CGO_ENABLED"] = "0"
 
         run_command(cmdlist, cwd=self.working_dir, env=newenv)
 

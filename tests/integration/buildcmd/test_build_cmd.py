@@ -1632,7 +1632,7 @@ class TestBuildWithNestedStacks3Level(NestedBuildIntegBase):
 
     template = os.path.join("deep-nested", "template.yaml")
 
-    def test_nested_build_in_conatiner(self):
+    def test_nested_build_in_container(self):
         if SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
