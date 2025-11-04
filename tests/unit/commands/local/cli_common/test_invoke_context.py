@@ -520,7 +520,7 @@ class TestInvokeContext__enter__(TestCase):
 
         invoke_context.__enter__()
 
-        extract_func_mock.assert_called_with([], expected, False, False)
+        extract_func_mock.assert_called_with([], expected, False, False, None)
 
 
 class TestInvokeContext__exit__(TestCase):
@@ -1457,3 +1457,192 @@ class TestInvokeContext_add_account_id_to_global(TestCase):
         invoke_context = InvokeContext("template_file")
         invoke_context._add_account_id_to_global()
         self.assertEqual(invoke_context._global_parameter_overrides.get("AWS::AccountId"), "210987654321")
+
+
+class TestInvokeContext_validate_function_logical_ids(TestCase):
+    """Tests for _validate_function_logical_ids method"""
+
+    def test_validation_with_valid_names(self):
+        """Test that no exception is raised when all function names are valid"""
+        # Create mock functions
+        func1 = Mock()
+        func1.name = "Function1"
+        func1.function_id = "Function1"
+        func1.functionname = None
+
+        func2 = Mock()
+        func2.name = "Function2"
+        func2.function_id = "Function2"
+        func2.functionname = "MyFunction2"
+
+        # Create InvokeContext with valid function names
+        invoke_context = InvokeContext(template_file="template_file", function_logical_ids=("Function1", "MyFunction2"))
+
+        # Mock the function provider
+        function_provider_mock = Mock()
+        function_provider_mock.get_all.return_value = [func1, func2]
+        invoke_context._function_provider = function_provider_mock
+
+        # Should not raise any exception
+        invoke_context._validate_function_logical_ids()
+
+    def test_validation_with_invalid_names(self):
+        """Test that InvalidFunctionNamesException is raised with invalid names"""
+        from samcli.commands.local.cli_common.user_exceptions import InvalidFunctionNamesException
+
+        # Create mock functions
+        func1 = Mock()
+        func1.name = "Function1"
+        func1.function_id = "Function1"
+        func1.functionname = None
+
+        func2 = Mock()
+        func2.name = "Function2"
+        func2.function_id = "Function2"
+        func2.functionname = None
+
+        # Create InvokeContext with invalid function names
+        invoke_context = InvokeContext(
+            template_file="template_file", function_logical_ids=("InvalidFunction", "AnotherInvalid")
+        )
+
+        # Mock the function provider
+        function_provider_mock = Mock()
+        function_provider_mock.get_all.return_value = [func1, func2]
+        invoke_context._function_provider = function_provider_mock
+
+        # Should raise InvalidFunctionNamesException
+        with self.assertRaises(InvalidFunctionNamesException) as ex_ctx:
+            invoke_context._validate_function_logical_ids()
+
+        error_message = str(ex_ctx.exception)
+        # Verify error message includes invalid names
+        self.assertIn("InvalidFunction", error_message)
+        self.assertIn("AnotherInvalid", error_message)
+        # Verify error message includes available functions
+        self.assertIn("Function1", error_message)
+        self.assertIn("Function2", error_message)
+        self.assertIn("Available functions in template:", error_message)
+
+    def test_validation_with_mixed_valid_invalid_names(self):
+        """Test that all invalid names are reported when some are valid and some are invalid"""
+        from samcli.commands.local.cli_common.user_exceptions import InvalidFunctionNamesException
+
+        # Create mock functions
+        func1 = Mock()
+        func1.name = "Function1"
+        func1.function_id = "Function1"
+        func1.functionname = None
+
+        func2 = Mock()
+        func2.name = "Function2"
+        func2.function_id = "Function2"
+        func2.functionname = None
+
+        # Create InvokeContext with mixed valid/invalid function names
+        invoke_context = InvokeContext(
+            template_file="template_file", function_logical_ids=("Function1", "InvalidFunc", "AnotherInvalid")
+        )
+
+        # Mock the function provider
+        function_provider_mock = Mock()
+        function_provider_mock.get_all.return_value = [func1, func2]
+        invoke_context._function_provider = function_provider_mock
+
+        # Should raise InvalidFunctionNamesException
+        with self.assertRaises(InvalidFunctionNamesException) as ex_ctx:
+            invoke_context._validate_function_logical_ids()
+
+        error_message = str(ex_ctx.exception)
+        # Verify all invalid names are reported
+        self.assertIn("InvalidFunc", error_message)
+        self.assertIn("AnotherInvalid", error_message)
+        # Verify valid name is not in error message as invalid
+        self.assertNotIn("Function1", error_message.split("Available functions")[0])
+
+    def test_validation_with_no_filter(self):
+        """Test that no validation occurs when function_logical_ids is None"""
+        # Create InvokeContext without function_logical_ids
+        invoke_context = InvokeContext(template_file="template_file", function_logical_ids=None)
+
+        # Mock the function provider (should not be called)
+        function_provider_mock = Mock()
+        invoke_context._function_provider = function_provider_mock
+
+        # Should not raise any exception and should not call get_all
+        invoke_context._validate_function_logical_ids()
+
+        # Verify get_all was not called since no validation needed
+        function_provider_mock.get_all.assert_not_called()
+
+    def test_validation_with_empty_tuple(self):
+        """Test that no validation occurs when function_logical_ids is empty tuple"""
+        # Create InvokeContext with empty tuple
+        invoke_context = InvokeContext(template_file="template_file", function_logical_ids=())
+
+        # Mock the function provider (should not be called)
+        function_provider_mock = Mock()
+        invoke_context._function_provider = function_provider_mock
+
+        # Should not raise any exception and should not call get_all
+        invoke_context._validate_function_logical_ids()
+
+        # Verify get_all was not called since no validation needed
+        function_provider_mock.get_all.assert_not_called()
+
+    def test_validation_matches_function_id(self):
+        """Test that validation matches against function_id"""
+        # Create mock function
+        func = Mock()
+        func.name = "MyFunction"
+        func.function_id = "FunctionLogicalId"
+        func.functionname = None
+
+        # Create InvokeContext using function_id
+        invoke_context = InvokeContext(template_file="template_file", function_logical_ids=("FunctionLogicalId",))
+
+        # Mock the function provider
+        function_provider_mock = Mock()
+        function_provider_mock.get_all.return_value = [func]
+        invoke_context._function_provider = function_provider_mock
+
+        # Should not raise any exception
+        invoke_context._validate_function_logical_ids()
+
+    def test_validation_matches_name(self):
+        """Test that validation matches against name"""
+        # Create mock function
+        func = Mock()
+        func.name = "MyFunction"
+        func.function_id = "FunctionLogicalId"
+        func.functionname = None
+
+        # Create InvokeContext using name
+        invoke_context = InvokeContext(template_file="template_file", function_logical_ids=("MyFunction",))
+
+        # Mock the function provider
+        function_provider_mock = Mock()
+        function_provider_mock.get_all.return_value = [func]
+        invoke_context._function_provider = function_provider_mock
+
+        # Should not raise any exception
+        invoke_context._validate_function_logical_ids()
+
+    def test_validation_matches_functionname(self):
+        """Test that validation matches against functionname property"""
+        # Create mock function
+        func = Mock()
+        func.name = "MyFunction"
+        func.function_id = "FunctionLogicalId"
+        func.functionname = "CustomFunctionName"
+
+        # Create InvokeContext using functionname
+        invoke_context = InvokeContext(template_file="template_file", function_logical_ids=("CustomFunctionName",))
+
+        # Mock the function provider
+        function_provider_mock = Mock()
+        function_provider_mock.get_all.return_value = [func]
+        invoke_context._function_provider = function_provider_mock
+
+        # Should not raise any exception
+        invoke_context._validate_function_logical_ids()

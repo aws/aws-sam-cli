@@ -11,6 +11,12 @@ class InvokeContextException(UserException):
     """
 
 
+class InvalidFunctionNamesException(InvokeContextException):
+    """
+    User provided function names that don't exist in the template
+    """
+
+
 class InvalidSamTemplateException(UserException):
     """
     The template provided was invalid and not able to transform into a Standard CloudFormation Template

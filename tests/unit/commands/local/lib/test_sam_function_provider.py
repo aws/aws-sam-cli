@@ -1158,7 +1158,7 @@ class TestSamFunctionProvider_init(TestCase):
         stack = make_root_stack(template, self.parameter_overrides)
         provider = SamFunctionProvider([stack])
 
-        extract_mock.assert_called_with([stack], False, False, False)
+        extract_mock.assert_called_with([stack], False, False, False, None)
         get_template_mock.assert_called_with(template, self.parameter_overrides)
         self.assertEqual(provider.functions, extract_result)
 
@@ -1173,7 +1173,7 @@ class TestSamFunctionProvider_init(TestCase):
         stack = make_root_stack(template, self.parameter_overrides)
         provider = SamFunctionProvider([stack])
 
-        extract_mock.assert_called_with([stack], False, False, False)  # Empty Resources value must be passed
+        extract_mock.assert_called_with([stack], False, False, False, None)  # Empty Resources value must be passed
         self.assertEqual(provider.functions, extract_result)
 
     @patch.object(SamFunctionProvider, "_extract_functions")
@@ -1187,7 +1187,7 @@ class TestSamFunctionProvider_init(TestCase):
         stack = make_root_stack(template, self.parameter_overrides)
         provider = SamFunctionProvider([stack], locate_layer_nested=True)
 
-        extract_mock.assert_called_with([stack], False, False, True)
+        extract_mock.assert_called_with([stack], False, False, True, None)
         get_template_mock.assert_called_with(template, self.parameter_overrides)
         self.assertEqual(provider.functions, extract_result)
 
@@ -2145,7 +2145,7 @@ class TestRefreshableSamFunctionProvider(TestCase):
             [stack, stack2], self.parameter_overrides, self.global_parameter_overrides
         )
 
-        extract_mock.assert_called_with([stack, stack2], False, False, False)
+        extract_mock.assert_called_with([stack, stack2], False, False, False, None)
         get_template_mock.assert_called_with(template, self.parameter_overrides)
         self.assertEqual(provider.functions, extract_result)
 
@@ -2605,3 +2605,165 @@ class TestSamFunctionProvider_search_layer(TestCase):
 
         invalid_layer_str_format = {"Fn::GetAtt": ["LayerStackName", "Outputs.invalid.format"]}
         self.assertFalse(SamFunctionProvider._validate_layer_get_attr_format(invalid_layer_str_format))
+
+
+class TestSamFunctionProviderFiltering(TestCase):
+    """Test function filtering functionality"""
+
+    @staticmethod
+    def _make_function(function_id, name, functionname):
+        """Helper to create a Function object"""
+        return Function(
+            function_id=function_id,
+            name=name,
+            functionname=functionname,
+            runtime="python3.9",
+            handler="index.handler",
+            codeuri="/path/to/code",
+            memory=None,
+            timeout=None,
+            environment=None,
+            rolearn=None,
+            layers=[],
+            events=None,
+            metadata={},
+            inlinecode=None,
+            imageuri=None,
+            imageconfig=None,
+            packagetype=ZIP,
+            codesign_config_arn=None,
+            architectures=None,
+            function_url_config=None,
+            stack_path="",
+            function_build_info=FunctionBuildInfo.BuildableZip,
+        )
+
+    @parameterized.expand(
+        [
+            ("match_by_function_id", "MyFunction", "MyFunction", "MyFunctionName", {"MyFunction"}, True),
+            ("match_by_name", "MyFunctionId", "MyFunctionName", "Override", {"MyFunctionName"}, True),
+            ("match_by_functionname", "MyFunctionId", "MyFunctionName", "Override", {"Override"}, True),
+            ("no_match", "MyFunction", "MyFunction", "MyFunctionName", {"OtherFunction"}, False),
+            ("match_with_none_functionname", "MyFunction", "MyFunction", None, {"MyFunction"}, True),
+        ]
+    )
+    def test_should_include_function(self, name, function_id, fname, functionname, filter_set, expected):
+        """Test _should_include_function with various matching scenarios"""
+        function = self._make_function(function_id, fname, functionname)
+        result = SamFunctionProvider._should_include_function(function, filter_set)
+        self.assertEqual(result, expected)
+
+    @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
+    @patch.object(SamFunctionProvider, "_convert_sam_function_resource")
+    def test_extract_functions_with_filter(self, convert_mock, resources_mock):
+        """Test filtering extracts only specified functions"""
+        func1 = Mock(full_path="Function1", function_id="Function1", name="Function1", functionname="Function1Name")
+        func2 = Mock(full_path="Function2", function_id="Function2", name="Function2", functionname="Function2Name")
+        func3 = Mock(full_path="Function3", function_id="Function3", name="Function3", functionname="Function3Name")
+
+        convert_mock.side_effect = [func1, func2, func3]
+        resources_mock.return_value = {
+            "Function1": {"Type": "AWS::Serverless::Function", "Properties": {}},
+            "Function2": {"Type": "AWS::Serverless::Function", "Properties": {}},
+            "Function3": {"Type": "AWS::Serverless::Function", "Properties": {}},
+        }
+
+        result = SamFunctionProvider._extract_functions(
+            [make_root_stack(None)], function_logical_ids=("Function1", "Function3")
+        )
+
+        self.assertEqual(len(result), 2)
+        self.assertIn("Function1", result)
+        self.assertIn("Function3", result)
+        self.assertNotIn("Function2", result)
+
+    @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
+    @patch.object(SamFunctionProvider, "_convert_sam_function_resource")
+    def test_extract_functions_no_filter(self, convert_mock, resources_mock):
+        """Test no filtering when function_logical_ids is None"""
+        func1 = Mock(full_path="Function1", function_id="Function1", name="Function1", functionname="Function1Name")
+        func2 = Mock(full_path="Function2", function_id="Function2", name="Function2", functionname="Function2Name")
+
+        convert_mock.side_effect = [func1, func2]
+        resources_mock.return_value = {
+            "Function1": {"Type": "AWS::Serverless::Function", "Properties": {}},
+            "Function2": {"Type": "AWS::Serverless::Function", "Properties": {}},
+        }
+
+        result = SamFunctionProvider._extract_functions([make_root_stack(None)], function_logical_ids=None)
+
+        self.assertEqual(len(result), 2)
+        self.assertIn("Function1", result)
+        self.assertIn("Function2", result)
+
+    @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
+    @patch.object(SamFunctionProvider, "_convert_sam_function_resource")
+    def test_extract_functions_filter_by_functionname(self, convert_mock, resources_mock):
+        """Test filtering by FunctionName property"""
+        func1 = Mock(
+            full_path="LogicalId1", function_id="LogicalId1", name="LogicalId1", functionname="MyCustomFunctionName"
+        )
+        func2 = Mock(
+            full_path="LogicalId2", function_id="LogicalId2", name="LogicalId2", functionname="AnotherFunctionName"
+        )
+
+        convert_mock.side_effect = [func1, func2]
+        resources_mock.return_value = {
+            "LogicalId1": {"Type": "AWS::Serverless::Function", "Properties": {}},
+            "LogicalId2": {"Type": "AWS::Serverless::Function", "Properties": {}},
+        }
+
+        result = SamFunctionProvider._extract_functions(
+            [make_root_stack(None)], function_logical_ids=("MyCustomFunctionName",)
+        )
+
+        self.assertEqual(len(result), 1)
+        self.assertIn("LogicalId1", result)
+        self.assertNotIn("LogicalId2", result)
+
+    @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
+    @patch.object(SamFunctionProvider, "_convert_sam_function_resource")
+    def test_extract_functions_with_nested_stack(self, convert_mock, resources_mock):
+        """Test filtering with nested stack functions"""
+        func_root = Mock(full_path="RootFunc", function_id="RootFunc", name="RootFunc", functionname="RootFuncName")
+        func_child = Mock(
+            full_path="ChildStack/ChildFunc",
+            function_id="ChildFunc",
+            name="ChildFunc",
+            functionname="ChildFuncName",
+        )
+
+        convert_mock.side_effect = [func_root, func_child]
+
+        root_resources = {"RootFunc": {"Type": "AWS::Serverless::Function", "Properties": {}}}
+        child_resources = {"ChildFunc": {"Type": "AWS::Serverless::Function", "Properties": {}}}
+        resources_mock.side_effect = [root_resources, child_resources]
+
+        root_stack = Mock(resources=root_resources)
+        child_stack = Mock(resources=child_resources)
+
+        result = SamFunctionProvider._extract_functions([root_stack, child_stack], function_logical_ids=("ChildFunc",))
+
+        self.assertEqual(len(result), 1)
+        self.assertIn("ChildStack/ChildFunc", result)
+        self.assertNotIn("RootFunc", result)
+
+    @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
+    @patch.object(SamFunctionProvider, "_convert_sam_function_resource")
+    def test_extract_functions_deduplicates_filter(self, convert_mock, resources_mock):
+        """Test duplicate function names in filter are deduplicated"""
+        func1 = Mock(full_path="Function1", function_id="Function1", name="Function1", functionname="Function1Name")
+        func2 = Mock(full_path="Function2", function_id="Function2", name="Function2", functionname="Function2Name")
+
+        convert_mock.side_effect = [func1, func2]
+        resources_mock.return_value = {
+            "Function1": {"Type": "AWS::Serverless::Function", "Properties": {}},
+            "Function2": {"Type": "AWS::Serverless::Function", "Properties": {}},
+        }
+
+        result = SamFunctionProvider._extract_functions(
+            [make_root_stack(None)], function_logical_ids=("Function1", "Function1", "Function2")
+        )
+
+        self.assertEqual(len(result), 2)
+        self.assertEqual(sum(1 for key in result.keys() if key == "Function1"), 1)
