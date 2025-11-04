@@ -313,8 +313,18 @@ jobs:
           echo "CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" >> $GITHUB_ENV
           echo "CI_ACCESS_ROLE_AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN" >> $GITHUB_ENV
           
-          # Set test credentials
-          echo "AWS_ACCESS_KEY_ID=$(echo "$test_env_var" | jq -j ".accessKeyID")" >> $GITHUB_ENV
+          # Set test credentials with error handling for AWS_ACCESS_KEY_ID
+          AWS_ACCESS_KEY_ID=$(echo "$test_env_var" | jq -j ".accessKeyID" 2>/dev/null) || {
+            echo "ERROR: Failed to parse accessKeyID from JSON"
+            echo "Actual payload received:"
+            echo "==================== START PAYLOAD ===================="
+            echo "$test_env_var"
+            echo "==================== END PAYLOAD ===================="
+            exit 1
+          }
+          echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> $GITHUB_ENV
+          
+          # Set remaining credentials
           echo "AWS_SECRET_ACCESS_KEY=$(echo "$test_env_var" | jq -j ".secretAccessKey")" >> $GITHUB_ENV
           echo "AWS_SESSION_TOKEN=$(echo "$test_env_var" | jq -j ".sessionToken")" >> $GITHUB_ENV
           echo "TASK_TOKEN=$(echo "$test_env_var" | jq -j ".taskToken")" >> $GITHUB_ENV
