@@ -25,7 +25,13 @@ class DebugContext:
         self.container_env_vars = container_env_vars
 
     def __bool__(self):
-        return bool(self.debug_ports)
+        # DebugContext is "truthy" if we have either debug ports OR container env vars.
+        # Previously, this only checked debug_ports. However, with the addition of --container-dotenv
+        # support, container_env_vars can exist independently (for passing environment variables to
+        # the container for debugging purposes, even without debugger ports). Therefore, we consider
+        # the DebugContext active if either debugging ports are specified OR container environment
+        # variables are provided.
+        return bool(self.debug_ports or self.container_env_vars)
 
     def __nonzero__(self):
         return self.__bool__()

@@ -95,15 +95,25 @@ class EnvironmentVariables:
         # AWS_* variables must always be passed to the function, but user has the choice to override them
         result = self._get_aws_variables()
 
-        # Default value for the variable gets lowest priority
-        for name, value in self.variables.items():
-            override_value = value
+        # Collect all variable names from all sources
+        # Previously, only variables defined in the template (self.variables) were processed,
+        # which meant shell_env and override values for undeclared variables were ignored.
+        # Now we collect ALL variable names from all three sources to ensure variables from
+        # shell environment and override files (like .env) are included even if not in template.
+        all_var_names = (
+            set(self.variables.keys()) | set(self.shell_env_values.keys()) | set(self.override_values.keys())
+        )
+
+        # Resolve each variable with proper precedence
+        for name in all_var_names:
+            # Default value from template gets lowest priority
+            override_value = self.variables.get(name, self._BLANK_VALUE)
 
             # Shell environment values, second priority
             if name in self.shell_env_values:
                 override_value = self.shell_env_values[name]
 
-            # Overridden values, highest priority
+            # Overridden values (from --env-vars or --dotenv), highest priority
             if name in self.override_values:
                 override_value = self.override_values[name]
 

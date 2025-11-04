@@ -30,7 +30,9 @@ class TestCli(TestCase):
         self.template = "template"
         self.eventfile = "eventfile"
         self.env_vars = "env-vars"
+        self.dotenv = None
         self.container_env_vars = "debug-env-vars"
+        self.container_dotenv = None
         self.debug_ports = [123]
         self.debug_args = "args"
         self.debugger_path = "/test/path"
@@ -66,10 +68,12 @@ class TestCli(TestCase):
             event=self.eventfile,
             no_event=self.no_event,
             env_vars=self.env_vars,
+            dotenv=self.dotenv,
             debug_port=self.debug_ports,
             debug_args=self.debug_args,
             debugger_path=self.debugger_path,
             container_env_vars=self.container_env_vars,
+            container_dotenv=self.container_dotenv,
             docker_volume_basedir=self.docker_volume_basedir,
             docker_network=self.docker_network,
             log_file=self.log_file,
@@ -104,6 +108,7 @@ class TestCli(TestCase):
             template_file=self.template,
             function_identifier=self.function_id,
             env_vars_file=self.env_vars,
+            dotenv_file=self.dotenv,
             docker_volume_basedir=self.docker_volume_basedir,
             docker_network=self.docker_network,
             log_file=self.log_file,
@@ -112,6 +117,7 @@ class TestCli(TestCase):
             debug_args=self.debug_args,
             debugger_path=self.debugger_path,
             container_env_vars_file=self.container_env_vars,
+            container_dotenv_file=self.container_dotenv,
             parameter_overrides=self.parameter_overrides,
             layer_cache_basedir=self.layer_cache_basedir,
             force_image_build=self.force_image_build,
@@ -150,6 +156,7 @@ class TestCli(TestCase):
             template_file=self.template,
             function_identifier=self.function_id,
             env_vars_file=self.env_vars,
+            dotenv_file=self.dotenv,
             docker_volume_basedir=self.docker_volume_basedir,
             docker_network=self.docker_network,
             log_file=self.log_file,
@@ -158,6 +165,7 @@ class TestCli(TestCase):
             debug_args=self.debug_args,
             debugger_path=self.debugger_path,
             container_env_vars_file=self.container_env_vars,
+            container_dotenv_file=self.container_dotenv,
             parameter_overrides=self.parameter_overrides,
             layer_cache_basedir=self.layer_cache_basedir,
             force_image_build=self.force_image_build,
@@ -310,6 +318,195 @@ class TestCli(TestCase):
 
         msg = str(ex_ctx.exception)
         self.assertEqual(msg, expected_exception_message)
+
+
+class TestCliWithDotenvFiles(TestCase):
+    """Tests for CLI with .env file support - demonstrates proper testing with real file paths"""
+
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
+    @patch("samcli.commands.local.invoke.cli._get_event")
+    def test_cli_with_dotenv_file(self, get_event_mock, InvokeContextMock):
+        """Test that --dotenv parameter is properly passed to InvokeContext"""
+        import tempfile
+        import os
+
+        # Create a temporary .env file
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
+            f.write("TEST_VAR=test_value\n")
+            dotenv_path = f.name
+
+        try:
+            event_data = "data"
+            get_event_mock.return_value = event_data
+
+            # Mock the context manager
+            context_mock = Mock()
+            InvokeContextMock.return_value.__enter__.return_value = context_mock
+
+            # Call CLI with dotenv file
+            invoke_cli(
+                ctx=Mock(region="us-east-1", profile=None),
+                function_identifier="test-function",
+                template="template.yaml",
+                event=None,
+                no_event=True,
+                env_vars=None,
+                dotenv=dotenv_path,  # Using actual file path instead of None
+                debug_port=None,
+                debug_args=None,
+                debugger_path=None,
+                container_env_vars=None,
+                container_dotenv=None,
+                docker_volume_basedir=None,
+                docker_network=None,
+                log_file=None,
+                skip_pull_image=True,
+                parameter_overrides={},
+                layer_cache_basedir=None,
+                force_image_build=False,
+                shutdown=False,
+                container_host="localhost",
+                container_host_interface="127.0.0.1",
+                add_host=None,
+                invoke_image=None,
+                hook_name=None,
+                runtime=None,
+                mount_symlinks=False,
+                no_mem_limit=False,
+            )
+
+            # Verify InvokeContext was called with the dotenv file path
+            InvokeContextMock.assert_called_once()
+            call_kwargs = InvokeContextMock.call_args[1]
+            self.assertEqual(call_kwargs["dotenv_file"], dotenv_path)
+            self.assertIsNone(call_kwargs["env_vars_file"])
+        finally:
+            os.unlink(dotenv_path)
+
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
+    @patch("samcli.commands.local.invoke.cli._get_event")
+    def test_cli_with_container_dotenv_file(self, get_event_mock, InvokeContextMock):
+        """Test that --container-dotenv parameter is properly passed to InvokeContext"""
+        import tempfile
+        import os
+
+        # Create a temporary container .env file
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
+            f.write("DEBUG_VAR=debug_value\n")
+            container_dotenv_path = f.name
+
+        try:
+            event_data = "data"
+            get_event_mock.return_value = event_data
+
+            # Mock the context manager
+            context_mock = Mock()
+            InvokeContextMock.return_value.__enter__.return_value = context_mock
+
+            # Call CLI with container dotenv file
+            invoke_cli(
+                ctx=Mock(region="us-east-1", profile=None),
+                function_identifier="test-function",
+                template="template.yaml",
+                event=None,
+                no_event=True,
+                env_vars=None,
+                dotenv=None,
+                debug_port=[5858],
+                debug_args=None,
+                debugger_path=None,
+                container_env_vars=None,
+                container_dotenv=container_dotenv_path,  # Using actual file path instead of None
+                docker_volume_basedir=None,
+                docker_network=None,
+                log_file=None,
+                skip_pull_image=True,
+                parameter_overrides={},
+                layer_cache_basedir=None,
+                force_image_build=False,
+                shutdown=False,
+                container_host="localhost",
+                container_host_interface="127.0.0.1",
+                add_host=None,
+                invoke_image=None,
+                hook_name=None,
+                runtime=None,
+                mount_symlinks=False,
+                no_mem_limit=False,
+            )
+
+            # Verify InvokeContext was called with the container dotenv file path
+            InvokeContextMock.assert_called_once()
+            call_kwargs = InvokeContextMock.call_args[1]
+            self.assertEqual(call_kwargs["container_dotenv_file"], container_dotenv_path)
+            self.assertIsNone(call_kwargs["dotenv_file"])
+        finally:
+            os.unlink(container_dotenv_path)
+
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
+    @patch("samcli.commands.local.invoke.cli._get_event")
+    def test_cli_with_both_dotenv_files(self, get_event_mock, InvokeContextMock):
+        """Test that both --dotenv and --container-dotenv can be used together"""
+        import tempfile
+        import os
+
+        # Create temporary .env files
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
+            f.write("LAMBDA_VAR=lambda_value\n")
+            dotenv_path = f.name
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
+            f.write("DEBUG_VAR=debug_value\n")
+            container_dotenv_path = f.name
+
+        try:
+            event_data = "data"
+            get_event_mock.return_value = event_data
+
+            # Mock the context manager
+            context_mock = Mock()
+            InvokeContextMock.return_value.__enter__.return_value = context_mock
+
+            # Call CLI with both dotenv files
+            invoke_cli(
+                ctx=Mock(region="us-east-1", profile=None),
+                function_identifier="test-function",
+                template="template.yaml",
+                event=None,
+                no_event=True,
+                env_vars=None,
+                dotenv=dotenv_path,  # Lambda runtime env vars
+                debug_port=[5858],
+                debug_args=None,
+                debugger_path=None,
+                container_env_vars=None,
+                container_dotenv=container_dotenv_path,  # Container/debugging env vars
+                docker_volume_basedir=None,
+                docker_network=None,
+                log_file=None,
+                skip_pull_image=True,
+                parameter_overrides={},
+                layer_cache_basedir=None,
+                force_image_build=False,
+                shutdown=False,
+                container_host="localhost",
+                container_host_interface="127.0.0.1",
+                add_host=None,
+                invoke_image=None,
+                hook_name=None,
+                runtime=None,
+                mount_symlinks=False,
+                no_mem_limit=False,
+            )
+
+            # Verify InvokeContext was called with both dotenv file paths
+            InvokeContextMock.assert_called_once()
+            call_kwargs = InvokeContextMock.call_args[1]
+            self.assertEqual(call_kwargs["dotenv_file"], dotenv_path)
+            self.assertEqual(call_kwargs["container_dotenv_file"], container_dotenv_path)
+        finally:
+            os.unlink(dotenv_path)
+            os.unlink(container_dotenv_path)
 
 
 class TestGetEvent(TestCase):
