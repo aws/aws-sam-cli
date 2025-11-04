@@ -173,7 +173,7 @@ def do_cli(
                 event = lambda_test_event["json"]
                 LOG.debug("Remote event contents: %s", event)
                 metadata = lambda_test_event["metadata"]
-                if "invocationType" in metadata:
+                if "invocationType" in metadata and metadata["invocationType"] is not None:
                     parameter.setdefault("InvocationType", metadata["invocationType"])
             elif test_event_name:
                 LOG.info("Note: remote event is only supported for AWS Lambda Function resource.")
