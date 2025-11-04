@@ -426,3 +426,4 @@ samcli/lib/init/templates/cookiecutter-aws-sam-hello-java-gradle/**/.gradle/
 .build
 
 .kiro
+mise.toml

@@ -156,6 +156,34 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
                 BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
                 BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
             ),
+            (
+                "java25",
+                "25",
+                BuildIntegJavaBase.USING_GRADLE_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java25",
+                "25",
+                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java25",
+                "25",
+                BuildIntegJavaBase.USING_GRADLE_KOTLIN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java25",
+                "25",
+                BuildIntegJavaBase.USING_MAVEN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
+            ),
         ]
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
@@ -282,6 +310,34 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
             (
                 "java21",
                 "21",
+                BuildIntegJavaBase.USING_MAVEN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
+            ),
+            (
+                "java25",
+                "25",
+                BuildIntegJavaBase.USING_GRADLE_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java25",
+                "25",
+                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java25",
+                "25",
+                BuildIntegJavaBase.USING_GRADLE_KOTLIN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java25",
+                "25",
                 BuildIntegJavaBase.USING_MAVEN_PATH,
                 BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
                 BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
