@@ -33,6 +33,8 @@ env:
 
 jobs:
   integration-tests:
+    # Only run scheduled jobs on the main aws/aws-sam-cli repository, not on forks
+    if: github.event_name != 'schedule' || github.repository == 'aws/aws-sam-cli'
     name: ${{ matrix.test_suite }} (${{ matrix.container_runtime }})
     runs-on: ubuntu-22.04
     strategy:
@@ -345,7 +347,7 @@ jobs:
         run: |
           # Set USING_FINCH_RUNTIME environment variable for finch tests
           if [ "${{ matrix.container_runtime }}" = "finch" ]; then
-            export USING_FINCH_RUNTIME=1
+            export container_runtime="finch"
           fi
           
           # Determine container keyword filter based on container_runtime
