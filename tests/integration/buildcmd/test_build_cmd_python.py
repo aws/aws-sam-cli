@@ -79,8 +79,8 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
 
     @parameterized.expand(
         [
-            *[(runtime, "Dockerfile") for runtime in ["3.12", "3.13"]],
-            *[(runtime, "Dockerfile.production") for runtime in ["3.12", "3.13"]],
+            *[(runtime, "Dockerfile") for runtime in ["3.12", "3.13", "3.14"]],
+            *[(runtime, "Dockerfile.production") for runtime in ["3.12", "3.13", "3.14"]],
         ]
     )
     @pytest.mark.al2023
@@ -308,6 +308,8 @@ class TestBuildCommand_PythonFunctions_WithoutDocker(BuildIntegPythonBase):
         ("python3.12", "PythonPEP600"),
         ("python3.13", "Python"),
         ("python3.13", "PythonPEP600"),
+        ("python3.14", "Python"),
+        ("python3.14", "PythonPEP600"),
     ],
 )
 @pytest.mark.al2023
@@ -363,6 +365,7 @@ class TestBuildCommand_PythonFunctions_WithDocker(BuildIntegPythonBase):
         [
             ("python3.12",),
             ("python3.13",),
+            ("python3.14",),
         ]
     )
     @pytest.mark.al2023
@@ -490,6 +493,9 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPyt
             ("python3.13", "Python", False, "x86_64"),
             ("python3.13", "PythonPEP600", False, "x86_64"),
             ("python3.13", "Python", "use_container", "x86_64"),
+            ("python3.14", "Python", False, "x86_64"),
+            ("python3.14", "PythonPEP600", False, "x86_64"),
+            ("python3.14", "Python", "use_container", "x86_64"),
         ],
         name_func=show_container_in_test_name,
     )

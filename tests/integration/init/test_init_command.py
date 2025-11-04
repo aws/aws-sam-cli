@@ -912,7 +912,7 @@ class TestInteractiveInit(TestCase):
 1
 1
 N
-11
+13
 1
 1
 N
