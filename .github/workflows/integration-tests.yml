@@ -119,6 +119,7 @@ jobs:
             3.10
             3.12
             3.13
+            3.14
 
       - name: Set up Node.js
         if: contains(fromJSON('["build-integ", "build-integ-java-python-provided", "build-integ-dotnet-node-ruby", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container'
@@ -126,12 +127,12 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Set up Java 21
+      - name: Set up Java 25
         if: (contains(fromJSON('["build-integ", "build-integ-java-python-provided", "build-integ-arm64", "build-integ-arm64-java"]'), matrix.test_suite) && matrix.container_runtime == 'no-container') || matrix.test_suite == 'sync'
         uses: actions/setup-java@v4
         with:
           distribution: 'corretto'
-          java-version: '21'
+          java-version: '25'
 
       - name: Set up Go
         if: contains(fromJSON('["build-integ", "build-integ-java-python-provided", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container'
@@ -149,23 +150,23 @@ jobs:
           wget https://dlcdn.apache.org/maven/maven-3/3.9.11/binaries/apache-maven-3.9.11-bin.zip -P /tmp
           sudo unzip -d /opt/mvn /tmp/apache-maven-*.zip
           
-          # Install Gradle 9.0.0
-          wget https://services.gradle.org/distributions/gradle-9.0.0-bin.zip -P /tmp
+          # Install Gradle 9.2.0
+          wget https://services.gradle.org/distributions/gradle-9.2.0-bin.zip -P /tmp
           sudo unzip -d /opt/gradle /tmp/gradle-*.zip
           
           # Create symlinks to ensure our Maven is used
           sudo ln -sf /opt/mvn/apache-maven-3.9.11/bin/mvn /usr/local/bin/mvn
-          sudo ln -sf /opt/gradle/gradle-9.0.0/bin/gradle /usr/local/bin/gradle
+          sudo ln -sf /opt/gradle/gradle-9.2.0/bin/gradle /usr/local/bin/gradle
           
           # Add to PATH (prepend to ensure our versions are used first)
           echo "/opt/mvn/apache-maven-3.9.11/bin" >> $GITHUB_PATH
-          echo "/opt/gradle/gradle-9.0.0/bin" >> $GITHUB_PATH
+          echo "/opt/gradle/gradle-9.2.0/bin" >> $GITHUB_PATH
           
           # Set MAVEN_HOME
           echo "MAVEN_HOME=/opt/mvn/apache-maven-3.9.11" >> $GITHUB_ENV
           
           # Verify versions
-          export PATH="/opt/mvn/apache-maven-3.9.11/bin:/opt/gradle/gradle-9.0.0/bin:$PATH"
+          export PATH="/opt/mvn/apache-maven-3.9.11/bin:/opt/gradle/gradle-9.2.0/bin:$PATH"
           mvn --version
           gradle --version
 
