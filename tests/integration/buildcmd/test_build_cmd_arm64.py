@@ -293,7 +293,7 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
             (
                 "java21",
                 "21",
-                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.USING_GRADLEW_IN_CONTAINER_PATH,
                 BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
