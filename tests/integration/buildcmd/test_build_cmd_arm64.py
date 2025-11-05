@@ -58,7 +58,8 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture_arm64(BuildIn
         [
             ("python3.12", "Python", "use_container"),
             ("python3.13", "Python", "use_container"),
-            ("python3.14", "Python", "use_container"),
+            # skip this test until python 3.14 build image is released
+            # ("python3.14", "Python", "use_container"),
         ],
         name_func=show_container_in_test_name,
     )
