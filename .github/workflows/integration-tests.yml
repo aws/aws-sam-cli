@@ -136,7 +136,7 @@ jobs:
 
       - name: Set up Go
         if: contains(fromJSON('["build-integ", "build-integ-java-python-provided", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container'
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: '1.25'
 
