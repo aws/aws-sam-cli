@@ -8,9 +8,6 @@ on:
   workflow_dispatch:  # Allow manual triggering
     # NOTE: This workflow can only be manually triggered from develop or main branches
     # The other branch will not pass the OIDC permission check
-    branches:
-      - develop  # Allow manual trigger on develop branch
-      - main     # Allow manual trigger on main branch
 
 permissions:
   id-token: write   # Required for OIDC
@@ -52,7 +49,7 @@ jobs:
           - package-delete-deploy
           - sync
           - local-invoke
-          - local-start
+          - local-start1
           - local-start2
           - other-and-e2e
         exclude:
@@ -66,7 +63,7 @@ jobs:
           - container_runtime: no-container
             test_suite: local-invoke
           - container_runtime: no-container
-            test_suite: local-start
+            test_suite: local-start1
           - container_runtime: no-container
             test_suite: local-start2
           - container_runtime: no-container
@@ -296,7 +293,7 @@ jobs:
       - name: Get testing resources and credentials
         run: |
           # Try with skip_role_deletion parameter first
-          test_env_var=$(python3.9 tests/get_testing_resources.py skip_role_deletion 2>&1)
+          test_env_var=$(python3.9 tests/get_testing_resources.py skip_role_deletion)
           
           if [ $? -ne 0 ]; then
             echo "First attempt with skip_role_deletion failed, trying without parameter..."
@@ -323,13 +320,6 @@ jobs:
           echo "AWS_KMS_KEY=$(echo "$test_env_var" | jq -j ".TestKMSKeyArn")" >> $GITHUB_ENV
           echo "AWS_SIGNING_PROFILE_NAME=$(echo "$test_env_var" | jq -j ".TestSigningProfileName")" >> $GITHUB_ENV
           echo "AWS_SIGNING_PROFILE_VERSION_ARN=$(echo "$test_env_var" | jq -j ".TestSigningProfileARN")" >> $GITHUB_ENV
-          
-          # Display first 6 characters of credentials for verification
-          ACCESS_KEY=$(echo "$test_env_var" | jq -j ".accessKeyID")
-          SECRET_KEY=$(echo "$test_env_var" | jq -j ".secretAccessKey")
-          echo "AWS_ACCESS_KEY_ID (first 6 chars): ${ACCESS_KEY:0:6}..."
-          echo "AWS_SECRET_ACCESS_KEY (first 6 chars): ${SECRET_KEY:0:6}..."
-
 
       - name: Login to Public ECR
         if: matrix.container_runtime != 'no-container' && env.BY_CANARY == 'true'
@@ -347,7 +337,7 @@ jobs:
         run: |
           # Set USING_FINCH_RUNTIME environment variable for finch tests
           if [ "${{ matrix.container_runtime }}" = "finch" ]; then
-            export container_runtime="finch"
+            export CONTAINER_RUNTIME="finch"
           fi
           
           # Determine container keyword filter based on container_runtime
@@ -385,8 +375,8 @@ jobs:
             "local-invoke")
               pytest -vv --reruns 3 tests/integration/local/invoke tests/integration/local/generate_event --json-report --json-report-file=TEST_REPORT-integration-local-invoke-${{ matrix.container_runtime }}.json
               ;;
-            "local-start")
-              pytest -vv --reruns 3 tests/integration/local/start_api --ignore tests/integration/local/start_api/test_start_api_with_terraform_application.py --json-report --json-report-file=TEST_REPORT-integration-local-start-${{ matrix.container_runtime }}.json
+            "local-start1")
+              pytest -vv --reruns 3 tests/integration/local/start_api --ignore tests/integration/local/start_api/test_start_api_with_terraform_application.py --json-report --json-report-file=TEST_REPORT-integration-local-start1-${{ matrix.container_runtime }}.json
               ;;
             "local-start2")
               pytest -vv --reruns 3 tests/integration/local/start_lambda tests/integration/local/start_api/test_start_api_with_terraform_application.py --json-report --json-report-file=TEST_REPORT-integration-local-start2-${{ matrix.container_runtime }}.json
