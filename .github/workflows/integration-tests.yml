@@ -8,6 +8,9 @@ on:
   workflow_dispatch:  # Allow manual triggering
     # NOTE: This workflow can only be manually triggered from develop or main branches
     # The other branch will not pass the OIDC permission check
+    branches:
+      - develop  # Allow manual trigger on develop branch
+      - main     # Allow manual trigger on main branch
 
 permissions:
   id-token: write   # Required for OIDC
@@ -49,7 +52,7 @@ jobs:
           - package-delete-deploy
           - sync
           - local-invoke
-          - local-start1
+          - local-start
           - local-start2
           - other-and-e2e
         exclude:
@@ -63,7 +66,7 @@ jobs:
           - container_runtime: no-container
             test_suite: local-invoke
           - container_runtime: no-container
-            test_suite: local-start1
+            test_suite: local-start
           - container_runtime: no-container
             test_suite: local-start2
           - container_runtime: no-container
@@ -119,7 +122,6 @@ jobs:
             3.10
             3.12
             3.13
-            3.14
 
       - name: Set up Node.js
         if: contains(fromJSON('["build-integ", "build-integ-java-python-provided", "build-integ-dotnet-node-ruby", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container'
@@ -127,12 +129,12 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Set up Java 25
+      - name: Set up Java 21
         if: (contains(fromJSON('["build-integ", "build-integ-java-python-provided", "build-integ-arm64", "build-integ-arm64-java"]'), matrix.test_suite) && matrix.container_runtime == 'no-container') || matrix.test_suite == 'sync'
         uses: actions/setup-java@v4
         with:
           distribution: 'corretto'
-          java-version: '25'
+          java-version: '21'
 
       - name: Set up Go
         if: contains(fromJSON('["build-integ", "build-integ-java-python-provided", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container'
@@ -150,23 +152,23 @@ jobs:
           wget https://dlcdn.apache.org/maven/maven-3/3.9.11/binaries/apache-maven-3.9.11-bin.zip -P /tmp
           sudo unzip -d /opt/mvn /tmp/apache-maven-*.zip
           
-          # Install Gradle 9.2.0
-          wget https://services.gradle.org/distributions/gradle-9.2.0-bin.zip -P /tmp
+          # Install Gradle 9.0.0
+          wget https://services.gradle.org/distributions/gradle-9.0.0-bin.zip -P /tmp
           sudo unzip -d /opt/gradle /tmp/gradle-*.zip
           
           # Create symlinks to ensure our Maven is used
           sudo ln -sf /opt/mvn/apache-maven-3.9.11/bin/mvn /usr/local/bin/mvn
-          sudo ln -sf /opt/gradle/gradle-9.2.0/bin/gradle /usr/local/bin/gradle
+          sudo ln -sf /opt/gradle/gradle-9.0.0/bin/gradle /usr/local/bin/gradle
           
           # Add to PATH (prepend to ensure our versions are used first)
           echo "/opt/mvn/apache-maven-3.9.11/bin" >> $GITHUB_PATH
-          echo "/opt/gradle/gradle-9.2.0/bin" >> $GITHUB_PATH
+          echo "/opt/gradle/gradle-9.0.0/bin" >> $GITHUB_PATH
           
           # Set MAVEN_HOME
           echo "MAVEN_HOME=/opt/mvn/apache-maven-3.9.11" >> $GITHUB_ENV
           
           # Verify versions
-          export PATH="/opt/mvn/apache-maven-3.9.11/bin:/opt/gradle/gradle-9.2.0/bin:$PATH"
+          export PATH="/opt/mvn/apache-maven-3.9.11/bin:/opt/gradle/gradle-9.0.0/bin:$PATH"
           mvn --version
           gradle --version
 
@@ -294,7 +296,7 @@ jobs:
       - name: Get testing resources and credentials
         run: |
           # Try with skip_role_deletion parameter first
-          test_env_var=$(python3.9 tests/get_testing_resources.py skip_role_deletion)
+          test_env_var=$(python3.9 tests/get_testing_resources.py skip_role_deletion 2>&1)
           
           if [ $? -ne 0 ]; then
             echo "First attempt with skip_role_deletion failed, trying without parameter..."
@@ -321,6 +323,13 @@ jobs:
           echo "AWS_KMS_KEY=$(echo "$test_env_var" | jq -j ".TestKMSKeyArn")" >> $GITHUB_ENV
           echo "AWS_SIGNING_PROFILE_NAME=$(echo "$test_env_var" | jq -j ".TestSigningProfileName")" >> $GITHUB_ENV
           echo "AWS_SIGNING_PROFILE_VERSION_ARN=$(echo "$test_env_var" | jq -j ".TestSigningProfileARN")" >> $GITHUB_ENV
+          
+          # Display first 6 characters of credentials for verification
+          ACCESS_KEY=$(echo "$test_env_var" | jq -j ".accessKeyID")
+          SECRET_KEY=$(echo "$test_env_var" | jq -j ".secretAccessKey")
+          echo "AWS_ACCESS_KEY_ID (first 6 chars): ${ACCESS_KEY:0:6}..."
+          echo "AWS_SECRET_ACCESS_KEY (first 6 chars): ${SECRET_KEY:0:6}..."
+
 
       - name: Login to Public ECR
         if: matrix.container_runtime != 'no-container' && env.BY_CANARY == 'true'
@@ -338,7 +347,7 @@ jobs:
         run: |
           # Set USING_FINCH_RUNTIME environment variable for finch tests
           if [ "${{ matrix.container_runtime }}" = "finch" ]; then
-            export CONTAINER_RUNTIME="finch"
+            export container_runtime="finch"
           fi
           
           # Determine container keyword filter based on container_runtime
@@ -376,8 +385,8 @@ jobs:
             "local-invoke")
               pytest -vv --reruns 3 tests/integration/local/invoke tests/integration/local/generate_event --json-report --json-report-file=TEST_REPORT-integration-local-invoke-${{ matrix.container_runtime }}.json
               ;;
-            "local-start1")
-              pytest -vv --reruns 3 tests/integration/local/start_api --ignore tests/integration/local/start_api/test_start_api_with_terraform_application.py --json-report --json-report-file=TEST_REPORT-integration-local-start1-${{ matrix.container_runtime }}.json
+            "local-start")
+              pytest -vv --reruns 3 tests/integration/local/start_api --ignore tests/integration/local/start_api/test_start_api_with_terraform_application.py --json-report --json-report-file=TEST_REPORT-integration-local-start-${{ matrix.container_runtime }}.json
               ;;
             "local-start2")
               pytest -vv --reruns 3 tests/integration/local/start_lambda tests/integration/local/start_api/test_start_api_with_terraform_application.py --json-report --json-report-file=TEST_REPORT-integration-local-start2-${{ matrix.container_runtime }}.json
