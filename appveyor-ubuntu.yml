@@ -259,8 +259,8 @@ install:
       URL="https://github.com/astral-sh/python-build-standalone/releases/download/20251031/cpython-3.14.0+20251031-x86_64-unknown-linux-gnu-install_only.tar.gz"
       curl -L "$URL" | tar -xz
       mv python $DEST
-      python --version
-      pip --version
+      $HOME/venv3.14/bin/python --version
+      $HOME/venv3.14/bin/pip --version
 
   - sh: "PATH=$PATH:$HOME/venv3.7/bin:$HOME/venv3.8/bin:$HOME/venv3.9/bin:$HOME/venv3.10/bin:$HOME/venv3.11/bin:$HOME/venv3.12/bin:$HOME/venv3.13/bin:$HOME/venv3.14/bin"
 
