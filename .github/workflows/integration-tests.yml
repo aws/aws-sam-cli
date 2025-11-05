@@ -296,7 +296,7 @@ jobs:
       - name: Get testing resources and credentials
         run: |
           # Try with skip_role_deletion parameter first
-          test_env_var=$(python3.9 tests/get_testing_resources.py skip_role_deletion 2>&1)
+          test_env_var=$(python3.9 tests/get_testing_resources.py skip_role_deletion)
           
           if [ $? -ne 0 ]; then
             echo "First attempt with skip_role_deletion failed, trying without parameter..."
@@ -318,7 +318,7 @@ jobs:
             echo "ERROR: Failed to parse accessKeyID from JSON"
             echo "Actual payload received:"
             echo "==================== START PAYLOAD ===================="
-            echo "$test_env_var"
+            echo "${test_env_var:0:30}"
             echo "==================== END PAYLOAD ===================="
             exit 1
           }
