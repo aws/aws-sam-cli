@@ -998,7 +998,7 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
             # container
             (
                 "use_container",
-                "Java/gradlew/8",
+                "Java/gradlew-in-container/8",
                 "aws.example.Hello::myHandler",
                 "aws.example.SecondFunction::myHandler",
                 "java8.al2",
@@ -1322,7 +1322,7 @@ class TestParallelBuilds(DedupBuildIntegBase):
             # container
             (
                 "use_container",
-                "Java/gradlew/8",
+                "Java/gradlew-in-container/8",
                 "aws.example.Hello::myHandler",
                 "aws.example.SecondFunction::myHandler",
                 "java8.al2",

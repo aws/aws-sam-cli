@@ -37,7 +37,7 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
             (
                 "java8.al2",
                 "8",
-                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.USING_GRADLEW_IN_CONTAINER_PATH,
                 BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
@@ -65,7 +65,7 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
             (
                 "java11",
                 "11",
-                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.USING_GRADLEW_IN_CONTAINER_PATH,
                 BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
@@ -93,7 +93,7 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
             (
                 "java17",
                 "17",
-                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.USING_GRADLEW_IN_CONTAINER_PATH,
                 BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
@@ -138,7 +138,7 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
             (
                 "java21",
                 "21",
-                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.USING_GRADLEW_IN_CONTAINER_PATH,
                 BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
@@ -167,7 +167,7 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
             # (
             #     "java25",
             #     "25",
-            #     BuildIntegJavaBase.USING_GRADLEW_PATH,
+            #     BuildIntegJavaBase.USING_GRADLEW_IN_CONTAINER_PATH,
             #     BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
             #     BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             # ),
