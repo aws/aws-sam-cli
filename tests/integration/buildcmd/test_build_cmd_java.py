@@ -210,14 +210,13 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
                 BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
-            # Skip in process Java 8 test when using Java 25 with gradlew
-            # (
-            #     "java8.al2",
-            #     "8",
-            #     BuildIntegJavaBase.USING_GRADLEW_PATH,
-            #     BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-            #     BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
-            # ),
+            (
+                "java8.al2",
+                "8",
+                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
             (
                 "java8.al2",
                 "8",
