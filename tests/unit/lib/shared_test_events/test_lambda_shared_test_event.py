@@ -198,7 +198,7 @@ class TestSchemasCommand(TestCase):
         self.client.get_discovered_schema.assert_called_once_with(Events=['{"key": "number1"}'], Type="OpenApi3")
 
         self.client.create_schema.assert_called_once_with(
-            Content='{"openapi": "3.0.0", "info": {"version": "1.0.0", "title": "Event"}, "paths": {}, "components": {"schemas": {"Event": {"type": "object", "required": ["key"], "properties": {"key": {"type": "string"}}}}, "examples": {"test1": {"value": {"key": "number1"}}}}}',
+            Content='{"openapi": "3.0.0", "info": {"version": "1.0.0", "title": "Event"}, "paths": {}, "components": {"schemas": {"Event": {"type": "object", "required": ["key"], "properties": {"key": {"type": "string"}}}}, "examples": {"test1": {"value": {"key": "number1"}, "x-metadata": {"invocationType": "RequestResponse"}}}}}',
             RegistryName="lambda-testevent-schemas",
             SchemaName="_MyFunction-schema",
             Type="OpenApi3",
@@ -223,7 +223,7 @@ class TestSchemasCommand(TestCase):
         lambda_test_event.create_event("test2", self._cfn_resource("MyFunction"), '{"key": "number2"}')
 
         self.client.update_schema.assert_called_once_with(
-            Content='{"openapi": "3.0.0", "info": {"version": "1.0.0", "title": "Event"}, "paths": {}, "components": {"schemas": {"Event": {"type": "object", "required": ["key"], "properties": {"key": {"type": "string"}}}}, "examples": {"test1": {"value": {"key": "number1"}}, "test2": {"value": {"key": "number2"}}}}}',
+            Content='{"openapi": "3.0.0", "info": {"version": "1.0.0", "title": "Event"}, "paths": {}, "components": {"schemas": {"Event": {"type": "object", "required": ["key"], "properties": {"key": {"type": "string"}}}}, "examples": {"test1": {"value": {"key": "number1"}}, "test2": {"value": {"key": "number2"}, "x-metadata": {"invocationType": "RequestResponse"}}}}}',
             RegistryName="lambda-testevent-schemas",
             SchemaName="_MyFunction-schema",
             Type="OpenApi3",
@@ -288,6 +288,31 @@ class TestSchemasCommand(TestCase):
             )
             self.assertEqual(str(ctx.exception), msg)
 
+    @patch.object(SchemasApiCaller, "list_schema_versions", return_value=["1"])
+    def test_create_with_metadata(self, list_schema_versions_mock):
+        lambda_test_event = LambdaSharedTestEvent(self.schemas_api_caller, self.lambda_client)
+        self.client.describe_registry.return_value = {"registry": "someRegistry"}
+
+        self.client.describe_schema.return_value = {
+            "SchemaArn": "",
+            "Tags": {},
+            "LastModified": "2019-11-25T20:33:14Z",
+            "Content": '{"openapi":"3.0.0","info":{"version":"1.0.0","title":"Event"},"paths":{},"components":{"schemas":{"Event":{"type":"object","required":["key"],"properties":{"key":{"type":"string"}}}},"examples":{"test1":{"value":{"key":"number1"}}}}}',
+            "VersionCreatedDate": "2019-11-25T20:33:14Z",
+            "SchemaName": "aws.ssm@ParameterStoreChange",
+            "Type": "OpenApi3",
+            "SchemaVersion": "1",
+        }
+
+        lambda_test_event.create_event("test2", self._cfn_resource("MyFunction"), '{"key": "number2"}', "Event")
+
+        self.client.update_schema.assert_called_once_with(
+            Content='{"openapi": "3.0.0", "info": {"version": "1.0.0", "title": "Event"}, "paths": {}, "components": {"schemas": {"Event": {"type": "object", "required": ["key"], "properties": {"key": {"type": "string"}}}}, "examples": {"test1": {"value": {"key": "number1"}}, "test2": {"value": {"key": "number2"}, "x-metadata": {"invocationType": "Event"}}}}}',
+            RegistryName="lambda-testevent-schemas",
+            SchemaName="_MyFunction-schema",
+            Type="OpenApi3",
+        )
+
     def test_get_event_success(self):
         lambda_test_event = LambdaSharedTestEvent(self.schemas_api_caller, self.lambda_client)
         self.client.describe_registry.return_value = {"registry": "someRegistry"}
@@ -305,7 +330,8 @@ class TestSchemasCommand(TestCase):
 
         event = lambda_test_event.get_event("test1", self._cfn_resource("MyFunction"))
 
-        self.assertEqual(event, '{"key": "number1"}')
+        self.assertEqual(event["json"], '{"key": "number1"}')
+        self.assertEqual(event["metadata"], {})
 
     def test_get_event_no_registry(self):
         lambda_test_event = LambdaSharedTestEvent(self.schemas_api_caller, self.lambda_client)
@@ -370,6 +396,26 @@ class TestSchemasCommand(TestCase):
                 "AWS doc for Schemas supported regions."
             )
             self.assertEqual(str(ctx.exception), msg)
+
+    def test_get_with_metadata(self):
+        lambda_test_event = LambdaSharedTestEvent(self.schemas_api_caller, self.lambda_client)
+        self.client.describe_registry.return_value = {"registry": "someRegistry"}
+
+        self.client.describe_schema.return_value = {
+            "SchemaArn": "",
+            "Tags": {},
+            "LastModified": "2019-11-25T20:33:14Z",
+            "Content": '{"openapi":"3.0.0","info":{"version":"1.0.0","title":"Event"},"paths":{},"components":{"schemas":{"Event":{"type":"object","required":["key"],"properties":{"key":{"type":"string"}}}},"examples":{"test1":{"value":{"key":"number1"},"x-metadata":{"invocationType":"Event"}}}}}',
+            "VersionCreatedDate": "2019-11-25T20:33:14Z",
+            "SchemaName": "aws.ssm@ParameterStoreChange",
+            "Type": "OpenApi3",
+            "SchemaVersion": "1",
+        }
+
+        event = lambda_test_event.get_event("test1", self._cfn_resource("MyFunction"))
+
+        self.assertEqual(event["json"], '{"key": "number1"}')
+        self.assertEqual(event["metadata"], {"invocationType": "Event"})
 
     @patch.object(SchemasApiCaller, "list_schema_versions", return_value=["1"])
     def test_limit_version_under_cap(self, list_schema_versions_mock):

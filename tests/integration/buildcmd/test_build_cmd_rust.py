@@ -15,6 +15,7 @@ from tests.testing_utils import (
 from .build_integ_base import (
     BuildIntegRustBase,
     rust_parameterized_class,
+    show_container_in_test_name,
 )
 
 LOG = logging.getLogger(__name__)
@@ -32,7 +33,8 @@ class TestBuildCommand_Rust(BuildIntegRustBase):
             ("provided.al2", "x86_64", "debug", False),
             ("provided.al2023", "x86_64", None, False),
             ("provided.al2023", "x86_64", "debug", False),
-        ]
+        ],
+        name_func=show_container_in_test_name,
     )
     def test_build(self, runtime, architecture, build_mode, use_container):
         self._test_with_rust_cargo_lambda(
