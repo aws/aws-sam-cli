@@ -8,9 +8,6 @@ on:
   workflow_dispatch:  # Allow manual triggering
     # NOTE: This workflow can only be manually triggered from develop or main branches
     # The other branch will not pass the OIDC permission check
-    branches:
-      - develop  # Allow manual trigger on develop branch
-      - main     # Allow manual trigger on main branch
 
 permissions:
   id-token: write   # Required for OIDC
@@ -313,18 +310,8 @@ jobs:
           echo "CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" >> $GITHUB_ENV
           echo "CI_ACCESS_ROLE_AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN" >> $GITHUB_ENV
           
-          # Set test credentials with error handling for AWS_ACCESS_KEY_ID
-          AWS_ACCESS_KEY_ID=$(echo "$test_env_var" | jq -j ".accessKeyID" 2>/dev/null) || {
-            echo "ERROR: Failed to parse accessKeyID from JSON"
-            echo "Actual payload received:"
-            echo "==================== START PAYLOAD ===================="
-            echo "${test_env_var:0:30}"
-            echo "==================== END PAYLOAD ===================="
-            exit 1
-          }
-          echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> $GITHUB_ENV
-          
-          # Set remaining credentials
+          # Set test credentials
+          echo "AWS_ACCESS_KEY_ID=$(echo "$test_env_var" | jq -j ".accessKeyID")" >> $GITHUB_ENV
           echo "AWS_SECRET_ACCESS_KEY=$(echo "$test_env_var" | jq -j ".secretAccessKey")" >> $GITHUB_ENV
           echo "AWS_SESSION_TOKEN=$(echo "$test_env_var" | jq -j ".sessionToken")" >> $GITHUB_ENV
           echo "TASK_TOKEN=$(echo "$test_env_var" | jq -j ".taskToken")" >> $GITHUB_ENV
@@ -333,13 +320,6 @@ jobs:
           echo "AWS_KMS_KEY=$(echo "$test_env_var" | jq -j ".TestKMSKeyArn")" >> $GITHUB_ENV
           echo "AWS_SIGNING_PROFILE_NAME=$(echo "$test_env_var" | jq -j ".TestSigningProfileName")" >> $GITHUB_ENV
           echo "AWS_SIGNING_PROFILE_VERSION_ARN=$(echo "$test_env_var" | jq -j ".TestSigningProfileARN")" >> $GITHUB_ENV
-          
-          # Display first 6 characters of credentials for verification
-          ACCESS_KEY=$(echo "$test_env_var" | jq -j ".accessKeyID")
-          SECRET_KEY=$(echo "$test_env_var" | jq -j ".secretAccessKey")
-          echo "AWS_ACCESS_KEY_ID (first 6 chars): ${ACCESS_KEY:0:6}..."
-          echo "AWS_SECRET_ACCESS_KEY (first 6 chars): ${SECRET_KEY:0:6}..."
-
 
       - name: Login to Public ECR
         if: matrix.container_runtime != 'no-container' && env.BY_CANARY == 'true'
