@@ -3,4 +3,4 @@
 """
 
 # Expose the cli object here
-from .command import cli  # pragma: no cover
+from samcli.commands.bootstrap.command import cli  # pragma: no cover

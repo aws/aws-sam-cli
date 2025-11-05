@@ -11,17 +11,16 @@ import tempfile
 import threading
 from typing import Dict, Optional, Union
 
+from samcli.lib.providers.provider import LayerVersion
 from samcli.lib.telemetry.metric import capture_parameter
 from samcli.lib.utils.file_observer import LambdaFunctionObserver
 from samcli.lib.utils.packagetype import ZIP
+from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker.container import Container, ContainerContext
 from samcli.local.docker.container_analyzer import ContainerAnalyzer
 from samcli.local.docker.exceptions import ContainerFailureError, DockerContainerCreationFailedException
 from samcli.local.docker.lambda_container import LambdaContainer
-
-from ...lib.providers.provider import LayerVersion
-from ...lib.utils.stream_writer import StreamWriter
-from .zip import unzip
+from samcli.local.lambdafn.zip import unzip
 
 LOG = logging.getLogger(__name__)
 
