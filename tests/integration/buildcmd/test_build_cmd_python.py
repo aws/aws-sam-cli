@@ -10,6 +10,7 @@ from parameterized import parameterized, parameterized_class
 from tests.integration.buildcmd.build_integ_base import (
     BuildIntegBase,
     BuildIntegPythonBase,
+    show_container_in_test_name,
 )
 from tests.testing_utils import (
     CI_OVERRIDE,
@@ -78,8 +79,8 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
 
     @parameterized.expand(
         [
-            *[(runtime, "Dockerfile") for runtime in ["3.12", "3.13"]],
-            *[(runtime, "Dockerfile.production") for runtime in ["3.12", "3.13"]],
+            *[(runtime, "Dockerfile") for runtime in ["3.12", "3.13", "3.14"]],
+            *[(runtime, "Dockerfile.production") for runtime in ["3.12", "3.13", "3.14"]],
         ]
     )
     @pytest.mark.al2023
@@ -307,6 +308,8 @@ class TestBuildCommand_PythonFunctions_WithoutDocker(BuildIntegPythonBase):
         ("python3.12", "PythonPEP600"),
         ("python3.13", "Python"),
         ("python3.13", "PythonPEP600"),
+        ("python3.14", "Python"),
+        ("python3.14", "PythonPEP600"),
     ],
 )
 @pytest.mark.al2023
@@ -348,7 +351,7 @@ class TestBuildCommand_PythonFunctions_WithDocker(BuildIntegPythonBase):
             ("python3.11",),
         ]
     )
-    def test_with_default_requirements(self, runtime):
+    def test_with_default_requirements_in_container(self, runtime):
         self._test_with_default_requirements(
             runtime,
             self.codeuri,
@@ -362,10 +365,12 @@ class TestBuildCommand_PythonFunctions_WithDocker(BuildIntegPythonBase):
         [
             ("python3.12",),
             ("python3.13",),
+            # skip this test until the python 3.14 build image is released
+            # ("python3.14",),
         ]
     )
     @pytest.mark.al2023
-    def test_with_default_requirements_al2023(self, runtime):
+    def test_with_default_requirements_al2023_in_container(self, runtime):
         self._test_with_default_requirements(
             runtime,
             self.codeuri,
@@ -473,7 +478,8 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPyt
             ("python3.9", "Python", "use_container", "x86_64"),
             ("python3.10", "Python", "use_container", "x86_64"),
             ("python3.11", "Python", "use_container", "x86_64"),
-        ]
+        ],
+        name_func=show_container_in_test_name,
     )
     def test_with_default_requirements(self, runtime, codeuri, use_container, architecture):
         self._test_with_default_requirements(
@@ -488,7 +494,12 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPyt
             ("python3.13", "Python", False, "x86_64"),
             ("python3.13", "PythonPEP600", False, "x86_64"),
             ("python3.13", "Python", "use_container", "x86_64"),
-        ]
+            ("python3.14", "Python", False, "x86_64"),
+            ("python3.14", "PythonPEP600", False, "x86_64"),
+            # skip this test until python 3.14 build image is released
+            # ("python3.14", "Python", "use_container", "x86_64"),
+        ],
+        name_func=show_container_in_test_name,
     )
     @pytest.mark.al2023
     def test_with_default_requirements_al2023(self, runtime, codeuri, use_container, architecture):
