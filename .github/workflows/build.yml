@@ -120,7 +120,7 @@ jobs:
         # folders that is commented below requires credentials, no need to spare time to run them
         tests_config:
           - name: "integ-buildcmd-arm64"
-            params: "-n 2 --reruns 3  tests/integration/buildcmd/test_build_cmd_arm64.py"
+            params: "-n 2 --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py"
           - name: "integ-buildcmd-main"
             params: "-n 2 --reruns 3 tests/integration/buildcmd/test_build_cmd_dotnet.py tests/integration/buildcmd/test_build_cmd_provided.py tests/integration/buildcmd/test_build_cmd_rust.py tests/integration/buildcmd/test_build_cmd_python.py tests/integration/buildcmd/test_build_cmd_node.py"
           - name: "integ-buildcmd-java"
@@ -154,6 +154,7 @@ jobs:
             3.11
             3.12
             3.13
+            3.14
             ${{ matrix.python }}
           cache: 'pip'
       - uses: actions/setup-go@v6
@@ -162,7 +163,7 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.3"
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
       - uses: actions/setup-java@v5
@@ -173,6 +174,7 @@ jobs:
             11
             17
             21
+            25
        # Install and configure Rust & Cargo Lambda
       - name: Install and configure Rust & Cargo Lambda
         if: ${{ matrix.os == 'ubuntu-latest' }}
@@ -268,6 +270,7 @@ jobs:
         with:
           # These are the versions of Python that correspond to the supported Lambda runtimes
           python-version: |
+            3.14
             3.9
             3.10
             3.11

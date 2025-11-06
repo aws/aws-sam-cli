@@ -13,8 +13,7 @@ init:
 	fi
 
 test:
-	# Run unit tests
-	# Fail if coverage falls below 95%
+	# Run unit tests and fail if coverage falls below 94%
 	pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit
 
 test-cov-report:
