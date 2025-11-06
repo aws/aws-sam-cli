@@ -167,7 +167,7 @@ class InvokeContext:
 
         # Validate that function_identifier and function_logical_ids aren't both provided
         # function_identifier is for 'sam local invoke' (single function)
-        # function_logical_ids is for 'sam local start-*' commands (multiple function filter)
+        # function_logical_ids is for 'sam local start-lambda' commands (multiple function filter)
         if self._function_identifier and self._function_logical_ids:
             LOG.warning(
                 "Both function_identifier and function_logical_ids were provided. "
