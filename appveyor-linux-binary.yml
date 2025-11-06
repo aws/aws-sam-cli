@@ -53,7 +53,7 @@ install:
 
   - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
   - sh: "rbenv install 3.3.7"
-  - sh: "rbenv install 3.4.2"
+  - sh: "rbenv install 3.4.7"
   - sh: "rbenv install 3.2.7"
   - sh: "rbenv global 3.3.7"
   - sh: "ruby --version"
