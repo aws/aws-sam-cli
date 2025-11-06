@@ -1486,20 +1486,23 @@ class TestInvokeContext_validate_function_logical_ids(TestCase):
         # Should not raise any exception
         invoke_context._validate_function_logical_ids()
 
-    def test_validation_with_invalid_names(self):
-        """Test that InvalidFunctionNamesException is raised with invalid names"""
-        from samcli.commands.local.cli_common.user_exceptions import InvalidFunctionNamesException
+    @patch("samcli.commands.local.cli_common.invoke_context.LOG")
+    def test_validation_with_invalid_names(self, log_mock):
+        """Test that FunctionNotFound is raised with invalid names"""
+        from samcli.local.lambdafn.exceptions import FunctionNotFound
 
         # Create mock functions
         func1 = Mock()
         func1.name = "Function1"
         func1.function_id = "Function1"
         func1.functionname = None
+        func1.full_path = "Function1"
 
         func2 = Mock()
         func2.name = "Function2"
         func2.function_id = "Function2"
         func2.functionname = None
+        func2.full_path = "Function2"
 
         # Create InvokeContext with invalid function names
         invoke_context = InvokeContext(
@@ -1511,33 +1514,38 @@ class TestInvokeContext_validate_function_logical_ids(TestCase):
         function_provider_mock.get_all.return_value = [func1, func2]
         invoke_context._function_provider = function_provider_mock
 
-        # Should raise InvalidFunctionNamesException
-        with self.assertRaises(InvalidFunctionNamesException) as ex_ctx:
+        # Should raise FunctionNotFound
+        with self.assertRaises(FunctionNotFound) as ex_ctx:
             invoke_context._validate_function_logical_ids()
 
         error_message = str(ex_ctx.exception)
-        # Verify error message includes invalid names
-        self.assertIn("InvalidFunction", error_message)
-        self.assertIn("AnotherInvalid", error_message)
-        # Verify error message includes available functions
-        self.assertIn("Function1", error_message)
-        self.assertIn("Function2", error_message)
-        self.assertIn("Available functions in template:", error_message)
+        # Verify error message matches sam local invoke pattern
+        self.assertIn("Unable to find Function(s) with name(s)", error_message)
+        self.assertIn("AnotherInvalid, InvalidFunction", error_message)
 
-    def test_validation_with_mixed_valid_invalid_names(self):
+        # Verify LOG.info was called with the proper message
+        log_mock.info.assert_called_once()
+        log_call_args = log_mock.info.call_args[0][0]
+        self.assertIn("not found", log_call_args)
+        self.assertIn("Possible options in your template:", log_call_args)
+
+    @patch("samcli.commands.local.cli_common.invoke_context.LOG")
+    def test_validation_with_mixed_valid_invalid_names(self, log_mock):
         """Test that all invalid names are reported when some are valid and some are invalid"""
-        from samcli.commands.local.cli_common.user_exceptions import InvalidFunctionNamesException
+        from samcli.local.lambdafn.exceptions import FunctionNotFound
 
         # Create mock functions
         func1 = Mock()
         func1.name = "Function1"
         func1.function_id = "Function1"
         func1.functionname = None
+        func1.full_path = "Function1"
 
         func2 = Mock()
         func2.name = "Function2"
         func2.function_id = "Function2"
         func2.functionname = None
+        func2.full_path = "Function2"
 
         # Create InvokeContext with mixed valid/invalid function names
         invoke_context = InvokeContext(
@@ -1549,16 +1557,20 @@ class TestInvokeContext_validate_function_logical_ids(TestCase):
         function_provider_mock.get_all.return_value = [func1, func2]
         invoke_context._function_provider = function_provider_mock
 
-        # Should raise InvalidFunctionNamesException
-        with self.assertRaises(InvalidFunctionNamesException) as ex_ctx:
+        # Should raise FunctionNotFound
+        with self.assertRaises(FunctionNotFound) as ex_ctx:
             invoke_context._validate_function_logical_ids()
 
         error_message = str(ex_ctx.exception)
-        # Verify all invalid names are reported
-        self.assertIn("InvalidFunc", error_message)
-        self.assertIn("AnotherInvalid", error_message)
-        # Verify valid name is not in error message as invalid
-        self.assertNotIn("Function1", error_message.split("Available functions")[0])
+        # Verify error message matches sam local invoke pattern
+        self.assertIn("Unable to find Function(s) with name(s)", error_message)
+        self.assertIn("AnotherInvalid, InvalidFunc", error_message)
+
+        # Verify LOG.info was called with the proper message
+        log_mock.info.assert_called_once()
+        log_call_args = log_mock.info.call_args[0][0]
+        self.assertIn("not found", log_call_args)
+        self.assertIn("Possible options in your template:", log_call_args)
 
     def test_validation_with_no_filter(self):
         """Test that no validation occurs when function_logical_ids is None"""

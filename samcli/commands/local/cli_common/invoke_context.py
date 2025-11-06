@@ -27,6 +27,7 @@ from samcli.local.docker.container_client import ContainerClient
 from samcli.local.docker.exceptions import PortAlreadyInUse
 from samcli.local.docker.lambda_image import LambdaImage
 from samcli.local.docker.manager import ContainerManager
+from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.local.lambdafn.runtime import LambdaRuntime, WarmLambdaRuntime
 from samcli.local.layers.layer_downloader import LayerDownloader
 
@@ -477,7 +478,7 @@ class InvokeContext:
     def _validate_function_logical_ids(self) -> None:
         """
         Validates that all provided function logical IDs exist in the template.
-        Raises InvalidFunctionNamesException with helpful error message if validation fails.
+        Raises FunctionNotFound with helpful error message if validation fails.
         """
         if not self._function_logical_ids:
             return  # No filtering requested
@@ -494,13 +495,17 @@ class InvokeContext:
         invalid_ids = set(self._function_logical_ids) - all_functions_set
 
         if invalid_ids:
-            available_ids = sorted(all_functions_set)
-            from samcli.commands.local.cli_common.user_exceptions import InvalidFunctionNamesException
+            # Get all available function full paths, matching sam local invoke pattern
+            all_function_full_paths = [f.full_path for f in self._function_provider.get_all()]
 
-            raise InvalidFunctionNamesException(
-                f"Invalid function logical ID(s): {', '.join(sorted(invalid_ids))}\n\n"
-                f"Available functions in template:\n  " + "\n  ".join(available_ids)
+            # Format message to match sam local invoke pattern exactly
+            invalid_functions_str = ", ".join(sorted(invalid_ids))
+            available_function_message = "{} not found. Possible options in your template: {}".format(
+                invalid_functions_str, all_function_full_paths
             )
+            LOG.info(available_function_message)
+
+            raise FunctionNotFound("Unable to find Function(s) with name(s) '{}'".format(invalid_functions_str))
 
     def _add_account_id_to_global(self) -> None:
         """

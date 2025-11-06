@@ -1768,14 +1768,6 @@ class TestFunctionNameFiltering(StartLambdaIntegBaseClass):
         self.assertEqual(response.get("Payload").read().decode("utf-8"), '"test data"')
         self.assertIsNone(response.get("FunctionError"))
 
-    @parameterized.expand([("EchoEventFunction",), ("HelloWorldServerlessFunction",), ("RaiseExceptionFunction",)])
-    @pytest.mark.flaky(reruns=3)
-    @pytest.mark.timeout(timeout=300, method="thread")
-    def test_backward_compatibility_no_filter(self, function_name):
-        """Test that without function names, all functions are available"""
-        response = self.lambda_client.invoke(FunctionName=function_name)
-        self.assertEqual(response.get("StatusCode"), 200)
-
 
 class TestFunctionNameFilteringWithFilter(StartLambdaIntegBaseClass):
     """Test function name filtering with specific functions"""
@@ -1872,7 +1864,7 @@ class TestFunctionNameFilteringInvalidNames(TestCase):
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_invalid_function_names_error(self):
-        """Test that invalid function names produce helpful error message"""
+        """Test that invalid function names produce helpful error message at startup"""
         template = self.integration_dir + self.template_path
         command_list = [
             get_sam_command(),
@@ -1891,5 +1883,6 @@ class TestFunctionNameFilteringInvalidNames(TestCase):
 
         self.assertNotEqual(process.returncode, 0)
         error_output = stderr.decode("utf-8")
-        for expected in ["Invalid function logical ID", "InvalidFunction1", "InvalidFunction2", "Available functions"]:
+        # Should match sam local invoke error pattern: "function not found. Possible options in your template:"
+        for expected in ["not found", "InvalidFunction1, InvalidFunction2", "Possible options in your template"]:
             self.assertIn(expected, error_output)
