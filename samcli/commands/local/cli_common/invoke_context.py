@@ -172,7 +172,7 @@ class InvokeContext:
             LOG.warning(
                 "Both function_identifier and function_logical_ids were provided. "
                 "function_identifier is used for 'sam local invoke' to specify a single function, "
-                "while function_logical_ids is used for 'sam local start-api/start-lambda' to filter functions. "
+                "while function_logical_ids is used for 'sam local start-lambda' to filter functions. "
                 "function_identifier will take precedence for single function invocation."
             )
 
