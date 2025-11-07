@@ -216,7 +216,7 @@ class CfnBaseApiProvider:
         prop = cors_dict.get(prop_name)
         if prop:
             if allow_bool and isinstance(prop, bool):
-                prop = "'true'"  # We alredy know this is true due to L141 passing
+                prop = "'true'"  # We already know this is true due to L141 passing
             if not isinstance(prop, str) or prop.startswith("!"):
                 LOG.warning(
                     "CORS Property %s was not fully resolved. Will proceed as if the Property was not defined.",

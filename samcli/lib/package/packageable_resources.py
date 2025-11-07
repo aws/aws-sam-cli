@@ -195,7 +195,7 @@ class ResourceZip(Resource):
             return {"Bucket": None, "Key": None}
 
         resource_path = jmespath.search(self.PROPERTY_NAME, resource_dict)
-        # In the case where resource_path is pointing to an intrinsinc
+        # In the case where resource_path is pointing to an intrinsic
         # ref function, sam delete will delete the stack but skip the deletion of this
         # artifact, as deletion of intrinsic ref function artifacts is not supported yet.
         # TODO: Allow deletion of S3 artifacts with intrinsic ref functions.
@@ -254,7 +254,7 @@ class ResourceImageDict(Resource):
             return
 
         remote_path = resource_dict.get(self.PROPERTY_NAME, {}).get(self.EXPORT_PROPERTY_CODE_KEY)
-        # In the case where remote_path is pointing to an intrinsinc
+        # In the case where remote_path is pointing to an intrinsic
         # ref function, sam delete will delete the stack but skip the deletion of this
         # artifact, as deletion of intrinsic ref function artifacts is not supported yet.
         # TODO: Allow deletion of ECR artifacts with intrinsic ref functions.
@@ -312,7 +312,7 @@ class ResourceImage(Resource):
             return
 
         remote_path = resource_dict.get(self.PROPERTY_NAME)
-        # In the case where remote_path is pointing to an intrinsinc
+        # In the case where remote_path is pointing to an intrinsic
         # ref function, sam delete will delete the stack but skip the deletion of this
         # artifact, as deletion of intrinsic ref function artifacts is not supported yet.
         # TODO: Allow deletion of ECR artifacts with intrinsic ref functions.
@@ -375,7 +375,7 @@ class ResourceWithS3UrlDict(ResourceZip):
         s3_bucket = resource_path.get(self.BUCKET_NAME_PROPERTY, None)
 
         key = resource_path.get(self.OBJECT_KEY_PROPERTY, None)
-        # In the case where resource_path is pointing to an intrinsinc
+        # In the case where resource_path is pointing to an intrinsic
         # ref function, sam delete will delete the stack but skip the deletion of this
         # artifact, as deletion of intrinsic ref function artifacts is not supported yet.
         # TODO: Allow deletion of S3 artifacts with intrinsic ref functions.

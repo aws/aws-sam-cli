@@ -32,7 +32,7 @@ def get_uploaded_s3_object_name(
 ) -> str:
     """
     Generate the file name that will be used while creating the S3 Object based on the file hash value.
-    This method expect either the precomuted hash value of the file, or the file content, or the file path
+    This method expect either the precomputed hash value of the file, or the file content, or the file path
 
     Parameters
     ----------

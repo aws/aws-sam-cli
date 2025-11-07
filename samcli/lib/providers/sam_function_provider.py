@@ -552,7 +552,7 @@ class SamFunctionProvider(SamBaseProvider):
                 raise InvalidLayerVersionArn(
                     "Building and invoking locally only supports AmazonLinux1803. See "
                     "https://aws.amazon.com/blogs/compute/upcoming-updates-to-the-aws-lambda-execution-environment/ "
-                    "for more detials."
+                    "for more details."
                 )  # noqa: E501
 
             # If the layer is a string, assume it is the arn
@@ -604,7 +604,7 @@ class SamFunctionProvider(SamBaseProvider):
         layer object and return
 
         Right now this method does not support more complicated intrinsics like Fn:Sub and Fn:If, future task to
-        expand support. One of possible solutions can be adding in an intrinsic resovler.
+        expand support. One of possible solutions can be adding in an intrinsic resolver.
 
         TODO: this function have too many return statemnets, we may need to refactor it, break it down to multiple
         sub functions for example.

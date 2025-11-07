@@ -68,7 +68,7 @@ class MissingLocalDefinition(Exception):
         Parameters
         ----------
         resource_identifier : ResourceIdentifier
-            Resource Identifer
+            Resource Identifier
         property_name : str
             Property name that's missing
         """
