@@ -453,7 +453,7 @@ for:
 
     test_script:
       # Install Ruby for Ruby build tests
-      - sh: "git clone https://github.com/rbenv/rbenv.git ~/.rbenv && git clone https://github.com/rbenv/ruby-build.git ~/.rbenv/plugins/ruby-build && alias rbenv='~/.rbenv/bin/rbenv'"
+      - sh: "git -C ~/.rbenv/plugins/ruby-build pull"
       - sh: "rbenv install 3.3.7"
       - sh: "rbenv install 3.4.7"
       - sh: "rbenv install 3.2.7"
@@ -475,7 +475,7 @@ for:
 
     test_script:
       # Install Ruby for Ruby ARM64 build tests
-      - sh: "git clone https://github.com/rbenv/rbenv.git ~/.rbenv && git clone https://github.com/rbenv/ruby-build.git ~/.rbenv/plugins/ruby-build && alias rbenv='~/.rbenv/bin/rbenv'"
+      - sh: "git -C ~/.rbenv/plugins/ruby-build pull"
       - sh: "rbenv install 3.3.7"
       - sh: "rbenv install 3.4.7"
       - sh: "rbenv install 3.2.7"
@@ -521,7 +521,7 @@ for:
 
     test_script:
       # Install Ruby for Ruby sync tests
-      - sh: "git clone https://github.com/rbenv/rbenv.git ~/.rbenv && git clone https://github.com/rbenv/ruby-build.git ~/.rbenv/plugins/ruby-build && alias rbenv='~/.rbenv/bin/rbenv'"
+      - sh: "git -C ~/.rbenv/plugins/ruby-build pull"
       - sh: "rbenv install 3.3.7"
       - sh: "rbenv install 3.4.7"
       - sh: "rbenv install 3.2.7"
@@ -568,7 +568,7 @@ for:
 
     test_script:
       # Install Ruby for Ruby validation and other tests
-      - sh: "git clone https://github.com/rbenv/rbenv.git ~/.rbenv && git clone https://github.com/rbenv/ruby-build.git ~/.rbenv/plugins/ruby-build && alias rbenv='~/.rbenv/bin/rbenv'"
+      - sh: "git -C ~/.rbenv/plugins/ruby-build pull"
       - sh: "rbenv install 3.3.7"
       - sh: "rbenv install 3.4.7"
       - sh: "rbenv install 3.2.7"
