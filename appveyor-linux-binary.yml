@@ -52,6 +52,7 @@ install:
   - sh: "mvn --version"
 
   - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
+  - sh: "git clone https://github.com/rbenv/rbenv.git ~/.rbenv && git clone https://github.com/rbenv/ruby-build.git ~/.rbenv/plugins/ruby-build && alias rbenv='~/.rbenv/bin/rbenv'"
   - sh: "rbenv install 3.3.7"
   - sh: "rbenv install 3.4.7"
   - sh: "rbenv install 3.2.7"
