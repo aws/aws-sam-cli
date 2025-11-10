@@ -1801,7 +1801,7 @@ class TestFunctionNameFilteringWithFilter(StartLambdaIntegBaseClass):
         """Test invoking a function that is NOT in the filter returns ResourceNotFoundException"""
         with self.assertRaises(ClientError) as context:
             self.lambda_client.invoke(FunctionName="RaiseExceptionFunction")
-        self.assertIn("ResourceNotFoundException", str(context.exception))
+        self.assertIn("ResourceNotFound", str(context.exception))
 
 
 class TestFunctionNameFilteringWarmContainersEager(TestWarmContainersBaseClass):

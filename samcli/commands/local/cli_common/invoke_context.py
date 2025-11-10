@@ -260,9 +260,9 @@ class InvokeContext:
         if self._docker_volume_basedir:
             _function_providers_args[self._containers_mode].append(True)
 
-        # Add function_logical_ids parameter to both provider types
         _function_providers_kwargs: Dict[str, Any] = {}
-        if self._function_logical_ids is not None:
+
+        if self._function_logical_ids:
             _function_providers_kwargs["function_logical_ids"] = self._function_logical_ids
 
         self._function_provider = _function_providers_class[self._containers_mode](
