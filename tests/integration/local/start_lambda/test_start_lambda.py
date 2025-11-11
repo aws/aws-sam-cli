@@ -1,10 +1,12 @@
 import signal
-from unittest import skipIf
+from unittest import skipIf, TestCase
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from time import time, sleep
 import json
 from parameterized import parameterized, parameterized_class
+from subprocess import Popen, PIPE
+from pathlib import Path
 
 import pytest
 import random
@@ -13,9 +15,11 @@ import boto3
 from botocore import UNSIGNED
 from botocore.config import Config
 from botocore.exceptions import ClientError
+from docker.errors import APIError
 
 from samcli.commands.local.cli_common.invoke_context import ContainersInitializationMode
-from tests.testing_utils import IS_WINDOWS
+from tests.testing_utils import IS_WINDOWS, get_sam_command, kill_process
+from tests.integration.local.common_utils import random_port, InvalidAddressException, wait_for_local_process
 from .start_lambda_api_integ_base import StartLambdaIntegBaseClass, WatchWarmContainersIntegBaseClass
 
 
@@ -1737,3 +1741,122 @@ class TestLambdaServiceWithCustomInvokeImages(StartLambdaIntegBaseClass):
         self.assertEqual(response.get("Payload").read().decode("utf-8"), '"This is json data"')
         self.assertIsNone(response.get("FunctionError"))
         self.assertEqual(response.get("StatusCode"), 200)
+
+
+class TestFunctionNameFilteringWithFilter(StartLambdaIntegBaseClass):
+    """Test function name filtering with specific functions"""
+
+    template_path = "/testdata/invoke/template.yml"
+    function_logical_ids = ["EchoEventFunction", "HelloWorldServerlessFunction"]
+
+    def setUp(self):
+        self.url = f"http://127.0.0.1:{self.port}"
+        self.lambda_client = boto3.client(
+            "lambda",
+            endpoint_url=self.url,
+            region_name="us-east-1",
+            use_ssl=False,
+            verify=False,
+            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
+        )
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=300, method="thread")
+    def test_invoke_filtered_function(self):
+        """Test invoking a function that is in the filter"""
+        response = self.lambda_client.invoke(FunctionName="EchoEventFunction", Payload='"filtered test"')
+        self.assertEqual(response.get("StatusCode"), 200)
+        self.assertEqual(response.get("Payload").read().decode("utf-8"), '"filtered test"')
+        self.assertIsNone(response.get("FunctionError"))
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=300, method="thread")
+    def test_invoke_non_filtered_function(self):
+        """Test invoking a function that is NOT in the filter returns ResourceNotFoundException"""
+        with self.assertRaises(ClientError) as context:
+            self.lambda_client.invoke(FunctionName="FunctionWithMetadata")
+            self.assertIn("ResourceNotFound", str(context.exception))
+
+
+class TestFunctionNameFilteringWarmContainersEager(TestWarmContainersBaseClass):
+    """Test function filtering with EAGER warm containers"""
+
+    template_path = "/testdata/start_api/template-warm-containers.yaml"
+    container_mode = ContainersInitializationMode.EAGER.value
+    mode_env_variable = str(uuid.uuid4())
+    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
+    function_logical_ids = ["HelloWorldFunction"]
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_only_filtered_functions_have_containers(self):
+        """Test that only filtered functions have containers pre-warmed in EAGER mode"""
+        self.assertEqual(self.count_running_containers(), 1)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_invoke_filtered_function_with_eager_containers(self):
+        """Test invoking filtered function with EAGER warm containers"""
+        result = self.lambda_client.invoke(FunctionName="HelloWorldFunction")
+        self.assertEqual(result.get("StatusCode"), 200)
+        response = json.loads(result.get("Payload").read().decode("utf-8"))
+        self.assertEqual(response.get("statusCode"), 200)
+        self.assertEqual(json.loads(response.get("body")), {"hello": "world"})
+
+
+class TestFunctionNameFilteringWarmContainersLazy(TestWarmContainersBaseClass):
+    """Test function filtering with LAZY warm containers"""
+
+    template_path = "/testdata/start_api/template-warm-containers.yaml"
+    container_mode = ContainersInitializationMode.LAZY.value
+    mode_env_variable = str(uuid.uuid4())
+    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
+    function_logical_ids = ["HelloWorldFunction"]
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_no_containers_before_invoke_with_lazy(self):
+        """Test that no containers are initialized before invocation in LAZY mode"""
+        self.assertEqual(self.count_running_containers(), 0)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_container_created_on_demand_for_filtered_function(self):
+        """Test that container is created on-demand for filtered function in LAZY mode"""
+        self.assertEqual(self.count_running_containers(), 0)
+        result = self.lambda_client.invoke(FunctionName="HelloWorldFunction")
+        self.assertEqual(result.get("StatusCode"), 200)
+        self.assertEqual(self.count_running_containers(), 1)
+
+
+class TestFunctionNameFilteringInvalidNames(TestCase):
+    """Test error handling for invalid function names"""
+
+    integration_dir = str(Path(__file__).resolve().parents[2])
+    template_path = "/testdata/invoke/template.yml"
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=300, method="thread")
+    def test_invalid_function_names_error(self):
+        """Test that invalid function names produce helpful error message at startup"""
+        template = self.integration_dir + self.template_path
+        command_list = [
+            get_sam_command(),
+            "local",
+            "start-lambda",
+            "InvalidFunction1",
+            "InvalidFunction2",
+            "-p",
+            str(random_port()),
+            "-t",
+            template,
+        ]
+
+        process = Popen(command_list, stderr=PIPE, stdout=PIPE, cwd=str(Path(template).resolve().parents[0]))
+        stdout, stderr = process.communicate(timeout=30)
+
+        self.assertNotEqual(process.returncode, 0)
+        error_output = stderr.decode("utf-8")
+        # Should match sam local invoke error pattern: "function not found. Possible options in your template:"
+        for expected in ["not found", "InvalidFunction1, InvalidFunction2", "Possible options in your template"]:
+            self.assertIn(expected, error_output)
