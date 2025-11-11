@@ -1774,7 +1774,7 @@ class TestFunctionNameFilteringWithFilter(StartLambdaIntegBaseClass):
     def test_invoke_non_filtered_function(self):
         """Test invoking a function that is NOT in the filter returns ResourceNotFoundException"""
         with self.assertRaises(ClientError) as context:
-            self.lambda_client.invoke(FunctionName="NoneExistedFunction")
+            self.lambda_client.invoke(FunctionName="FunctionWithMetadata")
             self.assertIn("ResourceNotFound", str(context.exception))
 
 
