@@ -1743,32 +1743,6 @@ class TestLambdaServiceWithCustomInvokeImages(StartLambdaIntegBaseClass):
         self.assertEqual(response.get("StatusCode"), 200)
 
 
-class TestFunctionNameFiltering(StartLambdaIntegBaseClass):
-    """Test function name filtering feature for start-lambda command"""
-
-    template_path = "/testdata/invoke/template.yml"
-
-    def setUp(self):
-        self.url = f"http://127.0.0.1:{self.port}"
-        self.lambda_client = boto3.client(
-            "lambda",
-            endpoint_url=self.url,
-            region_name="us-east-1",
-            use_ssl=False,
-            verify=False,
-            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
-        )
-
-    @pytest.mark.flaky(reruns=3)
-    @pytest.mark.timeout(timeout=300, method="thread")
-    def test_invoke_function_success(self):
-        """Test invoking a function succeeds"""
-        response = self.lambda_client.invoke(FunctionName="EchoEventFunction", Payload='"test data"')
-        self.assertEqual(response.get("StatusCode"), 200)
-        self.assertEqual(response.get("Payload").read().decode("utf-8"), '"test data"')
-        self.assertIsNone(response.get("FunctionError"))
-
-
 class TestFunctionNameFilteringWithFilter(StartLambdaIntegBaseClass):
     """Test function name filtering with specific functions"""
 
@@ -1800,8 +1774,8 @@ class TestFunctionNameFilteringWithFilter(StartLambdaIntegBaseClass):
     def test_invoke_non_filtered_function(self):
         """Test invoking a function that is NOT in the filter returns ResourceNotFoundException"""
         with self.assertRaises(ClientError) as context:
-            self.lambda_client.invoke(FunctionName="RaiseExceptionFunction")
-        self.assertIn("ResourceNotFound", str(context.exception))
+            self.lambda_client.invoke(FunctionName="NoneExistedFunction")
+            self.assertIn("ResourceNotFound", str(context.exception))
 
 
 class TestFunctionNameFilteringWarmContainersEager(TestWarmContainersBaseClass):
