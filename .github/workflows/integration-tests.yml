@@ -189,7 +189,7 @@ jobs:
           ruby-version: '3.2.7'
 
       # sync test only need ruby 3.4
-      - name: Set up Ruby 3.4.2
+      - name: Set up Ruby 3.4.7
         if: (contains(fromJSON('["build-integ","build-integ-dotnet-node-ruby", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container') || contains(fromJSON('["sync", "other-and-e2e"]'), matrix.test_suite)
         uses: ruby/setup-ruby@v1
         with:
