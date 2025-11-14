@@ -505,7 +505,7 @@ class FinchContainerClient(ContainerClient):
 
         LOG.debug(f"Creating Finch container client with base_url={socket_path}")
         super().__init__(
-            base_url=socket_path, client_version=1.35
+            base_url=socket_path, client_version="1.35"
         )  # TODO: Placeholder until Finch updates to Docker's min latest version
 
     def get_socket_path(self) -> str:
