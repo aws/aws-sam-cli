@@ -112,6 +112,13 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(BuildIntegE
                 False,
             ),
             (
+                "nodejs24.x",
+                "Esbuild/Node_without_manifest",
+                {"main.js", "main.js.map"},
+                "main.lambdaHandler",
+                False,
+            ),
+            (
                 "nodejs20.x",
                 "Esbuild/TypeScript_without_manifest",
                 {"app.js", "app.js.map"},
@@ -120,6 +127,13 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(BuildIntegE
             ),
             (
                 "nodejs22.x",
+                "Esbuild/TypeScript_without_manifest",
+                {"app.js", "app.js.map"},
+                "app.lambdaHandler",
+                False,
+            ),
+            (
+                "nodejs24.x",
                 "Esbuild/TypeScript_without_manifest",
                 {"app.js", "app.js.map"},
                 "app.lambdaHandler",
@@ -140,6 +154,7 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture_arm64(BuildInte
         [
             ("nodejs20.x", False),
             ("nodejs22.x", False),
+            ("nodejs24.x", False),
         ],
         name_func=show_container_in_test_name,
     )
@@ -150,6 +165,7 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture_arm64(BuildInte
         [
             ("nodejs20.x", "use_container"),
             ("nodejs22.x", "use_container"),
+            ("nodejs24.x", "use_container"),
         ],
         name_func=show_container_in_test_name,
     )
