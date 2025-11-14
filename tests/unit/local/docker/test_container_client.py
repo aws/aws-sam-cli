@@ -33,7 +33,7 @@ class BaseContainerClientTestCase(TestCase):
         self.finch_socket = "unix:///tmp/finch.sock"
         self.docker_socket = "unix:///var/run/docker.sock"
         self.docker_version = DOCKER_MIN_API_VERSION
-        self.finch_version = 1.35  # TODO: Update when Finch updates to latest Docker API version
+        self.finch_version = "1.35"  # TODO: Update when Finch updates to latest Docker API version
 
     def create_mock_container_client(self, client_class, methods_to_bind=None):
         """Create a mock container client with bound methods for testing."""
