@@ -22,6 +22,7 @@ from samcli.local.docker.exceptions import (
     ContainerArchiveImageLoadFailedException,
     ContainerInvalidSocketPathException,
 )
+from samcli.lib.constants import DOCKER_MIN_API_VERSION
 
 
 class BaseContainerClientTestCase(TestCase):
@@ -31,7 +32,8 @@ class BaseContainerClientTestCase(TestCase):
         """Set up common test fixtures"""
         self.finch_socket = "unix:///tmp/finch.sock"
         self.docker_socket = "unix:///var/run/docker.sock"
-        self.default_version = "1.35"
+        self.docker_version = DOCKER_MIN_API_VERSION
+        self.finch_version = "1.35"  # TODO: Update when Finch updates to latest Docker API version
 
     def create_mock_container_client(self, client_class, methods_to_bind=None):
         """Create a mock container client with bound methods for testing."""
@@ -163,7 +165,7 @@ class TestDockerContainerClientInit(BaseContainerClientTestCase):
         # Verify DockerClient.__init__ was called with expected parameters
         mock_docker_init.assert_called_once()
         call_kwargs = mock_docker_init.call_args.kwargs
-        self.assertEqual(call_kwargs["version"], self.default_version)
+        self.assertEqual(call_kwargs["version"], self.docker_version)
 
     @patch("docker.DockerClient.__init__", return_value=None)
     def test_init_success_with_docker_host(self, mock_docker_init):
@@ -176,7 +178,7 @@ class TestDockerContainerClientInit(BaseContainerClientTestCase):
         # Verify DockerClient.__init__ was called with expected parameters
         mock_docker_init.assert_called_once()
         call_kwargs = mock_docker_init.call_args.kwargs
-        self.assertEqual(call_kwargs["version"], self.default_version)
+        self.assertEqual(call_kwargs["version"], self.docker_version)
         self.assertEqual(call_kwargs["base_url"], self.docker_socket)
 
     def test_init_raises_exception_when_docker_host_points_to_finch(self):
@@ -208,7 +210,7 @@ class TestDockerContainerClientInit(BaseContainerClientTestCase):
         # Verify DockerClient.__init__ was called with expected parameters
         mock_docker_init.assert_called_once()
         call_kwargs = mock_docker_init.call_args.kwargs
-        self.assertEqual(call_kwargs["version"], self.default_version)
+        self.assertEqual(call_kwargs["version"], self.docker_version)
         self.assertEqual(call_kwargs["base_url"], docker_host)
 
         # Verify log call
@@ -678,7 +680,7 @@ class TestFinchContainerClientInit(BaseContainerClientTestCase):
         # Verify DockerClient.__init__ was called with expected parameters
         mock_docker_init.assert_called_once()
         call_kwargs = mock_docker_init.call_args.kwargs
-        self.assertEqual(call_kwargs["version"], self.default_version)
+        self.assertEqual(call_kwargs["version"], self.finch_version)
         self.assertEqual(call_kwargs["base_url"], self.finch_socket)
 
         # Verify log call
@@ -719,12 +721,12 @@ class TestContainerClientBaseInit(BaseContainerClientTestCase):
     def test_init_no_overrides(self, mock_log, mock_docker_init):
         """Test ContainerClient init with no environment overrides"""
         with patch.dict("os.environ", {}, clear=True):
-            client = ConcreteContainerClient()
+            client = ConcreteContainerClient(client_version=self.docker_version)
 
         # Verify DockerClient.__init__ was called with expected parameters
         mock_docker_init.assert_called_once()
         call_kwargs = mock_docker_init.call_args.kwargs
-        self.assertEqual(call_kwargs["version"], self.default_version)
+        self.assertEqual(call_kwargs["version"], self.docker_version)
         self.assertTrue(mock_log.debug.called)
 
     @patch("docker.DockerClient.__init__", return_value=None)
@@ -734,12 +736,12 @@ class TestContainerClientBaseInit(BaseContainerClientTestCase):
         override_url = "unix:///tmp/finch.sock"
 
         with patch.dict("os.environ", {}, clear=True):
-            client = ConcreteContainerClient(base_url=override_url)
+            client = ConcreteContainerClient(client_version=self.docker_version, base_url=override_url)
 
         # Verify DockerClient.__init__ was called with expected parameters
         mock_docker_init.assert_called_once()
         call_kwargs = mock_docker_init.call_args.kwargs
-        self.assertEqual(call_kwargs["version"], self.default_version)
+        self.assertEqual(call_kwargs["version"], self.docker_version)
         self.assertEqual(call_kwargs["base_url"], override_url)
         self.assertTrue(mock_log.debug.called)
 
