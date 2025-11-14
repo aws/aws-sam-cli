@@ -62,7 +62,7 @@ class ContainerClient(docker.DockerClient, ABC):
     # Initialize socket_path
     socket_path: Optional[str] = None
 
-    def __init__(self, base_url=None):
+    def __init__(self, client_version, base_url=None):
         """
         Initialize the container client with environment variable processing and overrides.
 
@@ -94,7 +94,7 @@ class ContainerClient(docker.DockerClient, ABC):
             client_params["base_url"] = base_url
 
         # Specify minimum version
-        client_params["version"] = DOCKER_MIN_API_VERSION
+        client_params["version"] = client_version
 
         # Initialize DockerClient with processed parameters
         LOG.debug(f"Creating container client with parameters: {client_params}")
@@ -292,10 +292,10 @@ class DockerContainerClient(ContainerClient):
 
         if socket_path:
             LOG.debug(f"Creating Docker container client with base_url={socket_path}.")
-            super().__init__(base_url=socket_path)
+            super().__init__(base_url=socket_path, client_version=DOCKER_MIN_API_VERSION)
         else:
             LOG.debug("Creating Docker container client from environment variable.")
-            super().__init__()
+            super().__init__(client_version=DOCKER_MIN_API_VERSION)
 
     def get_runtime_type(self) -> str:
         """
@@ -504,7 +504,9 @@ class FinchContainerClient(ContainerClient):
             return None
 
         LOG.debug(f"Creating Finch container client with base_url={socket_path}")
-        super().__init__(base_url=socket_path)
+        super().__init__(
+            base_url=socket_path, client_version="1.35"
+        )  # TODO: Placeholder until Finch updates to Docker's min latest version
 
     def get_socket_path(self) -> str:
         """
