@@ -18,6 +18,7 @@ _DEBUG_RUNTIMES = [
     Runtime.nodejs18x,
     Runtime.nodejs20x,
     Runtime.nodejs22x,
+    Runtime.nodejs24x,
     Runtime.python38,
     Runtime.python39,
     Runtime.python310,
