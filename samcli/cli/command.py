@@ -22,6 +22,7 @@ _SAM_CLI_COMMAND_PACKAGES = [
     "samcli.commands.validate.validate",
     "samcli.commands.build",
     "samcli.commands.local.local",
+    "samcli.commands.generate.generate",
     "samcli.commands.package",
     "samcli.commands.deploy",
     "samcli.commands.delete",
@@ -169,6 +170,10 @@ class BaseCommand(Group):
                         RowDefinition(
                             name="validate",
                             text=SAM_CLI_COMMANDS.get("validate", ""),
+                        ),
+                        RowDefinition(
+                            name="generate",
+                            text=SAM_CLI_COMMANDS.get("generate", ""),
                         ),
                         RowDefinition(
                             name="sync",
