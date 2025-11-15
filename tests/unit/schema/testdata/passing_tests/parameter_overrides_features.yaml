@@ -1,0 +1,19 @@
+version: 0.1
+prod-a:
+  deploy:
+    parameters:
+      stack_name: sam-app
+      region: us-east-1
+      parameter_overrides: &prod_a_overrides
+        - Name: prod-a
+        - ParamA: 1
+        - ParamB: True
+
+prod-b:
+  deploy:
+    parameters:
+      stack_name: sam-app-2
+      region: us-east-1
+      parameter_overrides:
+        - *prod_a_overrides
+        - Name: prod-b
