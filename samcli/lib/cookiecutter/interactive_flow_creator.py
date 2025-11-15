@@ -5,10 +5,9 @@ from typing import Dict, Optional, Tuple
 import yaml
 
 from samcli.commands.exceptions import UserException
+from samcli.lib.cookiecutter.interactive_flow import InteractiveFlow
+from samcli.lib.cookiecutter.question import Question, QuestionFactory
 from samcli.yamlhelper import parse_yaml_file
-
-from .interactive_flow import InteractiveFlow
-from .question import Question, QuestionFactory
 
 
 class QuestionsNotFoundException(UserException):

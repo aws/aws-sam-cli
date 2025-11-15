@@ -5,8 +5,8 @@ setting up stdin/stdout etc
 
 import click
 
-from .bootstrap.cli import cli as bootstrap_cli
-from .init.cli import cli as init_cli
+from samcli.commands.pipeline.bootstrap.cli import cli as bootstrap_cli
+from samcli.commands.pipeline.init.cli import cli as init_cli
 
 
 @click.group()
