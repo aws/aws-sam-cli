@@ -1227,6 +1227,11 @@
                   "type": "boolean",
                   "description": "Indicates whether to override existing files in the S3 bucket. Specify this flag to upload artifacts even if they match existing artifacts in the S3 bucket."
                 },
+                "parallel_upload": {
+                  "title": "parallel_upload",
+                  "type": "boolean",
+                  "description": "Enable parallel upload of artifacts to S3/ECR before deployment."
+                },
                 "s3_prefix": {
                   "title": "s3_prefix",
                   "type": "string",

@@ -15,7 +15,9 @@ Exporting resources defined in the cloudformation template to the cloud.
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 import os
-from typing import Dict, List, Optional
+import threading
+from concurrent.futures import FIRST_EXCEPTION, ThreadPoolExecutor, wait
+from typing import Callable, Dict, List, Optional
 
 from botocore.utils import set_value_from_jmespath
 
@@ -51,6 +53,28 @@ from samcli.lib.utils.s3 import parse_s3_url
 from samcli.yamlhelper import yaml_dump, yaml_parse
 
 # NOTE: sriram-mv, A cyclic dependency on `Template` needs to be broken.
+
+DEFAULT_PARALLEL_UPLOAD_WORKERS = max(4, min(32, (os.cpu_count() or 1) * 2))
+
+
+class _ThreadSafeUploadCache:
+    """Simple thread-safe mapping used to deduplicate uploads across threads."""
+
+    def __init__(self, initial: Optional[Dict[str, str]] = None):
+        self._cache = initial or {}
+        self._lock = threading.Lock()
+
+    def __contains__(self, key: str) -> bool:  # pragma: no cover - small helper
+        with self._lock:
+            return key in self._cache
+
+    def __getitem__(self, key: str) -> str:  # pragma: no cover - small helper
+        with self._lock:
+            return self._cache[key]
+
+    def __setitem__(self, key: str, value: str) -> None:  # pragma: no cover - small helper
+        with self._lock:
+            self._cache[key] = value
 
 
 class CloudFormationStackResource(ResourceZip):
@@ -89,6 +113,7 @@ class CloudFormationStackResource(ResourceZip):
             normalize_template=True,
             normalize_parameters=True,
             parent_stack_id=resource_id,
+            parallel_upload=getattr(self, "parallel_upload", False),
         ).export()
 
         exported_template_str = yaml_dump(exported_template_dict)
@@ -179,6 +204,7 @@ class Template:
         normalize_template: bool = False,
         normalize_parameters: bool = False,
         parent_stack_id: str = "",
+        parallel_upload: bool = False,
     ):
         """
         Reads the template and makes it ready for export
@@ -202,6 +228,7 @@ class Template:
         self.metadata_to_export = metadata_to_export
         self.uploaders = uploaders
         self.parent_stack_id = parent_stack_id
+        self.parallel_upload = parallel_upload
 
     def _export_global_artifacts(self, template_dict: Dict) -> Dict:
         """
@@ -279,7 +306,10 @@ class Template:
         cache: Optional[Dict] = None
         if is_experimental_enabled(ExperimentalFlag.PackagePerformance):
             cache = {}
+        if cache is not None and self.parallel_upload:
+            cache = _ThreadSafeUploadCache(cache)
 
+        export_jobs: List[Callable[[], None]] = []
         for resource_logical_id, resource in self.template_dict["Resources"].items():
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", {})
@@ -291,11 +321,44 @@ class Template:
                     continue
                 if resource_dict.get("PackageType", ZIP) != exporter_class.ARTIFACT_TYPE:
                     continue
-                # Export code resources
-                exporter = exporter_class(self.uploaders, self.code_signer, cache)
-                exporter.export(full_path, resource_dict, self.template_dir)
+
+                export_jobs.append(
+                    self._build_export_job(exporter_class, full_path, resource_dict, cache)
+                )
+
+        if self.parallel_upload and export_jobs:
+            self._execute_jobs_in_parallel(export_jobs)
+        else:
+            for job in export_jobs:
+                job()
 
         return self.template_dict
+
+    def _build_export_job(
+        self,
+        exporter_class,
+        resource_full_path: str,
+        resource_dict: Dict,
+        cache: Optional[Dict],
+    ) -> Callable[[], None]:
+        def _job() -> None:
+            exporter = exporter_class(self.uploaders, self.code_signer, cache)
+            setattr(exporter, "parallel_upload", self.parallel_upload)
+            exporter.export(resource_full_path, resource_dict, self.template_dir)
+
+        return _job
+
+    def _execute_jobs_in_parallel(self, jobs: List[Callable[[], None]]) -> None:
+        max_workers = min(len(jobs), DEFAULT_PARALLEL_UPLOAD_WORKERS)
+        if max_workers <= 1:
+            jobs[0]()
+            return
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = [executor.submit(job) for job in jobs]
+            wait(futures, return_when=FIRST_EXCEPTION)
+            for future in futures:
+                future.result()
 
     def delete(self, retain_resources: List):
         """
