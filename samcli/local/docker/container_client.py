@@ -32,7 +32,7 @@ from typing import Any, List, Optional, Tuple, Union
 import docker
 from docker.utils import kwargs_from_env
 
-from samcli.lib.constants import DOCKER_MIN_API_VERSION
+from samcli.lib.constants import DOCKER_MIN_API_VERSION, DOCKER_MIN_API_VERSION_FALLBACK
 from samcli.local.docker.exceptions import ContainerArchiveImageLoadFailedException, ContainerInvalidSocketPathException
 from samcli.local.docker.platform_config import get_finch_socket_path
 
@@ -62,7 +62,7 @@ class ContainerClient(docker.DockerClient, ABC):
     # Initialize socket_path
     socket_path: Optional[str] = None
 
-    def __init__(self, client_version, base_url=None):
+    def __init__(self, base_url=None):
         """
         Initialize the container client with environment variable processing and overrides.
 
@@ -87,19 +87,20 @@ class ContainerClient(docker.DockerClient, ABC):
 
         # Always start with environment variables
         current_env = os.environ.copy()
-        client_params = kwargs_from_env(environment=current_env)
+        self.client_params = kwargs_from_env(environment=current_env)
 
         # Override base_url if explicitly provided
         if base_url is not None:
-            client_params["base_url"] = base_url
+            self.client_params["base_url"] = base_url
 
         # Specify minimum version
-        client_params["version"] = client_version
+        self.client_params["version"] = DOCKER_MIN_API_VERSION
 
         # Initialize DockerClient with processed parameters
-        LOG.debug(f"Creating container client with parameters: {client_params}")
-        super().__init__(**client_params)
+        LOG.debug(f"Creating container client with parameters: {self.client_params}")
+        super().__init__(**self.client_params)
 
+    @abstractmethod
     def is_available(self) -> bool:
         """
         Check if this client instance is available and can connect.
@@ -111,12 +112,7 @@ class ContainerClient(docker.DockerClient, ABC):
         Returns:
             bool: True if the client can successfully connect to the runtime
         """
-        try:
-            self.ping()
-            return True
-        except Exception as e:
-            LOG.debug(f"Container daemon availability check failed: {e}")
-            return False
+        pass
 
     @abstractmethod
     def get_socket_path(self) -> str:
@@ -292,10 +288,27 @@ class DockerContainerClient(ContainerClient):
 
         if socket_path:
             LOG.debug(f"Creating Docker container client with base_url={socket_path}.")
-            super().__init__(base_url=socket_path, client_version=DOCKER_MIN_API_VERSION)
+            super().__init__(base_url=socket_path)
         else:
             LOG.debug("Creating Docker container client from environment variable.")
-            super().__init__(client_version=DOCKER_MIN_API_VERSION)
+            super().__init__()
+
+    def is_available(self):
+        try:
+            self.ping()
+            return True
+        except Exception as e:
+            try:
+                # docker engine > 29 requires 1.44 as minimum api version
+                LOG.debug(f"Fall back docker api version to {DOCKER_MIN_API_VERSION_FALLBACK}: {e}")
+                self.client_params["version"] = DOCKER_MIN_API_VERSION_FALLBACK
+                self.api = docker.APIClient(**self.client_params)
+                self.ping()
+                LOG.debug(f"Docker daemon check succeeded with fallback: {e}")
+                return True
+            except Exception as e:
+                LOG.debug(f"Docker daemon availability check failed with fallback: {e}")
+                return False
 
     def get_runtime_type(self) -> str:
         """
@@ -504,9 +517,15 @@ class FinchContainerClient(ContainerClient):
             return None
 
         LOG.debug(f"Creating Finch container client with base_url={socket_path}")
-        super().__init__(
-            base_url=socket_path, client_version="1.35"
-        )  # TODO: Placeholder until Finch updates to Docker's min latest version
+        super().__init__(base_url=socket_path)  # TODO: Placeholder until Finch updates to Docker's min latest version
+
+    def is_available(self):
+        try:
+            self.ping()
+            return True
+        except Exception as e:
+            LOG.debug(f"Finch daemon availability check failed: {e}")
+            return False
 
     def get_socket_path(self) -> str:
         """
