@@ -322,9 +322,7 @@ class Template:
                 if resource_dict.get("PackageType", ZIP) != exporter_class.ARTIFACT_TYPE:
                     continue
 
-                export_jobs.append(
-                    self._build_export_job(exporter_class, full_path, resource_dict, cache)
-                )
+                export_jobs.append(self._build_export_job(exporter_class, full_path, resource_dict, cache))
 
         if self.parallel_upload and export_jobs:
             self._execute_jobs_in_parallel(export_jobs)

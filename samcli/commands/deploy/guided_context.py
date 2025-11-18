@@ -169,9 +169,7 @@ class GuidedContext:
             parallel_upload = True
         else:
             click.secho("\t#Speed up artifact uploads by running them in parallel")
-            parallel_upload = confirm(
-                f"\t{self.start_bold}Enable parallel uploads{self.end_bold}", default=False
-            )
+            parallel_upload = confirm(f"\t{self.start_bold}Enable parallel uploads{self.end_bold}", default=False)
 
         self.prompt_authorization(stacks)
         self.prompt_code_signing_settings(stacks)
