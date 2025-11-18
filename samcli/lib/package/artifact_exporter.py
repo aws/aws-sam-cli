@@ -16,6 +16,7 @@ Exporting resources defined in the cloudformation template to the cloud.
 # language governing permissions and limitations under the License.
 import os
 import threading
+from collections.abc import MutableMapping
 from concurrent.futures import FIRST_EXCEPTION, ThreadPoolExecutor, wait
 from typing import Callable, Dict, List, Optional
 
@@ -57,16 +58,13 @@ from samcli.yamlhelper import yaml_dump, yaml_parse
 DEFAULT_PARALLEL_UPLOAD_WORKERS = max(4, min(32, (os.cpu_count() or 1) * 2))
 
 
-class _ThreadSafeUploadCache:
+class _ThreadSafeUploadCache(MutableMapping[str, str]):
     """Simple thread-safe mapping used to deduplicate uploads across threads."""
 
-    def __init__(self, initial: Optional[Dict[str, str]] = None):
-        self._cache = initial or {}
+    def __init__(self, initial: Optional[MutableMapping[str, str]] = None):
+        # Copy into a regular dict so we can safely snapshot under a lock
+        self._cache: Dict[str, str] = dict(initial or {})
         self._lock = threading.Lock()
-
-    def __contains__(self, key: str) -> bool:  # pragma: no cover - small helper
-        with self._lock:
-            return key in self._cache
 
     def __getitem__(self, key: str) -> str:  # pragma: no cover - small helper
         with self._lock:
@@ -75,6 +73,18 @@ class _ThreadSafeUploadCache:
     def __setitem__(self, key: str, value: str) -> None:  # pragma: no cover - small helper
         with self._lock:
             self._cache[key] = value
+
+    def __delitem__(self, key: str) -> None:  # pragma: no cover - small helper
+        with self._lock:
+            del self._cache[key]
+
+    def __iter__(self):  # pragma: no cover - small helper
+        with self._lock:
+            return iter(dict(self._cache))
+
+    def __len__(self) -> int:  # pragma: no cover - small helper
+        with self._lock:
+            return len(self._cache)
 
 
 class CloudFormationStackResource(ResourceZip):
@@ -303,7 +313,7 @@ class Template:
         self._apply_global_values()
         self.template_dict = self._export_global_artifacts(self.template_dict)
 
-        cache: Optional[Dict] = None
+        cache: Optional[MutableMapping[str, str]] = None
         if is_experimental_enabled(ExperimentalFlag.PackagePerformance):
             cache = {}
         if cache is not None and self.parallel_upload:
@@ -337,7 +347,7 @@ class Template:
         exporter_class,
         resource_full_path: str,
         resource_dict: Dict,
-        cache: Optional[Dict],
+        cache: Optional[MutableMapping[str, str]],
     ) -> Callable[[], None]:
         def _job() -> None:
             exporter = exporter_class(self.uploaders, self.code_signer, cache)
