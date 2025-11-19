@@ -359,3 +359,18 @@ Resources:
           Properties:
             Method: GET
             Path: /multipleheadersoverridesheaders
+  MultiTenantApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.multi_tenant_handler
+      Runtime: python3.9
+      CodeUri: .
+      Timeout: 600
+      TenancyConfig:
+        TenantIsolationMode: PER_TENANT
+      Events:
+        HttpApi:
+          Type: HttpApi
+          Properties:
+            Path: /multi-tenant-http
+            Method: get

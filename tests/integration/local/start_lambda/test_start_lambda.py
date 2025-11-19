@@ -214,6 +214,22 @@ class TestLambdaService(StartLambdaIntegBaseClass):
         self.assertIsNone(response.get("FunctionError"))
         self.assertEqual(response.get("StatusCode"), 200)
 
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=300, method="thread")
+    def test_multi_tenant_function_with_tenant_id(self):
+        response = self.lambda_client.invoke(
+            FunctionName="MultiTenantFunction", TenantId="tenant-123", Payload='{"test": "data"}'
+        )
+
+        self.assertEqual(response.get("StatusCode"), 200)
+        payload = json.loads(response.get("Payload").read().decode("utf-8"))
+
+        # The response is wrapped in a Lambda response format
+        self.assertEqual(payload.get("statusCode"), 200)
+        body = json.loads(payload.get("body"))
+        self.assertEqual(body.get("tenant_id"), "tenant-123")
+        self.assertEqual(body.get("message"), "Hello from multi-tenant function")
+
     @parameterized.expand([("False"), ("True")])
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
