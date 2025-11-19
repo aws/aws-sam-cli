@@ -96,6 +96,9 @@ class ContainerClient(docker.DockerClient, ABC):
         # Specify minimum version
         client_params["version"] = client_version
 
+        # Increase client timeout to tolerate longer pushes/pulls
+        client_params["timeout"] = int(os.environ.get("SAM_CLI_DOCKER_TIMEOUT", "600"))
+
         # Initialize DockerClient with processed parameters
         LOG.debug(f"Creating container client with parameters: {client_params}")
         super().__init__(**client_params)
