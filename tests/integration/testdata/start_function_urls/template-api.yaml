@@ -1,0 +1,165 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  SAM template for testing sam local start-api
+
+Globals:
+  Function:
+    Timeout: 3
+    MemorySize: 128
+    Runtime: python3.9
+
+Resources:
+  # API Gateway REST API
+  MyApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Cors:
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: "'*'"
+
+  # Function with API Gateway event
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: hello_world/
+      Handler: app.lambda_handler
+      Events:
+        HelloWorld:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MyApi
+            Path: /hello
+            Method: get
+        HelloWorldPost:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MyApi
+            Path: /hello
+            Method: post
+
+  # Function with multiple API paths
+  UserFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: authenticated/
+      Handler: app.lambda_handler
+      Events:
+        GetUsers:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MyApi
+            Path: /users
+            Method: get
+        GetUser:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MyApi
+            Path: /users/{id}
+            Method: get
+        CreateUser:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MyApi
+            Path: /users
+            Method: post
+        UpdateUser:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MyApi
+            Path: /users/{id}
+            Method: put
+        DeleteUser:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MyApi
+            Path: /users/{id}
+            Method: delete
+
+  # Function with proxy integration
+  ProxyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: data_processor/
+      Handler: app.lambda_handler
+      Events:
+        ProxyApiGreedy:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MyApi
+            Path: /proxy/{proxy+}
+            Method: any
+
+  # Function with authorizer
+  AuthorizedFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: hello_world/
+      Handler: app.lambda_handler
+      Environment:
+        Variables:
+          AUTHORIZED: "true"
+      Events:
+        AuthorizedEndpoint:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MyApi
+            Path: /authorized
+            Method: get
+            Auth:
+              Authorizer: AWS_IAM
+
+  # Function with request parameters
+  ParameterFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: data_processor/
+      Handler: app.lambda_handler
+      Events:
+        WithQueryParams:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MyApi
+            Path: /search
+            Method: get
+            RequestParameters:
+              - method.request.querystring.q:
+                  Required: true
+              - method.request.querystring.limit:
+                  Required: false
+
+Outputs:
+  ApiUrl:
+    Description: "API Gateway endpoint URL for Prod stage"
+    Value: !Sub "https://${MyApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+  
+  HelloWorldApi:
+    Description: "Hello World API endpoint"
+    Value: !Sub "https://${MyApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello"
+  
+  UsersApi:
+    Description: "Users API endpoint"
+    Value: !Sub "https://${MyApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/users"
+  
+  ProxyApi:
+    Description: "Proxy API endpoint"
+    Value: !Sub "https://${MyApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/proxy/"
+  
+  # Adding Fn::GetAtt references similar to Function URLs template
+  ApiRestApiId:
+    Description: "API Gateway REST API ID"
+    Value: !GetAtt MyApi.RestApiId
+  
+  ApiFunctionArn:
+    Description: "Api Function ARN"
+    Value: !GetAtt ApiFunction.Arn
+  
+  UserFunctionArn:
+    Description: "User Function ARN"
+    Value: !GetAtt UserFunction.Arn
+  
+  ProxyFunctionArn:
+    Description: "Proxy Function ARN"
+    Value: !GetAtt ProxyFunction.Arn
