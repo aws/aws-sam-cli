@@ -9,12 +9,3 @@ Resources:
       Handler: main.default_handler
       Runtime: python3.9
       CodeUri: ./lambda-fns
-
-  MultiTenantFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: main.multi_tenant_handler
-      Runtime: python3.9
-      CodeUri: ./lambda-fns
-      TenancyConfig:
-        TenantIsolationMode: PER_TENANT
