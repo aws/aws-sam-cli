@@ -52,6 +52,7 @@ DESCRIPTION = """
     requires_credentials=False,
     context_settings={"max_content_width": 120},
 )
+@click.argument("function_logical_ids", nargs=-1, required=False)
 @configuration_option(provider=ConfigProvider(section="parameters"))
 @terraform_plan_file_option
 @hook_name_click_option(
@@ -71,6 +72,7 @@ DESCRIPTION = """
 @print_cmdline_args
 def cli(
     ctx,  # pylint: disable=R0914
+    function_logical_ids,
     # start-lambda Specific Options
     host,
     port,
@@ -110,6 +112,7 @@ def cli(
 
     do_cli(
         ctx,
+        function_logical_ids,
         host,
         port,
         template_file,
@@ -139,6 +142,7 @@ def cli(
 
 def do_cli(  # pylint: disable=R0914
     ctx,
+    function_logical_ids,
     host,
     port,
     template,
@@ -208,6 +212,7 @@ def do_cli(  # pylint: disable=R0914
             container_host_interface=container_host_interface,
             add_host=add_host,
             invoke_images=processed_invoke_images,
+            function_logical_ids=function_logical_ids,
             no_mem_limit=no_mem_limit,
         ) as invoke_context:
             service = LocalLambdaService(lambda_invoke_context=invoke_context, port=port, host=host)

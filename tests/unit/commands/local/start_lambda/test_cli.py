@@ -85,6 +85,7 @@ class TestCli(TestCase):
             container_host_interface=self.container_host_interface,
             add_host=self.add_host,
             invoke_images={},
+            function_logical_ids=(),
             no_mem_limit=self.no_mem_limit,
         )
 
@@ -164,6 +165,7 @@ class TestCli(TestCase):
     def call_cli(self):
         start_lambda_cli(
             ctx=self.ctx_mock,
+            function_logical_ids=(),
             host=self.host,
             port=self.port,
             template=self.template,

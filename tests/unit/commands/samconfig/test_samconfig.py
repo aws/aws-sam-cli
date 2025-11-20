@@ -765,6 +765,7 @@ class TestSamConfigForAllCommands(TestCase):
 
             do_cli_mock.assert_called_with(
                 ANY,
+                (),  # function_logical_ids
                 "127.0.0.1",
                 12345,
                 str(Path(os.getcwd(), "mytemplate.yaml")),
@@ -1657,6 +1658,7 @@ class TestSamConfigWithOverrides(TestCase):
 
             do_cli_mock.assert_called_with(
                 ANY,
+                (),  # function_logical_ids
                 "otherhost",
                 9999,
                 str(Path(os.getcwd(), "othertemplate.yaml")),
@@ -1756,6 +1758,7 @@ class TestSamConfigWithOverrides(TestCase):
 
             do_cli_mock.assert_called_with(
                 ANY,
+                (),  # function_logical_ids
                 "otherhost",
                 9999,
                 str(Path(os.getcwd(), "envtemplate.yaml")),

@@ -453,8 +453,9 @@ for:
 
     test_script:
       # Install Ruby for Ruby build tests
+      - sh: "git -C ~/.rbenv/plugins/ruby-build pull"
       - sh: "rbenv install 3.3.7"
-      - sh: "rbenv install 3.4.2"
+      - sh: "rbenv install 3.4.7"
       - sh: "rbenv install 3.2.7"
       - sh: "rbenv global 3.3.7"
       - sh: "ruby --version"
@@ -474,8 +475,9 @@ for:
 
     test_script:
       # Install Ruby for Ruby ARM64 build tests
+      - sh: "git -C ~/.rbenv/plugins/ruby-build pull"
       - sh: "rbenv install 3.3.7"
-      - sh: "rbenv install 3.4.2"
+      - sh: "rbenv install 3.4.7"
       - sh: "rbenv install 3.2.7"
       - sh: "rbenv global 3.3.7"
       - sh: "ruby --version"
@@ -519,8 +521,9 @@ for:
 
     test_script:
       # Install Ruby for Ruby sync tests
+      - sh: "git -C ~/.rbenv/plugins/ruby-build pull"
       - sh: "rbenv install 3.3.7"
-      - sh: "rbenv install 3.4.2"
+      - sh: "rbenv install 3.4.7"
       - sh: "rbenv install 3.2.7"
       - sh: "rbenv global 3.3.7"
       - sh: "ruby --version"
@@ -565,8 +568,9 @@ for:
 
     test_script:
       # Install Ruby for Ruby validation and other tests
+      - sh: "git -C ~/.rbenv/plugins/ruby-build pull"
       - sh: "rbenv install 3.3.7"
-      - sh: "rbenv install 3.4.2"
+      - sh: "rbenv install 3.4.7"
       - sh: "rbenv install 3.2.7"
       - sh: "rbenv global 3.3.7"
       - sh: "ruby --version"
