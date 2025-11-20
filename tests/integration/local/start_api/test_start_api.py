@@ -619,6 +619,17 @@ class TestServiceWithHttpApi(StartApiIntegBaseClass):
         self.assertEqual(response.json(), {"message": "Internal server error"})
         self.assertEqual(response.raw.version, 11)
 
+
+class TestMultiTenantStartApi(StartApiIntegBaseClass):
+    """
+    Test multi-tenant Lambda functions with start-api
+    """
+
+    template_path = "/testdata/start_api/template-http-api-multi-tenant.yaml"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_multi_tenant_function_http_api_with_tenant_id(self):
