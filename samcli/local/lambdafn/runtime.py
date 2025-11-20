@@ -196,6 +196,7 @@ class LambdaRuntime:
         self,
         function_config,
         event,
+        tenant_id=None,
         debug_context=None,
         stdout: Optional[StreamWriter] = None,
         stderr: Optional[StreamWriter] = None,
@@ -253,7 +254,12 @@ class LambdaRuntime:
             # starts another thread to stream logs. This method will terminate
             # either successfully or be killed by one of the interrupt handlers above.
             container.wait_for_result(
-                full_path=function_config.full_path, event=event, stdout=stdout, stderr=stderr, start_timer=start_timer
+                full_path=function_config.full_path,
+                event=event,
+                stdout=stdout,
+                stderr=stderr,
+                start_timer=start_timer,
+                tenant_id=tenant_id,
             )
 
         except KeyboardInterrupt:

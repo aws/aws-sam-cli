@@ -522,6 +522,7 @@ class SamFunctionProvider(SamBaseProvider):
             runtime_management_config=resource_properties.get("RuntimeManagementConfig"),
             function_build_info=function_build_info,
             logging_config=resource_properties.get("LoggingConfig"),
+            tenancy_config=resource_properties.get("TenancyConfig"),
         )
 
     @staticmethod

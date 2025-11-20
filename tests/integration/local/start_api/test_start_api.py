@@ -619,6 +619,18 @@ class TestServiceWithHttpApi(StartApiIntegBaseClass):
         self.assertEqual(response.json(), {"message": "Internal server error"})
         self.assertEqual(response.raw.version, 11)
 
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_multi_tenant_function_http_api_with_tenant_id(self):
+        """Test multi-tenant function via HTTP API with tenant-id header"""
+        response = requests.get(
+            self.url + "/multi-tenant-http", headers={"X-Amz-Tenant-Id": "test-tenant-789"}, timeout=300
+        )
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["tenant_id"], "test-tenant-789")
+
 
 class TestStartApiWithSwaggerApis(StartApiIntegBaseClass):
     template_path = "/testdata/start_api/swagger-template.yaml"

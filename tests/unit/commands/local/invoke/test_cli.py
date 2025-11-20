@@ -53,6 +53,7 @@ class TestCli(TestCase):
         self.overide_runtime = None
         self.mount_symlinks = False
         self.no_mem_limit = False
+        self.tenant_id = None
 
         self.ctx_mock = Mock()
         self.ctx_mock.region = self.region_name
@@ -86,6 +87,7 @@ class TestCli(TestCase):
             runtime=self.overide_runtime,
             mount_symlinks=self.mount_symlinks,
             no_mem_limit=self.no_mem_limit,
+            tenant_id=self.tenant_id,
         )
 
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
@@ -129,6 +131,7 @@ class TestCli(TestCase):
         context_mock.local_lambda_runner.invoke.assert_called_with(
             context_mock.function_identifier,
             event=event_data,
+            tenant_id=None,
             stdout=context_mock.stdout,
             stderr=context_mock.stderr,
             override_runtime=None,
@@ -176,6 +179,7 @@ class TestCli(TestCase):
         context_mock.local_lambda_runner.invoke.assert_called_with(
             context_mock.function_identifier,
             event="{}",
+            tenant_id=None,
             stdout=context_mock.stdout,
             stderr=context_mock.stderr,
             override_runtime=None,
@@ -310,6 +314,59 @@ class TestCli(TestCase):
 
         msg = str(ex_ctx.exception)
         self.assertEqual(msg, expected_exception_message)
+
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
+    @patch("samcli.commands.local.invoke.cli._get_event")
+    def test_cli_must_pass_tenant_id_to_invoke(self, get_event_mock, InvokeContextMock):
+        """Test that tenant_id parameter is passed through to local_lambda_runner.invoke()"""
+        event_data = "data"
+        tenant_id = "customer-123"
+        get_event_mock.return_value = event_data
+
+        # Mock the __enter__ method to return a object inside a context manager
+        context_mock = Mock()
+        InvokeContextMock.return_value.__enter__.return_value = context_mock
+
+        # Call with tenant_id
+        invoke_cli(
+            ctx=self.ctx_mock,
+            function_identifier=self.function_id,
+            template=self.template,
+            event=self.eventfile,
+            no_event=self.no_event,
+            env_vars=self.env_vars,
+            debug_port=self.debug_ports,
+            debug_args=self.debug_args,
+            debugger_path=self.debugger_path,
+            container_env_vars=self.container_env_vars,
+            docker_volume_basedir=self.docker_volume_basedir,
+            docker_network=self.docker_network,
+            log_file=self.log_file,
+            skip_pull_image=self.skip_pull_image,
+            parameter_overrides=self.parameter_overrides,
+            layer_cache_basedir=self.layer_cache_basedir,
+            force_image_build=self.force_image_build,
+            shutdown=self.shutdown,
+            container_host=self.container_host,
+            container_host_interface=self.container_host_interface,
+            add_host=self.add_host,
+            invoke_image=self.invoke_image,
+            hook_name=self.hook_name,
+            runtime=self.overide_runtime,
+            mount_symlinks=self.mount_symlinks,
+            no_mem_limit=self.no_mem_limit,
+            tenant_id=tenant_id,
+        )
+
+        # Verify tenant_id was passed to invoke
+        context_mock.local_lambda_runner.invoke.assert_called_with(
+            context_mock.function_identifier,
+            event=event_data,
+            stdout=context_mock.stdout,
+            stderr=context_mock.stderr,
+            override_runtime=None,
+            tenant_id=tenant_id,
+        )
 
 
 class TestGetEvent(TestCase):
