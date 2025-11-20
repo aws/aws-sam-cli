@@ -120,6 +120,11 @@ class TestSingleLambdaInvoke(RemoteInvokeIntegBase):
         self.assertEqual(response_payload, {"message": "Hello world"})
         self.assertEqual(remote_invoke_result_stdout["StatusCode"], 200)
 
+
+@pytest.mark.xdist_group(name="sam_remote_invoke_multi_tenant")
+class TestMultiTenantRemoteInvoke(RemoteInvokeIntegBase):
+    template = Path("template-multi-tenant.yaml")
+
     def test_multi_tenant_function_with_tenant_id(self):
         command_list = self.get_command_list(
             stack_name=self.stack_name,
