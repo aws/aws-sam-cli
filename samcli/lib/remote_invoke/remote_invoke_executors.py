@@ -83,6 +83,7 @@ class RemoteInvokeExecutionInfo:
 
     payload: payload string given by the customer
     payload_file: if file is given, this points to its location
+    tenant_id: tenant ID for multi-tenant Lambda functions
 
     response: response object returned from boto3 action
     exception: if an exception is thrown, it will be stored here
@@ -91,6 +92,7 @@ class RemoteInvokeExecutionInfo:
     # Request related properties
     payload: Optional[Union[str, List, dict]]
     payload_file: Optional[TextIOWrapper]
+    tenant_id: Optional[str]
     parameters: dict
     output_format: RemoteInvokeOutputFormat
 
@@ -103,11 +105,13 @@ class RemoteInvokeExecutionInfo:
         self,
         payload: Optional[Union[str, List, dict]],
         payload_file: Optional[TextIOWrapper],
+        tenant_id: Optional[str],
         parameters: dict,
         output_format: RemoteInvokeOutputFormat,
     ):
         self.payload = payload
         self.payload_file = payload_file
+        self.tenant_id = tenant_id
         self.parameters = parameters
         self.output_format = output_format
         self.response = None

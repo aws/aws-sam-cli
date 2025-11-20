@@ -116,6 +116,8 @@ class Function(NamedTuple):
     runtime_management_config: Optional[Dict] = None
     # LoggingConfig for Advanced logging
     logging_config: Optional[Dict] = None
+    # Function Tenancy Configuration for multi-tenant functions
+    tenancy_config: Optional[Dict] = None
 
     @property
     def full_path(self) -> str:

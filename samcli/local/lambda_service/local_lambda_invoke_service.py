@@ -7,7 +7,7 @@ import logging
 from flask import Flask, request
 from werkzeug.routing import BaseConverter
 
-from samcli.commands.local.lib.exceptions import UnsupportedInlineCodeError
+from samcli.commands.local.lib.exceptions import TenantIdValidationError, UnsupportedInlineCodeError
 from samcli.lib.utils.name_utils import InvalidFunctionNameException, normalize_sam_function_identifier
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker.exceptions import DockerContainerCreationFailedException
@@ -173,6 +173,8 @@ class LocalLambdaInvokeService(BaseLocalService):
         except InvalidFunctionNameException as e:
             LOG.error("Invalid function name: %s", str(e))
             return LambdaErrorResponses.validation_exception(str(e))
+        # Extract tenant-id from request header
+        tenant_id = flask_request.headers.get("X-Amz-Tenant-Id")
 
         stdout_stream_string = io.StringIO()
         stdout_stream_bytes = io.BytesIO()
@@ -180,8 +182,14 @@ class LocalLambdaInvokeService(BaseLocalService):
 
         try:
             self.lambda_runner.invoke(
-                normalized_function_name, request_data, stdout=stdout_stream_writer, stderr=self.stderr
+                normalized_function_name,
+                request_data,
+                stdout=stdout_stream_writer,
+                stderr=self.stderr,
+                tenant_id=tenant_id,
             )
+        except TenantIdValidationError as e:
+            return LambdaErrorResponses.validation_exception(str(e))
         except FunctionNotFound:
             LOG.debug("%s was not found to invoke.", normalized_function_name)
             return LambdaErrorResponses.resource_not_found(normalized_function_name)

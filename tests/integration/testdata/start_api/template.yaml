@@ -301,3 +301,24 @@ Resources:
           Properties:
             Path: /sleepfortensecondszipped
             Method: get
+
+  MultiTenantApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.multi_tenant_handler
+      Runtime: python3.9
+      CodeUri: .
+      Timeout: 600
+      TenancyConfig:
+        TenantIsolationMode: PER_TENANT
+      Events:
+        RestApi:
+          Type: Api
+          Properties:
+            Path: /multi-tenant-rest
+            Method: get
+        HttpApi:
+          Type: HttpApi
+          Properties:
+            Path: /multi-tenant-http
+            Method: get
