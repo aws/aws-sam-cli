@@ -53,3 +53,18 @@ def stock_seller(event, context):
     return {
         "balance": new_balance
     }
+
+def multi_tenant_handler(event, context):
+    import json
+    # Get tenant_id from Lambda context
+    tenant_id = getattr(context, 'tenant_id', None)
+    
+    return {
+        'statusCode': 200,
+        'body': json.dumps({
+            'message': 'Hello from remote multi-tenant function',
+            'tenant_id': tenant_id,
+            'function_name': context.function_name,
+            'event': event
+        })
+    }
