@@ -624,6 +624,7 @@ class TestMultiTenantStartApi(StartApiIntegBaseClass):
     """
     Test multi-tenant Lambda functions with start-api
     """
+
     template_path = "/testdata/start_api/template-http-api-multi-tenant.yaml"
 
     def setUp(self):
