@@ -13,6 +13,7 @@ from unittest.mock import Mock, patch
 import docker
 from parameterized import parameterized
 
+from samcli.cli.global_config import GlobalConfig
 from samcli.local.docker.container_client import (
     ContainerClient,
     DockerContainerClient,
@@ -748,6 +749,19 @@ class TestContainerClientBaseInit(BaseContainerClientTestCase):
         self.assertEqual(call_kwargs["version"], self.docker_version)
         self.assertEqual(call_kwargs["base_url"], override_url)
         self.assertTrue(mock_log.debug.called)
+
+    @patch("docker.DockerClient.__init__", return_value=None)
+    def test_init_with_api_override(self, mock_docker_init):
+        """Test ContainerClient init with api override"""
+        override_api = "1.51"
+
+        with patch.dict("os.environ", {GlobalConfig.DOCKER_API_ENV_VAR: override_api}, clear=True):
+            client = ConcreteContainerClient()
+
+        # Verify DockerClient.__init__ was called with expected parameters
+        mock_docker_init.assert_called_once()
+        call_kwargs = mock_docker_init.call_args.kwargs
+        self.assertEqual(call_kwargs["version"], override_api)
 
 
 class TestContainerClientBaseClass(TestCase):
