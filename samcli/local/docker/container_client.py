@@ -88,7 +88,6 @@ class ContainerClient(docker.DockerClient, ABC):
 
         # Always start with environment variables
         current_env = os.environ.copy()
-        print(current_env)
         self.client_params = kwargs_from_env(environment=current_env)
 
         # Override base_url if explicitly provided
