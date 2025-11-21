@@ -32,6 +32,7 @@ from typing import Any, List, Optional, Tuple, Union
 import docker
 from docker.utils import kwargs_from_env
 
+from samcli.cli.global_config import GlobalConfig
 from samcli.lib.constants import DOCKER_MIN_API_VERSION, DOCKER_MIN_API_VERSION_FALLBACK
 from samcli.local.docker.exceptions import ContainerArchiveImageLoadFailedException, ContainerInvalidSocketPathException
 from samcli.local.docker.platform_config import get_finch_socket_path
@@ -94,7 +95,7 @@ class ContainerClient(docker.DockerClient, ABC):
             self.client_params["base_url"] = base_url
 
         # Specify minimum version
-        self.client_params["version"] = DOCKER_MIN_API_VERSION
+        self.client_params["version"] = os.environ.get(GlobalConfig.DOCKER_API_ENV_VAR, DOCKER_MIN_API_VERSION)
 
         # Initialize DockerClient with processed parameters
         LOG.debug(f"Creating container client with parameters: {self.client_params}")
