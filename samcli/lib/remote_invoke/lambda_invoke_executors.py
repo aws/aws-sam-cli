@@ -33,6 +33,7 @@ from samcli.lib.utils import boto_utils
 LOG = logging.getLogger(__name__)
 FUNCTION_NAME = "FunctionName"
 PAYLOAD = "Payload"
+TENANT_ID = "TenantId"
 EVENT_STREAM = "EventStream"
 PAYLOAD_CHUNK = "PayloadChunk"
 INVOKE_COMPLETE = "InvokeComplete"
@@ -57,6 +58,15 @@ class AbstractLambdaInvokeExecutor(BotoActionExecutor, ABC):
         self._function_name = function_name
         self._remote_output_format = remote_output_format
         self.request_parameters = {"InvocationType": "RequestResponse", "LogType": "Tail"}
+
+    def execute(self, remote_invoke_input: RemoteInvokeExecutionInfo) -> RemoteInvokeIterableResponseType:
+        """
+        Override execute to extract tenant_id from RemoteInvokeExecutionInfo for Lambda-specific handling.
+        """
+        if remote_invoke_input.tenant_id:
+            self.request_parameters[TENANT_ID] = remote_invoke_input.tenant_id
+
+        return super().execute(remote_invoke_input)
 
     def validate_action_parameters(self, parameters: dict) -> None:
         """

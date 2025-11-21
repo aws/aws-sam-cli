@@ -409,7 +409,7 @@ class LambdaRuntime_invoke(TestCase):
         self.manager_mock.run.assert_called_with(container, ContainerContext.INVOKE)
         self.runtime._configure_interrupt.assert_called_with(self.full_path, self.DEFAULT_TIMEOUT, container, True)
         container.wait_for_result.assert_called_with(
-            event=event, full_path=self.full_path, stdout=stdout, stderr=stderr, start_timer=start_timer
+            event=event, full_path=self.full_path, stdout=stdout, stderr=stderr, start_timer=start_timer, tenant_id=None
         )
 
         # Finally block
@@ -771,7 +771,7 @@ class TestWarmLambdaRuntime_invoke(TestCase):
         self.manager_mock.run.assert_called_with(container, ContainerContext.INVOKE)
         self.runtime._configure_interrupt.assert_called_with(self.full_path, self.DEFAULT_TIMEOUT, container, True)
         container.wait_for_result.assert_called_with(
-            event=event, full_path=self.full_path, stdout=stdout, stderr=stderr, start_timer=start_timer
+            event=event, full_path=self.full_path, stdout=stdout, stderr=stderr, start_timer=start_timer, tenant_id=None
         )
 
         # Finally block
