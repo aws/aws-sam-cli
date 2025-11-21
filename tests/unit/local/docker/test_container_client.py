@@ -751,8 +751,8 @@ class TestContainerClientBaseInit(BaseContainerClientTestCase):
         self.assertTrue(mock_log.debug.called)
 
     @patch("docker.DockerClient.__init__", return_value=None)
-    def test_init_with_base_url_override(self, mock_log, mock_docker_init):
-        """Test ContainerClient init with base_url override"""
+    def test_init_with_api_override(self, mock_docker_init):
+        """Test ContainerClient init with api override"""
         override_api = "1.51"
 
         with patch.dict("os.environ", {GlobalConfig.DOCKER_API_ENV_VAR: override_api}, clear=True):
