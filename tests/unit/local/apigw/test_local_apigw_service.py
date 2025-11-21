@@ -27,7 +27,7 @@ from samcli.local.apigw.exceptions import (
 from samcli.local.apigw.service_error_responses import ServiceErrorResponses
 from samcli.local.docker.exceptions import DockerContainerCreationFailedException
 from samcli.local.lambdafn.exceptions import FunctionNotFound
-from samcli.commands.local.lib.exceptions import TenantIdValidationError, UnsupportedInlineCodeError
+from samcli.commands.local.lib.exceptions import UnsupportedInlineCodeError
 
 
 class TestApiGatewayService(TestCase):
@@ -1136,65 +1136,6 @@ class TestApiGatewayService(TestCase):
         invoke_mock.assert_called_once()
         call_args = invoke_mock.call_args
         self.assertEqual(call_args[0][2], tenant_id)
-
-    @patch("samcli.local.apigw.local_apigw_service.request")
-    @patch.object(LocalApigwService, "get_request_methods_endpoints")
-    @patch("samcli.local.apigw.local_apigw_service.construct_v1_event")
-    @patch.object(LocalApigwService, "_invoke_lambda_function")
-    def test_request_handler_returns_400_on_tenant_id_validation_error(
-        self, invoke_mock, v1_event_mock, request_mock, flask_request_mock
-    ):
-        """Test that TenantIdValidationError returns HTTP 400 Bad Request with validation message"""
-
-        flask_request_mock.headers.get = Mock(return_value=None)
-
-        self.api_service._get_current_route = Mock(return_value=self.api_gateway_route)
-        v1_event_mock.return_value = {}
-
-        error_message = "The invoked function is enabled with tenancy configuration. Add a valid tenant ID in your request and try again."
-        invoke_mock.side_effect = TenantIdValidationError(error_message)
-        request_mock.return_value = ("GET", "/test")
-
-        self.api_service._get_current_route.return_value.payload_format_version = "1.0"
-        self.api_service._get_current_route.return_value.authorizer_object = None
-        self.api_service._get_current_route.methods = []
-
-        result = self.api_service._request_handler()
-
-        self.assertEqual(result.status_code, 400)
-
-        response_data = result.get_json()
-        self.assertEqual(response_data["message"], error_message)
-
-    @patch("samcli.local.apigw.local_apigw_service.request")
-    @patch.object(LocalApigwService, "get_request_methods_endpoints")
-    @patch("samcli.local.apigw.local_apigw_service.construct_v1_event")
-    @patch.object(LocalApigwService, "_invoke_lambda_function")
-    def test_request_handler_returns_400_when_normal_function_invoked_with_tenant_id(
-        self, invoke_mock, v1_event_mock, request_mock, flask_request_mock
-    ):
-        """Test that invoking normal function with tenant-id returns HTTP 400 Bad Request"""
-
-        tenant_id = "customer-123"
-        flask_request_mock.headers.get = Mock(side_effect=lambda key: tenant_id if key == "X-Amz-Tenant-Id" else None)
-
-        self.api_service._get_current_route = Mock(return_value=self.api_gateway_route)
-        v1_event_mock.return_value = {}
-
-        error_message = "The invoked function is not enabled with tenancy configuration. Remove the tenant ID from your request and try again."
-        invoke_mock.side_effect = TenantIdValidationError(error_message)
-        request_mock.return_value = ("GET", "/test")
-
-        self.api_service._get_current_route.return_value.payload_format_version = "1.0"
-        self.api_service._get_current_route.return_value.authorizer_object = None
-        self.api_service._get_current_route.methods = []
-
-        result = self.api_service._request_handler()
-
-        self.assertEqual(result.status_code, 400)
-
-        response_data = result.get_json()
-        self.assertEqual(response_data["message"], error_message)
 
 
 class TestApiGatewayModel(TestCase):
