@@ -26,8 +26,7 @@ from samtranslator.translator.translator import prepare_plugins
 from samtranslator.validator.validator import SamTemplateValidator
 
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
-
-from .local_uri_plugin import SupportLocalUriPlugin
+from samcli.lib.samlib.local_uri_plugin import SupportLocalUriPlugin
 
 
 class SamTranslatorWrapper:
