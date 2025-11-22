@@ -100,6 +100,7 @@ class RemoteInvokeIntegBase(TestCase):
         region=None,
         profile=None,
         beta_features=None,
+        tenant_id=None,
     ):
         command_list = [get_sam_command(), "remote", "invoke"]
 
@@ -117,6 +118,9 @@ class RemoteInvokeIntegBase(TestCase):
 
         if output:
             command_list = command_list + ["--output", output]
+
+        if tenant_id:
+            command_list = command_list + ["--tenant-id", tenant_id]
 
         if parameter_list:
             for parameter, value in parameter_list:

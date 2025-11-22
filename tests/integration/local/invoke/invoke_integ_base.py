@@ -44,6 +44,7 @@ class InvokeIntegBase(TestCase):
         hook_name=None,
         beta_features=None,
         terraform_plan_file=None,
+        tenant_id=None,
     ):
         command_list = [get_sam_command(), "local", "invoke", function_to_invoke]
 
@@ -88,6 +89,9 @@ class InvokeIntegBase(TestCase):
 
         if terraform_plan_file:
             command_list += ["--terraform-plan-file", terraform_plan_file]
+
+        if tenant_id:
+            command_list = command_list + ["--tenant-id", tenant_id]
 
         return command_list
 

@@ -48,6 +48,16 @@ Resources:
       CodeUri: .
       Timeout: 600
 
+  MultiTenantFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.multi_tenant_handler
+      Runtime: python3.9
+      CodeUri: .
+      Timeout: 600
+      TenancyConfig:
+        TenantIsolationMode: PER_TENANT
+
   HelloWorldLambdaFunction:
     Type: AWS::Lambda::Function
     Properties:

@@ -888,6 +888,7 @@ class TestContainer_wait_for_result(TestCase):
         mock_requests.post.assert_called_with(
             self.container.URL.format(host=host, port=port, function_name="function"),
             data=b"{}",
+            headers={},
             timeout=(self.container.RAPID_CONNECTION_TIMEOUT, None),
         )
         stdout_mock.write_bytes.assert_called_with(rie_response)
@@ -949,6 +950,7 @@ class TestContainer_wait_for_result(TestCase):
         mock_requests.post.assert_called_with(
             self.container.URL.format(host=host, port=port, function_name="function"),
             data=b"{}",
+            headers={},
             timeout=(self.container.RAPID_CONNECTION_TIMEOUT, None),
         )
         if response_deserializable:
@@ -989,16 +991,19 @@ class TestContainer_wait_for_result(TestCase):
                 call(
                     "http://localhost:7077/2015-03-31/functions/function/invocations",
                     data=b"{}",
+                    headers={},
                     timeout=(self.timeout, None),
                 ),
                 call(
                     "http://localhost:7077/2015-03-31/functions/function/invocations",
                     data=b"{}",
+                    headers={},
                     timeout=(self.timeout, None),
                 ),
                 call(
                     "http://localhost:7077/2015-03-31/functions/function/invocations",
                     data=b"{}",
+                    headers={},
                     timeout=(self.timeout, None),
                 ),
             ],
@@ -1058,6 +1063,54 @@ class TestContainer_wait_for_result(TestCase):
             )
 
         self.assertEqual(mock_requests.post.call_count, 0)
+
+    @parameterized.expand(
+        [
+            (True, b'{"result": "success"}', {"Content-Type": "application/json"}),
+        ]
+    )
+    @patch("socket.socket")
+    @patch("samcli.local.docker.container.requests")
+    def test_wait_for_result_with_tenant_id(
+        self, response_deserializable, rie_response, resp_headers, mock_requests, patched_socket
+    ):
+        """Test that tenant_id is passed as header when provided"""
+        self.container.is_created.return_value = True
+
+        real_container_mock = Mock()
+        self.mock_docker_client.containers.get.return_value = real_container_mock
+
+        output_itr = Mock()
+        real_container_mock.attach.return_value = output_itr
+        self.container._write_container_output = Mock()
+        self.container._create_threading_event = Mock()
+        self.container._create_threading_event.return_value = Mock()
+
+        stdout_mock = Mock()
+        stdout_mock.write_str = Mock()
+        stderr_mock = Mock()
+        response = Mock()
+        response.content = rie_response
+        response.headers = resp_headers
+        mock_requests.post.return_value = response
+
+        patched_socket.return_value = self.socket_mock
+
+        tenant_id = "test-tenant-123"
+
+        self.container.wait_for_result(
+            event=self.event,
+            full_path=self.name,
+            stdout=stdout_mock,
+            stderr=stderr_mock,
+            tenant_id=tenant_id,
+        )
+
+        # Verify that the POST request was called with tenant_id header
+        mock_requests.post.assert_called_once()
+        call_args = mock_requests.post.call_args
+        self.assertIn("headers", call_args.kwargs)
+        self.assertEqual(call_args.kwargs["headers"]["X-Amz-Tenant-Id"], tenant_id)
 
     def test_write_container_output_successful(self):
         stdout_mock = Mock(spec=StreamWriter)

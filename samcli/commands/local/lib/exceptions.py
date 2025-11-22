@@ -46,3 +46,10 @@ class InvalidHandlerPathError(UserException):
     """
     Raises when the handler is in an unexpected format and can't be parsed
     """
+
+
+class TenantIdValidationError(UserException):
+    """
+    Raised when there's a tenant-id validation error (missing tenant-id for multi-tenant functions
+    or providing tenant-id for non-multi-tenant functions)
+    """

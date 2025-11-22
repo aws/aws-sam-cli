@@ -68,7 +68,7 @@ class TestLocalLambdaService(TestCase):
 
         self.assertEqual(response, "request response")
 
-        lambda_runner_mock.invoke.assert_called_once_with("HelloWorld", "{}", stdout=ANY, stderr=None)
+        lambda_runner_mock.invoke.assert_called_once_with("HelloWorld", "{}", stdout=ANY, stderr=None, tenant_id=ANY)
         service_response_mock.assert_called_once_with("hello world", {"Content-Type": "application/json"}, 200)
 
     @patch("samcli.local.lambda_service.local_lambda_invoke_service.LambdaErrorResponses")
@@ -88,7 +88,7 @@ class TestLocalLambdaService(TestCase):
 
         self.assertEqual(response, "Couldn't find Lambda")
 
-        lambda_runner_mock.invoke.assert_called_once_with("NotFound", "{}", stdout=ANY, stderr=None)
+        lambda_runner_mock.invoke.assert_called_once_with("NotFound", "{}", stdout=ANY, stderr=None, tenant_id=ANY)
 
         lambda_error_responses_mock.resource_not_found.assert_called_once_with("NotFound")
 
@@ -109,7 +109,9 @@ class TestLocalLambdaService(TestCase):
 
         self.assertEqual(response, "Inline code is not supported")
 
-        lambda_runner_mock.invoke.assert_called_once_with("FunctionWithInlineCode", "{}", stdout=ANY, stderr=None)
+        lambda_runner_mock.invoke.assert_called_once_with(
+            "FunctionWithInlineCode", "{}", stdout=ANY, stderr=None, tenant_id=ANY
+        )
 
         lambda_error_responses_mock.not_implemented_locally.assert_called()
 
@@ -131,7 +133,7 @@ class TestLocalLambdaService(TestCase):
         self.assertEqual(response, "Container creation failed")
 
         lambda_runner_mock.invoke.assert_called_once_with(
-            "FunctionContainerCreationFailed", "{}", stdout=ANY, stderr=None
+            "FunctionContainerCreationFailed", "{}", stdout=ANY, stderr=None, tenant_id=ANY
         )
 
         lambda_error_responses_mock.container_creation_failed.assert_called()
@@ -194,7 +196,7 @@ class TestLocalLambdaService(TestCase):
 
         self.assertEqual(response, "request response")
 
-        lambda_runner_mock.invoke.assert_called_once_with("HelloWorld", "{}", stdout=ANY, stderr=None)
+        lambda_runner_mock.invoke.assert_called_once_with("HelloWorld", "{}", stdout=ANY, stderr=None, tenant_id=ANY)
         service_response_mock.assert_called_once_with(
             "hello world", {"Content-Type": "application/json", "x-amz-function-error": "Unhandled"}, 200
         )
@@ -216,7 +218,35 @@ class TestLocalLambdaService(TestCase):
 
         self.assertEqual(response, "request response")
 
-        lambda_runner_mock.invoke.assert_called_once_with("HelloWorld", "{}", stdout=ANY, stderr=None)
+        lambda_runner_mock.invoke.assert_called_once_with("HelloWorld", "{}", stdout=ANY, stderr=None, tenant_id=ANY)
+        service_response_mock.assert_called_once_with("hello world", {"Content-Type": "application/json"}, 200)
+
+    @patch("samcli.local.lambda_service.local_lambda_invoke_service.LocalLambdaInvokeService.service_response")
+    @patch("samcli.local.lambda_service.local_lambda_invoke_service.LambdaOutputParser")
+    def test_invoke_request_handler_extracts_tenant_id_from_header(
+        self, lambda_output_parser_mock, service_response_mock
+    ):
+        """Test that tenant-id is extracted from X-Amz-Tenant-Id header and passed to invoke"""
+        tenant_id = "customer-789"
+        lambda_output_parser_mock.get_lambda_output.return_value = "hello world", False
+        service_response_mock.return_value = "request response"
+
+        request_mock = Mock()
+        request_mock.get_data.return_value = b"{}"
+        request_mock.headers.get = Mock(side_effect=lambda key: tenant_id if key == "X-Amz-Tenant-Id" else None)
+        local_lambda_invoke_service.request = request_mock
+
+        lambda_runner_mock = Mock()
+        service = LocalLambdaInvokeService(lambda_runner=lambda_runner_mock, port=3000, host="localhost")
+
+        response = service._invoke_request_handler(function_name="HelloWorld")
+
+        self.assertEqual(response, "request response")
+
+        # Verify tenant_id was passed to lambda_runner.invoke
+        lambda_runner_mock.invoke.assert_called_once_with(
+            "HelloWorld", "{}", stdout=ANY, stderr=None, tenant_id=tenant_id
+        )
         service_response_mock.assert_called_once_with("hello world", {"Content-Type": "application/json"}, 200)
 
 
@@ -355,7 +385,7 @@ class TestPathConverter(TestCase):
         self.assertEqual(response, "request response")
 
         # Verify that the lambda runner was called with the normalized function name
-        lambda_runner_mock.invoke.assert_called_once_with("HelloWorld", "{}", stdout=ANY, stderr=None)
+        lambda_runner_mock.invoke.assert_called_once_with("HelloWorld", "{}", stdout=ANY, stderr=None, tenant_id=ANY)
         service_response_mock.assert_called_once_with("hello world", {"Content-Type": "application/json"}, 200)
 
     @patch("samcli.local.lambda_service.local_lambda_invoke_service.LambdaErrorResponses")
@@ -379,7 +409,7 @@ class TestPathConverter(TestCase):
         self.assertEqual(response, "Couldn't find Lambda")
 
         # Verify that the lambda runner was called with the normalized function name
-        lambda_runner_mock.invoke.assert_called_once_with("NotFound", "{}", stdout=ANY, stderr=None)
+        lambda_runner_mock.invoke.assert_called_once_with("NotFound", "{}", stdout=ANY, stderr=None, tenant_id=ANY)
 
         # Verify that error response uses the normalized function name
         lambda_error_responses_mock.resource_not_found.assert_called_once_with("NotFound")

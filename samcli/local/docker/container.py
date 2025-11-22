@@ -448,7 +448,7 @@ class Container:
             raise ex
 
     @retry(exc=requests.exceptions.RequestException, exc_raise=ContainerResponseException)
-    def wait_for_http_response(self, name, event, stdout) -> Tuple[Union[str, bytes], bool]:
+    def wait_for_http_response(self, name, event, stdout, tenant_id=None) -> Tuple[Union[str, bytes], bool]:
         # TODO(sriram-mv): `aws-lambda-rie` is in a mode where the function_name is always "function"
         # NOTE(sriram-mv): There is a connection timeout set on the http call to `aws-lambda-rie`, however there is not
         # a read time out for the response received from the server.
@@ -462,10 +462,18 @@ class Container:
                 lock = threading.Lock()
                 CONCURRENT_CALL_MANAGER[lock_key] = lock
         LOG.debug("Waiting to retrieve the lock (%s) to start invocation", lock_key)
+
+        # Prepare headers for the request
+        headers = {}
+        if tenant_id is not None:
+            headers["X-Amz-Tenant-Id"] = tenant_id
+            LOG.debug("Adding tenant-id header: %s", tenant_id)
+
         with lock:
             resp = requests.post(
                 self.URL.format(host=self._container_host, port=self.rapid_port_host, function_name="function"),
                 data=event.encode("utf-8"),
+                headers=headers,
                 timeout=(self.RAPID_CONNECTION_TIMEOUT, None),
             )
 
@@ -478,7 +486,7 @@ class Container:
             LOG.debug("Failed to deserialize response from RIE, returning the raw response as is")
             return resp.content, False
 
-    def wait_for_result(self, full_path, event, stdout, stderr, start_timer=None):
+    def wait_for_result(self, full_path, event, stdout, stderr, start_timer=None, tenant_id=None):
         # NOTE(sriram-mv): Let logging happen in its own thread, so that a http request can be sent.
         # NOTE(sriram-mv): All logging is re-directed to stderr, so that only the lambda function return
         # will be written to stdout.
@@ -499,7 +507,7 @@ class Container:
         # start the timer for function timeout right before executing the function, as waiting for the socket
         # can take some time
         timer = start_timer() if start_timer else None
-        response, is_image = self.wait_for_http_response(full_path, event, stdout)
+        response, is_image = self.wait_for_http_response(full_path, event, stdout, tenant_id)
         if timer:
             timer.cancel()
 

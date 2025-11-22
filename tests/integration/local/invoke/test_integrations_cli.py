@@ -364,6 +364,29 @@ class TestSamPythonHelloWorldIntegration(IntegrationCliIntegBase):
         self.assertEqual(environ["EmptyDefaultParameter"], "")
 
     @pytest.mark.flaky(reruns=3)
+    def test_invoke_multi_tenant_function(self):
+        command_list = InvokeIntegBase.get_command_list(
+            "MultiTenantFunction",
+            template_path=self.template_path,
+            event_path=self.event_path,
+            tenant_id="test-tenant-123",
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stdout = stdout.strip()
+        response = json.loads(process_stdout.decode("utf-8"))
+        body = json.loads(response["body"])
+
+        self.assertEqual(process.returncode, 0)
+        self.assertEqual(body["tenant_id"], "test-tenant-123")
+
+    @pytest.mark.flaky(reruns=3)
     def test_invoke_with_env_using_parameters_with_custom_region(self):
         custom_region = "us-west-2"
 
@@ -1254,7 +1277,7 @@ class TestInvokeFunctionWithError(InvokeIntegBase):
         stack_trace_lines = [
             "[ERROR] Exception: Lambda is raising an exception",
             "Traceback (most recent call last):",
-            '\xa0\xa0File "/var/task/main.py", line 51, in raise_exception',
+            '\xa0\xa0File "/var/task/main.py", line 65, in raise_exception',
             '\xa0\xa0\xa0\xa0raise Exception("Lambda is raising an exception")',
         ]
 

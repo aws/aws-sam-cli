@@ -634,6 +634,7 @@ class BuildIntegJavaBase(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
     USING_GRADLE_PATH = os.path.join("Java", "gradle")
     USING_GRADLEW_PATH = os.path.join("Java", "gradlew")
+    USING_GRADLEW_IN_CONTAINER_PATH = os.path.join("Java", "gradlew-in-container")
     USING_GRADLE_KOTLIN_PATH = os.path.join("Java", "gradle-kotlin")
     USING_MAVEN_PATH = os.path.join("Java", "maven")
 

@@ -111,6 +111,58 @@ class TestLambdaInvokeExecutor(CommonTestsLambdaInvokeExecutor.AbstractLambdaInv
             FunctionName=self.function_name, Payload=given_payload, InvocationType="RequestResponse", LogType="Tail"
         )
 
+    def test_execute_with_tenant_id(self):
+        """Test that tenant_id is added to request parameters when provided"""
+        given_payload = "test_payload"
+        given_tenant_id = "customer-123"
+        given_result = Mock()
+        self.lambda_client.invoke.return_value = given_result
+
+        # Create RemoteInvokeExecutionInfo with tenant_id
+        remote_invoke_input = RemoteInvokeExecutionInfo(
+            payload=given_payload,
+            payload_file=None,
+            tenant_id=given_tenant_id,
+            parameters={},
+            output_format=RemoteInvokeOutputFormat.JSON,
+        )
+
+        result = list(self.lambda_invoke_executor.execute(remote_invoke_input))
+
+        self.assertEqual(result, [RemoteInvokeResponse(given_result)])
+        self.lambda_client.invoke.assert_called_with(
+            FunctionName=self.function_name,
+            Payload=given_payload,
+            TenantId=given_tenant_id,
+            InvocationType="RequestResponse",
+            LogType="Tail",
+        )
+
+    def test_execute_without_tenant_id(self):
+        """Test that TenantId is not added when tenant_id is None"""
+        given_payload = "test_payload"
+        given_result = Mock()
+        self.lambda_client.invoke.return_value = given_result
+
+        # Create RemoteInvokeExecutionInfo without tenant_id
+        remote_invoke_input = RemoteInvokeExecutionInfo(
+            payload=given_payload,
+            payload_file=None,
+            tenant_id=None,
+            parameters={},
+            output_format=RemoteInvokeOutputFormat.JSON,
+        )
+
+        result = list(self.lambda_invoke_executor.execute(remote_invoke_input))
+
+        self.assertEqual(result, [RemoteInvokeResponse(given_result)])
+        self.lambda_client.invoke.assert_called_with(
+            FunctionName=self.function_name,
+            Payload=given_payload,
+            InvocationType="RequestResponse",
+            LogType="Tail",
+        )
+
     def _get_boto3_method(self):
         return self.lambda_client.invoke
 
@@ -152,13 +204,13 @@ class TestDefaultConvertToJSON(TestCase):
         ]
     )
     def test_conversion(self, given_string, expected_string):
-        remote_invoke_execution_info = RemoteInvokeExecutionInfo(given_string, None, {}, self.output_format)
+        remote_invoke_execution_info = RemoteInvokeExecutionInfo(given_string, None, None, {}, self.output_format)
         result = self.lambda_convert_to_default_json.map(remote_invoke_execution_info)
         self.assertEqual(result.payload, expected_string)
 
     def test_skip_conversion_if_file_provided(self):
         given_payload_path = "foo/bar/event.json"
-        remote_invoke_execution_info = RemoteInvokeExecutionInfo(None, given_payload_path, {}, self.output_format)
+        remote_invoke_execution_info = RemoteInvokeExecutionInfo(None, given_payload_path, None, {}, self.output_format)
 
         self.assertTrue(remote_invoke_execution_info.is_file_provided())
         result = self.lambda_convert_to_default_json.map(remote_invoke_execution_info)
@@ -176,7 +228,7 @@ class TestLambdaResponseConverter(TestCase):
         given_decoded_string = "decoded string"
         given_streaming_body.read().decode.return_value = given_decoded_string
         given_test_result = {"Payload": given_streaming_body}
-        remote_invoke_execution_info = RemoteInvokeExecutionInfo(None, None, {}, output_format)
+        remote_invoke_execution_info = RemoteInvokeExecutionInfo(None, None, None, {}, output_format)
         remote_invoke_execution_info.response = given_test_result
 
         expected_result = {"Payload": given_decoded_string}
@@ -191,7 +243,7 @@ class TestLambdaResponseConverter(TestCase):
         given_decoded_string = "decoded string"
         given_streaming_body.read().decode.return_value = given_decoded_string
         given_test_result = [given_streaming_body]
-        remote_invoke_execution_info = RemoteInvokeExecutionInfo(None, None, {}, output_format)
+        remote_invoke_execution_info = RemoteInvokeExecutionInfo(None, None, None, {}, output_format)
         remote_invoke_execution_info.response = given_test_result
 
         with self.assertRaises(InvalideBotoResponseException):
@@ -231,7 +283,7 @@ class TestLambdaStreamResponseConverter(TestCase):
 
     def test_lambda_streaming_body_invalid_response_exception(self):
         output_format = RemoteInvokeOutputFormat.TEXT
-        remote_invoke_execution_info = RemoteInvokeExecutionInfo(None, None, {}, output_format)
+        remote_invoke_execution_info = RemoteInvokeExecutionInfo(None, None, None, {}, output_format)
         remote_invoke_execution_info.response = Mock()
 
         with self.assertRaises(InvalideBotoResponseException):

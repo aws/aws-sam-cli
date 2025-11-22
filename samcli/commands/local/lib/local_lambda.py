@@ -16,6 +16,7 @@ from samcli.commands.local.lib.exceptions import (
     InvalidIntermediateImageError,
     NoPrivilegeException,
     OverridesNotWellDefinedError,
+    TenantIdValidationError,
     UnsupportedInlineCodeError,
 )
 from samcli.lib.providers.provider import Function
@@ -99,6 +100,7 @@ class LocalLambdaRunner:
         self,
         function_identifier: str,
         event: str,
+        tenant_id: Optional[str] = None,
         stdout: Optional[StreamWriter] = None,
         stderr: Optional[StreamWriter] = None,
         override_runtime: Optional[str] = None,
@@ -158,6 +160,20 @@ class LocalLambdaRunner:
             LOG.info("Invoking Container created from %s", function.imageuri)
 
         validate_architecture_runtime(function)
+
+        # Validate tenant-id for multi-tenant functions
+        if function.tenancy_config and isinstance(function.tenancy_config, dict):
+            if not tenant_id:
+                raise TenantIdValidationError(
+                    "The invoked function is enabled with tenancy configuration. "
+                    "Add a valid tenant ID in your request and try again."
+                )
+        elif tenant_id:
+            raise TenantIdValidationError(
+                "The invoked function is not enabled with tenancy configuration. "
+                "Remove the tenant ID from your request and try again."
+            )
+
         config = self.get_invoke_config(function, override_runtime)
 
         if (
@@ -173,6 +189,7 @@ class LocalLambdaRunner:
             self.local_runtime.invoke(
                 config,
                 event,
+                tenant_id,
                 debug_context=self.debug_context,
                 stdout=stdout,
                 stderr=stderr,

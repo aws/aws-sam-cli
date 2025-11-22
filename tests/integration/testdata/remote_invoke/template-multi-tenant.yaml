@@ -1,0 +1,13 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+  MultiTenantFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: lambda-fns/main.multi_tenant_handler
+      Runtime: python3.9
+      CodeUri: .
+      Timeout: 600
+      TenancyConfig:
+        TenantIsolationMode: PER_TENANT

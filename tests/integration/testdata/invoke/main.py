@@ -18,6 +18,20 @@ def handler(event, context):
 def intrinsics_handler(event, context):
     return os.environ.get("ApplicationId")
 
+def multi_tenant_handler(event, context):
+    import json
+    # Get tenant_id from Lambda context
+    tenant_id = getattr(context, 'tenant_id', None)
+    
+    return {
+        'statusCode': 200,
+        'body': json.dumps({
+            'message': 'Hello from multi-tenant function',
+            'tenant_id': tenant_id,
+            'function_name': context.function_name
+        })
+    }
+
 def sleep_handler(event, context):
     time.sleep(10)
     return "Slept for 10s"

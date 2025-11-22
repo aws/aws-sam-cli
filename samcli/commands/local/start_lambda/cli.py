@@ -39,7 +39,11 @@ DESCRIPTION = """
   Programmatically invoke your Lambda function locally using the AWS CLI or SDKs.
   Start a local endpoint that emulates the AWS Lambda service, and one can run their automated
   tests against this local Lambda endpoint. Invokes to this endpoint can be sent using the AWS CLI or
-  SDK and they will in turn locally execute the Lambda function specified in the request.\n
+  SDK and they will in turn locally execute the Lambda function specified in the request.
+
+  For testing multi-tenant functions, pass tenant-id via the TenantId parameter in Lambda API calls. By default, each 
+  invocation uses a new container providing tenant isolation. When using --warm-containers, containers are reused 
+  and do not provide tenant isolation like production Lambda.
 """
 
 
@@ -52,6 +56,7 @@ DESCRIPTION = """
     requires_credentials=False,
     context_settings={"max_content_width": 120},
 )
+@click.argument("function_logical_ids", nargs=-1, required=False)
 @configuration_option(provider=ConfigProvider(section="parameters"))
 @terraform_plan_file_option
 @hook_name_click_option(
@@ -71,6 +76,7 @@ DESCRIPTION = """
 @print_cmdline_args
 def cli(
     ctx,  # pylint: disable=R0914
+    function_logical_ids,
     # start-lambda Specific Options
     host,
     port,
@@ -110,6 +116,7 @@ def cli(
 
     do_cli(
         ctx,
+        function_logical_ids,
         host,
         port,
         template_file,
@@ -139,6 +146,7 @@ def cli(
 
 def do_cli(  # pylint: disable=R0914
     ctx,
+    function_logical_ids,
     host,
     port,
     template,
@@ -208,6 +216,7 @@ def do_cli(  # pylint: disable=R0914
             container_host_interface=container_host_interface,
             add_host=add_host,
             invoke_images=processed_invoke_images,
+            function_logical_ids=function_logical_ids,
             no_mem_limit=no_mem_limit,
         ) as invoke_context:
             service = LocalLambdaService(lambda_invoke_context=invoke_context, port=port, host=host)

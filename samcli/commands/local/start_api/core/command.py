@@ -19,17 +19,36 @@ class InvokeAPICommand(CoreCommand):
     @staticmethod
     def format_examples(ctx: Context, formatter: InvokeStartAPICommandHelpTextFormatter):
         with formatter.indented_section(name="Examples", extra_indents=1):
-            formatter.write_rd(
-                [
-                    RowDefinition(
-                        text="\n",
-                    ),
-                    RowDefinition(
-                        name=style(f"$ {ctx.command_path}"),
-                        extra_row_modifiers=[ShowcaseRowModifier()],
-                    ),
-                ]
-            )
+            with formatter.indented_section(name="Setup", extra_indents=1):
+                formatter.write_rd(
+                    [
+                        RowDefinition(
+                            text="\n",
+                        ),
+                        RowDefinition(
+                            name="Start the local lambda with Amazon API Gateway endpoint",
+                        ),
+                        RowDefinition(
+                            name=style(f"$ {ctx.command_path}"),
+                            extra_row_modifiers=[ShowcaseRowModifier()],
+                        ),
+                    ]
+                )
+            with formatter.indented_section(name="Invoke local Lambda endpoint", extra_indents=1):
+                formatter.write_rd(
+                    [
+                        RowDefinition(
+                            text="\n",
+                        ),
+                        RowDefinition(
+                            name="Invoke Lambda function locally using curl",
+                        ),
+                        RowDefinition(
+                            name=style("$ curl http://127.0.0.1:3000/hello"),
+                            extra_row_modifiers=[ShowcaseRowModifier()],
+                        ),
+                    ]
+                )
 
     def format_options(self, ctx: Context, formatter: InvokeStartAPICommandHelpTextFormatter) -> None:  # type:ignore
         # NOTE(sriram-mv): `ignore` is put in place here for mypy even though it is the correct behavior,

@@ -58,7 +58,8 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture_arm64(BuildIn
         [
             ("python3.12", "Python", "use_container"),
             ("python3.13", "Python", "use_container"),
-            ("python3.14", "Python", "use_container"),
+            # skip this test until python 3.14 build image is released
+            # ("python3.14", "Python", "use_container"),
         ],
         name_func=show_container_in_test_name,
     )
@@ -111,6 +112,13 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(BuildIntegE
                 False,
             ),
             (
+                "nodejs24.x",
+                "Esbuild/Node_without_manifest",
+                {"main.js", "main.js.map"},
+                "main.lambdaHandler",
+                False,
+            ),
+            (
                 "nodejs20.x",
                 "Esbuild/TypeScript_without_manifest",
                 {"app.js", "app.js.map"},
@@ -119,6 +127,13 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(BuildIntegE
             ),
             (
                 "nodejs22.x",
+                "Esbuild/TypeScript_without_manifest",
+                {"app.js", "app.js.map"},
+                "app.lambdaHandler",
+                False,
+            ),
+            (
+                "nodejs24.x",
                 "Esbuild/TypeScript_without_manifest",
                 {"app.js", "app.js.map"},
                 "app.lambdaHandler",
@@ -139,6 +154,7 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture_arm64(BuildInte
         [
             ("nodejs20.x", False),
             ("nodejs22.x", False),
+            ("nodejs24.x", False),
         ],
         name_func=show_container_in_test_name,
     )
@@ -149,6 +165,7 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture_arm64(BuildInte
         [
             ("nodejs20.x", "use_container"),
             ("nodejs22.x", "use_container"),
+            ("nodejs24.x", "use_container"),
         ],
         name_func=show_container_in_test_name,
     )
@@ -292,7 +309,7 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
             (
                 "java21",
                 "21",
-                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.USING_GRADLEW_IN_CONTAINER_PATH,
                 BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
@@ -310,34 +327,35 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
                 BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
                 BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
             ),
-            (
-                "java25",
-                "25",
-                BuildIntegJavaBase.USING_GRADLE_PATH,
-                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
-            ),
-            (
-                "java25",
-                "25",
-                BuildIntegJavaBase.USING_GRADLEW_PATH,
-                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
-            ),
-            (
-                "java25",
-                "25",
-                BuildIntegJavaBase.USING_GRADLE_KOTLIN_PATH,
-                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
-            ),
-            (
-                "java25",
-                "25",
-                BuildIntegJavaBase.USING_MAVEN_PATH,
-                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
-                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
-            ),
+            # skip these tests until java25 build image is released
+            # (
+            #     "java25",
+            #     "25",
+            #     BuildIntegJavaBase.USING_GRADLE_PATH,
+            #     BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+            #     BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            # ),
+            # (
+            #     "java25",
+            #     "25",
+            #     BuildIntegJavaBase.USING_GRADLEW_PATH,
+            #     BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+            #     BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            # ),
+            # (
+            #     "java25",
+            #     "25",
+            #     BuildIntegJavaBase.USING_GRADLE_KOTLIN_PATH,
+            #     BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+            #     BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            # ),
+            # (
+            #     "java25",
+            #     "25",
+            #     BuildIntegJavaBase.USING_MAVEN_PATH,
+            #     BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+            #     BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
+            # ),
         ]
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)

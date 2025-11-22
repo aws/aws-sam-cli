@@ -37,6 +37,7 @@ class StartLambdaIntegBaseClass(TestCase):
     terraform_plan_file: Optional[str] = None
     beta_features: Optional[bool] = None
     collect_start_lambda_process_output: bool = False
+    function_logical_ids: Optional[List[str]] = None
 
     build_before_invoke = False
     build_overrides: Optional[Dict[str, str]] = None
@@ -114,8 +115,13 @@ class StartLambdaIntegBaseClass(TestCase):
         hook_name=None,
         beta_features=None,
         terraform_plan_file=None,
+        function_logical_ids=None,
     ):
         command_list = [get_sam_command(), "local", "start-lambda"]
+
+        # Add function names as positional arguments first
+        if function_logical_ids:
+            command_list.extend(function_logical_ids)
 
         if port:
             command_list += ["-p", port]
@@ -159,6 +165,7 @@ class StartLambdaIntegBaseClass(TestCase):
             hook_name=cls.hook_name,
             beta_features=cls.beta_features,
             terraform_plan_file=cls.terraform_plan_file,
+            function_logical_ids=cls.function_logical_ids,
         )
 
         # Container labels are no longer needed - container IDs are parsed from output

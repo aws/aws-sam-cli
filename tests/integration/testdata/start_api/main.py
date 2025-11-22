@@ -8,6 +8,7 @@ GIF_IMAGE_BASE64 = "R0lGODdhAQABAJEAAAAAAP///wAAAAAAACH5BAkAAAIALAAAAAABAAEAAAIC
 def handler(event, context):
     return {"statusCode": 200, "body": json.dumps({"hello": "world"})}
 
+
 def operation_name_handler(event, context):
     return {"statusCode": 200, "body": json.dumps({"operation_name": event["requestContext"].get("operationName", "")})}
 
@@ -64,17 +65,22 @@ def write_to_stdout(event, context):
 def invalid_response_returned(event, context):
     return "This is invalid"
 
+
 def integer_response_returned(event, context):
     return 2
+
 
 def invalid_v2_respose_returned(event, context):
     return {"statusCode": 200, "body": json.dumps({"hello": "world"}), "key": "value"}
 
+
 def invalid_hash_response(event, context):
     return {"foo": "bar"}
 
+
 def invalid_body_response(event, context):
     return {"errorType": "Error", "errorMessage": ""}
+
 
 def base64_response(event, context):
 
@@ -146,3 +152,15 @@ def multiple_headers_overrides_headers(event, context):
 
 def handle_options_cors(event, context):
     return {"statusCode": 204, "body": json.dumps({"hello": "world"})}
+
+
+def multi_tenant_handler(event, context):
+    # Get tenant_id from Lambda context
+    tenant_id = getattr(context, "tenant_id", None)
+
+    return {
+        "statusCode": 200,
+        "body": json.dumps(
+            {"message": "Hello from multi-tenant API", "tenant_id": tenant_id, "function_name": context.function_name}
+        ),
+    }
