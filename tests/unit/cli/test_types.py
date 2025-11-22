@@ -149,6 +149,74 @@ class TestCfnParameterOverridesType(TestCase):
         result = self.param_type.convert(input, None, None)
         self.assertEqual(result, expected, msg="Failed with Input = " + str(input))
 
+    @parameterized.expand(
+        [
+            (
+                ("file://params.toml",),
+                {"A": "toml", "B": "toml", "Toml": "toml"},
+            ),
+            (
+                ("file://params.toml", "D=4"),
+                {"A": "toml", "B": "toml", "Toml": "toml", "D": "4"},
+            ),
+            (
+                ("ParameterKey=Y,ParameterValue=y", "file://params.toml", "D=4", "file://params.yaml", "A=6"),
+                {"A": "6", "B": "yaml", "Y": "y", "Toml": "toml", "D": "4", "Yaml": "yaml"},
+            ),
+            (
+                (
+                    "file://params.yaml",
+                    "file://list.yaml",
+                ),
+                {"A": "a", "B": "yaml", "List": "1,2,3", "Yaml": "yaml"},
+            ),
+            (
+                ("file://nested.yaml",),
+                {"A": "yaml", "B": "yaml", "Toml": "toml", "Yaml": "yaml"},
+            ),
+        ]
+    )
+    def test_merge_file_parsing(self, inputs, expected):
+        mock_files = {
+            "params.toml": 'A = "toml"\nB = "toml"\nToml = "toml"',
+            "params.yaml": "A: yaml\nB: yaml\nYaml: yaml",
+            "list.yaml": "- - - - - - A: a\n- List:\n    - 1\n    - 2\n    - 3\n",
+            "nested.yaml": "- file://params.toml\n- file://params.yaml",
+        }
+
+        def mock_read_text(file_path):
+            file_name = file_path.name
+            return mock_files.get(file_name, "")
+
+        def mock_is_file(file_path):
+            return file_path.name in mock_files
+
+        with patch("pathlib.Path.is_file", new=mock_is_file), patch("pathlib.Path.read_text", new=mock_read_text):
+            result = self.param_type.convert(inputs, None, MagicMock())
+            print(result)
+            self.assertEqual(result, expected, msg="Failed with Input = " + str(inputs))
+
+    def test_infinite_recursion_protection(self):
+        mock_files = {
+            "A.yaml": "- file://B.yaml",
+            "B.yaml": "- file://C.yaml",
+            "C.yaml": "- file://A.yaml",
+        }
+
+        def mock_read_text(file_path):
+            file_name = file_path.name
+            return mock_files.get(file_name, "")
+
+        def mock_is_file(file_path):
+            return file_path.name in mock_files
+
+        with self.assertRaises(BadParameter) as exception, patch("pathlib.Path.is_file", new=mock_is_file), patch(
+            "pathlib.Path.read_text", new=mock_read_text
+        ):
+            self.param_type.convert(f"file://A.yaml", None, MagicMock())
+
+        self.assertIn("Infinite recursion detected in file references", str(exception.exception))
+
 
 class TestCfnMetadataType(TestCase):
     def setUp(self):
