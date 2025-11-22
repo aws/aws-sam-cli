@@ -146,6 +146,12 @@ LOG = logging.getLogger(__name__)
 @image_repository_option
 @image_repositories_option
 @force_upload_option
+@click.option(
+    "--parallel-upload",
+    is_flag=True,
+    default=False,
+    help="Enable parallel upload of artifacts to S3/ECR during packaging before deployment.",
+)
 @s3_prefix_option
 @kms_key_id_option
 @role_arn_option
@@ -177,6 +183,7 @@ def cli(
     image_repository,
     image_repositories,
     force_upload,
+    parallel_upload,
     no_progressbar,
     s3_prefix,
     kms_key_id,
@@ -212,6 +219,7 @@ def cli(
         image_repository,
         image_repositories,
         force_upload,
+        parallel_upload,
         no_progressbar,
         s3_prefix,
         kms_key_id,
@@ -246,6 +254,7 @@ def do_cli(
     image_repository,
     image_repositories,
     force_upload,
+    parallel_upload,
     no_progressbar,
     s3_prefix,
     kms_key_id,
@@ -300,6 +309,7 @@ def do_cli(
             config_env=config_env,
             config_file=config_file,
             disable_rollback=disable_rollback,
+            parallel_upload=parallel_upload,
         )
         guided_context.run()
     else:
@@ -331,6 +341,7 @@ def do_cli(
             kms_key_id=kms_key_id,
             use_json=use_json,
             force_upload=force_upload,
+            parallel_upload=guided_context.guided_parallel_upload if guided else parallel_upload,
             no_progressbar=no_progressbar,
             metadata=metadata,
             on_deploy=True,
@@ -357,6 +368,7 @@ def do_cli(
             image_repository=guided_context.guided_image_repository if guided else image_repository,
             image_repositories=guided_context.guided_image_repositories if guided else image_repositories,
             force_upload=force_upload,
+            parallel_upload=guided_context.guided_parallel_upload if guided else parallel_upload,
             no_progressbar=no_progressbar,
             s3_prefix=guided_context.guided_s3_prefix if guided else s3_prefix,
             kms_key_id=kms_key_id,

@@ -35,6 +35,7 @@ class TestDeployCliCommand(TestCase):
         self.fail_on_empty_changset = True
         self.role_arn = "role_arn"
         self.force_upload = False
+        self.parallel_upload = False
         self.no_progressbar = False
         self.metadata = {"abc": "def"}
         self.region = None
@@ -81,6 +82,7 @@ class TestDeployCliCommand(TestCase):
             image_repository=self.image_repository,
             image_repositories=None,
             force_upload=self.force_upload,
+            parallel_upload=self.parallel_upload,
             no_progressbar=self.no_progressbar,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key_id,
@@ -114,6 +116,7 @@ class TestDeployCliCommand(TestCase):
             image_repository=self.image_repository,
             image_repositories=None,
             force_upload=self.force_upload,
+            parallel_upload=self.parallel_upload,
             no_progressbar=self.no_progressbar,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key_id,
@@ -171,7 +174,7 @@ class TestDeployCliCommand(TestCase):
         context_mock = Mock()
         mockauth_per_resource.return_value = [("HelloWorldResource1", False), ("HelloWorldResource2", False)]
         mock_deploy_context.return_value.__enter__.return_value = context_mock
-        mock_confirm.side_effect = [True, True, False, True, False]
+        mock_confirm.side_effect = [True, True, False, False, True, False]
         mock_prompt.side_effect = [
             "sam-app",
             "us-east-1",
@@ -199,6 +202,7 @@ class TestDeployCliCommand(TestCase):
                     image_repository=None,
                     image_repositories=None,
                     force_upload=self.force_upload,
+                    parallel_upload=self.parallel_upload,
                     no_progressbar=self.no_progressbar,
                     s3_prefix=self.s3_prefix,
                     kms_key_id=self.kms_key_id,
@@ -268,7 +272,7 @@ class TestDeployCliCommand(TestCase):
         mock_sam_function_provider.return_value.get_all.return_value = [function_mock]
         mockauth_per_resource.return_value = [("HelloWorldResource", False)]
         mock_deploy_context.return_value.__enter__.return_value = context_mock
-        mock_confirm.side_effect = [True, False, True, True, True, True, True]
+        mock_confirm.side_effect = [True, False, True, False, True, True, True, True]
         mock_prompt.side_effect = [
             "sam-app",
             "us-east-1",
@@ -301,6 +305,7 @@ class TestDeployCliCommand(TestCase):
                 image_repository=None,
                 image_repositories=None,
                 force_upload=self.force_upload,
+                parallel_upload=self.parallel_upload,
                 no_progressbar=self.no_progressbar,
                 s3_prefix=self.s3_prefix,
                 kms_key_id=self.kms_key_id,
@@ -334,6 +339,7 @@ class TestDeployCliCommand(TestCase):
                 image_repository=None,
                 image_repositories={"HelloWorldFunction": "123456789012.dkr.ecr.us-east-1.amazonaws.com/managed-ecr"},
                 force_upload=self.force_upload,
+                parallel_upload=self.parallel_upload,
                 no_progressbar=self.no_progressbar,
                 s3_prefix="sam-app",
                 kms_key_id=self.kms_key_id,
@@ -374,6 +380,7 @@ class TestDeployCliCommand(TestCase):
                 s3_prefix="sam-app",
                 signing_profiles=self.signing_profiles,
                 disable_rollback=True,
+                parallel_upload=self.parallel_upload,
             )
             mock_managed_stack.assert_called_with(profile=self.profile, region="us-east-1")
             self.assertEqual(context_mock.run.call_count, 1)
@@ -419,7 +426,7 @@ class TestDeployCliCommand(TestCase):
         mock_sam_function_provider.return_value.get_all.return_value = [function_mock]
         mockauth_per_resource.return_value = [("HelloWorldResource", False)]
         mock_deploy_context.return_value.__enter__.return_value = context_mock
-        mock_confirm.side_effect = [True, False, True, True, True, True, True]
+        mock_confirm.side_effect = [True, False, True, False, True, True, True, True]
         mock_prompt.side_effect = [
             "sam-app",
             "us-east-1",
@@ -447,6 +454,7 @@ class TestDeployCliCommand(TestCase):
                 image_repository=None,
                 image_repositories=None,
                 force_upload=self.force_upload,
+                parallel_upload=self.parallel_upload,
                 no_progressbar=self.no_progressbar,
                 s3_prefix=self.s3_prefix,
                 kms_key_id=self.kms_key_id,
@@ -480,6 +488,7 @@ class TestDeployCliCommand(TestCase):
                 image_repository=None,
                 image_repositories={"HelloWorldFunction": "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1"},
                 force_upload=self.force_upload,
+                parallel_upload=self.parallel_upload,
                 no_progressbar=self.no_progressbar,
                 s3_prefix="sam-app",
                 kms_key_id=self.kms_key_id,
@@ -520,6 +529,7 @@ class TestDeployCliCommand(TestCase):
                 s3_prefix="sam-app",
                 signing_profiles=self.signing_profiles,
                 disable_rollback=True,
+                parallel_upload=self.parallel_upload,
             )
             mock_managed_stack.assert_called_with(profile=self.profile, region="us-east-1")
             self.assertEqual(context_mock.run.call_count, 1)
@@ -584,7 +594,7 @@ class TestDeployCliCommand(TestCase):
             "testconfig.toml",
             "test-env",
         ]
-        mock_confirm.side_effect = [True, False, True, True, True, True, True]
+        mock_confirm.side_effect = [True, False, True, False, True, True, True, True]
 
         mock_managed_stack.return_value = "managed-s3-bucket"
         mock_signer_config_per_function.return_value = ({}, {})
@@ -596,6 +606,7 @@ class TestDeployCliCommand(TestCase):
             image_repository=None,
             image_repositories=None,
             force_upload=self.force_upload,
+            parallel_upload=self.parallel_upload,
             no_progressbar=self.no_progressbar,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key_id,
@@ -629,6 +640,7 @@ class TestDeployCliCommand(TestCase):
             image_repository=None,
             image_repositories={"HelloWorldFunction": "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1"},
             force_upload=self.force_upload,
+            parallel_upload=self.parallel_upload,
             no_progressbar=self.no_progressbar,
             s3_prefix="sam-app",
             kms_key_id=self.kms_key_id,
@@ -745,7 +757,7 @@ class TestDeployCliCommand(TestCase):
             "testconfig.toml",
             "test-env",
         ]
-        mock_confirm.side_effect = [True, False, True, True, True, True, True]
+        mock_confirm.side_effect = [True, False, True, False, True, True, True, True]
         mock_get_cmd_names.return_value = ["deploy"]
         mock_managed_stack.return_value = "managed-s3-bucket"
         mock_signer_config_per_function.return_value = ({}, {})
@@ -757,6 +769,7 @@ class TestDeployCliCommand(TestCase):
             image_repository=None,
             image_repositories=None,
             force_upload=self.force_upload,
+            parallel_upload=self.parallel_upload,
             no_progressbar=self.no_progressbar,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key_id,
@@ -790,6 +803,7 @@ class TestDeployCliCommand(TestCase):
             image_repository=None,
             image_repositories={"HelloWorldFunction": "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1"},
             force_upload=self.force_upload,
+            parallel_upload=self.parallel_upload,
             no_progressbar=self.no_progressbar,
             s3_prefix="sam-app",
             kms_key_id=self.kms_key_id,
@@ -885,7 +899,7 @@ class TestDeployCliCommand(TestCase):
             "us-east-1",
             ("CAPABILITY_IAM",),
         ]
-        mock_confirm.side_effect = [True, True, False, True, False, True, True]
+        mock_confirm.side_effect = [True, True, False, False, True, False, True, True]
 
         mock_managed_stack.return_value = "managed-s3-bucket"
         mock_signer_config_per_function.return_value = ({}, {})
@@ -898,6 +912,7 @@ class TestDeployCliCommand(TestCase):
                 image_repository=None,
                 image_repositories=None,
                 force_upload=self.force_upload,
+                parallel_upload=self.parallel_upload,
                 no_progressbar=self.no_progressbar,
                 s3_prefix=self.s3_prefix,
                 kms_key_id=self.kms_key_id,
@@ -931,6 +946,7 @@ class TestDeployCliCommand(TestCase):
                 image_repository=None,
                 image_repositories={"HelloWorldFunction": "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1"},
                 force_upload=self.force_upload,
+                parallel_upload=self.parallel_upload,
                 no_progressbar=self.no_progressbar,
                 s3_prefix="sam-app",
                 kms_key_id=self.kms_key_id,
@@ -976,6 +992,7 @@ class TestDeployCliCommand(TestCase):
             image_repository=None,
             image_repositories=None,
             force_upload=self.force_upload,
+            parallel_upload=self.parallel_upload,
             no_progressbar=self.no_progressbar,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key_id,
@@ -1007,6 +1024,7 @@ class TestDeployCliCommand(TestCase):
             stack_name=self.stack_name,
             s3_bucket="managed-s3-bucket",
             force_upload=self.force_upload,
+            parallel_upload=self.parallel_upload,
             image_repository=None,
             image_repositories=None,
             no_progressbar=self.no_progressbar,
@@ -1042,6 +1060,7 @@ class TestDeployCliCommand(TestCase):
                 image_repository=None,
                 image_repositories=None,
                 force_upload=self.force_upload,
+                parallel_upload=self.parallel_upload,
                 no_progressbar=self.no_progressbar,
                 s3_prefix=self.s3_prefix,
                 kms_key_id=self.kms_key_id,
@@ -1094,6 +1113,7 @@ class TestDeployCliCommand(TestCase):
             image_repository=None,
             image_repositories=None,
             force_upload=self.force_upload,
+            parallel_upload=self.parallel_upload,
             no_progressbar=self.no_progressbar,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key_id,
@@ -1125,6 +1145,7 @@ class TestDeployCliCommand(TestCase):
             stack_name=self.stack_name,
             s3_bucket=self.s3_bucket,
             force_upload=self.force_upload,
+            parallel_upload=self.parallel_upload,
             image_repository=None,
             image_repositories={"HelloWorldFunction1": self.image_repository},
             no_progressbar=self.no_progressbar,
@@ -1169,6 +1190,7 @@ class TestDeployCliCommand(TestCase):
             image_repository=self.image_repository,
             image_repositories=None,
             force_upload=self.force_upload,
+            parallel_upload=self.parallel_upload,
             no_progressbar=self.no_progressbar,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key_id,
@@ -1202,6 +1224,7 @@ class TestDeployCliCommand(TestCase):
             image_repository=self.image_repository,
             image_repositories=None,
             force_upload=self.force_upload,
+            parallel_upload=self.parallel_upload,
             no_progressbar=self.no_progressbar,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key_id,
@@ -1233,6 +1256,7 @@ class TestDeployCliCommand(TestCase):
             kms_key_id=self.kms_key_id,
             use_json=self.use_json,
             force_upload=self.force_upload,
+            parallel_upload=self.parallel_upload,
             no_progressbar=self.no_progressbar,
             metadata=self.metadata,
             on_deploy=True,

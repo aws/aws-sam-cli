@@ -71,6 +71,7 @@ class PackageContext:
         parameter_overrides=None,
         on_deploy=False,
         signing_profiles=None,
+        parallel_upload=False,
     ):
         self.template_file = template_file
         self.s3_bucket = s3_bucket
@@ -81,6 +82,7 @@ class PackageContext:
         self.output_template_file = output_template_file
         self.use_json = use_json
         self.force_upload = force_upload
+        self.parallel_upload = parallel_upload
         self.no_progressbar = no_progressbar
         self.metadata = metadata
         self.region = region
@@ -161,6 +163,7 @@ class PackageContext:
             self.code_signer,
             normalize_template=True,
             normalize_parameters=True,
+            parallel_upload=self.parallel_upload,
         )
         exported_template = template.export()
 

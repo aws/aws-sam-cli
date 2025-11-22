@@ -4,6 +4,7 @@ Client for uploading packaged artifacts to ecr
 
 import base64
 import logging
+import threading
 from io import StringIO
 from pathlib import Path
 from typing import Dict
@@ -50,6 +51,7 @@ class ECRUploader:
         self.stream = StreamWriter(stream=stream, auto_flush=True)
         self.log_streamer = LogStreamer(stream=self.stream)
         self.login_session_active = False
+        self._login_lock = threading.Lock()
 
     @property
     def docker_client(self):
@@ -88,8 +90,10 @@ class ECRUploader:
         :return: remote ECR image path that has been uploaded.
         """
         if not self.login_session_active:
-            self.login()
-            self.login_session_active = True
+            with self._login_lock:
+                if not self.login_session_active:
+                    self.login()
+                    self.login_session_active = True
 
         # Sometimes the `resource_name` is used as the `image` parameter to `tag_translation`.
         # This is because these two cases (directly from an archive or by ID) are effectively
