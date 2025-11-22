@@ -663,7 +663,16 @@ class LambdaImage:
         str
             Image digest, including `sha256:` prefix
         """
-        image_info = self.docker_client.images.get(image_name)
+        try:
+            image_info = self.docker_client.images.get(image_name)
+        except docker.errors.ImageNotFound:
+            # Base image not found locally, pull it for digest comparison
+            try:
+                self.docker_client.images.pull(image_name)
+                image_info = self.docker_client.images.get(image_name)
+            except docker.errors.APIError:
+                return None
+
         try:
             full_digest: str = image_info.attrs.get("RepoDigests", [None])[0]
             return full_digest.split("@")[1]

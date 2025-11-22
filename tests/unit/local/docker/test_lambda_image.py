@@ -786,6 +786,42 @@ class TestLambdaImage(TestCase):
         lambda_image = LambdaImage("layer_downloader", False, False, docker_client=docker_client_mock)
         self.assertEqual("sha256:local-digest", lambda_image.get_local_image_digest("image_name"))
 
+    def test_get_local_image_digest_pulls_missing_image(self):
+        """Test that get_local_image_digest pulls the image if it's not found locally"""
+        docker_client_mock = Mock()
+
+        # First call to images.get raises ImageNotFound
+        # Second call (after pull) returns the image data
+        local_image_data = Mock(
+            attrs={
+                "RepoDigests": ["image_name@sha256:pulled-digest"],
+            },
+        )
+        docker_client_mock.images.get.side_effect = [ImageNotFound("Image not found"), local_image_data]
+        docker_client_mock.images.pull.return_value = None
+
+        lambda_image = LambdaImage("layer_downloader", False, False, docker_client=docker_client_mock)
+        result = lambda_image.get_local_image_digest("image_name")
+
+        # Should pull the image and return its digest
+        docker_client_mock.images.pull.assert_called_once_with("image_name")
+        self.assertEqual("sha256:pulled-digest", result)
+
+    def test_get_local_image_digest_handles_pull_failure(self):
+        """Test that get_local_image_digest returns None if pull fails"""
+        docker_client_mock = Mock()
+
+        # First call raises ImageNotFound, pull also fails
+        docker_client_mock.images.get.side_effect = ImageNotFound("Image not found")
+        docker_client_mock.images.pull.side_effect = APIError("Pull failed")
+
+        lambda_image = LambdaImage("layer_downloader", False, False, docker_client=docker_client_mock)
+        result = lambda_image.get_local_image_digest("image_name")
+
+        # Should attempt to pull and return None on failure
+        docker_client_mock.images.pull.assert_called_once_with("image_name")
+        self.assertIsNone(result)
+
     @parameterized.expand(
         [
             ("same-digest", "same-digest", True),
