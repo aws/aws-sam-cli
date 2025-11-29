@@ -93,6 +93,16 @@ class LambdaDebugSettings:
                     **_container_env_vars,
                 },
             ),
+            Runtime.java25.value: lambda: DebugSettings(
+                entry,
+                container_env_vars={
+                    "_JAVA_OPTIONS": "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,"
+                    f"address=*:{debug_port} -XX:MaxHeapSize=2834432k -XX:+UseSerialGC "
+                    "-XX:+TieredCompilation -XX:TieredStopAtLevel=1 "
+                    "-Djava.net.preferIPv4Stack=true" + " ".join(debug_args_list),
+                    **_container_env_vars,
+                },
+            ),
             Runtime.dotnet6.value: lambda: DebugSettings(
                 entry + ["/var/runtime/bootstrap"] + debug_args_list,
                 container_env_vars={"_AWS_LAMBDA_DOTNET_DEBUGGING": "1", **_container_env_vars},
@@ -167,6 +177,20 @@ class LambdaDebugSettings:
                     **_container_env_vars,
                 },
             ),
+            Runtime.nodejs24x.value: lambda: DebugSettings(
+                entry
+                + ["/var/lang/bin/node"]
+                + debug_args_list
+                + ["--no-lazy", "--expose-gc"]
+                + ["/var/runtime/index.mjs"],
+                container_env_vars={
+                    "NODE_PATH": "/opt/nodejs/node_modules:/opt/nodejs/node24/node_modules:/var/runtime/node_modules:"
+                    "/var/runtime:/var/task",
+                    "NODE_OPTIONS": f"--inspect-brk=0.0.0.0:{str(debug_port)} --max-http-header-size 81920",
+                    "AWS_EXECUTION_ENV": "AWS_Lambda_nodejs24.x",
+                    **_container_env_vars,
+                },
+            ),
             Runtime.python38.value: lambda: DebugSettings(
                 entry + ["/var/lang/bin/python3.8"] + debug_args_list + ["/var/runtime/bootstrap.py"],
                 container_env_vars=_container_env_vars,
@@ -189,6 +213,10 @@ class LambdaDebugSettings:
             ),
             Runtime.python313.value: lambda: DebugSettings(
                 entry + ["/var/lang/bin/python3.13"] + debug_args_list + ["/var/runtime/bootstrap.py"],
+                container_env_vars=_container_env_vars,
+            ),
+            Runtime.python314.value: lambda: DebugSettings(
+                entry + ["/var/lang/bin/python3.14"] + debug_args_list + ["/var/runtime/bootstrap.py"],
                 container_env_vars=_container_env_vars,
             ),
         }

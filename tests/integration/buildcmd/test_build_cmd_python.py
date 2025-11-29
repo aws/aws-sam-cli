@@ -1,4 +1,5 @@
 import logging
+import pathlib
 from typing import Set
 from unittest import skipIf
 from uuid import uuid4
@@ -6,22 +7,22 @@ from uuid import uuid4
 import pytest
 from parameterized import parameterized, parameterized_class
 
-from tests.testing_utils import (
-    IS_WINDOWS,
-    RUNNING_ON_CI,
-    RUNNING_TEST_FOR_MASTER_ON_CI,
-    RUN_BY_CANARY,
-    CI_OVERRIDE,
-    run_command,
-    SKIP_DOCKER_TESTS,
-    SKIP_DOCKER_BUILD,
-    SKIP_DOCKER_MESSAGE,
-)
 from tests.integration.buildcmd.build_integ_base import (
     BuildIntegBase,
     BuildIntegPythonBase,
+    show_container_in_test_name,
 )
-
+from tests.testing_utils import (
+    CI_OVERRIDE,
+    IS_WINDOWS,
+    RUN_BY_CANARY,
+    RUNNING_ON_CI,
+    RUNNING_TEST_FOR_MASTER_ON_CI,
+    SKIP_DOCKER_BUILD,
+    SKIP_DOCKER_MESSAGE,
+    SKIP_DOCKER_TESTS,
+    run_command,
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -78,8 +79,8 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
 
     @parameterized.expand(
         [
-            *[(runtime, "Dockerfile") for runtime in ["3.12", "3.13"]],
-            *[(runtime, "Dockerfile.production") for runtime in ["3.12", "3.13"]],
+            *[(runtime, "Dockerfile") for runtime in ["3.12", "3.13", "3.14"]],
+            *[(runtime, "Dockerfile.production") for runtime in ["3.12", "3.13", "3.14"]],
         ]
     )
     @pytest.mark.al2023
@@ -307,6 +308,8 @@ class TestBuildCommand_PythonFunctions_WithoutDocker(BuildIntegPythonBase):
         ("python3.12", "PythonPEP600"),
         ("python3.13", "Python"),
         ("python3.13", "PythonPEP600"),
+        ("python3.14", "Python"),
+        ("python3.14", "PythonPEP600"),
     ],
 )
 @pytest.mark.al2023
@@ -348,7 +351,7 @@ class TestBuildCommand_PythonFunctions_WithDocker(BuildIntegPythonBase):
             ("python3.11",),
         ]
     )
-    def test_with_default_requirements(self, runtime):
+    def test_with_default_requirements_in_container(self, runtime):
         self._test_with_default_requirements(
             runtime,
             self.codeuri,
@@ -362,10 +365,12 @@ class TestBuildCommand_PythonFunctions_WithDocker(BuildIntegPythonBase):
         [
             ("python3.12",),
             ("python3.13",),
+            # skip this test until the python 3.14 build image is released
+            # ("python3.14",),
         ]
     )
     @pytest.mark.al2023
-    def test_with_default_requirements_al2023(self, runtime):
+    def test_with_default_requirements_al2023_in_container(self, runtime):
         self._test_with_default_requirements(
             runtime,
             self.codeuri,
@@ -473,10 +478,10 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPyt
             ("python3.9", "Python", "use_container", "x86_64"),
             ("python3.10", "Python", "use_container", "x86_64"),
             ("python3.11", "Python", "use_container", "x86_64"),
-        ]
+        ],
+        name_func=show_container_in_test_name,
     )
     def test_with_default_requirements(self, runtime, codeuri, use_container, architecture):
-
         self._test_with_default_requirements(
             runtime, codeuri, use_container, self.test_data_path, architecture=architecture
         )
@@ -489,11 +494,15 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPyt
             ("python3.13", "Python", False, "x86_64"),
             ("python3.13", "PythonPEP600", False, "x86_64"),
             ("python3.13", "Python", "use_container", "x86_64"),
-        ]
+            ("python3.14", "Python", False, "x86_64"),
+            ("python3.14", "PythonPEP600", False, "x86_64"),
+            # skip this test until python 3.14 build image is released
+            # ("python3.14", "Python", "use_container", "x86_64"),
+        ],
+        name_func=show_container_in_test_name,
     )
     @pytest.mark.al2023
     def test_with_default_requirements_al2023(self, runtime, codeuri, use_container, architecture):
-
         self._test_with_default_requirements(
             runtime, codeuri, use_container, self.test_data_path, architecture=architecture
         )
@@ -507,6 +516,100 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPyt
 
         self.assertIn("Build Failed", str(process_execute.stdout))
         self.assertIn("Architecture fake is not supported", str(process_execute.stderr))
+
+
+class TestBuildCommand_ParentPackages(BuildIntegPythonBase):
+    template = "template_with_metadata_python.yaml"
+    runtime = "python3.12"
+    use_container = False
+    prop = "CodeUri"
+
+    logical_id_one = "FunctionOne"
+    logical_id_two = "FunctionTwo"
+    parent_packages_one = "src.fnone"
+    parent_packages_two = "src.fntwo"
+    codeuri_one = "PythonParentPackages/src/fnone"
+    codeuri_two = "PythonParentPackages/src/fntwo"
+    handler_one = f"{parent_packages_one}.main.handler"
+    handler_two = f"{parent_packages_two}.main.handler"
+
+    overrides = {
+        "Runtime": runtime,
+        "CodeUriOne": codeuri_one,
+        "CodeUriTwo": codeuri_two,
+        "HandlerOne": handler_one,
+        "HandlerTwo": handler_two,
+    }
+
+    expected_files_project_manifest = {"numpy", "src"}
+    expected_source_files = {
+        "__init__.py",
+        "main.py",
+        "requirements.txt",
+    }
+
+    def test_parent_package_mode_explicit(self):
+        # Arrange
+        cmdlist = self.get_command_list(
+            use_container=self.use_container,
+            parameter_overrides={
+                **self.overrides,
+                "ParentPackageMode": "explicit",
+                "ParentPackagesOne": self.parent_packages_one,
+                "ParentPackagesTwo": self.parent_packages_two,
+            },
+        )
+
+        # Act
+        run_command(cmdlist, cwd=self.working_dir)
+
+        # Assert
+        self._verify_built_artifacts()
+
+    def test_parent_package_mode_auto(self):
+        # Arrange
+        cmdlist = self.get_command_list(
+            use_container=self.use_container,
+            parameter_overrides={**self.overrides, "ParentPackageMode": "auto"},
+        )
+
+        # Act
+        run_command(cmdlist, cwd=self.working_dir)
+
+        # Assert
+        self._verify_built_artifacts()
+
+    def _verify_built_artifacts(self):
+        [
+            self._verify_built_artifact(self.default_build_dir, logical_id, self.expected_files_project_manifest)
+            for logical_id in [self.logical_id_one, self.logical_id_two]
+        ]
+        [
+            self._verify_source_files(
+                self.default_build_dir,
+                self.expected_source_files,
+                logical_id,
+                parent_packages,
+            )
+            for (logical_id, parent_packages) in [
+                (self.logical_id_one, self.parent_packages_one),
+                (self.logical_id_two, self.parent_packages_two),
+            ]
+        ]
+
+    def _verify_source_files(
+        self, build_dir: pathlib.Path, expected_files: set[str], function_logical_id: str, parent_packages: str
+    ) -> None:
+        relative_code_uri = parent_packages.replace(".", "/")
+        function_artifact_dir = build_dir / function_logical_id / relative_code_uri
+        all_artifacts = set(
+            map(
+                lambda artifact: str(object=artifact.relative_to(function_artifact_dir)),
+                function_artifact_dir.glob("*"),
+            )
+        )
+        actual_files = all_artifacts.intersection(expected_files)
+        self.assertEqual(actual_files, expected_files)
 
 
 class TestBuildCommand_ErrorCases(BuildIntegBase):

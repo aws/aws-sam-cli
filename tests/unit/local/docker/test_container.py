@@ -330,6 +330,184 @@ class TestContainer_create(TestCase):
         with self.assertRaises(RuntimeError):
             container.create(self.container_context)
 
+    @patch("samcli.local.docker.container.os.path.exists")
+    @patch("samcli.local.docker.container.os.makedirs")
+    def test_must_make_host_tmp_dir_if_mount_with_write_container_build(self, mock_makedirs, mock_exists):
+        """Test that create() method creates host tmp directory when mount_with_write is True"""
+        container = Container(
+            self.image, self.cmd, self.working_dir, self.host_dir, docker_client=self.mock_docker_client
+        )
+        container._mount_with_write = True
+        container._host_tmp_dir = "host_tmp_dir"
+
+        # Mock filesystem operations to ensure complete isolation
+        mock_exists.return_value = False
+
+        # Mock the docker client create method to avoid actual container creation
+        self.mock_docker_client.containers.create.return_value = Mock()
+        self.mock_docker_client.containers.create.return_value.id = "test_id"
+
+        container.create(self.container_context)
+        mock_makedirs.assert_called_once_with(container._host_tmp_dir)
+        mock_exists.assert_called_once_with(container._host_tmp_dir)
+
+    @patch("samcli.local.docker.container.os.path.exists")
+    @patch("samcli.local.docker.container.os.makedirs")
+    def test_create_no_action_when_mount_with_write_false(self, mock_makedirs, mock_exists):
+        """Test that create() method takes no action when mount_with_write is False"""
+        container = Container(
+            self.image, self.cmd, self.working_dir, self.host_dir, docker_client=self.mock_docker_client
+        )
+        container._mount_with_write = False
+        container._host_tmp_dir = "host_tmp_dir"
+
+        # Mock the docker client create method to avoid actual container creation
+        self.mock_docker_client.containers.create.return_value = Mock()
+        self.mock_docker_client.containers.create.return_value.id = "test_id"
+
+        container.create(self.container_context)
+
+        # Should not check if directory exists or create it
+        mock_exists.assert_not_called()
+        mock_makedirs.assert_not_called()
+
+    @patch("samcli.local.docker.container.os.path.exists")
+    @patch("samcli.local.docker.container.os.makedirs")
+    def test_create_no_action_when_host_tmp_dir_none(self, mock_makedirs, mock_exists):
+        """Test that create() method takes no action when host_tmp_dir is None"""
+        container = Container(
+            self.image, self.cmd, self.working_dir, self.host_dir, docker_client=self.mock_docker_client
+        )
+        container._mount_with_write = True
+        container._host_tmp_dir = None
+
+        # Mock the docker client create method to avoid actual container creation
+        self.mock_docker_client.containers.create.return_value = Mock()
+        self.mock_docker_client.containers.create.return_value.id = "test_id"
+
+        container.create(self.container_context)
+
+        # Should not check if directory exists or create it
+        mock_exists.assert_not_called()
+        mock_makedirs.assert_not_called()
+
+    @patch("samcli.local.docker.container.os.path.exists")
+    @patch("samcli.local.docker.container.os.makedirs")
+    def test_create_no_action_when_directory_already_exists(self, mock_makedirs, mock_exists):
+        """Test that create() method takes no action when directory already exists"""
+        container = Container(
+            self.image, self.cmd, self.working_dir, self.host_dir, docker_client=self.mock_docker_client
+        )
+        container._mount_with_write = True
+        container._host_tmp_dir = "host_tmp_dir"
+        mock_exists.return_value = True  # Directory already exists
+
+        # Mock the docker client create method to avoid actual container creation
+        self.mock_docker_client.containers.create.return_value = Mock()
+        self.mock_docker_client.containers.create.return_value.id = "test_id"
+
+        container.create(self.container_context)
+
+        # Should check if directory exists but not create it
+        mock_exists.assert_called_once_with(container._host_tmp_dir)
+        mock_makedirs.assert_not_called()
+
+    @patch("samcli.local.docker.container.os.path.exists")
+    @patch("samcli.local.docker.container.os.makedirs")
+    def test_create_permission_error_during_directory_creation(self, mock_makedirs, mock_exists):
+        """Test that create() method propagates permission errors during directory creation"""
+        container = Container(
+            self.image, self.cmd, self.working_dir, self.host_dir, docker_client=self.mock_docker_client
+        )
+        container._mount_with_write = True
+        container._host_tmp_dir = "/root/restricted_dir"
+
+        # Mock filesystem operations to ensure complete isolation
+        mock_exists.return_value = False
+        mock_makedirs.side_effect = PermissionError("Permission denied: '/root/restricted_dir'")
+
+        with self.assertRaises(PermissionError) as context:
+            container.create(self.container_context)
+
+        self.assertIn("Permission denied", str(context.exception))
+        mock_makedirs.assert_called_once_with(container._host_tmp_dir)
+        mock_exists.assert_called_once_with(container._host_tmp_dir)
+        # Docker client should not be called since directory creation failed
+        self.mock_docker_client.containers.create.assert_not_called()
+
+    @patch("samcli.local.docker.container.os.path.exists")
+    @patch("samcli.local.docker.container.os.makedirs")
+    def test_create_os_error_during_directory_creation(self, mock_makedirs, mock_exists):
+        """Test that create() method propagates OS errors during directory creation"""
+        container = Container(
+            self.image, self.cmd, self.working_dir, self.host_dir, docker_client=self.mock_docker_client
+        )
+        container._mount_with_write = True
+        container._host_tmp_dir = "/invalid/path/with/nonexistent/parent"
+
+        # Mock filesystem operations to ensure complete isolation
+        mock_exists.return_value = False
+        mock_makedirs.side_effect = OSError("No such file or directory")
+
+        with self.assertRaises(OSError) as context:
+            container.create(self.container_context)
+
+        self.assertIn("No such file or directory", str(context.exception))
+        mock_makedirs.assert_called_once_with(container._host_tmp_dir)
+        mock_exists.assert_called_once_with(container._host_tmp_dir)
+        # Docker client should not be called since directory creation failed
+        self.mock_docker_client.containers.create.assert_not_called()
+
+    @patch("samcli.local.docker.container.os.path.exists")
+    @patch("samcli.local.docker.container.os.makedirs")
+    def test_create_invalid_path_scenarios(self, mock_makedirs, mock_exists):
+        """Test that create() method handles invalid path scenarios appropriately"""
+        container = Container(
+            self.image, self.cmd, self.working_dir, self.host_dir, docker_client=self.mock_docker_client
+        )
+        container._mount_with_write = True
+        container._host_tmp_dir = "/invalid\x00path"  # Path with null character
+
+        # Mock filesystem operations to ensure complete isolation
+        mock_exists.return_value = False
+        mock_makedirs.side_effect = ValueError("embedded null character")
+
+        # The ValueError should be raised before we even try to create the container
+        with self.assertRaises(ValueError) as context:
+            container.create(self.container_context)
+
+        self.assertIn("embedded null character", str(context.exception))
+        mock_makedirs.assert_called_once_with(container._host_tmp_dir)
+        mock_exists.assert_called_once_with(container._host_tmp_dir)
+        # Docker client should not be called since directory creation failed
+        self.mock_docker_client.containers.create.assert_not_called()
+
+    @patch("samcli.local.docker.container.os.path.exists")
+    @patch("samcli.local.docker.container.os.makedirs")
+    def test_create_file_exists_error_handled_gracefully(self, mock_makedirs, mock_exists):
+        """Test that create() method handles FileExistsError gracefully (race condition scenario)"""
+        container = Container(
+            self.image, self.cmd, self.working_dir, self.host_dir, docker_client=self.mock_docker_client
+        )
+        container._mount_with_write = True
+        container._host_tmp_dir = "host_tmp_dir"
+
+        # Mock filesystem operations to ensure complete isolation
+        mock_exists.return_value = False
+        # Simulate race condition where directory is created between exists check and makedirs call
+        mock_makedirs.side_effect = FileExistsError("Directory already exists")
+
+        # Mock the docker client create method to avoid actual container creation
+        self.mock_docker_client.containers.create.return_value = Mock()
+        self.mock_docker_client.containers.create.return_value.id = "test_id"
+
+        # Should not raise an exception - FileExistsError should be handled gracefully
+        container_id = container.create(self.container_context)
+        self.assertEqual(container_id, "test_id")
+
+        mock_makedirs.assert_called_once_with(container._host_tmp_dir)
+        mock_exists.assert_called_once_with(container._host_tmp_dir)
+
 
 class TestContainer_stop(TestCase):
     def setUp(self):
@@ -551,14 +729,83 @@ class TestContainer_start(TestCase):
 
     @patch("samcli.local.docker.container.os.path")
     @patch("samcli.local.docker.container.os")
-    def test_must_make_host_tmp_dir_if_mount_with_write_container_build(self, mock_os, mock_path):
+    def test_start_no_longer_creates_directories(self, mock_os, mock_path):
+        """Test that start() method no longer creates directories"""
         self.container.is_created.return_value = True
         self.container._mount_with_write = True
         self.container._host_tmp_dir = "host_tmp_dir"
-        mock_path.exists.return_value = False
+        mock_path.exists.return_value = False  # Directory doesn't exist
 
+        container_mock = Mock()
+        self.mock_docker_client.containers.get.return_value = container_mock
+        container_mock.start = Mock()
+
+        # Should not raise an exception, just log a warning
         self.container.start()
-        mock_os.makedirs.assert_called_with(self.container._host_tmp_dir)
+
+        # Should not create the directory
+        mock_os.makedirs.assert_not_called()
+
+        # Should still start the container
+        container_mock.start.assert_called_with()
+
+    @patch("samcli.local.docker.container.os.path")
+    def test_start_works_when_directory_already_exists(self, mock_path):
+        """Test that start() method works correctly when directory already exists"""
+        self.container.is_created.return_value = True
+        self.container._mount_with_write = True
+        self.container._host_tmp_dir = "host_tmp_dir"
+        mock_path.exists.return_value = True  # Directory exists
+
+        container_mock = Mock()
+        self.mock_docker_client.containers.get.return_value = container_mock
+        container_mock.start = Mock()
+
+        # Should work without any issues
+        self.container.start()
+
+        # Should start the container
+        container_mock.start.assert_called_with()
+
+    @patch("samcli.local.docker.container.os.path")
+    def test_start_works_when_mount_with_write_false(self, mock_path):
+        """Test that start() method works correctly when mount_with_write is False"""
+        self.container.is_created.return_value = True
+        self.container._mount_with_write = False
+        self.container._host_tmp_dir = "host_tmp_dir"
+
+        container_mock = Mock()
+        self.mock_docker_client.containers.get.return_value = container_mock
+        container_mock.start = Mock()
+
+        # Should work without checking directory existence
+        self.container.start()
+
+        # Should not check if directory exists
+        mock_path.exists.assert_not_called()
+
+        # Should start the container
+        container_mock.start.assert_called_with()
+
+    @patch("samcli.local.docker.container.os.path")
+    def test_start_works_when_host_tmp_dir_none(self, mock_path):
+        """Test that start() method works correctly when host_tmp_dir is None"""
+        self.container.is_created.return_value = True
+        self.container._mount_with_write = True
+        self.container._host_tmp_dir = None
+
+        container_mock = Mock()
+        self.mock_docker_client.containers.get.return_value = container_mock
+        container_mock.start = Mock()
+
+        # Should work without checking directory existence
+        self.container.start()
+
+        # Should not check if directory exists
+        mock_path.exists.assert_not_called()
+
+        # Should start the container
+        container_mock.start.assert_called_with()
 
 
 class TestContainer_wait_for_result(TestCase):
@@ -641,6 +888,7 @@ class TestContainer_wait_for_result(TestCase):
         mock_requests.post.assert_called_with(
             self.container.URL.format(host=host, port=port, function_name="function"),
             data=b"{}",
+            headers={},
             timeout=(self.container.RAPID_CONNECTION_TIMEOUT, None),
         )
         stdout_mock.write_bytes.assert_called_with(rie_response)
@@ -702,6 +950,7 @@ class TestContainer_wait_for_result(TestCase):
         mock_requests.post.assert_called_with(
             self.container.URL.format(host=host, port=port, function_name="function"),
             data=b"{}",
+            headers={},
             timeout=(self.container.RAPID_CONNECTION_TIMEOUT, None),
         )
         if response_deserializable:
@@ -742,16 +991,19 @@ class TestContainer_wait_for_result(TestCase):
                 call(
                     "http://localhost:7077/2015-03-31/functions/function/invocations",
                     data=b"{}",
+                    headers={},
                     timeout=(self.timeout, None),
                 ),
                 call(
                     "http://localhost:7077/2015-03-31/functions/function/invocations",
                     data=b"{}",
+                    headers={},
                     timeout=(self.timeout, None),
                 ),
                 call(
                     "http://localhost:7077/2015-03-31/functions/function/invocations",
                     data=b"{}",
+                    headers={},
                     timeout=(self.timeout, None),
                 ),
             ],
@@ -811,6 +1063,54 @@ class TestContainer_wait_for_result(TestCase):
             )
 
         self.assertEqual(mock_requests.post.call_count, 0)
+
+    @parameterized.expand(
+        [
+            (True, b'{"result": "success"}', {"Content-Type": "application/json"}),
+        ]
+    )
+    @patch("socket.socket")
+    @patch("samcli.local.docker.container.requests")
+    def test_wait_for_result_with_tenant_id(
+        self, response_deserializable, rie_response, resp_headers, mock_requests, patched_socket
+    ):
+        """Test that tenant_id is passed as header when provided"""
+        self.container.is_created.return_value = True
+
+        real_container_mock = Mock()
+        self.mock_docker_client.containers.get.return_value = real_container_mock
+
+        output_itr = Mock()
+        real_container_mock.attach.return_value = output_itr
+        self.container._write_container_output = Mock()
+        self.container._create_threading_event = Mock()
+        self.container._create_threading_event.return_value = Mock()
+
+        stdout_mock = Mock()
+        stdout_mock.write_str = Mock()
+        stderr_mock = Mock()
+        response = Mock()
+        response.content = rie_response
+        response.headers = resp_headers
+        mock_requests.post.return_value = response
+
+        patched_socket.return_value = self.socket_mock
+
+        tenant_id = "test-tenant-123"
+
+        self.container.wait_for_result(
+            event=self.event,
+            full_path=self.name,
+            stdout=stdout_mock,
+            stderr=stderr_mock,
+            tenant_id=tenant_id,
+        )
+
+        # Verify that the POST request was called with tenant_id header
+        mock_requests.post.assert_called_once()
+        call_args = mock_requests.post.call_args
+        self.assertIn("headers", call_args.kwargs)
+        self.assertEqual(call_args.kwargs["headers"]["X-Amz-Tenant-Id"], tenant_id)
 
     def test_write_container_output_successful(self):
         stdout_mock = Mock(spec=StreamWriter)
@@ -953,7 +1253,8 @@ class TestContainer_wait_for_socket_connection(TestCase):
 class TestContainer_image(TestCase):
     def test_must_return_image_value(self):
         image = "myimage"
-        container = Container(image, "cmd", "dir", "dir")
+        mock_docker_client = Mock()
+        container = Container(image, "cmd", "dir", "dir", docker_client=mock_docker_client)
 
         self.assertEqual(image, container.image)
 
@@ -971,8 +1272,9 @@ class TestContainer_copy(TestCase):
         dest = "dest"
 
         tar_stream = [1, 2, 3]
-        real_container_mock = self.mock_client.containers.get.return_value = Mock()
-        real_container_mock.get_archive.return_value = (tar_stream, "ignored")
+
+        # Mock the container client's get_archive method
+        self.mock_client.get_archive.return_value = (tar_stream, "ignored")
 
         tempfile_ctxmgr = tempfile_mock.NamedTemporaryFile.return_value = Mock()
         fp_mock = Mock()
@@ -980,6 +1282,9 @@ class TestContainer_copy(TestCase):
         tempfile_ctxmgr.__exit__ = Mock()
 
         self.container.copy(source, dest)
+
+        # Verify get_archive was called with container ID and source path
+        self.mock_client.get_archive.assert_called_with("containerid", source)
 
         extract_tarfile_mock.assert_called_with(file_obj=fp_mock, unpack_dir=dest)
 

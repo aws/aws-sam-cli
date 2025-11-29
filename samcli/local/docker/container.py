@@ -25,10 +25,10 @@ from docker.errors import (
     NotFound as DockerNetworkNotFound,
 )
 
-from samcli.lib.constants import DOCKER_MIN_API_VERSION
 from samcli.lib.utils.retry import retry
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.lib.utils.tar import extract_tarfile
+from samcli.local.docker import utils
 from samcli.local.docker.effective_user import ROOT_USER_ID, EffectiveUser
 from samcli.local.docker.exceptions import (
     ContainerNotStartableException,
@@ -102,6 +102,7 @@ class Container:
         host_tmp_dir: Optional[str] = None,
         extra_hosts: Optional[dict] = None,
         mount_symlinks: Optional[bool] = False,
+        labels: Optional[dict] = None,
     ):
         """
         Initializes the class with given configuration. This does not automatically create or run the container.
@@ -141,9 +142,12 @@ class Container:
         self._logs_thread = None
         self._extra_hosts = extra_hosts
         self._logs_thread_event = None
+        self._labels = labels or {}
 
-        # Use the given Docker client or create new one
-        self.docker_client = docker_client or docker.from_env(version=DOCKER_MIN_API_VERSION)
+        # Store docker_client parameter for lazy initialization
+        # Only validate container runtime when Docker client is actually accessed
+        self._docker_client_param = docker_client
+        self._validated_docker_client = None
 
         # Runtime properties of the container. They won't have value until container is created or started
         self.id: Optional[str] = None
@@ -165,6 +169,16 @@ class Container:
             )
         except NoFreePortsError as ex:
             raise ContainerNotStartableException(str(ex)) from ex
+
+    @property
+    def docker_client(self):
+        """
+        Lazy initialization of Docker client. Only validates container runtime when actually accessed.
+        This prevents unnecessary container runtime validation during object creation.
+        """
+        if self._validated_docker_client is None:
+            self._validated_docker_client = self._docker_client_param or utils.get_validated_container_client()
+        return self._validated_docker_client
 
     def create(self, context):
         """
@@ -252,6 +266,19 @@ class Container:
         if self._extra_hosts:
             kwargs["extra_hosts"] = self._extra_hosts
 
+        if self._labels:
+            kwargs["labels"] = self._labels
+
+        # Make tmp dir on the host before container creation to avoid permission issues
+        if self._mount_with_write and self._host_tmp_dir and not os.path.exists(self._host_tmp_dir):
+            try:
+                os.makedirs(self._host_tmp_dir)
+                LOG.debug("Successfully created temporary directory %s on the host.", self._host_tmp_dir)
+            except FileExistsError:
+                # Directory was created between the exists check and makedirs call (race condition)
+                # This is acceptable, so we can ignore this error
+                LOG.debug("Temporary directory %s already exists on the host.", self._host_tmp_dir)
+
         try:
             real_container = self.docker_client.containers.create(self._image, **kwargs)
         except DockerAPIError as ex:
@@ -259,6 +286,9 @@ class Container:
                 f"Container creation failed: {ex.explanation}, check template for potential issue"
             )
         self.id = real_container.id
+
+        # Output container ID for test parsing
+        LOG.info("SAM_CONTAINER_ID: %s", self.id)
 
         self._logs_thread = None
         self._logs_thread_event = None
@@ -399,10 +429,12 @@ class Container:
         if not self.is_created():
             raise RuntimeError("Container does not exist. Cannot start this container")
 
-        # Make tmp dir on the host
+        # Check if tmp dir exists when mount_with_write is enabled
         if self._mount_with_write and self._host_tmp_dir and not os.path.exists(self._host_tmp_dir):
-            os.makedirs(self._host_tmp_dir)
-            LOG.debug("Successfully created temporary directory %s on the host.", self._host_tmp_dir)
+            LOG.warning(
+                "Temporary directory %s does not exist. The tmp directory should be created during container creation.",
+                self._host_tmp_dir,
+            )
 
         # Get the underlying container instance from Docker API
         real_container = self.docker_client.containers.get(self.id)
@@ -416,7 +448,7 @@ class Container:
             raise ex
 
     @retry(exc=requests.exceptions.RequestException, exc_raise=ContainerResponseException)
-    def wait_for_http_response(self, name, event, stdout) -> Tuple[Union[str, bytes], bool]:
+    def wait_for_http_response(self, name, event, stdout, tenant_id=None) -> Tuple[Union[str, bytes], bool]:
         # TODO(sriram-mv): `aws-lambda-rie` is in a mode where the function_name is always "function"
         # NOTE(sriram-mv): There is a connection timeout set on the http call to `aws-lambda-rie`, however there is not
         # a read time out for the response received from the server.
@@ -430,10 +462,18 @@ class Container:
                 lock = threading.Lock()
                 CONCURRENT_CALL_MANAGER[lock_key] = lock
         LOG.debug("Waiting to retrieve the lock (%s) to start invocation", lock_key)
+
+        # Prepare headers for the request
+        headers = {}
+        if tenant_id is not None:
+            headers["X-Amz-Tenant-Id"] = tenant_id
+            LOG.debug("Adding tenant-id header: %s", tenant_id)
+
         with lock:
             resp = requests.post(
                 self.URL.format(host=self._container_host, port=self.rapid_port_host, function_name="function"),
                 data=event.encode("utf-8"),
+                headers=headers,
                 timeout=(self.RAPID_CONNECTION_TIMEOUT, None),
             )
 
@@ -446,7 +486,7 @@ class Container:
             LOG.debug("Failed to deserialize response from RIE, returning the raw response as is")
             return resp.content, False
 
-    def wait_for_result(self, full_path, event, stdout, stderr, start_timer=None):
+    def wait_for_result(self, full_path, event, stdout, stderr, start_timer=None, tenant_id=None):
         # NOTE(sriram-mv): Let logging happen in its own thread, so that a http request can be sent.
         # NOTE(sriram-mv): All logging is re-directed to stderr, so that only the lambda function return
         # will be written to stdout.
@@ -467,7 +507,7 @@ class Container:
         # start the timer for function timeout right before executing the function, as waiting for the socket
         # can take some time
         timer = start_timer() if start_timer else None
-        response, is_image = self.wait_for_http_response(full_path, event, stdout)
+        response, is_image = self.wait_for_http_response(full_path, event, stdout, tenant_id)
         if timer:
             timer.cancel()
 
@@ -536,11 +576,9 @@ class Container:
         if not self.is_created():
             raise RuntimeError("Container does not exist. Cannot get logs for this container")
 
-        real_container = self.docker_client.containers.get(self.id)
-
         LOG.debug("Copying from container: %s -> %s", from_container_path, to_host_path)
         with tempfile.NamedTemporaryFile() as fp:
-            tar_stream, _ = real_container.get_archive(from_container_path)
+            tar_stream, _ = self.docker_client.get_archive(self.id, from_container_path)
             for data in tar_stream:
                 fp.write(data)
 

@@ -139,7 +139,7 @@ class TestSfnDescribeExecutionResponseConverter(TestCase):
             "startDate": execution_date,
             "stopDate": execution_date,
         }
-        remote_invoke_execution_info = RemoteInvokeExecutionInfo(None, None, {}, output_format)
+        remote_invoke_execution_info = RemoteInvokeExecutionInfo(None, None, None, {}, output_format)
         remote_invoke_execution_info.response = given_execution_result
 
         expected_result = {
@@ -158,7 +158,7 @@ class TestSfnDescribeExecutionResponseConverter(TestCase):
         given_output_string = "output string"
         given_output_response.read().decode.return_value = given_output_string
         given_test_result = [given_output_response]
-        remote_invoke_execution_info = RemoteInvokeExecutionInfo(None, None, {}, output_format)
+        remote_invoke_execution_info = RemoteInvokeExecutionInfo(None, None, None, {}, output_format)
         remote_invoke_execution_info.response = given_test_result
 
         with self.assertRaises(InvalideBotoResponseException):

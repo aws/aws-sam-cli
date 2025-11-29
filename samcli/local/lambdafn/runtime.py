@@ -56,7 +56,12 @@ class LambdaRuntime:
         self._no_mem_limit = no_mem_limit
 
     def create(
-        self, function_config, debug_context=None, container_host=None, container_host_interface=None, extra_hosts=None
+        self,
+        function_config,
+        debug_context=None,
+        container_host=None,
+        container_host_interface=None,
+        extra_hosts=None,
     ):
         """
         Create a new Container for the passed function, then store it in a dictionary using the function name,
@@ -191,6 +196,7 @@ class LambdaRuntime:
         self,
         function_config,
         event,
+        tenant_id=None,
         debug_context=None,
         stdout: Optional[StreamWriter] = None,
         stderr: Optional[StreamWriter] = None,
@@ -229,7 +235,14 @@ class LambdaRuntime:
             container = self.create(
                 function_config, debug_context, container_host, container_host_interface, extra_hosts
             )
-            container = self.run(container, function_config, debug_context)
+            container = self.run(
+                container,
+                function_config,
+                debug_context,
+                container_host,
+                container_host_interface,
+                extra_hosts,
+            )
             # Setup appropriate interrupt - timeout or Ctrl+C - before function starts executing and
             # get callback function to start timeout timer
             start_timer = self._configure_interrupt(
@@ -241,7 +254,12 @@ class LambdaRuntime:
             # starts another thread to stream logs. This method will terminate
             # either successfully or be killed by one of the interrupt handlers above.
             container.wait_for_result(
-                full_path=function_config.full_path, event=event, stdout=stdout, stderr=stderr, start_timer=start_timer
+                full_path=function_config.full_path,
+                event=event,
+                stdout=stdout,
+                stderr=stderr,
+                start_timer=start_timer,
+                tenant_id=tenant_id,
             )
 
         except KeyboardInterrupt:
@@ -416,7 +434,12 @@ class WarmLambdaRuntime(LambdaRuntime):
         super().__init__(container_manager, image_builder, mount_symlinks=mount_symlinks, no_mem_limit=no_mem_limit)
 
     def create(
-        self, function_config, debug_context=None, container_host=None, container_host_interface=None, extra_hosts=None
+        self,
+        function_config,
+        debug_context=None,
+        container_host=None,
+        container_host_interface=None,
+        extra_hosts=None,
     ):
         """
         Create a new Container for the passed function, then store it in a dictionary using the function name,

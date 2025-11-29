@@ -32,7 +32,7 @@ class TestRemoteTestEvent(RemoteTestEventIntegBase):
             self.stack_name,
             function_name,
             expected_output="",
-            expected_error="Error: No events found for function HelloWorldFunction1",
+            expected_error="No events found for function HelloWorldFunction1",
         )
         self.get_event_and_check(
             self.stack_name,

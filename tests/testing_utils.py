@@ -18,8 +18,9 @@ from uuid import uuid4
 
 import boto3
 import psutil
-import docker
 import packaging.version
+
+from samcli.local.docker.utils import get_validated_container_client
 
 RUNNING_ON_APPVEYOR = os.environ.get("APPVEYOR", False)
 IS_WINDOWS = platform.system().lower() == "windows"
@@ -28,8 +29,13 @@ RUNNING_ON_CI = RUNNING_ON_APPVEYOR or RUNNING_ON_GITHUB_ACTIONS
 RUNNING_TEST_FOR_MASTER_ON_CI = (
     os.environ.get("APPVEYOR_REPO_BRANCH", os.environ.get("GITHUB_REF_NAME", "master")) != "master"
 )
-CI_OVERRIDE = os.environ.get("APPVEYOR_CI_OVERRIDE", False) or os.environ.get("CI_OVERRIDE", False)
+CI_OVERRIDE = (
+    os.environ.get("APPVEYOR_CI_OVERRIDE", False)
+    or os.environ.get("CI_OVERRIDE", False)
+    or os.environ.get("GITHUB_ACTIONS_INTEG", False)
+)
 RUN_BY_CANARY = os.environ.get("BY_CANARY", False)
+USING_FINCH_RUNTIME = os.environ.get("CONTAINER_RUNTIME") == "finch"
 
 # Tests require docker suffers from Docker Hub request limit
 SKIP_DOCKER_TESTS = RUNNING_ON_CI and not RUN_BY_CANARY
@@ -46,6 +52,11 @@ LOG = logging.getLogger(__name__)
 CommandResult = namedtuple("CommandResult", "process stdout stderr")
 TIMEOUT = 600
 CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".", "-")
+
+# Error message truncation constants for test output readability
+# The 200-character limit provides enough context for debugging while keeping test output manageable
+# This prevents excessively long error messages from cluttering test results and CI logs
+MAX_ERROR_OUTPUT_LENGTH = 200
 
 
 def get_sam_command():
@@ -303,4 +314,4 @@ def _version_gte(version1: str, version2: str) -> bool:
 
 
 def get_docker_version() -> str:
-    return cast(str, docker.from_env().info().get("ServerVersion", "0.0.0"))
+    return cast(str, get_validated_container_client().info().get("ServerVersion", "0.0.0"))

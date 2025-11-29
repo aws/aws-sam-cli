@@ -11,6 +11,7 @@ from yaml import YAMLError
 from samcli.cli.cli_config_file import ConfigProvider, configuration_option
 from samcli.cli.context import Context
 from samcli.cli.main import aws_creds_options, common_options, pass_context, print_cmdline_args
+from samcli.commands._utils.click_mutex import ClickMutex
 from samcli.commands._utils.command_exception_handler import command_exception_handler
 from samcli.commands.remote.exceptions import IllFormedEventData
 from samcli.commands.remote.test_event.put.core.command import RemoteTestEventPutCommand
@@ -19,6 +20,7 @@ from samcli.lib.cli_validation.remote_invoke_options_validations import (
     stack_name_or_resource_id_atleast_one_option_validation,
 )
 from samcli.lib.telemetry.metric import track_command
+from samcli.lib.utils.invocation_type import EVENT, REQUEST_RESPONSE
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.yamlhelper import yaml_parse
 
@@ -56,6 +58,14 @@ DESCRIPTION = """
         "The option '--file' is required (You can provide '-' to read from stdin)"
     ),
 )
+@click.option(
+    "--invocation-type",
+    type=click.Choice([EVENT, REQUEST_RESPONSE]),
+    replace_help_option="--invocation-type INVOCATION_TYPE",
+    help="Lambda function invocation type."
+    + click.style(f"\n\nInvocation types: {[EVENT, REQUEST_RESPONSE]}", bold=True),
+    cls=ClickMutex,
+)
 @click.option("--force", "-f", is_flag=True, help="Force saving the event even if it already exists")
 @click.argument("resource-id", required=False)
 @aws_creds_options
@@ -72,6 +82,7 @@ def cli(
     resource_id: Optional[str],
     name: str,
     file: TextIOWrapper,
+    invocation_type: str,
     force: bool,
     config_file: str,
     config_env: str,
@@ -84,6 +95,7 @@ def cli(
         resource_id,
         name,
         file,
+        invocation_type,
         force,
         ctx.region,
         ctx.profile,
@@ -97,6 +109,7 @@ def do_cli(
     resource_id: Optional[str],
     name: str,
     file: TextIOWrapper,
+    invocation_type: str,
     force: bool,
     region: str,
     profile: str,
@@ -147,7 +160,7 @@ def do_cli(
         data = yaml_parse(contents)
         event_data = json.dumps(data)
         LOG.debug("Creating remote event %s from resource: %s", name, function_resource)
-        lambda_test_event.create_event(name, function_resource, event_data, force=force)
+        lambda_test_event.create_event(name, function_resource, event_data, invocation_type, force=force)
         click.echo(f"Put remote event '{name}' completed successfully")
     except (ValueError, YAMLError, JSONDecodeError) as ex:
         raise IllFormedEventData(f"File {file.name} doesn't contain a valid JSON:\n {ex}") from ex

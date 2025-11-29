@@ -4,7 +4,7 @@ Class that provides functions from a given SAM template
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional, cast
+from typing import Any, Dict, Iterator, List, Optional, Tuple, cast
 
 from samtranslator.policy_template_processor.exceptions import TemplateNotFoundException
 
@@ -45,6 +45,7 @@ class SamFunctionProvider(SamBaseProvider):
         use_raw_codeuri: bool = False,
         ignore_code_extraction_warnings: bool = False,
         locate_layer_nested: bool = False,
+        function_logical_ids: Optional[Tuple[str, ...]] = None,
     ) -> None:
         """
         Initialize the class with SAM template data. The SAM template passed to this provider is assumed
@@ -61,16 +62,18 @@ class SamFunctionProvider(SamBaseProvider):
             Note(xinhol): use_raw_codeuri is temporary to fix a bug, and will be removed for a permanent solution.
         :param bool ignore_code_extraction_warnings: Ignores Log warnings
         :param bool locate_layer_nested: resolved nested layer reference to their actual location in the nested stack
+        :param tuple function_logical_ids: Optional tuple of function logical IDs to filter by
         """
 
         self._stacks = stacks
+        self._function_logical_ids = function_logical_ids
 
         for stack in stacks:
             LOG.debug("%d resources found in the stack %s", len(stack.resources), stack.stack_path)
 
         # Store a map of function full_path to function information for quick reference
         self.functions = SamFunctionProvider._extract_functions(
-            self._stacks, use_raw_codeuri, ignore_code_extraction_warnings, locate_layer_nested
+            self._stacks, use_raw_codeuri, ignore_code_extraction_warnings, locate_layer_nested, function_logical_ids
         )
 
         self._colored = Colored()
@@ -90,6 +93,7 @@ class SamFunctionProvider(SamBaseProvider):
         use_raw_codeuri: bool = False,
         ignore_code_extraction_warnings: bool = False,
         locate_layer_nested: bool = False,
+        function_logical_ids: Optional[Tuple[str, ...]] = None,
     ) -> None:
         """
         Hydrate the function provider with updated stacks
@@ -98,10 +102,11 @@ class SamFunctionProvider(SamBaseProvider):
             Note(xinhol): use_raw_codeuri is temporary to fix a bug, and will be removed for a permanent solution.
         :param bool ignore_code_extraction_warnings: Ignores Log warnings
         :param bool locate_layer_nested: resolved nested layer reference to their actual location in the nested stack
+        :param tuple function_logical_ids: Optional tuple of function logical IDs to filter by
         """
         self._stacks = stacks
         self.functions = SamFunctionProvider._extract_functions(
-            self._stacks, use_raw_codeuri, ignore_code_extraction_warnings, locate_layer_nested
+            self._stacks, use_raw_codeuri, ignore_code_extraction_warnings, locate_layer_nested, function_logical_ids
         )
 
     def get(self, name: str) -> Optional[Function]:
@@ -181,11 +186,28 @@ class SamFunctionProvider(SamBaseProvider):
             yield function
 
     @staticmethod
+    def _should_include_function(function: Function, function_logical_ids: set) -> bool:
+        """
+        Determines if a function should be included based on the filter.
+        Matches against function_id, name, and functionname.
+
+        :param function: Function object to check
+        :param function_logical_ids: Set of function logical IDs to match against
+        :return bool: True if function should be included, False otherwise
+        """
+        return bool(
+            function.function_id in function_logical_ids
+            or function.name in function_logical_ids
+            or (function.functionname and function.functionname in function_logical_ids)
+        )
+
+    @staticmethod
     def _extract_functions(
         stacks: List[Stack],
         use_raw_codeuri: bool = False,
         ignore_code_extraction_warnings: bool = False,
         locate_layer_nested: bool = False,
+        function_logical_ids: Optional[Tuple[str, ...]] = None,
     ) -> Dict[str, Function]:
         """
         Extracts and returns function information from the given dictionary of SAM/CloudFormation resources. This
@@ -195,6 +217,7 @@ class SamFunctionProvider(SamBaseProvider):
         :param bool use_raw_codeuri: Do not resolve adjust core_uri based on the template path, use the raw uri.
         :param bool ignore_code_extraction_warnings: suppress log statements on code extraction from resources.
         :param bool locate_layer_nested: resolved nested layer reference to their actual location in the nested stack
+        :param tuple function_logical_ids: Optional tuple of function logical IDs to filter by
         :return dict(string : samcli.commands.local.lib.provider.Function): Dictionary of function full_path to the
             Function configuration object
         """
@@ -270,6 +293,17 @@ class SamFunctionProvider(SamBaseProvider):
                     result[function.full_path] = function
 
                 # We don't care about other resource types. Just ignore them
+
+        # Apply filtering if function_logical_ids provided
+        if function_logical_ids:
+            function_logical_ids_set = set(function_logical_ids)
+            filtered_functions = {}
+
+            for full_path, function in result.items():
+                if SamFunctionProvider._should_include_function(function, function_logical_ids_set):
+                    filtered_functions[full_path] = function
+
+            return filtered_functions
 
         return result
 
@@ -488,6 +522,7 @@ class SamFunctionProvider(SamBaseProvider):
             runtime_management_config=resource_properties.get("RuntimeManagementConfig"),
             function_build_info=function_build_info,
             logging_config=resource_properties.get("LoggingConfig"),
+            tenancy_config=resource_properties.get("TenancyConfig"),
         )
 
     @staticmethod
@@ -800,6 +835,7 @@ class RefreshableSamFunctionProvider(SamFunctionProvider):
         global_parameter_overrides: Optional[Dict] = None,
         use_raw_codeuri: bool = False,
         ignore_code_extraction_warnings: bool = False,
+        function_logical_ids: Optional[Tuple[str, ...]] = None,
     ) -> None:
         """
         Initialize the class with SAM template data. The SAM template passed to this provider is assumed
@@ -815,9 +851,15 @@ class RefreshableSamFunctionProvider(SamFunctionProvider):
         :param bool use_raw_codeuri: Do not resolve adjust core_uri based on the template path, use the raw uri.
             Note(xinhol): use_raw_codeuri is temporary to fix a bug, and will be removed for a permanent solution.
         :param bool ignore_code_extraction_warnings: Ignores Log warnings
+        :param tuple function_logical_ids: Optional tuple of function logical IDs to filter by
         """
 
-        super().__init__(stacks, use_raw_codeuri, ignore_code_extraction_warnings)
+        # Store function_logical_ids before calling super().__init__
+        self._function_logical_ids = function_logical_ids
+
+        super().__init__(
+            stacks, use_raw_codeuri, ignore_code_extraction_warnings, function_logical_ids=function_logical_ids
+        )
 
         # initialize root templates. Usually it will be one template, as sam commands only support processing
         # one template. These templates will be fixed.
@@ -909,6 +951,7 @@ class RefreshableSamFunctionProvider(SamFunctionProvider):
     def _refresh_loaded_functions(self) -> None:
         """
         Reload the stacks, and lambda functions from template files.
+        Applies the same function filter during refresh.
         """
         LOG.debug("A change got detected in one of the stack templates. Reload the lambda function resources")
         self._stacks = []
@@ -925,8 +968,12 @@ class RefreshableSamFunctionProvider(SamFunctionProvider):
                 raise ex
 
         self.is_changed = False
+        # Pass function_logical_ids to maintain filter during refresh
         self.functions = self._extract_functions(
-            self._stacks, self._use_raw_codeuri, self._ignore_code_extraction_warnings
+            self._stacks,
+            self._use_raw_codeuri,
+            self._ignore_code_extraction_warnings,
+            function_logical_ids=self._function_logical_ids,
         )
         self._watch_stack_templates(self._stacks)
 

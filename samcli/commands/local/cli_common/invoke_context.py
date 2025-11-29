@@ -23,19 +23,15 @@ from samcli.lib.utils.async_utils import AsyncContext
 from samcli.lib.utils.boto_utils import get_boto_client_provider_with_config
 from samcli.lib.utils.packagetype import ZIP
 from samcli.lib.utils.stream_writer import StreamWriter
+from samcli.local.docker.container_client import ContainerClient
 from samcli.local.docker.exceptions import PortAlreadyInUse
 from samcli.local.docker.lambda_image import LambdaImage
 from samcli.local.docker.manager import ContainerManager
+from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.local.lambdafn.runtime import LambdaRuntime, WarmLambdaRuntime
 from samcli.local.layers.layer_downloader import LayerDownloader
 
 LOG = logging.getLogger(__name__)
-
-
-class DockerIsNotReachableException(InvokeContextException):
-    """
-    Docker is not installed or not running at the moment
-    """
 
 
 class InvalidEnvironmentVariablesFileException(InvokeContextException):
@@ -103,6 +99,7 @@ class InvokeContext:
         invoke_images: Optional[str] = None,
         mount_symlinks: Optional[bool] = False,
         no_mem_limit: Optional[bool] = False,
+        function_logical_ids: Optional[Tuple[str, ...]] = None,
     ) -> None:
         """
         Initialize the context
@@ -112,7 +109,7 @@ class InvokeContext:
         template_file str
             Name or path to template
         function_identifier str
-            Identifier of the function to invoke
+            Identifier of the single function to invoke (used by 'sam local invoke' command)
         env_vars_file str
             Path to a file containing values for environment variables
         docker_volume_basedir str
@@ -159,10 +156,27 @@ class InvokeContext:
             Optional. A dictionary that defines the custom invoke image URI of each function
         mount_symlinks bool
             Optional. Indicates if symlinks should be mounted inside the container
+        function_logical_ids tuple(str)
+            Optional. Tuple of function logical IDs to filter and make available for local execution.
+            Used by 'sam local start-api' and 'sam local start-lambda' commands to limit which
+            functions from the template are exposed. If not provided, all functions are available.
         """
 
         self._template_file = template_file
         self._function_identifier = function_identifier
+        self._function_logical_ids = function_logical_ids
+
+        # Validate that function_identifier and function_logical_ids aren't both provided
+        # function_identifier is for 'sam local invoke' (single function)
+        # function_logical_ids is for 'sam local start-lambda' commands (multiple function filter)
+        if self._function_identifier and self._function_logical_ids:
+            LOG.warning(
+                "Both function_identifier and function_logical_ids were provided. "
+                "function_identifier is used for 'sam local invoke' to specify a single function, "
+                "while function_logical_ids is used for 'sam local start-lambda' to filter functions. "
+                "function_identifier will take precedence for single function invocation."
+            )
+
         self._env_vars_file = env_vars_file
         self._docker_volume_basedir = docker_volume_basedir
         self._docker_network = docker_network
@@ -220,6 +234,7 @@ class InvokeContext:
         self._lambda_runtimes: Optional[Dict[ContainersMode, LambdaRuntime]] = None
 
         self._local_lambda_runner: Optional[LocalLambdaRunner] = None
+        self._initialized_container_ids: List[str] = []
 
     def __enter__(self) -> "InvokeContext":
         """
@@ -245,9 +260,17 @@ class InvokeContext:
         if self._docker_volume_basedir:
             _function_providers_args[self._containers_mode].append(True)
 
+        _function_providers_kwargs: Dict[str, Any] = {}
+
+        if self._function_logical_ids:
+            _function_providers_kwargs["function_logical_ids"] = self._function_logical_ids
+
         self._function_provider = _function_providers_class[self._containers_mode](
-            *_function_providers_args[self._containers_mode]
+            *_function_providers_args[self._containers_mode], **_function_providers_kwargs
         )
+
+        # Validate function logical IDs after provider is initialized
+        self._validate_function_logical_ids()
 
         self._env_vars_value = self._get_env_vars_value(self._env_vars_file)
         self._container_env_vars_value = self._get_env_vars_value(self._container_env_vars_file)
@@ -280,14 +303,9 @@ class InvokeContext:
             self._docker_network, self._skip_pull_image, self._shutdown
         )
 
-        if not self._container_manager.is_docker_reachable:
-            raise DockerIsNotReachableException(
-                "Running AWS SAM projects locally requires Docker. Have you got it installed and running?"
-            )
-
         # initialize all lambda function containers upfront
         if self._containers_initializing_mode == ContainersInitializationMode.EAGER:
-            self._initialize_all_functions_containers()
+            self._initialized_container_ids = self._initialize_all_functions_containers()
 
         for func in self._function_provider.get_all():
             if func.packagetype == ZIP and func.inlinecode:
@@ -312,15 +330,20 @@ class InvokeContext:
         if self._containers_mode == ContainersMode.WARM:
             self._clean_running_containers_and_related_resources()
 
-    def _initialize_all_functions_containers(self) -> None:
+    def _initialize_all_functions_containers(self) -> List[str]:
         """
         Create and run a container for each available lambda function
+
+        Returns:
+            List[str]: List of container IDs that were created and started
         """
         LOG.info("Initializing the lambda functions containers.")
 
+        container_ids = []
+
         def initialize_function_container(function: Function) -> None:
             function_config = self.local_lambda_runner.get_invoke_config(function)
-            self.lambda_runtime.run(
+            container = self.lambda_runtime.run(
                 container=None,
                 function_config=function_config,
                 debug_context=self._debug_context,
@@ -329,13 +352,27 @@ class InvokeContext:
                 extra_hosts=self._extra_hosts,
             )
 
+            # Collect container ID in a thread-safe way
+            if container and hasattr(container, "id"):
+                container_ids.append(container.id)
+
         try:
             async_context = AsyncContext()
             for function in self._function_provider.get_all():
                 async_context.add_async_task(initialize_function_container, function)
 
             async_context.run_async(default_executor=False)
-            LOG.info("Containers Initialization is done.")
+            LOG.info("Containers created. Waiting for readiness...")
+            LOG.debug("Initialized container IDs: %s", container_ids)
+
+            # Wait for all containers to be ready before returning
+            if container_ids:
+                self._wait_for_containers_readiness(container_ids)
+                LOG.info("All containers are ready.")
+            else:
+                LOG.info("No containers were created.")
+
+            return container_ids
         except KeyboardInterrupt:
             LOG.debug("Ctrl+C was pressed. Aborting containers initialization")
             self._clean_running_containers_and_related_resources()
@@ -347,6 +384,89 @@ class InvokeContext:
             self._clean_running_containers_and_related_resources()
             raise ContainersInitializationException("Lambda functions containers initialization failed") from ex
 
+    def _wait_for_containers_readiness(self, container_ids: List[str], max_wait_seconds: int = 30) -> None:
+        """
+        Wait for all containers to be running using native Docker container status.
+
+        Args:
+            container_ids: List of container IDs to check
+            max_wait_seconds: Maximum time to wait for all containers to be running
+        """
+        import time
+
+        from samcli.local.docker.utils import get_validated_container_client
+
+        if not container_ids:
+            return
+
+        LOG.info("Waiting for %d containers to be running...", len(container_ids))
+        docker_client = get_validated_container_client()
+        start_time = time.time()
+
+        while time.time() - start_time < max_wait_seconds:
+            running_containers = 0
+
+            for container_id in container_ids:
+                try:
+                    container = docker_client.containers.get(container_id)
+
+                    # Check if container is running
+                    if container.status == "running":
+                        running_containers += 1
+
+                except Exception as e:
+                    LOG.debug("Error checking container %s: %s", container_id[:12], e)
+                    continue
+
+            if running_containers == len(container_ids):
+                elapsed = time.time() - start_time
+                LOG.info("All %d containers running after %.1f seconds", len(container_ids), elapsed)
+                return
+
+            # Log progress every 10 seconds
+            elapsed = time.time() - start_time
+            if int(elapsed) % 10 == 0 and elapsed > 0:
+                LOG.info(
+                    "Container status: %d/%d running after %.1f seconds",
+                    running_containers,
+                    len(container_ids),
+                    elapsed,
+                )
+
+            time.sleep(0.5)  # Check every 500ms
+
+        # Timeout reached
+        elapsed = time.time() - start_time
+        running_containers = sum(1 for cid in container_ids if self._is_container_running(docker_client, cid))
+
+        if running_containers < len(container_ids):
+            LOG.warning(
+                "Container startup timeout after %.1f seconds. %d/%d containers running",
+                elapsed,
+                running_containers,
+                len(container_ids),
+            )
+        else:
+            LOG.info("All containers running after %.1f seconds", elapsed)
+
+    def _is_container_running(self, docker_client: ContainerClient, container_id: str) -> bool:
+        """
+        Check if a container is currently running.
+
+        Args:
+            docker_client: Docker client instance
+            container_id: Container ID to check
+
+        Returns:
+            bool: True if container is running, False otherwise
+        """
+        try:
+            container = docker_client.containers.get(container_id)
+            return bool(container.status == "running")
+        except Exception as e:
+            LOG.debug("Error checking container %s: %s", container_id[:12], e)
+            return False
+
     def _clean_running_containers_and_related_resources(self) -> None:
         """
         Clean the running containers and any other related open resources,
@@ -354,6 +474,38 @@ class InvokeContext:
         """
         cast(WarmLambdaRuntime, self.lambda_runtime).clean_running_containers_and_related_resources()
         cast(RefreshableSamFunctionProvider, self._function_provider).stop_observer()
+
+    def _validate_function_logical_ids(self) -> None:
+        """
+        Validates that all provided function logical IDs exist in the template.
+        Raises FunctionNotFound with helpful error message if validation fails.
+        """
+        if not self._function_logical_ids:
+            return  # No filtering requested
+
+        # Get all available function names/IDs from the provider
+        all_functions_set = set()
+        for func in self._function_provider.get_all():
+            all_functions_set.add(func.name)
+            all_functions_set.add(func.function_id)
+            if func.functionname:
+                all_functions_set.add(func.functionname)
+
+        # Check for invalid IDs
+        invalid_ids = set(self._function_logical_ids) - all_functions_set
+
+        if invalid_ids:
+            # Get all available function full paths, matching sam local invoke pattern
+            all_function_full_paths = [f.full_path for f in self._function_provider.get_all()]
+
+            # Format message to match sam local invoke pattern exactly
+            invalid_functions_str = ", ".join(sorted(invalid_ids))
+            available_function_message = "{} not found. Possible options in your template: {}".format(
+                invalid_functions_str, all_function_full_paths
+            )
+            LOG.info(available_function_message)
+
+            raise FunctionNotFound("Unable to find Function(s) with name(s) '{}'".format(invalid_functions_str))
 
     def _add_account_id_to_global(self) -> None:
         """
@@ -452,6 +604,31 @@ class InvokeContext:
             extra_hosts=self._extra_hosts,
         )
         return self._local_lambda_runner
+
+    @property
+    def initialized_container_ids(self) -> List[str]:
+        """
+        Returns the list of container IDs that were initialized in EAGER mode
+
+        Returns:
+            List[str]: List of container IDs, empty if not in EAGER mode or not initialized
+        """
+        return self._initialized_container_ids
+
+    @property
+    def function_logical_ids(self) -> Optional[Tuple[str, ...]]:
+        """
+        Returns the tuple of function logical IDs to filter, if provided.
+
+        This is used by 'sam local start-lambda' commands
+        to limit which functions from the template are made available for local execution.
+        This is different from function_identifier which is used by 'sam local invoke'
+        to specify a single function to invoke.
+
+        Returns:
+            Optional[Tuple[str, ...]]: Tuple of function logical IDs or None if no filter
+        """
+        return self._function_logical_ids
 
     @property
     def stdout(self) -> StreamWriter:

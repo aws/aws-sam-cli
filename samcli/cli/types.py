@@ -662,3 +662,40 @@ class TextWithSpaces:
             text_list[pos] = " "
 
         return "".join(text_list)
+
+
+class TenantIdType(click.ParamType):
+    """
+    Custom Click parameter type for tenant-id validation.
+    Validates tenant-id format according to AWS Lambda multi-tenancy requirements.
+    """
+
+    name = "string"
+
+    # Tenant-id validation pattern
+    TENANT_ID_PATTERN = re.compile(r"^[a-zA-Z0-9\._:\/=+\-@ ]+$")
+    MIN_LENGTH = 1
+    MAX_LENGTH = 256
+
+    def convert(self, value, param, ctx):
+        if value is None:
+            return None
+
+        # Check length constraints
+        if len(value) < self.MIN_LENGTH or len(value) > self.MAX_LENGTH:
+            raise click.BadParameter(
+                f"{param.opts[0]} must be between {self.MIN_LENGTH} and {self.MAX_LENGTH} characters"
+            )
+
+        # Check for empty or whitespace-only strings
+        if not value.strip():
+            raise click.BadParameter(f"{param.opts[0]} cannot be empty or contain only whitespace")
+
+        # Check format pattern
+        if not self.TENANT_ID_PATTERN.match(value):
+            raise click.BadParameter(
+                f"{param.opts[0]} contains invalid characters. "
+                "Allowed characters are a-z, A-Z, numbers, spaces, and the characters _ . : / = + - @"
+            )
+
+        return value

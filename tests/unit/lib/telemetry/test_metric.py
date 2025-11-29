@@ -424,10 +424,23 @@ class TestSendCommandMetrics(TestCase):
             ("some-random-value", "unknown"),
         ]
     )
-    def test_get_container_host(self, docker_host, expected):
-        metric = Metric("")
-        metric._gc.docker_host = docker_host
-        self.assertEqual(metric._get_container_host(), expected)
+    @patch("samcli.cli.context.Context.get_current_context")
+    @patch.dict("os.environ", {}, clear=True)
+    def test_get_container_host(self, docker_host, expected, mock_get_context):
+        # Mock context to return None for actual_container_runtime (fallback to env detection)
+        mock_ctx = Mock()
+        del mock_ctx.actual_container_runtime  # No context runtime, should fallback
+        mock_get_context.return_value = mock_ctx
+
+        # Set DOCKER_HOST environment variable for the test
+        if docker_host:
+            with patch.dict("os.environ", {"DOCKER_HOST": docker_host}):
+                metric = Metric("", should_add_common_attributes=False)
+                self.assertEqual(metric._get_container_host(), expected)
+        else:
+            # Test with no DOCKER_HOST set
+            metric = Metric("", should_add_common_attributes=False)
+            self.assertEqual(metric._get_container_host(), expected)
 
 
 class TestParameterCapture(TestCase):
@@ -561,6 +574,7 @@ class TestMetric(TestCase):
         installation_id = gc_mock.return_value.installation_id = "fake installation id"
         session_id = context_mock.get_current_context.return_value.session_id = "fake installation id"
         python_version = platform_mock.python_version.return_value = "8.8.0"
+        os_platform = platform_mock.system.return_value = "Linux"
         cicd_platform_mock.return_value = cicd_platform
         get_user_agent_mock.return_value = user_agent
 
@@ -575,6 +589,7 @@ class TestMetric(TestCase):
             assert metric.get_data()["userAgent"] == user_agent
         assert metric.get_data()["pyversion"] == python_version
         assert metric.get_data()["samcliVersion"] == samcli.__version__
+        assert metric.get_data()["osPlatform"] == os_platform
 
 
 def _ignore_common_attributes(data):
@@ -585,6 +600,7 @@ def _ignore_common_attributes(data):
         "executionEnvironment",
         "pyversion",
         "samcliVersion",
+        "osPlatform",
     ]
     for a in common_attrs:
         if a not in data:
