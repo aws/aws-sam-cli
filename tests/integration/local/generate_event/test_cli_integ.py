@@ -47,3 +47,42 @@ class Test_EventGeneration_Integ(TestCase):
         # Verify other fields are still properly substituted
         self.assertEqual(result["httpMethod"], "GET")
         self.assertEqual(result["path"], "/document")
+
+    def test_generate_event_with_multiple_query_params(self):
+        """Test that multiple query string parameters are properly handled"""
+        process = Popen(
+            [
+                get_sam_command(),
+                "local",
+                "generate-event",
+                "apigateway",
+                "aws-proxy",
+                "--method",
+                "POST",
+                "--path",
+                "api/search",
+                "--body",
+                '{"query": "test"}',
+                "--querystringparameters",
+                '{"filter": "active", "sort": "desc", "limit": "10", "offset": "0"}',
+            ],
+            stdout=PIPE,
+            stderr=PIPE,
+        )
+        stdout, stderr = process.communicate()
+        self.assertEqual(process.returncode, 0)
+
+        # Parse the output JSON
+        result = json.loads(stdout.decode("utf-8"))
+
+        # Verify that queryStringParameters is a dict with all parameters
+        self.assertIsInstance(result["queryStringParameters"], dict)
+        self.assertEqual(len(result["queryStringParameters"]), 4)
+        self.assertEqual(result["queryStringParameters"]["filter"], "active")
+        self.assertEqual(result["queryStringParameters"]["sort"], "desc")
+        self.assertEqual(result["queryStringParameters"]["limit"], "10")
+        self.assertEqual(result["queryStringParameters"]["offset"], "0")
+
+        # Verify other fields
+        self.assertEqual(result["httpMethod"], "POST")
+        self.assertEqual(result["path"], "/api/search")
