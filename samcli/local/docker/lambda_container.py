@@ -161,6 +161,7 @@ class LambdaContainer(Container):
             extra_hosts=extra_hosts,
             mount_symlinks=mount_symlinks,
             labels=container_labels,
+            debug_options=debug_options,
         )
 
     @staticmethod

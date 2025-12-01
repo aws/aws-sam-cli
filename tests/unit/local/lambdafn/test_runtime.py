@@ -3,15 +3,22 @@ Unit tests for Lambda runtime
 """
 
 from unittest import TestCase
-from unittest.mock import Mock, patch, MagicMock, ANY, call
+from unittest.mock import Mock, patch, MagicMock, ANY, call, PropertyMock
 from parameterized import parameterized
 
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.lib.providers.provider import LayerVersion
 from samcli.local.lambdafn.env_vars import EnvironmentVariables
-from samcli.local.lambdafn.runtime import LambdaRuntime, _unzip_file, WarmLambdaRuntime, _require_container_reloading
+from samcli.local.lambdafn.runtime import (
+    LambdaRuntime,
+    _unzip_file,
+    WarmLambdaRuntime,
+    _require_container_reloading,
+    _should_reload_container,
+)
 from samcli.local.lambdafn.config import FunctionConfig
 from samcli.local.docker.container import ContainerContext
+from samcli.commands.local.lib.debug_context import DebugContext
 
 
 class LambdaRuntime_create(TestCase):
@@ -963,7 +970,15 @@ class TestWarmLambdaRuntime_create(TestCase):
         self.runtime._get_code_dir.return_value = code_dir
 
         LambdaContainerMock.return_value = container
-        self.runtime.create(self.func_config, debug_context=debug_options)
+
+        # Mock the container's is_created method and debug_options property
+        container.is_created.return_value = True
+        container.debug_options = debug_options
+
+        # First call - creates container
+        first_result = self.runtime.create(self.func_config, debug_context=debug_options)
+
+        # Second call - should reuse existing container since debug_context matches
         result = self.runtime.create(self.func_config, debug_context=debug_options)
 
         # validate that the manager.create method got called only one time
@@ -1979,3 +1994,132 @@ class TestWarmLambdaRuntime_on_code_change_container_branch(TestCase):
         # The log format is: "Lambda Function '%s' %s has been changed..."
         # where %s is function_full_path and %s is resource (imageuri + " image")
         self.assertIn("my-image:latest image", log_call_args[2])
+
+
+class TestShouldReloadContainer(TestCase):
+    """Test _should_reload_container function"""
+
+    def setUp(self):
+        """Set up test fixtures"""
+        self.base_config = FunctionConfig(
+            name="test_func",
+            full_path="stack/test_func",
+            runtime="python3.9",
+            handler="app.handler",
+            imageuri=None,
+            imageconfig=None,
+            packagetype=ZIP,
+            code_abs_path="/tmp/code",
+            layers=[],
+            architecture="x86_64",
+            memory=128,
+            timeout=30,
+            env_vars=EnvironmentVariables(),
+        )
+
+        self.different_config = FunctionConfig(
+            name="test_func",
+            full_path="stack/test_func",
+            runtime="python3.11",  # Different runtime
+            handler="app.handler",
+            imageuri=None,
+            imageconfig=None,
+            packagetype=ZIP,
+            code_abs_path="/tmp/code",
+            layers=[],
+            architecture="x86_64",
+            memory=128,
+            timeout=30,
+            env_vars=EnvironmentVariables(),
+        )
+
+    def test_should_not_reload_when_no_existing_config_and_no_container(self):
+        """Test that reload is not needed when there's no existing config and no container"""
+        result = _should_reload_container(None, self.base_config, None, None)
+        self.assertFalse(result)
+
+    def test_should_not_reload_when_same_config_and_same_debug_context(self):
+        """Test that reload is not needed when config and debug context are the same"""
+
+        debug_context = DebugContext(
+            debug_ports=[5858], debugger_path="/path/to/debugger", debug_args="--debug-args", debug_function="test_func"
+        )
+
+        container = Mock()
+        container.debug_options = debug_context
+
+        result = _should_reload_container(self.base_config, self.base_config, container, debug_context)
+        self.assertFalse(result)
+
+    def test_should_reload_when_function_config_changed(self):
+        """Test that reload is needed when function configuration changes"""
+        container = Mock()
+        container.debug_options = None
+
+        result = _should_reload_container(self.base_config, self.different_config, container, None)
+        self.assertTrue(result)
+
+    def test_should_reload_when_debug_context_changed(self):
+        """Test that reload is needed when debug context changes"""
+
+        debug_context1 = DebugContext(
+            debug_ports=[5858], debugger_path="/path/to/debugger", debug_args="--debug-args", debug_function="test_func"
+        )
+
+        debug_context2 = DebugContext(
+            debug_ports=[9229], debugger_path="/new/path", debug_args="--new-args", debug_function="test_func"
+        )
+
+        container = Mock()
+        container.debug_options = debug_context1
+
+        result = _should_reload_container(self.base_config, self.base_config, container, debug_context2)
+        self.assertTrue(result)
+
+    def test_should_reload_when_debug_context_changes_to_none(self):
+        """Test that reload is needed when debug context changes from something to None"""
+
+        debug_context = DebugContext(
+            debug_ports=[5858], debugger_path="/path/to/debugger", debug_args="--debug-args", debug_function="test_func"
+        )
+
+        container = Mock()
+        container.debug_options = debug_context
+
+        result = _should_reload_container(self.base_config, self.base_config, container, None)
+        self.assertTrue(result)
+
+    def test_should_reload_when_debug_context_changes_from_none(self):
+        """Test that reload is needed when debug context changes from None to something"""
+
+        debug_context = DebugContext(
+            debug_ports=[5858], debugger_path="/path/to/debugger", debug_args="--debug-args", debug_function="test_func"
+        )
+
+        container = Mock()
+        container.debug_options = None
+
+        result = _should_reload_container(self.base_config, self.base_config, container, debug_context)
+        self.assertTrue(result)
+
+    def test_should_not_reload_when_no_container(self):
+        """Test that reload is not needed when there's no container and no config changes"""
+        result = _should_reload_container(self.base_config, self.base_config, None, None)
+        self.assertFalse(result)
+
+    def test_should_reload_when_both_config_and_debug_context_changed(self):
+        """Test that reload is needed when both config and debug context change"""
+
+        debug_context1 = DebugContext(
+            debug_ports=[5858], debugger_path="/path/to/debugger", debug_args="--debug-args", debug_function="test_func"
+        )
+
+        debug_context2 = DebugContext(
+            debug_ports=[9229], debugger_path="/new/path", debug_args="--new-args", debug_function="test_func"
+        )
+
+        container = Mock()
+        container.debug_options = debug_context1
+
+        result = _should_reload_container(self.base_config, self.different_config, container, debug_context2)
+        self.assertTrue(result)

@@ -100,13 +100,76 @@ class AbstractLambdaInvokeExecutor(BotoActionExecutor, ABC):
                 f" {str(param_val_ex).replace(f'{FUNCTION_NAME}, ', '').replace(f'{PAYLOAD}, ', '')}"
             ) from param_val_ex
         except ClientError as client_ex:
-            if boto_utils.get_client_error_code(client_ex) == "ValidationException":
+            error_code = boto_utils.get_client_error_code(client_ex)
+            error_message = str(client_ex)
+
+            # Check if this is a capacity provider error about tail logs
+            if (
+                error_code == "InvalidParameterValueException"
+                and "Tail logs are not supported for functions" in error_message
+            ):
+                # Remove LogType and retry
+                self.request_parameters.pop("LogType", None)
+                try:
+                    return cast(dict, boto_client_method(**self.request_parameters))
+                except ClientError as retry_ex:
+                    error_code = boto_utils.get_client_error_code(retry_ex)
+                    error_message = str(retry_ex)
+
+            if error_code == "ValidationException":
                 raise InvalidResourceBotoParameterException(
                     f"Invalid parameter value provided. {str(client_ex).replace('(ValidationException) ', '')}"
                 ) from client_ex
-            elif boto_utils.get_client_error_code(client_ex) == "InvalidRequestContentException":
+            elif error_code == "InvalidRequestContentException":
                 raise InvalidResourceBotoParameterException(client_ex) from client_ex
             raise ErrorBotoApiCallException(client_ex) from client_ex
+
+    def _process_log_result(self, log_result: str) -> RemoteInvokeLogOutput:
+        """
+        Process the log result from Lambda invocation.
+
+        The log_result can be in one of two formats:
+        1. Traditional format: Base64-encoded string containing the last 4KB of function logs
+        2. New format: Base64-encoded JSON containing logGroup and logStreamName references
+
+        Parameters
+        ----------
+        log_result : str
+            Base64-encoded log result from Lambda invocation
+
+        Returns
+        -------
+        RemoteInvokeLogOutput
+            Log output object containing either the decoded logs or a message with log reference
+        """
+        decoded_log = base64.b64decode(log_result).decode("utf-8")
+
+        # Try to parse as JSON to check if it's the new format
+        try:
+            log_data = json.loads(decoded_log)
+
+            # Check if it has the expected fields for the new format
+            if isinstance(log_data, dict) and "logGroup" in log_data and "logStreamName" in log_data:
+                log_group = log_data.get("logGroup")
+                log_stream = log_data.get("logStreamName")
+
+                LOG.debug("Detected new log result format with CloudWatch references")
+
+                # Create a helpful message for the user
+                message = (
+                    f"Function logs are available in CloudWatch Logs:\n"
+                    f"Log Group: {log_group}\n"
+                    f"Log Stream: {log_stream}\n\n"
+                )
+
+                return RemoteInvokeLogOutput(message)
+        except JSONDecodeError:
+            # Not JSON, treat as regular log content
+            LOG.debug("Log result is in traditional format (raw logs)")
+            pass
+
+        # Default case: return the decoded log as is
+        return RemoteInvokeLogOutput(decoded_log)
 
     @abstractmethod
     def _execute_lambda_invoke(self, payload: str) -> RemoteInvokeIterableResponseType:
@@ -131,7 +194,7 @@ class LambdaInvokeExecutor(AbstractLambdaInvokeExecutor):
         if self._remote_output_format == RemoteInvokeOutputFormat.TEXT:
             log_result = lambda_response.get(LOG_RESULT)
             if log_result:
-                yield RemoteInvokeLogOutput(base64.b64decode(log_result).decode("utf-8"))
+                yield self._process_log_result(log_result)
             yield RemoteInvokeResponse(cast(StreamingBody, lambda_response.get(PAYLOAD)).read().decode("utf-8"))
 
 
@@ -157,9 +220,7 @@ class LambdaInvokeWithResponseStreamExecutor(AbstractLambdaInvokeExecutor):
                     yield RemoteInvokeResponse(event.get(PAYLOAD_CHUNK).get(PAYLOAD).decode("utf-8"))
                 if INVOKE_COMPLETE in event:
                     if LOG_RESULT in event.get(INVOKE_COMPLETE):
-                        yield RemoteInvokeLogOutput(
-                            base64.b64decode(event.get(INVOKE_COMPLETE).get(LOG_RESULT)).decode("utf-8")
-                        )
+                        yield self._process_log_result(event.get(INVOKE_COMPLETE).get(LOG_RESULT))
 
 
 class DefaultConvertToJSON(RemoteInvokeRequestResponseMapper[RemoteInvokeExecutionInfo]):

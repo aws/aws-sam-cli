@@ -129,7 +129,6 @@ class LocalLambdaRunner:
         FunctionNotfound
             When we cannot find a function with the given name
         """
-
         # Normalize function identifier from ARN if provided
         normalized_function_identifier = normalize_sam_function_identifier(function_identifier)
 
@@ -271,6 +270,7 @@ class LocalLambdaRunner:
             env_vars=env_vars,
             runtime_management_config=function.runtime_management_config,
             code_real_path=code_real_path,
+            capacity_provider_configuration=function.capacity_provider_configuration,
         )
 
     def _make_env_vars(self, function: Function) -> EnvironmentVariables:
@@ -354,6 +354,8 @@ class LocalLambdaRunner:
             shell_env_values=shell_env,
             override_values=overrides,
             aws_creds=aws_creds,
+            capacity_provider_configuration=function.capacity_provider_configuration,
+            is_debugging=self.is_debugging(),
         )  # EnvironmentVariables is not yet annotated with type hints, disable mypy check for now. type: ignore
 
     def _get_session_creds(self) -> Optional[Credentials]:

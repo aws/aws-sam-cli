@@ -1,8 +1,10 @@
 import base64
+import json
 from abc import ABC, abstractmethod
+from io import BytesIO
 from typing import Any
 from unittest import TestCase
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from parameterized import parameterized
 
@@ -26,7 +28,11 @@ from samcli.lib.remote_invoke.lambda_invoke_executors import (
     RemoteInvokeOutputFormat,
     _is_function_invoke_mode_response_stream,
 )
-from samcli.lib.remote_invoke.remote_invoke_executors import RemoteInvokeExecutionInfo, RemoteInvokeResponse
+from samcli.lib.remote_invoke.remote_invoke_executors import (
+    RemoteInvokeExecutionInfo,
+    RemoteInvokeLogOutput,
+    RemoteInvokeResponse,
+)
 
 
 class CommonTestsLambdaInvokeExecutor:
@@ -89,6 +95,53 @@ class CommonTestsLambdaInvokeExecutor:
         def test_validate_action_parameters(self, parameters, expected_boto_parameters):
             self.lambda_invoke_executor.validate_action_parameters(parameters)
             self.assertEqual(self.lambda_invoke_executor.request_parameters, expected_boto_parameters)
+
+        def test_process_log_result_with_raw_tail_log(self):
+            # Traditional format: Base64-encoded string containing logs
+            log_content = "START RequestId: 123\nThis is a log message\nEND RequestId: 123"
+            log_result = base64.b64encode(log_content.encode("utf-8"))
+
+            result = self.lambda_invoke_executor._process_log_result(log_result)
+
+            self.assertIsInstance(result, RemoteInvokeLogOutput)
+            self.assertEqual(result.log_output, log_content)
+
+        def test_process_log_result_with_json_format(self):
+            # New format: Base64-encoded JSON containing logGroup and logStreamName
+            log_data = {
+                "logGroup": "arn:aws:logs:us-east-1:123456789012:log-group:/aws/lambda/my-function:*",
+                "logStreamName": "2023/04/18/[$LATEST]abcdef123456",
+            }
+            log_result = base64.b64encode(json.dumps(log_data).encode("utf-8"))
+
+            result = self.lambda_invoke_executor._process_log_result(log_result)
+
+            self.assertIsInstance(result, RemoteInvokeLogOutput)
+            self.assertIn("Function logs are available in CloudWatch Logs", result.log_output)
+            self.assertIn(
+                "Log Group: arn:aws:logs:us-east-1:123456789012:log-group:/aws/lambda/my-function:*", result.log_output
+            )
+            self.assertIn("Log Stream: 2023/04/18/[$LATEST]abcdef123456", result.log_output)
+
+        def test_process_log_result_with_invalid_json(self):
+            # Invalid JSON but still a valid log message
+            log_content = '{"This is not valid JSON but should be treated as a log'
+            log_result = base64.b64encode(log_content.encode("utf-8"))
+
+            result = self.lambda_invoke_executor._process_log_result(log_result)
+
+            self.assertIsInstance(result, RemoteInvokeLogOutput)
+            self.assertEqual(result.log_output, log_content)
+
+        def test_process_log_result_with_json_missing_fields(self):
+            # JSON without the required fields
+            log_data = {"someOtherField": "value"}
+            log_result = base64.b64encode(json.dumps(log_data).encode("utf-8"))
+
+            result = self.lambda_invoke_executor._process_log_result(log_result)
+
+            self.assertIsInstance(result, RemoteInvokeLogOutput)
+            self.assertEqual(result.log_output, json.dumps(log_data))
 
 
 class TestLambdaInvokeExecutor(CommonTestsLambdaInvokeExecutor.AbstractLambdaInvokeExecutorTest):
@@ -306,3 +359,104 @@ class TestLambdaInvokeExecutorUtilities(TestCase):
         else:
             given_boto_client.get_function_url_config.return_value = boto_response
         self.assertEqual(_is_function_invoke_mode_response_stream(given_boto_client, "function_id"), expected_result)
+
+
+class TestLambdaInvokeExecutorWithCapacityProvider(TestCase):
+    """Test retry logic for functions with CapacityProviderConfig"""
+
+    def test_executor_retries_without_log_type_on_capacity_provider_error(self):
+        """Test that executor retries without LogType when capacity provider error occurs"""
+        lambda_client = Mock()
+        function_name = "test-function-with-cp"
+
+        executor = LambdaInvokeExecutor(lambda_client, function_name, RemoteInvokeOutputFormat.TEXT)
+
+        # Verify LogType IS initially in request_parameters
+        self.assertIn("LogType", executor.request_parameters)
+        self.assertEqual(executor.request_parameters["LogType"], "Tail")
+
+        # Mock first invoke call to raise capacity provider error
+        capacity_provider_error = ClientError(
+            {
+                "Error": {
+                    "Code": "InvalidParameterValueException",
+                    "Message": "Tail logs are not supported for functions configured with capacity provider",
+                }
+            },
+            "Invoke",
+        )
+
+        # Mock second invoke call to succeed (without LogResult since LogType was removed)
+        payload_bytes = BytesIO(b"test response")
+        success_response = {"StatusCode": 200, "Payload": payload_bytes}
+        lambda_client.invoke.side_effect = [capacity_provider_error, success_response]
+
+        # Execute the action and consume the iterator
+        result = executor._execute_action("{}")
+
+        # Verify the result contains only the successful response (no log output since LogType was removed)
+        self.assertEqual(list(result), [RemoteInvokeResponse("test response")])
+
+        # Verify LogType was removed after first failure
+        self.assertNotIn("LogType", executor.request_parameters)
+
+        # Verify invoke was called twice
+        self.assertEqual(lambda_client.invoke.call_count, 2)
+        # Verify first call had LogType, second call didn't
+        first_call_params = lambda_client.invoke.call_args_list[0][1]
+        second_call_params = lambda_client.invoke.call_args_list[1][1]
+        self.assertIn("LogType", first_call_params)
+        self.assertNotIn("LogType", second_call_params)
+
+    def test_executor_succeeds_on_first_try_for_regular_function(self):
+        """Test that regular functions succeed on first try with LogType"""
+        lambda_client = Mock()
+        function_name = "test-function-regular"
+
+        executor = LambdaInvokeExecutor(lambda_client, function_name, RemoteInvokeOutputFormat.TEXT)
+
+        # Verify LogType IS in request_parameters
+        self.assertIn("LogType", executor.request_parameters)
+
+        # Mock successful invoke with logs
+        payload_bytes = BytesIO(b"success response")
+        # Base64 encoded log: "START RequestId: 123\nEND RequestId: 123"
+        log_result = base64.b64encode(b"START RequestId: 123\nEND RequestId: 123").decode("utf-8")
+        success_response = {"StatusCode": 200, "Payload": payload_bytes, "LogResult": log_result}
+        lambda_client.invoke.return_value = success_response
+
+        # Execute the action
+        result = executor._execute_action("{}")
+
+        # Validate Response
+        self.assertEqual(
+            list(result),
+            [
+                RemoteInvokeLogOutput("START RequestId: 123\nEND RequestId: 123"),
+                RemoteInvokeResponse("success response"),
+            ],
+        )
+
+        # Verify invoke was called only once
+        self.assertEqual(lambda_client.invoke.call_count, 1)
+        self.assertIn("LogType", executor.request_parameters)
+
+    def test_executor_raises_other_errors_without_retry(self):
+        """Test that other errors are raised without retry"""
+        lambda_client = Mock()
+        function_name = "test-function"
+
+        executor = LambdaInvokeExecutor(lambda_client, function_name, RemoteInvokeOutputFormat.TEXT)
+
+        # Mock invoke to raise a different error
+        other_error = ClientError(
+            {"Error": {"Code": "ResourceNotFoundException", "Message": "Function not found"}}, "Invoke"
+        )
+        lambda_client.invoke.side_effect = other_error
+
+        # Execute and expect error
+        with self.assertRaises(ErrorBotoApiCallException):
+            list(executor._execute_action("{}"))
+
+        # Verify invoke was called only once (no retry)
+        self.assertEqual(lambda_client.invoke.call_count, 1)
