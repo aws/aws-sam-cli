@@ -5,21 +5,19 @@ setting up stdin/stdout etc
 
 import click
 
-from .generate_event.cli import cli as generate_event_cli
-from .invoke.cli import cli as invoke_cli
-from .start_api.cli import cli as start_api_cli
-from .start_lambda.cli import cli as start_lambda_cli
+from samcli.cli.lazy_group import LazyGroup
 
 
-@click.group()
+@click.group(
+    cls=LazyGroup,
+    lazy_subcommands={
+        "invoke": "samcli.commands.local.invoke.cli.cli",
+        "start-api": "samcli.commands.local.start_api.cli.cli",
+        "start-lambda": "samcli.commands.local.start_lambda.cli.cli",
+        "generate-event": "samcli.commands.local.generate_event.cli.cli",
+    },
+)
 def cli():
     """
     Run your Serverless application locally for quick development & testing
     """
-
-
-# Add individual commands under this group
-cli.add_command(invoke_cli)
-cli.add_command(start_api_cli)
-cli.add_command(generate_event_cli)
-cli.add_command(start_lambda_cli)

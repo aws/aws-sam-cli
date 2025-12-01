@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional, Union
 import click
 
 from samcli.cli.command import _SAM_CLI_COMMAND_PACKAGES
+from samcli.cli.lazy_group import LazyGroup
 from samcli.lib.config.samconfig import SamConfig
 from schema.exceptions import SchemaGenerationException
 
@@ -186,18 +187,28 @@ def retrieve_command_structure(package_name: str) -> List[SamCliCommandSchema]:
         subcommands within the package.
     """
     module = importlib.import_module(package_name)
+
+    def create_command_schema(module, subcommand):
+        cmd_name = SamConfig.to_key([module.__name__.split(".")[-1], str(subcommand.name)])
+        return SamCliCommandSchema(
+            cmd_name,
+            clean_text(subcommand.help or subcommand.short_help or ""),
+            get_params_from_command(subcommand),
+        )
+
     command = []
 
     if isinstance(module.cli, click.core.Group):  # command has subcommands (e.g. local invoke)
-        for subcommand in module.cli.commands.values():
-            cmd_name = SamConfig.to_key([module.__name__.split(".")[-1], str(subcommand.name)])
-            command.append(
-                SamCliCommandSchema(
-                    cmd_name,
-                    clean_text(subcommand.help or subcommand.short_help or ""),
-                    get_params_from_command(subcommand),
-                )
-            )
+        # For LazyGroup, load lazy commands first (preserving definition order)
+        if isinstance(module.cli, LazyGroup) and module.cli.lazy_subcommands:
+            for subcommand_name in module.cli.lazy_subcommands.keys():
+                subcommand = module.cli.get_command(None, subcommand_name)
+                if subcommand:
+                    command.append(create_command_schema(module, subcommand))
+        else:
+            # For regular Groups, use commands dict
+            for subcommand in module.cli.commands.values():
+                command.append(create_command_schema(module, subcommand))
     else:
         cmd_name = SamConfig.to_key([module.__name__.split(".")[-1]])
         command.append(
