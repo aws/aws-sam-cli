@@ -1,0 +1,36 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: A hello world application with single lambda function with capacity provider.
+
+
+Parameters:
+  SubnetId:
+    Type: String
+    Description: Subnet ID from infrastructure stack
+  SecurityGroupId:
+    Type: String
+    Description: Security Group ID from infrastructure stack
+  OperatorRoleArn:
+    Type: String
+    Description: Operator Role ARN from infrastructure stack
+  
+Resources:
+  HelloWorldCapacityProvider:
+      Type: AWS::Serverless::CapacityProvider
+      Properties:
+        VpcConfig:
+          SecurityGroupIds:
+            - !Ref SecurityGroupId
+          SubnetIds:
+            - !Ref SubnetId
+        OperatorRole: !Ref OperatorRoleArn
+        
+  HelloWorldCapacityProviderFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.cap_pro_handler
+      Runtime: python3.13
+      CodeUri: ./lambda-fns
+      CapacityProviderConfig:
+        Arn: !GetAtt HelloWorldCapacityProvider.Arn
+        PerExecutionEnvironmentMaxConcurrency: 10

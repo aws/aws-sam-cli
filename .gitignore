@@ -10,7 +10,6 @@
 .idea/**/tasks.xml
 .idea/dictionaries
 .idea
-.vscode
 
 # Sensitive or high-churn files:
 .idea/**/dataSources/
@@ -376,10 +375,7 @@ GitHub.sublime-settings
 
 ### VisualStudioCode ###
 .vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
+!.vscode/launch.json.template
 .history
 
 ### Theia editor (GitPod)

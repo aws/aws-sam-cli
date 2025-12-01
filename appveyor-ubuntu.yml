@@ -304,6 +304,9 @@ install:
   - sh: 'export AWS_KMS_KEY=$(echo "$test_env_var" | jq -j ".TestKMSKeyArn")'
   - sh: 'export AWS_SIGNING_PROFILE_NAME=$(echo "$test_env_var" | jq -j ".TestSigningProfileName")'
   - sh: 'export AWS_SIGNING_PROFILE_VERSION_ARN=$(echo "$test_env_var" | jq -j ".TestSigningProfileARN")'
+  - sh: 'export LMI_SUBNET_ID=$(echo "$test_env_var" | jq -j ".LMISubnetId")'
+  - sh: 'export LMI_SECURITY_GROUP_ID=$(echo "$test_env_var" | jq -j ".LMISecurityGroupId")'
+  - sh: 'export LMI_OPERATOR_ROLE_ARN=$(echo "$test_env_var" | jq -j ".LMIOperatorRoleArn")'
 
   # Runtime-aware Docker Hub authentication with fail-fast
   - sh: |
