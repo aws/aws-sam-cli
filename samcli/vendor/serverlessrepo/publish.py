@@ -7,17 +7,21 @@ import re
 import boto3
 from botocore.exceptions import ClientError
 
-from samcli.yamlhelper import yaml_dump
-
-from .application_metadata import ApplicationMetadata
-from .exceptions import (
+from samcli.vendor.serverlessrepo.application_metadata import ApplicationMetadata
+from samcli.vendor.serverlessrepo.exceptions import (
     DuplicateSemanticVersionError,
     InvalidS3UriError,
     MissingSemanticVersionError,
     S3PermissionsRequired,
     ServerlessRepoClientError,
 )
-from .parser import get_app_metadata, parse_application_id, parse_template, strip_app_metadata
+from samcli.vendor.serverlessrepo.parser import (
+    get_app_metadata,
+    parse_application_id,
+    parse_template,
+    strip_app_metadata,
+)
+from samcli.yamlhelper import yaml_dump
 
 LOG = logging.getLogger(__name__)
 

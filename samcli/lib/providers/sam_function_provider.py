@@ -12,8 +12,12 @@ from samtranslator.policy_template_processor.exceptions import TemplateNotFoundE
 from samcli.cli.context import Context
 from samcli.commands._utils.template import TemplateFailedParsingException
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
+from samcli.lib.build.constants import DEPRECATED_RUNTIMES
 from samcli.lib.build.exceptions import MissingFunctionHandlerException
 from samcli.lib.providers.exceptions import InvalidLayerReference, MissingFunctionNameException
+from samcli.lib.providers.provider import Function, LayerVersion, Stack, get_full_path, get_function_build_info
+from samcli.lib.providers.sam_base_provider import SamBaseProvider
+from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.colors import Colored, Colors
 from samcli.lib.utils.file_observer import FileObserver
 from samcli.lib.utils.packagetype import IMAGE, ZIP
@@ -24,11 +28,6 @@ from samcli.lib.utils.resources import (
     AWS_SERVERLESS_FUNCTION,
     AWS_SERVERLESS_LAYERVERSION,
 )
-
-from ..build.constants import DEPRECATED_RUNTIMES
-from .provider import Function, LayerVersion, Stack, get_full_path, get_function_build_info
-from .sam_base_provider import SamBaseProvider
-from .sam_stack_provider import SamLocalStackProvider
 
 LOG = logging.getLogger(__name__)
 
