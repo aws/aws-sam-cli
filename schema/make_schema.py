@@ -186,18 +186,23 @@ def retrieve_command_structure(package_name: str) -> List[SamCliCommandSchema]:
         subcommands within the package.
     """
     module = importlib.import_module(package_name)
+
+    def create_command_schema(module, subcommand):
+        cmd_name = SamConfig.to_key([module.__name__.split(".")[-1], str(subcommand.name)])
+        return SamCliCommandSchema(
+            cmd_name,
+            clean_text(subcommand.help or subcommand.short_help or ""),
+            get_params_from_command(subcommand),
+        )
+
     command = []
 
     if isinstance(module.cli, click.core.Group):  # command has subcommands (e.g. local invoke)
-        for subcommand in module.cli.commands.values():
-            cmd_name = SamConfig.to_key([module.__name__.split(".")[-1], str(subcommand.name)])
-            command.append(
-                SamCliCommandSchema(
-                    cmd_name,
-                    clean_text(subcommand.help or subcommand.short_help or ""),
-                    get_params_from_command(subcommand),
-                )
-            )
+        ctx = click.Context(module.cli)
+        for subcommand_name in module.cli.list_commands(ctx):
+            subcommand = module.cli.get_command(ctx, subcommand_name)
+            if subcommand:
+                command.append(create_command_schema(module, subcommand))
     else:
         cmd_name = SamConfig.to_key([module.__name__.split(".")[-1]])
         command.append(

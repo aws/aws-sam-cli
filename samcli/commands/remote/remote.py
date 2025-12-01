@@ -5,17 +5,17 @@ cloud resources such as Lambda Function.
 
 import click
 
-from samcli.commands.remote.invoke.cli import cli as invoke_cli
-from samcli.commands.remote.test_event.test_event import cli as event_cli
+from samcli.cli.lazy_group import LazyGroup
 
 
-@click.group()
+@click.group(
+    cls=LazyGroup,
+    lazy_subcommands={
+        "invoke": "samcli.commands.remote.invoke.cli.cli",
+        "test-event": "samcli.commands.remote.test_event.test_event.cli",
+    },
+)
 def cli():
     """
     Interact with your Serverless application in the cloud for quick development & testing
     """
-
-
-# Add individual commands under this group
-cli.add_command(invoke_cli)
-cli.add_command(event_cli)
