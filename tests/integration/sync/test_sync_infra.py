@@ -585,3 +585,109 @@ class TestSyncInfraWithEsbuild(SyncIntegBase):
         for lambda_function in lambda_functions:
             lambda_response = json.loads(self._get_lambda_response(lambda_function))
             self.assertEqual(lambda_response.get("message"), "hello world")
+
+
+@skipIf(RUNNING_ON_CI, "Skip LMI tests when running on canary")
+@parameterized_class(
+    [
+        {"dependency_layer": True},
+        {"dependency_layer": False},
+    ]
+)
+@pytest.mark.timeout(600)  # 10 minutes timeout for LMI operations (VPC and capacity provider setup)
+class TestSyncInfraLMI(SyncIntegBase):
+    """Test sync infra operations with Lambda Managed Instance functions"""
+
+    dependency_layer = None
+    parameter_overrides: Dict[str, str] = {}
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        # Validate LMI environment variables are set
+        assert os.environ.get("LMI_SUBNET_ID"), "LMI_SUBNET_ID environment variable must be set"
+        assert os.environ.get("LMI_SECURITY_GROUP_ID"), "LMI_SECURITY_GROUP_ID environment variable must be set"
+        assert os.environ.get("LMI_OPERATOR_ROLE_ARN"), "LMI_OPERATOR_ROLE_ARN environment variable must be set"
+
+        # Read LMI infrastructure from environment variables
+        cls.parameter_overrides = {
+            "SubnetId": os.environ.get("LMI_SUBNET_ID", ""),
+            "SecurityGroupId": os.environ.get("LMI_SECURITY_GROUP_ID", ""),
+            "OperatorRoleArn": os.environ.get("LMI_OPERATOR_ROLE_ARN", ""),
+        }
+
+    def test_sync_infra_lmi_with_capacity_provider_config(self):
+        """Test infra sync with LMI function and capacity provider configuration changes"""
+
+        template_path = str(self.test_data_path.joinpath("infra/before/Python/lmi_function/template-lmi.yaml"))
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+
+        # Run initial infra sync
+        sync_command_list = self.get_sync_command_list(
+            template_file=template_path,
+            code=False,
+            watch=False,
+            dependency_layer=self.dependency_layer,
+            stack_name=stack_name,
+            parameter_overrides=self.parameter_overrides,
+            image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+        )
+
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
+        self.assertEqual(sync_process_execute.process.returncode, 0)
+        self.assertIn("Stack creation succeeded. Sync infra completed.", str(sync_process_execute.stderr))
+
+        # Verify initial deployment
+        self.stack_resources = self._get_stacks(stack_name)
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        function_name = next((f for f in lambda_functions if "LMIFunction" in f), None)
+        self.assertIsNotNone(function_name, "LMIFunction not found in stack resources")
+
+        # Count initial resources
+        initial_resource_count = sum(len(resources) for resources in self.stack_resources.values())
+
+        # Verify initial function response
+        lambda_response_body = self._get_lambda_response(function_name)
+        body = json.loads(lambda_response_body)
+        self.assertEqual(body["message"], "Hello from LMI function")
+        self.assertEqual(body["max_concurrency"], "10")
+
+        # Update template with different capacity provider configuration
+        template_path = str(self.test_data_path.joinpath("infra/after/Python/lmi_function/template-lmi.yaml"))
+
+        # Run infra sync with updated template
+        sync_command_list = self.get_sync_command_list(
+            template_file=template_path,
+            code=False,
+            watch=False,
+            dependency_layer=self.dependency_layer,
+            stack_name=stack_name,
+            parameter_overrides=self.parameter_overrides,
+            image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+        )
+
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
+        self.assertEqual(sync_process_execute.process.returncode, 0)
+        self.assertIn("Stack update succeeded. Sync infra completed.", str(sync_process_execute.stderr))
+
+        # Get updated stack resources
+        updated_stack_resources = self._get_stacks(stack_name)
+        updated_resource_count = sum(len(resources) for resources in updated_stack_resources.values())
+
+        # Verify a new capacity provider was added (resource count should increase)
+        self.assertGreater(
+            updated_resource_count,
+            initial_resource_count,
+            "Expected resource count to increase after adding second capacity provider",
+        )
+
+        lambda_response_body = self._get_lambda_response(function_name)
+        body = json.loads(lambda_response_body)
+        self.assertEqual(body["max_concurrency"], "20")  # Updated from 10 to 20

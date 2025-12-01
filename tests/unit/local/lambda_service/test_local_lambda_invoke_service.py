@@ -6,7 +6,6 @@ from samcli.local.lambda_service import local_lambda_invoke_service
 from samcli.local.lambda_service.local_lambda_invoke_service import LocalLambdaInvokeService, FunctionNamePathConverter
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.commands.local.lib.exceptions import UnsupportedInlineCodeError
-from samcli.lib.utils.name_utils import InvalidFunctionNameException
 
 
 class TestLocalLambdaService(TestCase):

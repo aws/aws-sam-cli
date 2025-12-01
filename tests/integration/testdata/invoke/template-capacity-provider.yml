@@ -1,0 +1,38 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Template for testing capacity provider functionality.
+
+Parameters:
+  SecurityGroupId:
+    Type: String
+    Default: "sg-12345"
+  
+  SubnetId:
+    Type: String
+    Default: "subnet-12345"
+
+Resources:
+  HelloWorldCapacityProvider:
+    Type: AWS::Serverless::CapacityProvider
+    Properties:
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref SecurityGroupId
+        SubnetIds:
+          - !Ref SubnetId
+      InstanceRequirements:
+        Architectures:
+          - x86_64
+      ScalingConfig:
+        MaxVCpuCount: 100
+  
+  HelloWorldCapacityProviderFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.cap_pro_handler
+      Runtime: python3.13
+      CodeUri: .
+      Timeout: 600
+      CapacityProviderConfig:
+        Arn: !GetAtt HelloWorldCapacityProvider.Arn
+        PerExecutionEnvironmentMaxConcurrency: 10

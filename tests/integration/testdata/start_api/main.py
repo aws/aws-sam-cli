@@ -1,6 +1,7 @@
 import json
 import sys
 import time
+import os
 
 GIF_IMAGE_BASE64 = "R0lGODdhAQABAJEAAAAAAP///wAAAAAAACH5BAkAAAIALAAAAAABAAEAAAICRAEAOw=="
 
@@ -8,6 +9,16 @@ GIF_IMAGE_BASE64 = "R0lGODdhAQABAJEAAAAAAP///wAAAAAAACH5BAkAAAIALAAAAAABAAEAAAIC
 def handler(event, context):
     return {"statusCode": 200, "body": json.dumps({"hello": "world"})}
 
+def cap_pro_handler(event, context):
+    max_concurrency = os.environ.get('AWS_LAMBDA_MAX_CONCURRENCY', 'not set')
+    
+    return {
+        'statusCode': 200,
+        'body': json.dumps({
+            'message': 'Hello world capacity provider',
+            'max_concurrency': max_concurrency
+        })
+    }
 
 def operation_name_handler(event, context):
     return {"statusCode": 200, "body": json.dumps({"operation_name": event["requestContext"].get("operationName", "")})}

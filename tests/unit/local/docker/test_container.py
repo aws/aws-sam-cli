@@ -4,6 +4,8 @@ Unit test for Container class
 
 import base64
 import json
+import threading
+import time
 from unittest import TestCase
 from unittest.mock import MagicMock, Mock, call, patch, ANY
 from parameterized import parameterized
@@ -12,6 +14,7 @@ import docker
 from docker.errors import NotFound, APIError
 from requests import RequestException
 
+from samcli.commands.local.lib.debug_context import DebugContext
 from samcli.lib.utils.packagetype import IMAGE
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker.container import (
@@ -59,6 +62,7 @@ class TestContainer_init(TestCase):
         self.assertEqual(self.memory_mb, container._memory_limit_mb)
         self.assertEqual(None, container._network_id)
         self.assertEqual(None, container.id)
+        self.assertIsNone(container._concurrency_semaphore)
         self.assertEqual(self.mock_docker_client, container.docker_client)
 
 
@@ -109,6 +113,7 @@ class TestContainer_create(TestCase):
         container_id = container.create(ContainerContext.INVOKE)
         self.assertEqual(container_id, generated_id)
         self.assertEqual(container.id, generated_id)
+        self.assertIsNotNone(container._concurrency_semaphore)
 
         self.mock_docker_client.containers.create.assert_called_with(
             self.image,
@@ -161,6 +166,7 @@ class TestContainer_create(TestCase):
         container_id = container.create(ContainerContext.BUILD)
         self.assertEqual(container_id, generated_id)
         self.assertEqual(container.id, generated_id)
+        self.assertIsNotNone(container._concurrency_semaphore)
 
         self.mock_docker_client.containers.create.assert_called_with(
             self.image,
@@ -180,6 +186,7 @@ class TestContainer_create(TestCase):
         )
         self.mock_docker_client.networks.get.assert_not_called()
         mock_resolve_symlinks.assert_not_called()  # When context is BUILD
+        self.assertIsNotNone(container._concurrency_semaphore)
 
     @patch("samcli.local.docker.utils.os")
     @patch("samcli.local.docker.container.Container._create_mapped_symlink_files")
@@ -223,6 +230,7 @@ class TestContainer_create(TestCase):
         container_id = container.create(self.container_context)
         self.assertEqual(container_id, generated_id)
         self.assertEqual(container.id, generated_id)
+        self.assertIsNotNone(container._concurrency_semaphore)
 
         self.mock_docker_client.containers.create.assert_called_with(
             self.image,
@@ -267,6 +275,7 @@ class TestContainer_create(TestCase):
 
         container_id = container.create(self.container_context)
         self.assertEqual(container_id, generated_id)
+        self.assertIsNotNone(container._concurrency_semaphore)
 
         self.mock_docker_client.containers.create.assert_called_with(
             self.image,
@@ -280,6 +289,39 @@ class TestContainer_create(TestCase):
 
         self.mock_docker_client.networks.get.assert_called_with(network_id)
         network_mock.connect.assert_called_with(container_id)
+
+    @patch("samcli.local.docker.container.Container._initialize_concurrency_control")
+    def test_must_initialize_concurrency_control(self, mock_concurrency_control):
+        generated_id = "fooobar"
+        self.mock_docker_client.containers.create.return_value = Mock()
+        self.mock_docker_client.containers.create.return_value.id = generated_id
+
+        # Configure the mock to set _concurrency_semaphore when called
+        def side_effect(container_obj=None):
+            # This simulates what the real method would do
+            self.container._concurrency_semaphore = threading.Semaphore(1)
+            return self.container._concurrency_semaphore
+
+        mock_concurrency_control.side_effect = side_effect
+
+        container = Container(
+            self.image,
+            self.cmd,
+            self.working_dir,
+            self.host_dir,
+            docker_client=self.mock_docker_client,
+            exposed_ports=self.exposed_ports,
+        )
+
+        # Store the container for the side_effect to use
+        self.container = container
+        container_id = container.create(ContainerContext.INVOKE)
+        self.assertEqual(container_id, generated_id)
+        self.assertEqual(container.id, generated_id)
+        mock_concurrency_control.assert_called_once()
+        self.assertIsNotNone(container._concurrency_semaphore)
+
+        mock_concurrency_control.assert_called_once()
 
     @patch("samcli.local.docker.container.Container._create_mapped_symlink_files")
     def test_must_connect_to_host_network_on_create(self, mock_resolve_symlinks):
@@ -306,6 +348,7 @@ class TestContainer_create(TestCase):
 
         container_id = container.create(self.container_context)
         self.assertEqual(container_id, generated_id)
+        self.assertIsNotNone(container._concurrency_semaphore)
 
         self.mock_docker_client.containers.create.assert_called_with(
             self.image,
@@ -329,6 +372,7 @@ class TestContainer_create(TestCase):
 
         with self.assertRaises(RuntimeError):
             container.create(self.container_context)
+        self.assertIsNone(container._concurrency_semaphore)
 
     @patch("samcli.local.docker.container.os.path.exists")
     @patch("samcli.local.docker.container.os.makedirs")
@@ -830,6 +874,7 @@ class TestContainer_wait_for_result(TestCase):
             container_host=self.container_host,
         )
         self.container.id = "someid"
+        self.container._initialize_concurrency_control()
 
         self.container.is_created = Mock()
         self.timeout = 1
@@ -888,7 +933,7 @@ class TestContainer_wait_for_result(TestCase):
         mock_requests.post.assert_called_with(
             self.container.URL.format(host=host, port=port, function_name="function"),
             data=b"{}",
-            headers={},
+            headers={"Content-Type": "application/json"},
             timeout=(self.container.RAPID_CONNECTION_TIMEOUT, None),
         )
         stdout_mock.write_bytes.assert_called_with(rie_response)
@@ -950,7 +995,7 @@ class TestContainer_wait_for_result(TestCase):
         mock_requests.post.assert_called_with(
             self.container.URL.format(host=host, port=port, function_name="function"),
             data=b"{}",
-            headers={},
+            headers={"Content-Type": "application/json"},
             timeout=(self.container.RAPID_CONNECTION_TIMEOUT, None),
         )
         if response_deserializable:
@@ -970,7 +1015,6 @@ class TestContainer_wait_for_result(TestCase):
         output_itr = Mock()
         real_container_mock.attach.return_value = output_itr
         self.container._write_container_output = Mock()
-
         stdout_mock = Mock()
         stderr_mock = Mock()
         self.container.rapid_port_host = "7077"
@@ -991,19 +1035,19 @@ class TestContainer_wait_for_result(TestCase):
                 call(
                     "http://localhost:7077/2015-03-31/functions/function/invocations",
                     data=b"{}",
-                    headers={},
+                    headers={"Content-Type": "application/json"},
                     timeout=(self.timeout, None),
                 ),
                 call(
                     "http://localhost:7077/2015-03-31/functions/function/invocations",
                     data=b"{}",
-                    headers={},
+                    headers={"Content-Type": "application/json"},
                     timeout=(self.timeout, None),
                 ),
                 call(
                     "http://localhost:7077/2015-03-31/functions/function/invocations",
                     data=b"{}",
-                    headers={},
+                    headers={"Content-Type": "application/json"},
                     timeout=(self.timeout, None),
                 ),
             ],
@@ -1029,7 +1073,6 @@ class TestContainer_wait_for_result(TestCase):
         mock_requests.post.side_effect = ContainerResponseException()
 
         patched_socket.return_value = self.socket_mock
-
         with self.assertRaises(ContainerResponseException):
             self.container.wait_for_result(
                 event=self.event, full_path=self.name, stdout=stdout_mock, stderr=stderr_mock
@@ -1056,7 +1099,6 @@ class TestContainer_wait_for_result(TestCase):
         unsuccessful_socket_mock = Mock()
         unsuccessful_socket_mock.connect_ex.return_value = 22
         patched_socket.return_value = unsuccessful_socket_mock
-
         with self.assertRaises(ContainerConnectionTimeoutException):
             self.container.wait_for_result(
                 event=self.event, full_path=self.name, stdout=stdout_mock, stderr=stderr_mock
@@ -1403,3 +1445,331 @@ class TestContainer_create_mapped_symlink_files(TestCase):
         volumes = self.container._create_mapped_symlink_files()
 
         self.assertEqual(volumes, {host_path: {"bind": container_path, "mode": ANY}})
+
+
+class TestContainer_concurrency_control(TestCase):
+    def setUp(self):
+        self.container = Container(
+            image="test-image",
+            cmd=["test-cmd"],
+            working_dir="/test",
+            host_dir="/host",
+            memory_limit_mb=128,
+            exposed_ports={"8080": "8080"},
+            entrypoint=["test-entrypoint"],
+            env_vars={"TEST_VAR": "test_value"},
+            docker_client=Mock(),
+            container_host="127.0.0.1",
+            container_host_interface="127.0.0.1",
+        )
+        self.assertIsNone(self.container._concurrency_semaphore)
+
+    def test_initialize_concurrency_control_default(self):
+        """Test concurrency control initialization with default values"""
+        # No AWS_LAMBDA_MAX_CONCURRENCY in env vars
+        self.container._env_vars = {}
+
+        self.container._initialize_concurrency_control()
+
+        self.assertEqual(self.container._max_concurrency, 1)
+        self.assertIsNotNone(self.container._concurrency_semaphore)
+        self.assertEqual(self.container._concurrency_semaphore._value, 1)
+
+    def test_initialize_concurrency_control_with_max_concurrency(self):
+        """Test concurrency control initialization with AWS_LAMBDA_MAX_CONCURRENCY"""
+        # Set AWS_LAMBDA_MAX_CONCURRENCY in env vars
+        self.container._env_vars = {"AWS_LAMBDA_MAX_CONCURRENCY": "8"}
+
+        self.container._initialize_concurrency_control()
+
+        self.assertEqual(self.container._max_concurrency, 8)
+        self.assertIsNotNone(self.container._concurrency_semaphore)
+        self.assertEqual(self.container._concurrency_semaphore._value, 8)
+
+    def test_initialize_concurrency_control_invalid_value(self):
+        """Test concurrency control initialization with invalid AWS_LAMBDA_MAX_CONCURRENCY"""
+        # Set invalid AWS_LAMBDA_MAX_CONCURRENCY in env vars
+        self.container._env_vars = {"AWS_LAMBDA_MAX_CONCURRENCY": "invalid"}
+
+        with patch("samcli.local.docker.container.LOG") as mock_log:
+            self.container._initialize_concurrency_control()
+
+            # Should default to 1 and log warning
+            self.assertEqual(self.container._max_concurrency, 1)
+            self.assertIsNotNone(self.container._concurrency_semaphore)
+            self.assertEqual(self.container._concurrency_semaphore._value, 1)
+            mock_log.warning.assert_called_once()
+
+    def test_initialize_concurrency_control_idempotent(self):
+        """Test that concurrency control initialization is idempotent (safe to call multiple times)"""
+        self.container._env_vars = {"AWS_LAMBDA_MAX_CONCURRENCY": "4"}
+
+        # Initialize once
+        self.container._initialize_concurrency_control()
+        first_semaphore = self.container._concurrency_semaphore
+
+        # Initialize again - should not create a new semaphore
+        self.container._initialize_concurrency_control()
+        second_semaphore = self.container._concurrency_semaphore
+
+        # Should be the same semaphore object
+        self.assertIs(first_semaphore, second_semaphore)
+        self.assertEqual(self.container._max_concurrency, 4)
+        self.assertEqual(self.container._concurrency_semaphore._value, 4)
+
+    def test_initialize_concurrency_control_debug_mode_forces_concurrency_one(self):
+        """Test that debug mode forces concurrency to 1 regardless of AWS_LAMBDA_MAX_CONCURRENCY"""
+
+        # Set high concurrency in env vars
+        self.container._env_vars = {"AWS_LAMBDA_MAX_CONCURRENCY": "10"}
+
+        # Set debug options with debug ports (indicating debug mode)
+        debug_options = DebugContext(
+            debug_ports=[5858], debugger_path="/path/to/debugger", debug_args="--debug", debug_function="test_func"
+        )
+        self.container.debug_options = debug_options
+
+        with patch("samcli.local.docker.container.LOG") as mock_log:
+            self.container._initialize_concurrency_control()
+
+            # Should force concurrency to 1 in debug mode
+            self.assertEqual(self.container._max_concurrency, 1)
+            self.assertIsNotNone(self.container._concurrency_semaphore)
+            self.assertEqual(self.container._concurrency_semaphore._value, 1)
+
+            # Should log container initialization
+            mock_log.debug.assert_any_call("Initialized container %s with max_concurrency=%d", "unknown", 1)
+
+    def test_initialize_concurrency_control_no_debug_mode_uses_env_var(self):
+        """Test that non-debug mode uses AWS_LAMBDA_MAX_CONCURRENCY normally"""
+
+        # Set high concurrency in env vars
+        self.container._env_vars = {"AWS_LAMBDA_MAX_CONCURRENCY": "8"}
+
+        # Set debug options without debug ports (not in debug mode)
+        debug_options = DebugContext(debug_ports=None, debugger_path=None, debug_args=None, debug_function="test_func")
+        self.container.debug_options = debug_options
+
+        self.container._initialize_concurrency_control()
+
+        # Should use the env var value since not in debug mode
+        self.assertEqual(self.container._max_concurrency, 8)
+        self.assertIsNotNone(self.container._concurrency_semaphore)
+        self.assertEqual(self.container._concurrency_semaphore._value, 8)
+
+    def test_get_max_concurrency(self):
+        """Test get_max_concurrency method"""
+        self.container._env_vars = {"AWS_LAMBDA_MAX_CONCURRENCY": "6"}
+
+        # Initialize concurrency control (simulating what create() does)
+        self.container._initialize_concurrency_control()
+
+        # Should return max concurrency without additional initialization
+        max_concurrency = self.container.get_max_concurrency()
+
+        self.assertEqual(max_concurrency, 6)
+        self.assertIsNotNone(self.container._concurrency_semaphore)
+
+    @patch("samcli.local.docker.container.requests.post")
+    def test_wait_for_http_response_single_thread(self, mock_post):
+        """Test HTTP response with single thread (traditional function)"""
+        self.container._env_vars = {"AWS_LAMBDA_MAX_CONCURRENCY": "1"}
+
+        # Initialize concurrency control (simulating what create() does)
+        self.container._initialize_concurrency_control()
+
+        # Mock response properly
+        mock_response = Mock()
+        mock_response.text = "response"
+        mock_response.content = b'{"result": "success"}'
+        mock_response.headers = {}
+        mock_post.return_value = mock_response
+
+        # Mock container properties
+        self.container.id = "test-container-id"
+        self.container.rapid_port_host = 8080
+        self.container._container_host = "127.0.0.1"
+
+        with patch("samcli.local.docker.container.LOG") as mock_log:
+            response, is_error = self.container.wait_for_http_response("test-function", "test-event", Mock())
+
+            self.assertEqual(response, '{"result": "success"}')
+            self.assertFalse(is_error)
+
+            # Should log semaphore acquisition
+            mock_log.debug.assert_called()
+
+    @patch("samcli.local.docker.container.requests.post")
+    def test_wait_for_http_response_multi_thread(self, mock_post):
+        """Test HTTP response with multiple threads (lmi function)"""
+        self.container._env_vars = {"AWS_LAMBDA_MAX_CONCURRENCY": "3"}
+
+        # Initialize concurrency control (simulating what create() does)
+        self.container._initialize_concurrency_control()
+
+        # Mock response properly
+        mock_response = Mock()
+        mock_response.text = "response"
+        mock_response.content = b'{"result": "success"}'
+        mock_response.headers = {}
+        mock_post.return_value = mock_response
+
+        # Mock container properties
+        self.container.id = "test-container-id"
+        self.container.rapid_port_host = 8080
+        self.container._container_host = "127.0.0.1"
+
+        results = []
+        errors = []
+
+        def make_request(event_data):
+            try:
+                response, is_error = self.container.wait_for_http_response(
+                    "test-function", f"event-{event_data}", Mock()
+                )
+                results.append((response, is_error))
+            except Exception as e:
+                errors.append(e)
+
+        # Start multiple concurrent requests
+        threads = []
+        for i in range(5):  # More threads than max concurrency
+            thread = threading.Thread(target=make_request, args=(i,))
+            threads.append(thread)
+            thread.start()
+
+        # Wait for all threads to complete
+        for thread in threads:
+            thread.join()
+
+        # All requests should complete successfully
+        self.assertEqual(len(results), 5)
+        self.assertEqual(len(errors), 0)
+
+        # All should return the same response
+        for response, is_error in results:
+            self.assertEqual(response, '{"result": "success"}')
+            self.assertFalse(is_error)
+
+    @patch("samcli.local.docker.container.requests.post")
+    def test_concurrency_semaphore_limiting(self, mock_post):
+        """Test that semaphore properly limits concurrent requests"""
+        max_concurrency = 2
+        self.container._env_vars = {"AWS_LAMBDA_MAX_CONCURRENCY": str(max_concurrency)}
+
+        # Initialize concurrency control (simulating what create() does)
+        self.container._initialize_concurrency_control()
+
+        # Track concurrent executions inside the semaphore
+        concurrent_count = 0
+        max_concurrent_observed = 0
+        lock = threading.Lock()
+
+        # Mock slow response to test concurrency limiting
+        def slow_response(*args, **kwargs):
+            nonlocal concurrent_count, max_concurrent_observed
+            with lock:
+                concurrent_count += 1
+                max_concurrent_observed = max(max_concurrent_observed, concurrent_count)
+
+            time.sleep(0.1)  # Simulate slow response
+
+            with lock:
+                concurrent_count -= 1
+
+            response = Mock()
+            response.text = "response"
+            response.content = b'{"result": "success"}'
+            response.headers = {}
+            return response
+
+        mock_post.side_effect = slow_response
+
+        # Mock container properties
+        self.container.id = "test-container-id"
+        self.container.rapid_port_host = 8080
+        self.container._container_host = "127.0.0.1"
+
+        def make_request():
+            self.container.wait_for_http_response("test-function", "test-event", Mock())
+
+        # Start more threads than max concurrency
+        threads = []
+        for i in range(5):
+            thread = threading.Thread(target=make_request)
+            threads.append(thread)
+            thread.start()
+
+        # Wait for all threads to complete
+        for thread in threads:
+            thread.join()
+
+        # Should never exceed max concurrency
+        self.assertLessEqual(max_concurrent_observed, max_concurrency)
+
+    @patch("samcli.local.docker.container.requests.post")
+    def test_semaphore_fallback_warning(self, mock_post):
+        """Test fallback behavior when semaphore is not available (edge case)"""
+        # Mock response properly
+        mock_response = Mock()
+        mock_response.text = "response"
+        mock_response.content = b'{"result": "success"}'
+        mock_response.headers = {}
+        mock_post.return_value = mock_response
+
+        # Mock container properties
+        self.container.id = "test-container-id"
+        self.container.rapid_port_host = 8080
+        self.container._container_host = "127.0.0.1"
+        self.container._env_vars = {"AWS_LAMBDA_MAX_CONCURRENCY": "1"}
+
+        with patch("samcli.local.docker.container.LOG") as mock_log:
+            response, is_error = self.container.wait_for_http_response("test-function", "test-event", Mock())
+
+            self.assertEqual(response, '{"result": "success"}')
+            self.assertFalse(is_error)
+
+            # Should log warning about fallback
+            mock_log.warning.assert_called_with(
+                "Container concurrency control not initiated properly during container creation"
+            )
+
+    @parameterized.expand(
+        [
+            ("1", 1),
+            ("4", 4),
+            ("8", 8),
+            ("16", 16),
+        ]
+    )
+    def test_various_concurrency_levels(self, concurrency_str, expected_concurrency):
+        """Test various concurrency levels"""
+        self.container._env_vars = {"AWS_LAMBDA_MAX_CONCURRENCY": concurrency_str}
+
+        self.container._initialize_concurrency_control()
+
+        self.assertEqual(self.container._max_concurrency, expected_concurrency)
+        self.assertEqual(self.container._concurrency_semaphore._value, expected_concurrency)
+
+    def test_concurrency_control_logging(self):
+        """Test that concurrency control logs appropriate debug information"""
+        self.container._env_vars = {"AWS_LAMBDA_MAX_CONCURRENCY": "4"}
+        self.container.id = "test-container-id"
+
+        with patch("samcli.local.docker.container.LOG") as mock_log:
+            self.container._initialize_concurrency_control()
+
+            # Should log initialization
+            mock_log.debug.assert_called_with(
+                "Initialized container %s with max_concurrency=%d", "test-container-id", 4
+            )
+
+    def test_concurrency_without_env_vars(self):
+        """Test concurrency control when no environment variables are set"""
+        self.container._env_vars = None
+
+        self.container._initialize_concurrency_control()
+
+        self.assertEqual(self.container._max_concurrency, 1)
+        self.assertIsNotNone(self.container._concurrency_semaphore)
+        self.assertEqual(self.container._concurrency_semaphore._value, 1)
