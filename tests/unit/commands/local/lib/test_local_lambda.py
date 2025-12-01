@@ -12,7 +12,7 @@ import click
 from samcli.lib.utils.architecture import X86_64, ARM64
 
 from samcli.commands.local.lib.local_lambda import RUST_LOCAL_INVOKE_DISCLAIMER, LocalLambdaRunner
-from samcli.lib.providers.provider import Function, FunctionBuildInfo
+from samcli.lib.providers.provider import Function, FunctionBuildInfo, CapacityProviderConfig
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.local.docker.container import ContainerResponseException, ContainerConnectionTimeoutException
@@ -261,6 +261,10 @@ class TestLocalLambda_make_env_vars(TestCase):
             runtime_management_config=None,
             function_build_info=FunctionBuildInfo.BuildableZip,
             logging_config={"LogFormat": "JSON"},
+            capacity_provider_config={
+                "Arn": "arn:aws:lambda:us-east-1:123456789012:capacity-provider:my-capacity-provider-name",
+                "PerExecutionEnvironmentMaxConcurrency": 8,
+            },
         )
 
         self.local_lambda.env_vars_values = env_vars_values
@@ -277,6 +281,11 @@ class TestLocalLambda_make_env_vars(TestCase):
             shell_env_values=os_environ,
             override_values=expected_override_value,
             aws_creds=self.aws_creds,
+            capacity_provider_configuration=CapacityProviderConfig(
+                arn="arn:aws:lambda:us-east-1:123456789012:capacity-provider:my-capacity-provider-name",
+                execution_environment_max_concurrency=8,
+            ),
+            is_debugging=False,
         )
 
     @parameterized.expand(
@@ -376,6 +385,8 @@ class TestLocalLambda_make_env_vars(TestCase):
             shell_env_values=os_environ,
             override_values={},
             aws_creds=self.aws_creds,
+            capacity_provider_configuration=None,
+            is_debugging=False,
         )
 
 
@@ -466,6 +477,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
             full_path=function.full_path,
             runtime_management_config=function.runtime_management_config,
             code_real_path=codepath,
+            capacity_provider_configuration=function.capacity_provider_configuration,
         )
 
         resolve_code_path_patch.assert_called_with(self.real_path, function.codeuri)
@@ -534,6 +546,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
             full_path=function.full_path,
             runtime_management_config=function.runtime_management_config,
             code_real_path=codepath,
+            capacity_provider_configuration=function.capacity_provider_configuration,
         )
 
         resolve_code_path_patch.assert_called_with(self.real_path, function.codeuri)
@@ -604,6 +617,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
             full_path=function.full_path,
             runtime_management_config=function.runtime_management_config,
             code_real_path=codepath,
+            capacity_provider_configuration=function.capacity_provider_configuration,
         )
 
         resolve_code_path_patch.assert_called_with(self.real_path, "codeuri")

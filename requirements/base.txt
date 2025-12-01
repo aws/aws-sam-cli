@@ -1,12 +1,12 @@
 chevron~=0.12
 click==8.1.8
 Flask<3.2
-boto3[crt]>=1.29.2,<2
+boto3[crt]==1.42.0
 jmespath~=1.0.1
 ruamel_yaml~=0.18.16
 PyYAML~=6.0
 cookiecutter~=2.6.0
-aws-sam-translator==1.103.0
+aws-sam-translator==1.104.0
 #docker minor version updates can include breaking changes. Auto update micro version only.
 docker~=7.1.0
 dateparser~=1.2
@@ -34,4 +34,4 @@ tzlocal==5.3.1
 cfn-lint~=1.41.0
 
 # Type checking boto3 objects
-boto3-stubs[apigateway,cloudformation,ecr,iam,lambda,s3,schemas,secretsmanager,signer,stepfunctions,sts,xray,sqs,kinesis]==1.41.0
+boto3-stubs[apigateway,cloudformation,ecr,iam,lambda,s3,schemas,secretsmanager,signer,stepfunctions,sts,xray,sqs,kinesis]>=1.41.0

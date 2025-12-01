@@ -214,6 +214,9 @@ class LambdaRuntime:
         take care to invoke the function in a separate thread. Co-Routines or micro-threads might not perform well
         because the underlying implementation essentially blocks on a socket, which is synchronous.
 
+        Note: Concurrency control is now handled at the container level. Each container manages its own
+        semaphore based on AWS_LAMBDA_MAX_CONCURRENCY environment variable.
+
         :param FunctionConfig function_config: Configuration of the function to invoke
         :param event: String input event passed to Lambda function
         :param DebugContext debug_context: Debugging context for the function (includes port, args, and path)
@@ -253,6 +256,7 @@ class LambdaRuntime:
             # Block on waiting for result from the init process on the container, below method also
             # starts another thread to stream logs. This method will terminate
             # either successfully or be killed by one of the interrupt handlers above.
+            # The container handles concurrency control internally via its semaphore.
             container.wait_for_result(
                 full_path=function_config.full_path,
                 event=event,
@@ -428,6 +432,7 @@ class WarmLambdaRuntime(LambdaRuntime):
         """
         self._function_configs = {}
         self._containers = {}
+        self._container_lock = threading.Lock()  # Thread-safe container creation
 
         self._observer = observer if observer else LambdaFunctionObserver(self._on_code_change)
 
@@ -463,44 +468,51 @@ class WarmLambdaRuntime(LambdaRuntime):
             the created container
         """
 
-        # reuse the cached container if it is created, and if the function configuration is not changed
-        exist_function_config = self._function_configs.get(function_config.full_path, None)
-        container = self._containers.get(function_config.full_path, None)
-        if exist_function_config and _require_container_reloading(exist_function_config, function_config):
-            LOG.info(
-                "Lambda Function '%s' definition has been changed in the stack template, "
-                "terminate the created warm container.",
-                function_config.full_path,
+        # Thread-safe container check and creation
+        with self._container_lock:
+            function_path = function_config.full_path
+
+            # Filter debug_context: only apply if this function is the debug target
+            effective_debug_context = None
+            if debug_context and debug_context.debug_function == function_config.name:
+                effective_debug_context = debug_context
+
+            # Check existing container and whether it needs reloading
+            exist_function_config = self._function_configs.get(function_path, None)
+            container = self._containers.get(function_path, None)
+
+            # Check if we need to reload the container
+            needs_reload = _should_reload_container(
+                exist_function_config, function_config, container, effective_debug_context
             )
-            self._function_configs.pop(exist_function_config.full_path, None)
-            if container:
-                self._container_manager.stop(container)
-                self._containers.pop(exist_function_config.full_path, None)
-            self._observer.unwatch(exist_function_config)
-        elif container and container.is_created():
-            LOG.info("Reuse the created warm container for Lambda function '%s'", function_config.full_path)
+
+            if needs_reload:
+                # Clean up existing container
+                self._function_configs.pop(function_path, None)
+                if container:
+                    self._container_manager.stop(container)
+                    self._containers.pop(function_path, None)
+                if exist_function_config:
+                    self._observer.unwatch(exist_function_config)
+                container = None
+
+            # Reuse existing container if available and compatible
+            elif container and container.is_created():
+                return container
+
+            # Create new container
+            self._observer.watch(function_config)
+            self._observer.start()
+
+            container = super().create(
+                function_config, effective_debug_context, container_host, container_host_interface, extra_hosts
+            )
+
+            # Store container and config
+            self._function_configs[function_path] = function_config
+            self._containers[function_path] = container
+
             return container
-
-        # debug_context should be used only if the function name is the one defined
-        # in debug-function option
-        if debug_context and debug_context.debug_function != function_config.name:
-            LOG.debug(
-                "Disable the debugging for Lambda Function %s, as the passed debug function is %s",
-                function_config.name,
-                debug_context.debug_function,
-            )
-            debug_context = None
-
-        self._observer.watch(function_config)
-        self._observer.start()
-
-        container = super().create(
-            function_config, debug_context, container_host, container_host_interface, extra_hosts
-        )
-        self._function_configs[function_config.full_path] = function_config
-        self._containers[function_config.full_path] = container
-
-        return container
 
     def _on_invoke_done(self, container):
         """
@@ -567,6 +579,11 @@ class WarmLambdaRuntime(LambdaRuntime):
         for function_name, container in self._containers.items():
             LOG.debug("Terminate running warm container for Lambda Function '%s'", function_name)
             self._container_manager.stop(container)
+
+        # Clear all stored state
+        self._containers.clear()
+        self._function_configs.clear()
+
         self._clean_decompressed_paths()
         self._observer.stop()
 
@@ -633,3 +650,34 @@ def _require_container_reloading(exist_function_config, function_config):
         or sorted(exist_function_config.layers, key=lambda x: x.full_path)
         != sorted(function_config.layers, key=lambda x: x.full_path)
     )
+
+
+def _should_reload_container(exist_function_config, function_config, container, effective_debug_context):
+    """
+    Determine if a container needs to be reloaded based on configuration changes or debug context changes.
+
+    Parameters
+    ----------
+    exist_function_config : FunctionConfig or None
+        The existing function configuration, if any
+    function_config : FunctionConfig
+        The new function configuration
+    container : Container or None
+        The existing container, if any
+    effective_debug_context : DebugContext or None
+        The effective debug context for this function
+
+    Returns
+    -------
+    bool
+        True if the container needs to be reloaded, False otherwise
+    """
+    # Check if function configuration has changed
+    if exist_function_config and _require_container_reloading(exist_function_config, function_config):
+        return True
+
+    # Check if debug context has changed
+    if container and container.debug_options != effective_debug_context:
+        return True
+
+    return False
