@@ -9,7 +9,6 @@ from typing import Any, Dict, List, Optional, Union
 import click
 
 from samcli.cli.command import _SAM_CLI_COMMAND_PACKAGES
-from samcli.cli.lazy_group import LazyGroup
 from samcli.lib.config.samconfig import SamConfig
 from schema.exceptions import SchemaGenerationException
 
@@ -199,15 +198,10 @@ def retrieve_command_structure(package_name: str) -> List[SamCliCommandSchema]:
     command = []
 
     if isinstance(module.cli, click.core.Group):  # command has subcommands (e.g. local invoke)
-        # For LazyGroup, load lazy commands first (preserving definition order)
-        if isinstance(module.cli, LazyGroup) and module.cli.lazy_subcommands:
-            for subcommand_name in module.cli.lazy_subcommands.keys():
-                subcommand = module.cli.get_command(None, subcommand_name)
-                if subcommand:
-                    command.append(create_command_schema(module, subcommand))
-        else:
-            # For regular Groups, use commands dict
-            for subcommand in module.cli.commands.values():
+        ctx = click.Context(module.cli)
+        for subcommand_name in module.cli.list_commands(ctx):
+            subcommand = module.cli.get_command(ctx, subcommand_name)
+            if subcommand:
                 command.append(create_command_schema(module, subcommand))
     else:
         cmd_name = SamConfig.to_key([module.__name__.split(".")[-1]])

@@ -408,6 +408,21 @@
             "parameters"
           ]
         },
+        "local_generate_event": {
+          "title": "Local Generate Event command",
+          "description": "Generate events for Lambda functions.",
+          "properties": {
+            "parameters": {
+              "title": "Parameters for the local generate event command",
+              "description": "Available parameters for the local generate event command:\n* ",
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "required": [
+            "parameters"
+          ]
+        },
         "local_invoke": {
           "title": "Local Invoke command",
           "description": "Invoke AWS serverless functions locally.",
@@ -1018,21 +1033,6 @@
                   "description": "Save the parameters provided via the command line to the configuration file."
                 }
               }
-            }
-          },
-          "required": [
-            "parameters"
-          ]
-        },
-        "local_generate_event": {
-          "title": "Local Generate Event command",
-          "description": "Generate events for Lambda functions.",
-          "properties": {
-            "parameters": {
-              "title": "Parameters for the local generate event command",
-              "description": "Available parameters for the local generate event command:\n* ",
-              "type": "object",
-              "properties": {}
             }
           },
           "required": [
