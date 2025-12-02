@@ -21,7 +21,7 @@ class InvokeCommand(CoreCommand):
     @staticmethod
     def format_examples(ctx: Context, formatter: InvokeCommandHelpTextFormatter):
         with formatter.indented_section(name="Examples", extra_indents=1):
-            with formatter.indented_section(name="Invoke default lambda function with no event", extra_indents=1):
+            with formatter.indented_section(name="Invoke default Lambda function with no event", extra_indents=1):
                 formatter.write_rd(
                     [
                         RowDefinition(
@@ -33,7 +33,7 @@ class InvokeCommand(CoreCommand):
                         ),
                     ]
                 )
-            with formatter.indented_section(name="Invoke named lambda function with no event", extra_indents=1):
+            with formatter.indented_section(name="Invoke named Lambda function with no event", extra_indents=1):
                 formatter.write_rd(
                     [
                         RowDefinition(
@@ -45,7 +45,7 @@ class InvokeCommand(CoreCommand):
                         ),
                     ]
                 )
-            with formatter.indented_section(name="Invoke named lambda function with an event file", extra_indents=1):
+            with formatter.indented_section(name="Invoke named Lambda function with an event file", extra_indents=1):
                 formatter.write_rd(
                     [
                         RowDefinition(
@@ -57,7 +57,7 @@ class InvokeCommand(CoreCommand):
                         ),
                     ]
                 )
-            with formatter.indented_section(name="Invoke lambda function with stdin input", extra_indents=1):
+            with formatter.indented_section(name="Invoke Lambda function with stdin input", extra_indents=1):
                 formatter.write_rd(
                     [
                         RowDefinition(
@@ -67,6 +67,20 @@ class InvokeCommand(CoreCommand):
                             name=style(
                                 f"$ echo {json.dumps({'message':'hello!'})} | "
                                 f"{ctx.command_path} HelloWorldFunction -e -"
+                            ),
+                            extra_row_modifiers=[ShowcaseRowModifier()],
+                        ),
+                    ]
+                )
+            with formatter.indented_section(name="Invoke Lambda function with durable execution name", extra_indents=1):
+                formatter.write_rd(
+                    [
+                        RowDefinition(
+                            text="\n",
+                        ),
+                        RowDefinition(
+                            name=style(
+                                f"$ {ctx.command_path} HelloWorldFunction --durable-execution-name my-execution"
                             ),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),

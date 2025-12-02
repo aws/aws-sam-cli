@@ -423,3 +423,6 @@ samcli/lib/init/templates/cookiecutter-aws-sam-hello-java-gradle/**/.gradle/
 
 .kiro
 mise.toml
+
+# Durable executions
+**/.durable-executions-local/
