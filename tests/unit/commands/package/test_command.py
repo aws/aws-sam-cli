@@ -20,6 +20,7 @@ class TestPackageCliCommand(TestCase):
         self.region = None
         self.profile = None
         self.resolve_s3 = False
+        self.resolve_image_repos = False
         self.signing_profiles = {"MyFunction": {"profile_name": "ProfileName", "profile_owner": "Profile Owner"}}
 
     @patch("samcli.commands.package.command.click")
@@ -43,6 +44,7 @@ class TestPackageCliCommand(TestCase):
             region=self.region,
             profile=self.profile,
             resolve_s3=self.resolve_s3,
+            resolve_image_repos=self.resolve_image_repos,
             signing_profiles=self.signing_profiles,
         )
 
@@ -61,6 +63,7 @@ class TestPackageCliCommand(TestCase):
             region=self.region,
             profile=self.profile,
             signing_profiles=self.signing_profiles,
+            resolve_image_repos=self.resolve_image_repos,
         )
 
         context_mock.run.assert_called_with()
@@ -89,6 +92,7 @@ class TestPackageCliCommand(TestCase):
             region=self.region,
             profile=self.profile,
             resolve_s3=True,
+            resolve_image_repos=False,
             signing_profiles=self.signing_profiles,
         )
 
@@ -107,7 +111,33 @@ class TestPackageCliCommand(TestCase):
             region=self.region,
             profile=self.profile,
             signing_profiles=self.signing_profiles,
+            resolve_image_repos=False,
         )
 
         context_mock.run.assert_called_with()
         self.assertEqual(context_mock.run.call_count, 1)
+
+    @patch("samcli.commands.package.command.click")
+    @patch("samcli.commands.package.package_context.PackageContext")
+    def test_resolve_image_repos_without_s3_bucket_raises_error(self, package_command_context, click_mock):
+        from samcli.commands.package.exceptions import PackageResolveS3AndS3NotSetError
+
+        with self.assertRaises(PackageResolveS3AndS3NotSetError):
+            do_cli(
+                template_file=self.template_file,
+                s3_bucket=None,
+                s3_prefix=self.s3_prefix,
+                image_repository=None,
+                image_repositories=None,
+                kms_key_id=self.kms_key_id,
+                output_template_file=self.output_template_file,
+                use_json=self.use_json,
+                force_upload=self.force_upload,
+                no_progressbar=self.no_progressbar,
+                metadata=self.metadata,
+                region=self.region,
+                profile=self.profile,
+                resolve_s3=False,
+                resolve_image_repos=True,
+                signing_profiles=self.signing_profiles,
+            )
