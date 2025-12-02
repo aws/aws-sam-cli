@@ -199,3 +199,12 @@ class InvalidMappingKeyError(UserException):
                 invalid_values=invalid_values_str,
             )
         )
+
+
+class PackageResolveImageReposAndImageReposSetError(UserException):
+    def __init__(self):
+        message_fmt = (
+            "Cannot use both --resolve-image-repos and --image-repository/--image-repositories parameters. Please use only one."
+        )
+
+        super().__init__(message=message_fmt)
