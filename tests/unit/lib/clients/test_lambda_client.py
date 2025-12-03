@@ -44,7 +44,11 @@ class TestDurableFunctionsClient(unittest.TestCase):
         self.assertEqual(client.client, mock_client)
         mock_session_class.assert_called_once()
         mock_session.create_client.assert_called_once_with(
-            "lambda", endpoint_url="http://localhost:5000", region_name="us-west-2"
+            "lambda",
+            endpoint_url="http://localhost:5000",
+            region_name="us-west-2",
+            aws_access_key_id="foo",
+            aws_secret_access_key="bar",
         )
 
     @patch("samcli.lib.clients.lambda_client.botocore.session.Session")
@@ -69,6 +73,8 @@ class TestDurableFunctionsClient(unittest.TestCase):
             "lambda",
             endpoint_url=f"http://{custom_host}:{custom_port}",
             region_name=custom_region,
+            aws_access_key_id="foo",
+            aws_secret_access_key="bar",
         )
 
     @patch("samcli.lib.clients.lambda_client.botocore.session.Session")
