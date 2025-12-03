@@ -53,11 +53,15 @@ class DurableFunctionsClient:
             # Create a fresh botocore session
             session = botocore.session.Session()
 
-            # Create the boto3 client with custom service model using the fresh session
+            # Create the boto3 client using the fresh session
             client = session.create_client(
                 "lambda",
                 endpoint_url=endpoint_url,
                 region_name=region,
+                # the emulator doesnt access any AWS resources,
+                # but we need _some_ credentials to create a boto client
+                aws_access_key_id="foo",
+                aws_secret_access_key="bar",
             )
 
             return cls(client)

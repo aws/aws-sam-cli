@@ -248,19 +248,35 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
             ),
         ]
     )
-    @patch("samcli.local.docker.durable_functions_emulator_container.is_image_current")
+    @patch("samcli.local.docker.durable_functions_emulator_container._get_host_architecture")
     @patch("os.makedirs")
     @patch("os.getcwd")
+    @patch("pathlib.Path.exists")
     def test_create_container(
-        self, name, env_vars, expected_port, expected_store, expected_scale, mock_getcwd, mock_makedirs, mock_is_current
+        self,
+        name,
+        env_vars,
+        expected_port,
+        expected_store,
+        expected_scale,
+        mock_path_exists,
+        mock_getcwd,
+        mock_makedirs,
+        mock_get_host_arch,
     ):
         """Test container creation with all configuration permutations"""
-        mock_is_current.return_value = True
+        mock_get_host_arch.return_value = "x86_64"
         test_dir = "/test/dir"
         mock_getcwd.return_value = test_dir
+        mock_path_exists.return_value = True
+
+        # Mock image already exists
+        mock_image = Mock()
+        self.mock_docker_client.images.get.return_value = mock_image
 
         with patch.dict("os.environ", env_vars, clear=True):
             container = self._create_container()
+            container._RAPID_SOURCE_PATH = Path(__file__).parent
             container._wait_for_ready = Mock()
             container.start()
 
@@ -268,8 +284,10 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
             self.mock_docker_client.containers.create.assert_called_once()
             call_args = self.mock_docker_client.containers.create.call_args
 
-            # Verify image and working directory
-            self.assertEqual(call_args.kwargs["image"], DurableFunctionsEmulatorContainer._EMULATOR_IMAGE)
+            # Verify built image is used
+            self.assertEqual(
+                call_args.kwargs["image"], "samcli/durable-execution-emulator:aws-durable-execution-emulator-x86_64"
+            )
             self.assertEqual(call_args.kwargs["working_dir"], "/tmp/.durable-executions-local")
 
             # Verify port configuration
@@ -305,6 +323,132 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
         with self.assertRaises(RuntimeError) as context:
             container.start()
         self.assertIn("Durable Functions Emulator binary not found", str(context.exception))
+
+    @parameterized.expand(
+        [
+            (
+                "x86_64",
+                "aws-durable-execution-emulator-x86_64",
+                "samcli/durable-execution-emulator:aws-durable-execution-emulator-x86_64",
+            ),
+            (
+                "arm64",
+                "aws-durable-execution-emulator-arm64",
+                "samcli/durable-execution-emulator:aws-durable-execution-emulator-arm64",
+            ),
+        ]
+    )
+    @patch("samcli.local.docker.durable_functions_emulator_container._get_host_architecture")
+    @patch("samcli.local.docker.durable_functions_emulator_container.create_tarball")
+    @patch("samcli.local.docker.durable_functions_emulator_container.get_tar_filter_for_windows")
+    @patch("builtins.open", new_callable=mock_open)
+    @patch("os.unlink")
+    @patch("pathlib.Path.exists")
+    def test_build_emulator_image_creates_new_image(
+        self,
+        arch,
+        binary_name,
+        expected_tag,
+        mock_path_exists,
+        mock_unlink,
+        mock_file,
+        mock_tar_filter,
+        mock_create_tarball,
+        mock_get_host_arch,
+    ):
+        """Test building emulator image when it doesn't exist, including dockerfile generation and image tag"""
+        mock_get_host_arch.return_value = arch
+        mock_tar_filter.return_value = None
+        mock_tarball = Mock()
+        mock_create_tarball.return_value.__enter__.return_value = mock_tarball
+        mock_path_exists.return_value = True
+
+        # Mock image doesn't exist
+        self.mock_docker_client.images.get.side_effect = docker.errors.ImageNotFound("not found")
+        mock_build_result = Mock()
+        self.mock_docker_client.images.build.return_value = mock_build_result
+
+        container = self._create_container()
+        container._RAPID_SOURCE_PATH = Path(__file__).parent
+
+        result = container._build_emulator_image()
+
+        # Verify image tag generation
+        self.assertEqual(result, expected_tag)
+        tag = container._get_emulator_image_tag(binary_name)
+        self.assertEqual(tag, expected_tag)
+
+        # Verify dockerfile generation
+        dockerfile = container._generate_emulator_dockerfile(binary_name)
+        self.assertIn(f"FROM {container._EMULATOR_IMAGE}", dockerfile)
+        self.assertIn(f"COPY {binary_name} /usr/local/bin/{binary_name}", dockerfile)
+        self.assertIn(f"RUN chmod +x /usr/local/bin/{binary_name}", dockerfile)
+
+        # Verify image was built
+        self.mock_docker_client.images.build.assert_called_once()
+        build_call = self.mock_docker_client.images.build.call_args
+        self.assertEqual(build_call.kwargs["tag"], expected_tag)
+        self.assertTrue(build_call.kwargs["rm"])
+        self.assertTrue(build_call.kwargs["custom_context"])
+
+        # Verify tarball was created with correct filter
+        mock_create_tarball.assert_called_once()
+
+    @parameterized.expand(
+        [
+            ("x86_64", "samcli/durable-execution-emulator:aws-durable-execution-emulator-x86_64"),
+            ("arm64", "samcli/durable-execution-emulator:aws-durable-execution-emulator-arm64"),
+        ]
+    )
+    @patch("samcli.local.docker.durable_functions_emulator_container._get_host_architecture")
+    @patch("pathlib.Path.exists")
+    def test_build_emulator_image_reuses_existing(self, arch, expected_tag, mock_path_exists, mock_get_host_arch):
+        """Test that existing image is reused without rebuilding"""
+        mock_get_host_arch.return_value = arch
+        mock_path_exists.return_value = True
+        mock_image = Mock()
+        self.mock_docker_client.images.get.return_value = mock_image
+
+        container = self._create_container()
+        container._RAPID_SOURCE_PATH = Path(__file__).parent
+
+        result = container._build_emulator_image()
+
+        # Verify image was not built
+        self.mock_docker_client.images.build.assert_not_called()
+        self.assertEqual(result, expected_tag)
+
+    @parameterized.expand(
+        [
+            ("x86_64", "samcli/durable-execution-emulator:aws-durable-execution-emulator-x86_64"),
+            ("arm64", "samcli/durable-execution-emulator:aws-durable-execution-emulator-arm64"),
+        ]
+    )
+    @patch("samcli.local.docker.durable_functions_emulator_container._get_host_architecture")
+    @patch("os.makedirs")
+    @patch("os.getcwd")
+    @patch("pathlib.Path.exists")
+    def test_start_uses_built_image(
+        self, arch, expected_tag, mock_path_exists, mock_getcwd, mock_makedirs, mock_get_host_arch
+    ):
+        """Test that start() uses the built image instead of base image"""
+        mock_get_host_arch.return_value = arch
+        mock_getcwd.return_value = "/test/dir"
+        mock_path_exists.return_value = True
+
+        # Mock image already exists
+        mock_image = Mock()
+        self.mock_docker_client.images.get.return_value = mock_image
+
+        container = self._create_container()
+        container._RAPID_SOURCE_PATH = Path(__file__).parent
+        container._wait_for_ready = Mock()
+
+        container.start()
+
+        # Verify container was created with built image tag
+        call_args = self.mock_docker_client.containers.create.call_args
+        self.assertEqual(call_args.kwargs["image"], expected_tag)
 
     @parameterized.expand(
         [
