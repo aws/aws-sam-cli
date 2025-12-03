@@ -22,8 +22,10 @@ class TestRemoteCliGroup(unittest.TestCase):
         self.assertIn("Interact with your Serverless application in the cloud", result.output)
         self.assertIn("invoke", result.output)
         self.assertIn("test-event", result.output)
+        self.assertIn("execution", result.output)
+        self.assertIn("callback", result.output)
 
-    @parameterized.expand([("invoke",), ("test-event",)])
+    @parameterized.expand([("invoke",), ("test-event",), ("execution",), ("callback",)])
     def test_subcommand_help(self, command):
         """Test that subcommands can be loaded and show help"""
         result = self.runner.invoke(cli, [command, "--help"])

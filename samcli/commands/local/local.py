@@ -15,6 +15,8 @@ from samcli.cli.lazy_group import LazyGroup
         "start-api": "samcli.commands.local.start_api.cli.cli",
         "start-lambda": "samcli.commands.local.start_lambda.cli.cli",
         "generate-event": "samcli.commands.local.generate_event.cli.cli",
+        "execution": "samcli.commands.local.execution.cli.cli",
+        "callback": "samcli.commands.local.callback.cli.cli",
     },
 )
 def cli():
