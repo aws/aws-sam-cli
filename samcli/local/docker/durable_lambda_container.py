@@ -58,6 +58,9 @@ class DurableLambdaContainer(LambdaContainer):
         extra_hosts["host.docker.internal"] = "host-gateway"
         kwargs["extra_hosts"] = extra_hosts
 
+        # Bind to 0.0.0.0 so emulator can reach Lambda via host.docker.internal
+        kwargs["container_host_interface"] = "0.0.0.0"
+
     def _get_lambda_container_endpoint(self):
         """
         Get the Lambda container endpoint URL for the emulator to invoke.
