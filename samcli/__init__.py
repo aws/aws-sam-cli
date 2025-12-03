@@ -2,4 +2,4 @@
 SAM CLI version
 """
 
-__version__ = "1.150.0"
+__version__ = "1.150.0.dev202512030901"
