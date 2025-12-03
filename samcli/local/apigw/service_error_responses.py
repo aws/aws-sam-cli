@@ -19,6 +19,7 @@ class ServiceErrorResponses:
     HTTP_STATUS_CODE_502 = 502
     HTTP_STATUS_CODE_403 = 403
     HTTP_STATUS_CODE_401 = 401
+    HTTP_STATUS_CODE_400 = 400
 
     @staticmethod
     def lambda_authorizer_unauthorized() -> Response:
@@ -110,3 +111,21 @@ class ServiceErrorResponses:
         """
         response_data = jsonify({"message": message})
         return make_response(response_data, ServiceErrorResponses.HTTP_STATUS_CODE_501)
+
+    @staticmethod
+    def tenant_id_validation_error(message: str) -> Response:
+        """
+        Constructs a Flask Response for when tenant ID validation fails
+
+        Parameters
+        ----------
+        message : str
+            The error message describing the validation failure
+
+        Returns
+        -------
+        Response
+            A Flask Response object with HTTP 400 status
+        """
+        response_data = jsonify({"message": message})
+        return make_response(response_data, ServiceErrorResponses.HTTP_STATUS_CODE_400)
