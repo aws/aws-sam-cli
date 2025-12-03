@@ -11,7 +11,6 @@ from tests.integration.durable_integ_base import DurableIntegBase
 
 class TestStartApiDurable(DurableIntegBase, StartApiIntegBaseClass):
     template_path = "/testdata/durable/template.yaml"
-    container_host_interface = "0.0.0.0"
 
     @classmethod
     def setUpClass(cls):

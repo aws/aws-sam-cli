@@ -21,7 +21,6 @@ from tests.testing_utils import (
 
 
 class TestStartLambdaDurable(DurableIntegBase, StartLambdaIntegBaseClass):
-    container_host_interface = "0.0.0.0"
     collect_start_lambda_process_output = True
 
     @classmethod
