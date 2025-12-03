@@ -24,8 +24,12 @@ class TestLocalCliGroup(unittest.TestCase):
         self.assertIn("start-api", result.output)
         self.assertIn("start-lambda", result.output)
         self.assertIn("generate-event", result.output)
+        self.assertIn("execution", result.output)
+        self.assertIn("callback", result.output)
 
-    @parameterized.expand([("invoke",), ("start-api",), ("start-lambda",), ("generate-event",)])
+    @parameterized.expand(
+        [("invoke",), ("start-api",), ("start-lambda",), ("generate-event",), ("execution",), ("callback",)]
+    )
     def test_subcommand_help(self, command):
         """Test that subcommands can be loaded and show help"""
         result = self.runner.invoke(cli, [command, "--help"])

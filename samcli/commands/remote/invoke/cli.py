@@ -75,6 +75,11 @@ DESCRIPTION = """
     "numbers, spaces, and the characters _ . : / = + - @",
 )
 @click.option(
+    "--durable-execution-name",
+    type=str,
+    help="Name for the durable execution (for durable functions only).",
+)
+@click.option(
     "--test-event-name",
     help="Name of the remote test event to send to the resource",
 )
@@ -103,6 +108,7 @@ def cli(
     event: str,
     event_file: TextIOWrapper,
     tenant_id: str,
+    durable_execution_name: str,
     output: RemoteInvokeOutputFormat,
     test_event_name: str,
     parameter: dict,
@@ -120,6 +126,7 @@ def cli(
         event,
         event_file,
         tenant_id,
+        durable_execution_name,
         output,
         parameter,
         test_event_name,
@@ -136,6 +143,7 @@ def do_cli(
     event: str,
     event_file: TextIOWrapper,
     tenant_id: str,
+    durable_execution_name: str,
     output: RemoteInvokeOutputFormat,
     parameter: dict,
     test_event_name: str,
@@ -198,7 +206,12 @@ def do_cli(
             EventTracker.track_event("RemoteInvokeEventType", event_type)
 
             remote_invoke_input = RemoteInvokeExecutionInfo(
-                payload=event, payload_file=event_file, tenant_id=tenant_id, parameters=parameter, output_format=output
+                payload=event,
+                payload_file=event_file,
+                tenant_id=tenant_id,
+                durable_execution_name=durable_execution_name,
+                parameters=parameter,
+                output_format=output,
             )
 
             remote_invoke_context.run(remote_invoke_input=remote_invoke_input)

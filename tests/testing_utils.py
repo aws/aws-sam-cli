@@ -66,6 +66,38 @@ def get_sam_command():
     return "samdev" if os.getenv("SAM_CLI_DEV") else "sam"
 
 
+def get_build_command_list(
+    template_path=None,
+    cached=None,
+    parallel=None,
+    use_container=None,
+    build_dir=None,
+    build_in_source=None,
+):
+    """Get command list for sam build with common options."""
+    command_list = [get_sam_command(), "build"]
+
+    if template_path:
+        command_list.extend(["-t", str(template_path)])
+
+    if cached:
+        command_list.append("-c")
+
+    if parallel:
+        command_list.append("-p")
+
+    if use_container:
+        command_list.append("-u")
+
+    if build_dir:
+        command_list.extend(["-b", str(build_dir)])
+
+    if build_in_source:
+        command_list.append("--build-in-source")
+
+    return command_list
+
+
 def method_to_stack_name(method_name):
     """Method expects method name which can be a full path. Eg: test.integration.test_deploy_command.method_name"""
     method_name = method_name.split(".")[-1]

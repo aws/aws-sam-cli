@@ -900,8 +900,11 @@ class TestContainer_wait_for_result(TestCase):
         output_itr = Mock()
         real_container_mock.attach.return_value = output_itr
         self.container._write_container_output = Mock()
+        self.container.start_logs_thread_if_not_alive = Mock()
         self.container._create_threading_event = Mock()
-        self.container._create_threading_event.return_value = Mock()
+        mock_event = Mock()
+        self.container._create_threading_event.return_value = mock_event
+        self.container._logs_thread_event = mock_event
 
         stdout_mock = Mock()
         stdout_mock.write_bytes = Mock()
@@ -937,6 +940,9 @@ class TestContainer_wait_for_result(TestCase):
             timeout=(self.container.RAPID_CONNECTION_TIMEOUT, None),
         )
         stdout_mock.write_bytes.assert_called_with(rie_response)
+
+        # Verify start_logs_thread_if_not_alive is called with stderr mock only
+        self.container.start_logs_thread_if_not_alive.assert_called_once_with(stderr_mock)
 
     @parameterized.expand(
         [
@@ -1215,6 +1221,32 @@ class TestContainer_wait_for_logs(TestCase):
 
         with self.assertRaises(RuntimeError):
             self.container.wait_for_logs(stdout=Mock())
+
+    @patch("samcli.local.docker.container.threading")
+    def test_start_logs_thread_if_not_alive_creates_new_thread_when_none_exists(self, mock_threading):
+        mock_thread = Mock()
+        mock_threading.Thread.return_value = mock_thread
+        mock_thread.is_alive.return_value = False
+
+        stderr_mock = Mock()
+
+        self.container.start_logs_thread_if_not_alive(stderr_mock)
+
+        mock_threading.Thread.assert_called_once()
+        mock_thread.start.assert_called_once()
+
+    @patch("samcli.local.docker.container.threading")
+    def test_start_logs_thread_if_not_alive_reuses_existing_thread_when_alive(self, mock_threading):
+        mock_thread = Mock()
+        mock_thread.is_alive.return_value = True
+        self.container._logs_thread = mock_thread
+
+        stderr_mock = Mock()
+
+        self.container.start_logs_thread_if_not_alive(stderr_mock)
+
+        mock_threading.Thread.assert_not_called()
+        mock_thread.start.assert_not_called()
 
 
 class TestContainer_write_container_output(TestCase):
