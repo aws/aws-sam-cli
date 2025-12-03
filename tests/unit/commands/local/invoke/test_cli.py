@@ -54,6 +54,7 @@ class TestCli(TestCase):
         self.mount_symlinks = False
         self.no_mem_limit = False
         self.tenant_id = None
+        self.durable_execution_name = None
 
         self.ctx_mock = Mock()
         self.ctx_mock.region = self.region_name
@@ -66,6 +67,7 @@ class TestCli(TestCase):
             template=self.template,
             event=self.eventfile,
             no_event=self.no_event,
+            durable_execution_name=self.durable_execution_name,
             env_vars=self.env_vars,
             debug_port=self.debug_ports,
             debug_args=self.debug_args,
@@ -135,6 +137,7 @@ class TestCli(TestCase):
             stdout=context_mock.stdout,
             stderr=context_mock.stderr,
             override_runtime=None,
+            durable_execution_name=self.durable_execution_name,
         )
         get_event_mock.assert_called_with(self.eventfile, exception_class=UserException)
 
@@ -183,6 +186,7 @@ class TestCli(TestCase):
             stdout=context_mock.stdout,
             stderr=context_mock.stderr,
             override_runtime=None,
+            durable_execution_name=self.durable_execution_name,
         )
 
     @parameterized.expand(
@@ -356,16 +360,18 @@ class TestCli(TestCase):
             mount_symlinks=self.mount_symlinks,
             no_mem_limit=self.no_mem_limit,
             tenant_id=tenant_id,
+            durable_execution_name=self.durable_execution_name,
         )
 
         # Verify tenant_id was passed to invoke
         context_mock.local_lambda_runner.invoke.assert_called_with(
             context_mock.function_identifier,
             event=event_data,
+            tenant_id=tenant_id,
             stdout=context_mock.stdout,
             stderr=context_mock.stderr,
             override_runtime=None,
-            tenant_id=tenant_id,
+            durable_execution_name=None,
         )
 
 

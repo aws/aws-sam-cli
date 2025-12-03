@@ -588,6 +588,7 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 True,
                 None,
+                None,
             )
 
     @patch("samcli.commands.local.invoke.cli.do_cli")
@@ -656,6 +657,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "python3.11",
                 True,
                 True,
+                None,
                 None,
             )
 

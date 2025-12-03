@@ -529,6 +529,7 @@ class SamFunctionProvider(SamBaseProvider):
             capacity_provider_config=resource_properties.get("CapacityProviderConfig", None),
             publish_to_latest_published=resource_properties.get("PublishToLatestPublished", None),
             tenancy_config=resource_properties.get("TenancyConfig"),
+            durable_config=resource_properties.get("DurableConfig", None),
         )
 
     @staticmethod

@@ -34,6 +34,7 @@ LOG = logging.getLogger(__name__)
 FUNCTION_NAME = "FunctionName"
 PAYLOAD = "Payload"
 TENANT_ID = "TenantId"
+DURABLE_EXECUTION_NAME = "DurableExecutionName"
 EVENT_STREAM = "EventStream"
 PAYLOAD_CHUNK = "PayloadChunk"
 INVOKE_COMPLETE = "InvokeComplete"
@@ -65,6 +66,9 @@ class AbstractLambdaInvokeExecutor(BotoActionExecutor, ABC):
         """
         if remote_invoke_input.tenant_id:
             self.request_parameters[TENANT_ID] = remote_invoke_input.tenant_id
+
+        if remote_invoke_input.durable_execution_name:
+            self.request_parameters[DURABLE_EXECUTION_NAME] = remote_invoke_input.durable_execution_name
 
         return super().execute(remote_invoke_input)
 
@@ -291,6 +295,16 @@ class LambdaStreamResponseConverter(RemoteInvokeRequestResponseMapper):
         return remote_invoke_input
 
 
+class DurableFunctionQualifierMapper(RemoteInvokeRequestResponseMapper[RemoteInvokeExecutionInfo]):
+    """
+    Sets Qualifier to $LATEST for durable functions if not already specified
+    """
+
+    def map(self, test_input: RemoteInvokeExecutionInfo) -> RemoteInvokeExecutionInfo:
+        test_input.parameters.setdefault("Qualifier", "$LATEST")
+        return test_input
+
+
 def _is_function_invoke_mode_response_stream(lambda_client: LambdaClient, function_name: str):
     """
     Returns True if given function has RESPONSE_STREAM as InvokeMode, False otherwise
@@ -302,4 +316,20 @@ def _is_function_invoke_mode_response_stream(lambda_client: LambdaClient, functi
         return function_invoke_mode == RESPONSE_STREAM
     except ClientError as ex:
         LOG.debug("Function %s, doesn't have Function URL configured, using regular invoke", function_name, exc_info=ex)
+        return False
+
+
+def _is_durable_function(lambda_client: LambdaClient, function_name: str) -> bool:
+    """
+    Returns True if given function is a durable function, False otherwise
+    """
+    try:
+        response = lambda_client.get_function_configuration(FunctionName=function_name)
+        LOG.debug("Function configuration for %s: %s", function_name, response)
+        is_durable = response.get("DurableConfig") is not None
+        LOG.debug("Function %s is durable: %s", function_name, is_durable)
+        return is_durable
+    except Exception as ex:
+        LOG.info("Failed to get function configuration for %s: %s", function_name, ex)
+        # If we can't determine, assume it's not a durable function
         return False
