@@ -148,6 +148,10 @@ class Function(NamedTuple):
     runtime_management_config: Optional[Dict] = None
     # LoggingConfig for Advanced logging
     logging_config: Optional[Dict] = None
+    # Function Tenancy Configuration for multi-tenant functions
+    tenancy_config: Optional[Dict] = None
+    # DurableConfig for AWS Lambda Durable Functions
+    durable_config: Optional[Dict] = None
     # LambdaManagedInstance Capacity Provider Configuration
     capacity_provider_config: Optional[Dict] = None
     # PublishToLatestPublished configuration
@@ -159,9 +163,6 @@ class Function(NamedTuple):
         if self.capacity_provider_config:
             return CapacityProviderConfig.from_dict(self.capacity_provider_config)
         return None
-
-    # Function Tenancy Configuration for multi-tenant functions
-    tenancy_config: Optional[Dict] = None
 
     @property
     def full_path(self) -> str:

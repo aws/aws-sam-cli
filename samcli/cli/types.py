@@ -633,6 +633,23 @@ class SyncWatchExcludeType(click.ParamType):
         return {resource_id: [excluded_path]}
 
 
+class DurableExecutionArnType(click.ParamType):
+    """
+    Custom Parameter Type for Durable Execution ARN validation.
+    """
+
+    name = "string"
+    pattern = (
+        r"^arn:([a-zA-Z0-9-]+):lambda:([a-zA-Z0-9-]+):(\d{12}):function:([a-zA-Z0-9_-]+):"
+        r"(\$LATEST(?:\.PUBLISHED)?|[0-9]+)/durable-execution/([a-zA-Z0-9_-]+)/([a-zA-Z0-9_-]+)$"
+    )
+
+    def convert(self, value, param, ctx):
+        if not re.match(self.pattern, value):
+            raise click.BadParameter(f"Invalid Durable Execution ARN format: {value}")
+        return value
+
+
 class TextWithSpaces:
     def __init__(self, text) -> None:
         self.text = text
