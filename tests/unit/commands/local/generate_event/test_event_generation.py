@@ -73,6 +73,61 @@ class TestEvents(TestCase):
         }
         self.assertEqual(result, expected)
 
+    def test_transform_val_dict_type_kept_as_string(self):
+        """Test that dict type values are kept as strings during transform"""
+        properties = {"type": "dict"}
+        val = '{"key1": "value1", "key2": "value2"}'
+        result = events.Events().transform_val(properties, val)
+        # Should remain a string for template rendering
+        self.assertEqual(result, val)
+        self.assertIsInstance(result, str)
+
+    def test_generate_event_with_dict_value(self):
+        """Test that generate_event properly handles dictionary values"""
+        events_lib = events.Events()
+        # Test with apigateway aws-proxy which has querystringparameters as dict type
+        # Pass as JSON string (as it would come from CLI)
+        result = events_lib.generate_event(
+            "apigateway",
+            "aws-proxy",
+            {
+                "method": "GET",
+                "path": "test",
+                "body": "",
+                "querystringparameters": '{"documentId": "1044", "versionId": "v_1"}',
+            },
+        )
+        import json
+
+        result_json = json.loads(result)
+        # Verify that queryStringParameters is a dict, not a string
+        self.assertIsInstance(result_json["queryStringParameters"], dict)
+        self.assertEqual(result_json["queryStringParameters"]["documentId"], "1044")
+        self.assertEqual(result_json["queryStringParameters"]["versionId"], "v_1")
+
+    def test_generate_event_with_complex_dict_value(self):
+        """Test that generate_event handles complex dict values with special characters"""
+        events_lib = events.Events()
+        # Test with complex JSON including special characters
+        result = events_lib.generate_event(
+            "apigateway",
+            "aws-proxy",
+            {
+                "method": "POST",
+                "path": "api/search",
+                "body": "",
+                "querystringparameters": '{"filter": "status=active", "sort": "desc", "limit": "10"}',
+            },
+        )
+        import json
+
+        result_json = json.loads(result)
+        # Verify complex dict is properly parsed
+        self.assertIsInstance(result_json["queryStringParameters"], dict)
+        self.assertEqual(result_json["queryStringParameters"]["filter"], "status=active")
+        self.assertEqual(result_json["queryStringParameters"]["sort"], "desc")
+        self.assertEqual(result_json["queryStringParameters"]["limit"], "10")
+
 
 class TestServiceCommand(TestCase):
     def setUp(self):
