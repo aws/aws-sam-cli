@@ -961,6 +961,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "default",
                 False,
                 True,
+                False,
                 "ROLLBACK",
                 60,
             )
@@ -1076,6 +1077,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "default",
                 False,
                 True,
+                False,
                 "ROLLBACK",
                 60,
             )
