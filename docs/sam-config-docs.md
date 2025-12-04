@@ -23,6 +23,16 @@ output_template_file="packaged.yaml"
 
 [default.deploy.parameters]
 stack_name="using_config_file"
+
+### Specifying a Boolean deployment option
+
+```
+[default.deploy.parameters]
+parallel_upload=true
+```
+
+Setting `parallel_upload` to `true` is equivalent to passing `--parallel-upload` on
+`sam deploy`, enabling concurrent S3/ECR uploads during the packaging phase.
 capabilities="CAPABILITY_IAM"
 region="us-east-1"
 profile="srirammv"
@@ -94,4 +104,3 @@ stack_name="using_config_file"
 [default.build.parameters]
 debug=true
 ```
-

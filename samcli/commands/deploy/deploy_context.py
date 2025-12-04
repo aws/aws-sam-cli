@@ -75,6 +75,7 @@ class DeployContext:
         poll_delay,
         on_failure,
         max_wait_duration,
+        parallel_upload=False,
     ):
         self.template_file = template_file
         self.stack_name = stack_name
@@ -82,6 +83,7 @@ class DeployContext:
         self.image_repository = image_repository
         self.image_repositories = image_repositories
         self.force_upload = force_upload
+        self.parallel_upload = parallel_upload
         self.no_progressbar = no_progressbar
         self.s3_prefix = s3_prefix
         self.kms_key_id = kms_key_id
@@ -164,6 +166,7 @@ class DeployContext:
             self.signing_profiles,
             self.use_changeset,
             self.disable_rollback,
+            self.parallel_upload,
         )
         return self.deploy(
             self.stack_name,

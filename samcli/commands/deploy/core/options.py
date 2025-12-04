@@ -37,6 +37,7 @@ DEPLOYMENT_OPTIONS: List[str] = [
     "disable_rollback",
     "on_failure",
     "force_upload",
+    "parallel_upload",
     "max_wait_duration",
 ]
 

@@ -20,6 +20,7 @@ def print_deploy_args(
     signing_profiles,
     use_changeset,
     disable_rollback,
+    parallel_upload,
 ):
     """
     Print a table of the values that are used during a sam deploy.
@@ -48,6 +49,7 @@ def print_deploy_args(
     :param signing_profiles: Signing profile details which will be used to sign functions/layers
     :param use_changeset: Flag to use or skip the usage of changesets
     :param disable_rollback: Preserve the state of previously provisioned resources when an operation fails.
+    :param parallel_upload: Whether artifact uploads run in parallel prior to deployment.
     """
     _parameters = parameter_overrides.copy()
 
@@ -70,6 +72,7 @@ def print_deploy_args(
     if use_changeset:
         click.echo(f"\tConfirm changeset            : {confirm_changeset}")
     click.echo(f"\tDisable rollback             : {disable_rollback}")
+    click.echo(f"\tParallel uploads             : {parallel_upload}")
     if image_repository:
         msg = "Deployment image repository  : "
         # NOTE(sriram-mv): tab length is 8 spaces.
