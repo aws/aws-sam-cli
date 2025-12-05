@@ -8,6 +8,9 @@ import os
 import logging
 from pathlib import Path
 
+import boto3
+from botocore import UNSIGNED
+from botocore.config import Config
 from docker.errors import APIError
 from psutil import NoSuchProcess
 
@@ -224,6 +227,17 @@ class StartLambdaIntegBaseClass(TestCase):
                     LOG.error("Failed to remove SAM CLI container %s", container.short_id, exc_info=ex)
         except Exception as ex:
             LOG.error("Failed to clean up SAM CLI containers", exc_info=ex)
+
+    def get_local_lambda_client(self):
+        url = "http://127.0.0.1:{}".format(self.port)
+        return boto3.client(
+            "lambda",
+            endpoint_url=url,
+            region_name="us-east-1",
+            use_ssl=False,
+            verify=False,
+            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
+        )
 
 
 class WatchWarmContainersIntegBaseClass(StartLambdaIntegBaseClass):
