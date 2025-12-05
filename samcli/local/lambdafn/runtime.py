@@ -16,8 +16,11 @@ from samcli.lib.utils.file_observer import LambdaFunctionObserver
 from samcli.lib.utils.packagetype import ZIP
 from samcli.local.docker.container import Container, ContainerContext
 from samcli.local.docker.container_analyzer import ContainerAnalyzer
+from samcli.local.docker.durable_functions_emulator_container import DurableFunctionsEmulatorContainer
+from samcli.local.docker.durable_lambda_container import DurableLambdaContainer
 from samcli.local.docker.exceptions import ContainerFailureError, DockerContainerCreationFailedException
 from samcli.local.docker.lambda_container import LambdaContainer
+from samcli.local.lambdafn.exceptions import UnsupportedInvocationType
 
 from ...lib.providers.provider import LayerVersion
 from ...lib.utils.stream_writer import StreamWriter
@@ -49,11 +52,19 @@ class LambdaRuntime:
             Optional. True is symlinks should be mounted in the container
         """
         self._container_manager = container_manager
+        self._container = None  # Track current container
         self._image_builder = image_builder
         self._temp_uncompressed_paths_to_be_cleaned = []
         self._lock = threading.Lock()
         self._mount_symlinks = mount_symlinks
         self._no_mem_limit = no_mem_limit
+
+        """
+        Reference to an instance of the durable executions emulator container. Each instance of a lambda runtime may 
+        have an emulator container created (if the runtime is for a durable function), however, we implement a 
+        reattachment mechanism so that each instance is using the same underlying container.
+        """
+        self._durable_execution_emulator_container = None
 
     def create(
         self,
@@ -102,7 +113,7 @@ class LambdaRuntime:
                 sam_accelerate_link,
             )
 
-        container = LambdaContainer(
+        container_args = (
             function_config.runtime,
             function_config.imageuri,
             function_config.handler,
@@ -112,15 +123,35 @@ class LambdaRuntime:
             layers,
             self._image_builder,
             function_config.architecture,
-            memory_mb=(None if self._no_mem_limit else function_config.memory),
-            env_vars=env_vars,
-            debug_options=debug_context,
-            container_host=container_host,
-            container_host_interface=container_host_interface,
-            extra_hosts=extra_hosts,
-            function_full_path=function_config.full_path,
-            mount_symlinks=self._mount_symlinks,
         )
+
+        container_kwargs = {
+            "memory_mb": None if self._no_mem_limit else function_config.memory,
+            "env_vars": env_vars,
+            "debug_options": debug_context,
+            "container_host": container_host,
+            "container_host_interface": container_host_interface,
+            "extra_hosts": extra_hosts,
+            "function_full_path": function_config.full_path,
+            "mount_symlinks": self._mount_symlinks,
+        }
+
+        # Check if this is a durable function and create appropriate container type
+        if function_config.durable_config:
+            emulator_container = self.get_or_create_emulator_container()
+            is_warm_runtime = isinstance(self, WarmLambdaRuntime)
+            container = DurableLambdaContainer(
+                *container_args,
+                emulator_container=emulator_container,
+                durable_config=function_config.durable_config,
+                is_warm_runtime=is_warm_runtime,
+                **container_kwargs,
+            )
+        else:
+            container = LambdaContainer(*container_args, **container_kwargs)
+
+        self._container = container
+
         try:
             # create the container.
             self._container_manager.create(container, ContainerContext.INVOKE)
@@ -197,13 +228,15 @@ class LambdaRuntime:
         function_config,
         event,
         tenant_id=None,
+        invocation_type: str = "RequestResponse",
+        durable_execution_name: Optional[str] = None,
         debug_context=None,
         stdout: Optional[StreamWriter] = None,
         stderr: Optional[StreamWriter] = None,
         container_host=None,
         container_host_interface=None,
         extra_hosts=None,
-    ):
+    ) -> Optional[Dict[str, str]]:
         """
         Invoke the given Lambda function locally.
 
@@ -230,9 +263,12 @@ class LambdaRuntime:
             Interface that Docker host binds ports to
         :param dict extra_hosts: Optional.
             Dict of hostname to IP resolutions
+        :returns: Optional[Dict[str, str]]
+            HTTP headers dict if this was a durable function invocation, None otherwise
         :raises Keyboard
         """
         container = None
+        headers = None
         try:
             # Start the container. This call returns immediately after the container starts
             container = self.create(
@@ -256,15 +292,33 @@ class LambdaRuntime:
             # Block on waiting for result from the init process on the container, below method also
             # starts another thread to stream logs. This method will terminate
             # either successfully or be killed by one of the interrupt handlers above.
-            # The container handles concurrency control internally via its semaphore.
-            container.wait_for_result(
-                full_path=function_config.full_path,
-                event=event,
-                stdout=stdout,
-                stderr=stderr,
-                start_timer=start_timer,
-                tenant_id=tenant_id,
-            )
+
+            if isinstance(container, DurableLambdaContainer):
+                headers = container.wait_for_result(
+                    full_path=function_config.full_path,
+                    event=event,
+                    stdout=stdout,
+                    stderr=stderr,
+                    start_timer=start_timer,
+                    durable_execution_name=durable_execution_name,
+                    invocation_type=invocation_type,
+                )
+            else:
+                # Only RequestResponse supported for regular Lambda functions
+                if invocation_type != "RequestResponse":
+                    raise UnsupportedInvocationType(
+                        f"invocation-type: {invocation_type} is not supported. RequestResponse is only supported."
+                    )
+
+                # The container handles concurrency control internally via its semaphore.
+                container.wait_for_result(
+                    full_path=function_config.full_path,
+                    event=event,
+                    stdout=stdout,
+                    stderr=stderr,
+                    start_timer=start_timer,
+                    tenant_id=tenant_id,
+                )
 
         except KeyboardInterrupt:
             # When user presses Ctrl+C, we receive a Keyboard Interrupt. This is especially very common when
@@ -276,6 +330,8 @@ class LambdaRuntime:
             # We will be done with execution, if either the execution completed or an interrupt was fired
             # Any case, cleanup the container.
             self._on_invoke_done(container)
+
+        return headers
 
     def _on_invoke_done(self, container):
         """
@@ -409,6 +465,43 @@ class LambdaRuntime:
             for decompressed_dir in self._temp_uncompressed_paths_to_be_cleaned:
                 shutil.rmtree(decompressed_dir)
             self._temp_uncompressed_paths_to_be_cleaned = []
+
+    def get_or_create_emulator_container(self):
+        """
+        Get or create emulator container. Provides singleton behavior for all runtime types.
+
+        Returns:
+            DurableFunctionsEmulatorContainer: The singleton emulator container
+        """
+        if self._durable_execution_emulator_container is None:
+            self._durable_execution_emulator_container = DurableFunctionsEmulatorContainer()
+            self._durable_execution_emulator_container.start_or_attach()
+            LOG.debug("Created and started durable functions emulator container")
+        return self._durable_execution_emulator_container
+
+    def clean_runtime_containers(self):
+        """
+        Clean up any containers created during the runtime which haven't already been cleaned.
+
+        This is only used for durable executions since we defer the container management to
+        the durable lambda container implementation. This method is a catch-all called from
+        InvokeContext.__exit__ to ensure that we *always* cleanup the runtime container resources.
+        """
+        # Clean up lambda container
+        if self._container and isinstance(self._container, DurableLambdaContainer):
+            try:
+                self._container._stop()
+                self._container._delete()
+            except Exception as e:
+                LOG.error("Error stopping durable lambda container: %s", e)
+            finally:
+                self._container = None
+
+        # Clean up durable execution emulator container
+        if self._durable_execution_emulator_container:
+            LOG.debug("Stopping durable functions emulator container")
+            self._durable_execution_emulator_container.stop()
+            self._durable_execution_emulator_container = None
 
 
 class WarmLambdaRuntime(LambdaRuntime):
