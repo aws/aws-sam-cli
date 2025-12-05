@@ -2,7 +2,7 @@
 Unit tests for DurableLambdaContainer
 """
 
-from unittest import TestCase
+from unittest import TestCase, mock
 from unittest.mock import Mock, patch, MagicMock
 from parameterized import parameterized
 
@@ -76,6 +76,7 @@ class TestDurableLambdaContainer(TestCase):
             (False, "http://host.docker.internal:8080", True),  # is_external_emulator=False, HTTP context
         ]
     )
+    @patch("samcli.local.docker.durable_lambda_container.DurableCallbackHandler")
     @patch("samcli.local.docker.durable_lambda_container.click.secho")
     @patch("samcli.local.docker.durable_lambda_container.format_next_commands_after_invoke")
     @patch("samcli.local.docker.durable_lambda_container.format_execution_details")
@@ -91,11 +92,17 @@ class TestDurableLambdaContainer(TestCase):
         mock_format_execution_details,
         mock_format_next_commands,
         mock_secho,
+        mock_callback_handler_class,
     ):
         """Test wait_for_result for sync invocation waits for completion and shows commands based on context"""
         mock_has_request_context.return_value = has_flask_request_context
         mock_format_execution_details.return_value = "Execution details"
         mock_format_next_commands.return_value = "Next commands"
+
+        # Mock callback handler to return no pending callbacks
+        mock_callback_handler = Mock()
+        mock_callback_handler.check_for_pending_callbacks.return_value = None
+        mock_callback_handler_class.return_value = mock_callback_handler
 
         mock_emulator = Mock()
         mock_emulator.start_or_attach = Mock()
@@ -147,6 +154,9 @@ class TestDurableLambdaContainer(TestCase):
             {"ExecutionTimeout": 900, "RetentionPeriodInDays": 7},
         )
 
+        # Verify callback handler was created
+        mock_callback_handler_class.assert_called_once_with(mock_emulator.lambda_client)
+
         # Verify execution was polled multiple times until completion
         self.assertEqual(mock_emulator.lambda_client.get_durable_execution.call_count, 3)
         mock_emulator.lambda_client.get_durable_execution.assert_called_with(mock_execution_arn)
@@ -177,14 +187,104 @@ class TestDurableLambdaContainer(TestCase):
 
     @parameterized.expand(
         [
+            (False,),  # has_request_context=False (CLI context) - user is prompted to respond to callbacks
+            (True,),  # has_request_context=True (HTTP context) - user is not prompted
+        ]
+    )
+    @patch("samcli.local.docker.durable_lambda_container.has_request_context")
+    @patch("samcli.local.docker.durable_lambda_container.threading.Thread")
+    @patch("samcli.local.docker.durable_lambda_container.DurableCallbackHandler")
+    @patch("samcli.local.docker.durable_lambda_container.LambdaContainer.start")
+    def test_sync_wait_for_result_with_callbacks(
+        self, has_request_context, mock_start, mock_callback_handler_class, mock_thread_class, mock_has_request_context
+    ):
+        """Test callback thread lifecycle: detection, prompt, and cleanup on completion"""
+        mock_has_request_context.return_value = has_request_context
+        is_cli_context = not has_request_context
+        mock_execution_arn = "arn:123"
+
+        mock_emulator = Mock()
+        mock_emulator._is_external_emulator = Mock(return_value=False)
+        mock_emulator.start_durable_execution = Mock(return_value={"ExecutionArn": mock_execution_arn})
+        # Execution runs for 3 polls, callback detected on 3rd, then completes
+        mock_emulator.lambda_client.get_durable_execution = Mock(
+            side_effect=[
+                {"Status": "RUNNING"},
+                {"Status": "RUNNING"},
+                {"Status": "RUNNING"},
+                {"Status": "SUCCEEDED", "Output": "result"},
+            ]
+        )
+
+        # Mock callback handler - no callback for first 2 polls, then callback detected
+        mock_callback_handler = Mock()
+        mock_callback_handler.check_for_pending_callbacks.side_effect = [None, None, "callback-123"]
+        mock_callback_handler.prompt_callback_response.return_value = True
+        mock_callback_handler_class.return_value = mock_callback_handler
+
+        # Mock callback thread - capture target and execute it to verify prompt is called
+        mock_callback_thread = Mock()
+        mock_callback_thread.is_alive.return_value = True  # So join() gets called at cleanup
+
+        def capture_and_execute_thread(target, **kwargs):
+            target()  # Execute the thread function immediately
+            return mock_callback_thread
+
+        mock_thread_class.side_effect = capture_and_execute_thread
+
+        container = self._create_container(mock_emulator)
+        container.start_logs_thread_if_not_alive = Mock()
+        container.get_port = Mock(return_value=8080)
+        container._wait_for_socket_connection = Mock()
+
+        container.wait_for_result(
+            full_path="test-function",
+            event={"test": "event"},
+            stdout=Mock(),
+            stderr=Mock(),
+            durable_execution_name="test-execution",
+        )
+
+        if is_cli_context:
+            # CLI context - validate the user was prompted to respond to the callback
+            self.assertEqual(mock_callback_handler.check_for_pending_callbacks.call_count, 3)
+            mock_callback_handler.check_for_pending_callbacks.assert_called_with(mock_execution_arn)
+
+            # Verify callback prompt was called with correct arguments
+            mock_callback_handler.prompt_callback_response.assert_called_once_with(
+                mock_execution_arn, "callback-123", mock.ANY
+            )
+
+            # Verify callback thread was created with daemon=True and started
+            mock_thread_class.assert_called_once_with(target=mock.ANY, daemon=True)
+            mock_callback_thread.start.assert_called_once()
+
+            # Verify thread cleanup: join called when execution completes
+            mock_callback_thread.join.assert_called_once_with(timeout=0.5)
+        else:
+            # HTTP context - the user should not have been prompted
+            mock_callback_handler.check_for_pending_callbacks.assert_not_called()
+            mock_callback_handler.prompt_callback_response.assert_not_called()
+            mock_thread_class.assert_not_called()
+
+    @parameterized.expand(
+        [
             (False, "http://host.docker.internal:8080"),  # internal emulator
             (True, "http://localhost:8080"),  # external emulator
         ]
     )
+    @patch("samcli.local.docker.durable_lambda_container.DurableCallbackHandler")
     @patch("samcli.local.docker.durable_lambda_container.LambdaContainer.start")
     @patch("samcli.local.docker.durable_lambda_container.threading.Thread")
-    def test_async_wait_for_result(self, is_external_emulator, expected_emulator_endpoint, mock_thread, mock_start):
+    def test_async_wait_for_result(
+        self, is_external_emulator, expected_emulator_endpoint, mock_thread, mock_start, mock_callback_handler_class
+    ):
         """Test wait_for_result with async invocation returns immediately and polls in background"""
+        # Mock callback handler to return no pending callbacks
+        mock_callback_handler = Mock()
+        mock_callback_handler.check_for_pending_callbacks.return_value = None
+        mock_callback_handler_class.return_value = mock_callback_handler
+
         mock_emulator = Mock()
         mock_emulator.start_or_attach = Mock()
         mock_emulator._is_external_emulator = Mock(return_value=is_external_emulator)

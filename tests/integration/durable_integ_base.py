@@ -62,7 +62,6 @@ class DurableIntegBase(TestCase):
     def get_invoke_command_list(self, function_name, **kwargs):
         """Get command list for invoking a durable function with built template."""
         kwargs.setdefault("template_path", str(self.built_template_path))
-        kwargs.setdefault("container_host_interface", "0.0.0.0")
         return self.get_command_list(function_name, **kwargs)
 
     def get_execution_history_command_list(self, execution_arn, output_format="json"):

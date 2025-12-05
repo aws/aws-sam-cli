@@ -9,6 +9,7 @@ import time
 import click
 from flask import has_request_context
 
+from samcli.lib.utils.durable_callback_handler import DurableCallbackHandler
 from samcli.lib.utils.durable_formatters import format_execution_details, format_next_commands_after_invoke
 from samcli.local.docker.lambda_container import LambdaContainer
 
@@ -57,6 +58,9 @@ class DurableLambdaContainer(LambdaContainer):
         extra_hosts = kwargs.get("extra_hosts") or {}
         extra_hosts["host.docker.internal"] = "host-gateway"
         kwargs["extra_hosts"] = extra_hosts
+
+        # Bind to 0.0.0.0 so emulator can reach Lambda via host.docker.internal
+        kwargs["container_host_interface"] = "0.0.0.0"
 
     def _get_lambda_container_endpoint(self):
         """
@@ -146,8 +150,11 @@ class DurableLambdaContainer(LambdaContainer):
     def _wait_for_execution(self, execution_arn):
         """Poll the execution status until completion and return the final result."""
 
-        # TODO - poll until the execution timeout is hit
+        callback_handler = DurableCallbackHandler(self.emulator_container.lambda_client)
         execution_details = None
+        callback_thread = None
+        stop_callback_prompts = threading.Event()
+
         try:
             while True:
                 try:
@@ -156,13 +163,36 @@ class DurableLambdaContainer(LambdaContainer):
                     status = execution_details.get("Status")
 
                     if status != "RUNNING":
+                        stop_callback_prompts.set()  # Signal callback thread to stop
+                        if callback_thread and callback_thread.is_alive():
+                            callback_thread.join(timeout=0.5)  # Brief wait for thread cleanup
                         return execution_details
+
+                    # Check for pending callbacks (only in CLI context)
+                    if self._is_cli_context():
+                        callback_id = callback_handler.check_for_pending_callbacks(execution_arn)
+                        if callback_id:
+
+                            def _prompt_in_thread():
+                                if not stop_callback_prompts.is_set():
+                                    # give the function logs time to settle after the invocation is suspended
+                                    time.sleep(0.5)
+                                    callback_sent = callback_handler.prompt_callback_response(
+                                        execution_arn, callback_id, stop_callback_prompts
+                                    )
+                                    if callback_sent:
+                                        click.echo("\n" + "─" * 80)
+
+                            # Start callback prompt in separate thread so it doesn't block polling
+                            callback_thread = threading.Thread(target=_prompt_in_thread, daemon=True)
+                            callback_thread.start()
 
                     time.sleep(1)  # Poll every second
                 except Exception as e:
                     LOG.error("Error polling execution status: %s", e)
                     break
         finally:
+            stop_callback_prompts.set()  # Ensure callback thread knows to stop
             self._cleanup_if_needed()
 
         return execution_details
