@@ -2,6 +2,7 @@ from unittest import TestCase
 from unittest.mock import patch, Mock
 
 from samcli.commands.package.command import do_cli
+from samcli.commands.package.exceptions import PackageResolveS3AndS3NotSetError
 
 
 class TestPackageCliCommand(TestCase):
@@ -120,8 +121,6 @@ class TestPackageCliCommand(TestCase):
     @patch("samcli.commands.package.command.click")
     @patch("samcli.commands.package.package_context.PackageContext")
     def test_resolve_image_repos_without_s3_bucket_raises_error(self, package_command_context, click_mock):
-        from samcli.commands.package.exceptions import PackageResolveS3AndS3NotSetError
-
         with self.assertRaises(PackageResolveS3AndS3NotSetError):
             do_cli(
                 template_file=self.template_file,
