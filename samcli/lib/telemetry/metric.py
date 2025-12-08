@@ -248,6 +248,10 @@ def _send_command_run_metrics(ctx: Context, duration: int, exit_reason: str, exi
     # Add admin container preference from global storage (set by container client factory)
     metric_specific_attributes["adminContainerPreference"] = metric._get_container_admin_preference()
 
+    # Add function fields usage if available in context
+    if hasattr(ctx, "function_fields_used"):
+        metric_specific_attributes["functionFieldsUsed"] = ctx.function_fields_used
+
     metric.add_data("metricSpecificAttributes", metric_specific_attributes)
     # Metric about command's execution characteristics
     metric.add_data("duration", duration)

@@ -29,6 +29,7 @@ LOG = logging.getLogger(__name__)
 class StartLambdaIntegBaseClass(TestCase):
     template: Optional[str] = None
     container_mode: Optional[str] = None
+    container_host_interface: Optional[str] = None
     parameter_overrides: Optional[Dict[str, str]] = None
     binary_data_file: Optional[str] = None
     integration_dir = str(Path(__file__).resolve().parents[2])
@@ -37,6 +38,7 @@ class StartLambdaIntegBaseClass(TestCase):
     terraform_plan_file: Optional[str] = None
     beta_features: Optional[bool] = None
     collect_start_lambda_process_output: bool = False
+    function_logical_ids: Optional[List[str]] = None
 
     build_before_invoke = False
     build_overrides: Optional[Dict[str, str]] = None
@@ -109,13 +111,19 @@ class StartLambdaIntegBaseClass(TestCase):
         template_path=None,
         env_var_path=None,
         container_mode=None,
+        container_host_interface=None,
         parameter_overrides=None,
         invoke_image=None,
         hook_name=None,
         beta_features=None,
         terraform_plan_file=None,
+        function_logical_ids=None,
     ):
         command_list = [get_sam_command(), "local", "start-lambda"]
+
+        # Add function names as positional arguments first
+        if function_logical_ids:
+            command_list.extend(function_logical_ids)
 
         if port:
             command_list += ["-p", port]
@@ -128,6 +136,9 @@ class StartLambdaIntegBaseClass(TestCase):
 
         if container_mode:
             command_list += ["--warm-containers", container_mode]
+
+        if container_host_interface:
+            command_list += ["--container-host-interface", container_host_interface]
 
         if parameter_overrides:
             command_list += ["--parameter-overrides", cls._make_parameter_override_arg(parameter_overrides)]
@@ -154,15 +165,16 @@ class StartLambdaIntegBaseClass(TestCase):
             template_path=cls.template,
             env_var_path=cls.env_var_path,
             container_mode=cls.container_mode,
+            container_host_interface=cls.container_host_interface,
             parameter_overrides=cls.parameter_overrides,
             invoke_image=cls.invoke_image,
             hook_name=cls.hook_name,
             beta_features=cls.beta_features,
             terraform_plan_file=cls.terraform_plan_file,
+            function_logical_ids=cls.function_logical_ids,
         )
 
         # Container labels are no longer needed - container IDs are parsed from output
-
         cls.start_lambda_process = Popen(command_list, stderr=PIPE, stdin=PIPE, env=env, cwd=cls.working_dir)
         cls.start_lambda_process_output = ""
 

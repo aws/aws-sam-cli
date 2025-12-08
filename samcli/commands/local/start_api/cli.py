@@ -48,6 +48,10 @@ DESCRIPTION = """
   a interpreted language, local changes will be available immediately in Docker container on every invoke. For more
   compiled languages or projects requiring complex packing support, it is recommended to run custom building solution
   and point AWS SAM CLI to the directory or file containing build artifacts.
+
+  For testing multi-tenant functions, pass tenant-id via X-Amz-Tenant-Id header. By default, each request uses a new 
+  container providing tenant isolation. When using --warm-containers, containers are reused and do not 
+  provide tenant isolation like production Lambda.
 """
 
 

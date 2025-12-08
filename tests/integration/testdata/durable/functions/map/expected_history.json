@@ -1,0 +1,228 @@
+[
+  {
+    "EventType": "ExecutionStarted",
+    "EventId": 1,
+    "Name": "mapoperations-integration-test",
+    "ExecutionStartedDetails": {
+      "Input": {
+        "Payload": "{}",
+        "Truncated": false
+      },
+      "ExecutionTimeout": 300
+    }
+  },
+  {
+    "EventType": "ContextStarted",
+    "SubType": "Map",
+    "EventId": 2,
+    "Name": "map_operation",
+    "ContextStartedDetails": {}
+  },
+  {
+    "EventType": "ContextStarted",
+    "SubType": "MapIteration",
+    "EventId": 3,
+    "Name": "map-item-0",
+    "ContextStartedDetails": {}
+  },
+  {
+    "EventType": "StepStarted",
+    "SubType": "Step",
+    "EventId": 4,
+    "Name": "map_item_0",
+    "StepStartedDetails": {}
+  },
+  {
+    "EventType": "StepSucceeded",
+    "SubType": "Step",
+    "EventId": 5,
+    "Name": "map_item_0",
+    "StepSucceededDetails": {
+      "Result": {
+        "Payload": "2",
+        "Truncated": false
+      },
+      "RetryDetails": {
+        "CurrentAttempt": 1,
+        "NextAttemptDelaySeconds": 0
+      }
+    }
+  },
+  {
+    "EventType": "ContextStarted",
+    "SubType": "MapIteration",
+    "EventId": 6,
+    "Name": "map-item-1",
+    "ContextStartedDetails": {}
+  },
+  {
+    "EventType": "StepStarted",
+    "SubType": "Step",
+    "EventId": 7,
+    "Name": "map_item_1",
+    "StepStartedDetails": {}
+  },
+  {
+    "EventType": "StepSucceeded",
+    "SubType": "Step",
+    "EventId": 8,
+    "Name": "map_item_1",
+    "StepSucceededDetails": {
+      "Result": {
+        "Payload": "4",
+        "Truncated": false
+      },
+      "RetryDetails": {
+        "CurrentAttempt": 1,
+        "NextAttemptDelaySeconds": 0
+      }
+    }
+  },
+  {
+    "EventType": "ContextSucceeded",
+    "SubType": "MapIteration",
+    "EventId": 9,
+    "Name": "map-item-0",
+    "ContextSucceededDetails": {}
+  },
+  {
+    "EventType": "ContextSucceeded",
+    "SubType": "MapIteration",
+    "EventId": 10,
+    "Name": "map-item-1",
+    "ContextSucceededDetails": {}
+  },
+  {
+    "EventType": "ContextStarted",
+    "SubType": "MapIteration",
+    "EventId": 11,
+    "Name": "map-item-2",
+    "ContextStartedDetails": {}
+  },
+  {
+    "EventType": "StepStarted",
+    "SubType": "Step",
+    "EventId": 12,
+    "Name": "map_item_2",
+    "StepStartedDetails": {}
+  },
+  {
+    "EventType": "StepSucceeded",
+    "SubType": "Step",
+    "EventId": 13,
+    "Name": "map_item_2",
+    "StepSucceededDetails": {
+      "Result": {
+        "Payload": "6",
+        "Truncated": false
+      },
+      "RetryDetails": {
+        "CurrentAttempt": 1,
+        "NextAttemptDelaySeconds": 0
+      }
+    }
+  },
+  {
+    "EventType": "ContextStarted",
+    "SubType": "MapIteration",
+    "EventId": 14,
+    "Name": "map-item-3",
+    "ContextStartedDetails": {}
+  },
+  {
+    "EventType": "StepStarted",
+    "SubType": "Step",
+    "EventId": 15,
+    "Name": "map_item_3",
+    "StepStartedDetails": {}
+  },
+  {
+    "EventType": "StepSucceeded",
+    "SubType": "Step",
+    "EventId": 16,
+    "Name": "map_item_3",
+    "StepSucceededDetails": {
+      "Result": {
+        "Payload": "8",
+        "Truncated": false
+      },
+      "RetryDetails": {
+        "CurrentAttempt": 1,
+        "NextAttemptDelaySeconds": 0
+      }
+    }
+  },
+  {
+    "EventType": "ContextSucceeded",
+    "SubType": "MapIteration",
+    "EventId": 17,
+    "Name": "map-item-3",
+    "ContextSucceededDetails": {}
+  },
+  {
+    "EventType": "ContextSucceeded",
+    "SubType": "MapIteration",
+    "EventId": 18,
+    "Name": "map-item-2",
+    "ContextSucceededDetails": {}
+  },
+  {
+    "EventType": "ContextStarted",
+    "SubType": "MapIteration",
+    "EventId": 19,
+    "Name": "map-item-4",
+    "ContextStartedDetails": {}
+  },
+  {
+    "EventType": "StepStarted",
+    "SubType": "Step",
+    "EventId": 20,
+    "Name": "map_item_4",
+    "StepStartedDetails": {}
+  },
+  {
+    "EventType": "StepSucceeded",
+    "SubType": "Step",
+    "EventId": 21,
+    "Name": "map_item_4",
+    "StepSucceededDetails": {
+      "Result": {
+        "Payload": "10",
+        "Truncated": false
+      },
+      "RetryDetails": {
+        "CurrentAttempt": 1,
+        "NextAttemptDelaySeconds": 0
+      }
+    }
+  },
+  {
+    "EventType": "ContextSucceeded",
+    "SubType": "MapIteration",
+    "EventId": 22,
+    "Name": "map-item-4",
+    "ContextSucceededDetails": {}
+  },
+  {
+    "EventType": "ContextSucceeded",
+    "SubType": "Map",
+    "EventId": 23,
+    "Name": "map_operation",
+    "ContextSucceededDetails": {}
+  },
+  {
+    "EventType": "InvocationCompleted",
+    "EventId": 24
+  },
+  {
+    "EventType": "ExecutionSucceeded",
+    "EventId": 25,
+    "Name": "mapoperations-integration-test",
+    "ExecutionSucceededDetails": {
+      "Result": {
+        "Payload": "[2, 4, 6, 8, 10]",
+        "Truncated": false
+      }
+    }
+  }
+]
