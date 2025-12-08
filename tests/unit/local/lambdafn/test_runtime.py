@@ -3,15 +3,23 @@ Unit tests for Lambda runtime
 """
 
 from unittest import TestCase
-from unittest.mock import Mock, patch, MagicMock, ANY, call
+from unittest.mock import Mock, patch, MagicMock, ANY, call, PropertyMock
 from parameterized import parameterized
 
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.lib.providers.provider import LayerVersion
 from samcli.local.lambdafn.env_vars import EnvironmentVariables
-from samcli.local.lambdafn.runtime import LambdaRuntime, _unzip_file, WarmLambdaRuntime, _require_container_reloading
+from samcli.local.lambdafn.runtime import (
+    LambdaRuntime,
+    _unzip_file,
+    WarmLambdaRuntime,
+    _require_container_reloading,
+    _should_reload_container,
+)
 from samcli.local.lambdafn.config import FunctionConfig
 from samcli.local.docker.container import ContainerContext
+from samcli.commands.local.lib.debug_context import DebugContext
+from samcli.local.docker.durable_lambda_container import DurableLambdaContainer
 
 
 class LambdaRuntime_create(TestCase):
@@ -90,6 +98,73 @@ class LambdaRuntime_create(TestCase):
             debug_options=debug_options,
             env_vars=self.env_var_value,
             memory_mb=self.DEFAULT_MEMORY,
+            container_host=None,
+            container_host_interface=None,
+            extra_hosts=None,
+            function_full_path=self.full_path,
+            mount_symlinks=False,
+        )
+        # Run the container and get results
+        self.manager_mock.create.assert_called_with(container, ContainerContext.INVOKE)
+
+    @patch("samcli.local.lambdafn.runtime.LOG")
+    @patch("samcli.local.lambdafn.runtime.DurableLambdaContainer")
+    def test_must_create_durable_lambda_container_when_durable_config_present(
+        self, DurableLambdaContainerMock, LogMock
+    ):
+        code_dir = "some code dir"
+
+        container = Mock()
+        debug_options = Mock()
+        lambda_image_mock = Mock()
+        durable_config = {"ExecutionTimeout": 300, "RetentionPeriodInDays": 7}
+
+        # Create function config with durable config
+        func_config_with_durable = FunctionConfig(
+            self.name,
+            self.full_path,
+            self.lang,
+            self.handler,
+            self.imageuri,
+            self.imageconfig,
+            self.packagetype,
+            self.code_path,
+            self.layers,
+            self.architecture,
+            durable_config=durable_config,
+        )
+        func_config_with_durable.env_vars = self.env_vars
+
+        self.runtime = LambdaRuntime(self.manager_mock, lambda_image_mock)
+
+        mock_emulator = Mock()
+        self.runtime.get_or_create_emulator_container = Mock(return_value=mock_emulator)
+
+        # Using MagicMock to mock the context manager
+        self.runtime._get_code_dir = MagicMock()
+        self.runtime._get_code_dir.return_value = code_dir
+
+        DurableLambdaContainerMock.return_value = container
+
+        self.runtime.create(func_config_with_durable, debug_context=debug_options)
+
+        # Make sure DurableLambdaContainer is created with proper values
+        DurableLambdaContainerMock.assert_called_once_with(
+            self.lang,
+            self.imageuri,
+            self.handler,
+            self.packagetype,
+            self.imageconfig,
+            code_dir,
+            self.layers,
+            lambda_image_mock,
+            self.architecture,
+            emulator_container=mock_emulator,
+            durable_config=durable_config,
+            is_warm_runtime=False,
+            memory_mb=self.DEFAULT_MEMORY,
+            env_vars=self.env_var_value,
+            debug_options=debug_options,
             container_host=None,
             container_host_interface=None,
             extra_hosts=None,
@@ -524,6 +599,70 @@ class LambdaRuntime_invoke(TestCase):
 
         # Finally block must be called
         self.manager_mock.stop.assert_called_with(container)
+
+    def test_durable_execution_calls_wait_for_result_and_skips_cleanup(self):
+        """Test that durable execution passes correct arguments to wait_for_result and skips container cleanup"""
+        event = "event"
+        code_dir = "some code dir"
+        stdout = "stdout"
+        stderr = "stderr"
+        container = Mock(spec=DurableLambdaContainer)
+        start_timer = Mock()
+        lambda_image_mock = Mock()
+        durable_execution_name = "test-execution"
+        invocation_type = "RequestResponse"
+
+        durable_config = {"ExecutionTimeout": 300, "RetentionPeriodInDays": 7}
+        func_config_with_durable = FunctionConfig(
+            self.name,
+            self.full_path,
+            self.lang,
+            self.handler,
+            self.imageuri,
+            self.imageconfig,
+            self.packagetype,
+            self.code_path,
+            self.layers,
+            self.architecture,
+            durable_config=durable_config,
+        )
+        func_config_with_durable.env_vars = self.env_vars
+
+        self.runtime = LambdaRuntime(self.manager_mock, lambda_image_mock)
+        self.runtime._get_code_dir = MagicMock(return_value=code_dir)
+        self.runtime._configure_interrupt = Mock(return_value=start_timer)
+        self.runtime._check_exit_state = Mock()
+        self.runtime._clean_decompressed_paths = MagicMock()
+
+        mock_emulator = Mock()
+        self.runtime.get_or_create_emulator_container = Mock(return_value=mock_emulator)
+        self.runtime.create = Mock(return_value=container)
+        self.runtime.run = Mock(return_value=container)
+
+        container.is_running.return_value = False
+        container.wait_for_result.return_value = {"X-Amz-Durable-Execution-Arn": "test-arn"}
+
+        headers = self.runtime.invoke(
+            func_config_with_durable,
+            event,
+            invocation_type=invocation_type,
+            durable_execution_name=durable_execution_name,
+            stdout=stdout,
+            stderr=stderr,
+        )
+
+        container.wait_for_result.assert_called_with(
+            event=event,
+            full_path=self.full_path,
+            stdout=stdout,
+            stderr=stderr,
+            start_timer=start_timer,
+            durable_execution_name=durable_execution_name,
+            invocation_type=invocation_type,
+        )
+        self.assertIsNotNone(headers)
+        self.assertEqual(headers["X-Amz-Durable-Execution-Arn"], "test-arn")
+        self.runtime._check_exit_state.assert_called_with(container)
 
 
 class TestLambdaRuntime_configure_interrupt(TestCase):
@@ -963,7 +1102,15 @@ class TestWarmLambdaRuntime_create(TestCase):
         self.runtime._get_code_dir.return_value = code_dir
 
         LambdaContainerMock.return_value = container
-        self.runtime.create(self.func_config, debug_context=debug_options)
+
+        # Mock the container's is_created method and debug_options property
+        container.is_created.return_value = True
+        container.debug_options = debug_options
+
+        # First call - creates container
+        first_result = self.runtime.create(self.func_config, debug_context=debug_options)
+
+        # Second call - should reuse existing container since debug_context matches
         result = self.runtime.create(self.func_config, debug_context=debug_options)
 
         # validate that the manager.create method got called only one time
@@ -1979,3 +2126,132 @@ class TestWarmLambdaRuntime_on_code_change_container_branch(TestCase):
         # The log format is: "Lambda Function '%s' %s has been changed..."
         # where %s is function_full_path and %s is resource (imageuri + " image")
         self.assertIn("my-image:latest image", log_call_args[2])
+
+
+class TestShouldReloadContainer(TestCase):
+    """Test _should_reload_container function"""
+
+    def setUp(self):
+        """Set up test fixtures"""
+        self.base_config = FunctionConfig(
+            name="test_func",
+            full_path="stack/test_func",
+            runtime="python3.9",
+            handler="app.handler",
+            imageuri=None,
+            imageconfig=None,
+            packagetype=ZIP,
+            code_abs_path="/tmp/code",
+            layers=[],
+            architecture="x86_64",
+            memory=128,
+            timeout=30,
+            env_vars=EnvironmentVariables(),
+        )
+
+        self.different_config = FunctionConfig(
+            name="test_func",
+            full_path="stack/test_func",
+            runtime="python3.11",  # Different runtime
+            handler="app.handler",
+            imageuri=None,
+            imageconfig=None,
+            packagetype=ZIP,
+            code_abs_path="/tmp/code",
+            layers=[],
+            architecture="x86_64",
+            memory=128,
+            timeout=30,
+            env_vars=EnvironmentVariables(),
+        )
+
+    def test_should_not_reload_when_no_existing_config_and_no_container(self):
+        """Test that reload is not needed when there's no existing config and no container"""
+        result = _should_reload_container(None, self.base_config, None, None)
+        self.assertFalse(result)
+
+    def test_should_not_reload_when_same_config_and_same_debug_context(self):
+        """Test that reload is not needed when config and debug context are the same"""
+
+        debug_context = DebugContext(
+            debug_ports=[5858], debugger_path="/path/to/debugger", debug_args="--debug-args", debug_function="test_func"
+        )
+
+        container = Mock()
+        container.debug_options = debug_context
+
+        result = _should_reload_container(self.base_config, self.base_config, container, debug_context)
+        self.assertFalse(result)
+
+    def test_should_reload_when_function_config_changed(self):
+        """Test that reload is needed when function configuration changes"""
+        container = Mock()
+        container.debug_options = None
+
+        result = _should_reload_container(self.base_config, self.different_config, container, None)
+        self.assertTrue(result)
+
+    def test_should_reload_when_debug_context_changed(self):
+        """Test that reload is needed when debug context changes"""
+
+        debug_context1 = DebugContext(
+            debug_ports=[5858], debugger_path="/path/to/debugger", debug_args="--debug-args", debug_function="test_func"
+        )
+
+        debug_context2 = DebugContext(
+            debug_ports=[9229], debugger_path="/new/path", debug_args="--new-args", debug_function="test_func"
+        )
+
+        container = Mock()
+        container.debug_options = debug_context1
+
+        result = _should_reload_container(self.base_config, self.base_config, container, debug_context2)
+        self.assertTrue(result)
+
+    def test_should_reload_when_debug_context_changes_to_none(self):
+        """Test that reload is needed when debug context changes from something to None"""
+
+        debug_context = DebugContext(
+            debug_ports=[5858], debugger_path="/path/to/debugger", debug_args="--debug-args", debug_function="test_func"
+        )
+
+        container = Mock()
+        container.debug_options = debug_context
+
+        result = _should_reload_container(self.base_config, self.base_config, container, None)
+        self.assertTrue(result)
+
+    def test_should_reload_when_debug_context_changes_from_none(self):
+        """Test that reload is needed when debug context changes from None to something"""
+
+        debug_context = DebugContext(
+            debug_ports=[5858], debugger_path="/path/to/debugger", debug_args="--debug-args", debug_function="test_func"
+        )
+
+        container = Mock()
+        container.debug_options = None
+
+        result = _should_reload_container(self.base_config, self.base_config, container, debug_context)
+        self.assertTrue(result)
+
+    def test_should_not_reload_when_no_container(self):
+        """Test that reload is not needed when there's no container and no config changes"""
+        result = _should_reload_container(self.base_config, self.base_config, None, None)
+        self.assertFalse(result)
+
+    def test_should_reload_when_both_config_and_debug_context_changed(self):
+        """Test that reload is needed when both config and debug context change"""
+
+        debug_context1 = DebugContext(
+            debug_ports=[5858], debugger_path="/path/to/debugger", debug_args="--debug-args", debug_function="test_func"
+        )
+
+        debug_context2 = DebugContext(
+            debug_ports=[9229], debugger_path="/new/path", debug_args="--new-args", debug_function="test_func"
+        )
+
+        container = Mock()
+        container.debug_options = debug_context1
+
+        result = _should_reload_container(self.base_config, self.different_config, container, debug_context2)
+        self.assertTrue(result)

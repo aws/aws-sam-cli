@@ -8,12 +8,12 @@ from io import StringIO
 from time import time
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from flask import Flask, Request, request
+from flask import Flask, Request, jsonify, make_response, request
 from werkzeug.datastructures import Headers
 from werkzeug.routing import BaseConverter
 from werkzeug.serving import WSGIRequestHandler
 
-from samcli.commands.local.lib.exceptions import UnsupportedInlineCodeError
+from samcli.commands.local.lib.exceptions import TenantIdValidationError, UnsupportedInlineCodeError
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
 from samcli.lib.providers.exceptions import MissingFunctionNameException
 from samcli.lib.providers.provider import Api, Cors
@@ -739,6 +739,9 @@ class LocalApigwService(BaseLocalService):
 
             # invoke the route's Lambda function
             lambda_response = self._invoke_lambda_function(route.function_name, route_lambda_event, tenant_id)
+        except TenantIdValidationError as e:
+            response_data = jsonify({"message": str(e)})
+            endpoint_service_error = make_response(response_data, 400)  # HTTP 400 Bad Request
         except FunctionNotFound:
             endpoint_service_error = ServiceErrorResponses.lambda_not_found_response()
         except UnsupportedInlineCodeError:

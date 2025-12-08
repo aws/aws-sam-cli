@@ -1,0 +1,41 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Description: >
+  Testing application for lambda functions with response streaming
+  
+Parameters:
+  SubnetId:
+    Type: String
+    Description: Subnet ID from infrastructure stack
+  SecurityGroupId:
+    Type: String
+    Description: Security Group ID from infrastructure stack
+  OperatorRoleArn:
+    Type: String
+    Description: Operator Role ARN from infrastructure stack
+
+
+Resources:
+  NodeStreamingCapacityProvider:
+      Type: AWS::Serverless::CapacityProvider
+      Properties:
+        VpcConfig:
+          SecurityGroupIds:
+            - !Ref SecurityGroupId
+          SubnetIds:
+            - !Ref SubnetId
+        OperatorRole: !Ref OperatorRoleArn
+
+  NodeStreamingFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./lambda-fns/src/
+      Handler: index.handler
+      Runtime: nodejs22.x
+      Timeout: 10
+      FunctionUrlConfig:
+        AuthType: AWS_IAM
+        InvokeMode: RESPONSE_STREAM
+      CapacityProviderConfig:
+        Arn: !GetAtt NodeStreamingCapacityProvider.Arn

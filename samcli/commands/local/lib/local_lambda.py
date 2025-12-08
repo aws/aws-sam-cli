@@ -104,7 +104,9 @@ class LocalLambdaRunner:
         stdout: Optional[StreamWriter] = None,
         stderr: Optional[StreamWriter] = None,
         override_runtime: Optional[str] = None,
-    ) -> None:
+        invocation_type: str = "RequestResponse",
+        durable_execution_name: Optional[str] = None,
+    ) -> Optional[Dict[str, str]]:
         """
         Find the Lambda function with given name and invoke it. Pass the given event to the function and return
         response through the given streams.
@@ -123,13 +125,19 @@ class LocalLambdaRunner:
             Stream writer to write the Lambda runtime logs to.
         Runtime: str
             To use instead of the runtime specified in the function configuration
+        durable_execution_name: str
+            Optional name for the durable execution (for durable functions only)
+
+        Returns
+        -------
+        Optional[Dict[str, str]]
+            HTTP headers dict if this was a durable function invocation, None otherwise
 
         Raises
         ------
         FunctionNotfound
             When we cannot find a function with the given name
         """
-
         # Normalize function identifier from ARN if provided
         normalized_function_identifier = normalize_sam_function_identifier(function_identifier)
 
@@ -184,12 +192,16 @@ class LocalLambdaRunner:
         ):
             click.echo(Colored().yellow(RUST_LOCAL_INVOKE_DISCLAIMER))
 
+        headers = None
+
         # Invoke the function
         try:
-            self.local_runtime.invoke(
+            headers = self.local_runtime.invoke(
                 config,
                 event,
                 tenant_id,
+                invocation_type=invocation_type,
+                durable_execution_name=durable_execution_name,
                 debug_context=self.debug_context,
                 stdout=stdout,
                 stderr=stderr,
@@ -215,6 +227,8 @@ class LocalLambdaRunner:
                 ) from os_error
 
             raise
+
+        return headers
 
     def is_debugging(self) -> bool:
         """
@@ -271,6 +285,8 @@ class LocalLambdaRunner:
             env_vars=env_vars,
             runtime_management_config=function.runtime_management_config,
             code_real_path=code_real_path,
+            capacity_provider_configuration=function.capacity_provider_configuration,
+            durable_config=function.durable_config,
         )
 
     def _make_env_vars(self, function: Function) -> EnvironmentVariables:
@@ -354,6 +370,8 @@ class LocalLambdaRunner:
             shell_env_values=shell_env,
             override_values=overrides,
             aws_creds=aws_creds,
+            capacity_provider_configuration=function.capacity_provider_configuration,
+            is_debugging=self.is_debugging(),
         )  # EnvironmentVariables is not yet annotated with type hints, disable mypy check for now. type: ignore
 
     def _get_session_creds(self) -> Optional[Credentials]:

@@ -26,18 +26,9 @@ class TestLambdaErrorResponses(TestCase):
         response = LambdaErrorResponses.invalid_request_content("InvalidRequestContent")
 
         self.assertEqual(response, "InvalidRequestContent")
-
-    @patch("samcli.local.services.base_local_service.BaseLocalService.service_response")
-    def test_validation_exception(self, service_response_mock):
-        service_response_mock.return_value = "ValidationException"
-
-        response = LambdaErrorResponses.validation_exception("ValidationException")
-
-        self.assertEqual(response, "ValidationException")
-
         service_response_mock.assert_called_once_with(
-            '{"Type": "User", "Message": "ValidationException"}',
-            {"x-amzn-errortype": "ValidationException", "Content-Type": "application/json"},
+            '{"Type": "User", "Message": "InvalidRequestContent"}',
+            {"x-amzn-errortype": "InvalidRequestContent", "Content-Type": "application/json"},
             400,
         )
 
@@ -104,4 +95,17 @@ class TestLambdaErrorResponses(TestCase):
             '{"Type": "LocalService", "Message": "MethodNotAllowedException"}',
             {"x-amzn-errortype": "MethodNotAllowedLocally", "Content-Type": "application/json"},
             405,
+        )
+
+    @patch("samcli.local.services.base_local_service.BaseLocalService.service_response")
+    def test_durable_execution_not_found(self, service_response_mock):
+        service_response_mock.return_value = "DurableExecutionNotFound"
+
+        response = LambdaErrorResponses.durable_execution_not_found("test-arn")
+
+        self.assertEqual(response, "DurableExecutionNotFound")
+        service_response_mock.assert_called_once_with(
+            '{"Type": "User", "Message": "Durable execution not found: test-arn"}',
+            {"x-amzn-errortype": "ResourceNotFound", "Content-Type": "application/json"},
+            404,
         )
