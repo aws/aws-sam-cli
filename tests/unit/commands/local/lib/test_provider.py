@@ -297,6 +297,9 @@ class TestFunction(TestCase):
             FunctionBuildInfo.BuildableZip,
             "stackpath",
             None,
+            None,
+            None,
+            None,
         )
 
     @parameterized.expand(
@@ -330,6 +333,53 @@ class TestFunction(TestCase):
     def test_skip_build_is_false_if_skip_build_metadata_flag_is_true(self):
         self.function = self.function._replace(metadata={"SkipBuild": True})
         self.assertTrue(self.function.skip_build)
+
+    def test_capacity_provider_configuration_is_none_if_capacity_provider_config_is_none(self):
+        self.function = self.function._replace(capacity_provider_config=None)
+        self.assertIsNone(self.function.capacity_provider_configuration)
+
+    def test_capacity_provider_configuration_returns_config_object(self):
+        capacity_provider_config = {
+            "Arn": "arn:aws:lambda:us-east-1:123456789012:capacity-provider:my-capacity-provider-name",
+            "PerExecutionEnvironmentMaxConcurrency": 8,
+            "ExecutionEnvironmentMemoryToVCpuRatio": 2.0,
+        }
+        self.function = self.function._replace(capacity_provider_config=capacity_provider_config)
+        config = self.function.capacity_provider_configuration
+        self.assertIsNotNone(config)
+        self.assertEqual(
+            config.arn, "arn:aws:lambda:us-east-1:123456789012:capacity-provider:my-capacity-provider-name"
+        )
+        self.assertEqual(config.execution_environment_max_concurrency, 8)
+        self.assertEqual(config.execution_environment_memory_to_vcpu_ratio, 2.0)
+
+    def test_capacity_provider_configuration_handles_cdk_structure(self):
+        # CDK synthesizes nested structure
+        capacity_provider_config = {
+            "LambdaManagedInstancesCapacityProviderConfig": {
+                "CapacityProviderArn": "arn:aws:lambda:us-east-1:123456789012:capacity-provider:my-capacity-provider-name",
+                "PerExecutionEnvironmentMaxConcurrency": 6,
+                "ExecutionEnvironmentMemoryGiBPerVCpu": 4.0,
+            }
+        }
+        self.function = self.function._replace(capacity_provider_config=capacity_provider_config)
+        config = self.function.capacity_provider_configuration
+        self.assertIsNotNone(config)
+        self.assertEqual(
+            config.arn, "arn:aws:lambda:us-east-1:123456789012:capacity-provider:my-capacity-provider-name"
+        )
+        self.assertEqual(config.execution_environment_max_concurrency, 6)
+        self.assertEqual(config.execution_environment_memory_to_vcpu_ratio, 4.0)
+
+    def test_publish_to_latest_published_default_is_none(self):
+        self.assertIsNone(self.function.publish_to_latest_published)
+
+    def test_publish_to_latest_published_can_be_set(self):
+        self.function = self.function._replace(publish_to_latest_published=True)
+        self.assertTrue(self.function.publish_to_latest_published)
+
+        self.function = self.function._replace(publish_to_latest_published=False)
+        self.assertFalse(self.function.publish_to_latest_published)
 
 
 class TestLayerVersion(TestCase):
