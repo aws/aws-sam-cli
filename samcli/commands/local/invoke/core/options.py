@@ -18,9 +18,13 @@ TEMPLATE_OPTIONS: List[str] = [
     "parameter_overrides",
 ]
 
-CONTAINER_OPTION_NAMES: List[str] = [
+INVOKE_OPTIONS: List[str] = [
     "event",
     "no_event",
+    "durable_execution_name",
+]
+
+CONTAINER_OPTION_NAMES: List[str] = [
     "env_vars",
     "container_env_vars",
     "debug_port",
@@ -50,7 +54,7 @@ ARTIFACT_LOCATION_OPTIONS: List[str] = [
     "layer_cache_basedir",
 ]
 
-OTHER_OPTIONS: List[str] = ["debug"]
+OTHER_OPTIONS: List[str] = []
 
 TERRAFORM_HOOK_OPTIONS: List[str] = ["terraform_plan_file"]
 
@@ -58,10 +62,12 @@ ALL_OPTIONS: List[str] = (
     REQUIRED_OPTIONS
     + TEMPLATE_OPTIONS
     + AWS_CREDENTIAL_OPTION_NAMES
+    + INVOKE_OPTIONS
     + CONTAINER_OPTION_NAMES
     + ARTIFACT_LOCATION_OPTIONS
     + EXTENSION_OPTIONS
     + CONFIGURATION_OPTION_NAMES
+    + OTHER_OPTIONS
     + ALL_COMMON_OPTIONS
     + TERRAFORM_HOOK_OPTIONS
 )
@@ -72,6 +78,7 @@ OPTIONS_INFO: Dict[str, Dict] = {
     "AWS Credential Options": {
         "option_names": {opt: {"rank": idx} for idx, opt in enumerate(AWS_CREDENTIAL_OPTION_NAMES)}
     },
+    "Invoke Options": {"option_names": {opt: {"rank": idx} for idx, opt in enumerate(INVOKE_OPTIONS)}},
     "Container Options": {"option_names": {opt: {"rank": idx} for idx, opt in enumerate(CONTAINER_OPTION_NAMES)}},
     "Artifact Location Options": {
         "option_names": {opt: {"rank": idx} for idx, opt in enumerate(ARTIFACT_LOCATION_OPTIONS)}

@@ -478,6 +478,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
             runtime_management_config=function.runtime_management_config,
             code_real_path=codepath,
             capacity_provider_configuration=function.capacity_provider_configuration,
+            durable_config=function.durable_config,
         )
 
         resolve_code_path_patch.assert_called_with(self.real_path, function.codeuri)
@@ -547,6 +548,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
             runtime_management_config=function.runtime_management_config,
             code_real_path=codepath,
             capacity_provider_configuration=function.capacity_provider_configuration,
+            durable_config=function.durable_config,
         )
 
         resolve_code_path_patch.assert_called_with(self.real_path, function.codeuri)
@@ -618,6 +620,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
             runtime_management_config=function.runtime_management_config,
             code_real_path=codepath,
             capacity_provider_configuration=function.capacity_provider_configuration,
+            durable_config=function.durable_config,
         )
 
         resolve_code_path_patch.assert_called_with(self.real_path, "codeuri")
@@ -663,13 +666,33 @@ class TestLocalLambda_invoke(TestCase):
             invoke_config,
             event,
             None,
+            invocation_type="RequestResponse",
             debug_context=None,
             stdout=stdout,
             stderr=stderr,
             container_host=None,
             container_host_interface=None,
             extra_hosts=None,
+            durable_execution_name=None,
         )
+
+    @patch("samcli.commands.local.lib.local_lambda.validate_architecture_runtime")
+    def test_returns_headers(self, patched_validate_architecture_runtime):
+        name = "name"
+        event = "event"
+        function = Mock(functionname="name")
+        invoke_config = "config"
+        expected_headers = {
+            "X-Amz-Durable-Execution-Arn": "arn:aws:lambda:us-west-2:123456789012:function:test-function:$LATEST:durable-execution:test-123"
+        }
+
+        self.function_provider_mock.get_all.return_value = [function]
+        self.local_lambda.get_invoke_config = Mock(return_value=invoke_config)
+        self.runtime_mock.invoke.return_value = expected_headers
+
+        result = self.local_lambda.invoke(name, event)
+
+        self.assertEqual(result, expected_headers)
 
     @patch("click.echo")
     @patch("platform.platform")
@@ -712,12 +735,14 @@ class TestLocalLambda_invoke(TestCase):
             invoke_config,
             event,
             None,
+            invocation_type="RequestResponse",
             debug_context=None,
             stdout=stdout,
             stderr=stderr,
             container_host=None,
             container_host_interface=None,
             extra_hosts=None,
+            durable_execution_name=None,
         )
 
     @patch("samcli.commands.local.lib.local_lambda.validate_architecture_runtime")
@@ -812,12 +837,14 @@ class TestLocalLambda_invoke(TestCase):
             invoke_config,
             event,
             None,
+            invocation_type="RequestResponse",
             debug_context=None,
             stdout=stdout,
             stderr=stderr,
             container_host=None,
             container_host_interface=None,
             extra_hosts=None,
+            durable_execution_name=None,
         )
 
     def test_must_raise_if_imageuri_not_found(self):
@@ -870,6 +897,8 @@ class TestLocalLambda_invoke(TestCase):
             invoke_config,
             event,
             None,
+            invocation_type="RequestResponse",
+            durable_execution_name=None,
             debug_context=None,
             stdout=stdout,
             stderr=stderr,
@@ -922,12 +951,14 @@ class TestLocalLambda_invoke_with_container_host_option(TestCase):
             invoke_config,
             event,
             None,
+            invocation_type="RequestResponse",
             debug_context=None,
             stdout=stdout,
             stderr=stderr,
             container_host="localhost",
             container_host_interface="127.0.0.1",
             extra_hosts=None,
+            durable_execution_name=None,
         )
 
 
