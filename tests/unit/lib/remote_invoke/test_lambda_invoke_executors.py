@@ -1,8 +1,10 @@
 import base64
+import json
 from abc import ABC, abstractmethod
+from io import BytesIO
 from typing import Any
 from unittest import TestCase
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from parameterized import parameterized
 
@@ -15,6 +17,7 @@ from samcli.lib.remote_invoke.lambda_invoke_executors import (
     AbstractLambdaInvokeExecutor,
     ClientError,
     DefaultConvertToJSON,
+    DurableFunctionQualifierMapper,
     ErrorBotoApiCallException,
     InvalideBotoResponseException,
     InvalidResourceBotoParameterException,
@@ -24,9 +27,14 @@ from samcli.lib.remote_invoke.lambda_invoke_executors import (
     LambdaStreamResponseConverter,
     ParamValidationError,
     RemoteInvokeOutputFormat,
+    _is_durable_function,
     _is_function_invoke_mode_response_stream,
 )
-from samcli.lib.remote_invoke.remote_invoke_executors import RemoteInvokeExecutionInfo, RemoteInvokeResponse
+from samcli.lib.remote_invoke.remote_invoke_executors import (
+    RemoteInvokeExecutionInfo,
+    RemoteInvokeLogOutput,
+    RemoteInvokeResponse,
+)
 
 
 class CommonTestsLambdaInvokeExecutor:
@@ -90,6 +98,53 @@ class CommonTestsLambdaInvokeExecutor:
             self.lambda_invoke_executor.validate_action_parameters(parameters)
             self.assertEqual(self.lambda_invoke_executor.request_parameters, expected_boto_parameters)
 
+        def test_process_log_result_with_raw_tail_log(self):
+            # Traditional format: Base64-encoded string containing logs
+            log_content = "START RequestId: 123\nThis is a log message\nEND RequestId: 123"
+            log_result = base64.b64encode(log_content.encode("utf-8"))
+
+            result = self.lambda_invoke_executor._process_log_result(log_result)
+
+            self.assertIsInstance(result, RemoteInvokeLogOutput)
+            self.assertEqual(result.log_output, log_content)
+
+        def test_process_log_result_with_json_format(self):
+            # New format: Base64-encoded JSON containing logGroup and logStreamName
+            log_data = {
+                "logGroup": "arn:aws:logs:us-east-1:123456789012:log-group:/aws/lambda/my-function:*",
+                "logStreamName": "2023/04/18/[$LATEST]abcdef123456",
+            }
+            log_result = base64.b64encode(json.dumps(log_data).encode("utf-8"))
+
+            result = self.lambda_invoke_executor._process_log_result(log_result)
+
+            self.assertIsInstance(result, RemoteInvokeLogOutput)
+            self.assertIn("Function logs are available in CloudWatch Logs", result.log_output)
+            self.assertIn(
+                "Log Group: arn:aws:logs:us-east-1:123456789012:log-group:/aws/lambda/my-function:*", result.log_output
+            )
+            self.assertIn("Log Stream: 2023/04/18/[$LATEST]abcdef123456", result.log_output)
+
+        def test_process_log_result_with_invalid_json(self):
+            # Invalid JSON but still a valid log message
+            log_content = '{"This is not valid JSON but should be treated as a log'
+            log_result = base64.b64encode(log_content.encode("utf-8"))
+
+            result = self.lambda_invoke_executor._process_log_result(log_result)
+
+            self.assertIsInstance(result, RemoteInvokeLogOutput)
+            self.assertEqual(result.log_output, log_content)
+
+        def test_process_log_result_with_json_missing_fields(self):
+            # JSON without the required fields
+            log_data = {"someOtherField": "value"}
+            log_result = base64.b64encode(json.dumps(log_data).encode("utf-8"))
+
+            result = self.lambda_invoke_executor._process_log_result(log_result)
+
+            self.assertIsInstance(result, RemoteInvokeLogOutput)
+            self.assertEqual(result.log_output, json.dumps(log_data))
+
 
 class TestLambdaInvokeExecutor(CommonTestsLambdaInvokeExecutor.AbstractLambdaInvokeExecutorTest):
     def setUp(self) -> None:
@@ -123,6 +178,7 @@ class TestLambdaInvokeExecutor(CommonTestsLambdaInvokeExecutor.AbstractLambdaInv
             payload=given_payload,
             payload_file=None,
             tenant_id=given_tenant_id,
+            durable_execution_name=None,
             parameters={},
             output_format=RemoteInvokeOutputFormat.JSON,
         )
@@ -149,6 +205,7 @@ class TestLambdaInvokeExecutor(CommonTestsLambdaInvokeExecutor.AbstractLambdaInv
             payload=given_payload,
             payload_file=None,
             tenant_id=None,
+            durable_execution_name=None,
             parameters={},
             output_format=RemoteInvokeOutputFormat.JSON,
         )
@@ -204,13 +261,15 @@ class TestDefaultConvertToJSON(TestCase):
         ]
     )
     def test_conversion(self, given_string, expected_string):
-        remote_invoke_execution_info = RemoteInvokeExecutionInfo(given_string, None, None, {}, self.output_format)
+        remote_invoke_execution_info = RemoteInvokeExecutionInfo(given_string, None, None, None, {}, self.output_format)
         result = self.lambda_convert_to_default_json.map(remote_invoke_execution_info)
         self.assertEqual(result.payload, expected_string)
 
     def test_skip_conversion_if_file_provided(self):
         given_payload_path = "foo/bar/event.json"
-        remote_invoke_execution_info = RemoteInvokeExecutionInfo(None, given_payload_path, None, {}, self.output_format)
+        remote_invoke_execution_info = RemoteInvokeExecutionInfo(
+            None, given_payload_path, None, None, {}, self.output_format
+        )
 
         self.assertTrue(remote_invoke_execution_info.is_file_provided())
         result = self.lambda_convert_to_default_json.map(remote_invoke_execution_info)
@@ -228,7 +287,7 @@ class TestLambdaResponseConverter(TestCase):
         given_decoded_string = "decoded string"
         given_streaming_body.read().decode.return_value = given_decoded_string
         given_test_result = {"Payload": given_streaming_body}
-        remote_invoke_execution_info = RemoteInvokeExecutionInfo(None, None, None, {}, output_format)
+        remote_invoke_execution_info = RemoteInvokeExecutionInfo(None, None, None, None, {}, output_format)
         remote_invoke_execution_info.response = given_test_result
 
         expected_result = {"Payload": given_decoded_string}
@@ -243,7 +302,7 @@ class TestLambdaResponseConverter(TestCase):
         given_decoded_string = "decoded string"
         given_streaming_body.read().decode.return_value = given_decoded_string
         given_test_result = [given_streaming_body]
-        remote_invoke_execution_info = RemoteInvokeExecutionInfo(None, None, None, {}, output_format)
+        remote_invoke_execution_info = RemoteInvokeExecutionInfo(None, None, None, None, {}, output_format)
         remote_invoke_execution_info.response = given_test_result
 
         with self.assertRaises(InvalideBotoResponseException):
@@ -283,7 +342,7 @@ class TestLambdaStreamResponseConverter(TestCase):
 
     def test_lambda_streaming_body_invalid_response_exception(self):
         output_format = RemoteInvokeOutputFormat.TEXT
-        remote_invoke_execution_info = RemoteInvokeExecutionInfo(None, None, None, {}, output_format)
+        remote_invoke_execution_info = RemoteInvokeExecutionInfo(None, None, None, None, {}, output_format)
         remote_invoke_execution_info.response = Mock()
 
         with self.assertRaises(InvalideBotoResponseException):
@@ -306,3 +365,83 @@ class TestLambdaInvokeExecutorUtilities(TestCase):
         else:
             given_boto_client.get_function_url_config.return_value = boto_response
         self.assertEqual(_is_function_invoke_mode_response_stream(given_boto_client, "function_id"), expected_result)
+
+
+class TestDurableFunctionQualifierMapper(TestCase):
+    def setUp(self) -> None:
+        self.mapper = DurableFunctionQualifierMapper()
+
+    def test_adds_qualifier_when_not_present(self):
+        execution_info = RemoteInvokeExecutionInfo(
+            payload="test",
+            payload_file=None,
+            parameters={},
+            tenant_id=None,
+            durable_execution_name=None,
+            output_format=RemoteInvokeOutputFormat.TEXT,
+        )
+
+        result = self.mapper.map(execution_info)
+
+        self.assertEqual(result.parameters["Qualifier"], "$LATEST")
+
+    def test_does_not_override_existing_qualifier(self):
+        execution_info = RemoteInvokeExecutionInfo(
+            payload="test",
+            payload_file=None,
+            parameters={"Qualifier": "v1"},
+            tenant_id=None,
+            durable_execution_name=None,
+            output_format=RemoteInvokeOutputFormat.TEXT,
+        )
+
+        result = self.mapper.map(execution_info)
+
+        self.assertEqual(result.parameters["Qualifier"], "v1")
+
+
+class TestIsDurableFunction(TestCase):
+    def test_is_durable_function_with_durable_config(self):
+        lambda_client = Mock()
+        lambda_client.get_function_configuration.return_value = {
+            "FunctionName": "test-function",
+            "DurableConfig": {"ExecutionTimeout": 3600, "RetentionPeriodInDays": 7},
+        }
+
+        result = _is_durable_function(lambda_client, "test-function")
+
+        self.assertTrue(result)
+        lambda_client.get_function_configuration.assert_called_once_with(FunctionName="test-function")
+
+    def test_is_durable_function_without_durable_config(self):
+        lambda_client = Mock()
+        lambda_client.get_function_configuration.return_value = {
+            "FunctionName": "test-function",
+            "Runtime": "nodejs18.x",
+        }
+
+        result = _is_durable_function(lambda_client, "test-function")
+
+        self.assertFalse(result)
+        lambda_client.get_function_configuration.assert_called_once_with(FunctionName="test-function")
+
+    def test_is_durable_function_with_null_durable_config(self):
+        lambda_client = Mock()
+        lambda_client.get_function_configuration.return_value = {
+            "FunctionName": "test-function",
+            "DurableConfig": None,
+        }
+
+        result = _is_durable_function(lambda_client, "test-function")
+
+        self.assertFalse(result)
+        lambda_client.get_function_configuration.assert_called_once_with(FunctionName="test-function")
+
+    def test_is_durable_function_api_exception(self):
+        lambda_client = Mock()
+        lambda_client.get_function_configuration.side_effect = Exception("API Error")
+
+        result = _is_durable_function(lambda_client, "test-function")
+
+        self.assertFalse(result)
+        lambda_client.get_function_configuration.assert_called_once_with(FunctionName="test-function")

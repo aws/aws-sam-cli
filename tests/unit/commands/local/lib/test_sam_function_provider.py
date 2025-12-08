@@ -39,6 +39,17 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     "Handler": "index.handler",
                 },
             },
+            # TODO: Enable test after schema update
+            # "SamFuncWithCapacityProvider": {
+            #     "Type": "AWS::Serverless::Function",
+            #     "Properties": {
+            #         "FunctionName": "SamFuncWithCapacityProvider",
+            #         "CodeUri": "/usr/foo/bar",
+            #         "Runtime": "nodejs4.3",
+            #         "Handler": "index.handler",
+            #         "capacity_provider_config": {"ClusterArn": 'arn:aws:lambda:us-east-1:123456789012:capacity-provider:my-capacity-provider-name'},
+            #     },
+            # },
             "SamFuncWithInlineCode": {
                 "Type": "AWS::Serverless::Function",
                 "Properties": {
@@ -96,6 +107,16 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                 "Properties": {
                     "ImageUri": "123456789012.dkr.ecr.us-east-1.amazonaws.com/myrepo:myimage",
                     "PackageType": IMAGE,
+                },
+            },
+            "DurableFunction": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {
+                    "FunctionName": "DurableFunction",
+                    "CodeUri": "/usr/foo/bar",
+                    "Runtime": "python3.11",
+                    "Handler": "index.handler",
+                    "DurableConfig": {"ExecutionTimeout": 3600, "RetentionPeriodInDays": 30},
                 },
             },
             "SamFuncWithImage4": {
@@ -373,6 +394,35 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     function_build_info=FunctionBuildInfo.BuildableZip,
                 ),
             ),
+            # TODO: Enable test after schema update
+            # (
+            #     "SamFuncWithCapacityProvider",
+            #     Function(
+            #         function_id="SamFunctions",
+            #         name="SamFunctions",
+            #         functionname="SamFunc1",
+            #         runtime="nodejs4.3",
+            #         handler="index.handler",
+            #         codeuri="/usr/foo/bar",
+            #         memory=None,
+            #         timeout=None,
+            #         environment=None,
+            #         rolearn=None,
+            #         layers=[],
+            #         events=None,
+            #         metadata={"SamResourceId": "SamFunctions"},
+            #         inlinecode=None,
+            #         imageuri=None,
+            #         imageconfig=None,
+            #         packagetype=ZIP,
+            #         codesign_config_arn=None,
+            #         architectures=None,
+            #         function_url_config=None,
+            #         stack_path="",
+            #         function_build_info=FunctionBuildInfo.BuildableZip,
+            #         capacity_provider_config={"ClusterArn": 'arn:aws:lambda:us-east-1:123456789012:capacity-provider:my-capacity-provider-name'},
+            #     ),
+            # ),
             ("SamFunc2", None),  # codeuri is a s3 location, ignored
             ("SamFunc3", None),  # codeuri is a s3 location, ignored
             (
@@ -1090,12 +1140,14 @@ class TestSamFunctionProviderEndToEnd(TestCase):
         result = {f.full_path for f in self.provider.get_all()}
         expected = {
             "SamFunctions",
+            # "SamFuncWithCapacityProvider", TODO: Enable after schema update
             "SamFuncWithImage1",
             "SamFuncWithImage2",
             "SamFuncWithImage4",
             "SamFuncWithInlineCode",
             "SamFuncWithFunctionNameOverride",
             "SamFuncWithRuntimeManagementConfig",
+            "DurableFunction",
             "LambdaFuncWithImage1",
             "LambdaFuncWithImage2",
             "LambdaFuncWithImage4",
@@ -1113,6 +1165,20 @@ class TestSamFunctionProviderEndToEnd(TestCase):
         }
 
         self.assertEqual(expected, result)
+
+    def test_get_durable_function_with_config(self):
+        """Test that durable functions are correctly parsed with their configuration"""
+        durable_function = self.provider.get("DurableFunction")
+
+        self.assertIsNotNone(durable_function)
+        self.assertEqual(durable_function.name, "DurableFunction")
+        self.assertEqual(durable_function.runtime, "python3.11")
+        self.assertEqual(durable_function.handler, "index.handler")
+
+        # Verify durable configuration is present and correct (raw dict access)
+        self.assertIsNotNone(durable_function.durable_config)
+        self.assertEqual(durable_function.durable_config["ExecutionTimeout"], 3600)
+        self.assertEqual(durable_function.durable_config["RetentionPeriodInDays"], 30)
 
     def test_update_function_provider(self):
         updated_template = {
@@ -1846,6 +1912,57 @@ class TestSamFunctionProvider_build_function_configuration(TestCase):
         }
         with self.assertRaises(MissingFunctionHandlerException):
             SamFunctionProvider._build_function_configuration(STACK, id, name, None, properties, [], None, None, False)
+
+
+class TestSamFunctionProvider_durable_config_integration(TestCase):
+    def test_convert_sam_function_with_durable_config(self):
+        """Test that SAM function conversion includes durable configuration"""
+        name = "DurableFunction"
+        properties = {
+            "CodeUri": "/usr/local",
+            "Runtime": "python3.11",
+            "Handler": "index.handler",
+            "DurableConfig": {"ExecutionTimeout": 3600, "RetentionPeriodInDays": 30},
+        }
+
+        result = SamFunctionProvider._convert_sam_function_resource(STACK, name, properties, [])
+
+        self.assertEqual(result.name, name)
+        self.assertEqual(result.runtime, "python3.11")
+        self.assertEqual(result.handler, "index.handler")
+        self.assertIsNotNone(result.durable_config)
+        self.assertEqual(result.durable_config["ExecutionTimeout"], 3600)
+        self.assertEqual(result.durable_config["RetentionPeriodInDays"], 30)
+
+    def test_convert_lambda_function_with_durable_config(self):
+        """Test that Lambda function conversion includes durable configuration"""
+        name = "DurableFunction"
+        properties = {
+            "Code": {"ZipFile": "def handler(event, context): return 'Hello'"},
+            "Runtime": "python3.11",
+            "Handler": "index.handler",
+            "DurableConfig": {"ExecutionTimeout": 7200},
+        }
+
+        result = SamFunctionProvider._convert_lambda_function_resource(STACK, name, properties, [])
+
+        self.assertEqual(result.name, name)
+        self.assertEqual(result.runtime, "python3.11")
+        self.assertEqual(result.handler, "index.handler")
+        self.assertIsNotNone(result.durable_config)
+        self.assertEqual(result.durable_config["ExecutionTimeout"], 7200)
+
+    def test_convert_function_without_durable_config(self):
+        """Test that functions without durable config have None for durable_config"""
+        name = "RegularFunction"
+        properties = {"CodeUri": "/usr/local", "Runtime": "python3.11", "Handler": "index.handler"}
+
+        result = SamFunctionProvider._convert_sam_function_resource(STACK, name, properties, [])
+
+        self.assertEqual(result.name, name)
+        self.assertEqual(result.runtime, "python3.11")
+        self.assertEqual(result.handler, "index.handler")
+        self.assertIsNone(result.durable_config)
 
 
 class TestSamFunctionProvider_parse_layer_info(TestCase):
@@ -2767,3 +2884,204 @@ class TestSamFunctionProviderFiltering(TestCase):
 
         self.assertEqual(len(result), 2)
         self.assertEqual(sum(1 for key in result.keys() if key == "Function1"), 1)
+
+
+class TestSamFunctionProvider_track_function_field_usage(TestCase):
+    @patch("samcli.lib.providers.sam_function_provider.Context.get_current_context")
+    def test_tracks_non_excluded_fields(self, mock_get_context):
+        """Test that non-excluded fields with values are tracked"""
+        mock_ctx = Mock()
+        mock_get_context.return_value = mock_ctx
+
+        func = Function(
+            function_id="TestFunc",
+            name="TestFunc",
+            functionname="test-func",
+            runtime="python3.12",
+            memory=512,
+            timeout=30,
+            handler="app.handler",
+            imageuri=None,
+            packagetype="Zip",
+            imageconfig=None,
+            codeuri="./src",
+            environment={"Variables": {"KEY": "value"}},
+            rolearn=None,
+            layers=[LayerVersion("arn:aws:lambda:us-east-1:123456789012:layer:test:1", None)],
+            events=[{"Type": "Api"}],
+            metadata=None,
+            inlinecode=None,
+            codesign_config_arn=None,
+            architectures=["x86_64"],
+            function_url_config=None,
+            function_build_info=FunctionBuildInfo.BuildableZip,
+            stack_path="",
+            runtime_management_config=None,
+            logging_config={"LogFormat": "JSON"},
+            capacity_provider_config={"ClusterArn": "arn:aws:ecs:us-east-1:123456789012:cluster/test"},
+        )
+
+        functions = {"TestFunc": func}
+        SamFunctionProvider._track_function_field_usage(functions)
+
+        tracked_fields = mock_ctx.function_fields_used
+        self.assertIn("logging_config", tracked_fields)
+        self.assertIn("capacity_provider_config", tracked_fields)
+        self.assertIn("environment", tracked_fields)
+        self.assertIn("layers", tracked_fields)
+        self.assertIn("events", tracked_fields)
+
+    @patch("samcli.lib.providers.sam_function_provider.Context.get_current_context")
+    def test_excludes_fields(self, mock_get_context):
+        """Test that some fields are excluded from tracking"""
+        mock_ctx = Mock()
+        mock_get_context.return_value = mock_ctx
+
+        func = Function(
+            function_id="TestFunc",
+            name="TestFunc",
+            functionname="test-func",
+            runtime="python3.12",
+            memory=None,
+            timeout=None,
+            handler="app.handler",
+            imageuri="123456789012.dkr.ecr.us-east-1.amazonaws.com/my-image:latest",
+            packagetype="Image",
+            imageconfig=None,
+            codeuri="./src",
+            environment={"Variables": {"KEY": "value"}},
+            rolearn="arn:aws:iam::123456789012:role/MyRole",
+            layers=[LayerVersion("arn:aws:lambda:us-east-1:123456789012:layer:test:1", None)],
+            events=[{"Type": "Api"}],
+            metadata={"DockerContext": "./"},
+            inlinecode=None,
+            codesign_config_arn=None,
+            architectures=None,
+            function_url_config=None,
+            function_build_info=FunctionBuildInfo.BuildableZip,
+        )
+
+        functions = {"TestFunc": func}
+        SamFunctionProvider._track_function_field_usage(functions)
+
+        tracked_fields = mock_ctx.function_fields_used
+
+        # Ensure excluded fields are not tracked
+        self.assertNotIn("function_id", tracked_fields)
+        self.assertNotIn("name", tracked_fields)
+        self.assertNotIn("functionname", tracked_fields)
+        self.assertNotIn("runtime", tracked_fields)
+        self.assertNotIn("rolearn", tracked_fields)
+        self.assertNotIn("handler", tracked_fields)
+        self.assertNotIn("metadata", tracked_fields)
+
+        # Ensure non-excluded fields ARE tracked
+        self.assertIn("codeuri", tracked_fields)
+        self.assertIn("imageuri", tracked_fields)
+        self.assertIn("environment", tracked_fields)
+        self.assertIn("events", tracked_fields)
+        self.assertIn("layers", tracked_fields)
+
+    @patch("samcli.lib.providers.sam_function_provider.Context.get_current_context")
+    def test_ignores_none_and_empty_values(self, mock_get_context):
+        """Test that None and empty values are not tracked"""
+        mock_ctx = Mock()
+        mock_get_context.return_value = mock_ctx
+
+        func = Function(
+            function_id="TestFunc",
+            name="TestFunc",
+            functionname="test-func",
+            runtime="python3.12",
+            memory=None,
+            timeout=None,
+            handler="app.handler",
+            imageuri=None,
+            packagetype="Zip",
+            imageconfig=None,
+            codeuri="./src",
+            environment=None,
+            rolearn=None,
+            layers=[],
+            events=None,
+            metadata=None,
+            inlinecode=None,
+            codesign_config_arn=None,
+            architectures=[],
+            function_url_config={},
+            function_build_info=FunctionBuildInfo.BuildableZip,
+        )
+
+        functions = {"TestFunc": func}
+        SamFunctionProvider._track_function_field_usage(functions)
+
+        tracked_fields = mock_ctx.function_fields_used
+
+        # Only codeuri should be tracked (has value and not excluded)
+        self.assertIn("codeuri", tracked_fields)
+        self.assertEqual(len(tracked_fields), 1)
+
+    @patch("samcli.lib.providers.sam_function_provider.Context.get_current_context")
+    def test_tracks_across_multiple_functions(self, mock_get_context):
+        """Test that fields are tracked across multiple functions"""
+        mock_ctx = Mock()
+        mock_get_context.return_value = mock_ctx
+
+        func1 = Function(
+            function_id="Func1",
+            name="Func1",
+            functionname="func1",
+            runtime="python3.12",
+            memory=512,
+            timeout=None,
+            handler="app.handler",
+            imageuri=None,
+            packagetype="Zip",
+            imageconfig=None,
+            codeuri="./src",
+            environment=None,
+            rolearn=None,
+            layers=[],
+            events=None,
+            metadata=None,
+            inlinecode=None,
+            codesign_config_arn=None,
+            architectures=None,
+            function_url_config=None,
+            function_build_info=FunctionBuildInfo.BuildableZip,
+            capacity_provider_config={"ClusterArn": "arn:aws:ecs:us-east-1:123456789012:cluster/test"},
+        )
+
+        func2 = Function(
+            function_id="Func2",
+            name="Func2",
+            functionname="func2",
+            runtime="nodejs20.x",
+            memory=None,
+            timeout=30,
+            handler="index.handler",
+            imageuri=None,
+            packagetype="Zip",
+            imageconfig=None,
+            codeuri="./src",
+            environment=None,
+            rolearn=None,
+            layers=[],
+            events=None,
+            metadata=None,
+            inlinecode=None,
+            codesign_config_arn=None,
+            architectures=None,
+            function_url_config=None,
+            function_build_info=FunctionBuildInfo.BuildableZip,
+            logging_config={"LogFormat": "JSON"},
+        )
+
+        functions = {"Func1": func1, "Func2": func2}
+        SamFunctionProvider._track_function_field_usage(functions)
+
+        tracked_fields = mock_ctx.function_fields_used
+
+        # Should track fields from both functions
+        self.assertIn("capacity_provider_config", tracked_fields)
+        self.assertIn("logging_config", tracked_fields)

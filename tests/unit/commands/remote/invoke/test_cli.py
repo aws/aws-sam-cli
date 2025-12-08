@@ -96,6 +96,7 @@ class TestRemoteInvokeCliCommand(TestCase):
             output=output,
             test_event_name=None,
             tenant_id=None,
+            durable_execution_name=None,
             region=self.region,
             profile=self.profile,
             config_file=self.config_file,
@@ -113,7 +114,12 @@ class TestRemoteInvokeCliCommand(TestCase):
         )
 
         patched_remote_invoke_execution_info.assert_called_with(
-            payload=event, payload_file=event_file, tenant_id=None, parameters=parameter, output_format=output
+            payload=event,
+            payload_file=event_file,
+            tenant_id=None,
+            durable_execution_name=None,
+            parameters=parameter,
+            output_format=output,
         )
 
         context_mock.run.assert_called_with(remote_invoke_input=given_remote_invoke_execution_info)
@@ -176,6 +182,7 @@ class TestRemoteInvokeCliCommand(TestCase):
             output=RemoteInvokeOutputFormat.TEXT,
             test_event_name="event1",
             tenant_id=None,
+            durable_execution_name=None,
             region=self.region,
             profile=self.profile,
             config_file=self.config_file,
@@ -187,6 +194,7 @@ class TestRemoteInvokeCliCommand(TestCase):
             payload="stuff",
             payload_file=None,
             tenant_id=None,
+            durable_execution_name=None,
             parameters={},
             output_format=RemoteInvokeOutputFormat.TEXT,
         )
@@ -246,6 +254,7 @@ class TestRemoteInvokeCliCommand(TestCase):
             output=RemoteInvokeOutputFormat.TEXT,
             test_event_name="event1",
             tenant_id=None,
+            durable_execution_name=None,
             region=self.region,
             profile=self.profile,
             config_file=self.config_file,
@@ -257,6 +266,7 @@ class TestRemoteInvokeCliCommand(TestCase):
             payload="stuff",
             payload_file=None,
             tenant_id=None,
+            durable_execution_name=None,
             parameters={"InvocationType": "Event"},
             output_format=RemoteInvokeOutputFormat.TEXT,
         )
@@ -316,6 +326,7 @@ class TestRemoteInvokeCliCommand(TestCase):
             output=RemoteInvokeOutputFormat.TEXT,
             test_event_name="event1",
             tenant_id=None,
+            durable_execution_name=None,
             region=self.region,
             profile=self.profile,
             config_file=self.config_file,
@@ -327,6 +338,7 @@ class TestRemoteInvokeCliCommand(TestCase):
             payload="stuff",
             payload_file=None,
             tenant_id=None,
+            durable_execution_name=None,
             parameters={"InvocationType": "RequestResponse"},
             output_format=RemoteInvokeOutputFormat.TEXT,
         )
@@ -383,6 +395,7 @@ class TestRemoteInvokeCliCommand(TestCase):
             output=RemoteInvokeOutputFormat.TEXT,
             test_event_name="event1",
             tenant_id=None,
+            durable_execution_name=None,
             region=self.region,
             profile=self.profile,
             config_file=self.config_file,
@@ -393,6 +406,7 @@ class TestRemoteInvokeCliCommand(TestCase):
             payload="Hello world",
             payload_file=None,
             tenant_id=None,
+            durable_execution_name=None,
             parameters={},
             output_format=RemoteInvokeOutputFormat.TEXT,
         )
@@ -405,7 +419,7 @@ class TestRemoteInvokeCliCommand(TestCase):
             (InvalideBotoResponseException,),
             (ErrorBotoApiCallException,),
             (InvalidResourceBotoParameterException,),
-            (ProfileNotFound,),
+            (ProfileNotFound(profile="profile"),),
             (NoCredentialsError,),
             (NoRegionError,),
         ]
@@ -426,6 +440,7 @@ class TestRemoteInvokeCliCommand(TestCase):
                 output=RemoteInvokeOutputFormat.TEXT,
                 test_event_name=None,
                 tenant_id=None,
+                durable_execution_name=None,
                 region=self.region,
                 profile=self.profile,
                 config_file=self.config_file,

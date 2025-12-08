@@ -1876,3 +1876,36 @@ class TestFunctionNameFilteringInvalidNames(TestCase):
         # Should match sam local invoke error pattern: "function not found. Possible options in your template:"
         for expected in ["not found", "InvalidFunction1, InvalidFunction2", "Possible options in your template"]:
             self.assertIn(expected, error_output)
+
+
+class TestCapacityProviderFunction(StartLambdaIntegBaseClass):
+    """Test capacity provider functionality with a dedicated template"""
+
+    template_path = "/testdata/invoke/template-capacity-provider.yml"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+        self.lambda_client = boto3.client(
+            "lambda",
+            endpoint_url=self.url,
+            region_name="us-east-1",
+            use_ssl=False,
+            verify=False,
+            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
+        )
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=300, method="thread")
+    def test_invoke_capacity_provider_function(self):
+        """Test invoking a function with capacity provider configuration"""
+        response = self.lambda_client.invoke(
+            FunctionName="HelloWorldCapacityProviderFunction",
+            Payload='{"key1": "value1", "key2": "value2", "key3": "value3"}',
+        )
+        self.assertEqual(response.get("StatusCode"), 200)
+        self.assertIsNone(response.get("FunctionError"))
+        response_data = json.loads(response.get("Payload").read().decode("utf-8"))
+        self.assertEqual(response_data["statusCode"], 200)
+        body = json.loads(response_data["body"])
+        self.assertEqual(body["message"], "Hello world capacity provider")
+        self.assertIn("max_concurrency", body)

@@ -2,6 +2,7 @@ import time
 import os
 import sys
 import subprocess
+import json
 
 print ("Loading function")
 
@@ -14,6 +15,21 @@ def handler(event, context):
     sys.stdout.write("Docker Lambda is writing to stderr")
 
     return "Hello world"
+
+def cap_pro_handler(event, context):
+    print ("value1 = " + event["key1"])
+    print ("value2 = " + event["key2"])
+    print ("value3 = " + event["key3"])
+
+    max_concurrency = os.environ.get('AWS_LAMBDA_MAX_CONCURRENCY', 'not set')
+
+    return {
+        'statusCode': 200,
+        'body': json.dumps({
+            'message': 'Hello world capacity provider',
+            'max_concurrency': max_concurrency
+        })
+    }
 
 def intrinsics_handler(event, context):
     return os.environ.get("ApplicationId")

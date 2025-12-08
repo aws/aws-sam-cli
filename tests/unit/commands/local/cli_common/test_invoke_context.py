@@ -528,17 +528,40 @@ class TestInvokeContext__exit__(TestCase):
         handle_mock = Mock()
         context._log_file_handle = handle_mock
 
+        # Mock lambda runtime for durable cleanup
+        runtime_mock = Mock()
+        context._lambda_runtimes = {context._containers_mode: runtime_mock}
+
         context.__exit__()
 
         handle_mock.close.assert_called_with()
         self.assertIsNone(context._log_file_handle)
+        runtime_mock.clean_runtime_containers.assert_called_once()
 
     def test_must_ignore_if_handle_is_absent(self):
         context = InvokeContext(template_file="template")
         context._log_file_handle = None
 
+        # Mock lambda runtime for durable cleanup
+        runtime_mock = Mock()
+        context._lambda_runtimes = {context._containers_mode: runtime_mock}
+
         context.__exit__()
+
         self.assertIsNone(context._log_file_handle)
+        runtime_mock.clean_runtime_containers.assert_called_once()
+
+    def test_must_cleanup_durable_containers(self):
+        context = InvokeContext(template_file="template")
+
+        # Mock lambda runtime
+        runtime_mock = Mock()
+        context._lambda_runtimes = {context._containers_mode: runtime_mock}
+
+        context.__exit__()
+
+        # Verify runtime containers cleanup method was called
+        runtime_mock.clean_runtime_containers.assert_called_once()
 
 
 class TestInvokeContextAsContextManager(TestCase):

@@ -33,13 +33,20 @@ class RemoteInvokeIntegBase(TestCase):
     def get_integ_dir():
         return Path(__file__).resolve().parents[2]
 
-    @staticmethod
-    def remote_invoke_deploy_stack(stack_name, template_path):
+    @classmethod
+    def remote_invoke_deploy_stack(cls, stack_name, template_path):
+        parameter_overrides = None
+        if hasattr(cls, "parameter_overrides") and cls.parameter_overrides:
+            # Convert dict to space-separated key=value pairs
+            param_list = [f"{key}={value}" for key, value in cls.parameter_overrides.items()]
+            parameter_overrides = " ".join(param_list)
+
         deploy_cmd = DeployIntegBase.get_deploy_command_list(
             stack_name=stack_name,
             template_file=template_path,
             resolve_s3=True,
             capabilities_list=["CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND"],
+            parameter_overrides=parameter_overrides,
         )
 
         run_command(deploy_cmd)

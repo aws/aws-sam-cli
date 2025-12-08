@@ -4,7 +4,7 @@ from unittest import skipIf
 from parameterized import parameterized
 
 from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase
-from tests.testing_utils import RUNNING_ON_CI, RUN_BY_CANARY, IS_WINDOWS
+from tests.testing_utils import RUNNING_ON_CI, RUN_BY_CANARY, IS_WINDOWS, get_build_command_list
 
 SKIP_CREDENTIALS_TESTS = IS_WINDOWS or RUNNING_ON_CI or not RUN_BY_CANARY
 
@@ -33,7 +33,7 @@ class TestWithCredentials(CredentialsTestBase):
         Then invoke each of them with passing AWS session env variables
         """
         # first build application
-        build_command_list = self.get_build_command_list(template_path=self.template_path, cached=True)
+        build_command_list = get_build_command_list(template_path=self.template_path, cached=True)
         stdout, _, returncode = self.run_command(build_command_list)
         self.assertEqual(returncode, 0)
 
@@ -58,9 +58,7 @@ class TestWithCredentialsBuildUsingContainer(CredentialsTestBase):
         Then invoke each of them with passing AWS session env variables
         """
         # first build application
-        build_command_list = self.get_build_command_list(
-            template_path=self.template_path, cached=True, use_container=True
-        )
+        build_command_list = get_build_command_list(template_path=self.template_path, cached=True, use_container=True)
         stdout, _, returncode = self.run_command(build_command_list)
         self.assertEqual(returncode, 0)
 
