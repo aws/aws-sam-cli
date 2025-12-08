@@ -132,7 +132,7 @@ jobs:
 
       - name: Set up Java 25
         if: (contains(fromJSON('["build-integ", "build-integ-java-python-provided", "build-integ-arm64", "build-integ-arm64-java"]'), matrix.test_suite) && matrix.container_runtime == 'no-container') || matrix.test_suite == 'sync'
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'corretto'
           java-version: '25'
