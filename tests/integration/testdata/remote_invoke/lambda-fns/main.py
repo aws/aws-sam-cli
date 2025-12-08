@@ -1,5 +1,6 @@
 import os
 import logging
+import json
 
 LOG = logging.getLogger(__name__)
 
@@ -11,6 +12,22 @@ def default_handler(event, context):
     return {
         "message": f'{event["key1"]} {event["key3"]}'
     }
+
+def cap_pro_handler(event, context):
+    print("value1 = " + event["key1"])
+    print("value2 = " + event["key2"])
+    print("value3 = " + event["key3"])
+
+    max_concurrency = os.environ.get('AWS_LAMBDA_MAX_CONCURRENCY', 'not set')
+
+    return {
+        'statusCode': 200,
+        'body': json.dumps({
+            'message': f'{event["key1"]} {event["key2"]} {event["key3"]}',
+            'max_concurrency': max_concurrency
+        })
+    }
+
 
 def custom_env_var_echo_handler(event, context):
     return os.environ.get("CustomEnvVar")
@@ -52,4 +69,19 @@ def stock_seller(event, context):
     new_balance = current_balance + (event["qty"]*event["stock_price"])
     return {
         "balance": new_balance
+    }
+
+def multi_tenant_handler(event, context):
+    import json
+    # Get tenant_id from Lambda context
+    tenant_id = getattr(context, 'tenant_id', None)
+    
+    return {
+        'statusCode': 200,
+        'body': json.dumps({
+            'message': 'Hello from remote multi-tenant function',
+            'tenant_id': tenant_id,
+            'function_name': context.function_name,
+            'event': event
+        })
     }
