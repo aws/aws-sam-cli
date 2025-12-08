@@ -118,7 +118,7 @@ class TestApiGatewayService(TestCase):
         result = self.api_service._request_handler()
 
         self.assertEqual(result, make_response_mock)
-        self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr)
+        self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr, tenant_id=None)
         v1_event_mock.assert_called_with(
             flask_request=ANY,
             port=ANY,
@@ -155,7 +155,7 @@ class TestApiGatewayService(TestCase):
         result = self.http_service._request_handler()
 
         self.assertEqual(result, make_response_mock)
-        self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr)
+        self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr, tenant_id=None)
         v2_event_mock.assert_called_with(
             flask_request=ANY, port=ANY, binary_types=ANY, stage_name=ANY, stage_variables=ANY, route_key="test test"
         )
@@ -186,7 +186,7 @@ class TestApiGatewayService(TestCase):
         result = self.http_service._request_handler()
 
         self.assertEqual(result, make_response_mock)
-        self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr)
+        self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr, tenant_id=None)
         v1_event_mock.assert_called_with(
             flask_request=ANY,
             port=ANY,
@@ -223,7 +223,7 @@ class TestApiGatewayService(TestCase):
         result = self.http_service._request_handler()
 
         self.assertEqual(result, make_response_mock)
-        self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr)
+        self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr, tenant_id=None)
         v2_event_mock.assert_called_with(
             flask_request=ANY, port=ANY, binary_types=ANY, stage_name=ANY, stage_variables=ANY, route_key="test test"
         )
@@ -253,7 +253,7 @@ class TestApiGatewayService(TestCase):
         result = self.api_service._request_handler()
 
         self.assertEqual(result, make_response_mock)
-        self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr)
+        self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr, tenant_id=None)
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     @patch("samcli.local.apigw.local_apigw_service.LocalApigwService._generate_lambda_event")
@@ -280,7 +280,7 @@ class TestApiGatewayService(TestCase):
         result = self.http_service._request_handler()
 
         self.assertEqual(result, make_response_mock)
-        self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr)
+        self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr, tenant_id=None)
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     @patch("samcli.local.apigw.local_apigw_service.LambdaOutputParser")
@@ -1039,7 +1039,7 @@ class TestApiGatewayService(TestCase):
         # validate route lambda still invoked after Lambda auth function not found
         self.assertEqual(result, make_response_mock)
         self.lambda_runner.invoke.assert_called_with(
-            self.api_gateway_route.function_name, ANY, stdout=ANY, stderr=self.stderr
+            self.api_gateway_route.function_name, ANY, stdout=ANY, stderr=self.stderr, tenant_id=None
         )
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
@@ -1082,6 +1082,60 @@ class TestApiGatewayService(TestCase):
             "Failed to execute endpoint. Got an invalid function name "
             "(Unable to get Lambda function because the function identifier is not defined.)"
         )
+
+    @patch("samcli.local.apigw.local_apigw_service.request")
+    @patch.object(LocalApigwService, "get_request_methods_endpoints")
+    @patch("samcli.local.apigw.local_apigw_service.construct_v2_event_http")
+    @patch.object(LocalApigwService, "_invoke_lambda_function")
+    def test_request_handler_extracts_tenant_id_from_header_http_api(
+        self, invoke_mock, v2_event_mock, request_mock, flask_request_mock
+    ):
+        """Test that tenant-id is extracted from X-Amz-Tenant-Id header for HTTP API"""
+        tenant_id = "customer-123"
+
+        # Configure the patched Flask request to return tenant_id from header
+        flask_request_mock.headers.get = Mock(side_effect=lambda key: tenant_id if key == "X-Amz-Tenant-Id" else None)
+
+        self.http_service._get_current_route = Mock(return_value=self.http_gateway_route)
+        v2_event_mock.return_value = {}
+        invoke_mock.return_value = "response"
+        request_mock.return_value = ("GET", "/test")
+
+        self.http_service._parse_v2_payload_format_lambda_output = Mock(return_value=("200", {}, "body"))
+        self.http_service.service_response = Mock(return_value="final_response")
+
+        self.http_service._request_handler()
+
+        invoke_mock.assert_called_once()
+        call_args = invoke_mock.call_args
+        self.assertEqual(call_args[0][2], tenant_id)
+
+    @patch("samcli.local.apigw.local_apigw_service.request")
+    @patch.object(LocalApigwService, "get_request_methods_endpoints")
+    @patch("samcli.local.apigw.local_apigw_service.construct_v1_event")
+    @patch.object(LocalApigwService, "_invoke_lambda_function")
+    def test_request_handler_extracts_tenant_id_from_header_rest_api(
+        self, invoke_mock, v1_event_mock, request_mock, flask_request_mock
+    ):
+        """Test that tenant-id is extracted from X-Amz-Tenant-Id header for REST API"""
+        tenant_id = "customer-456"
+
+        # Configure the patched Flask request to return tenant_id from header
+        flask_request_mock.headers.get = Mock(side_effect=lambda key: tenant_id if key == "X-Amz-Tenant-Id" else None)
+
+        self.api_service._get_current_route = Mock(return_value=self.api_gateway_route)
+        v1_event_mock.return_value = {}
+        invoke_mock.return_value = "response"
+        request_mock.return_value = ("GET", "/test")
+
+        self.api_service._parse_v1_payload_format_lambda_output = Mock(return_value=("200", {}, "body"))
+        self.api_service.service_response = Mock(return_value="final_response")
+
+        self.api_service._request_handler()
+
+        invoke_mock.assert_called_once()
+        call_args = invoke_mock.call_args
+        self.assertEqual(call_args[0][2], tenant_id)
 
 
 class TestApiGatewayModel(TestCase):

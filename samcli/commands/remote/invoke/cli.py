@@ -8,7 +8,7 @@ import click
 from samcli.cli.cli_config_file import ConfigProvider, configuration_option, save_params_option
 from samcli.cli.context import Context
 from samcli.cli.main import aws_creds_options, common_options, pass_context, print_cmdline_args
-from samcli.cli.types import RemoteInvokeOutputFormatType
+from samcli.cli.types import RemoteInvokeOutputFormatType, TenantIdType
 from samcli.commands._utils.command_exception_handler import command_exception_handler
 from samcli.commands._utils.options import remote_invoke_parameter_option
 from samcli.commands.remote.invoke.core.command import RemoteInvokeCommand
@@ -67,6 +67,19 @@ DESCRIPTION = """
     help="The file that contains the event that will be sent to the resource.",
 )
 @click.option(
+    "--tenant-id",
+    type=TenantIdType(),
+    help="Tenant ID for multi-tenant Lambda functions. "
+    "Used to ensure compute isolation between different tenants. "
+    "Must be 1-256 characters, the allowed characters are a-z and A-Z, "
+    "numbers, spaces, and the characters _ . : / = + - @",
+)
+@click.option(
+    "--durable-execution-name",
+    type=str,
+    help="Name for the durable execution (for durable functions only).",
+)
+@click.option(
     "--test-event-name",
     help="Name of the remote test event to send to the resource",
 )
@@ -94,6 +107,8 @@ def cli(
     resource_id: str,
     event: str,
     event_file: TextIOWrapper,
+    tenant_id: str,
+    durable_execution_name: str,
     output: RemoteInvokeOutputFormat,
     test_event_name: str,
     parameter: dict,
@@ -110,6 +125,8 @@ def cli(
         resource_id,
         event,
         event_file,
+        tenant_id,
+        durable_execution_name,
         output,
         parameter,
         test_event_name,
@@ -125,6 +142,8 @@ def do_cli(
     resource_id: str,
     event: str,
     event_file: TextIOWrapper,
+    tenant_id: str,
+    durable_execution_name: str,
     output: RemoteInvokeOutputFormat,
     parameter: dict,
     test_event_name: str,
@@ -187,7 +206,12 @@ def do_cli(
             EventTracker.track_event("RemoteInvokeEventType", event_type)
 
             remote_invoke_input = RemoteInvokeExecutionInfo(
-                payload=event, payload_file=event_file, parameters=parameter, output_format=output
+                payload=event,
+                payload_file=event_file,
+                tenant_id=tenant_id,
+                durable_execution_name=durable_execution_name,
+                parameters=parameter,
+                output_format=output,
             )
 
             remote_invoke_context.run(remote_invoke_input=remote_invoke_input)
