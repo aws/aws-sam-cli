@@ -330,6 +330,10 @@ class InvokeContext:
         if self._containers_mode == ContainersMode.WARM:
             self._clean_running_containers_and_related_resources()
 
+        # Clean up durable execution resources if lambda runtime was initialized
+        if self._lambda_runtimes:
+            self.lambda_runtime.clean_runtime_containers()
+
     def _initialize_all_functions_containers(self) -> List[str]:
         """
         Create and run a container for each available lambda function

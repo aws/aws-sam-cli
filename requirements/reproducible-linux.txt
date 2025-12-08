@@ -22,9 +22,9 @@ aws-lambda-builders==1.60.0 \
     --hash=sha256:518b668130e550a4c88968432fba344a36aa965cca89bf8a30456f991053ae0e \
     --hash=sha256:c61d49dd80ee00a484bea3754ff55fd45e6ec5cd3c56169a6eb8767882187dbd
     # via aws-sam-cli (setup.py)
-aws-sam-translator==1.104.0 \
-    --hash=sha256:907c50e812f88514fa8f41b8adcb37ba0ee28e1b8c0144b011c4985471b1201d \
-    --hash=sha256:d873a064df52a7e6426e34cb55ee737085757114776b6ea03e58416f6976d975
+aws-sam-translator==1.105.0 \
+    --hash=sha256:395930e3caa0a67e2432bf09199fa5a60edb71c2b8f05ab4b03a6f6b3fb758b7 \
+    --hash=sha256:472829abf114e7c47112d88f9b3c27585e9c9b44f9d090d1ab9bc4d235bc12b7
     # via
     #   aws-sam-cli (setup.py)
     #   cfn-lint
@@ -78,9 +78,9 @@ blinker==1.9.0 \
     --hash=sha256:b4ce2265a7abece45e7cc896e98dbebe6cead56bcf805a3d23136d145f5445bf \
     --hash=sha256:ba0efaa9080b619ff2f3459d1d500c57bddea4a6b424b60a91141db6fd2f08bc
     # via flask
-boto3[crt]==1.42.0 \
-    --hash=sha256:9c67729a6112b7dced521ea70b0369fba138e89852b029a7876041cd1460c084 \
-    --hash=sha256:af32b7f61dd6293cad728ec205bcb3611ab1bf7b7dbccfd0f2bd7b9c9af96039
+boto3[crt]==1.42.1 \
+    --hash=sha256:137fbea593a30afa1b75656ea1f1ff8796be608a8c77f1b606c4473289679898 \
+    --hash=sha256:9a8f9799afff600ff5cb43f57a619a5375ea71077ec958bda70e296378da7024
     # via
     #   aws-sam-cli (setup.py)
     #   aws-sam-translator
@@ -88,9 +88,9 @@ boto3-stubs[apigateway,cloudformation,ecr,iam,kinesis,lambda,s3,schemas,secretsm
     --hash=sha256:74d138f2d2f5f48140be81d680722b0194e09bcdf8d2080a914c21d277c2cfe3 \
     --hash=sha256:9e373ac5f9c721c5e615ef694a992c333480c71905d3b8e940175dd7265eef93
     # via aws-sam-cli (setup.py)
-botocore[crt]==1.41.6 \
-    --hash=sha256:08fe47e9b306f4436f5eaf6a02cb6d55c7745d13d2d093ce5d917d3ef3d3df75 \
-    --hash=sha256:963cc946e885acb941c96e7d343cb6507b479812ca22566ceb3e9410d0588de0
+botocore[crt]==1.42.1 \
+    --hash=sha256:3337df815c69dd87c314ee29329b8ea411ad3562fb6563d139bbe085dac14ce0 \
+    --hash=sha256:9d49f5197487f9f71daa9c5397f81484ffcc0dc1cf89a63e94ae3e5a27faa98c
     # via
     #   boto3
     #   s3transfer
