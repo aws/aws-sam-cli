@@ -51,6 +51,7 @@ jobs:
           - local-invoke
           - local-start1
           - local-start2
+          - durable-functions
           - other-and-e2e
         exclude:
           # no-container mode only applies to build-integ test suites
@@ -66,6 +67,8 @@ jobs:
             test_suite: local-start1
           - container_runtime: no-container
             test_suite: local-start2
+          - container_runtime: no-container
+            test_suite: durable-functions
           - container_runtime: no-container
             test_suite: other-and-e2e
 
@@ -374,13 +377,16 @@ jobs:
               pytest -vv tests/integration/sync -n 6 --reruns 3 --dist loadscope --json-report --json-report-file=TEST_REPORT-integration-sync-${{ matrix.container_runtime }}.json
               ;;
             "local-invoke")
-              pytest -vv --reruns 3 tests/integration/local/invoke tests/integration/local/generate_event --json-report --json-report-file=TEST_REPORT-integration-local-invoke-${{ matrix.container_runtime }}.json
+              pytest -vv --reruns 3 tests/integration/local/invoke tests/integration/local/generate_event --ignore tests/integration/local/invoke/test_invoke_durable.py --json-report --json-report-file=TEST_REPORT-integration-local-invoke-${{ matrix.container_runtime }}.json
               ;;
             "local-start1")
-              pytest -vv --reruns 3 tests/integration/local/start_api --ignore tests/integration/local/start_api/test_start_api_with_terraform_application.py --json-report --json-report-file=TEST_REPORT-integration-local-start1-${{ matrix.container_runtime }}.json
+              pytest -vv --reruns 3 tests/integration/local/start_api --ignore tests/integration/local/start_api/test_start_api_with_terraform_application.py --ignore tests/integration/local/start_api/test_start_api_durable.py --json-report --json-report-file=TEST_REPORT-integration-local-start1-${{ matrix.container_runtime }}.json
               ;;
             "local-start2")
-              pytest -vv --reruns 3 tests/integration/local/start_lambda tests/integration/local/start_api/test_start_api_with_terraform_application.py --json-report --json-report-file=TEST_REPORT-integration-local-start2-${{ matrix.container_runtime }}.json
+              pytest -vv --reruns 3 tests/integration/local/start_lambda tests/integration/local/start_api/test_start_api_with_terraform_application.py --ignore tests/integration/local/start_lambda/test_start_lambda_durable.py --json-report --json-report-file=TEST_REPORT-integration-local-start2-${{ matrix.container_runtime }}.json
+              ;;
+            "durable-functions")
+              pytest -vv --reruns 3 tests/integration/local/invoke/test_invoke_durable.py tests/integration/local/start_api/test_start_api_durable.py tests/integration/local/start_lambda/test_start_lambda_durable.py tests/integration/local/callback/test_callback.py tests/integration/local/execution/test_execution.py --json-report --json-report-file=TEST_REPORT-integration-durable-functions-${{ matrix.container_runtime }}.json
               ;;
             "other-and-e2e")
               pytest -vv -n 4 --reruns 4 --dist loadgroup tests/integration tests/end_to_end --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-others-${{ matrix.container_runtime }}.json

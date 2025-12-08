@@ -116,6 +116,6 @@ class TestLambdaServiceErrorCases(StartLambdaIntegBaseClass):
         )
 
         with self.assertRaises(ClientError) as error:
-            self.lambda_client.invoke(FunctionName="EchoEventFunction", InvocationType="DryRun")
+            self.lambda_client.invoke(FunctionName="CDKEchoEventFunction", InvocationType="DryRun")
 
         self.assertEqual(str(error.exception), expected_error_message)
