@@ -23,6 +23,7 @@ import boto3
 import click
 
 from samcli.commands.package.exceptions import PackageFailedError
+from samcli.lib.bootstrap.companion_stack.companion_stack_manager import sync_ecr_stack
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.package.artifact_exporter import Template
 from samcli.lib.package.code_signer import CodeSigner
@@ -104,8 +105,6 @@ class PackageContext:
         Execute packaging based on the argument provided by customers and samconfig.toml.
         """
         if self.resolve_image_repos:
-            from samcli.lib.bootstrap.companion_stack.companion_stack_manager import sync_ecr_stack
-
             template_basename = os.path.splitext(os.path.basename(self.template_file))[0]
             stack_name = f"sam-app-{template_basename}"
 

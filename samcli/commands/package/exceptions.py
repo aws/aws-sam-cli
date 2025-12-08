@@ -163,12 +163,3 @@ class PackageResolveS3AndS3NotSetError(UserException):
         message_fmt = "Cannot skip both --resolve-s3 and --s3-bucket parameters. Please provide one of these arguments."
 
         super().__init__(message=message_fmt)
-
-
-class PackageResolveImageReposAndImageReposSetError(UserException):
-    def __init__(self):
-        message_fmt = (
-            "Cannot use both --resolve-image-repos and --image-repository/--image-repositories parameters. Please use only one."
-        )
-
-        super().__init__(message=message_fmt)
