@@ -403,7 +403,10 @@ def do_cli(
                     max_wait_duration=60,
                 ) as deploy_context:
                     with SyncContext(
-                        dependency_layer, build_context.build_dir, build_context.cache_dir, skip_deploy_sync
+                        dependency_layer,
+                        build_context.build_dir,
+                        build_context.cache_dir,
+                        skip_deploy_sync,
                     ) as sync_context:
                         if watch:
                             watch_excludes_filter = watch_exclude or {}

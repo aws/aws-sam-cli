@@ -365,7 +365,8 @@ class TestBuildCommand_PythonFunctions_WithDocker(BuildIntegPythonBase):
         [
             ("python3.12",),
             ("python3.13",),
-            ("python3.14",),
+            # skip this test until the python 3.14 build image is released
+            # ("python3.14",),
         ]
     )
     @pytest.mark.al2023
@@ -495,7 +496,8 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPyt
             ("python3.13", "Python", "use_container", "x86_64"),
             ("python3.14", "Python", False, "x86_64"),
             ("python3.14", "PythonPEP600", False, "x86_64"),
-            ("python3.14", "Python", "use_container", "x86_64"),
+            # skip this test until python 3.14 build image is released
+            # ("python3.14", "Python", "use_container", "x86_64"),
         ],
         name_func=show_container_in_test_name,
     )

@@ -1,0 +1,46 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: LMI integration test template - BEFORE version
+
+Parameters:
+  SubnetId:
+    Type: String
+    Description: Subnet ID from infrastructure stack
+  SecurityGroupId:
+    Type: String
+    Description: Security Group ID from infrastructure stack
+  OperatorRoleArn:
+    Type: String
+    Description: Operator Role ARN from infrastructure stack
+
+Resources:
+  LMICapacityProvider:
+    Type: AWS::Serverless::CapacityProvider
+    Properties:
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref SecurityGroupId
+        SubnetIds:
+          - !Ref SubnetId
+      OperatorRole: !Ref OperatorRoleArn
+
+  LMIFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: app.env_var_handler
+      Runtime: python3.13
+      CodeUri: ./
+      CapacityProviderConfig:
+        Arn: !GetAtt LMICapacityProvider.Arn
+        PerExecutionEnvironmentMaxConcurrency: 10
+      PublishToLatestPublished: true
+      Timeout: 30
+
+Outputs:
+  LMIFunctionName:
+    Description: Name of the LMI function
+    Value: !Ref LMIFunction
+  
+  LMIFunctionArn:
+    Description: ARN of the LMI function
+    Value: !GetAtt LMIFunction.Arn
