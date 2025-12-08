@@ -109,6 +109,16 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     "PackageType": IMAGE,
                 },
             },
+            "DurableFunction": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {
+                    "FunctionName": "DurableFunction",
+                    "CodeUri": "/usr/foo/bar",
+                    "Runtime": "python3.11",
+                    "Handler": "index.handler",
+                    "DurableConfig": {"ExecutionTimeout": 3600, "RetentionPeriodInDays": 30},
+                },
+            },
             "SamFuncWithImage4": {
                 # ImageUri is unsupported ECR location, but metadata is still provided, build
                 "Type": "AWS::Serverless::Function",
@@ -1137,6 +1147,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             "SamFuncWithInlineCode",
             "SamFuncWithFunctionNameOverride",
             "SamFuncWithRuntimeManagementConfig",
+            "DurableFunction",
             "LambdaFuncWithImage1",
             "LambdaFuncWithImage2",
             "LambdaFuncWithImage4",
@@ -1154,6 +1165,20 @@ class TestSamFunctionProviderEndToEnd(TestCase):
         }
 
         self.assertEqual(expected, result)
+
+    def test_get_durable_function_with_config(self):
+        """Test that durable functions are correctly parsed with their configuration"""
+        durable_function = self.provider.get("DurableFunction")
+
+        self.assertIsNotNone(durable_function)
+        self.assertEqual(durable_function.name, "DurableFunction")
+        self.assertEqual(durable_function.runtime, "python3.11")
+        self.assertEqual(durable_function.handler, "index.handler")
+
+        # Verify durable configuration is present and correct (raw dict access)
+        self.assertIsNotNone(durable_function.durable_config)
+        self.assertEqual(durable_function.durable_config["ExecutionTimeout"], 3600)
+        self.assertEqual(durable_function.durable_config["RetentionPeriodInDays"], 30)
 
     def test_update_function_provider(self):
         updated_template = {
@@ -1887,6 +1912,57 @@ class TestSamFunctionProvider_build_function_configuration(TestCase):
         }
         with self.assertRaises(MissingFunctionHandlerException):
             SamFunctionProvider._build_function_configuration(STACK, id, name, None, properties, [], None, None, False)
+
+
+class TestSamFunctionProvider_durable_config_integration(TestCase):
+    def test_convert_sam_function_with_durable_config(self):
+        """Test that SAM function conversion includes durable configuration"""
+        name = "DurableFunction"
+        properties = {
+            "CodeUri": "/usr/local",
+            "Runtime": "python3.11",
+            "Handler": "index.handler",
+            "DurableConfig": {"ExecutionTimeout": 3600, "RetentionPeriodInDays": 30},
+        }
+
+        result = SamFunctionProvider._convert_sam_function_resource(STACK, name, properties, [])
+
+        self.assertEqual(result.name, name)
+        self.assertEqual(result.runtime, "python3.11")
+        self.assertEqual(result.handler, "index.handler")
+        self.assertIsNotNone(result.durable_config)
+        self.assertEqual(result.durable_config["ExecutionTimeout"], 3600)
+        self.assertEqual(result.durable_config["RetentionPeriodInDays"], 30)
+
+    def test_convert_lambda_function_with_durable_config(self):
+        """Test that Lambda function conversion includes durable configuration"""
+        name = "DurableFunction"
+        properties = {
+            "Code": {"ZipFile": "def handler(event, context): return 'Hello'"},
+            "Runtime": "python3.11",
+            "Handler": "index.handler",
+            "DurableConfig": {"ExecutionTimeout": 7200},
+        }
+
+        result = SamFunctionProvider._convert_lambda_function_resource(STACK, name, properties, [])
+
+        self.assertEqual(result.name, name)
+        self.assertEqual(result.runtime, "python3.11")
+        self.assertEqual(result.handler, "index.handler")
+        self.assertIsNotNone(result.durable_config)
+        self.assertEqual(result.durable_config["ExecutionTimeout"], 7200)
+
+    def test_convert_function_without_durable_config(self):
+        """Test that functions without durable config have None for durable_config"""
+        name = "RegularFunction"
+        properties = {"CodeUri": "/usr/local", "Runtime": "python3.11", "Handler": "index.handler"}
+
+        result = SamFunctionProvider._convert_sam_function_resource(STACK, name, properties, [])
+
+        self.assertEqual(result.name, name)
+        self.assertEqual(result.runtime, "python3.11")
+        self.assertEqual(result.handler, "index.handler")
+        self.assertIsNone(result.durable_config)
 
 
 class TestSamFunctionProvider_parse_layer_info(TestCase):

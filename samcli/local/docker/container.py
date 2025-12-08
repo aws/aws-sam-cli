@@ -561,12 +561,7 @@ class Container:
 
         # the log thread will not be closed until the container itself got deleted,
         # so as long as the container is still there, no need to start a new log thread
-        if not self._logs_thread or not self._logs_thread.is_alive():
-            self._logs_thread_event = self._create_threading_event()
-            self._logs_thread = threading.Thread(
-                target=self.wait_for_logs, args=(stderr, stderr, self._logs_thread_event), daemon=True
-            )
-            self._logs_thread.start()
+        self.start_logs_thread_if_not_alive(stderr)
 
         # wait_for_http_response will attempt to establish a connection to the socket
         # but it'll fail if the socket is not listening yet, so we wait for the socket
@@ -590,6 +585,15 @@ class Container:
         stderr.write_str("\n")
         stderr.flush()
         self._logs_thread_event.clear()
+
+    def start_logs_thread_if_not_alive(self, stderr):
+        """Start the logging thread if not already running."""
+        if not self._logs_thread or not self._logs_thread.is_alive():
+            self._logs_thread_event = self._create_threading_event()
+            self._logs_thread = threading.Thread(
+                target=self.wait_for_logs, args=(stderr, stderr, self._logs_thread_event), daemon=True
+            )
+            self._logs_thread.start()
 
     def wait_for_logs(
         self,

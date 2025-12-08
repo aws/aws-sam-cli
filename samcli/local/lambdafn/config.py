@@ -34,6 +34,7 @@ class FunctionConfig:
         env_vars=None,
         code_real_path=None,
         capacity_provider_configuration=None,
+        durable_config=None,
     ):
         """
         Parameters
@@ -93,6 +94,7 @@ class FunctionConfig:
         self.timeout = timeout or self._DEFAULT_TIMEOUT_SECONDS
         self.runtime_management_config = runtime_management_config
         self.capacity_provider_configuration = capacity_provider_configuration
+        self.durable_config = durable_config
 
         if not isinstance(self.timeout, int):
             try:
