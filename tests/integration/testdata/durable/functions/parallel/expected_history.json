@@ -1,0 +1,153 @@
+[
+  {
+    "EventType": "ExecutionStarted",
+    "EventId": 1,
+    "Name": "parallel-integration-test",
+    "ExecutionStartedDetails": {
+      "Input": {
+        "Payload": "{}",
+        "Truncated": false
+      },
+      "ExecutionTimeout": 300
+    }
+  },
+  {
+    "EventType": "ContextStarted",
+    "SubType": "Parallel",
+    "EventId": 2,
+    "Name": "parallel_operation",
+    "ContextStartedDetails": {}
+  },
+  {
+    "EventType": "ContextStarted",
+    "SubType": "ParallelBranch",
+    "EventId": 3,
+    "Name": "parallel-branch-0",
+    "ContextStartedDetails": {}
+  },
+  {
+    "EventType": "StepStarted",
+    "SubType": "Step",
+    "EventId": 4,
+    "Name": "task1",
+    "StepStartedDetails": {}
+  },
+  {
+    "EventType": "StepSucceeded",
+    "SubType": "Step",
+    "EventId": 5,
+    "Name": "task1",
+    "StepSucceededDetails": {
+      "Result": {
+        "Payload": "\"task 1 completed\"",
+        "Truncated": false
+      },
+      "RetryDetails": {
+        "CurrentAttempt": 1,
+        "NextAttemptDelaySeconds": 0
+      }
+    }
+  },
+  {
+    "EventType": "ContextStarted",
+    "SubType": "ParallelBranch",
+    "EventId": 6,
+    "Name": "parallel-branch-1",
+    "ContextStartedDetails": {}
+  },
+  {
+    "EventType": "StepStarted",
+    "SubType": "Step",
+    "EventId": 7,
+    "Name": "task2",
+    "StepStartedDetails": {}
+  },
+  {
+    "EventType": "StepSucceeded",
+    "SubType": "Step",
+    "EventId": 8,
+    "Name": "task2",
+    "StepSucceededDetails": {
+      "Result": {
+        "Payload": "\"task 2 completed\"",
+        "Truncated": false
+      },
+      "RetryDetails": {
+        "CurrentAttempt": 1,
+        "NextAttemptDelaySeconds": 0
+      }
+    }
+  },
+  {
+    "EventType": "ContextSucceeded",
+    "SubType": "ParallelBranch",
+    "EventId": 9,
+    "Name": "parallel-branch-0",
+    "ContextSucceededDetails": {}
+  },
+  {
+    "EventType": "ContextSucceeded",
+    "SubType": "ParallelBranch",
+    "EventId": 10,
+    "Name": "parallel-branch-1",
+    "ContextSucceededDetails": {}
+  },
+  {
+    "EventType": "ContextStarted",
+    "SubType": "ParallelBranch",
+    "EventId": 11,
+    "Name": "parallel-branch-2",
+    "ContextStartedDetails": {}
+  },
+  {
+    "EventType": "WaitStarted",
+    "SubType": "Wait",
+    "EventId": 12,
+    "Name": "wait_in_task3",
+    "WaitStartedDetails": {
+      "Duration": 1
+    }
+  },
+  {
+    "EventType": "WaitSucceeded",
+    "SubType": "Wait",
+    "EventId": 13,
+    "Name": "wait_in_task3",
+    "WaitSucceededDetails": {
+      "Duration": 1
+    }
+  },
+  {
+    "EventType": "InvocationCompleted",
+    "EventId": 14
+  },
+  {
+    "EventType": "ContextSucceeded",
+    "SubType": "ParallelBranch",
+    "EventId": 15,
+    "Name": "parallel-branch-2",
+    "ContextSucceededDetails": {}
+  },
+  {
+    "EventType": "ContextSucceeded",
+    "SubType": "Parallel",
+    "EventId": 16,
+    "Name": "parallel_operation",
+    "ContextSucceededDetails": {}
+  },
+  {
+    "EventType": "InvocationCompleted",
+    "EventId": 17
+  },
+  {
+    "EventType": "ExecutionSucceeded",
+    "EventId": 18,
+    "Name": "parallel-integration-test",
+    "ExecutionSucceededDetails": {
+      "Result": {
+        "Payload": "[\"task 1 completed\", \"task 2 completed\", \"task 3 completed after wait\"]",
+        "Truncated": false
+      }
+    }
+  }
+]

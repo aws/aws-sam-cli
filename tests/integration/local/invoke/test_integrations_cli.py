@@ -28,6 +28,35 @@ TIMEOUT = 300
 @parameterized_class(
     ("template",),
     [
+        (Path("template-capacity-provider.yml"),),
+    ],
+)
+class TestSamPythonHelloWorldCapacityProviderIntegration(IntegrationCliIntegBase):
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_capacity_provider_function(self):
+        command_list = InvokeIntegBase.get_command_list(
+            "HelloWorldCapacityProviderFunction", template_path=self.template_path, event_path=self.event_path
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        self.assertEqual(process.returncode, 0)
+        process_stdout = stdout.strip()
+        response = json.loads(process_stdout.decode("utf-8"))
+        self.assertEqual(response["statusCode"], 200)
+        body = json.loads(response["body"])
+        self.assertEqual(body["message"], "Hello world capacity provider")
+        self.assertIn("max_concurrency", body)
+
+
+@parameterized_class(
+    ("template",),
+    [
         (Path("template.yml"),),
         (Path("nested-templates/template-parent.yaml"),),
     ],
@@ -362,6 +391,29 @@ class TestSamPythonHelloWorldIntegration(IntegrationCliIntegBase):
         self.assertEqual(environ["Timeout"], "100")
         self.assertEqual(environ["MyRuntimeVersion"], "v0")
         self.assertEqual(environ["EmptyDefaultParameter"], "")
+
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_multi_tenant_function(self):
+        command_list = InvokeIntegBase.get_command_list(
+            "MultiTenantFunction",
+            template_path=self.template_path,
+            event_path=self.event_path,
+            tenant_id="test-tenant-123",
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stdout = stdout.strip()
+        response = json.loads(process_stdout.decode("utf-8"))
+        body = json.loads(response["body"])
+
+        self.assertEqual(process.returncode, 0)
+        self.assertEqual(body["tenant_id"], "test-tenant-123")
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_with_env_using_parameters_with_custom_region(self):
@@ -1254,7 +1306,7 @@ class TestInvokeFunctionWithError(InvokeIntegBase):
         stack_trace_lines = [
             "[ERROR] Exception: Lambda is raising an exception",
             "Traceback (most recent call last):",
-            '\xa0\xa0File "/var/task/main.py", line 51, in raise_exception',
+            '\xa0\xa0File "/var/task/main.py", line 81, in raise_exception',
             '\xa0\xa0\xa0\xa0raise Exception("Lambda is raising an exception")',
         ]
 
