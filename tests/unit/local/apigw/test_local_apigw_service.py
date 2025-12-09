@@ -27,7 +27,7 @@ from samcli.local.apigw.exceptions import (
 from samcli.local.apigw.service_error_responses import ServiceErrorResponses
 from samcli.local.docker.exceptions import DockerContainerCreationFailedException
 from samcli.local.lambdafn.exceptions import FunctionNotFound
-from samcli.commands.local.lib.exceptions import UnsupportedInlineCodeError
+from samcli.commands.local.lib.exceptions import TenantIdValidationError, UnsupportedInlineCodeError
 
 
 class TestApiGatewayService(TestCase):
@@ -459,6 +459,29 @@ class TestApiGatewayService(TestCase):
         response = self.api_service._request_handler()
 
         self.assertEqual(response, not_implemented_response_mock)
+
+    @patch.object(LocalApigwService, "get_request_methods_endpoints")
+    @patch("samcli.local.apigw.local_apigw_service.ServiceErrorResponses")
+    @patch("samcli.local.apigw.local_apigw_service.LocalApigwService._generate_lambda_event")
+    def test_request_handles_error_when_tenant_id_validation_fails(
+        self, generate_mock, service_error_responses_patch, request_mock
+    ):
+        generate_mock.return_value = {}
+        tenant_id_error_response_mock = Mock()
+        self.api_service._get_current_route = MagicMock()
+        self.api_service._get_current_route.return_value.payload_format_version = "2.0"
+        self.api_service._get_current_route.return_value.authorizer_object = None
+        self.api_service._get_current_route.methods = []
+
+        service_error_responses_patch.tenant_id_validation_error.return_value = tenant_id_error_response_mock
+
+        self.lambda_runner.invoke.side_effect = TenantIdValidationError(
+            "The invoked function is enabled with tenancy configuration. Add a valid tenant ID in your request and try again."
+        )
+        request_mock.return_value = ("test", "test")
+        response = self.api_service._request_handler()
+
+        self.assertEqual(response, tenant_id_error_response_mock)
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     @patch("samcli.local.apigw.local_apigw_service.ServiceErrorResponses")
