@@ -78,9 +78,9 @@ blinker==1.9.0 \
     --hash=sha256:b4ce2265a7abece45e7cc896e98dbebe6cead56bcf805a3d23136d145f5445bf \
     --hash=sha256:ba0efaa9080b619ff2f3459d1d500c57bddea4a6b424b60a91141db6fd2f08bc
     # via flask
-boto3[crt]==1.42.1 \
-    --hash=sha256:137fbea593a30afa1b75656ea1f1ff8796be608a8c77f1b606c4473289679898 \
-    --hash=sha256:9a8f9799afff600ff5cb43f57a619a5375ea71077ec958bda70e296378da7024
+boto3[crt]==1.42.5 \
+    --hash=sha256:7d22cd102c77c37d552783308eeb01a088c0e3f6e707157dd6d1842b205ffce7 \
+    --hash=sha256:e3b7be255e5e29272b6424af4417005384f5a3f1caf6ca3352258ee1d9b8551a
     # via
     #   aws-sam-cli (setup.py)
     #   aws-sam-translator
