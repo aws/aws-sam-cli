@@ -29,6 +29,7 @@ CONTAINER_OPTION_NAMES: List[str] = [
     "docker_volume_basedir",
     "skip_pull_image",
     "docker_network",
+    "dns",
     "force_image_build",
     "shutdown",
     "container_host",

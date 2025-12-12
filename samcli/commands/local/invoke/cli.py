@@ -117,6 +117,7 @@ def cli(
     runtime,
     mount_symlinks,
     no_memory_limit,
+    dns,
 ):
     """
     `sam local invoke` command entry point
@@ -150,6 +151,7 @@ def cli(
         runtime,
         mount_symlinks,
         no_memory_limit,
+        dns,
     )  # pragma: no cover
 
 
@@ -180,6 +182,7 @@ def do_cli(  # pylint: disable=R0914
     runtime,
     mount_symlinks,
     no_mem_limit,
+    dns,
 ):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
@@ -231,6 +234,7 @@ def do_cli(  # pylint: disable=R0914
             invoke_images=processed_invoke_images,
             mount_symlinks=mount_symlinks,
             no_mem_limit=no_mem_limit,
+            dns=dns,
         ) as context:
             # Invoke the function
             context.local_lambda_runner.invoke(

@@ -103,6 +103,7 @@ class Container:
         extra_hosts: Optional[dict] = None,
         mount_symlinks: Optional[bool] = False,
         labels: Optional[dict] = None,
+        dns: Optional[list] = None,
     ):
         """
         Initializes the class with given configuration. This does not automatically create or run the container.
@@ -126,6 +127,7 @@ class Container:
         :param string host_tmp_dir: Optional. Temporary directory on the host when mounting with write permissions.
         :param dict extra_hosts: Optional. Dict of hostname to IP resolutions
         :param bool mount_symlinks: Optional. True if symlinks should be mounted in the container
+        :param list dns: Optional. List of DNS servers for the container
         """
 
         self._image = image
@@ -143,6 +145,7 @@ class Container:
         self._extra_hosts = extra_hosts
         self._logs_thread_event = None
         self._labels = labels or {}
+        self._dns = dns
 
         # Store docker_client parameter for lazy initialization
         # Only validate container runtime when Docker client is actually accessed
@@ -265,6 +268,9 @@ class Container:
 
         if self._extra_hosts:
             kwargs["extra_hosts"] = self._extra_hosts
+
+        if self._dns:
+            kwargs["dns"] = list(self._dns)
 
         if self._labels:
             kwargs["labels"] = self._labels
