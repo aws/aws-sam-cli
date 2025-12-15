@@ -4,7 +4,7 @@ Connects the CLI with Local Lambda Invoke Service.
 
 import logging
 
-from samcli.local.lambda_service.local_lambda_invoke_service import LocalLambdaInvokeService
+from samcli.local.lambda_service.local_lambda_http_service import LocalLambdaHttpService
 
 LOG = logging.getLogger(__name__)
 
@@ -46,7 +46,7 @@ class LocalLambdaService:
         # contains the response to the API which is sent out as HTTP response. Only stderr needs to be printed
         # to the console or a log file. stderr from Docker container contains runtime logs and output of print
         # statements from the Lambda function
-        service = LocalLambdaInvokeService(
+        service = LocalLambdaHttpService(
             lambda_runner=self.lambda_runner,
             port=self.port,
             host=self.host,

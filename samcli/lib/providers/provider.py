@@ -8,6 +8,7 @@ import logging
 import os
 import posixpath
 from collections import namedtuple
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, NamedTuple, Optional, Set, Union, cast
@@ -59,6 +60,37 @@ class FunctionBuildInfo(Enum):
         Returns whether this build info can be buildable nor not
         """
         return self in {FunctionBuildInfo.BuildableZip, FunctionBuildInfo.BuildableImage}
+
+
+@dataclass
+class CapacityProviderConfig:
+    """Configuration for functions with capacity provider"""
+
+    arn: str
+    execution_environment_max_concurrency: int = 4
+    execution_environment_memory_to_vcpu_ratio: Optional[float] = None
+
+    @classmethod
+    def from_dict(cls, config: Optional[Dict]) -> Optional["CapacityProviderConfig"]:
+        """Create CapacityProviderConfig from CapacityProviderConfig dictionary"""
+        if not config:
+            return None
+
+        # Handle CDK structure: CapacityProviderConfig.LambdaManagedInstancesCapacityProviderConfig
+        if "LambdaManagedInstancesCapacityProviderConfig" in config:
+            cdk_config = config["LambdaManagedInstancesCapacityProviderConfig"]
+            return cls(
+                arn=cdk_config.get("CapacityProviderArn", ""),
+                execution_environment_max_concurrency=cdk_config.get("PerExecutionEnvironmentMaxConcurrency", 4),
+                execution_environment_memory_to_vcpu_ratio=cdk_config.get("ExecutionEnvironmentMemoryGiBPerVCpu"),
+            )
+
+        # Handle SAM structure: direct properties
+        return cls(
+            arn=config.get("Arn", ""),
+            execution_environment_max_concurrency=config.get("PerExecutionEnvironmentMaxConcurrency", 4),
+            execution_environment_memory_to_vcpu_ratio=config.get("ExecutionEnvironmentMemoryToVCpuRatio"),
+        )
 
 
 class Function(NamedTuple):
@@ -118,6 +150,19 @@ class Function(NamedTuple):
     logging_config: Optional[Dict] = None
     # Function Tenancy Configuration for multi-tenant functions
     tenancy_config: Optional[Dict] = None
+    # DurableConfig for AWS Lambda Durable Functions
+    durable_config: Optional[Dict] = None
+    # LambdaManagedInstance Capacity Provider Configuration
+    capacity_provider_config: Optional[Dict] = None
+    # PublishToLatestPublished configuration
+    publish_to_latest_published: Optional[bool] = None
+
+    @property
+    def capacity_provider_configuration(self) -> Optional[CapacityProviderConfig]:
+        """Returns capacity provider configuration if this function uses a capacity provider"""
+        if self.capacity_provider_config:
+            return CapacityProviderConfig.from_dict(self.capacity_provider_config)
+        return None
 
     @property
     def full_path(self) -> str:

@@ -8,6 +8,9 @@ import os
 import logging
 from pathlib import Path
 
+import boto3
+from botocore import UNSIGNED
+from botocore.config import Config
 from docker.errors import APIError
 from psutil import NoSuchProcess
 
@@ -29,6 +32,7 @@ LOG = logging.getLogger(__name__)
 class StartLambdaIntegBaseClass(TestCase):
     template: Optional[str] = None
     container_mode: Optional[str] = None
+    container_host_interface: Optional[str] = None
     parameter_overrides: Optional[Dict[str, str]] = None
     binary_data_file: Optional[str] = None
     integration_dir = str(Path(__file__).resolve().parents[2])
@@ -110,6 +114,7 @@ class StartLambdaIntegBaseClass(TestCase):
         template_path=None,
         env_var_path=None,
         container_mode=None,
+        container_host_interface=None,
         parameter_overrides=None,
         invoke_image=None,
         hook_name=None,
@@ -134,6 +139,9 @@ class StartLambdaIntegBaseClass(TestCase):
 
         if container_mode:
             command_list += ["--warm-containers", container_mode]
+
+        if container_host_interface:
+            command_list += ["--container-host-interface", container_host_interface]
 
         if parameter_overrides:
             command_list += ["--parameter-overrides", cls._make_parameter_override_arg(parameter_overrides)]
@@ -160,6 +168,7 @@ class StartLambdaIntegBaseClass(TestCase):
             template_path=cls.template,
             env_var_path=cls.env_var_path,
             container_mode=cls.container_mode,
+            container_host_interface=cls.container_host_interface,
             parameter_overrides=cls.parameter_overrides,
             invoke_image=cls.invoke_image,
             hook_name=cls.hook_name,
@@ -169,7 +178,6 @@ class StartLambdaIntegBaseClass(TestCase):
         )
 
         # Container labels are no longer needed - container IDs are parsed from output
-
         cls.start_lambda_process = Popen(command_list, stderr=PIPE, stdin=PIPE, env=env, cwd=cls.working_dir)
         cls.start_lambda_process_output = ""
 
@@ -219,6 +227,17 @@ class StartLambdaIntegBaseClass(TestCase):
                     LOG.error("Failed to remove SAM CLI container %s", container.short_id, exc_info=ex)
         except Exception as ex:
             LOG.error("Failed to clean up SAM CLI containers", exc_info=ex)
+
+    def get_local_lambda_client(self):
+        url = "http://127.0.0.1:{}".format(self.port)
+        return boto3.client(
+            "lambda",
+            endpoint_url=url,
+            region_name="us-east-1",
+            use_ssl=False,
+            verify=False,
+            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
+        )
 
 
 class WatchWarmContainersIntegBaseClass(StartLambdaIntegBaseClass):
