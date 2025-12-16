@@ -122,7 +122,6 @@ class TestInvokeResponseStreamingCapacityProvider(RemoteInvokeIntegBase):
         cls.parameter_overrides = {
             "SubnetId": os.environ.get("LMI_SUBNET_ID", ""),
             "SecurityGroupId": os.environ.get("LMI_SECURITY_GROUP_ID", ""),
-            "OperatorRoleArn": os.environ.get("LMI_OPERATOR_ROLE_ARN", ""),
         }
         cls.create_resources_and_boto_clients()
 
