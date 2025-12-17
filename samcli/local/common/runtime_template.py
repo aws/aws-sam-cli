@@ -48,7 +48,7 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
     ],
     "dotnet": [
         {
-            "runtimes": ["dotnet8", "dotnet6"],
+            "runtimes": ["dotnet10", "dotnet8", "dotnet6"],
             "dependency_manager": "cli-package",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-dotnet"),
             "build": True,
@@ -107,6 +107,7 @@ SUPPORTED_DEP_MANAGERS: List[str] = sorted(
 # Runtimes are ordered in alphabetical fashion with reverse version order (latest versions first)
 INIT_RUNTIMES = [
     # dotnet runtimes in descending order
+    "dotnet10",
     "dotnet8",
     "dotnet6",
     # go runtimes in descending order
@@ -143,6 +144,7 @@ INIT_RUNTIMES = [
 
 
 LAMBDA_IMAGES_RUNTIMES_MAP = {
+    "dotnet10": "amazon/dotnet10-base",
     "dotnet8": "amazon/dotnet8-base",
     "dotnet6": "amazon/dotnet6-base",
     "go1.x": "amazon/go1.x-base",
@@ -190,6 +192,7 @@ SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING = {
     "python3.14": "Python36",
     "dotnet6": "dotnet6",
     "dotnet8": "dotnet6",
+    "dotnet10": "dotnet6",
     "go1.x": "Go1",
     "provided.al2": "Go1",
 }

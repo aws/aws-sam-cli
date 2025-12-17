@@ -18,13 +18,13 @@ attrs==25.4.0 \
     # via
     #   jsonschema
     #   referencing
-aws-lambda-builders==1.60.0 \
-    --hash=sha256:518b668130e550a4c88968432fba344a36aa965cca89bf8a30456f991053ae0e \
-    --hash=sha256:c61d49dd80ee00a484bea3754ff55fd45e6ec5cd3c56169a6eb8767882187dbd
+aws-lambda-builders==1.61.0 \
+    --hash=sha256:04c275702f1718287de32af92f19c9206c1f29222adfdd8aa85efe3458e101cf \
+    --hash=sha256:29bfe6eac3c55677ed383687ab63aa31372576f537e6310b8af953cef6c787f4
     # via aws-sam-cli (setup.py)
-aws-sam-translator==1.105.0 \
-    --hash=sha256:395930e3caa0a67e2432bf09199fa5a60edb71c2b8f05ab4b03a6f6b3fb758b7 \
-    --hash=sha256:472829abf114e7c47112d88f9b3c27585e9c9b44f9d090d1ab9bc4d235bc12b7
+aws-sam-translator==1.106.0 \
+    --hash=sha256:09e58160cdba3539dd37be209bc2accf51f8b71f8d4cc5431e248f794b122644 \
+    --hash=sha256:87712ced7eb6835fea2d4e9674ba7268494aa98f5b186ec5ad684245e2707ef7
     # via
     #   aws-sam-cli (setup.py)
     #   cfn-lint
@@ -188,9 +188,9 @@ cffi==2.0.0 \
     --hash=sha256:fc7de24befaeae77ba923797c7c87834c73648a05a4bde34b3b7e5588973a453 \
     --hash=sha256:fe562eb1a64e67dd297ccc4f5addea2501664954f2692b69a76449ec7913ecbf
     # via cryptography
-cfn-lint==1.42.0 \
-    --hash=sha256:0bd373d34451e396c14a95be03fe4bcba8d2c00b2a4c61697a04deaa79ab67ed \
-    --hash=sha256:431523d3bc32f2db411451b8010ccaf770556bebfe44d6df75c1a17ecf957496
+cfn-lint==1.43.0 \
+    --hash=sha256:0b880d83c3167215988e6409d5782b2c872b66f717c5ae5914f98012a4470895 \
+    --hash=sha256:138ff2d3fe91a3aff19e089398b101b7509bc49a959e0fd83e72b11ef066e2a3
     # via aws-sam-cli (setup.py)
 chardet==5.2.0 \
     --hash=sha256:1b3b6ff479a8c414bc3fa2c0852995695c4a026dcd6d0633b2dd092ca39c1cf7 \

@@ -9,9 +9,6 @@ Parameters:
   SecurityGroupId:
     Type: String
     Description: Security Group ID from infrastructure stack
-  OperatorRoleArn:
-    Type: String
-    Description: Operator Role ARN from infrastructure stack
   Team:
     Type: String
     Default: lambda-tooling-team
@@ -59,7 +56,6 @@ Resources:
   LMICapacityProviderOne:
     Type: AWS::Serverless::CapacityProvider
     Properties:
-      OperatorRole: !Ref OperatorRoleArn
       InstanceRequirements:
         Architectures:
           - x86_64
@@ -69,7 +65,6 @@ Resources:
   LMICapacityProviderTwo:
     Type: AWS::Serverless::CapacityProvider
     Properties:
-      OperatorRole: !Ref OperatorRoleArn
       InstanceRequirements:
         Architectures:
           - arm64

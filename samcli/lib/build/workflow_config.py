@@ -108,6 +108,7 @@ def get_layer_subfolder(build_workflow: str) -> str:
         "java25": "java",
         "dotnet6": "dotnet",
         "dotnet8": "dotnet",
+        "dotnet10": "dotnet",
         # User is responsible for creating subfolder in these workflows
         "makefile": "",
     }
@@ -174,6 +175,7 @@ def get_workflow_config(
         "ruby3.4": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
         "dotnet6": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
         "dotnet8": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
+        "dotnet10": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
         "go1.x": BasicWorkflowSelector(GO_MOD_CONFIG),
         # When Maven builder exists, add to this list so we can automatically choose a builder based on the supported
         # manifest
