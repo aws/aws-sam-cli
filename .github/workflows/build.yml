@@ -160,7 +160,8 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: '1.19'
-      - uses: ruby/setup-ruby@v1
+      # Pin to specific version until Lambda Builders support bundler 4.0.0
+      - uses: ruby/setup-ruby@v1.268.0
         with:
           ruby-version: "3.3"
       - uses: actions/setup-node@v6
@@ -175,6 +176,9 @@ jobs:
             17
             21
             25
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
        # Install and configure Rust & Cargo Lambda
       - name: Install and configure Rust & Cargo Lambda
         if: ${{ matrix.os == 'ubuntu-latest' }}
