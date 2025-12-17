@@ -15,6 +15,7 @@ from tests.integration.buildcmd.build_integ_base import (
     BuildIntegRubyBase,
     BuildIntegRustBase,
     rust_parameterized_class,
+    show_container_in_test_name,
 )
 from tests.testing_utils import (
     SKIP_DOCKER_TESTS,
@@ -26,6 +27,7 @@ from tests.testing_utils import (
 )
 
 
+# this test will use docker to invoke in the end, we need to mark all these test as in_container
 @pytest.mark.python
 class TestBuildCommand_PythonFunctions_With_Specified_Architecture_arm64(BuildIntegPythonBase):
     template = "template_with_architecture.yaml"
@@ -37,24 +39,29 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture_arm64(BuildIn
             ("python3.11", "Python", False),
             ("python3.12", "Python", False),
             ("python3.13", "Python", False),
+            ("python3.14", "Python", False),
             ("python3.9", "PythonPEP600", False),
             ("python3.10", "PythonPEP600", False),
             ("python3.11", "PythonPEP600", False),
             ("python3.12", "PythonPEP600", False),
             ("python3.13", "PythonPEP600", False),
+            ("python3.14", "PythonPEP600", False),
             ("python3.9", "Python", "use_container"),
             ("python3.10", "Python", "use_container"),
             ("python3.11", "Python", "use_container"),
         ]
     )
-    def test_with_default_requirements(self, runtime, codeuri, use_container):
+    def test_with_default_requirements_invoke_in_container(self, runtime, codeuri, use_container):
         self._test_with_default_requirements(runtime, codeuri, use_container, self.test_data_path, architecture=ARM64)
 
     @parameterized.expand(
         [
             ("python3.12", "Python", "use_container"),
             ("python3.13", "Python", "use_container"),
-        ]
+            # skip this test until python 3.14 build image is released
+            # ("python3.14", "Python", "use_container"),
+        ],
+        name_func=show_container_in_test_name,
     )
     @pytest.mark.al2023
     def test_with_default_requirements_al2023(self, runtime, codeuri, use_container):
@@ -76,7 +83,8 @@ class TestBuildCommand_EsbuildFunctions_arm64(BuildIntegEsbuildBase):
                 "app.lambdaHandler",
                 "use_container",
             ),
-        ]
+        ],
+        name_func=show_container_in_test_name,
     )
     def test_building_default_package_json(self, runtime, code_uri, expected_files, handler, use_container):
         self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, ARM64)
@@ -104,6 +112,13 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(BuildIntegE
                 False,
             ),
             (
+                "nodejs24.x",
+                "Esbuild/Node_without_manifest",
+                {"main.js", "main.js.map"},
+                "main.lambdaHandler",
+                False,
+            ),
+            (
                 "nodejs20.x",
                 "Esbuild/TypeScript_without_manifest",
                 {"app.js", "app.js.map"},
@@ -117,7 +132,15 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(BuildIntegE
                 "app.lambdaHandler",
                 False,
             ),
-        ]
+            (
+                "nodejs24.x",
+                "Esbuild/TypeScript_without_manifest",
+                {"app.js", "app.js.map"},
+                "app.lambdaHandler",
+                False,
+            ),
+        ],
+        name_func=show_container_in_test_name,
     )
     def test_building_default_package_json(self, runtime, code_uri, expected_files, handler, use_container):
         self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, ARM64)
@@ -131,7 +154,9 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture_arm64(BuildInte
         [
             ("nodejs20.x", False),
             ("nodejs22.x", False),
-        ]
+            ("nodejs24.x", False),
+        ],
+        name_func=show_container_in_test_name,
     )
     def test_building_default_package_json(self, runtime, use_container):
         self._test_with_default_package_json(runtime, use_container, self.test_data_path, ARM64)
@@ -140,7 +165,9 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture_arm64(BuildInte
         [
             ("nodejs20.x", "use_container"),
             ("nodejs22.x", "use_container"),
-        ]
+            ("nodejs24.x", "use_container"),
+        ],
+        name_func=show_container_in_test_name,
     )
     @pytest.mark.al2023
     def test_building_default_package_json_al2023(self, runtime, use_container):
@@ -282,7 +309,7 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
             (
                 "java21",
                 "21",
-                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.USING_GRADLEW_IN_CONTAINER_PATH,
                 BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
@@ -300,6 +327,35 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
                 BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
                 BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
             ),
+            # skip these tests until java25 build image is released
+            # (
+            #     "java25",
+            #     "25",
+            #     BuildIntegJavaBase.USING_GRADLE_PATH,
+            #     BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+            #     BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            # ),
+            # (
+            #     "java25",
+            #     "25",
+            #     BuildIntegJavaBase.USING_GRADLEW_PATH,
+            #     BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+            #     BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            # ),
+            # (
+            #     "java25",
+            #     "25",
+            #     BuildIntegJavaBase.USING_GRADLE_KOTLIN_PATH,
+            #     BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+            #     BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            # ),
+            # (
+            #     "java25",
+            #     "25",
+            #     BuildIntegJavaBase.USING_MAVEN_PATH,
+            #     BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+            #     BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
+            # ),
         ]
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
@@ -431,6 +487,34 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
                 BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
                 BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
             ),
+            (
+                "java25",
+                "25",
+                BuildIntegJavaBase.USING_GRADLE_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java25",
+                "25",
+                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java25",
+                "25",
+                BuildIntegJavaBase.USING_GRADLE_KOTLIN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java25",
+                "25",
+                BuildIntegJavaBase.USING_MAVEN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
+            ),
         ]
     )
     def test_building_java_in_process_with_arm_architecture(
@@ -515,7 +599,8 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture_arm64(Build
                 "use_container",
                 "Makefile-container",
             ),
-        ]
+        ],
+        name_func=show_container_in_test_name,
     )
     @pytest.mark.al2023
     def test_building_Makefile_al2023(self, runtime, use_container, manifest):
@@ -535,7 +620,8 @@ class TestBuildCommand_Rust_arm64(BuildIntegRustBase):
             ("provided.al2", "debug", False),
             ("provided.al2023", None, False),
             ("provided.al2023", "debug", False),
-        ]
+        ],
+        name_func=show_container_in_test_name,
     )
     def test_build(self, runtime, build_mode, use_container):
         self._test_with_rust_cargo_lambda(

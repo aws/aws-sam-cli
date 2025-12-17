@@ -1749,3 +1749,36 @@ to create a managed default bucket, or run sam deploy --guided",
 
         deploy_process_execute = self.run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
+
+    @skipIf(RUNNING_ON_CI, "Skip LMI tests when running on canary")
+    def test_deploy_lmi_function(self):
+        """Test deployment of LMI (Lambda Managed Infrastructure) functions with capacity providers."""
+        # Validate LMI environment variables are set
+        lmi_subnet_id = os.environ.get("LMI_SUBNET_ID")
+        lmi_security_group_id = os.environ.get("LMI_SECURITY_GROUP_ID")
+        lmi_operator_role_arn = os.environ.get("LMI_OPERATOR_ROLE_ARN")
+
+        self.assertTrue(lmi_subnet_id, "LMI_SUBNET_ID environment variable must be set")
+        self.assertTrue(lmi_security_group_id, "LMI_SECURITY_GROUP_ID environment variable must be set")
+        self.assertTrue(lmi_operator_role_arn, "LMI_OPERATOR_ROLE_ARN environment variable must be set")
+
+        template_path = self.test_data_path.joinpath("lmi_function", "template.yaml")
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+
+        # Deploy LMI function with capacity providers
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix=self.s3_prefix,
+            s3_bucket=self.s3_bucket.name,
+            force_upload=True,
+            parameter_overrides=f"SubnetId={lmi_subnet_id} SecurityGroupId={lmi_security_group_id}",
+            no_execute_changeset=False,
+            tags="integ=true lmi=yes",
+            confirm_changeset=False,
+        )
+
+        deploy_process_execute = self.run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 0)

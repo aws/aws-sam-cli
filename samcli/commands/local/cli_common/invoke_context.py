@@ -27,6 +27,7 @@ from samcli.local.docker.container_client import ContainerClient
 from samcli.local.docker.exceptions import PortAlreadyInUse
 from samcli.local.docker.lambda_image import LambdaImage
 from samcli.local.docker.manager import ContainerManager
+from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.local.lambdafn.runtime import LambdaRuntime, WarmLambdaRuntime
 from samcli.local.layers.layer_downloader import LayerDownloader
 
@@ -98,6 +99,7 @@ class InvokeContext:
         invoke_images: Optional[str] = None,
         mount_symlinks: Optional[bool] = False,
         no_mem_limit: Optional[bool] = False,
+        function_logical_ids: Optional[Tuple[str, ...]] = None,
     ) -> None:
         """
         Initialize the context
@@ -107,7 +109,7 @@ class InvokeContext:
         template_file str
             Name or path to template
         function_identifier str
-            Identifier of the function to invoke
+            Identifier of the single function to invoke (used by 'sam local invoke' command)
         env_vars_file str
             Path to a file containing values for environment variables
         docker_volume_basedir str
@@ -154,10 +156,27 @@ class InvokeContext:
             Optional. A dictionary that defines the custom invoke image URI of each function
         mount_symlinks bool
             Optional. Indicates if symlinks should be mounted inside the container
+        function_logical_ids tuple(str)
+            Optional. Tuple of function logical IDs to filter and make available for local execution.
+            Used by 'sam local start-api' and 'sam local start-lambda' commands to limit which
+            functions from the template are exposed. If not provided, all functions are available.
         """
 
         self._template_file = template_file
         self._function_identifier = function_identifier
+        self._function_logical_ids = function_logical_ids
+
+        # Validate that function_identifier and function_logical_ids aren't both provided
+        # function_identifier is for 'sam local invoke' (single function)
+        # function_logical_ids is for 'sam local start-lambda' commands (multiple function filter)
+        if self._function_identifier and self._function_logical_ids:
+            LOG.warning(
+                "Both function_identifier and function_logical_ids were provided. "
+                "function_identifier is used for 'sam local invoke' to specify a single function, "
+                "while function_logical_ids is used for 'sam local start-lambda' to filter functions. "
+                "function_identifier will take precedence for single function invocation."
+            )
+
         self._env_vars_file = env_vars_file
         self._docker_volume_basedir = docker_volume_basedir
         self._docker_network = docker_network
@@ -241,9 +260,17 @@ class InvokeContext:
         if self._docker_volume_basedir:
             _function_providers_args[self._containers_mode].append(True)
 
+        _function_providers_kwargs: Dict[str, Any] = {}
+
+        if self._function_logical_ids:
+            _function_providers_kwargs["function_logical_ids"] = self._function_logical_ids
+
         self._function_provider = _function_providers_class[self._containers_mode](
-            *_function_providers_args[self._containers_mode]
+            *_function_providers_args[self._containers_mode], **_function_providers_kwargs
         )
+
+        # Validate function logical IDs after provider is initialized
+        self._validate_function_logical_ids()
 
         self._env_vars_value = self._get_env_vars_value(self._env_vars_file)
         self._container_env_vars_value = self._get_env_vars_value(self._container_env_vars_file)
@@ -302,6 +329,10 @@ class InvokeContext:
 
         if self._containers_mode == ContainersMode.WARM:
             self._clean_running_containers_and_related_resources()
+
+        # Clean up durable execution resources if lambda runtime was initialized
+        if self._lambda_runtimes:
+            self.lambda_runtime.clean_runtime_containers()
 
     def _initialize_all_functions_containers(self) -> List[str]:
         """
@@ -448,6 +479,38 @@ class InvokeContext:
         cast(WarmLambdaRuntime, self.lambda_runtime).clean_running_containers_and_related_resources()
         cast(RefreshableSamFunctionProvider, self._function_provider).stop_observer()
 
+    def _validate_function_logical_ids(self) -> None:
+        """
+        Validates that all provided function logical IDs exist in the template.
+        Raises FunctionNotFound with helpful error message if validation fails.
+        """
+        if not self._function_logical_ids:
+            return  # No filtering requested
+
+        # Get all available function names/IDs from the provider
+        all_functions_set = set()
+        for func in self._function_provider.get_all():
+            all_functions_set.add(func.name)
+            all_functions_set.add(func.function_id)
+            if func.functionname:
+                all_functions_set.add(func.functionname)
+
+        # Check for invalid IDs
+        invalid_ids = set(self._function_logical_ids) - all_functions_set
+
+        if invalid_ids:
+            # Get all available function full paths, matching sam local invoke pattern
+            all_function_full_paths = [f.full_path for f in self._function_provider.get_all()]
+
+            # Format message to match sam local invoke pattern exactly
+            invalid_functions_str = ", ".join(sorted(invalid_ids))
+            available_function_message = "{} not found. Possible options in your template: {}".format(
+                invalid_functions_str, all_function_full_paths
+            )
+            LOG.info(available_function_message)
+
+            raise FunctionNotFound("Unable to find Function(s) with name(s) '{}'".format(invalid_functions_str))
+
     def _add_account_id_to_global(self) -> None:
         """
         Attempts to get the Account ID from the current session
@@ -555,6 +618,21 @@ class InvokeContext:
             List[str]: List of container IDs, empty if not in EAGER mode or not initialized
         """
         return self._initialized_container_ids
+
+    @property
+    def function_logical_ids(self) -> Optional[Tuple[str, ...]]:
+        """
+        Returns the tuple of function logical IDs to filter, if provided.
+
+        This is used by 'sam local start-lambda' commands
+        to limit which functions from the template are made available for local execution.
+        This is different from function_identifier which is used by 'sam local invoke'
+        to specify a single function to invoke.
+
+        Returns:
+            Optional[Tuple[str, ...]]: Tuple of function logical IDs or None if no filter
+        """
+        return self._function_logical_ids
 
     @property
     def stdout(self) -> StreamWriter:

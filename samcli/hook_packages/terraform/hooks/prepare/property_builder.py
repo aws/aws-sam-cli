@@ -227,6 +227,72 @@ def _check_image_config_value(image_config: Any) -> bool:
     return True
 
 
+def _build_capacity_provider_config_property(tf_properties: dict, resource: TFResource) -> Optional[dict]:
+    """
+    Builds the CapacityProviderConfig property of a CloudFormation AWS Lambda Function out of the
+    properties of the equivalent terraform resource
+
+    Terraform structure:
+        capacity_provider_config {
+          lambda_managed_instances_capacity_provider_config {
+            capacity_provider_arn = "arn:..."
+            per_execution_environment_max_concurrency = 10  # optional, default 4
+            execution_environment_memory_gib_per_vcpu = 2.0  # optional
+          }
+        }
+
+    Maps to CloudFormation:
+        CapacityProviderConfig:
+          LambdaManagedInstancesCapacityProviderConfig:
+            CapacityProviderArn: "arn:..."
+            PerExecutionEnvironmentMaxConcurrency: 10
+            ExecutionEnvironmentMemoryGiBPerVCpu: 2.0
+
+    Parameters
+    ----------
+    tf_properties: dict
+        Properties of the terraform AWS Lambda function resource
+    resource: TFResource
+        Configuration terraform resource
+
+    Returns
+    -------
+    Optional[dict]
+        The built CapacityProviderConfig property of a CloudFormation AWS Lambda Function resource,
+        or None if not present
+    """
+    capacity_provider_config = tf_properties.get("capacity_provider_config")
+    if not capacity_provider_config:
+        return None
+
+    # Terraform stores blocks as lists, extract first item
+    config_block = capacity_provider_config[0] if capacity_provider_config else None
+    if not config_block:
+        return None
+
+    lmi_config = config_block.get("lambda_managed_instances_capacity_provider_config")
+    if not lmi_config:
+        return None
+
+    # Extract nested config (also a list in Terraform JSON)
+    lmi_block = lmi_config[0] if lmi_config else None
+    if not lmi_block:
+        return None
+
+    # Build CloudFormation structure with required field
+    cfn_config = {"CapacityProviderArn": lmi_block.get("capacity_provider_arn", "")}
+
+    # Add optional fields using helper function
+    def _add_optional_field(cfn_key: str, tf_key: str) -> None:
+        if tf_key in lmi_block:
+            cfn_config[cfn_key] = lmi_block[tf_key]
+
+    _add_optional_field("PerExecutionEnvironmentMaxConcurrency", "per_execution_environment_max_concurrency")
+    _add_optional_field("ExecutionEnvironmentMemoryGiBPerVCpu", "execution_environment_memory_gib_per_vcpu")
+
+    return {"LambdaManagedInstancesCapacityProviderConfig": cfn_config}
+
+
 def _get_json_body(tf_properties: dict, resource: TFResource) -> Any:
     """
     Gets the JSON formatted body value from the API Gateway if there is one
@@ -321,6 +387,7 @@ AWS_LAMBDA_FUNCTION_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
     "Timeout": _get_property_extractor("timeout"),
     "MemorySize": _get_property_extractor("memory_size"),
     "ImageConfig": _build_lambda_function_image_config_property,
+    "CapacityProviderConfig": _build_capacity_provider_config_property,
 }
 
 AWS_LAMBDA_LAYER_VERSION_PROPERTY_BUILDER_MAPPING: PropertyBuilderMapping = {
