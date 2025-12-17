@@ -188,9 +188,9 @@ cffi==2.0.0 \
     --hash=sha256:fc7de24befaeae77ba923797c7c87834c73648a05a4bde34b3b7e5588973a453 \
     --hash=sha256:fe562eb1a64e67dd297ccc4f5addea2501664954f2692b69a76449ec7913ecbf
     # via cryptography
-cfn-lint==1.42.0 \
-    --hash=sha256:0bd373d34451e396c14a95be03fe4bcba8d2c00b2a4c61697a04deaa79ab67ed \
-    --hash=sha256:431523d3bc32f2db411451b8010ccaf770556bebfe44d6df75c1a17ecf957496
+cfn-lint==1.43.0 \
+    --hash=sha256:0b880d83c3167215988e6409d5782b2c872b66f717c5ae5914f98012a4470895 \
+    --hash=sha256:138ff2d3fe91a3aff19e089398b101b7509bc49a959e0fd83e72b11ef066e2a3
     # via aws-sam-cli (setup.py)
 chardet==5.2.0 \
     --hash=sha256:1b3b6ff479a8c414bc3fa2c0852995695c4a026dcd6d0633b2dd092ca39c1cf7 \
