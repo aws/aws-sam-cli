@@ -6,10 +6,13 @@ import json
 import logging
 import re
 from json import JSONDecodeError
+from pathlib import Path
 from typing import Dict, List, Optional, Union
 
 import click
+from ruamel.yaml.comments import CommentedMap, CommentedSeq
 
+from samcli.lib.config.file_manager import FILE_MANAGER_MAPPER
 from samcli.lib.package.ecr_utils import is_ecr_url
 
 PARAM_AND_METADATA_KEY_REGEX = """([A-Za-z0-9\\"\']+)"""
@@ -61,6 +64,38 @@ def _unquote_wrapped_quotes(value):
     return value.replace("\\ ", " ").replace('\\"', '"').replace("\\'", "'")
 
 
+def _flatten_list(data: Union[list, tuple]) -> list:
+    """
+    Recursively flattens nested lists, tuples, and list-like sequences into a single flat list.
+
+    This function is the first step in normalizing inputs parsed from
+    various file formats (e.g., YAML, TOML, JSON), where nested sequences can
+    appear due to format-specific constructs such as YAML anchors/aliases, explicit
+    nested arrays in TOML or JSON, or user-defined nested data structures.
+
+    By flattening these nested lists/sequences, subsequent processing can
+    uniformly handle all values as a simple sequential list before further
+    normalization (e.g., converting all values to strings).
+
+    Parameters
+    ----------
+    data : list or tuple
+        List to flatten
+
+    Returns
+    -------
+    list
+        A single flat list containing all atomic elements from the nested input, preserving order.
+    """
+    flat_data = []
+    for item in data:
+        if isinstance(item, (tuple, list, CommentedSeq)):
+            flat_data.extend(_flatten_list(item))
+        else:
+            flat_data.append(item)
+    return flat_data
+
+
 class CfnParameterOverridesType(click.ParamType):
     """
     Custom Click options type to accept values for CloudFormation template parameters. You can pass values for
@@ -69,6 +104,7 @@ class CfnParameterOverridesType(click.ParamType):
 
     __EXAMPLE_1 = "ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro"
     __EXAMPLE_2 = "KeyPairName=MyKey InstanceType=t1.micro"
+    __EXAMPLE_3 = "file://MyParams.yaml"
 
     # Regex that parses CloudFormation parameter key-value pairs:
     # https://regex101.com/r/xqfSjW/2
@@ -86,45 +122,110 @@ class CfnParameterOverridesType(click.ParamType):
 
     ordered_pattern_match = [_pattern_1, _pattern_2]
 
-    name = "string,list"
+    name = "list,object,string"
 
-    def convert(self, value, param, ctx):
-        result = {}
+    def convert(self, values, param, ctx, seen_files=None):
+        """
+        Takes parameter overrides loaded from various supported config file formats and
+        flattens and normalizes them into a dictionary where all keys and values are strings.
 
-        # Empty tuple
-        if value == ("",):
-            return result
+        The input `values` can be nested lists, dictionaries, or strings representing
+        parameter overrides, potentially including file references. This method
+        recursively resolves file inputs, validates formats, and standardizes output.
 
-        value = (value,) if isinstance(value, str) else value
-        for val in value:
-            # Add empty string to start of the string to help match `_pattern2`
-            normalized_val = " " + val.strip()
+        Parameters
+        ----------
+        values : Any
+            Input parameter overrides from config files or CLI (could be nested lists, dicts, strings).
+        param : click.Parameter
+            Parameter metadata (from Click library), used for error handling.
+        ctx : click.Context
+            Click context for error reporting.
+        seen_files : set
+            List of files processed in the current execution branch, used to detect infinite recursion
 
-            try:
-                # NOTE(TheSriram): find the first regex that matched.
-                # pylint is concerned that we are checking at the same `val` within the loop,
-                # but that is the point, so disabling it.
-                pattern = next(
-                    i
-                    for i in filter(
-                        lambda item: re.findall(item, normalized_val), self.ordered_pattern_match
-                    )  # pylint: disable=cell-var-from-loop
-                )
-            except StopIteration:
-                return self.fail(
-                    "{} is not in valid format. It must look something like '{}' or '{}'".format(
-                        val, self.__EXAMPLE_1, self.__EXAMPLE_2
-                    ),
+        Returns
+        -------
+        dict
+            Flattened and normalized parameter overrides as a dictionary of string keys and values.
+        """
+        # Handle empty or trivial input cases early
+        if values in [("",), "", None] or values == {}:
+            LOG.debug("Empty parameter set (%s)", values)
+            return {}
+
+        if seen_files is None:
+            seen_files = set()
+
+        LOG.debug("Input parameters: %s", values)
+
+        # Flatten any nested objects to a simple list for uniform processing
+        values = _flatten_list([values])
+        LOG.debug("Flattened parameters: %s", values)
+
+        parameters = {}
+        for value in values:
+            if isinstance(value, str):
+                # If the string is a file reference (e.g., 'file://params.yaml')
+                if value.startswith("file://"):
+                    file_path = Path(value[7:])
+                    if not file_path.is_file():
+                        self.fail(f"{value} was not found or is a directory", param, ctx)
+                    file_manager = FILE_MANAGER_MAPPER.get(file_path.suffix, None)
+                    if not file_manager:
+                        self.fail(f"{value} uses an unsupported extension", param, ctx)
+
+                    # Recursively process the file's contents and update parameters
+                    if file_path in seen_files:
+                        self.fail(f"Infinite recursion detected in file references: {file_path}", param, ctx)
+                    seen_files.add(file_path)
+                    try:
+                        nested_values = file_manager.read(file_path)
+                        parameters.update(self.convert(nested_values, param, ctx, seen_files))
+                    finally:
+                        seen_files.remove(file_path)
+                else:
+                    # Legacy parameter matching (e.g. "X=Y" and "ParameterKey=X,ParameterValue=Y")
+                    normalized_value = " " + value.strip()
+                    for pattern in self.ordered_pattern_match:
+                        groups = re.findall(pattern, normalized_value)
+                        if groups:
+                            parameters.update(groups)
+                            break
+                    else:
+                        self.fail(
+                            f"{value} is not a valid format. It must look something like "
+                            f"'{self.__EXAMPLE_1}', '{self.__EXAMPLE_2}', or '{self.__EXAMPLE_3}'",
+                            param,
+                            ctx,
+                        )
+            elif isinstance(value, (dict, CommentedMap)):
+                # Handle dictionary-like objects (e.g. YAML mappings)
+                for k, v in value.items():
+                    if v is None:
+                        # Unset value if previously set
+                        parameters[str(k)] = ""
+                    elif isinstance(v, (list, CommentedSeq)):
+                        # Join list elements into comma-separated string, strip whitespace and ignore empty entries
+                        parameters[str(k)] = ",".join(str(x).strip() for x in v if x not in (None, ""))
+                    else:
+                        # Convert other values (numbers, booleans) to strings
+                        parameters[str(k)] = str(v)
+            elif value is None:
+                # Ignore empty list items since it means both the key and value are empty
+                continue
+            else:
+                # Fail on unexpected types to avoid silent errors
+                self.fail(
+                    f"{value} is invalid in a way the code doesn't expect",
                     param,
                     ctx,
                 )
 
-            groups = re.findall(pattern, normalized_val)
-
-            # 'groups' variable is a list of tuples ex: [(key1, value1), (key2, value2)]
-            for key, param_value in groups:
-                result[_unquote_wrapped_quotes(key)] = _unquote_wrapped_quotes(param_value)
-
+        result = {}
+        for key, param_value in parameters.items():
+            result[_unquote_wrapped_quotes(key)] = _unquote_wrapped_quotes(param_value)
+        LOG.debug("Converted %d parameters: %s", len(result), result)
         return result
 
 
