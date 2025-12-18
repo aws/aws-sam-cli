@@ -32,7 +32,7 @@ jobs:
           sudo ./sam-installation/install
           sam-beta --version
           ./tests/sanity-check.sh
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           name: pyinstaller-linux-zip
           path: .build/output/aws-sam-cli-linux-x86_64.zip
@@ -61,7 +61,7 @@ jobs:
           sudo ./sam-installation/install
           sam-beta --version
           ./tests/sanity-check.sh
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           name: pyinstaller-macos-zip
           path: .build/output/aws-sam-cli-macos-x86_64.zip
