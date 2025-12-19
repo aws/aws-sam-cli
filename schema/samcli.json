@@ -13,6 +13,37 @@
     "version"
   ],
   "additionalProperties": false,
+  "$defs": {
+    "parameter_overrides_items": {
+      "anyOf": [
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/parameter_overrides_items"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "boolean"
+              }
+            ]
+          }
+        },
+        {
+          "type": "string"
+        }
+      ]
+    }
+  },
   "patternProperties": {
     "^.+$": {
       "title": "Environment",
@@ -361,11 +392,12 @@
                   "title": "parameter_overrides",
                   "type": [
                     "array",
+                    "object",
                     "string"
                   ],
                   "description": "String that contains AWS CloudFormation parameter overrides encoded as key=value pairs.",
                   "items": {
-                    "type": "string"
+                    "$ref": "#/$defs/parameter_overrides_items"
                   }
                 },
                 "skip_pull_image": {
@@ -554,11 +586,12 @@
                   "title": "parameter_overrides",
                   "type": [
                     "array",
+                    "object",
                     "string"
                   ],
                   "description": "String that contains AWS CloudFormation parameter overrides encoded as key=value pairs.",
                   "items": {
-                    "type": "string"
+                    "$ref": "#/$defs/parameter_overrides_items"
                   }
                 },
                 "debug_port": {
@@ -750,11 +783,12 @@
                   "title": "parameter_overrides",
                   "type": [
                     "array",
+                    "object",
                     "string"
                   ],
                   "description": "String that contains AWS CloudFormation parameter overrides encoded as key=value pairs.",
                   "items": {
-                    "type": "string"
+                    "$ref": "#/$defs/parameter_overrides_items"
                   }
                 },
                 "debug_port": {
@@ -939,11 +973,12 @@
                   "title": "parameter_overrides",
                   "type": [
                     "array",
+                    "object",
                     "string"
                   ],
                   "description": "String that contains AWS CloudFormation parameter overrides encoded as key=value pairs.",
                   "items": {
-                    "type": "string"
+                    "$ref": "#/$defs/parameter_overrides_items"
                   }
                 },
                 "debug_port": {
@@ -1339,11 +1374,12 @@
                   "title": "parameter_overrides",
                   "type": [
                     "array",
+                    "object",
                     "string"
                   ],
                   "description": "String that contains AWS CloudFormation parameter overrides encoded as key=value pairs.",
                   "items": {
-                    "type": "string"
+                    "$ref": "#/$defs/parameter_overrides_items"
                   }
                 },
                 "signing_profiles": {
@@ -1813,11 +1849,12 @@
                   "title": "parameter_overrides",
                   "type": [
                     "array",
+                    "object",
                     "string"
                   ],
                   "description": "String that contains AWS CloudFormation parameter overrides encoded as key=value pairs.",
                   "items": {
-                    "type": "string"
+                    "$ref": "#/$defs/parameter_overrides_items"
                   }
                 },
                 "beta_features": {
@@ -2096,11 +2133,12 @@
                   "title": "parameter_overrides",
                   "type": [
                     "array",
+                    "object",
                     "string"
                   ],
                   "description": "String that contains AWS CloudFormation parameter overrides encoded as key=value pairs.",
                   "items": {
-                    "type": "string"
+                    "$ref": "#/$defs/parameter_overrides_items"
                   }
                 },
                 "stack_name": {
@@ -2238,6 +2276,18 @@
               "description": "Available parameters for the list stack outputs command:\n* stack_name:\nName of corresponding deployed stack.\n* output:\nOutput the results from the command in a given output format (json or table).\n* profile:\nSelect a specific profile from your credential file to get AWS credentials.\n* region:\nSet the AWS Region of the service. (e.g. us-east-1)\n* beta_features:\nEnable/Disable beta features.\n* debug:\nTurn on debug logging to print debug message generated by AWS SAM CLI and display timestamps.\n* save_params:\nSave the parameters provided via the command line to the configuration file.",
               "type": "object",
               "properties": {
+                "parameter_overrides": {
+                  "title": "parameter_overrides",
+                  "type": [
+                    "array",
+                    "object",
+                    "string"
+                  ],
+                  "description": "String that contains AWS CloudFormation parameter overrides encoded as key=value pairs.",
+                  "items": {
+                    "$ref": "#/$defs/parameter_overrides_items"
+                  }
+                },
                 "stack_name": {
                   "title": "stack_name",
                   "type": "string",
