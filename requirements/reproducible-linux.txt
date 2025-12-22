@@ -1201,9 +1201,9 @@ typing-inspection==0.4.2 \
     --hash=sha256:4ed1cacbdc298c220f1bd249ed5287caa16f34d44ef4e9c3d0cbad5b521545e7 \
     --hash=sha256:ba561c48a67c5958007083d386c3295464928b01faa735ab8547c5692e87f464
     # via pydantic
-tzdata==2025.2 \
-    --hash=sha256:1a403fada01ff9221ca8044d701868fa132215d84beb92242d9acd2147f667a8 \
-    --hash=sha256:b60a638fcc0daffadf82fe0f57e53d06bdec2f36c4df66280ae79bce6bd6f2b9
+tzdata==2025.3 \
+    --hash=sha256:06a47e5700f3081aab02b2e513160914ff0694bce9947d6b76ebd6bf57cfc5d1 \
+    --hash=sha256:de39c2ca5dc7b0344f2eba86f49d614019d29f060fc4ebc8a417896a620b56a7
     # via arrow
 tzlocal==5.3.1 \
     --hash=sha256:cceffc7edecefea1f595541dbd6e990cb1ea3d19bf01b2809f362a03dd7921fd \
