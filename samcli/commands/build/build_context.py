@@ -701,7 +701,6 @@ Commands you can use next
         Prints warning message and confirms if user wants to use beta feature
         """
         EXPERIMENTAL_BUILD_METHODS = {
-            "rust-cargolambda": ExperimentalFlag.RustCargoLambda,
             "python-uv": ExperimentalFlag.UvPackageManager,
         }
 
