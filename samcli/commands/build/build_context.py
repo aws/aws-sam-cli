@@ -11,7 +11,6 @@ from typing import Dict, List, Optional, Tuple
 import click
 
 from samcli.commands._utils.constants import DEFAULT_BUILD_DIR
-from samcli.commands._utils.experimental import ExperimentalFlag, prompt_experimental
 from samcli.commands._utils.template import (
     get_template_data,
     move_template,
@@ -281,7 +280,6 @@ class BuildContext:
             )
 
             self._check_exclude_warning()
-            self._check_rust_cargo_experimental_flag()
 
             for f in self.get_resources_to_build().functions:
                 EventTracker.track_event(EventName.BUILD_FUNCTION_RUNTIME.value, f.runtime)
@@ -695,25 +693,6 @@ Commands you can use next
         excludes: Tuple[str, ...] = self._exclude if self._exclude is not None else ()
         if self._resource_identifier in excludes:
             LOG.warning(self._EXCLUDE_WARNING_MESSAGE)
-
-    def _check_rust_cargo_experimental_flag(self) -> None:
-        """
-        Prints warning message and confirms if user wants to use beta feature
-        """
-        WARNING_MESSAGE = (
-            'Build method "rust-cargolambda" is a beta feature.\n'
-            "Please confirm if you would like to proceed\n"
-            'You can also enable this beta feature with "sam build --beta-features".'
-        )
-        resources_to_build = self.get_resources_to_build()
-        is_building_rust = False
-        for function in resources_to_build.functions:
-            if function.metadata and function.metadata.get("BuildMethod", "") == "rust-cargolambda":
-                is_building_rust = True
-                break
-
-        if is_building_rust:
-            prompt_experimental(ExperimentalFlag.RustCargoLambda, WARNING_MESSAGE)
 
     @property
     def build_in_source(self) -> Optional[bool]:

@@ -54,7 +54,6 @@ class ExperimentalFlag:
             "experimentalTerraformSupport", EXPERIMENTAL_ENV_VAR_PREFIX + "TERRAFORM_SUPPORT"
         )
     }
-    RustCargoLambda = ExperimentalEntry("experimentalCargoLambda", EXPERIMENTAL_ENV_VAR_PREFIX + "RUST_CARGO_LAMBDA")
 
 
 def is_experimental_enabled(config_entry: ExperimentalEntry) -> bool:
