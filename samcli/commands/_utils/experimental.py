@@ -55,7 +55,9 @@ class ExperimentalFlag:
         )
     }
     # CargoLambda is no longer experimental - always enabled
-    CargoLambda = ExperimentalEntry("experimentalCargoLambda", EXPERIMENTAL_ENV_VAR_PREFIX + "CARGO_LAMBDA", persistent=True)
+    CargoLambda = ExperimentalEntry(
+        "experimentalCargoLambda", EXPERIMENTAL_ENV_VAR_PREFIX + "CARGO_LAMBDA", persistent=True
+    )
 
 
 def is_experimental_enabled(config_entry: ExperimentalEntry) -> bool:
