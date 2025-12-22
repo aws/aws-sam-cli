@@ -14,8 +14,8 @@ types-pywin32==311.0.0.20251008; python_version>="3.9"
 types-pywin32==308.0.0.20241221; python_version<"3.9"
 types-PyYAML==6.0.12.20250915
 types-chevron==0.14.2.20250103
-types-psutil==7.1.3.20251202
-types-setuptools==80.9.0.20250822
+types-psutil==7.1.3.20251211
+types-setuptools==80.9.0.20251221
 types-Pygments==2.19.0.20251121 
 types-colorama==0.4.15.20250801
 types-dateparser==1.2.2.20250809
