@@ -90,6 +90,10 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegDotnetBase):
             ("dotnet8", "Dotnet8", None, MountMode.WRITE),
             ("dotnet8", "Dotnet8", "debug", None),
             ("dotnet8", "Dotnet8", "debug", MountMode.WRITE),
+            ("dotnet10", "Dotnet10", None, None),
+            ("dotnet10", "Dotnet10", None, MountMode.WRITE),
+            ("dotnet10", "Dotnet10", "debug", None),
+            ("dotnet10", "Dotnet10", "debug", MountMode.WRITE),
         ]
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
@@ -115,7 +119,7 @@ class TestBuildCommand_Dotnet_cli_package_interactive(BuildIntegDotnetBase):
             ("provided.al2", "Dotnet7", None),
         ]
     )
-    def test_dotnet_al2(self, runtime, code_uri, mode):
+    def test_dotnet_al2_in_container(self, runtime, code_uri, mode):
         overrides = {
             "Runtime": runtime,
             "CodeUri": code_uri,
@@ -135,7 +139,7 @@ class TestBuildCommand_Dotnet_cli_package_interactive(BuildIntegDotnetBase):
             ("dotnet6", "Dotnet6", "debug"),
         ]
     )
-    def test_dotnet_6(self, runtime, code_uri, mode):
+    def test_dotnet_6_in_container(self, runtime, code_uri, mode):
         overrides = {
             "Runtime": runtime,
             "CodeUri": code_uri,
@@ -151,11 +155,13 @@ class TestBuildCommand_Dotnet_cli_package_interactive(BuildIntegDotnetBase):
         [
             ("dotnet8", "Dotnet8", None),
             ("dotnet8", "Dotnet8", "debug"),
+            ("dotnet10", "Dotnet10", None),
+            ("dotnet10", "Dotnet10", "debug"),
         ]
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     @pytest.mark.al2023
-    def test_dotnet_al2023(self, runtime, code_uri, mode):
+    def test_dotnet_al2023_in_container(self, runtime, code_uri, mode):
         overrides = {
             "Runtime": runtime,
             "CodeUri": code_uri,
@@ -168,7 +174,7 @@ class TestBuildCommand_Dotnet_cli_package_interactive(BuildIntegDotnetBase):
         self.validate_invoke_command(overrides, runtime)
 
     @parameterized.expand([("dotnet6", "Dotnet6"), ("dotnet8", "Dotnet8")])
-    def test_must_fail_on_container_mount_without_write_interactive(self, runtime, code_uri):
+    def test_must_fail_in_container_mount_without_write_interactive(self, runtime, code_uri):
         use_container = True
         overrides = {
             "Runtime": runtime,

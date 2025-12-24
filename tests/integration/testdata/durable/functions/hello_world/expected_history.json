@@ -1,0 +1,30 @@
+[
+  {
+    "EventId": 1,
+    "EventType": "ExecutionStarted",
+    "Name": "helloworld-integration-test",
+    "ExecutionStartedDetails": {
+      "Input": {
+        "Payload": "{}",
+        "Truncated": false
+      },
+      "ExecutionTimeout": 300
+    }
+  },
+  {
+    "EventId": 2,
+    "EventType": "InvocationCompleted",
+    "InvocationCompletedDetails": {}
+  },
+  {
+    "EventId": 3,
+    "EventType": "ExecutionSucceeded",
+    "Name": "helloworld-integration-test",
+    "ExecutionSucceededDetails": {
+      "Result": {
+        "Payload": "{\"statusCode\": 200, \"body\": \"{\\\"message\\\": \\\"Hello, World!\\\"}\"}",
+        "Truncated": false
+      }
+    }
+  }
+]

@@ -44,11 +44,11 @@ install:
   # AppVeyor's apt-get cache might be outdated, and the package could potentially be 404.
   - sh: "sudo apt-get update --allow-releaseinfo-change"
 
-  # install coretto 21
+  # install coretto 25
   - sh: wget -O - https://apt.corretto.aws/corretto.key | sudo gpg --dearmor -o /usr/share/keyrings/corretto-keyring.gpg
   - sh: echo "deb [signed-by=/usr/share/keyrings/corretto-keyring.gpg] https://apt.corretto.aws stable main" | sudo tee /etc/apt/sources.list.d/corretto.list
-  - sh: sudo apt-get update; sudo apt-get install -y java-21-amazon-corretto-jdk
-  - sh: JAVA_HOME=/usr/lib/jvm/java-21-amazon-corretto
+  - sh: sudo apt-get update; sudo apt-get install -y java-25-amazon-corretto-jdk
+  - sh: JAVA_HOME=/usr/lib/jvm/java-25-amazon-corretto
   - sh: PATH=$JAVA_HOME/bin:$PATH
   - sh: java --version
   - sh: javac --version
@@ -58,9 +58,9 @@ install:
   - sh: "ls /usr/"
   # install latest maven which is compatible with jdk17
   - sh: "sudo apt-get -y remove maven"
-  - sh: "wget https://dlcdn.apache.org/maven/maven-3/3.9.11/binaries/apache-maven-3.9.11-bin.zip -P /tmp"
+  - sh: "wget https://dlcdn.apache.org/maven/maven-3/3.9.12/binaries/apache-maven-3.9.12-bin.zip -P /tmp"
   - sh: "sudo unzip -d /opt/mvn /tmp/apache-maven-*.zip"
-  - sh: "PATH=/opt/mvn/apache-maven-3.9.11/bin:$PATH"
+  - sh: "PATH=/opt/mvn/apache-maven-3.9.12/bin:$PATH"
   - sh: "mvn --version"
 
   # Finch Runtime Setup (Steps 1-7)
@@ -237,11 +237,11 @@ install:
   - sh: "npm install npm@10.2.3 -g"
   - sh: "npm -v"
 
-  # Install latest gradle
+  # Install latest gradle comptabile with Java 25
   - sh: "sudo apt-get -y remove gradle"
-  - sh: "wget https://services.gradle.org/distributions/gradle-9.0.0-bin.zip -P /tmp"
+  - sh: "wget https://services.gradle.org/distributions/gradle-9.2.0-bin.zip -P /tmp"
   - sh: "sudo unzip -d /opt/gradle /tmp/gradle-*.zip"
-  - sh: "PATH=/opt/gradle/gradle-9.0.0/bin:$PATH"
+  - sh: "PATH=/opt/gradle/gradle-9.2.0/bin:$PATH"
   - sh: "gradle --version"
 
   # Install dotnet8 SDK
@@ -253,7 +253,16 @@ install:
   - sh: "./aws_cli/bin/python -m pip install awscli"
   - sh: "PATH=$(echo $PWD'/aws_cli/bin'):$PATH"
 
-  - sh: "PATH=$PATH:$HOME/venv3.7/bin:$HOME/venv3.8/bin:$HOME/venv3.9/bin:$HOME/venv3.10/bin:$HOME/venv3.11/bin:$HOME/venv3.12/bin:$HOME/venv3.13/bin"
+  # install python 3.14
+  - sh: |
+      DEST="$HOME/venv3.14"
+      URL="https://github.com/astral-sh/python-build-standalone/releases/download/20251031/cpython-3.14.0+20251031-x86_64-unknown-linux-gnu-install_only.tar.gz"
+      curl -L "$URL" | tar -xz
+      mv python $DEST
+      $HOME/venv3.14/bin/python --version
+      $HOME/venv3.14/bin/pip --version
+
+  - sh: "PATH=$PATH:$HOME/venv3.7/bin:$HOME/venv3.8/bin:$HOME/venv3.9/bin:$HOME/venv3.10/bin:$HOME/venv3.11/bin:$HOME/venv3.12/bin:$HOME/venv3.13/bin:$HOME/venv3.14/bin"
 
   # update ca-certificates which causes failures with newest golang library
   - sh: "sudo apt-get install --reinstall ca-certificates"
@@ -295,6 +304,8 @@ install:
   - sh: 'export AWS_KMS_KEY=$(echo "$test_env_var" | jq -j ".TestKMSKeyArn")'
   - sh: 'export AWS_SIGNING_PROFILE_NAME=$(echo "$test_env_var" | jq -j ".TestSigningProfileName")'
   - sh: 'export AWS_SIGNING_PROFILE_VERSION_ARN=$(echo "$test_env_var" | jq -j ".TestSigningProfileARN")'
+  - sh: 'export LMI_SUBNET_ID=$(echo "$test_env_var" | jq -j ".LMISubnetId")'
+  - sh: 'export LMI_SECURITY_GROUP_ID=$(echo "$test_env_var" | jq -j ".LMISecurityGroupId")'
 
   # Runtime-aware Docker Hub authentication with fail-fast
   - sh: |
@@ -444,8 +455,9 @@ for:
 
     test_script:
       # Install Ruby for Ruby build tests
+      - sh: "git -C ~/.rbenv/plugins/ruby-build pull"
       - sh: "rbenv install 3.3.7"
-      - sh: "rbenv install 3.4.2"
+      - sh: "rbenv install 3.4.7"
       - sh: "rbenv install 3.2.7"
       - sh: "rbenv global 3.3.7"
       - sh: "ruby --version"
@@ -465,8 +477,9 @@ for:
 
     test_script:
       # Install Ruby for Ruby ARM64 build tests
+      - sh: "git -C ~/.rbenv/plugins/ruby-build pull"
       - sh: "rbenv install 3.3.7"
-      - sh: "rbenv install 3.4.2"
+      - sh: "rbenv install 3.4.7"
       - sh: "rbenv install 3.2.7"
       - sh: "rbenv global 3.3.7"
       - sh: "ruby --version"
@@ -510,8 +523,9 @@ for:
 
     test_script:
       # Install Ruby for Ruby sync tests
+      - sh: "git -C ~/.rbenv/plugins/ruby-build pull"
       - sh: "rbenv install 3.3.7"
-      - sh: "rbenv install 3.4.2"
+      - sh: "rbenv install 3.4.7"
       - sh: "rbenv install 3.2.7"
       - sh: "rbenv global 3.3.7"
       - sh: "ruby --version"
@@ -556,8 +570,9 @@ for:
 
     test_script:
       # Install Ruby for Ruby validation and other tests
+      - sh: "git -C ~/.rbenv/plugins/ruby-build pull"
       - sh: "rbenv install 3.3.7"
-      - sh: "rbenv install 3.4.2"
+      - sh: "rbenv install 3.4.7"
       - sh: "rbenv install 3.2.7"
       - sh: "rbenv global 3.3.7"
       - sh: "ruby --version"

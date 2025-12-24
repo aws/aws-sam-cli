@@ -29,7 +29,11 @@ RUNNING_ON_CI = RUNNING_ON_APPVEYOR or RUNNING_ON_GITHUB_ACTIONS
 RUNNING_TEST_FOR_MASTER_ON_CI = (
     os.environ.get("APPVEYOR_REPO_BRANCH", os.environ.get("GITHUB_REF_NAME", "master")) != "master"
 )
-CI_OVERRIDE = os.environ.get("APPVEYOR_CI_OVERRIDE", False) or os.environ.get("CI_OVERRIDE", False)
+CI_OVERRIDE = (
+    os.environ.get("APPVEYOR_CI_OVERRIDE", False)
+    or os.environ.get("CI_OVERRIDE", False)
+    or os.environ.get("GITHUB_ACTIONS_INTEG", False)
+)
 RUN_BY_CANARY = os.environ.get("BY_CANARY", False)
 USING_FINCH_RUNTIME = os.environ.get("CONTAINER_RUNTIME") == "finch"
 
@@ -60,6 +64,38 @@ def get_sam_command():
     if windows_bin_path:
         return windows_bin_path
     return "samdev" if os.getenv("SAM_CLI_DEV") else "sam"
+
+
+def get_build_command_list(
+    template_path=None,
+    cached=None,
+    parallel=None,
+    use_container=None,
+    build_dir=None,
+    build_in_source=None,
+):
+    """Get command list for sam build with common options."""
+    command_list = [get_sam_command(), "build"]
+
+    if template_path:
+        command_list.extend(["-t", str(template_path)])
+
+    if cached:
+        command_list.append("-c")
+
+    if parallel:
+        command_list.append("-p")
+
+    if use_container:
+        command_list.append("-u")
+
+    if build_dir:
+        command_list.extend(["-b", str(build_dir)])
+
+    if build_in_source:
+        command_list.append("--build-in-source")
+
+    return command_list
 
 
 def method_to_stack_name(method_name):

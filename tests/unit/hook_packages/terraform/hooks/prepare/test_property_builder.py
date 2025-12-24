@@ -12,6 +12,7 @@ from samcli.hook_packages.terraform.hooks.prepare.property_builder import (
     _build_lambda_function_image_config_property,
     _check_image_config_value,
     _get_cors_v2_api,
+    _build_capacity_provider_config_property,
 )
 from samcli.hook_packages.terraform.hooks.prepare.constants import REMOTE_DUMMY_VALUE
 
@@ -248,3 +249,90 @@ class TestTerraformPropBuilder(PrepareHookUnitBase):
     def test_get_cors_v2_api(self, tf_properties, expected):
         response = _get_cors_v2_api(tf_properties, Mock())
         self.assertEqual(response, expected)
+
+    @parameterized.expand(
+        [
+            (
+                # Full capacity provider config with all optional fields
+                {
+                    "capacity_provider_config": [
+                        {
+                            "lambda_managed_instances_capacity_provider_config": [
+                                {
+                                    "capacity_provider_arn": "arn:aws:lambda:us-east-1:123456789012:capacity-provider/test",
+                                    "per_execution_environment_max_concurrency": 10,
+                                    "execution_environment_memory_gib_per_vcpu": 2.0,
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "LambdaManagedInstancesCapacityProviderConfig": {
+                        "CapacityProviderArn": "arn:aws:lambda:us-east-1:123456789012:capacity-provider/test",
+                        "PerExecutionEnvironmentMaxConcurrency": 10,
+                        "ExecutionEnvironmentMemoryGiBPerVCpu": 2.0,
+                    }
+                },
+            ),
+            (
+                # Minimal capacity provider config with only required field
+                {
+                    "capacity_provider_config": [
+                        {
+                            "lambda_managed_instances_capacity_provider_config": [
+                                {
+                                    "capacity_provider_arn": "arn:aws:lambda:us-east-1:123456789012:capacity-provider/test",
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "LambdaManagedInstancesCapacityProviderConfig": {
+                        "CapacityProviderArn": "arn:aws:lambda:us-east-1:123456789012:capacity-provider/test",
+                    }
+                },
+            ),
+            (
+                # Capacity provider config with only max concurrency
+                {
+                    "capacity_provider_config": [
+                        {
+                            "lambda_managed_instances_capacity_provider_config": [
+                                {
+                                    "capacity_provider_arn": "arn:aws:lambda:us-east-1:123456789012:capacity-provider/test",
+                                    "per_execution_environment_max_concurrency": 100,
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "LambdaManagedInstancesCapacityProviderConfig": {
+                        "CapacityProviderArn": "arn:aws:lambda:us-east-1:123456789012:capacity-provider/test",
+                        "PerExecutionEnvironmentMaxConcurrency": 100,
+                    }
+                },
+            ),
+            # No capacity provider config
+            ({}, None),
+            ({"capacity_provider_config": None}, None),
+            ({"capacity_provider_config": []}, None),
+            # Empty nested config
+            ({"capacity_provider_config": [{}]}, None),
+            (
+                {"capacity_provider_config": [{"lambda_managed_instances_capacity_provider_config": None}]},
+                None,
+            ),
+            (
+                {"capacity_provider_config": [{"lambda_managed_instances_capacity_provider_config": []}]},
+                None,
+            ),
+        ]
+    )
+    def test_build_capacity_provider_config_property(self, tf_properties, expected):
+        """Test building CapacityProviderConfig property from Terraform properties"""
+        resource_mock = Mock()
+        result = _build_capacity_provider_config_property(tf_properties, resource_mock)
+        self.assertEqual(result, expected)

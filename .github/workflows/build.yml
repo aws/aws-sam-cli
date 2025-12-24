@@ -64,7 +64,7 @@ jobs:
         mkdir "D:\\Temp"
         echo "TEMP=D:\\Temp" >> $env:GITHUB_ENV  
       if: ${{ matrix.os == 'windows-latest' }}
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python }}
@@ -79,7 +79,7 @@ jobs:
       contents: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         name: Install Python 3.11
         with:
@@ -120,7 +120,7 @@ jobs:
         # folders that is commented below requires credentials, no need to spare time to run them
         tests_config:
           - name: "integ-buildcmd-arm64"
-            params: "-n 2 --reruns 3  tests/integration/buildcmd/test_build_cmd_arm64.py"
+            params: "-n 2 --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py"
           - name: "integ-buildcmd-main"
             params: "-n 2 --reruns 3 tests/integration/buildcmd/test_build_cmd_dotnet.py tests/integration/buildcmd/test_build_cmd_provided.py tests/integration/buildcmd/test_build_cmd_rust.py tests/integration/buildcmd/test_build_cmd_python.py tests/integration/buildcmd/test_build_cmd_node.py"
           - name: "integ-buildcmd-java"
@@ -139,7 +139,7 @@ jobs:
           #- "traces"
           #- "validate"
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Set TEMP to D:/Temp
         run: |
           mkdir "D:\\Temp"
@@ -154,6 +154,7 @@ jobs:
             3.11
             3.12
             3.13
+            3.14
             ${{ matrix.python }}
           cache: 'pip'
       - uses: actions/setup-go@v6
@@ -173,6 +174,10 @@ jobs:
             11
             17
             21
+            25
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
        # Install and configure Rust & Cargo Lambda
       - name: Install and configure Rust & Cargo Lambda
         if: ${{ matrix.os == 'ubuntu-latest' }}
@@ -228,7 +233,7 @@ jobs:
             params: "-n 4 tests/smoke tests/functional"
             env_vars: "third-third"
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Set TEMP to D:/Temp
         run: |
           mkdir "D:\\Temp"
@@ -258,7 +263,7 @@ jobs:
           - ubuntu-latest
           - windows-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Set TEMP to D:/Temp
         run: |
           mkdir "D:\\Temp"
@@ -268,6 +273,7 @@ jobs:
         with:
           # These are the versions of Python that correspond to the supported Lambda runtimes
           python-version: |
+            3.14
             3.9
             3.10
             3.11

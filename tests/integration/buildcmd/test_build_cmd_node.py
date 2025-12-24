@@ -13,6 +13,7 @@ from tests.testing_utils import (
 from tests.integration.buildcmd.build_integ_base import (
     BuildIntegNodeBase,
     BuildIntegEsbuildBase,
+    show_container_in_test_name,
 )
 
 
@@ -32,7 +33,9 @@ class TestBuildCommand_NodeFunctions_With_External_Manifest(BuildIntegNodeBase):
         [
             ("nodejs20.x",),
             ("nodejs22.x",),
-        ]
+            ("nodejs24.x",),
+        ],
+        name_func=show_container_in_test_name,
     )
     @pytest.mark.al2023
     def test_building_default_package_json_al2023(self, runtime):
@@ -46,7 +49,12 @@ class TestBuildCommand_EsbuildFunctions(BuildIntegEsbuildBase):
         [
             ("nodejs20.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", False, "x86_64"),
             ("nodejs20.x", "Esbuild/TypeScript", {"app.js", "app.js.map"}, "app.lambdaHandler", False, "x86_64"),
-        ]
+            ("nodejs22.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", False, "x86_64"),
+            ("nodejs22.x", "Esbuild/TypeScript", {"app.js", "app.js.map"}, "app.lambdaHandler", False, "x86_64"),
+            ("nodejs24.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", False, "x86_64"),
+            ("nodejs24.x", "Esbuild/TypeScript", {"app.js", "app.js.map"}, "app.lambdaHandler", False, "x86_64"),
+        ],
+        name_func=show_container_in_test_name,
     )
     @pytest.mark.al2023
     def test_building_default_package_json_al2023(
@@ -78,7 +86,40 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest(BuildIntegEsbuild
                 False,
                 "x86_64",
             ),
-        ]
+            (
+                "nodejs22.x",
+                "Esbuild/Node_without_manifest",
+                {"main.js", "main.js.map"},
+                "main.lambdaHandler",
+                False,
+                "x86_64",
+            ),
+            (
+                "nodejs22.x",
+                "Esbuild/TypeScript_without_manifest",
+                {"app.js", "app.js.map"},
+                "app.lambdaHandler",
+                False,
+                "x86_64",
+            ),
+            (
+                "nodejs24.x",
+                "Esbuild/Node_without_manifest",
+                {"main.js", "main.js.map"},
+                "main.lambdaHandler",
+                False,
+                "x86_64",
+            ),
+            (
+                "nodejs24.x",
+                "Esbuild/TypeScript_without_manifest",
+                {"app.js", "app.js.map"},
+                "app.lambdaHandler",
+                False,
+                "x86_64",
+            ),
+        ],
+        name_func=show_container_in_test_name,
     )
     @pytest.mark.al2023
     def test_building_default_package_json(
@@ -103,7 +144,12 @@ class TestBuildCommand_EsbuildFunctionProperties(BuildIntegEsbuildBase):
         [
             ("nodejs20.x", "../Esbuild/TypeScript", "app.lambdaHandler", "x86_64"),
             ("nodejs20.x", "../Esbuild/TypeScript", "nested/function/app.lambdaHandler", "x86_64"),
-        ]
+            ("nodejs22.x", "../Esbuild/TypeScript", "app.lambdaHandler", "x86_64"),
+            ("nodejs22.x", "../Esbuild/TypeScript", "nested/function/app.lambdaHandler", "x86_64"),
+            ("nodejs24.x", "../Esbuild/TypeScript", "app.lambdaHandler", "x86_64"),
+            ("nodejs24.x", "../Esbuild/TypeScript", "nested/function/app.lambdaHandler", "x86_64"),
+        ],
+        name_func=show_container_in_test_name,
     )
     @pytest.mark.al2023
     def test_environment_generates_sourcemap_al2023(self, runtime, code_uri, handler, architecture):
@@ -122,10 +168,13 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture(BuildIntegNodeB
     @parameterized.expand(
         [
             ("nodejs20.x", False, "x86_64"),
-            ("nodejs22.x", False, "x86_64"),
             ("nodejs20.x", "use_container", "x86_64"),
+            ("nodejs22.x", False, "x86_64"),
             ("nodejs22.x", "use_container", "x86_64"),
-        ]
+            ("nodejs24.x", False, "x86_64"),
+            ("nodejs24.x", "use_container", "x86_64"),
+        ],
+        name_func=show_container_in_test_name,
     )
     def test_building_default_package_json(self, runtime, use_container, architecture):
         self._test_with_default_package_json(runtime, use_container, self.test_data_path, architecture)

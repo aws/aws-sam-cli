@@ -91,13 +91,13 @@ def get_layer_subfolder(build_workflow: str) -> str:
         "python3.11": "python",
         "python3.12": "python",
         "python3.13": "python",
-        "nodejs4.3": "nodejs",
-        "nodejs6.10": "nodejs",
+        "python3.14": "python",
         "nodejs8.10": "nodejs",
         "nodejs16.x": "nodejs",
         "nodejs18.x": "nodejs",
         "nodejs20.x": "nodejs",
         "nodejs22.x": "nodejs",
+        "nodejs24.x": "nodejs",
         "ruby3.2": "ruby/lib",
         "ruby3.3": "ruby/lib",
         "ruby3.4": "ruby/lib",
@@ -105,8 +105,10 @@ def get_layer_subfolder(build_workflow: str) -> str:
         "java8.al2": "java",
         "java17": "java",
         "java21": "java",
+        "java25": "java",
         "dotnet6": "dotnet",
         "dotnet8": "dotnet",
+        "dotnet10": "dotnet",
         # User is responsible for creating subfolder in these workflows
         "makefile": "",
     }
@@ -162,15 +164,18 @@ def get_workflow_config(
         "python3.11": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
         "python3.12": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
         "python3.13": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
+        "python3.14": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
         "nodejs16.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "nodejs18.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "nodejs20.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "nodejs22.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
+        "nodejs24.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "ruby3.2": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
         "ruby3.3": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
         "ruby3.4": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
         "dotnet6": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
         "dotnet8": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
+        "dotnet10": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
         "go1.x": BasicWorkflowSelector(GO_MOD_CONFIG),
         # When Maven builder exists, add to this list so we can automatically choose a builder based on the supported
         # manifest
@@ -199,6 +204,14 @@ def get_workflow_config(
             ]
         ),
         "java21": ManifestWorkflowSelector(
+            [
+                # Gradle builder needs custom executable paths to find `gradlew` binary
+                JAVA_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
+                JAVA_KOTLIN_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
+                JAVA_MAVEN_CONFIG,
+            ]
+        ),
+        "java25": ManifestWorkflowSelector(
             [
                 # Gradle builder needs custom executable paths to find `gradlew` binary
                 JAVA_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),

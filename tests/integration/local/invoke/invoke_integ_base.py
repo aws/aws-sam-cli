@@ -5,7 +5,7 @@ from pathlib import Path
 from subprocess import Popen, PIPE, TimeoutExpired
 
 
-from tests.testing_utils import SKIP_DOCKER_MESSAGE, SKIP_DOCKER_TESTS, get_sam_command
+from tests.testing_utils import SKIP_DOCKER_MESSAGE, SKIP_DOCKER_TESTS, get_sam_command, get_build_command_list
 
 TIMEOUT = 300
 
@@ -13,13 +13,14 @@ TIMEOUT = 300
 @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
 class InvokeIntegBase(TestCase):
     template: Optional[Path] = None
+    template_subdir: str = "invoke"
 
     @classmethod
     def setUpClass(cls):
         cls.cmd = get_sam_command()
         cls.test_data_path = cls.get_integ_dir().joinpath("testdata")
         if cls.template:
-            cls.template_path = str(cls.test_data_path.joinpath("invoke", cls.template))
+            cls.template_path = str(cls.test_data_path.joinpath(cls.template_subdir, cls.template))
         cls.event_path = str(cls.test_data_path.joinpath("invoke", "event.json"))
         cls.event_utf8_path = str(cls.test_data_path.joinpath("invoke", "event_utf8.json"))
         cls.env_var_path = str(cls.test_data_path.joinpath("invoke", "vars.json"))
@@ -44,6 +45,9 @@ class InvokeIntegBase(TestCase):
         hook_name=None,
         beta_features=None,
         terraform_plan_file=None,
+        tenant_id=None,
+        container_host_interface=None,
+        durable_execution_name=None,
     ):
         command_list = [get_sam_command(), "local", "invoke", function_to_invoke]
 
@@ -89,36 +93,14 @@ class InvokeIntegBase(TestCase):
         if terraform_plan_file:
             command_list += ["--terraform-plan-file", terraform_plan_file]
 
-        return command_list
+        if tenant_id:
+            command_list = command_list + ["--tenant-id", tenant_id]
 
-    def get_build_command_list(
-        self,
-        template_path=None,
-        cached=None,
-        parallel=None,
-        use_container=None,
-        build_dir=None,
-        build_in_source=None,
-    ):
-        command_list = [self.cmd, "build"]
+        if container_host_interface:
+            command_list = command_list + ["--container-host-interface", container_host_interface]
 
-        if template_path:
-            command_list = command_list + ["-t", template_path]
-
-        if cached:
-            command_list = command_list + ["-c"]
-
-        if parallel:
-            command_list = command_list + ["-p"]
-
-        if use_container:
-            command_list = command_list + ["-u"]
-
-        if build_dir:
-            command_list = command_list + ["-b", build_dir]
-
-        if build_in_source:
-            command_list = command_list + ["--build-in-source"]
+        if durable_execution_name:
+            command_list = command_list + ["--durable-execution-name", durable_execution_name]
 
         return command_list
 
