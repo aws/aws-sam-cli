@@ -10,9 +10,6 @@ Parameters:
   SecurityGroupId:
     Type: String
     Description: Security Group ID from infrastructure stack
-  OperatorRoleArn:
-    Type: String
-    Description: Operator Role ARN from infrastructure stack
   
 Resources:
   HelloWorldCapacityProvider:
@@ -23,7 +20,6 @@ Resources:
             - !Ref SecurityGroupId
           SubnetIds:
             - !Ref SubnetId
-        OperatorRole: !Ref OperatorRoleArn
         
   HelloWorldCapacityProviderFunction:
     Type: AWS::Serverless::Function

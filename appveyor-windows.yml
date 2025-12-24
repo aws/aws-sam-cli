@@ -114,7 +114,6 @@ install:
     $env:AWS_SIGNING_PROFILE_VERSION_ARN = $test_env_var_json.TestSigningProfileARN;
     $env:LMI_SUBNET_ID = $test_env_var_json.LMISubnetId;
     $env:LMI_SECURITY_GROUP_ID = $test_env_var_json.LMISecurityGroupId;
-    $env:LMI_OPERATOR_ROLE_ARN = $test_env_var_json.LMIOperatorRoleArn;
   }"
 
 
