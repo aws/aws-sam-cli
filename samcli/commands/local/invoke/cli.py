@@ -83,6 +83,11 @@ STDIN_FILE_NAME = "-"
     "Must be 1-256 characters, the allowed characters are a-z and A-Z, "
     "numbers, spaces, and the characters _ . : / = + - @",
 )
+@click.option(
+    "--durable-execution-name",
+    type=str,
+    help="Name for the durable execution (for durable functions only).",
+)
 @mount_symlinks_option
 @invoke_common_options
 @local_common_options
@@ -127,6 +132,7 @@ def cli(
     mount_symlinks,
     no_memory_limit,
     tenant_id,
+    durable_execution_name,
 ):
     """
     `sam local invoke` command entry point
@@ -161,6 +167,7 @@ def cli(
         mount_symlinks,
         no_memory_limit,
         tenant_id,
+        durable_execution_name,
     )  # pragma: no cover
 
 
@@ -192,6 +199,7 @@ def do_cli(  # pylint: disable=R0914
     mount_symlinks,
     no_mem_limit,
     tenant_id,
+    durable_execution_name,
 ):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
@@ -252,6 +260,7 @@ def do_cli(  # pylint: disable=R0914
                 stdout=context.stdout,
                 stderr=context.stderr,
                 override_runtime=runtime,
+                durable_execution_name=durable_execution_name,
             )
 
     except FunctionNotFound as ex:

@@ -613,7 +613,6 @@ class TestSyncInfraLMI(SyncIntegBase):
         cls.parameter_overrides = {
             "SubnetId": os.environ.get("LMI_SUBNET_ID", ""),
             "SecurityGroupId": os.environ.get("LMI_SECURITY_GROUP_ID", ""),
-            "OperatorRoleArn": os.environ.get("LMI_OPERATOR_ROLE_ARN", ""),
         }
 
     def test_sync_infra_lmi_with_capacity_provider_config(self):

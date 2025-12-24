@@ -30,6 +30,7 @@ class StartApiIntegBaseClass(TestCase):
     layer_cache_base_dir: Optional[str] = None
     disable_authorizer: Optional[bool] = False
     config_file: Optional[str] = None
+    container_host_interface: Optional[str] = None
     # container_labels no longer needed - container IDs are parsed from output
 
     build_before_invoke = False
@@ -117,6 +118,9 @@ class StartApiIntegBaseClass(TestCase):
 
         if cls.disable_authorizer:
             command_list += ["--disable-authorizer"]
+
+        if cls.container_host_interface:
+            command_list += ["--container-host-interface", cls.container_host_interface]
 
         # Container labels are no longer needed - container IDs are parsed from output
 

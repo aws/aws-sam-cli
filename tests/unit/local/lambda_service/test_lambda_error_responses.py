@@ -96,3 +96,16 @@ class TestLambdaErrorResponses(TestCase):
             {"x-amzn-errortype": "MethodNotAllowedLocally", "Content-Type": "application/json"},
             405,
         )
+
+    @patch("samcli.local.services.base_local_service.BaseLocalService.service_response")
+    def test_durable_execution_not_found(self, service_response_mock):
+        service_response_mock.return_value = "DurableExecutionNotFound"
+
+        response = LambdaErrorResponses.durable_execution_not_found("test-arn")
+
+        self.assertEqual(response, "DurableExecutionNotFound")
+        service_response_mock.assert_called_once_with(
+            '{"Type": "User", "Message": "Durable execution not found: test-arn"}',
+            {"x-amzn-errortype": "ResourceNotFound", "Content-Type": "application/json"},
+            404,
+        )
