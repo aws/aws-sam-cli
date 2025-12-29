@@ -1,5 +1,5 @@
 chevron~=0.12
-click==8.1.8
+click==8.3.1
 Flask<3.2
 boto3[crt]==1.42.1
 jmespath~=1.0.1
