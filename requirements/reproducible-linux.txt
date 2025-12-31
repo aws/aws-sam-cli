@@ -84,9 +84,9 @@ boto3[crt]==1.42.1 \
     # via
     #   aws-sam-cli (setup.py)
     #   aws-sam-translator
-boto3-stubs[apigateway,cloudformation,ecr,iam,kinesis,lambda,s3,schemas,secretsmanager,signer,sqs,stepfunctions,sts,xray]==1.42.17 \
-    --hash=sha256:773a41e3249acb64d06558e1fa2fc44a09152dad2dce0c8bc61c3b49b00ce905 \
-    --hash=sha256:847567107d658aa0143dd09074bba9cb646453251a86fb96c5fe12b3b0e504ee
+boto3-stubs[apigateway,cloudformation,ecr,iam,kinesis,lambda,s3,schemas,secretsmanager,signer,sqs,stepfunctions,sts,xray]==1.42.19 \
+    --hash=sha256:9c22e9c591dc39d7f12e77148e7e52268d11f45ec356cdc4204ba412e5c902a1 \
+    --hash=sha256:d7035ed6d9c4ade5ba48bc024e0511d09b7bc2f800f183dc862c9e44291ee1d3
     # via aws-sam-cli (setup.py)
 botocore[crt]==1.42.1 \
     --hash=sha256:3337df815c69dd87c314ee29329b8ea411ad3562fb6563d139bbe085dac14ce0 \
@@ -94,9 +94,9 @@ botocore[crt]==1.42.1 \
     # via
     #   boto3
     #   s3transfer
-botocore-stubs==1.42.17 \
-    --hash=sha256:174c6fb6bb217fc45e017e37f40a56c8d60eb4e8123fb1595081ba95b3f15550 \
-    --hash=sha256:b58affbc979648c570822327d035e359279b5ea0d549ceb194be79aada552af2
+botocore-stubs==1.42.19 \
+    --hash=sha256:2fcae271af2a24cd46166246589b22c76b49ba30656b3b0c504b92a49fda1ca2 \
+    --hash=sha256:bdfc3ffe6487bcf9c8f66783ea370653ccd7c16950fa82a15f811e7e5ccaeeb0
     # via boto3-stubs
 certifi==2025.11.12 \
     --hash=sha256:97de8790030bbd5c2d96b7ec782fc2f7820ef8dba6db909ccf95449f2d062d4b \
