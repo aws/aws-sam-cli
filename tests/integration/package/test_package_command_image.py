@@ -371,7 +371,7 @@ class TestPackageImage(PackageIntegBase):
         except TimeoutExpired:
             process.kill()
             raise
-        
+
         process_stdout = stdout.strip().decode("utf-8")
         process_stderr = stderr.strip().decode("utf-8")
         self.assertEqual(0, process.returncode, f"Command failed. Stderr: {process_stderr}")
