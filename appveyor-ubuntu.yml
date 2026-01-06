@@ -244,9 +244,11 @@ install:
   - sh: "PATH=/opt/gradle/gradle-9.2.0/bin:$PATH"
   - sh: "gradle --version"
 
-  # Install dotnet8 SDK
+  # Install dotnet10 SDK (backwards compatible so it works to build all previous versions)
+  # https://learn.microsoft.com/en-us/dotnet/core/install/linux-ubuntu-install?tabs=dotnet10&pivots=os-linux-ubuntu-2204
+  - sh: "sudo add-apt-repository ppa:dotnet/backports"
   - sh: "sudo apt-get update"
-  - sh: "sudo apt-get install -y dotnet-sdk-8.0"
+  - sh: "sudo apt-get install -y dotnet-sdk-10.0"
 
   # Install AWS CLI
   - sh: "virtualenv aws_cli"
