@@ -6,7 +6,9 @@ from samcli.lib.build.workflow_config import (
     get_workflow_config,
     UnsupportedRuntimeException,
     UnsupportedBuilderException,
+    ConditionalWorkflowSelector,
 )
+from samcli.lib.build.workflows import PYTHON_PIP_CONFIG, PYTHON_UV_CONFIG
 from samcli.lib.telemetry.event import Event, EventTracker
 
 
@@ -178,3 +180,30 @@ class Test_get_workflow_config(TestCase):
             get_workflow_config(runtime, self.code_dir, self.project_dir)
 
         self.assertEqual(str(ctx.exception), "'foobar' runtime is not supported")
+
+
+class TestPythonUvWorkflowConfig(TestCase):
+    def setUp(self):
+        self.code_dir = ""
+        self.project_dir = ""
+        EventTracker.clear_trackers()
+
+    @patch("samcli.lib.build.workflow_config.is_experimental_enabled")
+    def test_python_uses_pip_when_uv_experimental_disabled(self, mock_experimental):
+        mock_experimental.return_value = False
+
+        result = get_workflow_config("python3.11", self.code_dir, self.project_dir)
+
+        self.assertEqual(result.language, "python")
+        self.assertEqual(result.dependency_manager, "pip")
+        self.assertEqual(result.manifest_name, "requirements.txt")
+
+    @patch("samcli.lib.build.workflow_config.is_experimental_enabled")
+    def test_python_uses_uv_when_experimental_enabled(self, mock_experimental):
+        mock_experimental.return_value = True
+
+        result = get_workflow_config("python3.11", self.code_dir, self.project_dir)
+
+        self.assertEqual(result.language, "python")
+        self.assertEqual(result.dependency_manager, "uv")
+        self.assertEqual(result.manifest_name, "pyproject.toml")

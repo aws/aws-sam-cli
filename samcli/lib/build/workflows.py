@@ -24,6 +24,15 @@ PYTHON_PIP_CONFIG = CONFIG(
     must_mount_with_write_in_container=False,
 )
 
+PYTHON_UV_CONFIG = CONFIG(
+    language="python",
+    dependency_manager="uv",
+    application_framework=None,
+    manifest_name="pyproject.toml",
+    executable_search_paths=None,
+    must_mount_with_write_in_container=False,
+)
+
 NODEJS_NPM_CONFIG = CONFIG(
     language="nodejs",
     dependency_manager="npm",
@@ -117,6 +126,7 @@ RUST_CARGO_LAMBDA_CONFIG = CONFIG(
 
 ALL_CONFIGS: List[CONFIG] = [
     PYTHON_PIP_CONFIG,
+    PYTHON_UV_CONFIG,
     NODEJS_NPM_CONFIG,
     RUBY_BUNDLER_CONFIG,
     JAVA_GRADLE_CONFIG,
