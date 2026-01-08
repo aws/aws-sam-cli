@@ -34,6 +34,7 @@ class TestRuntime(TestCase):
             ("go1.x", "go:1"),
             ("dotnet6", "dotnet:6-x86_64"),
             ("dotnet8", "dotnet:8-x86_64"),
+            ("dotnet10", "dotnet:10-x86_64"),
             ("provided", "provided:alami"),
             ("provided.al2", "provided:al2-x86_64"),
             ("provided.al2023", "provided:al2023-x86_64"),

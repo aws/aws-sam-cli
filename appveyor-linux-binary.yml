@@ -46,9 +46,9 @@ install:
   - sh: "ls /usr/"
   # install latest maven which is compatible with jdk17
   - sh: "sudo apt-get -y remove maven"
-  - sh: "wget https://dlcdn.apache.org/maven/maven-3/3.9.11/binaries/apache-maven-3.9.11-bin.zip -P /tmp"
+  - sh: "wget https://dlcdn.apache.org/maven/maven-3/3.9.12/binaries/apache-maven-3.9.12-bin.zip -P /tmp"
   - sh: "sudo unzip -d /opt/mvn /tmp/apache-maven-*.zip"
-  - sh: "PATH=/opt/mvn/apache-maven-3.9.11/bin:$PATH"
+  - sh: "PATH=/opt/mvn/apache-maven-3.9.12/bin:$PATH"
   - sh: "mvn --version"
 
   - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
@@ -71,9 +71,11 @@ install:
   - sh: "PATH=/opt/gradle/gradle-9.0.0/bin:$PATH"
   - sh: "gradle --version"
 
-  # Install dotnet8 SDK
+  # Install dotnet10 SDK (backwards compatible so it works to build all previous versions)
+  # https://learn.microsoft.com/en-us/dotnet/core/install/linux-ubuntu-install?tabs=dotnet10&pivots=os-linux-ubuntu-2204
+  - sh: "sudo add-apt-repository ppa:dotnet/backports"
   - sh: "sudo apt-get update"
-  - sh: "sudo apt-get install -y dotnet-sdk-8.0"
+  - sh: "sudo apt-get install -y dotnet-sdk-10.0"
 
   # Install AWS CLI
   - sh: "virtualenv aws_cli"

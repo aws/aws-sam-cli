@@ -40,7 +40,7 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
     ],
     "nodejs": [
         {
-            "runtimes": ["nodejs22.x", "nodejs20.x", "nodejs18.x", "nodejs16.x"],
+            "runtimes": ["nodejs24.x", "nodejs22.x", "nodejs20.x", "nodejs18.x", "nodejs16.x"],
             "dependency_manager": "npm",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-nodejs"),
             "build": True,
@@ -48,7 +48,7 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
     ],
     "dotnet": [
         {
-            "runtimes": ["dotnet8", "dotnet6"],
+            "runtimes": ["dotnet10", "dotnet8", "dotnet6"],
             "dependency_manager": "cli-package",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-dotnet"),
             "build": True,
@@ -107,6 +107,7 @@ SUPPORTED_DEP_MANAGERS: List[str] = sorted(
 # Runtimes are ordered in alphabetical fashion with reverse version order (latest versions first)
 INIT_RUNTIMES = [
     # dotnet runtimes in descending order
+    "dotnet10",
     "dotnet8",
     "dotnet6",
     # go runtimes in descending order
@@ -118,6 +119,7 @@ INIT_RUNTIMES = [
     "java11",
     "java8.al2",
     # nodejs runtimes in descending order
+    "nodejs24.x",
     "nodejs22.x",
     "nodejs20.x",
     "nodejs18.x",
@@ -142,6 +144,7 @@ INIT_RUNTIMES = [
 
 
 LAMBDA_IMAGES_RUNTIMES_MAP = {
+    "dotnet10": "amazon/dotnet10-base",
     "dotnet8": "amazon/dotnet8-base",
     "dotnet6": "amazon/dotnet6-base",
     "go1.x": "amazon/go1.x-base",
@@ -152,6 +155,7 @@ LAMBDA_IMAGES_RUNTIMES_MAP = {
     "java17": "amazon/java17-base",
     "java11": "amazon/java11-base",
     "java8.al2": "amazon/java8.al2-base",
+    "nodejs24.x": "amazon/nodejs24.x-base",
     "nodejs22.x": "amazon/nodejs22.x-base",
     "nodejs20.x": "amazon/nodejs20.x-base",
     "nodejs18.x": "amazon/nodejs18.x-base",
@@ -188,6 +192,7 @@ SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING = {
     "python3.14": "Python36",
     "dotnet6": "dotnet6",
     "dotnet8": "dotnet6",
+    "dotnet10": "dotnet6",
     "go1.x": "Go1",
     "provided.al2": "Go1",
 }

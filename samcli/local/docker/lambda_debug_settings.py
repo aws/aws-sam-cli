@@ -111,6 +111,10 @@ class LambdaDebugSettings:
                 entry + ["/var/runtime/bootstrap"] + debug_args_list,
                 container_env_vars={"_AWS_LAMBDA_DOTNET_DEBUGGING": "1", **_container_env_vars},
             ),
+            Runtime.dotnet10.value: lambda: DebugSettings(
+                entry + ["/var/runtime/bootstrap"] + debug_args_list,
+                container_env_vars={"_AWS_LAMBDA_DOTNET_DEBUGGING": "1", **_container_env_vars},
+            ),
             Runtime.go1x.value: lambda: DebugSettings(
                 entry,
                 container_env_vars={
@@ -174,6 +178,20 @@ class LambdaDebugSettings:
                     "/var/runtime:/var/task",
                     "NODE_OPTIONS": f"--inspect-brk=0.0.0.0:{str(debug_port)} --max-http-header-size 81920",
                     "AWS_EXECUTION_ENV": "AWS_Lambda_nodejs22.x",
+                    **_container_env_vars,
+                },
+            ),
+            Runtime.nodejs24x.value: lambda: DebugSettings(
+                entry
+                + ["/var/lang/bin/node"]
+                + debug_args_list
+                + ["--no-lazy", "--expose-gc"]
+                + ["/var/runtime/index.mjs"],
+                container_env_vars={
+                    "NODE_PATH": "/opt/nodejs/node_modules:/opt/nodejs/node24/node_modules:/var/runtime/node_modules:"
+                    "/var/runtime:/var/task",
+                    "NODE_OPTIONS": f"--inspect-brk=0.0.0.0:{str(debug_port)} --max-http-header-size 81920",
+                    "AWS_EXECUTION_ENV": "AWS_Lambda_nodejs24.x",
                     **_container_env_vars,
                 },
             ),

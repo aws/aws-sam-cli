@@ -1,8 +1,10 @@
 import json
+import os
 import uuid
+from unittest import skipIf
 
 from tests.integration.remote.invoke.remote_invoke_integ_base import RemoteInvokeIntegBase
-from tests.testing_utils import run_command
+from tests.testing_utils import run_command, RUNNING_ON_CI
 
 from pathlib import Path
 import pytest
@@ -101,3 +103,40 @@ class TestInvokeResponseStreamingLambdas(RemoteInvokeIntegBase):
 
         response_event_stream = remote_invoke_result_stdout["EventStream"]
         self.assertEqual(response_event_stream, expected_output_result)
+
+
+@skipIf(RUNNING_ON_CI, "Skip LMI tests when running on canary")
+class TestInvokeResponseStreamingCapacityProvider(RemoteInvokeIntegBase):
+    template = Path("template-lambda-response-capacity-provider-stream-fn.yaml")
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.stack_name = f"{cls.__name__}-{uuid.uuid4().hex}"
+        # LMI is Lambda Managed Instance
+        assert os.environ.get("LMI_SUBNET_ID"), "LMI_SUBNET_ID environment variable must be set"
+        assert os.environ.get("LMI_SECURITY_GROUP_ID"), "LMI_SECURITY_GROUP_ID environment variable must be set"
+        assert os.environ.get("LMI_OPERATOR_ROLE_ARN"), "LMI_OPERATOR_ROLE_ARN environment variable must be set"
+
+        # Read LMI infrastructure from environment variables
+        cls.parameter_overrides = {
+            "SubnetId": os.environ.get("LMI_SUBNET_ID", ""),
+            "SecurityGroupId": os.environ.get("LMI_SECURITY_GROUP_ID", ""),
+        }
+        cls.create_resources_and_boto_clients()
+
+    def test_invoke_with_only_event_provided(self):
+        command_list = self.get_command_list(
+            stack_name=self.stack_name,
+            resource_id="NodeStreamingFunction",
+            event='{"key1": "Hello", "key2": "serverless", "key3": "world"}',
+        )
+
+        remote_invoke_result = run_command(command_list)
+
+        expected_streamed_responses = "LambdaFunctionStreamingResponsesTestDone!"
+        remote_invoke_result = run_command(command_list)
+
+        self.assertEqual(0, remote_invoke_result.process.returncode)
+        remote_invoke_result_stdout = remote_invoke_result.stdout.strip().decode()
+        self.assertIn(expected_streamed_responses, remote_invoke_result_stdout)

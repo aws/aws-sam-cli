@@ -13,6 +13,7 @@ from unittest.mock import Mock, patch
 import docker
 from parameterized import parameterized
 
+from samcli.cli.global_config import GlobalConfig
 from samcli.local.docker.container_client import (
     ContainerClient,
     DockerContainerClient,
@@ -33,7 +34,7 @@ class BaseContainerClientTestCase(TestCase):
         self.finch_socket = "unix:///tmp/finch.sock"
         self.docker_socket = "unix:///var/run/docker.sock"
         self.docker_version = DOCKER_MIN_API_VERSION
-        self.finch_version = "1.35"  # TODO: Update when Finch updates to latest Docker API version
+        self.finch_version = DOCKER_MIN_API_VERSION  # TODO: Update when Finch updates to latest Docker API version
 
     def create_mock_container_client(self, client_class, methods_to_bind=None):
         """Create a mock container client with bound methods for testing."""
@@ -95,6 +96,9 @@ class BaseContainerClientTestCase(TestCase):
 class ConcreteContainerClient(ContainerClient):
     """Concrete implementation of ContainerClient for testing purposes"""
 
+    def is_available(self):
+        return True
+
     def get_socket_path(self):
         return "unix:///var/run/docker.sock"
 
@@ -135,6 +139,7 @@ class TestContainerClientAbstractClass(TestCase):
     def test_abstract_methods_defined(self):
         """Test that all required abstract methods are defined"""
         abstract_methods = {
+            "is_available",
             "get_runtime_type",
             "get_socket_path",
             "load_image_from_archive",
@@ -721,7 +726,7 @@ class TestContainerClientBaseInit(BaseContainerClientTestCase):
     def test_init_no_overrides(self, mock_log, mock_docker_init):
         """Test ContainerClient init with no environment overrides"""
         with patch.dict("os.environ", {}, clear=True):
-            client = ConcreteContainerClient(client_version=self.docker_version)
+            client = ConcreteContainerClient()
 
         # Verify DockerClient.__init__ was called with expected parameters
         mock_docker_init.assert_called_once()
@@ -736,7 +741,7 @@ class TestContainerClientBaseInit(BaseContainerClientTestCase):
         override_url = "unix:///tmp/finch.sock"
 
         with patch.dict("os.environ", {}, clear=True):
-            client = ConcreteContainerClient(client_version=self.docker_version, base_url=override_url)
+            client = ConcreteContainerClient(base_url=override_url)
 
         # Verify DockerClient.__init__ was called with expected parameters
         mock_docker_init.assert_called_once()
@@ -744,6 +749,19 @@ class TestContainerClientBaseInit(BaseContainerClientTestCase):
         self.assertEqual(call_kwargs["version"], self.docker_version)
         self.assertEqual(call_kwargs["base_url"], override_url)
         self.assertTrue(mock_log.debug.called)
+
+    @patch("docker.DockerClient.__init__", return_value=None)
+    def test_init_with_api_override(self, mock_docker_init):
+        """Test ContainerClient init with api override"""
+        override_api = "1.51"
+
+        with patch.dict("os.environ", {GlobalConfig.DOCKER_API_ENV_VAR: override_api}, clear=True):
+            client = ConcreteContainerClient()
+
+        # Verify DockerClient.__init__ was called with expected parameters
+        mock_docker_init.assert_called_once()
+        call_kwargs = mock_docker_init.call_args.kwargs
+        self.assertEqual(call_kwargs["version"], override_api)
 
 
 class TestContainerClientBaseClass(TestCase):
@@ -755,7 +773,6 @@ class TestContainerClientBaseClass(TestCase):
         self.client = Mock(spec=ContainerClient)
 
         # Set up the methods we need to test
-        self.client.is_available = ContainerClient.is_available.__get__(self.client)
         self.client.is_finch = ContainerClient.is_finch.__get__(self.client)
         self.client.is_docker = ContainerClient.is_docker.__get__(self.client)
 
@@ -763,17 +780,35 @@ class TestContainerClientBaseClass(TestCase):
         self.client.ping = Mock(return_value=True)
         self.client.get_runtime_type = Mock(return_value="docker")
 
-    def test_is_available_success(self):
+    def test_is_available_finch_success(self):
         """Test is_available returns True when ping succeeds"""
         self.client.ping.return_value = True
+        # check finch
+        self.client.is_available = FinchContainerClient.is_available.__get__(self.client)
+        self.assertTrue(self.client.is_available())
+
+    def test_is_available_docker_success(self):
+        """Test is_available returns True when ping succeeds"""
+        self.client.ping.return_value = True
+        # check docker
+        self.client.is_available = DockerContainerClient.is_available.__get__(self.client)
         self.assertTrue(self.client.is_available())
 
     @patch("samcli.local.docker.container_client.LOG")
-    def test_is_available_failure(self, mock_log):
+    def test_is_available_finch_failure(self, mock_log):
         """Test is_available returns False when ping fails and logs debug"""
+        self.client.is_available = FinchContainerClient.is_available.__get__(self.client)
         self.client.ping.side_effect = Exception("Connection failed")
         self.assertFalse(self.client.is_available())
         mock_log.debug.assert_called_once()
+
+    @patch("samcli.local.docker.container_client.LOG")
+    def test_is_available_docker_failure(self, mock_log):
+        """Test is_available returns False when ping fails and logs debug"""
+        self.client.is_available = DockerContainerClient.is_available.__get__(self.client)
+        self.client.ping.side_effect = Exception("Connection failed")
+        self.assertFalse(self.client.is_available())
+        mock_log.debug.assert_called()
 
     @parameterized.expand(
         [

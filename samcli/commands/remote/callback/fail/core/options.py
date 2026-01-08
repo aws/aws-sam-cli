@@ -1,0 +1,19 @@
+"""
+Options configuration for remote callback fail command
+"""
+
+from typing import Dict
+
+from samcli.commands.common.callback.fail.options import (
+    COMMON_CALLBACK_FAIL_OPTIONS,
+    COMMON_CALLBACK_FAIL_OPTIONS_INFO,
+)
+from samcli.commands.remote.core.options import ALL_OPTIONS as REMOTE_CORE_OPTIONS
+from samcli.commands.remote.core.options import OPTIONS_INFO as REMOTE_CORE_OPTIONS_INFO
+
+# All options available for the remote fail command
+ALL_OPTIONS = COMMON_CALLBACK_FAIL_OPTIONS + REMOTE_CORE_OPTIONS
+
+# Options information for formatting help text
+OPTIONS_INFO: Dict[str, Dict] = COMMON_CALLBACK_FAIL_OPTIONS_INFO.copy()
+OPTIONS_INFO.update(REMOTE_CORE_OPTIONS_INFO)

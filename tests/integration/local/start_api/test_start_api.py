@@ -155,6 +155,38 @@ class TestServiceHTTP10(StartApiIntegBaseClass):
 
 
 @parameterized_class(
+    ("template_path",),
+    [
+        ("/testdata/start_api/template.yaml",),
+        ("/testdata/start_api/nested-templates/template-parent.yaml",),
+    ],
+)
+class TestServiceHTTP10LMI(StartApiIntegBaseClass):
+    """
+    Testing general requirements around the Service that powers `sam local start-api` with LMI
+    """
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+        self.current_svn_str = HTTPConnection._http_vsn_str
+        HTTPConnection._http_vsn_str = "HTTP/1.0"
+
+    def tearDown(self) -> None:
+        HTTPConnection._http_vsn_str = self.current_svn_str  # type: ignore
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_capacity_provider_api_http10(self):
+        response = requests.get(self.url + "/capacity-provider/anyandall", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        response_json = response.json()
+        self.assertEqual(response_json["message"], "Hello world capacity provider")
+        self.assertIn("max_concurrency", response_json)
+        self.assertEqual(response.raw.version, 11)
+
+
+@parameterized_class(
     ("template_path", "container_mode", "endpoint"),
     [
         ("/testdata/start_api/template.yaml", "LAZY", "/sleepfortenseconds/function1"),
@@ -458,6 +490,17 @@ class TestServiceWithHttpApi(StartApiIntegBaseClass):
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
+    def test_capacity_provider_http_api(self):
+        response = requests.get(self.url + "/capacity-provider/anyandall", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        response_json = response.json()
+        self.assertEqual(response_json["message"], "Hello world capacity provider")
+        self.assertIn("max_concurrency", response_json)
+        self.assertEqual(response.raw.version, 11)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
     def test_get_call_with_path_setup_with_any_implicit_api(self):
         """
         Get Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
@@ -618,6 +661,29 @@ class TestServiceWithHttpApi(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 500)
         self.assertEqual(response.json(), {"message": "Internal server error"})
         self.assertEqual(response.raw.version, 11)
+
+
+class TestMultiTenantStartApi(StartApiIntegBaseClass):
+    """
+    Test multi-tenant Lambda functions with start-api
+    """
+
+    template_path = "/testdata/start_api/template-http-api-multi-tenant.yaml"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_multi_tenant_function_http_api_with_tenant_id(self):
+        """Test multi-tenant function via HTTP API with tenant-id header"""
+        response = requests.get(
+            self.url + "/multi-tenant-http", headers={"X-Amz-Tenant-Id": "test-tenant-789"}, timeout=300
+        )
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["tenant_id"], "test-tenant-789")
 
 
 class TestStartApiWithSwaggerApis(StartApiIntegBaseClass):

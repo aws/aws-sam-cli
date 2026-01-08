@@ -39,7 +39,11 @@ DESCRIPTION = """
   Programmatically invoke your Lambda function locally using the AWS CLI or SDKs.
   Start a local endpoint that emulates the AWS Lambda service, and one can run their automated
   tests against this local Lambda endpoint. Invokes to this endpoint can be sent using the AWS CLI or
-  SDK and they will in turn locally execute the Lambda function specified in the request.\n
+  SDK and they will in turn locally execute the Lambda function specified in the request.
+
+  For testing multi-tenant functions, pass tenant-id via the TenantId parameter in Lambda API calls. By default, each 
+  invocation uses a new container providing tenant isolation. When using --warm-containers, containers are reused 
+  and do not provide tenant isolation like production Lambda.
 """
 
 

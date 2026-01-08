@@ -3,11 +3,13 @@ Class that provides functions from a given SAM template
 """
 
 import logging
+from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Tuple, cast
 
 from samtranslator.policy_template_processor.exceptions import TemplateNotFoundException
 
+from samcli.cli.context import Context
 from samcli.commands._utils.template import TemplateFailedParsingException
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
 from samcli.lib.build.exceptions import MissingFunctionHandlerException
@@ -303,8 +305,10 @@ class SamFunctionProvider(SamBaseProvider):
                 if SamFunctionProvider._should_include_function(function, function_logical_ids_set):
                     filtered_functions[full_path] = function
 
+            SamFunctionProvider._track_function_field_usage(filtered_functions)
             return filtered_functions
 
+        SamFunctionProvider._track_function_field_usage(result)
         return result
 
     @staticmethod
@@ -522,6 +526,10 @@ class SamFunctionProvider(SamBaseProvider):
             runtime_management_config=resource_properties.get("RuntimeManagementConfig"),
             function_build_info=function_build_info,
             logging_config=resource_properties.get("LoggingConfig"),
+            capacity_provider_config=resource_properties.get("CapacityProviderConfig", None),
+            publish_to_latest_published=resource_properties.get("PublishToLatestPublished", None),
+            tenancy_config=resource_properties.get("TenancyConfig"),
+            durable_config=resource_properties.get("DurableConfig", None),
         )
 
     @staticmethod
@@ -816,6 +824,57 @@ class SamFunctionProvider(SamBaseProvider):
         let AWS SAM CLI to build this image function.
         """
         return isinstance(metadata, dict) and bool(metadata.get("DockerContext"))
+
+    @staticmethod
+    def _track_function_field_usage(functions: Dict[str, Function]) -> None:
+        """
+        Track which function fields are being used across all functions.
+        Stores list of used fields in context for telemetry collection.
+
+        Parameters
+        ----------
+        functions : Dict[str, Function]
+            Dictionary of functions to analyze
+        """
+
+        exclude_fields = {
+            "function_id",
+            "name",
+            "functionname",
+            "runtime",
+            "memory",
+            "timeout",
+            "handler",
+            "packagetype",
+            "metadata",
+            "inlinecode",
+            "architectures",
+            "stack_path",
+            "function_build_info",
+            "rolearn",
+        }
+
+        used_fields: defaultdict[str, int] = defaultdict(int)
+        for function in functions.values():
+            try:
+                for field_name in function._fields:
+                    if field_name in exclude_fields:
+                        continue
+
+                    value = getattr(function, field_name)
+                    if value is not None and value not in ([], {}):
+                        used_fields[field_name] += 1
+            except (AttributeError, TypeError):
+                # Function object doesn't have _fields like we're expecting, probably for Mock in tests
+                continue
+
+        if used_fields:
+            try:
+                ctx = Context.get_current_context()
+                setattr(ctx, "function_fields_used", dict(used_fields))
+            except RuntimeError:
+                # No context available, skip telemetry
+                pass
 
 
 class RefreshableSamFunctionProvider(SamFunctionProvider):

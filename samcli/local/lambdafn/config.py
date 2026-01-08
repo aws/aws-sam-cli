@@ -33,6 +33,8 @@ class FunctionConfig:
         runtime_management_config=None,
         env_vars=None,
         code_real_path=None,
+        capacity_provider_configuration=None,
+        durable_config=None,
     ):
         """
         Parameters
@@ -67,6 +69,8 @@ class FunctionConfig:
         env_vars : str, optional
             Environment variables, by default None
              If it not provided, this class will generate one for you based on the function properties
+        capacity_provider_configuration : object, optional
+            Capacity provider configuration for lmi functions, by default None
 
         Raises
         ------
@@ -89,6 +93,8 @@ class FunctionConfig:
 
         self.timeout = timeout or self._DEFAULT_TIMEOUT_SECONDS
         self.runtime_management_config = runtime_management_config
+        self.capacity_provider_configuration = capacity_provider_configuration
+        self.durable_config = durable_config
 
         if not isinstance(self.timeout, int):
             try:

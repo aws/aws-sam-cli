@@ -142,7 +142,7 @@ def cli(ctx):
     if ctx and getattr(ctx, "command_path", None) == "samdev":
         from samcli.cli.import_module_proxy import attach_import_module_proxy
 
-        LOG.info("Attaching import module proxy for analyzing dynamic imports")
+        LOG.debug("Attaching import module proxy for analyzing dynamic imports")
         attach_import_module_proxy()
 
     gc = GlobalConfig()

@@ -26,7 +26,12 @@ from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.lib.utils.tar import create_tarball
 from samcli.local.common.file_lock import FileLock, cleanup_stale_locks
-from samcli.local.docker.utils import get_docker_platform, get_rapid_name, get_validated_container_client
+from samcli.local.docker.utils import (
+    get_docker_platform,
+    get_rapid_name,
+    get_tar_filter_for_windows,
+    get_validated_container_client,
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -40,6 +45,7 @@ class Runtime(Enum):
     nodejs18x = "nodejs18.x"
     nodejs20x = "nodejs20.x"
     nodejs22x = "nodejs22.x"
+    nodejs24x = "nodejs24.x"
     python38 = "python3.8"
     python39 = "python3.9"
     python310 = "python3.10"
@@ -58,6 +64,7 @@ class Runtime(Enum):
     go1x = "go1.x"
     dotnet6 = "dotnet6"
     dotnet8 = "dotnet8"
+    dotnet10 = "dotnet10"
     provided = "provided"
     providedal2 = "provided.al2"
     providedal2023 = "provided.al2023"
@@ -408,15 +415,8 @@ class LambdaImage:
             for layer in layers:
                 tar_paths[layer.codeuri] = "/" + layer.name
 
-            # Set permission for all the files in the tarball to 500(Read and Execute Only)
-            # This is need for systems without unix like permission bits(Windows) while creating a unix image
-            # Without setting this explicitly, tar will default the permission to 666 which gives no execute permission
-            def set_item_permission(tar_info):
-                tar_info.mode = 0o500
-                return tar_info
-
-            # Set only on Windows, unix systems will preserve the host permission into the tarball
-            tar_filter = set_item_permission if platform.system().lower() == "windows" else None
+            # Use shared tar filter for Windows compatibility
+            tar_filter = get_tar_filter_for_windows()
 
             with create_tarball(tar_paths, tar_filter=tar_filter, dereference=True) as tarballfile:
                 try:

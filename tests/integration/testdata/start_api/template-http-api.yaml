@@ -37,6 +37,51 @@ Resources:
           Properties:
             Method: GET
             Path: /proxypath/{proxy+}
+            
+  HelloWorldCapacityProvider:
+    Type: AWS::Serverless::CapacityProvider
+    Properties:
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref SecurityGroupId
+        SubnetIds:
+          - !Ref SubnetId
+      InstanceRequirements:
+        Architectures:
+          - x86_64
+      ScalingConfig:
+        MaxVCpuCount: 100
+
+  HelloWorldCapacityProviderFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.cap_pro_handler
+      Runtime: python3.9
+      FunctionName: customname
+      CodeUri: .
+      Timeout: 600
+      Events:
+        IdBasePath:
+          Type: HttpApi
+          Properties:
+            Method: POST
+            Path: /capacity-provider/id
+
+        PathWithAnyMethod:
+          Type: HttpApi
+          Properties:
+            Method: ANY
+            Path: /capacity-provider/anyandall
+
+        ProxyPath:
+          Type: HttpApi
+          Properties:
+            Method: GET
+            Path: /capacity-provider/proxypath/{proxy+}
+
+      CapacityProviderConfig:
+        Arn: !GetAtt HelloWorldCapacityProvider.Arn
+        PerExecutionEnvironmentMaxConcurrency: 10
 
   EchoEventFunction:
     Type: AWS::Serverless::Function

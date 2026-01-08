@@ -112,6 +112,8 @@ install:
     $env:AWS_KMS_KEY = $test_env_var_json.TestKMSKeyArn;
     $env:AWS_SIGNING_PROFILE_NAME = $test_env_var_json.TestSigningProfileName;
     $env:AWS_SIGNING_PROFILE_VERSION_ARN = $test_env_var_json.TestSigningProfileARN;
+    $env:LMI_SUBNET_ID = $test_env_var_json.LMISubnetId;
+    $env:LMI_SECURITY_GROUP_ID = $test_env_var_json.LMISecurityGroupId;
   }"
 
 

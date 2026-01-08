@@ -51,6 +51,7 @@ jobs:
           - local-invoke
           - local-start1
           - local-start2
+          - durable-functions
           - other-and-e2e
         exclude:
           # no-container mode only applies to build-integ test suites
@@ -67,11 +68,13 @@ jobs:
           - container_runtime: no-container
             test_suite: local-start2
           - container_runtime: no-container
+            test_suite: durable-functions
+          - container_runtime: no-container
             test_suite: other-and-e2e
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           # For scheduled runs, always use develop
           # For manual runs, use the branch from "Use workflow from" dropdown
@@ -105,13 +108,13 @@ jobs:
           fi
 
       - name: Configure AWS credentials via OIDC
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: ${{ secrets.OIDC_ROLE_ARN }}
           aws-region: us-east-1
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: |
             3.11
@@ -123,20 +126,20 @@ jobs:
 
       - name: Set up Node.js
         if: contains(fromJSON('["build-integ", "build-integ-java-python-provided", "build-integ-dotnet-node-ruby", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Set up Java 25
         if: (contains(fromJSON('["build-integ", "build-integ-java-python-provided", "build-integ-arm64", "build-integ-arm64-java"]'), matrix.test_suite) && matrix.container_runtime == 'no-container') || matrix.test_suite == 'sync'
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'corretto'
           java-version: '25'
 
       - name: Set up Go
         if: contains(fromJSON('["build-integ", "build-integ-java-python-provided", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container'
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: '1.25'
 
@@ -146,8 +149,8 @@ jobs:
           # Remove system Maven if it exists
           sudo apt-get remove -y maven || true
           
-          # Install Maven 3.9.11
-          wget https://dlcdn.apache.org/maven/maven-3/3.9.11/binaries/apache-maven-3.9.11-bin.zip -P /tmp
+          # Install Maven 3.9.12
+          wget https://dlcdn.apache.org/maven/maven-3/3.9.12/binaries/apache-maven-3.9.12-bin.zip -P /tmp
           sudo unzip -d /opt/mvn /tmp/apache-maven-*.zip
           
           # Install Gradle 9.2.0
@@ -155,26 +158,26 @@ jobs:
           sudo unzip -d /opt/gradle /tmp/gradle-*.zip
           
           # Create symlinks to ensure our Maven is used
-          sudo ln -sf /opt/mvn/apache-maven-3.9.11/bin/mvn /usr/local/bin/mvn
+          sudo ln -sf /opt/mvn/apache-maven-3.9.12/bin/mvn /usr/local/bin/mvn
           sudo ln -sf /opt/gradle/gradle-9.2.0/bin/gradle /usr/local/bin/gradle
           
           # Add to PATH (prepend to ensure our versions are used first)
-          echo "/opt/mvn/apache-maven-3.9.11/bin" >> $GITHUB_PATH
+          echo "/opt/mvn/apache-maven-3.9.12/bin" >> $GITHUB_PATH
           echo "/opt/gradle/gradle-9.2.0/bin" >> $GITHUB_PATH
           
           # Set MAVEN_HOME
-          echo "MAVEN_HOME=/opt/mvn/apache-maven-3.9.11" >> $GITHUB_ENV
+          echo "MAVEN_HOME=/opt/mvn/apache-maven-3.9.12" >> $GITHUB_ENV
           
           # Verify versions
-          export PATH="/opt/mvn/apache-maven-3.9.11/bin:/opt/gradle/gradle-9.2.0/bin:$PATH"
+          export PATH="/opt/mvn/apache-maven-3.9.12/bin:/opt/gradle/gradle-9.2.0/bin:$PATH"
           mvn --version
           gradle --version
 
-      - name: Install .NET 8 SDK
+      - name: Install .NET 10 SDK
         if: contains(fromJSON('["build-integ-java-python-provided", "build-integ-dotnet-node-ruby", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container' || matrix.test_suite == 'other-and-e2e'
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '10.0.x'
 
       - name: Set up Ruby 3.3.7
         if: (contains(fromJSON('["build-integ","build-integ-dotnet-node-ruby", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container') || matrix.test_suite == 'other-and-e2e'
@@ -374,13 +377,16 @@ jobs:
               pytest -vv tests/integration/sync -n 6 --reruns 3 --dist loadscope --json-report --json-report-file=TEST_REPORT-integration-sync-${{ matrix.container_runtime }}.json
               ;;
             "local-invoke")
-              pytest -vv --reruns 3 tests/integration/local/invoke tests/integration/local/generate_event --json-report --json-report-file=TEST_REPORT-integration-local-invoke-${{ matrix.container_runtime }}.json
+              pytest -vv --reruns 3 tests/integration/local/invoke tests/integration/local/generate_event --ignore tests/integration/local/invoke/test_invoke_durable.py --json-report --json-report-file=TEST_REPORT-integration-local-invoke-${{ matrix.container_runtime }}.json
               ;;
             "local-start1")
-              pytest -vv --reruns 3 tests/integration/local/start_api --ignore tests/integration/local/start_api/test_start_api_with_terraform_application.py --json-report --json-report-file=TEST_REPORT-integration-local-start1-${{ matrix.container_runtime }}.json
+              pytest -vv --reruns 3 tests/integration/local/start_api --ignore tests/integration/local/start_api/test_start_api_with_terraform_application.py --ignore tests/integration/local/start_api/test_start_api_durable.py --json-report --json-report-file=TEST_REPORT-integration-local-start1-${{ matrix.container_runtime }}.json
               ;;
             "local-start2")
-              pytest -vv --reruns 3 tests/integration/local/start_lambda tests/integration/local/start_api/test_start_api_with_terraform_application.py --json-report --json-report-file=TEST_REPORT-integration-local-start2-${{ matrix.container_runtime }}.json
+              pytest -vv --reruns 3 tests/integration/local/start_lambda tests/integration/local/start_api/test_start_api_with_terraform_application.py --ignore tests/integration/local/start_lambda/test_start_lambda_durable.py --json-report --json-report-file=TEST_REPORT-integration-local-start2-${{ matrix.container_runtime }}.json
+              ;;
+            "durable-functions")
+              pytest -vv --reruns 3 tests/integration/local/invoke/test_invoke_durable.py tests/integration/local/start_api/test_start_api_durable.py tests/integration/local/start_lambda/test_start_lambda_durable.py tests/integration/local/callback/test_callback.py tests/integration/local/execution/test_execution.py --json-report --json-report-file=TEST_REPORT-integration-durable-functions-${{ matrix.container_runtime }}.json
               ;;
             "other-and-e2e")
               pytest -vv -n 4 --reruns 4 --dist loadgroup tests/integration tests/end_to_end --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-others-${{ matrix.container_runtime }}.json
@@ -390,7 +396,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: test-results-${{ matrix.test_suite }}-${{ matrix.container_runtime }}
           path: TEST_REPORT-*.json
