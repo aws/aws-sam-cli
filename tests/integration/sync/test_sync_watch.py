@@ -2,6 +2,7 @@ import os
 import shutil
 import tempfile
 import time
+import unittest
 import uuid
 
 import logging
@@ -28,6 +29,7 @@ from tests.testing_utils import (
     RUNNING_ON_CI,
     RUNNING_TEST_FOR_MASTER_ON_CI,
     RUN_BY_CANARY,
+    SKIP_LMI_TESTS,
     kill_process,
     read_until_string,
     start_persistent_process,
@@ -56,6 +58,11 @@ class TestSyncWatchBase(SyncIntegBase):
     template_before = ""
     parameter_overrides: Dict[str, str] = {}
     watch_exclude: List[str] = []
+
+    @classmethod
+    def setUpClass(cls):
+        if not SKIP_SYNC_TESTS:
+            super().setUpClass()
 
     def setUp(self):
         # set up clean testing folder
@@ -863,7 +870,7 @@ class TestSyncWatchCodeWatchExclude(TestSyncWatchEsbuildBase):
             self.assertEqual(lambda_response.get("message"), "hello world")
 
 
-@skipIf(RUNNING_ON_CI, "Skip LMI tests when running on canary")
+@skipIf(SKIP_LMI_TESTS, "Skip LMI tests when running on canary")
 @parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
 @pytest.mark.timeout(600)  # 10 minutes timeout for LMI operations
 class TestSyncWatchCodeLMI(TestSyncWatchBase):
@@ -874,10 +881,11 @@ class TestSyncWatchCodeLMI(TestSyncWatchBase):
 
     @classmethod
     def setUpClass(cls) -> None:
+        if SKIP_LMI_TESTS:
+            return
         # Validate LMI environment variables are set
         assert os.environ.get("LMI_SUBNET_ID"), "LMI_SUBNET_ID environment variable must be set"
         assert os.environ.get("LMI_SECURITY_GROUP_ID"), "LMI_SECURITY_GROUP_ID environment variable must be set"
-        assert os.environ.get("LMI_OPERATOR_ROLE_ARN"), "LMI_OPERATOR_ROLE_ARN environment variable must be set"
 
         cls.template_before = str(Path("code", "before", "template-lmi-with-publish.yaml"))
         cls.parameter_overrides = {
