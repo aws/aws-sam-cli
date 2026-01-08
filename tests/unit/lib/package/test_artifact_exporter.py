@@ -1636,6 +1636,104 @@ class TestArtifactExporter(unittest.TestCase):
 
         self.assertIsInstance(captured_cache, _ThreadSafeUploadCache)
 
+    @patch("samcli.lib.package.artifact_exporter.yaml_parse")
+    def test_template_export_skips_mismatched_package_type(self, yaml_parse_mock):
+        parent_dir = os.path.sep
+        template_dir = os.path.join(parent_dir, "foo", "bar")
+        template_path = os.path.join(template_dir, "path")
+        template_str = self.example_yaml_template()
+
+        resource_type_class = Mock()
+        resource_type_class.RESOURCE_TYPE = "resource_type1"
+        resource_type_class.ARTIFACT_TYPE = ZIP
+        resource_type_class.EXPORT_DESTINATION = Destination.S3
+
+        # Same resource type, but template says Image package type -> should be skipped
+        properties = {"PackageType": IMAGE, "foo": "bar"}
+        template_dict = {"Resources": {"Resource1": {"Type": "resource_type1", "Properties": properties}}}
+        yaml_parse_mock.return_value = template_dict
+
+        with patch("samcli.lib.package.artifact_exporter.open", mock.mock_open(read_data=template_str)):
+            template_exporter = Template(
+                template_path, parent_dir, self.uploaders_mock, self.code_signer_mock, [resource_type_class]
+            )
+            template_exporter.export()
+
+        resource_type_class.assert_not_called()
+
+    @patch("samcli.lib.package.artifact_exporter.yaml_parse")
+    def test_template_delete_skips_mismatched_package_type(self, yaml_parse_mock):
+        parent_dir = os.path.sep
+        template_dir = os.path.join(parent_dir, "foo", "bar")
+        template_path = os.path.join(template_dir, "path")
+        template_str = self.example_yaml_template()
+
+        resource_type_class = Mock()
+        resource_type_class.RESOURCE_TYPE = "resource_type1"
+        resource_type_class.ARTIFACT_TYPE = ZIP
+        resource_type_class.EXPORT_DESTINATION = Destination.S3
+        resource_type_instance = Mock()
+        resource_type_class.return_value = resource_type_instance
+
+        properties = {"PackageType": IMAGE, "foo": "bar"}
+        template_dict = {"Resources": {"Resource1": {"Type": "resource_type1", "Properties": properties}}}
+        yaml_parse_mock.return_value = template_dict
+
+        with patch("samcli.lib.package.artifact_exporter.open", mock.mock_open(read_data=template_str)):
+            template_exporter = Template(
+                template_path, parent_dir, self.uploaders_mock, self.code_signer_mock, [resource_type_class]
+            )
+            template_exporter.delete(retain_resources=[])
+
+        resource_type_class.assert_not_called()
+
+    @patch("samcli.lib.package.artifact_exporter.wait")
+    @patch("samcli.lib.package.artifact_exporter.ThreadPoolExecutor")
+    def test_execute_jobs_in_parallel_submits_and_waits(self, executor_mock, wait_mock):
+        class _FakeFuture:
+            def __init__(self, job):
+                self._job = job
+
+            def result(self):
+                return self._job()
+
+        class _FakeExecutor:
+            def __init__(self, max_workers):
+                self.max_workers = max_workers
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+            def submit(self, job):
+                return _FakeFuture(job)
+
+        executor_mock.side_effect = lambda max_workers: _FakeExecutor(max_workers=max_workers)
+
+        job1 = Mock()
+        job2 = Mock()
+        template_exporter = Template.__new__(Template)
+        template_exporter._execute_jobs_in_parallel([job1, job2])
+
+        executor_mock.assert_called_once_with(max_workers=2)
+        wait_mock.assert_called_once()
+        job1.assert_called_once()
+        job2.assert_called_once()
+
+    @patch("samcli.lib.package.artifact_exporter.wait")
+    @patch("samcli.lib.package.artifact_exporter.ThreadPoolExecutor")
+    def test_execute_jobs_in_parallel_falls_back_to_single_worker(self, executor_mock, wait_mock):
+        job1 = Mock()
+
+        template_exporter = Template.__new__(Template)
+        template_exporter._execute_jobs_in_parallel([job1])
+
+        job1.assert_called_once()
+        executor_mock.assert_not_called()
+        wait_mock.assert_not_called()
+
     @patch("samcli.lib.package.artifact_exporter.is_experimental_enabled")
     @patch("samcli.lib.package.artifact_exporter.yaml_parse")
     def test_template_export_with_experimental_flag(self, yaml_parse_mock, is_experimental_enabled_mock):
