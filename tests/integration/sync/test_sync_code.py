@@ -9,7 +9,7 @@ import time
 import uuid
 from pathlib import Path
 from typing import Dict
-from unittest import skipIf
+from unittest import skipIf, SkipTest
 
 
 import pytest
@@ -803,7 +803,6 @@ class TestFunctionWithSkipBuild(TestSyncCodeBase):
     ]
 )
 @pytest.mark.timeout(300)
-@pytest.mark.skipif(SKIP_LMI_TESTS)
 @skipIf(SKIP_LMI_TESTS, "Skip LMI tests when running on canary")
 class TestSyncCodeLMI(TestSyncCodeBase):
     """Test sync code operations with Lambda Managed Instance functions"""
@@ -814,7 +813,7 @@ class TestSyncCodeLMI(TestSyncCodeBase):
     @classmethod
     def setUpClass(cls) -> None:
         if SKIP_LMI_TESTS:
-            return
+            raise SkipTest("Skip LMI tests when running on canary")
         super().setUpClass()
         # Validate LMI environment variables are set
         assert os.environ.get("LMI_SUBNET_ID"), "LMI_SUBNET_ID environment variable must be set"

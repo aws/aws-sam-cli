@@ -7,7 +7,7 @@ import tempfile
 import uuid
 from pathlib import Path
 from typing import Dict
-from unittest import skipIf
+from unittest import skipIf, SkipTest
 
 import pytest
 from parameterized import parameterized, parameterized_class
@@ -588,7 +588,6 @@ class TestSyncInfraWithEsbuild(SyncIntegBase):
 
 
 @skipIf(SKIP_LMI_TESTS, "Skip LMI tests when running on canary")
-@pytest.mark.skipif(SKIP_LMI_TESTS)
 @parameterized_class(
     [
         {"dependency_layer": True},
@@ -604,6 +603,8 @@ class TestSyncInfraLMI(SyncIntegBase):
 
     @classmethod
     def setUpClass(cls) -> None:
+        if SKIP_LMI_TESTS:
+            raise SkipTest("Skip LMI tests when running on canary")
         super().setUpClass()
         # Validate LMI environment variables are set
         assert os.environ.get("LMI_SUBNET_ID"), "LMI_SUBNET_ID environment variable must be set"

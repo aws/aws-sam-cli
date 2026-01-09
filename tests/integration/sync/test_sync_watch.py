@@ -2,14 +2,13 @@ import os
 import shutil
 import tempfile
 import time
-import unittest
 import uuid
 
 import logging
 import json
 from pathlib import Path
 from typing import Dict, List
-from unittest import skipIf
+from unittest import skipIf, SkipTest
 
 import pytest
 import boto3
@@ -871,7 +870,6 @@ class TestSyncWatchCodeWatchExclude(TestSyncWatchEsbuildBase):
 
 
 @skipIf(SKIP_LMI_TESTS, "Skip LMI tests when running on canary")
-@pytest.mark.skipif(SKIP_LMI_TESTS)
 @parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
 @pytest.mark.timeout(600)  # 10 minutes timeout for LMI operations
 class TestSyncWatchCodeLMI(TestSyncWatchBase):
@@ -882,8 +880,10 @@ class TestSyncWatchCodeLMI(TestSyncWatchBase):
 
     @classmethod
     def setUpClass(cls) -> None:
+        # Skip the entire class if LMI tests should be skipped
         if SKIP_LMI_TESTS:
-            return
+            raise SkipTest("Skip LMI tests when running on canary")
+
         # Validate LMI environment variables are set
         assert os.environ.get("LMI_SUBNET_ID"), "LMI_SUBNET_ID environment variable must be set"
         assert os.environ.get("LMI_SECURITY_GROUP_ID"), "LMI_SECURITY_GROUP_ID environment variable must be set"

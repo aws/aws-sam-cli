@@ -1,7 +1,7 @@
 import json
 import os
 import uuid
-from unittest import skipIf
+from unittest import skipIf, SkipTest
 
 from tests.integration.remote.invoke.remote_invoke_integ_base import RemoteInvokeIntegBase
 from tests.testing_utils import SKIP_LMI_TESTS, run_command, RUNNING_ON_CI
@@ -106,12 +106,13 @@ class TestInvokeResponseStreamingLambdas(RemoteInvokeIntegBase):
 
 
 @skipIf(SKIP_LMI_TESTS, "Skip LMI tests when running on canary")
-@pytest.mark.skipif(SKIP_LMI_TESTS)
 class TestInvokeResponseStreamingCapacityProvider(RemoteInvokeIntegBase):
     template = Path("template-lambda-response-capacity-provider-stream-fn.yaml")
 
     @classmethod
     def setUpClass(cls):
+        if SKIP_LMI_TESTS:
+            raise SkipTest("Skip LMI tests when running on canary")
         super().setUpClass()
         cls.stack_name = f"{cls.__name__}-{uuid.uuid4().hex}"
         # LMI is Lambda Managed Instance
