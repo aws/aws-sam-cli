@@ -1254,7 +1254,7 @@ class TestBuildContext_run(TestCase):
     @patch("samcli.commands.build.build_context.BuildContext._is_sam_template")
     @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
     @patch("samcli.commands.build.build_context.BuildContext._check_exclude_warning")
-    @patch("samcli.commands.build.build_context.BuildContext._check_rust_cargo_experimental_flag")
+    @patch("samcli.commands.build.build_context.BuildContext._check_build_method_experimental_flag")
     @patch("samcli.lib.build.app_builder.ApplicationBuilder.build")
     @patch("samcli.lib.telemetry.event.EventTracker.track_event")
     def test_build_in_source_event_sent(
