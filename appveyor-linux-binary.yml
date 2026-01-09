@@ -35,8 +35,8 @@ install:
   # install coretto 21
   - sh: wget -O - https://apt.corretto.aws/corretto.key | sudo gpg --dearmor -o /usr/share/keyrings/corretto-keyring.gpg
   - sh: echo "deb [signed-by=/usr/share/keyrings/corretto-keyring.gpg] https://apt.corretto.aws stable main" | sudo tee /etc/apt/sources.list.d/corretto.list
-  - sh: sudo apt-get update; sudo apt-get install -y java-21-amazon-corretto-jdk
-  - sh: JAVA_HOME=/usr/lib/jvm/java-21-amazon-corretto
+  - sh: sudo apt-get update; sudo apt-get install -y java-25-amazon-corretto-jdk
+  - sh: JAVA_HOME=/usr/lib/jvm/java-25-amazon-corretto
   - sh: PATH=$JAVA_HOME/bin:$PATH
   - sh: java --version
   - sh: javac --version
@@ -81,6 +81,15 @@ install:
   - sh: "virtualenv aws_cli"
   - sh: "./aws_cli/bin/python -m pip install awscli"
   - sh: "PATH=$(echo $PWD'/aws_cli/bin'):$PATH"
+
+  # install python 3.14
+  - sh: |
+      DEST="$HOME/venv3.14"
+      URL="https://github.com/astral-sh/python-build-standalone/releases/download/20251031/cpython-3.14.0+20251031-x86_64-unknown-linux-gnu-install_only.tar.gz"
+      curl -L "$URL" | tar -xz
+      mv python $DEST
+      $HOME/venv3.14/bin/python --version
+      $HOME/venv3.14/bin/pip --version
 
   - sh: "PATH=$PATH:$HOME/venv3.9/bin:$HOME/venv3.10/bin:$HOME/venv3.11/bin:$HOME/venv3.12/bin:$HOME/venv3.13/bin:$HOME/venv3.14/bin"
 
