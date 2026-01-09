@@ -106,6 +106,7 @@ class TestInvokeResponseStreamingLambdas(RemoteInvokeIntegBase):
 
 
 @skipIf(SKIP_LMI_TESTS, "Skip LMI tests when running on canary")
+@pytest.mark.skipif(SKIP_LMI_TESTS)
 class TestInvokeResponseStreamingCapacityProvider(RemoteInvokeIntegBase):
     template = Path("template-lambda-response-capacity-provider-stream-fn.yaml")
 

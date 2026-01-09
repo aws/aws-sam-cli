@@ -871,6 +871,7 @@ class TestSyncWatchCodeWatchExclude(TestSyncWatchEsbuildBase):
 
 
 @skipIf(SKIP_LMI_TESTS, "Skip LMI tests when running on canary")
+@pytest.mark.skipif(SKIP_LMI_TESTS)
 @parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
 @pytest.mark.timeout(600)  # 10 minutes timeout for LMI operations
 class TestSyncWatchCodeLMI(TestSyncWatchBase):

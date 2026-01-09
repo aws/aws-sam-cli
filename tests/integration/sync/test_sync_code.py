@@ -803,6 +803,7 @@ class TestFunctionWithSkipBuild(TestSyncCodeBase):
     ]
 )
 @pytest.mark.timeout(300)
+@pytest.mark.skipif(SKIP_LMI_TESTS)
 @skipIf(SKIP_LMI_TESTS, "Skip LMI tests when running on canary")
 class TestSyncCodeLMI(TestSyncCodeBase):
     """Test sync code operations with Lambda Managed Instance functions"""

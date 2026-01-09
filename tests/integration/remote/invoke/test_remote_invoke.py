@@ -18,6 +18,7 @@ SQS_WAIT_TIME_SECONDS = 20
 
 
 @skipIf(SKIP_LMI_TESTS, "Skip LMI tests when running on canary")
+@pytest.mark.skipif(SKIP_LMI_TESTS)
 class TestingInvokeWithCapacityProvider(RemoteInvokeIntegBase):
     template = Path("template-single-lambda-capacity-provider.yaml")
 
