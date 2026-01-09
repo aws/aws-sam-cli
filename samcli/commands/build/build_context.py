@@ -281,7 +281,8 @@ class BuildContext:
             )
 
             self._check_exclude_warning()
-            self._check_rust_cargo_experimental_flag()
+            self._check_build_method_experimental_flag('rust-cargolambda')
+            self._check_build_method_experimental_flag('python-uv')
 
             for f in self.get_resources_to_build().functions:
                 EventTracker.track_event(EventName.BUILD_FUNCTION_RUNTIME.value, f.runtime)
@@ -696,24 +697,24 @@ Commands you can use next
         if self._resource_identifier in excludes:
             LOG.warning(self._EXCLUDE_WARNING_MESSAGE)
 
-    def _check_rust_cargo_experimental_flag(self) -> None:
+    def _check_build_method_experimental_flag(self, build_method: str) -> None:
         """
         Prints warning message and confirms if user wants to use beta feature
         """
         WARNING_MESSAGE = (
-            'Build method "rust-cargolambda" is a beta feature.\n'
-            "Please confirm if you would like to proceed\n"
+            f'Build method "{build_method}" is a beta feature.\n'
+            'Please confirm if you would like to proceed\n'
             'You can also enable this beta feature with "sam build --beta-features".'
         )
         resources_to_build = self.get_resources_to_build()
-        is_building_rust = False
+        is_building_experimental = False
         for function in resources_to_build.functions:
-            if function.metadata and function.metadata.get("BuildMethod", "") == "rust-cargolambda":
-                is_building_rust = True
+            if function.metadata and function.metadata.get("BuildMethod", "") == build_method:
+                is_building_experimental = True
                 break
 
-        if is_building_rust:
-            prompt_experimental(ExperimentalFlag.RustCargoLambda, WARNING_MESSAGE)
+        if is_building_experimental:
+            prompt_experimental(ExperimentalFlag.RustCargoLambda if build_method == "rust-cargolambda" else ExperimentalFlag.UvPackageManager, WARNING_MESSAGE)
 
     @property
     def build_in_source(self) -> Optional[bool]:

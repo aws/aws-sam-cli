@@ -157,28 +157,17 @@ def get_workflow_config(
         "dotnet7": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
         "dotnet": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
         "rust-cargolambda": BasicWorkflowSelector(RUST_CARGO_LAMBDA_CONFIG),
+        "python-uv": BasicWorkflowSelector(PYTHON_UV_CONFIG),
     }
-
-    use_uv = is_experimental_enabled(ExperimentalFlag.UvPackageManager)
 
     selectors_by_runtime = {
         "python3.8": BasicWorkflowSelector([PYTHON_PIP_CONFIG]),
         "python3.9": BasicWorkflowSelector([PYTHON_PIP_CONFIG]),
-        "python3.10": ConditionalWorkflowSelector(
-            default=PYTHON_PIP_CONFIG, alternative=PYTHON_UV_CONFIG, use_alternative=use_uv
-        ),
-        "python3.11": ConditionalWorkflowSelector(
-            default=PYTHON_PIP_CONFIG, alternative=PYTHON_UV_CONFIG, use_alternative=use_uv
-        ),
-        "python3.12": ConditionalWorkflowSelector(
-            default=PYTHON_PIP_CONFIG, alternative=PYTHON_UV_CONFIG, use_alternative=use_uv
-        ),
-        "python3.13": ConditionalWorkflowSelector(
-            default=PYTHON_PIP_CONFIG, alternative=PYTHON_UV_CONFIG, use_alternative=use_uv
-        ),
-        "python3.14": ConditionalWorkflowSelector(
-            default=PYTHON_PIP_CONFIG, alternative=PYTHON_UV_CONFIG, use_alternative=use_uv
-        ),
+        "python3.10": BasicWorkflowSelector([PYTHON_PIP_CONFIG]),
+        "python3.11": BasicWorkflowSelector([PYTHON_PIP_CONFIG]),
+        "python3.12": BasicWorkflowSelector([PYTHON_PIP_CONFIG]),
+        "python3.13": BasicWorkflowSelector([PYTHON_PIP_CONFIG]),
+        "python3.14": BasicWorkflowSelector([PYTHON_PIP_CONFIG]),
         "nodejs16.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "nodejs18.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "nodejs20.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
