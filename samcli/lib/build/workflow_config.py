@@ -6,7 +6,6 @@ import logging
 import os
 from typing import Dict, List, Optional, Union, cast
 
-from samcli.commands._utils.experimental import ExperimentalFlag, is_experimental_enabled
 from samcli.lib.build.workflows import (
     CONFIG,
     DOTNET_CLIPACKAGE_CONFIG,
@@ -161,13 +160,13 @@ def get_workflow_config(
     }
 
     selectors_by_runtime = {
-        "python3.8": BasicWorkflowSelector([PYTHON_PIP_CONFIG]),
-        "python3.9": BasicWorkflowSelector([PYTHON_PIP_CONFIG]),
-        "python3.10": BasicWorkflowSelector([PYTHON_PIP_CONFIG]),
-        "python3.11": BasicWorkflowSelector([PYTHON_PIP_CONFIG]),
-        "python3.12": BasicWorkflowSelector([PYTHON_PIP_CONFIG]),
-        "python3.13": BasicWorkflowSelector([PYTHON_PIP_CONFIG]),
-        "python3.14": BasicWorkflowSelector([PYTHON_PIP_CONFIG]),
+        "python3.8": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
+        "python3.9": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
+        "python3.10": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
+        "python3.11": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
+        "python3.12": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
+        "python3.13": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
+        "python3.14": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
         "nodejs16.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "nodejs18.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "nodejs20.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
@@ -338,17 +337,3 @@ class ManifestWorkflowSelector(BasicWorkflowSelector):
     @staticmethod
     def _has_manifest(config: CONFIG, directory: str) -> bool:
         return os.path.exists(os.path.join(directory, config.manifest_name))
-
-
-class ConditionalWorkflowSelector(BasicWorkflowSelector):
-    """
-    Selects between two workflow configs based on a condition
-    """
-
-    def __init__(self, default: CONFIG, alternative: CONFIG, use_alternative: bool = False):
-        self.default = default
-        self.alternative = alternative
-        self.use_alternative = use_alternative
-
-    def get_config(self, code_dir: str, project_dir: str) -> CONFIG:
-        return self.alternative if self.use_alternative else self.default

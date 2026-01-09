@@ -700,7 +700,10 @@ Commands you can use next
         """
         Prints warning message and confirms if user wants to use beta feature
         """
-        EXPERIMENTAL_BUILD_METHODS = { "rust-cargolambda": ExperimentalFlag.RustCargoLambda, "python-uv": ExperimentalFlag.UvPackageManager }
+        EXPERIMENTAL_BUILD_METHODS = {
+            "rust-cargolambda": ExperimentalFlag.RustCargoLambda,
+            "python-uv": ExperimentalFlag.UvPackageManager,
+        }
 
         resources_to_build = self.get_resources_to_build()
         for function in resources_to_build.functions:
@@ -708,7 +711,7 @@ Commands you can use next
                 build_method = function.metadata.get("BuildMethod", "")
                 WARNING_MESSAGE = (
                     f'Build method "{build_method}" is a beta feature.\n'
-                    'Please confirm if you would like to proceed\n'
+                    "Please confirm if you would like to proceed\n"
                     'You can also enable this beta feature with "sam build --beta-features".'
                 )
 

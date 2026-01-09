@@ -1,5 +1,4 @@
 import logging
-import os
 import pathlib
 from typing import Set
 from unittest import skipIf
@@ -622,22 +621,3 @@ class TestBuildCommand_ErrorCases(BuildIntegBase):
         self.assertEqual(1, process_execute.process.returncode)
 
         self.assertIn("Build Failed", str(process_execute.stdout))
-
-
-class TestBuildCommand_PythonUv(BuildIntegBase):
-    def test_build_python_with_uv_experimental_flag(self):
-        # Set experimental flag
-        os.environ["SAM_CLI_BETA_UV_PACKAGE_MANAGER"] = "true"
-
-        try:
-            overrides = {"Runtime": "python3.11", "CodeUri": "Python"}
-            cmdlist = self.get_command_list(parameter_overrides=overrides)
-
-            command_result = run_command(cmdlist, cwd=self.working_dir)
-
-            # Verify build succeeded
-            self.assertEqual(command_result.process.returncode, 0)
-
-        finally:
-            # Clean up environment
-            os.environ.pop("SAM_CLI_BETA_UV_PACKAGE_MANAGER", None)
