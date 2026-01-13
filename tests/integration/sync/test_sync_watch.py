@@ -869,7 +869,7 @@ class TestSyncWatchCodeWatchExclude(TestSyncWatchEsbuildBase):
             self.assertEqual(lambda_response.get("message"), "hello world")
 
 
-@skipIf(SKIP_LMI_TESTS, "Skip LMI tests when running on canary")
+@skipIf(SKIP_LMI_TESTS, 'Required environment variables not set: "LMI_SUBNET_ID", "LMI_SECURITY_GROUP_ID"')
 @parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
 @pytest.mark.timeout(600)  # 10 minutes timeout for LMI operations
 class TestSyncWatchCodeLMI(TestSyncWatchBase):
@@ -880,13 +880,6 @@ class TestSyncWatchCodeLMI(TestSyncWatchBase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        # Skip the entire class if LMI tests should be skipped
-        if SKIP_LMI_TESTS:
-            raise SkipTest("Skip LMI tests when running on canary")
-
-        # Validate LMI environment variables are set
-        assert os.environ.get("LMI_SUBNET_ID"), "LMI_SUBNET_ID environment variable must be set"
-        assert os.environ.get("LMI_SECURITY_GROUP_ID"), "LMI_SECURITY_GROUP_ID environment variable must be set"
 
         cls.template_before = str(Path("code", "before", "template-lmi-with-publish.yaml"))
         cls.parameter_overrides = {

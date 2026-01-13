@@ -40,9 +40,11 @@ USING_FINCH_RUNTIME = os.environ.get("CONTAINER_RUNTIME") == "finch"
 # Tests require docker suffers from Docker Hub request limit
 SKIP_DOCKER_TESTS = RUNNING_ON_CI and not RUN_BY_CANARY
 
-# SKIP_LMI_TESTS = RUNNING_ON_CI and not RUN_BY_CANARY
-# SKIP LMI until test resource is deployed
-SKIP_LMI_TESTS = True
+
+# SKIP LMI unless test resource is deployed in the test accounts
+# Check if required environment variables are available
+SKIP_LMI_TESTS = not all(os.environ.get(var) for var in ["LMI_SUBNET_ID", "LMI_SECURITY_GROUP_ID"])
+
 
 # Set to True temporarily if the integration tests require updated build images
 # Build images aren't published until after the CLI is released
