@@ -1756,7 +1756,10 @@ to create a managed default bucket, or run sam deploy --guided",
         deploy_process_execute = self.run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
-    @skipIf(SKIP_LMI_TESTS, 'Skip LMI tests because required environment variables not set: "LMI_SUBNET_ID", "LMI_SECURITY_GROUP_ID"')
+    @skipIf(
+        SKIP_LMI_TESTS,
+        'Skip LMI tests because required environment variables not set: "LMI_SUBNET_ID", "LMI_SECURITY_GROUP_ID"',
+    )
     def test_deploy_lmi_function(self):
         """Test deployment of LMI (Lambda Managed Infrastructure) functions with capacity providers."""
         # Validate LMI environment variables are set
