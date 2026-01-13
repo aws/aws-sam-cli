@@ -87,3 +87,10 @@ update-reproducible-win-reqs:
 
 
 update-reproducible-reqs: update-reproducible-linux-reqs update-reproducible-mac-reqs
+
+# Update all reproducible requirements using uv (can run from any platform)
+update-reproducible-reqs-uv:
+	@command -v uv >/dev/null 2>&1 || pip install uv
+	uv pip compile setup.py --generate-hashes --output-file requirements/reproducible-linux.txt --python-platform linux --python-version 3.11 --no-cache --no-strip-extras
+	uv pip compile setup.py --generate-hashes --output-file requirements/reproducible-mac.txt --python-platform macos --python-version 3.11 --no-cache --no-strip-extras
+	uv pip compile setup.py --generate-hashes --output-file requirements/reproducible-win.txt --python-platform windows --python-version 3.12 --no-cache --no-strip-extras

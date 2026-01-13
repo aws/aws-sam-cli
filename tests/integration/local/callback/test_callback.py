@@ -48,9 +48,14 @@ class TestLocalCallback(DurableIntegBase, InvokeIntegBase):
         result = run_command(succeed_command)
         self.assertEqual(result.process.returncode, 0)
 
-        # Wait for process to complete
+        # Wait for process to complete and close file handles
         process.wait(timeout=30)
         thread.join(timeout=5)
+        # Close file handles to prevent ResourceWarning about unclosed files
+        if process.stdin:
+            process.stdin.close()
+        if process.stdout:
+            process.stdout.close()
 
         # Try to send another callback (should fail)
         second_command = self.get_callback_command_list(action, callback_id)
