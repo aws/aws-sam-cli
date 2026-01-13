@@ -105,7 +105,7 @@ class TestInvokeResponseStreamingLambdas(RemoteInvokeIntegBase):
         self.assertEqual(response_event_stream, expected_output_result)
 
 
-@skipIf(SKIP_LMI_TESTS, 'Skip LMI tests because required environment variables not set:: "LMI_SUBNET_ID", "LMI_SECURITY_GROUP_ID"')
+@skipIf(SKIP_LMI_TESTS, 'Skip LMI tests because required environment variables not set: "LMI_SUBNET_ID", "LMI_SECURITY_GROUP_ID"')
 class TestInvokeResponseStreamingCapacityProvider(RemoteInvokeIntegBase):
     template = Path("template-lambda-response-capacity-provider-stream-fn.yaml")
 

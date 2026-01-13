@@ -587,7 +587,7 @@ class TestSyncInfraWithEsbuild(SyncIntegBase):
             self.assertEqual(lambda_response.get("message"), "hello world")
 
 
-@skipIf(SKIP_LMI_TESTS, 'Skip LMI tests because required environment variables not set:: "LMI_SUBNET_ID", "LMI_SECURITY_GROUP_ID"')
+@skipIf(SKIP_LMI_TESTS, 'Skip LMI tests because required environment variables not set: "LMI_SUBNET_ID", "LMI_SECURITY_GROUP_ID"')
 @parameterized_class(
     [
         {"dependency_layer": True},
