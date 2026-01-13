@@ -17,7 +17,7 @@ import pytest
 SQS_WAIT_TIME_SECONDS = 20
 
 
-@skipIf(SKIP_LMI_TESTS, 'Required environment variables not set: "LMI_SUBNET_ID", "LMI_SECURITY_GROUP_ID"')
+@skipIf(SKIP_LMI_TESTS, 'Skip LMI tests because required environment variables not set:: "LMI_SUBNET_ID", "LMI_SECURITY_GROUP_ID"')
 class TestingInvokeWithCapacityProvider(RemoteInvokeIntegBase):
     template = Path("template-single-lambda-capacity-provider.yaml")
 

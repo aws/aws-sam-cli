@@ -803,7 +803,7 @@ class TestFunctionWithSkipBuild(TestSyncCodeBase):
     ]
 )
 @pytest.mark.timeout(300)
-@skipIf(SKIP_LMI_TESTS, 'Required environment variables not set: "LMI_SUBNET_ID", "LMI_SECURITY_GROUP_ID"')
+@skipIf(SKIP_LMI_TESTS, 'Skip LMI tests because required environment variables not set:: "LMI_SUBNET_ID", "LMI_SECURITY_GROUP_ID"')
 class TestSyncCodeLMI(TestSyncCodeBase):
     """Test sync code operations with Lambda Managed Instance functions"""
 
