@@ -163,5 +163,5 @@ for:
         - configuration: OtherAndEndToEndTesting
 
     test_script:
-      - ps: "ls
+      - ps: "ls"
 
