@@ -249,6 +249,8 @@ class TestBuildCommand_PythonFunctions_ImagesWithSharedCode(BuildIntegBase):
 #     ((not RUN_BY_CANARY) or (IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
 #     "Skip build tests on windows when running in CI unless overridden",
 # )
+# FIXME: This second @parameterized_class is not doing anything because these decorators cannot be stacked.
+# We need to integrate this into a single decorator (that will be huge). This is also true of a few classes below.
 @parameterized_class(
     ("template", "prop"),
     [
@@ -260,14 +262,24 @@ class TestBuildCommand_PythonFunctions_ImagesWithSharedCode(BuildIntegBase):
     (
         "runtime",
         "codeuri",
+        "template",
     ),
     [
-        ("python3.9", "Python"),
-        ("python3.10", "Python"),
-        ("python3.11", "Python"),
-        ("python3.9", "PythonPEP600"),
-        ("python3.10", "PythonPEP600"),
-        ("python3.11", "PythonPEP600"),
+        ("python3.9", "Python",),
+        ("python3.10", "Python",),
+        ("python3.11", "Python",),
+        ("python3.9", "PythonPEP600",),
+        ("python3.10", "PythonPEP600",),
+        ("python3.11", "PythonPEP600",),
+        ("python3.9", "Python", "template_uv.yaml"),
+        ("python3.10", "Python", "template_uv.yaml"),
+        ("python3.11", "Python", "template_uv.yaml"),
+        ("python3.9", "PythonPEP600", "template_uv.yaml"),
+        ("python3.10", "PythonPEP600", "template_uv.yaml"),
+        ("python3.11", "PythonPEP600", "template_uv.yaml"),
+        ("python3.9", "PythonPyProject", "template_uv.yaml"),
+        ("python3.10", "PythonPyProject", "template_uv.yaml"),
+        ("python3.11", "PythonPyProject", "template_uv.yaml"),
     ],
 )
 class TestBuildCommand_PythonFunctions_WithoutDocker(BuildIntegPythonBase):
@@ -286,8 +298,10 @@ class TestBuildCommand_PythonFunctions_WithoutDocker(BuildIntegPythonBase):
             self.codeuri,
             self.use_container,
             self.test_data_path,
+            manifest=("pyproject.toml" if self.codeuri == "PythonPyProject" else "requirements.txt"),
             do_override=self.overrides,
             check_function_only=self.check_function_only,
+            beta_features=(self.template == "template_uv.yaml")
         )
 
 
@@ -302,14 +316,24 @@ class TestBuildCommand_PythonFunctions_WithoutDocker(BuildIntegPythonBase):
     (
         "runtime",
         "codeuri",
+        "template",
     ),
     [
-        ("python3.12", "Python"),
-        ("python3.12", "PythonPEP600"),
-        ("python3.13", "Python"),
-        ("python3.13", "PythonPEP600"),
-        ("python3.14", "Python"),
-        ("python3.14", "PythonPEP600"),
+        ("python3.12", "Python",),
+        ("python3.12", "PythonPEP600",),
+        ("python3.13", "Python",),
+        ("python3.13", "PythonPEP600",),
+        ("python3.14", "Python",),
+        ("python3.14", "PythonPEP600",),
+        ("python3.12", "Python", "template_uv.yaml"),
+        ("python3.12", "PythonPEP600", "template_uv.yaml"),
+        ("python3.12", "PythonPyProject", "template_uv.yaml"),
+        ("python3.13", "Python", "template_uv.yaml"),
+        ("python3.13", "PythonPEP600", "template_uv.yaml"),
+        ("python3.13", "PythonPyProject", "template_uv.yaml"),
+        ("python3.14", "Python", "template_uv.yaml"),
+        ("python3.14", "PythonPEP600", "template_uv.yaml"),
+        ("python3.14", "PythonPyProject", "template_uv.yaml"),
     ],
 )
 @pytest.mark.al2023
@@ -329,8 +353,10 @@ class TestBuildCommand_PythonFunctions_WithoutDocker_al2023(BuildIntegPythonBase
             self.codeuri,
             self.use_container,
             self.test_data_path,
+            manifest=("pyproject.toml" if self.codeuri == "PythonPyProject" else "requirements.txt"),
             do_override=self.overrides,
             check_function_only=self.check_function_only,
+            beta_features=(self.template == "template_uv.yaml")
         )
 
 
@@ -339,45 +365,61 @@ class TestBuildCommand_PythonFunctions_WithDocker(BuildIntegPythonBase):
     template = "template.yaml"
     FUNCTION_LOGICAL_ID = "Function"
     overrides = True
-    codeuri = "Python"
     use_container = "use_container"
     check_function_only = False
     prop = "CodeUri"
 
     @parameterized.expand(
         [
-            ("python3.9",),
-            ("python3.10",),
-            ("python3.11",),
+            ("python3.9", "Python"),
+            ("python3.10", "Python"),
+            ("python3.11", "Python"),
+            # Enable when build images with uv are released.
+            # ("python3.9", "Python", "template_uv.yaml"),
+            # ("python3.10", "Python", "template_uv.yaml"),
+            # ("python3.11", "Python", "template_uv.yaml"),
+            # ("python3.9", "PythonPyProject", "template_uv.yaml"),
+            # ("python3.10", "PythonPyProject", "template_uv.yaml"),
+            # ("python3.11", "PythonPyProject", "template_uv.yaml"),
         ]
     )
-    def test_with_default_requirements_in_container(self, runtime):
+    def test_with_default_requirements_in_container(self, runtime, codeuri, template="template.yaml"):
         self._test_with_default_requirements(
             runtime,
-            self.codeuri,
+            codeuri,
             self.use_container,
             self.test_data_path,
+            manifest=("pyproject.toml" if codeuri == "PythonPyProject" else "requirements.txt"),
             do_override=self.overrides,
             check_function_only=self.check_function_only,
+            beta_features=(template == "template_uv.yaml")
         )
 
     @parameterized.expand(
         [
-            ("python3.12",),
-            ("python3.13",),
-            # skip this test until the python 3.14 build image is released
-            # ("python3.14",),
+            ("python3.12", "Python"),
+            ("python3.13", "Python"),
+            ("python3.14", "Python"),
+            # Enable when build images with uv are released
+            # ("python3.12", "Python", "template_uv.yaml"),
+            # ("python3.13", "Python", "template_uv.yaml"),
+            # ("python3.14", "Python", "template_uv.yaml"),
+            # ("python3.12", "PythonPyProject", "template_uv.yaml"),
+            # ("python3.13", "PythonPyProject", "template_uv.yaml"),
+            # ("python3.14", "PythonPyProject", "template_uv.yaml"),
         ]
     )
     @pytest.mark.al2023
-    def test_with_default_requirements_al2023_in_container(self, runtime):
+    def test_with_default_requirements_al2023_in_container(self, runtime, codeuri, template="template.yaml"):
         self._test_with_default_requirements(
             runtime,
-            self.codeuri,
+            codeuri,
             self.use_container,
             self.test_data_path,
+            manifest=("pyproject.toml" if codeuri == "PythonPyProject" else "requirements.txt"),
             do_override=self.overrides,
             check_function_only=self.check_function_only,
+            beta_features=(template == "template_uv.yaml")
         )
 
 
