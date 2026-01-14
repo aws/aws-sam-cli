@@ -1,6 +1,7 @@
 import os
 import posixpath
 from unittest import TestCase
+from collections import OrderedDict
 from unittest.mock import patch, PropertyMock, Mock, call
 
 from parameterized import parameterized
@@ -2037,6 +2038,27 @@ class TestSamFunctionProvider_parse_layer_info(TestCase):
             Mock(stack_path=STACK_PATH, location="template.yaml", resources=resources), []
         )
 
+        self.assertEqual(actual, [])
+
+    def test_return_empty_list_on_intrinsic_function_layers(self):
+        """Test that intrinsic functions in Layers property return empty list"""
+
+        resources = {"Function": {"Type": "AWS::Serverless::Function", "Properties": {}}}
+
+        # Test with Fn::If intrinsic function
+        list_of_layers = OrderedDict(
+            [("Fn::If", ["UseLayer", ["arn:aws:lambda:us-east-1:123456789012:layer:MyLayer:1"], []])]
+        )
+        actual = SamFunctionProvider._parse_layer_info(
+            Mock(stack_path=STACK_PATH, location="template.yaml", resources=resources), list_of_layers
+        )
+        self.assertEqual(actual, [])
+
+        # Test with Ref intrinsic function
+        list_of_layers = OrderedDict([("Ref", "LayerParameter")])
+        actual = SamFunctionProvider._parse_layer_info(
+            Mock(stack_path=STACK_PATH, location="template.yaml", resources=resources), list_of_layers
+        )
         self.assertEqual(actual, [])
 
     @patch.object(SamFunctionProvider, "_locate_layer_from_nested")
