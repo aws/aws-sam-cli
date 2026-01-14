@@ -264,7 +264,7 @@ install:
       $HOME/venv3.14/bin/python --version
       $HOME/venv3.14/bin/pip --version
 
-  - sh: "PATH=$PATH:$HOME/venv3.7/bin:$HOME/venv3.8/bin:$HOME/venv3.9/bin:$HOME/venv3.10/bin:$HOME/venv3.11/bin:$HOME/venv3.12/bin:$HOME/venv3.13/bin:$HOME/venv3.14/bin"
+  - sh: "PATH=$PATH:$HOME/venv3.9/bin:$HOME/venv3.10/bin:$HOME/venv3.11/bin:$HOME/venv3.12/bin:$HOME/venv3.13/bin:$HOME/venv3.14/bin"
 
   # update ca-certificates which causes failures with newest golang library
   - sh: "sudo apt-get install --reinstall ca-certificates"
