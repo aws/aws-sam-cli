@@ -731,7 +731,7 @@ class BuildIntegJavaBase(BuildIntegBase):
 
 @pytest.mark.python
 class BuildIntegPythonBase(BuildIntegBase):
-    EXPECTED_FILES= {
+    EXPECTED_FILES = {
         "__init__.py",
         "main.py",
         "numpy",
@@ -747,16 +747,18 @@ class BuildIntegPythonBase(BuildIntegBase):
         codeuri,
         use_container,
         relative_path,
-        manifest,
+        manifest="requirements.txt",
         do_override=True,
         check_function_only=False,
         architecture=None,
-        beta_features=False
+        beta_features=False,
     ):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
         overrides = self.get_override(runtime, codeuri, architecture, "main.handler") if do_override else None
-        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides, beta_features=beta_features, debug=True)
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, beta_features=beta_features, debug=True
+        )
 
         run_command(cmdlist, cwd=self.working_dir)
 

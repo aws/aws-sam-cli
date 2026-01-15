@@ -265,12 +265,30 @@ class TestBuildCommand_PythonFunctions_ImagesWithSharedCode(BuildIntegBase):
         "template",
     ),
     [
-        ("python3.9", "Python",),
-        ("python3.10", "Python",),
-        ("python3.11", "Python",),
-        ("python3.9", "PythonPEP600",),
-        ("python3.10", "PythonPEP600",),
-        ("python3.11", "PythonPEP600",),
+        (
+            "python3.9",
+            "Python",
+        ),
+        (
+            "python3.10",
+            "Python",
+        ),
+        (
+            "python3.11",
+            "Python",
+        ),
+        (
+            "python3.9",
+            "PythonPEP600",
+        ),
+        (
+            "python3.10",
+            "PythonPEP600",
+        ),
+        (
+            "python3.11",
+            "PythonPEP600",
+        ),
         ("python3.9", "Python", "template_uv.yaml"),
         ("python3.10", "Python", "template_uv.yaml"),
         ("python3.11", "Python", "template_uv.yaml"),
@@ -301,7 +319,7 @@ class TestBuildCommand_PythonFunctions_WithoutDocker(BuildIntegPythonBase):
             manifest=("pyproject.toml" if self.codeuri == "PythonPyProject" else "requirements.txt"),
             do_override=self.overrides,
             check_function_only=self.check_function_only,
-            beta_features=(self.template == "template_uv.yaml")
+            beta_features=(self.template == "template_uv.yaml"),
         )
 
 
@@ -319,12 +337,30 @@ class TestBuildCommand_PythonFunctions_WithoutDocker(BuildIntegPythonBase):
         "template",
     ),
     [
-        ("python3.12", "Python",),
-        ("python3.12", "PythonPEP600",),
-        ("python3.13", "Python",),
-        ("python3.13", "PythonPEP600",),
-        ("python3.14", "Python",),
-        ("python3.14", "PythonPEP600",),
+        (
+            "python3.12",
+            "Python",
+        ),
+        (
+            "python3.12",
+            "PythonPEP600",
+        ),
+        (
+            "python3.13",
+            "Python",
+        ),
+        (
+            "python3.13",
+            "PythonPEP600",
+        ),
+        (
+            "python3.14",
+            "Python",
+        ),
+        (
+            "python3.14",
+            "PythonPEP600",
+        ),
         ("python3.12", "Python", "template_uv.yaml"),
         ("python3.12", "PythonPEP600", "template_uv.yaml"),
         ("python3.12", "PythonPyProject", "template_uv.yaml"),
@@ -356,7 +392,7 @@ class TestBuildCommand_PythonFunctions_WithoutDocker_al2023(BuildIntegPythonBase
             manifest=("pyproject.toml" if self.codeuri == "PythonPyProject" else "requirements.txt"),
             do_override=self.overrides,
             check_function_only=self.check_function_only,
-            beta_features=(self.template == "template_uv.yaml")
+            beta_features=(self.template == "template_uv.yaml"),
         )
 
 
@@ -392,7 +428,7 @@ class TestBuildCommand_PythonFunctions_WithDocker(BuildIntegPythonBase):
             manifest=("pyproject.toml" if codeuri == "PythonPyProject" else "requirements.txt"),
             do_override=self.overrides,
             check_function_only=self.check_function_only,
-            beta_features=(template == "template_uv.yaml")
+            beta_features=(template == "template_uv.yaml"),
         )
 
     @parameterized.expand(
@@ -419,7 +455,7 @@ class TestBuildCommand_PythonFunctions_WithDocker(BuildIntegPythonBase):
             manifest=("pyproject.toml" if codeuri == "PythonPyProject" else "requirements.txt"),
             do_override=self.overrides,
             check_function_only=self.check_function_only,
-            beta_features=(template == "template_uv.yaml")
+            beta_features=(template == "template_uv.yaml"),
         )
 
 
