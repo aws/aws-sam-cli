@@ -24,7 +24,7 @@ env:
   CARGO_LAMBDA_VERSION: "v0.17.1"
   NOSE_PARAMETERIZED_NO_WARN: 1
   BY_CANARY: true
-  UV_PYTHON: python3.9
+  UV_PYTHON: python3.11
   CREDENTIAL_DISTRIBUTION_LAMBDA_ARN: ${{ secrets.CREDENTIAL_DISTRIBUTION_LAMBDA_ARN }}
   ACCOUNT_RESET_LAMBDA_ARN: ${{ secrets.ACCOUNT_RESET_LAMBDA_ARN }}
 
@@ -297,11 +297,11 @@ jobs:
       - name: Get testing resources and credentials
         run: |
           # Try with skip_role_deletion parameter first
-          test_env_var=$(python3.9 tests/get_testing_resources.py skip_role_deletion)
+          test_env_var=$(python3.11 tests/get_testing_resources.py skip_role_deletion)
           
           if [ $? -ne 0 ]; then
             echo "First attempt with skip_role_deletion failed, trying without parameter..."
-            test_env_var=$(python3.9 tests/get_testing_resources.py)
+            test_env_var=$(python3.11 tests/get_testing_resources.py)
             
             if [ $? -ne 0 ]; then
               echo "get_testing_resources failed. Failed to acquire credentials or test resources."
@@ -309,21 +309,40 @@ jobs:
             fi
           fi
           
-          # Save current credentials for account reset later
+          # Save current credentials for account reset later (mask them first)
+          echo "::add-mask::$AWS_ACCESS_KEY_ID"
+          echo "::add-mask::$AWS_SECRET_ACCESS_KEY"
+          echo "::add-mask::$AWS_SESSION_TOKEN"
           echo "CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> $GITHUB_ENV
           echo "CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" >> $GITHUB_ENV
           echo "CI_ACCESS_ROLE_AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN" >> $GITHUB_ENV
           
-          # Set test credentials
-          echo "AWS_ACCESS_KEY_ID=$(echo "$test_env_var" | jq -j ".accessKeyID")" >> $GITHUB_ENV
-          echo "AWS_SECRET_ACCESS_KEY=$(echo "$test_env_var" | jq -j ".secretAccessKey")" >> $GITHUB_ENV
-          echo "AWS_SESSION_TOKEN=$(echo "$test_env_var" | jq -j ".sessionToken")" >> $GITHUB_ENV
-          echo "TASK_TOKEN=$(echo "$test_env_var" | jq -j ".taskToken")" >> $GITHUB_ENV
+          # Extract test credentials and mask them before setting as env vars
+          TEST_ACCESS_KEY_ID=$(echo "$test_env_var" | jq -j ".accessKeyID")
+          TEST_SECRET_ACCESS_KEY=$(echo "$test_env_var" | jq -j ".secretAccessKey")
+          TEST_SESSION_TOKEN=$(echo "$test_env_var" | jq -j ".sessionToken")
+          TEST_TASK_TOKEN=$(echo "$test_env_var" | jq -j ".taskToken")
+          
+          # Mask sensitive credentials so they don't appear in logs
+          echo "::add-mask::$TEST_ACCESS_KEY_ID"
+          echo "::add-mask::$TEST_SECRET_ACCESS_KEY"
+          echo "::add-mask::$TEST_SESSION_TOKEN"
+          echo "::add-mask::$TEST_TASK_TOKEN"
+          
+          # Set test credentials as environment variables
+          echo "AWS_ACCESS_KEY_ID=$TEST_ACCESS_KEY_ID" >> $GITHUB_ENV
+          echo "AWS_SECRET_ACCESS_KEY=$TEST_SECRET_ACCESS_KEY" >> $GITHUB_ENV
+          echo "AWS_SESSION_TOKEN=$TEST_SESSION_TOKEN" >> $GITHUB_ENV
+          echo "TASK_TOKEN=$TEST_TASK_TOKEN" >> $GITHUB_ENV
+          
+          # Set other test resources (non-sensitive)
           echo "AWS_S3_TESTING=$(echo "$test_env_var" | jq -j ".TestBucketName")" >> $GITHUB_ENV
           echo "AWS_ECR_TESTING=$(echo "$test_env_var" | jq -j ".TestECRURI")" >> $GITHUB_ENV
           echo "AWS_KMS_KEY=$(echo "$test_env_var" | jq -j ".TestKMSKeyArn")" >> $GITHUB_ENV
           echo "AWS_SIGNING_PROFILE_NAME=$(echo "$test_env_var" | jq -j ".TestSigningProfileName")" >> $GITHUB_ENV
           echo "AWS_SIGNING_PROFILE_VERSION_ARN=$(echo "$test_env_var" | jq -j ".TestSigningProfileARN")" >> $GITHUB_ENV
+          echo "LMI_SUBNET_ID=$(echo "$test_env_var" | jq -j ".LMISubnetId")" >> $GITHUB_ENV
+          echo "LMI_SECURITY_GROUP_ID=$(echo "$test_env_var" | jq -j ".LMISecurityGroupId")" >> $GITHUB_ENV
 
       - name: Login to Public ECR
         if: matrix.container_runtime != 'no-container' && env.BY_CANARY == 'true'
@@ -368,13 +387,13 @@ jobs:
               pytest -vv -n 2 --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'java' -k "${CONTAINER_FILTER}" --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64-java-${{ matrix.container_runtime }}.json
               ;;
             "terraform-build")
-              pytest -vv -n 4 --reruns 4 tests/integration/buildcmd/test_build_terraform_applications.py tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-terraform-${{ matrix.container_runtime }}.json
+              pytest -vv -n 4 --reruns 3 tests/integration/buildcmd/test_build_terraform_applications.py tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-terraform-${{ matrix.container_runtime }}.json
               ;;
             "package-delete-deploy")
               pytest -vv tests/integration/package tests/integration/delete tests/integration/deploy --dist=loadgroup -n 6 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-package-delete-deploy-${{ matrix.container_runtime }}.json
               ;;
             "sync")
-              pytest -vv tests/integration/sync -n 6 --reruns 3 --dist loadscope --json-report --json-report-file=TEST_REPORT-integration-sync-${{ matrix.container_runtime }}.json
+              pytest -vv tests/integration/sync -n 4 --reruns 3 --dist loadscope --json-report --json-report-file=TEST_REPORT-integration-sync-${{ matrix.container_runtime }}.json
               ;;
             "local-invoke")
               pytest -vv --reruns 3 tests/integration/local/invoke tests/integration/local/generate_event --ignore tests/integration/local/invoke/test_invoke_durable.py --json-report --json-report-file=TEST_REPORT-integration-local-invoke-${{ matrix.container_runtime }}.json
@@ -389,8 +408,7 @@ jobs:
               pytest -vv --reruns 3 tests/integration/local/invoke/test_invoke_durable.py tests/integration/local/start_api/test_start_api_durable.py tests/integration/local/start_lambda/test_start_lambda_durable.py tests/integration/local/callback/test_callback.py tests/integration/local/execution/test_execution.py --json-report --json-report-file=TEST_REPORT-integration-durable-functions-${{ matrix.container_runtime }}.json
               ;;
             "other-and-e2e")
-              pytest -vv -n 4 --reruns 4 --dist loadgroup tests/integration tests/end_to_end --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-others-${{ matrix.container_runtime }}.json
-              pytest -vv --reruns 3 tests/regression --json-report --json-report-file=TEST_REPORT-regression-${{ matrix.container_runtime }}.json
+              pytest -vv -n 4 --reruns 3 --dist loadgroup tests/integration tests/end_to_end tests/regression --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-others-${{ matrix.container_runtime }}.json
               ;;
           esac
 

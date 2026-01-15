@@ -15,32 +15,23 @@ jobs:
       pull-requests: write
       contents: write
     if: github.repository_owner == 'aws'
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            python: 3.11
-            target: update-reproducible-linux-reqs
-          - os: macos-latest
-            python: 3.11
-            target: update-reproducible-mac-reqs
-          - os: windows-latest
-            python: 3.12
-            target: update-reproducible-win-reqs
-      max-parallel: 1
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
         with:
           ref: ${{ github.head_ref }}
       - uses: actions/setup-python@v6
         with:
-          python-version: ${{ matrix.python }}
-      - run: make ${{ matrix.target }}
+          python-version: "3.11"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      - name: Update all reproducible requirements
+        run: make update-reproducible-reqs-uv
       - name: Push changes
         run: |
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
-          git commit -am "Update reproducibles: ${{ matrix.target }}" || echo "nothing to commit"
+          git add requirements/reproducible-*.txt
+          git commit -m "Update reproducible requirements" || echo "nothing to commit"
           git push
