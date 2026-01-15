@@ -111,6 +111,12 @@ class InvokeIntegBase(TestCase):
             return stdout, stderr, process.returncode
         except TimeoutExpired:
             process.kill()
+            # Close file handles to prevent resource warnings
+            if process.stdout:
+                process.stdout.close()
+            if process.stderr:
+                process.stderr.close()
+            process.wait()
             raise
 
 
