@@ -28,7 +28,7 @@ PYTHON_UV_CONFIG = CONFIG(
     language="python",
     dependency_manager="uv",
     application_framework=None,
-    manifest_name="pyproject.toml",
+    manifest_name=None,
     executable_search_paths=None,
     must_mount_with_write_in_container=False,
 )

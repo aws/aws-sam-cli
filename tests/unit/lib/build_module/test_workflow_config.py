@@ -97,7 +97,7 @@ class Test_get_workflow_config(TestCase):
         self.assertEqual(result.language, "python")
         self.assertEqual(result.dependency_manager, "uv")
         self.assertIsNone(result.application_framework)
-        self.assertEqual(result.manifest_name, "pyproject.toml")
+        self.assertIsNone(result.manifest_name)
         self.assertIsNone(result.executable_search_paths)
         self.assertEqual(len(EventTracker.get_tracked_events()), 1)
         self.assertIn(Event("BuildWorkflowUsed", "python-uv"), EventTracker.get_tracked_events())
