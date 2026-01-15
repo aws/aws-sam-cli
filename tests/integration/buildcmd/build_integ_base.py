@@ -662,7 +662,7 @@ class BuildIntegJavaBase(BuildIntegBase):
             self.skipTest(self.SKIP_ARM64_EARLIER_JAVA_TESTS)
 
         overrides = self.get_override(runtime, code_path, architecture, "aws.example.Hello::myHandler")
-        mount_with = MountMode.WRITE if use_container and str(runtime).lower() == "java25" else None
+        mount_with = MountMode.WRITE if use_container and str(runtime).lower() == "java25" and not self.USING_MAVEN_PATH else None
         cmdlist = self.get_command_list(
             use_container=use_container, parameter_overrides=overrides, mount_with=mount_with
         )
