@@ -757,7 +757,7 @@ class BuildIntegPythonBase(BuildIntegBase):
             self.skipTest(SKIP_DOCKER_MESSAGE)
         overrides = self.get_override(runtime, codeuri, architecture, "main.handler") if do_override else None
         cmdlist = self.get_command_list(
-            use_container=use_container, parameter_overrides=overrides, beta_features=beta_features, debug=True
+            use_container=use_container, parameter_overrides=overrides, beta_features=beta_features
         )
 
         run_command(cmdlist, cwd=self.working_dir)
