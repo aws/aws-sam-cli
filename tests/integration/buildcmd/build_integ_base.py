@@ -664,7 +664,7 @@ class BuildIntegJavaBase(BuildIntegBase):
         overrides = self.get_override(runtime, code_path, architecture, "aws.example.Hello::myHandler")
         mount_with = (
             MountMode.WRITE
-            if use_container and str(runtime).lower() == "java25" and code_path != self.USING_MAVEN_PATH
+            if use_container and str(runtime).lower() == "java25" and self.USING_MAVEN_PATH not in code_path
             else None
         )
         cmdlist = self.get_command_list(
