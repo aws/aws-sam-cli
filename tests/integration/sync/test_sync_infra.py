@@ -7,7 +7,7 @@ import tempfile
 import uuid
 from pathlib import Path
 from typing import Dict
-from unittest import skipIf
+from unittest import skipIf, SkipTest
 
 import pytest
 from parameterized import parameterized, parameterized_class
@@ -18,7 +18,7 @@ from samcli.lib.utils.resources import (
     AWS_STEPFUNCTIONS_STATEMACHINE,
 )
 from tests.integration.sync.sync_integ_base import SyncIntegBase
-from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
+from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY, SKIP_LMI_TESTS
 from tests.testing_utils import run_command_with_input
 
 # Deploy tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
@@ -587,7 +587,7 @@ class TestSyncInfraWithEsbuild(SyncIntegBase):
             self.assertEqual(lambda_response.get("message"), "hello world")
 
 
-@skipIf(RUNNING_ON_CI, "Skip LMI tests when running on canary")
+@skipIf(SKIP_LMI_TESTS, "Skip LMI tests when running on canary")
 @parameterized_class(
     [
         {"dependency_layer": True},
@@ -603,11 +603,12 @@ class TestSyncInfraLMI(SyncIntegBase):
 
     @classmethod
     def setUpClass(cls) -> None:
+        if SKIP_LMI_TESTS:
+            raise SkipTest("Skip LMI tests when running on canary")
         super().setUpClass()
         # Validate LMI environment variables are set
         assert os.environ.get("LMI_SUBNET_ID"), "LMI_SUBNET_ID environment variable must be set"
         assert os.environ.get("LMI_SECURITY_GROUP_ID"), "LMI_SECURITY_GROUP_ID environment variable must be set"
-        assert os.environ.get("LMI_OPERATOR_ROLE_ARN"), "LMI_OPERATOR_ROLE_ARN environment variable must be set"
 
         # Read LMI infrastructure from environment variables
         cls.parameter_overrides = {

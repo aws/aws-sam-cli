@@ -45,7 +45,7 @@ class SamCliParameterSchema:
     type: Union[str, List[str]]
     description: str = ""
     default: Optional[Any] = None
-    items: Optional[str] = None
+    items: Optional[Union[str, Dict[str, str]]] = None
     choices: Optional[Any] = None
 
     def to_schema(self) -> Dict[str, Any]:
@@ -55,7 +55,11 @@ class SamCliParameterSchema:
         if self.default:
             param.update({"default": self.default})
         if self.items:
-            param.update({"items": {"type": self.items}})
+            if isinstance(self.items, dict):
+                param.update({"items": self.items})
+            else:
+                param.update({"items": {"type": self.items}})
+
         if self.choices:
             if isinstance(self.choices, list):
                 self.choices.sort()
@@ -143,11 +147,18 @@ def format_param(param: click.core.Option) -> SamCliParameterSchema:
             formatted_param_types.append(param_name or "string")
     formatted_param_types = sorted(list(set(formatted_param_types)))  # deduplicate
 
+    # Allow nested arrays of objects and strings
+    parameter_overrides_ref = {"$ref": "#/$defs/parameter_overrides_items"}
+
     formatted_param: SamCliParameterSchema = SamCliParameterSchema(
         param.name or "",
         formatted_param_types if len(formatted_param_types) > 1 else formatted_param_types[0],
         clean_text(param.help or ""),
-        items="string" if "array" in formatted_param_types else None,
+        items=(
+            parameter_overrides_ref
+            if param.name == "parameter_overrides"
+            else "string" if "array" in formatted_param_types else None
+        ),
     )
 
     if param.default and param.name not in PARAMS_TO_OMIT_DEFAULT_FIELD:
@@ -236,6 +247,26 @@ def generate_schema() -> dict:
     }
     schema["required"] = ["version"]
     schema["additionalProperties"] = False
+    # Allows objects and strings beneath variably nested arrays
+    schema["$defs"] = {
+        "parameter_overrides_items": {
+            "anyOf": [
+                {"type": "array", "items": {"$ref": "#/$defs/parameter_overrides_items"}},
+                {
+                    "type": "object",
+                    "additionalProperties": {
+                        "anyOf": [
+                            {"type": "string"},
+                            {"type": "integer"},  # Allow cooler types if it's a dict
+                            {"type": "boolean"},
+                        ]
+                    },
+                },
+                {"type": "string"},
+            ]
+        }
+    }
+
     # Iterate through packages for command and parameter information
     for package_name in _SAM_CLI_COMMAND_PACKAGES:
         commands.extend(retrieve_command_structure(package_name))
