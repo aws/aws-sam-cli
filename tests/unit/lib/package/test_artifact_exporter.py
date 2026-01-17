@@ -22,6 +22,7 @@ from samcli.lib.package.artifact_exporter import (
     CloudFormationStackResource,
     CloudFormationStackSetResource,
     ServerlessApplicationResource,
+    _ThreadSafeUploadCache,
 )
 from samcli.lib.package.packageable_resources import (
     GraphQLApiCodeResource,
@@ -1201,6 +1202,7 @@ class TestArtifactExporter(unittest.TestCase):
                 normalize_parameters=True,
                 normalize_template=True,
                 parent_stack_id="id",
+                parallel_upload=False,
             )
             template_instance_mock.export.assert_called_once_with()
             self.s3_uploader_mock.upload.assert_called_once_with(mock.ANY, mock.ANY)
@@ -1377,6 +1379,7 @@ class TestArtifactExporter(unittest.TestCase):
                 normalize_parameters=True,
                 normalize_template=True,
                 parent_stack_id="id",
+                parallel_upload=False,
             )
             template_instance_mock.export.assert_called_once_with()
             self.s3_uploader_mock.upload.assert_called_once_with(mock.ANY, mock.ANY)
@@ -1542,6 +1545,194 @@ class TestArtifactExporter(unittest.TestCase):
             resource_type1_instance.export.assert_called_once_with("Resource1", mock.ANY, template_dir)
             resource_type2_class.assert_called_once_with(self.uploaders_mock, self.code_signer_mock, None)
             resource_type2_instance.export.assert_called_once_with("Resource2", mock.ANY, template_dir)
+
+    @patch.object(Template, "_execute_jobs_in_parallel")
+    @patch("samcli.lib.package.artifact_exporter.yaml_parse")
+    def test_template_export_parallel_invokes_executor(self, yaml_parse_mock, executor_mock):
+        parent_dir = os.path.sep
+        template_dir = os.path.join(parent_dir, "foo", "bar")
+        template_path = os.path.join(template_dir, "path")
+        template_str = self.example_yaml_template()
+
+        resource_type1_class = Mock()
+        resource_type1_class.RESOURCE_TYPE = "resource_type1"
+        resource_type1_class.ARTIFACT_TYPE = ZIP
+        resource_type1_class.EXPORT_DESTINATION = Destination.S3
+        resource_type1_class.return_value = Mock()
+
+        resource_type2_class = Mock()
+        resource_type2_class.RESOURCE_TYPE = "resource_type2"
+        resource_type2_class.ARTIFACT_TYPE = ZIP
+        resource_type2_class.EXPORT_DESTINATION = Destination.S3
+        resource_type2_class.return_value = Mock()
+
+        resources_to_export = [resource_type1_class, resource_type2_class]
+        properties = {"foo": "bar"}
+        template_dict = {
+            "Resources": {
+                "Resource1": {"Type": "resource_type1", "Properties": properties},
+                "Resource2": {"Type": "resource_type2", "Properties": properties},
+            }
+        }
+
+        yaml_parse_mock.return_value = template_dict
+        with patch("samcli.lib.package.artifact_exporter.open", mock.mock_open(read_data=template_str)):
+            template_exporter = Template(
+                template_path,
+                parent_dir,
+                self.uploaders_mock,
+                self.code_signer_mock,
+                resources_to_export,
+                parallel_upload=True,
+            )
+            template_exporter.export()
+
+        executor_mock.assert_called_once()
+        jobs = executor_mock.call_args[0][0]
+        self.assertEqual(len(jobs), 2)
+
+    @patch("samcli.lib.package.artifact_exporter.is_experimental_enabled")
+    @patch("samcli.lib.package.artifact_exporter.yaml_parse")
+    def test_template_export_parallel_wraps_cache(self, yaml_parse_mock, is_experimental_enabled_mock):
+        is_experimental_enabled_mock.side_effect = lambda *args: {
+            (ExperimentalFlag.PackagePerformance,): True,
+        }.get(args, False)
+
+        parent_dir = os.path.sep
+        template_dir = os.path.join(parent_dir, "foo", "bar")
+        template_path = os.path.join(template_dir, "path")
+        template_str = self.example_yaml_template()
+
+        resource_type_class = Mock()
+        resource_type_class.RESOURCE_TYPE = "resource_type1"
+        resource_type_class.ARTIFACT_TYPE = ZIP
+        resource_type_class.EXPORT_DESTINATION = Destination.S3
+        resource_type_instance = Mock()
+        resource_type_class.return_value = resource_type_instance
+
+        captured_cache = {}
+
+        def capture_cache(uploaders, code_signer, cache):
+            nonlocal captured_cache
+            captured_cache = cache
+            return resource_type_instance
+
+        resource_type_class.side_effect = capture_cache
+
+        properties = {"foo": "bar"}
+        template_dict = {"Resources": {"Resource1": {"Type": "resource_type1", "Properties": properties}}}
+
+        yaml_parse_mock.return_value = template_dict
+        with patch("samcli.lib.package.artifact_exporter.open", mock.mock_open(read_data=template_str)):
+            template_exporter = Template(
+                template_path,
+                parent_dir,
+                self.uploaders_mock,
+                self.code_signer_mock,
+                [resource_type_class],
+                parallel_upload=True,
+            )
+            template_exporter.export()
+
+        self.assertIsInstance(captured_cache, _ThreadSafeUploadCache)
+
+    @patch("samcli.lib.package.artifact_exporter.yaml_parse")
+    def test_template_export_skips_mismatched_package_type(self, yaml_parse_mock):
+        parent_dir = os.path.sep
+        template_dir = os.path.join(parent_dir, "foo", "bar")
+        template_path = os.path.join(template_dir, "path")
+        template_str = self.example_yaml_template()
+
+        resource_type_class = Mock()
+        resource_type_class.RESOURCE_TYPE = "resource_type1"
+        resource_type_class.ARTIFACT_TYPE = ZIP
+        resource_type_class.EXPORT_DESTINATION = Destination.S3
+
+        # Same resource type, but template says Image package type -> should be skipped
+        properties = {"PackageType": IMAGE, "foo": "bar"}
+        template_dict = {"Resources": {"Resource1": {"Type": "resource_type1", "Properties": properties}}}
+        yaml_parse_mock.return_value = template_dict
+
+        with patch("samcli.lib.package.artifact_exporter.open", mock.mock_open(read_data=template_str)):
+            template_exporter = Template(
+                template_path, parent_dir, self.uploaders_mock, self.code_signer_mock, [resource_type_class]
+            )
+            template_exporter.export()
+
+        resource_type_class.assert_not_called()
+
+    @patch("samcli.lib.package.artifact_exporter.yaml_parse")
+    def test_template_delete_skips_mismatched_package_type(self, yaml_parse_mock):
+        parent_dir = os.path.sep
+        template_dir = os.path.join(parent_dir, "foo", "bar")
+        template_path = os.path.join(template_dir, "path")
+        template_str = self.example_yaml_template()
+
+        resource_type_class = Mock()
+        resource_type_class.RESOURCE_TYPE = "resource_type1"
+        resource_type_class.ARTIFACT_TYPE = ZIP
+        resource_type_class.EXPORT_DESTINATION = Destination.S3
+        resource_type_instance = Mock()
+        resource_type_class.return_value = resource_type_instance
+
+        properties = {"PackageType": IMAGE, "foo": "bar"}
+        template_dict = {"Resources": {"Resource1": {"Type": "resource_type1", "Properties": properties}}}
+        yaml_parse_mock.return_value = template_dict
+
+        with patch("samcli.lib.package.artifact_exporter.open", mock.mock_open(read_data=template_str)):
+            template_exporter = Template(
+                template_path, parent_dir, self.uploaders_mock, self.code_signer_mock, [resource_type_class]
+            )
+            template_exporter.delete(retain_resources=[])
+
+        resource_type_class.assert_not_called()
+
+    @patch("samcli.lib.package.artifact_exporter.wait")
+    @patch("samcli.lib.package.artifact_exporter.ThreadPoolExecutor")
+    def test_execute_jobs_in_parallel_submits_and_waits(self, executor_mock, wait_mock):
+        class _FakeFuture:
+            def __init__(self, job):
+                self._job = job
+
+            def result(self):
+                return self._job()
+
+        class _FakeExecutor:
+            def __init__(self, max_workers):
+                self.max_workers = max_workers
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+            def submit(self, job):
+                return _FakeFuture(job)
+
+        executor_mock.side_effect = lambda max_workers: _FakeExecutor(max_workers=max_workers)
+
+        job1 = Mock()
+        job2 = Mock()
+        template_exporter = Template.__new__(Template)
+        template_exporter._execute_jobs_in_parallel([job1, job2])
+
+        executor_mock.assert_called_once_with(max_workers=2)
+        wait_mock.assert_called_once()
+        job1.assert_called_once()
+        job2.assert_called_once()
+
+    @patch("samcli.lib.package.artifact_exporter.wait")
+    @patch("samcli.lib.package.artifact_exporter.ThreadPoolExecutor")
+    def test_execute_jobs_in_parallel_falls_back_to_single_worker(self, executor_mock, wait_mock):
+        job1 = Mock()
+
+        template_exporter = Template.__new__(Template)
+        template_exporter._execute_jobs_in_parallel([job1])
+
+        job1.assert_called_once()
+        executor_mock.assert_not_called()
+        wait_mock.assert_not_called()
 
     @patch("samcli.lib.package.artifact_exporter.is_experimental_enabled")
     @patch("samcli.lib.package.artifact_exporter.yaml_parse")
