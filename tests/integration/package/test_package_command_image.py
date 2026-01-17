@@ -349,3 +349,33 @@ class TestPackageImage(PackageIntegBase):
 
         self.assertEqual(1, process.returncode)
         self.assertIn("unexpected EOF", process_stderr.decode("utf-8"))
+
+    @parameterized.expand(
+        [
+            "aws-serverless-function-image.yaml",
+            "aws-lambda-function-image.yaml",
+        ]
+    )
+    def test_package_template_with_resolve_image_repos(self, template_file):
+
+        template_path = self.test_data_path.joinpath(template_file)
+        command_list = PackageIntegBase.get_command_list(
+            s3_bucket=self.bucket_name,
+            template=template_path,
+            resolve_image_repos=True,
+        )
+
+        process = Popen(command_list, stdout=PIPE, stderr=PIPE)
+        try:
+            stdout, stderr = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stdout = stdout.strip().decode("utf-8")
+        process_stderr = stderr.strip().decode("utf-8")
+        self.assertEqual(0, process.returncode, f"Command failed. Stderr: {process_stderr}")
+        # Verify ECR repository URI is in the output (auto-created repository)
+        # The output should contain an ECR repository URI pattern
+        ecr_uri_pattern = r"\d+\.dkr\.ecr\.[a-z0-9-]+\.amazonaws\.com/"
+        self.assertRegex(process_stdout, ecr_uri_pattern, "Expected ECR repository URI in packaged template")

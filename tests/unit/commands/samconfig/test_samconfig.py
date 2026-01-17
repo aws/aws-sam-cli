@@ -855,6 +855,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "myregion",
                 None,
                 False,
+                False,
             )
 
     @patch("samcli.commands._utils.options.get_template_artifacts_format")

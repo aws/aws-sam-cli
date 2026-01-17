@@ -15,6 +15,7 @@ from samcli.commands._utils.options import (
     kms_key_id_option,
     metadata_option,
     no_progressbar_option,
+    resolve_image_repos_option,
     resolve_s3_option,
     s3_bucket_option,
     s3_prefix_option,
@@ -86,13 +87,14 @@ DESCRIPTION = """
 @use_json_option
 @force_upload_option
 @resolve_s3_option
+@resolve_image_repos_option
 @metadata_option
 @signing_profiles_option
 @no_progressbar_option
 @common_options
 @aws_creds_options
 @save_params_option
-@image_repository_validation(support_resolve_image_repos=False)
+@image_repository_validation(support_resolve_image_repos=True)
 @pass_context
 @track_command
 @check_newer_version
@@ -115,6 +117,7 @@ def cli(
     metadata,
     signing_profiles,
     resolve_s3,
+    resolve_image_repos,
     save_params,
     config_file,
     config_env,
@@ -140,6 +143,7 @@ def cli(
         ctx.region,
         ctx.profile,
         resolve_s3,
+        resolve_image_repos,
     )  # pragma: no cover
 
 
@@ -159,16 +163,21 @@ def do_cli(
     region,
     profile,
     resolve_s3,
+    resolve_image_repos,
 ):
     """
     Implementation of the ``cli`` method
     """
 
+    from samcli.commands.package.exceptions import PackageResolveS3AndS3NotSetError
     from samcli.commands.package.package_context import PackageContext
 
     if resolve_s3:
         s3_bucket = manage_stack(profile=profile, region=region)
         print_managed_s3_bucket_info(s3_bucket)
+
+    if resolve_image_repos and not s3_bucket:
+        raise PackageResolveS3AndS3NotSetError()
 
     with PackageContext(
         template_file=template_file,
@@ -185,5 +194,6 @@ def do_cli(
         region=region,
         profile=profile,
         signing_profiles=signing_profiles,
+        resolve_image_repos=resolve_image_repos,
     ) as package_context:
         package_context.run()

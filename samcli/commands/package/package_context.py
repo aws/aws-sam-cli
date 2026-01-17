@@ -23,6 +23,7 @@ import boto3
 import click
 
 from samcli.commands.package.exceptions import PackageFailedError
+from samcli.lib.bootstrap.companion_stack.companion_stack_manager import sync_ecr_stack
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.package.artifact_exporter import Template
 from samcli.lib.package.code_signer import CodeSigner
@@ -71,6 +72,7 @@ class PackageContext:
         parameter_overrides=None,
         on_deploy=False,
         signing_profiles=None,
+        resolve_image_repos=False,
     ):
         self.template_file = template_file
         self.s3_bucket = s3_bucket
@@ -89,6 +91,7 @@ class PackageContext:
         self.code_signer = None
         self.signing_profiles = signing_profiles
         self.parameter_overrides = parameter_overrides
+        self.resolve_image_repos = resolve_image_repos
         self._global_parameter_overrides = {IntrinsicsSymbolTable.AWS_REGION: region} if region else {}
 
     def __enter__(self):
@@ -101,6 +104,14 @@ class PackageContext:
         """
         Execute packaging based on the argument provided by customers and samconfig.toml.
         """
+        if self.resolve_image_repos:
+            template_basename = os.path.splitext(os.path.basename(self.template_file))[0]
+            stack_name = f"sam-app-{template_basename}"
+
+            self.image_repositories = sync_ecr_stack(
+                self.template_file, stack_name, self.region, self.s3_bucket, self.s3_prefix, self.image_repositories
+            )
+
         stacks, _ = SamLocalStackProvider.get_stacks(
             self.template_file,
             global_parameter_overrides=self._global_parameter_overrides,
