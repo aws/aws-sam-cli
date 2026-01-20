@@ -156,35 +156,34 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
                 BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
                 BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
             ),
-            # skip these tests until build images for Java 25 are released
-            # (
-            #     "java25",
-            #     "25",
-            #     BuildIntegJavaBase.USING_GRADLE_PATH,
-            #     BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-            #     BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
-            # ),
-            # (
-            #     "java25",
-            #     "25",
-            #     BuildIntegJavaBase.USING_GRADLEW_IN_CONTAINER_PATH,
-            #     BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-            #     BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
-            # ),
-            # (
-            #     "java25",
-            #     "25",
-            #     BuildIntegJavaBase.USING_GRADLE_KOTLIN_PATH,
-            #     BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
-            #     BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
-            # ),
-            # (
-            #     "java25",
-            #     "25",
-            #     BuildIntegJavaBase.USING_MAVEN_PATH,
-            #     BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
-            #     BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
-            # ),
+            (
+                "java25",
+                "25",
+                BuildIntegJavaBase.USING_GRADLE_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java25",
+                "25",
+                BuildIntegJavaBase.USING_GRADLEW_IN_CONTAINER_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java25",
+                "25",
+                BuildIntegJavaBase.USING_GRADLE_KOTLIN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java25",
+                "25",
+                BuildIntegJavaBase.USING_MAVEN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
+            ),
         ]
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)

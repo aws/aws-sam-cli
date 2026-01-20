@@ -40,6 +40,12 @@ USING_FINCH_RUNTIME = os.environ.get("CONTAINER_RUNTIME") == "finch"
 # Tests require docker suffers from Docker Hub request limit
 SKIP_DOCKER_TESTS = RUNNING_ON_CI and not RUN_BY_CANARY
 
+
+# SKIP LMI unless test resource is deployed in the test accounts
+# Check if required environment variables are available
+SKIP_LMI_TESTS = not all(os.environ.get(var) for var in ["LMI_SUBNET_ID", "LMI_SECURITY_GROUP_ID"])
+
+
 # Set to True temporarily if the integration tests require updated build images
 # Build images aren't published until after the CLI is released
 # The CLI integration tests thus cannot succeed if they require new build images (chicken-egg problem)
@@ -51,6 +57,40 @@ LOG = logging.getLogger(__name__)
 
 CommandResult = namedtuple("CommandResult", "process stdout stderr")
 TIMEOUT = 600
+
+
+def _close_process_handles(process: Popen) -> None:
+    """Close file handles on a process to prevent ResourceWarning about unclosed files.
+
+    This helper function safely closes stdin, stdout, and stderr handles on a Popen process,
+    and waits for the process to fully terminate.
+
+    Parameters
+    ----------
+    process : Popen
+        The process whose handles should be closed
+    """
+    if process.stdin:
+        try:
+            process.stdin.close()
+        except Exception:
+            pass
+    if process.stdout:
+        try:
+            process.stdout.close()
+        except Exception:
+            pass
+    if process.stderr:
+        try:
+            process.stderr.close()
+        except Exception:
+            pass
+    try:
+        process.wait(timeout=5)
+    except Exception:
+        pass
+
+
 CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".", "-")
 
 # Error message truncation constants for test output readability
@@ -120,12 +160,15 @@ def run_command(command_list, cwd=None, env=None, timeout=TIMEOUT) -> CommandRes
         LOG.error(f"Return Code: {process_execute.returncode}")
         process_execute.kill()
         raise
+    finally:
+        _close_process_handles(process_execute)
 
 
 def run_command_with_input(command_list, stdin_input, timeout=TIMEOUT, cwd=None, env=None) -> CommandResult:
     LOG.info("Running command: %s", " ".join(command_list))
     LOG.info("With input: %s", stdin_input)
-    process_execute = Popen(command_list, cwd=cwd, env=env, stdout=PIPE, stderr=PIPE, stdin=PIPE)
+    # Use bufsize=0 for unbuffered I/O to ensure input is sent immediately
+    process_execute = Popen(command_list, cwd=cwd, env=env, stdout=PIPE, stderr=PIPE, stdin=PIPE, bufsize=0)
     try:
         stdout_data, stderr_data = process_execute.communicate(stdin_input, timeout=timeout)
         LOG.info(f"Stdout: {stdout_data.decode('utf-8')}")
@@ -136,6 +179,8 @@ def run_command_with_input(command_list, stdin_input, timeout=TIMEOUT, cwd=None,
         LOG.error(f"Return Code: {process_execute.returncode}")
         process_execute.kill()
         raise
+    finally:
+        _close_process_handles(process_execute)
 
 
 def run_command_with_inputs(command_list: List[str], inputs: List[str], timeout=TIMEOUT) -> CommandResult:
@@ -159,21 +204,27 @@ def start_persistent_process(
 
 
 def kill_process(process: Popen) -> None:
-    """Kills a process and it's children.
+    """Kills a process and it's children, and closes all associated file handles.
     This loop ensures orphaned children are killed as well.
     https://psutil.readthedocs.io/en/latest/#kill-process-tree
     Raises ValueError if some processes are alive"""
-    root_process = psutil.Process(process.pid)
-    all_processes = root_process.children(recursive=True)
-    all_processes.append(root_process)
-    for process_to_kill in all_processes:
-        try:
-            process_to_kill.kill()
-        except psutil.NoSuchProcess:
-            pass
-    _, alive = psutil.wait_procs(all_processes, timeout=10)
-    if alive:
-        raise ValueError(f"Processes: {alive} are still alive.")
+    try:
+        root_process = psutil.Process(process.pid)
+        all_processes = root_process.children(recursive=True)
+        all_processes.append(root_process)
+        for process_to_kill in all_processes:
+            try:
+                process_to_kill.kill()
+            except psutil.NoSuchProcess:
+                pass
+        _, alive = psutil.wait_procs(all_processes, timeout=10)
+        if alive:
+            raise ValueError(f"Processes: {alive} are still alive.")
+    except psutil.NoSuchProcess:
+        # Process already terminated
+        pass
+    finally:
+        _close_process_handles(process)
 
 
 def read_until_string(process: Popen, expected_output: str, timeout: int = 30) -> None:

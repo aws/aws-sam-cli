@@ -64,7 +64,7 @@ jobs:
         mkdir "D:\\Temp"
         echo "TEMP=D:\\Temp" >> $env:GITHUB_ENV  
       if: ${{ matrix.os == 'windows-latest' }}
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python }}
@@ -79,7 +79,7 @@ jobs:
       contents: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         name: Install Python 3.11
         with:
@@ -139,7 +139,7 @@ jobs:
           #- "traces"
           #- "validate"
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Set TEMP to D:/Temp
         run: |
           mkdir "D:\\Temp"
@@ -175,6 +175,9 @@ jobs:
             17
             21
             25
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
        # Install and configure Rust & Cargo Lambda
       - name: Install and configure Rust & Cargo Lambda
         if: ${{ matrix.os == 'ubuntu-latest' }}
@@ -230,7 +233,7 @@ jobs:
             params: "-n 4 tests/smoke tests/functional"
             env_vars: "third-third"
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Set TEMP to D:/Temp
         run: |
           mkdir "D:\\Temp"
@@ -260,7 +263,7 @@ jobs:
           - ubuntu-latest
           - windows-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Set TEMP to D:/Temp
         run: |
           mkdir "D:\\Temp"
