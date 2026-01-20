@@ -90,6 +90,10 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegDotnetBase):
             ("dotnet8", "Dotnet8", None, MountMode.WRITE),
             ("dotnet8", "Dotnet8", "debug", None),
             ("dotnet8", "Dotnet8", "debug", MountMode.WRITE),
+            ("dotnet10", "Dotnet10", None, None),
+            ("dotnet10", "Dotnet10", None, MountMode.WRITE),
+            ("dotnet10", "Dotnet10", "debug", None),
+            ("dotnet10", "Dotnet10", "debug", MountMode.WRITE),
         ]
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
@@ -151,6 +155,8 @@ class TestBuildCommand_Dotnet_cli_package_interactive(BuildIntegDotnetBase):
         [
             ("dotnet8", "Dotnet8", None),
             ("dotnet8", "Dotnet8", "debug"),
+            ("dotnet10", "Dotnet10", None),
+            ("dotnet10", "Dotnet10", "debug"),
         ]
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)

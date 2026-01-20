@@ -11,10 +11,6 @@ Parameters:
   SecurityGroupId:
     Type: String
     Description: Security Group ID from infrastructure stack
-  OperatorRoleArn:
-    Type: String
-    Description: Operator Role ARN from infrastructure stack
-
 
 Resources:
   NodeStreamingCapacityProvider:
@@ -25,7 +21,6 @@ Resources:
             - !Ref SecurityGroupId
           SubnetIds:
             - !Ref SubnetId
-        OperatorRole: !Ref OperatorRoleArn
 
   NodeStreamingFunction:
     Type: AWS::Serverless::Function
