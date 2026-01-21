@@ -24,7 +24,7 @@ from samcli.lib.utils.resources import (
 )
 from tests.integration.sync.sync_integ_base import SyncIntegBase
 
-from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
+from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY, SKIP_LMI_TESTS
 from tests.testing_utils import run_command_with_input
 
 # Deploy tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
@@ -796,7 +796,6 @@ class TestFunctionWithSkipBuild(TestSyncCodeBase):
                 self.assertEqual(lambda_response.get("message"), "hello mars")
 
 
-@skipIf(RUNNING_ON_CI, "Skip LMI tests when running on canary")
 @parameterized_class(
     [
         {"dependency_layer": True},
@@ -804,6 +803,10 @@ class TestFunctionWithSkipBuild(TestSyncCodeBase):
     ]
 )
 @pytest.mark.timeout(300)
+@skipIf(
+    SKIP_LMI_TESTS,
+    'Skip LMI tests because required environment variables not set: "LMI_SUBNET_ID", "LMI_SECURITY_GROUP_ID"',
+)
 class TestSyncCodeLMI(TestSyncCodeBase):
     """Test sync code operations with Lambda Managed Instance functions"""
 
@@ -813,16 +816,11 @@ class TestSyncCodeLMI(TestSyncCodeBase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
-        # Validate LMI environment variables are set
-        assert os.environ.get("LMI_SUBNET_ID"), "LMI_SUBNET_ID environment variable must be set"
-        assert os.environ.get("LMI_SECURITY_GROUP_ID"), "LMI_SECURITY_GROUP_ID environment variable must be set"
-        assert os.environ.get("LMI_OPERATOR_ROLE_ARN"), "LMI_OPERATOR_ROLE_ARN environment variable must be set"
 
         # Read LMI infrastructure from environment variables
         cls.parameter_overrides = {
             "SubnetId": os.environ.get("LMI_SUBNET_ID", ""),
             "SecurityGroupId": os.environ.get("LMI_SECURITY_GROUP_ID", ""),
-            "OperatorRoleArn": os.environ.get("LMI_OPERATOR_ROLE_ARN", ""),
         }
 
     def test_sync_lmi_with_publish_to_latest_published(self):
