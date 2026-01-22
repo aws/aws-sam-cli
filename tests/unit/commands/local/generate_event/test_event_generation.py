@@ -1,3 +1,4 @@
+import json
 import os
 
 from unittest import TestCase
@@ -97,7 +98,6 @@ class TestEvents(TestCase):
                 "querystringparameters": '{"documentId": "1044", "versionId": "v_1"}',
             },
         )
-        import json
 
         result_json = json.loads(result)
         # Verify that queryStringParameters is a dict, not a string
@@ -119,7 +119,6 @@ class TestEvents(TestCase):
                 "querystringparameters": '{"filter": "status=active", "sort": "desc", "limit": "10"}',
             },
         )
-        import json
 
         result_json = json.loads(result)
         # Verify complex dict is properly parsed
@@ -127,6 +126,25 @@ class TestEvents(TestCase):
         self.assertEqual(result_json["queryStringParameters"]["filter"], "status=active")
         self.assertEqual(result_json["queryStringParameters"]["sort"], "desc")
         self.assertEqual(result_json["queryStringParameters"]["limit"], "10")
+
+    def test_generate_event_with_nested_dict_value(self):
+        """Test that generate_event preserves nested objects inside dict-type values"""
+        events_lib = events.Events()
+        result = events_lib.generate_event(
+            "apigateway",
+            "aws-proxy",
+            {
+                "method": "GET",
+                "path": "test",
+                "body": "",
+                "querystringparameters": '{"outer": {"inner": "x"}, "items": ["a", "b"]}',
+            },
+        )
+
+        result_json = json.loads(result)
+        self.assertIsInstance(result_json["queryStringParameters"], dict)
+        self.assertEqual(result_json["queryStringParameters"]["outer"]["inner"], "x")
+        self.assertEqual(result_json["queryStringParameters"]["items"], ["a", "b"])
 
 
 class TestServiceCommand(TestCase):
