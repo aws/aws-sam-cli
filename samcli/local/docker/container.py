@@ -25,10 +25,10 @@ from docker.errors import (
     NotFound as DockerNetworkNotFound,
 )
 
-from samcli.lib.constants import DOCKER_MIN_API_VERSION
 from samcli.lib.utils.retry import retry
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.lib.utils.tar import extract_tarfile
+from samcli.local.docker import utils
 from samcli.local.docker.effective_user import ROOT_USER_ID, EffectiveUser
 from samcli.local.docker.exceptions import (
     ContainerNotStartableException,
@@ -41,11 +41,6 @@ LOG = logging.getLogger(__name__)
 
 CONTAINER_CONNECTION_TIMEOUT = float(os.environ.get("SAM_CLI_CONTAINER_CONNECTION_TIMEOUT", "20"))
 DEFAULT_CONTAINER_HOST_INTERFACE = "127.0.0.1"
-
-# Keep a lock instance to access the locks for individual containers (see dict below)
-CONCURRENT_CALL_MANAGER_LOCK = threading.Lock()
-# Keeps locks per container (aka per function) so that one function can be invoked one at a time
-CONCURRENT_CALL_MANAGER: Dict[str, threading.Lock] = {}
 
 
 class ContainerResponseException(Exception):
@@ -102,6 +97,8 @@ class Container:
         host_tmp_dir: Optional[str] = None,
         extra_hosts: Optional[dict] = None,
         mount_symlinks: Optional[bool] = False,
+        labels: Optional[dict] = None,
+        debug_options=None,
     ):
         """
         Initializes the class with given configuration. This does not automatically create or run the container.
@@ -125,6 +122,7 @@ class Container:
         :param string host_tmp_dir: Optional. Temporary directory on the host when mounting with write permissions.
         :param dict extra_hosts: Optional. Dict of hostname to IP resolutions
         :param bool mount_symlinks: Optional. True if symlinks should be mounted in the container
+        :param debug_options: Optional. Debug context containing debug configuration
         """
 
         self._image = image
@@ -141,9 +139,12 @@ class Container:
         self._logs_thread = None
         self._extra_hosts = extra_hosts
         self._logs_thread_event = None
+        self._labels = labels or {}
 
-        # Use the given Docker client or create new one
-        self.docker_client = docker_client or docker.from_env(version=DOCKER_MIN_API_VERSION)
+        # Store docker_client parameter for lazy initialization
+        # Only validate container runtime when Docker client is actually accessed
+        self._docker_client_param = docker_client
+        self._validated_docker_client = None
 
         # Runtime properties of the container. They won't have value until container is created or started
         self.id: Optional[str] = None
@@ -158,6 +159,10 @@ class Container:
         self._mount_with_write = mount_with_write
         self._host_tmp_dir = host_tmp_dir
         self._mount_symlinks = mount_symlinks
+        self.debug_options = debug_options
+        # Container-level concurrency management
+        self._concurrency_semaphore: Optional[threading.Semaphore] = None  # Controls concurrent Lambda executions
+        self._max_concurrency: int = 1  # Default to 1 for normal functions
 
         try:
             self.rapid_port_host = find_free_port(
@@ -165,6 +170,16 @@ class Container:
             )
         except NoFreePortsError as ex:
             raise ContainerNotStartableException(str(ex)) from ex
+
+    @property
+    def docker_client(self):
+        """
+        Lazy initialization of Docker client. Only validates container runtime when actually accessed.
+        This prevents unnecessary container runtime validation during object creation.
+        """
+        if self._validated_docker_client is None:
+            self._validated_docker_client = self._docker_client_param or utils.get_validated_container_client()
+        return self._validated_docker_client
 
     def create(self, context):
         """
@@ -252,6 +267,19 @@ class Container:
         if self._extra_hosts:
             kwargs["extra_hosts"] = self._extra_hosts
 
+        if self._labels:
+            kwargs["labels"] = self._labels
+
+        # Make tmp dir on the host before container creation to avoid permission issues
+        if self._mount_with_write and self._host_tmp_dir and not os.path.exists(self._host_tmp_dir):
+            try:
+                os.makedirs(self._host_tmp_dir)
+                LOG.debug("Successfully created temporary directory %s on the host.", self._host_tmp_dir)
+            except FileExistsError:
+                # Directory was created between the exists check and makedirs call (race condition)
+                # This is acceptable, so we can ignore this error
+                LOG.debug("Temporary directory %s already exists on the host.", self._host_tmp_dir)
+
         try:
             real_container = self.docker_client.containers.create(self._image, **kwargs)
         except DockerAPIError as ex:
@@ -260,8 +288,14 @@ class Container:
             )
         self.id = real_container.id
 
+        # Output container ID for test parsing
+        LOG.info("SAM_CONTAINER_ID: %s", self.id)
+
         self._logs_thread = None
         self._logs_thread_event = None
+
+        # Initialize concurrency control now that container is created and env vars are available
+        self._initialize_concurrency_control()
 
         if self.network_id and self.network_id != "host":
             try:
@@ -399,10 +433,12 @@ class Container:
         if not self.is_created():
             raise RuntimeError("Container does not exist. Cannot start this container")
 
-        # Make tmp dir on the host
+        # Check if tmp dir exists when mount_with_write is enabled
         if self._mount_with_write and self._host_tmp_dir and not os.path.exists(self._host_tmp_dir):
-            os.makedirs(self._host_tmp_dir)
-            LOG.debug("Successfully created temporary directory %s on the host.", self._host_tmp_dir)
+            LOG.warning(
+                "Temporary directory %s does not exist. The tmp directory should be created during container creation.",
+                self._host_tmp_dir,
+            )
 
         # Get the underlying container instance from Docker API
         real_container = self.docker_client.containers.get(self.id)
@@ -415,27 +451,99 @@ class Container:
                 raise PortAlreadyInUse(ex.explanation.decode()) from ex
             raise ex
 
+    def _initialize_concurrency_control(self):
+        """
+        Initialize concurrency control for this container based on its environment variables.
+        In debug mode, force concurrency to 1 to avoid debugging conflicts.
+        Called once during container creation.
+        """
+        if self._concurrency_semaphore is not None:
+            return  # Already initialized
+
+        # Check if we're in debug mode
+        is_not_debug_mode = not (self.debug_options and self.debug_options.debug_ports)
+
+        max_concurrency_str = (
+            self._env_vars.get("AWS_LAMBDA_MAX_CONCURRENCY", "1") if self._env_vars and is_not_debug_mode else "1"
+        )
+
+        try:
+            self._max_concurrency = int(max_concurrency_str)
+        except (ValueError, TypeError):
+            LOG.warning("Invalid AWS_LAMBDA_MAX_CONCURRENCY value: %s, defaulting to 1", max_concurrency_str)
+            self._max_concurrency = 1
+
+        # Create semaphore with the determined max concurrency
+        self._concurrency_semaphore = threading.Semaphore(self._max_concurrency)
+        LOG.debug("Initialized container %s with max_concurrency=%d", self.id or "unknown", self._max_concurrency)
+
+    def get_max_concurrency(self) -> int:
+        """
+        Get the maximum concurrency limit for this container.
+
+        Returns
+        -------
+        int
+            Maximum number of concurrent requests this container can handle
+        """
+        # Concurrency control is initialized during create(), so this should always be available
+        return self._max_concurrency
+
     @retry(exc=requests.exceptions.RequestException, exc_raise=ContainerResponseException)
-    def wait_for_http_response(self, name, event, stdout) -> Tuple[Union[str, bytes], bool]:
+    def wait_for_http_response(self, name, event, stdout, tenant_id=None) -> Tuple[Union[str, bytes], bool]:
         # TODO(sriram-mv): `aws-lambda-rie` is in a mode where the function_name is always "function"
         # NOTE(sriram-mv): There is a connection timeout set on the http call to `aws-lambda-rie`, however there is not
         # a read time out for the response received from the server.
 
-        # generate a lock key with host-port combination which is unique per function
-        lock_key = f"{self._container_host}-{self.rapid_port_host}"
-        LOG.debug("Getting lock for the key %s", lock_key)
-        with CONCURRENT_CALL_MANAGER_LOCK:
-            lock = CONCURRENT_CALL_MANAGER.get(lock_key)
-            if not lock:
-                lock = threading.Lock()
-                CONCURRENT_CALL_MANAGER[lock_key] = lock
-        LOG.debug("Waiting to retrieve the lock (%s) to start invocation", lock_key)
-        with lock:
-            resp = requests.post(
-                self.URL.format(host=self._container_host, port=self.rapid_port_host, function_name="function"),
-                data=event.encode("utf-8"),
-                timeout=(self.RAPID_CONNECTION_TIMEOUT, None),
+        """
+        Concurrency is handled entirely by the semaphore:
+        - Traditional functions: Semaphore(1) = single-threaded execution allowed
+        - LMI functions: Semaphore(N) = N concurrent executions allowed
+        """
+
+        # Concurrency control is initialized during create(), so semaphore should always be available
+        if self._concurrency_semaphore:
+            # Use context manager for automatic concurrency control
+            # This ensures that concurrent requests are properly limited and queued
+            # Debug logging: Show semaphore state
+            available_permits = self._concurrency_semaphore._value
+            LOG.debug(
+                "Container-%s (concurrency available: %d/%d) - %s for request (%s)",
+                self.id[:12] if self.id else "unknown",
+                available_permits,
+                self._max_concurrency,
+                "ALLOWED" if available_permits > 0 else "QUEUED",
+                event,
             )
+
+            with self._concurrency_semaphore:
+                return self._make_http_request(event, tenant_id)
+        else:
+            LOG.warning("Container concurrency control not initiated properly during container creation")
+            return self._make_http_request(event, tenant_id)
+
+    def _make_http_request(self, event, tenant_id=None) -> Tuple[Union[str, bytes], bool]:
+        """
+        Makes the actual HTTP request to the container.
+        Separated from concurrency control logic for clarity.
+
+        Note: The Content-Type header is required when using the requests library with the new MC RIE.
+        While the RIE itself doesn't strictly require this header (curl works without it),
+        the requests library's HTTP formatting without Content-Type causes the container to hang.
+        This appears to be a compatibility issue between the requests library and MC RIE.
+        """
+        # Prepare headers for the request
+        headers = {"Content-Type": "application/json"}
+        if tenant_id is not None:
+            headers["X-Amz-Tenant-Id"] = tenant_id
+            LOG.debug("Adding tenant-id header: %s", tenant_id)
+
+        resp = requests.post(
+            self.URL.format(host=self._container_host, port=self.rapid_port_host, function_name="function"),
+            data=event.encode("utf-8"),
+            headers=headers,
+            timeout=(self.RAPID_CONNECTION_TIMEOUT, None),
+        )
 
         try:
             # if response is an image then json.loads/dumps will throw a UnicodeDecodeError so return raw content
@@ -446,19 +554,14 @@ class Container:
             LOG.debug("Failed to deserialize response from RIE, returning the raw response as is")
             return resp.content, False
 
-    def wait_for_result(self, full_path, event, stdout, stderr, start_timer=None):
+    def wait_for_result(self, full_path, event, stdout, stderr, start_timer=None, tenant_id=None):
         # NOTE(sriram-mv): Let logging happen in its own thread, so that a http request can be sent.
         # NOTE(sriram-mv): All logging is re-directed to stderr, so that only the lambda function return
         # will be written to stdout.
 
         # the log thread will not be closed until the container itself got deleted,
         # so as long as the container is still there, no need to start a new log thread
-        if not self._logs_thread or not self._logs_thread.is_alive():
-            self._logs_thread_event = self._create_threading_event()
-            self._logs_thread = threading.Thread(
-                target=self.wait_for_logs, args=(stderr, stderr, self._logs_thread_event), daemon=True
-            )
-            self._logs_thread.start()
+        self.start_logs_thread_if_not_alive(stderr)
 
         # wait_for_http_response will attempt to establish a connection to the socket
         # but it'll fail if the socket is not listening yet, so we wait for the socket
@@ -467,7 +570,7 @@ class Container:
         # start the timer for function timeout right before executing the function, as waiting for the socket
         # can take some time
         timer = start_timer() if start_timer else None
-        response, is_image = self.wait_for_http_response(full_path, event, stdout)
+        response, is_image = self.wait_for_http_response(full_path, event, stdout, tenant_id)
         if timer:
             timer.cancel()
 
@@ -482,6 +585,15 @@ class Container:
         stderr.write_str("\n")
         stderr.flush()
         self._logs_thread_event.clear()
+
+    def start_logs_thread_if_not_alive(self, stderr):
+        """Start the logging thread if not already running."""
+        if not self._logs_thread or not self._logs_thread.is_alive():
+            self._logs_thread_event = self._create_threading_event()
+            self._logs_thread = threading.Thread(
+                target=self.wait_for_logs, args=(stderr, stderr, self._logs_thread_event), daemon=True
+            )
+            self._logs_thread.start()
 
     def wait_for_logs(
         self,
@@ -536,11 +648,9 @@ class Container:
         if not self.is_created():
             raise RuntimeError("Container does not exist. Cannot get logs for this container")
 
-        real_container = self.docker_client.containers.get(self.id)
-
         LOG.debug("Copying from container: %s -> %s", from_container_path, to_host_path)
         with tempfile.NamedTemporaryFile() as fp:
-            tar_stream, _ = real_container.get_archive(from_container_path)
+            tar_stream, _ = self.docker_client.get_archive(self.id, from_container_path)
             for data in tar_stream:
                 fp.write(data)
 

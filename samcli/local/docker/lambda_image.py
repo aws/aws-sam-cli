@@ -8,6 +8,7 @@ import os
 import platform
 import re
 import sys
+import tempfile
 import uuid
 from enum import Enum
 from pathlib import Path
@@ -20,12 +21,17 @@ from samcli.commands.local.cli_common.user_exceptions import (
     ImageBuildException,
 )
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
-from samcli.lib.constants import DOCKER_MIN_API_VERSION
 from samcli.lib.utils.architecture import has_runtime_multi_arch_image
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.lib.utils.tar import create_tarball
-from samcli.local.docker.utils import get_docker_platform, get_rapid_name
+from samcli.local.common.file_lock import FileLock, cleanup_stale_locks
+from samcli.local.docker.utils import (
+    get_docker_platform,
+    get_rapid_name,
+    get_tar_filter_for_windows,
+    get_validated_container_client,
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -39,12 +45,14 @@ class Runtime(Enum):
     nodejs18x = "nodejs18.x"
     nodejs20x = "nodejs20.x"
     nodejs22x = "nodejs22.x"
+    nodejs24x = "nodejs24.x"
     python38 = "python3.8"
     python39 = "python3.9"
     python310 = "python3.10"
     python311 = "python3.11"
     python312 = "python3.12"
     python313 = "python3.13"
+    python314 = "python3.14"
     ruby32 = "ruby3.2"
     ruby33 = "ruby3.3"
     ruby34 = "ruby3.4"
@@ -52,9 +60,11 @@ class Runtime(Enum):
     java11 = "java11"
     java17 = "java17"
     java21 = "java21"
+    java25 = "java25"
     go1x = "go1.x"
     dotnet6 = "dotnet6"
     dotnet8 = "dotnet8"
+    dotnet10 = "dotnet10"
     provided = "provided"
     providedal2 = "provided.al2"
     providedal2023 = "provided.al2023"
@@ -137,8 +147,25 @@ class LambdaImage:
         self.layer_downloader = layer_downloader
         self.skip_pull_image = skip_pull_image
         self.force_image_build = force_image_build
-        self.docker_client = docker_client or docker.from_env(version=DOCKER_MIN_API_VERSION)
+
+        # Store docker_client parameter for lazy initialization
+        # Only validate container runtime when Docker client is actually accessed
+        self._docker_client_param = docker_client
+        self._validated_docker_client = None
         self.invoke_images = invoke_images
+
+        # Clean up old lock files on initialization
+        cleanup_stale_locks(Path(tempfile.gettempdir()), "building")
+
+    @property
+    def docker_client(self):
+        """
+        Lazy initialization of Docker client. Only validates container runtime when actually accessed.
+        This prevents unnecessary container runtime validation during object creation.
+        """
+        if self._validated_docker_client is None:
+            self._validated_docker_client = self._docker_client_param or get_validated_container_client()
+        return self._validated_docker_client
 
     def build(self, runtime, packagetype, image, layers, architecture, stream=None, function_name=None):
         """
@@ -246,11 +273,64 @@ class LambdaImage:
             or not runtime
         ):
             stream_writer = stream or StreamWriter(sys.stderr)
-            stream_writer.write_str("Building image...")
-            stream_writer.flush()
-            self._build_image(
-                image if image else base_image, rapid_image, downloaded_layers, architecture, stream=stream_writer
-            )
+
+            # Use build lock to prevent concurrent builds of the same image
+            # Use system temp directory for lock files instead of layer cache to avoid polluting cache
+            build_lock = FileLock(Path(tempfile.gettempdir()), rapid_image, "building")
+
+            if build_lock.acquire_lock():
+                # We got the lock, proceed with build
+                try:
+                    stream_writer.write_str("Building image...")
+                    stream_writer.flush()
+                    self._build_image(
+                        image if image else base_image,
+                        rapid_image,
+                        downloaded_layers,
+                        architecture,
+                        stream=stream_writer,
+                    )
+                    build_lock.release_lock(success=True)
+                except Exception:
+                    build_lock.release_lock(success=False)
+                    raise
+            else:
+                # Another process is building, wait for it to complete
+                stream_writer.write_str("Another process is building the same image, waiting...")
+                stream_writer.flush()
+
+                if build_lock.wait_for_operation():
+                    # Build completed successfully by another process
+                    stream_writer.write_str("Image build completed by another process.")
+                    stream_writer.flush()
+
+                    # Verify the image actually exists
+                    try:
+                        self.docker_client.images.get(rapid_image)
+                    except docker.errors.ImageNotFound:
+                        # Image doesn't exist, fallback to building ourselves
+                        LOG.warning("Expected image not found after concurrent build, building ourselves")
+                        stream_writer.write_str("Building image...")
+                        stream_writer.flush()
+                        self._build_image(
+                            image if image else base_image,
+                            rapid_image,
+                            downloaded_layers,
+                            architecture,
+                            stream=stream_writer,
+                        )
+                else:
+                    # Build failed or timed out, build ourselves
+                    LOG.warning("Concurrent build failed or timed out, building ourselves")
+                    stream_writer.write_str("Building image...")
+                    stream_writer.flush()
+                    self._build_image(
+                        image if image else base_image,
+                        rapid_image,
+                        downloaded_layers,
+                        architecture,
+                        stream=stream_writer,
+                    )
 
         return rapid_image
 
@@ -335,15 +415,8 @@ class LambdaImage:
             for layer in layers:
                 tar_paths[layer.codeuri] = "/" + layer.name
 
-            # Set permission for all the files in the tarball to 500(Read and Execute Only)
-            # This is need for systems without unix like permission bits(Windows) while creating a unix image
-            # Without setting this explicitly, tar will default the permission to 666 which gives no execute permission
-            def set_item_permission(tar_info):
-                tar_info.mode = 0o500
-                return tar_info
-
-            # Set only on Windows, unix systems will preserve the host permission into the tarball
-            tar_filter = set_item_permission if platform.system().lower() == "windows" else None
+            # Use shared tar filter for Windows compatibility
+            tar_filter = get_tar_filter_for_windows()
 
             with create_tarball(tar_paths, tar_filter=tar_filter, dereference=True) as tarballfile:
                 try:
@@ -356,14 +429,59 @@ class LambdaImage:
                         decode=True,
                         platform=get_docker_platform(architecture),
                     )
+                    # Track errors and check for Finch "already exists" pattern (minimal memory usage)
+                    error_details = []
+                    finch_already_exists_detected = False
+
                     for log in resp_stream:
+                        if log is None:
+                            continue
+
                         stream_writer.write_str(".")
                         stream_writer.flush()
-                        if "error" in log:
-                            stream_writer.write_str(os.linesep)
-                            LOG.exception("Failed to build Docker Image")
-                            raise ImageBuildException("Error building docker image: {}".format(log["error"]))
+
+                        if isinstance(log, dict):
+                            # Check for errors
+                            if "error" in log:
+                                error_msg = log["error"]
+                                error_details.append(error_msg)
+                                LOG.error(f"Docker build error: {error_msg}")
+
+                                # Check for Finch "already exists" pattern immediately
+                                if "already exists" in error_msg.lower() and "image" in error_msg.lower():
+                                    finch_already_exists_detected = True
+                                    LOG.debug(f"Finch 'already exists' pattern detected in error: {error_msg}")
+
+                            # Process stream messages
+                            if "stream" in log:
+                                stream_msg = log["stream"].strip()
+                                if stream_msg:
+                                    LOG.debug(f"Build stream: {stream_msg}")
+
+                                    # Check for Finch "already exists" pattern in stream
+                                    if "already exists" in stream_msg.lower() and "image" in stream_msg.lower():
+                                        finch_already_exists_detected = True
+                                        LOG.debug(f"Finch 'already exists' pattern detected in stream: {stream_msg}")
+
+                            elif "status" in log:
+                                status_msg = log["status"]
+                                LOG.debug(f"Build status: {status_msg}")
+
+                            elif "progress" in log:
+                                LOG.debug(f"Build progress: {log['progress']}")
+                        else:
+                            LOG.debug(f"Non-dict build log: {log}")
+
                     stream_writer.write_str(os.linesep)
+
+                    # Handle Finch "already exists" case
+                    if finch_already_exists_detected:
+                        LOG.info("Finch reported image already exists - treating as successful build")
+                    # If we have errors that aren't Finch "already exists", raise an exception
+                    elif error_details:
+                        full_error = "; ".join(error_details)
+                        LOG.error(f"Docker build failed with errors: {full_error}")
+                        raise ImageBuildException(f"Error building docker image: {full_error}")
                 except (docker.errors.BuildError, docker.errors.APIError) as ex:
                     stream_writer.write_str(os.linesep)
                     LOG.exception("Failed to build Docker Image")
@@ -422,7 +540,7 @@ class LambdaImage:
                 for tag in image.tags:
                     if self.is_rapid_image(tag) and not self.is_rapid_image_current(tag):
                         try:
-                            self.docker_client.images.remove(image.id)
+                            self.docker_client.images.remove(image.id, force=True)
                         except docker.errors.APIError as ex:
                             LOG.warning("Failed to remove rapid image with ID: %s", image.id, exc_info=ex)
                         break

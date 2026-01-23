@@ -15,9 +15,10 @@ from typing import Any, Callable, Dict, List, Optional
 import click
 from click.core import ParameterSource
 
-from samcli.cli.context import get_cmd_names
+from samcli.cli.context import Context, get_cmd_names
 from samcli.commands.exceptions import ConfigException
 from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME, DEFAULT_ENV, SamConfig
+from samcli.lib.utils.defaults import get_default_aws_region
 
 __all__ = ("ConfigProvider", "configuration_option", "get_ctx_defaults")
 
@@ -321,6 +322,24 @@ def save_command_line_args_to_config(
             continue  # no value given, ignore
         config_file.put(cmd_names, "parameters", param_name, param_value, config_env_name)
         saved_params.update({param_name: param_value})
+
+    # Save region to config, using the same default logic as deploy if not explicitly set
+    # Region is a global option stored in ctx.region rather than ctx.params
+    sam_context = Context.get_current_context()
+    region_to_save = None
+
+    if sam_context and sam_context.region:
+        # Use the region from context if it was set (via --region, env var, or AWS config)
+        region_to_save = sam_context.region
+    else:
+        # Use the same default region logic as the deploy command
+        region_to_save = get_default_aws_region()
+
+    if region_to_save:
+        # Save region to the global parameters section for use by Toolkit AppBuilder
+        config_file.put(["global"], "parameters", "region", region_to_save, config_env_name)
+        saved_params.update({"region": region_to_save})
+        LOG.debug(f"Saving region '{region_to_save}' to [global.parameters]")
 
     config_file.flush()
 

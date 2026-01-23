@@ -4,12 +4,16 @@ SAM_CLI_TELEMETRY ?= 0
 
 .PHONY: schema
 
+# Initialize environment specifically for Github action tests using uv
 init:
-	SAM_CLI_DEV=1 pip install -e '.[dev]'
+	@if [ "$$GITHUB_ACTIONS" = "true" ]; then \
+		pip install uv==0.9.1 && SAM_CLI_DEV=1 uv pip install --system -e '.[dev]'; \
+	else \
+		SAM_CLI_DEV=1 pip install -e '.[dev]'; \
+	fi
 
 test:
-	# Run unit tests
-	# Fail if coverage falls below 95%
+	# Run unit tests and fail if coverage falls below 94%
 	pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit
 
 test-cov-report:
@@ -56,7 +60,7 @@ schema:
 	python -m schema.make_schema
 
 # Verifications to run before sending a pull request
-pr: init dev schema black-check
+pr: init schema black-check dev
 
 # lucashuy: Linux and MacOS are on the same Python version,
 # however we should follow up in a different change
@@ -83,3 +87,10 @@ update-reproducible-win-reqs:
 
 
 update-reproducible-reqs: update-reproducible-linux-reqs update-reproducible-mac-reqs
+
+# Update all reproducible requirements using uv (can run from any platform)
+update-reproducible-reqs-uv:
+	@command -v uv >/dev/null 2>&1 || pip install uv
+	uv pip compile setup.py --generate-hashes --output-file requirements/reproducible-linux.txt --python-platform linux --python-version 3.11 --no-cache --no-strip-extras
+	uv pip compile setup.py --generate-hashes --output-file requirements/reproducible-mac.txt --python-platform macos --python-version 3.11 --no-cache --no-strip-extras
+	uv pip compile setup.py --generate-hashes --output-file requirements/reproducible-win.txt --python-platform windows --python-version 3.12 --no-cache --no-strip-extras

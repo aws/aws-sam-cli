@@ -17,7 +17,15 @@ class Test_get_workflow_config(TestCase):
         EventTracker.clear_trackers()
 
     @parameterized.expand(
-        [("python3.8",), ("python3.9",), ("python3.10",), ("python3.11",), ("python3.12",), ("python3.13",)]
+        [
+            ("python3.8",),
+            ("python3.9",),
+            ("python3.10",),
+            ("python3.11",),
+            ("python3.12",),
+            ("python3.13",),
+            ("python3.14",),
+        ]
     )
     def test_must_work_for_python(self, runtime):
         result = get_workflow_config(runtime, self.code_dir, self.project_dir)
@@ -30,7 +38,7 @@ class Test_get_workflow_config(TestCase):
         self.assertIn(Event("BuildWorkflowUsed", "python-pip"), EventTracker.get_tracked_events())
         self.assertFalse(result.must_mount_with_write_in_container)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",)])
+    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",), ("nodejs24.x",)])
     def test_must_work_for_nodejs(self, runtime):
         result = get_workflow_config(runtime, self.code_dir, self.project_dir)
         self.assertEqual(result.language, "nodejs")

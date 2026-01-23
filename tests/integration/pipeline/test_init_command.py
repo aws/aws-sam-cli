@@ -104,7 +104,8 @@ class TestInit(InitIntegBase):
             self.assertEqual(expected.read(), output.read())
 
         # also check the Jenkinsfile is not overridden
-        self.assertEqual("", open("Jenkinsfile", "r").read())
+        with open("Jenkinsfile", "r") as f:
+            self.assertEqual("", f.read())
 
     def test_custom_template_with_manifest(self):
         generated_file = Path("weather")

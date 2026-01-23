@@ -11,8 +11,10 @@ from pathlib import Path
 from typing import Dict
 from unittest import skipIf
 
+
 import pytest
 import boto3
+from botocore.exceptions import ClientError
 from parameterized import parameterized_class, parameterized
 
 from samcli.lib.utils.resources import (
@@ -22,7 +24,7 @@ from samcli.lib.utils.resources import (
 )
 from tests.integration.sync.sync_integ_base import SyncIntegBase
 
-from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
+from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY, SKIP_LMI_TESTS
 from tests.testing_utils import run_command_with_input
 
 # Deploy tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
@@ -792,3 +794,77 @@ class TestFunctionWithSkipBuild(TestSyncCodeBase):
                 lambda_response = json.loads(self._get_lambda_response(lambda_function))
                 self.assertIn("message", lambda_response)
                 self.assertEqual(lambda_response.get("message"), "hello mars")
+
+
+@parameterized_class(
+    [
+        {"dependency_layer": True},
+        {"dependency_layer": False},
+    ]
+)
+@pytest.mark.timeout(300)
+@skipIf(
+    SKIP_LMI_TESTS,
+    'Skip LMI tests because required environment variables not set: "LMI_SUBNET_ID", "LMI_SECURITY_GROUP_ID"',
+)
+class TestSyncCodeLMI(TestSyncCodeBase):
+    """Test sync code operations with Lambda Managed Instance functions"""
+
+    template = "template-lmi-with-publish.yaml"
+    folder = "code"
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+
+        # Read LMI infrastructure from environment variables
+        cls.parameter_overrides = {
+            "SubnetId": os.environ.get("LMI_SUBNET_ID", ""),
+            "SecurityGroupId": os.environ.get("LMI_SECURITY_GROUP_ID", ""),
+        }
+
+    def test_sync_lmi_with_publish_to_latest_published(self):
+        """Test sync with PublishToLatestPublished=true"""
+
+        # Get function name from stack
+        self.stack_resources = self._get_stacks(TestSyncCodeBase.stack_name)
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        function_name = next((f for f in lambda_functions if "LMIFunction" in f), None)
+
+        # Verify function exist
+        self.assertIsNotNone(function_name, "LMIFunction not found in stack resources")
+
+        # Verify initial function state
+        lambda_response_body = self._get_lambda_response(function_name)
+        body = json.loads(lambda_response_body)
+        self.assertEqual(body.get("message", ""), "Hello from LMI function")
+
+        # Modify function code using shutil.rmtree and shutil.copytree (before/after pattern)
+        shutil.rmtree(self.test_data_path.joinpath(self.folder, "before", "lmi_function"))
+        shutil.copytree(
+            self.test_data_path.joinpath(self.folder, "after", "lmi_function"),
+            self.test_data_path.joinpath(self.folder, "before", "lmi_function"),
+        )
+
+        # Run sam sync --code
+        sync_command_list = self.get_sync_command_list(
+            template_file=TestSyncCodeBase.template_path,
+            code=True,
+            watch=False,
+            resource_list=["AWS::Serverless::Function"],
+            dependency_layer=self.dependency_layer,
+            stack_name=TestSyncCodeBase.stack_name,
+            image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+            debug=True,
+        )
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
+        self.assertEqual(sync_process_execute.process.returncode, 0)
+
+        # Verify updated function code
+        lambda_response_body = self._get_lambda_response(function_name)
+        body = json.loads(lambda_response_body)
+        self.assertEqual(body["message"], "Hello from LMI function - UPDATE 1")
+        self.assertEqual(body["version"], "v1")

@@ -8,10 +8,10 @@ import os
 import logging
 from pathlib import Path
 
-import docker
 from docker.errors import APIError
 from psutil import NoSuchProcess
 
+from samcli.local.docker.utils import get_validated_container_client
 from tests.integration.local.common_utils import InvalidAddressException, random_port, wait_for_local_process
 from tests.testing_utils import kill_process, get_sam_command
 from tests.testing_utils import SKIP_DOCKER_MESSAGE, SKIP_DOCKER_TESTS, run_command
@@ -30,6 +30,8 @@ class StartApiIntegBaseClass(TestCase):
     layer_cache_base_dir: Optional[str] = None
     disable_authorizer: Optional[bool] = False
     config_file: Optional[str] = None
+    container_host_interface: Optional[str] = None
+    # container_labels no longer needed - container IDs are parsed from output
 
     build_before_invoke = False
     build_overrides: Optional[Dict[str, str]] = None
@@ -51,12 +53,20 @@ class StartApiIntegBaseClass(TestCase):
         if cls.build_before_invoke:
             cls.build()
 
-        cls.docker_client = docker.from_env()
-        for container in cls.docker_client.api.containers():
-            try:
-                cls.docker_client.api.remove_container(container, force=True)
-            except APIError as ex:
-                LOG.error("Failed to remove container %s", container, exc_info=ex)
+        cls.docker_client = get_validated_container_client()
+        # Only remove containers with SAM CLI labels to avoid interfering with other processes
+        try:
+            sam_containers = cls.docker_client.containers.list(
+                all=True, filters={"label": "sam.cli.container.type=lambda"}
+            )
+            for container in sam_containers:
+                try:
+                    container.remove(force=True)
+                    LOG.info("Removed existing SAM CLI container %s", container.short_id)
+                except APIError as ex:
+                    LOG.error("Failed to remove existing SAM CLI container %s", container.short_id, exc_info=ex)
+        except Exception as ex:
+            LOG.error("Failed to clean up existing SAM CLI containers", exc_info=ex)
         cls.start_api_with_retry()
 
     @classmethod
@@ -109,6 +119,11 @@ class StartApiIntegBaseClass(TestCase):
         if cls.disable_authorizer:
             command_list += ["--disable-authorizer"]
 
+        if cls.container_host_interface:
+            command_list += ["--container-host-interface", cls.container_host_interface]
+
+        # Container labels are no longer needed - container IDs are parsed from output
+
         if cls.config_file:
             command_list += ["--config-file", cls.config_file]
 
@@ -126,11 +141,20 @@ class StartApiIntegBaseClass(TestCase):
         def read_sub_process_stderr():
             while not cls.stop_reading_thread:
                 line = cls.start_api_process.stderr.readline()
-                LOG.info(line)
+                if line:
+                    line_str = line.decode("utf-8").strip()
+                    cls.start_api_process_output += line_str + "\n"
+                    if line.strip():
+                        LOG.info(line)
 
         def read_sub_process_stdout():
             while not cls.stop_reading_thread:
-                LOG.info(cls.start_api_process.stdout.readline())
+                line = cls.start_api_process.stdout.readline()
+                if line:
+                    line_str = line.decode("utf-8").strip()
+                    cls.start_api_process_output += line_str + "\n"
+                    if line.strip():
+                        LOG.info(line)
 
         cls.read_threading = threading.Thread(target=read_sub_process_stderr, daemon=True)
         cls.read_threading.start()
@@ -150,6 +174,20 @@ class StartApiIntegBaseClass(TestCase):
             kill_process(cls.start_api_process)
         except NoSuchProcess:
             LOG.info("Process has already been terminated")
+
+        # Clean up any remaining SAM CLI containers
+        try:
+            docker_client = get_validated_container_client()
+            # Only remove containers with SAM CLI labels to avoid interfering with other processes
+            sam_containers = docker_client.containers.list(all=True, filters={"label": "sam.cli.container.type=lambda"})
+            for container in sam_containers:
+                try:
+                    container.remove(force=True)
+                    LOG.info("Removed SAM CLI container %s", container.short_id)
+                except APIError as ex:
+                    LOG.error("Failed to remove SAM CLI container %s", container.short_id, exc_info=ex)
+        except Exception as ex:
+            LOG.error("Failed to clean up SAM CLI containers", exc_info=ex)
 
     @staticmethod
     def get_binary_data(filename):

@@ -14,24 +14,28 @@ from samcli.local.docker.lambda_container import LambdaContainer, Runtime, RIE_L
 from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported
 from samcli.local.docker.lambda_image import RAPID_IMAGE_TAG_PREFIX
 
-RUNTIMES_WITH_ENTRYPOINT = [Runtime.dotnet6.value, Runtime.dotnet8.value, Runtime.go1x.value]
+RUNTIMES_WITH_ENTRYPOINT = [Runtime.dotnet6.value, Runtime.dotnet8.value, Runtime.dotnet10.value, Runtime.go1x.value]
 
 RUNTIMES_WITH_BOOTSTRAP_ENTRYPOINT = [
     Runtime.nodejs16x.value,
     Runtime.nodejs18x.value,
     Runtime.nodejs20x.value,
     Runtime.nodejs22x.value,
+    Runtime.nodejs24x.value,
     Runtime.python38.value,
     Runtime.python39.value,
     Runtime.python310.value,
     Runtime.python311.value,
     Runtime.python312.value,
     Runtime.python313.value,
+    Runtime.python314.value,
     Runtime.dotnet6.value,
     Runtime.dotnet8.value,
+    Runtime.dotnet10.value,
 ]
 
 RUNTIMES_WITH_DEBUG_ENV_VARS_ONLY = [
+    Runtime.java25.value,
     Runtime.java21.value,
     Runtime.java17.value,
     Runtime.java11.value,
@@ -60,6 +64,7 @@ class TestLambdaContainer_init(TestCase):
         )
         self.function_name = "function_name"
 
+    @patch("samcli.local.docker.utils.get_validated_container_client")
     @patch.object(LambdaContainer, "_get_image")
     @patch.object(LambdaContainer, "_get_exposed_ports")
     @patch.object(LambdaContainer, "_get_debug_settings")
@@ -72,6 +77,7 @@ class TestLambdaContainer_init(TestCase):
         get_debug_settings_mock,
         get_exposed_ports_mock,
         get_image_mock,
+        mock_get_validated_client,
     ):
         image = IMAGE
         ports = {"a": "b"}
@@ -86,6 +92,10 @@ class TestLambdaContainer_init(TestCase):
         get_additional_options_mock.return_value = addtl_options
         get_additional_volumes_mock.return_value = addtl_volumes
         expected_env_vars = {**self.env_var, **debug_settings[1]}
+
+        # Mock the docker client
+        docker_client_mock = Mock()
+        mock_get_validated_client.return_value = docker_client_mock
 
         image_builder_mock = Mock()
 
@@ -122,6 +132,7 @@ class TestLambdaContainer_init(TestCase):
         get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
         get_additional_volumes_mock.assert_called_with(self.runtime, self.debug_options)
 
+    @patch("samcli.local.docker.utils.get_validated_container_client")
     @patch.object(LambdaContainer, "_get_config")
     @patch.object(LambdaContainer, "_get_image")
     @patch.object(LambdaContainer, "_get_exposed_ports")
@@ -136,6 +147,7 @@ class TestLambdaContainer_init(TestCase):
         get_exposed_ports_mock,
         get_image_mock,
         get_config_mock,
+        mock_get_validated_client,
     ):
         self.packagetype = IMAGE
         self.imageuri = "mylambda_image:v1"
@@ -158,6 +170,10 @@ class TestLambdaContainer_init(TestCase):
         get_additional_options_mock.return_value = addtl_options
         get_additional_volumes_mock.return_value = addtl_volumes
         expected_env_vars = {**self.env_var}
+
+        # Mock the docker client
+        docker_client_mock = Mock()
+        mock_get_validated_client.return_value = docker_client_mock
 
         image_builder_mock = Mock()
 
@@ -195,6 +211,7 @@ class TestLambdaContainer_init(TestCase):
         get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
         get_additional_volumes_mock.assert_called_with(self.runtime, self.debug_options)
 
+    @patch("samcli.local.docker.utils.get_validated_container_client")
     @patch.object(LambdaContainer, "_get_config")
     @patch.object(LambdaContainer, "_get_image")
     @patch.object(LambdaContainer, "_get_exposed_ports")
@@ -207,6 +224,7 @@ class TestLambdaContainer_init(TestCase):
         get_exposed_ports_mock,
         get_image_mock,
         get_config_mock,
+        mock_get_validated_client,
     ):
         self.packagetype = IMAGE
         self.imageuri = "mylambda_image:v1"
@@ -233,6 +251,10 @@ class TestLambdaContainer_init(TestCase):
             **self.debug_options.container_env_vars,
             **{"AWS_LAMBDA_FUNCTION_HANDLER": "mycommand"},
         }
+
+        # Mock the docker client
+        docker_client_mock = Mock()
+        mock_get_validated_client.return_value = docker_client_mock
 
         image_builder_mock = Mock()
 
@@ -271,6 +293,7 @@ class TestLambdaContainer_init(TestCase):
         get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
         get_additional_volumes_mock.assert_called_with(self.runtime, self.debug_options)
 
+    @patch("samcli.local.docker.utils.get_validated_container_client")
     @patch.object(LambdaContainer, "_get_config")
     @patch.object(LambdaContainer, "_get_image")
     @patch.object(LambdaContainer, "_get_exposed_ports")
@@ -283,6 +306,7 @@ class TestLambdaContainer_init(TestCase):
         get_exposed_ports_mock,
         get_image_mock,
         get_config_mock,
+        mock_get_validated_client,
     ):
         self.packagetype = IMAGE
         self.imageuri = "mylambda_image:v1"
@@ -309,6 +333,10 @@ class TestLambdaContainer_init(TestCase):
         get_additional_options_mock.return_value = addtl_options
         get_additional_volumes_mock.return_value = addtl_volumes
         expected_env_vars = {**self.env_var, **self.debug_options.container_env_vars}
+
+        # Mock the docker client
+        docker_client_mock = Mock()
+        mock_get_validated_client.return_value = docker_client_mock
 
         image_builder_mock = Mock()
 
@@ -348,6 +376,7 @@ class TestLambdaContainer_init(TestCase):
         get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
         get_additional_volumes_mock.assert_called_with(self.runtime, self.debug_options)
 
+    @patch("samcli.local.docker.utils.get_validated_container_client")
     @patch.object(LambdaContainer, "_get_config")
     @patch.object(LambdaContainer, "_get_image")
     @patch.object(LambdaContainer, "_get_exposed_ports")
@@ -362,6 +391,7 @@ class TestLambdaContainer_init(TestCase):
         get_exposed_ports_mock,
         get_image_mock,
         get_config_mock,
+        mock_get_validated_client,
     ):
         self.packagetype = IMAGE
         self.imageuri = "mylambda_image:v1"
@@ -389,6 +419,10 @@ class TestLambdaContainer_init(TestCase):
         get_additional_options_mock.return_value = addtl_options
         get_additional_volumes_mock.return_value = addtl_volumes
         expected_env_vars = {**self.env_var}
+
+        # Mock the docker client
+        docker_client_mock = Mock()
+        mock_get_validated_client.return_value = docker_client_mock
 
         image_builder_mock = Mock()
 
@@ -430,10 +464,15 @@ class TestLambdaContainer_init(TestCase):
         get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
         get_additional_volumes_mock.assert_called_with(self.runtime, self.debug_options)
 
-    def test_must_fail_for_unsupported_runtime(self):
+    @patch("samcli.local.docker.utils.get_validated_container_client")
+    def test_must_fail_for_unsupported_runtime(self, mock_get_validated_client):
         runtime = "foo"
 
         image_builder_mock = Mock()
+
+        # Mock the docker client
+        docker_client_mock = Mock()
+        mock_get_validated_client.return_value = docker_client_mock
 
         with self.assertRaises(InvalidRuntimeException) as context:
             LambdaContainer(
@@ -452,6 +491,80 @@ class TestLambdaContainer_init(TestCase):
             str(context.exception),
             "Unsupported Lambda runtime: foo. For a list of supported runtimes, please visit https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html",
         )
+
+    @patch("samcli.local.docker.utils.get_validated_container_client")
+    @patch.object(LambdaContainer, "_get_image")
+    @patch.object(LambdaContainer, "_get_exposed_ports")
+    @patch.object(LambdaContainer, "_get_debug_settings")
+    @patch.object(LambdaContainer, "_get_additional_options")
+    @patch.object(LambdaContainer, "_get_additional_volumes")
+    def test_debug_options_attribute_is_set(
+        self,
+        get_additional_volumes_mock,
+        get_additional_options_mock,
+        get_debug_settings_mock,
+        get_exposed_ports_mock,
+        get_image_mock,
+        mock_get_validated_client,
+    ):
+        """Test that the debug_options attribute is properly set on the container"""
+        image = "test-image"
+        ports = {"5858": "5858"}
+        addtl_options = {}
+        addtl_volumes = {}
+        debug_settings = (["/var/rapid/aws-lambda-rie"], {})
+
+        get_image_mock.return_value = image
+        get_exposed_ports_mock.return_value = ports
+        get_debug_settings_mock.return_value = debug_settings
+        get_additional_options_mock.return_value = addtl_options
+        get_additional_volumes_mock.return_value = addtl_volumes
+
+        # Mock the docker client
+        docker_client_mock = Mock()
+        mock_get_validated_client.return_value = docker_client_mock
+
+        image_builder_mock = Mock()
+
+        # Test with debug options
+        debug_options = DebugContext(
+            debug_ports=[5858], debugger_path="/path/to/debugger", debug_args="--debug", debug_function="test_func"
+        )
+
+        container = LambdaContainer(
+            runtime=self.runtime,
+            imageuri=self.imageuri,
+            handler=self.handler,
+            packagetype=self.packagetype,
+            image_config=self.image_config,
+            code_dir=self.code_dir,
+            layers=[],
+            lambda_image=image_builder_mock,
+            architecture="x86_64",
+            debug_options=debug_options,
+            function_full_path=self.function_name,
+        )
+
+        # Verify that debug_options attribute is set correctly
+        self.assertEqual(container.debug_options, debug_options)
+
+        # Test with None debug options
+        container_no_debug = LambdaContainer(
+            runtime=self.runtime,
+            imageuri=self.imageuri,
+            handler=self.handler,
+            packagetype=self.packagetype,
+            image_config=self.image_config,
+            code_dir=self.code_dir,
+            layers=[],
+            lambda_image=image_builder_mock,
+            architecture="x86_64",
+            debug_options=None,
+            function_full_path=self.function_name,
+        )
+
+        # Verify that debug_options attribute is None when no debug options provided
+        self.assertIsNone(container_no_debug.debug_options)
 
     @parameterized.expand(
         [

@@ -578,7 +578,7 @@ class LayerBuildDefinition(AbstractBuildDefinition):
 
 class FunctionBuildDefinition(AbstractBuildDefinition):
     """
-    LayerBuildDefinition holds information about each unique function build
+    FunctionBuildDefinition holds information about each unique function build
     """
 
     def __init__(

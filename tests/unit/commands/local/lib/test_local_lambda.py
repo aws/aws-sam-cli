@@ -7,14 +7,15 @@ import posixpath
 from unittest import TestCase
 from unittest.mock import Mock, patch
 from parameterized import parameterized, param
+import click
 
 from samcli.lib.utils.architecture import X86_64, ARM64
 
 from samcli.commands.local.lib.local_lambda import RUST_LOCAL_INVOKE_DISCLAIMER, LocalLambdaRunner
-from samcli.lib.providers.provider import Function, FunctionBuildInfo
+from samcli.lib.providers.provider import Function, FunctionBuildInfo, CapacityProviderConfig
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.packagetype import ZIP, IMAGE
-from samcli.local.docker.container import ContainerResponseException
+from samcli.local.docker.container import ContainerResponseException, ContainerConnectionTimeoutException
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.commands.local.lib.exceptions import (
     OverridesNotWellDefinedError,
@@ -260,6 +261,10 @@ class TestLocalLambda_make_env_vars(TestCase):
             runtime_management_config=None,
             function_build_info=FunctionBuildInfo.BuildableZip,
             logging_config={"LogFormat": "JSON"},
+            capacity_provider_config={
+                "Arn": "arn:aws:lambda:us-east-1:123456789012:capacity-provider:my-capacity-provider-name",
+                "PerExecutionEnvironmentMaxConcurrency": 8,
+            },
         )
 
         self.local_lambda.env_vars_values = env_vars_values
@@ -276,6 +281,11 @@ class TestLocalLambda_make_env_vars(TestCase):
             shell_env_values=os_environ,
             override_values=expected_override_value,
             aws_creds=self.aws_creds,
+            capacity_provider_configuration=CapacityProviderConfig(
+                arn="arn:aws:lambda:us-east-1:123456789012:capacity-provider:my-capacity-provider-name",
+                execution_environment_max_concurrency=8,
+            ),
+            is_debugging=False,
         )
 
     @parameterized.expand(
@@ -375,6 +385,8 @@ class TestLocalLambda_make_env_vars(TestCase):
             shell_env_values=os_environ,
             override_values={},
             aws_creds=self.aws_creds,
+            capacity_provider_configuration=None,
+            is_debugging=False,
         )
 
 
@@ -465,6 +477,8 @@ class TestLocalLambda_get_invoke_config(TestCase):
             full_path=function.full_path,
             runtime_management_config=function.runtime_management_config,
             code_real_path=codepath,
+            capacity_provider_configuration=function.capacity_provider_configuration,
+            durable_config=function.durable_config,
         )
 
         resolve_code_path_patch.assert_called_with(self.real_path, function.codeuri)
@@ -533,6 +547,8 @@ class TestLocalLambda_get_invoke_config(TestCase):
             full_path=function.full_path,
             runtime_management_config=function.runtime_management_config,
             code_real_path=codepath,
+            capacity_provider_configuration=function.capacity_provider_configuration,
+            durable_config=function.durable_config,
         )
 
         resolve_code_path_patch.assert_called_with(self.real_path, function.codeuri)
@@ -603,6 +619,8 @@ class TestLocalLambda_get_invoke_config(TestCase):
             full_path=function.full_path,
             runtime_management_config=function.runtime_management_config,
             code_real_path=codepath,
+            capacity_provider_configuration=function.capacity_provider_configuration,
+            durable_config=function.durable_config,
         )
 
         resolve_code_path_patch.assert_called_with(self.real_path, "codeuri")
@@ -642,18 +660,39 @@ class TestLocalLambda_invoke(TestCase):
         self.local_lambda.get_invoke_config = Mock()
         self.local_lambda.get_invoke_config.return_value = invoke_config
 
-        self.local_lambda.invoke(name, event, stdout, stderr)
+        self.local_lambda.invoke(name, event, tenant_id=None, stdout=stdout, stderr=stderr)
 
         self.runtime_mock.invoke.assert_called_with(
             invoke_config,
             event,
+            None,
+            invocation_type="RequestResponse",
             debug_context=None,
             stdout=stdout,
             stderr=stderr,
             container_host=None,
             container_host_interface=None,
             extra_hosts=None,
+            durable_execution_name=None,
         )
+
+    @patch("samcli.commands.local.lib.local_lambda.validate_architecture_runtime")
+    def test_returns_headers(self, patched_validate_architecture_runtime):
+        name = "name"
+        event = "event"
+        function = Mock(functionname="name")
+        invoke_config = "config"
+        expected_headers = {
+            "X-Amz-Durable-Execution-Arn": "arn:aws:lambda:us-west-2:123456789012:function:test-function:$LATEST:durable-execution:test-123"
+        }
+
+        self.function_provider_mock.get_all.return_value = [function]
+        self.local_lambda.get_invoke_config = Mock(return_value=invoke_config)
+        self.runtime_mock.invoke.return_value = expected_headers
+
+        result = self.local_lambda.invoke(name, event)
+
+        self.assertEqual(result, expected_headers)
 
     @patch("click.echo")
     @patch("platform.platform")
@@ -673,7 +712,7 @@ class TestLocalLambda_invoke(TestCase):
         self.local_lambda.get_invoke_config = Mock()
         self.local_lambda.get_invoke_config.return_value = invoke_config
 
-        self.local_lambda.invoke(name, event, stdout, stderr)
+        self.local_lambda.invoke(name, event, tenant_id=None, stdout=stdout, stderr=stderr)
 
         patched_echo.assert_called_once_with(Colored().yellow(RUST_LOCAL_INVOKE_DISCLAIMER))
 
@@ -690,17 +729,20 @@ class TestLocalLambda_invoke(TestCase):
         self.local_lambda.get_invoke_config = Mock()
         self.local_lambda.get_invoke_config.return_value = invoke_config
 
-        self.local_lambda.invoke(name, event, stdout, stderr)
+        self.local_lambda.invoke(name, event, tenant_id=None, stdout=stdout, stderr=stderr)
 
         self.runtime_mock.invoke.assert_called_with(
             invoke_config,
             event,
+            None,
+            invocation_type="RequestResponse",
             debug_context=None,
             stdout=stdout,
             stderr=stderr,
             container_host=None,
             container_host_interface=None,
             extra_hosts=None,
+            durable_execution_name=None,
         )
 
     @patch("samcli.commands.local.lib.local_lambda.validate_architecture_runtime")
@@ -764,6 +806,21 @@ class TestLocalLambda_invoke(TestCase):
         self.local_lambda.invoke("name", "event")
 
     @patch("samcli.commands.local.lib.local_lambda.validate_architecture_runtime")
+    def test_must_not_raise_if_container_connection_timeout(self, patched_validate_architecture_runtime):
+        """Test that ContainerConnectionTimeoutException is handled gracefully"""
+        function = Mock()
+        function.name = "name"
+        function.functionname = "FunctionLogicalId"
+        invoke_config = "invoke_config"
+
+        self.function_provider_mock.get.return_value = function
+        self.local_lambda.get_invoke_config = Mock()
+        self.local_lambda.get_invoke_config.return_value = invoke_config
+        self.runtime_mock.invoke = Mock(side_effect=ContainerConnectionTimeoutException("Connection timeout"))
+        # No exception raised back
+        self.local_lambda.invoke("name", "event")
+
+    @patch("samcli.commands.local.lib.local_lambda.validate_architecture_runtime")
     def test_works_if_imageuri_and_Image_packagetype(self, patched_validate_architecture_runtime):
         name = "name"
         event = "event"
@@ -775,16 +832,19 @@ class TestLocalLambda_invoke(TestCase):
         self.function_provider_mock.get.return_value = function
         self.local_lambda.get_invoke_config = Mock()
         self.local_lambda.get_invoke_config.return_value = invoke_config
-        self.local_lambda.invoke(name, event, stdout, stderr)
+        self.local_lambda.invoke(name, event, tenant_id=None, stdout=stdout, stderr=stderr)
         self.runtime_mock.invoke.assert_called_with(
             invoke_config,
             event,
+            None,
+            invocation_type="RequestResponse",
             debug_context=None,
             stdout=stdout,
             stderr=stderr,
             container_host=None,
             container_host_interface=None,
             extra_hosts=None,
+            durable_execution_name=None,
         )
 
     def test_must_raise_if_imageuri_not_found(self):
@@ -797,7 +857,7 @@ class TestLocalLambda_invoke(TestCase):
         self.function_provider_mock.get.return_value = function
 
         with self.assertRaises(InvalidIntermediateImageError):
-            self.local_lambda.invoke(name, event, stdout, stderr)
+            self.local_lambda.invoke(name, event, tenant_id=None, stdout=stdout, stderr=stderr)
 
     def test_must_raise_unsupported_error_if_inlinecode_found(self):
         name = "name"
@@ -816,7 +876,36 @@ class TestLocalLambda_invoke(TestCase):
         self.function_provider_mock.get.return_value = function
 
         with self.assertRaises(UnsupportedInlineCodeError):
-            self.local_lambda.invoke(name, event, stdout, stderr)
+            self.local_lambda.invoke(name, event, tenant_id=None, stdout=stdout, stderr=stderr)
+
+    @patch("samcli.commands.local.lib.local_lambda.validate_architecture_runtime")
+    def test_must_work_with_nested_stack_name(self, patched_validate_architecture_runtime):
+        name = "NestedStack/FunctionName"
+        event = "event"
+        stdout = "stdout"
+        stderr = "stderr"
+        function = Mock(functionname="NestedStack/FunctionName")
+        invoke_config = "config"
+
+        self.function_provider_mock.get.return_value = function
+        self.local_lambda.get_invoke_config = Mock()
+        self.local_lambda.get_invoke_config.return_value = invoke_config
+
+        self.local_lambda.invoke(name, event, tenant_id=None, stdout=stdout, stderr=stderr)
+
+        self.runtime_mock.invoke.assert_called_with(
+            invoke_config,
+            event,
+            None,
+            invocation_type="RequestResponse",
+            durable_execution_name=None,
+            debug_context=None,
+            stdout=stdout,
+            stderr=stderr,
+            container_host=None,
+            container_host_interface=None,
+            extra_hosts=None,
+        )
 
 
 class TestLocalLambda_invoke_with_container_host_option(TestCase):
@@ -856,17 +945,20 @@ class TestLocalLambda_invoke_with_container_host_option(TestCase):
         self.local_lambda.get_invoke_config = Mock()
         self.local_lambda.get_invoke_config.return_value = invoke_config
 
-        self.local_lambda.invoke(name, event, stdout, stderr)
+        self.local_lambda.invoke(name, event, tenant_id=None, stdout=stdout, stderr=stderr)
 
         self.runtime_mock.invoke.assert_called_with(
             invoke_config,
             event,
+            None,
+            invocation_type="RequestResponse",
             debug_context=None,
             stdout=stdout,
             stderr=stderr,
             container_host="localhost",
             container_host_interface="127.0.0.1",
             extra_hosts=None,
+            durable_execution_name=None,
         )
 
 
@@ -904,3 +996,131 @@ class TestLocalLambda_is_debugging(TestCase):
         )
 
         self.assertFalse(self.local_lambda.is_debugging())
+
+
+class TestLocalLambda_tenant_id_validation(TestCase):
+    def setUp(self):
+        self.function_provider_mock = Mock()
+        self.local_lambda = LocalLambdaRunner(
+            local_runtime=Mock(),
+            function_provider=self.function_provider_mock,
+            cwd="cwd",
+            debug_context=Mock(),
+            real_path="real_path",
+        )
+
+    @patch("samcli.commands.local.lib.local_lambda.validate_architecture_runtime")
+    def test_multi_tenant_function_without_tenant_id_raises_error(self, mock_validate_arch):
+        """Test that multi-tenant function without tenant-id raises ClickException"""
+        function = Function(
+            function_id="id",
+            name="name",
+            functionname="functionname",
+            runtime="python3.9",
+            memory=128,
+            timeout=30,
+            handler="app.handler",
+            codeuri=".",
+            environment=None,
+            rolearn=None,
+            layers=[],
+            events=None,
+            metadata=None,
+            inlinecode=None,
+            imageuri=None,
+            imageconfig=None,
+            packagetype=ZIP,
+            codesign_config_arn=None,
+            architectures=None,
+            function_url_config=None,
+            runtime_management_config=None,
+            function_build_info=FunctionBuildInfo.BuildableZip,
+            stack_path="",
+            logging_config=None,
+            tenancy_config={"TenantIsolationMode": "PER_TENANT"},
+        )
+
+        self.function_provider_mock.get.return_value = function
+
+        with self.assertRaises(click.ClickException) as context:
+            self.local_lambda.invoke("functionname", "{}")
+
+        self.assertIn("Add a valid tenant ID", str(context.exception))
+
+    @patch("samcli.commands.local.lib.local_lambda.validate_architecture_runtime")
+    def test_non_multi_tenant_function_with_tenant_id_raises_error(self, mock_validate_arch):
+        """Test that non-multi-tenant function with tenant-id raises ClickException"""
+        function = Function(
+            function_id="id",
+            name="name",
+            functionname="functionname",
+            runtime="python3.9",
+            memory=128,
+            timeout=30,
+            handler="app.handler",
+            codeuri=".",
+            environment=None,
+            rolearn=None,
+            layers=[],
+            events=None,
+            metadata=None,
+            inlinecode=None,
+            imageuri=None,
+            imageconfig=None,
+            packagetype=ZIP,
+            codesign_config_arn=None,
+            architectures=None,
+            function_url_config=None,
+            runtime_management_config=None,
+            function_build_info=FunctionBuildInfo.BuildableZip,
+            stack_path="",
+            logging_config=None,
+            tenancy_config=None,
+        )
+
+        self.function_provider_mock.get.return_value = function
+
+        with self.assertRaises(click.ClickException) as context:
+            self.local_lambda.invoke("functionname", "{}", tenant_id="customer-123")
+
+        self.assertIn("Remove the tenant ID", str(context.exception))
+
+    @patch("samcli.commands.local.lib.local_lambda.validate_architecture_runtime")
+    def test_multi_tenant_function_with_tenant_id_succeeds(self, mock_validate_arch):
+        """Test that multi-tenant function with tenant-id proceeds without error"""
+        function = Function(
+            function_id="id",
+            name="name",
+            functionname="functionname",
+            runtime="python3.9",
+            memory=128,
+            timeout=30,
+            handler="app.handler",
+            codeuri=".",
+            environment=None,
+            rolearn=None,
+            layers=[],
+            events=None,
+            metadata=None,
+            inlinecode=None,
+            imageuri=None,
+            imageconfig=None,
+            packagetype=ZIP,
+            codesign_config_arn=None,
+            architectures=None,
+            function_url_config=None,
+            runtime_management_config=None,
+            function_build_info=FunctionBuildInfo.BuildableZip,
+            stack_path="",
+            logging_config=None,
+            tenancy_config={"TenantIsolationMode": "PER_TENANT"},
+        )
+
+        self.function_provider_mock.get.return_value = function
+        self.local_lambda.get_invoke_config = Mock(return_value="config")
+
+        # This should not raise an exception
+        try:
+            self.local_lambda.invoke("functionname", "{}", tenant_id="customer-123")
+        except click.ClickException:
+            self.fail("invoke() raised ClickException unexpectedly")

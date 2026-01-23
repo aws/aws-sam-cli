@@ -3,7 +3,7 @@
 import json
 import logging
 from json import JSONDecodeError
-from typing import Any
+from typing import Any, Optional
 
 import botocore
 
@@ -17,6 +17,7 @@ from samcli.commands.remote.exceptions import (
 )
 from samcli.lib.schemas.schemas_api_caller import SchemasApiCaller
 from samcli.lib.utils.cloudformation import CloudFormationResourceSummary
+from samcli.lib.utils.invocation_type import REQUEST_RESPONSE
 from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION
 
 LAMBDA_TEST_EVENT_REGISTRY = "lambda-testevent-schemas"
@@ -142,7 +143,14 @@ class LambdaSharedTestEvent:
             )
             self._api_caller.delete_version(registry_name, schema_name, version_to_delete)
 
-    def add_event_to_schema(self, schema: str, event: str, event_name: str, replace_if_exists: bool = False) -> str:
+    def add_event_to_schema(
+        self,
+        schema: str,
+        event: str,
+        event_name: str,
+        metadata: Optional[dict[str, str]],
+        replace_if_exists: bool = False,
+    ) -> str:
         """
         Adds an event to a schema
 
@@ -176,6 +184,8 @@ class LambdaSharedTestEvent:
             schema_dict["components"]["examples"][event_name] = {
                 "value": event_dict,
             }
+            if metadata:
+                schema_dict["components"]["examples"][event_name]["x-metadata"] = metadata
 
             schema = json.dumps(schema_dict)
 
@@ -200,7 +210,7 @@ class LambdaSharedTestEvent:
             the name of the event to retrieve from the schema
         Returns
         -------
-        The event data of the event "event_name"
+        The event data and metadata of the event "event_name"
         """
         try:
             schema_dict = json.loads(schema)
@@ -211,7 +221,7 @@ class LambdaSharedTestEvent:
                 raise ResourceNotFound(f"Event {event_name} not found")
 
             # can use square brackets here since we know each of these subdicts exist
-            return existing_events[event_name]["value"]
+            return existing_events[event_name]
 
         except JSONDecodeError as ex:
             LOG.error("Error decoding schema when getting event %s", event_name)
@@ -263,6 +273,7 @@ class LambdaSharedTestEvent:
         event_name: str,
         function_resource: CloudFormationResourceSummary,
         event_data: str,
+        invocation_type: str = REQUEST_RESPONSE,
         force: bool = False,
         registry_name: str = LAMBDA_TEST_EVENT_REGISTRY,
     ) -> str:
@@ -277,6 +288,8 @@ class LambdaSharedTestEvent:
             The function where the event will be created
         event_data: str
             The JSON data of the event to be created
+        invocation_type: str
+            The Lambda invocation type of the event to be created
         registry_name: str
             The name of the registry that contains the schema
         """
@@ -287,16 +300,19 @@ class LambdaSharedTestEvent:
 
         schema_name = self._get_schema_name(function_resource)
         original_schema = api_caller.get_schema(registry_name, schema_name)
+        metadata = {"invocationType": invocation_type}
 
         if original_schema:
             LOG.debug("Schema %s already exists, adding event %s", schema_name, event_name)
             self.limit_versions(schema_name, registry_name)
-            schema = self.add_event_to_schema(original_schema, event_data, event_name, replace_if_exists=force)
+            schema = self.add_event_to_schema(
+                original_schema, event_data, event_name, metadata, replace_if_exists=force
+            )
             api_caller.update_schema(schema, registry_name, schema_name, OPEN_API_TYPE)
         else:
             LOG.debug("Schema %s does not already exist, creating new", schema_name)
             schema = api_caller.discover_schema(event_data, OPEN_API_TYPE)
-            schema = self.add_event_to_schema(schema, event_data, event_name)
+            schema = self.add_event_to_schema(schema, event_data, event_name, metadata)
             api_caller.create_schema(schema, registry_name, schema_name, OPEN_API_TYPE)
 
         return schema
@@ -346,7 +362,7 @@ class LambdaSharedTestEvent:
         event_name: str,
         function_resource: CloudFormationResourceSummary,
         registry_name: str = LAMBDA_TEST_EVENT_REGISTRY,
-    ) -> str:
+    ) -> Any:
         """
         Returns a remote test event
 
@@ -360,7 +376,7 @@ class LambdaSharedTestEvent:
             The name of the registry that contains the schema
         Returns
         -------
-        The JSON data of the event
+        The parsed JSON data and metadata of the event
         """
         api_caller = self._api_caller
 
@@ -377,7 +393,7 @@ class LambdaSharedTestEvent:
         event = self.get_event_from_schema(schema, event_name)
 
         try:
-            return json.dumps(event)
+            return {"json": json.dumps(event["value"]), "metadata": event.get("x-metadata", {})}
 
         except JSONDecodeError as ex:
             LOG.error("Error parsing event %s from schema %s", event_name, schema_name)
@@ -408,14 +424,16 @@ class LambdaSharedTestEvent:
         api_caller = self._api_caller
 
         if not api_caller.check_registry_exists(registry_name):
-            raise ResourceNotFound(f"{registry_name} registry not found. There are no saved events.")
+            LOG.info(f"{registry_name} registry not found. There are no saved events.")
+            return ""
 
         schema_name = self._get_schema_name(function_resource)
         schema = api_caller.get_schema(registry_name, schema_name)
         function_name = function_resource.logical_resource_id
 
         if not schema:
-            raise ResourceNotFound(f"No events found for function {function_name}")
+            LOG.info(f"No events found for function {function_name}")
+            return ""
 
         try:
             schema_dict = json.loads(schema)

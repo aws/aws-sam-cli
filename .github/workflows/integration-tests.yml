@@ -1,0 +1,438 @@
+name: Integration Tests
+
+on:
+  schedule:
+    # Run at 7pm PST (3am UTC next day) Monday-Friday
+    # This translates to Tuesday-Saturday 3am UTC
+    - cron: '0 3 * * 2-6'
+  workflow_dispatch:  # Allow manual triggering
+    # NOTE: This workflow can only be manually triggered from develop or main branches
+    # The other branch will not pass the OIDC permission check
+
+permissions:
+  id-token: write   # Required for OIDC
+  contents: read
+
+env:
+  AWS_DEFAULT_REGION: us-east-1
+  SAM_CLI_DEV: 1
+  SAM_CLI_TELEMETRY: 0
+  SAM_CLI_CONTAINER_CONNECTION_TIMEOUT: 60
+  NODE_VERSION: "22.21.1"
+  AWS_S3: "AWS_S3_TESTING"
+  AWS_ECR: "AWS_ECR_TESTING"
+  CARGO_LAMBDA_VERSION: "v0.17.1"
+  NOSE_PARAMETERIZED_NO_WARN: 1
+  BY_CANARY: true
+  UV_PYTHON: python3.11
+  CREDENTIAL_DISTRIBUTION_LAMBDA_ARN: ${{ secrets.CREDENTIAL_DISTRIBUTION_LAMBDA_ARN }}
+  ACCOUNT_RESET_LAMBDA_ARN: ${{ secrets.ACCOUNT_RESET_LAMBDA_ARN }}
+
+jobs:
+  integration-tests:
+    # Only run scheduled jobs on the main aws/aws-sam-cli repository, not on forks
+    if: github.event_name != 'schedule' || github.repository == 'aws/aws-sam-cli'
+    name: ${{ matrix.test_suite }} (${{ matrix.container_runtime }})
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # container_runtime: [docker, finch, no-container]
+        container_runtime: [docker, finch , no-container]
+        test_suite:
+          - build-integ
+          - build-integ-java-python-provided
+          - build-integ-dotnet-node-ruby
+          - build-integ-arm64
+          - build-integ-arm64-java
+          - terraform-build
+          - package-delete-deploy
+          - sync
+          - local-invoke
+          - local-start1
+          - local-start2
+          - durable-functions
+          - other-and-e2e
+        exclude:
+          # no-container mode only applies to build-integ test suites
+          - container_runtime: no-container
+            test_suite: terraform-build
+          - container_runtime: no-container
+            test_suite: sync
+          - container_runtime: no-container
+            test_suite: package-delete-deploy
+          - container_runtime: no-container
+            test_suite: local-invoke
+          - container_runtime: no-container
+            test_suite: local-start1
+          - container_runtime: no-container
+            test_suite: local-start2
+          - container_runtime: no-container
+            test_suite: durable-functions
+          - container_runtime: no-container
+            test_suite: other-and-e2e
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          # For scheduled runs, always use develop
+          # For manual runs, use the branch from "Use workflow from" dropdown
+          ref: ${{ github.event_name == 'schedule' && 'develop' || github.ref }}
+
+      - name: Free up disk space
+        run: |
+          echo "Disk space before cleanup:"
+          df -h
+          
+          # Remove .NET if not needed (not other-and-e2e and not no-container)
+          if [ "${{ matrix.test_suite }}" != "other-and-e2e" ] && [ "${{ matrix.test_suite }}" != "sync" ] && [ "${{ matrix.container_runtime }}" != "no-container" ]; then
+            echo "Removing .NET to free up disk space..."
+            nohup sudo rm -rf /usr/share/dotnet &
+          fi
+          
+          # Run cleanup in background to not block workflow
+          nohup bash -c '
+            sudo rm -rf /usr/local/share/powershell /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+            sudo apt-get clean
+          ' > /dev/null 2>&1 &
+
+          # Remove all existing Docker images to free up space
+          echo "Removing all existing Docker images..."
+          if [ "${{ matrix.container_runtime }}" = "finch" ]; then
+            # For finch, run as blocking command to ensure cleanup completes
+            docker system prune -af --volumes || true
+          else
+            # For docker and no-container, run in background
+            nohup docker system prune -af --volumes || true &
+          fi
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ secrets.OIDC_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: |
+            3.11
+            3.9
+            3.10
+            3.12
+            3.13
+            3.14
+
+      - name: Set up Node.js
+        if: contains(fromJSON('["build-integ", "build-integ-java-python-provided", "build-integ-dotnet-node-ruby", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container'
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Set up Java 25
+        if: (contains(fromJSON('["build-integ", "build-integ-java-python-provided", "build-integ-arm64", "build-integ-arm64-java"]'), matrix.test_suite) && matrix.container_runtime == 'no-container') || matrix.test_suite == 'sync'
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'corretto'
+          java-version: '25'
+
+      - name: Set up Go
+        if: contains(fromJSON('["build-integ", "build-integ-java-python-provided", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container'
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25'
+
+      - name: Install Maven and Gradle
+        if: (contains(fromJSON('["build-integ", "build-integ-java-python-provided", "build-integ-arm64", "build-integ-arm64-java"]'), matrix.test_suite) && matrix.container_runtime == 'no-container') || matrix.test_suite == 'sync'
+        run: |
+          # Remove system Maven if it exists
+          sudo apt-get remove -y maven || true
+          
+          # Install Maven 3.9.12
+          wget https://dlcdn.apache.org/maven/maven-3/3.9.12/binaries/apache-maven-3.9.12-bin.zip -P /tmp
+          sudo unzip -d /opt/mvn /tmp/apache-maven-*.zip
+          
+          # Install Gradle 9.2.0
+          wget https://services.gradle.org/distributions/gradle-9.2.0-bin.zip -P /tmp
+          sudo unzip -d /opt/gradle /tmp/gradle-*.zip
+          
+          # Create symlinks to ensure our Maven is used
+          sudo ln -sf /opt/mvn/apache-maven-3.9.12/bin/mvn /usr/local/bin/mvn
+          sudo ln -sf /opt/gradle/gradle-9.2.0/bin/gradle /usr/local/bin/gradle
+          
+          # Add to PATH (prepend to ensure our versions are used first)
+          echo "/opt/mvn/apache-maven-3.9.12/bin" >> $GITHUB_PATH
+          echo "/opt/gradle/gradle-9.2.0/bin" >> $GITHUB_PATH
+          
+          # Set MAVEN_HOME
+          echo "MAVEN_HOME=/opt/mvn/apache-maven-3.9.12" >> $GITHUB_ENV
+          
+          # Verify versions
+          export PATH="/opt/mvn/apache-maven-3.9.12/bin:/opt/gradle/gradle-9.2.0/bin:$PATH"
+          mvn --version
+          gradle --version
+
+      - name: Install .NET 10 SDK
+        if: contains(fromJSON('["build-integ-java-python-provided", "build-integ-dotnet-node-ruby", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container' || matrix.test_suite == 'other-and-e2e'
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Set up Ruby 3.3.7
+        if: (contains(fromJSON('["build-integ","build-integ-dotnet-node-ruby", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container') || matrix.test_suite == 'other-and-e2e'
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3.7'
+
+      - name: Set up Ruby 3.2.7
+        if: (contains(fromJSON('["build-integ","build-integ-dotnet-node-ruby", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container') || matrix.test_suite == 'other-and-e2e'
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2.7'
+
+      # sync test only need ruby 3.4
+      - name: Set up Ruby 3.4.7
+        if: (contains(fromJSON('["build-integ","build-integ-dotnet-node-ruby", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container') || contains(fromJSON('["sync", "other-and-e2e"]'), matrix.test_suite)
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4.7'
+
+
+      - name: Install Rust toolchain
+        if: contains(fromJSON('["build-integ", "build-integ-java-python-provided", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container'
+        run: |
+          curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL https://sh.rustup.rs | sh -s -- --default-toolchain none -y
+          source $HOME/.cargo/env
+          rustup toolchain install stable --profile minimal --no-self-update
+          rustup default stable
+          rustup target add x86_64-unknown-linux-gnu --toolchain stable
+          rustup target add aarch64-unknown-linux-gnu --toolchain stable
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Install cargo-lambda
+        if: contains(fromJSON('["build-integ", "build-integ-java-python-provided", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container'
+        run: pip install cargo-lambda==${{ env.CARGO_LAMBDA_VERSION }}
+
+      - name: Install Terraform
+        if: contains(fromJSON('["terraform-build", "local-invoke", "local-start2"]'), matrix.test_suite)
+        run: |
+          for i in {1..3}; do
+            TER_VER=$(curl -s https://api.github.com/repos/hashicorp/terraform/releases/latest | grep tag_name | cut -d: -f2 | tr -d \"\,\v | awk '{$1=$1};1')
+            if [ -n "$TER_VER" ]; then
+              if wget https://releases.hashicorp.com/terraform/${TER_VER}/terraform_${TER_VER}_linux_amd64.zip -P /tmp; then
+                sudo unzip -d /opt/terraform /tmp/terraform_${TER_VER}_linux_amd64.zip
+                sudo mv /opt/terraform/terraform /usr/local/bin/
+                terraform -version
+                break
+              fi
+            fi
+            echo "Terraform installation attempt $i failed, retrying..."
+            sleep 5
+          done
+
+      - name: Setup Finch runtime
+        if: matrix.container_runtime == 'finch'
+        run: |
+          echo "=== Initializing Finch runtime ==="
+          sudo systemctl stop docker || true
+          sudo systemctl stop docker.socket || true
+          sudo systemctl disable docker || true
+          sudo systemctl disable docker.socket || true
+          
+          for i in {1..3}; do
+            if curl -fsSL https://artifact.runfinch.com/deb/GPG_KEY.pub | sudo gpg --dearmor -o /usr/share/keyrings/runfinch-finch-archive-keyring.gpg; then
+              break
+            fi
+            sleep 10
+          done
+          
+          echo 'deb [signed-by=/usr/share/keyrings/runfinch-finch-archive-keyring.gpg arch=amd64] https://artifact.runfinch.com/deb noble main' | sudo tee /etc/apt/sources.list.d/runfinch-finch.list
+          sudo apt update
+          sudo apt install -y runfinch-finch
+          sudo systemctl enable --now finch
+          sudo systemctl enable --now finch-buildkit
+          sleep 3
+          sudo chmod 666 /var/run/finch.sock
+          
+          for i in {1..12}; do
+            if sudo finch info >/dev/null 2>&1; then
+              break
+            fi
+            sleep 5
+          done
+          
+          sudo mkdir -p /run/buildkit-finch /run/buildkit-default /run/buildkit
+          sudo ln -sf /var/lib/finch/buildkit/buildkitd.sock /run/buildkit-finch/buildkitd.sock
+          sudo ln -sf /var/lib/finch/buildkit/buildkitd.sock /run/buildkit-default/buildkitd.sock
+          sudo ln -sf /var/lib/finch/buildkit/buildkitd.sock /run/buildkit/buildkitd.sock
+          sudo chmod 666 /var/lib/finch/buildkit/buildkitd.sock
+          sudo chmod 666 /run/buildkit-*/buildkitd.sock
+          sudo finch run --privileged --rm tonistiigi/binfmt:master --install all
+          
+          sudo finch info
+          sudo finch version
+
+      - name: Setup Docker runtime
+        if: matrix.container_runtime == 'docker'
+        run: |
+          echo "=== Initializing Docker runtime ==="
+          docker info
+          docker version
+
+      - name: Setup QEMU for ARM64 emulation
+        if: matrix.container_runtime != 'no-container'
+        run: |
+          if [ "${{ matrix.container_runtime }}" = "finch" ]; then
+            sudo finch run --rm --privileged multiarch/qemu-user-static --reset -p yes
+          else
+            docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+          fi
+
+      - name: Initialize project
+        run: |
+          export CONTAINER_RUNTIME=${{ matrix.container_runtime }}
+          make init
+
+      - name: Get testing resources and credentials
+        run: |
+          # Try with skip_role_deletion parameter first
+          test_env_var=$(python3.11 tests/get_testing_resources.py skip_role_deletion)
+          
+          if [ $? -ne 0 ]; then
+            echo "First attempt with skip_role_deletion failed, trying without parameter..."
+            test_env_var=$(python3.11 tests/get_testing_resources.py)
+            
+            if [ $? -ne 0 ]; then
+              echo "get_testing_resources failed. Failed to acquire credentials or test resources."
+              exit 1
+            fi
+          fi
+          
+          # Save current credentials for account reset later (mask them first)
+          echo "::add-mask::$AWS_ACCESS_KEY_ID"
+          echo "::add-mask::$AWS_SECRET_ACCESS_KEY"
+          echo "::add-mask::$AWS_SESSION_TOKEN"
+          echo "CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> $GITHUB_ENV
+          echo "CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" >> $GITHUB_ENV
+          echo "CI_ACCESS_ROLE_AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN" >> $GITHUB_ENV
+          
+          # Extract test credentials and mask them before setting as env vars
+          TEST_ACCESS_KEY_ID=$(echo "$test_env_var" | jq -j ".accessKeyID")
+          TEST_SECRET_ACCESS_KEY=$(echo "$test_env_var" | jq -j ".secretAccessKey")
+          TEST_SESSION_TOKEN=$(echo "$test_env_var" | jq -j ".sessionToken")
+          TEST_TASK_TOKEN=$(echo "$test_env_var" | jq -j ".taskToken")
+          
+          # Mask sensitive credentials so they don't appear in logs
+          echo "::add-mask::$TEST_ACCESS_KEY_ID"
+          echo "::add-mask::$TEST_SECRET_ACCESS_KEY"
+          echo "::add-mask::$TEST_SESSION_TOKEN"
+          echo "::add-mask::$TEST_TASK_TOKEN"
+          
+          # Set test credentials as environment variables
+          echo "AWS_ACCESS_KEY_ID=$TEST_ACCESS_KEY_ID" >> $GITHUB_ENV
+          echo "AWS_SECRET_ACCESS_KEY=$TEST_SECRET_ACCESS_KEY" >> $GITHUB_ENV
+          echo "AWS_SESSION_TOKEN=$TEST_SESSION_TOKEN" >> $GITHUB_ENV
+          echo "TASK_TOKEN=$TEST_TASK_TOKEN" >> $GITHUB_ENV
+          
+          # Set other test resources (non-sensitive)
+          echo "AWS_S3_TESTING=$(echo "$test_env_var" | jq -j ".TestBucketName")" >> $GITHUB_ENV
+          echo "AWS_ECR_TESTING=$(echo "$test_env_var" | jq -j ".TestECRURI")" >> $GITHUB_ENV
+          echo "AWS_KMS_KEY=$(echo "$test_env_var" | jq -j ".TestKMSKeyArn")" >> $GITHUB_ENV
+          echo "AWS_SIGNING_PROFILE_NAME=$(echo "$test_env_var" | jq -j ".TestSigningProfileName")" >> $GITHUB_ENV
+          echo "AWS_SIGNING_PROFILE_VERSION_ARN=$(echo "$test_env_var" | jq -j ".TestSigningProfileARN")" >> $GITHUB_ENV
+          echo "LMI_SUBNET_ID=$(echo "$test_env_var" | jq -j ".LMISubnetId")" >> $GITHUB_ENV
+          echo "LMI_SECURITY_GROUP_ID=$(echo "$test_env_var" | jq -j ".LMISecurityGroupId")" >> $GITHUB_ENV
+
+      - name: Login to Public ECR
+        if: matrix.container_runtime != 'no-container' && env.BY_CANARY == 'true'
+        run: |
+          if [ "${{ matrix.container_runtime }}" = "finch" ]; then
+            echo "Logging in Public ECR with Finch"
+            aws ecr-public get-login-password --region us-east-1 | sudo finch login --username AWS --password-stdin public.ecr.aws || { echo "FATAL: Finch Public ECR login failed"; exit 1; }
+          else
+            echo "Logging in Public ECR with Docker"
+            aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws || { echo "FATAL: Docker Public ECR login failed"; exit 1; }
+          fi
+          echo "Public ECR authentication completed successfully"
+
+      - name: Run tests
+        run: |
+          # Set USING_FINCH_RUNTIME environment variable for finch tests
+          if [ "${{ matrix.container_runtime }}" = "finch" ]; then
+            export CONTAINER_RUNTIME="finch"
+          fi
+          
+          # Determine container keyword filter based on container_runtime
+          if [ "${{ matrix.container_runtime }}" = "no-container" ]; then
+            CONTAINER_FILTER="not container"
+          else
+            CONTAINER_FILTER=container
+          fi
+          
+          case "${{ matrix.test_suite }}" in
+            "build-integ")
+              pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'not java and not python and not provided and not dotnet and not nodejs and not ruby' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py -k "${CONTAINER_FILTER}" --json-report --json-report-file=TEST_REPORT-integration-buildcmd-${{ matrix.container_runtime }}.json
+              ;;
+            "build-integ-java-python-provided")
+              pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'java or python or provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py -k "${CONTAINER_FILTER}" --json-report --json-report-file=TEST_REPORT-integration-buildcmd-java-python-provided-${{ matrix.container_runtime }}.json
+              ;;
+            "build-integ-dotnet-node-ruby")
+              pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'dotnet or nodejs or ruby' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py -k "${CONTAINER_FILTER}" --json-report --json-report-file=TEST_REPORT-build-integ-dotnet-node-ruby-${{ matrix.container_runtime }}.json
+              ;;
+            "build-integ-arm64")
+              pytest -vv -n 2 --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'not java' -k "${CONTAINER_FILTER}" --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64-${{ matrix.container_runtime }}.json
+              ;;
+            "build-integ-arm64-java")
+              pytest -vv -n 2 --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'java' -k "${CONTAINER_FILTER}" --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64-java-${{ matrix.container_runtime }}.json
+              ;;
+            "terraform-build")
+              pytest -vv -n 4 --reruns 3 tests/integration/buildcmd/test_build_terraform_applications.py tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-terraform-${{ matrix.container_runtime }}.json
+              ;;
+            "package-delete-deploy")
+              pytest -vv tests/integration/package tests/integration/delete tests/integration/deploy --dist=loadgroup -n 6 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-package-delete-deploy-${{ matrix.container_runtime }}.json
+              ;;
+            "sync")
+              pytest -vv tests/integration/sync -n 4 --reruns 3 --dist loadscope --json-report --json-report-file=TEST_REPORT-integration-sync-${{ matrix.container_runtime }}.json
+              ;;
+            "local-invoke")
+              pytest -vv --reruns 3 tests/integration/local/invoke tests/integration/local/generate_event --ignore tests/integration/local/invoke/test_invoke_durable.py --json-report --json-report-file=TEST_REPORT-integration-local-invoke-${{ matrix.container_runtime }}.json
+              ;;
+            "local-start1")
+              pytest -vv --reruns 3 tests/integration/local/start_api --ignore tests/integration/local/start_api/test_start_api_with_terraform_application.py --ignore tests/integration/local/start_api/test_start_api_durable.py --json-report --json-report-file=TEST_REPORT-integration-local-start1-${{ matrix.container_runtime }}.json
+              ;;
+            "local-start2")
+              pytest -vv --reruns 3 tests/integration/local/start_lambda tests/integration/local/start_api/test_start_api_with_terraform_application.py --ignore tests/integration/local/start_lambda/test_start_lambda_durable.py --json-report --json-report-file=TEST_REPORT-integration-local-start2-${{ matrix.container_runtime }}.json
+              ;;
+            "durable-functions")
+              pytest -vv --reruns 3 tests/integration/local/invoke/test_invoke_durable.py tests/integration/local/start_api/test_start_api_durable.py tests/integration/local/start_lambda/test_start_lambda_durable.py tests/integration/local/callback/test_callback.py tests/integration/local/execution/test_execution.py --json-report --json-report-file=TEST_REPORT-integration-durable-functions-${{ matrix.container_runtime }}.json
+              ;;
+            "other-and-e2e")
+              pytest -vv -n 4 --reruns 3 --dist loadgroup tests/integration tests/end_to_end tests/regression --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-others-${{ matrix.container_runtime }}.json
+              ;;
+          esac
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: test-results-${{ matrix.test_suite }}-${{ matrix.container_runtime }}
+          path: TEST_REPORT-*.json
+
+      - name: Reset test account
+        if: always()
+        run: |
+          # Switch back to TAM caller role credentials
+          export AWS_ACCESS_KEY_ID=$CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID
+          export AWS_SECRET_ACCESS_KEY=$CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY
+          export AWS_SESSION_TOKEN=$CI_ACCESS_ROLE_AWS_SESSION_TOKEN
+          
+          # Invoke account reset Lambda with raw binary format
+          aws lambda invoke \
+            --function-name "$ACCOUNT_RESET_LAMBDA_ARN" \
+            --payload "{\"taskToken\": \"$TASK_TOKEN\", \"output\": \"{}\"}" \
+            ./lambda-output.txt \
+            --region us-west-2 \
+            --cli-binary-format raw-in-base64-out
+          
+          cat ./lambda-output.txt

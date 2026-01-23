@@ -8,7 +8,7 @@ import logging
 import json
 from pathlib import Path
 from typing import Dict, List
-from unittest import skipIf
+from unittest import skipIf, SkipTest
 
 import pytest
 import boto3
@@ -28,6 +28,7 @@ from tests.testing_utils import (
     RUNNING_ON_CI,
     RUNNING_TEST_FOR_MASTER_ON_CI,
     RUN_BY_CANARY,
+    SKIP_LMI_TESTS,
     kill_process,
     read_until_string,
     start_persistent_process,
@@ -56,6 +57,11 @@ class TestSyncWatchBase(SyncIntegBase):
     template_before = ""
     parameter_overrides: Dict[str, str] = {}
     watch_exclude: List[str] = []
+
+    @classmethod
+    def setUpClass(cls):
+        if not SKIP_SYNC_TESTS:
+            super().setUpClass()
 
     def setUp(self):
         # set up clean testing folder
@@ -861,3 +867,87 @@ class TestSyncWatchCodeWatchExclude(TestSyncWatchEsbuildBase):
             lambda_response = json.loads(self._get_lambda_response(lambda_function))
             self.assertNotIn("extra_message", lambda_response)
             self.assertEqual(lambda_response.get("message"), "hello world")
+
+
+@skipIf(
+    SKIP_LMI_TESTS,
+    'Skip LMI tests because required environment variables not set: "LMI_SUBNET_ID", "LMI_SECURITY_GROUP_ID"',
+)
+@parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
+@pytest.mark.timeout(600)  # 10 minutes timeout for LMI operations
+class TestSyncWatchCodeLMI(TestSyncWatchBase):
+    """Test sync watch code operations with Lambda Managed Instance functions"""
+
+    dependency_layer = None
+    parameter_overrides: Dict[str, str] = {}
+
+    @classmethod
+    def setUpClass(cls) -> None:
+
+        cls.template_before = str(Path("code", "before", "template-lmi-with-publish.yaml"))
+        cls.parameter_overrides = {
+            "SubnetId": os.environ.get("LMI_SUBNET_ID", ""),
+            "SecurityGroupId": os.environ.get("LMI_SECURITY_GROUP_ID", ""),
+        }
+        super().setUpClass()
+
+    def run_initial_infra_validation(self) -> None:
+        """Runs initial infra validation after deployment is completed"""
+        self.stack_resources = self._get_stacks(self.stack_name)
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        function_name = next((f for f in lambda_functions if "LMIFunction" in f), None)
+        self.assertIsNotNone(function_name, "LMIFunction not found in stack resources")
+
+        # Verify initial function response
+        lambda_response_body = self._get_lambda_response(function_name)
+        body = json.loads(lambda_response_body)
+        self.assertEqual(body["message"], "Hello from LMI function")
+
+    def test_sync_watch_code_lmi(self):
+        """Test that sam sync --watch handles concurrent file changes and publishes to $LATEST.PUBLISHED correctly"""
+        self.stack_resources = self._get_stacks(self.stack_name)
+        lambda_functions = self.stack_resources.get(AWS_LAMBDA_FUNCTION)
+        function_name = next((f for f in lambda_functions if "LMIFunction" in f), None)
+
+        # Simulate rapid file edits by a developer - make 3 changes with 30 second intervals
+        # This tests how sync handles multiple file change events while previous syncs may still be in progress
+
+        # First update - version 1
+        self.update_file(
+            self.test_data_path.joinpath("code/after/lmi_function/app_v1.py"),
+            self.test_data_path.joinpath("code/before/lmi_function/app.py"),
+        )
+
+        # Wait for first sync to complete
+        read_until_string(self.watch_process, "Finished syncing Lambda Function LMIFunction.\x1b[0m\n", timeout=300)
+
+        # Wait 30 seconds, then make second update
+        time.sleep(30)
+
+        # Second update - version 2
+        self.update_file(
+            self.test_data_path.joinpath("code/after/lmi_function/app_v2.py"),
+            self.test_data_path.joinpath("code/before/lmi_function/app.py"),
+        )
+
+        # Wait for second sync to complete
+        read_until_string(self.watch_process, "Finished syncing Lambda Function LMIFunction.\x1b[0m\n", timeout=300)
+
+        # Wait 30 seconds, then make third update
+        time.sleep(30)
+
+        # Third update - version 3 (final)
+        self.update_file(
+            self.test_data_path.joinpath("code/after/lmi_function/app_v3.py"),
+            self.test_data_path.joinpath("code/before/lmi_function/app.py"),
+        )
+
+        # Wait for final sync to complete
+        read_until_string(self.watch_process, "Finished syncing Lambda Function LMIFunction.\x1b[0m\n", timeout=300)
+
+        # Verify final function response reflects the last update (version 3)
+        # This validates that sync correctly handled all file changes and published the final version
+        lambda_response_body = self._get_lambda_response(function_name)
+        body = json.loads(lambda_response_body)
+        self.assertEqual(body["message"], "Hello from LMI function - UPDATE 3")
+        self.assertEqual(body["version"], "v3")

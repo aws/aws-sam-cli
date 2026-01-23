@@ -5,14 +5,20 @@ from pathlib import Path
 from unittest import skipIf
 
 import botocore
-import docker
 from botocore.exceptions import ClientError
 from parameterized import parameterized
 
 from samcli.lib.bootstrap.bootstrap import SAM_CLI_STACK_NAME
 from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME, SamConfig
+from samcli.local.docker.utils import get_validated_container_client
 from tests.integration.deploy.deploy_integ_base import DeployIntegBase
-from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY, UpdatableSARTemplate
+from tests.testing_utils import (
+    RUNNING_ON_CI,
+    RUNNING_TEST_FOR_MASTER_ON_CI,
+    RUN_BY_CANARY,
+    SKIP_LMI_TESTS,
+    UpdatableSARTemplate,
+)
 
 # Deploy tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
 # This is to restrict package tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary
@@ -24,9 +30,9 @@ CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".
 class TestDeploy(DeployIntegBase):
     @classmethod
     def setUpClass(cls):
-        cls.docker_client = docker.from_env()
+        cls.docker_client = get_validated_container_client()
         cls.local_images = [
-            ("public.ecr.aws/sam/emulation-python3.9", "latest"),
+            ("public.ecr.aws/sam/emulation-python3.9", "latest-x86_64"),
         ]
         # setup some images locally by pulling them.
         for repo, tag in cls.local_images:
@@ -1745,6 +1751,37 @@ to create a managed default bucket, or run sam deploy --guided",
             config_file=config_path,
             s3_prefix=self.s3_prefix,
             s3_bucket=self.s3_bucket.name,
+        )
+
+        deploy_process_execute = self.run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
+
+    @skipIf(
+        SKIP_LMI_TESTS,
+        'Skip LMI tests because required environment variables not set: "LMI_SUBNET_ID", "LMI_SECURITY_GROUP_ID"',
+    )
+    def test_deploy_lmi_function(self):
+        """Test deployment of LMI (Lambda Managed Infrastructure) functions with capacity providers."""
+        # Validate LMI environment variables are set
+        lmi_subnet_id = os.environ.get("LMI_SUBNET_ID")
+        lmi_security_group_id = os.environ.get("LMI_SECURITY_GROUP_ID")
+
+        template_path = self.test_data_path.joinpath("lmi_function", "template.yaml")
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+
+        # Deploy LMI function with capacity providers
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix=self.s3_prefix,
+            s3_bucket=self.s3_bucket.name,
+            force_upload=True,
+            parameter_overrides=f"SubnetId={lmi_subnet_id} SecurityGroupId={lmi_security_group_id}",
+            no_execute_changeset=False,
+            tags="integ=true lmi=yes",
+            confirm_changeset=False,
         )
 
         deploy_process_execute = self.run_command(deploy_command_list)

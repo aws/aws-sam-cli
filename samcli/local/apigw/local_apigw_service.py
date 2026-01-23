@@ -3,7 +3,7 @@
 import base64
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from io import StringIO
 from time import time
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -13,7 +13,7 @@ from werkzeug.datastructures import Headers
 from werkzeug.routing import BaseConverter
 from werkzeug.serving import WSGIRequestHandler
 
-from samcli.commands.local.lib.exceptions import UnsupportedInlineCodeError
+from samcli.commands.local.lib.exceptions import TenantIdValidationError, UnsupportedInlineCodeError
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
 from samcli.lib.providers.exceptions import MissingFunctionNameException
 from samcli.lib.providers.provider import Api, Cors
@@ -541,7 +541,7 @@ class LocalApigwService(BaseLocalService):
         route_key = self._v2_route_key(method, apigw_endpoint, route.is_default_route)
 
         request_time_epoch = int(time())
-        request_time = datetime.utcnow().strftime("%d/%b/%Y:%H:%M:%S +0000")
+        request_time = datetime.now(timezone.utc).strftime("%d/%b/%Y:%H:%M:%S +0000")
 
         context_http = ContextHTTP(method=method, path=request.path, source_ip=request.remote_addr)
         context = RequestContextV2(
@@ -597,7 +597,9 @@ class LocalApigwService(BaseLocalService):
 
         return True
 
-    def _invoke_lambda_function(self, lambda_function_name: str, event: dict) -> Union[str, bytes]:
+    def _invoke_lambda_function(
+        self, lambda_function_name: str, event: dict, tenant_id: Optional[str] = None
+    ) -> Union[str, bytes]:
         """
         Helper method to invoke a function and setup stdout+stderr
 
@@ -607,6 +609,8 @@ class LocalApigwService(BaseLocalService):
             The name of the Lambda function to invoke
         event: dict
             The event object to pass into the Lambda function
+        tenant_id: Optional[str]
+            Tenant ID for multi-tenant Lambda functions
 
         Returns
         -------
@@ -617,7 +621,9 @@ class LocalApigwService(BaseLocalService):
             event_str = json.dumps(event, sort_keys=True)
             stdout_writer = StreamWriter(stdout, auto_flush=True)
 
-            self.lambda_runner.invoke(lambda_function_name, event_str, stdout=stdout_writer, stderr=self.stderr)
+            self.lambda_runner.invoke(
+                lambda_function_name, event_str, stdout=stdout_writer, stderr=self.stderr, tenant_id=tenant_id
+            )
             lambda_response, is_lambda_user_error_response = LambdaOutputParser.get_lambda_output(stdout)
             if is_lambda_user_error_response:
                 raise LambdaResponseParseException
@@ -728,8 +734,13 @@ class LocalApigwService(BaseLocalService):
 
         endpoint_service_error = None
         try:
+            # Extract tenant-id from HTTP request header
+            tenant_id = request.headers.get("X-Amz-Tenant-Id")
+
             # invoke the route's Lambda function
-            lambda_response = self._invoke_lambda_function(route.function_name, route_lambda_event)
+            lambda_response = self._invoke_lambda_function(route.function_name, route_lambda_event, tenant_id)
+        except TenantIdValidationError as e:
+            endpoint_service_error = ServiceErrorResponses.tenant_id_validation_error(str(e))
         except FunctionNotFound:
             endpoint_service_error = ServiceErrorResponses.lambda_not_found_response()
         except UnsupportedInlineCodeError:
@@ -912,7 +923,8 @@ class LocalApigwService(BaseLocalService):
                     binary_types, flask_request, headers, is_base_64_encoded
                 )
             ):
-                body = base64.b64decode(body)
+                if body:
+                    body = base64.b64decode(body)  # type: ignore[arg-type]
         except ValueError as ex:
             LambdaResponseParseException(str(ex))
 
@@ -1012,10 +1024,10 @@ class LocalApigwService(BaseLocalService):
         try:
             # HTTP API Gateway always decode the lambda response only if isBase64Encoded field in response is True
             # regardless the response content-type
-            if is_base_64_encoded:
+            if is_base_64_encoded and body:
                 # Note(xinhol): here in this method we change the type of the variable body multiple times
                 # and confused mypy, we might want to avoid this and use multiple variables here.
-                body = base64.b64decode(body)  # type: ignore
+                body = base64.b64decode(str(body))
         except ValueError as ex:
             LambdaResponseParseException(str(ex))
 
