@@ -32,6 +32,7 @@ from tests.testing_utils import (
     get_sam_command,
     run_command_with_input,
 )
+from samcli.commands.build.utils import MountMode
 
 
 LOG = logging.getLogger(__name__)
@@ -661,7 +662,14 @@ class BuildIntegJavaBase(BuildIntegBase):
             self.skipTest(self.SKIP_ARM64_EARLIER_JAVA_TESTS)
 
         overrides = self.get_override(runtime, code_path, architecture, "aws.example.Hello::myHandler")
-        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
+        mount_with = (
+            MountMode.WRITE
+            if use_container and str(runtime).lower() == "java25" and self.USING_MAVEN_PATH not in code_path
+            else None
+        )
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, mount_with=mount_with
+        )
         cmdlist += ["--skip-pull-image"]
         if code_path == self.USING_GRADLEW_PATH and use_container and IS_WINDOWS:
             osutils.convert_to_unix_line_ending(os.path.join(self.test_data_path, self.USING_GRADLEW_PATH, "gradlew"))
