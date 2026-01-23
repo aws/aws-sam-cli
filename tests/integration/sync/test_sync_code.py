@@ -48,6 +48,9 @@ class TestSyncCodeBase(SyncIntegBase):
 
     @pytest.fixture(scope="class")
     def execute_infra_sync(self):
+        # Skip if test_data_path is None
+        if self.test_data_path is None:
+            pytest.skip("Test data path not initialized - likely due to missing LMI environment variables")
         TestSyncCodeBase.template_path = self.test_data_path.joinpath(self.folder, "before", self.template)
         TestSyncCodeBase.stack_name = self._method_to_stack_name(self.id())
 
