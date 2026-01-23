@@ -48,6 +48,11 @@ def _extract(file_info, output_dir, zip_ref):
     -------
     string
         Returns the target path the Zip Entry was extracted to.
+
+    Raises
+    ------
+    ValueError
+        If the extraction path is not valid
     """
 
     # Handle any regular file/directory entries
@@ -56,6 +61,12 @@ def _extract(file_info, output_dir, zip_ref):
 
     source = zip_ref.read(file_info.filename).decode("utf8")
     link_name = os.path.normpath(os.path.join(output_dir, file_info.filename))
+
+    output_dir_abs = os.path.abspath(output_dir)
+    link_name_abs = os.path.abspath(link_name)
+
+    if not link_name_abs.startswith(output_dir_abs + os.sep) and link_name_abs != output_dir_abs:
+        raise ValueError(f"Extract entry for '{file_info.filename}' is not valid.")
 
     # make leading dirs if needed
     leading_dirs = os.path.dirname(link_name)
