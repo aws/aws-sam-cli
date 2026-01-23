@@ -387,3 +387,45 @@ class TestPackageContextDockerLazyInitialization(TestCase):
             self.assertEqual(docker_client1, docker_client2)
             self.assertEqual(docker_client2, docker_client3)
             self.assertEqual(docker_client1, mock_docker_client)
+
+    @patch("samcli.commands.package.package_context.sync_ecr_stack")
+    @patch("samcli.lib.package.ecr_uploader.get_validated_container_client")
+    @patch.object(ResourceMetadataNormalizer, "normalize", MagicMock())
+    @patch.object(Template, "export", MagicMock(return_value={}))
+    @patch("boto3.client")
+    def test_package_with_resolve_image_repos(self, patched_boto, mock_get_validated_client, mock_sync_ecr_stack):
+        # Mock the docker client
+        docker_client_mock = Mock()
+        mock_get_validated_client.return_value = docker_client_mock
+
+        # Mock sync_ecr_stack to return image repositories
+        expected_repos = {"Function1": "123456789012.dkr.ecr.us-east-1.amazonaws.com/repo1"}
+        mock_sync_ecr_stack.return_value = expected_repos
+
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".yaml") as temp_template_file:
+            package_command_context = PackageContext(
+                template_file=temp_template_file.name,
+                s3_bucket="s3-bucket",
+                s3_prefix="s3-prefix",
+                image_repository=None,
+                image_repositories=None,
+                kms_key_id="kms-key-id",
+                output_template_file=None,
+                use_json=True,
+                force_upload=True,
+                no_progressbar=False,
+                metadata={},
+                region="us-east-1",
+                profile=None,
+                resolve_image_repos=True,
+            )
+            package_command_context.run()
+
+            # Verify sync_ecr_stack was called with correct arguments
+            # This proves the resolve_image_repos code path was executed
+            mock_sync_ecr_stack.assert_called_once()
+            call_args = mock_sync_ecr_stack.call_args
+            # Check that template file was passed
+            self.assertEqual(call_args[0][0], temp_template_file.name)
+            # Check that s3_bucket was passed
+            self.assertEqual(call_args[0][3], "s3-bucket")
