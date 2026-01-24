@@ -60,6 +60,7 @@ def _extract(file_info, output_dir, zip_ref):
         return zip_ref.extract(file_info, output_dir)
 
     source = zip_ref.read(file_info.filename).decode("utf8")
+    output_dir = os.path.normpath(output_dir)
     link_name = os.path.normpath(os.path.join(output_dir, file_info.filename))
 
     output_dir_abs = os.path.abspath(output_dir)
