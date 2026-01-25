@@ -87,13 +87,31 @@ class TestLambdaServiceErrorCases(StartLambdaIntegBaseClass):
     def test_invoke_with_invocation_type_not_RequestResponse(self):
         expected_error_message = (
             "An error occurred (NotImplemented) when calling the Invoke operation: "
-            "invocation-type: DryRun is not supported. RequestResponse is only supported."
+            "invocation-type: DryRun is not supported. Event and RequestResponse are only supported."
         )
 
         with self.assertRaises(ClientError) as error:
             self.lambda_client.invoke(FunctionName="EchoEventFunction", InvocationType="DryRun")
 
         self.assertEqual(str(error.exception), expected_error_message)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=300, method="thread")
+    def test_invoke_with_event_invocation_type(self):
+        """
+        Test that Event invocation type returns immediately with 202 status code
+        and empty payload, while executing the function asynchronously.
+        """
+        response = self.lambda_client.invoke(
+            FunctionName="EchoEventFunction", InvocationType="Event", Payload='"test event data"'
+        )
+
+        # Event invocation should return immediately with 202 status
+        self.assertEqual(response.get("StatusCode"), 202)
+
+        # Payload should be empty for Event invocation type
+        payload = response.get("Payload").read().decode("utf-8")
+        self.assertEqual(payload, "")
 
 
 class TestLambdaServiceWithInlineCode(StartLambdaIntegBaseClass):

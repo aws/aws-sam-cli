@@ -20,6 +20,7 @@ from samcli.local.lambdafn.config import FunctionConfig
 from samcli.local.docker.container import ContainerContext
 from samcli.commands.local.lib.debug_context import DebugContext
 from samcli.local.docker.durable_lambda_container import DurableLambdaContainer
+from samcli.local.lambdafn.exceptions import UnsupportedInvocationType
 
 
 class LambdaRuntime_create(TestCase):
@@ -663,6 +664,62 @@ class LambdaRuntime_invoke(TestCase):
         self.assertIsNotNone(headers)
         self.assertEqual(headers["X-Amz-Durable-Execution-Arn"], "test-arn")
         self.runtime._check_exit_state.assert_called_with(container)
+
+    @patch("samcli.local.lambdafn.runtime.LambdaContainer")
+    def test_unsupported_invocation_type_raises_exception(self, LambdaContainerMock):
+        """Test that unsupported invocation types raise UnsupportedInvocationType for regular Lambda functions"""
+        event = "event"
+        code_dir = "some code dir"
+        stdout = "stdout"
+        stderr = "stderr"
+        container = Mock()
+        start_timer = Mock()
+        debug_options = Mock()
+        lambda_image_mock = Mock()
+        unsupported_invocation_type = "DryRun"  # An unsupported invocation type
+
+        self.runtime = LambdaRuntime(self.manager_mock, lambda_image_mock)
+
+        # Using MagicMock to mock the context manager
+        self.runtime._get_code_dir = MagicMock()
+        self.runtime._get_code_dir.return_value = code_dir
+
+        self.runtime._clean_decompressed_paths = MagicMock()
+
+        # Configure interrupt handler
+        self.runtime._configure_interrupt = Mock()
+        self.runtime._configure_interrupt.return_value = start_timer
+
+        self.runtime._check_exit_state = Mock()
+
+        # Mock create and run to return the container
+        self.runtime.create = Mock(return_value=container)
+        self.runtime.run = Mock(return_value=container)
+
+        LambdaContainerMock.return_value = container
+        container.is_running.return_value = False
+
+        # Regular LambdaContainer (not DurableLambdaContainer) should raise exception for unsupported types
+        with self.assertRaises(UnsupportedInvocationType) as context:
+            self.runtime.invoke(
+                self.func_config,
+                event,
+                debug_context=debug_options,
+                stdout=stdout,
+                stderr=stderr,
+                invocation_type=unsupported_invocation_type,
+            )
+
+        # Verify the exception message
+        self.assertIn("invocation-type: DryRun is not supported", str(context.exception))
+        self.assertIn("Event and RequestResponse are only supported", str(context.exception))
+
+        # Verify that wait_for_result was not called due to the exception
+        container.wait_for_result.assert_not_called()
+
+        # Verify cleanup was still called
+        self.manager_mock.stop.assert_called_with(container)
+        self.runtime._clean_decompressed_paths.assert_called_with()
 
 
 class TestLambdaRuntime_configure_interrupt(TestCase):
@@ -2255,3 +2312,37 @@ class TestShouldReloadContainer(TestCase):
 
         result = _should_reload_container(self.base_config, self.different_config, container, debug_context2)
         self.assertTrue(result)
+
+
+class TestLambdaRuntime_clean_runtime_containers(TestCase):
+    @patch("samcli.local.lambdafn.runtime.LOG")
+    def test_clean_runtime_containers_stops_and_deletes_durable_container(self, log_mock):
+        """Test that clean_runtime_containers stops and deletes durable lambda container"""
+        manager_mock = Mock()
+        lambda_image_mock = Mock()
+        runtime = LambdaRuntime(manager_mock, lambda_image_mock)
+
+        container = Mock(spec=DurableLambdaContainer)
+        runtime._container = container
+
+        runtime.clean_runtime_containers()
+
+        container._stop.assert_called_once()
+        container._delete.assert_called_once()
+        self.assertIsNone(runtime._container)
+
+    @patch("samcli.local.lambdafn.runtime.LOG")
+    def test_clean_runtime_containers_stops_emulator_container(self, log_mock):
+        """Test that clean_runtime_containers stops and cleans up emulator container"""
+        manager_mock = Mock()
+        lambda_image_mock = Mock()
+        runtime = LambdaRuntime(manager_mock, lambda_image_mock)
+
+        emulator_container = Mock()
+        runtime._durable_execution_emulator_container = emulator_container
+
+        runtime.clean_runtime_containers()
+
+        emulator_container.stop.assert_called_once()
+        log_mock.debug.assert_called_with("Stopping durable functions emulator container")
+        self.assertIsNone(runtime._durable_execution_emulator_container)
