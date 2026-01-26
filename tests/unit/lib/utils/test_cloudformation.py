@@ -1,12 +1,15 @@
+from collections import OrderedDict
 from unittest import TestCase
 from unittest.mock import patch, Mock, ANY, call
 
 from botocore.exceptions import ClientError
+from parameterized import parameterized
 
 from samcli.lib.utils.cloudformation import (
     CloudFormationResourceSummary,
     get_resource_summaries,
     get_resource_summary,
+    is_intrinsic_function,
     list_active_stack_names,
     get_resource_summary_from_physical_id,
 )
@@ -215,3 +218,41 @@ class TestCloudformationUtils(TestCase):
         resource_summary = get_resource_summary_from_physical_id(patched_cfn_client_provider, "invalid_physical_id")
         self.assertIsNone(resource_summary)
         patched_log.debug.assert_called_once()
+
+
+class TestIsIntrinsicFunction(TestCase):
+    """Tests for the is_intrinsic_function utility"""
+
+    @parameterized.expand(
+        [
+            ("Fn::If", ["Condition", "Value1", "Value2"]),
+            ("Ref", "MyParameter"),
+            ("Fn::GetAtt", ["Resource", "Attribute"]),
+            ("Fn::Sub", "${AWS::StackName}-bucket"),
+            ("Fn::ForEach", ["Item", ["a", "b"], {"Key": "Value"}]),
+            ("Fn::Length", ["item1", "item2", "item3"]),
+            ("Fn::ToJsonString", {"key": "value"}),
+            ("Fn::Base64", "value"),
+            ("Fn::Join", ["-", ["a", "b"]]),
+            ("Fn::Select", [0, ["a", "b"]]),
+        ]
+    )
+    def test_intrinsic_functions_detected(self, function_name, function_value):
+        """Test that CloudFormation intrinsic functions are correctly detected"""
+        value = OrderedDict([(function_name, function_value)])
+        self.assertTrue(is_intrinsic_function(value))
+
+    @parameterized.expand(
+        [
+            (["item1", "item2", "item3"], "list"),
+            ({"key1": "value1", "key2": "value2"}, "multi_key_dict"),
+            ({"NotAnIntrinsic": "value"}, "single_key_non_intrinsic"),
+            ("just a string", "string"),
+            (None, "none"),
+            ({}, "empty_dict"),
+            (123, "number"),
+        ]
+    )
+    def test_non_intrinsic_values_not_detected(self, value, description):
+        """Test that non-intrinsic values are not detected as intrinsic functions"""
+        self.assertFalse(is_intrinsic_function(value))
