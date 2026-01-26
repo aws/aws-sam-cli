@@ -193,7 +193,7 @@ class TestSyncInfra(SyncIntegBase):
         sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
         self.assertIn(
-            "Template haven't been changed since last deployment, skipping infra sync...",
+            "Template hasn't been changed since last deployment, skipping infra sync...",
             str(sync_process_execute.stderr),
         )
         self.assertIn(
@@ -242,7 +242,7 @@ class TestSyncInfra(SyncIntegBase):
         sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
         self.assertIn(
-            "Template haven't been changed since last deployment, skipping infra sync...",
+            "Template hasn't been changed since last deployment, skipping infra sync...",
             str(sync_process_execute.stderr),
         )
         self.assertIn(
