@@ -124,7 +124,7 @@ class CfnParameterOverridesType(click.ParamType):
 
     name = "list,object,string"
 
-    def convert(self, values, param, ctx, seen_files=None):
+    def convert(self, values, param, ctx, seen_files=None, parent_dir=None):
         """
         Takes parameter overrides loaded from various supported config file formats and
         flattens and normalizes them into a dictionary where all keys and values are strings.
@@ -143,6 +143,8 @@ class CfnParameterOverridesType(click.ParamType):
             Click context for error reporting.
         seen_files : set
             List of files processed in the current execution branch, used to detect infinite recursion
+        parent_dir : Path
+            Directory of the parent file, used to resolve relative paths in nested includes
 
         Returns
         -------
@@ -169,6 +171,11 @@ class CfnParameterOverridesType(click.ParamType):
                 # If the string is a file reference (e.g., 'file://params.yaml')
                 if value.startswith("file://"):
                     file_path = Path(value[7:])
+                    # Resolve relative paths against parent directory
+                    if not file_path.is_absolute() and parent_dir:
+                        file_path = parent_dir / file_path
+                    file_path = file_path.resolve()
+                    
                     if not file_path.is_file():
                         self.fail(f"{value} was not found or is a directory", param, ctx)
                     file_manager = FILE_MANAGER_MAPPER.get(file_path.suffix, None)
@@ -181,7 +188,7 @@ class CfnParameterOverridesType(click.ParamType):
                     seen_files.add(file_path)
                     try:
                         nested_values = file_manager.read(file_path)
-                        parameters.update(self.convert(nested_values, param, ctx, seen_files))
+                        parameters.update(self.convert(nested_values, param, ctx, seen_files, file_path.parent))
                     finally:
                         seen_files.remove(file_path)
                 else:
