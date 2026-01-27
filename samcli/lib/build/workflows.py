@@ -28,6 +28,8 @@ PYTHON_UV_CONFIG = CONFIG(
     language="python",
     dependency_manager="uv",
     application_framework=None,
+    # Leaving manifest_name as None here because technically uv can read from pyproject or requirements.
+    # Having it set to either will mess with the autodetection logic in lambda builders.
     manifest_name=None,
     executable_search_paths=None,
     must_mount_with_write_in_container=False,
