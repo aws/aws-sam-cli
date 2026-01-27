@@ -212,6 +212,15 @@ class CfnParameterOverridesType(click.ParamType):
                     if v is None:
                         # Unset value if previously set
                         parameters[str(k)] = ""
+                    elif k == "$include":
+                        # Process includes (can be string or list)
+                        if not isinstance(v, (str, list, CommentedSeq)):
+                            self.fail(
+                                f"$include must be a string or list of strings, got {type(v).__name__}",
+                                param,
+                                ctx,
+                            )
+                        parameters.update(self.convert(v, param, ctx, seen_files, parent_dir))
                     elif isinstance(v, (list, CommentedSeq)):
                         # Join list elements into comma-separated string, strip whitespace and ignore empty entries
                         parameters[str(k)] = ",".join(str(x).strip() for x in v if x not in (None, ""))
