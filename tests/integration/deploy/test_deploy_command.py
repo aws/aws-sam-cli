@@ -1756,15 +1756,15 @@ to create a managed default bucket, or run sam deploy --guided",
         deploy_process_execute = self.run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
-    @skipIf(SKIP_LMI_TESTS, "Skip LMI tests when running on canary")
+    @skipIf(
+        SKIP_LMI_TESTS,
+        'Skip LMI tests because required environment variables not set: "LMI_SUBNET_ID", "LMI_SECURITY_GROUP_ID"',
+    )
     def test_deploy_lmi_function(self):
         """Test deployment of LMI (Lambda Managed Infrastructure) functions with capacity providers."""
         # Validate LMI environment variables are set
         lmi_subnet_id = os.environ.get("LMI_SUBNET_ID")
         lmi_security_group_id = os.environ.get("LMI_SECURITY_GROUP_ID")
-
-        self.assertTrue(lmi_subnet_id, "LMI_SUBNET_ID environment variable must be set")
-        self.assertTrue(lmi_security_group_id, "LMI_SECURITY_GROUP_ID environment variable must be set")
 
         template_path = self.test_data_path.joinpath("lmi_function", "template.yaml")
         stack_name = self._method_to_stack_name(self.id())

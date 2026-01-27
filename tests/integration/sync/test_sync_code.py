@@ -9,7 +9,7 @@ import time
 import uuid
 from pathlib import Path
 from typing import Dict
-from unittest import skipIf, SkipTest
+from unittest import skipIf
 
 
 import pytest
@@ -48,6 +48,9 @@ class TestSyncCodeBase(SyncIntegBase):
 
     @pytest.fixture(scope="class")
     def execute_infra_sync(self):
+        # Skip if test_data_path is None
+        if self.test_data_path is None:
+            pytest.skip("Test data path not initialized - likely due to missing LMI environment variables")
         TestSyncCodeBase.template_path = self.test_data_path.joinpath(self.folder, "before", self.template)
         TestSyncCodeBase.stack_name = self._method_to_stack_name(self.id())
 
@@ -803,7 +806,10 @@ class TestFunctionWithSkipBuild(TestSyncCodeBase):
     ]
 )
 @pytest.mark.timeout(300)
-@skipIf(SKIP_LMI_TESTS, "Skip LMI tests when running on canary")
+@skipIf(
+    SKIP_LMI_TESTS,
+    'Skip LMI tests because required environment variables not set: "LMI_SUBNET_ID", "LMI_SECURITY_GROUP_ID"',
+)
 class TestSyncCodeLMI(TestSyncCodeBase):
     """Test sync code operations with Lambda Managed Instance functions"""
 
@@ -812,12 +818,7 @@ class TestSyncCodeLMI(TestSyncCodeBase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        if SKIP_LMI_TESTS:
-            raise SkipTest("Skip LMI tests when running on canary")
         super().setUpClass()
-        # Validate LMI environment variables are set
-        assert os.environ.get("LMI_SUBNET_ID"), "LMI_SUBNET_ID environment variable must be set"
-        assert os.environ.get("LMI_SECURITY_GROUP_ID"), "LMI_SECURITY_GROUP_ID environment variable must be set"
 
         # Read LMI infrastructure from environment variables
         cls.parameter_overrides = {
