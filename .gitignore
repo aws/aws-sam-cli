@@ -426,3 +426,5 @@ mise.toml
 
 # Durable executions
 **/.durable-executions-local/
+
+tests/integration/*/tmp/*
