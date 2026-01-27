@@ -654,7 +654,7 @@ class TestSyncWatchAutoSkipInfra(SyncIntegBase):
 
         read_until_string(
             self.watch_process,
-            "Template haven't been changed since last deployment, skipping infra sync...\n",
+            "Template hasn't been changed since last deployment, skipping infra sync...\n",
             timeout=100,
         )
 
