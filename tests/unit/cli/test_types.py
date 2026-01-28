@@ -235,12 +235,18 @@ class TestCfnParameterOverridesType(TestCase):
     @parameterized.expand(
         [
             (
-                {"config/default.yaml": "Base: default\nEnv: dev", "config/prod.yaml": "- file://default.yaml\n- Env: production\n- Region: us-east-1"},
+                {
+                    "config/default.yaml": "Base: default\nEnv: dev",
+                    "config/prod.yaml": "- file://default.yaml\n- Env: production\n- Region: us-east-1",
+                },
                 "config/prod.yaml",
                 {"Base": "default", "Env": "production", "Region": "us-east-1"},
             ),
             (
-                {"config/shared/common.yaml": "Common: shared", "config/prod.yaml": "- file://shared/common.yaml\n- Env: prod"},
+                {
+                    "config/shared/common.yaml": "Common: shared",
+                    "config/prod.yaml": "- file://shared/common.yaml\n- Env: prod",
+                },
                 "config/prod.yaml",
                 {"Common": "shared", "Env": "prod"},
             ),
@@ -253,13 +259,13 @@ class TestCfnParameterOverridesType(TestCase):
 
         with tempfile.TemporaryDirectory() as temp:
             temp_path = Path(temp)
-            
+
             # Create all files
             for file_path, content in file_contents.items():
                 full_path = temp_path / file_path
                 full_path.parent.mkdir(parents=True, exist_ok=True)
                 full_path.write_text(content)
-            
+
             entry_path = temp_path / entry_file
             result = self.param_type.convert(f"file://{entry_path}", None, MagicMock())
             self.assertEqual(result, expected)

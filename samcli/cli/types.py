@@ -175,7 +175,7 @@ class CfnParameterOverridesType(click.ParamType):
                     if not file_path.is_absolute() and parent_dir:
                         file_path = parent_dir / file_path
                     file_path = file_path.resolve()
-                    
+
                     if not file_path.is_file():
                         self.fail(f"{value} was not found or is a directory", param, ctx)
                     file_manager = FILE_MANAGER_MAPPER.get(file_path.suffix, None)
