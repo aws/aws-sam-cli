@@ -148,7 +148,11 @@ def _update_relative_paths(template_dict, original_root, new_root):
 
             properties[path_prop_name] = updated_path
 
-    for _, resource in template_dict.get("Resources", {}).items():
+    for resource_id, resource in template_dict.get("Resources", {}).items():
+        # Skip Fn::ForEach constructs which are lists, not dicts
+        if resource_id.startswith("Fn::ForEach::") or not isinstance(resource, dict):
+            continue
+
         resource_type = resource.get("Type")
 
         if resource_type not in RESOURCES_WITH_LOCAL_PATHS:
