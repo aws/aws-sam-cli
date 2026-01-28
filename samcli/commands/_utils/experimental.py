@@ -54,12 +54,16 @@ class ExperimentalFlag:
             "experimentalTerraformSupport", EXPERIMENTAL_ENV_VAR_PREFIX + "TERRAFORM_SUPPORT"
         )
     }
-    RustCargoLambda = ExperimentalEntry("experimentalCargoLambda", EXPERIMENTAL_ENV_VAR_PREFIX + "RUST_CARGO_LAMBDA")
+    # CargoLambda is no longer experimental - always enabled
+    CargoLambda = ExperimentalEntry(
+        "experimentalCargoLambda", EXPERIMENTAL_ENV_VAR_PREFIX + "CARGO_LAMBDA", persistent=True
+    )
 
 
 def is_experimental_enabled(config_entry: ExperimentalEntry) -> bool:
     """Whether a given experimental flag is enabled or not.
     If experimentalAll is set to True, then it will always return True.
+    If the config_entry has persistent=True, it will always return True.
 
     Parameters
     ----------
@@ -71,6 +75,9 @@ def is_experimental_enabled(config_entry: ExperimentalEntry) -> bool:
     bool
         Whether the experimental flag is enabled or not.
     """
+    # Persistent flags are always enabled (graduated from experimental)
+    if config_entry.persistent:
+        return True
     gc = GlobalConfig()
     enabled = gc.get_value(config_entry, default=False, value_type=bool, is_flag=True)
     if not enabled:

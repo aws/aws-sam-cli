@@ -35,21 +35,32 @@ class TestExperimental(TestCase):
 
     def test_is_experimental_enabled(self):
         config_entry = MagicMock()
+        config_entry.persistent = False
         self.gc_mock.return_value.get_value.side_effect = [False, True]
         result = is_experimental_enabled(config_entry)
         self.assertTrue(result)
 
     def test_is_experimental_enabled_all(self):
         config_entry = MagicMock()
+        config_entry.persistent = False
         self.gc_mock.return_value.get_value.side_effect = [True, False]
         result = is_experimental_enabled(config_entry)
         self.assertTrue(result)
 
     def test_is_experimental_enabled_false(self):
         config_entry = MagicMock()
+        config_entry.persistent = False
         self.gc_mock.return_value.get_value.side_effect = [False, False]
         result = is_experimental_enabled(config_entry)
         self.assertFalse(result)
+
+    def test_is_experimental_enabled_persistent(self):
+        config_entry = MagicMock()
+        config_entry.persistent = True
+        result = is_experimental_enabled(config_entry)
+        self.assertTrue(result)
+        # GlobalConfig should not be called for persistent flags
+        self.gc_mock.return_value.get_value.assert_not_called()
 
     def test_set_experimental(self):
         config_entry = MagicMock()
