@@ -68,6 +68,7 @@ jobs:
     - uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python }}
+    - uses: astral-sh/setup-uv@v7
     - run: test -f "./.github/ISSUE_TEMPLATE/Bug_report.md"  # prevent Bug_report.md from being renamed or deleted
     - run: make pr
 
