@@ -96,6 +96,43 @@ class LocalLambdaRunner:
         self.container_host_interface = container_host_interface
         self.extra_hosts = extra_hosts
 
+    def get_function(self, function_identifier: str) -> Function:
+        """
+        Get a Lambda function by identifier, raising FunctionNotFound if not found.
+
+        Parameters
+        ----------
+        function_identifier : str
+            Identifier of the Lambda function, it can be logicalID, function name or full path
+
+        Returns
+        -------
+        Function
+            The Lambda function configuration
+
+        Raises
+        ------
+        InvalidFunctionNameException
+            When the function identifier doesn't match AWS Lambda's validation pattern
+        FunctionNotFound
+            When we cannot find a function with the given identifier
+        """
+        # Normalize function identifier from ARN if provided
+        normalized_function_identifier = normalize_sam_function_identifier(function_identifier)
+
+        # Generate the correct configuration based on given inputs
+        function = self.provider.get(normalized_function_identifier)
+
+        if not function:
+            all_function_full_paths = [f.full_path for f in self.provider.get_all()]
+            available_function_message = "{} not found. Possible options in your template: {}".format(
+                function_identifier, all_function_full_paths
+            )
+            LOG.info(available_function_message)
+            raise FunctionNotFound("Unable to find a Function with name '{}'".format(function_identifier))
+
+        return function
+
     def invoke(
         self,
         function_identifier: str,
@@ -138,19 +175,8 @@ class LocalLambdaRunner:
         FunctionNotfound
             When we cannot find a function with the given name
         """
-        # Normalize function identifier from ARN if provided
-        normalized_function_identifier = normalize_sam_function_identifier(function_identifier)
-
-        # Generate the correct configuration based on given inputs
-        function = self.provider.get(normalized_function_identifier)
-
-        if not function:
-            all_function_full_paths = [f.full_path for f in self.provider.get_all()]
-            available_function_message = "{} not found. Possible options in your template: {}".format(
-                function_identifier, all_function_full_paths
-            )
-            LOG.info(available_function_message)
-            raise FunctionNotFound("Unable to find a Function with name '{}'".format(function_identifier))
+        # Get the function configuration
+        function = self.get_function(function_identifier)
 
         LOG.debug("Found one Lambda function with name '%s'", function_identifier)
         if function.packagetype == ZIP:
