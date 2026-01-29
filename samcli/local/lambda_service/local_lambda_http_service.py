@@ -259,6 +259,8 @@ class LocalLambdaHttpService(BaseLocalService):
             if validation_error := self._validate_function_for_invocation(function_name):
                 return validation_error
 
+            # LocalLambdaService is blocking, so threads used by ThreadPoolExecutor
+            # will be cleaned up when Python exits by the ThreadPoolExecutor implementation
             self.executor.submit(self._invoke_async_lambda, **arguments)
             return self.service_response("", headers, 202)
 

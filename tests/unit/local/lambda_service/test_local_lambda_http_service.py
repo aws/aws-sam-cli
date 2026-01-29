@@ -1,3 +1,4 @@
+import threading
 import json
 from datetime import datetime
 from unittest import TestCase
@@ -480,6 +481,38 @@ class TestLocalLambdaHttpService(TestCase):
         )
         lambda_error_responses_mock.not_implemented_locally.assert_called_once_with("Dry Run invocation not supported")
         self.assertEqual(result, "error response")
+
+    def test_event_invocation_runs_async_task(self):
+        # Test that Event invocation type runs the function asynchronously
+        handler_returned = threading.Event()
+        finished = threading.Event()
+
+        def fake_invoke(*args, **kwargs):
+            if handler_returned.wait(timeout=5):
+                finished.set()
+
+        request_mock = Mock()
+        request_mock.get_data.return_value = b"{}"
+        request_mock.args = {}
+        request_mock.headers = {"X-Amz-Invocation-Type": "Event"}
+        local_lambda_http_service.request = request_mock
+
+        lambda_runner_mock = Mock()
+        service = LocalLambdaHttpService(lambda_runner=lambda_runner_mock, port=3000, host="localhost")
+        service._invoke_lambda = fake_invoke
+        service.create()
+
+        response = service._invoke_request_handler(function_name="HelloWorld")
+
+        # Assert that first a 202 response is returned
+        self.assertEqual(response.status_code, 202)
+
+        # Then assert that invoke has not finished
+        self.assertFalse(finished.is_set())
+        handler_returned.set()
+
+        # Finally assert that invoke has finished
+        self.assertTrue(finished.wait(timeout=5), "Task never finished")
 
     @patch("samcli.local.lambda_service.local_lambda_http_service.LocalLambdaHttpService.service_response")
     @patch("samcli.local.lambda_service.local_lambda_http_service.ThreadPoolExecutor")
