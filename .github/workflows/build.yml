@@ -20,39 +20,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Check if requirements files changed
-  check-requirements-changed:
-    name: Check Requirements Changed
-    if: github.repository_owner == 'aws'
-    runs-on: ubuntu-latest
-    outputs:
-      requirements-changed: ${{ steps.check.outputs.changed }}
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-      - name: Check if requirements files changed
-        id: check
-        run: |
-          # Get the list of changed files between base and head
-          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
-          echo "Changed files:"
-          echo "$CHANGED_FILES"
-          
-          # Check if any requirements files changed
-          if echo "$CHANGED_FILES" | grep -qE '^requirements/(base\.txt|reproducible-linux\.txt|reproducible-mac\.txt|reproducible-win\.txt)$'; then
-            echo "Requirements files changed"
-            echo "changed=true" >> $GITHUB_OUTPUT
-          else
-            echo "No requirements files changed"
-            echo "changed=false" >> $GITHUB_OUTPUT
-          fi
-
-  # Update reproducible requirements only if dependency files changed
+  # Update reproducible requirements only for automated dependency update branches
   update-reproducibles:
     name: Update Reproducible Requirements
-    needs: check-requirements-changed
-    if: github.repository_owner == 'aws' && needs.check-requirements-changed.outputs.requirements-changed == 'true'
+    if: >
+      github.repository_owner == 'aws' &&
+      (github.head_ref == 'update_app_templates_hash' ||
+       github.head_ref == 'update_sam_transform_version' ||
+       github.head_ref == 'update_lambda_builders_version')
     permissions:
       pull-requests: write
       contents: write
