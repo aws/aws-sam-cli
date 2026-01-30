@@ -19,6 +19,12 @@ jobs:
           repository: aws/aws-sam-cli-app-templates
           path: aws-sam-cli-app-templates
 
+      - name: Checkout SAM CLI
+        uses: actions/checkout@v6
+        with:
+          repository: aws/aws-sam-cli
+          path: aws-sam-cli
+
       - name: Update hash & commit
         run: |
           git config --global user.email "action@github.com"
