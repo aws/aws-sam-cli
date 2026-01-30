@@ -25,6 +25,13 @@ jobs:
           repository: aws/aws-sam-cli
           path: aws-sam-cli
 
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
       - name: Update hash & commit
         run: |
           git config --global user.email "action@github.com"
@@ -35,6 +42,7 @@ jobs:
           git checkout -b update_app_templates_hash
           git reset --hard develop
           cat <<< "$(jq --arg commit_hash "$APP_TEMPLATES_COMMIT_HASH" --indent 4 '.app_template_repo_commit =  $commit_hash' samcli/runtime_config.json)" > samcli/runtime_config.json
+          make update-reproducible-reqs-uv
           git status
           git diff --quiet && exit 0 # exit if there is no change
           echo "is_hash_changed=1" >> $GITHUB_ENV # set env variable for next step run decision
@@ -72,6 +80,13 @@ jobs:
           repository: aws/aws-sam-cli
           path: aws-sam-cli
 
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
       - name: Update aws-sam-translator & commit
         run: |
           git config --global user.email "action@github.com"
@@ -86,6 +101,7 @@ jobs:
           git reset --hard develop
           sed -i "s/$SAM_T_PRE_VERSION/aws-sam-translator==$SAM_T_CUR_VERSION/g" requirements/base.txt
           cp -r ../serverless-application-model/tests/translator/input ./tests/functional/commands/validate/lib/models
+          make update-reproducible-reqs-uv
           git status
           git diff --quiet && exit 0 # exit if there is no change
           echo "is_new_sam_t=1" >> $GITHUB_ENV # set env variable for next step run decision
@@ -123,6 +139,13 @@ jobs:
           repository: aws/aws-sam-cli
           path: aws-sam-cli
 
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
       - name: Upgrade aws_lambda_builders & commit
         run: |
           git config --global user.email "action@github.com"
@@ -136,6 +159,7 @@ jobs:
           echo "Lambda Builders pre version is $BUILDERS_PRE_VERSION"
           git reset --hard develop
           sed -i "s/$BUILDERS_PRE_VERSION/aws_lambda_builders==$BUILDERS_CUR_VERSION/g" requirements/base.txt
+          make update-reproducible-reqs-uv
           git status
           git diff --quiet && exit 0 # exit if there is no change
           echo "is_new_lambda_builders=1" >> $GITHUB_ENV # set env variable for next step run decision
