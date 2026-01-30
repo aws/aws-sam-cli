@@ -403,3 +403,51 @@ latest_infra_sync_time = "2025-12-03T22:10:11.916279"
             self.assertIsNotNone(time_diff)
         except TypeError as e:
             self.fail(f"DateTime comparison failed with TypeError: {e}")
+
+
+class TestZSuffixDatetimeHandling(TestCase):
+    """Tests for PR #8487: Handle 'Z' suffix in datetime strings (Python 3.9/3.10 compatibility)"""
+
+    @parameterized.expand(
+        [
+            ("z_suffix_infra", "2024-05-08T15:16:43Z", {}),
+            (
+                "z_suffix_resource",
+                "2025-12-03T22:10:11+00:00",
+                {"MockResourceId": ("mock-hash", "2024-05-08T15:16:43Z")},
+            ),
+            ("z_suffix_both", "2024-05-08T15:16:43Z", {"Resource1": ("hash1", "2024-05-08T15:16:43Z")}),
+            (
+                "mixed_formats",
+                "2024-05-08T15:16:43Z",
+                {"Resource1": ("hash1", "2025-12-03T22:10:35+00:00"), "Resource2": ("hash2", "2024-05-08T15:17:00Z")},
+            ),
+            (
+                "nested_resource",
+                "2024-05-08T15:16:43Z",
+                {"Parent/Child/MockResourceId": ("nested-hash", "2024-05-08T15:16:43Z")},
+            ),
+        ]
+    )
+    def test_z_suffix_datetime_parsing(self, test_name, infra_sync_time, resources):
+        """Test that 'Z' suffix timestamps are correctly parsed across all Python versions"""
+        toml_str = TOML_TEMPLATE.format(dependency_layer="true", latest_infra_sync_time=f'"{infra_sync_time}"')
+
+        for resource_id, (resource_hash, resource_sync_time) in resources.items():
+            toml_str += RESOURCE_SYNC_STATE_TEMPLATE.format(
+                resource_id_toml=resource_id.replace("/", "-"),
+                resource_hash=resource_hash,
+                resource_sync_time=resource_sync_time,
+            )
+
+        toml_doc = tomlkit.loads(toml_str)
+        sync_state = _toml_document_to_sync_state(toml_doc)
+
+        # Verify all timestamps are timezone-aware UTC
+        self.assertEqual(sync_state.latest_infra_sync_time.tzinfo, timezone.utc)
+        for resource_id in resources.keys():
+            self.assertEqual(sync_state.resource_sync_states[resource_id].sync_time.tzinfo, timezone.utc)
+
+        # Verify datetime comparison works (the original bug fix)
+        time_diff = datetime.now(timezone.utc) - sync_state.latest_infra_sync_time
+        self.assertIsNotNone(time_diff)
