@@ -1,0 +1,39 @@
+name: Slack Notifications
+
+on:
+  pull_request:
+    types: [labeled]
+  issues:
+    types: [opened]
+  issue_comment:
+    types: [created]
+
+jobs:
+  notify-slack:
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'pull_request' && github.event.label.name == 'pr/external') || 
+      github.event_name == 'issues' ||
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request != null)
+    permissions:
+      contents: read
+    steps:
+      - name: Send External PR Notification
+        if: github.event_name == 'pull_request'
+        uses: rtCamp/action-slack-notify@e31e87e03dd19038e411e38ae27cbad084a90661 # v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_TITLE: 'PR Created: ${{ github.event.pull_request.title }} by ${{ github.event.pull_request.user.login }}'
+          SLACK_FOOTER: ''
+          MSG_MINIMAL: true
+          SLACK_MESSAGE: '${{ github.event.pull_request.html_url }}'
+
+      - name: Send New Issue Notification
+        if: github.event_name == 'issues'
+        uses: rtCamp/action-slack-notify@e31e87e03dd19038e411e38ae27cbad084a90661 # v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_TITLE: 'Issue Created: ${{ github.event.issue.title }} by ${{ github.event.issue.user.login }}'
+          SLACK_FOOTER: ''
+          MSG_MINIMAL: true
+          SLACK_MESSAGE: '${{ github.event.issue.html_url }}'
