@@ -5,16 +5,11 @@ on:
     types: [labeled]
   issues:
     types: [opened]
-  issue_comment:
-    types: [created]
 
 jobs:
   notify-slack:
     runs-on: ubuntu-latest
-    if: |
-      (github.event_name == 'pull_request' && github.event.label.name == 'pr/external') || 
-      github.event_name == 'issues' ||
-      (github.event_name == 'issue_comment' && github.event.issue.pull_request != null)
+    if: (github.event_name == 'pull_request' && github.event.label.name == 'pr/external') || github.event_name == 'issues'
     permissions:
       contents: read
     steps:
@@ -27,7 +22,6 @@ jobs:
           SLACK_FOOTER: ''
           MSG_MINIMAL: true
           SLACK_MESSAGE: '${{ github.event.pull_request.html_url }}'
-
       - name: Send New Issue Notification
         if: github.event_name == 'issues'
         uses: rtCamp/action-slack-notify@e31e87e03dd19038e411e38ae27cbad084a90661 # v2
