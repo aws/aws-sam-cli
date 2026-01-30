@@ -6,12 +6,24 @@ on:
       - develop
       - "feat/*"
       - "feat-*"
+    paths-ignore:
+      # Ignore reproducible requirements changes - update-reproducibles.yml handles these and triggers build
+      - requirements/reproducible-linux.txt
+      - requirements/reproducible-mac.txt
+      - requirements/reproducible-win.txt
+      - requirements/base.txt
   merge_group:
     types: [ checks_requested ]
     branches:
       - develop
       - "feat/*"
       - "feat-*"
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Git ref to checkout'
+        required: false
+        default: ''
 
 # to automatically cancel the running workflow for same PR.
 concurrency:

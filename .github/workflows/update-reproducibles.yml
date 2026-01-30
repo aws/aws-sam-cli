@@ -14,6 +14,7 @@ jobs:
     permissions:
       pull-requests: write
       contents: write
+      actions: write
     if: github.repository_owner == 'aws'
     runs-on: ubuntu-latest
     steps:
@@ -35,3 +36,9 @@ jobs:
           git add requirements/reproducible-*.txt
           git commit -m "Update reproducible requirements" || echo "nothing to commit"
           git push
+
+      - name: Trigger Build workflow
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run build.yml --ref ${{ github.head_ref }}
