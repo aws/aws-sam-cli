@@ -1,7 +1,7 @@
 name: Update reproducible requirements
 on:
   pull_request:
-    branches: [develop]
+    branches: [develop, update_action_fix]
     paths:
       # run this GHA if the following files have changed
       - requirements/base.txt
