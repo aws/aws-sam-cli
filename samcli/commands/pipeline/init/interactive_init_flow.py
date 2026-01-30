@@ -18,6 +18,17 @@ from samcli.commands.exceptions import (
     AppPipelineTemplateMetadataException,
     PipelineTemplateCloneException,
 )
+from samcli.commands.pipeline.bootstrap.cli import (
+    PIPELINE_CONFIG_DIR,
+    PIPELINE_CONFIG_FILENAME,
+    _get_bootstrap_command_names,
+)
+from samcli.commands.pipeline.bootstrap.cli import do_cli as do_bootstrap
+from samcli.commands.pipeline.init.pipeline_templates_manifest import (
+    PipelineTemplateMetadata,
+    PipelineTemplatesManifest,
+    Provider,
+)
 from samcli.lib.config.samconfig import SamConfig
 from samcli.lib.cookiecutter.interactive_flow import InteractiveFlow
 from samcli.lib.cookiecutter.interactive_flow_creator import InteractiveFlowCreator
@@ -26,14 +37,6 @@ from samcli.lib.cookiecutter.template import Template
 from samcli.lib.utils import osutils
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.git_repo import CloneRepoException, GitRepo
-
-from ..bootstrap.cli import (
-    PIPELINE_CONFIG_DIR,
-    PIPELINE_CONFIG_FILENAME,
-    _get_bootstrap_command_names,
-)
-from ..bootstrap.cli import do_cli as do_bootstrap
-from .pipeline_templates_manifest import PipelineTemplateMetadata, PipelineTemplatesManifest, Provider
 
 LOG = logging.getLogger(__name__)
 shared_path: Path = GlobalConfig().config_dir

@@ -8,7 +8,7 @@ from unittest import skipIf
 from parameterized import parameterized, param
 
 from samcli.lib.utils.hash import dir_checksum
-from .package_integ_base import PackageIntegBase
+from tests.integration.package.package_integ_base import PackageIntegBase
 from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
 
 # Package tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.

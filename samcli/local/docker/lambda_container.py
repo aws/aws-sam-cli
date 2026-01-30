@@ -7,11 +7,10 @@ import os
 from typing import List
 
 from samcli.lib.utils.packagetype import IMAGE
+from samcli.local.docker.container import DEFAULT_CONTAINER_HOST_INTERFACE, Container
 from samcli.local.docker.exceptions import InvalidRuntimeException
 from samcli.local.docker.lambda_debug_settings import LambdaDebugSettings
-
-from .container import DEFAULT_CONTAINER_HOST_INTERFACE, Container
-from .lambda_image import LambdaImage, Runtime
+from samcli.local.docker.lambda_image import LambdaImage, Runtime
 
 LOG = logging.getLogger(__name__)
 

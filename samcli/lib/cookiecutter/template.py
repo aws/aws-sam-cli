@@ -10,12 +10,16 @@ from cookiecutter.exceptions import RepositoryNotFound, UnknownRepoType
 from cookiecutter.main import cookiecutter
 
 from samcli.commands.exceptions import UserException
+from samcli.lib.cookiecutter.exceptions import (
+    GenerateProjectFailedError,
+    InvalidLocationError,
+    PostprocessingError,
+    PreprocessingError,
+)
+from samcli.lib.cookiecutter.interactive_flow import InteractiveFlow
+from samcli.lib.cookiecutter.plugin import Plugin
+from samcli.lib.cookiecutter.processor import Processor
 from samcli.lib.init.arbitrary_project import generate_non_cookiecutter_project
-
-from .exceptions import GenerateProjectFailedError, InvalidLocationError, PostprocessingError, PreprocessingError
-from .interactive_flow import InteractiveFlow
-from .plugin import Plugin
-from .processor import Processor
 
 LOG = logging.getLogger(__name__)
 

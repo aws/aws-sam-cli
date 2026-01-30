@@ -1,6 +1,6 @@
 """Module containing class to store SAR application metadata."""
 
-from .exceptions import InvalidApplicationMetadataError
+from samcli.vendor.serverlessrepo.exceptions import InvalidApplicationMetadataError
 
 
 class ApplicationMetadata(object):

@@ -1,7 +1,7 @@
 from unittest import skipIf
 from parameterized import parameterized
 
-from .regression_package_base import PackageRegressionBase
+from tests.regression.package.regression_package_base import PackageRegressionBase
 from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
 
 # Package Regression tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.

@@ -14,10 +14,9 @@ from samcli.commands.local.lib.exceptions import TenantIdValidationError, Unsupp
 from samcli.lib.utils.name_utils import InvalidFunctionNameException, normalize_sam_function_identifier
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker.exceptions import DockerContainerCreationFailedException
+from samcli.local.lambda_service.lambda_error_responses import LambdaErrorResponses
 from samcli.local.lambdafn.exceptions import DurableExecutionNotFound, FunctionNotFound, UnsupportedInvocationType
 from samcli.local.services.base_local_service import BaseLocalService, LambdaOutputParser
-
-from .lambda_error_responses import LambdaErrorResponses
 
 LOG = logging.getLogger(__name__)
 
