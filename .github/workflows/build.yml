@@ -18,12 +18,8 @@ on:
       - develop
       - "feat/*"
       - "feat-*"
-  workflow_dispatch:
-    inputs:
-      ref:
-        description: 'Git ref to checkout'
-        required: false
-        default: ''
+  workflow_call:
+    # Allow this workflow to be called from other workflows (e.g., update-reproducibles.yml)
 
 # to automatically cancel the running workflow for same PR.
 concurrency:

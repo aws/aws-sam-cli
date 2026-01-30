@@ -37,8 +37,7 @@ jobs:
           git commit -m "Update reproducible requirements" || echo "nothing to commit"
           git push
 
-      - name: Trigger Build workflow
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh workflow run build.yml --ref ${{ github.head_ref }}
+  # Call build.yml as a reusable workflow after update-reqs completes
+  build:
+    needs: update-reqs
+    uses: ./.github/workflows/build.yml
