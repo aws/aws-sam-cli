@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - develop
+      - update_action_fix
       - "feat/*"
       - "feat-*"
   merge_group:
@@ -19,6 +20,45 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Check if requirements files changed
+  check-requirements-changed:
+    name: Check Requirements Changed
+    if: github.repository_owner == 'aws'
+    runs-on: ubuntu-latest
+    outputs:
+      requirements-changed: ${{ steps.check.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Check if requirements files changed
+        id: check
+        run: |
+          # Get the list of changed files between base and head
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+          
+          # Check if any requirements files changed
+          if echo "$CHANGED_FILES" | grep -qE '^requirements/(base\.txt|reproducible-linux\.txt|reproducible-mac\.txt|reproducible-win\.txt)$'; then
+            echo "Requirements files changed"
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "No requirements files changed"
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+  # Update reproducible requirements only if dependency files changed
+  update-reproducibles:
+    name: Update Reproducible Requirements
+    needs: check-requirements-changed
+    if: github.repository_owner == 'aws' && needs.check-requirements-changed.outputs.requirements-changed == 'true'
+    permissions:
+      pull-requests: write
+      contents: write
+    uses: ./.github/workflows/update-reproducibles.yml
+    secrets: inherit
+
   run-workflow:
     name: PR Workflow
     # If any dependent jobs fails, this WF skips which won't block merging PRs
@@ -45,7 +85,8 @@ jobs:
 
   make-pr:
     name: make pr / ${{ matrix.os }} / ${{ matrix.python }}
-    if: github.repository_owner == 'aws'
+    needs: update-reproducibles
+    if: github.repository_owner == 'aws' && always() && !failure() && !cancelled()
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -73,7 +114,8 @@ jobs:
 
   validate-schema:
     name: Validate JSON schema
-    if: github.repository_owner == 'aws'
+    needs: update-reproducibles
+    if: github.repository_owner == 'aws' && always() && !failure() && !cancelled()
     permissions:
       pull-requests: write
       contents: write
@@ -96,7 +138,8 @@ jobs:
 
   integration-tests:
     name: Integ / ${{ matrix.os }} / ${{ matrix.python }} / ${{ matrix.tests_config.name }}
-    if: github.repository_owner == 'aws'
+    needs: update-reproducibles
+    if: github.repository_owner == 'aws' && always() && !failure() && !cancelled()
     runs-on: ${{ matrix.os }}
     env:
       AWS_DEFAULT_REGION: us-east-1
@@ -200,7 +243,8 @@ jobs:
 
   smoke-and-functional-tests:
     name: ${{ matrix.tests_config.name }} / ${{ matrix.tests_config.os }} / ${{ matrix.python }}
-    if: github.repository_owner == 'aws'
+    needs: update-reproducibles
+    if: github.repository_owner == 'aws' && always() && !failure() && !cancelled()
     runs-on: ${{ matrix.tests_config.os }}
     env:
       AWS_DEFAULT_REGION: us-east-1
@@ -252,7 +296,8 @@ jobs:
 
   docker-disabled:
     name: Docker-disabled Tests / ${{ matrix.os }}
-    if: github.repository_owner == 'aws'
+    needs: update-reproducibles
+    if: github.repository_owner == 'aws' && always() && !failure() && !cancelled()
     runs-on: ${{ matrix.os }}
     env:
       SAM_CLI_DEV: "1"

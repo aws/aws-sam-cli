@@ -1,13 +1,7 @@
 name: Update reproducible requirements
 on:
-  pull_request:
-    branches: [develop]
-    paths:
-      # run this GHA if the following files have changed
-      - requirements/base.txt
-      - requirements/reproducible-linux.txt
-      - requirements/reproducible-mac.txt
-      - requirements/reproducible-win.txt
+  workflow_call:
+    # Allow this workflow to be called from other workflows (e.g., build.yml)
 
 jobs:
   update-reqs:
