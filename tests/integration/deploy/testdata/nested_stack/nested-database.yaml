@@ -1,0 +1,29 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Nested stack for database resources
+
+Parameters:
+  StackPrefix:
+    Type: String
+    Description: Prefix for resource names
+
+Resources:
+  DynamoTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${StackPrefix}-test-table'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+
+Outputs:
+  TableName:
+    Description: Name of the DynamoDB table
+    Value: !Ref DynamoTable
+
+  TableArn:
+    Description: ARN of the DynamoDB table
+    Value: !GetAtt DynamoTable.Arn
