@@ -13,6 +13,16 @@ jobs:
     if: github.repository == 'aws/aws-sam-cli'
     runs-on: ubuntu-latest
     steps:
+      - name: Check if PR already exists
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_COUNT=$(gh pr list --repo aws/aws-sam-cli --head update_app_templates_hash --json id --jq length)
+          if [ "$PR_COUNT" -ge 1 ]; then
+            echo "PR already exists for update_app_templates_hash, skipping workflow"
+            exit 1
+          fi
+
       - name: Checkout App Templates
         uses: actions/checkout@v6
         with:
@@ -58,6 +68,16 @@ jobs:
     if: github.repository == 'aws/aws-sam-cli'
     runs-on: ubuntu-latest
     steps:
+      - name: Check if PR already exists
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_COUNT=$(gh pr list --repo aws/aws-sam-cli --head update_sam_transform_version --json id --jq length)
+          if [ "$PR_COUNT" -ge 1 ]; then
+            echo "PR already exists for update_sam_transform_version, skipping workflow"
+            exit 1
+          fi
+
       - name: Checkout SAM
         uses: actions/checkout@v6
         with:
@@ -117,6 +137,16 @@ jobs:
     if: github.repository == 'aws/aws-sam-cli'
     runs-on: ubuntu-latest
     steps:
+      - name: Check if PR already exists
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_COUNT=$(gh pr list --repo aws/aws-sam-cli --head update_lambda_builders_version --json id --jq length)
+          if [ "$PR_COUNT" -ge 1 ]; then
+            echo "PR already exists for update_lambda_builders_version, skipping workflow"
+            exit 1
+          fi
+
       - name: Checkout Lambda Builders
         uses: actions/checkout@v6
         with:
