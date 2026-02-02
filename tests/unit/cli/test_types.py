@@ -211,6 +211,27 @@ class TestCfnParameterOverridesType(TestCase):
             print(result)
             self.assertEqual(result, expected, msg="Failed with Input = " + str(inputs))
 
+    def test_include_infinite_recursion_protection(self):
+        mock_files = {
+            "A.yaml": "$include: file://B.yaml",
+            "B.yaml": "$include: file://C.yaml",
+            "C.yaml": "$include: file://A.yaml",
+        }
+
+        def mock_read_text(file_path):
+            file_name = file_path.name
+            return mock_files.get(file_name, "")
+
+        def mock_is_file(file_path):
+            return file_path.name in mock_files
+
+        with self.assertRaises(BadParameter) as exception, patch("pathlib.Path.is_file", new=mock_is_file), patch(
+            "pathlib.Path.read_text", new=mock_read_text
+        ):
+            self.param_type.convert("file://A.yaml", None, MagicMock())
+
+        self.assertIn("Infinite recursion detected in file references", str(exception.exception))
+
     def test_infinite_recursion_protection(self):
         mock_files = {
             "A.yaml": "- file://B.yaml",
@@ -228,7 +249,7 @@ class TestCfnParameterOverridesType(TestCase):
         with self.assertRaises(BadParameter) as exception, patch("pathlib.Path.is_file", new=mock_is_file), patch(
             "pathlib.Path.read_text", new=mock_read_text
         ):
-            self.param_type.convert(f"file://A.yaml", None, MagicMock())
+            self.param_type.convert("file://A.yaml", None, MagicMock())
 
         self.assertIn("Infinite recursion detected in file references", str(exception.exception))
 
