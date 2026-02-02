@@ -22,7 +22,7 @@ from samcli.commands.sync.sync_context import (
 )
 from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
 
-MOCK_RESOURCE_SYNC_TIME = datetime(2023, 2, 8, 12, 12, 12)
+MOCK_RESOURCE_SYNC_TIME = datetime(2023, 2, 8, 12, 12, 12, tzinfo=timezone.utc)
 MOCK_INFRA_SYNC_TIME = datetime.now(timezone.utc)
 
 
@@ -288,3 +288,166 @@ class TestSyncContext(TestCase):
             self.assertIsNone(self.sync_context._previous_state)
             self.assertIsNotNone(self.sync_context._current_state)
             patched_rmtree_if_exists.assert_not_called()
+
+
+class TestTimezoneNaiveDatetimeHandling(TestCase):
+    """Tests for Issue #8477: Timezone-naive datetime handling in sync.toml"""
+
+    def test_toml_to_sync_state_with_timezone_naive_timestamps(self):
+        """Test that timezone-naive timestamps are converted to UTC timezone-aware"""
+        # Create TOML with timezone-naive timestamps (missing +00:00)
+        toml_str = """
+[sync_state]
+dependency_layer = true
+latest_infra_sync_time = "2025-12-03T22:10:11.916279"
+
+[resource_sync_states]
+
+[resource_sync_states.MockResourceId]
+hash = "mock-hash"
+sync_time = "2025-12-03T22:10:35.345701"
+"""
+        toml_doc = tomlkit.loads(toml_str)
+        sync_state = _toml_document_to_sync_state(toml_doc)
+
+        # Verify latest_infra_sync_time is timezone-aware UTC
+        self.assertIsNotNone(sync_state.latest_infra_sync_time)
+        self.assertIsNotNone(sync_state.latest_infra_sync_time.tzinfo)
+        self.assertEqual(sync_state.latest_infra_sync_time.tzinfo, timezone.utc)
+
+        # Verify resource sync_time is timezone-aware UTC
+        resource_sync_state = sync_state.resource_sync_states.get("MockResourceId")
+        self.assertIsNotNone(resource_sync_state)
+        self.assertIsNotNone(resource_sync_state.sync_time.tzinfo)
+        self.assertEqual(resource_sync_state.sync_time.tzinfo, timezone.utc)
+
+    def test_toml_to_sync_state_with_timezone_aware_timestamps(self):
+        """Test that timezone-aware timestamps are preserved correctly"""
+        # Create TOML with timezone-aware timestamps (with +00:00)
+        toml_str = """
+[sync_state]
+dependency_layer = true
+latest_infra_sync_time = "2025-12-03T22:10:11.916279+00:00"
+
+[resource_sync_states]
+
+[resource_sync_states.MockResourceId]
+hash = "mock-hash"
+sync_time = "2025-12-03T22:10:35.345701+00:00"
+"""
+        toml_doc = tomlkit.loads(toml_str)
+        sync_state = _toml_document_to_sync_state(toml_doc)
+
+        # Verify latest_infra_sync_time is timezone-aware UTC
+        self.assertIsNotNone(sync_state.latest_infra_sync_time)
+        self.assertIsNotNone(sync_state.latest_infra_sync_time.tzinfo)
+        self.assertEqual(sync_state.latest_infra_sync_time.tzinfo, timezone.utc)
+
+        # Verify resource sync_time is timezone-aware UTC
+        resource_sync_state = sync_state.resource_sync_states.get("MockResourceId")
+        self.assertIsNotNone(resource_sync_state)
+        self.assertIsNotNone(resource_sync_state.sync_time.tzinfo)
+        self.assertEqual(resource_sync_state.sync_time.tzinfo, timezone.utc)
+
+    def test_toml_to_sync_state_mixed_timezone_formats(self):
+        """Test handling of mixed timezone-aware and timezone-naive timestamps"""
+        # Create TOML with mixed formats
+        toml_str = """
+[sync_state]
+dependency_layer = true
+latest_infra_sync_time = "2025-12-03T22:10:11.916279"
+
+[resource_sync_states]
+
+[resource_sync_states.Resource1]
+hash = "hash1"
+sync_time = "2025-12-03T22:10:35.345701+00:00"
+
+[resource_sync_states.Resource2]
+hash = "hash2"
+sync_time = "2025-12-03T22:10:40.123456"
+"""
+        toml_doc = tomlkit.loads(toml_str)
+        sync_state = _toml_document_to_sync_state(toml_doc)
+
+        # All timestamps should be timezone-aware UTC
+        self.assertIsNotNone(sync_state.latest_infra_sync_time.tzinfo)
+        self.assertEqual(sync_state.latest_infra_sync_time.tzinfo, timezone.utc)
+
+        resource1 = sync_state.resource_sync_states.get("Resource1")
+        self.assertIsNotNone(resource1.sync_time.tzinfo)
+        self.assertEqual(resource1.sync_time.tzinfo, timezone.utc)
+
+        resource2 = sync_state.resource_sync_states.get("Resource2")
+        self.assertIsNotNone(resource2.sync_time.tzinfo)
+        self.assertEqual(resource2.sync_time.tzinfo, timezone.utc)
+
+    def test_datetime_comparison_after_fix(self):
+        """Test that datetime comparison works after loading timezone-naive timestamps"""
+        # Simulate the bug scenario: load timezone-naive timestamp and compare with current time
+        toml_str = """
+[sync_state]
+dependency_layer = true
+latest_infra_sync_time = "2025-12-03T22:10:11.916279"
+
+[resource_sync_states]
+"""
+        toml_doc = tomlkit.loads(toml_str)
+        sync_state = _toml_document_to_sync_state(toml_doc)
+
+        # This should not raise TypeError: can't subtract offset-naive and offset-aware datetimes
+        current_time = datetime.now(timezone.utc)
+        try:
+            time_diff = current_time - sync_state.latest_infra_sync_time
+            # If we get here, the fix worked
+            self.assertIsNotNone(time_diff)
+        except TypeError as e:
+            self.fail(f"DateTime comparison failed with TypeError: {e}")
+
+
+class TestZSuffixDatetimeHandling(TestCase):
+    """Tests for PR #8487: Handle 'Z' suffix in datetime strings (Python 3.9/3.10 compatibility)"""
+
+    @parameterized.expand(
+        [
+            ("z_suffix_infra", "2024-05-08T15:16:43Z", {}),
+            (
+                "z_suffix_resource",
+                "2025-12-03T22:10:11+00:00",
+                {"MockResourceId": ("mock-hash", "2024-05-08T15:16:43Z")},
+            ),
+            ("z_suffix_both", "2024-05-08T15:16:43Z", {"Resource1": ("hash1", "2024-05-08T15:16:43Z")}),
+            (
+                "mixed_formats",
+                "2024-05-08T15:16:43Z",
+                {"Resource1": ("hash1", "2025-12-03T22:10:35+00:00"), "Resource2": ("hash2", "2024-05-08T15:17:00Z")},
+            ),
+            (
+                "nested_resource",
+                "2024-05-08T15:16:43Z",
+                {"Parent/Child/MockResourceId": ("nested-hash", "2024-05-08T15:16:43Z")},
+            ),
+        ]
+    )
+    def test_z_suffix_datetime_parsing(self, test_name, infra_sync_time, resources):
+        """Test that 'Z' suffix timestamps are correctly parsed across all Python versions"""
+        toml_str = TOML_TEMPLATE.format(dependency_layer="true", latest_infra_sync_time=f'"{infra_sync_time}"')
+
+        for resource_id, (resource_hash, resource_sync_time) in resources.items():
+            toml_str += RESOURCE_SYNC_STATE_TEMPLATE.format(
+                resource_id_toml=resource_id.replace("/", "-"),
+                resource_hash=resource_hash,
+                resource_sync_time=resource_sync_time,
+            )
+
+        toml_doc = tomlkit.loads(toml_str)
+        sync_state = _toml_document_to_sync_state(toml_doc)
+
+        # Verify all timestamps are timezone-aware UTC
+        self.assertEqual(sync_state.latest_infra_sync_time.tzinfo, timezone.utc)
+        for resource_id in resources.keys():
+            self.assertEqual(sync_state.resource_sync_states[resource_id].sync_time.tzinfo, timezone.utc)
+
+        # Verify datetime comparison works (the original bug fix)
+        time_diff = datetime.now(timezone.utc) - sync_state.latest_infra_sync_time
+        self.assertIsNotNone(time_diff)
