@@ -124,7 +124,7 @@ class CfnParameterOverridesType(click.ParamType):
 
     name = "list,object,string"
 
-    def convert(self, values, param, ctx, seen_files=None, current_file=None):
+    def convert(self, values, param, ctx, seen_files=None, current_file: Optional[Path] = None):
         """
         Takes parameter overrides loaded from various supported config file formats and
         flattens and normalizes them into a dictionary where all keys and values are strings.
