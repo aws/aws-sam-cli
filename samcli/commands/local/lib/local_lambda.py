@@ -96,7 +96,7 @@ class LocalLambdaRunner:
         self.container_host_interface = container_host_interface
         self.extra_hosts = extra_hosts
 
-    def get_function(self, function_identifier: str) -> Function:
+    def get_function(self, function_identifier: str, tenant_id: Optional[str] = None) -> Function:
         """
         Get a Lambda function by identifier, raising FunctionNotFound if not found.
 
@@ -104,7 +104,8 @@ class LocalLambdaRunner:
         ----------
         function_identifier : str
             Identifier of the Lambda function, it can be logicalID, function name or full path
-
+        tenant_id : Optional[str]
+            Optional tenant ID for multi-tenant functions
         Returns
         -------
         Function
@@ -116,6 +117,14 @@ class LocalLambdaRunner:
             When the function identifier doesn't match AWS Lambda's validation pattern
         FunctionNotFound
             When we cannot find a function with the given identifier
+        TenantIdValidationError
+            When the tenant ID is not provided for multi-tenant functions
+        UnsupportedInlineCodeError
+            When the function has inline code and is being invoked locally
+        InvalidIntermediateImageError
+            When the function has an intermediate image and is being invoked locally
+        UnsupportedRuntimeArchitectureError
+            When the function runtime and architecture are not compatible
         """
         # Normalize function identifier from ARN if provided
         normalized_function_identifier = normalize_sam_function_identifier(function_identifier)
@@ -131,6 +140,36 @@ class LocalLambdaRunner:
             LOG.info(available_function_message)
             raise FunctionNotFound("Unable to find a Function with name '{}'".format(function_identifier))
 
+        LOG.debug("Found one Lambda function with name '%s'", function_identifier)
+        if function.packagetype == ZIP:
+            if function.inlinecode:
+                raise UnsupportedInlineCodeError(
+                    "Inline code is not supported for sam local commands."
+                    f" Please write your code in a separate file for the function {function.function_id}."
+                )
+            LOG.info("Invoking %s (%s)", function.handler, function.runtime)
+        elif function.packagetype == IMAGE:
+            if not function.imageuri:
+                raise InvalidIntermediateImageError(
+                    f"ImageUri not provided for Function: {function_identifier} of PackageType: {function.packagetype}"
+                )
+            LOG.info("Invoking Container created from %s", function.imageuri)
+
+        validate_architecture_runtime(function)
+
+        # Validate tenant-id for multi-tenant functions
+        if function.tenancy_config and isinstance(function.tenancy_config, dict):
+            if not tenant_id:
+                raise TenantIdValidationError(
+                    "The invoked function is enabled with tenancy configuration. "
+                    "Add a valid tenant ID in your request and try again."
+                )
+        elif tenant_id:
+            raise TenantIdValidationError(
+                "The invoked function is not enabled with tenancy configuration. "
+                "Remove the tenant ID from your request and try again."
+            )
+
         return function
 
     def invoke(
@@ -143,6 +182,7 @@ class LocalLambdaRunner:
         override_runtime: Optional[str] = None,
         invocation_type: str = "RequestResponse",
         durable_execution_name: Optional[str] = None,
+        function: Optional[Function] = None,
     ) -> Optional[Dict[str, str]]:
         """
         Find the Lambda function with given name and invoke it. Pass the given event to the function and return
@@ -176,37 +216,8 @@ class LocalLambdaRunner:
             When we cannot find a function with the given name
         """
         # Get the function configuration
-        function = self.get_function(function_identifier)
-
-        LOG.debug("Found one Lambda function with name '%s'", function_identifier)
-        if function.packagetype == ZIP:
-            if function.inlinecode:
-                raise UnsupportedInlineCodeError(
-                    "Inline code is not supported for sam local commands."
-                    f" Please write your code in a separate file for the function {function.function_id}."
-                )
-            LOG.info("Invoking %s (%s)", function.handler, function.runtime)
-        elif function.packagetype == IMAGE:
-            if not function.imageuri:
-                raise InvalidIntermediateImageError(
-                    f"ImageUri not provided for Function: {function_identifier} of PackageType: {function.packagetype}"
-                )
-            LOG.info("Invoking Container created from %s", function.imageuri)
-
-        validate_architecture_runtime(function)
-
-        # Validate tenant-id for multi-tenant functions
-        if function.tenancy_config and isinstance(function.tenancy_config, dict):
-            if not tenant_id:
-                raise TenantIdValidationError(
-                    "The invoked function is enabled with tenancy configuration. "
-                    "Add a valid tenant ID in your request and try again."
-                )
-        elif tenant_id:
-            raise TenantIdValidationError(
-                "The invoked function is not enabled with tenancy configuration. "
-                "Remove the tenant ID from your request and try again."
-            )
+        if not function:
+            function = self.get_function(function_identifier, tenant_id)
 
         config = self.get_invoke_config(function, override_runtime)
 

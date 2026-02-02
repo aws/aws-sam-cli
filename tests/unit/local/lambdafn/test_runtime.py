@@ -712,7 +712,7 @@ class LambdaRuntime_invoke(TestCase):
 
         # Verify the exception message
         self.assertIn("invocation-type: DryRun is not supported", str(context.exception))
-        self.assertIn("Event and RequestResponse are only supported", str(context.exception))
+        self.assertIn("Only Event and RequestResponse are supported", str(context.exception))
 
         # Verify that wait_for_result was not called due to the exception
         container.wait_for_result.assert_not_called()

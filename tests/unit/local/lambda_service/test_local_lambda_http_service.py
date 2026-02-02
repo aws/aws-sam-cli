@@ -135,6 +135,7 @@ class TestLocalLambdaHttpService(TestCase):
             tenant_id=None,
             stdout=ANY,
             stderr=None,
+            function=ANY,
         )
         service_response_mock.assert_called_once_with("hello world", {"Content-Type": "application/json"}, 200)
 
@@ -168,6 +169,7 @@ class TestLocalLambdaHttpService(TestCase):
             tenant_id=None,
             stdout=ANY,
             stderr=None,
+            function=ANY,
         )
         service_response_mock.assert_called_once_with("hello world", {"Content-Type": "application/json"}, 200)
 
@@ -203,6 +205,7 @@ class TestLocalLambdaHttpService(TestCase):
             tenant_id=None,
             stdout=ANY,
             stderr=None,
+            function=ANY,
         )
         service_response_mock.assert_called_once_with(
             "hello world", {"Content-Type": "application/json", "X-Amz-Durable-Execution-Arn": expected_arn}, 200
@@ -217,7 +220,7 @@ class TestLocalLambdaHttpService(TestCase):
         local_lambda_http_service.request = request_mock
 
         lambda_runner_mock = Mock()
-        lambda_runner_mock.invoke.side_effect = FunctionNotFound
+        lambda_runner_mock.get_function.side_effect = FunctionNotFound
 
         lambda_error_responses_mock.resource_not_found.return_value = "Couldn't find Lambda"
 
@@ -227,15 +230,9 @@ class TestLocalLambdaHttpService(TestCase):
 
         self.assertEqual(response, "Couldn't find Lambda")
 
-        lambda_runner_mock.invoke.assert_called_once_with(
-            "NotFound",
-            "{}",
-            invocation_type="RequestResponse",
-            durable_execution_name=None,
-            tenant_id=None,
-            stdout=ANY,
-            stderr=None,
-        )
+        # get_function is called first; invoke is never called when it raises
+        lambda_runner_mock.get_function.assert_called_once_with("NotFound", None)
+        lambda_runner_mock.invoke.assert_not_called()
 
         lambda_error_responses_mock.resource_not_found.assert_called_once_with("NotFound")
 
@@ -248,7 +245,7 @@ class TestLocalLambdaHttpService(TestCase):
         local_lambda_http_service.request = request_mock
 
         lambda_runner_mock = Mock()
-        lambda_runner_mock.invoke.side_effect = UnsupportedInlineCodeError(message="Inline code is not supported")
+        lambda_runner_mock.get_function.side_effect = UnsupportedInlineCodeError(message="Inline code is not supported")
 
         lambda_error_responses_mock.not_implemented_locally.return_value = "Inline code is not supported"
 
@@ -258,16 +255,8 @@ class TestLocalLambdaHttpService(TestCase):
 
         self.assertEqual(response, "Inline code is not supported")
 
-        lambda_runner_mock.invoke.assert_called_once_with(
-            "FunctionWithInlineCode",
-            "{}",
-            durable_execution_name=None,
-            tenant_id=None,
-            stdout=ANY,
-            stderr=None,
-            invocation_type="RequestResponse",
-        )
-
+        lambda_runner_mock.get_function.assert_called_once_with("FunctionWithInlineCode", None)
+        lambda_runner_mock.invoke.assert_not_called()
         lambda_error_responses_mock.not_implemented_locally.assert_called()
 
     @patch("samcli.local.lambda_service.local_lambda_http_service.LambdaErrorResponses")
@@ -292,11 +281,12 @@ class TestLocalLambdaHttpService(TestCase):
         lambda_runner_mock.invoke.assert_called_once_with(
             "FunctionContainerCreationFailed",
             "{}",
+            invocation_type="RequestResponse",
             durable_execution_name=None,
             tenant_id=None,
             stdout=ANY,
             stderr=None,
-            invocation_type="RequestResponse",
+            function=ANY,
         )
 
         lambda_error_responses_mock.container_creation_failed.assert_called()
@@ -371,6 +361,7 @@ class TestLocalLambdaHttpService(TestCase):
             tenant_id=None,
             stdout=ANY,
             stderr=None,
+            function=ANY,
         )
         service_response_mock.assert_called_once_with(
             "hello world", {"Content-Type": "application/json", "x-amz-function-error": "Unhandled"}, 200
@@ -403,6 +394,7 @@ class TestLocalLambdaHttpService(TestCase):
             tenant_id=None,
             stdout=ANY,
             stderr=None,
+            function=ANY,
         )
         service_response_mock.assert_called_once_with("hello world", {"Content-Type": "application/json"}, 200)
 
@@ -438,6 +430,7 @@ class TestLocalLambdaHttpService(TestCase):
             tenant_id=None,
             stdout=ANY,
             stderr=None,
+            function=ANY,
         )
         # For async invocation, should return empty body with 202 status and execution ARN header
         service_response_mock.assert_called_once_with(
@@ -478,6 +471,7 @@ class TestLocalLambdaHttpService(TestCase):
             tenant_id=None,
             stdout=ANY,
             stderr=None,
+            function=ANY,
         )
         lambda_error_responses_mock.not_implemented_locally.assert_called_once_with("Dry Run invocation not supported")
         self.assertEqual(result, "error response")
@@ -616,7 +610,7 @@ class TestLocalLambdaHttpService(TestCase):
         # Verify error response is returned
         self.assertEqual(response, "function not found response")
         # Verify get_function was called to validate
-        lambda_runner_mock.get_function.assert_called_once_with("NonExistentFunction")
+        lambda_runner_mock.get_function.assert_called_once_with("NonExistentFunction", None)
         # Verify executor was NOT called since validation failed
         executor_mock.submit.assert_not_called()
         # Verify error response uses normalized function name
@@ -650,7 +644,7 @@ class TestLocalLambdaHttpService(TestCase):
         # Verify error response is returned
         self.assertEqual(response, "validation error response")
         # Verify get_function was called to validate
-        lambda_runner_mock.get_function.assert_called_once_with("Invalid@Function#Name")
+        lambda_runner_mock.get_function.assert_called_once_with("Invalid@Function#Name", None)
         # Verify executor was NOT called since validation failed
         executor_mock.submit.assert_not_called()
         # Verify error was logged
@@ -736,11 +730,9 @@ class TestValidateInvokeRequestHandling(TestCase):
 
         self.assertIsNone(response)
 
-    @patch("samcli.local.lambda_service.local_lambda_http_service.normalize_sam_function_identifier")
     @patch("samcli.local.lambda_service.local_lambda_http_service.LambdaErrorResponses")
-    def test_invoke_request_handler_invalid_function_name(self, error_responses_mock, normalize_mock):
-        # Setup mocks
-        normalize_mock.side_effect = InvalidFunctionNameException("Invalid function name")
+    def test_invoke_request_handler_invalid_function_name(self, error_responses_mock):
+        # Setup mocks - get_function is called first and raises InvalidFunctionNameException
         error_responses_mock.validation_exception.return_value = "validation exception response"
 
         request_mock = Mock()
@@ -750,11 +742,13 @@ class TestValidateInvokeRequestHandling(TestCase):
         local_lambda_http_service.request = request_mock
 
         lambda_runner_mock = Mock()
+        lambda_runner_mock.get_function.side_effect = InvalidFunctionNameException("Invalid function name")
         service = LocalLambdaHttpService(lambda_runner=lambda_runner_mock, port=3000, host="localhost")
 
         response = service._invoke_request_handler("invalid-function-name")
 
         self.assertEqual(response, "validation exception response")
+        lambda_runner_mock.get_function.assert_called_once_with("invalid-function-name", None)
         error_responses_mock.validation_exception.assert_called_once_with("Invalid function name")
 
 
@@ -813,11 +807,13 @@ class TestPathConverter(TestCase):
             tenant_id=None,
             stdout=ANY,
             stderr=None,
+            function=ANY,
         )
         service_response_mock.assert_called_once_with("hello world", {"Content-Type": "application/json"}, 200)
 
+    @patch("samcli.local.lambda_service.local_lambda_http_service.normalize_sam_function_identifier")
     @patch("samcli.local.lambda_service.local_lambda_http_service.LambdaErrorResponses")
-    def test_invoke_request_handler_function_not_found_with_arn(self, lambda_error_responses_mock):
+    def test_invoke_request_handler_function_not_found_with_arn(self, lambda_error_responses_mock, normalize_mock):
         """Test that error handling uses normalized function name when ARN is provided"""
         request_mock = Mock()
         request_mock.get_data.return_value = b"{}"
@@ -826,7 +822,8 @@ class TestPathConverter(TestCase):
         local_lambda_http_service.request = request_mock
 
         lambda_runner_mock = Mock()
-        lambda_runner_mock.invoke.side_effect = FunctionNotFound
+        lambda_runner_mock.get_function.side_effect = FunctionNotFound
+        normalize_mock.return_value = "NotFound"
 
         lambda_error_responses_mock.resource_not_found.return_value = "Couldn't find Lambda"
 
@@ -838,16 +835,9 @@ class TestPathConverter(TestCase):
 
         self.assertEqual(response, "Couldn't find Lambda")
 
-        # Verify that the lambda runner was called with the normalized function name
-        lambda_runner_mock.invoke.assert_called_once_with(
-            "NotFound",
-            "{}",
-            invocation_type="RequestResponse",
-            durable_execution_name=None,
-            tenant_id=None,
-            stdout=ANY,
-            stderr=None,
-        )
+        # get_function is called first with the ARN; invoke is never called when it raises
+        lambda_runner_mock.get_function.assert_called_once_with(arn, None)
+        lambda_runner_mock.invoke.assert_not_called()
 
         # Verify that error response uses the normalized function name
         lambda_error_responses_mock.resource_not_found.assert_called_once_with("NotFound")
@@ -1310,6 +1300,7 @@ class TestDurableExecutionHeaderCombination(TestCase):
             tenant_id=None,
             stdout=ANY,
             stderr=None,
+            function=ANY,
         )
         expected_headers = {
             "Content-Type": "application/json",

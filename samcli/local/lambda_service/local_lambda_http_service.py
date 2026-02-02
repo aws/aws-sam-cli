@@ -8,11 +8,16 @@ from datetime import datetime
 from typing import Dict, Optional, Tuple
 from urllib.parse import unquote
 
-from flask import Flask, Response, request
+from flask import Flask, request
 from werkzeug.routing import BaseConverter
 
 from samcli.commands.local.cli_common.durable_context import DurableContext
-from samcli.commands.local.lib.exceptions import TenantIdValidationError, UnsupportedInlineCodeError
+from samcli.commands.local.lib.exceptions import (
+    InvalidIntermediateImageError,
+    TenantIdValidationError,
+    UnsupportedInlineCodeError,
+)
+from samcli.lib.providers.provider import Function
 from samcli.lib.utils.invocation_type import EVENT
 from samcli.lib.utils.name_utils import InvalidFunctionNameException, normalize_sam_function_identifier
 from samcli.lib.utils.stream_writer import StreamWriter
@@ -244,42 +249,41 @@ class LocalLambdaHttpService(BaseLocalService):
         # Extract durable execution name from headers
         durable_execution_name = flask_request.headers.get("X-Amz-Durable-Execution-Name")
 
+        headers = {"Content-Type": "application/json"}
+
+        try:
+            function = self.lambda_runner.get_function(function_name, tenant_id)
+        except (InvalidFunctionNameException, TenantIdValidationError, InvalidIntermediateImageError) as e:
+            LOG.error("Validation error: %s", str(e))
+            return LambdaErrorResponses.validation_exception(str(e))
+        except FunctionNotFound:
+            normalized_function_name = normalize_sam_function_identifier(function_name)
+            LOG.debug("%s was not found to invoke.", normalized_function_name)
+            return LambdaErrorResponses.resource_not_found(normalized_function_name)
+        except UnsupportedInlineCodeError:
+            return LambdaErrorResponses.not_implemented_locally(
+                "Inline code is not supported for sam local commands. Please write your code in a separate file."
+            )
+
         arguments = {
             "function_name": function_name,
             "request_data": request_data,
             "invocation_type": invocation_type,
             "durable_execution_name": durable_execution_name,
             "tenant_id": tenant_id,
+            "function": function,
         }
 
-        headers = {"Content-Type": "application/json"}
-
         if invocation_type == EVENT:
-            # Validate function exists before submitting async task
-            if validation_error := self._validate_function_for_invocation(function_name):
-                return validation_error
-
-            # LocalLambdaService is blocking, so threads used by ThreadPoolExecutor
-            # will be cleaned up when Python exits by the ThreadPoolExecutor implementation
             self.executor.submit(self._invoke_async_lambda, **arguments)
             return self.service_response("", headers, 202)
-
         try:
             invoke_headers, stdout_stream_string, stdout_stream_bytes = self._invoke_lambda(**arguments)
-        except (InvalidFunctionNameException, TenantIdValidationError) as e:
-            LOG.error("Validation error: %s", str(e))
-            return LambdaErrorResponses.validation_exception(str(e))
         except UnsupportedInvocationType as e:
             LOG.warning(
-                "invocation-type: %s is not supported. Event and RequestResponse are only supported.", invocation_type
+                "invocation-type: %s is not supported. Only Event and RequestResponse are supported.", invocation_type
             )
             return LambdaErrorResponses.not_implemented_locally(str(e))
-        except FunctionNotFound:
-            return self._handle_function_not_found(function_name)
-        except UnsupportedInlineCodeError:
-            return LambdaErrorResponses.not_implemented_locally(
-                "Inline code is not supported for sam local commands. Please write your code in a separate file."
-            )
         except DockerContainerCreationFailedException as ex:
             return LambdaErrorResponses.container_creation_failed(ex.message)
 
@@ -295,47 +299,6 @@ class LocalLambdaHttpService(BaseLocalService):
             headers["x-amz-function-error"] = "Unhandled"
 
         return self.service_response(lambda_response, headers, 200)
-
-    def _validate_function_for_invocation(self, function_name: str) -> Optional[Response]:
-        """
-        Validates that a function exists and can be invoked.
-
-        Parameters
-        ----------
-        function_name : str
-            Name or ARN of the function to validate
-
-        Returns
-        -------
-        Flask.Response or None
-            Error response if validation fails, None if validation succeeds
-        """
-        try:
-            self.lambda_runner.get_function(function_name)
-            return None
-        except FunctionNotFound:
-            return self._handle_function_not_found(function_name)
-        except InvalidFunctionNameException as e:
-            LOG.error("Validation error: %s", str(e))
-            return LambdaErrorResponses.validation_exception(str(e))
-
-    def _handle_function_not_found(self, function_name: str) -> Response:
-        """
-        Handles FunctionNotFound exception by returning appropriate error response.
-
-        Parameters
-        ----------
-        function_name : str
-            Name or ARN of the function that was not found
-
-        Returns
-        -------
-        Flask.Response
-            Error response for function not found
-        """
-        normalized_function_name = normalize_sam_function_identifier(function_name)
-        LOG.debug("%s was not found to invoke.", normalized_function_name)
-        return LambdaErrorResponses.resource_not_found(normalized_function_name)
 
     def _invoke_async_lambda(self, function_name: str, **kwargs) -> None:
         """
@@ -353,6 +316,7 @@ class LocalLambdaHttpService(BaseLocalService):
         invocation_type: str,
         durable_execution_name: Optional[str],
         tenant_id: Optional[str],
+        function: Optional[Function],
     ) -> Tuple[Optional[Dict[str, str]], io.StringIO, io.BytesIO]:
         """
         Invokes a Lambda function and returns the result
@@ -370,6 +334,7 @@ class LocalLambdaHttpService(BaseLocalService):
             invocation_type=invocation_type,
             durable_execution_name=durable_execution_name,
             tenant_id=tenant_id,
+            function=function,
             stdout=stdout_stream_writer,
             stderr=self.stderr,
         )

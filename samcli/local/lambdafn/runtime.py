@@ -309,7 +309,7 @@ class LambdaRuntime:
                 if invocation_type not in [EVENT, REQUEST_RESPONSE]:
                     raise UnsupportedInvocationType(
                         f"invocation-type: {invocation_type} is not supported. "
-                        "Event and RequestResponse are only supported."
+                        "Only Event and RequestResponse are supported."
                     )
 
                 # The container handles concurrency control internally via its semaphore.
