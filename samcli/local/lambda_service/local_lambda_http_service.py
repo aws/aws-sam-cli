@@ -3,14 +3,22 @@
 import io
 import json
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
+from typing import Dict, Optional, Tuple
 from urllib.parse import unquote
 
 from flask import Flask, request
 from werkzeug.routing import BaseConverter
 
 from samcli.commands.local.cli_common.durable_context import DurableContext
-from samcli.commands.local.lib.exceptions import TenantIdValidationError, UnsupportedInlineCodeError
+from samcli.commands.local.lib.exceptions import (
+    InvalidIntermediateImageError,
+    TenantIdValidationError,
+    UnsupportedInlineCodeError,
+)
+from samcli.lib.providers.provider import Function
+from samcli.lib.utils.invocation_type import EVENT
 from samcli.lib.utils.name_utils import InvalidFunctionNameException, normalize_sam_function_identifier
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker.exceptions import DockerContainerCreationFailedException
@@ -67,6 +75,7 @@ class LocalLambdaHttpService(BaseLocalService):
         super().__init__(lambda_runner.is_debugging(), port=port, host=host, ssl_context=ssl_context)
         self.lambda_runner = lambda_runner
         self.stderr = stderr
+        self.executor = ThreadPoolExecutor()
 
     def create(self):
         """
@@ -240,36 +249,41 @@ class LocalLambdaHttpService(BaseLocalService):
         # Extract durable execution name from headers
         durable_execution_name = flask_request.headers.get("X-Amz-Durable-Execution-Name")
 
-        stdout_stream_string = io.StringIO()
-        stdout_stream_bytes = io.BytesIO()
-        stdout_stream_writer = StreamWriter(stdout_stream_string, stdout_stream_bytes, auto_flush=True)
+        headers = {"Content-Type": "application/json"}
 
         try:
-            # Normalize function name from ARN if provided
-            normalized_function_name = normalize_sam_function_identifier(function_name)
-
-            invoke_headers = self.lambda_runner.invoke(
-                normalized_function_name,
-                request_data,
-                invocation_type=invocation_type,
-                durable_execution_name=durable_execution_name,
-                tenant_id=tenant_id,
-                stdout=stdout_stream_writer,
-                stderr=self.stderr,
-            )
-        except (InvalidFunctionNameException, TenantIdValidationError) as e:
+            function = self.lambda_runner.get_function(function_name, tenant_id)
+        except (InvalidFunctionNameException, TenantIdValidationError, InvalidIntermediateImageError) as e:
             LOG.error("Validation error: %s", str(e))
             return LambdaErrorResponses.validation_exception(str(e))
-        except UnsupportedInvocationType as e:
-            LOG.warning("invocation-type: %s is not supported. RequestResponse is only supported.", invocation_type)
-            return LambdaErrorResponses.not_implemented_locally(str(e))
         except FunctionNotFound:
+            normalized_function_name = normalize_sam_function_identifier(function_name)
             LOG.debug("%s was not found to invoke.", normalized_function_name)
             return LambdaErrorResponses.resource_not_found(normalized_function_name)
         except UnsupportedInlineCodeError:
             return LambdaErrorResponses.not_implemented_locally(
                 "Inline code is not supported for sam local commands. Please write your code in a separate file."
             )
+
+        arguments = {
+            "function_name": function_name,
+            "request_data": request_data,
+            "invocation_type": invocation_type,
+            "durable_execution_name": durable_execution_name,
+            "tenant_id": tenant_id,
+            "function": function,
+        }
+
+        if invocation_type == EVENT:
+            self.executor.submit(self._invoke_async_lambda, **arguments)
+            return self.service_response("", headers, 202)
+        try:
+            invoke_headers, stdout_stream_string, stdout_stream_bytes = self._invoke_lambda(**arguments)
+        except UnsupportedInvocationType as e:
+            LOG.warning(
+                "invocation-type: %s is not supported. Only Event and RequestResponse are supported.", invocation_type
+            )
+            return LambdaErrorResponses.not_implemented_locally(str(e))
         except DockerContainerCreationFailedException as ex:
             return LambdaErrorResponses.container_creation_failed(ex.message)
 
@@ -278,19 +292,54 @@ class LocalLambdaHttpService(BaseLocalService):
         )
 
         # Prepare headers
-        headers = {"Content-Type": "application/json"}
         if invoke_headers and isinstance(invoke_headers, dict):
             headers.update(invoke_headers)
 
         if is_lambda_user_error_response:
             headers["x-amz-function-error"] = "Unhandled"
-            return self.service_response(lambda_response, headers, 200)
-
-        # For async invocations (Event type), return 202
-        if invocation_type == "Event":
-            return self.service_response("", headers, 202)
 
         return self.service_response(lambda_response, headers, 200)
+
+    def _invoke_async_lambda(self, function_name: str, **kwargs) -> None:
+        """
+        Wrapper for _invoke_lambda that runs in an async context (Event invocation type)
+        """
+        try:
+            self._invoke_lambda(function_name=function_name, **kwargs)
+        except Exception as e:
+            LOG.error("Async invocation failed for function %s: %s", function_name, str(e), exc_info=True)
+
+    def _invoke_lambda(
+        self,
+        function_name: str,
+        request_data: str,
+        invocation_type: str,
+        durable_execution_name: Optional[str],
+        tenant_id: Optional[str],
+        function: Optional[Function],
+    ) -> Tuple[Optional[Dict[str, str]], io.StringIO, io.BytesIO]:
+        """
+        Invokes a Lambda function and returns the result
+        """
+
+        stdout_stream_string = io.StringIO()
+        stdout_stream_bytes = io.BytesIO()
+        stdout_stream_writer = StreamWriter(stdout_stream_string, stdout_stream_bytes, auto_flush=True)
+
+        normalized_function_name = normalize_sam_function_identifier(function_name)
+
+        invoke_headers = self.lambda_runner.invoke(
+            normalized_function_name,
+            request_data,
+            invocation_type=invocation_type,
+            durable_execution_name=durable_execution_name,
+            tenant_id=tenant_id,
+            function=function,
+            stdout=stdout_stream_writer,
+            stderr=self.stderr,
+        )
+
+        return invoke_headers, stdout_stream_string, stdout_stream_bytes
 
     def _get_durable_execution_handler(self, durable_execution_arn):
         """

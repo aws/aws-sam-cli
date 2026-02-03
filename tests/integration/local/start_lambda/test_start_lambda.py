@@ -69,6 +69,15 @@ class TestLambdaServiceErrorCases(StartLambdaIntegBaseClass):
 
         self.assertEqual(str(error.exception), expected_error_message)
 
+        with self.assertRaises(ClientError) as error:
+            self.lambda_client.invoke(
+                FunctionName="EchoEventFunction",
+                Payload="notat:asdfasdf",
+                InvocationType="Event",
+            )
+
+        self.assertEqual(str(error.exception), expected_error_message)
+
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_with_log_type_not_None(self):
@@ -87,11 +96,78 @@ class TestLambdaServiceErrorCases(StartLambdaIntegBaseClass):
     def test_invoke_with_invocation_type_not_RequestResponse(self):
         expected_error_message = (
             "An error occurred (NotImplemented) when calling the Invoke operation: "
-            "invocation-type: DryRun is not supported. RequestResponse is only supported."
+            "invocation-type: DryRun is not supported. Only Event and RequestResponse are supported."
         )
 
         with self.assertRaises(ClientError) as error:
             self.lambda_client.invoke(FunctionName="EchoEventFunction", InvocationType="DryRun")
+
+        self.assertEqual(str(error.exception), expected_error_message)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=300, method="thread")
+    def test_invoke_function_with_image_uri_missing(self):
+        expected_error_message = (
+            "An error occurred (ValidationException) when calling the Invoke operation:"
+            " ImageUri not provided for Function: HelloWorldFunctionMissingImageUri of PackageType: Image"
+        )
+
+        with self.assertRaises(ClientError) as error:
+            self.lambda_client.invoke(FunctionName="HelloWorldFunctionMissingImageUri", Payload='"This is json data"')
+
+        self.assertEqual(str(error.exception), expected_error_message)
+
+        with self.assertRaises(ClientError) as error:
+            self.lambda_client.invoke(
+                FunctionName="HelloWorldFunctionMissingImageUri",
+                Payload='"This is json data"',
+                InvocationType="Event",
+            )
+
+        self.assertEqual(str(error.exception), expected_error_message)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=300, method="thread")
+    def test_invoke_function_with_missing_tenant_id(self):
+        expected_error_message = (
+            "An error occurred (ValidationException) when calling the Invoke operation:"
+            " The invoked function is enabled with tenancy configuration. Add a valid tenant ID in your request and try again."
+        )
+
+        with self.assertRaises(ClientError) as error:
+            self.lambda_client.invoke(FunctionName="MultiTenantFunction", Payload='"This is json data"')
+
+        self.assertEqual(str(error.exception), expected_error_message)
+
+        with self.assertRaises(ClientError) as error:
+            self.lambda_client.invoke(
+                FunctionName="MultiTenantFunction", InvocationType="Event", Payload='"This is json data"'
+            )
+
+        self.assertEqual(str(error.exception), expected_error_message)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=300, method="thread")
+    def test_invoke_function_with_tenant_id(self):
+        expected_error_message = (
+            "An error occurred (ValidationException) when calling the Invoke operation:"
+            " The invoked function is not enabled with tenancy configuration. Remove the tenant ID from your request and try again."
+        )
+
+        with self.assertRaises(ClientError) as error:
+            self.lambda_client.invoke(
+                FunctionName="EchoEventFunction", TenantId="tenant-123", Payload='"This is json data"'
+            )
+
+        self.assertEqual(str(error.exception), expected_error_message)
+
+        with self.assertRaises(ClientError) as error:
+            self.lambda_client.invoke(
+                FunctionName="EchoEventFunction",
+                TenantId="tenant-123",
+                Payload='"This is json data"',
+                InvocationType="Event",
+            )
 
         self.assertEqual(str(error.exception), expected_error_message)
 
@@ -291,6 +367,34 @@ class TestLambdaService(StartLambdaIntegBaseClass):
         self.assertEqual(response.get("Payload").read().decode("utf-8"), "")
         self.assertIsNone(response.get("FunctionError"))
         self.assertEqual(response.get("StatusCode"), 200)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=300, method="thread")
+    def test_invoke_with_event_invocation_type(self):
+        response = self.lambda_client.invoke(
+            FunctionName="EchoEventFunction",
+            Payload='"This is json data"',
+            InvocationType="Event",
+        )
+        self.assertEqual(response.get("Payload").read().decode("utf-8"), "")
+        self.assertIsNone(response.get("FunctionError"))
+        self.assertEqual(response.get("StatusCode"), 202)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=300, method="thread")
+    def test_invoke_with_event_invocation_type_calls_function(self):
+        response = self.lambda_client.invoke(
+            FunctionName="WriteToStderrFunction",
+            InvocationType="Event",
+        )
+        self.assertIsNone(response.get("FunctionError"))
+        self.assertEqual(response.get("StatusCode"), 202)
+
+        # Wait for function to be called
+        sleep(2)
+
+        # Check stderr that function was called
+        self.assertIn("Docker Lambda is writing to stderr", self.start_lambda_process_output)
 
 
 class TestWarmContainersBaseClass(StartLambdaIntegBaseClass):

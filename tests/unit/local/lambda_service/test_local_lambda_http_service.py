@@ -1,3 +1,6 @@
+import threading
+import json
+from datetime import datetime
 from unittest import TestCase
 from unittest.mock import ANY, Mock, call, patch
 
@@ -7,7 +10,11 @@ from samcli.commands.local.lib.exceptions import UnsupportedInlineCodeError
 from samcli.lib.utils.name_utils import InvalidFunctionNameException
 from samcli.local.docker.exceptions import DockerContainerCreationFailedException
 from samcli.local.lambda_service import local_lambda_http_service
-from samcli.local.lambda_service.local_lambda_http_service import FunctionNamePathConverter, LocalLambdaHttpService
+from samcli.local.lambda_service.local_lambda_http_service import (
+    DateTimeEncoder,
+    FunctionNamePathConverter,
+    LocalLambdaHttpService,
+)
 from samcli.local.lambdafn.exceptions import DurableExecutionNotFound, FunctionNotFound
 
 
@@ -128,6 +135,7 @@ class TestLocalLambdaHttpService(TestCase):
             tenant_id=None,
             stdout=ANY,
             stderr=None,
+            function=ANY,
         )
         service_response_mock.assert_called_once_with("hello world", {"Content-Type": "application/json"}, 200)
 
@@ -161,6 +169,7 @@ class TestLocalLambdaHttpService(TestCase):
             tenant_id=None,
             stdout=ANY,
             stderr=None,
+            function=ANY,
         )
         service_response_mock.assert_called_once_with("hello world", {"Content-Type": "application/json"}, 200)
 
@@ -196,6 +205,7 @@ class TestLocalLambdaHttpService(TestCase):
             tenant_id=None,
             stdout=ANY,
             stderr=None,
+            function=ANY,
         )
         service_response_mock.assert_called_once_with(
             "hello world", {"Content-Type": "application/json", "X-Amz-Durable-Execution-Arn": expected_arn}, 200
@@ -210,7 +220,7 @@ class TestLocalLambdaHttpService(TestCase):
         local_lambda_http_service.request = request_mock
 
         lambda_runner_mock = Mock()
-        lambda_runner_mock.invoke.side_effect = FunctionNotFound
+        lambda_runner_mock.get_function.side_effect = FunctionNotFound
 
         lambda_error_responses_mock.resource_not_found.return_value = "Couldn't find Lambda"
 
@@ -220,15 +230,9 @@ class TestLocalLambdaHttpService(TestCase):
 
         self.assertEqual(response, "Couldn't find Lambda")
 
-        lambda_runner_mock.invoke.assert_called_once_with(
-            "NotFound",
-            "{}",
-            invocation_type="RequestResponse",
-            durable_execution_name=None,
-            tenant_id=None,
-            stdout=ANY,
-            stderr=None,
-        )
+        # get_function is called first; invoke is never called when it raises
+        lambda_runner_mock.get_function.assert_called_once_with("NotFound", None)
+        lambda_runner_mock.invoke.assert_not_called()
 
         lambda_error_responses_mock.resource_not_found.assert_called_once_with("NotFound")
 
@@ -241,7 +245,7 @@ class TestLocalLambdaHttpService(TestCase):
         local_lambda_http_service.request = request_mock
 
         lambda_runner_mock = Mock()
-        lambda_runner_mock.invoke.side_effect = UnsupportedInlineCodeError(message="Inline code is not supported")
+        lambda_runner_mock.get_function.side_effect = UnsupportedInlineCodeError(message="Inline code is not supported")
 
         lambda_error_responses_mock.not_implemented_locally.return_value = "Inline code is not supported"
 
@@ -251,16 +255,8 @@ class TestLocalLambdaHttpService(TestCase):
 
         self.assertEqual(response, "Inline code is not supported")
 
-        lambda_runner_mock.invoke.assert_called_once_with(
-            "FunctionWithInlineCode",
-            "{}",
-            durable_execution_name=None,
-            tenant_id=None,
-            stdout=ANY,
-            stderr=None,
-            invocation_type="RequestResponse",
-        )
-
+        lambda_runner_mock.get_function.assert_called_once_with("FunctionWithInlineCode", None)
+        lambda_runner_mock.invoke.assert_not_called()
         lambda_error_responses_mock.not_implemented_locally.assert_called()
 
     @patch("samcli.local.lambda_service.local_lambda_http_service.LambdaErrorResponses")
@@ -285,11 +281,12 @@ class TestLocalLambdaHttpService(TestCase):
         lambda_runner_mock.invoke.assert_called_once_with(
             "FunctionContainerCreationFailed",
             "{}",
+            invocation_type="RequestResponse",
             durable_execution_name=None,
             tenant_id=None,
             stdout=ANY,
             stderr=None,
-            invocation_type="RequestResponse",
+            function=ANY,
         )
 
         lambda_error_responses_mock.container_creation_failed.assert_called()
@@ -364,6 +361,7 @@ class TestLocalLambdaHttpService(TestCase):
             tenant_id=None,
             stdout=ANY,
             stderr=None,
+            function=ANY,
         )
         service_response_mock.assert_called_once_with(
             "hello world", {"Content-Type": "application/json", "x-amz-function-error": "Unhandled"}, 200
@@ -396,6 +394,7 @@ class TestLocalLambdaHttpService(TestCase):
             tenant_id=None,
             stdout=ANY,
             stderr=None,
+            function=ANY,
         )
         service_response_mock.assert_called_once_with("hello world", {"Content-Type": "application/json"}, 200)
 
@@ -431,13 +430,13 @@ class TestLocalLambdaHttpService(TestCase):
             tenant_id=None,
             stdout=ANY,
             stderr=None,
+            function=ANY,
         )
         # For async invocation, should return empty body with 202 status and execution ARN header
         service_response_mock.assert_called_once_with(
             "",
             {
                 "Content-Type": "application/json",
-                "X-Amz-Durable-Execution-Arn": "arn:aws:lambda:us-west-2:123456789012:function:test-function:$LATEST/durable-execution/test-123",
             },
             202,
         )
@@ -450,15 +449,13 @@ class TestLocalLambdaHttpService(TestCase):
         request_mock = Mock()
         request_mock.get_data.return_value = b"{}"
         request_mock.args = {}
-        request_mock.headers = {"X-Amz-Invocation-Type": "Event"}
+        request_mock.headers = {"X-Amz-Invocation-Type": "DryRun"}
         local_lambda_http_service.request = request_mock
 
         lambda_runner_mock = Mock()
         from samcli.local.lambdafn.exceptions import UnsupportedInvocationType
 
-        lambda_runner_mock.invoke.side_effect = UnsupportedInvocationType(
-            "Async invocation not supported for regular Lambda functions"
-        )
+        lambda_runner_mock.invoke.side_effect = UnsupportedInvocationType("Dry Run invocation not supported")
 
         service = LocalLambdaHttpService(lambda_runner=lambda_runner_mock, port=3000, host="localhost")
 
@@ -469,16 +466,191 @@ class TestLocalLambdaHttpService(TestCase):
         lambda_runner_mock.invoke.assert_called_once_with(
             "HelloWorld",
             "{}",
-            invocation_type="Event",
+            invocation_type="DryRun",
             durable_execution_name=None,
             tenant_id=None,
             stdout=ANY,
             stderr=None,
+            function=ANY,
         )
-        lambda_error_responses_mock.not_implemented_locally.assert_called_once_with(
-            "Async invocation not supported for regular Lambda functions"
-        )
+        lambda_error_responses_mock.not_implemented_locally.assert_called_once_with("Dry Run invocation not supported")
         self.assertEqual(result, "error response")
+
+    def test_event_invocation_runs_async_task(self):
+        # Test that Event invocation type runs the function asynchronously
+        handler_returned = threading.Event()
+        finished = threading.Event()
+
+        def fake_invoke(*args, **kwargs):
+            if handler_returned.wait(timeout=5):
+                finished.set()
+
+        request_mock = Mock()
+        request_mock.get_data.return_value = b"{}"
+        request_mock.args = {}
+        request_mock.headers = {"X-Amz-Invocation-Type": "Event"}
+        local_lambda_http_service.request = request_mock
+
+        lambda_runner_mock = Mock()
+        service = LocalLambdaHttpService(lambda_runner=lambda_runner_mock, port=3000, host="localhost")
+        service._invoke_lambda = fake_invoke
+        service.create()
+
+        response = service._invoke_request_handler(function_name="HelloWorld")
+
+        # Assert that first a 202 response is returned
+        self.assertEqual(response.status_code, 202)
+
+        # Then assert that invoke has not finished
+        self.assertFalse(finished.is_set())
+        handler_returned.set()
+
+        # Finally assert that invoke has finished
+        self.assertTrue(finished.wait(timeout=5), "Task never finished")
+
+    @patch("samcli.local.lambda_service.local_lambda_http_service.LocalLambdaHttpService.service_response")
+    @patch("samcli.local.lambda_service.local_lambda_http_service.ThreadPoolExecutor")
+    def test_invoke_request_handler_async_invocation_submits_to_executor(
+        self, executor_class_mock, service_response_mock
+    ):
+        # Test that async invocation (Event type) submits _invoke_async_lambda to executor
+        service_response_mock.return_value = "request response"
+        executor_mock = Mock()
+        executor_class_mock.return_value = executor_mock
+        future_mock = Mock()
+        executor_mock.submit.return_value = future_mock
+
+        request_mock = Mock()
+        request_mock.get_data.return_value = b'{"test": "data"}'
+        request_mock.args = {}
+        request_mock.headers = {"X-Amz-Invocation-Type": "Event"}
+        local_lambda_http_service.request = request_mock
+
+        lambda_runner_mock = Mock()
+        service = LocalLambdaHttpService(lambda_runner=lambda_runner_mock, port=3000, host="localhost")
+
+        response = service._invoke_request_handler(function_name="HelloWorld")
+
+        self.assertEqual(response, "request response")
+        # Verify executor.submit was called with _invoke_async_lambda and correct arguments
+        executor_mock.submit.assert_called_once()
+        submit_call = executor_mock.submit.call_args
+        self.assertEqual(submit_call[0][0], service._invoke_async_lambda)
+        self.assertEqual(submit_call[1]["function_name"], "HelloWorld")
+        self.assertEqual(submit_call[1]["request_data"], '{"test": "data"}')
+        self.assertEqual(submit_call[1]["invocation_type"], "Event")
+        # Verify 202 response is returned
+        service_response_mock.assert_called_once_with("", {"Content-Type": "application/json"}, 202)
+
+    @patch("samcli.local.lambda_service.local_lambda_http_service.LOG")
+    @patch("samcli.local.lambda_service.local_lambda_http_service.ThreadPoolExecutor")
+    def test_invoke_async_lambda_logs_exceptions(self, executor_class_mock, log_mock):
+        # Test that exceptions in async lambda invocation are logged
+        executor_mock = Mock()
+        executor_class_mock.return_value = executor_mock
+
+        request_mock = Mock()
+        request_mock.get_data.return_value = b"{}"
+        request_mock.args = {}
+        request_mock.headers = {"X-Amz-Invocation-Type": "Event"}
+        local_lambda_http_service.request = request_mock
+
+        lambda_runner_mock = Mock()
+        test_exception = Exception("Test async exception")
+        lambda_runner_mock.invoke.side_effect = test_exception
+
+        service = LocalLambdaHttpService(lambda_runner=lambda_runner_mock, port=3000, host="localhost")
+
+        # Trigger async invocation
+        service._invoke_request_handler(function_name="HelloWorld")
+
+        # Get the submitted function and execute it to trigger exception
+        submit_call = executor_mock.submit.call_args
+        async_function = submit_call[0][0]
+        async_kwargs = submit_call[1]
+
+        # Execute the async function which should catch and log the exception
+        async_function(**async_kwargs)
+
+        # Verify exception was logged
+        log_mock.error.assert_called_once()
+        error_call = log_mock.error.call_args
+        # Check format string
+        self.assertEqual(error_call[0][0], "Async invocation failed for function %s: %s")
+        # Check function name argument
+        self.assertEqual(error_call[0][1], "HelloWorld")
+        # Check exception message argument
+        self.assertEqual(error_call[0][2], "Test async exception")
+        # Check exc_info keyword argument
+        self.assertTrue(error_call[1]["exc_info"])
+
+    @patch("samcli.local.lambda_service.local_lambda_http_service.ThreadPoolExecutor")
+    @patch("samcli.local.lambda_service.local_lambda_http_service.LambdaErrorResponses")
+    def test_invoke_request_handler_async_invocation_function_not_found_returns_error(
+        self, lambda_error_responses_mock, executor_class_mock
+    ):
+        # Test that async invocation (Event type) returns error when function doesn't exist
+        executor_mock = Mock()
+        executor_class_mock.return_value = executor_mock
+
+        request_mock = Mock()
+        request_mock.get_data.return_value = b"{}"
+        request_mock.args = {}
+        request_mock.headers = {"X-Amz-Invocation-Type": "Event"}
+        local_lambda_http_service.request = request_mock
+
+        lambda_runner_mock = Mock()
+        lambda_runner_mock.get_function.side_effect = FunctionNotFound
+        lambda_error_responses_mock.resource_not_found.return_value = "function not found response"
+
+        service = LocalLambdaHttpService(lambda_runner=lambda_runner_mock, port=3000, host="localhost")
+
+        response = service._invoke_request_handler(function_name="NonExistentFunction")
+
+        # Verify error response is returned
+        self.assertEqual(response, "function not found response")
+        # Verify get_function was called to validate
+        lambda_runner_mock.get_function.assert_called_once_with("NonExistentFunction", None)
+        # Verify executor was NOT called since validation failed
+        executor_mock.submit.assert_not_called()
+        # Verify error response uses normalized function name
+        lambda_error_responses_mock.resource_not_found.assert_called_once_with("NonExistentFunction")
+
+    @patch("samcli.local.lambda_service.local_lambda_http_service.LOG")
+    @patch("samcli.local.lambda_service.local_lambda_http_service.ThreadPoolExecutor")
+    @patch("samcli.local.lambda_service.local_lambda_http_service.LambdaErrorResponses")
+    def test_invoke_request_handler_async_invocation_invalid_function_name_returns_error(
+        self, lambda_error_responses_mock, executor_class_mock, log_mock
+    ):
+        # Test that async invocation (Event type) returns error when function name is invalid
+        executor_mock = Mock()
+        executor_class_mock.return_value = executor_mock
+
+        request_mock = Mock()
+        request_mock.get_data.return_value = b"{}"
+        request_mock.args = {}
+        request_mock.headers = {"X-Amz-Invocation-Type": "Event"}
+        local_lambda_http_service.request = request_mock
+
+        lambda_runner_mock = Mock()
+        test_exception = InvalidFunctionNameException("Invalid function name format")
+        lambda_runner_mock.get_function.side_effect = test_exception
+        lambda_error_responses_mock.validation_exception.return_value = "validation error response"
+
+        service = LocalLambdaHttpService(lambda_runner=lambda_runner_mock, port=3000, host="localhost")
+
+        response = service._invoke_request_handler(function_name="Invalid@Function#Name")
+
+        # Verify error response is returned
+        self.assertEqual(response, "validation error response")
+        # Verify get_function was called to validate
+        lambda_runner_mock.get_function.assert_called_once_with("Invalid@Function#Name", None)
+        # Verify executor was NOT called since validation failed
+        executor_mock.submit.assert_not_called()
+        # Verify error was logged
+        log_mock.error.assert_called_once_with("Validation error: %s", "Invalid function name format")
+        # Verify validation exception was called with the error message
+        lambda_error_responses_mock.validation_exception.assert_called_once_with("Invalid function name format")
 
 
 class TestValidateInvokeRequestHandling(TestCase):
@@ -558,11 +730,9 @@ class TestValidateInvokeRequestHandling(TestCase):
 
         self.assertIsNone(response)
 
-    @patch("samcli.local.lambda_service.local_lambda_http_service.normalize_sam_function_identifier")
     @patch("samcli.local.lambda_service.local_lambda_http_service.LambdaErrorResponses")
-    def test_invoke_request_handler_invalid_function_name(self, error_responses_mock, normalize_mock):
-        # Setup mocks
-        normalize_mock.side_effect = InvalidFunctionNameException("Invalid function name")
+    def test_invoke_request_handler_invalid_function_name(self, error_responses_mock):
+        # Setup mocks - get_function is called first and raises InvalidFunctionNameException
         error_responses_mock.validation_exception.return_value = "validation exception response"
 
         request_mock = Mock()
@@ -572,11 +742,13 @@ class TestValidateInvokeRequestHandling(TestCase):
         local_lambda_http_service.request = request_mock
 
         lambda_runner_mock = Mock()
+        lambda_runner_mock.get_function.side_effect = InvalidFunctionNameException("Invalid function name")
         service = LocalLambdaHttpService(lambda_runner=lambda_runner_mock, port=3000, host="localhost")
 
         response = service._invoke_request_handler("invalid-function-name")
 
         self.assertEqual(response, "validation exception response")
+        lambda_runner_mock.get_function.assert_called_once_with("invalid-function-name", None)
         error_responses_mock.validation_exception.assert_called_once_with("Invalid function name")
 
 
@@ -635,11 +807,13 @@ class TestPathConverter(TestCase):
             tenant_id=None,
             stdout=ANY,
             stderr=None,
+            function=ANY,
         )
         service_response_mock.assert_called_once_with("hello world", {"Content-Type": "application/json"}, 200)
 
+    @patch("samcli.local.lambda_service.local_lambda_http_service.normalize_sam_function_identifier")
     @patch("samcli.local.lambda_service.local_lambda_http_service.LambdaErrorResponses")
-    def test_invoke_request_handler_function_not_found_with_arn(self, lambda_error_responses_mock):
+    def test_invoke_request_handler_function_not_found_with_arn(self, lambda_error_responses_mock, normalize_mock):
         """Test that error handling uses normalized function name when ARN is provided"""
         request_mock = Mock()
         request_mock.get_data.return_value = b"{}"
@@ -648,7 +822,8 @@ class TestPathConverter(TestCase):
         local_lambda_http_service.request = request_mock
 
         lambda_runner_mock = Mock()
-        lambda_runner_mock.invoke.side_effect = FunctionNotFound
+        lambda_runner_mock.get_function.side_effect = FunctionNotFound
+        normalize_mock.return_value = "NotFound"
 
         lambda_error_responses_mock.resource_not_found.return_value = "Couldn't find Lambda"
 
@@ -660,16 +835,9 @@ class TestPathConverter(TestCase):
 
         self.assertEqual(response, "Couldn't find Lambda")
 
-        # Verify that the lambda runner was called with the normalized function name
-        lambda_runner_mock.invoke.assert_called_once_with(
-            "NotFound",
-            "{}",
-            invocation_type="RequestResponse",
-            durable_execution_name=None,
-            tenant_id=None,
-            stdout=ANY,
-            stderr=None,
-        )
+        # get_function is called first with the ARN; invoke is never called when it raises
+        lambda_runner_mock.get_function.assert_called_once_with(arn, None)
+        lambda_runner_mock.invoke.assert_not_called()
 
         # Verify that error response uses the normalized function name
         lambda_error_responses_mock.resource_not_found.assert_called_once_with("NotFound")
@@ -1132,6 +1300,7 @@ class TestDurableExecutionHeaderCombination(TestCase):
             tenant_id=None,
             stdout=ANY,
             stderr=None,
+            function=ANY,
         )
         expected_headers = {
             "Content-Type": "application/json",
