@@ -669,7 +669,10 @@ class BuildIntegJavaBase(BuildIntegBase):
             container_env = None
             mount_with = None
         cmdlist = self.get_command_list(
-            use_container=use_container, parameter_overrides=overrides, mount_with=mount_with, container_env_var=container_env
+            use_container=use_container,
+            parameter_overrides=overrides,
+            mount_with=mount_with,
+            container_env_var=container_env,
         )
         cmdlist += ["--skip-pull-image"]
         if code_path == self.USING_GRADLEW_PATH and use_container and IS_WINDOWS:
