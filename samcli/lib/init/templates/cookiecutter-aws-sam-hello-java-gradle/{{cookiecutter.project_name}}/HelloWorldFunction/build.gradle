@@ -10,3 +10,8 @@ dependencies {
     implementation 'com.amazonaws:aws-lambda-java-core:1.2.0'
     testImplementation 'junit:junit:4.12'
 }
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
