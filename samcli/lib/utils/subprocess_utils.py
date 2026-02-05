@@ -226,8 +226,9 @@ def _filter_pyinstaller_paths(path_value: str) -> str:
     paths = path_value.split(separator)
 
     # Filter out paths that are inside the PyInstaller bundle
+    # Using specific patterns to avoid filtering legitimate system paths
     filtered_paths = [
-        p for p in paths if not p.startswith(meipass) and "_internal" not in p and "dist/_internal" not in p
+        p for p in paths if not (p.startswith(meipass) or p.endswith("/_internal") or "dist/_internal" in p)
     ]
 
     return separator.join(filtered_paths)

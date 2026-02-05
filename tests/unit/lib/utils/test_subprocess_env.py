@@ -77,13 +77,21 @@ class TestFilterPyinstallerPaths(TestCase):
             result = _filter_pyinstaller_paths(path_value)
             self.assertEqual(result, "/usr/lib")
 
-    def test_filters_internal_paths(self):
-        """Should filter out paths containing _internal."""
+    def test_filters_internal_paths_ending_with_internal(self):
+        """Should filter out paths ending with /_internal."""
         mock_sys = type("MockSys", (), {"_MEIPASS": "/tmp/bundle"})()
         with patch("samcli.lib.utils.subprocess_utils.sys", mock_sys):
             path_value = f"/some/path/_internal{os.pathsep}/usr/lib"
             result = _filter_pyinstaller_paths(path_value)
             self.assertEqual(result, "/usr/lib")
+
+    def test_preserves_internal_in_middle_of_path(self):
+        """Should preserve paths that have _internal in the middle (not ending with it)."""
+        mock_sys = type("MockSys", (), {"_MEIPASS": "/tmp/bundle"})()
+        with patch("samcli.lib.utils.subprocess_utils.sys", mock_sys):
+            path_value = f"/usr/lib/some_internal_lib{os.pathsep}/usr/lib"
+            result = _filter_pyinstaller_paths(path_value)
+            self.assertEqual(result, f"/usr/lib/some_internal_lib{os.pathsep}/usr/lib")
 
     def test_filters_dist_internal_paths(self):
         """Should filter out paths containing dist/_internal."""
