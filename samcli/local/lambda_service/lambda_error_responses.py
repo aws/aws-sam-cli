@@ -2,6 +2,9 @@
 
 import json
 from collections import OrderedDict
+from typing import Any, Dict
+
+from flask import Response
 
 from samcli.local.services.base_local_service import BaseLocalService
 
@@ -40,7 +43,7 @@ class LambdaErrorResponses:
     CONTENT_TYPE_HEADER_KEY = "Content-Type"
 
     @staticmethod
-    def resource_not_found(function_name):
+    def resource_not_found(function_name: str) -> Response:
         """
         Creates a Lambda Service ResourceNotFound Response
 
@@ -66,7 +69,7 @@ class LambdaErrorResponses:
         )
 
     @staticmethod
-    def invalid_request_content(message):
+    def invalid_request_content(message: str) -> Response:
         """
         Creates a Lambda Service InvalidRequestContent Response
 
@@ -89,7 +92,7 @@ class LambdaErrorResponses:
         )
 
     @staticmethod
-    def validation_exception(message):
+    def validation_exception(message: str) -> Response:
         """
         Creates a Lambda Service ValidationException Response
 
@@ -112,7 +115,7 @@ class LambdaErrorResponses:
         )
 
     @staticmethod
-    def unsupported_media_type(content_type):
+    def unsupported_media_type(content_type: str) -> Response:
         """
         Creates a Lambda Service UnsupportedMediaType Response
 
@@ -137,7 +140,7 @@ class LambdaErrorResponses:
         )
 
     @staticmethod
-    def generic_service_exception(*args):
+    def generic_service_exception(*args: Any) -> Response:
         """
         Creates a Lambda Service Generic ServiceException Response
 
@@ -160,7 +163,7 @@ class LambdaErrorResponses:
         )
 
     @staticmethod
-    def not_implemented_locally(message):
+    def not_implemented_locally(message: str) -> Response:
         """
         Creates a Lambda Service NotImplementedLocally Response
 
@@ -183,7 +186,7 @@ class LambdaErrorResponses:
         )
 
     @staticmethod
-    def generic_path_not_found(*args):
+    def generic_path_not_found(*args: Any) -> Response:
         """
         Creates a Lambda Service Generic PathNotFound Response
 
@@ -208,7 +211,7 @@ class LambdaErrorResponses:
         )
 
     @staticmethod
-    def generic_method_not_allowed(*args):
+    def generic_method_not_allowed(*args: Any) -> Response:
         """
         Creates a Lambda Service Generic MethodNotAllowed Response
 
@@ -233,13 +236,13 @@ class LambdaErrorResponses:
         )
 
     @staticmethod
-    def container_creation_failed(message):
+    def container_creation_failed(message: str) -> Response:
         """
         Creates a Container Creation Failed response
         Parameters
         ----------
-        args list
-            List of arguments Flask passes to the method
+        message str
+            Message to be added to the body of the response
         Returns
         -------
         Flask.Response
@@ -256,7 +259,7 @@ class LambdaErrorResponses:
         )
 
     @staticmethod
-    def _construct_error_response_body(error_type, error_message):
+    def _construct_error_response_body(error_type: str, error_message: str) -> str:
         """
         Constructs a string to be used in the body of the Response that conforms
         to the structure of the Lambda Service Responses
@@ -278,7 +281,7 @@ class LambdaErrorResponses:
 
     # Durable Functions Error Responses
     @staticmethod
-    def durable_execution_not_found(execution_arn):
+    def durable_execution_not_found(execution_arn: str) -> Response:
         """Creates a ResourceNotFound response for durable executions"""
         exception_tuple = LambdaErrorResponses.ResourceNotFoundException
         return BaseLocalService.service_response(
@@ -290,7 +293,7 @@ class LambdaErrorResponses:
         )
 
     @staticmethod
-    def _construct_headers(error_type):
+    def _construct_headers(error_type: str) -> Dict[str, str]:
         """
         Constructs Headers for the Local Lambda Error Response
 
