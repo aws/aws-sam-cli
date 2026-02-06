@@ -414,6 +414,7 @@ class TestLocalLambdaHttpService(TestCase):
         local_lambda_http_service.request = request_mock
 
         lambda_runner_mock = Mock()
+        lambda_runner_mock.get_function.return_value.durable_config = None
         lambda_runner_mock.invoke.return_value = {
             "X-Amz-Durable-Execution-Arn": "arn:aws:lambda:us-west-2:123456789012:function:test-function:$LATEST/durable-execution/test-123"
         }
@@ -492,6 +493,7 @@ class TestLocalLambdaHttpService(TestCase):
         local_lambda_http_service.request = request_mock
 
         lambda_runner_mock = Mock()
+        lambda_runner_mock.get_function.return_value.durable_config = None
         service = LocalLambdaHttpService(lambda_runner=lambda_runner_mock, port=3000, host="localhost")
         service._invoke_lambda = fake_invoke
         service.create()
@@ -527,6 +529,7 @@ class TestLocalLambdaHttpService(TestCase):
         local_lambda_http_service.request = request_mock
 
         lambda_runner_mock = Mock()
+        lambda_runner_mock.get_function.return_value.durable_config = None
         service = LocalLambdaHttpService(lambda_runner=lambda_runner_mock, port=3000, host="localhost")
 
         response = service._invoke_request_handler(function_name="HelloWorld")
@@ -556,6 +559,7 @@ class TestLocalLambdaHttpService(TestCase):
         local_lambda_http_service.request = request_mock
 
         lambda_runner_mock = Mock()
+        lambda_runner_mock.get_function.return_value.durable_config = None
         test_exception = Exception("Test async exception")
         lambda_runner_mock.invoke.side_effect = test_exception
 
