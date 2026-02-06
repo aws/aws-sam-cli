@@ -68,3 +68,8 @@ class ContainerInvalidSocketPathException(UserException):
     """
     Failed to load Docker/Finch container image from archive file
     """
+
+class BuildkitNotAvailableException(UserException):
+    """
+    Raised when --with-buildkit is specified but buildkit is not available
+    """
