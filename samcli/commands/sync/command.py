@@ -394,6 +394,7 @@ def do_cli(
                     no_execute_changeset=True,
                     fail_on_empty_changeset=True,
                     confirm_changeset=False,
+                    include_nested_stacks=True,
                     use_changeset=False,
                     force_upload=True,
                     signing_profiles=None,

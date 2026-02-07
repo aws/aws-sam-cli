@@ -34,6 +34,7 @@ DEPLOYMENT_OPTIONS: List[str] = [
     "no_execute_changeset",
     "fail_on_empty_changeset",
     "confirm_changeset",
+    "include_nested_stacks",
     "disable_rollback",
     "on_failure",
     "force_upload",

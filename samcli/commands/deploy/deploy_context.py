@@ -69,12 +69,13 @@ class DeployContext:
         region,
         profile,
         confirm_changeset,
-        signing_profiles,
-        use_changeset,
-        disable_rollback,
-        poll_delay,
-        on_failure,
-        max_wait_duration,
+        include_nested_stacks=True,
+        signing_profiles=None,
+        use_changeset=True,
+        disable_rollback=False,
+        poll_delay=0.5,
+        on_failure=None,
+        max_wait_duration=60,
     ):
         self.template_file = template_file
         self.stack_name = stack_name
@@ -101,6 +102,7 @@ class DeployContext:
         self.s3_uploader = None
         self.deployer = None
         self.confirm_changeset = confirm_changeset
+        self.include_nested_stacks = include_nested_stacks
         self.signing_profiles = signing_profiles
         self.use_changeset = use_changeset
         self.disable_rollback = disable_rollback
@@ -257,6 +259,7 @@ class DeployContext:
                     notification_arns=notification_arns,
                     s3_uploader=s3_uploader,
                     tags=tags,
+                    include_nested_stacks=self.include_nested_stacks,
                 )
                 click.echo(self.MSG_SHOWCASE_CHANGESET.format(changeset_id=result["Id"]))
 
