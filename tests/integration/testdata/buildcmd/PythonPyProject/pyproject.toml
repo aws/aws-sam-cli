@@ -1,0 +1,11 @@
+[project]
+name = "python-uv-test"
+version = "0.1.0"
+dependencies = [
+  "numpy==2.0.0; python_version <= '3.9'",
+  "numpy==2.1.3; python_version >= '3.10' and python_version < '3.14'",
+  "numpy==2.3.4; python_version >= '3.14'",
+  # `cryptography` has a dependency on `pycparser` which, for some reason doesn't build inside a Docker container.
+  # Turning this off until we resolve this issue: https://github.com/awslabs/aws-lambda-builders/issues/29
+  # "cryptography~=2.4"
+]

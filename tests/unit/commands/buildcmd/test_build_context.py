@@ -1254,7 +1254,7 @@ class TestBuildContext_run(TestCase):
     @patch("samcli.commands.build.build_context.BuildContext._is_sam_template")
     @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
     @patch("samcli.commands.build.build_context.BuildContext._check_exclude_warning")
-    @patch("samcli.commands.build.build_context.BuildContext._check_rust_cargo_experimental_flag")
+    @patch("samcli.commands.build.build_context.BuildContext._check_build_method_experimental_flag")
     @patch("samcli.lib.build.app_builder.ApplicationBuilder.build")
     @patch("samcli.lib.telemetry.event.EventTracker.track_event")
     def test_build_in_source_event_sent(
@@ -1401,3 +1401,56 @@ Commands you can use next
         )
 
         self.assertEqual(msg, expected_msg)
+
+
+class TestBuildContext_check_build_method_experimental_flag(TestCase):
+    def setUp(self):
+        self.build_context = BuildContext(
+            resource_identifier="function_identifier",
+            template_file="template_file",
+            base_dir="base_dir",
+            build_dir="build_dir",
+            cache_dir="cache_dir",
+            parallel=False,
+            mode="mode",
+            cached=False,
+        )
+
+    @patch("samcli.commands.build.build_context.prompt_experimental")
+    @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
+    def test_check_build_method_experimental_flag_python_uv(self, mock_get_resources, mock_prompt):
+        mock_function = Mock()
+        mock_function.metadata = {"BuildMethod": "python-uv"}
+        mock_resources = Mock()
+        mock_resources.functions = [mock_function]
+        mock_get_resources.return_value = mock_resources
+
+        self.build_context._check_build_method_experimental_flag()
+
+        mock_prompt.assert_called_once()
+
+    @patch("samcli.commands.build.build_context.prompt_experimental")
+    @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
+    def test_check_build_method_experimental_flag_no_experimental_method(self, mock_get_resources, mock_prompt):
+        mock_function = Mock()
+        mock_function.metadata = {"BuildMethod": "python-pip"}
+        mock_resources = Mock()
+        mock_resources.functions = [mock_function]
+        mock_get_resources.return_value = mock_resources
+
+        self.build_context._check_build_method_experimental_flag()
+
+        mock_prompt.assert_not_called()
+
+    @patch("samcli.commands.build.build_context.prompt_experimental")
+    @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
+    def test_check_build_method_experimental_flag_no_metadata(self, mock_get_resources, mock_prompt):
+        mock_function = Mock()
+        mock_function.metadata = None
+        mock_resources = Mock()
+        mock_resources.functions = [mock_function]
+        mock_get_resources.return_value = mock_resources
+
+        self.build_context._check_build_method_experimental_flag()
+
+        mock_prompt.assert_not_called()
