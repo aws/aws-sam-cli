@@ -4,8 +4,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import click
 
-from ..utils.colors import Colored
-from .question import Question
+from samcli.lib.cookiecutter.question import Question
+from samcli.lib.utils.colors import Colored
 
 
 class InteractiveFlow:

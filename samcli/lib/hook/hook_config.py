@@ -6,7 +6,7 @@ from typing import Dict, NamedTuple, Optional, cast
 
 import jsonschema
 
-from .exceptions import InvalidHookPackageConfigException
+from samcli.lib.hook.exceptions import InvalidHookPackageConfigException
 
 
 class HookFunctionality(NamedTuple):

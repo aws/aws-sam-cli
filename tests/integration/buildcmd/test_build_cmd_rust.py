@@ -12,7 +12,7 @@ from tests.testing_utils import (
     RUNNING_ON_CI,
     CI_OVERRIDE,
 )
-from .build_integ_base import (
+from tests.integration.buildcmd.build_integ_base import (
     BuildIntegRustBase,
     rust_parameterized_class,
     show_container_in_test_name,

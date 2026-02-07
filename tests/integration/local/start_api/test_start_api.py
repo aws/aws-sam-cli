@@ -21,8 +21,11 @@ from samcli.commands.local.cli_common.invoke_context import ContainersInitializa
 from samcli.commands.local.cli_common.options import get_default_layer_cache_dir
 from samcli.local.apigw.route import Route
 from tests.testing_utils import IS_WINDOWS
-from .start_api_integ_base import StartApiIntegBaseClass, WritableStartApiIntegBaseClass
-from ..invoke.layer_utils import LayerUtils
+from tests.integration.local.start_api.start_api_integ_base import (
+    StartApiIntegBaseClass,
+    WritableStartApiIntegBaseClass,
+)
+from tests.integration.local.invoke.layer_utils import LayerUtils
 
 
 @parameterized_class(

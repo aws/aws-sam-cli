@@ -4,8 +4,8 @@ Plugins are sub-sets of templates, it encapsulate common behavior of different t
 
 from typing import NamedTuple
 
-from .interactive_flow import InteractiveFlow
-from .processor import Processor
+from samcli.lib.cookiecutter.interactive_flow import InteractiveFlow
+from samcli.lib.cookiecutter.processor import Processor
 
 
 class Plugin(NamedTuple):

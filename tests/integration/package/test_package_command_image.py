@@ -12,7 +12,7 @@ from parameterized import parameterized
 
 from samcli.commands._utils.template import get_template_data
 from samcli.local.docker.utils import get_validated_container_client
-from .package_integ_base import PackageIntegBase
+from tests.integration.package.package_integ_base import PackageIntegBase
 from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY, MAX_ERROR_OUTPUT_LENGTH
 
 

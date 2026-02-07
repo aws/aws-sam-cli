@@ -7,11 +7,8 @@ import logging
 from pathlib import Path
 from typing import Dict, List, Optional, cast
 
-from .exceptions import (
-    HookPackageExecuteFunctionalityException,
-    InvalidHookWrapperException,
-)
-from .hook_config import HookPackageConfig
+from samcli.lib.hook.exceptions import HookPackageExecuteFunctionalityException, InvalidHookWrapperException
+from samcli.lib.hook.hook_config import HookPackageConfig
 
 LOG = logging.getLogger(__name__)
 INTERNAL_PACKAGES_ROOT = Path(__file__).parent / ".." / ".." / "hook_packages"
