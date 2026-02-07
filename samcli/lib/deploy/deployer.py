@@ -141,7 +141,16 @@ class Deployer:
             raise e
 
     def create_changeset(
-        self, stack_name, cfn_template, parameter_values, capabilities, role_arn, notification_arns, s3_uploader, tags
+        self,
+        stack_name,
+        cfn_template,
+        parameter_values,
+        capabilities,
+        role_arn,
+        notification_arns,
+        s3_uploader,
+        tags,
+        import_existing_resources,
     ):
         """
         Call Cloudformation to create a changeset and wait for it to complete
@@ -154,6 +163,7 @@ class Deployer:
         :param notification_arns: Arns for sending notifications
         :param s3_uploader: S3Uploader object to upload files to S3 buckets
         :param tags: Array of tags passed to CloudFormation
+        :param import_existing_resources: Argument passed to CloudFormation
         :return:
         """
         if not self.has_stack(stack_name):
@@ -183,6 +193,7 @@ class Deployer:
             "Parameters": parameter_values,
             "Description": "Created by SAM CLI at {0} UTC".format(datetime.now(timezone.utc).isoformat()),
             "Tags": tags,
+            "ImportExistingResources": import_existing_resources,
         }
 
         kwargs = self._process_kwargs(kwargs, s3_uploader, capabilities, role_arn, notification_arns)
@@ -245,8 +256,8 @@ class Deployer:
         """
         paginator = self._client.get_paginator("describe_change_set")
         response_iterator = paginator.paginate(ChangeSetName=change_set_id, StackName=stack_name)
-        changes = {"Add": [], "Modify": [], "Remove": []}
-        changes_showcase = {"Add": "+ Add", "Modify": "* Modify", "Remove": "- Delete"}
+        changes = {"Add": [], "Modify": [], "Remove": [], "Import": []}
+        changes_showcase = {"Add": "+ Add", "Modify": "* Modify", "Remove": "- Delete", "Import": "~ Import"}
         changeset = False
         for item in response_iterator:
             cf_changes = item.get("Changes")
@@ -556,11 +567,28 @@ class Deployer:
                 raise ex
 
     def create_and_wait_for_changeset(
-        self, stack_name, cfn_template, parameter_values, capabilities, role_arn, notification_arns, s3_uploader, tags
+        self,
+        stack_name,
+        cfn_template,
+        parameter_values,
+        capabilities,
+        role_arn,
+        notification_arns,
+        s3_uploader,
+        tags,
+        import_existing_resources,
     ):
         try:
             result, changeset_type = self.create_changeset(
-                stack_name, cfn_template, parameter_values, capabilities, role_arn, notification_arns, s3_uploader, tags
+                stack_name,
+                cfn_template,
+                parameter_values,
+                capabilities,
+                role_arn,
+                notification_arns,
+                s3_uploader,
+                tags,
+                import_existing_resources,
             )
             self.wait_for_changeset(result["Id"], stack_name)
             self.describe_changeset(result["Id"], stack_name)
