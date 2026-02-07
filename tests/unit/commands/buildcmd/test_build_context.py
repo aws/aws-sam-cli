@@ -1254,14 +1254,12 @@ class TestBuildContext_run(TestCase):
     @patch("samcli.commands.build.build_context.BuildContext._is_sam_template")
     @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
     @patch("samcli.commands.build.build_context.BuildContext._check_exclude_warning")
-    @patch("samcli.commands.build.build_context.BuildContext._check_rust_cargo_experimental_flag")
     @patch("samcli.lib.build.app_builder.ApplicationBuilder.build")
     @patch("samcli.lib.telemetry.event.EventTracker.track_event")
     def test_build_in_source_event_sent(
         self,
         mock_track_event,
         mock_builder,
-        mock_rust,
         mock_warning,
         mock_get_resources,
         mock_is_sam_template,

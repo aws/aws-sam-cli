@@ -1153,7 +1153,7 @@ class BuildIntegRustBase(BuildIntegBase):
         overrides = self.get_override(runtime, code_uri, architecture, handler)
         if binary:
             overrides["Binary"] = binary
-        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides, beta_features=True)
+        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
         newenv = os.environ.copy()
         if build_mode:
