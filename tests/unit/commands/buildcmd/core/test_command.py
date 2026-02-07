@@ -57,6 +57,7 @@ class TestBuildCommand(unittest.TestCase):
                 ("$ sam build --use-container\x1b[0m", ""),
                 ("$ sam build --use-container --container-env-var-file env.json\x1b[0m", ""),
                 ("$ sam build && sam local invoke\x1b[0m", ""),
+                ("$ sam build --watch\x1b[0m", ""),
                 ("$ sam build && sam deploy\x1b[0m", ""),
             ],
         }
