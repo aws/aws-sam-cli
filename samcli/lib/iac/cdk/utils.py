@@ -42,7 +42,10 @@ def _resource_level_metadata_exists(resources: Dict) -> bool:
         Dict of resources to look through
 
     """
-    for _, resource in resources.items():
+    for resource_id, resource in resources.items():
+        # Skip Fn::ForEach constructs which are lists, not dicts
+        if resource_id.startswith("Fn::ForEach::") or not isinstance(resource, dict):
+            continue
         if resource.get("Type", "") == CDK_METADATA_TYPE_VALUE:
             return True
     return False
@@ -58,7 +61,10 @@ def _cdk_path_metadata_exists(resources: Dict) -> bool:
         Dict of resources to look through
 
     """
-    for _, resource in resources.items():
+    for resource_id, resource in resources.items():
+        # Skip Fn::ForEach constructs which are lists, not dicts
+        if resource_id.startswith("Fn::ForEach::") or not isinstance(resource, dict):
+            continue
         metadata = resource.get("Metadata", {})
         if metadata and CDK_PATH_METADATA_KEY in metadata:
             return True

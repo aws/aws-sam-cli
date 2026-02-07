@@ -227,6 +227,11 @@ class SamFunctionProvider(SamBaseProvider):
         result: Dict[str, Function] = {}  # a dict with full_path as key and extracted function as value
         for stack in stacks:
             for name, resource in stack.resources.items():
+                # Skip Fn::ForEach constructs which are lists, not dicts
+                if name.startswith("Fn::ForEach::") or not isinstance(resource, dict):
+                    LOG.debug(f"Skipping Fn::ForEach construct or non-dict resource: {name}")
+                    continue
+
                 resource_type = resource.get("Type")
                 resource_properties = resource.get("Properties", {})
                 resource_metadata = resource.get("Metadata", None)
