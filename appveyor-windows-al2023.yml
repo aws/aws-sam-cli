@@ -47,7 +47,7 @@ install:
   - 'set PATH=%JAVA_HOME%\bin;%PATH%'
   - java --version
   - javac --version
-  - choco install maven
+  - choco install maven --version=3.9.12
   - choco upgrade gradle --version=9.0.0
   - choco install ruby --version=3.2.7.1
   - choco install ruby --version=3.3.7.1
