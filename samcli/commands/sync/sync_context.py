@@ -85,18 +85,26 @@ def _parse_datetime_from_toml(datetime_str: str) -> datetime:
     -------
     datetime
         Timezone-aware datetime in UTC
+
+    Raises
+    ------
+    ValueError
+        If datetime_str is not a valid ISO format datetime string
     """
-    # Handle 'Z' suffix for UTC timezone (Python 3.9/3.10 compatibility)
-    if datetime_str.endswith("Z"):
-        datetime_str = datetime_str[:-1] + "+00:00"
+    try:
+        # Handle 'Z' suffix for UTC timezone (Python 3.9/3.10 compatibility)
+        if datetime_str.endswith("Z"):
+            datetime_str = datetime_str[:-1] + "+00:00"
 
-    parsed_datetime = datetime.fromisoformat(datetime_str)
+        parsed_datetime = datetime.fromisoformat(datetime_str)
 
-    # Ensure timezone-aware (handles old sync.toml files without timezone)
-    if parsed_datetime.tzinfo is None:
-        parsed_datetime = parsed_datetime.replace(tzinfo=timezone.utc)
+        # Ensure timezone-aware (handles old sync.toml files without timezone)
+        if parsed_datetime.tzinfo is None:
+            parsed_datetime = parsed_datetime.replace(tzinfo=timezone.utc)
 
-    return parsed_datetime
+        return parsed_datetime
+    except (ValueError, AttributeError) as e:
+        raise ValueError(f"Invalid datetime format in sync.toml: '{datetime_str}'") from e
 
 
 def _sync_state_to_toml_document(sync_state: SyncState) -> TOMLDocument:

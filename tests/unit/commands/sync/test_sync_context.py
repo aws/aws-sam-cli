@@ -291,7 +291,7 @@ class TestSyncContext(TestCase):
 
 
 class TestTimezoneNaiveDatetimeHandling(TestCase):
-    """Tests for Issue #8477: Timezone-naive datetime handling in sync.toml"""
+    """Tests for timezone-naive datetime handling in sync.toml"""
 
     def test_toml_to_sync_state_with_timezone_naive_timestamps(self):
         """Test that timezone-naive timestamps are converted to UTC timezone-aware"""
@@ -406,7 +406,7 @@ latest_infra_sync_time = "2025-12-03T22:10:11.916279"
 
 
 class TestZSuffixDatetimeHandling(TestCase):
-    """Tests for PR #8487: Handle 'Z' suffix in datetime strings (Python 3.9/3.10 compatibility)"""
+    """Tests for handling 'Z' suffix in datetime strings (Python 3.9/3.10 compatibility)"""
 
     @parameterized.expand(
         [
@@ -451,3 +451,13 @@ class TestZSuffixDatetimeHandling(TestCase):
         # Verify datetime comparison works (the original bug fix)
         time_diff = datetime.now(timezone.utc) - sync_state.latest_infra_sync_time
         self.assertIsNotNone(time_diff)
+
+    def test_invalid_datetime_format_raises_error(self):
+        """Test that invalid datetime strings raise ValueError with helpful message"""
+        toml_str = TOML_TEMPLATE.format(dependency_layer="true", latest_infra_sync_time='"invalid-datetime"')
+        toml_doc = tomlkit.loads(toml_str)
+
+        with self.assertRaises(ValueError) as context:
+            _toml_document_to_sync_state(toml_doc)
+
+        self.assertIn("Invalid datetime format in sync.toml", str(context.exception))
