@@ -357,3 +357,41 @@ class TestStartLambdaDurable(DurableIntegBase, StartLambdaIntegBaseClass):
             DurableExecutionArn=execution_arn, IncludeExecutionData=True
         )
         self.assert_execution_history(history_response, DurableFunctionExamples.WAIT_FOR_CALLBACK)
+
+    @parameterized.expand(
+        [
+            (
+                "all_parameters",
+                {
+                    "Error": {
+                        "ErrorMessage": "Test error message",
+                        "ErrorType": "TestError",
+                        "ErrorData": '{"detail": "test error"}',
+                        "StackTrace": ["line1", "line2"],
+                    }
+                },
+            ),
+            ("minimal_parameters", {}),
+            ("error_message_only", {"Error": {"ErrorMessage": "Simple error message"}}),
+        ]
+    )
+    @pytest.mark.timeout(timeout=300, method="thread")
+    def test_local_start_lambda_stop_durable_execution_http(self, name, error_params):
+        """Test stop_durable_execution via HTTP API with various error parameters."""
+        # Start a long-running execution
+        event_payload = json.dumps({"timeout_seconds": 60, "heartbeat_timeout_seconds": 30})
+        execution_arn, callback_id = self.invoke_and_wait_for_callback(payload=event_payload)
+
+        # Stop the execution with error parameters
+        self.lambda_client.stop_durable_execution(DurableExecutionArn=execution_arn, **error_params)
+
+        # Verify execution is stopped
+        execution_response = self.wait_for_execution_status(execution_arn, "STOPPED")
+        self.assertEqual(execution_response.get("Status"), "STOPPED")
+
+        # Verify execution history contains stop event
+        history_response = self.lambda_client.get_durable_execution_history(
+            DurableExecutionArn=execution_arn, IncludeExecutionData=True
+        )
+        execution_stopped = self.get_event_from_history(history_response.get("Events", []), "ExecutionStopped")
+        self.assertIsNotNone(execution_stopped, "Expected ExecutionStopped event in history")

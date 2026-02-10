@@ -400,11 +400,15 @@ class LocalLambdaHttpService(BaseLocalService):
         try:
             # Parse request body for error details - handle empty payloads gracefully
             request_data = request.get_json(silent=True) or {}
+            error_dict = request_data.get("Error", {})
 
             with DurableContext() as context:
                 response = context.client.stop_durable_execution(
                     durable_execution_arn=decoded_arn,
-                    error=request_data.get("Error"),
+                    error_message=error_dict.get("ErrorMessage"),
+                    error_type=error_dict.get("ErrorType"),
+                    error_data=error_dict.get("ErrorData"),
+                    stack_trace=error_dict.get("StackTrace"),
                 )
             return self.service_response(
                 json.dumps(response, cls=DateTimeEncoder), {"Content-Type": "application/json"}, 200
