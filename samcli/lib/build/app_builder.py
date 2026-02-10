@@ -458,8 +458,12 @@ class ApplicationBuilder:
             build_args["target"] = cast(str, docker_build_target)
 
         try:
-            (build_image, build_logs) = self._docker_client.images.build(**build_args)
-            LOG.debug("%s image is built for %s function", build_image, function_name)
+            if self._build_client:
+                build_logs = self._build_client.build_image(**build_args)
+                LOG.debug(f"Image build for {function_name} function using build client")
+            else:
+                (build_image, build_logs) = self._docker_client.images.build(**build_args)
+                LOG.debug("%s image is built for %s function", build_image, function_name)
         except docker.errors.BuildError as ex:
             LOG.error("Failed building function %s", function_name)
             self._stream_lambda_image_build_logs(ex.build_log, function_name, False)
