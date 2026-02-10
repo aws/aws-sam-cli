@@ -41,10 +41,10 @@ from samcli.lib.providers.sam_layer_provider import SamLayerProvider
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.telemetry.event import EventName, EventTracker, UsedFeature
 from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
-from samcli.local.docker.manager import ContainerManager
-from samcli.local.docker.build_client import BuildClient, CLIBuildClient, SDKBuildClient
+from samcli.local.docker.build_client import BuildClient, CLIBuildClient
 from samcli.local.docker.container_client_factory import ContainerClientFactory
 from samcli.local.docker.exceptions import BuildkitNotAvailableException
+from samcli.local.docker.manager import ContainerManager
 from samcli.local.lambdafn.exceptions import (
     FunctionNotFound,
     ResourceNotFound,

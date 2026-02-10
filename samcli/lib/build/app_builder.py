@@ -59,6 +59,7 @@ from samcli.lib.utils.resources import (
     AWS_SERVERLESS_LAYERVERSION,
 )
 from samcli.lib.utils.stream_writer import StreamWriter
+from samcli.local.docker.build_client import BuildClient
 from samcli.local.docker.container import ContainerContext
 from samcli.local.docker.exceptions import ContainerArchiveImageLoadFailedException
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
@@ -67,7 +68,6 @@ from samcli.local.docker.utils import (
     get_docker_platform,
     get_validated_container_client,
 )
-from samcli.local.docker.build_client import BuildClient
 
 LOG = logging.getLogger(__name__)
 
@@ -459,7 +459,7 @@ class ApplicationBuilder:
 
         try:
             if self._build_client:
-                build_logs = self._build_client.build_image(**build_args)
+                build_logs = self._build_client.build_image(**build_args)  # type: ignore[arg-type]
                 LOG.debug(f"Image build for {function_name} function using build client")
             else:
                 (build_image, build_logs) = self._docker_client.images.build(**build_args)
@@ -478,7 +478,7 @@ class ApplicationBuilder:
         # The Docker-py low level api will stream logs back but if an exception is raised by the api
         # this is raised when accessing the generator. So we need to wrap accessing build_logs in a try: except.
         try:
-            self._stream_lambda_image_build_logs(build_logs, function_name)
+            self._stream_lambda_image_build_logs(build_logs, function_name)  # type: ignore[arg-type]
         except docker.errors.APIError as e:
             if self._docker_client.is_dockerfile_error(e):
                 raise DockerfileOutSideOfContext(e.explanation) from e

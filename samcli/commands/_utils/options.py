@@ -868,7 +868,7 @@ def use_buildkit_click_option():
         required=False,
         default=False,
         is_flag=True,
-        help="Enable buildkit for container image builds. Requires Docker with buildx plugin or Finch CLI."
+        help="Enable buildkit for container image builds. Requires Docker with buildx plugin or Finch CLI.",
     )
 
 

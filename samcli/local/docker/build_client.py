@@ -5,11 +5,12 @@ This module provides an abstract interface for building container images,
 allowing different implementations (SDK-based or CLI-based) to be used
 interchangeably.
 """
-from abc import ABC, abstractmethod
-from typing import Any, Dict, Generator, Optional, Tuple
+
 import logging
 import shutil
 import subprocess
+from abc import ABC, abstractmethod
+from typing import Any, Dict, Generator, Optional, Tuple
 
 from samcli.local.docker.container_client import ContainerClient
 
@@ -132,7 +133,7 @@ class SDKBuildClient(BuildClient):
             build_kwargs["target"] = target
 
         _, build_logs = self.container_client.images.build(**build_kwargs)
-        return build_logs
+        return build_logs  # type: ignore[no-any-return]
 
     @staticmethod
     def is_available(engine_type: str) -> Tuple[bool, Optional[str]]:
@@ -180,12 +181,7 @@ class CLIBuildClient(BuildClient):
 
         LOG.debug(f"Executing build command: {' '.join(cmd)}")
 
-        process = subprocess.Popen(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True
-        )
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 
         if process.stdout:
             for line in process.stdout:
@@ -205,6 +201,7 @@ class CLIBuildClient(BuildClient):
             result = subprocess.run(
                 ["docker", "buildx", "version"],
                 capture_output=True,
+                check=True,
             )
             if result.returncode != 0:
                 return (False, "docker buildx plugin not available")
@@ -218,6 +215,7 @@ class CLIBuildClient(BuildClient):
             result = subprocess.run(
                 ["finch", "version"],
                 capture_output=True,
+                check=True,
             )
 
             if result.returncode != 0:
