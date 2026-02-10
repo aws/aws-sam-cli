@@ -67,6 +67,7 @@ from samcli.local.docker.utils import (
     get_docker_platform,
     get_validated_container_client,
 )
+from samcli.local.docker.build_client import BuildClient
 
 LOG = logging.getLogger(__name__)
 
@@ -114,6 +115,7 @@ class ApplicationBuilder:
         build_in_source: Optional[bool] = None,
         mount_with_write: bool = False,
         mount_symlinks: Optional[bool] = False,
+        build_client: Optional[BuildClient] = None,
     ) -> None:
         """
         Initialize the class
@@ -161,6 +163,8 @@ class ApplicationBuilder:
             Mount source code directory with write permissions when building inside container.
         mount_symlinks: Optional[bool]
             True if symlinks should be mounted in the container.
+        build_client: Optional[BuildClient]
+            Optional build client for building Image functions with buildkit support.
         """
         self._resources_to_build = resources_to_build
         self._build_dir = build_dir
@@ -190,6 +194,7 @@ class ApplicationBuilder:
         self._build_in_source = build_in_source
         self._mount_with_write = mount_with_write
         self._mount_symlinks = mount_symlinks
+        self._build_client = build_client
 
     @property
     def _docker_client(self) -> docker.DockerClient:
