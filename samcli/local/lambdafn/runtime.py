@@ -13,6 +13,7 @@ from typing import Dict, Optional, Union
 
 from samcli.lib.telemetry.metric import capture_parameter
 from samcli.lib.utils.file_observer import LambdaFunctionObserver
+from samcli.lib.utils.invocation_type import EVENT, REQUEST_RESPONSE
 from samcli.lib.utils.packagetype import ZIP
 from samcli.local.docker.container import Container, ContainerContext
 from samcli.local.docker.container_analyzer import ContainerAnalyzer
@@ -305,9 +306,10 @@ class LambdaRuntime:
                 )
             else:
                 # Only RequestResponse supported for regular Lambda functions
-                if invocation_type != "RequestResponse":
+                if invocation_type not in [EVENT, REQUEST_RESPONSE]:
                     raise UnsupportedInvocationType(
-                        f"invocation-type: {invocation_type} is not supported. RequestResponse is only supported."
+                        f"invocation-type: {invocation_type} is not supported. "
+                        "Only Event and RequestResponse are supported."
                     )
 
                 # The container handles concurrency control internally via its semaphore.

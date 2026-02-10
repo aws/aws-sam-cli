@@ -130,7 +130,9 @@ jobs:
           #- "delete"
           #- "deploy"
           - name: "integ-all-other"
-            params: "-n 2 --reruns 3 tests/integration/init tests/integration/local tests/integration/pipeline tests/integration/root tests/integration/scripts tests/integration/telemetry tests/integration/docs"
+            params: "-n 2 --reruns 3 tests/integration/init tests/integration/local tests/integration/pipeline tests/integration/root tests/integration/scripts tests/integration/telemetry tests/integration/docs --ignore=tests/integration/local/invoke/test_invoke_durable.py --ignore=tests/integration/local/start_api/test_start_api_durable.py --ignore=tests/integration/local/start_lambda/test_start_lambda_durable.py"
+          - name: "durable-functions"
+            params: "--reruns 3 tests/integration/local/invoke/test_invoke_durable.py tests/integration/local/start_api/test_start_api_durable.py tests/integration/local/start_lambda/test_start_lambda_durable.py"
           #- "list"
           #- "logs"
           #- "package"
@@ -138,6 +140,10 @@ jobs:
           #- "sync"
           #- "traces"
           #- "validate"
+        exclude:
+          - os: windows-latest
+            tests_config:
+              name: "durable-functions"
     steps:
       - uses: actions/checkout@v6
       - name: Set TEMP to D:/Temp
@@ -197,6 +203,8 @@ jobs:
         run: uv pip install --system --python python3.12 --upgrade pip setuptools
       - name: Run integration tests for ${{ matrix.tests_config.name }}
         run: pytest -vv ${{ matrix.tests_config.params }}
+        env:
+          FORCE_RUN_DOCKER_TEST: ${{ matrix.tests_config.name == 'durable-functions' && '1' || '' }}
 
   smoke-and-functional-tests:
     name: ${{ matrix.tests_config.name }} / ${{ matrix.tests_config.os }} / ${{ matrix.python }}

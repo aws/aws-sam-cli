@@ -9,12 +9,11 @@ on:
 jobs:
   notify-slack:
     runs-on: ubuntu-latest
-    if: (github.event_name == 'pull_request' && github.event.label.name == 'pr/external') || github.event_name == 'issues'
     permissions:
       contents: read
     steps:
       - name: Send External PR Notification
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && github.event.label.name == 'pr/external'
         uses: rtCamp/action-slack-notify@e31e87e03dd19038e411e38ae27cbad084a90661 # v2
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
@@ -23,7 +22,7 @@ jobs:
           MSG_MINIMAL: true
           SLACK_MESSAGE: '${{ github.event.pull_request.html_url }}'
       - name: Send New Issue Notification
-        if: github.event_name == 'issues'
+        if: github.event_name == 'issue'
         uses: rtCamp/action-slack-notify@e31e87e03dd19038e411e38ae27cbad084a90661 # v2
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
