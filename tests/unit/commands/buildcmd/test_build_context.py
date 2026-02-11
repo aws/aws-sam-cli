@@ -736,6 +736,139 @@ class TestBuildContext__enter__(TestCase):
                 build_context.run()
                 mock_message.assert_not_called()
 
+    @patch("samcli.commands.build.build_context.CLIBuildClient")
+    @patch("samcli.commands.build.build_context.ContainerClientFactory")
+    @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
+    @patch("samcli.commands.build.build_context.SamFunctionProvider")
+    @patch("samcli.commands.build.build_context.SamLayerProvider")
+    @patch("samcli.commands.build.build_context.pathlib")
+    def test_build_client_created_when_use_buildkit_true(
+        self,
+        pathlib_mock,
+        SamLayerProviderMock,
+        SamFunctionProviderMock,
+        get_buildable_stacks_mock,
+        ContainerClientFactoryMock,
+        CLIBuildClientMock,
+    ):
+        """Test that CLIBuildClient is created when use_buildkit=True"""
+        stack = Mock()
+        get_buildable_stacks_mock.return_value = ([stack], [])
+        SamFunctionProviderMock.return_value = Mock()
+        SamLayerProviderMock.return_value = Mock()
+        pathlib_mock.Path.return_value.resolve.return_value.parent = "basedir"
+
+        mock_container_client = Mock()
+        mock_container_client.get_runtime_type.return_value = "docker"
+        ContainerClientFactoryMock.create_client.return_value = mock_container_client
+
+        CLIBuildClientMock.is_available.return_value = (True, None)
+        mock_cli_client = Mock()
+        CLIBuildClientMock.return_value = mock_cli_client
+
+        context = BuildContext(
+            None,
+            "template_file",
+            None,
+            "build_dir",
+            "cache_dir",
+            cached=False,
+            parallel=False,
+            mode=None,
+            use_buildkit=True,
+        )
+        context._setup_build_dir = Mock(return_value="build_dir")
+
+        context.__enter__()
+
+        ContainerClientFactoryMock.create_client.assert_called_once()
+        CLIBuildClientMock.is_available.assert_called_once_with("docker")
+        CLIBuildClientMock.assert_called_once_with(engine_type="docker")
+        self.assertEqual(context.build_client, mock_cli_client)
+
+    @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
+    @patch("samcli.commands.build.build_context.SamFunctionProvider")
+    @patch("samcli.commands.build.build_context.SamLayerProvider")
+    @patch("samcli.commands.build.build_context.pathlib")
+    def test_build_client_none_when_use_buildkit_false(
+        self,
+        pathlib_mock,
+        SamLayerProviderMock,
+        SamFunctionProviderMock,
+        get_buildable_stacks_mock,
+    ):
+        """Test that build_client is None when use_buildkit=False"""
+        stack = Mock()
+        get_buildable_stacks_mock.return_value = ([stack], [])
+        SamFunctionProviderMock.return_value = Mock()
+        SamLayerProviderMock.return_value = Mock()
+        pathlib_mock.Path.return_value.resolve.return_value.parent = "basedir"
+
+        context = BuildContext(
+            None,
+            "template_file",
+            None,
+            "build_dir",
+            "cache_dir",
+            cached=False,
+            parallel=False,
+            mode=None,
+            use_buildkit=False,
+        )
+        context._setup_build_dir = Mock(return_value="build_dir")
+
+        context.__enter__()
+
+        self.assertIsNone(context.build_client)
+
+    @patch("samcli.commands.build.build_context.CLIBuildClient")
+    @patch("samcli.commands.build.build_context.ContainerClientFactory")
+    @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
+    @patch("samcli.commands.build.build_context.SamFunctionProvider")
+    @patch("samcli.commands.build.build_context.SamLayerProvider")
+    @patch("samcli.commands.build.build_context.pathlib")
+    def test_exception_raised_when_buildkit_unavailable(
+        self,
+        pathlib_mock,
+        SamLayerProviderMock,
+        SamFunctionProviderMock,
+        get_buildable_stacks_mock,
+        ContainerClientFactoryMock,
+        CLIBuildClientMock,
+    ):
+        """Test that BuildkitNotAvailableException is raised when buildkit unavailable"""
+        from samcli.local.docker.exceptions import BuildkitNotAvailableException
+
+        stack = Mock()
+        get_buildable_stacks_mock.return_value = ([stack], [])
+        SamFunctionProviderMock.return_value = Mock()
+        SamLayerProviderMock.return_value = Mock()
+        pathlib_mock.Path.return_value.resolve.return_value.parent = "basedir"
+
+        mock_container_client = Mock()
+        mock_container_client.get_runtime_type.return_value = "docker"
+        ContainerClientFactoryMock.create_client.return_value = mock_container_client
+
+        CLIBuildClientMock.is_available.return_value = (False, "docker buildx plugin not available")
+
+        context = BuildContext(
+            None,
+            "template_file",
+            None,
+            "build_dir",
+            "cache_dir",
+            cached=False,
+            parallel=False,
+            mode=None,
+            use_buildkit=True,
+        )
+        context._setup_build_dir = Mock(return_value="build_dir")
+
+        with self.assertRaises(BuildkitNotAvailableException) as ctx:
+            context.__enter__()
+
+        self.assertIn("docker buildx plugin not available", str(ctx.exception))
+
 
 class TestBuildContext_setup_build_dir(TestCase):
     @patch("samcli.commands.build.build_context.shutil")

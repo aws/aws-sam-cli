@@ -247,7 +247,7 @@ class BuildContext:
             if not is_available:
                 raise BuildkitNotAvailableException(error_msg)
 
-            self._build_client = CLIBuildClient(engine_type)
+            self._build_client = CLIBuildClient(engine_type=engine_type)
             LOG.info(f"Using buildkit with {engine_type}")
 
     def __exit__(self, *args):
