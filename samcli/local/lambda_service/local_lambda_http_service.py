@@ -274,7 +274,10 @@ class LocalLambdaHttpService(BaseLocalService):
             "function": function,
         }
 
-        if invocation_type == EVENT:
+        is_durable = function is not None and function.durable_config is not None
+
+        # Non-durable EVENT invocations run fully async
+        if invocation_type == EVENT and not is_durable:
             self.executor.submit(self._invoke_async_lambda, **arguments)
             return self.service_response("", headers, 202)
         try:
@@ -294,6 +297,10 @@ class LocalLambdaHttpService(BaseLocalService):
         # Prepare headers
         if invoke_headers and isinstance(invoke_headers, dict):
             headers.update(invoke_headers)
+
+        # Durable EVENT invocations return 202 with execution ARN header but empty body
+        if is_durable and invocation_type == EVENT:
+            return self.service_response("", headers, 202)
 
         if is_lambda_user_error_response:
             headers["x-amz-function-error"] = "Unhandled"
