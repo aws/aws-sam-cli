@@ -54,7 +54,7 @@ class TestLocalHostRunner(TestCase):
         flask_response_patch.assert_called_once_with("this is the body")
 
         self.assertEqual(actual_response.status_code, 200)
-        self.assertEqual(actual_response.headers, {"Content-Type": "application/json"})
+        flask_response_mock.headers.update.assert_called_once_with({"Content-Type": "application/json"})
 
     @patch("samcli.local.services.base_local_service.signal.signal")
     def test_service_registers_sigterm_interrupt(self, signal_mock):

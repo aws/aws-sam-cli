@@ -38,7 +38,8 @@ RUN_BY_CANARY = os.environ.get("BY_CANARY", False)
 USING_FINCH_RUNTIME = os.environ.get("CONTAINER_RUNTIME") == "finch"
 
 # Tests require docker suffers from Docker Hub request limit
-SKIP_DOCKER_TESTS = RUNNING_ON_CI and not RUN_BY_CANARY
+FORCE_RUN_DOCKER_TEST = os.environ.get("FORCE_RUN_DOCKER_TEST", False)
+SKIP_DOCKER_TESTS = RUNNING_ON_CI and not RUN_BY_CANARY and not FORCE_RUN_DOCKER_TEST
 
 
 # SKIP LMI unless test resource is deployed in the test accounts
