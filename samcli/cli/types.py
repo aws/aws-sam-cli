@@ -124,7 +124,7 @@ class CfnParameterOverridesType(click.ParamType):
 
     name = "list,object,string"
 
-    def convert(self, values, param, ctx, seen_files=None):
+    def convert(self, values, param, ctx, seen_files=None, current_file: Optional[Path] = None):
         """
         Takes parameter overrides loaded from various supported config file formats and
         flattens and normalizes them into a dictionary where all keys and values are strings.
@@ -143,6 +143,8 @@ class CfnParameterOverridesType(click.ParamType):
             Click context for error reporting.
         seen_files : set
             List of files processed in the current execution branch, used to detect infinite recursion
+        current_file : Path
+            Path to the file currently being processed, used to resolve relative paths in nested includes
 
         Returns
         -------
@@ -169,6 +171,11 @@ class CfnParameterOverridesType(click.ParamType):
                 # If the string is a file reference (e.g., 'file://params.yaml')
                 if value.startswith("file://"):
                     file_path = Path(value[7:])
+                    # Resolve relative paths against current file's directory
+                    if not file_path.is_absolute() and current_file:
+                        file_path = current_file.parent / file_path
+                    file_path = file_path.resolve()
+
                     if not file_path.is_file():
                         self.fail(f"{value} was not found or is a directory", param, ctx)
                     file_manager = FILE_MANAGER_MAPPER.get(file_path.suffix, None)
@@ -181,7 +188,7 @@ class CfnParameterOverridesType(click.ParamType):
                     seen_files.add(file_path)
                     try:
                         nested_values = file_manager.read(file_path)
-                        parameters.update(self.convert(nested_values, param, ctx, seen_files))
+                        parameters.update(self.convert(nested_values, param, ctx, seen_files, file_path))
                     finally:
                         seen_files.remove(file_path)
                 else:
@@ -205,6 +212,15 @@ class CfnParameterOverridesType(click.ParamType):
                     if v is None:
                         # Unset value if previously set
                         parameters[str(k)] = ""
+                    elif k == "$include":
+                        # Process includes (can be string or list)
+                        if not isinstance(v, (str, list, CommentedSeq)):
+                            self.fail(
+                                f"$include must be a string or list of strings, got {type(v).__name__}",
+                                param,
+                                ctx,
+                            )
+                        parameters.update(self.convert(v, param, ctx, seen_files, current_file))
                     elif isinstance(v, (list, CommentedSeq)):
                         # Join list elements into comma-separated string, strip whitespace and ignore empty entries
                         parameters[str(k)] = ",".join(str(x).strip() for x in v if x not in (None, ""))

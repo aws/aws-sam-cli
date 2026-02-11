@@ -7,8 +7,6 @@ import logging
 import os
 import zipfile
 
-from samcli.commands.exceptions import UserException
-
 LOG = logging.getLogger(__name__)
 
 S_IFLNK = 0xA
@@ -69,7 +67,7 @@ def _extract(file_info, output_dir, zip_ref):
     link_name_abs = os.path.abspath(link_name)
 
     if not link_name_abs.startswith(output_dir_abs + os.sep) and link_name_abs != output_dir_abs:
-        raise UserException(f"Failed to extract file from the zip file. The '{file_info.filename}' is invalid")
+        raise ValueError(f"Failed to extract file from the zip file. The '{file_info.filename}' is invalid")
 
     # make leading dirs if needed
     leading_dirs = os.path.dirname(link_name)

@@ -662,13 +662,17 @@ class BuildIntegJavaBase(BuildIntegBase):
             self.skipTest(self.SKIP_ARM64_EARLIER_JAVA_TESTS)
 
         overrides = self.get_override(runtime, code_path, architecture, "aws.example.Hello::myHandler")
-        mount_with = (
-            MountMode.WRITE
-            if use_container and str(runtime).lower() == "java25" and self.USING_MAVEN_PATH not in code_path
-            else None
-        )
+        if use_container and str(runtime).lower() in ["java21", "java25"] and self.USING_MAVEN_PATH not in code_path:
+            container_env = "GRADLE_USER_HOME=/tmp/.gradle"
+            mount_with = MountMode.WRITE
+        else:
+            container_env = None
+            mount_with = None
         cmdlist = self.get_command_list(
-            use_container=use_container, parameter_overrides=overrides, mount_with=mount_with
+            use_container=use_container,
+            parameter_overrides=overrides,
+            mount_with=mount_with,
+            container_env_var=container_env,
         )
         cmdlist += ["--skip-pull-image"]
         if code_path == self.USING_GRADLEW_PATH and use_container and IS_WINDOWS:

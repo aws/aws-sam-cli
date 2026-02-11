@@ -174,6 +174,18 @@ class TestCfnParameterOverridesType(TestCase):
                 ("file://nested.yaml",),
                 {"A": "yaml", "B": "yaml", "Toml": "toml", "Yaml": "yaml"},
             ),
+            (
+                ("file://nested.toml",),
+                {"A": "toml", "B": "toml", "Toml": "toml", "Env": "production"},
+            ),
+            (
+                ("file://nested-list.toml",),
+                {"A": "yaml", "B": "yaml", "Toml": "toml", "Yaml": "yaml", "Env": "prod"},
+            ),
+            (
+                ("file://nested-list.yaml",),
+                {"A": "yaml", "B": "yaml", "Toml": "toml", "Yaml": "yaml", "Env": "prod"},
+            ),
         ]
     )
     def test_merge_file_parsing(self, inputs, expected):
@@ -182,6 +194,9 @@ class TestCfnParameterOverridesType(TestCase):
             "params.yaml": "A: yaml\nB: yaml\nYaml: yaml",
             "list.yaml": "- - - - - - A: a\n- List:\n    - 1\n    - 2\n    - 3\n",
             "nested.yaml": "- file://params.toml\n- file://params.yaml",
+            "nested.toml": "'$include' = 'file://params.toml'\nEnv = 'production'",
+            "nested-list.toml": "'$include' = ['file://params.toml', 'file://params.yaml']\nEnv = 'prod'",
+            "nested-list.yaml": "$include:\n  - file://params.toml\n  - file://params.yaml\nEnv: prod",
         }
 
         def mock_read_text(file_path):
@@ -195,6 +210,27 @@ class TestCfnParameterOverridesType(TestCase):
             result = self.param_type.convert(inputs, None, MagicMock())
             print(result)
             self.assertEqual(result, expected, msg="Failed with Input = " + str(inputs))
+
+    def test_include_infinite_recursion_protection(self):
+        mock_files = {
+            "A.yaml": "$include: file://B.yaml",
+            "B.yaml": "$include: file://C.yaml",
+            "C.yaml": "$include: file://A.yaml",
+        }
+
+        def mock_read_text(file_path):
+            file_name = file_path.name
+            return mock_files.get(file_name, "")
+
+        def mock_is_file(file_path):
+            return file_path.name in mock_files
+
+        with self.assertRaises(BadParameter) as exception, patch("pathlib.Path.is_file", new=mock_is_file), patch(
+            "pathlib.Path.read_text", new=mock_read_text
+        ):
+            self.param_type.convert("file://A.yaml", None, MagicMock())
+
+        self.assertIn("Infinite recursion detected in file references", str(exception.exception))
 
     def test_infinite_recursion_protection(self):
         mock_files = {
@@ -213,9 +249,66 @@ class TestCfnParameterOverridesType(TestCase):
         with self.assertRaises(BadParameter) as exception, patch("pathlib.Path.is_file", new=mock_is_file), patch(
             "pathlib.Path.read_text", new=mock_read_text
         ):
-            self.param_type.convert(f"file://A.yaml", None, MagicMock())
+            self.param_type.convert("file://A.yaml", None, MagicMock())
 
         self.assertIn("Infinite recursion detected in file references", str(exception.exception))
+
+    @parameterized.expand(
+        [
+            (
+                {
+                    "config/default.yaml": "Base: default\nEnv: dev",
+                    "config/prod.yaml": "- file://default.yaml\n- Env: production\n- Region: us-east-1",
+                },
+                "config/prod.yaml",
+                {"Base": "default", "Env": "production", "Region": "us-east-1"},
+            ),
+            (
+                {
+                    "config/shared/common.yaml": "Common: shared",
+                    "config/prod.yaml": "- file://shared/common.yaml\n- Env: prod",
+                },
+                "config/prod.yaml",
+                {"Common": "shared", "Env": "prod"},
+            ),
+        ]
+    )
+    def test_relative_path_nested_includes(self, file_contents, entry_file, expected):
+        """Test that nested files can reference other files using relative paths"""
+        from pathlib import Path
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as temp:
+            temp_path = Path(temp)
+
+            # Create all files
+            for file_path, content in file_contents.items():
+                full_path = temp_path / file_path
+                full_path.parent.mkdir(parents=True, exist_ok=True)
+                full_path.write_text(content)
+
+            entry_path = temp_path / entry_file
+            result = self.param_type.convert(f"file://{entry_path}", None, MagicMock())
+            self.assertEqual(result, expected)
+
+    def test_include_key_invalid_type(self):
+        """Test that $include with invalid type fails with clear error"""
+        mock_files = {
+            "invalid.yaml": "$include: 123\nEnv: prod",
+        }
+
+        def mock_read_text(file_path):
+            return mock_files.get(file_path.name, "")
+
+        def mock_is_file(file_path):
+            return file_path.name in mock_files
+
+        with self.assertRaises(BadParameter) as exception, patch("pathlib.Path.is_file", new=mock_is_file), patch(
+            "pathlib.Path.read_text", new=mock_read_text
+        ):
+            self.param_type.convert("file://invalid.yaml", None, MagicMock())
+
+        self.assertIn("$include must be a string or list of strings", str(exception.exception))
 
 
 class TestCfnMetadataType(TestCase):
