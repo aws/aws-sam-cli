@@ -62,22 +62,6 @@ jobs:
       - name: Setup QEMU for ARM64 emulation
         run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
-      - name: Install Terraform
-        run: |
-          for i in {1..3}; do
-            TER_VER=$(curl -s https://api.github.com/repos/hashicorp/terraform/releases/latest | grep tag_name | cut -d: -f2 | tr -d \"\,\v | awk '{$1=$1};1')
-            if [ -n "$TER_VER" ]; then
-              if wget https://releases.hashicorp.com/terraform/${TER_VER}/terraform_${TER_VER}_linux_amd64.zip -P /tmp; then
-                sudo unzip -d /opt/terraform /tmp/terraform_${TER_VER}_linux_amd64.zip
-                sudo mv /opt/terraform/terraform /usr/local/bin/
-                terraform -version
-                break
-              fi
-            fi
-            echo "Terraform installation attempt $i failed, retrying..."
-            sleep 5
-          done
-
       - name: Initialize project
         run: make init
 
@@ -128,12 +112,11 @@ jobs:
       - name: Verify instrumentation
         run: grep -c "DEBUG_LAYER_ORDER" samcli/local/layers/layer_downloader.py samcli/local/docker/lambda_image.py samcli/lib/utils/tar.py
 
-      - name: Run original integration tests with debug logging
+      - name: Run TestLayerVersion tests with debug logging
         run: |
           pytest -vv --reruns 3 \
-            tests/integration/local/invoke \
-            tests/integration/local/generate_event \
-            --ignore tests/integration/local/invoke/test_invoke_durable.py \
+            tests/integration/local/invoke/test_integrations_cli.py \
+            -k "TestLayerVersion" \
             --log-cli-level=DEBUG \
             --json-report \
             --json-report-file=TEST_REPORT-integration-local-invoke-docker.json \
