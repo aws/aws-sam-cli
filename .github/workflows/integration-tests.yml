@@ -430,3 +430,325 @@ jobs:
             --cli-binary-format raw-in-base64-out
           
           cat ./lambda-output.txt
+
+  # ============================================================
+  # Windows Integration Tests (Docker via WSL2, no-container)
+  # ============================================================
+  integration-tests-windows:
+    if: github.event_name != 'schedule' || github.repository == 'aws/aws-sam-cli'
+    name: ${{ matrix.test_suite }} (${{ matrix.container_runtime }}) [windows]
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        container_runtime: [docker, no-container]
+        test_suite:
+          - build-integ
+          - build-integ-java-python-provided
+          - build-integ-dotnet-node-ruby
+          - build-integ-arm64
+          - build-integ-arm64-java
+          - terraform-build
+          - package-delete-deploy
+          - sync
+          - local-invoke
+          - local-start1
+          - local-start2
+          - other-and-e2e
+        exclude:
+          # no-container mode only applies to build-integ test suites
+          - container_runtime: no-container
+            test_suite: terraform-build
+          - container_runtime: no-container
+            test_suite: sync
+          - container_runtime: no-container
+            test_suite: package-delete-deploy
+          - container_runtime: no-container
+            test_suite: local-invoke
+          - container_runtime: no-container
+            test_suite: local-start1
+          - container_runtime: no-container
+            test_suite: local-start2
+          - container_runtime: no-container
+            test_suite: other-and-e2e
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event_name == 'schedule' && 'develop' || github.ref }}
+
+      # ============================================================
+      # WSL2 Docker Setup (only for docker runtime)
+      # ============================================================
+
+      - name: Stop Docker Engine on Windows
+        if: matrix.container_runtime == 'docker'
+        shell: pwsh
+        run: |
+          Write-Host "Stopping Docker service on Windows..."
+          Stop-Service docker -Force -ErrorAction SilentlyContinue
+          Get-Process "Docker Desktop" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+          Get-Process "com.docker.backend" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+          Write-Host "Docker on Windows has been stopped."
+
+      - name: Install and Configure WSL 2
+        if: matrix.container_runtime == 'docker'
+        uses: Vampire/setup-wsl@v6
+        with:
+          distribution: Ubuntu-24.04
+          set-as-default: 'true'
+          update: 'true'
+          additional-packages:
+            ca-certificates
+            curl
+            net-tools
+          wsl-version: 2
+          # Mount Windows drives at / instead of /mnt/ so Docker volume mounts work.
+          # SAM CLI's to_posix_path converts D:\path to /d/path (not /mnt/d/path).
+          wsl-conf: |
+            [automount]
+            root = /
+            options = "metadata"
+
+      - name: WSL - Verify drive mount at root
+        if: matrix.container_runtime == 'docker'
+        shell: wsl-bash {0}
+        run: |
+          echo "=== Verifying Windows drive mount point ==="
+          if [ -d "/d" ]; then
+            echo "SUCCESS: /d exists (Windows D: drive mounted at /d/)"
+          elif [ -d "/mnt/d" ]; then
+            echo "WARNING: Creating symlink /d -> /mnt/d as fallback..."
+            sudo ln -sf /mnt/d /d
+          fi
+          if [ -d "/c" ]; then
+            echo "SUCCESS: /c exists (Windows C: drive mounted at /c/)"
+          fi
+
+      - name: WSL - Install Docker Engine
+        if: matrix.container_runtime == 'docker'
+        shell: wsl-bash {0}
+        run: |
+          set -e
+          sudo install -m 0755 -d /etc/apt/keyrings
+          sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+          sudo chmod a+r /etc/apt/keyrings/docker.asc
+          echo \
+            "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+            $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+            sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+          sudo apt-get update
+          sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+          sudo service docker start
+          sudo docker info
+
+      - name: WSL - Configure Docker to listen on TCP
+        if: matrix.container_runtime == 'docker'
+        shell: wsl-bash {0}
+        run: |
+          set -e
+          sudo systemctl stop docker.service || sudo service docker stop || true
+          sudo systemctl stop docker.socket || true
+          sleep 2
+          sudo pkill -9 dockerd || true
+          sleep 1
+          sudo rm -f /var/run/docker.sock
+          sudo dockerd --tls=false --host unix:///var/run/docker.sock --host tcp://0.0.0.0:2375 &
+          echo "Waiting for Docker daemon to be ready..."
+          for i in $(seq 1 30); do
+            if sudo docker info > /dev/null 2>&1; then
+              echo "Docker daemon is ready after ${i}s"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "ERROR: Docker daemon failed to start within 30 seconds"
+              exit 1
+            fi
+            sleep 1
+          done
+          sudo docker info
+
+      - name: Configure Windows to use Docker in WSL2
+        if: matrix.container_runtime == 'docker'
+        shell: pwsh
+        run: |
+          $wslIp = (wsl hostname -I).Trim().Split(' ')[0]
+          Write-Host "WSL2 IP address: $wslIp"
+          $dockerHost = "tcp://${wslIp}:2375"
+          Write-Host "Setting DOCKER_HOST=$dockerHost"
+          echo "DOCKER_HOST=$dockerHost" >> $env:GITHUB_ENV
+
+      # ============================================================
+      # Prerequisites for Integration Tests
+      # ============================================================
+
+      - name: Set TEMP to D:/Temp
+        shell: pwsh
+        run: |
+          mkdir "D:\Temp" -Force
+          echo "TEMP=D:\Temp" >> $env:GITHUB_ENV
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ secrets.OIDC_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          # Last version listed becomes the default 'python' on Windows.
+          # 3.11 must be last since make init installs packages into it (UV_PYTHON=3.11).
+          python-version: |
+            3.9
+            3.10
+            3.12
+            3.13
+            3.14
+            3.11
+
+      - name: Install Terraform
+        if: contains(fromJSON('["terraform-build", "local-invoke", "local-start2"]'), matrix.test_suite)
+        shell: pwsh
+        run: |
+          choco install terraform -y
+          terraform -version
+
+      - name: Initialize project
+        shell: bash
+        run: make init
+
+      - name: Get testing resources and credentials
+        shell: bash
+        run: |
+          # Retry logic for transient credential issues (e.g. InvalidSignatureException)
+          MAX_RETRIES=3
+          RETRY_DELAY=10
+          test_env_var=""
+
+          for attempt in $(seq 1 $MAX_RETRIES); do
+            echo "Attempt $attempt of $MAX_RETRIES to get testing resources..."
+            test_env_var=$(python tests/get_testing_resources.py skip_role_deletion 2>&1) && break
+            echo "Attempt $attempt with skip_role_deletion failed, trying without parameter..."
+            test_env_var=$(python tests/get_testing_resources.py 2>&1) && break
+            if [ $attempt -lt $MAX_RETRIES ]; then
+              echo "Retrying in ${RETRY_DELAY}s..."
+              sleep $RETRY_DELAY
+            else
+              echo "get_testing_resources failed after $MAX_RETRIES attempts. Last output:"
+              echo "$test_env_var"
+              exit 1
+            fi
+          done
+
+          echo "::add-mask::$AWS_ACCESS_KEY_ID"
+          echo "::add-mask::$AWS_SECRET_ACCESS_KEY"
+          echo "::add-mask::$AWS_SESSION_TOKEN"
+          echo "CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> $GITHUB_ENV
+          echo "CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" >> $GITHUB_ENV
+          echo "CI_ACCESS_ROLE_AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN" >> $GITHUB_ENV
+
+          TEST_ACCESS_KEY_ID=$(echo "$test_env_var" | jq -j ".accessKeyID")
+          TEST_SECRET_ACCESS_KEY=$(echo "$test_env_var" | jq -j ".secretAccessKey")
+          TEST_SESSION_TOKEN=$(echo "$test_env_var" | jq -j ".sessionToken")
+          TEST_TASK_TOKEN=$(echo "$test_env_var" | jq -j ".taskToken")
+
+          echo "::add-mask::$TEST_ACCESS_KEY_ID"
+          echo "::add-mask::$TEST_SECRET_ACCESS_KEY"
+          echo "::add-mask::$TEST_SESSION_TOKEN"
+          echo "::add-mask::$TEST_TASK_TOKEN"
+
+          echo "AWS_ACCESS_KEY_ID=$TEST_ACCESS_KEY_ID" >> $GITHUB_ENV
+          echo "AWS_SECRET_ACCESS_KEY=$TEST_SECRET_ACCESS_KEY" >> $GITHUB_ENV
+          echo "AWS_SESSION_TOKEN=$TEST_SESSION_TOKEN" >> $GITHUB_ENV
+          echo "TASK_TOKEN=$TEST_TASK_TOKEN" >> $GITHUB_ENV
+
+          echo "AWS_S3_TESTING=$(echo "$test_env_var" | jq -j ".TestBucketName")" >> $GITHUB_ENV
+          echo "AWS_ECR_TESTING=$(echo "$test_env_var" | jq -j ".TestECRURI")" >> $GITHUB_ENV
+          echo "AWS_KMS_KEY=$(echo "$test_env_var" | jq -j ".TestKMSKeyArn")" >> $GITHUB_ENV
+          echo "AWS_SIGNING_PROFILE_NAME=$(echo "$test_env_var" | jq -j ".TestSigningProfileName")" >> $GITHUB_ENV
+          echo "AWS_SIGNING_PROFILE_VERSION_ARN=$(echo "$test_env_var" | jq -j ".TestSigningProfileARN")" >> $GITHUB_ENV
+
+      - name: Login to Public ECR
+        if: matrix.container_runtime == 'docker' && env.BY_CANARY == 'true'
+        shell: bash
+        run: |
+          aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws || { echo "FATAL: Docker Public ECR login failed"; exit 1; }
+          echo "Public ECR authentication completed successfully"
+
+      # ============================================================
+      # Run Integration Tests
+      # ============================================================
+
+      - name: Run tests
+        shell: bash
+        run: |
+          if [ "${{ matrix.container_runtime }}" = "no-container" ]; then
+            CONTAINER_FILTER="not container"
+          else
+            CONTAINER_FILTER=container
+          fi
+
+          case "${{ matrix.test_suite }}" in
+            "build-integ")
+              pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'not java and not python and not provided and not dotnet and not nodejs and not ruby' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py -k "${CONTAINER_FILTER}" --json-report --json-report-file=TEST_REPORT-integration-buildcmd-${{ matrix.container_runtime }}-windows.json
+              ;;
+            "build-integ-java-python-provided")
+              pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'java or python or provided' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py -k "${CONTAINER_FILTER}" --json-report --json-report-file=TEST_REPORT-integration-buildcmd-java-python-provided-${{ matrix.container_runtime }}-windows.json
+              ;;
+            "build-integ-dotnet-node-ruby")
+              pytest -vv -n 2 --reruns 3 tests/integration/buildcmd -m 'dotnet or nodejs or ruby' --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_terraform_applications.py --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py -k "${CONTAINER_FILTER}" --json-report --json-report-file=TEST_REPORT-build-integ-dotnet-node-ruby-${{ matrix.container_runtime }}-windows.json
+              ;;
+            "build-integ-arm64")
+              pytest -vv -n 2 --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'not java' -k "${CONTAINER_FILTER}" --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64-${{ matrix.container_runtime }}-windows.json
+              ;;
+            "build-integ-arm64-java")
+              pytest -vv -n 2 --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py -m 'java' -k "${CONTAINER_FILTER}" --json-report --json-report-file=TEST_REPORT-integration-buildcmd-arm64-java-${{ matrix.container_runtime }}-windows.json
+              ;;
+            "terraform-build")
+              pytest -vv -n 4 --reruns 3 tests/integration/buildcmd/test_build_terraform_applications.py tests/integration/buildcmd/test_build_terraform_applications_other_cases.py --json-report --json-report-file=TEST_REPORT-integration-terraform-${{ matrix.container_runtime }}-windows.json
+              ;;
+            "package-delete-deploy")
+              pytest -vv tests/integration/package tests/integration/delete tests/integration/deploy --dist=loadgroup -n 6 --reruns 4 --json-report --json-report-file=TEST_REPORT-integration-package-delete-deploy-${{ matrix.container_runtime }}-windows.json
+              ;;
+            "sync")
+              pytest -vv tests/integration/sync -n 4 --reruns 3 --dist loadscope --json-report --json-report-file=TEST_REPORT-integration-sync-${{ matrix.container_runtime }}-windows.json
+              ;;
+            "local-invoke")
+              pytest -vv --reruns 3 tests/integration/local/invoke tests/integration/local/generate_event --ignore tests/integration/local/invoke/test_invoke_durable.py --json-report --json-report-file=TEST_REPORT-integration-local-invoke-${{ matrix.container_runtime }}-windows.json
+              ;;
+            "local-start1")
+              pytest -vv --reruns 3 tests/integration/local/start_api --ignore tests/integration/local/start_api/test_start_api_with_terraform_application.py --ignore tests/integration/local/start_api/test_start_api_durable.py --json-report --json-report-file=TEST_REPORT-integration-local-start1-${{ matrix.container_runtime }}-windows.json
+              ;;
+            "local-start2")
+              pytest -vv --reruns 3 tests/integration/local/start_lambda tests/integration/local/start_api/test_start_api_with_terraform_application.py tests/integration/local/callback/test_callback.py tests/integration/local/execution/test_execution.py --ignore tests/integration/local/start_lambda/test_start_lambda_durable.py --json-report --json-report-file=TEST_REPORT-integration-local-start2-${{ matrix.container_runtime }}-windows.json
+              ;;
+            "other-and-e2e")
+              pytest -vv -n 4 --reruns 3 --dist loadgroup tests/integration tests/end_to_end tests/regression --ignore=tests/integration/buildcmd --ignore=tests/integration/delete --ignore=tests/integration/deploy --ignore=tests/integration/package --ignore=tests/integration/sync --ignore=tests/integration/local --json-report --json-report-file=TEST_REPORT-integration-others-${{ matrix.container_runtime }}-windows.json
+              ;;
+          esac
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: test-results-${{ matrix.test_suite }}-${{ matrix.container_runtime }}-windows
+          path: TEST_REPORT-*.json
+
+      - name: Reset test account
+        if: always()
+        shell: bash
+        run: |
+          export AWS_ACCESS_KEY_ID=$CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID
+          export AWS_SECRET_ACCESS_KEY=$CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY
+          export AWS_SESSION_TOKEN=$CI_ACCESS_ROLE_AWS_SESSION_TOKEN
+
+          aws lambda invoke \
+            --function-name "$ACCOUNT_RESET_LAMBDA_ARN" \
+            --payload "{\"taskToken\": \"$TASK_TOKEN\", \"output\": \"{}\"}" \
+            ./lambda-output.txt \
+            --region us-west-2 \
+            --cli-binary-format raw-in-base64-out
+
+          cat ./lambda-output.txt
