@@ -12,8 +12,11 @@ jobs:
     permissions:
       contents: read
     steps:
+      - name: Wait for label to be applied
+        run: sleep 10s
+        shell: bash
       - name: Send External PR Notification
-        if: github.event_name == 'pull_request' && github.event.label.name == 'pr/external'
+        if: github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'pr/external')
         uses: rtCamp/action-slack-notify@e31e87e03dd19038e411e38ae27cbad084a90661 # v2
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
