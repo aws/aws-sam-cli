@@ -159,10 +159,63 @@ class TestLinuxHandler(unittest.TestCase):
         result = self.handler.read_config()
         self.assertIsNone(result)
 
-    def test_get_finch_socket_path(self):
-        """Test Linux Finch socket path"""
+    @patch("os.path.exists")
+    @patch.dict("os.environ", {"XDG_RUNTIME_DIR": "/run/user/1001"})
+    def test_get_finch_socket_path_xdg_containerd(self, mock_exists):
+        """Test Linux Finch socket path with XDG_RUNTIME_DIR containerd socket"""
+        # Mock that containerd socket exists
+        def exists_side_effect(path):
+            return path == "/run/user/1001/containerd/containerd.sock"
+        
+        mock_exists.side_effect = exists_side_effect
+        result = self.handler.get_finch_socket_path()
+        self.assertEqual(result, "unix:///run/user/1001/containerd/containerd.sock")
+
+    @patch("os.path.exists")
+    @patch.dict("os.environ", {"XDG_RUNTIME_DIR": "/run/user/1001"})
+    def test_get_finch_socket_path_xdg_finch(self, mock_exists):
+        """Test Linux Finch socket path with XDG_RUNTIME_DIR finch socket"""
+        # Mock that finch socket exists (but not containerd)
+        def exists_side_effect(path):
+            return path == "/run/user/1001/finch.sock"
+        
+        mock_exists.side_effect = exists_side_effect
+        result = self.handler.get_finch_socket_path()
+        self.assertEqual(result, "unix:///run/user/1001/finch.sock")
+
+    @patch("os.path.exists")
+    @patch("os.path.expanduser")
+    @patch.dict("os.environ", {}, clear=True)
+    def test_get_finch_socket_path_home_directory(self, mock_expanduser, mock_exists):
+        """Test Linux Finch socket path in home directory"""
+        mock_expanduser.return_value = "/home/testuser"
+        
+        # Mock that home finch socket exists
+        def exists_side_effect(path):
+            return path == "/home/testuser/.finch/finch.sock"
+        
+        mock_exists.side_effect = exists_side_effect
+        result = self.handler.get_finch_socket_path()
+        self.assertEqual(result, "unix:///home/testuser/.finch/finch.sock")
+
+    @patch("os.path.exists")
+    @patch.dict("os.environ", {}, clear=True)
+    def test_get_finch_socket_path_system_socket(self, mock_exists):
+        """Test Linux Finch socket path at system location"""
+        # Mock that system socket exists
+        def exists_side_effect(path):
+            return path == "/var/run/finch.sock"
+        
+        mock_exists.side_effect = exists_side_effect
         result = self.handler.get_finch_socket_path()
         self.assertEqual(result, "unix:///var/run/finch.sock")
+
+    @patch("os.path.exists", return_value=False)
+    @patch.dict("os.environ", {}, clear=True)
+    def test_get_finch_socket_path_not_found(self, mock_exists):
+        """Test Linux Finch socket path when no socket exists"""
+        result = self.handler.get_finch_socket_path()
+        self.assertIsNone(result)
 
     def test_supports_finch(self):
         """Test that Linux supports Finch"""
@@ -268,21 +321,45 @@ class TestGetPlatformHandler(unittest.TestCase):
 class TestGetFinchSocketPath(unittest.TestCase):
     """Tests for get_finch_socket_path utility function"""
 
-    @parameterized.expand(
-        [
-            ("Linux", "unix:///var/run/finch.sock"),
-            ("Darwin", "unix:////Applications/Finch/lima/data/finch/sock/finch.sock"),
-            ("Windows", None),
-        ]
-    )
+    @patch("os.path.exists")
     @patch("samcli.local.docker.platform_config.platform.system")
-    def test_get_finch_socket_path_returns_correct_path(self, platform_name, expected_path, mock_system):
-        """Test that get_finch_socket_path returns the correct path based on platform"""
-        mock_system.return_value = platform_name
-
+    def test_get_finch_socket_path_linux_with_system_socket(self, mock_system, mock_exists):
+        """Test that get_finch_socket_path returns system socket path on Linux when it exists"""
+        mock_system.return_value = "Linux"
+        
+        # Mock that system socket exists
+        def exists_side_effect(path):
+            return path == "/var/run/finch.sock"
+        
+        mock_exists.side_effect = exists_side_effect
+        
         result = get_finch_socket_path()
-        self.assertEqual(result, expected_path)
-        mock_system.assert_called_once()
+        self.assertEqual(result, "unix:///var/run/finch.sock")
+
+    @patch("os.path.exists", return_value=False)
+    @patch("samcli.local.docker.platform_config.platform.system")
+    def test_get_finch_socket_path_linux_no_socket(self, mock_system, mock_exists):
+        """Test that get_finch_socket_path returns None on Linux when no socket exists"""
+        mock_system.return_value = "Linux"
+        
+        result = get_finch_socket_path()
+        self.assertIsNone(result)
+
+    @patch("samcli.local.docker.platform_config.platform.system")
+    def test_get_finch_socket_path_macos(self, mock_system):
+        """Test that get_finch_socket_path returns correct path on macOS"""
+        mock_system.return_value = "Darwin"
+        
+        result = get_finch_socket_path()
+        self.assertEqual(result, "unix:////Applications/Finch/lima/data/finch/sock/finch.sock")
+
+    @patch("samcli.local.docker.platform_config.platform.system")
+    def test_get_finch_socket_path_windows(self, mock_system):
+        """Test that get_finch_socket_path returns None on Windows"""
+        mock_system.return_value = "Windows"
+        
+        result = get_finch_socket_path()
+        self.assertIsNone(result)
 
     @patch("samcli.local.docker.platform_config.get_platform_handler")
     def test_get_finch_socket_path_returns_none_when_no_handler(self, mock_get_handler):
