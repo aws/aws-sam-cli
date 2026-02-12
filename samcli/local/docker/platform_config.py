@@ -123,11 +123,49 @@ class LinuxHandler(PlatformHandler):
 
     def get_finch_socket_path(self) -> Optional[str]:
         """
-        Returns the socket path for Linux.
+        Returns the socket path for Linux, checking multiple locations.
+        
+        Priority order:
+        1. XDG_RUNTIME_DIR/containerd/containerd.sock (rootless containerd)
+        2. XDG_RUNTIME_DIR/finch.sock (Finch-specific)
+        3. ~/.finch/finch.sock (user home directory)
+        4. /var/run/finch.sock (system-wide)
+        
+        Returns:
+            Optional[str]: Socket path if found, None otherwise
         """
-
-        # Default fallback to system socket
-        return "unix:///var/run/finch.sock"
+        
+        # Check XDG_RUNTIME_DIR for rootless containerd
+        xdg_runtime_dir = os.environ.get("XDG_RUNTIME_DIR")
+        if xdg_runtime_dir:
+            # Rootless containerd socket (most common on Linux)
+            containerd_sock = os.path.join(xdg_runtime_dir, "containerd", "containerd.sock")
+            if os.path.exists(containerd_sock):
+                LOG.debug(f"Found Finch socket at XDG_RUNTIME_DIR: {containerd_sock}")
+                return f"unix://{containerd_sock}"
+            
+            # Finch-specific socket in XDG_RUNTIME_DIR
+            finch_sock = os.path.join(xdg_runtime_dir, "finch.sock")
+            if os.path.exists(finch_sock):
+                LOG.debug(f"Found Finch socket at XDG_RUNTIME_DIR: {finch_sock}")
+                return f"unix://{finch_sock}"
+        
+        # Check user home directory for Finch VM socket
+        home_dir = os.path.expanduser("~")
+        home_finch_sock = os.path.join(home_dir, ".finch", "finch.sock")
+        if os.path.exists(home_finch_sock):
+            LOG.debug(f"Found Finch socket in home directory: {home_finch_sock}")
+            return f"unix://{home_finch_sock}"
+        
+        # System-wide socket (fallback)
+        system_sock = "/var/run/finch.sock"
+        if os.path.exists(system_sock):
+            LOG.debug(f"Found Finch socket at system location: {system_sock}")
+            return f"unix://{system_sock}"
+        
+        # No socket found - return None to enable future CLI fallback
+        LOG.debug("No Finch socket found in standard locations")
+        return None
 
     def supports_finch(self) -> bool:
         """
