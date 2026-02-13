@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform:
+  - AWS::LanguageExtensions
+  - AWS::Serverless-2016-10-31
+
+Description: >
+  Test template with 6 levels of nested Fn::ForEach (exceeds the maximum allowed limit of 5).
+  This template should fail validation with a clear error message.
+
+Resources:
+  # 6 levels of nested Fn::ForEach - exceeds the maximum allowed limit
+  Fn::ForEach::Level1:
+    - L1
+    - [A]
+    - Fn::ForEach::Level2:
+        - L2
+        - [B]
+        - Fn::ForEach::Level3:
+            - L3
+            - [C]
+            - Fn::ForEach::Level4:
+                - L4
+                - [D]
+                - Fn::ForEach::Level5:
+                    - L5
+                    - [E]
+                    - Fn::ForEach::Level6:
+                        - L6
+                        - [F]
+                        - ${L1}${L2}${L3}${L4}${L5}${L6}Resource:
+                            Type: AWS::CloudFormation::WaitConditionHandle
+                            # Using WaitConditionHandle as it requires no properties
+                            # and is the simplest resource type for testing nesting

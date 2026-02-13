@@ -1,0 +1,252 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform:
+  - AWS::LanguageExtensions
+  - AWS::Serverless-2016-10-31
+
+Description: >
+  Test template for Fn::FindInMap with DefaultValue option.
+  Demonstrates:
+  - Fn::FindInMap with DefaultValue where key exists (returns mapped value)
+  - Fn::FindInMap with DefaultValue where key does NOT exist (returns default)
+  - Integration with Fn::ForEach using Fn::FindInMap with DefaultValue
+  Validates Requirements: 17.5, 5A.1, 5A.2
+
+Parameters:
+  Runtime:
+    Type: String
+    Default: python3.13
+    Description: Python runtime version for Lambda functions
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+    Description: Deployment environment
+
+Mappings:
+  # Environment-specific configuration mapping
+  EnvironmentConfig:
+    dev:
+      MemorySize: "128"
+      Timeout: "10"
+      LogLevel: DEBUG
+    staging:
+      MemorySize: "256"
+      Timeout: "20"
+      LogLevel: INFO
+    prod:
+      MemorySize: "512"
+      Timeout: "30"
+      LogLevel: WARN
+  
+  # Function-specific configuration mapping
+  # Note: Only Alpha and Beta are defined, Gamma will use DefaultValue
+  FunctionConfig:
+    Alpha:
+      Handler: alpha_handler
+      Description: Alpha function handler
+    Beta:
+      Handler: beta_handler
+      Description: Beta function handler
+    # Gamma is intentionally NOT defined to test DefaultValue
+
+Globals:
+  Function:
+    Runtime: !Ref Runtime
+
+Resources:
+  # Test 1: Fn::FindInMap with DefaultValue where key EXISTS (returns mapped value)
+  # This function uses the 'dev' environment which exists in EnvironmentConfig
+  # Expected: MemorySize = 128 (from mapping), not the default 64
+  ExistingKeyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handler
+      CodeUri: src/
+      FunctionName: existing-key-function
+      MemorySize:
+        Fn::FindInMap:
+          - EnvironmentConfig
+          - !Ref Environment
+          - MemorySize
+          - DefaultValue: "64"
+      Timeout:
+        Fn::FindInMap:
+          - EnvironmentConfig
+          - !Ref Environment
+          - Timeout
+          - DefaultValue: "5"
+      Environment:
+        Variables:
+          LOG_LEVEL:
+            Fn::FindInMap:
+              - EnvironmentConfig
+              - !Ref Environment
+              - LogLevel
+              - DefaultValue: ERROR
+          TEST_CASE: existing_key
+
+  # Test 2: Fn::FindInMap with DefaultValue where key does NOT exist (returns default)
+  # This function looks up 'NonExistentEnv' which doesn't exist in EnvironmentConfig
+  # Expected: MemorySize = 64 (DefaultValue), Timeout = 5 (DefaultValue)
+  NonExistentKeyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handler
+      CodeUri: src/
+      FunctionName: non-existent-key-function
+      MemorySize:
+        Fn::FindInMap:
+          - EnvironmentConfig
+          - NonExistentEnv
+          - MemorySize
+          - DefaultValue: "64"
+      Timeout:
+        Fn::FindInMap:
+          - EnvironmentConfig
+          - NonExistentEnv
+          - Timeout
+          - DefaultValue: "5"
+      Environment:
+        Variables:
+          LOG_LEVEL:
+            Fn::FindInMap:
+              - EnvironmentConfig
+              - NonExistentEnv
+              - LogLevel
+              - DefaultValue: ERROR
+          TEST_CASE: non_existent_key
+
+  # Test 3: Fn::ForEach with Fn::FindInMap using DefaultValue
+  # This generates functions for Alpha, Beta, and Gamma
+  # Alpha and Beta exist in FunctionConfig mapping (use mapped values)
+  # Gamma does NOT exist in FunctionConfig mapping (uses DefaultValue)
+  Fn::ForEach::ConfiguredFunctions:
+    - FunctionName
+    - - Alpha
+      - Beta
+      - Gamma
+    - ${FunctionName}ConfiguredFunction:
+        Type: AWS::Serverless::Function
+        Properties:
+          # Handler uses Fn::FindInMap with DefaultValue
+          # Alpha -> alpha_handler, Beta -> beta_handler, Gamma -> default_handler (DefaultValue)
+          Handler:
+            Fn::FindInMap:
+              - FunctionConfig
+              - !Sub ${FunctionName}
+              - Handler
+              - DefaultValue: default_handler
+          CodeUri: src/
+          FunctionName:
+            Fn::Sub: ${FunctionName}-configured-function
+          MemorySize:
+            Fn::FindInMap:
+              - EnvironmentConfig
+              - !Ref Environment
+              - MemorySize
+              - DefaultValue: "64"
+          Timeout:
+            Fn::FindInMap:
+              - EnvironmentConfig
+              - !Ref Environment
+              - Timeout
+              - DefaultValue: "5"
+          Environment:
+            Variables:
+              FUNCTION_NAME: !Sub ${FunctionName}
+              # Description uses Fn::FindInMap with DefaultValue
+              # Alpha/Beta get mapped description, Gamma gets default
+              FUNCTION_DESCRIPTION:
+                Fn::FindInMap:
+                  - FunctionConfig
+                  - !Sub ${FunctionName}
+                  - Description
+                  - DefaultValue: Default function description
+              LOG_LEVEL:
+                Fn::FindInMap:
+                  - EnvironmentConfig
+                  - !Ref Environment
+                  - LogLevel
+                  - DefaultValue: ERROR
+              TEST_CASE: foreach_with_findinmap
+
+  # Test 4: Nested Fn::FindInMap with DefaultValue in Fn::ToJsonString
+  # Combines multiple language extensions features
+  CombinedFeaturesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handler
+      CodeUri: src/
+      FunctionName: combined-features-function
+      MemorySize:
+        Fn::FindInMap:
+          - EnvironmentConfig
+          - !Ref Environment
+          - MemorySize
+          - DefaultValue: "64"
+      Timeout:
+        Fn::FindInMap:
+          - EnvironmentConfig
+          - !Ref Environment
+          - Timeout
+          - DefaultValue: "5"
+      Environment:
+        Variables:
+          # Fn::ToJsonString with Fn::FindInMap using DefaultValue
+          CONFIG_JSON:
+            Fn::ToJsonString:
+              environment: !Ref Environment
+              logLevel:
+                Fn::FindInMap:
+                  - EnvironmentConfig
+                  - !Ref Environment
+                  - LogLevel
+                  - DefaultValue: ERROR
+              memorySize:
+                Fn::FindInMap:
+                  - EnvironmentConfig
+                  - !Ref Environment
+                  - MemorySize
+                  - DefaultValue: "64"
+              # This key doesn't exist, so DefaultValue is used
+              customSetting:
+                Fn::FindInMap:
+                  - EnvironmentConfig
+                  - !Ref Environment
+                  - CustomSetting
+                  - DefaultValue: default-custom-value
+          # Fn::Length to count environments
+          ENVIRONMENT_COUNT:
+            Fn::Length:
+              - dev
+              - staging
+              - prod
+          TEST_CASE: combined_features
+
+Outputs:
+  ExistingKeyFunctionArn:
+    Description: ARN of the function testing existing key lookup
+    Value: !GetAtt ExistingKeyFunction.Arn
+
+  NonExistentKeyFunctionArn:
+    Description: ARN of the function testing non-existent key lookup (uses DefaultValue)
+    Value: !GetAtt NonExistentKeyFunction.Arn
+
+  AlphaConfiguredFunctionArn:
+    Description: ARN of Alpha function (key exists in FunctionConfig)
+    Value: !GetAtt AlphaConfiguredFunction.Arn
+
+  BetaConfiguredFunctionArn:
+    Description: ARN of Beta function (key exists in FunctionConfig)
+    Value: !GetAtt BetaConfiguredFunction.Arn
+
+  GammaConfiguredFunctionArn:
+    Description: ARN of Gamma function (key does NOT exist, uses DefaultValue)
+    Value: !GetAtt GammaConfiguredFunction.Arn
+
+  CombinedFeaturesFunctionArn:
+    Description: ARN of the function combining multiple language extension features
+    Value: !GetAtt CombinedFeaturesFunction.Arn

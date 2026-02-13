@@ -6,20 +6,22 @@ import logging
 import os
 import pathlib
 import shutil
-from typing import Dict, List, Optional, Tuple
+from collections import Counter
+from typing import Any, Dict, List, Optional, Tuple
 
 import click
 
 from samcli.commands._utils.constants import DEFAULT_BUILD_DIR
 from samcli.commands._utils.experimental import ExperimentalFlag, prompt_experimental
 from samcli.commands._utils.template import (
+    FOREACH_REQUIRED_ELEMENTS,
     get_template_data,
     move_template,
 )
 from samcli.commands.build.exceptions import InvalidBuildDirException, MissingBuildMethodException
 from samcli.commands.build.utils import MountMode, prompt_user_to_enable_mount_with_write_if_needed
 from samcli.commands.exceptions import UserException
-from samcli.lib.bootstrap.nested_stack.nested_stack_manager import NestedStackManager
+from samcli.lib.bootstrap.nested_stack.nested_stack_manager import NESTED_STACK_NAME, NestedStackManager
 from samcli.lib.build.app_builder import (
     ApplicationBuilder,
     ApplicationBuildResult,
@@ -33,6 +35,11 @@ from samcli.lib.build.exceptions import (
     InvalidBuildGraphException,
 )
 from samcli.lib.build.workflow_config import UnsupportedRuntimeException
+from samcli.lib.cfn_language_extensions.sam_integration import (
+    contains_loop_variable,
+    sanitize_resource_key_for_mapping,
+    substitute_loop_variable,
+)
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.providers.provider import LayerVersion, ResourcesToBuildCollector, Stack
 from samcli.lib.providers.sam_api_provider import SamApiProvider
@@ -400,7 +407,526 @@ class BuildContext:
             if esbuild_manager.esbuild_configured():
                 modified_template = esbuild_manager.handle_template_post_processing()
 
-            move_template(stack.location, output_template_path, modified_template)
+            # Determine which template to write to disk
+            # If the stack has an original template (with Fn::ForEach intact), use it
+            # Otherwise, use the modified (expanded) template
+            template_to_write = self._get_template_for_output(stack, modified_template, artifacts)
+
+            move_template(stack.location, output_template_path, template_to_write)
+
+    def _get_template_for_output(self, stack: Stack, modified_template: Dict, artifacts: Dict[str, str]) -> Dict:
+        """
+        Get the template to write to the build output directory.
+
+        For templates with language extensions (Fn::ForEach), we preserve the original
+        template structure and update artifact paths within the Fn::ForEach constructs.
+        This ensures CloudFormation can process the AWS::LanguageExtensions transform
+        server-side.
+
+        Parameters
+        ----------
+        stack : Stack
+            The stack being processed
+        modified_template : Dict
+            The expanded template with updated artifact paths
+        artifacts : Dict[str, str]
+            Map of resource full paths to their built artifact locations
+
+        Returns
+        -------
+        Dict
+            The template to write to disk
+        """
+        import copy
+
+        # If no original template, use the modified (expanded) template
+        # Check if original_template_dict exists and is a dict (not a Mock or other type)
+        original_template_dict = getattr(stack, "original_template_dict", None)
+        if not isinstance(original_template_dict, dict):
+            return modified_template
+
+        # Use the original template (with Fn::ForEach intact)
+        # We need to update artifact paths in the Fn::ForEach constructs
+        original_template = copy.deepcopy(original_template_dict)
+
+        # Update artifact paths in the original template
+        self._update_original_template_paths(original_template, modified_template, stack)
+
+        # Propagate the auto dependency layer nested stack resource from the expanded template
+        # into the original template. This resource is a regular AWS::CloudFormation::Stack type
+        # added by NestedStackManager and does not conflict with Fn::ForEach constructs.
+        modified_resources = modified_template.get("Resources", {})
+        if NESTED_STACK_NAME in modified_resources:
+            original_template.setdefault("Resources", {})[NESTED_STACK_NAME] = modified_resources[NESTED_STACK_NAME]
+
+        return original_template
+
+    def _update_original_template_paths(self, original_template: Dict, modified_template: Dict, stack: Stack) -> None:
+        """
+        Update artifact paths in the original template based on the modified template.
+
+        This method handles Fn::ForEach constructs by finding the corresponding
+        artifact paths from the expanded template and updating the original template.
+        For dynamic artifact properties, it generates Mappings sections.
+
+        Parameters
+        ----------
+        original_template : Dict
+            The original template with Fn::ForEach constructs (will be modified in place)
+        modified_template : Dict
+            The expanded template with updated artifact paths
+        stack : Stack
+            The stack being processed
+        """
+        # Get the resources section from both templates
+        original_resources = original_template.get("Resources", {})
+        modified_resources = modified_template.get("Resources", {})
+
+        # Collect all generated Mappings from dynamic artifact properties
+        all_generated_mappings: Dict[str, Dict[str, Dict[str, str]]] = {}
+
+        # Process each resource in the original template
+        for resource_key, resource_value in original_resources.items():
+            # Check if this is a Fn::ForEach construct
+            if resource_key.startswith("Fn::ForEach::"):
+                generated_mappings = self._update_foreach_artifact_paths(
+                    resource_key,
+                    resource_value,
+                    modified_resources,
+                    template=original_template,
+                    parameter_values=stack.parameters,
+                )
+                all_generated_mappings.update(generated_mappings)
+            elif isinstance(resource_value, dict) and resource_key in modified_resources:
+                # Regular resource - copy updated paths from modified template
+                modified_resource = modified_resources.get(resource_key, {})
+                self._copy_artifact_paths(resource_value, modified_resource)
+
+        # Merge generated Mappings into the template
+        if all_generated_mappings:
+            if "Mappings" not in original_template:
+                original_template["Mappings"] = {}
+            original_template["Mappings"].update(all_generated_mappings)
+
+    def _update_foreach_artifact_paths(
+        self,
+        foreach_key: str,
+        foreach_value: list,
+        modified_resources: Dict,
+        outer_context: Optional[List[Tuple[str, List[str]]]] = None,
+        template: Optional[Dict] = None,
+        parameter_values: Optional[Dict] = None,
+        parent_nesting_path: str = "",
+    ) -> Dict[str, Dict[str, Dict[str, str]]]:
+        """
+        Update artifact paths in a Fn::ForEach construct.
+
+        Recurses into nested Fn::ForEach blocks, passing outer loop context so that
+        expanded resource names can be fully resolved.
+
+        Parameters
+        ----------
+        foreach_key : str
+            The Fn::ForEach key (e.g., "Fn::ForEach::Functions")
+        foreach_value : list
+            The Fn::ForEach value [loop_var, collection, body]
+        modified_resources : Dict
+            The expanded resources with updated artifact paths
+        outer_context : list of tuples, optional
+            Enclosing loop variables and their collections for nested ForEach.
+        template : dict, optional
+            The full original template (for resolving parameter-ref collections)
+        parameter_values : dict, optional
+            Parameter values (for resolving parameter-ref collections)
+        parent_nesting_path : str
+            Accumulated nesting path from parent ForEach loops (e.g., "Envs" when
+            nested under Fn::ForEach::Envs).
+
+        Returns
+        -------
+        Dict[str, Dict[str, Dict[str, str]]]
+            Generated Mappings section for dynamic artifact properties (empty dict if none)
+        """
+        from samcli.lib.cfn_language_extensions.models import PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES
+        from samcli.lib.cfn_language_extensions.sam_integration import resolve_collection
+
+        generated_mappings: Dict[str, Dict[str, Dict[str, str]]] = {}
+
+        if outer_context is None:
+            outer_context = []
+
+        if not isinstance(foreach_value, list) or len(foreach_value) < FOREACH_REQUIRED_ELEMENTS:
+            return generated_mappings
+
+        loop_variable = foreach_value[0]
+        collection = foreach_value[1]
+        body = foreach_value[2]
+
+        if not isinstance(loop_variable, str) or not isinstance(body, dict):
+            return generated_mappings
+
+        collection_values = resolve_collection(collection, template or {}, parameter_values)
+
+        loop_name = foreach_key.replace("Fn::ForEach::", "")
+        nesting_path = parent_nesting_path + loop_name
+        current_outer_context = outer_context + [(loop_variable, collection_values)]
+
+        dynamic_props_count = self._count_dynamic_properties(body, loop_variable, collection_values)
+
+        for resource_template_key, resource_template in body.items():
+            if isinstance(resource_template_key, str) and resource_template_key.startswith("Fn::ForEach::"):
+                nested_mappings = self._update_foreach_artifact_paths(
+                    resource_template_key,
+                    resource_template,
+                    modified_resources,
+                    outer_context=current_outer_context,
+                    template=template,
+                    parameter_values=parameter_values,
+                    parent_nesting_path=nesting_path,
+                )
+                generated_mappings.update(nested_mappings)
+                continue
+
+            if not isinstance(resource_template, dict):
+                continue
+
+            resource_type = resource_template.get("Type", "")
+            properties = resource_template.get("Properties", {})
+            if not isinstance(properties, dict):
+                continue
+
+            for prop_name in PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES.get(resource_type, []):
+                prop_value = properties.get(prop_name)
+                if prop_value is None:
+                    continue
+
+                if contains_loop_variable(prop_value, loop_variable) and collection_values:
+                    # Determine which outer loop variables the property references
+                    referenced_outer_vars = []
+                    if outer_context:
+                        referenced_outer_vars = [
+                            (ovar, ocoll) for ovar, ocoll in outer_context if contains_loop_variable(prop_value, ovar)
+                        ]
+
+                    mapping_entries = self._collect_dynamic_mapping_entries(
+                        resource_template_key,
+                        prop_name,
+                        loop_variable,
+                        collection_values,
+                        modified_resources,
+                        outer_context,
+                        referenced_outer_vars=referenced_outer_vars,
+                    )
+                    if mapping_entries:
+                        mapping_name = f"SAM{prop_name}{nesting_path}"
+                        if dynamic_props_count.get(prop_name, 0) > 1:
+                            suffix = sanitize_resource_key_for_mapping(resource_template_key)
+                            mapping_name = f"{mapping_name}{suffix}"
+                        generated_mappings[mapping_name] = mapping_entries
+
+                        lookup_key: Any
+                        if referenced_outer_vars:
+                            # Compound key: join outer + inner variable refs with "-"
+                            ref_parts = [{"Ref": ovar} for ovar, _ in referenced_outer_vars]
+                            ref_parts.append({"Ref": loop_variable})
+                            lookup_key = {"Fn::Join": ["-", ref_parts]}
+                        else:
+                            lookup_key = {"Ref": loop_variable}
+
+                        properties[prop_name] = {"Fn::FindInMap": [mapping_name, lookup_key, prop_name]}
+                else:
+                    expanded_key = self._build_expanded_key(
+                        resource_template_key,
+                        loop_variable,
+                        collection_values,
+                        outer_context,
+                    )
+                    if expanded_key:
+                        artifact_value = self._get_artifact_value(modified_resources, expanded_key, prop_name)
+                        if artifact_value is not None:
+                            properties[prop_name] = artifact_value
+
+            # Propagate auto dependency layer references from expanded functions
+            # to the ForEach body. Each expanded function may have Layers entries
+            # added by NestedStackManager referencing the nested stack outputs.
+            # We use a Mappings-based approach (same as dynamic artifact paths)
+            # to map each collection value to its layer output key.
+            layer_mappings = self._collect_foreach_layer_mappings(
+                resource_template_key,
+                loop_variable,
+                collection_values,
+                modified_resources,
+                outer_context,
+            )
+            if layer_mappings:
+                layer_mapping_name = f"SAMLayers{nesting_path}"
+                generated_mappings[layer_mapping_name] = layer_mappings
+
+                layer_lookup_key: Any
+                if outer_context:
+                    referenced_outer = [
+                        (ovar, ocoll)
+                        for ovar, ocoll in outer_context
+                        if contains_loop_variable(resource_template_key, ovar)
+                    ]
+                    if referenced_outer:
+                        ref_parts = [{"Ref": ovar} for ovar, _ in referenced_outer]
+                        ref_parts.append({"Ref": loop_variable})
+                        layer_lookup_key = {"Fn::Join": ["-", ref_parts]}
+                    else:
+                        layer_lookup_key = {"Ref": loop_variable}
+                else:
+                    layer_lookup_key = {"Ref": loop_variable}
+
+                existing_layers = properties.get("Layers", [])
+                existing_layers.append(
+                    {
+                        "Fn::GetAtt": [
+                            NESTED_STACK_NAME,
+                            {"Fn::FindInMap": [layer_mapping_name, layer_lookup_key, "LayerOutputKey"]},
+                        ]
+                    }
+                )
+                properties["Layers"] = existing_layers
+
+        return generated_mappings
+
+    @staticmethod
+    def _count_dynamic_properties(
+        body: Dict,
+        loop_variable: str,
+        collection_values: List[str],
+    ) -> Counter:
+        """Count how many resources use each packageable property name dynamically.
+
+        Used to detect collisions where multiple resources in the same ForEach body
+        share the same property name (e.g., two resources both with DefinitionUri).
+        """
+        from samcli.lib.cfn_language_extensions.models import PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES
+
+        count: Counter = Counter()
+        for rtk, rt in body.items():
+            if isinstance(rtk, str) and rtk.startswith("Fn::ForEach::"):
+                continue
+            if not isinstance(rt, dict):
+                continue
+            rtype = rt.get("Type", "")
+            rprops = rt.get("Properties", {})
+            if not isinstance(rprops, dict):
+                continue
+            for pname in PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES.get(rtype, []):
+                pval = rprops.get(pname)
+                if pval is not None and contains_loop_variable(pval, loop_variable) and collection_values:
+                    count[pname] += 1
+        return count
+
+    @staticmethod
+    def _build_expanded_key(
+        resource_template_key: str,
+        loop_variable: str,
+        collection_values: List[str],
+        outer_context: Optional[List[Tuple[str, List[str]]]],
+    ) -> Optional[str]:
+        """Build an expanded resource key by substituting the first value from each loop."""
+        if not collection_values:
+            return None
+        expanded_key = resource_template_key
+        if outer_context:
+            for ovar, ocoll in outer_context:
+                if not ocoll:
+                    return None
+                expanded_key = substitute_loop_variable(expanded_key, ovar, ocoll[0])
+        expanded_key = substitute_loop_variable(expanded_key, loop_variable, collection_values[0])
+        return expanded_key
+
+    def _collect_dynamic_mapping_entries(
+        self,
+        resource_template_key: str,
+        prop_name: str,
+        loop_variable: str,
+        collection_values: List[str],
+        modified_resources: Dict,
+        outer_context: List[Tuple[str, List[str]]],
+        referenced_outer_vars: Optional[List[Tuple[str, List[str]]]] = None,
+    ) -> Dict[str, Dict[str, str]]:
+        """
+        Collect Mapping entries for a dynamic artifact property by looking up
+        expanded resources in modified_resources.
+
+        For nested ForEach, enumerates all outer value combinations to find
+        the fully-expanded resource name.
+        """
+        mapping_entries: Dict[str, Dict[str, str]] = {}
+
+        for coll_value in collection_values:
+            if outer_context:
+                self._collect_nested_mapping_entry(
+                    resource_template_key,
+                    prop_name,
+                    loop_variable,
+                    coll_value,
+                    modified_resources,
+                    outer_context,
+                    mapping_entries,
+                    referenced_outer_vars=referenced_outer_vars,
+                )
+            else:
+                expanded_key = substitute_loop_variable(resource_template_key, loop_variable, coll_value)
+                artifact_value = self._get_artifact_value(modified_resources, expanded_key, prop_name)
+                if artifact_value is not None:
+                    mapping_entries[coll_value] = {prop_name: artifact_value}
+
+        return mapping_entries
+
+    def _collect_nested_mapping_entry(
+        self,
+        resource_template_key: str,
+        prop_name: str,
+        loop_variable: str,
+        coll_value: str,
+        modified_resources: Dict,
+        outer_context: List[Tuple[str, List[str]]],
+        mapping_entries: Dict[str, Dict[str, str]],
+        referenced_outer_vars: Optional[List[Tuple[str, List[str]]]] = None,
+    ) -> None:
+        """Enumerate outer value combinations to find expanded resource for a nested ForEach."""
+        import itertools
+
+        outer_collections = [oc[1] for oc in outer_context]
+        outer_vars = [oc[0] for oc in outer_context]
+
+        # Determine which outer vars need compound keys
+        compound_outer_vars = {ovar for ovar, _ in (referenced_outer_vars or [])}
+
+        for outer_combo in itertools.product(*outer_collections):
+            expanded_key = resource_template_key
+            for ovar, oval in zip(outer_vars, outer_combo):
+                expanded_key = substitute_loop_variable(expanded_key, ovar, oval)
+            expanded_key = substitute_loop_variable(expanded_key, loop_variable, coll_value)
+
+            artifact_value = self._get_artifact_value(modified_resources, expanded_key, prop_name)
+            if artifact_value is None:
+                continue
+
+            if compound_outer_vars:
+                # Build compound key from referenced outer values + inner value
+                key_parts = [oval for ovar, oval in zip(outer_vars, outer_combo) if ovar in compound_outer_vars]
+                key_parts.append(coll_value)
+                mapping_key = "-".join(key_parts)
+            else:
+                mapping_key = coll_value
+
+            if mapping_key not in mapping_entries:
+                mapping_entries[mapping_key] = {prop_name: artifact_value}
+
+    def _collect_foreach_layer_mappings(
+        self,
+        resource_template_key: str,
+        loop_variable: str,
+        collection_values: List[str],
+        modified_resources: Dict,
+        outer_context: List[Tuple[str, List[str]]],
+    ) -> Dict[str, Dict[str, str]]:
+        """
+        Collect Mapping entries for auto dependency layer references by looking up
+        expanded resources in modified_resources and extracting their Layers entries
+        that reference AwsSamAutoDependencyLayerNestedStack.
+
+        Returns a dict mapping each collection value (or compound key for nested ForEach)
+        to its layer output key, e.g. {"Alpha": {"LayerOutputKey": "Outputs.AlphaFunction...DepLayer"}}.
+        """
+        import itertools
+
+        mapping_entries: Dict[str, Dict[str, str]] = {}
+
+        for coll_value in collection_values:
+            if outer_context:
+                outer_collections = [oc[1] for oc in outer_context]
+                outer_vars = [oc[0] for oc in outer_context]
+                for outer_combo in itertools.product(*outer_collections):
+                    expanded_key = resource_template_key
+                    for ovar, oval in zip(outer_vars, outer_combo):
+                        expanded_key = substitute_loop_variable(expanded_key, ovar, oval)
+                    expanded_key = substitute_loop_variable(expanded_key, loop_variable, coll_value)
+
+                    layer_output_key = self._extract_nested_stack_layer_output(modified_resources, expanded_key)
+                    if layer_output_key is not None:
+                        mapping_entries[coll_value] = {"LayerOutputKey": layer_output_key}
+                        break
+            else:
+                expanded_key = substitute_loop_variable(resource_template_key, loop_variable, coll_value)
+                layer_output_key = self._extract_nested_stack_layer_output(modified_resources, expanded_key)
+                if layer_output_key is not None:
+                    mapping_entries[coll_value] = {"LayerOutputKey": layer_output_key}
+
+        return mapping_entries
+
+    @staticmethod
+    def _extract_nested_stack_layer_output(modified_resources: Dict, expanded_key: str) -> Optional[str]:
+        """
+        Extract the layer output key from an expanded resource's Layers property.
+
+        Looks for a Layers entry of the form:
+            {"Fn::GetAtt": ["AwsSamAutoDependencyLayerNestedStack", "Outputs.<LayerId>"]}
+        and returns the output reference string (e.g. "Outputs.AlphaFunction...DepLayer").
+        """
+        resource = modified_resources.get(expanded_key)
+        if not isinstance(resource, dict):
+            return None
+        props = resource.get("Properties")
+        if not isinstance(props, dict):
+            return None
+        layers = props.get("Layers")
+        if not isinstance(layers, list):
+            return None
+        for layer_entry in layers:
+            if not isinstance(layer_entry, dict):
+                continue
+            get_att = layer_entry.get("Fn::GetAtt")
+            if isinstance(get_att, list) and len(get_att) == 2 and get_att[0] == NESTED_STACK_NAME:  # noqa: PLR2004
+                output_key = get_att[1]
+                if isinstance(output_key, str):
+                    return output_key
+        return None
+
+    @staticmethod
+    def _get_artifact_value(modified_resources: Dict, expanded_key: str, prop_name: str) -> Optional[Any]:
+        """Extract an artifact property value from an expanded resource, or return None."""
+        modified_resource = modified_resources.get(expanded_key, {})
+        if not isinstance(modified_resource, dict):
+            return None
+        modified_props = modified_resource.get("Properties", {})
+        if not isinstance(modified_props, dict):
+            return None
+        return modified_props.get(prop_name)
+
+    def _copy_artifact_paths(self, original_resource: Dict, modified_resource: Dict) -> None:
+        """
+        Copy artifact paths from modified resource to original resource.
+
+        Uses PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES to determine which
+        properties to copy, avoiding a hardcoded elif chain.
+
+        Parameters
+        ----------
+        original_resource : Dict
+            The original resource (will be modified in place)
+        modified_resource : Dict
+            The modified resource with updated artifact paths
+        """
+        from samcli.lib.cfn_language_extensions.models import PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES
+
+        original_props = original_resource.get("Properties", {})
+        modified_props = modified_resource.get("Properties", {})
+        resource_type = original_resource.get("Type", "")
+
+        prop_names = PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES.get(resource_type)
+        if not prop_names:
+            return
+
+        for prop_name in prop_names:
+            if prop_name in modified_props:
+                original_props[prop_name] = modified_props[prop_name]
 
     def _gen_success_msg(self, artifacts_dir: str, output_template_path: str, is_default_build_dir: bool) -> str:
         """

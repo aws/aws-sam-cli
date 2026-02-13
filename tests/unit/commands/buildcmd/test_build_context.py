@@ -1454,3 +1454,629 @@ class TestBuildContext_check_build_method_experimental_flag(TestCase):
         self.build_context._check_build_method_experimental_flag()
 
         mock_prompt.assert_not_called()
+
+
+class TestBuildContext_get_template_for_output(TestCase):
+    """Tests for the _get_template_for_output method that handles original template preservation."""
+
+    def setUp(self):
+        self.build_context = BuildContext(
+            resource_identifier="function_identifier",
+            template_file="template_file",
+            base_dir="base_dir",
+            build_dir="build_dir",
+            cache_dir="cache_dir",
+            parallel=False,
+            mode="mode",
+            cached=False,
+        )
+
+    def test_returns_modified_template_when_no_original_template(self):
+        """When stack has no original_template_dict, return the modified template."""
+        stack = Mock()
+        stack.original_template_dict = None
+        modified_template = {"Resources": {"Function": {"Type": "AWS::Serverless::Function"}}}
+        artifacts = {}
+
+        result = self.build_context._get_template_for_output(stack, modified_template, artifacts)
+
+        self.assertEqual(result, modified_template)
+
+    def test_returns_modified_template_when_original_template_is_not_dict(self):
+        """When stack.original_template_dict is not a dict (e.g., Mock), return the modified template."""
+        stack = Mock()
+        # Mock objects are not dicts, so this should return modified_template
+        modified_template = {"Resources": {"Function": {"Type": "AWS::Serverless::Function"}}}
+        artifacts = {}
+
+        result = self.build_context._get_template_for_output(stack, modified_template, artifacts)
+
+        self.assertEqual(result, modified_template)
+
+    def test_returns_original_template_when_present(self):
+        """When stack has original_template_dict, return a copy of it with updated paths."""
+        stack = Mock()
+        stack.location = "/path/to/template.yaml"
+        original_template = {
+            "Resources": {
+                "Fn::ForEach::Functions": [
+                    "Name",
+                    ["Alpha", "Beta"],
+                    {
+                        "${Name}Function": {
+                            "Type": "AWS::Serverless::Function",
+                            "Properties": {
+                                "CodeUri": "./src",
+                                "Handler": "${Name}.handler",
+                            },
+                        }
+                    },
+                ]
+            }
+        }
+        stack.original_template_dict = original_template
+        modified_template = {
+            "Resources": {
+                "AlphaFunction": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {
+                        "CodeUri": "../build/AlphaFunction",
+                        "Handler": "Alpha.handler",
+                    },
+                },
+                "BetaFunction": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {
+                        "CodeUri": "../build/BetaFunction",
+                        "Handler": "Beta.handler",
+                    },
+                },
+            }
+        }
+        artifacts = {}
+
+        result = self.build_context._get_template_for_output(stack, modified_template, artifacts)
+
+        # Should return the original template structure with Fn::ForEach
+        self.assertIn("Fn::ForEach::Functions", result.get("Resources", {}))
+        # The CodeUri should be updated from the modified template
+        foreach_body = result["Resources"]["Fn::ForEach::Functions"][2]
+        self.assertEqual(
+            foreach_body["${Name}Function"]["Properties"]["CodeUri"],
+            "../build/AlphaFunction",  # Updated from modified template
+        )
+
+    def test_original_template_is_deep_copied(self):
+        """Ensure the original template is deep copied and not modified in place."""
+        stack = Mock()
+        stack.location = "/path/to/template.yaml"
+        original_template = {
+            "Resources": {
+                "Function": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {
+                        "CodeUri": "./src",
+                    },
+                }
+            }
+        }
+        stack.original_template_dict = original_template
+        modified_template = {
+            "Resources": {
+                "Function": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {
+                        "CodeUri": "../build/Function",
+                    },
+                }
+            }
+        }
+        artifacts = {}
+
+        result = self.build_context._get_template_for_output(stack, modified_template, artifacts)
+
+        # Original template should not be modified
+        self.assertEqual(original_template["Resources"]["Function"]["Properties"]["CodeUri"], "./src")
+        # Result should have updated path
+        self.assertEqual(result["Resources"]["Function"]["Properties"]["CodeUri"], "../build/Function")
+
+    def test_dynamic_codeuri_generates_mappings_in_output(self):
+        """When Fn::ForEach has dynamic CodeUri, the output template should have Mappings."""
+        stack = Mock()
+        stack.location = "/path/to/template.yaml"
+        original_template = {
+            "Resources": {
+                "Fn::ForEach::Functions": [
+                    "FunctionName",
+                    ["Alpha", "Beta"],
+                    {
+                        "${FunctionName}Function": {
+                            "Type": "AWS::Serverless::Function",
+                            "Properties": {
+                                "CodeUri": "./${FunctionName}",
+                                "Handler": "index.handler",
+                            },
+                        }
+                    },
+                ]
+            }
+        }
+        stack.original_template_dict = original_template
+        modified_template = {
+            "Resources": {
+                "AlphaFunction": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {
+                        "CodeUri": "AlphaFunction",
+                        "Handler": "index.handler",
+                    },
+                },
+                "BetaFunction": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {
+                        "CodeUri": "BetaFunction",
+                        "Handler": "index.handler",
+                    },
+                },
+            }
+        }
+        artifacts = {}
+
+        result = self.build_context._get_template_for_output(stack, modified_template, artifacts)
+
+        # Should have Mappings section
+        self.assertIn("Mappings", result)
+        self.assertIn("SAMCodeUriFunctions", result["Mappings"])
+        self.assertEqual(result["Mappings"]["SAMCodeUriFunctions"]["Alpha"]["CodeUri"], "AlphaFunction")
+        self.assertEqual(result["Mappings"]["SAMCodeUriFunctions"]["Beta"]["CodeUri"], "BetaFunction")
+
+        # CodeUri should be Fn::FindInMap
+        foreach_body = result["Resources"]["Fn::ForEach::Functions"][2]
+        code_uri = foreach_body["${FunctionName}Function"]["Properties"]["CodeUri"]
+        self.assertIsInstance(code_uri, dict)
+        self.assertEqual(code_uri["Fn::FindInMap"], ["SAMCodeUriFunctions", {"Ref": "FunctionName"}, "CodeUri"])
+
+
+class TestBuildContext_update_foreach_artifact_paths(TestCase):
+    """Tests for the _update_foreach_artifact_paths method."""
+
+    def setUp(self):
+        self.build_context = BuildContext(
+            resource_identifier="function_identifier",
+            template_file="template_file",
+            base_dir="base_dir",
+            build_dir="build_dir",
+            cache_dir="cache_dir",
+            parallel=False,
+            mode="mode",
+            cached=False,
+        )
+
+    def test_updates_static_codeuri_in_foreach_body(self):
+        """Test that static CodeUri is updated in Fn::ForEach body from expanded resources."""
+
+        foreach_key = "Fn::ForEach::Functions"
+        foreach_value = [
+            "Name",
+            ["Alpha", "Beta"],
+            {
+                "${Name}Function": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {
+                        "CodeUri": "./src",
+                        "Handler": "${Name}.handler",
+                    },
+                }
+            },
+        ]
+        modified_resources = {
+            "AlphaFunction": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {
+                    "CodeUri": "../build/AlphaFunction",
+                    "Handler": "Alpha.handler",
+                },
+            },
+            "BetaFunction": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {
+                    "CodeUri": "../build/BetaFunction",
+                    "Handler": "Beta.handler",
+                },
+            },
+        }
+
+        mappings = self.build_context._update_foreach_artifact_paths(foreach_key, foreach_value, modified_resources)
+
+        # Static CodeUri: should be updated to first matching expanded resource's path
+        self.assertEqual(foreach_value[2]["${Name}Function"]["Properties"]["CodeUri"], "../build/AlphaFunction")
+        # No Mappings should be generated for static properties
+        self.assertEqual(mappings, {})
+
+    def test_dynamic_codeuri_generates_mappings(self):
+        """Test that dynamic CodeUri generates Mappings with per-function build paths."""
+
+        foreach_key = "Fn::ForEach::Functions"
+        foreach_value = [
+            "FunctionName",
+            ["Alpha", "Beta"],
+            {
+                "${FunctionName}Function": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {
+                        "CodeUri": "./${FunctionName}",
+                        "Handler": "index.handler",
+                    },
+                }
+            },
+        ]
+        modified_resources = {
+            "AlphaFunction": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {
+                    "CodeUri": "AlphaFunction",
+                    "Handler": "index.handler",
+                },
+            },
+            "BetaFunction": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {
+                    "CodeUri": "BetaFunction",
+                    "Handler": "index.handler",
+                },
+            },
+        }
+
+        mappings = self.build_context._update_foreach_artifact_paths(foreach_key, foreach_value, modified_resources)
+
+        # Mappings should be generated
+        self.assertIn("SAMCodeUriFunctions", mappings)
+        self.assertEqual(mappings["SAMCodeUriFunctions"]["Alpha"]["CodeUri"], "AlphaFunction")
+        self.assertEqual(mappings["SAMCodeUriFunctions"]["Beta"]["CodeUri"], "BetaFunction")
+
+        # CodeUri should be replaced with Fn::FindInMap
+        code_uri = foreach_value[2]["${FunctionName}Function"]["Properties"]["CodeUri"]
+        self.assertIsInstance(code_uri, dict)
+        self.assertIn("Fn::FindInMap", code_uri)
+        self.assertEqual(code_uri["Fn::FindInMap"], ["SAMCodeUriFunctions", {"Ref": "FunctionName"}, "CodeUri"])
+
+        # Fn::ForEach structure should be preserved
+        self.assertEqual(foreach_value[0], "FunctionName")
+        self.assertEqual(foreach_value[1], ["Alpha", "Beta"])
+
+    def test_handles_invalid_foreach_structure(self):
+        """Test that invalid Fn::ForEach structures are handled gracefully."""
+
+        foreach_key = "Fn::ForEach::Functions"
+        modified_resources = {}
+
+        # Invalid structure - not a list
+        result = self.build_context._update_foreach_artifact_paths(foreach_key, "invalid", modified_resources)
+        self.assertEqual(result, {})
+
+        # Invalid structure - list too short
+        result = self.build_context._update_foreach_artifact_paths(foreach_key, ["Name", ["Alpha"]], modified_resources)
+        self.assertEqual(result, {})
+
+    def test_handles_layer_resources(self):
+        """Test that layer ContentUri is updated in Fn::ForEach body."""
+
+        foreach_key = "Fn::ForEach::Layers"
+        foreach_value = [
+            "Name",
+            ["Layer1", "Layer2"],
+            {
+                "${Name}Layer": {
+                    "Type": "AWS::Serverless::LayerVersion",
+                    "Properties": {
+                        "ContentUri": "./layer",
+                    },
+                }
+            },
+        ]
+        modified_resources = {
+            "Layer1Layer": {
+                "Type": "AWS::Serverless::LayerVersion",
+                "Properties": {
+                    "ContentUri": "../build/Layer1Layer",
+                },
+            }
+        }
+
+        mappings = self.build_context._update_foreach_artifact_paths(foreach_key, foreach_value, modified_resources)
+
+        self.assertEqual(foreach_value[2]["${Name}Layer"]["Properties"]["ContentUri"], "../build/Layer1Layer")
+        self.assertEqual(mappings, {})
+
+    def test_dynamic_codeuri_with_fn_sub(self):
+        """Test that dynamic CodeUri using Fn::Sub generates Mappings."""
+
+        foreach_key = "Fn::ForEach::Services"
+        foreach_value = [
+            "Name",
+            ["Users", "Orders"],
+            {
+                "${Name}Service": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {
+                        "CodeUri": {"Fn::Sub": "./services/${Name}"},
+                        "Handler": "index.handler",
+                    },
+                }
+            },
+        ]
+        modified_resources = {
+            "UsersService": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {
+                    "CodeUri": "UsersService",
+                    "Handler": "index.handler",
+                },
+            },
+            "OrdersService": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {
+                    "CodeUri": "OrdersService",
+                    "Handler": "index.handler",
+                },
+            },
+        }
+
+        mappings = self.build_context._update_foreach_artifact_paths(foreach_key, foreach_value, modified_resources)
+
+        self.assertIn("SAMCodeUriServices", mappings)
+        self.assertEqual(mappings["SAMCodeUriServices"]["Users"]["CodeUri"], "UsersService")
+        self.assertEqual(mappings["SAMCodeUriServices"]["Orders"]["CodeUri"], "OrdersService")
+
+    def test_parameter_ref_collection_resolves_to_values(self):
+        """Test that a Ref-based collection is resolved via parameter values."""
+
+        template = {
+            "Parameters": {
+                "FunctionNames": {
+                    "Type": "CommaDelimitedList",
+                    "Default": "Alpha,Beta",
+                }
+            },
+            "Resources": {},
+        }
+        foreach_key = "Fn::ForEach::Functions"
+        foreach_value = [
+            "FunctionName",
+            {"Ref": "FunctionNames"},
+            {
+                "${FunctionName}Function": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {
+                        "CodeUri": "./${FunctionName}",
+                        "Handler": "index.handler",
+                    },
+                }
+            },
+        ]
+        modified_resources = {
+            "AlphaFunction": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {"CodeUri": "AlphaFunction", "Handler": "index.handler"},
+            },
+            "BetaFunction": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {"CodeUri": "BetaFunction", "Handler": "index.handler"},
+            },
+        }
+        parameter_values = {"FunctionNames": "Alpha,Beta"}
+
+        mappings = self.build_context._update_foreach_artifact_paths(
+            foreach_key,
+            foreach_value,
+            modified_resources,
+            template=template,
+            parameter_values=parameter_values,
+        )
+
+        # Should resolve the Ref collection and generate mappings
+        self.assertIn("SAMCodeUriFunctions", mappings)
+        self.assertEqual(mappings["SAMCodeUriFunctions"]["Alpha"]["CodeUri"], "AlphaFunction")
+        self.assertEqual(mappings["SAMCodeUriFunctions"]["Beta"]["CodeUri"], "BetaFunction")
+
+    def test_parameter_ref_collection_without_params_produces_empty(self):
+        """Test that a Ref-based collection with no parameter values produces no mappings."""
+
+        foreach_key = "Fn::ForEach::Functions"
+        foreach_value = [
+            "FunctionName",
+            {"Ref": "FunctionNames"},
+            {
+                "${FunctionName}Function": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {
+                        "CodeUri": "./${FunctionName}",
+                        "Handler": "index.handler",
+                    },
+                }
+            },
+        ]
+        modified_resources = {}
+
+        mappings = self.build_context._update_foreach_artifact_paths(
+            foreach_key,
+            foreach_value,
+            modified_resources,
+        )
+
+        # No parameter values provided, collection can't be resolved
+        self.assertEqual(mappings, {})
+
+    def test_nested_foreach_compound_keys_when_property_references_outer_var(self):
+        """Test that nested ForEach with property referencing both outer and inner vars uses compound keys."""
+
+        foreach_key = "Fn::ForEach::Envs"
+        foreach_value = [
+            "Env",
+            ["Dev", "Prod"],
+            {
+                "Fn::ForEach::Services": [
+                    "Svc",
+                    ["Api", "Worker"],
+                    {
+                        "${Env}${Svc}Function": {
+                            "Type": "AWS::Serverless::Function",
+                            "Properties": {
+                                "CodeUri": "./services/${Env}/${Svc}",
+                                "Handler": "index.handler",
+                            },
+                        }
+                    },
+                ]
+            },
+        ]
+        modified_resources = {
+            "DevApiFunction": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {"CodeUri": "DevApiFunction", "Handler": "index.handler"},
+            },
+            "DevWorkerFunction": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {"CodeUri": "DevWorkerFunction", "Handler": "index.handler"},
+            },
+            "ProdApiFunction": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {"CodeUri": "ProdApiFunction", "Handler": "index.handler"},
+            },
+            "ProdWorkerFunction": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {"CodeUri": "ProdWorkerFunction", "Handler": "index.handler"},
+            },
+        }
+
+        mappings = self.build_context._update_foreach_artifact_paths(foreach_key, foreach_value, modified_resources)
+
+        # Mappings should use compound keys (outer-inner) and nesting path
+        self.assertIn("SAMCodeUriEnvsServices", mappings)
+        self.assertIn("Dev-Api", mappings["SAMCodeUriEnvsServices"])
+        self.assertIn("Dev-Worker", mappings["SAMCodeUriEnvsServices"])
+        self.assertIn("Prod-Api", mappings["SAMCodeUriEnvsServices"])
+        self.assertIn("Prod-Worker", mappings["SAMCodeUriEnvsServices"])
+        self.assertEqual(mappings["SAMCodeUriEnvsServices"]["Dev-Api"]["CodeUri"], "DevApiFunction")
+        self.assertEqual(mappings["SAMCodeUriEnvsServices"]["Prod-Worker"]["CodeUri"], "ProdWorkerFunction")
+
+        # FindInMap should use Fn::Join for compound lookup
+        inner_body = foreach_value[2]["Fn::ForEach::Services"][2]
+        code_uri = inner_body["${Env}${Svc}Function"]["Properties"]["CodeUri"]
+        self.assertIn("Fn::FindInMap", code_uri)
+        find_in_map = code_uri["Fn::FindInMap"]
+        self.assertEqual(find_in_map[0], "SAMCodeUriEnvsServices")
+        # Second arg should be Fn::Join for compound key
+        self.assertIn("Fn::Join", find_in_map[1])
+        self.assertEqual(find_in_map[1]["Fn::Join"][0], "-")
+        self.assertEqual(find_in_map[1]["Fn::Join"][1], [{"Ref": "Env"}, {"Ref": "Svc"}])
+        self.assertEqual(find_in_map[2], "CodeUri")
+
+    def test_nested_foreach_simple_keys_when_property_references_inner_only(self):
+        """Test that nested ForEach with property referencing only inner var uses simple keys."""
+
+        foreach_key = "Fn::ForEach::Envs"
+        foreach_value = [
+            "Env",
+            ["Dev", "Prod"],
+            {
+                "Fn::ForEach::Services": [
+                    "Svc",
+                    ["Api", "Worker"],
+                    {
+                        "${Env}${Svc}Function": {
+                            "Type": "AWS::Serverless::Function",
+                            "Properties": {
+                                "CodeUri": "./services/${Svc}",
+                                "Handler": "index.handler",
+                            },
+                        }
+                    },
+                ]
+            },
+        ]
+        modified_resources = {
+            "DevApiFunction": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {"CodeUri": "ApiFunction", "Handler": "index.handler"},
+            },
+            "DevWorkerFunction": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {"CodeUri": "WorkerFunction", "Handler": "index.handler"},
+            },
+            "ProdApiFunction": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {"CodeUri": "ApiFunction", "Handler": "index.handler"},
+            },
+            "ProdWorkerFunction": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {"CodeUri": "WorkerFunction", "Handler": "index.handler"},
+            },
+        }
+
+        mappings = self.build_context._update_foreach_artifact_paths(foreach_key, foreach_value, modified_resources)
+
+        # Mappings should use simple keys (inner only) and nesting path
+        self.assertIn("SAMCodeUriEnvsServices", mappings)
+        self.assertIn("Api", mappings["SAMCodeUriEnvsServices"])
+        self.assertIn("Worker", mappings["SAMCodeUriEnvsServices"])
+        self.assertNotIn("Dev-Api", mappings["SAMCodeUriEnvsServices"])
+
+        # FindInMap should use simple Ref (no Fn::Join)
+        inner_body = foreach_value[2]["Fn::ForEach::Services"][2]
+        code_uri = inner_body["${Env}${Svc}Function"]["Properties"]["CodeUri"]
+        find_in_map = code_uri["Fn::FindInMap"]
+        self.assertEqual(find_in_map[1], {"Ref": "Svc"})
+
+
+class TestBuildContext_contains_loop_variable(TestCase):
+    """Tests for the contains_loop_variable shared function."""
+
+    def test_string_with_loop_variable(self):
+        from samcli.lib.cfn_language_extensions.sam_integration import contains_loop_variable
+
+        self.assertTrue(contains_loop_variable("./${Name}", "Name"))
+
+    def test_string_without_loop_variable(self):
+        from samcli.lib.cfn_language_extensions.sam_integration import contains_loop_variable
+
+        self.assertFalse(contains_loop_variable("./src", "Name"))
+
+    def test_fn_sub_with_loop_variable(self):
+        from samcli.lib.cfn_language_extensions.sam_integration import contains_loop_variable
+
+        self.assertTrue(contains_loop_variable({"Fn::Sub": "./${Name}"}, "Name"))
+
+    def test_fn_sub_list_with_loop_variable(self):
+        from samcli.lib.cfn_language_extensions.sam_integration import contains_loop_variable
+
+        self.assertTrue(contains_loop_variable({"Fn::Sub": ["./${Name}", {}]}, "Name"))
+
+    def test_nested_dict_with_loop_variable(self):
+        from samcli.lib.cfn_language_extensions.sam_integration import contains_loop_variable
+
+        self.assertTrue(contains_loop_variable({"key": "./${Name}"}, "Name"))
+
+    def test_list_with_loop_variable(self):
+        from samcli.lib.cfn_language_extensions.sam_integration import contains_loop_variable
+
+        self.assertTrue(contains_loop_variable(["./${Name}"], "Name"))
+
+    def test_non_string_value(self):
+        from samcli.lib.cfn_language_extensions.sam_integration import contains_loop_variable
+
+        self.assertFalse(contains_loop_variable(42, "Name"))
+
+
+class TestBuildContext_substitute_loop_variable(TestCase):
+    """Tests for the substitute_loop_variable shared function."""
+
+    def test_substitutes_variable(self):
+        from samcli.lib.cfn_language_extensions.sam_integration import substitute_loop_variable
+
+        self.assertEqual(substitute_loop_variable("${Name}Function", "Name", "Alpha"), "AlphaFunction")
+
+    def test_no_variable_present(self):
+        from samcli.lib.cfn_language_extensions.sam_integration import substitute_loop_variable
+
+        self.assertEqual(substitute_loop_variable("StaticFunction", "Name", "Alpha"), "StaticFunction")
