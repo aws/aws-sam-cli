@@ -1,0 +1,27 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform:
+  - AWS::LanguageExtensions
+  - AWS::Serverless-2016-10-31
+
+Description: >
+  Template with Fn::ForEach using dynamic CodeUri pointing to non-existent directories.
+  Used for testing sam validate error handling with language extensions.
+  This template should fail validation because the directories don't exist.
+  Validates: Requirements 4.1
+
+Resources:
+  # Fn::ForEach with dynamic CodeUri pointing to non-existent directories
+  # The directories ./NonExistentAlpha and ./NonExistentBeta don't exist
+  Fn::ForEach::Functions:
+    - FunctionName
+    - - NonExistentAlpha
+      - NonExistentBeta
+    - ${FunctionName}Function:
+        Type: AWS::Serverless::Function
+        Properties:
+          Handler: main.handler
+          CodeUri: ./${FunctionName}
+          Runtime: python3.9
+          Environment:
+            Variables:
+              FUNCTION_NAME: !Sub ${FunctionName}

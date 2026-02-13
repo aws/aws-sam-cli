@@ -34,7 +34,6 @@ from samcli.lib.cfn_language_extensions.api import process_template
 from samcli.lib.cfn_language_extensions.models import ResolutionMode, PseudoParameterValues
 from samcli.lib.cfn_language_extensions.exceptions import InvalidTemplateException
 
-
 # Path to test templates
 KOTLIN_TEMPLATES_DIR = Path(__file__).parent / "templates"
 

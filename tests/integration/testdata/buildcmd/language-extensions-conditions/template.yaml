@@ -1,0 +1,41 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform:
+  - AWS::LanguageExtensions
+  - AWS::Serverless-2016-10-31
+
+Description: >
+  TC-011: ForEach with Conditions.
+  Functions are only created when Environment=prod.
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, prod]
+  Runtime:
+    Type: String
+    Default: python3.13
+
+Conditions:
+  IsProd: !Equals [!Ref Environment, prod]
+
+Globals:
+  Function:
+    Timeout: 10
+    MemorySize: 128
+    Runtime: !Ref Runtime
+
+Resources:
+  Fn::ForEach::Functions:
+    - Name
+    - [api, worker]
+    - ${Name}Function:
+        Type: AWS::Serverless::Function
+        Condition: IsProd
+        Properties:
+          Handler: main.handler
+          CodeUri: functions/${Name}/
+          Environment:
+            Variables:
+              FUNCTION_NAME: !Sub ${Name}
+              ENVIRONMENT: !Ref Environment

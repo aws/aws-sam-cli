@@ -1,0 +1,33 @@
+{
+  "Comment": "Order processing workflow",
+  "StartAt": "ValidateOrder",
+  "States": {
+    "ValidateOrder": {
+      "Type": "Task",
+      "Resource": "${WorkerFunctionArn}",
+      "Parameters": {
+        "action": "validate",
+        "payload.$": "$.order"
+      },
+      "Next": "ProcessPayment"
+    },
+    "ProcessPayment": {
+      "Type": "Task",
+      "Resource": "${WorkerFunctionArn}",
+      "Parameters": {
+        "action": "process_payment",
+        "payload.$": "$.order"
+      },
+      "Next": "ConfirmOrder"
+    },
+    "ConfirmOrder": {
+      "Type": "Task",
+      "Resource": "${WorkerFunctionArn}",
+      "Parameters": {
+        "action": "confirm",
+        "payload.$": "$.order"
+      },
+      "End": true
+    }
+  }
+}
