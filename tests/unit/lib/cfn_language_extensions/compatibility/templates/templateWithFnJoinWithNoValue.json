@@ -1,0 +1,23 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Transform": "LanguageExtensionsDev",
+  "Resources": {
+    "CloudFormationCreatedSecret": {
+      "Type": "AWS::SecretsManager::Secret",
+      "Properties": {
+        "Name": "MySecret",
+        "SecretString": {
+          "Fn::Join": [
+            ",",
+            [
+              "A,B",
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Transform": "AWS::LanguageExtensions",
+  "Mappings": {
+    "InstanceA": {
+      "Properties": {
+        "ImageId": "ami-id1",
+        "InstanceType": "m5.xlarge"
+      }
+    },
+    "InstanceB": {
+      "Properties": {
+        "ImageId": "ami-id2"
+      }
+    },
+    "InstanceC": {
+      "Properties": {
+        "ImageId": "ami-id3",
+        "InstanceType": "m5.2xlarge",
+        "AvailabilityZone": "us-east-1a"
+      }
+    }
+  },
+  "Resources": {
+    "Fn::ForEach::Instances": [
+      "InstanceLogicalId",
+      ["InstanceA", "InstanceB", "InstanceC"],
+      {
+        "${InstanceLogicalId}": {
+          "Type": "AWS::EC2::Instance",
+          "Properties": {
+            "DisableApiTermination": true,
+            "Fn::ForEach::Properties": [
+              "PropertyName",
+              ["ImageId", "InstanceType", "AvailabilityZone"],
+              {
+                "${PropertyName}": {"Fn::FindInMap": [{"Ref": "InstanceLogicalId"}, "Properties", {"Ref": "PropertyName"}, {"DefaultValue": {"Ref": "AWS::NoValue"}}]}
+              }
+            ]
+          }
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Transform": "AWS::LanguageExtensions",
+  "Parameters": {
+    "password": {
+      "Type": "String",
+      "NoEcho": "true"
+    }
+  },
+  "Resources" : {
+    "Database" : {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "DBName": "MyTable",
+        "Engine": "MySQL",
+        "MasterUsername": "Tommy",
+        "DBInstanceClass": "db.m6i",
+        "MasterUserPassword": { "Ref" : "password" }
+      }
+    }
+  }
+}

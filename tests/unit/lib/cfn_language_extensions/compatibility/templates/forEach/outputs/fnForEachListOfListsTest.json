@@ -1,0 +1,40 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Transform": "AWS::LanguageExtensions",
+  "Resources": {
+    "Topic0": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "TopicName": "MyTopic0"
+      }
+    },
+    "Topic1": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "TopicName": "MyTopic1"
+      }
+    },
+    "Topic2": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "TopicName": "MyTopic2"
+      }
+    }
+  },
+  "Outputs": {
+    "Fn::ForEach::UniqueLoopName": [
+      ["LogicalId", "TopicId"],
+      [
+        [1, 0],
+        [2, 1],
+        [3, 2]
+      ],
+      {
+        "Output${LogicalId}": {
+          "Description": "MyDescription",
+          "Value": {"Fn::Sub": "Topic${TopicId}"}
+        }
+      }
+    ]
+  }
+}

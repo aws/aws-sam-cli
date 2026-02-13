@@ -1,0 +1,30 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Transform": "LanguageExtensionsDev",
+  "Parameters": {
+    "ParameterA": {
+      "Type": "String",
+      "Default": "Bucket"
+    },
+    "ParameterB": {
+      "Type": "String",
+      "Default": "Arn"
+    }
+  },
+  "Resources": {
+    "Bucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": "test-bucket"
+      }
+    },
+    "MyQueue": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "QueueName": {
+          "Fn::GetAtt": [{ "Ref":  "ParameterA" }, {"Ref": "ParameterB"}]
+        }
+      }
+    }
+  }
+}
