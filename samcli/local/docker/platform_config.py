@@ -125,11 +125,19 @@ class LinuxHandler(PlatformHandler):
         """
         Returns the socket path for Linux, checking multiple locations.
 
+        On Linux, Finch uses nerdctl + containerd as its container runtime.
+        This method checks for both Finch-specific sockets and the underlying
+        containerd socket that Finch may use.
+
         Priority order:
         1. XDG_RUNTIME_DIR/containerd/containerd.sock (rootless containerd)
-        2. XDG_RUNTIME_DIR/finch.sock (Finch-specific)
+        2. XDG_RUNTIME_DIR/finch.sock (Finch-specific socket)
         3. ~/.finch/finch.sock (user home directory)
         4. /var/run/finch.sock (system-wide)
+
+        Note: The containerd socket may be shared by multiple container tools
+        (Finch, nerdctl, etc.). The FinchContainerClient will validate
+        compatibility when attempting to connect.
 
         Returns:
             Optional[str]: Socket path if found, None otherwise
@@ -138,10 +146,11 @@ class LinuxHandler(PlatformHandler):
         # Check XDG_RUNTIME_DIR for rootless containerd
         xdg_runtime_dir = os.environ.get("XDG_RUNTIME_DIR")
         if xdg_runtime_dir:
-            # Rootless containerd socket (most common on Linux)
+            # Rootless containerd socket - commonly used by Finch on Linux
+            # Note: This socket may be shared with other containerd-based tools
             containerd_sock = os.path.join(xdg_runtime_dir, "containerd", "containerd.sock")
             if os.path.exists(containerd_sock):
-                LOG.debug(f"Found Finch socket at XDG_RUNTIME_DIR: {containerd_sock}")
+                LOG.debug(f"Found containerd socket at XDG_RUNTIME_DIR: {containerd_sock}")
                 return f"unix://{containerd_sock}"
 
             # Finch-specific socket in XDG_RUNTIME_DIR
@@ -164,7 +173,7 @@ class LinuxHandler(PlatformHandler):
             return f"unix://{system_sock}"
 
         # No socket found - return None to enable future CLI fallback
-        LOG.debug("No Finch socket found in standard locations")
+        LOG.warn("No Finch socket found in standard locations")
         return None
 
     def supports_finch(self) -> bool:
