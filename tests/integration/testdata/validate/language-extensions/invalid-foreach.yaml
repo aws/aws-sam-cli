@@ -1,0 +1,19 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform:
+  - AWS::LanguageExtensions
+  - AWS::Serverless-2016-10-31
+
+Description: >
+  Invalid template with incorrect Fn::ForEach syntax.
+  Used for testing sam validate error handling with language extensions.
+  This template should fail validation due to wrong number of arguments.
+
+Resources:
+  # Invalid Fn::ForEach - missing the template body (3rd element)
+  # Fn::ForEach requires exactly 3 elements: [identifier, collection, template]
+  # This only has 2 elements, which should cause a validation error
+  Fn::ForEach::InvalidFunctions:
+    - FunctionName
+    - - Alpha
+      - Beta
+    # Missing the third element (template body) - this is intentionally invalid

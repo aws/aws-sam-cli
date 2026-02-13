@@ -40,7 +40,6 @@ from samcli.lib.cfn_language_extensions.resolvers.base import (
 from samcli.lib.cfn_language_extensions.resolvers.fn_find_in_map import FnFindInMapResolver
 from samcli.lib.cfn_language_extensions.exceptions import InvalidTemplateException
 
-
 # =============================================================================
 # Test Fixtures and Helper Classes
 # =============================================================================

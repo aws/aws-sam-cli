@@ -32,7 +32,6 @@ from samcli.lib.cfn_language_extensions.sam_integration import (
 from samcli.lib.cfn_language_extensions.models import DynamicArtifactProperty
 from samcli.lib.samlib.wrapper import SamTranslatorWrapper
 
-
 # =============================================================================
 # Task 35.1: Unit Tests for LanguageExtensionResult Dataclass
 # =============================================================================

@@ -1,0 +1,46 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform:
+  - AWS::LanguageExtensions
+  - AWS::Serverless-2016-10-31
+
+Description: >
+  TC-023: ForEach with dynamic Lambda Layer ContentUri.
+  Generates 3 Lambda layers with separate content directories.
+  Tests that SAMContentUriLayers Mapping is generated.
+
+Parameters:
+  Runtime:
+    Type: String
+    Default: python3.13
+
+Globals:
+  Function:
+    Timeout: 10
+    MemorySize: 128
+    Runtime: !Ref Runtime
+
+Resources:
+  Fn::ForEach::Layers:
+    - LayerName
+    - - common
+      - database
+      - auth
+    - ${LayerName}Layer:
+        Type: AWS::Serverless::LayerVersion
+        Properties:
+          LayerName: !Sub "${AWS::StackName}-${LayerName}"
+          ContentUri: layers/${LayerName}/
+          CompatibleRuntimes:
+            - python3.11
+            - python3.12
+            - python3.13
+
+  TestFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handler
+      CodeUri: function/
+      Layers:
+        - !Ref commonLayer
+        - !Ref databaseLayer
+        - !Ref authLayer

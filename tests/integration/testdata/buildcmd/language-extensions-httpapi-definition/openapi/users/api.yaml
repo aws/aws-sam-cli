@@ -1,0 +1,23 @@
+openapi: "3.0.1"
+info:
+  title: "Users Service API"
+  version: "1.0"
+paths:
+  /users:
+    get:
+      summary: "List users"
+      responses:
+        "200":
+          description: "Success"
+  /users/{id}:
+    get:
+      summary: "Get user by ID"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "Success"

@@ -1,0 +1,28 @@
+type Query {
+  getUser(id: ID!): User
+  listUsers: [User]
+  getProduct(id: ID!): Product
+  listProducts: [Product]
+}
+
+type Mutation {
+  createUser(input: CreateUserInput!): User
+}
+
+type User {
+  id: ID!
+  name: String!
+  email: String
+}
+
+type Product {
+  id: ID!
+  name: String!
+  price: Float!
+  inStock: Boolean!
+}
+
+input CreateUserInput {
+  name: String!
+  email: String
+}

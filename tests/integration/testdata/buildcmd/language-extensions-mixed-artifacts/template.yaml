@@ -1,0 +1,70 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform:
+  - AWS::LanguageExtensions
+  - AWS::Serverless-2016-10-31
+
+Description: >
+  TC-024: ForEach with multiple dynamic artifact types in one template.
+  Generates APIs (DefinitionUri), functions (CodeUri), state machines (DefinitionUri),
+  and layers (ContentUri) all using ForEach with dynamic paths.
+  APIs and state machines share a single ForEach loop — the Mapping name collision
+  for DefinitionUri is resolved by appending a resource-type suffix
+  (SAMDefinitionUriServicesApi vs SAMDefinitionUriServicesStateMachine).
+
+Parameters:
+  Runtime:
+    Type: String
+    Default: python3.13
+
+Globals:
+  Function:
+    Timeout: 10
+    MemorySize: 128
+    Runtime: !Ref Runtime
+
+Resources:
+  Fn::ForEach::Services:
+    - ServiceName
+    - - users
+      - orders
+    - ${ServiceName}Api:
+        Type: AWS::Serverless::Api
+        Properties:
+          StageName: prod
+          DefinitionUri: apis/${ServiceName}/swagger.yaml
+
+      ${ServiceName}Function:
+        Type: AWS::Serverless::Function
+        Properties:
+          Handler: main.handler
+          CodeUri: functions/${ServiceName}/
+          Environment:
+            Variables:
+              SERVICE_NAME: !Sub ${ServiceName}
+
+      ${ServiceName}StateMachine:
+        Type: AWS::Serverless::StateMachine
+        Properties:
+          DefinitionUri: statemachines/${ServiceName}/definition.asl.json
+          DefinitionSubstitutions:
+            WorkerFunctionArn: !GetAtt
+              - !Sub "${ServiceName}Function"
+              - Arn
+          Policies:
+            - LambdaInvokePolicy:
+                FunctionName: !Ref
+                  Fn::Sub: "${ServiceName}Function"
+
+  Fn::ForEach::SharedLayers:
+    - LayerName
+    - - utils
+      - models
+    - ${LayerName}Layer:
+        Type: AWS::Serverless::LayerVersion
+        Properties:
+          LayerName: !Sub "${AWS::StackName}-${LayerName}"
+          ContentUri: layers/${LayerName}/
+          CompatibleRuntimes:
+            - python3.11
+            - python3.12
+            - python3.13

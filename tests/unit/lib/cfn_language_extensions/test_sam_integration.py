@@ -19,7 +19,6 @@ from samcli.lib.cfn_language_extensions import (
     PseudoParameterValues,
 )
 
-
 # =============================================================================
 # Tests for SAM Integration
 # =============================================================================

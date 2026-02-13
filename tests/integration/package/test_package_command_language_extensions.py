@@ -1568,7 +1568,7 @@ class TestPackageLanguageExtensionsImageUri(PackageIntegBase):
 
             # Verify Mappings section was generated
             mappings = packaged_template.get("Mappings", {})
-            mapping_name = "SAMCodeUriServices"
+            mapping_name = "SAMCodeUriEnvironmentsServices"
             self.assertIn(mapping_name, mappings)
             self.assertIn("Users", mappings[mapping_name])
             self.assertIn("Orders", mappings[mapping_name])

@@ -1,0 +1,42 @@
+swagger: "2.0"
+info:
+  title: "v3 API"
+  version: "3.0"
+basePath: "/v3"
+schemes:
+  - "https"
+paths:
+  /health:
+    get:
+      produces:
+        - "application/json"
+      responses:
+        "200":
+          description: "Success"
+      x-amazon-apigateway-integration:
+        type: mock
+        passthroughBehavior: when_no_match
+        requestTemplates:
+          application/json: '{"statusCode": 200}'
+        responses:
+          default:
+            statusCode: "200"
+            responseTemplates:
+              application/json: '{"version": "v3", "status": "healthy"}'
+  /v3/resource:
+    get:
+      produces:
+        - "application/json"
+      responses:
+        "200":
+          description: "Success"
+      x-amazon-apigateway-integration:
+        type: mock
+        passthroughBehavior: when_no_match
+        requestTemplates:
+          application/json: '{"statusCode": 200}'
+        responses:
+          default:
+            statusCode: "200"
+            responseTemplates:
+              application/json: '{"version": "v3", "data": "resource"}'
