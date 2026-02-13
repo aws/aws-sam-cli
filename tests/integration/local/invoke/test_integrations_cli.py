@@ -803,13 +803,27 @@ class TestLayerVersionBase(InvokeIntegBase):
     def setUp(self):
         self.layer_cache = Path().home().joinpath("integ_layer_cache")
 
+    @staticmethod
+    def _cleanup_samcli_images(docker_client):
+        """Remove all samcli/lambda-* images.
+
+        Docker's images.list(name="samcli/lambda") does exact repository matching
+        and won't match repositories like "samcli/lambda-python". We list all images
+        and filter by tag prefix instead.
+        """
+        try:
+            all_images = docker_client.images.list()
+            for image in all_images:
+                for tag in image.tags:
+                    if tag.startswith("samcli/lambda-"):
+                        docker_client.remove_image_safely(image.id, force=True)
+                        break
+        except Exception:
+            pass
+
     def tearDown(self):
         docker_client = get_validated_container_client()
-        samcli_images = docker_client.images.list(name="samcli/lambda")
-        for image in samcli_images:
-            # Use strategy pattern method for runtime-aware image cleanup
-            docker_client.remove_image_safely(image.id, force=True)
-
+        self._cleanup_samcli_images(docker_client)
         shutil.rmtree(str(self.layer_cache), ignore_errors=True)
 
     @classmethod
@@ -823,10 +837,7 @@ class TestLayerVersionBase(InvokeIntegBase):
         cls.layer_utils.delete_layers()
         # Added to handle the case where ^C failed the test due to invalid cleanup of layers
         docker_client = get_validated_container_client()
-        samcli_images = docker_client.images.list(name="samcli/lambda")
-        for image in samcli_images:
-            # Use strategy pattern method for runtime-aware image cleanup
-            docker_client.remove_image_safely(image.id, force=True)
+        cls._cleanup_samcli_images(docker_client)
         integ_layer_cache_dir = Path().home().joinpath("integ_layer_cache")
         if integ_layer_cache_dir.exists():
             shutil.rmtree(str(integ_layer_cache_dir))
@@ -1069,12 +1080,18 @@ class TestLayerVersionThatDoNotCreateCache(InvokeIntegBase):
     def tearDown(self):
         docker_client = get_validated_container_client()
 
-        # Use strategy pattern method for runtime-aware image cleanup
-        # This handles both Docker and Finch cleanup strategies automatically
-        samcli_images = docker_client.images.list(name="samcli/lambda")
-        for image in samcli_images:
-            # Use strategy pattern method that handles runtime-specific cleanup logic
-            docker_client.remove_image_safely(image.id, force=True)
+        # Use the same prefix-based cleanup as TestLayerVersionBase.
+        # Docker's images.list(name="samcli/lambda") does exact repository matching
+        # and won't match "samcli/lambda-python" etc.
+        try:
+            all_images = docker_client.images.list()
+            for image in all_images:
+                for tag in image.tags:
+                    if tag.startswith("samcli/lambda-"):
+                        docker_client.remove_image_safely(image.id, force=True)
+                        break
+        except Exception:
+            pass
 
     def test_layer_does_not_exist(self):
         self.layer_utils.upsert_layer(LayerUtils.generate_layer_name(), "LayerOneArn", "layer1.zip")
