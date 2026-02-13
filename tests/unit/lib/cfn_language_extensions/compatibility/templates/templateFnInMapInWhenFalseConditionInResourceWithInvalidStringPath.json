@@ -1,0 +1,34 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Transform": "AWS::LanguageExtensions",
+  "Mappings": {
+    "A": {
+      "B": {
+        "C": "D"
+      }
+    }
+  },
+  "Conditions": {
+    "TrueCondition": {
+      "Fn::Equals": [
+        "false",
+        "true"
+      ]
+    }
+  },
+  "Resources": {
+    "MyTopic": {
+      "Condition": "TrueCondition",
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "TopicName": {
+          "Fn::FindInMap": [
+            "A",
+            "Undefined",
+            "C"
+          ]
+        }
+      }
+    }
+  }
+}

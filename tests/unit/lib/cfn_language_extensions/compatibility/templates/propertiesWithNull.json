@@ -1,0 +1,11 @@
+{
+  "Resources": {
+    "cluster": {
+      "Type": "AWS::ECS::Cluster",
+      "Properties": {
+        "ClusterName": "cluster",
+        "ClusterSettings": null
+      }
+    }
+  }
+}

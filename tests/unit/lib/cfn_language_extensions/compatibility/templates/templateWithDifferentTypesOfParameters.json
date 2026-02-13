@@ -1,0 +1,33 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Transform": "LanguageExtensionsDev",
+  "Parameters" : {
+    "stringTypeParam": {
+      "Type": "String",
+      "Default": "someString"
+    },
+    "listTypeParam": {
+      "Type": "CommaDelimitedList",
+      "Default": "someCDL"
+    },
+    "numberTypeParam": {
+      "Type": "Number",
+      "Default": 0
+    }
+  },
+  "Resources": {
+    "Queue1": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "QueueName": { "Ref": "stringTypeParam" }
+      }
+    },
+    "Queue2": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "QueueName": { "Fn::Select" : [ 0, { "Ref": "listTypeParam" } ] },
+        "DelaySeconds": { "Ref": "numberTypeParam" }
+      }
+    }
+  }
+}
