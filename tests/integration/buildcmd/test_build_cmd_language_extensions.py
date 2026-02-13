@@ -540,9 +540,9 @@ class TestBuildCommand_LanguageExtensions(BuildIntegBase):
 
         # Verify Mappings section was generated
         mappings = built_template.get("Mappings", {})
-        self.assertIn("SAMCodeUriServices", mappings)
-        self.assertIn("Users", mappings["SAMCodeUriServices"])
-        self.assertIn("Orders", mappings["SAMCodeUriServices"])
+        self.assertIn("SAMCodeUriEnvironmentsServices", mappings)
+        self.assertIn("Users", mappings["SAMCodeUriEnvironmentsServices"])
+        self.assertIn("Orders", mappings["SAMCodeUriEnvironmentsServices"])
 
         # Verify CodeUri replaced with Fn::FindInMap
         inner_body = inner_block[2]
@@ -550,7 +550,7 @@ class TestBuildCommand_LanguageExtensions(BuildIntegBase):
         codeuri = props["CodeUri"]
         self.assertIsInstance(codeuri, dict)
         self.assertIn("Fn::FindInMap", codeuri)
-        self.assertEqual(codeuri["Fn::FindInMap"][0], "SAMCodeUriServices")
+        self.assertEqual(codeuri["Fn::FindInMap"][0], "SAMCodeUriEnvironmentsServices")
 
         # Verify all expanded functions were built
         for env in ["dev", "prod"]:

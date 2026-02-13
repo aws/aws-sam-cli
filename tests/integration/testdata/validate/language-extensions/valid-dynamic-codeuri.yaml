@@ -1,0 +1,26 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform:
+  - AWS::LanguageExtensions
+  - AWS::Serverless-2016-10-31
+
+Description: >
+  Valid template with Fn::ForEach using dynamic CodeUri.
+  Used for testing sam validate with language extensions.
+  Validates: Requirements 4.1, 10.1
+
+Resources:
+  # Fn::ForEach with dynamic CodeUri (Requirement 4.1)
+  # This generates AlphaFunction and BetaFunction with different CodeUri paths
+  Fn::ForEach::Functions:
+    - FunctionName
+    - - Alpha
+      - Beta
+    - ${FunctionName}Function:
+        Type: AWS::Serverless::Function
+        Properties:
+          Handler: main.handler
+          CodeUri: ./${FunctionName}
+          Runtime: python3.9
+          Environment:
+            Variables:
+              FUNCTION_NAME: !Sub ${FunctionName}

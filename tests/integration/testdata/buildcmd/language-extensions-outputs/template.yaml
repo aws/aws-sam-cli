@@ -1,0 +1,40 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform:
+  - AWS::LanguageExtensions
+  - AWS::Serverless-2016-10-31
+
+Description: >
+  TC-013: ForEach in both Resources and Outputs.
+
+Parameters:
+  Runtime:
+    Type: String
+    Default: python3.13
+
+Globals:
+  Function:
+    Timeout: 10
+    MemorySize: 128
+    Runtime: !Ref Runtime
+
+Resources:
+  Fn::ForEach::Functions:
+    - Name
+    - [alpha, beta]
+    - ${Name}Function:
+        Type: AWS::Serverless::Function
+        Properties:
+          Handler: main.handler
+          CodeUri: src/
+          Environment:
+            Variables:
+              FUNCTION_NAME: !Sub ${Name}
+
+Outputs:
+  Fn::ForEach::FunctionArns:
+    - Name
+    - [alpha, beta]
+    - ${Name}FunctionArn:
+        Value: !GetAtt
+          - !Sub "${Name}Function"
+          - Arn

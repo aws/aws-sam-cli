@@ -26,7 +26,6 @@ from samcli.lib.cfn_language_extensions.serialization import (
     serialize_to_yaml,
 )
 
-
 # =============================================================================
 # Unit Tests for serialize_to_json
 # =============================================================================
