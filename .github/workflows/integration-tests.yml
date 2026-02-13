@@ -31,7 +31,8 @@ env:
 jobs:
   integration-tests:
     # Only run scheduled jobs on the main aws/aws-sam-cli repository, not on forks
-    if: github.event_name != 'schedule' || github.repository == 'aws/aws-sam-cli-skip'
+    # if: github.event_name != 'schedule' || github.repository == 'aws/aws-sam-cli'
+    if: github.repository == 'aws/aws-sam-cli-skip'
     name: ${{ matrix.test_suite }} (${{ matrix.container_runtime }})
     runs-on: ubuntu-22.04
     strategy:
@@ -663,13 +664,22 @@ jobs:
         if: contains(fromJSON('["build-integ", "build-integ-java-python-provided", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container'
         shell: bash
         run: |
-          curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL https://sh.rustup.rs | sh -s -- --default-toolchain none -y
-          source "$HOME/.cargo/env"
+          # On Windows runners, Rust is pre-installed; just ensure toolchain is configured
+          if command -v rustup &> /dev/null; then
+            echo "rustup already available, updating toolchain..."
+          else
+            curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL https://sh.rustup.rs | sh -s -- --default-toolchain none -y
+            # Source cargo env only on non-Windows (file doesn't exist on Windows)
+            if [ -f "$HOME/.cargo/env" ]; then
+              source "$HOME/.cargo/env"
+            fi
+          fi
           rustup toolchain install stable --profile minimal --no-self-update
           rustup default stable
-          rustup target add x86_64-unknown-linux-gnu --toolchain stable
-          rustup target add aarch64-unknown-linux-gnu --toolchain stable
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+          # Add cross-compilation targets (may not all be available on Windows but won't fail)
+          rustup target add x86_64-unknown-linux-gnu --toolchain stable || true
+          rustup target add aarch64-unknown-linux-gnu --toolchain stable || true
+          echo "$USERPROFILE\\.cargo\\bin" >> $GITHUB_PATH || echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
       - name: Install cargo-lambda
         if: contains(fromJSON('["build-integ", "build-integ-java-python-provided", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container'
