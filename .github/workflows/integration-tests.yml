@@ -31,7 +31,7 @@ env:
 jobs:
   integration-tests:
     # Only run scheduled jobs on the main aws/aws-sam-cli repository, not on forks
-    if: github.event_name != 'schedule' || github.repository == 'aws/aws-sam-cli'
+    if: github.event_name != 'schedule' || github.repository == 'aws/aws-sam-cli-skip'
     name: ${{ matrix.test_suite }} (${{ matrix.container_runtime }})
     runs-on: ubuntu-22.04
     strategy:
@@ -607,6 +607,74 @@ jobs:
             3.13
             3.14
             3.11
+
+      - name: Set up Node.js
+        if: contains(fromJSON('["build-integ", "build-integ-java-python-provided", "build-integ-dotnet-node-ruby", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container'
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Set up Java 25
+        if: (contains(fromJSON('["build-integ", "build-integ-java-python-provided", "build-integ-arm64", "build-integ-arm64-java"]'), matrix.test_suite) && matrix.container_runtime == 'no-container') || matrix.test_suite == 'sync'
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'corretto'
+          java-version: '25'
+
+      - name: Set up Go
+        if: contains(fromJSON('["build-integ", "build-integ-java-python-provided", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container'
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25'
+
+      - name: Install Maven and Gradle (Windows)
+        if: (contains(fromJSON('["build-integ", "build-integ-java-python-provided", "build-integ-arm64", "build-integ-arm64-java"]'), matrix.test_suite) && matrix.container_runtime == 'no-container') || matrix.test_suite == 'sync'
+        shell: pwsh
+        run: |
+          choco install maven gradle -y
+          mvn --version
+          gradle --version
+
+      - name: Install .NET 10 SDK
+        if: (contains(fromJSON('["build-integ-java-python-provided", "build-integ-dotnet-node-ruby", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container') || matrix.test_suite == 'other-and-e2e'
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Set up Ruby 3.3.7
+        if: (contains(fromJSON('["build-integ","build-integ-dotnet-node-ruby", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container') || matrix.test_suite == 'other-and-e2e'
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3.7'
+
+      - name: Set up Ruby 3.2.7
+        if: (contains(fromJSON('["build-integ","build-integ-dotnet-node-ruby", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container') || matrix.test_suite == 'other-and-e2e'
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2.7'
+
+      - name: Set up Ruby 3.4.7
+        if: (contains(fromJSON('["build-integ","build-integ-dotnet-node-ruby", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container') || contains(fromJSON('["sync", "other-and-e2e"]'), matrix.test_suite)
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4.7'
+
+      - name: Install Rust toolchain
+        if: contains(fromJSON('["build-integ", "build-integ-java-python-provided", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container'
+        shell: bash
+        run: |
+          curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL https://sh.rustup.rs | sh -s -- --default-toolchain none -y
+          source "$HOME/.cargo/env"
+          rustup toolchain install stable --profile minimal --no-self-update
+          rustup default stable
+          rustup target add x86_64-unknown-linux-gnu --toolchain stable
+          rustup target add aarch64-unknown-linux-gnu --toolchain stable
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Install cargo-lambda
+        if: contains(fromJSON('["build-integ", "build-integ-java-python-provided", "build-integ-arm64"]'), matrix.test_suite) && matrix.container_runtime == 'no-container'
+        shell: bash
+        run: pip install cargo-lambda==${{ env.CARGO_LAMBDA_VERSION }}
 
       - name: Install Terraform
         if: contains(fromJSON('["terraform-build", "local-invoke", "local-start2"]'), matrix.test_suite)
