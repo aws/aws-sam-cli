@@ -186,6 +186,20 @@ class TestLinuxHandler(unittest.TestCase):
         self.assertEqual(result, "unix:///run/user/1001/finch.sock")
 
     @patch("os.path.exists")
+    @patch.dict("os.environ", {"XDG_RUNTIME_DIR": "/run/user/1001"})
+    def test_get_finch_socket_path_priority_finch_over_containerd(self, mock_exists):
+        """Test that finch.sock is preferred over containerd.sock when both exist"""
+
+        # Mock that BOTH sockets exist
+        def exists_side_effect(path):
+            return path in ["/run/user/1001/finch.sock", "/run/user/1001/containerd/containerd.sock"]
+
+        mock_exists.side_effect = exists_side_effect
+        result = self.handler.get_finch_socket_path()
+        # Should prefer finch.sock for accurate telemetry
+        self.assertEqual(result, "unix:///run/user/1001/finch.sock")
+
+    @patch("os.path.exists")
     @patch("os.path.expanduser")
     @patch.dict("os.environ", {}, clear=True)
     def test_get_finch_socket_path_home_directory(self, mock_expanduser, mock_exists):
