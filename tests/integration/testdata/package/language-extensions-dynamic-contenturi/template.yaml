@@ -1,0 +1,53 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform:
+  - AWS::LanguageExtensions
+  - AWS::Serverless-2016-10-31
+
+Description: >
+  Test template for sam package with Fn::ForEach and dynamic ContentUri.
+  This template generates multiple Lambda layers using Fn::ForEach
+  with dynamic ContentUri (ContentUri: ./layers/${LayerName}/), which should result
+  in a generated Mappings section and Fn::FindInMap references.
+
+Globals:
+  Function:
+    Timeout: 20
+    MemorySize: 512
+    Runtime: python3.13
+
+Resources:
+  # Test Fn::ForEach generating multiple Lambda layers with dynamic ContentUri
+  # This generates CommonLayer and UtilsLayer, each with their own ContentUri
+  # CommonLayer -> ContentUri: ./layers/Common/
+  # UtilsLayer -> ContentUri: ./layers/Utils/
+  Fn::ForEach::Layers:
+    - LayerName
+    - - Common
+      - Utils
+    - ${LayerName}Layer:
+        Type: AWS::Serverless::LayerVersion
+        Properties:
+          LayerName: !Sub ${LayerName}Layer
+          Description: !Sub ${LayerName} shared layer
+          ContentUri: ./layers/${LayerName}/
+          CompatibleRuntimes:
+            - python3.13
+            - python3.12
+
+  # A function that uses the layers (for completeness)
+  TestFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      CodeUri: ./function/
+      Layers:
+        - !Ref CommonLayer
+        - !Ref UtilsLayer
+
+Outputs:
+  CommonLayerArn:
+    Description: ARN of the Common layer
+    Value: !Ref CommonLayer
+  UtilsLayerArn:
+    Description: ARN of the Utils layer
+    Value: !Ref UtilsLayer

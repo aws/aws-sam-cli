@@ -15,6 +15,7 @@ from samcli.commands.deploy.exceptions import (
     DeployStackOutPutFailedError,
     DeployBucketInDifferentRegionError,
     DeployStackStatusMissingError,
+    MissingMappingKeyError,
 )
 from samcli.lib.deploy.deployer import Deployer
 from samcli.lib.deploy.utils import FailureMode
@@ -1480,3 +1481,61 @@ class TestDeployer(CustomTestCase):
             ["CREATE_COMPLETE", "AWS::CloudFormation::Stack", "my-stack-name"],
             patched_pprint_columns.call_args_list[2][1]["columns"],
         )
+
+
+class TestCreateDeployError(TestCase):
+    """Tests for the _create_deploy_error static method"""
+
+    def setUp(self):
+        self.session = MagicMock()
+        self.cloudformation_client = self.session.client("cloudformation")
+        self.deployer = Deployer(self.cloudformation_client)
+
+    def test_create_deploy_error_returns_missing_mapping_key_error_for_findmap_error(self):
+        """Test that _create_deploy_error returns MissingMappingKeyError for FindInMap errors"""
+        from samcli.commands.deploy.exceptions import MissingMappingKeyError
+
+        error_message = "Fn::FindInMap - Key 'Products' not found in Mapping 'SAMCodeUriServices'"
+        error = Deployer._create_deploy_error("test-stack", error_message)
+
+        self.assertIsInstance(error, MissingMappingKeyError)
+        self.assertEqual(error.stack_name, "test-stack")
+        self.assertEqual(error.missing_key, "Products")
+        self.assertEqual(error.mapping_name, "SAMCodeUriServices")
+
+    def test_create_deploy_error_returns_deploy_failed_error_for_other_errors(self):
+        """Test that _create_deploy_error returns DeployFailedError for non-FindInMap errors"""
+        error_message = "Some other CloudFormation error"
+        error = Deployer._create_deploy_error("test-stack", error_message)
+
+        self.assertIsInstance(error, DeployFailedError)
+        self.assertEqual(error.stack_name, "test-stack")
+        self.assertIn(error_message, error.msg)
+
+    def test_create_deploy_error_handles_waiter_error_format(self):
+        """Test that _create_deploy_error handles WaiterError format with FindInMap error"""
+        from samcli.commands.deploy.exceptions import MissingMappingKeyError
+
+        error_message = (
+            "Waiter StackCreateComplete failed: Waiter encountered a terminal failure state: "
+            'For expression "Stacks[].StackStatus" we matched expected path: "CREATE_FAILED" '
+            "at least once. Resource handler returned message: \"Fn::FindInMap - Key 'NewService' "
+            "not found in Mapping 'SAMCodeUriMyLoop'\" (RequestToken: abc123)"
+        )
+        error = Deployer._create_deploy_error("my-stack", error_message)
+
+        self.assertIsInstance(error, MissingMappingKeyError)
+        self.assertEqual(error.stack_name, "my-stack")
+        self.assertEqual(error.missing_key, "NewService")
+        self.assertEqual(error.mapping_name, "SAMCodeUriMyLoop")
+
+    def test_create_deploy_error_preserves_original_error_message(self):
+        """Test that the original error message is preserved in MissingMappingKeyError"""
+        from samcli.commands.deploy.exceptions import MissingMappingKeyError
+
+        error_message = "Fn::FindInMap - Key 'Alpha' not found in Mapping 'SAMCodeUriLoop'"
+        error = Deployer._create_deploy_error("test-stack", error_message)
+
+        self.assertIsInstance(error, MissingMappingKeyError)
+        self.assertEqual(error.original_error, error_message)
+        self.assertIn(error_message, str(error))
