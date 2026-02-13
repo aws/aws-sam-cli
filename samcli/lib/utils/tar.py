@@ -137,6 +137,8 @@ def extract_tarfile(
         members_to_extract: List[tarfile.TarInfo] = []
         for member in tar.getmembers():
             member_path = os.path.join(unpack_dir, member.name)
+            if not _is_within_directory(unpack_dir, member_path):
+                raise tarfile.ExtractError("Attempted Path Traversal in Tar File")
             if member.issym():
                 member_dir = os.path.dirname(member_path)
                 symlink_target_path = os.path.normpath(os.path.join(member_dir, member.linkname))
@@ -147,9 +149,6 @@ def extract_tarfile(
                         member.linkname,
                     )
                     continue
-
-            if not _is_within_directory(unpack_dir, member_path):
-                raise tarfile.ExtractError("Attempted Path Traversal in Tar File")
             members_to_extract.append(member)
 
         tar.extractall(unpack_dir, members=members_to_extract)
