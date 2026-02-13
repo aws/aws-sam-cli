@@ -1788,3 +1788,40 @@ to create a managed default bucket, or run sam deploy --guided",
 
         deploy_process_execute = self.run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
+
+    def test_deploy_with_language_extensions_dynamic_imageuri(self):
+        """
+        Test that sam deploy works with Fn::ForEach and dynamic ImageUri.
+
+        This test verifies:
+        1. Deploy succeeds with dynamic ImageUri template
+        2. CloudFormation correctly processes the Fn::ForEach with Mappings
+        3. Both Alpha and Beta functions are created
+
+        Validates Requirements: 12.1, 19.2
+        """
+        # Reuse the image already pulled in setUpClass (latest-x86_64)
+        # and tag it for the alpha/beta function names used by the template.
+        repo = "public.ecr.aws/sam/emulation-python3.9"
+        src_tag = "latest-x86_64"
+        self.docker_client.api.tag(f"{repo}:{src_tag}", "emulation-python3.9-alpha", tag="latest")
+        self.docker_client.api.tag(f"{repo}:{src_tag}", "emulation-python3.9-beta", tag="latest")
+
+        template = (
+            Path(__file__)
+            .resolve()
+            .parents[1]
+            .joinpath("testdata", "buildcmd", "language-extensions-dynamic-imageuri", "template.yaml")
+        )
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template,
+            stack_name=stack_name,
+            s3_prefix=self.s3_prefix,
+            capabilities="CAPABILITY_IAM",
+            image_repository=self.ecr_repo_name,
+        )
+        deploy_process_execute = self.run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 0)

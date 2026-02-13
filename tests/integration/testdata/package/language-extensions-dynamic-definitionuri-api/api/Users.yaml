@@ -1,0 +1,44 @@
+openapi: "3.0.1"
+info:
+  title: "Users API"
+  description: "API for user management"
+  version: "1.0.0"
+paths:
+  /users:
+    get:
+      summary: "List all users"
+      operationId: "listUsers"
+      responses:
+        "200":
+          description: "Successful response"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    name:
+                      type: string
+      x-amazon-apigateway-integration:
+        type: mock
+        requestTemplates:
+          application/json: '{"statusCode": 200}'
+        responses:
+          default:
+            statusCode: "200"
+    post:
+      summary: "Create a user"
+      operationId: "createUser"
+      responses:
+        "201":
+          description: "User created"
+      x-amazon-apigateway-integration:
+        type: mock
+        requestTemplates:
+          application/json: '{"statusCode": 201}'
+        responses:
+          default:
+            statusCode: "201"
