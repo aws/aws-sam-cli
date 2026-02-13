@@ -284,6 +284,9 @@ an infra sync will be executed for an CloudFormation deployment to improve perfo
 
         # The recursive template check for Nested stacks
         for resource_logical_id in current_template.get("Resources", {}):
+            if resource_logical_id.startswith("Fn::ForEach::"):
+                continue
+
             resource_dict = current_template.get("Resources", {}).get(resource_logical_id, {})
             resource_type = resource_dict.get("Type")
 
@@ -394,6 +397,9 @@ an infra sync will be executed for an CloudFormation deployment to improve perfo
         built_resource_dict = None
 
         for resource_logical_id in resources:
+            if resource_logical_id.startswith("Fn::ForEach::"):
+                continue
+
             resource_dict = resources.get(resource_logical_id, {})
 
             # Built resource dict helps with determining if a field is a local path

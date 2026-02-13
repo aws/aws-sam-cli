@@ -323,6 +323,22 @@ def _update_sam_mappings_relative_paths(mappings, original_root, new_root):
     new_root : str
         Path to the new directory that all paths set relative to after this method completes
     """
+    # Only these property names in SAM-generated Mappings represent local file paths
+    # that need relative path adjustment. Other properties (like LayerOutputKey for
+    # auto dependency layer references) are CloudFormation references, not file paths.
+    _ARTIFACT_PATH_PROPERTIES = {
+        "CodeUri",
+        "ImageUri",
+        "ContentUri",
+        "Content",
+        "DefinitionUri",
+        "BodyS3Location",
+        "DefinitionS3Location",
+        "SchemaUri",
+        "TemplateURL",
+        "Location",
+    }
+
     if not isinstance(mappings, dict):
         return
 
@@ -339,6 +355,8 @@ def _update_sam_mappings_relative_paths(mappings, original_root, new_root):
                 continue
 
             for prop_name, prop_value in value_dict.items():
+                if prop_name not in _ARTIFACT_PATH_PROPERTIES:
+                    continue
                 updated_path = _resolve_relative_to(prop_value, original_root, new_root)
                 if not updated_path:
                     continue

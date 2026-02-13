@@ -1199,3 +1199,80 @@ class TestFnRefPartitionDerivationPropertyBasedTests:
 
         assert result["partition"] == expected_partition
         assert result["url_suffix"] == expected_url_suffix
+
+
+# =============================================================================
+# Tests for Ref with nested intrinsic functions (e.g., Fn::Sub inside Ref)
+# =============================================================================
+
+
+class TestFnRefResolverNestedIntrinsic:
+    """Tests for FnRefResolver when Ref target is a nested intrinsic function.
+
+    This covers the case where Fn::ForEach expansion produces constructs like
+    {"Ref": {"Fn::Sub": "uploadsBucket"}} which need to be resolved to
+    {"Ref": "uploadsBucket"}.
+    """
+
+    @pytest.fixture
+    def context(self) -> TemplateProcessingContext:
+        return TemplateProcessingContext(
+            fragment={"Resources": {}},
+            resolution_mode=ResolutionMode.PARTIAL,
+            parameter_values={"MyParam": "my-value"},
+            pseudo_parameters=PseudoParameterValues(
+                region="us-east-1",
+                account_id="123456789012",
+            ),
+            parsed_template=ParsedTemplate(
+                parameters={"MyParam": {"Type": "String"}},
+                resources={"uploadsBucket": {"Type": "AWS::S3::Bucket"}},
+            ),
+        )
+
+    @pytest.fixture
+    def orchestrator(self, context: TemplateProcessingContext) -> IntrinsicResolver:
+        from samcli.lib.cfn_language_extensions.resolvers.fn_sub import FnSubResolver
+
+        orchestrator = IntrinsicResolver(context)
+        orchestrator.register_resolver(FnRefResolver)
+        orchestrator.register_resolver(FnSubResolver)
+        return orchestrator
+
+    def test_ref_with_nested_fn_sub_resolves_to_resource_ref(self, orchestrator: IntrinsicResolver):
+        """Ref containing Fn::Sub that resolves to a resource name should produce {"Ref": "resourceName"}."""
+        value = {"Ref": {"Fn::Sub": "uploadsBucket"}}
+        result = orchestrator.resolve_value(value)
+        assert result == {"Ref": "uploadsBucket"}
+
+    def test_ref_with_nested_fn_sub_resolves_to_parameter(self, orchestrator: IntrinsicResolver):
+        """Ref containing Fn::Sub that resolves to a parameter name should resolve the parameter value."""
+        value = {"Ref": {"Fn::Sub": "MyParam"}}
+        result = orchestrator.resolve_value(value)
+        assert result == "my-value"
+
+    def test_ref_with_nested_fn_sub_resolves_to_pseudo_parameter(self, orchestrator: IntrinsicResolver):
+        """Ref containing Fn::Sub that resolves to a pseudo-parameter should resolve its value."""
+        value = {"Ref": {"Fn::Sub": "AWS::Region"}}
+        result = orchestrator.resolve_value(value)
+        assert result == "us-east-1"
+
+    def test_ref_with_nested_fn_sub_preserves_unresolved_pseudo_parameter(self, orchestrator: IntrinsicResolver):
+        """Ref containing Fn::Sub that resolves to a pseudo-parameter without value should preserve it."""
+        value = {"Ref": {"Fn::Sub": "AWS::StackName"}}
+        result = orchestrator.resolve_value(value)
+        assert result == {"Ref": "AWS::StackName"}
+
+    def test_ref_with_nested_fn_sub_in_s3_event_structure(self, orchestrator: IntrinsicResolver):
+        """End-to-end: S3 event Bucket property with nested Fn::Sub inside Ref."""
+        value = {
+            "S3Event": {
+                "Type": "S3",
+                "Properties": {
+                    "Bucket": {"Ref": {"Fn::Sub": "uploadsBucket"}},
+                    "Events": "s3:ObjectCreated:*",
+                },
+            }
+        }
+        result = orchestrator.resolve_value(value)
+        assert result["S3Event"]["Properties"]["Bucket"] == {"Ref": "uploadsBucket"}

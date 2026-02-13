@@ -1,0 +1,52 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform:
+  - AWS::LanguageExtensions
+  - AWS::Serverless-2016-10-31
+
+Description: >
+  Test template for Fn::ForEach with a parameter reference for the collection.
+  Demonstrates using !Ref to a CommaDelimitedList parameter as the ForEach collection.
+  This validates Requirement 17.7 - template with Fn::ForEach using a parameter reference.
+
+Parameters:
+  FunctionNames:
+    Type: CommaDelimitedList
+    Default: "Alpha,Beta"
+    Description: Comma-separated list of function names to generate
+  Runtime:
+    Type: String
+    Default: python3.13
+    Description: Python runtime version for Lambda functions
+
+Globals:
+  Function:
+    Timeout: 10
+    MemorySize: 128
+    Runtime: !Ref Runtime
+
+Resources:
+  # Fn::ForEach using !Ref FunctionNames as the collection
+  # With default value "Alpha,Beta", this generates AlphaFunction and BetaFunction
+  # Users can override with --parameter-overrides FunctionNames="Gamma,Delta,Epsilon"
+  Fn::ForEach::Functions:
+    - Name
+    - !Ref FunctionNames
+    - ${Name}Function:
+        Type: AWS::Serverless::Function
+        Properties:
+          Handler: main.handler
+          CodeUri: src/
+          FunctionName:
+            Fn::Sub: ${Name}-handler
+          Environment:
+            Variables:
+              FUNCTION_NAME: !Sub ${Name}
+
+Outputs:
+  # Output the function names that were generated
+  GeneratedFunctions:
+    Description: List of generated function names
+    Value:
+      Fn::Join:
+        - ", "
+        - !Ref FunctionNames
