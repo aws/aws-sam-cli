@@ -1,0 +1,27 @@
+{
+  "Comment": "Process workflow state machine",
+  "StartAt": "ValidateInput",
+  "States": {
+    "ValidateInput": {
+      "Type": "Pass",
+      "Comment": "Validate the input data",
+      "Result": {
+        "validated": true,
+        "workflow": "Process"
+      },
+      "Next": "ProcessData"
+    },
+    "ProcessData": {
+      "Type": "Pass",
+      "Comment": "Process the data",
+      "Result": {
+        "processed": true
+      },
+      "Next": "Complete"
+    },
+    "Complete": {
+      "Type": "Succeed",
+      "Comment": "Processing complete"
+    }
+  }
+}
