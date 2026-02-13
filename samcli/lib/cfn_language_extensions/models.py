@@ -180,6 +180,7 @@ PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES: Dict[str, List[str]] = {
     "AWS::ApiGateway::RestApi": ["BodyS3Location"],
     "AWS::ApiGatewayV2::Api": ["BodyS3Location"],
     "AWS::StepFunctions::StateMachine": ["DefinitionS3Location"],
+    "AWS::CloudFormation::Stack": ["TemplateURL"],
 }
 
 

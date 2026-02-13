@@ -115,7 +115,7 @@ class FnRefResolver(IntrinsicFunctionResolver):
         # Check if it's a pseudo-parameter without a provided value
         if ref_target in PSEUDO_PARAMETERS:
             # Preserve the reference unresolved (Requirement 9.3)
-            return value
+            return {"Ref": ref_target}
 
         # If not a parameter or pseudo-parameter, it's likely a resource reference
         from samcli.lib.cfn_language_extensions.models import ResolutionMode
@@ -123,7 +123,7 @@ class FnRefResolver(IntrinsicFunctionResolver):
         if self.context.resolution_mode == ResolutionMode.FULL:
             raise UnresolvableReferenceError("Ref", ref_target)
         # In partial mode, preserve the reference
-        return value
+        return {"Ref": ref_target}
 
     def _resolve_parameter(self, ref_target: str) -> Optional[Any]:
         """
