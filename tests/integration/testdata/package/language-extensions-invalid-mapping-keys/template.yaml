@@ -1,0 +1,52 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform:
+  - AWS::LanguageExtensions
+  - AWS::Serverless-2016-10-31
+
+Description: >
+  Test template for sam package with Fn::ForEach and invalid Mapping key characters.
+  This template uses collection values containing special characters that are invalid
+  for CloudFormation Mapping keys (dots, slashes, spaces, etc.).
+  
+  CloudFormation Mapping keys can only contain alphanumeric characters (a-z, A-Z, 0-9),
+  hyphens (-), and underscores (_).
+  
+  This template should fail with a clear error message about invalid Mapping key characters.
+
+Parameters:
+  Runtime:
+    Type: String
+    Default: python3.12
+    Description: Python runtime version for Lambda functions
+
+Globals:
+  Function:
+    Timeout: 20
+    MemorySize: 512
+    Runtime: !Ref Runtime
+
+Resources:
+  # Test Fn::ForEach with collection values containing invalid characters for Mapping keys
+  # "user-service" is valid (hyphens are allowed)
+  # "order.service" is INVALID (dots are not allowed)
+  # This should fail with a clear error message
+  Fn::ForEach::Services:
+    - Name
+    - - user-service
+      - order.service
+    - ${Name}Function:
+        Type: AWS::Serverless::Function
+        Properties:
+          Handler: main.handler
+          CodeUri: ${Name}/
+          Environment:
+            Variables:
+              SERVICE_NAME: !Sub ${Name}
+
+Outputs:
+  UserServiceFunctionArn:
+    Description: ARN of the user-service function
+    Value: !GetAtt user-serviceFunction.Arn
+  OrderServiceFunctionArn:
+    Description: ARN of the order.service function
+    Value: !GetAtt order.serviceFunction.Arn

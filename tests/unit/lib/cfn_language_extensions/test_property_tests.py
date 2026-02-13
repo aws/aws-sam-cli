@@ -717,8 +717,8 @@ class TestProperty4DynamicArtifactPropertyTransformation:
 
         **Validates: Requirements 4.6**
         """
-        from samcli.commands.package.package_context import PackageContext
         from samcli.lib.cfn_language_extensions.models import DynamicArtifactProperty
+        from samcli.lib.package.language_extensions_packaging import _generate_artifact_mappings
 
         prop = DynamicArtifactProperty(
             foreach_key=f"Fn::ForEach::{loop_name}",
@@ -733,22 +733,6 @@ class TestProperty4DynamicArtifactPropertyTransformation:
             collection_parameter_name=None,
         )
 
-        ctx = PackageContext(
-            template_file="template.yaml",
-            s3_bucket="test-bucket",
-            image_repository=None,
-            image_repositories=None,
-            s3_prefix=None,
-            kms_key_id=None,
-            output_template_file="output.yaml",
-            use_json=False,
-            force_upload=False,
-            no_progressbar=True,
-            metadata=None,
-            region="us-east-1",
-            profile=None,
-        )
-
         exported_resources = {}
         for value in collection:
             expanded_key = f"{value}Function"
@@ -761,7 +745,7 @@ class TestProperty4DynamicArtifactPropertyTransformation:
                 },
             }
 
-        mappings, _ = ctx._generate_artifact_mappings([prop], "/tmp", exported_resources)
+        mappings, _ = _generate_artifact_mappings([prop], "/tmp", exported_resources)
 
         expected_mapping_name = f"SAMCodeUri{loop_name}"
         assert expected_mapping_name in mappings
@@ -804,8 +788,8 @@ class TestProperty7ContentBasedS3Hashing:
 
         **Validates: Requirements 4.2**
         """
-        from samcli.commands.package.package_context import PackageContext
         from samcli.lib.cfn_language_extensions.models import DynamicArtifactProperty
+        from samcli.lib.package.language_extensions_packaging import _generate_artifact_mappings
 
         prop = DynamicArtifactProperty(
             foreach_key=f"Fn::ForEach::{loop_name}",
@@ -818,22 +802,6 @@ class TestProperty7ContentBasedS3Hashing:
             property_value=f"./services/${{{loop_variable}}}",
             collection_is_parameter_ref=False,
             collection_parameter_name=None,
-        )
-
-        ctx = PackageContext(
-            template_file="template.yaml",
-            s3_bucket="test-bucket",
-            image_repository=None,
-            image_repositories=None,
-            s3_prefix=None,
-            kms_key_id=None,
-            output_template_file="output.yaml",
-            use_json=False,
-            force_upload=False,
-            no_progressbar=True,
-            metadata=None,
-            region="us-east-1",
-            profile=None,
         )
 
         exported_resources = {}
@@ -849,7 +817,7 @@ class TestProperty7ContentBasedS3Hashing:
                 },
             }
 
-        mappings, _ = ctx._generate_artifact_mappings([prop], "/tmp", exported_resources)
+        mappings, _ = _generate_artifact_mappings([prop], "/tmp", exported_resources)
 
         mapping_name = f"SAMCodeUri{loop_name}"
         s3_uris = set()
@@ -882,8 +850,8 @@ class TestProperty7ContentBasedS3Hashing:
 
         **Validates: Requirements 4.4, 4.5**
         """
-        from samcli.commands.package.package_context import PackageContext
         from samcli.lib.cfn_language_extensions.models import DynamicArtifactProperty
+        from samcli.lib.package.language_extensions_packaging import _apply_artifact_mappings_to_template
 
         foreach_key = f"Fn::ForEach::{loop_name}"
 
@@ -924,23 +892,7 @@ class TestProperty7ContentBasedS3Hashing:
             f"SAMCodeUri{loop_name}": {value: {"CodeUri": f"s3://test-bucket/{value}-hash.zip"} for value in collection}
         }
 
-        ctx = PackageContext(
-            template_file="template.yaml",
-            s3_bucket="test-bucket",
-            image_repository=None,
-            image_repositories=None,
-            s3_prefix=None,
-            kms_key_id=None,
-            output_template_file="output.yaml",
-            use_json=False,
-            force_upload=False,
-            no_progressbar=True,
-            metadata=None,
-            region="us-east-1",
-            profile=None,
-        )
-
-        result = ctx._apply_artifact_mappings_to_template(copy.deepcopy(template), mappings, [prop])
+        result = _apply_artifact_mappings_to_template(copy.deepcopy(template), mappings, [prop])
 
         assert foreach_key in result["Resources"]
         assert "Mappings" in result
@@ -1067,8 +1019,11 @@ class TestProperty13InnerOnlyMappingsNaming:
 
         result = detect_dynamic_artifact_properties(template)
         assert len(result) == 1
-        expected_mapping_name = f"SAMCodeUri{inner_loop_name}"
-        actual_mapping_name = f"SAM{result[0].property_name}{result[0].loop_name}"
+        # Nesting path includes the outer loop name ("Outer") + inner loop name
+        from samcli.lib.package.language_extensions_packaging import _nesting_path
+
+        expected_mapping_name = f"SAMCodeUriOuter{inner_loop_name}"
+        actual_mapping_name = f"SAM{result[0].property_name}{_nesting_path(result[0])}"
         assert actual_mapping_name == expected_mapping_name
 
 

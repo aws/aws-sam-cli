@@ -70,8 +70,20 @@ class CloudFormationStackResource(ResourceZip):
         """
         If the nested stack template is valid, this method will
         export on the nested template, upload the exported template to S3
-        and set property to URL of the uploaded S3 template
+        and set property to URL of the uploaded S3 template.
+
+        When the child template uses CloudFormation Language Extensions
+        (e.g. Fn::ForEach), the template is first expanded so that
+        Template.export() can discover and upload all generated artifacts.
+        The S3 URIs are then merged back into the original template
+        (preserving the Fn::ForEach structure) before uploading.
         """
+        from samcli.lib.cfn_language_extensions.sam_integration import expand_language_extensions
+        from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
+        from samcli.lib.package.language_extensions_packaging import (
+            generate_and_apply_artifact_mappings,
+            merge_language_extensions_s3_uris,
+        )
 
         template_path = resource_dict.get(self.PROPERTY_NAME, None)
 
@@ -85,15 +97,68 @@ class CloudFormationStackResource(ResourceZip):
                 property_name=self.PROPERTY_NAME, resource_id=resource_id, template_path=abs_template_path
             )
 
-        exported_template_dict = Template(
-            template_path,
-            parent_dir,
-            self.uploaders,
-            self.code_signer,
-            normalize_template=True,
-            normalize_parameters=True,
-            parent_stack_id=resource_id,
-        ).export()
+        # Read and attempt language extensions expansion on the child template
+        with open(abs_template_path, "r") as f:
+            child_template_dict = yaml_parse(f.read())
+
+        child_template_dir = os.path.dirname(abs_template_path)
+
+        parameter_values = dict(IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES)
+
+        try:
+            result = expand_language_extensions(child_template_dict, parameter_values, template_path=abs_template_path)
+        except Exception:
+            LOG.debug("Language extensions expansion failed for %s, using original template", abs_template_path)
+            result = None
+
+        if result and result.had_language_extensions:
+            LOG.debug("Child template %s uses language extensions, expanding before export", abs_template_path)
+
+            # Create Template from the expanded template string
+            template = Template(
+                template_path,
+                parent_dir,
+                self.uploaders,
+                self.code_signer,
+                normalize_template=True,
+                normalize_parameters=True,
+                parent_stack_id=resource_id,
+                template_str=yaml_dump(result.expanded_template),
+            )
+            template.template_dir = child_template_dir
+            template.code_signer = self.code_signer
+
+            exported_template = template.export()
+
+            # Merge S3 URIs back into the original template (preserving Fn::ForEach)
+            exported_template_dict = merge_language_extensions_s3_uris(
+                result.original_template, exported_template, result.dynamic_artifact_properties
+            )
+
+            # Generate and apply Mappings for dynamic artifact properties
+            if result.dynamic_artifact_properties:
+                LOG.debug(
+                    "Generating Mappings for %d dynamic artifact properties in child template",
+                    len(result.dynamic_artifact_properties),
+                )
+                exported_resources = exported_template.get("Resources", {})
+                exported_template_dict = generate_and_apply_artifact_mappings(
+                    exported_template_dict,
+                    result.dynamic_artifact_properties,
+                    exported_resources,
+                    child_template_dir,
+                )
+        else:
+            # No language extensions — use existing flow
+            exported_template_dict = Template(
+                template_path,
+                parent_dir,
+                self.uploaders,
+                self.code_signer,
+                normalize_template=True,
+                normalize_parameters=True,
+                parent_stack_id=resource_id,
+            ).export()
 
         exported_template_str = yaml_dump(exported_template_dict)
 
