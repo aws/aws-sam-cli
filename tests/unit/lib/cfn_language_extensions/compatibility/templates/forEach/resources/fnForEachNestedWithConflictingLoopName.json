@@ -1,0 +1,82 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Transform": "LanguageExtensionsDev",
+  "Resources": {
+    "Fn::ForEach::UniqueLoopName": [
+      "param1",
+      ["1"],
+      {
+        "Fn::ForEach::UniqueLoopName2": [
+          "param2",
+          ["A"],
+          {
+            "Fn::ForEach::UniqueLoopName3": [
+              "param3",
+              ["2"],
+              {
+                "Fn::ForEach::UniqueLoopName4": [
+                  "param4",
+                  ["B"],
+                  {
+                    "Fn::ForEach::UniqueLoopName": [
+                      "param5",
+                      ["3"],
+                      {
+                        "Topic${param1}${param2}${param3}${param4}${param5}": {
+                          "Type": "AWS::SNS::Topic",
+                          "Properties": {
+                            "TopicName": {
+                              "Fn::Sub": "MyTopic${param1}${param2}${param3}${param4}${param5}"
+                            }
+                          }
+                        }
+                      }
+                    ],
+                    "Topic${param1}${param2}${param3}${param4}": {
+                      "Type": "AWS::SNS::Topic",
+                      "Properties": {
+                        "TopicName": {
+                          "Fn::Sub": "MyTopic${param1}${param2}${param3}${param4}"
+                        }
+                      }
+                    }
+                  }
+                ],
+                "Topic${param1}${param2}${param3}": {
+                  "Type": "AWS::SNS::Topic",
+                  "Properties": {
+                    "TopicName": {
+                      "Fn::Sub": "MyTopic${param1}${param2}${param3}"
+                    }
+                  }
+                }
+              }
+            ],
+            "Topic${param1}${param2}": {
+              "Type": "AWS::SNS::Topic",
+              "Properties": {
+                "TopicName": {
+                  "Fn::Sub": "MyTopic${param1}${param2}"
+                }
+              }
+            }
+          }
+        ],
+        "Topic${param1}": {
+          "Type": "AWS::SNS::Topic",
+          "Properties": {
+            "TopicName": {
+              "Fn::Sub": "MyTopic${param1}"
+            }
+          }
+        }
+      }
+    ],
+    "Topic0": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "TopicName": "MyTopic0"
+      }
+    }
+  }
+}

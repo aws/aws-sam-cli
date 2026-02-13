@@ -1,0 +1,59 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Conditions": {
+    "RunLambdaInVPC": {
+      "Fn::Equals": [ 3, 3 ]
+    }
+  },
+  "Resources": {
+    "LambdaRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "Tags": [
+          {
+            "Fn::If": [
+              "RunLambdaInVPC",
+              {
+                "Key": "cfn",
+                "Value": "condition"
+              },
+              {
+                "Ref": "AWS::NoValue"
+              }
+            ]
+          },
+          {
+            "Key": "already",
+            "Value": "exists"
+          }
+        ],
+        "Policies": [
+          {
+            "PolicyDocument": {
+              "Statement": [
+                {
+                  "Fn::If": [
+                    "RunLambdaInVPC",
+                    {
+                      "Action": [
+                        "ec2:CreateNetworkInterface",
+                        "ec2:DescribeNetworkInterfaces",
+                        "ec2:DeleteNetworkInterface"
+                      ],
+                      "Effect": "Allow",
+                      "Resource": "*"
+                    },
+                    {
+                      "Ref": "AWS::NoValue"
+                    }
+                  ]
+                }
+              ],
+              "Version": "2012-10-17"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

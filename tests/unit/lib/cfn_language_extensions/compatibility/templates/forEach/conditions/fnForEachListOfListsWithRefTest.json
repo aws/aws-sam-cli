@@ -1,0 +1,37 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Transform": "AWS::LanguageExtensions",
+  "Parameters": {
+    "ValueList": {
+      "Type": "CommaDelimitedList",
+      "Default": "1,3"
+    },
+    "IdentifierString": {
+      "Type": "String",
+      "Default": "LogicalId"
+    }
+  },
+  "Conditions": {
+    "Fn::ForEach::UniqueLoopName": [
+      [{"Ref": "IdentifierString"}, "TopicId"],
+      [
+        {"Ref": "ValueList"},
+        [2, "4"],
+        [3, "5"]
+      ],
+      {
+        "Condition${LogicalId}": {
+          "Fn::Equals": ["1", {"Ref": "TopicId"}]
+        }
+      }
+    ]
+  },
+  "Resources": {
+    "Topic": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "TopicName": "MyTopic"
+      }
+    }
+  }
+}
