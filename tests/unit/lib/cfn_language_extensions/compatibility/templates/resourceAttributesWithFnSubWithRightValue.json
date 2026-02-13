@@ -1,0 +1,25 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Transform": "LanguageExtensionsDev",
+  "Parameters": {
+    "ResourceAttributeParameter": {
+      "Type": "String",
+      "Default": "Delete"
+    }
+  },
+  "Resources": {
+    "WaitHandle": {
+      "Type": "AWS::CloudFormation::WaitConditionHandle",
+      "$RESOURCE_ATTRIBUTE": {
+        "Fn::Sub" : [
+          "${Policy}",
+          {
+            "Policy": {
+              "Ref": "ResourceAttributeParameter"
+            }
+          }
+        ]
+      }
+    }
+  }
+}
