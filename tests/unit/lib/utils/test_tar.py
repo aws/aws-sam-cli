@@ -102,6 +102,7 @@ class TestTar(TestCase):
         tarfile_file_mock = Mock()
         tar_file_obj_mock = Mock()
         tar_file_obj_mock.name = "obj_name"
+        tar_file_obj_mock.issym.return_value = False
         tarfile_file_mock.getmembers.return_value = [tar_file_obj_mock]
         tarfile_open_patch.return_value.__enter__.return_value = tarfile_file_mock
 
@@ -109,7 +110,7 @@ class TestTar(TestCase):
 
         is_within_directory_patch.assert_called_once()
         tarfile_file_mock.getmembers.assert_called_once()
-        tarfile_file_mock.extractall.assert_called_once_with(unpack_dir)
+        tarfile_file_mock.extractall.assert_called_once_with(unpack_dir, members=[tar_file_obj_mock])
 
     @patch("samcli.lib.utils.tar.tarfile.open")
     @patch("samcli.lib.utils.tar._is_within_directory")
@@ -121,6 +122,7 @@ class TestTar(TestCase):
         tarfile_file_mock = Mock()  # Mock tarfile
         tar_file_obj_mock = Mock()  # Mock member inside tarfile
         tar_file_obj_mock.name = "obj_name"
+        tar_file_obj_mock.issym.return_value = False
         tarfile_file_mock.getmembers.return_value = [tar_file_obj_mock]
         tarfile_open_patch.return_value.__enter__.return_value = tarfile_file_mock
 
@@ -128,7 +130,7 @@ class TestTar(TestCase):
 
         is_within_directory_patch.assert_called_once()
         tarfile_file_mock.getmembers.assert_called_once()
-        tarfile_file_mock.extractall.assert_called_once_with(unpack_dir)
+        tarfile_file_mock.extractall.assert_called_once_with(unpack_dir, members=[tar_file_obj_mock])
 
     @patch("samcli.lib.utils.tar.tarfile.open")
     @patch("samcli.lib.utils.tar._is_within_directory")
@@ -140,6 +142,7 @@ class TestTar(TestCase):
         tarfile_file_mock = Mock()
         tar_file_obj_mock = Mock()
         tar_file_obj_mock.name = "obj_name"
+        tar_file_obj_mock.issym.return_value = False
         tarfile_file_mock.getmembers.return_value = [tar_file_obj_mock]
         tarfile_open_patch.return_value.__enter__.return_value = tarfile_file_mock
 
@@ -231,3 +234,90 @@ class TestTar(TestCase):
         result = _validate_destinations_exists(["mock_folder"])
 
         self.assertEqual(result, file_exists)
+
+    @patch("samcli.lib.utils.tar.tarfile.open")
+    @patch("samcli.lib.utils.tar._is_within_directory")
+    def test_extract_tarfile_allows_safe_symlinks(self, is_within_directory_patch, tarfile_open_patch):
+        # All paths are within directory
+        tarfile_path = "/test_tarfile_path/"
+        unpack_dir = "/test_unpack_dir/"
+        is_within_directory_patch.return_value = True
+
+        tarfile_file_mock = Mock()
+
+        regular_file_1 = Mock()
+        regular_file_1.name = "regular_file_1.txt"
+        regular_file_1.issym.return_value = False
+
+        safe_symlink = Mock()
+        safe_symlink.name = "safe_symlink"
+        safe_symlink.linkname = "regular_file_1.txt"
+        safe_symlink.issym.return_value = True
+
+        regular_file_2 = Mock()
+        regular_file_2.name = "regular_file_2.txt"
+        regular_file_2.issym.return_value = False
+
+        tarfile_file_mock.getmembers.return_value = [regular_file_1, safe_symlink, regular_file_2]
+        tarfile_open_patch.return_value.__enter__.return_value = tarfile_file_mock
+
+        extract_tarfile(tarfile_path=tarfile_path, unpack_dir=unpack_dir)
+
+        tarfile_file_mock.extractall.assert_called_once()
+        call_args = tarfile_file_mock.extractall.call_args
+        extracted_members = call_args[1]["members"]
+
+        self.assertEqual(len(extracted_members), 3)
+        self.assertIn(regular_file_1, extracted_members)
+        self.assertIn(safe_symlink, extracted_members)
+        self.assertIn(regular_file_2, extracted_members)
+
+    @patch("samcli.lib.utils.tar.tarfile.open")
+    @patch("samcli.lib.utils.tar._is_within_directory")
+    @patch("samcli.lib.utils.tar.LOG")
+    def test_extract_tarfile_skips_unsafe_symlinks(self, log_mock, is_within_directory_patch, tarfile_open_patch):
+        tarfile_path = "/test_tarfile_path/"
+        unpack_dir = "/test_unpack_dir/"
+
+        # Mock to return False only for the symlink target path
+        def is_within_side_effect(directory, target):
+            # Unsafe symlink target is outside directory
+            if "outside_target" in target:
+                return False
+            return True
+
+        is_within_directory_patch.side_effect = is_within_side_effect
+
+        tarfile_file_mock = Mock()
+
+        regular_file_1 = Mock()
+        regular_file_1.name = "regular_file_1.txt"
+        regular_file_1.issym.return_value = False
+
+        unsafe_symlink = Mock()
+        unsafe_symlink.name = "unsafe_symlink"
+        unsafe_symlink.linkname = "../../../outside_target"
+        unsafe_symlink.issym.return_value = True
+
+        regular_file_2 = Mock()
+        regular_file_2.name = "regular_file_2.txt"
+        regular_file_2.issym.return_value = False
+
+        tarfile_file_mock.getmembers.return_value = [regular_file_1, unsafe_symlink, regular_file_2]
+        tarfile_open_patch.return_value.__enter__.return_value = tarfile_file_mock
+
+        extract_tarfile(tarfile_path=tarfile_path, unpack_dir=unpack_dir)
+
+        log_mock.warning.assert_called_once()
+        warning_call = log_mock.warning.call_args[0]
+        self.assertIn("Skipping symbolic link", warning_call[0])
+        self.assertIn("unsafe_symlink", warning_call[1])
+
+        tarfile_file_mock.extractall.assert_called_once()
+        call_args = tarfile_file_mock.extractall.call_args
+        extracted_members = call_args[1]["members"]
+
+        self.assertEqual(len(extracted_members), 2)
+        self.assertIn(regular_file_1, extracted_members)
+        self.assertIn(regular_file_2, extracted_members)
+        self.assertNotIn(unsafe_symlink, extracted_members)

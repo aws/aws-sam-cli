@@ -134,9 +134,22 @@ def extract_tarfile(
     with tarfile.open(name=tarfile_path, fileobj=file_obj, mode="r") as tar:
         # Makes sure the tar file is sanitized and is free of directory traversal vulnerability
         # See: https://github.com/advisories/GHSA-gw9q-c7gh-j9vm
+        members_to_extract: List[tarfile.TarInfo] = []
         for member in tar.getmembers():
             member_path = os.path.join(unpack_dir, member.name)
+            if member.issym():
+                member_dir = os.path.dirname(member_path)
+                symlink_target_path = os.path.normpath(os.path.join(member_dir, member.linkname))
+                if not _is_within_directory(unpack_dir, symlink_target_path):
+                    LOG.warning(
+                        "Skipping symbolic link '%s' -> '%s' pointing outside extraction directory",
+                        member.name,
+                        member.linkname,
+                    )
+                    continue
+
             if not _is_within_directory(unpack_dir, member_path):
                 raise tarfile.ExtractError("Attempted Path Traversal in Tar File")
+            members_to_extract.append(member)
 
-        tar.extractall(unpack_dir)
+        tar.extractall(unpack_dir, members=members_to_extract)
