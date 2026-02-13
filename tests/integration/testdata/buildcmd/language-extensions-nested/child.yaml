@@ -1,0 +1,61 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform:
+  - AWS::LanguageExtensions
+  - AWS::Serverless-2016-10-31
+
+Description: >
+  Child template demonstrating Fn::ForEach in a nested stack.
+  This template uses AWS::LanguageExtensions to generate multiple Lambda functions.
+  Validates Requirement 13.4: Test templates with nested stacks using language extensions.
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+  Runtime:
+    Type: String
+    Default: python3.13
+    Description: Python runtime version for Lambda functions
+
+Globals:
+  Function:
+    Timeout: 10
+    MemorySize: 128
+    Runtime: !Ref Runtime
+
+Resources:
+  # Fn::ForEach generating multiple Lambda functions in the nested stack
+  # This generates ChildAlphaFunction and ChildBetaFunction
+  Fn::ForEach::ChildFunctions:
+    - FunctionName
+    - - Alpha
+      - Beta
+    - Child${FunctionName}Function:
+        Type: AWS::Serverless::Function
+        Properties:
+          Handler: main.handler
+          CodeUri: src/
+          FunctionName:
+            Fn::Sub: child-${FunctionName}-handler
+          Environment:
+            Variables:
+              FUNCTION_NAME: !Sub ${FunctionName}
+              STACK_TYPE: child
+              ENVIRONMENT: !Ref Environment
+              # Fn::Length to demonstrate language extensions in nested stack
+              TOTAL_CHILD_FUNCTIONS:
+                Fn::Length:
+                  - Alpha
+                  - Beta
+
+Outputs:
+  ChildAlphaFunctionArn:
+    Description: ARN of the Child Alpha Lambda function
+    Value: !GetAtt ChildAlphaFunction.Arn
+
+  ChildBetaFunctionArn:
+    Description: ARN of the Child Beta Lambda function
+    Value: !GetAtt ChildBetaFunction.Arn
