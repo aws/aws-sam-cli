@@ -743,12 +743,11 @@ class BuildIntegJavaBase(BuildIntegBase):
 
 @pytest.mark.python
 class BuildIntegPythonBase(BuildIntegBase):
-    EXPECTED_FILES_PROJECT_MANIFEST = {
+    EXPECTED_FILES = {
         "__init__.py",
         "main.py",
         "numpy",
         # 'cryptography',
-        "requirements.txt",
     }
 
     FUNCTION_LOGICAL_ID = "Function"
@@ -760,19 +759,23 @@ class BuildIntegPythonBase(BuildIntegBase):
         codeuri,
         use_container,
         relative_path,
+        manifest="requirements.txt",
         do_override=True,
         check_function_only=False,
         architecture=None,
+        beta_features=False,
     ):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
         overrides = self.get_override(runtime, codeuri, architecture, "main.handler") if do_override else None
-        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, beta_features=beta_features
+        )
 
         run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(
-            self.default_build_dir, self.FUNCTION_LOGICAL_ID, self.EXPECTED_FILES_PROJECT_MANIFEST
+            self.default_build_dir, self.FUNCTION_LOGICAL_ID, (self.EXPECTED_FILES | {manifest})
         )
 
         if not check_function_only:

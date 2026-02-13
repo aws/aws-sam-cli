@@ -17,6 +17,7 @@ from samcli.lib.build.workflows import (
     NODEJS_NPM_ESBUILD_CONFIG,
     PROVIDED_MAKE_CONFIG,
     PYTHON_PIP_CONFIG,
+    PYTHON_UV_CONFIG,
     RUBY_BUNDLER_CONFIG,
     RUST_CARGO_LAMBDA_CONFIG,
 )
@@ -155,6 +156,7 @@ def get_workflow_config(
         "dotnet7": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
         "dotnet": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
         "rust-cargolambda": BasicWorkflowSelector(RUST_CARGO_LAMBDA_CONFIG),
+        "python-uv": BasicWorkflowSelector(PYTHON_UV_CONFIG),
     }
 
     selectors_by_runtime = {
