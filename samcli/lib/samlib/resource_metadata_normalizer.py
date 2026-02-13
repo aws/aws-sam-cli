@@ -9,6 +9,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Dict
 
+from samcli.lib.cfn_language_extensions.utils import is_foreach_key
 from samcli.lib.iac.cdk.utils import is_cdk_project
 from samcli.lib.utils.resources import AWS_CLOUDFORMATION_STACK
 
@@ -62,6 +63,9 @@ class ResourceMetadataNormalizer:
         resources = template_dict.get(RESOURCES_KEY, {})
 
         for logical_id, resource in resources.items():
+            if is_foreach_key(logical_id) or not isinstance(resource, dict):
+                continue
+
             # copy metadata to another variable, change its values and assign it back in the end
             resource_metadata = deepcopy(resource.get(METADATA_KEY)) or {}
 

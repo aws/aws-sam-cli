@@ -14,6 +14,7 @@ Exporting resources defined in the cloudformation template to the cloud.
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
+import logging
 import os
 from typing import Dict, List, Optional
 
@@ -21,6 +22,7 @@ from botocore.utils import set_value_from_jmespath
 
 from samcli.commands._utils.experimental import ExperimentalFlag, is_experimental_enabled
 from samcli.commands.package import exceptions
+from samcli.lib.cfn_language_extensions.utils import iter_resources
 from samcli.lib.package.code_signer import CodeSigner
 from samcli.lib.package.local_files_utils import get_uploaded_s3_object_name, mktempfile
 from samcli.lib.package.packageable_resources import (
@@ -49,6 +51,8 @@ from samcli.lib.utils.resources import (
 )
 from samcli.lib.utils.s3 import parse_s3_url
 from samcli.yamlhelper import yaml_dump, yaml_parse
+
+LOG = logging.getLogger(__name__)
 
 # NOTE: sriram-mv, A cyclic dependency on `Template` needs to be broken.
 
@@ -250,7 +254,7 @@ class Template:
 
         Intentionally not dealing with Api:DefinitionUri at this point.
         """
-        for _, resource in self.template_dict["Resources"].items():
+        for resource_key, resource in iter_resources(self.template_dict):
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", None)
 
@@ -280,7 +284,7 @@ class Template:
         if is_experimental_enabled(ExperimentalFlag.PackagePerformance):
             cache = {}
 
-        for resource_logical_id, resource in self.template_dict["Resources"].items():
+        for resource_logical_id, resource in iter_resources(self.template_dict):
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", {})
             resource_id = ResourceMetadataNormalizer.get_resource_id(resource, resource_logical_id)
@@ -306,7 +310,7 @@ class Template:
 
         self._apply_global_values()
 
-        for resource_id, resource in self.template_dict["Resources"].items():
+        for resource_id, resource in iter_resources(self.template_dict):
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", {})
             resource_deletion_policy = resource.get("DeletionPolicy", None)
@@ -331,7 +335,7 @@ class Template:
             return ecr_repos
 
         self._apply_global_values()
-        for resource_id, resource in self.template_dict["Resources"].items():
+        for resource_id, resource in iter_resources(self.template_dict):
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", {})
             resource_deletion_policy = resource.get("DeletionPolicy", None)
@@ -357,7 +361,7 @@ class Template:
 
         self._apply_global_values()
 
-        for _, resource in self.template_dict["Resources"].items():
+        for resource_key, resource in iter_resources(self.template_dict):
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", {})
 
