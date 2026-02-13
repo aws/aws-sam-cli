@@ -1184,8 +1184,10 @@ class TestArtifactExporter(unittest.TestCase):
         self.s3_uploader_mock.upload.return_value = result_s3_url
         self.s3_uploader_mock.to_path_style_s3_url.return_value = result_path_style_s3_url
 
-        with tempfile.NamedTemporaryFile() as handle:
+        handle = tempfile.NamedTemporaryFile(delete=False)
+        try:
             template_path = handle.name
+            handle.close()
             resource_dict = {property_name: template_path}
             parent_dir = tempfile.gettempdir()
 
@@ -1205,6 +1207,8 @@ class TestArtifactExporter(unittest.TestCase):
             template_instance_mock.export.assert_called_once_with()
             self.s3_uploader_mock.upload.assert_called_once_with(mock.ANY, mock.ANY)
             self.s3_uploader_mock.to_path_style_s3_url.assert_called_once_with("world", None)
+        finally:
+            os.remove(template_path)
 
     def test_export_cloudformation_stack_no_upload_path_is_s3url(self):
         stack_resource = CloudFormationStackResource(self.uploaders_mock, self.code_signer_mock)
@@ -1360,8 +1364,10 @@ class TestArtifactExporter(unittest.TestCase):
         self.s3_uploader_mock.upload.return_value = result_s3_url
         self.s3_uploader_mock.to_path_style_s3_url.return_value = result_path_style_s3_url
 
-        with tempfile.NamedTemporaryFile() as handle:
+        handle = tempfile.NamedTemporaryFile(delete=False)
+        try:
             template_path = handle.name
+            handle.close()
             resource_dict = {property_name: template_path}
             parent_dir = tempfile.gettempdir()
 
@@ -1381,6 +1387,8 @@ class TestArtifactExporter(unittest.TestCase):
             template_instance_mock.export.assert_called_once_with()
             self.s3_uploader_mock.upload.assert_called_once_with(mock.ANY, mock.ANY)
             self.s3_uploader_mock.to_path_style_s3_url.assert_called_once_with("world", None)
+        finally:
+            os.remove(template_path)
 
     def test_export_serverless_application_no_upload_path_is_s3url(self):
         stack_resource = ServerlessApplicationResource(self.uploaders_mock, self.code_signer_mock)
@@ -2293,3 +2301,228 @@ class TestArtifactExporter(unittest.TestCase):
         s3_info = template_exporter.get_s3_info()
         self.assertEqual(s3_info, {"s3_bucket": "bucket", "s3_prefix": "prefix"})
         resource_type1_instance.get_property_value.assert_called_once_with(properties)
+
+    @patch("samcli.lib.package.artifact_exporter.Template")
+    def test_export_cloudformation_stack_with_language_extensions(self, TemplateMock):
+        """
+        When a child template uses Fn::ForEach, do_export should expand it,
+        export the expanded template, then merge S3 URIs back.
+        """
+        from samcli.lib.cfn_language_extensions.sam_integration import LanguageExtensionResult
+
+        stack_resource = CloudFormationStackResource(self.uploaders_mock, self.code_signer_mock)
+
+        resource_id = "NestedStack"
+        property_name = stack_resource.PROPERTY_NAME
+        result_s3_url = "s3://hello/world"
+        result_path_style_s3_url = "http://s3.amazonws.com/hello/world"
+
+        # The original child template has Fn::ForEach
+        child_original = {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Transform": ["AWS::Serverless-2016-10-31", "AWS::LanguageExtensions"],
+            "Resources": {
+                "Fn::ForEach::Services": [
+                    "Name",
+                    ["Users", "Orders"],
+                    {
+                        "${Name}Function": {
+                            "Type": "AWS::Serverless::Function",
+                            "Properties": {
+                                "Handler": "index.handler",
+                                "Runtime": "python3.9",
+                                "CodeUri": "./src",
+                            },
+                        }
+                    },
+                ]
+            },
+        }
+
+        # The expanded template after language extensions processing
+        child_expanded = {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Transform": ["AWS::Serverless-2016-10-31", "AWS::LanguageExtensions"],
+            "Resources": {
+                "UsersFunction": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {
+                        "Handler": "index.handler",
+                        "Runtime": "python3.9",
+                        "CodeUri": "./src",
+                    },
+                },
+                "OrdersFunction": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {
+                        "Handler": "index.handler",
+                        "Runtime": "python3.9",
+                        "CodeUri": "./src",
+                    },
+                },
+            },
+        }
+
+        # The exported template (after S3 upload) has S3 URIs
+        child_exported = {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Transform": ["AWS::Serverless-2016-10-31", "AWS::LanguageExtensions"],
+            "Resources": {
+                "UsersFunction": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {
+                        "Handler": "index.handler",
+                        "Runtime": "python3.9",
+                        "CodeUri": "s3://bucket/code.zip",
+                    },
+                },
+                "OrdersFunction": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {
+                        "Handler": "index.handler",
+                        "Runtime": "python3.9",
+                        "CodeUri": "s3://bucket/code.zip",
+                    },
+                },
+            },
+        }
+
+        lang_ext_result = LanguageExtensionResult(
+            expanded_template=child_expanded,
+            original_template=child_original,
+            dynamic_artifact_properties=[],
+            had_language_extensions=True,
+        )
+
+        template_instance_mock = Mock()
+        TemplateMock.return_value = template_instance_mock
+        template_instance_mock.export.return_value = child_exported
+
+        self.s3_uploader_mock.upload.return_value = result_s3_url
+        self.s3_uploader_mock.to_path_style_s3_url.return_value = result_path_style_s3_url
+
+        handle = tempfile.NamedTemporaryFile(suffix=".yaml", mode="w", delete=False)
+        try:
+            handle.write("AWSTemplateFormatVersion: '2010-09-09'")
+            handle.flush()
+            template_path = handle.name
+            handle.close()
+            resource_dict = {property_name: template_path}
+            parent_dir = tempfile.gettempdir()
+
+            with patch(
+                "samcli.lib.cfn_language_extensions.sam_integration.expand_language_extensions",
+                return_value=lang_ext_result,
+            ):
+                stack_resource.export(resource_id, resource_dict, parent_dir)
+
+            self.assertEqual(resource_dict[property_name], result_path_style_s3_url)
+
+            # Template should have been called with the expanded template_str
+            TemplateMock.assert_called_once()
+            call_kwargs = TemplateMock.call_args
+            self.assertIn("template_str", call_kwargs.kwargs)
+
+            template_instance_mock.export.assert_called_once_with()
+            self.s3_uploader_mock.upload.assert_called_once_with(mock.ANY, mock.ANY)
+        finally:
+            os.remove(template_path)
+
+    @patch("samcli.lib.package.artifact_exporter.Template")
+    def test_export_cloudformation_stack_without_language_extensions(self, TemplateMock):
+        """
+        When a child template does NOT use language extensions,
+        do_export should use the original flow (no expansion).
+        """
+        from samcli.lib.cfn_language_extensions.sam_integration import LanguageExtensionResult
+
+        stack_resource = CloudFormationStackResource(self.uploaders_mock, self.code_signer_mock)
+
+        resource_id = "NestedStack"
+        property_name = stack_resource.PROPERTY_NAME
+        result_s3_url = "s3://hello/world"
+        result_path_style_s3_url = "http://s3.amazonws.com/hello/world"
+        exported_template_dict = {"Resources": {"MyFunc": {"Type": "AWS::Serverless::Function"}}}
+
+        template_instance_mock = Mock()
+        TemplateMock.return_value = template_instance_mock
+        template_instance_mock.export.return_value = exported_template_dict
+
+        self.s3_uploader_mock.upload.return_value = result_s3_url
+        self.s3_uploader_mock.to_path_style_s3_url.return_value = result_path_style_s3_url
+
+        no_ext_result = LanguageExtensionResult(
+            expanded_template={"Resources": {}},
+            original_template={"Resources": {}},
+            dynamic_artifact_properties=[],
+            had_language_extensions=False,
+        )
+
+        handle = tempfile.NamedTemporaryFile(suffix=".yaml", mode="w", delete=False)
+        try:
+            handle.write("Resources: {}")
+            handle.flush()
+            template_path = handle.name
+            handle.close()
+            resource_dict = {property_name: template_path}
+            parent_dir = tempfile.gettempdir()
+
+            with patch(
+                "samcli.lib.cfn_language_extensions.sam_integration.expand_language_extensions",
+                return_value=no_ext_result,
+            ):
+                stack_resource.export(resource_id, resource_dict, parent_dir)
+
+            self.assertEqual(resource_dict[property_name], result_path_style_s3_url)
+
+            # In the no-extensions path, Template is called without template_str
+            # (the second call, in the else branch)
+            self.assertEqual(TemplateMock.call_count, 1)
+            call_kwargs = TemplateMock.call_args
+            self.assertNotIn("template_str", call_kwargs.kwargs)
+        finally:
+            os.remove(template_path)
+
+    @patch("samcli.lib.package.artifact_exporter.Template")
+    def test_export_cloudformation_stack_language_extensions_expansion_failure(self, TemplateMock):
+        """
+        When expand_language_extensions raises an exception,
+        do_export should fall back to the original flow.
+        """
+        stack_resource = CloudFormationStackResource(self.uploaders_mock, self.code_signer_mock)
+
+        resource_id = "NestedStack"
+        property_name = stack_resource.PROPERTY_NAME
+        result_s3_url = "s3://hello/world"
+        result_path_style_s3_url = "http://s3.amazonws.com/hello/world"
+        exported_template_dict = {"Resources": {"MyFunc": {"Type": "AWS::Serverless::Function"}}}
+
+        template_instance_mock = Mock()
+        TemplateMock.return_value = template_instance_mock
+        template_instance_mock.export.return_value = exported_template_dict
+
+        self.s3_uploader_mock.upload.return_value = result_s3_url
+        self.s3_uploader_mock.to_path_style_s3_url.return_value = result_path_style_s3_url
+
+        handle = tempfile.NamedTemporaryFile(suffix=".yaml", mode="w", delete=False)
+        try:
+            handle.write("Resources: {}")
+            handle.flush()
+            template_path = handle.name
+            handle.close()
+            resource_dict = {property_name: template_path}
+            parent_dir = tempfile.gettempdir()
+
+            with patch(
+                "samcli.lib.cfn_language_extensions.sam_integration.expand_language_extensions",
+                side_effect=Exception("expansion failed"),
+            ):
+                stack_resource.export(resource_id, resource_dict, parent_dir)
+
+            self.assertEqual(resource_dict[property_name], result_path_style_s3_url)
+            # Falls back to non-extension flow
+            self.assertEqual(TemplateMock.call_count, 1)
+            call_kwargs = TemplateMock.call_args
+            self.assertNotIn("template_str", call_kwargs.kwargs)
+        finally:
+            os.remove(template_path)

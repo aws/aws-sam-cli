@@ -39,7 +39,6 @@ from samcli.lib.cfn_language_extensions.resolvers.base import (
 from samcli.lib.cfn_language_extensions.resolvers.fn_to_json_string import FnToJsonStringResolver
 from samcli.lib.cfn_language_extensions.exceptions import InvalidTemplateException
 
-
 # =============================================================================
 # Unit Tests for FnToJsonStringResolver
 # =============================================================================

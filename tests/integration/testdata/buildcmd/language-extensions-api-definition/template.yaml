@@ -1,0 +1,41 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform:
+  - AWS::LanguageExtensions
+  - AWS::Serverless-2016-10-31
+
+Description: >
+  TC-020: ForEach with dynamic API DefinitionUri.
+  Generates 3 REST APIs with separate Swagger definitions and 3 handler functions.
+  Tests that SAMDefinitionUriAPIs and SAMCodeUriAPIs Mappings are generated.
+
+Parameters:
+  Runtime:
+    Type: String
+    Default: python3.13
+
+Globals:
+  Function:
+    Timeout: 10
+    MemorySize: 128
+    Runtime: !Ref Runtime
+
+Resources:
+  Fn::ForEach::APIs:
+    - ApiVersion
+    - - v1
+      - v2
+      - v3
+    - ${ApiVersion}Api:
+        Type: AWS::Serverless::Api
+        Properties:
+          StageName: !Sub "${ApiVersion}"
+          DefinitionUri: api-definitions/${ApiVersion}/swagger.yaml
+
+      ${ApiVersion}Handler:
+        Type: AWS::Serverless::Function
+        Properties:
+          Handler: main.handler
+          CodeUri: api-handlers/${ApiVersion}/
+          Environment:
+            Variables:
+              API_VERSION: !Sub ${ApiVersion}

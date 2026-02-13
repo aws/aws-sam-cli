@@ -25,7 +25,6 @@ from samcli.lib.cfn_language_extensions.exceptions import InvalidTemplateExcepti
 from samcli.lib.cfn_language_extensions.models import TemplateProcessingContext
 from samcli.lib.cfn_language_extensions.processors.foreach import ForEachProcessor
 
-
 # =============================================================================
 # Property 3: Original Template Preserved for Output
 # =============================================================================

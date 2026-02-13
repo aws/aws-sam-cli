@@ -1,0 +1,34 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform:
+  - AWS::LanguageExtensions
+  - AWS::Serverless-2016-10-31
+
+Description: >
+  TC-001: Simple ForEach with static properties.
+  Generates 3 functions (Alpha, Beta, Gamma) all sharing the same CodeUri.
+
+Parameters:
+  Runtime:
+    Type: String
+    Default: python3.13
+
+Globals:
+  Function:
+    Timeout: 10
+    MemorySize: 128
+    Runtime: !Ref Runtime
+
+Resources:
+  Fn::ForEach::Functions:
+    - FunctionName
+    - - Alpha
+      - Beta
+      - Gamma
+    - ${FunctionName}Function:
+        Type: AWS::Serverless::Function
+        Properties:
+          Handler: main.handler
+          CodeUri: hello-world/
+          Environment:
+            Variables:
+              FUNCTION_NAME: !Sub ${FunctionName}
