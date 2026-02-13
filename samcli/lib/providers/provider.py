@@ -634,8 +634,11 @@ class Stack:
     # The parameter overrides for the stack, if there is global_parameter_overrides,
     # it is also merged into this variable.
     parameters: Optional[Dict]
-    # the raw template dict
+    # the raw template dict (may be processed with language extensions expanded)
     template_dict: Dict
+    # the original template dict (before language extensions processing)
+    # This preserves Fn::ForEach and other language extension constructs
+    original_template_dict: Optional[Dict]
     # metadata
     metadata: Optional[Dict] = None
 
@@ -647,6 +650,7 @@ class Stack:
         parameters: Optional[Dict],
         template_dict: Dict,
         metadata: Optional[Dict[str, str]] = None,
+        original_template_dict: Optional[Dict] = None,
     ):
         self.parent_stack_path = parent_stack_path
         self.name = name
@@ -654,6 +658,9 @@ class Stack:
         self.parameters = parameters
         self.template_dict = template_dict
         self.metadata = metadata
+        # Store the original template for CloudFormation deployment
+        # If not provided, use template_dict (for backwards compatibility)
+        self.original_template_dict = original_template_dict
         self._resources: Optional[Dict] = None
         self._raw_resources: Optional[Dict] = None
 
@@ -721,6 +728,7 @@ class Stack:
                 and self.stack_id == other.stack_id
                 and self.stack_path == other.stack_path
                 and self.template_dict == other.template_dict
+                and self.original_template_dict == other.original_template_dict
             )
         return False
 

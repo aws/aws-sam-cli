@@ -1093,6 +1093,7 @@ class TestResolveTemplate(TestCase):
             ("inputs/test_methods_resource_resolution.json", "outputs/outputs_methods_resource_resolution.json"),
         ]
     )
+    @patch.dict("os.environ", {"AWS_REGION": ""}, clear=False)
     def test_intrinsic_sample_inputs_outputs(self, input, output):
         input_template = self.load_test_data(input)
         symbol_resolver = IntrinsicsSymbolTable(template=input_template, logical_id_translator={})

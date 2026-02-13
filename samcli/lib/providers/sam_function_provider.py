@@ -1011,6 +1011,11 @@ class RefreshableSamFunctionProvider(SamFunctionProvider):
         Applies the same function filter during refresh.
         """
         LOG.debug("A change got detected in one of the stack templates. Reload the lambda function resources")
+
+        from samcli.lib.cfn_language_extensions.sam_integration import clear_expansion_cache
+
+        clear_expansion_cache()
+
         self._stacks = []
 
         for template_file in self.parent_templates_paths:
