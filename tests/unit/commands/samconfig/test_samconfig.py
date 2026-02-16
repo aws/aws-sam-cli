@@ -164,6 +164,7 @@ class TestSamConfigForAllCommands(TestCase):
                 False,
                 "READ",
                 True,
+                False,
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -224,6 +225,7 @@ class TestSamConfigForAllCommands(TestCase):
                 False,
                 "READ",
                 False,
+                False,
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -282,6 +284,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 False,
                 "READ",
+                False,
                 False,
             )
 
@@ -342,6 +345,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 False,
                 "READ",
+                False,
                 False,
             )
 
@@ -404,6 +408,7 @@ class TestSamConfigForAllCommands(TestCase):
                 False,
                 "READ",
                 False,
+                False,
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -462,6 +467,7 @@ class TestSamConfigForAllCommands(TestCase):
                 False,
                 "READ",
                 False,
+                False,
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -518,6 +524,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 False,
                 "READ",
+                False,
                 False,
             )
 

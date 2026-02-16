@@ -16,6 +16,7 @@ AWS_CREDENTIAL_OPTION_NAMES: List[str] = ["region", "profile"]
 
 CONTAINER_OPTION_NAMES: List[str] = [
     "use_container",
+    "use_buildkit",
     "container_env_var",
     "container_env_var_file",
     "build_image",

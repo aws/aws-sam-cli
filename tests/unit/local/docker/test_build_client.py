@@ -110,7 +110,7 @@ class TestCLIBuildClient(TestCase):
             "buildx",
             "build",
             "-f",
-            "Dockerfile",
+            "/path/to/context/Dockerfile",
             "-t",
             "image:latest",
             "--platform",
@@ -137,7 +137,16 @@ class TestCLIBuildClient(TestCase):
 
         logs = list(self.finch_client.build_image(**self.base_build_args))
 
-        expected_cmd = ["finch", "build", "-f", "Dockerfile", "-t", "image:latest", "--rm", "/path/to/context"]
+        expected_cmd = [
+            "finch",
+            "build",
+            "-f",
+            "/path/to/context/Dockerfile",
+            "-t",
+            "image:latest",
+            "--rm",
+            "/path/to/context",
+        ]
 
         mock_popen.assert_called_once()
         actual_cmd = mock_popen.call_args[0][0]
@@ -160,7 +169,16 @@ class TestCLIBuildClient(TestCase):
                 {"stream": "Successfully build abc123\n"},
             ],
         )
-        expected_cmd = ["finch", "build", "-f", "Dockerfile", "-t", "image:latest", "--rm", "/path/to/context"]
+        expected_cmd = [
+            "finch",
+            "build",
+            "-f",
+            "/path/to/context/Dockerfile",
+            "-t",
+            "image:latest",
+            "--rm",
+            "/path/to/context",
+        ]
         actual_cmd = mock_popen.call_args[0][0]
         self.assertEqual(actual_cmd, expected_cmd)
 

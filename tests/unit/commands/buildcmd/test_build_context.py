@@ -731,6 +731,7 @@ class TestBuildContext__enter__(TestCase):
             build_images={},
             create_auto_dependency_layer=auto_dependency_layer,
             print_success_message=False,
+            use_buildkit=False,
         ) as build_context:
             with patch("samcli.commands.build.build_context.BuildContext._gen_success_msg") as mock_message:
                 build_context.run()
@@ -1143,6 +1144,7 @@ class TestBuildContext_run(TestCase):
             build_in_source=False,
             mount_with=MountMode.READ,
             mount_symlinks=True,
+            use_buildkit=False,
         ) as build_context:
             build_context.run()
             is_sam_template_mock.assert_called_once_with()
@@ -1165,6 +1167,7 @@ class TestBuildContext_run(TestCase):
                 build_in_source=build_context._build_in_source,
                 mount_with_write=False,
                 mount_symlinks=True,
+                build_client=None,
             )
             builder_mock.build.assert_called_once()
             builder_mock.update_template.assert_has_calls(
@@ -1300,6 +1303,7 @@ class TestBuildContext_run(TestCase):
                 container_env_var={},
                 container_env_var_file=None,
                 build_images={},
+                use_buildkit=False,
             ) as build_context:
                 build_context.run()
 
@@ -1378,6 +1382,7 @@ class TestBuildContext_run(TestCase):
                 container_env_var={},
                 container_env_var_file=None,
                 build_images={},
+                use_buildkit=False,
             ) as build_context:
                 build_context.run()
 
