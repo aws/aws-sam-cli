@@ -7,6 +7,7 @@ interchangeably.
 """
 
 import logging
+import os
 import shutil
 import subprocess
 from abc import ABC, abstractmethod
@@ -157,6 +158,10 @@ class CLIBuildClient(BuildClient):
         target: Optional[str] = None,
         rm: bool = True,
     ) -> Generator[Dict[str, Any], None, None]:
+        # Make dockerfile path relative to context if not absolute
+        if not os.path.isabs(dockerfile):
+            dockerfile = os.path.join(path, dockerfile)
+
         cmd = [self.cli_command]
 
         if self.engine_type == "docker":
