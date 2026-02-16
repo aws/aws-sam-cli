@@ -4,6 +4,7 @@ Unit tests for BuildClient implementations
 Tests SDKBuildClient and CLIBuildClient implementations of the BuildClient interface.
 """
 
+import os
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
@@ -17,7 +18,7 @@ class TestSDKBuildClient(TestCase):
         self.mock_container_client = Mock()
         self.client = SDKBuildClient(self.mock_container_client)
         self.base_build_args = {
-            "path": "/path/to/context",
+            "path": os.path.join("path", "to", "context"),
             "dockerfile": "Dockerfile",
             "tag": "image:latest",
         }
@@ -70,7 +71,7 @@ class TestCLIBuildClient(TestCase):
         self.finch_client = CLIBuildClient(engine_type="finch")
 
         self.base_build_args = {
-            "path": "/path/to/context",
+            "path": os.path.join("path", "to", "context"),
             "dockerfile": "Dockerfile",
             "tag": "image:latest",
         }
@@ -110,7 +111,7 @@ class TestCLIBuildClient(TestCase):
             "buildx",
             "build",
             "-f",
-            "/path/to/context/Dockerfile",
+            os.path.join("path", "to", "context", "Dockerfile"),
             "-t",
             "image:latest",
             "--platform",
@@ -120,7 +121,7 @@ class TestCLIBuildClient(TestCase):
             "--target",
             "prod",
             "--rm",
-            "/path/to/context",
+            os.path.join("path", "to", "context"),
         ]
 
         mock_popen.assert_called_once()
@@ -141,11 +142,11 @@ class TestCLIBuildClient(TestCase):
             "finch",
             "build",
             "-f",
-            "/path/to/context/Dockerfile",
+            os.path.join("path", "to", "context", "Dockerfile"),
             "-t",
             "image:latest",
             "--rm",
-            "/path/to/context",
+            os.path.join("path", "to", "context"),
         ]
 
         mock_popen.assert_called_once()
@@ -173,11 +174,11 @@ class TestCLIBuildClient(TestCase):
             "finch",
             "build",
             "-f",
-            "/path/to/context/Dockerfile",
+            os.path.join("path", "to", "context", "Dockerfile"),
             "-t",
             "image:latest",
             "--rm",
-            "/path/to/context",
+            os.path.join("path", "to", "context"),
         ]
         actual_cmd = mock_popen.call_args[0][0]
         self.assertEqual(actual_cmd, expected_cmd)
