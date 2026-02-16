@@ -176,7 +176,7 @@ class LinuxHandler(PlatformHandler):
                 return f"unix://{containerd_sock}"
 
         # No socket found - return None to enable future CLI fallback
-        LOG.warn("No Finch socket found in standard locations")
+        LOG.warning("No Finch socket found in standard locations")
         return None
 
     def supports_finch(self) -> bool:
