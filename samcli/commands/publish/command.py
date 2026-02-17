@@ -12,6 +12,7 @@ from samcli.cli.main import common_options as cli_framework_options
 from samcli.commands._utils.command_exception_handler import command_exception_handler
 from samcli.commands._utils.options import template_common_option
 from samcli.commands._utils.template import TemplateFailedParsingException, TemplateNotFoundException, get_template_data
+from samcli.commands.publish.core.command import PublishCommand
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.vendor.serverlessrepo.publish import CREATE_APPLICATION
@@ -20,23 +21,20 @@ LOG = logging.getLogger(__name__)
 
 SAM_PUBLISH_DOC = "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-template-publishing-applications.html"  # pylint: disable=line-too-long # noqa
 SAM_PACKAGE_DOC = "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-cli-command-reference-sam-package.html"  # pylint: disable=line-too-long # noqa
-HELP_TEXT = """
+
+DESCRIPTION = """
 Use this command to publish a packaged AWS SAM template to
 the AWS Serverless Application Repository to share within your team,
-across your organization, or with the community at large.\n
-\b
+across your organization, or with the community at large.
+
 This command expects the template's Metadata section to contain an
 AWS::ServerlessRepo::Application section with application metadata
 for publishing. For more details on this metadata section, see
 {}
-\b
-Examples
---------
-To publish an application
-$ sam publish -t packaged.yaml --region <region>
 """.format(
     SAM_PUBLISH_DOC
 )
+
 SHORT_HELP = "Publish a packaged AWS SAM template to the AWS Serverless Application Repository."
 SERVERLESSREPO_CONSOLE_URL = "https://console.aws.amazon.com/serverlessrepo/home?region={}#/published-applications/{}"
 SEMANTIC_VERSION_HELP = "Optional. The value provided here overrides SemanticVersion in the template metadata."
@@ -48,7 +46,14 @@ Default is False.
 """
 
 
-@click.command("publish", help=HELP_TEXT, short_help=SHORT_HELP)
+@click.command(
+    "publish",
+    cls=PublishCommand,
+    short_help=SHORT_HELP,
+    description=DESCRIPTION,
+    requires_credentials=True,
+    context_settings={"max_content_width": 120},
+)
 @configuration_option(provider=ConfigProvider(section="parameters"))
 @template_common_option
 @click.option("--semantic-version", help=SEMANTIC_VERSION_HELP)
