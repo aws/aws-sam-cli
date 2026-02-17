@@ -25,28 +25,45 @@ class SyncCommand(CoreCommand):
     @staticmethod
     def format_examples(ctx: Context, formatter: CommandHelpTextFormatter):
         with formatter.indented_section(name="Examples", extra_indents=1):
-            formatter.write_rd(
-                [
-                    RowDefinition(
-                        text="\n",
-                    ),
-                    RowDefinition(
-                        name=style(f"$ {ctx.command_path} " f"--watch --stack-name {{stack}}"),
-                        extra_row_modifiers=[ShowcaseRowModifier()],
-                    ),
-                    RowDefinition(
-                        name=style(f"$ {ctx.command_path} " f"--code --watch --stack-name {{stack}}"),
-                        extra_row_modifiers=[ShowcaseRowModifier()],
-                    ),
-                    RowDefinition(
-                        name=style(
-                            f"$ {ctx.command_path} "
-                            f"--code --stack-name {{stack}} --resource-id {{ChildStack}}/{{ResourceId}}"
+            with formatter.indented_section(name="Sync with watch mode", extra_indents=1):
+                formatter.write_rd(
+                    [
+                        RowDefinition(
+                            text="\n",
                         ),
-                        extra_row_modifiers=[ShowcaseRowModifier()],
-                    ),
-                ],
-            )
+                        RowDefinition(
+                            name=style(f"$ {ctx.command_path} --watch --stack-name {{stack}}"),
+                            extra_row_modifiers=[ShowcaseRowModifier()],
+                        ),
+                    ]
+                )
+            with formatter.indented_section(name="Sync code changes with watch mode", extra_indents=1):
+                formatter.write_rd(
+                    [
+                        RowDefinition(
+                            text="\n",
+                        ),
+                        RowDefinition(
+                            name=style(f"$ {ctx.command_path} --code --watch --stack-name {{stack}}"),
+                            extra_row_modifiers=[ShowcaseRowModifier()],
+                        ),
+                    ]
+                )
+            with formatter.indented_section(name="Sync code changes for specific resource", extra_indents=1):
+                formatter.write_rd(
+                    [
+                        RowDefinition(
+                            text="\n",
+                        ),
+                        RowDefinition(
+                            name=style(
+                                f"$ {ctx.command_path} "
+                                f"--code --stack-name {{stack}} --resource-id {{ChildStack}}/{{ResourceId}}"
+                            ),
+                            extra_row_modifiers=[ShowcaseRowModifier()],
+                        ),
+                    ]
+                )
 
     @staticmethod
     def format_acronyms(formatter: CommandHelpTextFormatter):

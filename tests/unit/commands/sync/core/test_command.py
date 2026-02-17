@@ -49,10 +49,17 @@ class TestSyncCommand(unittest.TestCase):
                 ("--config-file", ""),
             ],
             "Description": [(cmd.description + cmd.description_addendum, "")],
-            "Examples": [
+            "Examples": [],
+            "Sync with watch mode": [
                 ("", ""),
                 ("$ sam sync --watch --stack-name {stack}\x1b[0m", ""),
+            ],
+            "Sync code changes with watch mode": [
+                ("", ""),
                 ("$ sam sync --code --watch --stack-name {stack}\x1b[0m", ""),
+            ],
+            "Sync code changes for specific resource": [
+                ("", ""),
                 ("$ sam sync --code --stack-name {stack} --resource-id " "{ChildStack}/{ResourceId}\x1b[0m", ""),
             ],
             "Infrastructure Options": [("", ""), ("--s3-bucket", "")],
