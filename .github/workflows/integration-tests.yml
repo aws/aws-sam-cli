@@ -225,7 +225,7 @@ jobs:
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "terraform")
-              pytest -vv --reruns 3 \
+              pytest -n 2 --reruns 3 \
                 tests/integration/buildcmd/test_build_terraform_applications.py \
                 tests/integration/buildcmd/test_build_terraform_applications_other_cases.py \
                 tests/integration/local/invoke/test_invoke_terraform_applications.py \
