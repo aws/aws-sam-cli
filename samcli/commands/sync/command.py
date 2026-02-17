@@ -72,7 +72,7 @@ if TYPE_CHECKING:  # pragma: no cover
 LOG = logging.getLogger(__name__)
 
 HELP_TEXT = """
-  NEW! Sync an AWS SAM Project to AWS.
+  Sync an AWS SAM Project to AWS.
 
 """
 
