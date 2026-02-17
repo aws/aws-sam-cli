@@ -29,7 +29,7 @@ from samcli.lib.utils.architecture import ARM64, X86_64
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker.container import ContainerContext
-from samcli.local.docker.exceptions import ContainerNotReachableException
+from samcli.local.docker.exceptions import BuildkitNotAvailableException, ContainerNotReachableException
 from samcli.local.docker.manager import DockerImagePullFailedException
 from tests.unit.lib.build_module.test_build_graph import generate_function
 
@@ -1748,6 +1748,116 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
         result = self.builder._build_lambda_image("Name", metadata, X86_64)
 
         self.assertEqual(result, "name:Tag")
+
+    @patch("samcli.lib.build.app_builder.SDKBuildClient")
+    def test_lazy_initialization_creates_sdk_build_client_by_default(self, mock_sdk_build_client_class):
+        """Test that _build_client is lazily initialized with SDKBuildClient when use_buildkit is False"""
+        metadata = {
+            "Dockerfile": "Dockerfile",
+            "DockerContext": "context",
+            "DockerTag": "Tag",
+        }
+
+        # Mock the SDKBuildClient instance
+        mock_sdk_instance = Mock()
+        mock_sdk_instance.build_image.return_value = iter([{"stream": "Building...\n"}])
+        mock_sdk_build_client_class.return_value = mock_sdk_instance
+
+        # Verify _build_client is None initially
+        self.assertIsNone(self.builder._build_client)
+
+        # Call _build_lambda_image which should trigger lazy initialization
+        self.builder._build_lambda_image("Name", metadata, X86_64)
+
+        # Verify SDKBuildClient was created with container_client
+        mock_sdk_build_client_class.assert_called_once_with(self.container_client_mock)
+
+        # Verify _build_client is now set
+        self.assertEqual(self.builder._build_client, mock_sdk_instance)
+
+        # Verify build_image was called
+        mock_sdk_instance.build_image.assert_called_once()
+
+    @patch("samcli.lib.build.app_builder.CLIBuildClient")
+    def test_lazy_initialization_creates_cli_build_client_with_buildkit(self, mock_cli_build_client_class):
+        """Test that _build_client is lazily initialized with CLIBuildClient when use_buildkit is True"""
+        metadata = {
+            "Dockerfile": "Dockerfile",
+            "DockerContext": "context",
+            "DockerTag": "Tag",
+        }
+
+        # Create builder with use_buildkit=True
+        builder = ApplicationBuilder(
+            Mock(),
+            "/build/dir",
+            "/base/dir",
+            "/cached/dir",
+            stream_writer=self.stream_mock,
+            container_client=self.container_client_mock,
+            use_buildkit=True,
+        )
+
+        # Mock container client to return engine type
+        self.container_client_mock.get_runtime_type.return_value = "docker"
+
+        # Mock CLIBuildClient.is_available to return True
+        mock_cli_build_client_class.is_available.return_value = (True, None)
+
+        # Mock the CLIBuildClient instance
+        mock_cli_instance = Mock()
+        mock_cli_instance.build_image.return_value = iter([{"stream": "Building...\n"}])
+        mock_cli_build_client_class.return_value = mock_cli_instance
+
+        # Verify _build_client is None initially
+        self.assertIsNone(builder._build_client)
+
+        # Call _build_lambda_image which should trigger lazy initialization
+        builder._build_lambda_image("Name", metadata, X86_64)
+
+        # Verify CLIBuildClient.is_available was checked
+        mock_cli_build_client_class.is_available.assert_called_once_with("docker")
+
+        # Verify CLIBuildClient was created with engine_type
+        mock_cli_build_client_class.assert_called_once_with(engine_type="docker")
+
+        # Verify _build_client is now set
+        self.assertEqual(builder._build_client, mock_cli_instance)
+
+        # Verify build_image was called
+        mock_cli_instance.build_image.assert_called_once()
+
+    @patch("samcli.lib.build.app_builder.CLIBuildClient")
+    def test_lazy_initialization_raises_when_buildkit_not_available(self, mock_cli_build_client_class):
+        """Test that BuildkitNotAvailableException is raised when buildkit is requested but not available"""
+        metadata = {
+            "Dockerfile": "Dockerfile",
+            "DockerContext": "context",
+            "DockerTag": "Tag",
+        }
+
+        # Create builder with use_buildkit=True
+        builder = ApplicationBuilder(
+            Mock(),
+            "/build/dir",
+            "/base/dir",
+            "/cached/dir",
+            stream_writer=self.stream_mock,
+            container_client=self.container_client_mock,
+            use_buildkit=True,
+        )
+
+        # Mock container client to return engine type
+        self.container_client_mock.get_runtime_type.return_value = "docker"
+
+        # Mock CLIBuildClient.is_available to return False
+        mock_cli_build_client_class.is_available.return_value = (False, "docker buildx plugin not available")
+
+        # Verify BuildkitNotAvailableException is raised
+        with self.assertRaises(BuildkitNotAvailableException) as context:
+            builder._build_lambda_image("Name", metadata, X86_64)
+
+        self.assertIn("docker buildx plugin not available", str(context.exception))
 
     def test_build_image_function_without_docker_file_raises_Docker_Build_Failed_Exception(self):
         metadata = {
