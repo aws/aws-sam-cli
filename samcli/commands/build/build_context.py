@@ -41,9 +41,6 @@ from samcli.lib.providers.sam_layer_provider import SamLayerProvider
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.telemetry.event import EventName, EventTracker, UsedFeature
 from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
-from samcli.local.docker.build_client import BuildClient, CLIBuildClient
-from samcli.local.docker.container_client_factory import ContainerClientFactory
-from samcli.local.docker.exceptions import BuildkitNotAvailableException
 from samcli.local.docker.manager import ContainerManager
 from samcli.local.lambdafn.exceptions import (
     FunctionNotFound,
@@ -183,7 +180,6 @@ class BuildContext:
         self._function_provider: Optional[SamFunctionProvider] = None
         self._layer_provider: Optional[SamLayerProvider] = None
         self._container_manager: Optional[ContainerManager] = None
-        self._build_client: Optional[BuildClient] = None
         self._stacks: List[Stack] = []
         self._locate_layer_nested = locate_layer_nested
         self._hook_name = hook_name
@@ -239,17 +235,6 @@ class BuildContext:
                 docker_network_id=self._docker_network, skip_pull_image=self._skip_pull_image
             )
 
-        if self._use_buildkit:
-            container_client = ContainerClientFactory.create_client()
-            engine_type = container_client.get_runtime_type()
-
-            is_available, error_msg = CLIBuildClient.is_available(engine_type)
-            if not is_available:
-                raise BuildkitNotAvailableException(error_msg)
-
-            self._build_client = CLIBuildClient(engine_type=engine_type)
-            LOG.info(f"Using buildkit with {engine_type}")
-
     def __exit__(self, *args):
         pass
 
@@ -297,7 +282,7 @@ class BuildContext:
                 build_in_source=self._build_in_source,
                 mount_with_write=mount_with_write,
                 mount_symlinks=self._mount_symlinks,
-                build_client=self.build_client,
+                use_buildkit=self._use_buildkit,
             )
 
             self._check_exclude_warning()
@@ -499,10 +484,6 @@ Commands you can use next
     @property
     def container_manager(self) -> Optional[ContainerManager]:
         return self._container_manager
-
-    @property
-    def build_client(self):
-        return self._build_client
 
     @property
     def function_provider(self) -> SamFunctionProvider:

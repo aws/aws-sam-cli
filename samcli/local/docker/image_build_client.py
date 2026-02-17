@@ -18,7 +18,7 @@ from samcli.local.docker.container_client import ContainerClient
 LOG = logging.getLogger(__name__)
 
 
-class BuildClient(ABC):
+class ImageBuildClient(ABC):
     """
     Abstract interface for building container images.
 
@@ -77,7 +77,7 @@ class BuildClient(ABC):
         """
         Check if this build method is available for the given container engine.
 
-        This method is called before creating a BuildClient instance to validate
+        This method is called before creating a ImageBuildClient instance to validate
         that the necessary tools (CLI, plugins, etc.) are available.
 
         Parameters
@@ -102,7 +102,7 @@ class BuildClient(ABC):
         pass
 
 
-class SDKBuildClient(BuildClient):
+class SDKBuildClient(ImageBuildClient):
     """Build client using docker-py SDK."""
 
     def __init__(self, container_client: ContainerClient):
@@ -141,7 +141,7 @@ class SDKBuildClient(BuildClient):
         return (True, None)
 
 
-class CLIBuildClient(BuildClient):
+class CLIBuildClient(ImageBuildClient):
     """Build client using docker/finch CLI commands."""
 
     def __init__(self, engine_type: str):

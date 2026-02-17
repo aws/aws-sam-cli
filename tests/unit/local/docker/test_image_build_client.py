@@ -1,14 +1,14 @@
 """
-Unit tests for BuildClient implementations
+Unit tests for ContainerBuildClient implementations
 
-Tests SDKBuildClient and CLIBuildClient implementations of the BuildClient interface.
+Tests SDKBuildClient and CLIBuildClient implementations of the ContainerBuildClient interface.
 """
 
 import os
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
-from samcli.local.docker.build_client import SDKBuildClient, CLIBuildClient
+from samcli.local.docker.image_build_client import SDKBuildClient, CLIBuildClient
 
 
 class TestSDKBuildClient(TestCase):
@@ -84,7 +84,7 @@ class TestCLIBuildClient(TestCase):
         self.assertEqual(self.docker_client.cli_command, "docker")
         self.assertEqual(self.finch_client.cli_command, "finch")
 
-    @patch("samcli.local.docker.build_client.subprocess.Popen")
+    @patch("samcli.local.docker.image_build_client.subprocess.Popen")
     def test_build_image_docker_command(self, mock_popen):
         """Test that build_image constructs correct docker buildx command"""
         mock_process = Mock()
@@ -130,7 +130,7 @@ class TestCLIBuildClient(TestCase):
         actual_cmd = mock_popen.call_args[0][0]
         self.assertEqual(actual_cmd, expected_cmd)
 
-    @patch("samcli.local.docker.build_client.subprocess.Popen")
+    @patch("samcli.local.docker.image_build_client.subprocess.Popen")
     def test_build_image_finch_command(self, mock_popen):
         """Test that build_image constructs correct finch command"""
         mock_process = Mock()
@@ -155,7 +155,7 @@ class TestCLIBuildClient(TestCase):
         actual_cmd = mock_popen.call_args[0][0]
         self.assertEqual(actual_cmd, expected_cmd)
 
-    @patch("samcli.local.docker.build_client.subprocess.Popen")
+    @patch("samcli.local.docker.image_build_client.subprocess.Popen")
     def test_build_image_streams_output_as_dicts(self, mock_popen):
         """Test that output is streamed as dicts matching SDK format"""
         mock_process = Mock()
@@ -185,7 +185,7 @@ class TestCLIBuildClient(TestCase):
         actual_cmd = mock_popen.call_args[0][0]
         self.assertEqual(actual_cmd, expected_cmd)
 
-    @patch("samcli.local.docker.build_client.subprocess.Popen")
+    @patch("samcli.local.docker.image_build_client.subprocess.Popen")
     def test_build_image_handles_failure(self, mock_popen):
         """Test that build failures yield error dict"""
         mock_process = Mock()
@@ -196,8 +196,8 @@ class TestCLIBuildClient(TestCase):
 
         self.assertTrue(any("error" in log for log in logs))
 
-    @patch("samcli.local.docker.build_client.shutil.which")
-    @patch("samcli.local.docker.build_client.subprocess.run")
+    @patch("samcli.local.docker.image_build_client.shutil.which")
+    @patch("samcli.local.docker.image_build_client.subprocess.run")
     def test_is_available_docker_success(self, mock_run, mock_which):
         """Test is_available returns True when docker buildx is available"""
         mock_which.return_value = "/usr/bin/docker"
@@ -213,7 +213,7 @@ class TestCLIBuildClient(TestCase):
             check=True,
         )
 
-    @patch("samcli.local.docker.build_client.shutil.which")
+    @patch("samcli.local.docker.image_build_client.shutil.which")
     def test_is_available_docker_cli_not_found(self, mock_which):
         """Test is_available returns False when docker CLI not found"""
         mock_which.return_value = None
@@ -222,8 +222,8 @@ class TestCLIBuildClient(TestCase):
 
         self.assertEqual(result, (False, "Docker CLI not found"))
 
-    @patch("samcli.local.docker.build_client.shutil.which")
-    @patch("samcli.local.docker.build_client.subprocess.run")
+    @patch("samcli.local.docker.image_build_client.shutil.which")
+    @patch("samcli.local.docker.image_build_client.subprocess.run")
     def test_is_available_docker_buildx_not_found(self, mock_run, mock_which):
         """Test is_available returns False when buildx plugin not available"""
         mock_which.return_value = "/usr/bin/docker"
@@ -233,8 +233,8 @@ class TestCLIBuildClient(TestCase):
 
         self.assertEqual(result, (False, "docker buildx plugin not available"))
 
-    @patch("samcli.local.docker.build_client.shutil.which")
-    @patch("samcli.local.docker.build_client.subprocess.run")
+    @patch("samcli.local.docker.image_build_client.shutil.which")
+    @patch("samcli.local.docker.image_build_client.subprocess.run")
     def test_is_available_finch_success(self, mock_run, mock_which):
         """Test is_available returns True when finch CLI is available"""
         mock_which.return_value = "/usr/local/bin/finch"
@@ -250,7 +250,7 @@ class TestCLIBuildClient(TestCase):
             check=True,
         )
 
-    @patch("samcli.local.docker.build_client.shutil.which")
+    @patch("samcli.local.docker.image_build_client.shutil.which")
     def test_is_available_finch_not_found(self, mock_which):
         """Test is_available returns False when finch CLI not found"""
         mock_which.return_value = None

@@ -1649,14 +1649,14 @@ class TestApplicationBuilder_update_template_windows(TestCase):
 class TestApplicationBuilder_build_lambda_image_function(TestCase):
     def setUp(self):
         self.stream_mock = Mock()
-        self.docker_client_mock = Mock()
+        self.container_client_mock = Mock()
         self.builder = ApplicationBuilder(
             Mock(),
             "/build/dir",
             "/base/dir",
             "/cached/dir",
             stream_writer=self.stream_mock,
-            docker_client=self.docker_client_mock,
+            container_client=self.container_client_mock,
         )
 
     @patch("samcli.lib.build.app_builder.get_validated_container_client")
@@ -1694,7 +1694,7 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
                 "DockerBuildArgs": {"a": "b"},
             }
 
-            self.docker_client_mock.images.build.return_value = (Mock(), [{"error": "Function building failed"}])
+            self.container_client_mock.images.build.return_value = (Mock(), [{"error": "Function building failed"}])
 
             self.builder._build_lambda_image("Name", metadata, X86_64)
 
@@ -1714,7 +1714,7 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
                 "Bad Request", response=response_mock, explanation="Cannot locate specified Dockerfile"
             )
             self.builder._stream_lambda_image_build_logs = error_mock
-            self.docker_client_mock.images.build.return_value = (Mock(), [])
+            self.container_client_mock.images.build.return_value = (Mock(), [])
 
             self.builder._build_lambda_image("Name", metadata, X86_64)
 
@@ -1729,9 +1729,9 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
             error_mock = Mock()
             error_mock.side_effect = docker.errors.APIError("Bad Request", explanation="Some explanation")
             self.builder._stream_lambda_image_build_logs = error_mock
-            self.docker_client_mock.images.build.return_value = (Mock(), [])
+            self.container_client_mock.images.build.return_value = (Mock(), [])
             # Mock is_dockerfile_error to return False so APIError is re-raised instead of transformed
-            self.docker_client_mock.is_dockerfile_error.return_value = False
+            self.container_client_mock.is_dockerfile_error.return_value = False
 
             self.builder._build_lambda_image("Name", metadata, X86_64)
 
@@ -1743,7 +1743,7 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
             "DockerBuildArgs": {"a": "b"},
         }
 
-        self.docker_client_mock.images.build.return_value = (Mock(), [])
+        self.container_client_mock.images.build.return_value = (Mock(), [])
 
         result = self.builder._build_lambda_image("Name", metadata, X86_64)
 
@@ -1759,7 +1759,7 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
         with self.assertRaises(DockerBuildFailed):
             self.builder._build_lambda_image("Name", metadata, X86_64)
 
-        self.docker_client_mock.api.build.assert_not_called()
+        self.container_client_mock.api.build.assert_not_called()
 
     def test_build_image_function_without_docker_context_raises_Docker_Build_Failed_Exception(self):
         metadata = {
@@ -1771,7 +1771,7 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
         with self.assertRaises(DockerBuildFailed):
             self.builder._build_lambda_image("Name", metadata, X86_64)
 
-        self.docker_client_mock.api.build.assert_not_called()
+        self.container_client_mock.api.build.assert_not_called()
 
     def test_build_image_function_with_empty_metadata_raises_Docker_Build_Failed_Exception(self):
         metadata = {}
@@ -1779,12 +1779,12 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
         with self.assertRaises(DockerBuildFailed):
             self.builder._build_lambda_image("Name", metadata, X86_64)
 
-        self.docker_client_mock.api.build.assert_not_called()
+        self.container_client_mock.api.build.assert_not_called()
 
     def test_can_build_image_function_without_tag(self):
         metadata = {"Dockerfile": "Dockerfile", "DockerContext": "context", "DockerBuildArgs": {"a": "b"}}
 
-        self.docker_client_mock.images.build.return_value = (Mock(), [])
+        self.container_client_mock.images.build.return_value = (Mock(), [])
         result = self.builder._build_lambda_image("Name", metadata, X86_64)
 
         self.assertEqual(result, "name:latest")
@@ -1799,12 +1799,12 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
             "DockerBuildArgs": {"a": "b"},
         }
 
-        self.docker_client_mock.images.build.return_value = (Mock, [])
+        self.container_client_mock.images.build.return_value = (Mock, [])
 
         result = self.builder._build_lambda_image("Name", metadata, X86_64)
         self.assertEqual(result, "name:Tag-debug")
         self.assertEqual(
-            self.docker_client_mock.images.build.call_args,
+            self.container_client_mock.images.build.call_args,
             # NOTE (sriram-mv): path set to ANY to handle platform differences.
             call(
                 path=ANY,
@@ -1827,12 +1827,12 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
             "DockerBuildTarget": "stage",
         }
 
-        self.docker_client_mock.images.build.return_value = (Mock(), [])
+        self.container_client_mock.images.build.return_value = (Mock(), [])
 
         result = self.builder._build_lambda_image("Name", metadata, X86_64)
         self.assertEqual(result, "name:Tag-debug")
         self.assertEqual(
-            self.docker_client_mock.images.build.call_args,
+            self.container_client_mock.images.build.call_args,
             call(
                 path=ANY,
                 dockerfile="Dockerfile",
@@ -1851,7 +1851,7 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
         self.assertEqual(ex.exception.args, ("Docker file or Docker context metadata are missed.",))
 
     def test_can_raise_build_error(self):
-        self.docker_client_mock.images.build.side_effect = docker.errors.BuildError(
+        self.container_client_mock.images.build.side_effect = docker.errors.BuildError(
             reason="Build failure", build_log=[{"stream": "Some earlier log"}, {"error": "Build failed"}]
         )
 
@@ -1868,14 +1868,14 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
 
 class TestApplicationBuilder_load_lambda_image_function(TestCase):
     def setUp(self):
-        self.docker_client_mock = Mock()
+        self.container_client_mock = Mock()
         self.builder = ApplicationBuilder(
             Mock(),
             "/build/dir",
             "/base/dir",
             "/cached/dir",
             stream_writer=Mock(),
-            docker_client=self.docker_client_mock,
+            container_client=self.container_client_mock,
         )
 
     @patch("builtins.open", new_callable=mock_open)
@@ -1883,16 +1883,16 @@ class TestApplicationBuilder_load_lambda_image_function(TestCase):
         id = f"sha256:{uuid4().hex}"
         mock_image = Mock(id=id)
         # Mock the docker client's load_image_from_archive method
-        self.docker_client_mock.load_image_from_archive.return_value = mock_image
+        self.container_client_mock.load_image_from_archive.return_value = mock_image
 
         image = self.builder._load_lambda_image("./path/to/archive.tar.gz")
         self.assertEqual(id, image)
-        self.docker_client_mock.load_image_from_archive.assert_called_once()
+        self.container_client_mock.load_image_from_archive.assert_called_once()
 
     @patch("builtins.open", new_callable=mock_open)
     def test_archive_must_represent_a_single_image(self, mock_open):
         # Mock the docker client's load_image_from_archive method to raise an error
-        self.docker_client_mock.load_image_from_archive.side_effect = docker.errors.APIError(
+        self.container_client_mock.load_image_from_archive.side_effect = docker.errors.APIError(
             "Archive must represent a single image"
         )
 
@@ -1908,7 +1908,7 @@ class TestApplicationBuilder_load_lambda_image_function(TestCase):
     @patch("builtins.open", new_callable=mock_open)
     def test_docker_api_error(self, mock_open):
         # Mock the docker client's load_image_from_archive method to raise an error
-        self.docker_client_mock.load_image_from_archive.side_effect = docker.errors.APIError("failed to dial")
+        self.container_client_mock.load_image_from_archive.side_effect = docker.errors.APIError("failed to dial")
 
         with self.assertRaises(DockerBuildFailed):
             self.builder._load_lambda_image("./path/to/archive.tar.gz")
@@ -1920,14 +1920,14 @@ class TestApplicationBuilder_build_function(TestCase):
         # Mock the docker client for any ApplicationBuilder instances created in tests
         mock_get_validated_client.return_value = Mock()
 
-        self.docker_client_mock = Mock()
+        self.container_client_mock = Mock()
         self.builder = ApplicationBuilder(
             Mock(),
             "/build/dir",
             "/base/dir",
             "cachedir",
             stream_writer=StreamWriter(sys.stderr),
-            docker_client=self.docker_client_mock,
+            container_client=self.container_client_mock,
         )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
@@ -2816,7 +2816,7 @@ class TestApplicationBuilder_build_function(TestCase):
         # Mock the container client's load_image_from_archive method
         mock_image = Mock()
         mock_image.id = id
-        self.docker_client_mock.load_image_from_archive.return_value = mock_image
+        self.container_client_mock.load_image_from_archive.return_value = mock_image
 
         image = self.builder._build_function(function_name, None, imageuri, IMAGE, None, architecture, None, None)
         self.assertEqual(id, image)
