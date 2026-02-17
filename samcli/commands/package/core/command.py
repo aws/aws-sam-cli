@@ -26,7 +26,6 @@ class PackageCommand(CoreCommand):
     class CustomFormatterContext(Context):
         def make_formatter(self):
             return CommandHelpTextFormatter(
-                additive_justification=15,
                 options=ALL_OPTIONS,
                 width=self.terminal_width,
                 max_width=self.max_content_width,
