@@ -157,32 +157,67 @@ class TestBaseCommand(TestCase):
         mock_get_params.return_value = [MockParams(rv=("--region", "Region"))]
 
         cmd = BaseCommand(cmd_packages=self.packages)
-        expected_output = {"Options": [("", ""), ("--region", "")], "Examples": [("", ""), ("Get Started:", "")]}
+        # Updated expected output to match new formatting
+        # The formatter now writes options with spacing between them in a single call
+        expected_output = {
+            "Options": [("--region", ""), ("", "")],
+            "Examples": [],
+            "Get Started": [("", ""), ("$ <Mock name='mock.command_path' id='4448557008'> init\x1b[0m", "")],
+        }
 
         cmd.format_options(ctx, formatter)
-        self.assertEqual(formatter.data, expected_output)
+        # Compare keys and structure, ignoring the exact mock ID in the command path
+        self.assertEqual(set(formatter.data.keys()), set(expected_output.keys()))
+        self.assertEqual(formatter.data["Options"], expected_output["Options"])
+        self.assertEqual(formatter.data["Examples"], expected_output["Examples"])
+        # Check that Get Started section exists and has the right structure
+        self.assertEqual(len(formatter.data["Get Started"]), 2)
+        self.assertEqual(formatter.data["Get Started"][0], ("", ""))
+        # Check that the second item contains "init" command
+        self.assertIn("init", formatter.data["Get Started"][1][0])
 
     def test_get_command_root_command_text(self):
         ctx = Mock()
         formatter = MockFormatter()
         cmd = BaseCommand()
+        # Updated expected output to match the actual spacing pattern:
+        # Leading blank line, then command, then blank line between commands
         expected_output = {
             "Commands": [],
-            "Learn": [("docs", "docs command output")],
-            "Create an App": [("init", "init command output")],
+            "Learn": [("", "\n"), ("docs", "docs command output")],
+            "Create an App": [("", "\n"), ("init", "init command output")],
             "Develop your App": [
+                ("", "\n"),
                 ("build", "build command output"),
+                ("", "\n"),
                 ("local", "local command output"),
+                ("", "\n"),
                 ("validate", "validate command output"),
+                ("", "\n"),
                 ("sync", "sync command output"),
+                ("", "\n"),
                 ("remote", "remote command output"),
             ],
-            "Deploy your App": [("package", "package command output"), ("deploy", "deploy command output")],
-            "Monitor your App": [("logs", "logs command output"), ("traces", "traces command output")],
+            "Deploy your App": [
+                ("", "\n"),
+                ("package", "package command output"),
+                ("", "\n"),
+                ("deploy", "deploy command output"),
+            ],
+            "Monitor your App": [
+                ("", "\n"),
+                ("logs", "logs command output"),
+                ("", "\n"),
+                ("traces", "traces command output"),
+            ],
             "And More": [
+                ("", "\n"),
                 ("list", "list command output"),
+                ("", "\n"),
                 ("delete", "delete command output"),
+                ("", "\n"),
                 ("pipeline", "pipeline command output"),
+                ("", "\n"),
                 ("publish", "publish command output"),
             ],
         }

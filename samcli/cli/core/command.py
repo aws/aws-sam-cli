@@ -55,17 +55,24 @@ class CoreCommand(Command):
                 ],
                 key=lambda row_def: row_def.rank,
             )
+            extras = options.get("extras", [])
+
+            # Skip section entirely if no options and no extras
+            if not opts and not extras:
+                continue
+
             with formatter.indented_section(name=option_heading, extra_indents=1):
-                formatter.write_rd(options.get("extras", [RowDefinition()]), **write_rd_overrides)
-                formatter.write_rd(
-                    [RowDefinition(name="", text="\n")]
-                    + [
-                        opt
-                        for options in zip(opts, [RowDefinition(name="", text="\n")] * (len(opts)))
-                        for opt in options
-                    ],
-                    **write_rd_overrides,
-                )
+                # Build rows: blank line + extras (if any) + blank line + options with spacing between them
+                rows = [RowDefinition(name="", text="\n")]
+                if extras:
+                    rows.extend(extras)
+                    rows.append(RowDefinition(name="", text="\n"))
+
+                # Add options with blank lines between them (but not after the last one)
+                if opts:
+                    rows.extend([item for opt in opts for item in [opt, RowDefinition(name="", text="\n")]][:-1])
+
+                formatter.write_rd(rows, **write_rd_overrides)
 
     @staticmethod
     def convert_param_to_row_definition(ctx: Context, param: Parameter, rank: int):

@@ -1,0 +1,1 @@
+"""Test pipeline init core"""

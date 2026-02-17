@@ -2,18 +2,24 @@ from click import Context, style
 
 from samcli.cli.core.command import CoreCommand
 from samcli.cli.row_modifiers import RowDefinition, ShowcaseRowModifier
-from samcli.commands.init.core.formatters import InitCommandHelpTextFormatter
-from samcli.commands.init.core.options import OPTIONS_INFO
+from samcli.commands.common.formatters import CommandHelpTextFormatter
+from samcli.commands.init.core.options import ALL_OPTIONS, OPTIONS_INFO
 
 
 class InitCommand(CoreCommand):
     class CustomFormatterContext(Context):
-        formatter_class = InitCommandHelpTextFormatter
+        def make_formatter(self):
+            return CommandHelpTextFormatter(
+                additive_justification=10,
+                options=ALL_OPTIONS,
+                width=self.terminal_width,
+                max_width=self.max_content_width,
+            )
 
     context_class = CustomFormatterContext
 
     @staticmethod
-    def format_examples(ctx: Context, formatter: InitCommandHelpTextFormatter):
+    def format_examples(ctx: Context, formatter: CommandHelpTextFormatter):
         with formatter.indented_section(name="Examples", extra_indents=1):
             with formatter.indented_section(name="Interactive Mode", extra_indents=1):
                 formatter.write_rd(
@@ -83,7 +89,7 @@ class InitCommand(CoreCommand):
                     ],
                 )
 
-    def format_options(self, ctx: Context, formatter: InitCommandHelpTextFormatter) -> None:  # type:ignore
+    def format_options(self, ctx: Context, formatter: CommandHelpTextFormatter) -> None:  # type:ignore
         # `ignore` is put in place here for mypy even though it is the correct behavior,
         # as the `formatter_class` can be set in subclass of Command. If ignore is not set,
         # mypy raises argument needs to be HelpFormatter as super class defines it.

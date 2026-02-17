@@ -33,12 +33,22 @@ class TestValidateCommand(unittest.TestCase):
 
         cmd = ValidateCommand(name="validate", requires_credentials=False, description=DESCRIPTION)
         expected_output = {
-            "AWS Credential Options": [("", ""), ("--region", ""), ("", "")],
-            "Configuration Options": [("", ""), ("--config-file", ""), ("", "")],
-            "Other Options": [("", ""), ("--debug", ""), ("", "")],
-            "Required Options": [("", ""), ("--template-file", ""), ("", "")],
-            "Lint Options": [("", ""), ("--lint", ""), ("", "")],
-            "Beta Options": [("", ""), ("--beta-features", ""), ("", "")],
+            "AWS Credential Options": [("", ""), ("--region", "")],
+            "Configuration Options": [
+                ("", ""),
+                ("Learn more about configuration files at:", ""),
+                (
+                    "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli"
+                    "-config.html. ",
+                    "",
+                ),
+                ("", ""),
+                ("--config-file", ""),
+            ],
+            "Other Options": [("", ""), ("--debug", "")],
+            "Required Options": [("", ""), ("--template-file", "")],
+            "Lint Options": [("", ""), ("--lint", "")],
+            "Beta Options": [("", ""), ("--beta-features", "")],
             "Description": [(cmd.description + cmd.description_addendum, "")],
             "Examples": [],
             "Validate and Lint": [("", ""), ("$ sam validate --lint\x1b[0m", "")],

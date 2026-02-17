@@ -13,7 +13,7 @@ from samcli.cli.row_modifiers import BaseLineRowModifier, RowDefinition
 
 class RootCommandHelpTextFormatter(HelpFormatter):
     # Picked an additive constant that gives an aesthetically pleasing look.
-    ADDITIVE_JUSTIFICATION = 10
+    ADDITIVE_JUSTIFICATION = 6
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -27,6 +27,14 @@ class RootCommandHelpTextFormatter(HelpFormatter):
         self.modifiers = [BaseLineRowModifier()]
 
     def write_usage(self, prog: str, args: str = "", prefix: Optional[str] = None) -> None:
+        """Write the usage line with bold and underlined 'Usage:' prefix and a leading blank line."""
+        if prefix is None:
+            prefix = style("Usage:", bold=True, underline=True) + " "
+        else:
+            prefix = style(prefix, bold=True, underline=True)
+
+        # Add a blank line before usage
+        self.write("\n")
         super().write_usage(prog=style(prog, bold=True), args=args, prefix=prefix)
 
     def write_heading(self, heading: str) -> None:

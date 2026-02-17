@@ -8,18 +8,23 @@ from click import Context, style
 
 from samcli.cli.core.command import CoreCommand
 from samcli.cli.row_modifiers import RowDefinition, ShowcaseRowModifier
-from samcli.commands.remote.invoke.core.formatters import RemoteInvokeCommandHelpTextFormatter
-from samcli.commands.remote.invoke.core.options import OPTIONS_INFO
+from samcli.commands.common.formatters import CommandHelpTextFormatter
+from samcli.commands.remote.invoke.core.options import ALL_OPTIONS, OPTIONS_INFO
 
 
 class RemoteInvokeCommand(CoreCommand):
     class CustomFormatterContext(Context):
-        formatter_class = RemoteInvokeCommandHelpTextFormatter
+        def make_formatter(self):
+            return CommandHelpTextFormatter(
+                options=ALL_OPTIONS,
+                width=self.terminal_width,
+                max_width=self.max_content_width,
+            )
 
     context_class = CustomFormatterContext
 
     @staticmethod
-    def format_examples(ctx: Context, formatter: RemoteInvokeCommandHelpTextFormatter):
+    def format_examples(ctx: Context, formatter: CommandHelpTextFormatter):
         with formatter.indented_section(name="Examples", extra_indents=1):
             with formatter.indented_section(name="Lambda Functions", extra_indents=1):
                 with formatter.indented_section(
@@ -27,6 +32,7 @@ class RemoteInvokeCommand(CoreCommand):
                 ):
                     formatter.write_rd(
                         [
+                            RowDefinition(text="\n"),
                             RowDefinition(
                                 name=style(f"$ {ctx.command_path} --stack-name hello-world"),
                                 extra_row_modifiers=[ShowcaseRowModifier()],
@@ -38,6 +44,7 @@ class RemoteInvokeCommand(CoreCommand):
                 ):
                     formatter.write_rd(
                         [
+                            RowDefinition(text="\n"),
                             RowDefinition(
                                 name=style(
                                     f"$ {ctx.command_path} --stack-name hello-world -e"
@@ -52,6 +59,7 @@ class RemoteInvokeCommand(CoreCommand):
                 ):
                     formatter.write_rd(
                         [
+                            RowDefinition(text="\n"),
                             RowDefinition(
                                 name=style(
                                     f"$ {ctx.command_path} --stack-name "
@@ -64,6 +72,7 @@ class RemoteInvokeCommand(CoreCommand):
                 with formatter.indented_section(name="Invoke function with event as stdin input", extra_indents=1):
                     formatter.write_rd(
                         [
+                            RowDefinition(text="\n"),
                             RowDefinition(
                                 name=style(
                                     f"$ echo '{json.dumps({'message':'hello!'})}' | "
@@ -78,6 +87,7 @@ class RemoteInvokeCommand(CoreCommand):
                 ):
                     formatter.write_rd(
                         [
+                            RowDefinition(text="\n"),
                             RowDefinition(
                                 name=style(
                                     f"$ {ctx.command_path} arn:aws:lambda:us-west-2:123456789012:function:my-function"
@@ -92,6 +102,7 @@ class RemoteInvokeCommand(CoreCommand):
                 ):
                     formatter.write_rd(
                         [
+                            RowDefinition(text="\n"),
                             RowDefinition(
                                 name=style(
                                     f"$ {ctx.command_path} HelloWorldFunction -e <> "
@@ -107,6 +118,7 @@ class RemoteInvokeCommand(CoreCommand):
                 ):
                     formatter.write_rd(
                         [
+                            RowDefinition(text="\n"),
                             RowDefinition(
                                 name=style(
                                     f"$ {ctx.command_path} HelloWorldFunction -e <> --output json "
@@ -123,6 +135,7 @@ class RemoteInvokeCommand(CoreCommand):
                 ):
                     formatter.write_rd(
                         [
+                            RowDefinition(text="\n"),
                             RowDefinition(
                                 name=style(
                                     f"$ {ctx.command_path} --stack-name mock-stack StockTradingStateMachine"
@@ -138,6 +151,7 @@ class RemoteInvokeCommand(CoreCommand):
                 ):
                     formatter.write_rd(
                         [
+                            RowDefinition(text="\n"),
                             RowDefinition(
                                 name=style(
                                     f"$ {ctx.command_path} arn:aws:states:us-east-1:123456789012:stateMachine:MySFN"
@@ -153,6 +167,7 @@ class RemoteInvokeCommand(CoreCommand):
                 ):
                     formatter.write_rd(
                         [
+                            RowDefinition(text="\n"),
                             RowDefinition(
                                 name=style(
                                     f"$ {ctx.command_path} --stack-name mock-stack StockTradingStateMachine"
@@ -168,6 +183,7 @@ class RemoteInvokeCommand(CoreCommand):
                 ):
                     formatter.write_rd(
                         [
+                            RowDefinition(text="\n"),
                             RowDefinition(
                                 name=style(
                                     f"$ echo '{json.dumps({'message':'hello!'})}' | "
@@ -185,6 +201,7 @@ class RemoteInvokeCommand(CoreCommand):
                 ):
                     formatter.write_rd(
                         [
+                            RowDefinition(text="\n"),
                             RowDefinition(
                                 name=style(f"$ {ctx.command_path} --stack-name mock-stack MySQSQueue -e hello-world"),
                                 extra_row_modifiers=[ShowcaseRowModifier()],
@@ -197,6 +214,7 @@ class RemoteInvokeCommand(CoreCommand):
                 ):
                     formatter.write_rd(
                         [
+                            RowDefinition(text="\n"),
                             RowDefinition(
                                 name=style(
                                     f"$ {ctx.command_path} https://sqs.us-east-1.amazonaws.com/12345678910/QueueName"
@@ -212,6 +230,7 @@ class RemoteInvokeCommand(CoreCommand):
                 ):
                     formatter.write_rd(
                         [
+                            RowDefinition(text="\n"),
                             RowDefinition(
                                 name=style(
                                     f"$ {ctx.command_path} arn:aws:sqs:region:account_id:queue_name -e hello-world"
@@ -227,6 +246,7 @@ class RemoteInvokeCommand(CoreCommand):
                 ):
                     formatter.write_rd(
                         [
+                            RowDefinition(text="\n"),
                             RowDefinition(
                                 name=style(
                                     f"$ {ctx.command_path} --stack-name mock-stack MySQSQueue -e hello-world"
@@ -244,6 +264,7 @@ class RemoteInvokeCommand(CoreCommand):
                 ):
                     formatter.write_rd(
                         [
+                            RowDefinition(text="\n"),
                             RowDefinition(
                                 name=style(
                                     f"$ {ctx.command_path} --stack-name mock-stack MySQSQueue -e hello-world"
@@ -261,6 +282,7 @@ class RemoteInvokeCommand(CoreCommand):
                 ):
                     formatter.write_rd(
                         [
+                            RowDefinition(text="\n"),
                             RowDefinition(
                                 name=style(
                                     f"$ {ctx.command_path} --stack-name mock-stack MyKinesisStream -e"
@@ -276,6 +298,7 @@ class RemoteInvokeCommand(CoreCommand):
                 ):
                     formatter.write_rd(
                         [
+                            RowDefinition(text="\n"),
                             RowDefinition(
                                 name=style(f"$ {ctx.command_path} MyKinesisStreamName" f" --event-file event.json"),
                                 extra_row_modifiers=[ShowcaseRowModifier()],
@@ -288,6 +311,7 @@ class RemoteInvokeCommand(CoreCommand):
                 ):
                     formatter.write_rd(
                         [
+                            RowDefinition(text="\n"),
                             RowDefinition(
                                 name=style(
                                     f"$ {ctx.command_path}"
@@ -304,6 +328,7 @@ class RemoteInvokeCommand(CoreCommand):
                 ):
                     formatter.write_rd(
                         [
+                            RowDefinition(text="\n"),
                             RowDefinition(
                                 name=style(
                                     f"$ {ctx.command_path} MyKinesisStreamName"
@@ -316,7 +341,7 @@ class RemoteInvokeCommand(CoreCommand):
                     )
 
     @staticmethod
-    def format_acronyms(formatter: RemoteInvokeCommandHelpTextFormatter):
+    def format_acronyms(formatter: CommandHelpTextFormatter):
         with formatter.indented_section(name="Acronyms", extra_indents=1):
             formatter.write_rd(
                 [
@@ -328,7 +353,7 @@ class RemoteInvokeCommand(CoreCommand):
                 ]
             )
 
-    def format_options(self, ctx: Context, formatter: RemoteInvokeCommandHelpTextFormatter) -> None:  # type:ignore
+    def format_options(self, ctx: Context, formatter: CommandHelpTextFormatter) -> None:  # type:ignore
         # NOTE: `ignore` is put in place here for mypy even though it is the correct behavior,
         # as the `formatter_class` can be set in subclass of Command. If ignore is not set,
         # mypy raises argument needs to be HelpFormatter as super class defines it.

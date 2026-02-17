@@ -8,18 +8,23 @@ from click import Context, style
 
 from samcli.cli.core.command import CoreCommand
 from samcli.cli.row_modifiers import RowDefinition, ShowcaseRowModifier
-from samcli.commands.local.invoke.core.formatters import InvokeCommandHelpTextFormatter
-from samcli.commands.local.invoke.core.options import OPTIONS_INFO
+from samcli.commands.common.formatters import CommandHelpTextFormatter
+from samcli.commands.local.invoke.core.options import ALL_OPTIONS, OPTIONS_INFO
 
 
 class InvokeCommand(CoreCommand):
     class CustomFormatterContext(Context):
-        formatter_class = InvokeCommandHelpTextFormatter
+        def make_formatter(self):
+            return CommandHelpTextFormatter(
+                options=ALL_OPTIONS,
+                width=self.terminal_width,
+                max_width=self.max_content_width,
+            )
 
     context_class = CustomFormatterContext
 
     @staticmethod
-    def format_examples(ctx: Context, formatter: InvokeCommandHelpTextFormatter):
+    def format_examples(ctx: Context, formatter: CommandHelpTextFormatter):
         with formatter.indented_section(name="Examples", extra_indents=1):
             with formatter.indented_section(name="Invoke default Lambda function with no event", extra_indents=1):
                 formatter.write_rd(
@@ -87,7 +92,7 @@ class InvokeCommand(CoreCommand):
                     ]
                 )
 
-    def format_options(self, ctx: Context, formatter: InvokeCommandHelpTextFormatter) -> None:  # type:ignore
+    def format_options(self, ctx: Context, formatter: CommandHelpTextFormatter) -> None:  # type:ignore
         # NOTE(sriram-mv): `ignore` is put in place here for mypy even though it is the correct behavior,
         # as the `formatter_class` can be set in subclass of Command. If ignore is not set,
         # mypy raises argument needs to be HelpFormatter as super class defines it.

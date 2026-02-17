@@ -30,7 +30,7 @@ class TestLocalStartLambdaCommand(unittest.TestCase):
             MockParams(rv=("--config-file", ""), name="config_file"),
             MockParams(rv=("--hook_name", ""), name="hook_name"),
             MockParams(rv=("--log-file", ""), name="log_file"),
-            MockParams(rv=("--beta-features", ""), name="beta_features"),
+            MockParams(rv=("--beta-features / --no-beta-features", ""), name="beta_features"),
             MockParams(rv=("--debug", ""), name="debug"),
             MockParams(rv=("--terraform-plan-file", ""), name="terraform_plan_file"),
         ]
@@ -52,16 +52,26 @@ class TestLocalStartLambdaCommand(unittest.TestCase):
                     "",
                 ),
             ],
-            "Required Options": [("", ""), ("--template-file", ""), ("", "")],
-            "Template Options": [("", ""), ("--parameter-overrides", ""), ("", "")],
-            "AWS Credential Options": [("", ""), ("--region", ""), ("", "")],
-            "Container Options": [("", ""), ("--port", ""), ("", "")],
-            "Artifact Location Options": [("", ""), ("--log-file", ""), ("", "")],
-            "Extension Options": [("", ""), ("--hook_name", ""), ("", "")],
-            "Configuration Options": [("", ""), ("--config-file", ""), ("", "")],
-            "Terraform Hook Options": [("", ""), ("--terraform-plan-file", ""), ("", "")],
-            "Beta Options": [("", ""), ("--beta-features", ""), ("", "")],
-            "Other Options": [("", ""), ("--debug", ""), ("", "")],
+            "Required Options": [("", ""), ("--template-file", "")],
+            "Template Options": [("", ""), ("--parameter-overrides", "")],
+            "AWS Credential Options": [("", ""), ("--region", "")],
+            "Container Options": [("", ""), ("--port", "")],
+            "Artifact Location Options": [("", ""), ("--log-file", "")],
+            "Extension Options": [("", ""), ("--hook_name", "")],
+            "Configuration Options": [
+                ("", ""),
+                ("Learn more about configuration files at:", ""),
+                (
+                    "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli"
+                    "-config.html. ",
+                    "",
+                ),
+                ("", ""),
+                ("--config-file", ""),
+            ],
+            "Terraform Hook Options": [("", ""), ("--terraform-plan-file", "")],
+            "Beta Options": [("", ""), ("--beta-features / --no-beta-features", "")],
+            "Other Options": [("", ""), ("--debug", "")],
         }
 
         cmd.format_options(ctx, formatter)

@@ -11,7 +11,7 @@ from click import Group
 
 from samcli.cli.formatters import RootCommandHelpTextFormatter
 from samcli.cli.root.command_list import SAM_CLI_COMMANDS
-from samcli.cli.row_modifiers import HighlightNewRowNameModifier, RowDefinition, ShowcaseRowModifier
+from samcli.cli.row_modifiers import RowDefinition, ShowcaseRowModifier
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +62,11 @@ class BaseCommand(Group):
     class CustomFormatterContext(click.Context):
         formatter_class = RootCommandHelpTextFormatter
 
+        def __init__(self, *args, **kwargs):
+            if "max_content_width" not in kwargs:
+                kwargs["max_content_width"] = 140
+            super().__init__(*args, **kwargs)
+
     context_class = CustomFormatterContext
 
     def __init__(self, *args, cmd_packages=None, **kwargs):
@@ -106,7 +111,8 @@ class BaseCommand(Group):
         # mypy raises argument needs to be HelpFormatter as super class defines it.
         # NOTE(sriram-mv): Re-order options so that they come after the commands.
         self.format_commands(ctx, formatter)
-        opts = [RowDefinition(name="", text="\n")]
+
+        opts = []
         for param in self.get_params(ctx):
             row = param.get_help_record(ctx)
             if row is not None:
@@ -115,22 +121,22 @@ class BaseCommand(Group):
 
         if opts:
             with formatter.indented_section(name="Options", extra_indents=1):
-                formatter.write_rd(opts)
+                formatter.write_rd([RowDefinition(name="", text="\n")])
+                formatter.write_rd(
+                    [opt for options in zip(opts, [RowDefinition(name="", text="\n")] * len(opts)) for opt in options]
+                )
 
         with formatter.indented_section(name="Examples", extra_indents=1):
-            formatter.write_rd(
-                [
-                    RowDefinition(
-                        name="",
-                        text="\n",
-                    ),
-                    RowDefinition(
-                        name="Get Started:",
-                        text=click.style(f"$ {ctx.command_path} init"),
-                        extra_row_modifiers=[ShowcaseRowModifier()],
-                    ),
-                ],
-            )
+            with formatter.indented_section(name="Get Started", extra_indents=1):
+                formatter.write_rd(
+                    [
+                        RowDefinition(text="\n"),
+                        RowDefinition(
+                            name=click.style(f"$ {ctx.command_path} init"),
+                            extra_row_modifiers=[ShowcaseRowModifier()],
+                        ),
+                    ],
+                )
 
     def format_commands(self, ctx: click.Context, formatter: RootCommandHelpTextFormatter):  # type: ignore
         # NOTE(sriram-mv): `ignore` is put in place here for mypy even though it is the correct behavior,
@@ -140,17 +146,18 @@ class BaseCommand(Group):
             with formatter.section("Learn"):
                 formatter.write_rd(
                     [
+                        RowDefinition(text="\n"),
                         RowDefinition(
                             name="docs",
                             text=SAM_CLI_COMMANDS.get("docs", ""),
-                            extra_row_modifiers=[HighlightNewRowNameModifier()],
-                        )
+                        ),
                     ]
                 )
 
             with formatter.section("Create an App"):
                 formatter.write_rd(
                     [
+                        RowDefinition(text="\n"),
                         RowDefinition(name="init", text=SAM_CLI_COMMANDS.get("init", "")),
                     ],
                 )
@@ -158,27 +165,30 @@ class BaseCommand(Group):
             with formatter.section("Develop your App"):
                 formatter.write_rd(
                     [
+                        RowDefinition(text="\n"),
                         RowDefinition(
                             name="build",
                             text=SAM_CLI_COMMANDS.get("build", ""),
                         ),
+                        RowDefinition(text="\n"),
                         RowDefinition(
                             name="local",
                             text=SAM_CLI_COMMANDS.get("local", ""),
                         ),
+                        RowDefinition(text="\n"),
                         RowDefinition(
                             name="validate",
                             text=SAM_CLI_COMMANDS.get("validate", ""),
                         ),
+                        RowDefinition(text="\n"),
                         RowDefinition(
                             name="sync",
                             text=SAM_CLI_COMMANDS.get("sync", ""),
-                            extra_row_modifiers=[HighlightNewRowNameModifier()],
                         ),
+                        RowDefinition(text="\n"),
                         RowDefinition(
                             name="remote",
                             text=SAM_CLI_COMMANDS.get("remote", ""),
-                            extra_row_modifiers=[HighlightNewRowNameModifier()],
                         ),
                     ],
                 )
@@ -186,10 +196,12 @@ class BaseCommand(Group):
             with formatter.section("Deploy your App"):
                 formatter.write_rd(
                     [
+                        RowDefinition(text="\n"),
                         RowDefinition(
                             name="package",
                             text=SAM_CLI_COMMANDS.get("package", ""),
                         ),
+                        RowDefinition(text="\n"),
                         RowDefinition(
                             name="deploy",
                             text=SAM_CLI_COMMANDS.get("deploy", ""),
@@ -200,10 +212,12 @@ class BaseCommand(Group):
             with formatter.section("Monitor your App"):
                 formatter.write_rd(
                     [
+                        RowDefinition(text="\n"),
                         RowDefinition(
                             name="logs",
                             text=SAM_CLI_COMMANDS.get("logs", ""),
                         ),
+                        RowDefinition(text="\n"),
                         RowDefinition(
                             name="traces",
                             text=SAM_CLI_COMMANDS.get("traces", ""),
@@ -214,19 +228,22 @@ class BaseCommand(Group):
             with formatter.section("And More"):
                 formatter.write_rd(
                     [
+                        RowDefinition(text="\n"),
                         RowDefinition(
                             name="list",
                             text=SAM_CLI_COMMANDS.get("list", ""),
-                            extra_row_modifiers=[HighlightNewRowNameModifier()],
                         ),
+                        RowDefinition(text="\n"),
                         RowDefinition(
                             name="delete",
                             text=SAM_CLI_COMMANDS.get("delete", ""),
                         ),
+                        RowDefinition(text="\n"),
                         RowDefinition(
                             name="pipeline",
                             text=SAM_CLI_COMMANDS.get("pipeline", ""),
                         ),
+                        RowDefinition(text="\n"),
                         RowDefinition(
                             name="publish",
                             text=SAM_CLI_COMMANDS.get("publish", ""),

@@ -31,8 +31,9 @@ class TestLocalExecutionGetCommand(TestCase):
 
         mock_get_params.return_value = [
             MockParams(rv=("durable_execution_arn", "Durable execution ARN"), name="durable_execution_arn"),
+            MockParams(rv=("--format", ""), name="format"),
+            MockParams(rv=("--beta-features / --no-beta-features", ""), name="beta_features"),
             MockParams(rv=("--debug", ""), name="debug"),
-            MockParams(rv=("--help", ""), name="help"),
         ]
 
         command = LocalExecutionGetCommand(name="get", description="Get durable function execution details")
@@ -45,20 +46,16 @@ class TestLocalExecutionGetCommand(TestCase):
             ],
             "Examples": [],
             "Get execution details": [
-                (
-                    "$ sam local execution get c63eec67-3415-4eb4-a495-116aa3a86278\x1b[0m",
-                    "",
-                ),
+                ("", ""),
+                ("$ sam local execution get c63eec67-3415-4eb4-a495-116aa3a86278\x1b[0m", ""),
             ],
             "Get execution details in JSON format": [
-                (
-                    "$ sam local execution get c63eec67-3415-4eb4-a495-116aa3a86278 --format json\x1b[0m",
-                    "",
-                ),
+                ("", ""),
+                ("$ sam local execution get c63eec67-3415-4eb4-a495-116aa3a86278 --format json\x1b[0m", ""),
             ],
-            "Formatting Options": [("", "")],
-            "Beta Options": [("", "")],
-            "Other Options": [("", ""), ("--debug", ""), ("", ""), ("--help", ""), ("", "")],
+            "Formatting Options": [("", ""), ("--format", "")],
+            "Beta Options": [("", ""), ("--beta-features / --no-beta-features", "")],
+            "Other Options": [("", ""), ("--debug", "")],
         }
 
         # Act

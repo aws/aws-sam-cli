@@ -38,27 +38,41 @@ class TestBuildCommand(unittest.TestCase):
 
         cmd = BuildCommand(name="sync", requires_credentials=False, description=DESCRIPTION)
         expected_output = {
-            "AWS Credential Options": [("", ""), ("--region", ""), ("", "")],
-            "Container Options": [("", ""), ("--use-container", ""), ("", "")],
-            "Configuration Options": [("", ""), ("--config-file", ""), ("", "")],
-            "Extension Options": [("", ""), ("--hook-name", ""), ("", "")],
-            "Terraform Hook Options": [("", ""), ("--terraform-project-root-path", ""), ("", "")],
-            "Build Strategy Options": [("", ""), ("--parallel", ""), ("", "")],
-            "Artifact Location Options": [("", ""), ("--build-dir", ""), ("", "")],
-            "Template Options": [("", ""), ("--parameter-overrides", ""), ("", "")],
-            "Beta Options": [("", ""), ("--beta-features", ""), ("", "")],
-            "Other Options": [("", ""), ("--debug", ""), ("", "")],
-            "Required Options": [("", ""), ("--template-file", ""), ("", "")],
             "Description": [(cmd.description + cmd.description_addendum, "")],
-            "Examples": [
+            "Examples": [],
+            "Build sam project": [("", ""), ("$ sam build\x1b[0m", "")],
+            "Build sam project for a specific function": [("", ""), ("$ sam build FUNCTION_LOGICAL_ID\x1b[0m", "")],
+            "Build sam project using container": [("", ""), ("$ sam build --use-container\x1b[0m", "")],
+            "Build sam project using container with environment variable file": [
                 ("", ""),
-                ("$ sam build\x1b[0m", ""),
-                ("$ sam build FUNCTION_LOGICAL_ID\x1b[0m", ""),
-                ("$ sam build --use-container\x1b[0m", ""),
                 ("$ sam build --use-container --container-env-var-file env.json\x1b[0m", ""),
-                ("$ sam build && sam local invoke\x1b[0m", ""),
-                ("$ sam build && sam deploy\x1b[0m", ""),
             ],
+            "Build sam project and invoke default function locally": [
+                ("", ""),
+                ("$ sam build && sam local invoke\x1b[0m", ""),
+            ],
+            "Build sam project and deploy": [("", ""), ("$ sam build && sam deploy\x1b[0m", "")],
+            "Required Options": [("", ""), ("--template-file", "")],
+            "Template Options": [("", ""), ("--parameter-overrides", "")],
+            "AWS Credential Options": [("", ""), ("--region", "")],
+            "Build Strategy Options": [("", ""), ("--parallel", "")],
+            "Container Options": [("", ""), ("--use-container", "")],
+            "Artifact Location Options": [("", ""), ("--build-dir", "")],
+            "Extension Options": [("", ""), ("--hook-name", "")],
+            "Configuration Options": [
+                ("", ""),
+                ("Learn more about configuration files at:", ""),
+                (
+                    "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli"
+                    "-config.html. ",
+                    "",
+                ),
+                ("", ""),
+                ("--config-file", ""),
+            ],
+            "Terraform Hook Options": [("", ""), ("--terraform-project-root-path", "")],
+            "Beta Options": [("", ""), ("--beta-features", "")],
+            "Other Options": [("", ""), ("--debug", "")],
         }
 
         cmd.format_options(ctx, formatter)

@@ -16,8 +16,10 @@ class TestRootCommandHelpTextFormatter(TestCase):
         prog = "sam"
         args = "validate"
         prefix = "usage: "
+        # Expected: blank line, then bold+underlined prefix with bold prog name
         expected_output = [
-            call(f"usage: \x1b[1m{prog}\x1b[0m {args}"),
+            call("\n"),  # Blank line before usage
+            call(f"\x1b[1m\x1b[4m{prefix}\x1b[0m\x1b[1m{prog}\x1b[0m {args}"),
             call("\n"),
         ]
         with patch.object(self.formatter, "write") as mock_write:

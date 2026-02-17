@@ -35,7 +35,6 @@ ALL_OPTIONS: List[str] = (
 OPTIONS_INFO: Dict[str, Dict] = {
     "Application Options": {
         "option_names": {opt: {"rank": idx} for idx, opt in enumerate(APPLICATION_OPTIONS)},
-        "extras": [RowDefinition(name="")],
     },
     "Non Interactive Options": {
         "option_names": {opt: {"rank": idx} for idx, opt in enumerate(NON_INTERACTIVE_OPTIONS)}

@@ -32,10 +32,19 @@ class TestInitCommand(unittest.TestCase):
 
         cmd = InitCommand(name="init", requires_credentials=False, description=DESCRIPTION)
         expected_output = {
-            "Additional Options": [("", ""), ("--tracing", ""), ("", "")],
-            "Application Options": [("", ""), ("--name", ""), ("", "")],
-            "Beta Options": [("", "")],
-            "Configuration Options": [("", ""), ("--config-file", ""), ("", "")],
+            "Additional Options": [("", ""), ("--tracing", "")],
+            "Application Options": [("", ""), ("--name", "")],
+            "Configuration Options": [
+                ("", ""),
+                ("Learn more about configuration files at:", ""),
+                (
+                    "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli"
+                    "-config.html. ",
+                    "",
+                ),
+                ("", ""),
+                ("--config-file", ""),
+            ],
             "Customized Interactive Mode": [
                 ("", ""),
                 ("$ sam init --name sam-app --runtime " "nodejs18.x --architecture arm64\x1b[0m", ""),
@@ -62,8 +71,8 @@ class TestInitCommand(unittest.TestCase):
             ],
             "Examples": [],
             "Interactive Mode": [("", ""), ("$ sam init\x1b[0m", "")],
-            "Non Interactive Options": [("", ""), ("--no-interactive", ""), ("", "")],
-            "Other Options": [("", ""), ("--debug", ""), ("", "")],
+            "Non Interactive Options": [("", ""), ("--no-interactive", "")],
+            "Other Options": [("", ""), ("--debug", "")],
         }
 
         cmd.format_options(ctx, formatter)

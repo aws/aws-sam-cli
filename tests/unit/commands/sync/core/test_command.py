@@ -33,11 +33,21 @@ class TestSyncCommand(unittest.TestCase):
 
         cmd = SyncCommand(name="sync", requires_credentials=True, description=DESCRIPTION)
         expected_output = {
-            "AWS Credential Options": [("", ""), ("--region", ""), ("", "")],
+            "AWS Credential Options": [("", ""), ("--region", "")],
             "Acronyms": [("IAM", ""), ("ARN", ""), ("S3", ""), ("SNS", ""), ("ECR", ""), ("KMS", "")],
-            "Additional Options": [("", ""), ("--resource", ""), ("", "")],
-            "Beta Options": [("", ""), ("--beta-features", ""), ("", "")],
-            "Configuration Options": [("", ""), ("--config-file", ""), ("", "")],
+            "Additional Options": [("", ""), ("--resource", "")],
+            "Beta Options": [("", ""), ("--beta-features", "")],
+            "Configuration Options": [
+                ("", ""),
+                ("Learn more about configuration files at:", ""),
+                (
+                    "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli"
+                    "-config.html. ",
+                    "",
+                ),
+                ("", ""),
+                ("--config-file", ""),
+            ],
             "Description": [(cmd.description + cmd.description_addendum, "")],
             "Examples": [
                 ("", ""),
@@ -45,9 +55,9 @@ class TestSyncCommand(unittest.TestCase):
                 ("$ sam sync --code --watch --stack-name {stack}\x1b[0m", ""),
                 ("$ sam sync --code --stack-name {stack} --resource-id " "{ChildStack}/{ResourceId}\x1b[0m", ""),
             ],
-            "Infrastructure Options": [("", ""), ("--s3-bucket", ""), ("", "")],
-            "Other Options": [("", ""), ("--debug", ""), ("", "")],
-            "Required Options": [("", ""), ("--stack-name", ""), ("", "")],
+            "Infrastructure Options": [("", ""), ("--s3-bucket", "")],
+            "Other Options": [("", ""), ("--debug", "")],
+            "Required Options": [("", ""), ("--stack-name", "")],
         }
 
         cmd.format_options(ctx, formatter)

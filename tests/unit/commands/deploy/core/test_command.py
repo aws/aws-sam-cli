@@ -36,25 +36,50 @@ class TestDeployCommand(unittest.TestCase):
 
         cmd = DeployCommand(name="deploy", requires_credentials=False, description=DESCRIPTION)
         expected_output = {
-            "AWS Credential Options": [("", ""), ("--region", ""), ("", "")],
-            "Additional Options": [("", ""), ("--signing-profiles", ""), ("", "")],
-            "Deployment Options": [("", ""), ("--no-execute-changeset", ""), ("", "")],
-            "Configuration Options": [("", ""), ("--config-file", ""), ("", "")],
-            "Beta Options": [("", ""), ("--beta-features", ""), ("", "")],
-            "Other Options": [("", ""), ("--debug", ""), ("", "")],
-            "Required Options": [("", ""), ("--stack-name", ""), ("", "")],
-            "Infrastructure Options": [("", ""), ("--s3-bucket", ""), ("", "")],
-            "Interactive Options": [("", ""), ("--guided", ""), ("", "")],
+            "AWS Credential Options": [("", ""), ("--region", "")],
+            "Additional Options": [("", ""), ("--signing-profiles", "")],
+            "Deployment Options": [("", ""), ("--no-execute-changeset", "")],
+            "Configuration Options": [
+                ("", ""),
+                ("Learn more about configuration files at:", ""),
+                (
+                    "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli"
+                    "-config.html. ",
+                    "",
+                ),
+                ("", ""),
+                ("--config-file", ""),
+            ],
+            "Beta Options": [("", ""), ("--beta-features", "")],
+            "Other Options": [("", ""), ("--debug", "")],
+            "Required Options": [("", ""), ("--stack-name", "")],
+            "Infrastructure Options": [("", ""), ("--s3-bucket", "")],
+            "Interactive Options": [
+                ("", ""),
+                ("Use the guided flag for a step-by-step flow instead of using the required options. ", ""),
+                ("", ""),
+                ("--guided", ""),
+            ],
             "Description": [(cmd.description + cmd.description_addendum, "")],
             "Acronyms": [("", ""), ("IAM", ""), ("ARN", ""), ("S3", ""), ("SNS", ""), ("ECR", ""), ("KMS", "")],
-            "Examples": [
+            "Examples": [],
+            "Deploy with guided prompts": [
                 ("", ""),
                 ("$ sam deploy --guided\x1b[0m", ""),
+            ],
+            "Deploy with specified parameters": [
+                ("", ""),
                 (
                     "$ sam deploy --template-file packaged.yaml --stack-name sam-app --capabilities CAPABILITY_IAM\x1b[0m",
                     "",
                 ),
+            ],
+            "Deploy with parameter overrides using CloudFormation syntax": [
+                ("", ""),
                 ("$ sam deploy --parameter-overrides 'ParameterKey=InstanceType,ParameterValue=t1.micro'\x1b[0m", ""),
+            ],
+            "Deploy with parameter overrides using shorthand syntax": [
+                ("", ""),
                 ("$ sam deploy --parameter-overrides KeyPairName=MyKey InstanceType=t1.micro\x1b[0m", ""),
             ],
         }

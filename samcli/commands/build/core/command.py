@@ -6,52 +6,103 @@ from click import Context, style
 
 from samcli.cli.core.command import CoreCommand
 from samcli.cli.row_modifiers import RowDefinition, ShowcaseRowModifier
-from samcli.commands.build.core.formatters import BuildCommandHelpTextFormatter
-from samcli.commands.build.core.options import OPTIONS_INFO
+from samcli.commands.build.core.options import ALL_OPTIONS, OPTIONS_INFO
+from samcli.commands.common.formatters import CommandHelpTextFormatter
 
 
 class BuildCommand(CoreCommand):
     class CustomFormatterContext(Context):
-        formatter_class = BuildCommandHelpTextFormatter
+        def make_formatter(self):
+            return CommandHelpTextFormatter(
+                additive_justification=3,
+                options=ALL_OPTIONS,
+                width=self.terminal_width,
+                max_width=self.max_content_width,
+            )
 
     context_class = CustomFormatterContext
 
     @staticmethod
-    def format_examples(ctx: Context, formatter: BuildCommandHelpTextFormatter):
+    def format_examples(ctx: Context, formatter: CommandHelpTextFormatter):
         with formatter.indented_section(name="Examples", extra_indents=1):
-            formatter.write_rd(
-                [
-                    RowDefinition(
-                        text="\n",
-                    ),
-                    RowDefinition(
-                        name=style(f"$ {ctx.command_path}"),
-                        extra_row_modifiers=[ShowcaseRowModifier()],
-                    ),
-                    RowDefinition(
-                        name=style(f"$ {ctx.command_path} FUNCTION_LOGICAL_ID"),
-                        extra_row_modifiers=[ShowcaseRowModifier()],
-                    ),
-                    RowDefinition(
-                        name=style(f"$ {ctx.command_path} --use-container"),
-                        extra_row_modifiers=[ShowcaseRowModifier()],
-                    ),
-                    RowDefinition(
-                        name=style(f"$ {ctx.command_path} --use-container --container-env-var-file env.json"),
-                        extra_row_modifiers=[ShowcaseRowModifier()],
-                    ),
-                    RowDefinition(
-                        name=style(f"$ {ctx.command_path} && {ctx.parent.command_path} local invoke"),  # type: ignore
-                        extra_row_modifiers=[ShowcaseRowModifier()],
-                    ),
-                    RowDefinition(
-                        name=style(f"$ {ctx.command_path} && {ctx.parent.command_path} deploy"),  # type: ignore
-                        extra_row_modifiers=[ShowcaseRowModifier()],
-                    ),
-                ],
-            )
+            with formatter.indented_section(name="Build sam project", extra_indents=1):
+                formatter.write_rd(
+                    [
+                        RowDefinition(
+                            text="\n",
+                        ),
+                        RowDefinition(
+                            name=style(f"$ {ctx.command_path}"),
+                            extra_row_modifiers=[ShowcaseRowModifier()],
+                        ),
+                    ]
+                )
+            with formatter.indented_section(name="Build sam project for a specific function", extra_indents=1):
+                formatter.write_rd(
+                    [
+                        RowDefinition(
+                            text="\n",
+                        ),
+                        RowDefinition(
+                            name=style(f"$ {ctx.command_path} FUNCTION_LOGICAL_ID"),
+                            extra_row_modifiers=[ShowcaseRowModifier()],
+                        ),
+                    ]
+                )
+            with formatter.indented_section(name="Build sam project using container", extra_indents=1):
+                formatter.write_rd(
+                    [
+                        RowDefinition(
+                            text="\n",
+                        ),
+                        RowDefinition(
+                            name=style(f"$ {ctx.command_path} --use-container"),
+                            extra_row_modifiers=[ShowcaseRowModifier()],
+                        ),
+                    ]
+                )
+            with formatter.indented_section(
+                name="Build sam project using container with environment variable file", extra_indents=1
+            ):
+                formatter.write_rd(
+                    [
+                        RowDefinition(
+                            text="\n",
+                        ),
+                        RowDefinition(
+                            name=style(f"$ {ctx.command_path} --use-container --container-env-var-file env.json"),
+                            extra_row_modifiers=[ShowcaseRowModifier()],
+                        ),
+                    ]
+                )
+            with formatter.indented_section(
+                name="Build sam project and invoke default function locally", extra_indents=1
+            ):
+                formatter.write_rd(
+                    [
+                        RowDefinition(
+                            text="\n",
+                        ),
+                        RowDefinition(
+                            name=style(f"$ {ctx.command_path} && {ctx.parent.command_path} local invoke"),  # type: ignore
+                            extra_row_modifiers=[ShowcaseRowModifier()],
+                        ),
+                    ]
+                )
+            with formatter.indented_section(name="Build sam project and deploy", extra_indents=1):
+                formatter.write_rd(
+                    [
+                        RowDefinition(
+                            text="\n",
+                        ),
+                        RowDefinition(
+                            name=style(f"$ {ctx.command_path} && {ctx.parent.command_path} deploy"),  # type: ignore
+                            extra_row_modifiers=[ShowcaseRowModifier()],
+                        ),
+                    ]
+                )
 
-    def format_options(self, ctx: Context, formatter: BuildCommandHelpTextFormatter) -> None:  # type:ignore
+    def format_options(self, ctx: Context, formatter: CommandHelpTextFormatter) -> None:  # type:ignore
         # NOTE(sriram-mv): `ignore` is put in place here for mypy even though it is the correct behavior,
         # as the `formatter_class` can be set in subclass of Command. If ignore is not set,
         # mypy raises argument needs to be HelpFormatter as super class defines it.

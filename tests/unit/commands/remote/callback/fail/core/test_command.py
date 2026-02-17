@@ -15,6 +15,8 @@ class MockParams:
 
 
 class TestRemoteCallbackFailCommand(unittest.TestCase):
+    maxDiff = None
+
     @patch.object(RemoteCallbackFailCommand, "get_params")
     def test_remote_callback_fail_options_command_text(self, mock_get_params):
         ctx = Mock()
@@ -27,6 +29,7 @@ class TestRemoteCallbackFailCommand(unittest.TestCase):
             MockParams(rv=("--region", "Region"), name="region"),
             MockParams(rv=("--profile", ""), name="profile"),
             MockParams(rv=("--config-file", ""), name="config_file"),
+            MockParams(rv=("--beta-features / --no-beta-features", ""), name="beta_features"),
             MockParams(rv=("--debug", ""), name="debug"),
         ]
 
@@ -36,11 +39,11 @@ class TestRemoteCallbackFailCommand(unittest.TestCase):
                 ("Test description\x1b[1m\n  This command may not require access to AWS credentials.\x1b[0m", "")
             ],
             "Examples": [],
-            "AWS Credential Options": [("", ""), ("--region", ""), ("", ""), ("--profile", ""), ("", "")],
-            "Configuration Options": [("", ""), ("--config-file", ""), ("", "")],
-            "Beta Options": [("", "")],
-            "Callback Options": [("", ""), ("--error-data", ""), ("", "")],
-            "Other Options": [("", ""), ("--debug", ""), ("", "")],
+            "AWS Credential Options": [("", ""), ("--region", ""), ("", ""), ("--profile", "")],
+            "Configuration Options": [("", ""), ("--config-file", "")],
+            "Beta Options": [("", ""), ("--beta-features / --no-beta-features", "")],
+            "Callback Options": [("", ""), ("--error-data", "")],
+            "Other Options": [("", ""), ("--debug", "")],
             "Send failure callback with no parameters": [
                 ("", ""),
                 ("$ sam remote callback fail my-callback-id\x1b[0m", ""),

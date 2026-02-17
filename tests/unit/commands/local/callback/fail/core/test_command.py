@@ -36,6 +36,7 @@ class TestCallbackFailCommand(TestCase):
             MockParams(rv=("--stack-trace", "Stack trace information"), name="stack_trace"),
             MockParams(rv=("--error-type", "Type of error"), name="error_type"),
             MockParams(rv=("--error-message", "Detailed error message"), name="error_message"),
+            MockParams(rv=("--beta-features / --no-beta-features", ""), name="beta_features"),
             MockParams(rv=("--debug", ""), name="debug"),
         ]
 
@@ -69,10 +70,9 @@ class TestCallbackFailCommand(TestCase):
                 ("--error-type", ""),
                 ("", ""),
                 ("--error-message", ""),
-                ("", ""),
             ],
-            "Beta Options": [("", "")],
-            "Other Options": [("", ""), ("--debug", ""), ("", "")],
+            "Beta Options": [("", ""), ("--beta-features / --no-beta-features", "")],
+            "Other Options": [("", ""), ("--debug", "")],
         }
 
         # Act

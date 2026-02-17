@@ -33,6 +33,7 @@ class RemoteExecutionHistoryCommand(RemoteExecutionBaseCommand):
             with formatter.indented_section(name="Get execution history", extra_indents=1):
                 formatter.write_rd(
                     [
+                        RowDefinition(text="\n"),
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} {arn_example}"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
@@ -43,6 +44,7 @@ class RemoteExecutionHistoryCommand(RemoteExecutionBaseCommand):
             with formatter.indented_section(name="Get execution history in JSON format", extra_indents=1):
                 formatter.write_rd(
                     [
+                        RowDefinition(text="\n"),
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} {arn_example} --format json"),
                             extra_row_modifiers=[ShowcaseRowModifier()],

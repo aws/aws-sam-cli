@@ -56,17 +56,26 @@ class TestLocalInvokeCommand(unittest.TestCase):
                 ("", ""),
                 ("$ sam local invoke HelloWorldFunction --durable-execution-name my-execution\x1b[0m", ""),
             ],
-            "Required Options": [("", ""), ("--template-file", ""), ("", "")],
-            "Template Options": [("", ""), ("--parameter-overrides", ""), ("", "")],
-            "AWS Credential Options": [("", ""), ("--region", ""), ("", "")],
-            "Invoke Options": [("", ""), ("--event", ""), ("", "")],
-            "Container Options": [("", "")],
-            "Artifact Location Options": [("", ""), ("--log-file", ""), ("", "")],
-            "Extension Options": [("", ""), ("--hook_name", ""), ("", "")],
-            "Configuration Options": [("", ""), ("--config-file", ""), ("", "")],
-            "Terraform Hook Options": [("", ""), ("--terraform-plan-file", ""), ("", "")],
-            "Beta Options": [("", ""), ("--beta-features", ""), ("", "")],
-            "Other Options": [("", ""), ("--debug", ""), ("", "")],
+            "Required Options": [("", ""), ("--template-file", "")],
+            "Template Options": [("", ""), ("--parameter-overrides", "")],
+            "AWS Credential Options": [("", ""), ("--region", "")],
+            "Invoke Options": [("", ""), ("--event", "")],
+            "Artifact Location Options": [("", ""), ("--log-file", "")],
+            "Extension Options": [("", ""), ("--hook_name", "")],
+            "Configuration Options": [
+                ("", ""),
+                ("Learn more about configuration files at:", ""),
+                (
+                    "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli"
+                    "-config.html. ",
+                    "",
+                ),
+                ("", ""),
+                ("--config-file", ""),
+            ],
+            "Terraform Hook Options": [("", ""), ("--terraform-plan-file", "")],
+            "Beta Options": [("", ""), ("--beta-features", "")],
+            "Other Options": [("", ""), ("--debug", "")],
         }
 
         cmd.format_options(ctx, formatter)

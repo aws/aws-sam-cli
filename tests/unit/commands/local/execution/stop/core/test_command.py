@@ -36,8 +36,8 @@ class TestLocalExecutionStopCommand(TestCase):
             MockParams(rv=("--error-type", "Error type"), name="error_type"),
             MockParams(rv=("--error-data", "Error data"), name="error_data"),
             MockParams(rv=("--stack-trace", "Stack trace entries"), name="stack_trace"),
+            MockParams(rv=("--beta-features / --no-beta-features", ""), name="beta_features"),
             MockParams(rv=("--debug", ""), name="debug"),
-            MockParams(rv=("--help", ""), name="help"),
         ]
 
         command = LocalExecutionStopCommand(name="stop", description="Stop a durable function execution")
@@ -50,18 +50,18 @@ class TestLocalExecutionStopCommand(TestCase):
             ],
             "Examples": [],
             "Stop execution without error details": [
-                (
-                    "$ sam local execution stop c63eec67-3415-4eb4-a495-116aa3a86278\x1b[0m",
-                    "",
-                ),
+                ("", ""),
+                ("$ sam local execution stop c63eec67-3415-4eb4-a495-116aa3a86278\x1b[0m", ""),
             ],
             "Stop execution with error message and type": [
+                ("", ""),
                 (
                     '$ sam local execution stop c63eec67-3415-4eb4-a495-116aa3a86278 --error-message "Execution cancelled" --error-type "UserCancellation"\x1b[0m',
                     "",
                 ),
             ],
             "Stop execution with full error details and stack trace": [
+                ("", ""),
                 (
                     '$ sam local execution stop c63eec67-3415-4eb4-a495-116aa3a86278 --error-message "Task failed" --error-type "TaskFailure" --error-data \'{"reason":"timeout"}\' --stack-trace "at function1()" --stack-trace "at function2()"\x1b[0m',
                     "",
@@ -76,10 +76,9 @@ class TestLocalExecutionStopCommand(TestCase):
                 ("--error-data", ""),
                 ("", ""),
                 ("--stack-trace", ""),
-                ("", ""),
             ],
-            "Beta Options": [("", "")],
-            "Other Options": [("", ""), ("--debug", ""), ("", ""), ("--help", ""), ("", "")],
+            "Beta Options": [("", ""), ("--beta-features / --no-beta-features", "")],
+            "Other Options": [("", ""), ("--debug", "")],
         }
 
         # Act

@@ -6,18 +6,23 @@ from click import Context, style
 
 from samcli.cli.core.command import CoreCommand
 from samcli.cli.row_modifiers import RowDefinition, ShowcaseRowModifier
-from samcli.commands.remote.test_event.list.core.formatters import RemoteTestEventListCommandHelpTextFormatter
-from samcli.commands.remote.test_event.list.core.options import OPTIONS_INFO
+from samcli.commands.common.formatters import CommandHelpTextFormatter
+from samcli.commands.remote.test_event.list.core.options import ALL_OPTIONS, OPTIONS_INFO
 
 
 class RemoteTestEventListCommand(CoreCommand):
     class CustomFormatterContext(Context):
-        formatter_class = RemoteTestEventListCommandHelpTextFormatter
+        def make_formatter(self):
+            return CommandHelpTextFormatter(
+                options=ALL_OPTIONS,
+                width=self.terminal_width,
+                max_width=self.max_content_width,
+            )
 
     context_class = CustomFormatterContext
 
     @staticmethod
-    def format_examples(ctx: Context, formatter: RemoteTestEventListCommandHelpTextFormatter):
+    def format_examples(ctx: Context, formatter: CommandHelpTextFormatter):
         with formatter.indented_section(name="Examples", extra_indents=1):
             with formatter.indented_section(
                 name="List remote test events for default Lambda function", extra_indents=1
@@ -65,7 +70,7 @@ class RemoteTestEventListCommand(CoreCommand):
                 )
 
     @staticmethod
-    def format_acronyms(formatter: RemoteTestEventListCommandHelpTextFormatter):
+    def format_acronyms(formatter: CommandHelpTextFormatter):
         with formatter.indented_section(name="Acronyms", extra_indents=1):
             formatter.write_rd(
                 [
@@ -77,7 +82,7 @@ class RemoteTestEventListCommand(CoreCommand):
                 ]
             )
 
-    def format_options(self, ctx: Context, formatter: RemoteTestEventListCommandHelpTextFormatter):  # type:ignore
+    def format_options(self, ctx: Context, formatter: CommandHelpTextFormatter):  # type:ignore
         # NOTE: `ignore` is put in place here for mypy even though it is the correct behavior,
         # as the `formatter_class` can be set in subclass of Command. If ignore is not set,
         # mypy raises argument needs to be HelpFormatter as super class defines it.

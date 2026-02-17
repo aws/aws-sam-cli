@@ -29,6 +29,7 @@ class TestRemoteExecutionHistoryCommand(unittest.TestCase):
             MockParams(rv=("--region", "Region"), name="region"),
             MockParams(rv=("--profile", ""), name="profile"),
             MockParams(rv=("--config-file", ""), name="config_file"),
+            MockParams(rv=("--beta-features / --no-beta-features", ""), name="beta_features"),
             MockParams(rv=("--debug", ""), name="debug"),
         ]
 
@@ -39,23 +40,25 @@ class TestRemoteExecutionHistoryCommand(unittest.TestCase):
             ],
             "Examples": [],
             "Get execution history": [
+                ("", ""),
                 (
                     "$ sam remote execution history arn:aws:lambda:us-east-1:123456789012:function:MyFunction:$LATEST/durable-execution/my-execution-name/my-execution-id\x1b[0m",
                     "",
                 ),
             ],
             "Get execution history in JSON format": [
+                ("", ""),
                 (
                     "$ sam remote execution history arn:aws:lambda:us-east-1:123456789012:function:MyFunction:$LATEST/durable-execution/my-execution-name/my-execution-id --format json\x1b[0m",
                     "",
                 ),
             ],
-            "Acronyms": [("ARN", "")],
-            "Formatting Options": [("", ""), ("--format", ""), ("", "")],
-            "AWS Credential Options": [("", ""), ("--region", ""), ("", ""), ("--profile", ""), ("", "")],
-            "Configuration Options": [("", ""), ("--config-file", ""), ("", "")],
-            "Beta Options": [("", "")],
-            "Other Options": [("", ""), ("--debug", ""), ("", "")],
+            "Acronyms": [("", ""), ("ARN", "")],
+            "Formatting Options": [("", ""), ("--format", "")],
+            "AWS Credential Options": [("", ""), ("--region", ""), ("", ""), ("--profile", "")],
+            "Configuration Options": [("", ""), ("--config-file", "")],
+            "Beta Options": [("", ""), ("--beta-features / --no-beta-features", "")],
+            "Other Options": [("", ""), ("--debug", "")],
         }
         cmd.format_options(ctx, formatter)
         self.assertEqual(expected_output, formatter.data)

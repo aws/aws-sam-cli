@@ -2,55 +2,89 @@ from click import Context, style
 
 from samcli.cli.core.command import CoreCommand
 from samcli.cli.row_modifiers import RowDefinition, ShowcaseRowModifier
-from samcli.commands.deploy.core.formatters import DeployCommandHelpTextFormatter
-from samcli.commands.deploy.core.options import OPTIONS_INFO
+from samcli.commands.common.formatters import CommandHelpTextFormatter
+from samcli.commands.deploy.core.options import ALL_OPTIONS, OPTIONS_INFO
 
 COL_SIZE_MODIFIER = 38
 
 
 class DeployCommand(CoreCommand):
     class CustomFormatterContext(Context):
-        formatter_class = DeployCommandHelpTextFormatter
+        def make_formatter(self):
+            return CommandHelpTextFormatter(
+                options=ALL_OPTIONS,
+                width=self.terminal_width,
+                max_width=self.max_content_width,
+            )
 
     context_class = CustomFormatterContext
 
     @staticmethod
-    def format_examples(ctx: Context, formatter: DeployCommandHelpTextFormatter):
+    def format_examples(ctx: Context, formatter: CommandHelpTextFormatter):
         with formatter.indented_section(name="Examples", extra_indents=1):
-            formatter.write_rd(
-                [
-                    RowDefinition(
-                        text="\n",
-                    ),
-                    RowDefinition(
-                        name=style(f"$ {ctx.command_path} --guided"), extra_row_modifiers=[ShowcaseRowModifier()]
-                    ),
-                    RowDefinition(
-                        name=style(
-                            f"$ {ctx.command_path} --template-file packaged.yaml --stack-name "
-                            f"sam-app --capabilities CAPABILITY_IAM"
+            with formatter.indented_section(name="Deploy with guided prompts", extra_indents=1):
+                formatter.write_rd(
+                    [
+                        RowDefinition(
+                            text="\n",
                         ),
-                        extra_row_modifiers=[ShowcaseRowModifier()],
-                    ),
-                    RowDefinition(
-                        name=style(
-                            f"$ {ctx.command_path} --parameter-overrides "
-                            f"'ParameterKey=InstanceType,ParameterValue=t1.micro'"
+                        RowDefinition(
+                            name=style(f"$ {ctx.command_path} --guided"),
+                            extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
-                        extra_row_modifiers=[ShowcaseRowModifier()],
-                    ),
-                    RowDefinition(
-                        name=style(
-                            f"$ {ctx.command_path} --parameter-overrides KeyPairName=MyKey InstanceType=t1.micro"
+                    ]
+                )
+            with formatter.indented_section(name="Deploy with specified parameters", extra_indents=1):
+                formatter.write_rd(
+                    [
+                        RowDefinition(
+                            text="\n",
                         ),
-                        extra_row_modifiers=[ShowcaseRowModifier()],
-                    ),
-                ],
-                col_max=COL_SIZE_MODIFIER,
-            )
+                        RowDefinition(
+                            name=style(
+                                f"$ {ctx.command_path} --template-file packaged.yaml --stack-name "
+                                f"sam-app --capabilities CAPABILITY_IAM"
+                            ),
+                            extra_row_modifiers=[ShowcaseRowModifier()],
+                        ),
+                    ]
+                )
+            with formatter.indented_section(
+                name="Deploy with parameter overrides using CloudFormation syntax", extra_indents=1
+            ):
+                formatter.write_rd(
+                    [
+                        RowDefinition(
+                            text="\n",
+                        ),
+                        RowDefinition(
+                            name=style(
+                                f"$ {ctx.command_path} --parameter-overrides "
+                                f"'ParameterKey=InstanceType,ParameterValue=t1.micro'"
+                            ),
+                            extra_row_modifiers=[ShowcaseRowModifier()],
+                        ),
+                    ]
+                )
+            with formatter.indented_section(
+                name="Deploy with parameter overrides using shorthand syntax", extra_indents=1
+            ):
+                formatter.write_rd(
+                    [
+                        RowDefinition(
+                            text="\n",
+                        ),
+                        RowDefinition(
+                            name=style(
+                                f"$ {ctx.command_path} --parameter-overrides KeyPairName=MyKey InstanceType=t1.micro"
+                            ),
+                            extra_row_modifiers=[ShowcaseRowModifier()],
+                        ),
+                    ]
+                )
 
     @staticmethod
-    def format_acronyms(formatter: DeployCommandHelpTextFormatter):
+    def format_acronyms(formatter: CommandHelpTextFormatter):
         with formatter.indented_section(name="Acronyms", extra_indents=1):
             formatter.write_rd(
                 [
@@ -91,7 +125,7 @@ class DeployCommand(CoreCommand):
                 col_max=COL_SIZE_MODIFIER,
             )
 
-    def format_options(self, ctx: Context, formatter: DeployCommandHelpTextFormatter) -> None:  # type:ignore
+    def format_options(self, ctx: Context, formatter: CommandHelpTextFormatter) -> None:  # type:ignore
         # `ignore` is put in place here for mypy even though it is the correct behavior,
         # as the `formatter_class` can be set in subclass of Command. If ignore is not set,
         # mypy raises argument needs to be HelpFormatter as super class defines it.

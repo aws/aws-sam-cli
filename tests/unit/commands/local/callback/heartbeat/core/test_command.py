@@ -33,6 +33,7 @@ class TestCallbackHeartbeatCommand(TestCase):
         mock_get_params.return_value = [
             MockParams(rv=("callback_id", "Callback ID"), name="callback_id"),
             MockParams(rv=("--debug", ""), name="debug"),
+            MockParams(rv=("--beta-features / --no-beta-features", ""), name="beta_features"),
         ]
 
         command = LocalCallbackHeartbeatCommand(name="heartbeat", description="Send heartbeat callback")
@@ -42,8 +43,8 @@ class TestCallbackHeartbeatCommand(TestCase):
             ],
             "Examples": [],
             "Send heartbeat callback": [("", ""), ("$ sam local callback heartbeat my-callback-id\x1b[0m", "")],
-            "Beta Options": [("", "")],
-            "Other Options": [("", ""), ("--debug", ""), ("", "")],
+            "Beta Options": [("", ""), ("--beta-features / --no-beta-features", "")],
+            "Other Options": [("", ""), ("--debug", "")],
         }
 
         # Act

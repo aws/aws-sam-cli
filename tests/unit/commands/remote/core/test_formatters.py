@@ -11,4 +11,4 @@ class TestRemoteExecutionBaseFormatter(TestCase):
         formatter = CommandHelpTextFormatter(ALL_OPTIONS)
         self.assertTrue(formatter.left_justification_length <= get_terminal_size().columns // 2)
         self.assertIsInstance(formatter.modifiers[0], BaseLineRowModifier)
-        self.assertEqual(formatter.ADDITIVE_JUSTIFICATION, 17)
+        self.assertEqual(formatter.DEFAULT_ADDITIVE_JUSTIFICATION, 6)
