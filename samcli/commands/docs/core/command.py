@@ -11,13 +11,13 @@ from samcli.cli.row_modifiers import RowDefinition
 from samcli.commands.docs.command_context import COMMAND_NAME, DocsCommandContext
 from samcli.commands.docs.core.formatter import DocsCommandHelpTextFormatter
 
-HELP_TEXT = "NEW! Open the documentation in a browser."
+HELP_TEXT = "Open the documentation in a browser."
 DESCRIPTION = """
   Launch the AWS SAM CLI documentation in a browser! This command will
   show information about setting up credentials, the
   AWS SAM CLI lifecycle and other useful details. 
 
-  The command also be run with sub-commands to open specific pages.
+  The command can also be run with sub-commands to open specific pages.
 """
 
 
