@@ -169,6 +169,9 @@ class CLIBuildClient(BuildClient):
 
         cmd.extend(["build", "-f", dockerfile, "-t", tag])
 
+        if self.engine_type == "docker":
+            cmd.extend(["--provenance=false", "--sbom=false"])
+
         if platform:
             cmd.extend(["--platform", platform])
 

@@ -114,6 +114,8 @@ class TestCLIBuildClient(TestCase):
             os.path.join("path", "to", "context", "Dockerfile"),
             "-t",
             "image:latest",
+            "--provenance=false",
+            "--sbom=false",
             "--platform",
             "linux/amd64",
             "--build-arg",
