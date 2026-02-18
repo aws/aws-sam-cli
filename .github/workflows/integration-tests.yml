@@ -47,10 +47,13 @@ jobs:
           # Docker-only test suites
           - terraform-build
           - terraform-local
-          - package-delete-deploy
-          - sync
+          - package
+          - deploy
+          - sync-code
+          - sync-watch
           - local-invoke
-          - local-start
+          - local-start-api
+          - local-start-lambda
           - other-and-e2e
           # Runs only credential-requiring tests from build and local
           - cloud-based-tests
@@ -197,7 +200,7 @@ jobs:
         run: |
           case "${{ matrix.test_suite }}" in
             "build-x86")
-              pytest -vv -n 2 --reruns 3 -m "not requires_credential" \
+              pytest -vv -n 4 --reruns 3 -m "not requires_credential" \
                 tests/integration/buildcmd \
                 --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py \
                 --ignore=tests/integration/buildcmd/test_build_terraform_applications.py \
@@ -212,7 +215,7 @@ jobs:
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "build-x86-container")
-              pytest -vv -n 2 --reruns 3 -m "not requires_credential" \
+              pytest -vv -n 4 --reruns 3 -m "not requires_credential" \
                 tests/integration/buildcmd \
                 --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py \
                 --ignore=tests/integration/buildcmd/test_build_terraform_applications.py \
@@ -221,7 +224,7 @@ jobs:
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "build-arm64-container")
-              pytest -vv -n 2 --reruns 3 -m "not requires_credential" \
+              pytest -vv -n 4 --reruns 3 -m "not requires_credential" \
                 tests/integration/buildcmd/test_build_cmd_arm64.py \
                 -k "container" \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
@@ -239,13 +242,23 @@ jobs:
                 tests/integration/local/start_lambda/test_start_lambda_terraform_applications.py \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
-            "package-delete-deploy")
-              pytest -vv tests/integration/package tests/integration/delete tests/integration/deploy \
+            "package")
+              pytest -vv tests/integration/package tests/integration/delete \
                 --dist=loadgroup -n 4 --reruns 3 \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
-            "sync")
-              pytest -vv tests/integration/sync -n 4 --reruns 3 --dist loadscope \
+            "deploy")
+              pytest -vv tests/integration/deploy \
+                --dist=loadgroup -n 4 --reruns 4 \
+                --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
+              ;;
+            "sync-code")
+              pytest -vv tests/integration/sync -n 2 --reruns 3 --dist loadscope \
+                --ignore=tests/integration/sync/test_sync_watch.py \
+                --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
+              ;;
+            "sync-watch")
+              pytest -vv tests/integration/sync/test_sync_watch.py --reruns 3 \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "local-invoke")
@@ -257,11 +270,15 @@ jobs:
                 --ignore=tests/integration/local/invoke/test_invoke_terraform_applications.py \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
-            "local-start")
+            "local-start-api")
               pytest -vv --reruns 3 --dist loadgroup -m "not requires_credential" \
                 tests/integration/local/start_api \
-                tests/integration/local/start_lambda \
                 --ignore=tests/integration/local/start_api/test_start_api_with_terraform_application.py \
+                --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
+              ;;
+            "local-start-lambda")
+              pytest -vv --reruns 3 --dist loadgroup -m "not requires_credential" \
+                tests/integration/local/start_lambda \
                 --ignore=tests/integration/local/start_lambda/test_start_lambda_terraform_applications.py \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
