@@ -2,10 +2,11 @@ from pathlib import Path
 import shutil
 import tempfile
 import os
+from unittest import skipIf
 
 from samcli.lib.utils import osutils
 from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase
-from tests.testing_utils import get_build_command_list
+from tests.testing_utils import get_build_command_list, USING_FINCH_RUNTIME
 
 
 class BuildInSourceInvokeBase(InvokeIntegBase):
@@ -28,6 +29,12 @@ class BuildInSourceInvokeBase(InvokeIntegBase):
             pass
 
 
+# TODO: Remove this skip once Finch fixes symlink mount support.
+# Finch/containerd fails with "not a directory" when bind-mounting over a symlink.
+@skipIf(
+    USING_FINCH_RUNTIME,
+    "Skip test when using Finch runtime: Finch does not support mounting over symlinks (known Finch bug)",
+)
 class TestInvokeBuildInSourceSymlinkedModules(BuildInSourceInvokeBase):
     project_test_folder = "build-in-source"
 
