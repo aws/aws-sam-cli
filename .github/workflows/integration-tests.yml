@@ -51,7 +51,7 @@ jobs:
           - local-invoke
           - local-start
           - other-and-e2e
-          # Runs only credential-requiring tests from build and local-invoke
+          # Runs only credential-requiring tests from build and local
           - cloud-based-tests
 
     steps:
@@ -61,7 +61,6 @@ jobs:
           ref: ${{ github.event_name == 'schedule' && 'develop' || github.ref }}
 
       - name: Configure AWS credentials via OIDC
-        if: contains(fromJSON('["package-delete-deploy", "sync", "other-and-e2e", "cloud-based-tests"]'), matrix.test_suite)
         uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ secrets.OIDC_ROLE_ARN }}
@@ -173,7 +172,6 @@ jobs:
             sleep 5
           done
 
-
       - name: Setup QEMU for ARM64 emulation
         if: "!contains(fromJSON('[\"build-x86\", \"build-arm64\", \"build-x86-container\"]'), matrix.test_suite)"
         run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
@@ -187,16 +185,10 @@ jobs:
           fi
           make init
 
-      - name: Set no-credentials flag for local-only jobs
-        if: contains(fromJSON('["build-x86", "build-arm64", "build-x86-container", "build-arm64-container", "terraform", "local-invoke", "local-start"]'), matrix.test_suite)
-        run: echo "SAM_CLI_NO_CREDENTIALS=1" >> $GITHUB_ENV
-
       - name: Get testing resources and credentials
-        if: contains(fromJSON('["package-delete-deploy", "sync", "other-and-e2e", "cloud-based-tests"]'), matrix.test_suite)
         run: python3.11 tests/setup_testing_resources.py
 
       - name: Login to Public ECR
-        if: "contains(fromJSON('[\"package-delete-deploy\", \"sync\", \"other-and-e2e\", \"cloud-based-tests\"]'), matrix.test_suite)"
         run: |
           aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws || { echo "FATAL: Docker Public ECR login failed"; exit 1; }
 
@@ -204,7 +196,8 @@ jobs:
         run: |
           case "${{ matrix.test_suite }}" in
             "build-x86")
-              pytest -vv -n 2 --reruns 3 tests/integration/buildcmd \
+              pytest -vv -n 2 --reruns 3 -m "not requires_credential" \
+                tests/integration/buildcmd \
                 --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py \
                 --ignore=tests/integration/buildcmd/test_build_terraform_applications.py \
                 --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py \
@@ -212,12 +205,14 @@ jobs:
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "build-arm64")
-              pytest -vv -n 2 --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py \
+              pytest -vv -n 2 --reruns 3 -m "not requires_credential" \
+                tests/integration/buildcmd/test_build_cmd_arm64.py \
                 -k "not container" \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "build-x86-container")
-              pytest -vv -n 2 --reruns 3 tests/integration/buildcmd \
+              pytest -vv -n 2 --reruns 3 -m "not requires_credential" \
+                tests/integration/buildcmd \
                 --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py \
                 --ignore=tests/integration/buildcmd/test_build_terraform_applications.py \
                 --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py \
@@ -225,19 +220,20 @@ jobs:
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "build-arm64-container")
-              pytest -vv -n 2 --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py \
+              pytest -vv -n 2 --reruns 3 -m "not requires_credential" \
+                tests/integration/buildcmd/test_build_cmd_arm64.py \
                 -k "container" \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "terraform")
               # Build tests can run in parallel (no shared terraform state)
-              pytest -vv -n 4 --reruns 3 -m "not requires_credential" \
+              pytest -vv -n 4 --reruns 3 \
                 tests/integration/buildcmd/test_build_terraform_applications.py \
                 tests/integration/buildcmd/test_build_terraform_applications_other_cases.py \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}-build.json
 
               # Local invoke/start tests share terraform state files, must run sequentially
-              pytest -vv --reruns 3 -m "not requires_credential" \
+              pytest --reruns 3 \
                 tests/integration/local/invoke/test_invoke_terraform_applications.py \
                 tests/integration/local/start_api/test_start_api_with_terraform_application.py \
                 tests/integration/local/start_lambda/test_start_lambda_terraform_applications.py \
@@ -253,14 +249,14 @@ jobs:
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "local-invoke")
-              pytest -vv -n 2 --reruns 3 --dist loadgroup \
+              pytest -vv -n 2 --reruns 3 --dist loadgroup -m "not requires_credential" \
                 tests/integration/local/invoke \
                 tests/integration/local/generate_event \
                 --ignore=tests/integration/local/invoke/test_invoke_terraform_applications.py \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "local-start")
-              pytest -vv -n 2 --reruns 3 --dist loadgroup \
+              pytest -vv -n 2 --reruns 3 --dist loadgroup -m "not requires_credential" \
                 tests/integration/local/start_api \
                 tests/integration/local/start_lambda \
                 tests/integration/local/callback \
@@ -297,5 +293,5 @@ jobs:
           path: TEST_REPORT-*.json
 
       - name: Reset test account
-        if: always() && contains(fromJSON('["package-delete-deploy", "sync", "other-and-e2e", "cloud-based-tests"]'), matrix.test_suite)
+        if: always()
         run: python3.11 tests/reset_testing_resources.py

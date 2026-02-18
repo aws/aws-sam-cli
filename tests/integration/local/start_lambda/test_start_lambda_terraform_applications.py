@@ -166,7 +166,6 @@ class TestLocalStartLambdaTerraformApplicationWithoutBuildCustomPlanFile(StartLa
         (True,),
     ],
 )
-@pytest.mark.requires_credential
 class TestLocalStartLambdaTerraformApplicationWithLayersWithoutBuild(StartLambdaTerraformApplicationIntegBase):
     terraform_application = "/testdata/invoke/terraform/simple_application_with_layers_no_building_logic"
     pre_create_lambda_layers = ["simple_layer1", "simple_layer2", "simple_layer3", "simple_layer33", "simple_layer44"]

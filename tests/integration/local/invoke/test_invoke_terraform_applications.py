@@ -152,7 +152,6 @@ class TestInvokeTerraformApplicationWithoutBuild(InvokeTerraformApplicationInteg
         (True,),
     ],
 )
-@pytest.mark.requires_credential
 class TestInvokeTerraformApplicationWithLayersWithoutBuild(InvokeTerraformApplicationIntegBase):
     terraform_application = Path("terraform/simple_application_with_layers_no_building_logic")
     pre_create_lambda_layers = ["simple_layer1", "simple_layer2", "simple_layer3", "simple_layer33", "simple_layer44"]

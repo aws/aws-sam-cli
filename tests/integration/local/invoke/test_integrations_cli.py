@@ -15,12 +15,12 @@ from pathlib import Path
 
 from tests.integration.local.invoke.layer_utils import LayerUtils
 from tests.integration.local.invoke.invoke_integ_base import IntegrationCliIntegBase, InvokeIntegBase
-from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY, SKIP_CREDENTIAL_TESTS, run_command
+from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY, run_command
 from samcli.local.docker.utils import get_validated_container_client
 
 # Layers tests require credentials and Appveyor will only add credentials to the env if the PR is from the same repo.
 # This is to restrict layers tests to run outside of Appveyor, when the branch is not master and tests are not run by Canary.
-SKIP_LAYERS_TESTS = SKIP_CREDENTIAL_TESTS or (RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY)
+SKIP_LAYERS_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 
 TIMEOUT = 300
 

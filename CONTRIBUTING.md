@@ -62,32 +62,26 @@ GitHub provides additional document on [forking a repository](https://help.githu
 
 ## Integration Test Guidelines
 
-Integration tests run in CI via `.github/workflows/integration-tests.yml`. Tests are split into jobs that either run with or without AWS credentials.
+Integration tests run in CI via `.github/workflows/integration-tests.yml`. All jobs have AWS credentials. Tests in `build` and `local` jobs that require credentials are separated using a pytest marker.
 
 ### Tests that require AWS credentials
 
 Some tests in `tests/integration/buildcmd/` and `tests/integration/local/` need AWS credentials (e.g. STS calls, Lambda layer publishing, SAR template resolution). These are:
 
-- **Skipped** in local-only CI jobs where no credentials are available
-- **Collected and run** in the dedicated `cloud-based-tests` CI job with full credentials
+- **Excluded** from build/local jobs via `-m "not requires_credential"`
+- **Collected and run** in the dedicated `cloud-based-tests` CI job via `-m requires_credential`
 
-To mark a test that requires AWS credentials, apply both decorators:
+To mark a test that requires AWS credentials, add the marker:
 
 ```python
-from unittest import skipIf
 import pytest
-from tests.testing_utils import SKIP_CREDENTIAL_TESTS
 
-@skipIf(SKIP_CREDENTIAL_TESTS, "Requires AWS credentials")
 @pytest.mark.requires_credential
 class TestMyCloudFeature(SomeBaseClass):
     ...
 ```
 
-- `@skipIf(SKIP_CREDENTIAL_TESTS, ...)` prevents setup errors when credentials are missing.
-- `@pytest.mark.requires_credential` enables the `cloud-based-tests` job to collect the test via `pytest -m requires_credential`.
-
-Both are needed. The marker is registered in `tests/conftest.py`.
+The marker is registered in `tests/conftest.py`. Build and local jobs automatically exclude these tests; `cloud-based-tests` automatically includes them.
 
 ### Docker container cleanup in parallel tests
 
