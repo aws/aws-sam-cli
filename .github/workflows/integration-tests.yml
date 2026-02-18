@@ -204,7 +204,7 @@ jobs:
         run: |
           case "${{ matrix.test_suite }}" in
             "build-x86-1")
-              pytest -vv -n 4 --reruns 3 -m "not requires_credential" \
+              pytest -vv -n 2 --reruns 3 -m "not requires_credential" \
                 tests/integration/buildcmd/test_build_cmd.py \
                 tests/integration/buildcmd/test_build_in_source.py \
                 tests/integration/buildcmd/test_build_samconfig.py \
@@ -212,13 +212,14 @@ jobs:
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "build-x86-2")
-              pytest -vv -n 4 --reruns 3 -m "not requires_credential" \
-                tests/integration/buildcmd/test_build_cmd_python.py \
-                tests/integration/buildcmd/test_build_cmd_java.py \
-                tests/integration/buildcmd/test_build_cmd_node.py \
-                tests/integration/buildcmd/test_build_cmd_dotnet.py \
-                tests/integration/buildcmd/test_build_cmd_provided.py \
-                tests/integration/buildcmd/test_build_cmd_rust.py \
+              pytest -vv -n 2 --reruns 3 -m "not requires_credential" \
+                tests/integration/buildcmd \
+                --ignore=tests/integration/buildcmd/test_build_cmd.py \
+                --ignore=tests/integration/buildcmd/test_build_in_source.py \
+                --ignore=tests/integration/buildcmd/test_build_samconfig.py \
+                --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py \
+                --ignore=tests/integration/buildcmd/test_build_terraform_applications.py \
+                --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py \
                 -k "not container" \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
@@ -229,7 +230,7 @@ jobs:
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "build-x86-container-1")
-              pytest -vv -n 4 --reruns 3 -m "not requires_credential" \
+              pytest -vv -n 2 --reruns 3 -m "not requires_credential" \
                 tests/integration/buildcmd/test_build_cmd.py \
                 tests/integration/buildcmd/test_build_in_source.py \
                 tests/integration/buildcmd/test_build_samconfig.py \
@@ -237,24 +238,25 @@ jobs:
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "build-x86-container-2")
-              pytest -vv -n 4 --reruns 3 -m "not requires_credential" \
-                tests/integration/buildcmd/test_build_cmd_python.py \
-                tests/integration/buildcmd/test_build_cmd_java.py \
-                tests/integration/buildcmd/test_build_cmd_node.py \
-                tests/integration/buildcmd/test_build_cmd_dotnet.py \
-                tests/integration/buildcmd/test_build_cmd_provided.py \
-                tests/integration/buildcmd/test_build_cmd_rust.py \
+              pytest -vv -n 2 --reruns 3 -m "not requires_credential" \
+                tests/integration/buildcmd \
+                --ignore=tests/integration/buildcmd/test_build_cmd.py \
+                --ignore=tests/integration/buildcmd/test_build_in_source.py \
+                --ignore=tests/integration/buildcmd/test_build_samconfig.py \
+                --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py \
+                --ignore=tests/integration/buildcmd/test_build_terraform_applications.py \
+                --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py \
                 -k "container" \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "build-arm64-container-1")
-              pytest -vv -n 4 --reruns 3 -m "not requires_credential and not java" \
+              pytest -vv -n 2 --reruns 3 -m "not requires_credential and not java" \
                 tests/integration/buildcmd/test_build_cmd_arm64.py \
                 -k "container" \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "build-arm64-container-2")
-              pytest -vv -n 4 --reruns 3 -m "not requires_credential and java" \
+              pytest -vv -n 2 --reruns 3 -m "not requires_credential and java" \
                 tests/integration/buildcmd/test_build_cmd_arm64.py \
                 -k "container" \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
