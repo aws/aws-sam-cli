@@ -2,6 +2,8 @@
 
 import re
 from pathlib import Path
+
+import pytest
 from parameterized import parameterized
 
 from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase
@@ -10,6 +12,7 @@ from tests.integration.durable_function_examples import DurableFunctionExamples
 from tests.testing_utils import run_command
 
 
+@pytest.mark.xdist_group(name="durable")
 class TestLocalCallback(DurableIntegBase, InvokeIntegBase):
     template = Path("template.yaml")
     template_subdir = "durable"

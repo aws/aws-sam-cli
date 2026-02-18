@@ -2677,6 +2677,7 @@ def handler(event, context):
         self.assertEqual(response.json(), {"hello": "world2"})
 
 
+@pytest.mark.xdist_group(name="docker_watcher")
 class TestWatchingImageWarmContainers(WritableStartApiIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
@@ -2741,6 +2742,7 @@ COPY main.py ./"""
         self.assertEqual(response.json(), {"hello": "world2"})
 
 
+@pytest.mark.xdist_group(name="docker_watcher")
 class TestWatchingTemplateChangesImageDockerFileChangedLocation(WritableStartApiIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
@@ -2884,6 +2886,7 @@ def handler(event, context):
         self.assertEqual(response.json(), {"hello": "world2"})
 
 
+@pytest.mark.xdist_group(name="docker_watcher")
 class TestWatchingImageLazyContainers(WritableStartApiIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
@@ -3083,6 +3086,7 @@ def handler(event, context):
         self.assertEqual(response.json(), {"hello": "world2"})
 
 
+@pytest.mark.xdist_group(name="docker_watcher")
 class TestWatchingTemplateChangesImageDockerFileChangedLocationLazyContainers(WritableStartApiIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
@@ -3318,6 +3322,7 @@ class WarmContainersWithRemoteLayersBase(TestWarmContainersBaseClass):
         super().tearDownClass()
 
 
+@pytest.mark.xdist_group(name="remote_layers")
 class TestWarmContainersRemoteLayers(WarmContainersWithRemoteLayersBase):
     template_path = "/testdata/start_api/template-warm-containers-layers.yaml"
     container_mode = ContainersInitializationMode.EAGER.value
@@ -3353,6 +3358,7 @@ class TestWarmContainersRemoteLayers(WarmContainersWithRemoteLayersBase):
         self.assertEqual(response.content.decode("utf-8"), '"Layer1"')
 
 
+@pytest.mark.xdist_group(name="remote_layers")
 class TestWarmContainersRemoteLayersLazyInvoke(WarmContainersWithRemoteLayersBase):
     template_path = "/testdata/start_api/template-warm-containers-layers.yaml"
     container_mode = ContainersInitializationMode.LAZY.value
@@ -3380,6 +3386,7 @@ class TestWarmContainersRemoteLayersLazyInvoke(WarmContainersWithRemoteLayersBas
         self.assertEqual(response.content.decode("utf-8"), '"Layer1"')
 
 
+@pytest.mark.xdist_group(name="remote_layers")
 class TestWarmContainersMultipleRemoteLayersInvoke(WarmContainersWithRemoteLayersBase):
     template_path = "/testdata/start_api/template-warm-containers-multi-layers.yaml"
     container_mode = ContainersInitializationMode.EAGER.value

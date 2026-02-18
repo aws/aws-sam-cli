@@ -996,6 +996,7 @@ def handler(event, context):
         self.assertEqual(json.loads(response.get("body")), {"hello": "world2"})
 
 
+@pytest.mark.xdist_group(name="docker_watcher")
 class TestWatchingImageWarmContainers(WatchWarmContainersIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
@@ -1066,6 +1067,7 @@ COPY main.py ./"""
         self.assertEqual(json.loads(response.get("body")), {"hello": "world2"})
 
 
+@pytest.mark.xdist_group(name="docker_watcher")
 class TestWatchingTemplateChangesDockerFileLocationChanged(WatchWarmContainersIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
@@ -1221,6 +1223,7 @@ def handler(event, context):
         self.assertEqual(json.loads(response.get("body")), {"hello": "world2"})
 
 
+@pytest.mark.xdist_group(name="docker_watcher")
 class TestWatchingImageLazyContainers(WatchWarmContainersIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
@@ -1556,6 +1559,7 @@ def handler(event, context):
         self.assertEqual(json.loads(response.get("body")), {"hello": "world2"})
 
 
+@pytest.mark.xdist_group(name="docker_watcher")
 class TestWatchingTemplateChangesDockerFileLocationChangedLazyContainer(WatchWarmContainersIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    

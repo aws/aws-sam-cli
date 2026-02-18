@@ -509,6 +509,7 @@ class TestBuildCommand_ExcludeResources(BuildIntegBase):
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
+@pytest.mark.requires_credential
 class TestBuildCommand_LayerBuilds(BuildIntegBase):
     template = "layers-functions-template.yaml"
 
