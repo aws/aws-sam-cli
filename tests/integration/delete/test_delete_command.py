@@ -130,15 +130,27 @@ class TestDelete(DeleteIntegBase):
 
         config_file_name = DEFAULT_CONFIG_FILE_NAME
         deploy_command_list = self.get_deploy_command_list(template_file=template_path, guided=True)
-        _ = run_command_with_input(deploy_command_list, "{}\n\n\n\n\n\n\n\n\n".format(stack_name).encode())
+        deploy_result = run_command_with_input(
+            deploy_command_list, "{}\n\n\n\n\n\n\n\n\n".format(stack_name).encode()
+        )
 
         config_file_path = self.test_data_path.joinpath(config_file_name)
+
+        # Deploy may fail due to CloudFormation validation (e.g. EarlyValidation hooks).
+        # Delete should still clean up whatever was created (stack in REVIEW_IN_PROGRESS, S3 artifacts).
         delete_command_list = self.get_delete_command_list(
-            stack_name=stack_name, region=self._session.region_name, no_prompts=True
+            stack_name=stack_name,
+            region=self._session.region_name,
+            no_prompts=True,
+            s3_prefix=stack_name,
         )
 
         delete_process_execute = run_command(delete_command_list)
-        self.validate_delete_process(delete_process_execute)
+
+        if deploy_result.process.returncode == 0:
+            # Deploy succeeded — delete must also succeed
+            self.validate_delete_process(delete_process_execute)
+
         self._validate_stack_deleted(stack_name=stack_name)
 
         # Remove the local config file created

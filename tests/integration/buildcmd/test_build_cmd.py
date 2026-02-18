@@ -1417,8 +1417,8 @@ class TestBuildWithInlineCode(BuildIntegBase):
         self._verify_built_artifact(self.default_build_dir)
 
         if use_container:
-            self.verify_docker_container_cleanedup("python3.12")
-            self.verify_pulled_image("python3.12")
+            self.verify_docker_container_cleanedup("python3.11")
+            self.verify_pulled_image("python3.11")
 
     def _verify_built_artifact(self, build_dir):
         self.assertTrue(build_dir.exists(), "Build directory should be created")
@@ -1467,8 +1467,8 @@ class TestBuildWithJsonContainerEnvVars(BuildIntegBase):
         self._verify_built_env_var(self.default_build_dir)
 
         if use_container:
-            self.verify_docker_container_cleanedup("python3.12")
-            self.verify_pulled_image("python3.12")
+            self.verify_docker_container_cleanedup("python3.11")
+            self.verify_pulled_image("python3.11")
 
     @staticmethod
     def get_env_file(filename):
@@ -1516,8 +1516,8 @@ class TestBuildWithInlineContainerEnvVars(BuildIntegBase):
         self._verify_built_env_var(self.default_build_dir)
 
         if use_container:
-            self.verify_docker_container_cleanedup("python3.12")
-            self.verify_pulled_image("python3.12")
+            self.verify_docker_container_cleanedup("python3.11")
+            self.verify_pulled_image("python3.11")
 
     def _verify_built_env_var(self, build_dir):
         self.assertTrue(build_dir.exists(), "Build directory should be created")
@@ -1853,7 +1853,7 @@ class TestBuildWithCustomBuildImage(BuildIntegBase):
         self._verify_right_image_pulled(build_image, process_stderr)
         self._verify_build_succeeds(self.default_build_dir)
 
-        self.verify_docker_container_cleanedup("python3.12")
+        self.verify_docker_container_cleanedup("python3.11")
 
     def _verify_right_image_pulled(self, build_image, process_stderr):
         image_name = build_image if build_image is not None else "public.ecr.aws/sam/build-python3.11:latest-x86_64"

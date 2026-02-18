@@ -241,7 +241,7 @@ jobs:
               ;;
             "package-delete-deploy")
               pytest -vv tests/integration/package tests/integration/delete tests/integration/deploy \
-                --dist=loadgroup -n 6 --reruns 4 \
+                --dist=loadgroup -n 4 --reruns 3 \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "sync")
@@ -249,18 +249,18 @@ jobs:
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "local-invoke")
-              pytest -vv -n 2 --reruns 3 --dist loadgroup -m "not requires_credential" \
+              pytest -vv --reruns 3 --dist loadgroup -m "not requires_credential" \
                 tests/integration/local/invoke \
                 tests/integration/local/generate_event \
+                tests/integration/local/callback \
+                tests/integration/local/execution \
                 --ignore=tests/integration/local/invoke/test_invoke_terraform_applications.py \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "local-start")
-              pytest -vv -n 2 --reruns 3 --dist loadgroup -m "not requires_credential" \
+              pytest -vv --reruns 3 --dist loadgroup -m "not requires_credential" \
                 tests/integration/local/start_api \
                 tests/integration/local/start_lambda \
-                tests/integration/local/callback \
-                tests/integration/local/execution \
                 --ignore=tests/integration/local/start_api/test_start_api_with_terraform_application.py \
                 --ignore=tests/integration/local/start_lambda/test_start_lambda_terraform_applications.py \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
@@ -277,7 +277,7 @@ jobs:
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "cloud-based-tests")
-              pytest -vv --reruns 3 \
+              pytest -vv -n 2 --reruns 3 \
                 tests/integration/buildcmd \
                 tests/integration/local \
                 -m requires_credential \
