@@ -430,6 +430,7 @@ class TestSamPython36HelloWorldIntegrationImages(IntegrationCliIntegBase):
         self.assertEqual(process.returncode, 1)
 
 
+@pytest.mark.xdist_group(name="docker_images")
 class TestDeleteOldRapidImages(InvokeIntegBase):
     template = Path("template_image.yaml")
 

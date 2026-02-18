@@ -3336,23 +3336,6 @@ class TestWarmContainersRemoteLayers(WarmContainersWithRemoteLayersBase):
         if integ_layer_cache_dir.exists():
             shutil.rmtree(str(integ_layer_cache_dir))
 
-        # Clean Docker images that might have cached layer mounts
-        from samcli.local.docker.utils import get_validated_container_client
-
-        docker_client = get_validated_container_client()
-        try:
-            # Remove SAM CLI lambda images that might have stale layer mounts
-            images = docker_client.images.list(filters={"reference": "samcli/lambda*"})
-            for image in images:
-                try:
-                    docker_client.images.remove(image.id, force=True)
-                except Exception as e:
-                    # Ignore errors - image might be in use
-                    pass
-        except Exception:
-            # Ignore Docker errors - cleanup is best effort
-            pass
-
         super().setUpClass()
 
     @pytest.mark.flaky(reruns=3)
@@ -3383,27 +3366,9 @@ class TestWarmContainersRemoteLayersLazyInvoke(WarmContainersWithRemoteLayersBas
         if default_cache_dir.exists():
             shutil.rmtree(str(default_cache_dir))
 
-        # Also clean the integration test layer cache
         integ_layer_cache_dir = Path().home().joinpath("integ_layer_cache")
         if integ_layer_cache_dir.exists():
             shutil.rmtree(str(integ_layer_cache_dir))
-
-        # Clean Docker images that might have cached layer mounts
-        from samcli.local.docker.utils import get_validated_container_client
-
-        docker_client = get_validated_container_client()
-        try:
-            # Remove SAM CLI lambda images that might have stale layer mounts
-            images = docker_client.images.list(filters={"reference": "samcli/lambda*"})
-            for image in images:
-                try:
-                    docker_client.images.remove(image.id, force=True)
-                except Exception as e:
-                    # Ignore errors - image might be in use
-                    pass
-        except Exception:
-            # Ignore Docker errors - cleanup is best effort
-            pass
 
         super().setUpClass()
 
@@ -3428,27 +3393,9 @@ class TestWarmContainersMultipleRemoteLayersInvoke(WarmContainersWithRemoteLayer
         if default_cache_dir.exists():
             shutil.rmtree(str(default_cache_dir))
 
-        # Also clean the integration test layer cache
         integ_layer_cache_dir = Path().home().joinpath("integ_layer_cache")
         if integ_layer_cache_dir.exists():
             shutil.rmtree(str(integ_layer_cache_dir))
-
-        # Clean Docker images that might have cached layer mounts
-        from samcli.local.docker.utils import get_validated_container_client
-
-        docker_client = get_validated_container_client()
-        try:
-            # Remove SAM CLI lambda images that might have stale layer mounts
-            images = docker_client.images.list(filters={"reference": "samcli/lambda*"})
-            for image in images:
-                try:
-                    docker_client.images.remove(image.id, force=True)
-                except Exception as e:
-                    # Ignore errors - image might be in use
-                    pass
-        except Exception:
-            # Ignore Docker errors - cleanup is best effort
-            pass
 
         super().setUpClass()
 

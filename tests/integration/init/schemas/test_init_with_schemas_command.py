@@ -4,6 +4,7 @@ import pytest
 from pathlib import Path
 from unittest import skipIf
 
+from boto3.session import Session
 from click.testing import CliRunner
 
 from samcli.commands.init import cli as init_cmd
@@ -14,27 +15,32 @@ from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RU
 SKIP_SCHEMA_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 
 
+def _get_registry_position(registry_name):
+    """Query EventBridge Schema registries and return the 1-based menu position for the given registry name.
+
+    The sam init interactive prompt lists registries in alphabetical order.
+    This avoids hardcoding positions that break when new registries are added to the account.
+    """
+    session = Session()
+    client = session.client("schemas", region_name=session.region_name)
+    paginator = client.get_paginator("list_registries")
+    registries = []
+    for page in paginator.paginate():
+        registries.extend(r["RegistryName"] for r in page["Registries"])
+    registries.sort()
+    for i, name in enumerate(registries, 1):
+        if name == registry_name:
+            return i
+    raise ValueError(f"Registry '{registry_name}' not found. Available: {registries}")
+
+
 @skipIf(SKIP_SCHEMA_TESTS, "Skip schema test")
 @pytest.mark.xdist_group(name="sam_init")
 class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
     @pytest.mark.timeout(300)
     def test_init_interactive_with_event_bridge_app_aws_registry(self):
-        # WHEN the user follows interactive init prompts
-        # 1: AWS Quick Start Templates
-        # 8: Infrastructure event management - Use case
-        # 4: Java Runtime (java11)
-        # 2: Maven
-        # 2: select event-bridge app from scratch
-        # N: disable adding xray tracing
-        # N: disable cloudwatch insights
-        # N: disable structured logging
-        # test-project: response to name
-        # Y: Use default aws configuration
-        # 1: select schema from cli_paginator
-        # 4: select aws.events as registries
-        # 9: select schema AWSAPICallViaCloudTrail
-
-        user_input = """
+        aws_registry_pos = _get_registry_position("aws.events")
+        user_input = f"""
 1
 8
 4
@@ -46,7 +52,7 @@ N
 eb-app-maven
 Y
 1
-4
+{aws_registry_pos}
 9
         """
         with tempfile.TemporaryDirectory() as temp:
@@ -63,22 +69,8 @@ Y
 
     @pytest.mark.timeout(300)
     def test_init_interactive_with_event_bridge_app_partner_registry(self):
-        # setup schema data
-        # WHEN the user follows interactive init prompts
-        # 1: AWS Quick Start Templates
-        # 8: Infrastructure event management - Use case
-        # 4: Java Runtime
-        # 2: Maven
-        # 2: select event-bridge app from scratch
-        # N: disable adding xray tracing
-        # N: disable cloudwatch insights
-        # N: disable structured logging
-        # test-project: response to name
-        # Y: Use default aws configuration
-        # 3: partner registry
-        # 1: select aws schema
-
-        user_input = """
+        partner_registry_pos = _get_registry_position("partner-registry")
+        user_input = f"""
 1
 8
 4
@@ -89,7 +81,7 @@ N
 N
 eb-app-maven
 Y
-3
+{partner_registry_pos}
 1
         """
         with tempfile.TemporaryDirectory() as temp:
@@ -118,23 +110,8 @@ Y
 
     @pytest.mark.timeout(300)
     def test_init_interactive_with_event_bridge_app_pagination(self):
-        # WHEN the user follows interactive init prompts
-        # 1: AWS Quick Start Templates
-        # 8: Infrastructure event management - Use case
-        # 4: Java Runtime
-        # 2: Maven
-        # 2: select event-bridge app from scratch
-        # N: disable adding xray tracing
-        # N: disable cloudwatch insights
-        # N: disable structured logging
-        # eb-app-maven: response to name
-        # Y: Use default aws configuration
-        # 4: select pagination-registry as registries
-        # N: Go to next page
-        # P Go to previous page
-        # select 2nd schema
-
-        user_input = """
+        pagination_registry_pos = _get_registry_position("test-pagination")
+        user_input = f"""
 1
 8
 4
@@ -145,7 +122,7 @@ N
 N
 eb-app-maven
 Y
-4
+{pagination_registry_pos}
 N
 P
 2
@@ -165,21 +142,8 @@ P
 
     @pytest.mark.timeout(300)
     def test_init_interactive_with_event_bridge_app_customer_registry(self):
-        # WHEN the user follows interactive init prompts
-        # 1: AWS Quick Start Templates
-        # 8: Infrastructure event management - Use case
-        # 4: Java Runtime
-        # 2: Maven
-        # 2: select event-bridge app from scratch
-        # N: disable adding xray tracing
-        # N: disable cloudwatch insights
-        # N: disable structured logging
-        # eb-app-maven: response to name
-        # Y: Use default aws configuration
-        # 2: select 2p-schema other-schema
-        # 1: select 1 schema
-
-        user_input = """
+        other_schema_pos = _get_registry_position("other-schema")
+        user_input = f"""
 1
 8
 4
@@ -190,7 +154,7 @@ N
 N
 eb-app-maven
 Y
-2
+{other_schema_pos}
 1
                 """
         with tempfile.TemporaryDirectory() as temp:
@@ -219,20 +183,8 @@ Y
 
     @pytest.mark.timeout(300)
     def test_init_interactive_with_event_bridge_app_aws_schemas_python(self):
-        # WHEN the user follows interactive init prompts
-        # 1: AWS Quick Start Templates
-        # 8: Infrastructure event management - Use case
-        # 8: Python 3.9
-        # 2: select event-bridge app from scratch
-        # N: disable adding xray tracing
-        # N: disable cloudwatch insights
-        # N: disable structured logging
-        # eb-app-python39: response to name
-        # Y: Use default aws configuration
-        # 4: select aws.events as registries
-        # 1: select aws schema
-
-        user_input = """
+        aws_registry_pos = _get_registry_position("aws.events")
+        user_input = f"""
 1
 8
 8
@@ -243,7 +195,7 @@ N
 eb-app-python39
 Y
 1
-4
+{aws_registry_pos}
 1
         """
         with tempfile.TemporaryDirectory() as temp:

@@ -313,6 +313,7 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(Bu
     ],
 )
 @pytest.mark.xdist_group(name="zip_lambda_s3_backend")
+@pytest.mark.requires_credential
 class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3BackendWithOverride(
     BuildTerraformApplicationS3BackendIntegBase
 ):
@@ -355,6 +356,7 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3BackendWithOv
     ],
 )
 @pytest.mark.xdist_group(name="zip_lambda_s3_backend_override")
+@pytest.mark.requires_credential
 class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(BuildTerraformApplicationS3BackendIntegBase):
     function_identifier = "function9"
     s3_backend = True
@@ -416,6 +418,7 @@ class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndLocalBackend(
     USING_FINCH_RUNTIME,
     "Skip test when using Finch runtime: Terraform Docker provider cannot connect to Finch daemon via Docker socket",
 )
+@pytest.mark.requires_credential
 class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndS3Backend(
     BuildTerraformApplicationS3BackendIntegBase
 ):

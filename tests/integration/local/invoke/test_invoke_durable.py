@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+import pytest
 from parameterized import parameterized
 
 from tests.integration.durable_integ_base import DurableIntegBase
@@ -9,6 +10,9 @@ from tests.integration.durable_function_examples import DurableFunctionExamples
 
 
 # Assertions are inherited from DurableIntegBase, invoke set up gets inherited from InvokeIntegBase
+# Durable tests use a hardcoded port (9014) for the execution server, so they must not run
+# concurrently with other durable tests across pytest-xdist workers.
+@pytest.mark.xdist_group(name="durable")
 class TestInvokeDurable(DurableIntegBase, InvokeIntegBase):
     template = Path("template.yaml")
     template_subdir = "durable"

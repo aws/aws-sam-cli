@@ -267,6 +267,7 @@ class TestStartApiTerraformApplicationLimitations(TerraformStartApiIntegrationBa
         },
     ]
 )
+@pytest.mark.requires_credential
 class TestStartApiTerraformApplicationLimitationsAfterApply(TerraformStartApiIntegrationApplyBase):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
@@ -360,6 +361,7 @@ class TestStartApiTerraformApplicationLambdaAuthorizers(TerraformStartApiIntegra
     ]
 )
 @pytest.mark.flaky(reruns=3)
+@pytest.mark.requires_credential
 class TestStartApiTerraformApplicationAuthorizerAfterApply(TerraformStartApiIntegrationApplyBase):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
