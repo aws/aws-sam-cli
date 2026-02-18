@@ -49,9 +49,10 @@ jobs:
           - package-delete-deploy
           - sync
           - local-invoke
-          - local-start1
-          - local-start2
+          - local-start
           - other-and-e2e
+          # Runs only credential-requiring tests from build and local-invoke
+          - cloud-based-tests
 
     steps:
       - name: Checkout code
@@ -60,7 +61,7 @@ jobs:
           ref: ${{ github.event_name == 'schedule' && 'develop' || github.ref }}
 
       - name: Configure AWS credentials via OIDC
-        if: contains(fromJSON('["terraform", "package-delete-deploy", "sync", "local-invoke", "other-and-e2e"]'), matrix.test_suite)
+        if: contains(fromJSON('["terraform", "package-delete-deploy", "sync", "other-and-e2e", "cloud-based-tests"]'), matrix.test_suite)
         uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ secrets.OIDC_ROLE_ARN }}
@@ -81,26 +82,26 @@ jobs:
         uses: astral-sh/setup-uv@v7
 
       - name: Set up Node.js
-        if: contains(fromJSON('["build-x86", "build-arm64"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86", "build-arm64", "cloud-based-tests"]'), matrix.test_suite)
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Set up Java 25
-        if: contains(fromJSON('["build-x86", "build-arm64", "sync"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86", "build-arm64", "sync", "cloud-based-tests"]'), matrix.test_suite)
         uses: actions/setup-java@v5
         with:
           distribution: 'corretto'
           java-version: '25'
 
       - name: Set up Go
-        if: contains(fromJSON('["build-x86", "build-arm64"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86", "build-arm64", "cloud-based-tests"]'), matrix.test_suite)
         uses: actions/setup-go@v6
         with:
           go-version: '1.25'
 
       - name: Install Maven and Gradle
-        if: contains(fromJSON('["build-x86", "build-arm64", "sync"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86", "build-arm64", "sync", "cloud-based-tests"]'), matrix.test_suite)
         run: |
           sudo apt-get remove -y maven || true
           wget https://dlcdn.apache.org/maven/maven-3/3.9.12/binaries/apache-maven-3.9.12-bin.zip -P /tmp
@@ -117,31 +118,31 @@ jobs:
           gradle --version
 
       - name: Install .NET 10 SDK
-        if: contains(fromJSON('["build-x86", "build-arm64", "other-and-e2e"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86", "build-arm64", "other-and-e2e", "cloud-based-tests"]'), matrix.test_suite)
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
 
       - name: Set up Ruby 3.3.7
-        if: contains(fromJSON('["build-x86", "build-arm64", "other-and-e2e"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86", "build-arm64", "other-and-e2e", "cloud-based-tests"]'), matrix.test_suite)
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.3.7'
 
       - name: Set up Ruby 3.2.7
-        if: contains(fromJSON('["build-x86", "build-arm64", "other-and-e2e"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86", "build-arm64", "other-and-e2e", "cloud-based-tests"]'), matrix.test_suite)
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.2.7'
 
       - name: Set up Ruby 3.4.7
-        if: contains(fromJSON('["build-x86", "build-arm64", "sync", "other-and-e2e"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86", "build-arm64", "sync", "other-and-e2e", "cloud-based-tests"]'), matrix.test_suite)
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.4.7'
 
       - name: Install Rust toolchain
-        if: contains(fromJSON('["build-x86", "build-arm64"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86", "build-arm64", "cloud-based-tests"]'), matrix.test_suite)
         run: |
           curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL https://sh.rustup.rs | sh -s -- --default-toolchain none -y
           source $HOME/.cargo/env
@@ -152,7 +153,7 @@ jobs:
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
       - name: Install cargo-lambda
-        if: contains(fromJSON('["build-x86", "build-arm64"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86", "build-arm64", "cloud-based-tests"]'), matrix.test_suite)
         run: pip install cargo-lambda==${{ env.CARGO_LAMBDA_VERSION }}
 
       - name: Install Terraform
@@ -186,12 +187,16 @@ jobs:
           fi
           make init
 
+      - name: Set no-credentials flag for local-only jobs
+        if: contains(fromJSON('["build-x86", "build-arm64", "build-x86-container", "build-arm64-container", "local-invoke", "local-start"]'), matrix.test_suite)
+        run: echo "SAM_CLI_NO_CREDENTIALS=1" >> $GITHUB_ENV
+
       - name: Get testing resources and credentials
-        if: contains(fromJSON('["terraform", "package-delete-deploy", "sync", "local-invoke", "other-and-e2e"]'), matrix.test_suite)
+        if: contains(fromJSON('["terraform", "package-delete-deploy", "sync", "other-and-e2e", "cloud-based-tests"]'), matrix.test_suite)
         run: python3.11 tests/setup_testing_resources.py
 
       - name: Login to Public ECR
-        if: "contains(fromJSON('[\"terraform\", \"package-delete-deploy\", \"sync\", \"local-invoke\", \"other-and-e2e\"]'), matrix.test_suite)"
+        if: "contains(fromJSON('[\"terraform\", \"package-delete-deploy\", \"sync\", \"other-and-e2e\", \"cloud-based-tests\"]'), matrix.test_suite)"
         run: |
           aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws || { echo "FATAL: Docker Public ECR login failed"; exit 1; }
 
@@ -243,23 +248,19 @@ jobs:
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "local-invoke")
-              pytest -vv --reruns 3 \
+              pytest -vv -n 2 --reruns 3 \
                 tests/integration/local/invoke \
                 tests/integration/local/generate_event \
                 --ignore=tests/integration/local/invoke/test_invoke_terraform_applications.py \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
-            "local-start1")
-              pytest -vv --reruns 3 \
+            "local-start")
+              pytest -vv -n 2 --reruns 3 \
                 tests/integration/local/start_api \
-                --ignore=tests/integration/local/start_api/test_start_api_with_terraform_application.py \
-                --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
-              ;;
-            "local-start2")
-              pytest -vv --reruns 3 \
                 tests/integration/local/start_lambda \
                 tests/integration/local/callback \
                 tests/integration/local/execution \
+                --ignore=tests/integration/local/start_api/test_start_api_with_terraform_application.py \
                 --ignore=tests/integration/local/start_lambda/test_start_lambda_terraform_applications.py \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
@@ -274,6 +275,13 @@ jobs:
                 --ignore=tests/integration/local \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
+            "cloud-based-tests")
+              pytest -vv --reruns 3 \
+                tests/integration/buildcmd \
+                tests/integration/local \
+                -m requires_credential \
+                --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
+              ;;
           esac
 
       - name: Upload test results
@@ -284,5 +292,5 @@ jobs:
           path: TEST_REPORT-*.json
 
       - name: Reset test account
-        if: always() && contains(fromJSON('["terraform", "package-delete-deploy", "sync", "local-invoke", "other-and-e2e"]'), matrix.test_suite)
+        if: always() && contains(fromJSON('["terraform", "package-delete-deploy", "sync", "other-and-e2e", "cloud-based-tests"]'), matrix.test_suite)
         run: python3.11 tests/reset_testing_resources.py

@@ -15,12 +15,12 @@ from pathlib import Path
 
 from tests.integration.local.invoke.layer_utils import LayerUtils
 from tests.integration.local.invoke.invoke_integ_base import IntegrationCliIntegBase, InvokeIntegBase
-from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY, run_command
+from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY, SKIP_CREDENTIAL_TESTS, run_command
 from samcli.local.docker.utils import get_validated_container_client
 
 # Layers tests require credentials and Appveyor will only add credentials to the env if the PR is from the same repo.
 # This is to restrict layers tests to run outside of Appveyor, when the branch is not master and tests are not run by Canary.
-SKIP_LAYERS_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
+SKIP_LAYERS_TESTS = SKIP_CREDENTIAL_TESTS or (RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY)
 
 TIMEOUT = 300
 
@@ -804,16 +804,27 @@ class TestLayerVersionBase(InvokeIntegBase):
         self.layer_cache = Path().home().joinpath("integ_layer_cache")
 
     @staticmethod
-    def _cleanup_samcli_images(docker_client):
-        """Remove all samcli/lambda-* images.
+    def _get_samcli_image_ids(docker_client):
+        """Get the set of samcli/lambda-* image IDs currently present."""
+        image_ids = set()
+        try:
+            for image in docker_client.images.list():
+                for tag in image.tags:
+                    if tag.startswith("samcli/lambda-"):
+                        image_ids.add(image.id)
+                        break
+        except Exception:
+            pass
+        return image_ids
 
-        Docker's images.list(name="samcli/lambda") does exact repository matching
-        and won't match repositories like "samcli/lambda-python". We list all images
-        and filter by tag prefix instead.
-        """
+    @staticmethod
+    def _cleanup_samcli_images(docker_client, pre_existing_image_ids=None):
+        """Remove samcli/lambda-* images that were not pre-existing."""
         try:
             all_images = docker_client.images.list()
             for image in all_images:
+                if pre_existing_image_ids and image.id in pre_existing_image_ids:
+                    continue
                 for tag in image.tags:
                     if tag.startswith("samcli/lambda-"):
                         docker_client.remove_image_safely(image.id, force=True)
@@ -823,21 +834,22 @@ class TestLayerVersionBase(InvokeIntegBase):
 
     def tearDown(self):
         docker_client = get_validated_container_client()
-        self._cleanup_samcli_images(docker_client)
+        self._cleanup_samcli_images(docker_client, getattr(self.__class__, '_pre_existing_image_ids', None))
         shutil.rmtree(str(self.layer_cache), ignore_errors=True)
 
     @classmethod
     def setUpClass(cls):
         cls.layer_utils.upsert_layer(LayerUtils.generate_layer_name(), "LayerOneArn", "layer1.zip")
         cls.layer_utils.upsert_layer(LayerUtils.generate_layer_name(), "LayerTwoArn", "layer2.zip")
+        docker_client = get_validated_container_client()
+        cls._pre_existing_image_ids = cls._get_samcli_image_ids(docker_client)
         super(TestLayerVersionBase, cls).setUpClass()
 
     @classmethod
     def tearDownClass(cls):
         cls.layer_utils.delete_layers()
-        # Added to handle the case where ^C failed the test due to invalid cleanup of layers
         docker_client = get_validated_container_client()
-        cls._cleanup_samcli_images(docker_client)
+        cls._cleanup_samcli_images(docker_client, cls._pre_existing_image_ids)
         integ_layer_cache_dir = Path().home().joinpath("integ_layer_cache")
         if integ_layer_cache_dir.exists():
             shutil.rmtree(str(integ_layer_cache_dir))
@@ -854,6 +866,7 @@ class TestLayerVersionBase(InvokeIntegBase):
     ],
 )
 @skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
+@pytest.mark.requires_credential
 class TestLayerVersion(TestLayerVersionBase):
     @parameterized.expand(
         [
@@ -1069,6 +1082,7 @@ class TestLocalZipLayerVersion(InvokeIntegBase):
 
 
 @skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
+@pytest.mark.requires_credential
 class TestLayerVersionThatDoNotCreateCache(InvokeIntegBase):
     template = Path("layers", "layer-template.yml")
     region = "us-west-2"
@@ -1076,22 +1090,12 @@ class TestLayerVersionThatDoNotCreateCache(InvokeIntegBase):
 
     def setUp(self):
         self.layer_cache = Path().home().joinpath("integ_layer_cache")
+        docker_client = get_validated_container_client()
+        self._pre_existing_image_ids = TestLayerVersionBase._get_samcli_image_ids(docker_client)
 
     def tearDown(self):
         docker_client = get_validated_container_client()
-
-        # Use the same prefix-based cleanup as TestLayerVersionBase.
-        # Docker's images.list(name="samcli/lambda") does exact repository matching
-        # and won't match "samcli/lambda-python" etc.
-        try:
-            all_images = docker_client.images.list()
-            for image in all_images:
-                for tag in image.tags:
-                    if tag.startswith("samcli/lambda-"):
-                        docker_client.remove_image_safely(image.id, force=True)
-                        break
-        except Exception:
-            pass
+        TestLayerVersionBase._cleanup_samcli_images(docker_client, self._pre_existing_image_ids)
 
     def test_layer_does_not_exist(self):
         self.layer_utils.upsert_layer(LayerUtils.generate_layer_name(), "LayerOneArn", "layer1.zip")
