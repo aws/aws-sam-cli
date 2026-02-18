@@ -91,7 +91,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Set up Java 25
-        if: contains(fromJSON('["build-x86", "build-arm64", "sync", "cloud-based-tests"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86", "build-arm64", "sync-code", "sync-watch", "cloud-based-tests"]'), matrix.test_suite)
         uses: actions/setup-java@v5
         with:
           distribution: 'corretto'
@@ -104,7 +104,7 @@ jobs:
           go-version: '1.25'
 
       - name: Install Maven and Gradle
-        if: contains(fromJSON('["build-x86", "build-arm64", "sync", "cloud-based-tests"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86", "build-arm64", "sync-code", "sync-watch", "cloud-based-tests"]'), matrix.test_suite)
         run: |
           sudo apt-get remove -y maven || true
           wget https://dlcdn.apache.org/maven/maven-3/3.9.12/binaries/apache-maven-3.9.12-bin.zip -P /tmp
@@ -139,7 +139,7 @@ jobs:
           ruby-version: '3.2.7'
 
       - name: Set up Ruby 3.4.7
-        if: contains(fromJSON('["build-x86", "build-arm64", "sync", "other-and-e2e", "cloud-based-tests"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86", "build-arm64", "sync-code", "sync-watch", "other-and-e2e", "cloud-based-tests"]'), matrix.test_suite)
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.4.7'
