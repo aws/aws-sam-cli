@@ -297,7 +297,7 @@ jobs:
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "sync-watch")
-              pytest -vv --reruns 3 \
+              pytest -vv -n 4 --reruns 3 \
                 tests/integration/sync/test_sync_watch.py \
                 tests/integration/sync/test_sync_build_in_source.py \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
