@@ -202,7 +202,9 @@ jobs:
 
       - name: Release test account early for local-only jobs
         if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "build-x86-container-1", "build-x86-container-2", "build-arm64-container-1", "build-arm64-container-2", "local-invoke", "local-start-api", "local-start-lambda"]'), matrix.test_suite)
-        run: python3.11 tests/reset_testing_resources.py
+        run: |
+          echo "SKIP_ACCOUNT_RESET=true" >> $GITHUB_ENV
+          python3.11 tests/reset_testing_resources.py ${{ matrix.test_suite }}
 
       - name: Run tests
         run: |
@@ -301,7 +303,7 @@ jobs:
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "sync-code")
-              pytest -vv -n 4 --reruns 3 --dist loadscope \
+              pytest -vv -n 5 --reruns 3 --dist loadscope \
                 tests/integration/sync/test_sync_code.py \
                 tests/integration/sync/test_sync_infra.py \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
@@ -328,7 +330,7 @@ jobs:
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "other-and-e2e")
-              pytest -vv -n 4 --reruns 3 --dist loadgroup \
+              pytest -vv -n 5 --reruns 3 --dist loadgroup \
                 tests/integration tests/end_to_end tests/regression \
                 --ignore=tests/integration/buildcmd \
                 --ignore=tests/integration/delete \
@@ -354,6 +356,9 @@ jobs:
           name: test-results-${{ matrix.test_suite }}
           path: TEST_REPORT-*.json
 
-      - name: Reset test account
-        if: "always() && !contains(fromJSON('[\"build-x86-1\", \"build-x86-2\", \"build-arm64\", \"build-x86-container-1\", \"build-x86-container-2\", \"build-arm64-container-1\", \"build-arm64-container-2\", \"local-invoke\", \"local-start-api\", \"local-start-lambda\"]'), matrix.test_suite)"
-        run: python3.11 tests/reset_testing_resources.py
+      - name: Reset test account and upload reports
+        if: always()
+        env:
+          TESTREPORTING_ARN: ${{ secrets.TESTREPORTING_ARN }}
+          TESTREPORTING_S3: ${{ secrets.TESTREPORTING_S3 }}
+        run: python3.11 tests/reset_testing_resources.py ${{ matrix.test_suite }}
