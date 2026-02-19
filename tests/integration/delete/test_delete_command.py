@@ -110,16 +110,28 @@ class TestDelete(DeleteIntegBase):
         template_path = self.test_data_path.joinpath("aws-serverless-function.yaml")
         stack_name = self._method_to_stack_name(self.id())
         deploy_command_list = self.get_deploy_command_list(
-            template_file=template_path, stack_name=stack_name, capabilities="CAPABILITY_IAM",
-            image_repository=self.ecr_repo_name, s3_bucket=self.bucket_name, s3_prefix=self.s3_prefix,
-            force_upload=True, notification_arns=self.sns_arn, parameter_overrides="Parameter=Clarity",
-            kms_key_id=self.kms_key, no_execute_changeset=False, tags="integ=true clarity=yes foo_bar=baz",
-            confirm_changeset=False, region=self._session.region_name,
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            image_repository=self.ecr_repo_name,
+            s3_bucket=self.bucket_name,
+            s3_prefix=self.s3_prefix,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="Parameter=Clarity",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+            region=self._session.region_name,
         )
         run_command(deploy_command_list)
         delete_command_list = self.get_delete_command_list(
-            stack_name=stack_name, region=self._session.region_name, no_prompts=True,
-            s3_bucket=self.bucket_name, s3_prefix=self.s3_prefix,
+            stack_name=stack_name,
+            region=self._session.region_name,
+            no_prompts=True,
+            s3_bucket=self.bucket_name,
+            s3_prefix=self.s3_prefix,
         )
         delete_process_execute = run_command(delete_command_list)
         self.validate_delete_process(delete_process_execute)

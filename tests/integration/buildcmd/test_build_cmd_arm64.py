@@ -69,7 +69,7 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture_arm64(BuildIn
 
     @pytest.mark.tier1
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
-    def test_tier1_python_arm64_build(self):
+    def test_tier1_python_arm64_build_in_container(self):
         """Single Python ARM64 build test for cross-platform validation."""
         self._test_with_default_requirements("python3.11", "Python", False, self.test_data_path, architecture=ARM64)
 
@@ -554,9 +554,13 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
     def test_tier1_java_arm64_build(self):
         """Single Java ARM64 build test for cross-platform validation."""
         self._test_with_building_java(
-            "java25", os.path.join(self.USING_MAVEN_PATH, "25"),
-            self.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, self.EXPECTED_MAVEN_DEPENDENCIES,
-            False, self.test_data_path, ARM64,
+            "java25",
+            os.path.join(self.USING_MAVEN_PATH, "25"),
+            self.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+            self.EXPECTED_MAVEN_DEPENDENCIES,
+            False,
+            self.test_data_path,
+            ARM64,
         )
 
 

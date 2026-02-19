@@ -824,8 +824,11 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command_result.process.returncode, 0)
         self._verify_built_artifact(
-            self.default_build_dir, "LayerOne",
-            self.EXPECTED_LAYERS_FILES_PROJECT_MANIFEST, "ContentUri", "python",
+            self.default_build_dir,
+            "LayerOne",
+            self.EXPECTED_LAYERS_FILES_PROJECT_MANIFEST,
+            "ContentUri",
+            "python",
         )
 
     def _verify_built_artifact(

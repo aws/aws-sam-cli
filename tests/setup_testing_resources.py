@@ -9,7 +9,7 @@ import json
 import os
 import sys
 
-from get_testing_resources import get_testing_credentials, get_managed_test_resource_outputs
+from get_testing_resources import get_testing_credentials, get_managed_test_resource_outputs  # type: ignore[import-not-found]  # noqa: E402
 
 from boto3.session import Session
 

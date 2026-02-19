@@ -76,9 +76,7 @@ class TestLocalCallback(DurableIntegBase, InvokeIntegBase):
         command_list = self.get_invoke_command_list(
             example.function_name, no_event=True, durable_execution_name=execution_name
         )
-        process, output_lines, thread = self.start_command_with_streaming(
-            command_list, "test_tier1_callback"
-        )
+        process, output_lines, thread = self.start_command_with_streaming(command_list, "test_tier1_callback")
         callback_id = self.wait_for_callback_id(output_lines)
         self.assertIsNotNone(callback_id, "Failed to get callback ID from output")
         succeed_command = self.get_callback_command_list("succeed", callback_id, result="test result")
