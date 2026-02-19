@@ -9,6 +9,10 @@ sudo systemctl stop docker.socket || true
 sudo systemctl disable docker || true
 sudo systemctl disable docker.socket || true
 
+echo "=== Removing Docker packages to avoid conflicts ==="
+sudo apt-get remove -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin || true
+sudo apt-get autoremove -y || true
+
 echo "=== Installing Finch ==="
 for i in {1..3}; do
     if curl -fsSL https://artifact.runfinch.com/deb/GPG_KEY.pub | sudo gpg --dearmor -o /usr/share/keyrings/runfinch-finch-archive-keyring.gpg; then
