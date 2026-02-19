@@ -133,7 +133,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegDotnetBase):
             "Handler": "HelloWorld::HelloWorld.Function::FunctionHandler",
             "Architectures": "x86_64",
         }
-        self.validate_build_command(overrides, None, use_container=True)
+        self.validate_build_command(overrides, None, MountMode.WRITE)
         self.validate_build_artifacts(self.EXPECTED_FILES_PROJECT_MANIFEST)
         self.validate_invoke_command(overrides, "dotnet8")
 

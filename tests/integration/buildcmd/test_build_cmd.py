@@ -817,7 +817,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
     @pytest.mark.tier1
     def test_tier1_layer_build(self):
         """Single layer build test for cross-platform validation."""
-        overrides = {"LayerBuildMethod": "python3.11", "LayerContentUri": "PyLayer"}
+        overrides = {"LayerBuildMethod": "python3.12", "LayerContentUri": "PyLayer"}
         cmdlist = self.get_command_list(
             use_container=False, parameter_overrides=overrides, function_identifier="LayerOne"
         )
