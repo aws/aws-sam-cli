@@ -42,6 +42,7 @@ class TestBuildCommand_NodeFunctions_With_External_Manifest(BuildIntegNodeBase):
         self._test_with_default_package_json(runtime, False, self.test_data_path)
 
 
+@pytest.mark.tier1
 class TestBuildCommand_EsbuildFunctions(BuildIntegEsbuildBase):
     template = "template_with_metadata_esbuild.yaml"
 

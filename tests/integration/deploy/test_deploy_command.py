@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest import skipIf
 
 import botocore
+import pytest
 from botocore.exceptions import ClientError
 from parameterized import parameterized
 
@@ -27,6 +28,7 @@ CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".
 
 
 @skipIf(SKIP_DEPLOY_TESTS, "Skip deploy tests in CI/CD only")
+@pytest.mark.tier1
 class TestDeploy(DeployIntegBase):
     @classmethod
     def setUpClass(cls):

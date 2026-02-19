@@ -26,6 +26,7 @@ LOG = logging.getLogger(__name__)
     "Skip build tests on windows when running in CI unless overridden",
 )
 @rust_parameterized_class
+@pytest.mark.tier1
 class TestBuildCommand_Rust(BuildIntegRustBase):
     @parameterized.expand(
         [

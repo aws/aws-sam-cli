@@ -275,6 +275,7 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackendWit
     ],
 )
 @pytest.mark.xdist_group(name="zip_lambda_local_backend")
+@pytest.mark.tier1
 class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(BuildTerraformApplicationIntegBase):
     function_identifier = "function9"
     terraform_application = (

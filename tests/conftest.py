@@ -12,3 +12,7 @@ def pytest_configure(config):
         "markers",
         "requires_credential: mark test as requiring AWS credentials (skipped in local-only CI jobs)",
     )
+    config.addinivalue_line(
+        "markers",
+        "tier1: cross-platform smoke tests that run on every OS/container-runtime combination",
+    )

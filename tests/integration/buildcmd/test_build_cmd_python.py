@@ -397,6 +397,7 @@ class TestBuildCommand_PythonFunctions_WithoutDocker_al2023(BuildIntegPythonBase
 
 
 @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
+@pytest.mark.tier1
 class TestBuildCommand_PythonFunctions_WithDocker(BuildIntegPythonBase):
     template = "template.yaml"
     FUNCTION_LOGICAL_ID = "Function"

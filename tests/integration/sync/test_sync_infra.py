@@ -35,6 +35,7 @@ LOG = logging.getLogger(__name__)
 
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
 @parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
+@pytest.mark.tier1
 class TestSyncInfra(SyncIntegBase):
     parameter_overrides: Dict[str, str] = {}
 

@@ -31,6 +31,7 @@ SKIP_SAR_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_
     ],
 )
 @pytest.mark.provided
+@pytest.mark.tier1
 class TestBuildCommand_ProvidedFunctions(BuildIntegProvidedBase):
     # Test Suite for runtime: provided and where selection of the build workflow is implicitly makefile builder
     # if the makefile is present.

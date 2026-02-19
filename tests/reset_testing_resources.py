@@ -40,13 +40,12 @@ def _get_ci_role_credentials():
 
 
 def upload_test_reports(test_suite):
-    """Upload test report JSON files to S3 via assumed reporting role."""
-    reporting_role_arn = os.environ.get("TESTREPORTING_ARN")
+    """Upload test report JSON files to S3. Credentials are expected to be set by the workflow."""
     reporting_s3_bucket = os.environ.get("TESTREPORTING_S3")
     run_id = os.environ.get("GITHUB_RUN_ID", "local")
 
-    if not reporting_role_arn or not reporting_s3_bucket:
-        print("TESTREPORTING_ARN or TESTREPORTING_S3 not set, skipping report upload.")
+    if not reporting_s3_bucket:
+        print("TESTREPORTING_S3 not set, skipping report upload.")
         return
 
     reports = glob.glob("TEST_REPORT-*.json")
@@ -54,25 +53,8 @@ def upload_test_reports(test_suite):
         print("No test report files found.")
         return
 
-    # Use CI role credentials or fall back to default (OIDC)
-    ci_creds = _get_ci_role_credentials()
-    sts_kwargs = ci_creds if ci_creds else {}
-    sts_client = boto3.client("sts", config=DEFAULT_BOTO_CONFIG, **sts_kwargs)
-
     try:
-        response = sts_client.assume_role(
-            RoleArn=reporting_role_arn,
-            RoleSessionName=f"test-report-{test_suite}"[:64],
-        )
-        creds = response["Credentials"]
-
-        s3_client = boto3.client(
-            "s3",
-            aws_access_key_id=creds["AccessKeyId"],
-            aws_secret_access_key=creds["SecretAccessKey"],
-            aws_session_token=creds["SessionToken"],
-            config=DEFAULT_BOTO_CONFIG,
-        )
+        s3_client = boto3.client("s3", config=DEFAULT_BOTO_CONFIG)
 
         date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         s3_prefix = f"github/{date_str}/{run_id}"

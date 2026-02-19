@@ -24,6 +24,7 @@ SKIP_SAR_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_
 
 
 @pytest.mark.java
+@pytest.mark.tier1
 class TestBuildCommand_Java(BuildIntegJavaBase):
     @parameterized.expand(
         [

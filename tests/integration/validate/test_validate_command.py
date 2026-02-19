@@ -13,6 +13,7 @@ from typing import List, Optional
 from unittest import TestCase, skip
 from unittest.case import skipIf
 
+import pytest
 from parameterized import parameterized
 from tests.testing_utils import (
     RUN_BY_CANARY,
@@ -58,6 +59,7 @@ class TemplateFileTypes(Enum):
 
 
 @skipIf(SKIP_VALIDATE_TESTS, "Skip validate tests in CI/CD only")
+@pytest.mark.tier1
 class TestValidate(TestCase):
     @classmethod
     def setUpClass(cls):

@@ -13,6 +13,7 @@ from tests.integration.durable_function_examples import DurableFunctionExamples
 # Durable tests use a hardcoded port (9014) for the execution server, so they must not run
 # concurrently with other durable tests across pytest-xdist workers.
 @pytest.mark.xdist_group(name="durable")
+@pytest.mark.tier1
 class TestInvokeDurable(DurableIntegBase, InvokeIntegBase):
     template = Path("template.yaml")
     template_subdir = "durable"

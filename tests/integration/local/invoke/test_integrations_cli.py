@@ -61,6 +61,7 @@ class TestSamPythonHelloWorldCapacityProviderIntegration(IntegrationCliIntegBase
         (Path("nested-templates/template-parent.yaml"),),
     ],
 )
+@pytest.mark.tier1
 class TestSamPythonHelloWorldIntegration(IntegrationCliIntegBase):
     @pytest.mark.flaky(reruns=3)
     def test_invoke_returncode_is_zero(self):
@@ -1033,6 +1034,7 @@ class TestLayerVersion(TestLayerVersionBase):
 
 @skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
 @pytest.mark.xdist_group(name="lambda_layers")
+@pytest.mark.tier1
 class TestLocalZipLayerVersion(InvokeIntegBase):
     template = Path("layers", "local-zip-layer-template.yml")
 

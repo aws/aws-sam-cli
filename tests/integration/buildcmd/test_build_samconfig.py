@@ -1,5 +1,7 @@
 import os
 from pathlib import Path
+
+import pytest
 from parameterized import parameterized, parameterized_class
 from samcli.lib.config.samconfig import SamConfig
 
@@ -16,6 +18,7 @@ configs = {
 }
 
 
+@pytest.mark.tier1
 class TestSamConfigWithBuild(BuildIntegBase):
     @parameterized.expand(
         [

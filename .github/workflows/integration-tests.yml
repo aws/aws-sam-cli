@@ -356,9 +356,23 @@ jobs:
           name: test-results-${{ matrix.test_suite }}
           path: TEST_REPORT-*.json
 
+      - name: Re-authenticate with OIDC for cleanup
+        if: always()
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.OIDC_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Assume test reporting role
+        if: always() && secrets.TESTREPORTING_ARN != ''
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.TESTREPORTING_ARN }}
+          aws-region: us-east-1
+          role-chaining: true
+
       - name: Reset test account and upload reports
         if: always()
         env:
-          TESTREPORTING_ARN: ${{ secrets.TESTREPORTING_ARN }}
           TESTREPORTING_S3: ${{ secrets.TESTREPORTING_S3 }}
         run: python3.11 tests/reset_testing_resources.py ${{ matrix.test_suite }}

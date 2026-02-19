@@ -21,6 +21,7 @@ LOG = logging.getLogger(__name__)
 
 
 @pytest.mark.dotnet
+@pytest.mark.tier1
 class TestBuildCommand_Dotnet_cli_package(BuildIntegDotnetBase):
     @parameterized.expand(
         [

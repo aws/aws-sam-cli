@@ -13,6 +13,7 @@ from tests.testing_utils import run_command
 
 
 @pytest.mark.xdist_group(name="durable")
+@pytest.mark.tier1
 class TestLocalCallback(DurableIntegBase, InvokeIntegBase):
     template = Path("template.yaml")
     template_subdir = "durable"

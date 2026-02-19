@@ -211,6 +211,7 @@ class TestLambdaServiceWithInlineCode(StartLambdaIntegBaseClass):
         ("/testdata/invoke/nested-templates/template-parent.yaml", "SubApp/"),
     ],
 )
+@pytest.mark.tier1
 class TestLambdaService(StartLambdaIntegBaseClass):
     parent_path = ""
 

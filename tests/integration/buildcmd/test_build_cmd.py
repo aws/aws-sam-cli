@@ -280,6 +280,7 @@ class TestSkipBuildingFlaggedFunctionsContainer(BuildIntegPythonBase):
 
 
 @pytest.mark.ruby
+@pytest.mark.tier1
 class TestBuildCommand_RubyFunctions(BuildIntegRubyBase):
     @parameterized.expand([(False,), ("use_container",)], name_func=show_container_in_test_name)
     def test_building_ruby_3_2(self, use_container):
@@ -1534,6 +1535,7 @@ class TestBuildWithInlineContainerEnvVars(BuildIntegBase):
             self.assertEqual(actual.strip(), "MyVar")
 
 
+@pytest.mark.tier1
 class TestBuildWithNestedStacks(NestedBuildIntegBase):
     # we put the root template in its own directory to test the scenario where codeuri and children templates
     # are not located in the same folder.

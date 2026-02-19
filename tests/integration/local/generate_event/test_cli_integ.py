@@ -3,9 +3,12 @@ from subprocess import Popen, PIPE
 import os
 import json
 
+import pytest
+
 from tests.testing_utils import get_sam_command
 
 
+@pytest.mark.tier1
 class Test_EventGeneration_Integ(TestCase):
     def test_generate_event_substitution(self):
         process = Popen([get_sam_command(), "local", "generate-event", "s3", "put"])
