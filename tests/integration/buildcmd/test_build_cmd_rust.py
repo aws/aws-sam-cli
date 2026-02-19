@@ -12,6 +12,9 @@ from tests.testing_utils import (
     IS_WINDOWS,
     RUNNING_ON_CI,
     CI_OVERRIDE,
+    SKIP_DOCKER_TESTS,
+    SKIP_DOCKER_BUILD,
+    SKIP_DOCKER_MESSAGE,
 )
 from .build_integ_base import (
     BuildIntegRustBase,
@@ -27,13 +30,11 @@ LOG = logging.getLogger(__name__)
     "Skip build tests on windows when running in CI unless overridden",
 )
 @rust_parameterized_class
-@pytest.mark.tier1
 class TestBuildCommand_Rust(BuildIntegRustBase):
     @parameterized.expand(
         [
             ("provided.al2", "x86_64", None, False),
             ("provided.al2", "x86_64", "debug", False),
-            ("provided.al2023", "x86_64", None, False),
             ("provided.al2023", "x86_64", "debug", False),
         ],
         name_func=show_container_in_test_name,
@@ -47,4 +48,31 @@ class TestBuildCommand_Rust(BuildIntegRustBase):
             build_mode=build_mode,
             expected_invoke_result=self.expected_invoke_result,
             use_container=use_container,
+        )
+
+    @pytest.mark.tier1
+    def test_tier1_rust_build(self):
+        """Single Rust build test for cross-platform validation."""
+        self._test_with_rust_cargo_lambda(
+            runtime="provided.al2023",
+            code_uri=self.code_uri,
+            binary=self.binary,
+            architecture="x86_64",
+            build_mode=None,
+            expected_invoke_result=self.expected_invoke_result,
+            use_container=False,
+        )
+
+    @pytest.mark.tier1
+    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
+    def test_tier1_rust_build_in_container(self):
+        """Single Rust container build test for cross-platform validation."""
+        self._test_with_rust_cargo_lambda(
+            runtime="provided.al2023",
+            code_uri=self.code_uri,
+            binary=self.binary,
+            architecture="x86_64",
+            build_mode=None,
+            expected_invoke_result=self.expected_invoke_result,
+            use_container=True,
         )

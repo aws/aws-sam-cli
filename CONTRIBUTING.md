@@ -89,6 +89,35 @@ The marker is registered in `tests/conftest.py`. Build and local jobs automatica
 
 If you write a new base class that manages Docker containers, follow the same pattern in `start_lambda_api_integ_base.py` and `start_api_integ_base.py`: snapshot container IDs in `setUpClass`, and scope removal to only new containers in `tearDownClass`.
 
+### Tier 1 cross-platform smoke tests
+
+A curated subset of ~50 tests marked with `@pytest.mark.tier1` runs on every OS/container-runtime combination (e.g. Linux+Finch). These validate platform-specific code paths: file system operations, container runtime interaction, process spawning, and network operations.
+
+Run locally with: `pytest -m tier1 tests/integration tests/regression`
+
+To add a tier 1 test for a new feature:
+
+1. Add a dedicated `test_tier1_*` method that calls the existing test logic with one specific parameter set:
+
+```python
+@pytest.mark.tier1
+def test_tier1_my_feature(self):
+    """Single test for cross-platform validation."""
+    self._test_my_feature("runtime_x", use_container=False)
+
+@pytest.mark.tier1
+@skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
+def test_tier1_my_feature_in_container(self):
+    """Single container test for cross-platform validation."""
+    self._test_my_feature("runtime_x", use_container=True)
+```
+
+2. Remove the matching parameter from the `@parameterized.expand` list to avoid running it twice in the Linux+Docker CI.
+
+3. Each runtime should have one non-container and one container tier 1 test.
+
+See `tests/integration/TIER1_TESTS.md` for the full list of selected tests.
+
 
 ## Finding contributions to work on
 Looking at the existing issues is a great way to find something to contribute on. As our projects, by default, use the default GitHub issue labels ((enhancement/bug/duplicate/help wanted/invalid/question/wontfix), looking at any ['help wanted'](https://github.com/aws/aws-sam-cli/labels/help%20wanted) issues is a great place to start. 

@@ -211,7 +211,6 @@ class TestLambdaServiceWithInlineCode(StartLambdaIntegBaseClass):
         ("/testdata/invoke/nested-templates/template-parent.yaml", "SubApp/"),
     ],
 )
-@pytest.mark.tier1
 class TestLambdaService(StartLambdaIntegBaseClass):
     parent_path = ""
 
@@ -221,6 +220,7 @@ class TestLambdaService(StartLambdaIntegBaseClass):
     @parameterized.expand([("False"), ("True")])
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
+    @pytest.mark.tier1
     def test_invoke_with_data(self, use_full_path):
         response = self.lambda_client.invoke(
             FunctionName=f"{self.parent_path if use_full_path == 'True' else ''}EchoEventFunction",

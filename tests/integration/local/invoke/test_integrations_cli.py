@@ -61,9 +61,9 @@ class TestSamPythonHelloWorldCapacityProviderIntegration(IntegrationCliIntegBase
         (Path("nested-templates/template-parent.yaml"),),
     ],
 )
-@pytest.mark.tier1
 class TestSamPythonHelloWorldIntegration(IntegrationCliIntegBase):
     @pytest.mark.flaky(reruns=3)
+    @pytest.mark.tier1
     def test_invoke_returncode_is_zero(self):
         command_list = InvokeIntegBase.get_command_list(
             "HelloWorldServerlessFunction", template_path=self.template_path, event_path=self.event_path
@@ -1034,10 +1034,10 @@ class TestLayerVersion(TestLayerVersionBase):
 
 @skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
 @pytest.mark.xdist_group(name="lambda_layers")
-@pytest.mark.tier1
 class TestLocalZipLayerVersion(InvokeIntegBase):
     template = Path("layers", "local-zip-layer-template.yml")
 
+    @pytest.mark.tier1
     def test_local_zip_layers(
         self,
     ):

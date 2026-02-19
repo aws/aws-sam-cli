@@ -254,6 +254,7 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackendWit
             cls.terraform_application = "terraform/zip_based_lambda_functions_local_backend_container_windows"
         super().setUpClass()
 
+    @pytest.mark.tier1
     def test_build_and_invoke_lambda_functions(self):
         self.validate_metadata_file()
         self._verify_invoke_built_function(
@@ -275,7 +276,6 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackendWit
     ],
 )
 @pytest.mark.xdist_group(name="zip_lambda_local_backend")
-@pytest.mark.tier1
 class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend(BuildTerraformApplicationIntegBase):
     function_identifier = "function9"
     terraform_application = (

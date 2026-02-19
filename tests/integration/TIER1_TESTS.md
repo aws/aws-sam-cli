@@ -1,72 +1,57 @@
 # Tier 1: Cross-Platform Smoke Tests
 
 These tests are marked with `@pytest.mark.tier1` and run on every OS/container-runtime
-combination (Linux+Docker, Linux+Finch, Windows+Docker, etc.). They exercise critical
-platform-specific code paths while remaining fast.
+combination (Linux+Docker, Linux+Finch, Windows+Docker, etc.).
 
-Run with: `pytest -m tier1`
+Run with: `pytest -m tier1 tests/integration tests/regression`
 
-## Selection Criteria
+## Build Tests (per runtime — non-container + container)
 
-- File system operations (path separators, symlinks, build artifacts)
-- Container runtime interaction (Docker API, image pulling, container lifecycle)
-- Process spawning (build subprocesses, local invoke bootstrapping)
-- Network operations (HTTP server, port binding)
-- At least one test per SAM CLI command
-- At least one build test per major runtime category
-- Coverage of every major feature area (layers, sync, deploy, terraform, durable, regression)
+| Runtime | Non-container Test | Container Test | File |
+|---------|-------------------|----------------|------|
+| Python | `test_tier1_python_build` | `test_tier1_python_build_in_container` | test_build_cmd_python.py |
+| Java | `test_tier1_java_build` | `test_tier1_java_build_in_container` | test_build_cmd_java.py |
+| Node.js | `test_tier1_node_build` | `test_tier1_node_build_in_container` | test_build_cmd_node.py |
+| .NET | `test_tier1_dotnet_build` | `test_tier1_dotnet_build_in_container` | test_build_cmd_dotnet.py |
+| Ruby | `test_building_ruby_3_2_0` | `test_building_ruby_3_2_1_in_container` | test_build_cmd.py |
+| Rust | `test_tier1_rust_build` | `test_tier1_rust_build_in_container` | test_build_cmd_rust.py |
+| Provided | `test_tier1_provided_build` | `test_tier1_provided_build_in_container` | test_build_cmd_provided.py |
 
-## Selected Tests
+## Build Tests (general)
 
-### Build Tests (per runtime)
+| Test | File | Coverage |
+|------|------|----------|
+| `test_nested_build_invoke_in_container` | test_build_cmd.py | Nested templates, path handling |
+| `test_samconfig_parameters_are_overridden` | test_build_samconfig.py | Config file parsing |
+| `test_build_and_invoke_lambda_functions` | test_build_terraform_applications.py | Terraform hook builds |
 
-| Runtime | Test Class | File | Key Coverage |
-|---------|-----------|------|-------------|
-| Python | `TestBuildCommand_PythonFunctions_WithDocker` | test_build_cmd_python.py | Container build, pip install, requirements.txt |
-| Java | `TestBuildCommand_Java` | test_build_cmd_java.py | Maven/Gradle in container, JAR creation |
-| Node.js | `TestBuildCommand_EsbuildFunctions` | test_build_cmd_node.py | Esbuild bundling, sourcemaps |
-| .NET | `TestBuildCommand_Dotnet_cli_package` | test_build_cmd_dotnet.py | dotnet CLI, NuGet restore |
-| Ruby | `TestBuildCommand_RubyFunctions` | test_build_cmd.py | Bundler, Gemfile handling |
-| Rust | `TestBuildCommand_Rust` | test_build_cmd_rust.py | cargo-lambda, binary compilation |
-| Provided | `TestBuildCommand_ProvidedFunctions` | test_build_cmd_provided.py | Makefile builds, custom runtimes |
+## Local Command Tests
 
-### Build Tests (general)
+| Command | Test | File | Coverage |
+|---------|------|------|----------|
+| `local invoke` | `test_invoke_returncode_is_zero` | test_integrations_cli.py | Container lifecycle, invocation |
+| `local invoke` (layers) | `test_local_zip_layers` | test_integrations_cli.py | Local zip layer resolution |
+| `local invoke` (durable) | `test_tier1_durable_invoke` | test_invoke_durable.py | Durable function execution |
+| `local start-api` | `test_calling_proxy_endpoint` | test_start_api.py | HTTP server, API Gateway |
+| `local start-lambda` | `test_invoke_with_data` | test_start_lambda.py | Lambda service emulation |
+| `local generate-event` | `test_generate_event_substitution` | test_cli_integ.py | CLI event generation |
+| `local callback` | `test_tier1_callback` | test_callback.py | Durable callback CLI |
+| `local execution` | `test_tier1_execution` | test_execution.py | Durable execution CLI |
 
-| Test Class | File | Key Coverage |
-|-----------|------|-------------|
-| `TestBuildWithNestedStacks` | test_build_cmd.py | Nested templates, path handling, artifact dedup |
-| `TestSamConfigWithBuild` | test_build_samconfig.py | Config file parsing (.toml/.yaml/.json) |
+## Other SAM CLI Commands
 
-### Terraform Build Tests
+| Command | Test | File | Coverage |
+|---------|------|------|----------|
+| `sam init` | `test_init_command_passes_and_dir_created` | test_init_command.py | Template scaffolding |
+| `sam validate` | `test_default_template_file_choice` | test_validate_command.py | Template validation |
+| `sam deploy` | `test_deploy_guided_zip` | test_deploy_command.py | CloudFormation deploy |
+| `sam sync` | `test_tier1_sync_infra` | test_sync_infra.py | Infrastructure sync |
+| `sam delete` | `test_tier1_delete` | test_delete_command.py | Stack deletion, S3 cleanup |
+| `sam package` | `test_tier1_package` | test_package_command_zip.py | S3 artifact upload |
 
-| Test Class | File | Key Coverage |
-|-----------|------|-------------|
-| `TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackend` | test_build_terraform_applications.py | Terraform hook, local backend, zip builds |
+## Build Tests (special)
 
-### Local Command Tests
-
-| Command | Test Class | File | Key Coverage |
-|---------|-----------|------|-------------|
-| `local invoke` | `TestSamPythonHelloWorldIntegration` | test_integrations_cli.py | Container lifecycle, function invocation, env vars |
-| `local invoke` (layers) | `TestLocalZipLayerVersion` | test_integrations_cli.py | Local zip layer resolution |
-| `local invoke` (durable) | `TestInvokeDurable` | test_invoke_durable.py | Durable function execution, callbacks, state |
-| `local start-api` | `TestService` | test_start_api.py | HTTP server, port binding, API Gateway emulation |
-| `local start-lambda` | `TestLambdaService` | test_start_lambda.py | Lambda service emulation, boto3 SDK compat |
-| `local generate-event` | `Test_EventGeneration_Integ` | test_cli_integ.py | CLI invocation, JSON output |
-| `local callback` | `TestLocalCallback` | test_callback.py | Durable callback CLI commands |
-| `local execution` | `TestLocalExecution` | test_execution.py | Durable execution CLI commands |
-
-### Cloud Command Tests
-
-| Command | Test Class | File | Key Coverage |
-|---------|-----------|------|-------------|
-| `sam init` | `TestBasicInitCommand` | test_init_command.py | Template scaffolding, directory creation |
-| `sam validate` | `TestValidate` | test_validate_command.py | Template validation, cfn-lint |
-| `sam deploy` | `TestDeploy` | test_deploy_command.py | CloudFormation stack deploy, changeset |
-| `sam sync` | `TestSyncInfra` | test_sync_infra.py | Infrastructure sync, stack updates |
-
-### Regression Tests
-
-| Test Class | File | Key Coverage |
-|-----------|------|-------------|
-| `TestPackageRegression` | test_package_regression.py | Package backward compatibility |
+| Test | File | Coverage |
+|------|------|----------|
+| `TestBuildWithNestedStacks3LevelWithSymlink` | test_build_cmd.py | Symlink resolution in nested stacks |
+| `test_tier1_layer_build` | test_build_cmd.py | Layer build with Makefile |

@@ -24,7 +24,6 @@ SKIP_SAR_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_
 
 
 @pytest.mark.java
-@pytest.mark.tier1
 class TestBuildCommand_Java(BuildIntegJavaBase):
     @parameterized.expand(
         [
@@ -336,13 +335,6 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
                 BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
-            (
-                "java25",
-                "25",
-                BuildIntegJavaBase.USING_MAVEN_PATH,
-                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
-                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
-            ),
         ]
     )
     def test_building_java_in_process(self, runtime, runtime_version, code_path, expected_files, expected_dependencies):
@@ -352,5 +344,30 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
             expected_files,
             expected_dependencies,
             False,
+            self.test_data_path,
+        )
+
+    @pytest.mark.tier1
+    def test_tier1_java_build(self):
+        """Single Java build test for cross-platform validation."""
+        self._test_with_building_java(
+            "java25",
+            os.path.join(self.USING_MAVEN_PATH, "25"),
+            self.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+            self.EXPECTED_MAVEN_DEPENDENCIES,
+            False,
+            self.test_data_path,
+        )
+
+    @pytest.mark.tier1
+    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
+    def test_tier1_java_build_in_container(self):
+        """Single Java container build test for cross-platform validation."""
+        self._test_with_building_java(
+            "java25",
+            os.path.join(self.USING_MAVEN_PATH, "25"),
+            self.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+            self.EXPECTED_MAVEN_DEPENDENCIES,
+            "use_container",
             self.test_data_path,
         )

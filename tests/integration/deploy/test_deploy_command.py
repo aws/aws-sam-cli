@@ -28,7 +28,6 @@ CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".
 
 
 @skipIf(SKIP_DEPLOY_TESTS, "Skip deploy tests in CI/CD only")
-@pytest.mark.tier1
 class TestDeploy(DeployIntegBase):
     @classmethod
     def setUpClass(cls):
@@ -692,6 +691,7 @@ to create a managed default bucket, or run sam deploy --guided",
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
     @parameterized.expand(["aws-serverless-function.yaml"])
+    @pytest.mark.tier1
     def test_deploy_guided_zip(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 

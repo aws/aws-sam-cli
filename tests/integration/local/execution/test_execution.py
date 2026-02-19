@@ -12,7 +12,6 @@ from tests.testing_utils import run_command
 
 
 @pytest.mark.xdist_group(name="durable")
-@pytest.mark.tier1
 class TestLocalExecution(DurableIntegBase, InvokeIntegBase):
     template = Path("template.yaml")
     template_subdir = "durable"
@@ -24,7 +23,6 @@ class TestLocalExecution(DurableIntegBase, InvokeIntegBase):
 
     @parameterized.expand(
         [
-            ("get", "GetDurableExecution"),
             ("history", "GetDurableExecutionHistory"),
             ("stop", "StopDurableExecution"),
         ]
@@ -65,3 +63,8 @@ class TestLocalExecution(DurableIntegBase, InvokeIntegBase):
         self.assertNotEqual(result.process.returncode, 0)
         expected_message = f"Error: An error occurred (409) when calling the StopDurableExecution operation: Execution {execution_arn} is already completed\n"
         self.assertEqual(stderr_str, expected_message)
+
+    @pytest.mark.tier1
+    def test_tier1_execution(self):
+        """Single execution test for cross-platform validation."""
+        self.test_execution_nonexistent_execution("get", "GetDurableExecution")

@@ -35,7 +35,6 @@ LOG = logging.getLogger(__name__)
 
 @skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
 @parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
-@pytest.mark.tier1
 class TestSyncInfra(SyncIntegBase):
     parameter_overrides: Dict[str, str] = {}
 
@@ -68,7 +67,7 @@ class TestSyncInfra(SyncIntegBase):
         IS_WINDOWS,
         "Skip sync ruby tests in windows",
     )
-    @parameterized.expand([["ruby", False], ["python", False], ["python", True]])
+    @parameterized.expand([["ruby", False], ["python", True]])
     @pytest.mark.flaky(reruns=3)
     def test_sync_infra(self, runtime, use_container):
         template_before = f"infra/template-{runtime}-before.yaml"
@@ -145,6 +144,12 @@ class TestSyncInfra(SyncIntegBase):
                 self.assertEqual(lambda_response.get("message"), "9")
         else:
             self._verify_infra_changes(self.stack_resources)
+
+    @pytest.mark.tier1
+    @pytest.mark.flaky(reruns=3)
+    def test_tier1_sync_infra(self):
+        """Single sync infra test for cross-platform validation."""
+        self.test_sync_infra("python", False)
 
     @parameterized.expand([["python", False], ["python", True]])
     @pytest.mark.flaky(reruns=3)

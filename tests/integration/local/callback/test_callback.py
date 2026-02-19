@@ -13,7 +13,6 @@ from tests.testing_utils import run_command
 
 
 @pytest.mark.xdist_group(name="durable")
-@pytest.mark.tier1
 class TestLocalCallback(DurableIntegBase, InvokeIntegBase):
     template = Path("template.yaml")
     template_subdir = "durable"
@@ -25,7 +24,6 @@ class TestLocalCallback(DurableIntegBase, InvokeIntegBase):
 
     @parameterized.expand(
         [
-            ("succeed", "SendDurableExecutionCallbackSuccess", "success", "is not in STARTED state"),
             ("fail", "SendDurableExecutionCallbackFailure", "failure", "is not in STARTED state"),
             ("heartbeat", "SendDurableExecutionCallbackHeartbeat", "heartbeat", "is not active"),
         ]
@@ -69,3 +67,10 @@ class TestLocalCallback(DurableIntegBase, InvokeIntegBase):
         self.assertNotEqual(result.process.returncode, 0)
         expected_pattern = f"Error: An error occurred \\(404\\) when calling the {operation_name} operation: Failed to process callback {callback_type}: Callback .+ {error_suffix}"
         self.assertRegex(stderr_str, expected_pattern)
+
+    @pytest.mark.tier1
+    def test_tier1_callback(self):
+        """Single callback test for cross-platform validation."""
+        self.test_callback_already_completed_execution(
+            "succeed", "SendDurableExecutionCallbackSuccess", "success", "is not in STARTED state"
+        )

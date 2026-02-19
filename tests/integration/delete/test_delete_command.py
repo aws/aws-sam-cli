@@ -3,6 +3,7 @@ import time
 from unittest import skipIf
 
 import boto3
+import pytest
 
 from botocore.exceptions import ClientError
 from parameterized import parameterized
@@ -48,7 +49,7 @@ class TestDelete(DeleteIntegBase):
         time.sleep(CFN_SLEEP)
         super().setUp()
 
-    @parameterized.expand(["aws-serverless-function.yaml", "aws-s3-with-lang-ext.yaml"])
+    @parameterized.expand(["aws-s3-with-lang-ext.yaml"])
     def test_s3_options(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
@@ -102,6 +103,11 @@ class TestDelete(DeleteIntegBase):
         self.assertIn(
             f"Error: The input stack {stack_name} does not exist on Cloudformation", str(delete_process_execute.stdout)
         )
+
+    @pytest.mark.tier1
+    def test_tier1_delete(self):
+        """Single delete test for cross-platform validation."""
+        self.test_s3_options("aws-serverless-function.yaml")
 
     @parameterized.expand(
         [

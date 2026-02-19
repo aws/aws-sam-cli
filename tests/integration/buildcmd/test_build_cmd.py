@@ -280,9 +280,9 @@ class TestSkipBuildingFlaggedFunctionsContainer(BuildIntegPythonBase):
 
 
 @pytest.mark.ruby
-@pytest.mark.tier1
 class TestBuildCommand_RubyFunctions(BuildIntegRubyBase):
     @parameterized.expand([(False,), ("use_container",)], name_func=show_container_in_test_name)
+    @pytest.mark.tier1
     def test_building_ruby_3_2(self, use_container):
         if use_container and SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
             self.skipTest(SKIP_DOCKER_MESSAGE)
@@ -813,6 +813,11 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         if use_container:
             self.verify_docker_container_cleanedup(runtime)
             self.verify_pulled_image(runtime)
+
+    @pytest.mark.tier1
+    def test_tier1_layer_build(self):
+        """Single layer build test for cross-platform validation."""
+        self.test_build_layer_with_makefile("makefile", False, "LayerOne")
 
     def _verify_built_artifact(
         self, build_dir, resource_logical_id, expected_files, code_property_name, artifact_subfolder=""
@@ -1535,7 +1540,6 @@ class TestBuildWithInlineContainerEnvVars(BuildIntegBase):
             self.assertEqual(actual.strip(), "MyVar")
 
 
-@pytest.mark.tier1
 class TestBuildWithNestedStacks(NestedBuildIntegBase):
     # we put the root template in its own directory to test the scenario where codeuri and children templates
     # are not located in the same folder.
@@ -1561,6 +1565,7 @@ class TestBuildWithNestedStacks(NestedBuildIntegBase):
         ],
         name_func=show_container_in_test_name,
     )
+    @pytest.mark.tier1
     def test_nested_build_invoke_in_container(self, use_container, cached, parallel):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
@@ -1679,6 +1684,7 @@ class TestBuildWithNestedStacks3Level(NestedBuildIntegBase):
 
 
 @skipIf(IS_WINDOWS, "symlink is not resolved consistently on windows")
+@pytest.mark.tier1
 class TestBuildWithNestedStacks3LevelWithSymlink(NestedBuildIntegBase):
     """
     In this template, it has the same structure as .aws-sam/build

@@ -13,7 +13,6 @@ from tests.integration.durable_function_examples import DurableFunctionExamples
 # Durable tests use a hardcoded port (9014) for the execution server, so they must not run
 # concurrently with other durable tests across pytest-xdist workers.
 @pytest.mark.xdist_group(name="durable")
-@pytest.mark.tier1
 class TestInvokeDurable(DurableIntegBase, InvokeIntegBase):
     template = Path("template.yaml")
     template_subdir = "durable"
@@ -25,7 +24,6 @@ class TestInvokeDurable(DurableIntegBase, InvokeIntegBase):
 
     @parameterized.expand(
         [
-            (DurableFunctionExamples.HELLO_WORLD,),
             (DurableFunctionExamples.NAMED_STEP,),
             (DurableFunctionExamples.NAMED_WAIT,),
             (DurableFunctionExamples.MAP_OPERATIONS,),
@@ -57,6 +55,11 @@ class TestInvokeDurable(DurableIntegBase, InvokeIntegBase):
 
             # Assert the execution history matches the expected history
             self.assert_execution_history(json.loads(history_stdout), example)
+
+    @pytest.mark.tier1
+    def test_tier1_durable_invoke(self):
+        """Single durable function test for cross-platform validation."""
+        self.test_local_invoke_durable_function(DurableFunctionExamples.HELLO_WORLD)
 
     def test_local_invoke_durable_function_timeout(self):
         """Test durable function execution timeout with 30-second wait and 5-second timeout."""

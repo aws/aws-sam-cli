@@ -59,7 +59,6 @@ class TemplateFileTypes(Enum):
 
 
 @skipIf(SKIP_VALIDATE_TESTS, "Skip validate tests in CI/CD only")
-@pytest.mark.tier1
 class TestValidate(TestCase):
     @classmethod
     def setUpClass(cls):
@@ -110,6 +109,7 @@ class TestValidate(TestCase):
             ),  # project with template.json and standard build directory .aws-sam/build/template.yaml
         ]
     )
+    @pytest.mark.tier1
     def test_default_template_file_choice(self, relative_folder: str, expected_file: TemplateFileTypes):
         test_data_path = Path(__file__).resolve().parents[2] / "integration" / "testdata" / "validate"
         process_dir = test_data_path / relative_folder

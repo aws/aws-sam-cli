@@ -15,7 +15,6 @@ SKIP_PACKAGE_REGRESSION_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI 
 
 
 @skipIf(SKIP_PACKAGE_REGRESSION_TESTS, "Skip package regression tests in CI/CD only")
-@pytest.mark.tier1
 class TestPackageRegression(PackageRegressionBase):
     def setUp(self):
         super().setUp()

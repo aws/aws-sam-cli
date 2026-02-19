@@ -1,5 +1,7 @@
 import logging
 import os
+from unittest import skipIf
+
 import pytest
 from parameterized import parameterized, parameterized_class
 
@@ -31,7 +33,6 @@ SKIP_SAR_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_
     ],
 )
 @pytest.mark.provided
-@pytest.mark.tier1
 class TestBuildCommand_ProvidedFunctions(BuildIntegProvidedBase):
     # Test Suite for runtime: provided and where selection of the build workflow is implicitly makefile builder
     # if the makefile is present.
@@ -50,19 +51,16 @@ class TestBuildCommand_ProvidedFunctions(BuildIntegProvidedBase):
                 self.skipTest(SKIP_DOCKER_MESSAGE)
         self._test_with_Makefile(runtime, use_container, manifest)
 
-    @parameterized.expand(
-        [
-            ("provided.al2023", False, None),
-            ("provided.al2023", "use_container", "Makefile-container"),
-        ],
-        name_func=show_container_in_test_name,
-    )
-    @pytest.mark.al2023
-    def test_building_Makefile_al2023(self, runtime, use_container, manifest):
-        if use_container:
-            if SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
-                self.skipTest(SKIP_DOCKER_MESSAGE)
-        self._test_with_Makefile(runtime, use_container, manifest)
+    @pytest.mark.tier1
+    def test_tier1_provided_build(self):
+        """Single Provided/Makefile build test for cross-platform validation."""
+        self._test_with_Makefile("provided.al2023", False, None)
+
+    @pytest.mark.tier1
+    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
+    def test_tier1_provided_build_in_container(self):
+        """Single Provided/Makefile container build test for cross-platform validation."""
+        self._test_with_Makefile("provided.al2023", "use_container", "Makefile-container")
 
 
 @parameterized_class(

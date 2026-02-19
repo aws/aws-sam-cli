@@ -345,7 +345,6 @@ class TestServiceFunctionWithInlineCode(StartApiIntegBaseClass):
         ("/testdata/start_api/cdk/template_cdk.yaml",),
     ],
 )
-@pytest.mark.tier1
 class TestService(StartApiIntegBaseClass):
     """
     Testing general requirements around the Service that powers `sam local start-api`
@@ -359,6 +358,7 @@ class TestService(StartApiIntegBaseClass):
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
+    @pytest.mark.tier1
     def test_calling_proxy_endpoint(self):
         response = requests.get(self.url + "/proxypath/this/is/some/path", timeout=300)
 

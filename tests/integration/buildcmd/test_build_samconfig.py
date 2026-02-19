@@ -18,7 +18,6 @@ configs = {
 }
 
 
-@pytest.mark.tier1
 class TestSamConfigWithBuild(BuildIntegBase):
     @parameterized.expand(
         [
@@ -59,6 +58,7 @@ class TestSamConfigWithBuild(BuildIntegBase):
             # (".json"),
         ]
     )
+    @pytest.mark.tier1
     def test_samconfig_parameters_are_overridden(self, extension):
         overrides = {"Runtime": "python3.11"}
         overridden_build_dir = f"override_{extension}"
