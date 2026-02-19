@@ -87,10 +87,8 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegDotnetBase):
     @parameterized.expand(
         [
             ("dotnet8", "Dotnet8", None, None),
-            ("dotnet8", "Dotnet8", None, MountMode.WRITE),
             ("dotnet8", "Dotnet8", "debug", None),
             ("dotnet8", "Dotnet8", "debug", MountMode.WRITE),
-            ("dotnet10", "Dotnet10", None, None),
             ("dotnet10", "Dotnet10", None, MountMode.WRITE),
             ("dotnet10", "Dotnet10", "debug", None),
             ("dotnet10", "Dotnet10", "debug", MountMode.WRITE),

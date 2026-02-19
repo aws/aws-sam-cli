@@ -152,11 +152,17 @@ class TestSyncInfra(SyncIntegBase):
         stack_name = self._method_to_stack_name(self.id())
         self.stacks.append({"name": stack_name})
         sync_command_list = self.get_sync_command_list(
-            template_file=template_path, code=False, watch=False,
-            dependency_layer=self.dependency_layer, stack_name=stack_name,
-            parameter_overrides=self.parameter_overrides, image_repository=self.ecr_repo_name,
-            s3_prefix=self.s3_prefix, kms_key_id=self.kms_key,
-            tags="integ=true clarity=yes foo_bar=baz", use_container=use_container,
+            template_file=template_path,
+            code=False,
+            watch=False,
+            dependency_layer=self.dependency_layer,
+            stack_name=stack_name,
+            parameter_overrides=self.parameter_overrides,
+            image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+            use_container=use_container,
         )
         sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)

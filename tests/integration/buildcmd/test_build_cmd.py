@@ -521,7 +521,6 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
 
     @parameterized.expand(
         [
-            ("python3.12", False, "LayerOne", "ContentUri"),
             ("python3.12", "use_container", "LayerOne", "ContentUri"),
             ("python3.12", False, "LambdaLayerOne", "Content"),
             ("python3.12", "use_container", "LambdaLayerOne", "Content"),

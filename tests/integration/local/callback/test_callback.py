@@ -73,6 +73,4 @@ class TestLocalCallback(DurableIntegBase, InvokeIntegBase):
     @pytest.mark.tier1
     def test_tier1_callback(self):
         """Single callback test for cross-platform validation."""
-        self._do_callback_test(
-            "succeed", "SendDurableExecutionCallbackSuccess", "success", "is not in STARTED state"
-        )
+        self._do_callback_test("succeed", "SendDurableExecutionCallbackSuccess", "success", "is not in STARTED state")
