@@ -19,7 +19,9 @@ jobs:
       pull-requests: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/github-script@v8
+      - name: Apply internal/external label
+        id: label_step
+        uses: actions/github-script@v8
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           script: |
@@ -29,19 +31,30 @@ jobs:
               'Vandita2020', 'roger-zhangg',
               'vicheey', 'bnusunny', 'tobixlea', 
               'reedham-aws', 'licjun', 'dependabot[bot]'
-            ]
+            ];
             if (maintainers.includes(context.payload.sender.login)) {
-              github.rest.issues.addLabels({
+              await github.rest.issues.addLabels({
                 issue_number: context.issue.number,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 labels: ['pr/internal']
-              })
+              });
+              core.setOutput("external", "false");
             } else {
-              github.rest.issues.addLabels({
+              await github.rest.issues.addLabels({
                 issue_number: context.issue.number,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 labels: ['pr/external', 'stage/needs-triage']
-              })
+              });
+              core.setOutput("external", "true");
             }
+      - name: Send Slack Notification for External PR
+        if: steps.label_step.outputs.external == 'true'
+        uses: rtCamp/action-slack-notify@e31e87e03dd19038e411e38ae27cbad084a90661 # v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_TITLE: 'PR Created: ${{ github.event.pull_request.title }} by ${{ github.event.pull_request.user.login }}'
+          SLACK_FOOTER: ''
+          MSG_MINIMAL: true
+          SLACK_MESSAGE: '${{ github.event.pull_request.html_url }}'
