@@ -403,35 +403,26 @@ class TestWarmContainersBaseClass(StartLambdaIntegBaseClass):
 
     def count_running_containers(self):
         """Count containers created by this test using Docker client directly."""
-        # Use Docker client to find containers with SAM CLI labels
         try:
-            # Get running containers with SAM CLI lambda container label
             sam_containers = self.docker_client.containers.list(
                 all=False, filters={"label": "sam.cli.container.type=lambda"}
             )
 
-            # Filter by our test's mode environment variable if possible
             test_containers = []
             for container in sam_containers:
                 try:
                     container.reload()
                     env_vars = container.attrs.get("Config", {}).get("Env", [])
                     for env_var in env_vars:
-                        if env_var.startswith("MODE=") and self.mode_env_variable in env_var:
+                        if env_var == f"MODE={self.mode_env_variable}":
                             test_containers.append(container)
                             break
                 except Exception:
                     continue
 
-            # If we found containers with our mode variable, return that count
-            if test_containers:
-                return len(test_containers)
+            return len(test_containers)
 
-            # Otherwise, return all SAM containers (fallback)
-            return len(sam_containers)
-
-        except Exception as e:
-            # If we can't access Docker client, fall back to 0
+        except Exception:
             return 0
 
     def _parse_container_ids_from_output(self):

@@ -243,6 +243,11 @@ def read_until_string(process: Popen, expected_output: str, timeout: int = 30) -
         raise TimeoutError(
             f"Did not get expected output after {timeout} seconds. Expected output: {expected_output_bytes!r}"
         ) from ex
+    except ValueError as ex:
+        expected_output_bytes = expected_output.encode("utf-8")
+        raise ValueError(
+            f"Process ended before expected output was found. Expected output: {expected_output_bytes!r}"
+        ) from ex
 
 
 def read_until(process: Popen, callback: Callable[[str, List[str]], bool], timeout: int = 5):
@@ -285,7 +290,7 @@ def read_until(process: Popen, callback: Callable[[str, List[str]], bool], timeo
         if isinstance(result, Exception):
             raise result
     else:
-        raise ValueError()
+        raise ValueError("Process ended before expected output was found.")
 
 
 class FileCreator(object):

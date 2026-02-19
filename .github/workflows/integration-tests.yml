@@ -250,6 +250,15 @@ jobs:
           echo 'deb [signed-by=/usr/share/keyrings/runfinch-finch-archive-keyring.gpg arch=amd64] https://artifact.runfinch.com/deb noble main' | sudo tee /etc/apt/sources.list.d/runfinch-finch.list
           sudo apt update
           sudo apt install -y runfinch-finch
+          
+          # Update runc to 1.3.4 to fix symlink bind-mount issue
+          RUNC_VERSION="1.3.4"
+          echo "Updating runc to v${RUNC_VERSION}..."
+          wget -q "https://github.com/opencontainers/runc/releases/download/v${RUNC_VERSION}/runc.amd64" -O /tmp/runc
+          sudo install -m 755 /tmp/runc /usr/sbin/runc
+          sudo install -m 755 /tmp/runc /usr/bin/runc
+          echo "runc updated: $(runc --version)"
+          
           sudo systemctl enable --now finch
           sudo systemctl enable --now finch-buildkit
           sleep 3
