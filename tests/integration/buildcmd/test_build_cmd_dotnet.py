@@ -111,6 +111,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegDotnetBase):
         self.validate_invoke_command(overrides, runtime)
 
     @pytest.mark.tier1
+    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_tier1_dotnet_build(self):
         """Single Dotnet build test for cross-platform validation."""
         overrides = {

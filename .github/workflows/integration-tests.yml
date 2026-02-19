@@ -202,6 +202,7 @@ jobs:
           make init
 
       - name: Get testing resources and credentials
+        if: "!contains(fromJSON('[\"build-x86-1\", \"build-x86-2\", \"build-arm64\", \"build-x86-container-1\", \"build-x86-container-2\", \"build-arm64-container-1\", \"build-arm64-container-2\", \"local-invoke\", \"local-start-api\", \"local-start-lambda\"]'), matrix.test_suite)"
         run: python3.11 tests/setup_testing_resources.py
 
       - name: Login to Public ECR
@@ -212,11 +213,13 @@ jobs:
             aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws || { echo "FATAL: Docker Public ECR login failed"; exit 1; }
           fi
 
-      - name: Release test account early for local-only jobs
+      - name: Clear credentials and skip account reset for non-credential jobs
         if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "build-x86-container-1", "build-x86-container-2", "build-arm64-container-1", "build-arm64-container-2", "local-invoke", "local-start-api", "local-start-lambda"]'), matrix.test_suite)
         run: |
           echo "SKIP_ACCOUNT_RESET=true" >> $GITHUB_ENV
-          python3.11 tests/reset_testing_resources.py ${{ matrix.test_suite }}
+          echo "AWS_ACCESS_KEY_ID=" >> $GITHUB_ENV
+          echo "AWS_SECRET_ACCESS_KEY=" >> $GITHUB_ENV
+          echo "AWS_SESSION_TOKEN=" >> $GITHUB_ENV
 
       - name: Run tests
         run: |
