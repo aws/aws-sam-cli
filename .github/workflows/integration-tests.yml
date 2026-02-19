@@ -200,6 +200,10 @@ jobs:
         run: |
           aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws || { echo "FATAL: Docker Public ECR login failed"; exit 1; }
 
+      - name: Release test account early for local-only jobs
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "build-x86-container-1", "build-x86-container-2", "build-arm64-container-1", "build-arm64-container-2", "local-invoke", "local-start-api", "local-start-lambda"]'), matrix.test_suite)
+        run: python3.11 tests/reset_testing_resources.py
+
       - name: Run tests
         run: |
           case "${{ matrix.test_suite }}" in
@@ -207,6 +211,7 @@ jobs:
               pytest -vv -n 2 --reruns 3 -m "not requires_credential" \
                 tests/integration/buildcmd/test_build_cmd.py \
                 tests/integration/buildcmd/test_build_cmd_java.py \
+                tests/integration/buildcmd/test_build_cmd_node.py \
                 tests/integration/buildcmd/test_build_in_source.py \
                 tests/integration/buildcmd/test_build_samconfig.py \
                 -k "not container" \
@@ -217,6 +222,7 @@ jobs:
                 tests/integration/buildcmd \
                 --ignore=tests/integration/buildcmd/test_build_cmd.py \
                 --ignore=tests/integration/buildcmd/test_build_cmd_java.py \
+                --ignore=tests/integration/buildcmd/test_build_cmd_node.py \
                 --ignore=tests/integration/buildcmd/test_build_in_source.py \
                 --ignore=tests/integration/buildcmd/test_build_samconfig.py \
                 --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py \
@@ -293,13 +299,13 @@ jobs:
             "sync-code")
               pytest -vv tests/integration/sync -n 4 --reruns 3 --dist loadscope \
                 --ignore=tests/integration/sync/test_sync_watch.py \
-                --ignore=tests/integration/sync/test_sync_build_in_source.py \
+                --ignore=tests/integration/sync/test_sync_infra.py \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "sync-watch")
               pytest -vv -n 4 --reruns 3 \
                 tests/integration/sync/test_sync_watch.py \
-                tests/integration/sync/test_sync_build_in_source.py \
+                tests/integration/sync/test_sync_infra.py \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "local-invoke")
@@ -351,5 +357,5 @@ jobs:
           path: TEST_REPORT-*.json
 
       - name: Reset test account
-        if: always()
+        if: "always() && !contains(fromJSON('[\"build-x86-1\", \"build-x86-2\", \"build-arm64\", \"build-x86-container-1\", \"build-x86-container-2\", \"build-arm64-container-1\", \"build-arm64-container-2\", \"local-invoke\", \"local-start-api\", \"local-start-lambda\"]'), matrix.test_suite)"
         run: python3.11 tests/reset_testing_resources.py
