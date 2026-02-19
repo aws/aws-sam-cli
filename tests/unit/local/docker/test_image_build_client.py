@@ -8,6 +8,8 @@ import os
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
+import docker.errors
+
 from samcli.local.docker.image_build_client import SDKBuildClient, CLIBuildClient
 
 
@@ -187,14 +189,17 @@ class TestCLIBuildClient(TestCase):
 
     @patch("samcli.local.docker.image_build_client.subprocess.Popen")
     def test_build_image_handles_failure(self, mock_popen):
-        """Test that build failures yield error dict"""
+        """Test that build failures raise BuildError"""
         mock_process = Mock()
-        mock_process.stdout = iter(["Step 1/5\n"])
+        mock_process.stdout = iter(["Step 1/5\n", "Error: build failed\n"])
         mock_process.returncode = 1
+        mock_popen.return_value = mock_process
 
-        logs = list(self.docker_client.build_image(**self.base_build_args))
+        with self.assertRaises(docker.errors.BuildError) as context:
+            list(self.docker_client.build_image(**self.base_build_args))
 
-        self.assertTrue(any("error" in log for log in logs))
+        self.assertIn("Build failed with exit code 1", str(context.exception))
+        self.assertEqual(context.exception.build_log, "Step 1/5\nError: build failed\n")
 
     @patch("samcli.local.docker.image_build_client.shutil.which")
     @patch("samcli.local.docker.image_build_client.subprocess.run")
@@ -210,7 +215,7 @@ class TestCLIBuildClient(TestCase):
         mock_run.assert_called_once_with(
             ["docker", "buildx", "version"],
             capture_output=True,
-            check=True,
+            check=False,
         )
 
     @patch("samcli.local.docker.image_build_client.shutil.which")
@@ -247,7 +252,7 @@ class TestCLIBuildClient(TestCase):
         mock_run.assert_called_once_with(
             ["finch", "version"],
             capture_output=True,
-            check=True,
+            check=False,
         )
 
     @patch("samcli.local.docker.image_build_client.shutil.which")

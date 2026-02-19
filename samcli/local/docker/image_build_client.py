@@ -13,6 +13,8 @@ import subprocess
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Generator, Optional, Tuple
 
+import docker.errors
+
 from samcli.local.docker.container_client import ContainerClient
 
 LOG = logging.getLogger(__name__)
@@ -191,14 +193,16 @@ class CLIBuildClient(ImageBuildClient):
 
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 
+        build_log = []
         if process.stdout:
             for line in process.stdout:
+                build_log.append(line)
                 yield {"stream": line}
 
         process.wait()
 
         if process.returncode != 0:
-            yield {"error": f"Build failed with exit code {process.returncode}"}
+            raise docker.errors.BuildError(f"Build failed with exit code {process.returncode}", "".join(build_log))
 
     @staticmethod
     def is_available(engine_type: str) -> Tuple[bool, Optional[str]]:
@@ -209,7 +213,7 @@ class CLIBuildClient(ImageBuildClient):
             result = subprocess.run(
                 ["docker", "buildx", "version"],
                 capture_output=True,
-                check=True,
+                check=False,
             )
             if result.returncode != 0:
                 return (False, "docker buildx plugin not available")
@@ -223,7 +227,7 @@ class CLIBuildClient(ImageBuildClient):
             result = subprocess.run(
                 ["finch", "version"],
                 capture_output=True,
-                check=True,
+                check=False,
             )
 
             if result.returncode != 0:

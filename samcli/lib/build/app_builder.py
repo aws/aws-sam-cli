@@ -197,7 +197,7 @@ class ApplicationBuilder:
         self._mount_with_write = mount_with_write
         self._mount_symlinks = mount_symlinks
         self._use_buildkit = use_buildkit
-        self._build_client: Optional[ImageBuildClient] = None
+        self._image_build_client: Optional[ImageBuildClient] = None
 
     @property
     def _container_client(self) -> ContainerClient:
@@ -461,7 +461,7 @@ class ApplicationBuilder:
             build_args["target"] = cast(str, docker_build_target)
 
         try:
-            if not self._build_client:
+            if not self._image_build_client:
                 if self._use_buildkit:
                     container_client = self._container_client
                     engine_type = container_client.get_runtime_type()
@@ -470,12 +470,12 @@ class ApplicationBuilder:
                     if not is_available:
                         raise BuildkitNotAvailableException(error_msg)
 
-                    self._build_client = CLIBuildClient(engine_type=engine_type)
+                    self._image_build_client = CLIBuildClient(engine_type=engine_type)
                     LOG.debug(f"Using CLIBuildClient with engine_type {engine_type}")
                 else:
-                    self._build_client = SDKBuildClient(self._container_client)
+                    self._image_build_client = SDKBuildClient(self._container_client)
                     LOG.debug("Using SDKBuildClient")
-            build_logs = self._build_client.build_image(**build_args)  # type: ignore[arg-type]
+            build_logs = self._image_build_client.build_image(**build_args)  # type: ignore[arg-type]
             LOG.debug(f"Image build for {function_name} function")
         except docker.errors.BuildError as ex:
             LOG.error("Failed building function %s", function_name)
