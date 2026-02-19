@@ -817,7 +817,16 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
     @pytest.mark.tier1
     def test_tier1_layer_build(self):
         """Single layer build test for cross-platform validation."""
-        self.test_build_layer_with_makefile("makefile", False, "LayerOne")
+        overrides = {"LayerBuildMethod": "makefile", "LayerMakeContentUri": "PyLayerMake"}
+        cmdlist = self.get_command_list(
+            use_container=False, parameter_overrides=overrides, function_identifier="LayerOne"
+        )
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
+        self._verify_built_artifact(
+            self.default_build_dir, "LayerOne",
+            self.EXPECTED_LAYERS_FILES_PROJECT_MANIFEST, "ContentUri", "python",
+        )
 
     def _verify_built_artifact(
         self, build_dir, resource_logical_id, expected_files, code_property_name, artifact_subfolder=""

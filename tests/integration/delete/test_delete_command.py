@@ -107,7 +107,23 @@ class TestDelete(DeleteIntegBase):
     @pytest.mark.tier1
     def test_tier1_delete(self):
         """Single delete test for cross-platform validation."""
-        self.test_s3_options("aws-serverless-function.yaml")
+        template_path = self.test_data_path.joinpath("aws-serverless-function.yaml")
+        stack_name = self._method_to_stack_name(self.id())
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path, stack_name=stack_name, capabilities="CAPABILITY_IAM",
+            image_repository=self.ecr_repo_name, s3_bucket=self.bucket_name, s3_prefix=self.s3_prefix,
+            force_upload=True, notification_arns=self.sns_arn, parameter_overrides="Parameter=Clarity",
+            kms_key_id=self.kms_key, no_execute_changeset=False, tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False, region=self._session.region_name,
+        )
+        run_command(deploy_command_list)
+        delete_command_list = self.get_delete_command_list(
+            stack_name=stack_name, region=self._session.region_name, no_prompts=True,
+            s3_bucket=self.bucket_name, s3_prefix=self.s3_prefix,
+        )
+        delete_process_execute = run_command(delete_command_list)
+        self.validate_delete_process(delete_process_execute)
+        self._validate_stack_deleted(stack_name=stack_name)
 
     @parameterized.expand(
         [
@@ -136,9 +152,7 @@ class TestDelete(DeleteIntegBase):
 
         config_file_name = DEFAULT_CONFIG_FILE_NAME
         deploy_command_list = self.get_deploy_command_list(template_file=template_path, guided=True)
-        deploy_result = run_command_with_input(
-            deploy_command_list, "{}\n\n\n\n\n\n\n\n\n".format(stack_name).encode()
-        )
+        deploy_result = run_command_with_input(deploy_command_list, "{}\n\n\n\n\n\n\n\n\n".format(stack_name).encode())
 
         config_file_path = self.test_data_path.joinpath(config_file_name)
 

@@ -46,7 +46,17 @@ class TestPackageZip(PackageIntegBase):
     @pytest.mark.tier1
     def test_tier1_package(self):
         """Single package test for cross-platform validation."""
-        self.test_package_template_flag("aws-serverless-function.yaml")
+        template_path = self.test_data_path.joinpath("aws-serverless-function.yaml")
+        command_list = PackageIntegBase.get_command_list(
+            s3_bucket=self.s3_bucket.name, s3_prefix=self.s3_prefix, template=template_path
+        )
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+        self.assertIn(self.s3_bucket.name, stdout.strip().decode("utf-8"))
 
     @parameterized.expand(
         [

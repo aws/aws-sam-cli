@@ -55,3 +55,14 @@ Run with: `pytest -m tier1 tests/integration tests/regression`
 |------|------|----------|
 | `TestBuildWithNestedStacks3LevelWithSymlink` | test_build_cmd.py | Symlink resolution in nested stacks |
 | `test_tier1_layer_build` | test_build_cmd.py | Layer build with Makefile |
+
+## ARM64 Build Tests
+
+| Runtime | Test | File |
+|---------|------|------|
+| Python | `test_tier1_python_arm64_build` | test_build_cmd_arm64.py |
+| Java | `test_tier1_java_arm64_build` | test_build_cmd_arm64.py |
+| Node.js | `test_tier1_node_arm64_build` | test_build_cmd_arm64.py |
+| Ruby | `test_tier1_ruby_arm64_build` | test_build_cmd_arm64.py |
+| Provided | `test_tier1_provided_arm64_build` | test_build_cmd_arm64.py |
+| Rust | `test_tier1_rust_arm64_build` | test_build_cmd_arm64.py |

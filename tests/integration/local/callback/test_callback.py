@@ -71,6 +71,26 @@ class TestLocalCallback(DurableIntegBase, InvokeIntegBase):
     @pytest.mark.tier1
     def test_tier1_callback(self):
         """Single callback test for cross-platform validation."""
-        self.test_callback_already_completed_execution(
-            "succeed", "SendDurableExecutionCallbackSuccess", "success", "is not in STARTED state"
+        example = DurableFunctionExamples.WAIT_FOR_CALLBACK
+        execution_name = f"{example.function_name.lower()}-callback-test"
+        command_list = self.get_invoke_command_list(
+            example.function_name, no_event=True, durable_execution_name=execution_name
         )
+        process, output_lines, thread = self.start_command_with_streaming(
+            command_list, "test_tier1_callback"
+        )
+        callback_id = self.wait_for_callback_id(output_lines)
+        self.assertIsNotNone(callback_id, "Failed to get callback ID from output")
+        succeed_command = self.get_callback_command_list("succeed", callback_id, result="test result")
+        result = run_command(succeed_command)
+        self.assertEqual(result.process.returncode, 0)
+        process.wait(timeout=30)
+        thread.join(timeout=5)
+        if process.stdin:
+            process.stdin.close()
+        if process.stdout:
+            process.stdout.close()
+        # Try to send another callback (should fail since execution is completed)
+        second_command = self.get_callback_command_list("succeed", callback_id)
+        result = run_command(second_command)
+        self.assertNotEqual(result.process.returncode, 0)

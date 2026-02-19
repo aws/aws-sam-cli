@@ -59,7 +59,21 @@ class TestInvokeDurable(DurableIntegBase, InvokeIntegBase):
     @pytest.mark.tier1
     def test_tier1_durable_invoke(self):
         """Single durable function test for cross-platform validation."""
-        self.test_local_invoke_durable_function(DurableFunctionExamples.HELLO_WORLD)
+        example = DurableFunctionExamples.HELLO_WORLD
+        execution_name = f"{example.function_name.lower()}-integration-test"
+        command_list = self.get_invoke_command_list(
+            example.function_name, no_event=True, durable_execution_name=execution_name
+        )
+        stdout, stderr, invoke_return_code = self.run_command_with_logging(
+            command_list, f"test_tier1_durable_invoke_{example.function_name}"
+        )
+        self.assertEqual(invoke_return_code, 0)
+        execution_arn = self.assert_invoke_output(stdout, input_data={}, execution_name=execution_name)
+        if not example.skip_history_assertions:
+            history_command = self.get_execution_history_command_list(execution_arn)
+            history_stdout, _, history_return_code = self.run_command(history_command)
+            self.assertEqual(history_return_code, 0)
+            self.assert_execution_history(json.loads(history_stdout), example)
 
     def test_local_invoke_durable_function_timeout(self):
         """Test durable function execution timeout with 30-second wait and 5-second timeout."""

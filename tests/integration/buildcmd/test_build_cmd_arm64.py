@@ -67,6 +67,11 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture_arm64(BuildIn
     def test_with_default_requirements_al2023(self, runtime, codeuri, use_container):
         self._test_with_default_requirements(runtime, codeuri, use_container, self.test_data_path, architecture=ARM64)
 
+    @pytest.mark.tier1
+    def test_tier1_python_arm64_build(self):
+        """Single Python ARM64 build test for cross-platform validation."""
+        self._test_with_default_requirements("python3.11", "Python", False, self.test_data_path, architecture=ARM64)
+
 
 class TestBuildCommand_EsbuildFunctions_arm64(BuildIntegEsbuildBase):
     template = "template_with_metadata_esbuild.yaml"
@@ -88,6 +93,13 @@ class TestBuildCommand_EsbuildFunctions_arm64(BuildIntegEsbuildBase):
     )
     def test_building_default_package_json(self, runtime, code_uri, expected_files, handler, use_container):
         self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, ARM64)
+
+    @pytest.mark.tier1
+    def test_tier1_node_arm64_build(self):
+        """Single Node.js ARM64 build test for cross-platform validation."""
+        self._test_with_default_package_json(
+            "nodejs20.x", False, "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", ARM64
+        )
 
 
 @pytest.mark.nodejs
@@ -185,6 +197,11 @@ class TestBuildCommand_RubyFunctions_With_Architecture_arm64(BuildIntegRubyBase)
     @parameterized.expand([("ruby3.2", "Ruby32")])
     def test_building_ruby_in_process_with_specified_architecture(self, runtime, code_uri):
         self._test_with_default_gemfile(runtime, False, code_uri, self.test_data_path, ARM64)
+
+    @pytest.mark.tier1
+    def test_tier1_ruby_arm64_build(self):
+        """Single Ruby ARM64 build test for cross-platform validation."""
+        self._test_with_default_gemfile("ruby3.4", False, "Ruby34", self.test_data_path, ARM64)
 
 
 @skipIf(
@@ -529,6 +546,15 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
             ARM64,
         )
 
+    @pytest.mark.tier1
+    def test_tier1_java_arm64_build(self):
+        """Single Java ARM64 build test for cross-platform validation."""
+        self._test_with_building_java(
+            "java25", os.path.join(self.USING_MAVEN_PATH, "25"),
+            self.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, self.EXPECTED_MAVEN_DEPENDENCIES,
+            False, self.test_data_path, ARM64,
+        )
+
 
 class TestBuildCommand_Go_Modules_With_Specified_Architecture_arm64(BuildIntegGoBase):
     template = "template_with_architecture.yaml"
@@ -605,6 +631,11 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture_arm64(Build
     def test_building_Makefile_al2023(self, runtime, use_container, manifest):
         self._test_with_Makefile(runtime, use_container, manifest, ARM64)
 
+    @pytest.mark.tier1
+    def test_tier1_provided_arm64_build(self):
+        """Single Provided ARM64 build test for cross-platform validation."""
+        self._test_with_Makefile("provided.al2023", False, None, ARM64)
+
 
 @skipIf(
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
@@ -631,4 +662,17 @@ class TestBuildCommand_Rust_arm64(BuildIntegRustBase):
             build_mode=build_mode,
             expected_invoke_result=self.expected_invoke_result,
             use_container=use_container,
+        )
+
+    @pytest.mark.tier1
+    def test_tier1_rust_arm64_build(self):
+        """Single Rust ARM64 build test for cross-platform validation."""
+        self._test_with_rust_cargo_lambda(
+            runtime="provided.al2023",
+            code_uri=self.code_uri,
+            binary=self.binary,
+            architecture=ARM64,
+            build_mode=None,
+            expected_invoke_result=self.expected_invoke_result,
+            use_container=False,
         )

@@ -325,8 +325,8 @@ class TestBuildCommand_PythonFunctions_WithoutDocker(BuildIntegPythonBase):
     @pytest.mark.tier1
     def test_tier1_python_build(self):
         """Single Python non-container build test for cross-platform validation."""
-        if self.runtime != "python3.11":
-            self.skipTest("Tier1: only run for python3.11")
+        if self.runtime != "python3.11" or self.template != "template.yaml" or self.codeuri != "Python":
+            self.skipTest("Tier1: only run for python3.11/template.yaml/Python")
         self._test_with_default_requirements("python3.11", "Python", False, self.test_data_path)
 
 

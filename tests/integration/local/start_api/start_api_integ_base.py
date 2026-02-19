@@ -159,9 +159,7 @@ class StartApiIntegBaseClass(TestCase):
     def _get_sam_container_ids(docker_client):
         """Get the set of SAM CLI container IDs currently running."""
         try:
-            sam_containers = docker_client.containers.list(
-                all=True, filters={"label": "sam.cli.container.type=lambda"}
-            )
+            sam_containers = docker_client.containers.list(all=True, filters={"label": "sam.cli.container.type=lambda"})
             return {container.id for container in sam_containers}
         except Exception:
             return set()
@@ -178,9 +176,7 @@ class StartApiIntegBaseClass(TestCase):
         # Only clean up containers created by this test class (not pre-existing ones)
         try:
             docker_client = get_validated_container_client()
-            sam_containers = docker_client.containers.list(
-                all=True, filters={"label": "sam.cli.container.type=lambda"}
-            )
+            sam_containers = docker_client.containers.list(all=True, filters={"label": "sam.cli.container.type=lambda"})
             for container in sam_containers:
                 if container.id not in cls._pre_existing_container_ids:
                     try:
