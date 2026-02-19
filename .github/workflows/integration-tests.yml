@@ -70,6 +70,9 @@ jobs:
         with:
           ref: ${{ github.event_name == 'schedule' && 'develop' || github.ref }}
 
+      - name: Free up disk space
+        run: bash tests/free_disk_space.sh
+
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v6
         with:

@@ -555,6 +555,7 @@ class TestSamPythonHelloWorldIntegration(IntegrationCliIntegBase):
     # For Windows, this test must run with administrator privilege
     @skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
     @pytest.mark.flaky(reruns=3)
+    @pytest.mark.requires_credential
     def test_invoke_returns_expected_results_from_git_function(self):
         command_list = InvokeIntegBase.get_command_list(
             "GitLayerFunction", template_path=self.template_path, event_path=self.event_path
@@ -573,6 +574,7 @@ class TestSamPythonHelloWorldIntegration(IntegrationCliIntegBase):
     # For Windows, this test must run with administrator privilege
     @skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
     @pytest.mark.flaky(reruns=3)
+    @pytest.mark.requires_credential
     def test_invoke_returns_expected_results_from_git_function_with_parameters(self):
         command_list = InvokeIntegBase.get_command_list(
             "GitLayerFunctionParameters",

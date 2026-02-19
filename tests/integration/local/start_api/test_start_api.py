@@ -3324,6 +3324,7 @@ class WarmContainersWithRemoteLayersBase(TestWarmContainersBaseClass):
 
 
 @pytest.mark.xdist_group(name="remote_layers")
+@pytest.mark.requires_credential
 class TestWarmContainersRemoteLayers(WarmContainersWithRemoteLayersBase):
     template_path = "/testdata/start_api/template-warm-containers-layers.yaml"
     container_mode = ContainersInitializationMode.EAGER.value
@@ -3360,6 +3361,7 @@ class TestWarmContainersRemoteLayers(WarmContainersWithRemoteLayersBase):
 
 
 @pytest.mark.xdist_group(name="remote_layers")
+@pytest.mark.requires_credential
 class TestWarmContainersRemoteLayersLazyInvoke(WarmContainersWithRemoteLayersBase):
     template_path = "/testdata/start_api/template-warm-containers-layers.yaml"
     container_mode = ContainersInitializationMode.LAZY.value
@@ -3388,6 +3390,7 @@ class TestWarmContainersRemoteLayersLazyInvoke(WarmContainersWithRemoteLayersBas
 
 
 @pytest.mark.xdist_group(name="remote_layers")
+@pytest.mark.requires_credential
 class TestWarmContainersMultipleRemoteLayersInvoke(WarmContainersWithRemoteLayersBase):
     template_path = "/testdata/start_api/template-warm-containers-multi-layers.yaml"
     container_mode = ContainersInitializationMode.EAGER.value
