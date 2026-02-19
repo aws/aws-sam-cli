@@ -7,7 +7,6 @@ import os
 import time
 from http import HTTPStatus
 from pathlib import Path
-from tempfile import NamedTemporaryFile
 from typing import Optional
 
 import docker
@@ -16,8 +15,7 @@ from click import ClickException
 
 from samcli.lib.build.utils import _get_host_architecture
 from samcli.lib.clients.lambda_client import DurableFunctionsClient
-from samcli.lib.utils.tar import create_tarball
-from samcli.local.docker.utils import get_tar_filter_for_windows, get_validated_container_client, is_image_current
+from samcli.local.docker.utils import get_validated_container_client, is_image_current
 
 LOG = logging.getLogger(__name__)
 
@@ -28,8 +26,7 @@ class DurableFunctionsEmulatorContainer:
     """
 
     _RAPID_SOURCE_PATH = Path(__file__).parent.joinpath("..", "rapid").resolve()
-    _EMULATOR_IMAGE = "public.ecr.aws/ubuntu/ubuntu:24.04"
-    _EMULATOR_IMAGE_PREFIX = "samcli/durable-execution-emulator"
+    _EMULATOR_IMAGE = "public.ecr.aws/e8h1r0b0/sam-durable-functions-emulator:latest"
     _CONTAINER_NAME = "sam-durable-execution-emulator"
     _EMULATOR_DATA_DIR_NAME = ".durable-executions-local"
     _EMULATOR_DEFAULT_STORE_TYPE = "sqlite"
@@ -193,62 +190,6 @@ class DurableFunctionsEmulatorContainer:
         arch = _get_host_architecture()
         return f"aws-durable-execution-emulator-{arch}"
 
-    def _generate_emulator_dockerfile(self, emulator_binary_name: str) -> str:
-        """Generate Dockerfile content for emulator image."""
-        return (
-            f"FROM {self._EMULATOR_IMAGE}\n"
-            f"COPY {emulator_binary_name} /usr/local/bin/{emulator_binary_name}\n"
-            f"RUN chmod +x /usr/local/bin/{emulator_binary_name}\n"
-        )
-
-    def _get_emulator_image_tag(self, emulator_binary_name: str) -> str:
-        """Get the Docker image tag for the emulator."""
-        return f"{self._EMULATOR_IMAGE_PREFIX}:{emulator_binary_name}"
-
-    def _build_emulator_image(self):
-        """Build Docker image with emulator binary."""
-        emulator_binary_name = self._get_emulator_binary_name()
-        binary_path = self._RAPID_SOURCE_PATH / emulator_binary_name
-
-        if not binary_path.exists():
-            raise RuntimeError(f"Durable Functions Emulator binary not found at {binary_path}")
-
-        image_tag = self._get_emulator_image_tag(emulator_binary_name)
-
-        # Check if image already exists
-        try:
-            self._docker_client.images.get(image_tag)
-            LOG.debug(f"Emulator image {image_tag} already exists")
-            return image_tag
-        except docker.errors.ImageNotFound:
-            LOG.debug(f"Building emulator image {image_tag}")
-
-        # Generate Dockerfile content
-        dockerfile_content = self._generate_emulator_dockerfile(emulator_binary_name)
-
-        # Write Dockerfile to temp location and build image
-        with NamedTemporaryFile(mode="w", suffix="_Dockerfile") as dockerfile:
-            dockerfile.write(dockerfile_content)
-            dockerfile.flush()
-
-            # Prepare tar paths for build context
-            tar_paths = {
-                dockerfile.name: "Dockerfile",
-                str(binary_path): emulator_binary_name,
-            }
-
-            # Use shared tar filter for Windows compatibility
-            tar_filter = get_tar_filter_for_windows()
-
-            # Build image using create_tarball utility
-            with create_tarball(tar_paths, tar_filter=tar_filter, dereference=True) as tarballfile:
-                try:
-                    self._docker_client.images.build(fileobj=tarballfile, custom_context=True, tag=image_tag, rm=True)
-                    LOG.info(f"Built emulator image {image_tag}")
-                    return image_tag
-                except Exception as e:
-                    raise ClickException(f"Failed to build emulator image: {e}")
-
     def _pull_image_if_needed(self):
         """Pull the emulator image if it doesn't exist locally or is out of date."""
         try:
@@ -290,12 +231,9 @@ class DurableFunctionsEmulatorContainer:
             emulator_data_dir: {"bind": "/tmp/.durable-executions-local", "mode": "rw"},
         }
 
-        # Build image with emulator binary
-        image_tag = self._build_emulator_image()
-
         LOG.debug(f"Creating container with name={self._container_name}, port={self.port}")
         self.container = self._docker_client.containers.create(
-            image=image_tag,
+            image=self._EMULATOR_IMAGE,
             command=[f"/usr/local/bin/{emulator_binary_name}", "--host", "0.0.0.0", "--port", str(self.port)],
             name=self._container_name,
             ports={f"{self.port}/tcp": self.port},
@@ -412,7 +350,8 @@ class DurableFunctionsEmulatorContainer:
             response.raise_for_status()
             return response.json()
         except Exception as e:
-            error_msg = f"Failed to start durable execution: {e}"
+            error_msg = (f"Failed to start durable execution: {e}."
+                         f"Consider updating your SAM CLI in case of Durable Functions Emulator container incompatibility issues.")
             if hasattr(e, "response") and e.response is not None:
                 error_msg += f" - Status: {e.response.status_code}, Response: {e.response.text}"
             LOG.error(error_msg)
@@ -426,7 +365,8 @@ class DurableFunctionsEmulatorContainer:
                 self.container.reload()
                 if self.container.status != "running":
                     raise RuntimeError(
-                        f"Durable Functions Emulator container exited with status: {self.container.status}"
+                        f"Durable Functions Emulator container exited with status: {self.container.status}."
+                        f"Consider updating your SAM CLI in case of Durable Functions Emulator container incompatibility issues."
                     )
 
                 response = requests.get(f"http://localhost:{self.port}/health", timeout=1)
@@ -435,7 +375,9 @@ class DurableFunctionsEmulatorContainer:
             except requests.exceptions.RequestException:
                 pass
             except Exception as e:
-                LOG.error(f"Durable Functions Emulator container encounters error during health check: {e}")
+                LOG.error(f"Durable Functions Emulator container encounters error during health check: {e}"
+                          f"Consider updating your SAM CLI in case of Durable Functions Emulator container incompatibility issues."
+                          )
                 break
 
             time.sleep(0.5)
@@ -447,4 +389,6 @@ class DurableFunctionsEmulatorContainer:
         except Exception:
             pass
 
-        raise RuntimeError(f"Durable Functions Emulator container failed to become ready within {timeout} seconds")
+        raise RuntimeError(f"Durable Functions Emulator container failed to become ready within {timeout} seconds"
+                           f"Consider updating your SAM CLI in case of Durable Functions Emulator container incompatibility issues."
+                           )
