@@ -128,14 +128,14 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegDotnetBase):
     def test_tier1_dotnet_build_in_container(self):
         """Single Dotnet container build test for cross-platform validation."""
         overrides = {
-            "Runtime": "dotnet10",
-            "CodeUri": "Dotnet10",
+            "Runtime": "dotnet8",
+            "CodeUri": "Dotnet8",
             "Handler": "HelloWorld::HelloWorld.Function::FunctionHandler",
             "Architectures": "x86_64",
         }
         self.validate_build_command(overrides, None, use_container=True)
         self.validate_build_artifacts(self.EXPECTED_FILES_PROJECT_MANIFEST)
-        self.validate_invoke_command(overrides, "dotnet10")
+        self.validate_invoke_command(overrides, "dotnet8")
 
 
 @pytest.mark.dotnet

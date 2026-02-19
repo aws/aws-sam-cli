@@ -68,6 +68,7 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture_arm64(BuildIn
         self._test_with_default_requirements(runtime, codeuri, use_container, self.test_data_path, architecture=ARM64)
 
     @pytest.mark.tier1
+    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_tier1_python_arm64_build(self):
         """Single Python ARM64 build test for cross-platform validation."""
         self._test_with_default_requirements("python3.11", "Python", False, self.test_data_path, architecture=ARM64)
@@ -95,6 +96,7 @@ class TestBuildCommand_EsbuildFunctions_arm64(BuildIntegEsbuildBase):
         self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, ARM64)
 
     @pytest.mark.tier1
+    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_tier1_node_arm64_build(self):
         """Single Node.js ARM64 build test for cross-platform validation."""
         self._test_with_default_package_json(
@@ -199,6 +201,7 @@ class TestBuildCommand_RubyFunctions_With_Architecture_arm64(BuildIntegRubyBase)
         self._test_with_default_gemfile(runtime, False, code_uri, self.test_data_path, ARM64)
 
     @pytest.mark.tier1
+    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_tier1_ruby_arm64_build(self):
         """Single Ruby ARM64 build test for cross-platform validation."""
         self._test_with_default_gemfile("ruby3.4", False, "Ruby34", self.test_data_path, ARM64)
@@ -547,6 +550,7 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
         )
 
     @pytest.mark.tier1
+    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_tier1_java_arm64_build(self):
         """Single Java ARM64 build test for cross-platform validation."""
         self._test_with_building_java(
@@ -632,6 +636,7 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture_arm64(Build
         self._test_with_Makefile(runtime, use_container, manifest, ARM64)
 
     @pytest.mark.tier1
+    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_tier1_provided_arm64_build(self):
         """Single Provided ARM64 build test for cross-platform validation."""
         self._test_with_Makefile("provided.al2023", False, None, ARM64)
@@ -665,6 +670,7 @@ class TestBuildCommand_Rust_arm64(BuildIntegRustBase):
         )
 
     @pytest.mark.tier1
+    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_tier1_rust_arm64_build(self):
         """Single Rust ARM64 build test for cross-platform validation."""
         self._test_with_rust_cargo_lambda(
