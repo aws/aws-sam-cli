@@ -210,8 +210,7 @@ jobs:
             "build-x86-1")
               pytest -vv -n 2 --reruns 3 -m "not requires_credential" \
                 tests/integration/buildcmd/test_build_cmd.py \
-                tests/integration/buildcmd/test_build_cmd_java.py \
-                tests/integration/buildcmd/test_build_cmd_node.py \
+                tests/integration/buildcmd/test_build_cmd_python.py \
                 tests/integration/buildcmd/test_build_in_source.py \
                 tests/integration/buildcmd/test_build_samconfig.py \
                 -k "not container" \
@@ -221,8 +220,7 @@ jobs:
               pytest -vv -n 2 --reruns 3 -m "not requires_credential" \
                 tests/integration/buildcmd \
                 --ignore=tests/integration/buildcmd/test_build_cmd.py \
-                --ignore=tests/integration/buildcmd/test_build_cmd_java.py \
-                --ignore=tests/integration/buildcmd/test_build_cmd_node.py \
+                --ignore=tests/integration/buildcmd/test_build_cmd_python.py \
                 --ignore=tests/integration/buildcmd/test_build_in_source.py \
                 --ignore=tests/integration/buildcmd/test_build_samconfig.py \
                 --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py \
@@ -296,15 +294,15 @@ jobs:
                 --dist=loadgroup -n 4 --reruns 4 \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
-            "sync-code")
-              pytest -vv tests/integration/sync -n 4 --reruns 3 --dist loadscope \
-                --ignore=tests/integration/sync/test_sync_watch.py \
+            "sync-watch")
+              pytest -vv tests/integration/sync -n 4 --reruns 3 \
+                --ignore=tests/integration/sync/test_sync_code.py \
                 --ignore=tests/integration/sync/test_sync_infra.py \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
-            "sync-watch")
-              pytest -vv -n 4 --reruns 3 \
-                tests/integration/sync/test_sync_watch.py \
+            "sync-code")
+              pytest -vv -n 4 --reruns 3 --dist loadscope \
+                tests/integration/sync/test_sync_code.py \
                 tests/integration/sync/test_sync_infra.py \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
