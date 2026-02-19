@@ -39,6 +39,20 @@ def _get_registry_position(registry_name):
 class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
     @pytest.mark.timeout(300)
     def test_init_interactive_with_event_bridge_app_aws_registry(self):
+        # WHEN the user follows interactive init prompts
+        # 1: AWS Quick Start Templates
+        # 8: Infrastructure event management - Use case
+        # 4: Java Runtime
+        # 2: Maven
+        # 2: select event-bridge app from scratch
+        # N: disable adding xray tracing
+        # N: disable cloudwatch insights
+        # N: disable structured logging
+        # eb-app-maven: response to name
+        # Y: Use default aws configuration
+        # 1: select schema from cli_paginator
+        # {aws_registry_pos}: select aws.events as registries (dynamic position)
+        # 9: select schema AWSAPICallViaCloudTrail
         aws_registry_pos = _get_registry_position("aws.events")
         user_input = f"""
 1
@@ -69,6 +83,19 @@ Y
 
     @pytest.mark.timeout(300)
     def test_init_interactive_with_event_bridge_app_partner_registry(self):
+        # WHEN the user follows interactive init prompts
+        # 1: AWS Quick Start Templates
+        # 8: Infrastructure event management - Use case
+        # 4: Java Runtime
+        # 2: Maven
+        # 2: select event-bridge app from scratch
+        # N: disable adding xray tracing
+        # N: disable cloudwatch insights
+        # N: disable structured logging
+        # eb-app-maven: response to name
+        # Y: Use default aws configuration
+        # {partner_registry_pos}: partner registry (dynamic position)
+        # 1: select aws schema
         partner_registry_pos = _get_registry_position("partner-registry")
         user_input = f"""
 1
@@ -110,6 +137,21 @@ Y
 
     @pytest.mark.timeout(300)
     def test_init_interactive_with_event_bridge_app_pagination(self):
+        # WHEN the user follows interactive init prompts
+        # 1: AWS Quick Start Templates
+        # 8: Infrastructure event management - Use case
+        # 4: Java Runtime
+        # 2: Maven
+        # 2: select event-bridge app from scratch
+        # N: disable adding xray tracing
+        # N: disable cloudwatch insights
+        # N: disable structured logging
+        # eb-app-maven: response to name
+        # Y: Use default aws configuration
+        # {pagination_registry_pos}: select pagination-registry (dynamic position)
+        # N: Go to next page
+        # P: Go to previous page
+        # 2: select 2nd schema
         pagination_registry_pos = _get_registry_position("test-pagination")
         user_input = f"""
 1
@@ -142,6 +184,19 @@ P
 
     @pytest.mark.timeout(300)
     def test_init_interactive_with_event_bridge_app_customer_registry(self):
+        # WHEN the user follows interactive init prompts
+        # 1: AWS Quick Start Templates
+        # 8: Infrastructure event management - Use case
+        # 4: Java Runtime
+        # 2: Maven
+        # 2: select event-bridge app from scratch
+        # N: disable adding xray tracing
+        # N: disable cloudwatch insights
+        # N: disable structured logging
+        # eb-app-maven: response to name
+        # Y: Use default aws configuration
+        # {other_schema_pos}: select other-schema registry (dynamic position)
+        # 1: select 1st schema
         other_schema_pos = _get_registry_position("other-schema")
         user_input = f"""
 1
@@ -183,6 +238,19 @@ Y
 
     @pytest.mark.timeout(300)
     def test_init_interactive_with_event_bridge_app_aws_schemas_python(self):
+        # WHEN the user follows interactive init prompts
+        # 1: AWS Quick Start Templates
+        # 8: Infrastructure event management - Use case
+        # 8: Python 3.9
+        # 2: select event-bridge app from scratch
+        # N: disable adding xray tracing
+        # N: disable cloudwatch insights
+        # N: disable structured logging
+        # eb-app-python39: response to name
+        # Y: Use default aws configuration
+        # 1: select schema from cli_paginator
+        # {aws_registry_pos}: select aws.events as registries (dynamic position)
+        # 1: select aws schema
         aws_registry_pos = _get_registry_position("aws.events")
         user_input = f"""
 1

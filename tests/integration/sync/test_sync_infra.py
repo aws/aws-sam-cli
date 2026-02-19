@@ -145,33 +145,29 @@ class TestSyncInfra(SyncIntegBase):
         else:
             self._verify_infra_changes(self.stack_resources)
 
-    @pytest.mark.tier1
-    @pytest.mark.flaky(reruns=3)
-    def test_tier1_sync_infra(self):
-        """Single sync infra test for cross-platform validation."""
-        if IS_WINDOWS:
-            self.skipTest("Skip sync ruby tests in windows")
-        runtime = "python"
-        use_container = False
+    def _do_sync_infra_create(self, runtime, use_container):
+        """Helper: run sync infra create (first half of test_sync_infra)."""
         template_before = f"infra/template-{runtime}-before.yaml"
         template_path = str(self.test_data_path.joinpath(template_before))
         stack_name = self._method_to_stack_name(self.id())
         self.stacks.append({"name": stack_name})
         sync_command_list = self.get_sync_command_list(
-            template_file=template_path,
-            code=False,
-            watch=False,
-            dependency_layer=self.dependency_layer,
-            stack_name=stack_name,
-            parameter_overrides=self.parameter_overrides,
-            image_repository=self.ecr_repo_name,
-            s3_prefix=self.s3_prefix,
-            kms_key_id=self.kms_key,
-            tags="integ=true clarity=yes foo_bar=baz",
-            use_container=use_container,
+            template_file=template_path, code=False, watch=False,
+            dependency_layer=self.dependency_layer, stack_name=stack_name,
+            parameter_overrides=self.parameter_overrides, image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix, kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz", use_container=use_container,
         )
         sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
         self.assertEqual(sync_process_execute.process.returncode, 0)
+
+    @pytest.mark.tier1
+    @pytest.mark.flaky(reruns=3)
+    def test_tier1_sync_infra(self):
+        """Single sync infra test for cross-platform validation."""
+        if IS_WINDOWS:
+            self.skipTest("Skip sync tests in windows")
+        self._do_sync_infra_create("python", False)
 
     @parameterized.expand([["python", False], ["python", True]])
     @pytest.mark.flaky(reruns=3)

@@ -33,6 +33,9 @@ class TestInvokeDurable(DurableIntegBase, InvokeIntegBase):
     )
     def test_local_invoke_durable_function(self, example):
         """Test durable function invocation."""
+        self._do_durable_invoke_test(example)
+
+    def _do_durable_invoke_test(self, example):
         execution_name = f"{example.function_name.lower()}-integration-test"
         command_list = self.get_invoke_command_list(
             example.function_name, no_event=True, durable_execution_name=execution_name
@@ -59,21 +62,7 @@ class TestInvokeDurable(DurableIntegBase, InvokeIntegBase):
     @pytest.mark.tier1
     def test_tier1_durable_invoke(self):
         """Single durable function test for cross-platform validation."""
-        example = DurableFunctionExamples.HELLO_WORLD
-        execution_name = f"{example.function_name.lower()}-integration-test"
-        command_list = self.get_invoke_command_list(
-            example.function_name, no_event=True, durable_execution_name=execution_name
-        )
-        stdout, stderr, invoke_return_code = self.run_command_with_logging(
-            command_list, f"test_tier1_durable_invoke_{example.function_name}"
-        )
-        self.assertEqual(invoke_return_code, 0)
-        execution_arn = self.assert_invoke_output(stdout, input_data={}, execution_name=execution_name)
-        if not example.skip_history_assertions:
-            history_command = self.get_execution_history_command_list(execution_arn)
-            history_stdout, _, history_return_code = self.run_command(history_command)
-            self.assertEqual(history_return_code, 0)
-            self.assert_execution_history(json.loads(history_stdout), example)
+        self._do_durable_invoke_test(DurableFunctionExamples.HELLO_WORLD)
 
     def test_local_invoke_durable_function_timeout(self):
         """Test durable function execution timeout with 30-second wait and 5-second timeout."""

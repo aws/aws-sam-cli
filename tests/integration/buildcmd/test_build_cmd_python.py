@@ -322,13 +322,6 @@ class TestBuildCommand_PythonFunctions_WithoutDocker(BuildIntegPythonBase):
             beta_features=(self.template == "template_uv.yaml"),
         )
 
-    @pytest.mark.tier1
-    def test_tier1_python_build(self):
-        """Single Python non-container build test for cross-platform validation."""
-        if self.runtime != "python3.11" or self.template != "template.yaml" or self.codeuri != "Python":
-            self.skipTest("Tier1: only run for python3.11/template.yaml/Python")
-        self._test_with_default_requirements("python3.11", "Python", False, self.test_data_path)
-
 
 @parameterized_class(
     ("template", "prop"),
@@ -426,6 +419,7 @@ class TestBuildCommand_PythonFunctions_WithDocker(BuildIntegPythonBase):
             # ("python3.11", "PythonPyProject", "template_uv.yaml"),
         ]
     )
+    @pytest.mark.tier1
     def test_with_default_requirements_in_container(self, runtime, codeuri, template="template.yaml"):
         self._test_with_default_requirements(
             runtime,
@@ -452,7 +446,7 @@ class TestBuildCommand_PythonFunctions_WithDocker(BuildIntegPythonBase):
             # ("python3.14", "PythonPyProject", "template_uv.yaml"),
         ]
     )
-    @pytest.mark.al2023
+    @pytest.mark.tier1
     def test_with_default_requirements_al2023_in_container(self, runtime, codeuri, template="template.yaml"):
         self._test_with_default_requirements(
             runtime,
@@ -464,11 +458,6 @@ class TestBuildCommand_PythonFunctions_WithDocker(BuildIntegPythonBase):
             check_function_only=self.check_function_only,
             beta_features=(template == "template_uv.yaml"),
         )
-
-    @pytest.mark.tier1
-    def test_tier1_python_build_in_container(self):
-        """Single Python container build test for cross-platform validation."""
-        self._test_with_default_requirements("python3.11", "Python", self.use_container, self.test_data_path)
 
 
 @skipIf(

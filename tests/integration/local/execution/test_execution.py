@@ -29,6 +29,9 @@ class TestLocalExecution(DurableIntegBase, InvokeIntegBase):
     )
     def test_execution_nonexistent_execution(self, command, operation_name):
         """Test execution command when execution does not exist."""
+        self._do_execution_nonexistent_test(command, operation_name)
+
+    def _do_execution_nonexistent_test(self, command, operation_name):
         nonexistent_arn = "00000000-0000-0000-0000-000000000000"
         command_list = [self.cmd, "local", "execution", command, nonexistent_arn]
 
@@ -67,10 +70,4 @@ class TestLocalExecution(DurableIntegBase, InvokeIntegBase):
     @pytest.mark.tier1
     def test_tier1_execution(self):
         """Single execution test for cross-platform validation."""
-        nonexistent_arn = "00000000-0000-0000-0000-000000000000"
-        command_list = [self.cmd, "local", "execution", "get", nonexistent_arn]
-        result = run_command(command_list)
-        self.assertNotEqual(result.process.returncode, 0)
-        stderr_str = result.stderr.decode("utf-8") if isinstance(result.stderr, bytes) else result.stderr
-        expected_message = f"Error: An error occurred (404) when calling the GetDurableExecution operation: Execution {nonexistent_arn} not found\n"
-        self.assertEqual(stderr_str, expected_message)
+        self._do_execution_nonexistent_test("get", "GetDurableExecution")

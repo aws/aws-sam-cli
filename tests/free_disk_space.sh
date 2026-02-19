@@ -4,7 +4,7 @@
 set -e
 
 echo "=== Disk usage before cleanup ==="
-df -h /
+df -h
 
 FREE_GB=$(df -BG / | awk 'NR==2 {gsub("G",""); print $4}')
 echo "Free disk space: ${FREE_GB}GB"
