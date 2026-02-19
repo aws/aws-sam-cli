@@ -5,6 +5,7 @@ Integration test cases for `sam build` for Rust (cargo-lambda)
 import logging
 from unittest import skipIf
 
+import pytest
 from parameterized import parameterized
 
 from tests.testing_utils import (
