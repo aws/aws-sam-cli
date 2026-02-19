@@ -364,7 +364,7 @@ jobs:
           aws-region: us-east-1
 
       - name: Assume test reporting role
-        if: always() && secrets.TESTREPORTING_ARN != ''
+        if: always()
         uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ secrets.TESTREPORTING_ARN }}
