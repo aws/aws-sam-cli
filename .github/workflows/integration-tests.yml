@@ -206,6 +206,7 @@ jobs:
             "build-x86-1")
               pytest -vv -n 2 --reruns 3 -m "not requires_credential" \
                 tests/integration/buildcmd/test_build_cmd.py \
+                tests/integration/buildcmd/test_build_cmd_java.py \
                 tests/integration/buildcmd/test_build_in_source.py \
                 tests/integration/buildcmd/test_build_samconfig.py \
                 -k "not container" \
@@ -215,6 +216,7 @@ jobs:
               pytest -vv -n 2 --reruns 3 -m "not requires_credential" \
                 tests/integration/buildcmd \
                 --ignore=tests/integration/buildcmd/test_build_cmd.py \
+                --ignore=tests/integration/buildcmd/test_build_cmd_java.py \
                 --ignore=tests/integration/buildcmd/test_build_in_source.py \
                 --ignore=tests/integration/buildcmd/test_build_samconfig.py \
                 --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py \
@@ -291,10 +293,13 @@ jobs:
             "sync-code")
               pytest -vv tests/integration/sync -n 4 --reruns 3 --dist loadscope \
                 --ignore=tests/integration/sync/test_sync_watch.py \
+                --ignore=tests/integration/sync/test_sync_build_in_source.py \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "sync-watch")
-              pytest -vv tests/integration/sync/test_sync_watch.py -n 4 --reruns 3 \
+              pytest -vv --reruns 3 \
+                tests/integration/sync/test_sync_watch.py \
+                tests/integration/sync/test_sync_build_in_source.py \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "local-invoke")
