@@ -60,7 +60,9 @@ from samcli.lib.utils.resources import (
 )
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker.container import ContainerContext
-from samcli.local.docker.exceptions import ContainerArchiveImageLoadFailedException
+from samcli.local.docker.container_client import ContainerClient
+from samcli.local.docker.exceptions import BuildkitNotAvailableException, ContainerArchiveImageLoadFailedException
+from samcli.local.docker.image_build_client import CLIBuildClient, ImageBuildClient, SDKBuildClient
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from samcli.local.docker.manager import ContainerManager, DockerImagePullFailedException
 from samcli.local.docker.utils import (
@@ -106,7 +108,7 @@ class ApplicationBuilder:
         parallel: bool = False,
         mode: Optional[str] = None,
         stream_writer: Optional[StreamWriter] = None,
-        docker_client: Optional[docker.DockerClient] = None,
+        container_client: Optional[ContainerClient] = None,
         container_env_var: Optional[Dict] = None,
         container_env_var_file: Optional[str] = None,
         build_images: Optional[Dict] = None,
@@ -114,6 +116,7 @@ class ApplicationBuilder:
         build_in_source: Optional[bool] = None,
         mount_with_write: bool = False,
         mount_symlinks: Optional[bool] = False,
+        use_buildkit: Optional[bool] = False,
     ) -> None:
         """
         Initialize the class
@@ -144,8 +147,8 @@ class ApplicationBuilder:
             Optional, name of the build mode to use ex: 'debug'
         stream_writer : Optional[StreamWriter]
             An optional stream writer to accept stderr output
-        docker_client : Optional[docker.DockerClient]
-            An optional Docker client object to replace the default one loaded from env
+        container_client : Optional[ContainerClient]
+            An optional container client object to replace the default one loaded from env
         container_env_var : Optional[Dict]
             An optional dictionary of environment variables to pass to the container
         container_env_var_file : Optional[str]
@@ -161,6 +164,8 @@ class ApplicationBuilder:
             Mount source code directory with write permissions when building inside container.
         mount_symlinks: Optional[bool]
             True if symlinks should be mounted in the container.
+        use_buildkit: Optional[bool]
+            Optional flag for building Image functions with buildkit support.
         """
         self._resources_to_build = resources_to_build
         self._build_dir = build_dir
@@ -175,11 +180,12 @@ class ApplicationBuilder:
         self._mode = mode
         self._stream_writer = stream_writer if stream_writer else StreamWriter(stream=osutils.stderr(), auto_flush=True)
 
-        # Store docker_client parameter for lazy initialization
-        # Only validate container runtime when Docker client is actually accessed
+        # Store container_client parameter for lazy initialization
+        # Only validate container runtime when container client is actually accessed
         # This prevents unnecessary validation for builds that don't require containers
-        self._docker_client_param = docker_client
-        self._validated_docker_client: Optional[docker.DockerClient] = None
+        # NOTE: It seems like at this point container_client is only ever passed in the tests for mocking.
+        self._container_client_param = container_client
+        self._validated_container_client: Optional[ContainerClient] = None
 
         self._deprecated_runtimes = DEPRECATED_RUNTIMES
         self._colored = Colored()
@@ -190,16 +196,18 @@ class ApplicationBuilder:
         self._build_in_source = build_in_source
         self._mount_with_write = mount_with_write
         self._mount_symlinks = mount_symlinks
+        self._use_buildkit = use_buildkit
+        self._image_build_client: Optional[ImageBuildClient] = None
 
     @property
-    def _docker_client(self) -> docker.DockerClient:
+    def _container_client(self) -> ContainerClient:
         """
-        Lazy initialization of Docker client. Only validates container runtime when actually accessed.
+        Lazy initialization of container client. Only validates container runtime when actually accessed.
         This prevents unnecessary container runtime validation for builds that don't require containers.
         """
-        if self._validated_docker_client is None:
-            self._validated_docker_client = self._docker_client_param or get_validated_container_client()
-        return self._validated_docker_client
+        if self._validated_container_client is None:
+            self._validated_container_client = self._container_client_param or get_validated_container_client()
+        return self._validated_container_client
 
     def build(self) -> ApplicationBuildResult:
         """
@@ -453,14 +461,28 @@ class ApplicationBuilder:
             build_args["target"] = cast(str, docker_build_target)
 
         try:
-            (build_image, build_logs) = self._docker_client.images.build(**build_args)
-            LOG.debug("%s image is built for %s function", build_image, function_name)
+            if not self._image_build_client:
+                if self._use_buildkit:
+                    container_client = self._container_client
+                    engine_type = container_client.get_runtime_type()
+
+                    is_available, error_msg = CLIBuildClient.is_available(engine_type)
+                    if not is_available:
+                        raise BuildkitNotAvailableException(error_msg)
+
+                    self._image_build_client = CLIBuildClient(engine_type=engine_type)
+                    LOG.debug(f"Using CLIBuildClient with engine_type {engine_type}")
+                else:
+                    self._image_build_client = SDKBuildClient(self._container_client)
+                    LOG.debug("Using SDKBuildClient")
+            build_logs = self._image_build_client.build_image(**build_args)  # type: ignore[arg-type]
+            LOG.debug(f"Image built for {function_name} function")
         except docker.errors.BuildError as ex:
             LOG.error("Failed building function %s", function_name)
             self._stream_lambda_image_build_logs(ex.build_log, function_name, False)
             raise DockerBuildFailed(str(ex)) from ex
         except docker.errors.APIError as e:
-            if self._docker_client.is_dockerfile_error(e):
+            if self._container_client.is_dockerfile_error(e):
                 raise DockerfileOutSideOfContext(e.explanation) from e
 
             # Re-raise other API errors
@@ -469,9 +491,9 @@ class ApplicationBuilder:
         # The Docker-py low level api will stream logs back but if an exception is raised by the api
         # this is raised when accessing the generator. So we need to wrap accessing build_logs in a try: except.
         try:
-            self._stream_lambda_image_build_logs(build_logs, function_name)
+            self._stream_lambda_image_build_logs(build_logs, function_name)  # type: ignore[arg-type]
         except docker.errors.APIError as e:
-            if self._docker_client.is_dockerfile_error(e):
+            if self._container_client.is_dockerfile_error(e):
                 raise DockerfileOutSideOfContext(e.explanation) from e
 
             # Not sure what else can be raise that we should be catching but re-raising for now
@@ -501,7 +523,7 @@ class ApplicationBuilder:
     def _load_lambda_image(self, image_archive_path: str) -> str:
         try:
             with open(image_archive_path, mode="rb") as image_archive:
-                image = self._docker_client.load_image_from_archive(image_archive)
+                image = self._container_client.load_image_from_archive(image_archive)
                 return f"{image.id}"
         except (docker.errors.APIError, OSError, ContainerArchiveImageLoadFailedException) as ex:
             raise DockerBuildFailed(msg=str(ex)) from ex

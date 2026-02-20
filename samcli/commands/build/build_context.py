@@ -83,6 +83,7 @@ class BuildContext:
         build_in_source: Optional[bool] = None,
         mount_with: str = MountMode.READ.value,
         mount_symlinks: Optional[bool] = False,
+        use_buildkit: Optional[bool] = False,
     ) -> None:
         """
         Initialize the class
@@ -142,6 +143,8 @@ class BuildContext:
             Mount mode of source code directory when building inside container, READ ONLY by default
         mount_symlinks Optional[bool]:
             Indicates if symlinks should be mounted inside the container
+        use_buildkit Optional[bool]:
+            Enable buildkit for container image builds
         """
 
         self._resource_identifier = resource_identifier
@@ -184,6 +187,7 @@ class BuildContext:
         self._build_result: Optional[ApplicationBuildResult] = None
         self._mount_with = MountMode(mount_with)
         self._mount_symlinks = mount_symlinks
+        self._use_buildkit = use_buildkit
 
     def __enter__(self) -> "BuildContext":
         self.set_up()
@@ -278,6 +282,7 @@ class BuildContext:
                 build_in_source=self._build_in_source,
                 mount_with_write=mount_with_write,
                 mount_symlinks=self._mount_symlinks,
+                use_buildkit=self._use_buildkit,
             )
 
             self._check_exclude_warning()
