@@ -118,6 +118,7 @@ class TestCLIBuildClient(TestCase):
             "image:latest",
             "--provenance=false",
             "--sbom=false",
+            "--load",
             "--platform",
             "linux/amd64",
             "--build-arg",
@@ -199,7 +200,7 @@ class TestCLIBuildClient(TestCase):
             list(self.docker_client.build_image(**self.base_build_args))
 
         self.assertIn("Build failed with exit code 1", str(context.exception))
-        self.assertEqual(context.exception.build_log, "Step 1/5\nError: build failed\n")
+        self.assertEqual(context.exception.build_log, [{"stream": "Step 1/5\n"}, {"stream": "Error: build failed\n"}])
 
     @patch("samcli.local.docker.image_build_client.shutil.which")
     @patch("samcli.local.docker.image_build_client.subprocess.run")

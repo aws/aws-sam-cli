@@ -476,7 +476,7 @@ class ApplicationBuilder:
                     self._image_build_client = SDKBuildClient(self._container_client)
                     LOG.debug("Using SDKBuildClient")
             build_logs = self._image_build_client.build_image(**build_args)  # type: ignore[arg-type]
-            LOG.debug(f"Image build for {function_name} function")
+            LOG.debug(f"Image built for {function_name} function")
         except docker.errors.BuildError as ex:
             LOG.error("Failed building function %s", function_name)
             self._stream_lambda_image_build_logs(ex.build_log, function_name, False)
