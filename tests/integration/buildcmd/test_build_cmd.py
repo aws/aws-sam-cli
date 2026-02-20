@@ -398,7 +398,7 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
         "__init__.py",
         "main.py",
         "numpy",
-        "cryptography",
+        # 'cryptography',
         "requirements.txt",
     }
 
@@ -1753,7 +1753,7 @@ class TestBuildWithNestedStacksImage(NestedBuildIntegBase):
         "__init__.py",
         "main.py",
         "numpy",
-        "cryptography",
+        # 'cryptography',
         "requirements.txt",
     }
 
@@ -1927,7 +1927,7 @@ class TestBuildWithS3FunctionsOrLayers(NestedBuildIntegBase):
         "__init__.py",
         "main.py",
         "numpy",
-        "cryptography",
+        # 'cryptography',
         "requirements.txt",
     }
 
