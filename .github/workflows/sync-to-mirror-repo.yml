@@ -12,7 +12,7 @@ jobs:
     if: github.repository != 'aws/aws-sam-cli' # Only run in mirror repo
     steps:
       - name: Checkout public repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: aws/aws-sam-cli
           ref: develop
