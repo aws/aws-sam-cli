@@ -14,6 +14,8 @@ from parameterized import parameterized, parameterized_class
 
 from samcli.lib.utils import osutils
 from samcli.local.docker.utils import get_validated_container_client
+from samcli.local.docker.image_build_client import CLIBuildClient
+from samcli.local.docker.container_client_factory import ContainerClientFactory
 from samcli.yamlhelper import yaml_parse
 from tests.testing_utils import (
     IS_WINDOWS,
@@ -1877,6 +1879,50 @@ class TestBuildWithCustomBuildImage(BuildIntegBase):
 
         build_dir_files = os.listdir(str(build_dir))
         self.assertIn("BuildImageFunction", build_dir_files)
+
+
+@skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
+class TestBuildImageWithBuildkit(BuildIntegBase):
+    """Test building image functions with buildkit"""
+
+    template = "template_image.yaml"
+    function_logical_id = "ImageFunction"
+
+    def test_build_image_function_with_buildkit(self):
+        client = ContainerClientFactory.create_client()
+        is_available, error_msg = CLIBuildClient.is_available(client.get_runtime_type())
+
+        if not is_available:
+            self.skipTest(f"Buildkit not available: {error_msg}")
+
+        tag = uuid4().hex
+        overrides = {
+            "Runtime": "3.12",
+            "Handler": "main.handler",
+            "DockerFile": "Dockerfile",
+            "Tag": tag,
+        }
+        cmdlist = self.get_command_list(parameter_overrides=overrides, use_buildkit=True)
+
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
+
+        # Verify image was built
+        self._verify_image_build_artifact(
+            self.built_template,
+            self.function_logical_id,
+            "ImageUri",
+            f"{self.function_logical_id.lower()}:{tag}",
+        )
+
+        # Verify image works
+        expected = {"pi": "3.14"}
+        self._verify_invoke_built_function(
+            self.built_template,
+            self.function_logical_id,
+            self._make_parameter_override_arg(overrides),
+            expected,
+        )
 
 
 @parameterized_class(
