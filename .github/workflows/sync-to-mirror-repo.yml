@@ -1,0 +1,24 @@
+name: "Sync to Mirror Repo"
+
+on:
+  schedule:
+    # Run twice daily at 3am and 3pm PST
+    - cron: '0 11,23 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  sync-from-public:
+    runs-on: ubuntu-latest
+    if: github.repository != 'aws/aws-sam-cli' # Only run in mirror repo
+    steps:
+      - name: Checkout public repo
+        uses: actions/checkout@v6
+        with:
+          repository: aws/aws-sam-cli
+          ref: develop
+          fetch-depth: 0
+
+      - name: Push to mirror repo
+        run: |
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+          git push origin develop:develop --force-with-lease
