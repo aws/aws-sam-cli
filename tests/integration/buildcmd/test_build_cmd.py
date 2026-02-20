@@ -531,7 +531,9 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
     def test_build_single_layer(self, runtime, use_container, layer_identifier, content_property):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
+        self._do_build_single_layer(runtime, use_container, layer_identifier, content_property)
 
+    def _do_build_single_layer(self, runtime, use_container, layer_identifier, content_property):
         overrides = {"LayerBuildMethod": runtime, "LayerContentUri": "PyLayer"}
         cmdlist = self.get_command_list(
             use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
@@ -817,19 +819,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
     @pytest.mark.tier1_extra
     def test_tier1_layer_build(self):
         """Single layer build test for cross-platform validation."""
-        overrides = {"LayerBuildMethod": "python3.12", "LayerContentUri": "PyLayer"}
-        cmdlist = self.get_command_list(
-            use_container=False, parameter_overrides=overrides, function_identifier="LayerOne"
-        )
-        command_result = run_command(cmdlist, cwd=self.working_dir)
-        self.assertEqual(command_result.process.returncode, 0)
-        self._verify_built_artifact(
-            self.default_build_dir,
-            "LayerOne",
-            self.EXPECTED_LAYERS_FILES_PROJECT_MANIFEST,
-            "ContentUri",
-            "python",
-        )
+        self._do_build_single_layer("python3.12", False, "LayerOne", "ContentUri")
 
     def _verify_built_artifact(
         self, build_dir, resource_logical_id, expected_files, code_property_name, artifact_subfolder=""

@@ -446,7 +446,7 @@ class TestBuildCommand_PythonFunctions_WithDocker(BuildIntegPythonBase):
             # ("python3.14", "PythonPyProject", "template_uv.yaml"),
         ]
     )
-    @pytest.mark.tier1
+    @pytest.mark.al2023
     def test_with_default_requirements_al2023_in_container(self, runtime, codeuri, template="template.yaml"):
         self._test_with_default_requirements(
             runtime,

@@ -24,6 +24,7 @@ class TestInvokeDurable(DurableIntegBase, InvokeIntegBase):
 
     @parameterized.expand(
         [
+            (DurableFunctionExamples.HELLO_WORLD,),
             (DurableFunctionExamples.NAMED_STEP,),
             (DurableFunctionExamples.NAMED_WAIT,),
             (DurableFunctionExamples.MAP_OPERATIONS,),
@@ -59,7 +60,7 @@ class TestInvokeDurable(DurableIntegBase, InvokeIntegBase):
             # Assert the execution history matches the expected history
             self.assert_execution_history(json.loads(history_stdout), example)
 
-    @pytest.mark.tier1
+    @pytest.mark.tier1_extra
     def test_tier1_durable_invoke(self):
         """Single durable function test for cross-platform validation."""
         self._do_durable_invoke_test(DurableFunctionExamples.HELLO_WORLD)

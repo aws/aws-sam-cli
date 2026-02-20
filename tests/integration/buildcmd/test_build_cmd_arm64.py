@@ -627,6 +627,11 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture_arm64(Build
                 None,
             ),
             (
+                "provided.al2023",
+                False,
+                None,
+            ),
+            (
                 "provided",
                 "use_container",
                 "Makefile-container",
@@ -648,11 +653,6 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture_arm64(Build
 
     @parameterized.expand(
         [
-            (
-                "provided.al2023",
-                False,
-                None,
-            ),
             (
                 "provided.al2023",
                 "use_container",

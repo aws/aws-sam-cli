@@ -67,12 +67,12 @@ class TestSyncInfra(SyncIntegBase):
         IS_WINDOWS,
         "Skip sync ruby tests in windows",
     )
-    @parameterized.expand([["ruby", False], ["python", False]])
+    @parameterized.expand([["ruby", False], ["python", False], ["python", True]])
     @pytest.mark.flaky(reruns=3)
     def test_sync_infra(self, runtime, use_container):
         self._do_sync_infra(runtime, use_container)
 
-    @pytest.mark.tier1
+    @pytest.mark.tier1_extra
     @pytest.mark.flaky(reruns=3)
     def test_tier1_sync_infra(self):
         """Single sync infra test for cross-platform validation."""

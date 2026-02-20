@@ -335,6 +335,13 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
                 BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
+            (
+                "java25",
+                "25",
+                BuildIntegJavaBase.USING_MAVEN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
+            ),
         ]
     )
     def test_building_java_in_process(self, runtime, runtime_version, code_path, expected_files, expected_dependencies):
@@ -347,7 +354,7 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
             self.test_data_path,
         )
 
-    @pytest.mark.tier1
+    @pytest.mark.tier1_extra
     def test_tier1_java_build(self):
         """Single Java build test for cross-platform validation."""
         self._test_with_building_java(
@@ -359,7 +366,7 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
             self.test_data_path,
         )
 
-    @pytest.mark.tier1
+    @pytest.mark.tier1_extra
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_tier1_java_build_in_container(self):
         """Single Java container build test for cross-platform validation."""
