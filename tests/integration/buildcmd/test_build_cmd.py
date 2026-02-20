@@ -521,6 +521,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
 
     @parameterized.expand(
         [
+            ("python3.12", False, "LayerOne", "ContentUri"),
             ("python3.12", "use_container", "LayerOne", "ContentUri"),
             ("python3.12", False, "LambdaLayerOne", "Content"),
             ("python3.12", "use_container", "LambdaLayerOne", "Content"),
@@ -813,7 +814,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             self.verify_docker_container_cleanedup(runtime)
             self.verify_pulled_image(runtime)
 
-    @pytest.mark.tier1
+    @pytest.mark.tier1_extra
     def test_tier1_layer_build(self):
         """Single layer build test for cross-platform validation."""
         overrides = {"LayerBuildMethod": "python3.12", "LayerContentUri": "PyLayer"}

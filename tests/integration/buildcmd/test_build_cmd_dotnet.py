@@ -87,8 +87,10 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegDotnetBase):
     @parameterized.expand(
         [
             ("dotnet8", "Dotnet8", None, None),
+            ("dotnet8", "Dotnet8", None, MountMode.WRITE),
             ("dotnet8", "Dotnet8", "debug", None),
             ("dotnet8", "Dotnet8", "debug", MountMode.WRITE),
+            ("dotnet10", "Dotnet10", None, None),
             ("dotnet10", "Dotnet10", None, MountMode.WRITE),
             ("dotnet10", "Dotnet10", "debug", None),
             ("dotnet10", "Dotnet10", "debug", MountMode.WRITE),
@@ -108,7 +110,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegDotnetBase):
         self.validate_build_artifacts(self.EXPECTED_FILES_PROJECT_MANIFEST)
         self.validate_invoke_command(overrides, runtime)
 
-    @pytest.mark.tier1
+    @pytest.mark.tier1_extra
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_tier1_dotnet_build(self):
         """Single Dotnet build test for cross-platform validation."""
@@ -122,7 +124,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegDotnetBase):
         self.validate_build_artifacts(self.EXPECTED_FILES_PROJECT_MANIFEST)
         self.validate_invoke_command(overrides, "dotnet10")
 
-    @pytest.mark.tier1
+    @pytest.mark.tier1_extra
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_tier1_dotnet_build_in_container(self):
         """Single Dotnet container build test for cross-platform validation."""

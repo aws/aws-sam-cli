@@ -93,7 +93,12 @@ If you write a new base class that manages Docker containers, follow the same pa
 
 A curated subset of ~50 tests marked with `@pytest.mark.tier1` runs on every OS/container-runtime combination (e.g. Linux+Finch). These validate platform-specific code paths: file system operations, container runtime interaction, process spawning, and network operations.
 
-Run locally with: `pytest -m tier1 tests/integration tests/regression`
+There are two markers:
+
+- `tier1` — standalone tests that don't duplicate any parameterized entry (e.g. a dedicated `test_tier1_*` method calling unique logic)
+- `tier1_extra` — dedicated `test_tier1_*` methods whose parameter set already exists in a `@parameterized.expand` list on the same class. These are excluded from normal Linux+Docker CI (via `-m "not tier1_extra"`) to avoid running the same test twice, but included in the tier1 Finch job (via `-m "tier1 or tier1_extra"`).
+
+Run locally with: `pytest -m "tier1 or tier1_extra" tests/integration tests/regression`
 
 To add a tier 1 test for a new feature:
 
@@ -112,11 +117,11 @@ def test_tier1_my_feature_in_container(self):
     self._test_my_feature("runtime_x", use_container=True)
 ```
 
-2. Remove the matching parameter from the `@parameterized.expand` list to avoid running it twice in the Linux+Docker CI.
+2. If the parameter set already exists in a `@parameterized.expand` list, keep it in the original list and use `@pytest.mark.tier1_extra` instead of `@pytest.mark.tier1` on the dedicated method. This avoids running the same test twice in Linux+Docker CI.
 
-3. Each runtime should have one non-container and one container tier 1 test.
+3. If the parameter set does NOT exist in any parameterized list (i.e. it's unique to the tier1 method), use `@pytest.mark.tier1`.
 
-See `tests/integration/TIER1_TESTS.md` for the full list of selected tests.
+4. Each runtime should have one non-container and one container tier 1 test.
 
 
 ## Finding contributions to work on

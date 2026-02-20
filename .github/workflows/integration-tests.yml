@@ -195,9 +195,7 @@ jobs:
 
       - name: Initialize project
         run: |
-          if [[ "${{ matrix.test_suite }}" == "build-x86-1" || "${{ matrix.test_suite }}" == "build-x86-2" || "${{ matrix.test_suite }}" == "build-arm64" ]]; then
-            export CONTAINER_RUNTIME=no-container
-          elif [[ "${{ matrix.test_suite }}" == "tier1-finch" ]]; then
+          if [[ "${{ matrix.test_suite }}" == "tier1-finch" ]]; then
             export CONTAINER_RUNTIME=finch
           else
             export CONTAINER_RUNTIME=docker
@@ -228,7 +226,7 @@ jobs:
         run: |
           case "${{ matrix.test_suite }}" in
             "build-x86-1")
-              pytest -vv -n 2 --reruns 3 -m "not requires_credential" \
+              pytest -vv -n 2 --reruns 3 -m "not requires_credential and not tier1_extra" \
                 tests/integration/buildcmd/test_build_cmd.py \
                 tests/integration/buildcmd/test_build_cmd_python.py \
                 tests/integration/buildcmd/test_build_in_source.py \
@@ -237,7 +235,7 @@ jobs:
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "build-x86-2")
-              pytest -vv -n 2 --reruns 3 -m "not requires_credential" \
+              pytest -vv -n 2 --reruns 3 -m "not requires_credential and not tier1_extra" \
                 tests/integration/buildcmd \
                 --ignore=tests/integration/buildcmd/test_build_cmd.py \
                 --ignore=tests/integration/buildcmd/test_build_cmd_python.py \
@@ -250,13 +248,13 @@ jobs:
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "build-arm64")
-              pytest -vv -n 2 --reruns 3 -m "not requires_credential" \
+              pytest -vv -n 2 --reruns 3 -m "not requires_credential and not tier1_extra" \
                 tests/integration/buildcmd/test_build_cmd_arm64.py \
                 -k "not container" \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "build-x86-container-1")
-              pytest -vv -n 2 --reruns 3 -m "not requires_credential" \
+              pytest -vv -n 2 --reruns 3 -m "not requires_credential and not tier1_extra" \
                 tests/integration/buildcmd/test_build_cmd.py \
                 tests/integration/buildcmd/test_build_in_source.py \
                 tests/integration/buildcmd/test_build_samconfig.py \
@@ -264,7 +262,7 @@ jobs:
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "build-x86-container-2")
-              pytest -vv -n 2 --reruns 3 -m "not requires_credential" \
+              pytest -vv -n 2 --reruns 3 -m "not requires_credential and not tier1_extra" \
                 tests/integration/buildcmd \
                 --ignore=tests/integration/buildcmd/test_build_cmd.py \
                 --ignore=tests/integration/buildcmd/test_build_in_source.py \
@@ -276,58 +274,58 @@ jobs:
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "build-arm64-container-1")
-              pytest -vv -n 2 --reruns 3 -m "not requires_credential and not java" \
+              pytest -vv -n 2 --reruns 3 -m "not requires_credential and not tier1_extra and not java" \
                 tests/integration/buildcmd/test_build_cmd_arm64.py \
                 -k "container" \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "build-arm64-container-2")
-              pytest -vv -n 2 --reruns 3 -m "not requires_credential and java" \
+              pytest -vv -n 2 --reruns 3 -m "not requires_credential and not tier1_extra and java" \
                 tests/integration/buildcmd/test_build_cmd_arm64.py \
                 -k "container" \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "terraform-build")
-              pytest -vv -n 4 --reruns 3 \
+              pytest -vv -n 4 --reruns 3 -m "not tier1_extra" \
                 tests/integration/buildcmd/test_build_terraform_applications.py \
                 tests/integration/buildcmd/test_build_terraform_applications_other_cases.py \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "terraform-start-api")
-              pytest -vv --reruns 3 \
+              pytest -vv --reruns 3 -m "not tier1_extra" \
                 tests/integration/local/start_api/test_start_api_with_terraform_application.py \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "terraform-invoke-start-lambda")
-              pytest -vv --reruns 3 \
+              pytest -vv --reruns 3 -m "not tier1_extra" \
                 tests/integration/local/invoke/test_invoke_terraform_applications.py \
                 tests/integration/local/start_lambda/test_start_lambda_terraform_applications.py \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "package")
               pytest -vv tests/integration/package tests/integration/delete \
-                --dist=loadgroup -n 4 --reruns 3 \
+                --dist=loadgroup -n 4 --reruns 3 -m "not tier1_extra" \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "deploy")
-              pytest -vv tests/integration/deploy \
+              pytest -vv tests/integration/deploy -m "not tier1_extra" \
                 --dist=loadgroup -n 4 --reruns 4 \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "sync-watch")
-              pytest -vv tests/integration/sync -n 4 --reruns 3 \
+              pytest -vv tests/integration/sync -n 4 --reruns 3 -m "not tier1_extra" \
                 --ignore=tests/integration/sync/test_sync_code.py \
                 --ignore=tests/integration/sync/test_sync_infra.py \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "sync-code")
-              pytest -vv -n 5 --reruns 3 --dist loadscope \
+              pytest -vv -n 5 --reruns 3 --dist loadscope -m "not tier1_extra" \
                 tests/integration/sync/test_sync_code.py \
                 tests/integration/sync/test_sync_infra.py \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "local-invoke")
-              pytest -vv --reruns 3 --dist loadgroup -m "not requires_credential" \
+              pytest -vv --reruns 3 --dist loadgroup -m "not requires_credential and not tier1_extra" \
                 tests/integration/local/invoke \
                 tests/integration/local/generate_event \
                 tests/integration/local/callback \
@@ -336,19 +334,19 @@ jobs:
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "local-start-api")
-              pytest -vv --reruns 3 --dist loadgroup -m "not requires_credential" \
+              pytest -vv --reruns 3 --dist loadgroup -m "not requires_credential and not tier1_extra" \
                 tests/integration/local/start_api \
                 --ignore=tests/integration/local/start_api/test_start_api_with_terraform_application.py \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "local-start-lambda")
-              pytest -vv --reruns 3 --dist loadgroup -m "not requires_credential" \
+              pytest -vv --reruns 3 --dist loadgroup -m "not requires_credential and not tier1_extra" \
                 tests/integration/local/start_lambda \
                 --ignore=tests/integration/local/start_lambda/test_start_lambda_terraform_applications.py \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "other-and-e2e")
-              pytest -vv -n 5 --reruns 3 --dist loadgroup \
+              pytest -vv -n 5 --reruns 3 --dist loadgroup -m "not tier1_extra" \
                 tests/integration tests/end_to_end tests/regression \
                 --ignore=tests/integration/buildcmd \
                 --ignore=tests/integration/delete \
@@ -362,12 +360,12 @@ jobs:
               pytest -vv --reruns 3 \
                 tests/integration/buildcmd \
                 tests/integration/local \
-                -m requires_credential \
+                -m "requires_credential and not tier1_extra" \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "tier1-finch")
               export CONTAINER_RUNTIME=finch
-              pytest -vv --reruns 3 -m tier1 -n 2\
+              pytest -vv --reruns 3 -m "tier1 or tier1_extra" -n 2\
                 tests/integration \
                 tests/regression \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json

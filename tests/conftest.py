@@ -17,3 +17,7 @@ def pytest_configure(config):
         "markers",
         "tier1: cross-platform smoke tests that run on every OS/container-runtime combination",
     )
+    config.addinivalue_line(
+        "markers",
+        "tier1_extra: parameterized expansions of tier1 tests (excluded from normal CI, included in tier1 jobs)",
+    )

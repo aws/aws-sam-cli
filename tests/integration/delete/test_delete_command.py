@@ -49,7 +49,7 @@ class TestDelete(DeleteIntegBase):
         time.sleep(CFN_SLEEP)
         super().setUp()
 
-    @parameterized.expand(["aws-s3-with-lang-ext.yaml"])
+    @parameterized.expand(["aws-serverless-function.yaml", "aws-s3-with-lang-ext.yaml"])
     def test_s3_options(self, template_file):
         self._do_s3_options_test(template_file)
 
@@ -104,7 +104,7 @@ class TestDelete(DeleteIntegBase):
             f"Error: The input stack {stack_name} does not exist on Cloudformation", str(delete_process_execute.stdout)
         )
 
-    @pytest.mark.tier1
+    @pytest.mark.tier1_extra
     def test_tier1_delete(self):
         """Single delete test for cross-platform validation."""
         self._do_s3_options_test("aws-serverless-function.yaml")

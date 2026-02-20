@@ -35,6 +35,7 @@ class TestBuildCommand_Rust(BuildIntegRustBase):
         [
             ("provided.al2", "x86_64", None, False),
             ("provided.al2", "x86_64", "debug", False),
+            ("provided.al2023", "x86_64", None, False),
             ("provided.al2023", "x86_64", "debug", False),
         ],
         name_func=show_container_in_test_name,
@@ -50,7 +51,7 @@ class TestBuildCommand_Rust(BuildIntegRustBase):
             use_container=use_container,
         )
 
-    @pytest.mark.tier1
+    @pytest.mark.tier1_extra
     def test_tier1_rust_build(self):
         """Single Rust build test for cross-platform validation.
         Note: Rust/cargo-lambda does not support --use-container builds

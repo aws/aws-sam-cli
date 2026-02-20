@@ -36,6 +36,7 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture_arm64(BuildIn
         [
             ("python3.9", "Python", False),
             ("python3.10", "Python", False),
+            ("python3.11", "Python", False),
             ("python3.12", "Python", False),
             ("python3.13", "Python", False),
             ("python3.14", "Python", False),
@@ -47,6 +48,7 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture_arm64(BuildIn
             ("python3.14", "PythonPEP600", False),
             ("python3.9", "Python", "use_container"),
             ("python3.10", "Python", "use_container"),
+            ("python3.11", "Python", "use_container"),
         ]
     )
     def test_with_default_requirements_invoke_in_container(self, runtime, codeuri, use_container):
@@ -72,7 +74,7 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture_arm64(BuildIn
         ],
         name_func=show_container_in_test_name,
     )
-    @pytest.mark.tier1
+    @pytest.mark.tier1_extra
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_tier1_python_arm64_build_in_container(self, runtime, codeuri, use_container):
         """Python ARM64 build tests for cross-platform validation."""
@@ -84,7 +86,9 @@ class TestBuildCommand_EsbuildFunctions_arm64(BuildIntegEsbuildBase):
 
     @parameterized.expand(
         [
+            ("nodejs20.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", False),
             ("nodejs20.x", "Esbuild/TypeScript", {"app.js", "app.js.map"}, "app.lambdaHandler", False),
+            ("nodejs20.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", "use_container"),
             (
                 "nodejs20.x",
                 "Esbuild/TypeScript",
@@ -105,7 +109,7 @@ class TestBuildCommand_EsbuildFunctions_arm64(BuildIntegEsbuildBase):
         ],
         name_func=show_container_in_test_name,
     )
-    @pytest.mark.tier1
+    @pytest.mark.tier1_extra
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_tier1_node_arm64_build_in_container(self, runtime, code_uri, expected_files, handler, use_container):
         """Node.js ARM64 build tests for cross-platform validation."""
@@ -199,7 +203,7 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture_arm64(BuildInte
 class TestBuildCommand_RubyFunctions_With_Architecture_arm64(BuildIntegRubyBase):
     template = "template_with_architecture.yaml"
 
-    @parameterized.expand([("ruby3.2", "Ruby32")])
+    @parameterized.expand([("ruby3.2", "Ruby32"), ("ruby3.4", "Ruby34")])
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_building_ruby_in_container_with_specified_architecture(self, runtime, code_uri):
         self._test_with_default_gemfile(runtime, "use_container", code_uri, self.test_data_path, ARM64)
@@ -215,7 +219,7 @@ class TestBuildCommand_RubyFunctions_With_Architecture_arm64(BuildIntegRubyBase)
         ],
         name_func=show_container_in_test_name,
     )
-    @pytest.mark.tier1
+    @pytest.mark.tier1_extra
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_tier1_ruby_arm64_build_in_container(self, runtime, code_uri, use_container):
         """Ruby ARM64 build tests for cross-platform validation."""
@@ -383,6 +387,13 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
                 BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
+            (
+                "java25",
+                "25",
+                BuildIntegJavaBase.USING_MAVEN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
+            ),
         ]
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
@@ -535,6 +546,13 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
                 BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
+            (
+                "java25",
+                "25",
+                BuildIntegJavaBase.USING_MAVEN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
+            ),
         ]
     )
     def test_building_java_in_process_with_arm_architecture(
@@ -557,7 +575,7 @@ class TestBuildCommand_Java_With_Specified_Architecture_arm64(BuildIntegJavaBase
         ],
         name_func=show_container_in_test_name,
     )
-    @pytest.mark.tier1
+    @pytest.mark.tier1_extra
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_tier1_java_arm64_build_in_container(self, use_container):
         """Java ARM64 build tests for cross-platform validation."""
@@ -632,6 +650,11 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture_arm64(Build
         [
             (
                 "provided.al2023",
+                False,
+                None,
+            ),
+            (
+                "provided.al2023",
                 "use_container",
                 "Makefile-container",
             ),
@@ -642,7 +665,7 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture_arm64(Build
     def test_building_Makefile_al2023(self, runtime, use_container, manifest):
         self._test_with_Makefile(runtime, use_container, manifest, ARM64)
 
-    @pytest.mark.tier1
+    @pytest.mark.tier1_extra
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_tier1_provided_arm64_build(self):
         """Single Provided ARM64 build test for cross-platform validation."""
@@ -660,6 +683,7 @@ class TestBuildCommand_Rust_arm64(BuildIntegRustBase):
         [
             ("provided.al2", None, False),
             ("provided.al2", "debug", False),
+            ("provided.al2023", None, False),
             ("provided.al2023", "debug", False),
         ],
         name_func=show_container_in_test_name,
@@ -675,7 +699,7 @@ class TestBuildCommand_Rust_arm64(BuildIntegRustBase):
             use_container=use_container,
         )
 
-    @pytest.mark.tier1
+    @pytest.mark.tier1_extra
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_tier1_rust_arm64_build(self):
         """Single Rust ARM64 build test for cross-platform validation."""

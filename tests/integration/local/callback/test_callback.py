@@ -24,6 +24,7 @@ class TestLocalCallback(DurableIntegBase, InvokeIntegBase):
 
     @parameterized.expand(
         [
+            ("succeed", "SendDurableExecutionCallbackSuccess", "success", "is not in STARTED state"),
             ("fail", "SendDurableExecutionCallbackFailure", "failure", "is not in STARTED state"),
             ("heartbeat", "SendDurableExecutionCallbackHeartbeat", "heartbeat", "is not active"),
         ]
@@ -70,7 +71,7 @@ class TestLocalCallback(DurableIntegBase, InvokeIntegBase):
         expected_pattern = f"Error: An error occurred \\(404\\) when calling the {operation_name} operation: Failed to process callback {callback_type}: Callback .+ {error_suffix}"
         self.assertRegex(stderr_str, expected_pattern)
 
-    @pytest.mark.tier1
+    @pytest.mark.tier1_extra
     def test_tier1_callback(self):
         """Single callback test for cross-platform validation."""
         self._do_callback_test("succeed", "SendDurableExecutionCallbackSuccess", "success", "is not in STARTED state")
