@@ -1,4 +1,6 @@
 from unittest import skipIf
+
+import pytest
 from parameterized import parameterized
 
 from .regression_package_base import PackageRegressionBase

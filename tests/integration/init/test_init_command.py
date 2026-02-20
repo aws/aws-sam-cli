@@ -31,6 +31,7 @@ COMMIT_ERROR = "WARN: Commit not exist:"
 
 @pytest.mark.xdist_group(name="sam_init")
 class TestBasicInitCommand(TestCase):
+    @pytest.mark.tier1
     def test_init_command_passes_and_dir_created(self):
         with tempfile.TemporaryDirectory() as temp:
             process = Popen(

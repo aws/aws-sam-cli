@@ -110,6 +110,34 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegDotnetBase):
         self.validate_build_artifacts(self.EXPECTED_FILES_PROJECT_MANIFEST)
         self.validate_invoke_command(overrides, runtime)
 
+    @pytest.mark.tier1_extra
+    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
+    def test_tier1_dotnet_build(self):
+        """Single Dotnet build test for cross-platform validation."""
+        overrides = {
+            "Runtime": "dotnet10",
+            "CodeUri": "Dotnet10",
+            "Handler": "HelloWorld::HelloWorld.Function::FunctionHandler",
+            "Architectures": "x86_64",
+        }
+        self.validate_build_command(overrides, None)
+        self.validate_build_artifacts(self.EXPECTED_FILES_PROJECT_MANIFEST)
+        self.validate_invoke_command(overrides, "dotnet10")
+
+    @pytest.mark.tier1_extra
+    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
+    def test_tier1_dotnet_build_in_container(self):
+        """Single Dotnet container build test for cross-platform validation."""
+        overrides = {
+            "Runtime": "dotnet8",
+            "CodeUri": "Dotnet8",
+            "Handler": "HelloWorld::HelloWorld.Function::FunctionHandler",
+            "Architectures": "x86_64",
+        }
+        self.validate_build_command(overrides, None, MountMode.WRITE)
+        self.validate_build_artifacts(self.EXPECTED_FILES_PROJECT_MANIFEST)
+        self.validate_invoke_command(overrides, "dotnet8")
+
 
 @pytest.mark.dotnet
 @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
