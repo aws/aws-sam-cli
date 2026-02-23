@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+import pytest
 from parameterized import parameterized
 
 from tests.integration.durable_integ_base import DurableIntegBase
@@ -9,6 +10,9 @@ from tests.integration.durable_function_examples import DurableFunctionExamples
 
 
 # Assertions are inherited from DurableIntegBase, invoke set up gets inherited from InvokeIntegBase
+# Durable tests use a hardcoded port (9014) for the execution server, so they must not run
+# concurrently with other durable tests across pytest-xdist workers.
+@pytest.mark.xdist_group(name="durable")
 class TestInvokeDurable(DurableIntegBase, InvokeIntegBase):
     template = Path("template.yaml")
     template_subdir = "durable"
@@ -30,6 +34,9 @@ class TestInvokeDurable(DurableIntegBase, InvokeIntegBase):
     )
     def test_local_invoke_durable_function(self, example):
         """Test durable function invocation."""
+        self._do_durable_invoke_test(example)
+
+    def _do_durable_invoke_test(self, example):
         execution_name = f"{example.function_name.lower()}-integration-test"
         command_list = self.get_invoke_command_list(
             example.function_name, no_event=True, durable_execution_name=execution_name
@@ -52,6 +59,11 @@ class TestInvokeDurable(DurableIntegBase, InvokeIntegBase):
 
             # Assert the execution history matches the expected history
             self.assert_execution_history(json.loads(history_stdout), example)
+
+    @pytest.mark.tier1_extra
+    def test_tier1_durable_invoke(self):
+        """Single durable function test for cross-platform validation."""
+        self._do_durable_invoke_test(DurableFunctionExamples.HELLO_WORLD)
 
     def test_local_invoke_durable_function_timeout(self):
         """Test durable function execution timeout with 30-second wait and 5-second timeout."""

@@ -1,5 +1,7 @@
 import os
 from pathlib import Path
+
+import pytest
 from parameterized import parameterized, parameterized_class
 from samcli.lib.config.samconfig import SamConfig
 
@@ -56,6 +58,7 @@ class TestSamConfigWithBuild(BuildIntegBase):
             # (".json"),
         ]
     )
+    @pytest.mark.tier1
     def test_samconfig_parameters_are_overridden(self, extension):
         overrides = {"Runtime": "python3.11"}
         overridden_build_dir = f"override_{extension}"

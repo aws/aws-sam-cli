@@ -63,6 +63,20 @@ class TestBuildCommand_EsbuildFunctions(BuildIntegEsbuildBase):
 
         self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, architecture)
 
+    @pytest.mark.tier1_extra
+    def test_tier1_node_build(self):
+        """Single Node.js esbuild test for cross-platform validation."""
+        self._test_with_default_package_json(
+            "nodejs22.x", False, "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", "x86_64"
+        )
+
+    @pytest.mark.tier1_extra
+    def test_tier1_node_build_in_container(self):
+        """Single Node.js esbuild container build test for cross-platform validation."""
+        self._test_with_default_package_json(
+            "nodejs22.x", True, "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", "x86_64"
+        )
+
 
 class TestBuildCommand_EsbuildFunctions_With_External_Manifest(BuildIntegEsbuildBase):
     template = "template_with_metadata_esbuild.yaml"

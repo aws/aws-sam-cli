@@ -2,6 +2,8 @@
 
 import re
 from pathlib import Path
+
+import pytest
 from parameterized import parameterized
 
 from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase
@@ -10,6 +12,7 @@ from tests.integration.durable_function_examples import DurableFunctionExamples
 from tests.testing_utils import run_command
 
 
+@pytest.mark.xdist_group(name="durable")
 class TestLocalCallback(DurableIntegBase, InvokeIntegBase):
     template = Path("template.yaml")
     template_subdir = "durable"
@@ -28,6 +31,9 @@ class TestLocalCallback(DurableIntegBase, InvokeIntegBase):
     )
     def test_callback_already_completed_execution(self, action, operation_name, callback_type, error_suffix):
         """Test callback on already completed execution."""
+        self._do_callback_test(action, operation_name, callback_type, error_suffix)
+
+    def _do_callback_test(self, action, operation_name, callback_type, error_suffix):
         example = DurableFunctionExamples.WAIT_FOR_CALLBACK
         execution_name = f"{example.function_name.lower()}-callback-test"
 
@@ -51,7 +57,6 @@ class TestLocalCallback(DurableIntegBase, InvokeIntegBase):
         # Wait for process to complete and close file handles
         process.wait(timeout=30)
         thread.join(timeout=5)
-        # Close file handles to prevent ResourceWarning about unclosed files
         if process.stdin:
             process.stdin.close()
         if process.stdout:
@@ -65,3 +70,8 @@ class TestLocalCallback(DurableIntegBase, InvokeIntegBase):
         self.assertNotEqual(result.process.returncode, 0)
         expected_pattern = f"Error: An error occurred \\(404\\) when calling the {operation_name} operation: Failed to process callback {callback_type}: Callback .+ {error_suffix}"
         self.assertRegex(stderr_str, expected_pattern)
+
+    @pytest.mark.tier1_extra
+    def test_tier1_callback(self):
+        """Single callback test for cross-platform validation."""
+        self._do_callback_test("succeed", "SendDurableExecutionCallbackSuccess", "success", "is not in STARTED state")

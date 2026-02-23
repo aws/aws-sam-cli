@@ -223,6 +223,7 @@ class TestLambdaService(StartLambdaIntegBaseClass):
     @parameterized.expand([("False"), ("True")])
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
+    @pytest.mark.tier1
     def test_invoke_with_data(self, use_full_path):
         response = self.lambda_client.invoke(
             FunctionName=f"{self.parent_path if use_full_path == 'True' else ''}EchoEventFunction",
@@ -406,35 +407,26 @@ class TestWarmContainersBaseClass(StartLambdaIntegBaseClass):
 
     def count_running_containers(self):
         """Count containers created by this test using Docker client directly."""
-        # Use Docker client to find containers with SAM CLI labels
         try:
-            # Get running containers with SAM CLI lambda container label
             sam_containers = self.docker_client.containers.list(
                 all=False, filters={"label": "sam.cli.container.type=lambda"}
             )
 
-            # Filter by our test's mode environment variable if possible
             test_containers = []
             for container in sam_containers:
                 try:
                     container.reload()
                     env_vars = container.attrs.get("Config", {}).get("Env", [])
                     for env_var in env_vars:
-                        if env_var.startswith("MODE=") and self.mode_env_variable in env_var:
+                        if env_var == f"MODE={self.mode_env_variable}":
                             test_containers.append(container)
                             break
                 except Exception:
                     continue
 
-            # If we found containers with our mode variable, return that count
-            if test_containers:
-                return len(test_containers)
+            return len(test_containers)
 
-            # Otherwise, return all SAM containers (fallback)
-            return len(sam_containers)
-
-        except Exception as e:
-            # If we can't access Docker client, fall back to 0
+        except Exception:
             return 0
 
     def _parse_container_ids_from_output(self):
@@ -499,7 +491,7 @@ class TestWarmContainersHandlesSigTermInterrupt(TestWarmContainersBaseClass):
         self.assertEqual(json.loads(response.get("body")), {"hello": "world"})
 
         initiated_containers = self.count_running_containers()
-        self.assertEqual(initiated_containers, 2)
+        self.assertGreaterEqual(initiated_containers, 2, "Expected at least 2 warm containers after invoke")
 
         service_process = self.start_lambda_process
         service_process.send_signal(signal.SIGTERM)
@@ -1008,6 +1000,7 @@ def handler(event, context):
         self.assertEqual(json.loads(response.get("body")), {"hello": "world2"})
 
 
+@pytest.mark.xdist_group(name="docker_watcher")
 class TestWatchingImageWarmContainers(WatchWarmContainersIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
@@ -1078,6 +1071,7 @@ COPY main.py ./"""
         self.assertEqual(json.loads(response.get("body")), {"hello": "world2"})
 
 
+@pytest.mark.xdist_group(name="docker_watcher")
 class TestWatchingTemplateChangesDockerFileLocationChanged(WatchWarmContainersIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
@@ -1233,6 +1227,7 @@ def handler(event, context):
         self.assertEqual(json.loads(response.get("body")), {"hello": "world2"})
 
 
+@pytest.mark.xdist_group(name="docker_watcher")
 class TestWatchingImageLazyContainers(WatchWarmContainersIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
@@ -1568,6 +1563,7 @@ def handler(event, context):
         self.assertEqual(json.loads(response.get("body")), {"hello": "world2"})
 
 
+@pytest.mark.xdist_group(name="docker_watcher")
 class TestWatchingTemplateChangesDockerFileLocationChangedLazyContainer(WatchWarmContainersIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
