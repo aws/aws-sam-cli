@@ -839,6 +839,7 @@ class TestLayerVersionBase(InvokeIntegBase):
     @classmethod
     def tearDownClass(cls):
         cls.layer_utils.delete_layers()
+        cleanup_samcli_images()
         integ_layer_cache_dir = Path().home().joinpath("integ_layer_cache")
         if integ_layer_cache_dir.exists():
             shutil.rmtree(str(integ_layer_cache_dir))
