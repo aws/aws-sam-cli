@@ -166,7 +166,7 @@ jobs:
 
       - name: Install cargo-lambda
         if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch"]'), matrix.test_suite)
-        run: pip install cargo-lambda==${{ env.CARGO_LAMBDA_VERSION }}
+        run: pip install "cargo-lambda==${{ env.CARGO_LAMBDA_VERSION }}" "chardet<6"
 
       - name: Install Terraform
         if: contains(fromJSON('["terraform-build", "terraform-start-api", "terraform-invoke-start-lambda", "cloud-based-tests", "tier1-finch"]'), matrix.test_suite)
