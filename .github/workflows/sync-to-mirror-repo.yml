@@ -10,6 +10,8 @@ jobs:
   sync-from-public:
     runs-on: ubuntu-latest
     if: github.repository != 'aws/aws-sam-cli' # Only run in mirror repo
+    permissions:
+      contents: write
     steps:
       - name: Checkout public repo
         uses: actions/checkout@v6
