@@ -49,3 +49,6 @@ filelock==3.19.1;  python_version<"3.10"
 black==25.9.0; python_version>="3.9"
 black==24.8.0; python_version<"3.9"
 psutil==7.2.1
+
+# Pin chardet to avoid requests compatibility assertion failure (requests requires chardet < 6)
+chardet<6
