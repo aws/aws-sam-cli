@@ -799,6 +799,24 @@ class TestUsingConfigFiles(InvokeIntegBase):
         return custom_cred
 
 
+def cleanup_samcli_images(docker_client):
+    """Remove all samcli/lambda-* images.
+
+    Docker's images.list(name="samcli/lambda") does exact repository matching
+    and won't match repositories like "samcli/lambda-python". We list all images
+    and filter by tag prefix instead.
+    """
+    try:
+        all_images = docker_client.images.list()
+        for image in all_images:
+            for tag in image.tags:
+                if tag.startswith("samcli/lambda-"):
+                    docker_client.remove_image_safely(image.id, force=True)
+                    break
+    except Exception:
+        pass
+
+
 # These tests require to remove all sam cli images and can't be run in parallel
 class TestLayerVersionBase(InvokeIntegBase):
     region = "us-west-2"
@@ -807,27 +825,9 @@ class TestLayerVersionBase(InvokeIntegBase):
     def setUp(self):
         self.layer_cache = Path().home().joinpath("integ_layer_cache")
 
-    @staticmethod
-    def _cleanup_samcli_images(docker_client):
-        """Remove all samcli/lambda-* images.
-
-        Docker's images.list(name="samcli/lambda") does exact repository matching
-        and won't match repositories like "samcli/lambda-python". We list all images
-        and filter by tag prefix instead.
-        """
-        try:
-            all_images = docker_client.images.list()
-            for image in all_images:
-                for tag in image.tags:
-                    if tag.startswith("samcli/lambda-"):
-                        docker_client.remove_image_safely(image.id, force=True)
-                        break
-        except Exception:
-            pass
-
     def tearDown(self):
         docker_client = get_validated_container_client()
-        self._cleanup_samcli_images(docker_client)
+        cleanup_samcli_images(docker_client)
         shutil.rmtree(str(self.layer_cache), ignore_errors=True)
 
     @classmethod
@@ -1086,15 +1086,7 @@ class TestLayerVersionThatDoNotCreateCache(InvokeIntegBase):
 
     def tearDown(self):
         docker_client = get_validated_container_client()
-        try:
-            all_images = docker_client.images.list()
-            for image in all_images:
-                for tag in image.tags:
-                    if tag.startswith("samcli/lambda-"):
-                        docker_client.remove_image_safely(image.id, force=True)
-                        break
-        except Exception:
-            pass
+        cleanup_samcli_images(docker_client)
 
     def test_layer_does_not_exist(self):
         self.layer_utils.upsert_layer(LayerUtils.generate_layer_name(), "LayerOneArn", "layer1.zip")
