@@ -799,7 +799,7 @@ class TestUsingConfigFiles(InvokeIntegBase):
         return custom_cred
 
 
-def cleanup_samcli_images(docker_client):
+def cleanup_samcli_images():
     """Remove all samcli/lambda-* images.
 
     Docker's images.list(name="samcli/lambda") does exact repository matching
@@ -807,6 +807,7 @@ def cleanup_samcli_images(docker_client):
     and filter by tag prefix instead.
     """
     try:
+        docker_client = get_validated_container_client()
         all_images = docker_client.images.list()
         for image in all_images:
             for tag in image.tags:
@@ -826,8 +827,7 @@ class TestLayerVersionBase(InvokeIntegBase):
         self.layer_cache = Path().home().joinpath("integ_layer_cache")
 
     def tearDown(self):
-        docker_client = get_validated_container_client()
-        cleanup_samcli_images(docker_client)
+        cleanup_samcli_images()
         shutil.rmtree(str(self.layer_cache), ignore_errors=True)
 
     @classmethod
@@ -1085,8 +1085,7 @@ class TestLayerVersionThatDoNotCreateCache(InvokeIntegBase):
         self.layer_cache = Path().home().joinpath("integ_layer_cache")
 
     def tearDown(self):
-        docker_client = get_validated_container_client()
-        cleanup_samcli_images(docker_client)
+        cleanup_samcli_images()
 
     def test_layer_does_not_exist(self):
         self.layer_utils.upsert_layer(LayerUtils.generate_layer_name(), "LayerOneArn", "layer1.zip")
