@@ -203,8 +203,8 @@ class CLIBuildClient(ImageBuildClient):
         if process.returncode != 0:
             raise docker.errors.BuildError(f"Build failed with exit code {process.returncode}", build_log)
 
-        for log in build_log:
-            yield log
+        # Return a generator that yields the logs
+        return (log for log in build_log)
 
     @staticmethod
     def is_available(engine_type: str) -> Tuple[bool, Optional[str]]:

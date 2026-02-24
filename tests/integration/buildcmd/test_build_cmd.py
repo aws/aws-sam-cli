@@ -48,8 +48,24 @@ SKIP_SAR_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_
 
 
 @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
+@parameterized_class(
+    ("use_buildkit",),
+    [
+        (False,),
+        (True,),
+    ],
+)
+@pytest.mark.filterwarnings("ignore::ResourceWarning")
 class TestBuildingImageTypeLambdaDockerFileFailuresContainer(BuildIntegBase):
     template = "template_image.yaml"
+
+    def setUp(self):
+        super().setUp()
+        if self.use_buildkit:
+            client = ContainerClientFactory.create_client()
+            is_available, error_msg = CLIBuildClient.is_available(client.get_runtime_type())
+            if not is_available:
+                self.skipTest(f"Buildkit not available: {error_msg}")
 
     def test_with_invalid_dockerfile_location(self):
         overrides = {
@@ -58,7 +74,7 @@ class TestBuildingImageTypeLambdaDockerFileFailuresContainer(BuildIntegBase):
             "DockerFile": "ThisDockerfileDoesNotExist",
             "Tag": uuid4().hex,
         }
-        cmdlist = self.get_command_list(parameter_overrides=overrides)
+        cmdlist = self.get_command_list(parameter_overrides=overrides, use_buildkit=self.use_buildkit)
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
         # confirm build failed
@@ -79,7 +95,7 @@ class TestBuildingImageTypeLambdaDockerFileFailuresContainer(BuildIntegBase):
             "DockerFile": "InvalidDockerfile",
             "Tag": uuid4().hex,
         }
-        cmdlist = self.get_command_list(parameter_overrides=overrides)
+        cmdlist = self.get_command_list(parameter_overrides=overrides, use_buildkit=self.use_buildkit)
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
         # confirm build failed
@@ -88,21 +104,37 @@ class TestBuildingImageTypeLambdaDockerFileFailuresContainer(BuildIntegBase):
 
 
 @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
+@parameterized_class(
+    ("use_buildkit",),
+    [
+        (False,),
+        (True,),
+    ],
+)
+@pytest.mark.filterwarnings("ignore::ResourceWarning")
 class TestLoadingImagesFromArchiveContainer(BuildIntegBase):
     template = "template_loadable_image.yaml"
 
     FUNCTION_LOGICAL_ID = "ImageFunction"
 
+    def setUp(self):
+        super().setUp()
+        if self.use_buildkit:
+            client = ContainerClientFactory.create_client()
+            is_available, error_msg = CLIBuildClient.is_available(client.get_runtime_type())
+            if not is_available:
+                self.skipTest(f"Buildkit not available: {error_msg}")
+
     def test_load_not_an_archive_passthrough(self):
         overrides = {"ImageUri": "./load_image_archive/this_file_does_not_exist.tar.gz"}
-        cmdlist = self.get_command_list(parameter_overrides=overrides)
+        cmdlist = self.get_command_list(parameter_overrides=overrides, use_buildkit=self.use_buildkit)
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
         self.assertEqual(command_result.process.returncode, 0)
 
     def test_bad_image_archive_fails(self):
         overrides = {"ImageUri": "./load_image_archive/error.tar.gz"}
-        cmdlist = self.get_command_list(parameter_overrides=overrides)
+        cmdlist = self.get_command_list(parameter_overrides=overrides, use_buildkit=self.use_buildkit)
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
         self.assertEqual(command_result.process.returncode, 1)
@@ -110,7 +142,7 @@ class TestLoadingImagesFromArchiveContainer(BuildIntegBase):
 
     def test_load_success(self):
         overrides = {"ImageUri": "./load_image_archive/archive.tar.gz"}
-        cmdlist = self.get_command_list(parameter_overrides=overrides)
+        cmdlist = self.get_command_list(parameter_overrides=overrides, use_buildkit=self.use_buildkit)
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
         self.assertEqual(command_result.process.returncode, 0)
@@ -141,16 +173,27 @@ class TestLoadingImagesFromArchiveContainer(BuildIntegBase):
     "Skip build tests on windows when running in CI unless overridden",
 )
 @parameterized_class(
-    ("template", "prop"),
+    ("template", "prop", "use_buildkit"),
     [
-        ("template_local_prebuilt_image.yaml", "ImageUri"),
-        ("template_cfn_local_prebuilt_image.yaml", "Code.ImageUri"),
+        ("template_local_prebuilt_image.yaml", "ImageUri", False),
+        ("template_cfn_local_prebuilt_image.yaml", "Code.ImageUri", False),
+        ("template_local_prebuilt_image.yaml", "ImageUri", True),
+        ("template_cfn_local_prebuilt_image.yaml", "Code.ImageUri", True),
     ],
 )
+@pytest.mark.filterwarnings("ignore::ResourceWarning")
 class TestSkipBuildingFunctionsWithLocalImageUriContainer(BuildIntegBase):
     EXPECTED_FILES_PROJECT_MANIFEST: Set[str] = set()
 
     FUNCTION_LOGICAL_ID_IMAGE = "ImageFunction"
+
+    def setUp(self):
+        super().setUp()
+        if self.use_buildkit:
+            client = ContainerClientFactory.create_client()
+            is_available, error_msg = CLIBuildClient.is_available(client.get_runtime_type())
+            if not is_available:
+                self.skipTest(f"Buildkit not available: {error_msg}")
 
     @parameterized.expand(["3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.14"])
     def test_with_default_requirements(self, runtime):
@@ -167,7 +210,7 @@ class TestSkipBuildingFunctionsWithLocalImageUriContainer(BuildIntegBase):
             "ImageUri": image_uri,
             "Handler": "main.handler",
         }
-        cmdlist = self.get_command_list(parameter_overrides=overrides)
+        cmdlist = self.get_command_list(parameter_overrides=overrides, use_buildkit=self.use_buildkit)
 
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command_result.process.returncode, 0)
@@ -1882,6 +1925,16 @@ class TestBuildWithCustomBuildImage(BuildIntegBase):
 
 
 @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
+@parameterized_class(
+    ("cached", "parallel", "use_custom_build_dir"),
+    [
+        (False, False, False),  # Basic
+        (True, False, False),  # With Caching
+        (False, True, False),  # With parallelism
+        (False, False, True),  # With custom build dir
+    ],
+)
+@pytest.mark.filterwarnings("ignore::ResourceWarning")
 class TestBuildImageWithBuildkit(BuildIntegBase):
     """Test building image functions with buildkit"""
 
@@ -1895,6 +1948,8 @@ class TestBuildImageWithBuildkit(BuildIntegBase):
         if not is_available:
             self.skipTest(f"Buildkit not available: {error_msg}")
 
+        build_dir = self.custom_build_dir if self.use_custom_build_dir else None
+
         tag = uuid4().hex
         overrides = {
             "Runtime": "3.12",
@@ -1902,14 +1957,25 @@ class TestBuildImageWithBuildkit(BuildIntegBase):
             "DockerFile": "Dockerfile",
             "Tag": tag,
         }
-        cmdlist = self.get_command_list(parameter_overrides=overrides, use_buildkit=True)
+        cmdlist = self.get_command_list(
+            parameter_overrides=overrides,
+            use_buildkit=True,
+            cached=self.cached,
+            parallel=self.parallel,
+            build_dir=build_dir,
+        )
 
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command_result.process.returncode, 0)
 
+        if self.use_custom_build_dir:
+            built_template = Path(self.custom_build_dir, "template.yaml")
+        else:
+            built_template = self.built_template
+
         # Verify image was built
         self._verify_image_build_artifact(
-            self.built_template,
+            built_template,
             self.function_logical_id,
             "ImageUri",
             f"{self.function_logical_id.lower()}:{tag}",
@@ -1918,7 +1984,7 @@ class TestBuildImageWithBuildkit(BuildIntegBase):
         # Verify image works
         expected = {"pi": "3.14"}
         self._verify_invoke_built_function(
-            self.built_template,
+            built_template,
             self.function_logical_id,
             self._make_parameter_override_arg(overrides),
             expected,
