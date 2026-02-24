@@ -834,6 +834,8 @@ class TestLayerVersionBase(InvokeIntegBase):
     def setUpClass(cls):
         cls.layer_utils.upsert_layer(LayerUtils.generate_layer_name(), "LayerOneArn", "layer1.zip")
         cls.layer_utils.upsert_layer(LayerUtils.generate_layer_name(), "LayerTwoArn", "layer2.zip")
+        cls.layer_utils.upsert_layer(LayerUtils.generate_layer_name(), "LayerAArn", "layer_a.zip")
+        cls.layer_utils.upsert_layer(LayerUtils.generate_layer_name(), "LayerBArn", "layer_b.zip")
         super(TestLayerVersionBase, cls).setUpClass()
 
     @classmethod
@@ -1008,6 +1010,31 @@ class TestLayerVersion(TestLayerVersionBase):
         expected_output = '"Layer2"'
 
         self.assertEqual(process_stdout, expected_output)
+
+    def test_two_independent_layers(self):
+        """Test that two layers providing different modules both work in a single function."""
+        command_list = InvokeIntegBase.get_command_list(
+            "TwoIndependentLayersFunction",
+            template_path=self.template_path,
+            no_event=True,
+            region=self.region,
+            layer_cache=str(self.layer_cache),
+            parameter_overrides=self.layer_utils.parameters_overrides,
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stdout = stdout.decode("utf-8").strip().split(os.linesep)[-1]
+        import json
+
+        result = json.loads(process_stdout)
+        self.assertEqual(result["a"], "hello from layer A")
+        self.assertEqual(result["b"], "goodbye from layer B")
 
     def test_caching_two_layers(self):
         command_list = InvokeIntegBase.get_command_list(

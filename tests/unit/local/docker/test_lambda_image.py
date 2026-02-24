@@ -423,7 +423,7 @@ class TestLambdaImage(TestCase):
         docker_client_mock = Mock()
         docker_patch.from_env.return_value = docker_client_mock
 
-        expected_docker_file = "FROM python\nADD aws-lambda-rie-x86_64 /var/rapid/\nRUN mv /var/rapid/aws-lambda-rie-x86_64 /var/rapid/aws-lambda-rie && chmod +x /var/rapid/aws-lambda-rie\nADD layer1 /tmp/layer0\nRUN cp -rf /tmp/layer0/. /opt/ && rm -rf /tmp/layer0\n"
+        expected_docker_file = "FROM python\nADD aws-lambda-rie-x86_64 /var/rapid/\nRUN mv /var/rapid/aws-lambda-rie-x86_64 /var/rapid/aws-lambda-rie && chmod +x /var/rapid/aws-lambda-rie\nADD layer1 /opt\n"
 
         layer_mock = Mock()
         layer_mock.name = "layer1"
@@ -435,7 +435,7 @@ class TestLambdaImage(TestCase):
         docker_client_mock = Mock()
         docker_patch.from_env.return_value = docker_client_mock
 
-        expected_docker_file = "FROM python\nADD aws-lambda-rie-arm64 /var/rapid/\nRUN mv /var/rapid/aws-lambda-rie-arm64 /var/rapid/aws-lambda-rie && chmod +x /var/rapid/aws-lambda-rie\nADD layer1 /tmp/layer0\nRUN cp -rf /tmp/layer0/. /opt/ && rm -rf /tmp/layer0\n"
+        expected_docker_file = "FROM python\nADD aws-lambda-rie-arm64 /var/rapid/\nRUN mv /var/rapid/aws-lambda-rie-arm64 /var/rapid/aws-lambda-rie && chmod +x /var/rapid/aws-lambda-rie\nADD layer1 /opt\n"
 
         layer_mock = Mock()
         layer_mock.name = "layer1"
