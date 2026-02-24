@@ -20,7 +20,7 @@ if [ "$openssl_version" = "" ]; then
 fi
 
 if [ "$zlib_version" = "" ]; then
-    zlib_version="1.3.1";
+    zlib_version="1.3.2";
 fi
 
 if [ "$CI_OVERRIDE" = "1" ]; then

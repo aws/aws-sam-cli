@@ -282,6 +282,7 @@ class TestSkipBuildingFlaggedFunctionsContainer(BuildIntegPythonBase):
 @pytest.mark.ruby
 class TestBuildCommand_RubyFunctions(BuildIntegRubyBase):
     @parameterized.expand([(False,), ("use_container",)], name_func=show_container_in_test_name)
+    @pytest.mark.tier1
     def test_building_ruby_3_2(self, use_container):
         if use_container and SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
             self.skipTest(SKIP_DOCKER_MESSAGE)
@@ -509,6 +510,7 @@ class TestBuildCommand_ExcludeResources(BuildIntegBase):
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
+@pytest.mark.requires_credential
 class TestBuildCommand_LayerBuilds(BuildIntegBase):
     template = "layers-functions-template.yaml"
 
@@ -529,7 +531,9 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
     def test_build_single_layer(self, runtime, use_container, layer_identifier, content_property):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
+        self._do_build_single_layer(runtime, use_container, layer_identifier, content_property)
 
+    def _do_build_single_layer(self, runtime, use_container, layer_identifier, content_property):
         overrides = {"LayerBuildMethod": runtime, "LayerContentUri": "PyLayer"}
         cmdlist = self.get_command_list(
             use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
@@ -811,6 +815,11 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         if use_container:
             self.verify_docker_container_cleanedup(runtime)
             self.verify_pulled_image(runtime)
+
+    @pytest.mark.tier1_extra
+    def test_tier1_layer_build(self):
+        """Single layer build test for cross-platform validation."""
+        self._do_build_single_layer("python3.12", False, "LayerOne", "ContentUri")
 
     def _verify_built_artifact(
         self, build_dir, resource_logical_id, expected_files, code_property_name, artifact_subfolder=""
@@ -1416,8 +1425,8 @@ class TestBuildWithInlineCode(BuildIntegBase):
         self._verify_built_artifact(self.default_build_dir)
 
         if use_container:
-            self.verify_docker_container_cleanedup("python3.12")
-            self.verify_pulled_image("python3.12")
+            self.verify_docker_container_cleanedup("python3.11")
+            self.verify_pulled_image("python3.11")
 
     def _verify_built_artifact(self, build_dir):
         self.assertTrue(build_dir.exists(), "Build directory should be created")
@@ -1466,8 +1475,8 @@ class TestBuildWithJsonContainerEnvVars(BuildIntegBase):
         self._verify_built_env_var(self.default_build_dir)
 
         if use_container:
-            self.verify_docker_container_cleanedup("python3.12")
-            self.verify_pulled_image("python3.12")
+            self.verify_docker_container_cleanedup("python3.11")
+            self.verify_pulled_image("python3.11")
 
     @staticmethod
     def get_env_file(filename):
@@ -1515,8 +1524,8 @@ class TestBuildWithInlineContainerEnvVars(BuildIntegBase):
         self._verify_built_env_var(self.default_build_dir)
 
         if use_container:
-            self.verify_docker_container_cleanedup("python3.12")
-            self.verify_pulled_image("python3.12")
+            self.verify_docker_container_cleanedup("python3.11")
+            self.verify_pulled_image("python3.11")
 
     def _verify_built_env_var(self, build_dir):
         self.assertTrue(build_dir.exists(), "Build directory should be created")
@@ -1558,6 +1567,7 @@ class TestBuildWithNestedStacks(NestedBuildIntegBase):
         ],
         name_func=show_container_in_test_name,
     )
+    @pytest.mark.tier1
     def test_nested_build_invoke_in_container(self, use_container, cached, parallel):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
@@ -1676,6 +1686,7 @@ class TestBuildWithNestedStacks3Level(NestedBuildIntegBase):
 
 
 @skipIf(IS_WINDOWS, "symlink is not resolved consistently on windows")
+@pytest.mark.tier1
 class TestBuildWithNestedStacks3LevelWithSymlink(NestedBuildIntegBase):
     """
     In this template, it has the same structure as .aws-sam/build
@@ -1852,7 +1863,7 @@ class TestBuildWithCustomBuildImage(BuildIntegBase):
         self._verify_right_image_pulled(build_image, process_stderr)
         self._verify_build_succeeds(self.default_build_dir)
 
-        self.verify_docker_container_cleanedup("python3.12")
+        self.verify_docker_container_cleanedup("python3.11")
 
     def _verify_right_image_pulled(self, build_image, process_stderr):
         image_name = build_image if build_image is not None else "public.ecr.aws/sam/build-python3.11:latest-x86_64"
@@ -1982,6 +1993,7 @@ class TestBuildWithZipFunctionsOrLayers(NestedBuildIntegBase):
 
 
 @skipIf(SKIP_SAR_TESTS, "Skip SAR tests")
+@pytest.mark.requires_credential
 class TestBuildSAR(BuildIntegBase):
     template = "aws-serverless-application-with-application-id-map.yaml"
 
