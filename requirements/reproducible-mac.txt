@@ -188,9 +188,9 @@ cfn-lint==1.43.1 \
     --hash=sha256:870b9605630d27085da2524a74df3de1d420aa3dd0a6a9421e0b7b233dac6aed \
     --hash=sha256:e2d1ed5d4168459db59567ceadf55ad8ea3fd6968c67c853a2e082ea9b1ba49a
     # via aws-sam-cli (setup.py)
-chardet==5.2.0 \
-    --hash=sha256:1b3b6ff479a8c414bc3fa2c0852995695c4a026dcd6d0633b2dd092ca39c1cf7 \
-    --hash=sha256:e1cf59446890a00105fe7b7912492ea04b6e6f06d4b742b2c788469e34c82970
+chardet==6.0.0.post1 \
+    --hash=sha256:6b78048c3c97c7b2ed1fbad7a18f76f5a6547f7d34dbab536cc13887c9a92fa4 \
+    --hash=sha256:c894a36800549adf7bb5f2af47033281b75fdfcd2aa0f0243be0ad22a52e2dcb
     # via binaryornot
 charset-normalizer==3.4.4 \
     --hash=sha256:027f6de494925c0ab2a55eab46ae5129951638a49a34d87f4c3eda90f696b4ad \
