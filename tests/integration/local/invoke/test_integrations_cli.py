@@ -799,6 +799,26 @@ class TestUsingConfigFiles(InvokeIntegBase):
         return custom_cred
 
 
+def cleanup_samcli_images():
+    """Remove all samcli/lambda-* images.
+
+    Docker's images.list(name="samcli/lambda") does exact repository matching
+    and won't match repositories like "samcli/lambda-python". We list all images
+    and filter by tag prefix instead.
+    """
+    try:
+        docker_client = get_validated_container_client()
+        all_images = docker_client.images.list()
+        for image in all_images:
+            for tag in image.tags:
+                if tag.startswith("samcli/lambda-"):
+                    docker_client.remove_image_safely(image.id, force=True)
+                    break
+    except Exception:
+        pass
+
+
+# These tests require to remove all sam cli images and can't be run in parallel
 class TestLayerVersionBase(InvokeIntegBase):
     region = "us-west-2"
     layer_utils = LayerUtils(region=region)
@@ -807,19 +827,21 @@ class TestLayerVersionBase(InvokeIntegBase):
         self.layer_cache = Path().home().joinpath("integ_layer_cache")
 
     def tearDown(self):
-        # Only clean the layer cache between test methods, not Docker images.
-        # Docker images are shared across tests and cleaned up by CI runner.
+        cleanup_samcli_images()
         shutil.rmtree(str(self.layer_cache), ignore_errors=True)
 
     @classmethod
     def setUpClass(cls):
         cls.layer_utils.upsert_layer(LayerUtils.generate_layer_name(), "LayerOneArn", "layer1.zip")
         cls.layer_utils.upsert_layer(LayerUtils.generate_layer_name(), "LayerTwoArn", "layer2.zip")
+        cls.layer_utils.upsert_layer(LayerUtils.generate_layer_name(), "LayerAArn", "layer_a.zip")
+        cls.layer_utils.upsert_layer(LayerUtils.generate_layer_name(), "LayerBArn", "layer_b.zip")
         super(TestLayerVersionBase, cls).setUpClass()
 
     @classmethod
     def tearDownClass(cls):
         cls.layer_utils.delete_layers()
+        cleanup_samcli_images()
         integ_layer_cache_dir = Path().home().joinpath("integ_layer_cache")
         if integ_layer_cache_dir.exists():
             shutil.rmtree(str(integ_layer_cache_dir))
@@ -989,6 +1011,31 @@ class TestLayerVersion(TestLayerVersionBase):
 
         self.assertEqual(process_stdout, expected_output)
 
+    def test_two_independent_layers(self):
+        """Test that two layers providing different modules both work in a single function."""
+        command_list = InvokeIntegBase.get_command_list(
+            "TwoIndependentLayersFunction",
+            template_path=self.template_path,
+            no_event=True,
+            region=self.region,
+            layer_cache=str(self.layer_cache),
+            parameter_overrides=self.layer_utils.parameters_overrides,
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stdout = stdout.decode("utf-8").strip().split(os.linesep)[-1]
+        import json
+
+        result = json.loads(process_stdout)
+        self.assertEqual(result["a"], "hello from layer A")
+        self.assertEqual(result["b"], "goodbye from layer B")
+
     def test_caching_two_layers(self):
         command_list = InvokeIntegBase.get_command_list(
             "TwoLayerVersionServerlessFunction",
@@ -1066,7 +1113,7 @@ class TestLayerVersionThatDoNotCreateCache(InvokeIntegBase):
         self.layer_cache = Path().home().joinpath("integ_layer_cache")
 
     def tearDown(self):
-        pass
+        cleanup_samcli_images()
 
     def test_layer_does_not_exist(self):
         self.layer_utils.upsert_layer(LayerUtils.generate_layer_name(), "LayerOneArn", "layer1.zip")
