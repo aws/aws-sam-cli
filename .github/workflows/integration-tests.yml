@@ -205,6 +205,8 @@ jobs:
         run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
       - name: Initialize project
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           if [[ "${{ matrix.test_suite }}" == "tier1-finch" ]]; then
             export CONTAINER_RUNTIME=finch
