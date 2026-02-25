@@ -220,9 +220,11 @@ jobs:
           if [[ "${{ github.event.schedule }}" == "0 12 * * 2-6" ]] || [[ "${{ inputs.install_mode }}" == "binary" ]]; then
             make setup-pytest
             make init-nightly
+            echo "SAM_CLI_DEV=0" >> $GITHUB_ENV
           elif [[ "${{ inputs.install_mode }}" == "latest-release" ]]; then
             make setup-pytest
             make init-latest-release
+            echo "SAM_CLI_DEV=0" >> $GITHUB_ENV
           else
             make init
           fi
