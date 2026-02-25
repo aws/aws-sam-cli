@@ -790,9 +790,7 @@ class TestUsingConfigFiles(InvokeIntegBase):
 
     def _create_cred_file(self, profile):
         cred_file_content = "[{}]\naws_access_key_id = someaccesskeyid\naws_secret_access_key = shhhhhthisisasecret \
-        \naws_session_token = sessiontoken".format(
-            profile
-        )
+        \naws_session_token = sessiontoken".format(profile)
         custom_cred = os.path.join(self.config_dir, "customcred")
         with open(custom_cred, "w") as file:
             file.write(cred_file_content)

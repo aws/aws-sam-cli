@@ -330,8 +330,7 @@ def do_cli(
     if interactive:
         if standalone:
             click.echo(
-                dedent(
-                    """\
+                dedent("""\
 
                     sam pipeline bootstrap generates the required AWS infrastructure resources to connect
                     to your CI/CD system. This step must be run for each deployment stage in your pipeline,
@@ -339,8 +338,7 @@ def do_cli(
 
                     We will ask for [1] stage definition, [2] account details, and
                     [3] references to existing resources in order to bootstrap these pipeline resources.
-                    """
-                ),
+                    """),
             )
 
         guided_context = GuidedContext(
@@ -413,26 +411,18 @@ def do_cli(
             config_dir=PIPELINE_CONFIG_DIR, filename=PIPELINE_CONFIG_FILENAME, cmd_names=_get_bootstrap_command_names()
         )
 
-        click.secho(
-            dedent(
-                f"""\
+        click.secho(dedent(f"""\
                 View the definition in {os.path.join(PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME)},
                 run sam pipeline bootstrap to generate another set of resources, or proceed to
                 sam pipeline init to create your pipeline configuration file.
-                """
-            )
-        )
+                """))
 
         if not environment.pipeline_user.is_user_provided and not environment.use_oidc_provider:
-            click.secho(
-                dedent(
-                    f"""\
+            click.secho(dedent(f"""\
                     Before running {Colored().bold("sam pipeline init")}, we recommend first setting up AWS credentials
                     in your CI/CD account. Read more about how to do so with your provider in
                     {CONFIG_AWS_CRED_ON_CICD_URL}.
-                    """
-                )
-            )
+                    """))
 
 
 def _get_pipeline_oidc_provider(

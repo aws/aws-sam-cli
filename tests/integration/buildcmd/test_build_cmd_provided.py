@@ -18,7 +18,6 @@ from tests.integration.buildcmd.build_integ_base import (
     show_container_in_test_name,
 )
 
-
 LOG = logging.getLogger(__name__)
 
 # SAR tests require credentials. This is to skip running the test where credentials are not available.
