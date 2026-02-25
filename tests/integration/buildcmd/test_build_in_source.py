@@ -77,7 +77,7 @@ class TestBuildCommand_BuildInSource_Esbuild(BuildIntegEsbuildBase):
 
         self._test_with_default_package_json(
             build_in_source=build_in_source,
-            runtime="nodejs18.x",
+            runtime="nodejs24.x",
             code_uri=codeuri,
             handler="main.lambdaHandler",
             architecture="x86_64",
@@ -91,7 +91,7 @@ class TestBuildCommand_BuildInSource_Esbuild(BuildIntegEsbuildBase):
     @pytest.mark.flaky(reruns=3)
     def test_builds_successfully_with_local_dependency(self):
         codeuri = os.path.join(self.working_dir, "NodeWithLocalDependency")
-        runtime = "nodejs18.x"
+        runtime = "nodejs24.x"
         architecture = "x86_64"
 
         self._test_with_default_package_json(
@@ -142,7 +142,7 @@ class TestBuildCommand_BuildInSource_Nodejs(BuildIntegNodeBase):
         self.codeuri_path = Path(self.working_dir, "Node")
 
         overrides = self.get_override(
-            runtime="nodejs18.x", code_uri=self.codeuri_path, architecture="x86_64", handler="main.lambdaHandler"
+            runtime="nodejs24.x", code_uri=self.codeuri_path, architecture="x86_64", handler="main.lambdaHandler"
         )
         command_list = self.get_command_list(build_in_source=build_in_source, parameter_overrides=overrides, debug=True)
 
@@ -154,7 +154,7 @@ class TestBuildCommand_BuildInSource_Nodejs(BuildIntegNodeBase):
         self.codeuri_path = Path(self.working_dir, "NodeWithLocalDependency")
 
         overrides = self.get_override(
-            runtime="nodejs18.x", code_uri=self.codeuri_path, architecture="x86_64", handler="main.lambdaHandler"
+            runtime="nodejs24.x", code_uri=self.codeuri_path, architecture="x86_64", handler="main.lambdaHandler"
         )
         command_list = self.get_command_list(build_in_source=True, parameter_overrides=overrides)
 
