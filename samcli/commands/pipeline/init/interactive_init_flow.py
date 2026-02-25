@@ -55,9 +55,7 @@ class InteractiveInitFlow:
         runs its specific questionnaire then generates the pipeline config file
         based on the template and user's responses
         """
-        click.echo(
-            dedent(
-                """\
+        click.echo(dedent("""\
 
                 sam pipeline init generates a pipeline configuration file that your CI/CD system
                 can use to deploy serverless applications using AWS SAM.
@@ -65,9 +63,7 @@ class InteractiveInitFlow:
                 then walk through the details necessary for creating the pipeline config file.
 
                 Please ensure you are in the root folder of your SAM application before you begin.
-                """
-            )
-        )
+                """))
 
         pipeline_template_source_question = Choice(
             key="pipeline-template-source",
@@ -173,9 +169,7 @@ class InteractiveInitFlow:
                 "you can still reference other bootstrapped resources.",
                 default=True,
             ):
-                click.secho(
-                    dedent(
-                        """\
+                click.secho(dedent("""\
 
                         For each stage, we will ask for [1] stage definition, [2] account details, and [3]
                         reference application build resources in order to bootstrap these pipeline
@@ -184,9 +178,7 @@ class InteractiveInitFlow:
                         We recommend using an individual AWS account profiles for each stage in your
                         pipeline. You can set these profiles up using aws configure or ~/.aws/credentials. See
                         [https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-getting-started-set-up-credentials.html].
-                        """  # pylint: disable=C0301
-                    )
-                )
+                        """))  # pylint: disable=C0301
 
                 click.echo(Colored().bold(f"\nStage {len(stage_configuration_names) + 1} Setup\n"))
                 do_bootstrap(
@@ -218,15 +210,11 @@ class InteractiveInitFlow:
                 )
                 return True
         else:
-            click.echo(
-                dedent(
-                    """\
+            click.echo(dedent("""\
                     To set up stage(s), please quit the process using Ctrl+C and use one of the following commands:
                     sam pipeline init --bootstrap       To be guided through the stage and config file creation process.
                     sam pipeline bootstrap              To specify details for an individual stage.
-                    """
-                )
-            )
+                    """))
             click.prompt(
                 "To reference stage resources bootstrapped in a different account, press enter to proceed", default=""
             )

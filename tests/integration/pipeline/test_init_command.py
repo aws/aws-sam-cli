@@ -151,9 +151,7 @@ class TestInit(InitIntegBase):
         Path(PIPELINE_CONFIG_DIR).mkdir(parents=True, exist_ok=True)
         pipelineconfig_path = Path(PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME)
         with open(pipelineconfig_path, "w") as f:
-            f.write(
-                dedent(
-                    """\
+            f.write(dedent("""\
             version = 0.1
             [default]
             [default.pipeline_bootstrap]
@@ -177,9 +175,7 @@ class TestInit(InitIntegBase):
             artifacts_bucket = "prod-bucket"
             image_repository = "prod-ecr"
             region = "us-west-2"
-            """
-                )
-            )
+            """))
 
         inputs = [
             "1",  # quick start

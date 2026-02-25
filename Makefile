@@ -52,7 +52,11 @@ black:
 	black setup.py samcli tests schema
 
 black-check:
-	black --check setup.py samcli tests schema
+	@if python -c "import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)" 2>/dev/null; then \
+		black --check setup.py samcli tests schema; \
+	else \
+		echo "Skipping black check on Python < 3.10"; \
+	fi
 
 format: black
 	ruff check samcli --fix

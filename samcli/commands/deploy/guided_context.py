@@ -236,7 +236,7 @@ class GuidedContext:
         stacks : List[Stack]
             List of stacks to search functions and layers
         """
-        (functions_with_code_sign, layers_with_code_sign) = signer_config_per_function(stacks)
+        functions_with_code_sign, layers_with_code_sign = signer_config_per_function(stacks)
 
         # if no function or layer definition found with code signing, skip it
         if not functions_with_code_sign and not layers_with_code_sign:
@@ -260,7 +260,7 @@ class GuidedContext:
         click.echo("\t#Please provide signing profile details for the following functions & layers")
 
         for function_name in functions_with_code_sign:
-            (profile_name, profile_owner) = extract_profile_name_and_owner_from_existing(
+            profile_name, profile_owner = extract_profile_name_and_owner_from_existing(
                 function_name, self.signing_profiles
             )
 
@@ -271,7 +271,7 @@ class GuidedContext:
             self.signing_profiles[function_name]["profile_owner"] = "" if not profile_owner else profile_owner
 
         for layer_name, functions_use_this_layer in layers_with_code_sign.items():
-            (profile_name, profile_owner) = extract_profile_name_and_owner_from_existing(
+            profile_name, profile_owner = extract_profile_name_and_owner_from_existing(
                 layer_name, self.signing_profiles
             )
             click.echo(

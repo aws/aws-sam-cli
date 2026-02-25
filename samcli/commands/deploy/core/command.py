@@ -91,7 +91,7 @@ class DeployCommand(CoreCommand):
                 col_max=COL_SIZE_MODIFIER,
             )
 
-    def format_options(self, ctx: Context, formatter: DeployCommandHelpTextFormatter) -> None:  # type:ignore
+    def format_options(self, ctx: Context, formatter: DeployCommandHelpTextFormatter) -> None:  # type: ignore
         # `ignore` is put in place here for mypy even though it is the correct behavior,
         # as the `formatter_class` can be set in subclass of Command. If ignore is not set,
         # mypy raises argument needs to be HelpFormatter as super class defines it.

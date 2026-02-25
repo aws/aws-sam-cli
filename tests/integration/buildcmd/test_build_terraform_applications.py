@@ -21,7 +21,6 @@ from tests.integration.buildcmd.build_integ_base import BuildIntegBase
 from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS, RUN_BY_CANARY, USING_FINCH_RUNTIME
 from tests.testing_utils import run_command as static_run_command
 
-
 LOG = logging.getLogger(__name__)
 S3_SLEEP = 3
 

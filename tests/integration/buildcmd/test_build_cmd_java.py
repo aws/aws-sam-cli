@@ -16,7 +16,6 @@ from tests.integration.buildcmd.build_integ_base import (
     BuildIntegJavaBase,
 )
 
-
 LOG = logging.getLogger(__name__)
 
 # SAR tests require credentials. This is to skip running the test where credentials are not available.

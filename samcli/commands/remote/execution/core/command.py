@@ -42,9 +42,7 @@ class RemoteExecutionBaseCommand(RemoteCommand):
                 ]
             )
 
-    def format_options(
-        self, ctx: Context, formatter: CommandHelpTextFormatter  # type:ignore
-    ) -> None:
+    def format_options(self, ctx: Context, formatter: CommandHelpTextFormatter) -> None:  # type: ignore
         self.format_description(formatter)
         self.format_examples(ctx, formatter)
         self.format_execution_arn_note(formatter)

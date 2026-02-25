@@ -5,7 +5,6 @@ import tempfile
 from parameterized import parameterized
 from unittest import TestCase
 
-
 TEMPLATE_FOLDER = os.path.join(os.path.dirname(__file__), "templates", "sar")
 
 # Get all template files and sort them for consistent ordering
