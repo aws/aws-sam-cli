@@ -179,8 +179,10 @@ jobs:
       - name: Install cargo-lambda
         if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch"]'), matrix.test_suite)
         run: |
-          pip install cargo-lambda==${{ env.CARGO_LAMBDA_VERSION }}
-          sudo ln -sf $(python3.11 -c "import ziglang, pathlib; print(pathlib.Path(ziglang.__file__).parent / 'zig')") /usr/local/bin/zig
+          python3.11 -m pip install cargo-lambda==${{ env.CARGO_LAMBDA_VERSION }}
+          # Create a zig wrapper
+          printf '#!/bin/bash\nexec python3.11 -m ziglang "$@"\n' | sudo tee /usr/local/bin/zig > /dev/null
+          sudo chmod +x /usr/local/bin/zig
           zig version
 
       - name: Install Terraform
