@@ -763,11 +763,11 @@ class LocalApigwService(BaseLocalService):
             if route.event_type == Route.HTTP and (
                 not route.payload_format_version or route.payload_format_version == "2.0"
             ):
-                (status_code, headers, body) = self._parse_v2_payload_format_lambda_output(
+                status_code, headers, body = self._parse_v2_payload_format_lambda_output(
                     lambda_response, self.api.binary_media_types, request
                 )
             else:
-                (status_code, headers, body) = self._parse_v1_payload_format_lambda_output(
+                status_code, headers, body = self._parse_v1_payload_format_lambda_output(
                     lambda_response, self.api.binary_media_types, request, route.event_type
                 )
         except LambdaResponseParseException as ex:

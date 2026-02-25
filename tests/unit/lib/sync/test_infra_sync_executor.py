@@ -133,13 +133,11 @@ class TestInfraSyncExecutor(TestCase):
         infra_sync_executor = InfraSyncExecutor(
             self.build_context, self.package_context, self.deploy_context, self.sync_context
         )
-        infra_sync_executor._cfn_client.get_template.return_value = {
-            "TemplateBody": """{
+        infra_sync_executor._cfn_client.get_template.return_value = {"TemplateBody": """{
                 "Resources": {
                     "ServerlessFunction": {"Type": "AWS::Serverless::Function", "Properties": {"CodeUri": "https://s3"}}
                 }
-            }"""
-        }
+            }"""}
 
         self.assertTrue(infra_sync_executor._auto_skip_infra_sync("path", "path2", "stack_name"))
         self.assertEqual(infra_sync_executor.code_sync_resources, {ResourceIdentifier("ServerlessFunction")})
@@ -233,8 +231,7 @@ class TestInfraSyncExecutor(TestCase):
         infra_sync_executor = InfraSyncExecutor(
             self.build_context, self.package_context, self.deploy_context, self.sync_context
         )
-        infra_sync_executor._cfn_client.get_template.return_value = {
-            "TemplateBody": """{
+        infra_sync_executor._cfn_client.get_template.return_value = {"TemplateBody": """{
                 "Resources": {
                     "ServerlessFunction": {
                         "Type": "AWS::Serverless::Function",
@@ -272,8 +269,7 @@ class TestInfraSyncExecutor(TestCase):
                         "Properties": {"DefinitionS3Location": "s3://location"},
                     },
                 }
-            }"""
-        }
+            }"""}
 
         self.assertTrue(infra_sync_executor._auto_skip_infra_sync("path", "path2", "stack_name"))
         self.assertEqual(
@@ -336,24 +332,20 @@ class TestInfraSyncExecutor(TestCase):
             self.build_context, self.package_context, self.deploy_context, self.sync_context
         )
         infra_sync_executor._cfn_client.get_template.side_effect = [
-            {
-                "TemplateBody": f"""{{
+            {"TemplateBody": f"""{{
                     "Resources": {{
                         "ServerlessApplication": {{
                             "Type": "AWS::Serverless::Application", 
                             "Properties": {{"Location": "{str(Path("local") / "template.yaml")}"}} }}
                     }}
-                }}"""
-            },
-            {
-                "TemplateBody": """{
+                }}"""},
+            {"TemplateBody": """{
                     "Resources": {
                         "ServerlessFunction": {
                             "Type": "AWS::Serverless::Function", 
                             "Properties": {"CodeUri": "function/"}}
                     }
-                }"""
-            },
+                }"""},
         ]
 
         infra_sync_executor._cfn_client.describe_stack_resource.return_value = {
@@ -414,16 +406,14 @@ class TestInfraSyncExecutor(TestCase):
             self.build_context, self.package_context, self.deploy_context, self.sync_context
         )
         infra_sync_executor._cfn_client.get_template.side_effect = [
-            {
-                "TemplateBody": """{
+            {"TemplateBody": """{
                     "Resources": {
                         "ServerlessApplication": {
                             "Type": "AWS::Serverless::Application",
                             "Properties": {"Location": {"ApplicationId": "sar_id", "SemanticVersion": "version"}},
                         }
                     }
-                }"""
-            },
+                }"""},
         ]
 
         infra_sync_executor._cfn_client.describe_stack_resource.return_value = {
@@ -466,23 +456,19 @@ class TestInfraSyncExecutor(TestCase):
             self.build_context, self.package_context, self.deploy_context, self.sync_context
         )
         infra_sync_executor._cfn_client.get_template.side_effect = [
-            {
-                "TemplateBody": """{
+            {"TemplateBody": """{
                     Resources: {
                         "NestedStack": {
                             "Type": "AWS::CloudFormation::Stack",
                             "Properties": {"TemplateURL": "https://s3.com/bucket/key"}
                         }
                     }
-                }"""
-            },
-            {
-                "TemplateBody": """{
+                }"""},
+            {"TemplateBody": """{
                     "Resources": {
                         "ServerlessFunction": {"Type": "AWS::Serverless::Function", "Properties": {"CodeUri": "local/"}}
                     }
-                }"""
-            },
+                }"""},
         ]
 
         infra_sync_executor._cfn_client.describe_stack_resource.return_value = {
@@ -554,13 +540,11 @@ class TestInfraSyncExecutor(TestCase):
         infra_sync_executor = InfraSyncExecutor(
             self.build_context, self.package_context, self.deploy_context, self.sync_context
         )
-        infra_sync_executor._cfn_client.get_template.return_value = {
-            "TemplateBody": """{
+        infra_sync_executor._cfn_client.get_template.return_value = {"TemplateBody": """{
                 "Resources": {
                     "ServerlessFunction": {"Type": "AWS::Serverless::Function", "Properties": {"CodeUri": "https://s3"}}
                 }
-            }"""
-        }
+            }"""}
 
         infra_sync_executor._get_stack_parameters = MagicMock()
 

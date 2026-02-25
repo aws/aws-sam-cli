@@ -34,7 +34,6 @@ from tests.testing_utils import (
 )
 from samcli.commands.build.utils import MountMode
 
-
 LOG = logging.getLogger(__name__)
 
 

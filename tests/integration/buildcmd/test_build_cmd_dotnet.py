@@ -16,7 +16,6 @@ from tests.integration.buildcmd.build_integ_base import (
     BuildIntegDotnetBase,
 )
 
-
 LOG = logging.getLogger(__name__)
 
 

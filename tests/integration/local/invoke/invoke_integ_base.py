@@ -107,7 +107,7 @@ class InvokeIntegBase(TestCase):
     def run_command(self, command_list, env=None, cwd=None):
         process = Popen(command_list, stdout=PIPE, env=env, cwd=cwd)
         try:
-            (stdout, stderr) = process.communicate(timeout=TIMEOUT)
+            stdout, stderr = process.communicate(timeout=TIMEOUT)
             return stdout, stderr, process.returncode
         except TimeoutExpired:
             process.kill()

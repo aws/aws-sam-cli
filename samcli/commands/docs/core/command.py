@@ -74,7 +74,7 @@ class DocsBaseCommand(Command):
                 col_max=50,
             )
 
-    def format_options(self, ctx: Context, formatter: DocsCommandHelpTextFormatter):  # type:ignore
+    def format_options(self, ctx: Context, formatter: DocsCommandHelpTextFormatter):  # type: ignore
         """
         Overrides the format_options method from the parent class to update
         the help text formatting in a consistent method for the AWS SAM CLI

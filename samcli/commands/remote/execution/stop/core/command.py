@@ -12,9 +12,7 @@ from samcli.commands.remote.execution.stop.core.options import OPTIONS_INFO
 
 
 class RemoteExecutionStopCommand(RemoteExecutionBaseCommand):
-    def format_options(
-        self, ctx: Context, formatter: CommandHelpTextFormatter  # type:ignore
-    ) -> None:
+    def format_options(self, ctx: Context, formatter: CommandHelpTextFormatter) -> None:  # type: ignore
         self.format_description(formatter)
         self.format_examples(ctx, formatter)
         self.format_acronyms(formatter)

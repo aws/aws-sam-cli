@@ -833,6 +833,4 @@ Actions you can take next
 =========================
 [*] Fix issues and try deploying again
 [*] Roll back stack to the last known stable state: aws cloudformation rollback-stack --stack-name {stack_name}
-""".format(
-            stack_name=stack_name
-        )
+""".format(stack_name=stack_name)
