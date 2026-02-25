@@ -5,9 +5,20 @@ on:
     # Run at 7pm PST (3am UTC next day) Monday-Friday
     # This translates to Tuesday-Saturday 3am UTC
     - cron: '0 3 * * 2-6'
+    # Run at 4am PST (12pm UTC) daily — uses SAM CLI nightly binary instead of make init
+    - cron: '0 12 * * 2-6'
   workflow_dispatch:  # Allow manual triggering
     # NOTE: This workflow can only be manually triggered from develop or main branches
     # The other branch will not pass the OIDC permission check
+    inputs:
+      install_mode:
+        description: '"code" to install from source (make init), "binary" to install SAM CLI nightly binary'
+        required: false
+        default: 'code'
+        type: choice
+        options:
+          - code
+          - binary
 
 permissions:
   id-token: write   # Required for OIDC
@@ -200,11 +211,24 @@ jobs:
           else
             export CONTAINER_RUNTIME=docker
           fi
-          make init
+          # When triggered by the 4am PST schedule (cron '0 12 * * 2-6'),
+          # or manually with install_mode=binary,
+          # install SAM CLI nightly binary instead of running make init
+          if [[ "${{ github.event.schedule }}" == "0 12 * * 2-6" ]] || [[ "${{ inputs.install_mode }}" == "binary" ]]; then
+            gh release download sam-cli-nightly --repo aws/aws-sam-cli --pattern 'aws-sam-cli-linux-x86_64.zip'
+            unzip aws-sam-cli-linux-x86_64.zip -d sam-installation
+            sudo ./sam-installation/install
+            sudo mv /usr/local/bin/sam-nightly /usr/local/bin/sam
+            sam --version
+          else
+            make init
+          fi
 
       - name: Get testing resources and credentials
         if: "!contains(fromJSON('[\"build-x86-1\", \"build-x86-2\", \"build-arm64\", \"build-x86-container-1\", \"build-x86-container-2\", \"build-arm64-container-1\", \"build-arm64-container-2\", \"local-invoke\", \"local-start-api\", \"local-start-lambda\"]'), matrix.test_suite)"
-        run: python3.11 tests/setup_testing_resources.py
+        run: |
+          python3.11 -c "import boto3" 2>/dev/null || uv pip install --system boto3
+          python3.11 tests/setup_testing_resources.py
 
       - name: Login to Public ECR
         run: |
