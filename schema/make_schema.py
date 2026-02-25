@@ -162,7 +162,9 @@ def format_param(param: click.core.Option) -> SamCliParameterSchema:
     )
 
     if param.default and param.name not in PARAMS_TO_OMIT_DEFAULT_FIELD:
-        formatted_param.default = list(param.default) if isinstance(param.default, tuple) else param.default
+        # Click 8.31+ uses Sentinel.UNSET instead of None for unset defaults; skip non-serializable values
+        if not isinstance(param.default, Enum):
+            formatted_param.default = list(param.default) if isinstance(param.default, tuple) else param.default
 
     if param.type.name == "choice" and isinstance(param.type, click.Choice):
         formatted_param.choices = list(param.type.choices)
