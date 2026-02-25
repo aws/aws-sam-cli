@@ -12,13 +12,14 @@ on:
     # The other branch will not pass the OIDC permission check
     inputs:
       install_mode:
-        description: '"code" to install from source (make init), "binary" to install SAM CLI nightly binary'
+        description: '"code" to install from source (make init), "binary" to install SAM CLI nightly binary, "latest-release" to install latest stable release binary'
         required: false
         default: 'code'
         type: choice
         options:
           - code
           - binary
+          - latest-release
 
 permissions:
   id-token: write   # Required for OIDC
@@ -214,10 +215,14 @@ jobs:
             export CONTAINER_RUNTIME=docker
           fi
           # When triggered by the 4am PST schedule (cron '0 12 * * 2-6'),
-          # or manually with install_mode=binary,
-          # install SAM CLI nightly binary instead of running make init
+          # or manually with install_mode=binary or latest-release,
+          # install SAM CLI binary instead of running make init
           if [[ "${{ github.event.schedule }}" == "0 12 * * 2-6" ]] || [[ "${{ inputs.install_mode }}" == "binary" ]]; then
-            make init-binary
+            make setup-pytest
+            make init-nightly
+          elif [[ "${{ inputs.install_mode }}" == "latest-release" ]]; then
+            make setup-pytest
+            make init-latest-release
           else
             make init
           fi
@@ -225,8 +230,9 @@ jobs:
       - name: Get testing resources and credentials
         if: "!contains(fromJSON('[\"build-x86-1\", \"build-x86-2\", \"build-arm64\", \"build-x86-container-1\", \"build-x86-container-2\", \"build-arm64-container-1\", \"build-arm64-container-2\", \"local-invoke\", \"local-start-api\", \"local-start-lambda\"]'), matrix.test_suite)"
         run: |
-          python3.11 -c "import boto3" 2>/dev/null || uv pip install --system boto3
-          python3.11 tests/setup_testing_resources.py
+          PYTHON="python3.11"
+          if [ -f "$HOME/pytest/bin/python3" ]; then PYTHON="$HOME/pytest/bin/python3"; fi
+          $PYTHON tests/setup_testing_resources.py
 
       - name: Login to Public ECR
         run: |
@@ -420,4 +426,7 @@ jobs:
         if: always()
         env:
           TESTREPORTING_S3: ${{ secrets.TESTREPORTING_S3 }}
-        run: python3.11 tests/reset_testing_resources.py ${{ matrix.test_suite }}
+        run: |
+          PYTHON="python3.11"
+          if [ -f "$HOME/pytest/bin/python3" ]; then PYTHON="$HOME/pytest/bin/python3"; fi
+          $PYTHON tests/reset_testing_resources.py ${{ matrix.test_suite }}

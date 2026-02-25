@@ -2,30 +2,33 @@
 # environment variable.
 SAM_CLI_TELEMETRY ?= 0
 
-.PHONY: schema init-binary
+.PHONY: schema init-nightly init-latest-release setup-pytest
 
 # Initialize environment specifically for Github action tests using uv
 init:
-	@if [ "$$GITHUB_ACTIONS" = "true" ]; then \
+	@if [ "$GITHUB_ACTIONS" = "true" ]; then \
 		command -v uv >/dev/null 2>&1 || pip install uv==0.9.1; \
 		SAM_CLI_DEV=1 uv pip install --system -e '.[dev]'; \
 	else \
 		SAM_CLI_DEV=1 pip install -e '.[dev]'; \
 	fi
 
-# Install SAM CLI nightly binary and set up pytest for binary integration testing
-init-binary:
-	gh release download sam-cli-nightly --repo aws/aws-sam-cli --pattern 'aws-sam-cli-linux-x86_64.zip'
-	unzip aws-sam-cli-linux-x86_64.zip -d sam-installation
-	sudo ./sam-installation/install
-	sudo mv /usr/local/bin/sam-nightly /usr/local/bin/sam
-	sam --version
+# Set up a pytest venv with test dependencies
+setup-pytest:
 	python3.11 -m venv $(HOME)/pytest
 	$(HOME)/pytest/bin/python3 -m pip install -r requirements/pre-dev.txt
 	$(HOME)/pytest/bin/python3 -m pip install -r requirements/dev.txt
 	$(HOME)/pytest/bin/python3 -m pip install -r requirements/base.txt
 	echo "$(HOME)/pytest/bin" >> $(GITHUB_PATH)
 	$(HOME)/pytest/bin/pytest --version
+
+# Install SAM CLI nightly binary
+init-nightly:
+	bash scripts/install-sam-cli-binary.sh sam-cli-nightly
+
+# Install SAM CLI latest release binary
+init-latest-release:
+	bash scripts/install-sam-cli-binary.sh
 
 test:
 	# Run unit tests and fail if coverage falls below 94%
