@@ -217,11 +217,7 @@ jobs:
           # or manually with install_mode=binary,
           # install SAM CLI nightly binary instead of running make init
           if [[ "${{ github.event.schedule }}" == "0 12 * * 2-6" ]] || [[ "${{ inputs.install_mode }}" == "binary" ]]; then
-            gh release download sam-cli-nightly --repo aws/aws-sam-cli --pattern 'aws-sam-cli-linux-x86_64.zip'
-            unzip aws-sam-cli-linux-x86_64.zip -d sam-installation
-            sudo ./sam-installation/install
-            sudo mv /usr/local/bin/sam-nightly /usr/local/bin/sam
-            sam --version
+            make init-binary
           else
             make init
           fi
