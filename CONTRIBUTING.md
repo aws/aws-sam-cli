@@ -60,6 +60,70 @@ GitHub provides additional document on [forking a repository](https://help.githu
 [creating a pull request](https://help.github.com/articles/creating-a-pull-request/).
 
 
+## Integration Test Guidelines
+
+Integration tests run in CI via `.github/workflows/integration-tests.yml`. All jobs have AWS credentials. Tests in `build` and `local` jobs that require credentials are separated using a pytest marker.
+
+### Tests that require AWS credentials
+
+Some tests in `tests/integration/buildcmd/` and `tests/integration/local/` need AWS credentials (e.g. STS calls, Lambda layer publishing, SAR template resolution). These are:
+
+- **Excluded** from build/local jobs via `-m "not requires_credential"`
+- **Collected and run** in the dedicated `cloud-based-tests` CI job via `-m requires_credential`
+
+To mark a test that requires AWS credentials, add the marker:
+
+```python
+import pytest
+
+@pytest.mark.requires_credential
+class TestMyCloudFeature(SomeBaseClass):
+    ...
+```
+
+The marker is registered in `tests/conftest.py`. Build and local jobs automatically exclude these tests; `cloud-based-tests` automatically includes them.
+
+### Docker container cleanup in parallel tests
+
+`start-api` and `start-lambda` tests run in parallel (`-n 2`). Each test class snapshots existing Docker container IDs before starting its local server, and on teardown only removes containers created after the snapshot. This prevents one worker from killing another worker's containers.
+
+If you write a new base class that manages Docker containers, follow the same pattern in `start_lambda_api_integ_base.py` and `start_api_integ_base.py`: snapshot container IDs in `setUpClass`, and scope removal to only new containers in `tearDownClass`.
+
+### Tier 1 cross-platform smoke tests
+
+A curated subset of ~50 tests marked with `@pytest.mark.tier1` runs on every OS/container-runtime combination (e.g. Linux+Finch). These validate platform-specific code paths: file system operations, container runtime interaction, process spawning, and network operations.
+
+There are two markers:
+
+- `tier1` — standalone tests that don't duplicate any parameterized entry (e.g. a dedicated `test_tier1_*` method calling unique logic)
+- `tier1_extra` — dedicated `test_tier1_*` methods whose parameter set already exists in a `@parameterized.expand` list on the same class. These are excluded from normal Linux+Docker CI (via `-m "not tier1_extra"`) to avoid running the same test twice, but included in the tier1 Finch job (via `-m "tier1 or tier1_extra"`).
+
+Run locally with: `pytest -m "tier1 or tier1_extra" tests/integration tests/regression`
+
+To add a tier 1 test for a new feature:
+
+1. Add a dedicated `test_tier1_*` method that calls the existing test logic with one specific parameter set:
+
+```python
+@pytest.mark.tier1
+def test_tier1_my_feature(self):
+    """Single test for cross-platform validation."""
+    self._test_my_feature("runtime_x", use_container=False)
+
+@pytest.mark.tier1
+@skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
+def test_tier1_my_feature_in_container(self):
+    """Single container test for cross-platform validation."""
+    self._test_my_feature("runtime_x", use_container=True)
+```
+
+2. If the parameter set already exists in a `@parameterized.expand` list, keep it in the original list and use `@pytest.mark.tier1_extra` instead of `@pytest.mark.tier1` on the dedicated method. This avoids running the same test twice in Linux+Docker CI.
+
+3. If the parameter set does NOT exist in any parameterized list (i.e. it's unique to the tier1 method), use `@pytest.mark.tier1`.
+
+4. Each runtime should have one non-container and one container tier 1 test.
+
+
 ## Finding contributions to work on
 Looking at the existing issues is a great way to find something to contribute on. As our projects, by default, use the default GitHub issue labels ((enhancement/bug/duplicate/help wanted/invalid/question/wontfix), looking at any ['help wanted'](https://github.com/aws/aws-sam-cli/labels/help%20wanted) issues is a great place to start. 
 

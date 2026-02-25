@@ -23,7 +23,7 @@ on:
 jobs:
   analyze:
     name: Analyze
-    if: github.repository_owner == 'aws'
+    if: github.repository == 'aws/aws-sam-cli'
     runs-on: ubuntu-latest
     permissions:
       actions: read

@@ -358,6 +358,7 @@ class TestService(StartApiIntegBaseClass):
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
+    @pytest.mark.tier1
     def test_calling_proxy_endpoint(self):
         response = requests.get(self.url + "/proxypath/this/is/some/path", timeout=300)
 
@@ -2677,6 +2678,7 @@ def handler(event, context):
         self.assertEqual(response.json(), {"hello": "world2"})
 
 
+@pytest.mark.xdist_group(name="docker_watcher")
 class TestWatchingImageWarmContainers(WritableStartApiIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
@@ -2741,6 +2743,7 @@ COPY main.py ./"""
         self.assertEqual(response.json(), {"hello": "world2"})
 
 
+@pytest.mark.xdist_group(name="docker_watcher")
 class TestWatchingTemplateChangesImageDockerFileChangedLocation(WritableStartApiIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
@@ -2884,6 +2887,7 @@ def handler(event, context):
         self.assertEqual(response.json(), {"hello": "world2"})
 
 
+@pytest.mark.xdist_group(name="docker_watcher")
 class TestWatchingImageLazyContainers(WritableStartApiIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
@@ -3083,6 +3087,7 @@ def handler(event, context):
         self.assertEqual(response.json(), {"hello": "world2"})
 
 
+@pytest.mark.xdist_group(name="docker_watcher")
 class TestWatchingTemplateChangesImageDockerFileChangedLocationLazyContainers(WritableStartApiIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
@@ -3318,6 +3323,8 @@ class WarmContainersWithRemoteLayersBase(TestWarmContainersBaseClass):
         super().tearDownClass()
 
 
+@pytest.mark.xdist_group(name="remote_layers")
+@pytest.mark.requires_credential
 class TestWarmContainersRemoteLayers(WarmContainersWithRemoteLayersBase):
     template_path = "/testdata/start_api/template-warm-containers-layers.yaml"
     container_mode = ContainersInitializationMode.EAGER.value
@@ -3336,23 +3343,6 @@ class TestWarmContainersRemoteLayers(WarmContainersWithRemoteLayersBase):
         if integ_layer_cache_dir.exists():
             shutil.rmtree(str(integ_layer_cache_dir))
 
-        # Clean Docker images that might have cached layer mounts
-        from samcli.local.docker.utils import get_validated_container_client
-
-        docker_client = get_validated_container_client()
-        try:
-            # Remove SAM CLI lambda images that might have stale layer mounts
-            images = docker_client.images.list(filters={"reference": "samcli/lambda*"})
-            for image in images:
-                try:
-                    docker_client.images.remove(image.id, force=True)
-                except Exception as e:
-                    # Ignore errors - image might be in use
-                    pass
-        except Exception:
-            # Ignore Docker errors - cleanup is best effort
-            pass
-
         super().setUpClass()
 
     @pytest.mark.flaky(reruns=3)
@@ -3370,6 +3360,8 @@ class TestWarmContainersRemoteLayers(WarmContainersWithRemoteLayersBase):
         self.assertEqual(response.content.decode("utf-8"), '"Layer1"')
 
 
+@pytest.mark.xdist_group(name="remote_layers")
+@pytest.mark.requires_credential
 class TestWarmContainersRemoteLayersLazyInvoke(WarmContainersWithRemoteLayersBase):
     template_path = "/testdata/start_api/template-warm-containers-layers.yaml"
     container_mode = ContainersInitializationMode.LAZY.value
@@ -3383,27 +3375,9 @@ class TestWarmContainersRemoteLayersLazyInvoke(WarmContainersWithRemoteLayersBas
         if default_cache_dir.exists():
             shutil.rmtree(str(default_cache_dir))
 
-        # Also clean the integration test layer cache
         integ_layer_cache_dir = Path().home().joinpath("integ_layer_cache")
         if integ_layer_cache_dir.exists():
             shutil.rmtree(str(integ_layer_cache_dir))
-
-        # Clean Docker images that might have cached layer mounts
-        from samcli.local.docker.utils import get_validated_container_client
-
-        docker_client = get_validated_container_client()
-        try:
-            # Remove SAM CLI lambda images that might have stale layer mounts
-            images = docker_client.images.list(filters={"reference": "samcli/lambda*"})
-            for image in images:
-                try:
-                    docker_client.images.remove(image.id, force=True)
-                except Exception as e:
-                    # Ignore errors - image might be in use
-                    pass
-        except Exception:
-            # Ignore Docker errors - cleanup is best effort
-            pass
 
         super().setUpClass()
 
@@ -3415,6 +3389,8 @@ class TestWarmContainersRemoteLayersLazyInvoke(WarmContainersWithRemoteLayersBas
         self.assertEqual(response.content.decode("utf-8"), '"Layer1"')
 
 
+@pytest.mark.xdist_group(name="remote_layers")
+@pytest.mark.requires_credential
 class TestWarmContainersMultipleRemoteLayersInvoke(WarmContainersWithRemoteLayersBase):
     template_path = "/testdata/start_api/template-warm-containers-multi-layers.yaml"
     container_mode = ContainersInitializationMode.EAGER.value
@@ -3428,27 +3404,9 @@ class TestWarmContainersMultipleRemoteLayersInvoke(WarmContainersWithRemoteLayer
         if default_cache_dir.exists():
             shutil.rmtree(str(default_cache_dir))
 
-        # Also clean the integration test layer cache
         integ_layer_cache_dir = Path().home().joinpath("integ_layer_cache")
         if integ_layer_cache_dir.exists():
             shutil.rmtree(str(integ_layer_cache_dir))
-
-        # Clean Docker images that might have cached layer mounts
-        from samcli.local.docker.utils import get_validated_container_client
-
-        docker_client = get_validated_container_client()
-        try:
-            # Remove SAM CLI lambda images that might have stale layer mounts
-            images = docker_client.images.list(filters={"reference": "samcli/lambda*"})
-            for image in images:
-                try:
-                    docker_client.images.remove(image.id, force=True)
-                except Exception as e:
-                    # Ignore errors - image might be in use
-                    pass
-        except Exception:
-            # Ignore Docker errors - cleanup is best effort
-            pass
 
         super().setUpClass()
 

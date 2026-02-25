@@ -6,6 +6,6 @@
   "author": "",
   "license": "APACHE2.0",
   "dependencies": {
-    "@aws-sdk/client-sts": "3.445.0"
+    "@aws-sdk/client-sts": "^3.700.0"
   }
 }

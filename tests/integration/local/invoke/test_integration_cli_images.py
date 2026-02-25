@@ -26,6 +26,8 @@ TIMEOUT = 300
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
+@pytest.mark.xdist_group(name="docker_images")
+@pytest.mark.requires_credential
 class TestSamPython36HelloWorldIntegrationImages(IntegrationCliIntegBase):
     template = Path("template_image.yaml")
 
@@ -430,6 +432,8 @@ class TestSamPython36HelloWorldIntegrationImages(IntegrationCliIntegBase):
         self.assertEqual(process.returncode, 1)
 
 
+@pytest.mark.xdist_group(name="docker_images")
+@pytest.mark.requires_credential
 class TestDeleteOldRapidImages(InvokeIntegBase):
     template = Path("template_image.yaml")
 

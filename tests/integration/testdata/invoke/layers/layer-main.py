@@ -19,3 +19,10 @@ def one_layer_hanlder(event, context):
     from simple_python_module.simple_python import which_layer
 
     return which_layer()
+
+
+def two_independent_layers_handler(event, context):
+    from module_a.util import greeting
+    from module_b.util import farewell
+
+    return {"a": greeting(), "b": farewell()}
