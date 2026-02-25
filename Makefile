@@ -19,8 +19,8 @@ setup-pytest:
 	$(HOME)/pytest/bin/python3 -m pip install -r requirements/pre-dev.txt
 	$(HOME)/pytest/bin/python3 -m pip install -r requirements/dev.txt
 	$(HOME)/pytest/bin/python3 -m pip install -r requirements/base.txt
-	echo "$(HOME)/pytest/bin" >> $(GITHUB_PATH)
-	$(HOME)/pytest/bin/pytest --version
+	sudo ln -sf $(HOME)/pytest/bin/pytest /usr/local/bin/pytest
+	pytest --version
 
 # Install SAM CLI nightly binary
 init-nightly:
