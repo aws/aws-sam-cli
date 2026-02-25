@@ -8,7 +8,6 @@ from samcli.lib.config.samconfig import SamConfig
 from tests.integration.buildcmd.build_integ_base import BuildIntegBase
 from tests.testing_utils import run_command
 
-
 configs = {
     ".toml": "samconfig/samconfig.toml",
     ".yaml": "samconfig/samconfig.yaml",
