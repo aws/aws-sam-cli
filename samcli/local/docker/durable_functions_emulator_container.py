@@ -408,7 +408,10 @@ class DurableFunctionsEmulatorContainer:
         except Exception:
             pass
 
-        raise RuntimeError(f"Durable Functions Emulator container failed to become ready within {timeout} seconds."
-                           " You may set the DURABLE_EXECUTIONS_EMULATOR_IMAGE_TAG env variable to a specific image to ensure"
-                           " that you are using a compatible version. Check https://gallery.ecr.aws/o4w4w0v6/aws-durable-execution-emulator."
-                           " and https://github.com/aws/aws-durable-execution-sdk-python-testing/releases for valid image tags.")
+        raise RuntimeError(f"Durable Functions Emulator container failed to become ready within {timeout} seconds. "
+                           "You may set the DURABLE_EXECUTIONS_EMULATOR_IMAGE_TAG env variable to a specific image "
+                           "to ensure that you are using a compatible version. "
+                           "Check https://gallery.ecr.aws/o4w4w0v6/aws-durable-execution-emulator. "
+                           "and https://github.com/aws/aws-durable-execution-sdk-python-testing/releases "
+                           "for valid image tags. If the problems persist, you can try updating the SAM CLI version "
+                           " in case of incompatibility.")

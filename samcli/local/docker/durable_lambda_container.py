@@ -97,7 +97,6 @@ class DurableLambdaContainer(LambdaContainer):
         result = self.emulator_container.start_durable_execution(
             durable_execution_name, event, lambda_endpoint, self.durable_config
         )
-        LOG.debug("result of start_durable_execution", result)
         execution_arn = result.get("ExecutionArn")
         LOG.debug("Received execution ARN: %s", execution_arn)
         headers = {"X-Amz-Durable-Execution-Arn": execution_arn}
