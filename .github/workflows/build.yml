@@ -186,18 +186,9 @@ jobs:
         with:
           dotnet-version: '10.0.x'
        # Install and configure Rust & Cargo Lambda
-      - name: Install and configure Rust & Cargo Lambda
+      - name: Install Rust toolchain and cargo-lambda
         if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: |
-          : install rustup if needed
-          if ! command -v rustup &> /dev/null ; then
-            curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL "https://sh.rustup.rs" | sh -s -- --default-toolchain none -y
-            echo "${CARGO_HOME:-$HOME/.cargo}/bin" >> $GITHUB_PATH
-          fi
-          rustup toolchain install stable --profile minimal --no-self-update
-          rustup default stable
-          pip install "cargo-lambda==$CARGO_LAMBDA_VERSION"
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+        run: bash tests/install-rust.sh
       - name: Init samdev
         run: make init
       - name: uv install setuptools in Python3.12
