@@ -1,7 +1,7 @@
 chevron~=0.12
 click==8.1.8
 Flask<3.2
-boto3[crt]==1.42.26
+boto3[crt]==1.42.57
 jmespath~=1.0.1
 ruamel_yaml~=0.19.1
 PyYAML~=6.0
@@ -32,7 +32,7 @@ regex!=2021.10.8
 tzlocal==5.3.1
 
 #Adding cfn-lint dependency for SAM validate
-cfn-lint~=1.43.1
+cfn-lint~=1.45.0
 
 # Type checking boto3 objects
 boto3-stubs[apigateway,cloudformation,ecr,iam,lambda,s3,schemas,secretsmanager,signer,stepfunctions,sts,xray,sqs,kinesis]>=1.41.0
