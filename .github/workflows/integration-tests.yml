@@ -168,25 +168,9 @@ jobs:
         with:
           ruby-version: '3.4.7'
 
-      - name: Install Rust toolchain
+      - name: Install Rust toolchain and cargo-lambda
         if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch"]'), matrix.test_suite)
-        run: |
-          curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL https://sh.rustup.rs | sh -s -- --default-toolchain none -y
-          source $HOME/.cargo/env
-          rustup toolchain install stable --profile minimal --no-self-update
-          rustup default stable
-          rustup target add x86_64-unknown-linux-gnu --toolchain stable
-          rustup target add aarch64-unknown-linux-gnu --toolchain stable
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-
-      - name: Install cargo-lambda
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch"]'), matrix.test_suite)
-        run: |
-          python3.11 -m pip install cargo-lambda==${{ env.CARGO_LAMBDA_VERSION }}
-          # Create a zig wrapper
-          printf '#!/bin/bash\nexec python3.11 -m ziglang "$@"\n' | sudo tee /usr/local/bin/zig > /dev/null
-          sudo chmod +x /usr/local/bin/zig
-          zig version
+        run: bash tests/install-rust.sh
 
       - name: Install Terraform
         if: contains(fromJSON('["terraform-build", "terraform-start-api", "terraform-invoke-start-lambda", "cloud-based-tests", "tier1-finch"]'), matrix.test_suite)
@@ -234,9 +218,7 @@ jobs:
         if: env.TEST_TYPE == 'develop' || env.TEST_TYPE == 'master' || env.TEST_TYPE == 'other'
         run: |
           make init
-          VENV_BIN="$HOME/samcli-venv/bin"
-          if [ -d "$HOME/samcli-venv/Scripts" ]; then VENV_BIN="$HOME/samcli-venv/Scripts"; fi
-          echo "SCRIPT_PY=$VENV_BIN/python" >> $GITHUB_ENV
+          echo "SCRIPT_PY=python3.11" >> $GITHUB_ENV
 
       - name: Initialize nightly release test
         if: env.TEST_TYPE == 'nightly-release'
