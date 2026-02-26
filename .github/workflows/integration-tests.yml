@@ -5,8 +5,12 @@ on:
     # Run at 7pm PST (3am UTC next day) Monday-Friday
     # This translates to Tuesday-Saturday 3am UTC
     - cron: '0 3 * * 2-6'
-    # Run at 4am PST (12pm UTC) daily — uses SAM CLI nightly binary instead of make init
-    - cron: '0 12 * * 2-6'
+  push:
+    tags:
+      # Triggers binary integration tests on release tags
+      # Nightly: v1.154.0.dev202602250901 → binary (nightly)
+      # Release: v1.154.0 → latest-release
+      - 'v**'
   workflow_dispatch:  # Allow manual triggering
     # NOTE: This workflow can only be manually triggered from develop or main branches
     # The other branch will not pass the OIDC permission check
@@ -219,14 +223,12 @@ jobs:
           else
             export CONTAINER_RUNTIME=docker
           fi
-          # When triggered by the 4am PST schedule (cron '0 12 * * 2-6'),
-          # or manually with install_mode=binary or latest-release,
-          # install SAM CLI binary instead of running make init
-          if [[ "${{ github.event.schedule }}" == "0 12 * * 2-6" ]] || [[ "${{ inputs.install_mode }}" == "binary" ]]; then
+          TAG="${GITHUB_REF#refs/tags/}"
+          if [[ "${{ inputs.install_mode }}" == "binary" ]] || [[ "$TAG" == *".dev"* ]]; then
             make setup-pytest
             make init-nightly
             echo "SAM_CLI_DEV=" >> $GITHUB_ENV
-          elif [[ "${{ inputs.install_mode }}" == "latest-release" ]]; then
+          elif [[ "${{ inputs.install_mode }}" == "latest-release" ]] || [[ "${{ github.event_name }}" == "push" && "$TAG" != *".dev"* ]]; then
             make setup-pytest
             make init-latest-release
             echo "SAM_CLI_DEV=" >> $GITHUB_ENV
