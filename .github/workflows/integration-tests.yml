@@ -6,10 +6,9 @@ on:
     # This translates to Tuesday-Saturday 3am UTC
     - cron: '0 3 * * 2-6'
   release:
-    types: [published]
-    # Triggers binary integration tests when a release is published
-    # Prerelease (sam-cli-nightly) → binary (nightly)
-    # Full release → latest-release
+    types: [released, prereleased]
+    # released → latest-release binary test
+    # prereleased → nightly binary test
   workflow_dispatch:  # Allow manual triggering
     # NOTE: This workflow can only be manually triggered from develop or main branches
     # The other branch will not pass the OIDC permission check
@@ -201,10 +200,10 @@ jobs:
         run: |
           echo "CONTAINER_RUNTIME=${{ matrix.test_suite == 'tier1-finch' && 'finch' || 'docker' }}" >> $GITHUB_ENV
           if [[ "${{ inputs.install_mode }}" == "nightly-release" ]] || \
-             [[ "${{ github.event_name }}" == "release" && "${{ github.event.release.prerelease }}" == "true" ]]; then
+             [[ "${{ github.event.action }}" == "prereleased" ]]; then
             echo "TEST_TYPE=nightly-release" >> $GITHUB_ENV
           elif [[ "${{ inputs.install_mode }}" == "latest-release" ]] || \
-               [[ "${{ github.event_name }}" == "release" && "${{ github.event.release.prerelease }}" == "false" ]]; then
+               [[ "${{ github.event.action }}" == "released" ]]; then
             echo "TEST_TYPE=latest-release" >> $GITHUB_ENV
           elif [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
             echo "TEST_TYPE=master" >> $GITHUB_ENV
