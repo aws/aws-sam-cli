@@ -591,6 +591,11 @@ def expand_language_extensions(
             had_language_extensions=True,
         )
 
+        # Track language extensions usage for telemetry
+        from samcli.lib.telemetry.event import EventName, EventTracker, UsedFeature
+
+        EventTracker.track_event(EventName.USED_FEATURE.value, UsedFeature.CFN_LANGUAGE_EXTENSIONS.value)
+
         if cache_key is not None:
             # Store a deep copy so callers can't poison the cache
             _expansion_cache[cache_key] = LanguageExtensionResult(

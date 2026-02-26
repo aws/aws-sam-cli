@@ -698,6 +698,38 @@ class TestExpandLanguageExtensionsEdgeCases:
             with pytest.raises(InvalidSamDocumentException):
                 expand_language_extensions(template)
 
+    def test_telemetry_tracked_when_language_extensions_used(self):
+        """Verify UsedFeature telemetry event is emitted when language extensions are expanded."""
+        template = {
+            "Transform": "AWS::LanguageExtensions",
+            "Resources": {
+                "Fn::ForEach::Test": [
+                    "Name",
+                    ["A"],
+                    {
+                        "${Name}Res": {
+                            "Type": "AWS::CloudFormation::WaitConditionHandle",
+                        }
+                    },
+                ]
+            },
+        }
+        with patch("samcli.lib.telemetry.event.EventTracker.track_event") as mock_track:
+            result = expand_language_extensions(template)
+            assert result.had_language_extensions is True
+            mock_track.assert_called_with("UsedFeature", "CFNLanguageExtensions")
+
+    def test_telemetry_not_tracked_when_no_language_extensions(self):
+        """Verify no telemetry event when template has no language extensions."""
+        template = {
+            "Transform": "AWS::Serverless-2016-10-31",
+            "Resources": {"Fn": {"Type": "AWS::Lambda::Function", "Properties": {}}},
+        }
+        with patch("samcli.lib.telemetry.event.EventTracker.track_event") as mock_track:
+            result = expand_language_extensions(template)
+            assert result.had_language_extensions is False
+            mock_track.assert_not_called()
+
 
 class TestCheckUsingLanguageExtensionEdgeCases:
     """Tests for check_using_language_extension edge cases."""
