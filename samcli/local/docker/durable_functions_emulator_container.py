@@ -248,7 +248,16 @@ class DurableFunctionsEmulatorContainer:
         LOG.debug(f"Creating container with name={self._container_name}, port={self.port}")
         self.container = self._docker_client.containers.create(
             image=self._get_emulator_image(),
-            command=["--host", "0.0.0.0", "--port", str(self.port)],
+            command=["dex-local-runner", "start-server",
+                     "--host", "0.0.0.0",
+                     "--port", str(self.port),
+                     "--log-level", "DEBUG",
+                     "--lambda-endpoint",
+                     "http://host.docker.internal:3001",
+                     "--store-type",
+                     self._get_emulator_store_type(),
+                     "--store-path",
+                     "/tmp/.durable-executions-local/durable-executions.db"],
             name=self._container_name,
             ports={f"{self.port}/tcp": self.port},
             volumes=volumes,
