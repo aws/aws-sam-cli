@@ -5,12 +5,11 @@ on:
     # Run at 7pm PST (3am UTC next day) Monday-Friday
     # This translates to Tuesday-Saturday 3am UTC
     - cron: '0 3 * * 2-6'
-  push:
-    tags:
-      # Triggers binary integration tests on release tags
-      # Nightly: v1.154.0.dev202602250901 → binary (nightly)
-      # Release: v1.154.0 → latest-release
-      - 'v**'
+  release:
+    types: [published]
+    # Triggers binary integration tests when a release is published
+    # Prerelease (sam-cli-nightly) → binary (nightly)
+    # Full release → latest-release
   workflow_dispatch:  # Allow manual triggering
     # NOTE: This workflow can only be manually triggered from develop or main branches
     # The other branch will not pass the OIDC permission check
@@ -223,12 +222,11 @@ jobs:
           else
             export CONTAINER_RUNTIME=docker
           fi
-          TAG="${GITHUB_REF#refs/tags/}"
-          if [[ "${{ inputs.install_mode }}" == "binary" ]] || [[ "$TAG" == *".dev"* ]]; then
+          if [[ "${{ inputs.install_mode }}" == "binary" ]] || [[ "${{ github.event_name }}" == "release" && "${{ github.event.release.prerelease }}" == "true" ]]; then
             make setup-pytest
             make init-nightly
             echo "SAM_CLI_DEV=" >> $GITHUB_ENV
-          elif [[ "${{ inputs.install_mode }}" == "latest-release" ]] || [[ "${{ github.event_name }}" == "push" && "$TAG" != *".dev"* ]]; then
+          elif [[ "${{ inputs.install_mode }}" == "latest-release" ]] || [[ "${{ github.event_name }}" == "release" && "${{ github.event.release.prerelease }}" == "false" ]]; then
             make setup-pytest
             make init-latest-release
             echo "SAM_CLI_DEV=" >> $GITHUB_ENV
