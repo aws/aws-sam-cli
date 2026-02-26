@@ -48,7 +48,13 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
             ),
             ("managed_custom_name", {"DURABLE_EXECUTIONS_CONTAINER_NAME": "my-emulator"}, 9014, "my-emulator", False),
             ("external_mode", {"DURABLE_EXECUTIONS_EXTERNAL_EMULATOR_PORT": "8080"}, 8080, None, True),
-            ("pin_image_tag", {"DURABLE_EXECUTIONS_EMULATOR_IMAGE_TAG": "v1.1.1"}, 9014, "sam-durable-execution-emulator", True),
+            (
+                "pin_image_tag",
+                {"DURABLE_EXECUTIONS_EMULATOR_IMAGE_TAG": "v1.1.1"},
+                9014,
+                "sam-durable-execution-emulator",
+                False,
+            ),
         ]
     )
     def test_initialization(self, name, env_vars, expected_port, expected_name, is_external):
@@ -249,6 +255,7 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
             ),
         ]
     )
+    @patch("samcli.local.docker.durable_functions_emulator_container.is_image_current")
     @patch("samcli.local.docker.durable_functions_emulator_container._get_host_architecture")
     @patch("os.makedirs")
     @patch("os.getcwd")
@@ -264,12 +271,14 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
         mock_getcwd,
         mock_makedirs,
         mock_get_host_arch,
+        mock_is_current,
     ):
         """Test container creation with all configuration permutations"""
         mock_get_host_arch.return_value = "x86_64"
         test_dir = "/test/dir"
         mock_getcwd.return_value = test_dir
         mock_path_exists.return_value = True
+        mock_is_current.return_value = True
 
         # Mock image already exists
         mock_image = Mock()

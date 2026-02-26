@@ -76,7 +76,6 @@ class DurableFunctionsEmulatorContainer:
     """
     ENV_EMULATOR_IMAGE_TAG = "DURABLE_EXECUTIONS_EMULATOR_IMAGE_TAG"
 
-
     def __init__(self, container_client=None, existing_container=None):
         self._docker_client_param = container_client
         self._validated_docker_client: Optional[docker.DockerClient] = None
@@ -248,16 +247,22 @@ class DurableFunctionsEmulatorContainer:
         LOG.debug(f"Creating container with name={self._container_name}, port={self.port}")
         self.container = self._docker_client.containers.create(
             image=self._get_emulator_image(),
-            command=["dex-local-runner", "start-server",
-                     "--host", "0.0.0.0",
-                     "--port", str(self.port),
-                     "--log-level", "DEBUG",
-                     "--lambda-endpoint",
-                     "http://host.docker.internal:3001",
-                     "--store-type",
-                     self._get_emulator_store_type(),
-                     "--store-path",
-                     "/tmp/.durable-executions-local/durable-executions.db"],
+            command=[
+                "dex-local-runner",
+                "start-server",
+                "--host",
+                "0.0.0.0",
+                "--port",
+                str(self.port),
+                "--log-level",
+                "DEBUG",
+                "--lambda-endpoint",
+                "http://host.docker.internal:3001",
+                "--store-type",
+                self._get_emulator_store_type(),
+                "--store-path",
+                "/tmp/.durable-executions-local/durable-executions.db",
+            ],
             name=self._container_name,
             ports={f"{self.port}/tcp": self.port},
             volumes=volumes,
@@ -408,10 +413,12 @@ class DurableFunctionsEmulatorContainer:
         except Exception:
             pass
 
-        raise RuntimeError(f"Durable Functions Emulator container failed to become ready within {timeout} seconds. "
-                           "You may set the DURABLE_EXECUTIONS_EMULATOR_IMAGE_TAG env variable to a specific image "
-                           "to ensure that you are using a compatible version. "
-                           "Check https://gallery.ecr.aws/o4w4w0v6/aws-durable-execution-emulator. "
-                           "and https://github.com/aws/aws-durable-execution-sdk-python-testing/releases "
-                           "for valid image tags. If the problems persist, you can try updating the SAM CLI version "
-                           " in case of incompatibility.")
+        raise RuntimeError(
+            f"Durable Functions Emulator container failed to become ready within {timeout} seconds. "
+            "You may set the DURABLE_EXECUTIONS_EMULATOR_IMAGE_TAG env variable to a specific image "
+            "to ensure that you are using a compatible version. "
+            "Check https://gallery.ecr.aws/o4w4w0v6/aws-durable-execution-emulator. "
+            "and https://github.com/aws/aws-durable-execution-sdk-python-testing/releases "
+            "for valid image tags. If the problems persist, you can try updating the SAM CLI version "
+            " in case of incompatibility."
+        )
