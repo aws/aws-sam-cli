@@ -4,7 +4,6 @@ import logging
 import time
 import boto3
 
-
 logging.basicConfig(level=logging.INFO)
 LOG = logging.getLogger()
 TEMPLATE_FOLDER = os.path.join("templates", "sar")

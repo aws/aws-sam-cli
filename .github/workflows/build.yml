@@ -172,7 +172,7 @@ jobs:
           ruby-version: "3.3"
       - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
       - uses: actions/setup-java@v5
         with:
           distribution: 'corretto'
@@ -196,7 +196,7 @@ jobs:
           fi
           rustup toolchain install stable --profile minimal --no-self-update
           rustup default stable
-          pip install cargo-lambda==$CARGO_LAMBDA_VERSION
+          pip install "cargo-lambda==$CARGO_LAMBDA_VERSION"
           echo "$HOME/.local/bin" >> $GITHUB_PATH
       - name: Init samdev
         run: make init

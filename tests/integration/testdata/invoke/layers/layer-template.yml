@@ -19,6 +19,14 @@ Parameters:
     Default: arn:aws:lambda:us-west-2:111111111111:layer:non_existent_layer:1
     Type: String
 
+  LayerAArn:
+    Default: arn:aws:lambda:us-west-2:111111111111:layer:layer_a:1
+    Type: String
+
+  LayerBArn:
+    Default: arn:aws:lambda:us-west-2:111111111111:layer:layer_b:1
+    Type: String
+
 Resources:
   # AWS::Serverless::Function
   OneLayerVersionServerlessFunction:
@@ -144,6 +152,17 @@ Resources:
       Timeout: 20
       Layers:
         - arn:aws:lambda:us-west-2:111111111101:layer:layerDoesNotExist:1
+
+  TwoIndependentLayersFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: layer-main.two_independent_layers_handler
+      Runtime: python3.9
+      CodeUri: .
+      Timeout: 20
+      Layers:
+        - Ref: LayerAArn
+        - Ref: LayerBArn
 
   # AWS::Lambda::LayerVersion
   MyCustomLambdaLayer:

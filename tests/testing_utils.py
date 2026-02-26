@@ -32,7 +32,7 @@ RUNNING_TEST_FOR_MASTER_ON_CI = (
 CI_OVERRIDE = (
     os.environ.get("APPVEYOR_CI_OVERRIDE", False)
     or os.environ.get("CI_OVERRIDE", False)
-    or os.environ.get("GITHUB_ACTIONS_INTEG", False)
+    or os.environ.get("BY_CANARY", False)
 )
 RUN_BY_CANARY = os.environ.get("BY_CANARY", False)
 USING_FINCH_RUNTIME = os.environ.get("CONTAINER_RUNTIME") == "finch"

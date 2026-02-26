@@ -498,7 +498,8 @@ class LambdaImage:
         ADD aws-lambda-rie /var/rapid
 
         ADD layer1 /opt
-        ADD layer2 /opt
+        ADD layer2 /tmp/layer1
+        RUN cp -rf /tmp/layer1/. /opt/ && rm -rf /tmp/layer1
 
         Parameters
         ----------
@@ -521,8 +522,16 @@ class LambdaImage:
             + f"ADD {rie_name} {rie_path}\n"
             + f"RUN mv {rie_path}{rie_name} {rie_path}aws-lambda-rie && chmod +x {rie_path}aws-lambda-rie\n"
         )
-        for layer in layers:
-            dockerfile_content = dockerfile_content + f"ADD {layer.name} {LambdaImage._LAYERS_DIR}\n"
+        for idx, layer in enumerate(layers):
+            if idx == 0:
+                # First layer can be added directly — no existing files to conflict with
+                dockerfile_content += f"ADD {layer.name} {LambdaImage._LAYERS_DIR}\n"
+            else:
+                # Subsequent layers: stage in temp dir, then cp -rf to ensure overwrite.
+                # Docker ADD/COPY may merge directories without overwriting in BuildKit.
+                stage_dir = f"/tmp/layer{idx}"
+                dockerfile_content += f"ADD {layer.name} {stage_dir}\n"
+                dockerfile_content += f"RUN cp -rf {stage_dir}/. {LambdaImage._LAYERS_DIR}/ && rm -rf {stage_dir}\n"
         return dockerfile_content
 
     def _remove_rapid_images(self, repo: str) -> None:

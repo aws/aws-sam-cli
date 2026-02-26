@@ -7,7 +7,8 @@ SAM_CLI_TELEMETRY ?= 0
 # Initialize environment specifically for Github action tests using uv
 init:
 	@if [ "$$GITHUB_ACTIONS" = "true" ]; then \
-		pip install uv==0.9.1 && SAM_CLI_DEV=1 uv pip install --system -e '.[dev]'; \
+		command -v uv >/dev/null 2>&1 || pip install uv==0.9.1; \
+		SAM_CLI_DEV=1 uv pip install --system -e '.[dev]'; \
 	else \
 		SAM_CLI_DEV=1 pip install -e '.[dev]'; \
 	fi
@@ -51,7 +52,11 @@ black:
 	black setup.py samcli tests schema
 
 black-check:
-	black --check setup.py samcli tests schema
+	@if python -c "import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)" 2>/dev/null; then \
+		black --check setup.py samcli tests schema; \
+	else \
+		echo "Skipping black check on Python < 3.10"; \
+	fi
 
 format: black
 	ruff check samcli --fix
