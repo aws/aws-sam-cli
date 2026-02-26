@@ -4,9 +4,7 @@ SAM_CLI_TELEMETRY ?= 0
 
 .PHONY: schema init-nightly init-latest-release setup-pytest
 
-# Initialize environment for tests using uv
-# On GitHub Actions: installs into system Python with uv
-# Locally: installs directly with pip
+# Initialize environment specifically for Github action tests using uv
 init:
 	@if [ "$$GITHUB_ACTIONS" = "true" ]; then \
 		command -v uv >/dev/null 2>&1 || pip install uv==0.9.1; \
@@ -84,6 +82,9 @@ schema:
 # Verifications to run before sending a pull request
 pr: init schema black-check dev
 
+# lucashuy: Linux and MacOS are on the same Python version,
+# however we should follow up in a different change
+# to consider combining these files again
 update-reproducible-linux-reqs:
 	python3.11 -m venv venv-update-reproducible-linux
 	venv-update-reproducible-linux/bin/pip install pip==24.0 pip-tools==7.4.1
