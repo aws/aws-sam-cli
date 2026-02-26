@@ -57,7 +57,8 @@ def upload_test_reports(test_suite):
         s3_client = boto3.client("s3", config=DEFAULT_BOTO_CONFIG)
 
         date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-        s3_prefix = f"github/{date_str}/{run_id}"
+        test_type = os.environ.get("TEST_TYPE", "unknown")
+        s3_prefix = f"github/{test_type}/{date_str}/{run_id}"
 
         for report_path in reports:
             s3_key = f"{s3_prefix}/{report_path}"

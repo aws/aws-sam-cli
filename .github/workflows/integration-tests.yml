@@ -15,13 +15,13 @@ on:
     # The other branch will not pass the OIDC permission check
     inputs:
       install_mode:
-        description: '"code" to install from source (make init), "binary" to install SAM CLI nightly binary, "latest-release" to install latest stable release binary'
+        description: '"code" to install from source (make init), "nightly-release" to install SAM CLI nightly binary, "latest-release" to install latest stable release binary'
         required: false
         default: 'code'
         type: choice
         options:
           - code
-          - binary
+          - nightly-release
           - latest-release
 
 permissions:
@@ -213,33 +213,52 @@ jobs:
         if: "!contains(fromJSON('[\"build-x86-1\", \"build-x86-2\", \"build-x86-container-1\", \"build-x86-container-2\", \"tier1-finch\"]'), matrix.test_suite)"
         run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
-      - name: Initialize project
+      - name: Determine test type
+        run: |
+          echo "CONTAINER_RUNTIME=${{ matrix.test_suite == 'tier1-finch' && 'finch' || 'docker' }}" >> $GITHUB_ENV
+          if [[ "${{ inputs.install_mode }}" == "nightly-release" ]] || \
+             [[ "${{ github.event_name }}" == "release" && "${{ github.event.release.prerelease }}" == "true" ]]; then
+            echo "TEST_TYPE=nightly-release" >> $GITHUB_ENV
+          elif [[ "${{ inputs.install_mode }}" == "latest-release" ]] || \
+               [[ "${{ github.event_name }}" == "release" && "${{ github.event.release.prerelease }}" == "false" ]]; then
+            echo "TEST_TYPE=latest-release" >> $GITHUB_ENV
+          elif [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
+            echo "TEST_TYPE=master" >> $GITHUB_ENV
+          elif [[ "${{ github.event_name }}" == "schedule" ]] || [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
+            echo "TEST_TYPE=develop" >> $GITHUB_ENV
+          else
+            echo "TEST_TYPE=other" >> $GITHUB_ENV
+          fi
+
+      - name: Initialize integration test
+        if: env.TEST_TYPE == 'develop' || env.TEST_TYPE == 'master' || env.TEST_TYPE == 'other'
+        run: |
+          make init
+          echo "SCRIPT_PY=python3.11" >> $GITHUB_ENV
+
+      - name: Initialize nightly release test
+        if: env.TEST_TYPE == 'nightly-release'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if [[ "${{ matrix.test_suite }}" == "tier1-finch" ]]; then
-            export CONTAINER_RUNTIME=finch
-          else
-            export CONTAINER_RUNTIME=docker
-          fi
-          if [[ "${{ inputs.install_mode }}" == "binary" ]] || [[ "${{ github.event_name }}" == "release" && "${{ github.event.release.prerelease }}" == "true" ]]; then
-            make setup-pytest
-            make init-nightly
-            echo "SAM_CLI_DEV=" >> $GITHUB_ENV
-          elif [[ "${{ inputs.install_mode }}" == "latest-release" ]] || [[ "${{ github.event_name }}" == "release" && "${{ github.event.release.prerelease }}" == "false" ]]; then
-            make setup-pytest
-            make init-latest-release
-            echo "SAM_CLI_DEV=" >> $GITHUB_ENV
-          else
-            make init
-          fi
+          make setup-pytest
+          make init-nightly
+          echo "SAM_CLI_DEV=" >> $GITHUB_ENV
+          echo "SCRIPT_PY=$HOME/pytest/bin/python3" >> $GITHUB_ENV
+
+      - name: Initialize latest release test
+        if: env.TEST_TYPE == 'latest-release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          make setup-pytest
+          make init-latest-release
+          echo "SAM_CLI_DEV=" >> $GITHUB_ENV
+          echo "SCRIPT_PY=$HOME/pytest/bin/python3" >> $GITHUB_ENV
 
       - name: Get testing resources and credentials
         if: "!contains(fromJSON('[\"build-x86-1\", \"build-x86-2\", \"build-arm64\", \"build-x86-container-1\", \"build-x86-container-2\", \"build-arm64-container-1\", \"build-arm64-container-2\", \"local-invoke\", \"local-start-api\", \"local-start-lambda\"]'), matrix.test_suite)"
-        run: |
-          PYTHON="python3.11"
-          if [ -f "$HOME/pytest/bin/python3" ]; then PYTHON="$HOME/pytest/bin/python3"; fi
-          $PYTHON tests/setup_testing_resources.py
+        run: $SCRIPT_PY tests/setup_testing_resources.py
 
       - name: Login to Public ECR
         run: |
@@ -433,7 +452,4 @@ jobs:
         if: always()
         env:
           TESTREPORTING_S3: ${{ secrets.TESTREPORTING_S3 }}
-        run: |
-          PYTHON="python3.11"
-          if [ -f "$HOME/pytest/bin/python3" ]; then PYTHON="$HOME/pytest/bin/python3"; fi
-          $PYTHON tests/reset_testing_resources.py ${{ matrix.test_suite }}
+        run: $SCRIPT_PY tests/reset_testing_resources.py ${{ matrix.test_suite }}
