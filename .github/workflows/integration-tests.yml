@@ -234,7 +234,9 @@ jobs:
         if: env.TEST_TYPE == 'develop' || env.TEST_TYPE == 'master' || env.TEST_TYPE == 'other'
         run: |
           make init
-          echo "SCRIPT_PY=python3.11" >> $GITHUB_ENV
+          VENV_BIN="$HOME/samcli-venv/bin"
+          if [ -d "$HOME/samcli-venv/Scripts" ]; then VENV_BIN="$HOME/samcli-venv/Scripts"; fi
+          echo "SCRIPT_PY=$VENV_BIN/python" >> $GITHUB_ENV
 
       - name: Initialize nightly release test
         if: env.TEST_TYPE == 'nightly-release'

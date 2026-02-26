@@ -4,11 +4,17 @@ SAM_CLI_TELEMETRY ?= 0
 
 .PHONY: schema init-nightly init-latest-release setup-pytest
 
-# Initialize environment specifically for Github action tests using uv
+# Initialize environment for tests in a venv using uv
+# On GitHub Actions: creates a venv to avoid polluting system Python
+# Locally: installs directly with pip
 init:
-	@if [ "$$GITHUB_ACTIONS" = "true" ]; then \
-		command -v uv >/dev/null 2>&1 || pip install uv==0.9.1; \
-		SAM_CLI_DEV=1 uv pip install --system -e '.[dev]'; \
+	@command -v uv >/dev/null 2>&1 || pip install uv==0.9.1; \
+	if [ "$$GITHUB_ACTIONS" = "true" ]; then \
+		python -m venv $(HOME)/samcli-venv; \
+		VENV_BIN="$(HOME)/samcli-venv/bin"; \
+		if [ -d "$(HOME)/samcli-venv/Scripts" ]; then VENV_BIN="$(HOME)/samcli-venv/Scripts"; fi; \
+		SAM_CLI_DEV=1 uv pip install --python "$$VENV_BIN/python" -e '.[dev]'; \
+		echo "$$VENV_BIN" >> $(GITHUB_PATH); \
 	else \
 		SAM_CLI_DEV=1 pip install -e '.[dev]'; \
 	fi

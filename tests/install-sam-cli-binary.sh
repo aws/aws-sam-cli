@@ -1,6 +1,6 @@
 #!/bin/bash
 # Install SAM CLI binary from a GitHub release, auto-detecting OS and architecture.
-# Usage: ./scripts/install-sam-cli-binary.sh [<tag>]
+# Usage: ./test/install-sam-cli-binary.sh [<tag>]
 #   If <tag> is provided (e.g. sam-cli-nightly), downloads from that release.
 #   If omitted, downloads from the latest (non-pre-release) release.
 set -euo pipefail
@@ -47,18 +47,15 @@ case "$ASSET" in
   *.zip)
     unzip -o "$TMPDIR/$ASSET" -d "$TMPDIR/sam-installation"
     sudo "$TMPDIR/sam-installation/install" --update
-    # Nightly installs as sam-nightly; rename to sam
-    if [ -f /usr/local/bin/sam-nightly ]; then
-      sudo mv /usr/local/bin/sam-nightly /usr/local/bin/sam
-    fi
     ;;
   *.pkg)
     sudo installer -pkg "$TMPDIR/$ASSET" -target /
-    # Nightly installs as sam-nightly; rename to sam
-    if [ -f /usr/local/bin/sam-nightly ]; then
-      sudo mv /usr/local/bin/sam-nightly /usr/local/bin/sam
-    fi
     ;;
 esac
+
+# Nightly installs as sam-nightly; rename to sam
+if [ -f /usr/local/bin/sam-nightly ]; then
+  sudo mv /usr/local/bin/sam-nightly /usr/local/bin/sam
+fi
 
 sam --version
