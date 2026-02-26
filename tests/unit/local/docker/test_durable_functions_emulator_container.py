@@ -48,6 +48,7 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
             ),
             ("managed_custom_name", {"DURABLE_EXECUTIONS_CONTAINER_NAME": "my-emulator"}, 9014, "my-emulator", False),
             ("external_mode", {"DURABLE_EXECUTIONS_EXTERNAL_EMULATOR_PORT": "8080"}, 8080, None, True),
+            ("pin_image_tag", {"DURABLE_EXECUTIONS_EMULATOR_IMAGE_TAG": "latest"}, 9014, "sam-durable-execution-emulator", True),
         ]
     )
     def test_initialization(self, name, env_vars, expected_port, expected_name, is_external):
