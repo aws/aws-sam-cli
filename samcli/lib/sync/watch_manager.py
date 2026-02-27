@@ -277,7 +277,13 @@ class WatchManager:
             )
             # Unschedule all triggers and only add back the template one as infra sync is incorrect.
             self._observer.unschedule_all()
-            self._add_template_triggers()
+            try:
+                self._add_template_triggers()
+            except Exception as trigger_err:
+                LOG.warning(
+                    "Failed to re-add template triggers, will retry on next change: %s",
+                    trigger_err,
+                )
         else:
             # Update stacks and repopulate triggers
             # Trigger are not removed until infra sync is finished as there

@@ -104,7 +104,8 @@ class TestInit(InitIntegBase):
             self.assertEqual(expected.read(), output.read())
 
         # also check the Jenkinsfile is not overridden
-        self.assertEqual("", open("Jenkinsfile", "r").read())
+        with open("Jenkinsfile", "r") as f:
+            self.assertEqual("", f.read())
 
     def test_custom_template_with_manifest(self):
         generated_file = Path("weather")
@@ -150,9 +151,7 @@ class TestInit(InitIntegBase):
         Path(PIPELINE_CONFIG_DIR).mkdir(parents=True, exist_ok=True)
         pipelineconfig_path = Path(PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME)
         with open(pipelineconfig_path, "w") as f:
-            f.write(
-                dedent(
-                    """\
+            f.write(dedent("""\
             version = 0.1
             [default]
             [default.pipeline_bootstrap]
@@ -176,9 +175,7 @@ class TestInit(InitIntegBase):
             artifacts_bucket = "prod-bucket"
             image_repository = "prod-ecr"
             region = "us-west-2"
-            """
-                )
-            )
+            """))
 
         inputs = [
             "1",  # quick start

@@ -74,3 +74,51 @@ class TestDebugContext(TestCase):
         debug_context = DebugContext(port, debug_path, debug_ars)
 
         self.assertFalse(debug_context.__nonzero__())
+
+    def test_equality_same_contexts(self):
+        """Test that identical debug contexts are equal"""
+        context1 = DebugContext(
+            debug_ports=(5858,),
+            debugger_path="/usr/bin/debugger",
+            debug_args="--wait",
+            debug_function="MyFunction",
+            container_env_vars={"VAR1": "value1"},
+        )
+        context2 = DebugContext(
+            debug_ports=(5858,),
+            debugger_path="/usr/bin/debugger",
+            debug_args="--wait",
+            debug_function="MyFunction",
+            container_env_vars={"VAR1": "value1"},
+        )
+
+        self.assertEqual(context1, context2)
+        self.assertEqual(hash(context1), hash(context2))
+
+    def test_equality_different_contexts(self):
+        """Test that different debug contexts are not equal"""
+        context1 = DebugContext(debug_ports=(5858,), debug_function="MyFunction")
+        context2 = DebugContext(debug_ports=(9229,), debug_function="MyFunction")  # Different port
+        context3 = DebugContext(debug_ports=(5858,), debug_function="OtherFunction")  # Different function
+
+        self.assertNotEqual(context1, context2)
+        self.assertNotEqual(context1, context3)
+        self.assertNotEqual(context2, context3)
+
+    def test_equality_with_none(self):
+        """Test that debug context is not equal to None or other types"""
+        context = DebugContext(debug_ports=(5858,))
+
+        self.assertNotEqual(context, None)
+        self.assertNotEqual(context, "string")
+        self.assertNotEqual(context, 123)
+        self.assertNotEqual(context, {})
+
+    def test_equality_none_values(self):
+        """Test equality with None values in attributes"""
+        context1 = DebugContext(debug_ports=None, debug_function=None)
+        context2 = DebugContext(debug_ports=None, debug_function=None)
+        context3 = DebugContext(debug_ports=(5858,), debug_function=None)
+
+        self.assertEqual(context1, context2)
+        self.assertNotEqual(context1, context3)

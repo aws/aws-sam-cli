@@ -110,8 +110,18 @@ samdev --version  # this will print something like "SAM CLI, version x.xx.x"
 echo '__version__ = "123.456.789"' >> samcli/__init__.py
 samdev --version  # this will print "SAM CLI, version 123.456.789"
 ```
+### 3 VS Code Debugger
 
-### 3. (Optional) Install development version of SAM Transformer
+For VS Code Launch configuration, run the following command to create your local VS Code launch configuration:
+
+```bash
+cp .vscode/launch.json.template .vscode/launch.json
+```
+
+This will create a local copy of the launch configuration that you can customize without affecting the shared template.
+
+
+### 4. (Optional) Install development version of SAM Transformer
 
 If you want to run the latest version of [SAM Transformer](https://github.com/aws/serverless-application-model/)
 or work on it at the same time, you can clone it locally and install it in your virtual environment. 

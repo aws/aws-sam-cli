@@ -2,19 +2,34 @@
 # environment variable.
 SAM_CLI_TELEMETRY ?= 0
 
-.PHONY: schema
+.PHONY: schema init-nightly init-latest-release setup-pytest
 
 # Initialize environment specifically for Github action tests using uv
 init:
 	@if [ "$$GITHUB_ACTIONS" = "true" ]; then \
-		pip install uv==0.9.1 && SAM_CLI_DEV=1 uv pip install --system -e '.[dev]'; \
+		command -v uv >/dev/null 2>&1 || pip install uv==0.9.1; \
+		SAM_CLI_DEV=1 uv pip install --system -e '.[dev]'; \
 	else \
 		SAM_CLI_DEV=1 pip install -e '.[dev]'; \
 	fi
 
+# Set up a pytest venv with test dependencies
+setup-pytest:
+	python3.11 -m venv $(HOME)/pytest
+	uv pip install --python $(HOME)/pytest/bin/python3 -r requirements/dev.txt -r requirements/base.txt
+	sudo ln -sf $(HOME)/pytest/bin/pytest /usr/local/bin/pytest
+	pytest --version
+
+# Install SAM CLI nightly binary
+init-nightly:
+	bash tests/install-sam-cli-binary.sh sam-cli-nightly
+
+# Install SAM CLI latest release binary
+init-latest-release:
+	bash tests/install-sam-cli-binary.sh
+
 test:
-	# Run unit tests
-	# Fail if coverage falls below 95%
+	# Run unit tests and fail if coverage falls below 94%
 	pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit
 
 test-cov-report:
@@ -52,7 +67,11 @@ black:
 	black setup.py samcli tests schema
 
 black-check:
-	black --check setup.py samcli tests schema
+	@if python -c "import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)" 2>/dev/null; then \
+		black --check setup.py samcli tests schema; \
+	else \
+		echo "Skipping black check on Python < 3.10"; \
+	fi
 
 format: black
 	ruff check samcli --fix
@@ -88,3 +107,10 @@ update-reproducible-win-reqs:
 
 
 update-reproducible-reqs: update-reproducible-linux-reqs update-reproducible-mac-reqs
+
+# Update all reproducible requirements using uv (can run from any platform)
+update-reproducible-reqs-uv:
+	@command -v uv >/dev/null 2>&1 || pip install uv
+	uv pip compile setup.py --generate-hashes --output-file requirements/reproducible-linux.txt --python-platform linux --python-version 3.11 --no-cache --no-strip-extras
+	uv pip compile setup.py --generate-hashes --output-file requirements/reproducible-mac.txt --python-platform macos --python-version 3.11 --no-cache --no-strip-extras
+	uv pip compile setup.py --generate-hashes --output-file requirements/reproducible-win.txt --python-platform windows --python-version 3.12 --no-cache --no-strip-extras

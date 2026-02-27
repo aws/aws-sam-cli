@@ -295,3 +295,18 @@ class TestSyncFlow(TestCase):
 
         sync_flow._sync_context.get_resource_latest_sync_hash.return_value = "hash"
         self.assertEqual(sync_flow.compare_local(), True)
+
+    def test_api_call_types(self):
+        """Test cases for ApiCallTypes enum values"""
+        # Test enum members are unique
+        self.assertEqual(len(set(ApiCallTypes)), 4)
+
+        # Test enum members exist
+        self.assertTrue(hasattr(ApiCallTypes, "BUILD"))
+        self.assertEqual(ApiCallTypes.BUILD.value, "Build")
+        self.assertTrue(hasattr(ApiCallTypes, "UPDATE_FUNCTION_CONFIGURATION"))
+        self.assertEqual(ApiCallTypes.UPDATE_FUNCTION_CONFIGURATION.value, "UpdateFunctionConfiguration")
+        self.assertTrue(hasattr(ApiCallTypes, "UPDATE_FUNCTION_CODE"))
+        self.assertEqual(ApiCallTypes.UPDATE_FUNCTION_CODE.value, "UpdateFunctionCode")
+        self.assertTrue(hasattr(ApiCallTypes, "PUBLISH_VERSION"))
+        self.assertEqual(ApiCallTypes.PUBLISH_VERSION.value, "PublishVersion")

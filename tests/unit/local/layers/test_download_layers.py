@@ -1,6 +1,7 @@
 import os
+import errno
 from unittest import TestCase
-from unittest.mock import Mock, call, patch
+from unittest.mock import Mock, call, patch, MagicMock
 
 from botocore.exceptions import NoCredentialsError, ClientError
 from pathlib import Path
@@ -325,3 +326,106 @@ class TestLayerDownloader_fetch_layer_uri(TestCase):
 
         with self.assertRaises(ClientError):
             download_layers._fetch_layer_uri(layer=layer)
+
+
+class TestLayerDownloader_create_layer_directory(TestCase):
+    """Test cases for _create_layer_directory race condition handling"""
+
+    @patch("samcli.local.layers.layer_downloader.Path")
+    def test_create_layer_directory_success(self, path_mock):
+        """Test successful directory creation"""
+        layer_path_mock = MagicMock(spec=Path)
+
+        # Simulate successful mkdir
+        layer_path_mock.mkdir.return_value = None
+
+        LayerDownloader._create_layer_directory(layer_path_mock)
+
+        layer_path_mock.mkdir.assert_called_once_with(mode=0o700, parents=True, exist_ok=True)
+
+    @patch("samcli.local.layers.layer_downloader.Path")
+    def test_create_layer_directory_handles_file_exists_error_when_dir_exists(self, path_mock):
+        """Test FileExistsError handling when directory actually exists"""
+        layer_path_mock = MagicMock(spec=Path)
+
+        # Simulate FileExistsError due to race condition
+        layer_path_mock.mkdir.side_effect = FileExistsError("Directory exists")
+        # But directory actually exists
+        layer_path_mock.exists.return_value = True
+
+        # Should not raise - handles race condition gracefully
+        LayerDownloader._create_layer_directory(layer_path_mock)
+
+        layer_path_mock.mkdir.assert_called_once()
+        layer_path_mock.exists.assert_called_once()
+
+    @patch("samcli.local.layers.layer_downloader.Path")
+    def test_create_layer_directory_raises_file_exists_error_when_dir_not_exists(self, path_mock):
+        """Test FileExistsError is re-raised when directory doesn't actually exist"""
+        layer_path_mock = MagicMock(spec=Path)
+
+        # Simulate FileExistsError but directory doesn't exist (deeper issue)
+        layer_path_mock.mkdir.side_effect = FileExistsError("Directory exists")
+        layer_path_mock.exists.return_value = False
+
+        # Should re-raise the exception
+        with self.assertRaises(FileExistsError):
+            LayerDownloader._create_layer_directory(layer_path_mock)
+
+    @patch("samcli.local.layers.layer_downloader.Path")
+    @patch("samcli.local.layers.layer_downloader.errno")
+    def test_create_layer_directory_handles_oserror_eexist_when_dir_exists(self, errno_mock, path_mock):
+        """Test OSError with EEXIST errno when directory exists"""
+        errno_mock.EEXIST = errno.EEXIST  # Use real errno value
+        layer_path_mock = MagicMock(spec=Path)
+
+        # Simulate OSError with EEXIST errno
+        os_error = OSError("File exists")
+        os_error.errno = errno.EEXIST
+        layer_path_mock.mkdir.side_effect = os_error
+        # Directory actually exists
+        layer_path_mock.exists.return_value = True
+
+        # Should not raise - handles race condition gracefully
+        LayerDownloader._create_layer_directory(layer_path_mock)
+
+        layer_path_mock.mkdir.assert_called_once()
+        layer_path_mock.exists.assert_called_once()
+
+    @patch("samcli.local.layers.layer_downloader.Path")
+    @patch("samcli.local.layers.layer_downloader.errno")
+    def test_create_layer_directory_raises_oserror_eexist_when_dir_not_exists(self, errno_mock, path_mock):
+        """Test OSError with EEXIST errno is re-raised when directory doesn't exist"""
+        errno_mock.EEXIST = errno.EEXIST
+        layer_path_mock = MagicMock(spec=Path)
+
+        # Simulate OSError with EEXIST errno but directory doesn't exist
+        os_error = OSError("File exists")
+        os_error.errno = errno.EEXIST
+        layer_path_mock.mkdir.side_effect = os_error
+        layer_path_mock.exists.return_value = False
+
+        # Should re-raise the exception
+        with self.assertRaises(OSError):
+            LayerDownloader._create_layer_directory(layer_path_mock)
+
+    @patch("samcli.local.layers.layer_downloader.Path")
+    @patch("samcli.local.layers.layer_downloader.errno")
+    def test_create_layer_directory_raises_oserror_with_different_errno(self, errno_mock, path_mock):
+        """Test OSError with non-EEXIST errno is re-raised"""
+        errno_mock.EEXIST = errno.EEXIST
+        layer_path_mock = MagicMock(spec=Path)
+
+        # Simulate OSError with different errno (e.g., permission denied)
+        os_error = OSError("Permission denied")
+        os_error.errno = errno.EACCES
+        layer_path_mock.mkdir.side_effect = os_error
+
+        # Should re-raise the exception immediately
+        with self.assertRaises(OSError) as context:
+            LayerDownloader._create_layer_directory(layer_path_mock)
+
+        # Verify it's the same error
+        self.assertEqual(context.exception.errno, errno.EACCES)
+        # exists() should not be called for non-EEXIST errors
+        layer_path_mock.exists.assert_not_called()

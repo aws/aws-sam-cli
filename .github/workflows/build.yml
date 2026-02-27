@@ -64,10 +64,11 @@ jobs:
         mkdir "D:\\Temp"
         echo "TEMP=D:\\Temp" >> $env:GITHUB_ENV  
       if: ${{ matrix.os == 'windows-latest' }}
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python }}
+    - uses: astral-sh/setup-uv@v7
     - run: test -f "./.github/ISSUE_TEMPLATE/Bug_report.md"  # prevent Bug_report.md from being renamed or deleted
     - run: make pr
 
@@ -79,7 +80,7 @@ jobs:
       contents: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         name: Install Python 3.11
         with:
@@ -120,7 +121,7 @@ jobs:
         # folders that is commented below requires credentials, no need to spare time to run them
         tests_config:
           - name: "integ-buildcmd-arm64"
-            params: "-n 2 --reruns 3  tests/integration/buildcmd/test_build_cmd_arm64.py"
+            params: "-n 2 --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py"
           - name: "integ-buildcmd-main"
             params: "-n 2 --reruns 3 tests/integration/buildcmd/test_build_cmd_dotnet.py tests/integration/buildcmd/test_build_cmd_provided.py tests/integration/buildcmd/test_build_cmd_rust.py tests/integration/buildcmd/test_build_cmd_python.py tests/integration/buildcmd/test_build_cmd_node.py"
           - name: "integ-buildcmd-java"
@@ -130,7 +131,9 @@ jobs:
           #- "delete"
           #- "deploy"
           - name: "integ-all-other"
-            params: "-n 2 --reruns 3 tests/integration/init tests/integration/local tests/integration/pipeline tests/integration/root tests/integration/scripts tests/integration/telemetry tests/integration/docs"
+            params: "-n 2 --reruns 3 tests/integration/init tests/integration/local tests/integration/pipeline tests/integration/root tests/integration/scripts tests/integration/telemetry tests/integration/docs --ignore=tests/integration/local/invoke/test_invoke_durable.py --ignore=tests/integration/local/start_api/test_start_api_durable.py --ignore=tests/integration/local/start_lambda/test_start_lambda_durable.py"
+          - name: "durable-functions"
+            params: "--reruns 3 tests/integration/local/invoke/test_invoke_durable.py tests/integration/local/start_api/test_start_api_durable.py tests/integration/local/start_lambda/test_start_lambda_durable.py"
           #- "list"
           #- "logs"
           #- "package"
@@ -138,8 +141,12 @@ jobs:
           #- "sync"
           #- "traces"
           #- "validate"
+        exclude:
+          - os: windows-latest
+            tests_config:
+              name: "durable-functions"
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Set TEMP to D:/Temp
         run: |
           mkdir "D:\\Temp"
@@ -154,6 +161,7 @@ jobs:
             3.11
             3.12
             3.13
+            3.14
             ${{ matrix.python }}
           cache: 'pip'
       - uses: actions/setup-go@v6
@@ -162,9 +170,9 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.3"
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
       - uses: actions/setup-java@v5
         with:
           distribution: 'corretto'
@@ -173,25 +181,22 @@ jobs:
             11
             17
             21
+            25
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
        # Install and configure Rust & Cargo Lambda
-      - name: Install and configure Rust & Cargo Lambda
+      - name: Install Rust toolchain and cargo-lambda
         if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: |
-          : install rustup if needed
-          if ! command -v rustup &> /dev/null ; then
-            curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL "https://sh.rustup.rs" | sh -s -- --default-toolchain none -y
-            echo "${CARGO_HOME:-$HOME/.cargo}/bin" >> $GITHUB_PATH
-          fi
-          rustup toolchain install stable --profile minimal --no-self-update
-          rustup default stable
-          pip install cargo-lambda==$CARGO_LAMBDA_VERSION
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+        run: bash tests/install-rust.sh
       - name: Init samdev
         run: make init
       - name: uv install setuptools in Python3.12
         run: uv pip install --system --python python3.12 --upgrade pip setuptools
       - name: Run integration tests for ${{ matrix.tests_config.name }}
         run: pytest -vv ${{ matrix.tests_config.params }}
+        env:
+          FORCE_RUN_DOCKER_TEST: ${{ matrix.tests_config.name == 'durable-functions' && '1' || '' }}
 
   smoke-and-functional-tests:
     name: ${{ matrix.tests_config.name }} / ${{ matrix.tests_config.os }} / ${{ matrix.python }}
@@ -228,7 +233,7 @@ jobs:
             params: "-n 4 tests/smoke tests/functional"
             env_vars: "third-third"
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Set TEMP to D:/Temp
         run: |
           mkdir "D:\\Temp"
@@ -258,7 +263,7 @@ jobs:
           - ubuntu-latest
           - windows-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Set TEMP to D:/Temp
         run: |
           mkdir "D:\\Temp"
@@ -268,6 +273,7 @@ jobs:
         with:
           # These are the versions of Python that correspond to the supported Lambda runtimes
           python-version: |
+            3.14
             3.9
             3.10
             3.11

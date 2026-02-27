@@ -15,6 +15,7 @@ AWS_CREDENTIAL_OPTION_NAMES: List[str] = ["region", "profile"]
 
 INFRASTRUCTURE_OPTION_NAMES: List[str] = [
     "s3_prefix",
+    "resolve_image_repos",
     "image_repository",
     "image_repositories",
     "kms_key_id",

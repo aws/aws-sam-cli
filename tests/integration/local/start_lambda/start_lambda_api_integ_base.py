@@ -8,6 +8,9 @@ import os
 import logging
 from pathlib import Path
 
+import boto3
+from botocore import UNSIGNED
+from botocore.config import Config
 from docker.errors import APIError
 from psutil import NoSuchProcess
 
@@ -29,6 +32,7 @@ LOG = logging.getLogger(__name__)
 class StartLambdaIntegBaseClass(TestCase):
     template: Optional[str] = None
     container_mode: Optional[str] = None
+    container_host_interface: Optional[str] = None
     parameter_overrides: Optional[Dict[str, str]] = None
     binary_data_file: Optional[str] = None
     integration_dir = str(Path(__file__).resolve().parents[2])
@@ -37,6 +41,7 @@ class StartLambdaIntegBaseClass(TestCase):
     terraform_plan_file: Optional[str] = None
     beta_features: Optional[bool] = None
     collect_start_lambda_process_output: bool = False
+    function_logical_ids: Optional[List[str]] = None
 
     build_before_invoke = False
     build_overrides: Optional[Dict[str, str]] = None
@@ -57,19 +62,8 @@ class StartLambdaIntegBaseClass(TestCase):
         # Create the Docker client with automatic container selection
         cls.docker_client = get_validated_container_client()
 
-        # Only remove containers with SAM CLI labels to avoid interfering with other processes
-        try:
-            sam_containers = cls.docker_client.containers.list(
-                all=True, filters={"label": "sam.cli.container.type=lambda"}
-            )
-            for container in sam_containers:
-                try:
-                    container.remove(force=True)
-                    LOG.info("Removed existing SAM CLI container %s", container.short_id)
-                except APIError as ex:
-                    LOG.error("Failed to remove existing SAM CLI container %s", container.short_id, exc_info=ex)
-        except Exception as ex:
-            LOG.error("Failed to clean up existing SAM CLI containers", exc_info=ex)
+        # Snapshot existing container IDs so we only clean up containers created by this test class
+        cls._pre_existing_container_ids = cls._get_sam_container_ids(cls.docker_client)
 
         cls.start_lambda_with_retry()
 
@@ -109,13 +103,19 @@ class StartLambdaIntegBaseClass(TestCase):
         template_path=None,
         env_var_path=None,
         container_mode=None,
+        container_host_interface=None,
         parameter_overrides=None,
         invoke_image=None,
         hook_name=None,
         beta_features=None,
         terraform_plan_file=None,
+        function_logical_ids=None,
     ):
         command_list = [get_sam_command(), "local", "start-lambda"]
+
+        # Add function names as positional arguments first
+        if function_logical_ids:
+            command_list.extend(function_logical_ids)
 
         if port:
             command_list += ["-p", port]
@@ -128,6 +128,9 @@ class StartLambdaIntegBaseClass(TestCase):
 
         if container_mode:
             command_list += ["--warm-containers", container_mode]
+
+        if container_host_interface:
+            command_list += ["--container-host-interface", container_host_interface]
 
         if parameter_overrides:
             command_list += ["--parameter-overrides", cls._make_parameter_override_arg(parameter_overrides)]
@@ -154,15 +157,16 @@ class StartLambdaIntegBaseClass(TestCase):
             template_path=cls.template,
             env_var_path=cls.env_var_path,
             container_mode=cls.container_mode,
+            container_host_interface=cls.container_host_interface,
             parameter_overrides=cls.parameter_overrides,
             invoke_image=cls.invoke_image,
             hook_name=cls.hook_name,
             beta_features=cls.beta_features,
             terraform_plan_file=cls.terraform_plan_file,
+            function_logical_ids=cls.function_logical_ids,
         )
 
         # Container labels are no longer needed - container IDs are parsed from output
-
         cls.start_lambda_process = Popen(command_list, stderr=PIPE, stdin=PIPE, env=env, cwd=cls.working_dir)
         cls.start_lambda_process_output = ""
 
@@ -190,6 +194,15 @@ class StartLambdaIntegBaseClass(TestCase):
     def _make_parameter_override_arg(self, overrides):
         return " ".join(["ParameterKey={},ParameterValue={}".format(key, value) for key, value in overrides.items()])
 
+    @staticmethod
+    def _get_sam_container_ids(docker_client):
+        """Get the set of SAM CLI container IDs currently running."""
+        try:
+            sam_containers = docker_client.containers.list(all=True, filters={"label": "sam.cli.container.type=lambda"})
+            return {container.id for container in sam_containers}
+        except Exception:
+            return set()
+
     @classmethod
     def tearDownClass(cls):
         # After all the tests run, we need to kill the start_lambda process.
@@ -199,19 +212,30 @@ class StartLambdaIntegBaseClass(TestCase):
         except NoSuchProcess:
             LOG.info("Process has already been terminated")
 
-        # Clean up any remaining SAM CLI containers
+        # Only clean up containers created by this test class (not pre-existing ones)
         try:
             docker_client = get_validated_container_client()
-            # Only remove containers with SAM CLI labels to avoid interfering with other processes
             sam_containers = docker_client.containers.list(all=True, filters={"label": "sam.cli.container.type=lambda"})
             for container in sam_containers:
-                try:
-                    container.remove(force=True)
-                    LOG.info("Removed SAM CLI container %s", container.short_id)
-                except APIError as ex:
-                    LOG.error("Failed to remove SAM CLI container %s", container.short_id, exc_info=ex)
+                if container.id not in cls._pre_existing_container_ids:
+                    try:
+                        container.remove(force=True)
+                        LOG.info("Removed SAM CLI container %s", container.short_id)
+                    except APIError as ex:
+                        LOG.error("Failed to remove SAM CLI container %s", container.short_id, exc_info=ex)
         except Exception as ex:
             LOG.error("Failed to clean up SAM CLI containers", exc_info=ex)
+
+    def get_local_lambda_client(self):
+        url = "http://127.0.0.1:{}".format(self.port)
+        return boto3.client(
+            "lambda",
+            endpoint_url=url,
+            region_name="us-east-1",
+            use_ssl=False,
+            verify=False,
+            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
+        )
 
 
 class WatchWarmContainersIntegBaseClass(StartLambdaIntegBaseClass):
