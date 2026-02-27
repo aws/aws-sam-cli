@@ -26,7 +26,7 @@ class DurableFunctionsEmulatorContainer:
     """
 
     _RAPID_SOURCE_PATH = Path(__file__).parent.joinpath("..", "rapid").resolve()
-    _EMULATOR_IMAGE = "public.ecr.aws/o4w4w0v6/aws-durable-execution-emulator:"
+    _EMULATOR_IMAGE_PREFIX = "public.ecr.aws/o4w4w0v6/aws-durable-execution-emulator"
     _CONTAINER_NAME = "sam-durable-execution-emulator"
     _EMULATOR_DATA_DIR_NAME = ".durable-executions-local"
     _EMULATOR_DEFAULT_STORE_TYPE = "sqlite"
@@ -140,7 +140,7 @@ class DurableFunctionsEmulatorContainer:
 
     def _get_emulator_image(self):
         """Get the full emulator image name with tag."""
-        return self._EMULATOR_IMAGE + self._get_emulator_image_tag()
+        return f'{self._EMULATOR_IMAGE_PREFIX}:{self._get_emulator_image_tag()}'
 
     def _get_emulator_store_type(self):
         """Get the store type from environment variable or use default."""
@@ -177,14 +177,15 @@ class DurableFunctionsEmulatorContainer:
         Get the environment variables for the emulator container.
         """
         return {
-            "HOST": "0.0.0.0",
-            "PORT": str(self.port),
+            "AWS_DEX_HOST": "0.0.0.0",
+            "AWS_DEX_PORT": str(self.port),
             "LOG_LEVEL": "DEBUG",
             # The emulator needs to have credential variables set, or else it will fail to create boto clients.
             "AWS_ACCESS_KEY_ID": "foo",
             "AWS_SECRET_ACCESS_KEY": "bar",
             "AWS_DEFAULT_REGION": "us-east-1",
-            "EXECUTION_STORE_TYPE": self._get_emulator_store_type(),
+            "AWS_DEX_STORE_TYPE": self._get_emulator_store_type(),
+            "AWS_DEX_STORE_PATH": "/tmp/.durable-executions-local/durable-executions.db",
             "EXECUTION_TIME_SCALE": self._get_emulator_time_scale(),
         }
 
@@ -260,8 +261,6 @@ class DurableFunctionsEmulatorContainer:
                 "http://host.docker.internal:3001",
                 "--store-type",
                 self._get_emulator_store_type(),
-                "--store-path",
-                "/tmp/.durable-executions-local/durable-executions.db",
             ],
             name=self._container_name,
             ports={f"{self.port}/tcp": self.port},
@@ -417,7 +416,7 @@ class DurableFunctionsEmulatorContainer:
             f"Durable Functions Emulator container failed to become ready within {timeout} seconds. "
             "You may set the DURABLE_EXECUTIONS_EMULATOR_IMAGE_TAG env variable to a specific image "
             "to ensure that you are using a compatible version. "
-            "Check https://gallery.ecr.aws/o4w4w0v6/aws-durable-execution-emulator. "
+            f"Check https://${self._get_emulator_image().replace('public.ecr', 'gallery.ecr')}. "
             "and https://github.com/aws/aws-durable-execution-sdk-python-testing/releases "
             "for valid image tags. If the problems persist, you can try updating the SAM CLI version "
             " in case of incompatibility."
