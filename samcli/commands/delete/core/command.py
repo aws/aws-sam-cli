@@ -25,7 +25,7 @@ class DeleteCommand(CoreCommand):
     def format_examples(ctx: Context, formatter: CommandHelpTextFormatter):
         with formatter.indented_section(name="Examples", extra_indents=1):
             with formatter.indented_section(name="Delete a SAM application", extra_indents=1):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} --stack-name my-stack"),
@@ -34,7 +34,7 @@ class DeleteCommand(CoreCommand):
                     ]
                 )
             with formatter.indented_section(name="Delete without prompts", extra_indents=1):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} --stack-name my-stack --no-prompts"),

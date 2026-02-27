@@ -26,7 +26,7 @@ class SyncCommand(CoreCommand):
     def format_examples(ctx: Context, formatter: CommandHelpTextFormatter):
         with formatter.indented_section(name="Examples", extra_indents=1):
             with formatter.indented_section(name="Sync with watch mode", extra_indents=1):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} --watch --stack-name {{stack}}"),
@@ -35,7 +35,7 @@ class SyncCommand(CoreCommand):
                     ]
                 )
             with formatter.indented_section(name="Sync code changes with watch mode", extra_indents=1):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} --code --watch --stack-name {{stack}}"),
@@ -44,7 +44,7 @@ class SyncCommand(CoreCommand):
                     ]
                 )
             with formatter.indented_section(name="Sync code changes for specific resource", extra_indents=1):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(

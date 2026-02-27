@@ -26,7 +26,7 @@ class BuildCommand(CoreCommand):
     def format_examples(ctx: Context, formatter: CommandHelpTextFormatter):
         with formatter.indented_section(name="Examples", extra_indents=1):
             with formatter.indented_section(name="Build sam project", extra_indents=1):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path}"),
@@ -35,7 +35,7 @@ class BuildCommand(CoreCommand):
                     ]
                 )
             with formatter.indented_section(name="Build sam project for a specific function", extra_indents=1):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} FUNCTION_LOGICAL_ID"),
@@ -44,7 +44,7 @@ class BuildCommand(CoreCommand):
                     ]
                 )
             with formatter.indented_section(name="Build sam project using container", extra_indents=1):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} --use-container"),
@@ -55,7 +55,7 @@ class BuildCommand(CoreCommand):
             with formatter.indented_section(
                 name="Build sam project using container with environment variable file", extra_indents=1
             ):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} --use-container --container-env-var-file env.json"),
@@ -66,7 +66,7 @@ class BuildCommand(CoreCommand):
             with formatter.indented_section(
                 name="Build sam project and invoke default function locally", extra_indents=1
             ):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} && {ctx.parent.command_path} local invoke"),  # type: ignore
@@ -75,7 +75,7 @@ class BuildCommand(CoreCommand):
                     ]
                 )
             with formatter.indented_section(name="Build sam project and deploy", extra_indents=1):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} && {ctx.parent.command_path} deploy"),  # type: ignore

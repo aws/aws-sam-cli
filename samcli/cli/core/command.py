@@ -26,7 +26,7 @@ class CoreCommand(Command):
 
     def format_description(self, formatter: RootCommandHelpTextFormatter):
         with formatter.indented_section(name="Description", extra_indents=1):
-            formatter.write_rd(
+            formatter.write_text_rows(
                 [
                     RowDefinition(
                         name=self.description + self.description_addendum,

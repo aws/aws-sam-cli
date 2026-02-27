@@ -20,7 +20,7 @@ class CoreGenerateEventCommand(CoreCommand, GenerateEventCommand):
     def format_examples(ctx: Context, formatter: RootCommandHelpTextFormatter):
         with formatter.indented_section(name="Examples", extra_indents=1):
             with formatter.indented_section(name="Generate event S3 sends to local Lambda function", extra_indents=1):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} s3 [put/delete]"),
@@ -28,8 +28,8 @@ class CoreGenerateEventCommand(CoreCommand, GenerateEventCommand):
                         ),
                     ]
                 )
-            with formatter.indented_section(name="Customize event by adding parameter flags.", extra_indents=1):
-                formatter.write_rd(
+            with formatter.indented_section(name="Customize event by adding parameter flags", extra_indents=1):
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} s3 [put/delete] --help"),
@@ -44,7 +44,7 @@ class CoreGenerateEventCommand(CoreCommand, GenerateEventCommand):
             with formatter.indented_section(
                 name="Test generated event with serverless function locally!", extra_indents=1
             ):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(

@@ -28,7 +28,7 @@ class LocalCallbackHeartbeatCommand(LocalCallbackCommand):
         """Format command examples for help text"""
         with formatter.indented_section(name="Examples", extra_indents=1):
             with formatter.indented_section(name="Send heartbeat callback", extra_indents=1):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} my-callback-id"),

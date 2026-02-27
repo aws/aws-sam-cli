@@ -25,7 +25,7 @@ class RemoteTestEventDeleteCommand(CoreCommand):
     def format_examples(ctx: Context, formatter: CommandHelpTextFormatter):
         with formatter.indented_section(name="Examples", extra_indents=1):
             with formatter.indented_section(name="Delete a test event from default Lambda function", extra_indents=1):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} --stack-name hello-world --name MyEvent"),
@@ -36,7 +36,7 @@ class RemoteTestEventDeleteCommand(CoreCommand):
             with formatter.indented_section(
                 name="Delete a test event for a named Lambda function in the stack", extra_indents=1
             ):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(
@@ -49,7 +49,7 @@ class RemoteTestEventDeleteCommand(CoreCommand):
             with formatter.indented_section(
                 name="Delete a test event for a function using the Lambda ARN", extra_indents=1
             ):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(

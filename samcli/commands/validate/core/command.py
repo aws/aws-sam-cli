@@ -26,7 +26,7 @@ class ValidateCommand(CoreCommand):
     def format_examples(ctx: Context, formatter: CommandHelpTextFormatter):
         with formatter.indented_section(name="Examples", extra_indents=1):
             with formatter.indented_section(name="Validate and Lint", extra_indents=1):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} --lint"),

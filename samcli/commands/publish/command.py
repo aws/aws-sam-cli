@@ -32,10 +32,6 @@ AWS::ServerlessRepo::Application section with application metadata
 for publishing. For more details on this metadata section, see
 {}
 \b
-Examples
---------
-To publish an application
-$ sam publish -t packaged.yaml --region <region>
 """.format(SAM_PUBLISH_DOC)
 SHORT_HELP = "Publish a packaged AWS SAM template to the AWS Serverless Application Repository."
 SERVERLESSREPO_CONSOLE_URL = "https://console.aws.amazon.com/serverlessrepo/home?region={}#/published-applications/{}"

@@ -29,7 +29,7 @@ class RemoteTestEventPutCommand(CoreCommand):
             with formatter.indented_section(
                 name="Put a remote test event for default Lambda function using the contents of a file", extra_indents=1
             ):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(
@@ -43,7 +43,7 @@ class RemoteTestEventPutCommand(CoreCommand):
             with formatter.indented_section(
                 name="Put a remote test event for a named Lambda function using the contents of a file", extra_indents=1
             ):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(
@@ -57,7 +57,7 @@ class RemoteTestEventPutCommand(CoreCommand):
             with formatter.indented_section(
                 name="Put a remote test event for a named Lambda function with stdin input", extra_indents=1
             ):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(
@@ -73,7 +73,7 @@ class RemoteTestEventPutCommand(CoreCommand):
                 name="Put a test event for a function using the Lambda ARN using the contents of a file",
                 extra_indents=1,
             ):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(

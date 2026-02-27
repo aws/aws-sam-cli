@@ -27,7 +27,7 @@ class RemoteTestEventListCommand(CoreCommand):
             with formatter.indented_section(
                 name="List remote test events for default Lambda function", extra_indents=1
             ):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} --stack-name hello-world"),
@@ -38,7 +38,7 @@ class RemoteTestEventListCommand(CoreCommand):
             with formatter.indented_section(
                 name="List remote test events for a named Lambda function in the stack", extra_indents=1
             ):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} --stack-name hello-world HelloWorldFunction"),
@@ -49,7 +49,7 @@ class RemoteTestEventListCommand(CoreCommand):
             with formatter.indented_section(
                 name="List remote test events for a function using Lambda ARN", extra_indents=1
             ):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(

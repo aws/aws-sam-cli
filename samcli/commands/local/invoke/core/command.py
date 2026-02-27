@@ -27,7 +27,7 @@ class InvokeCommand(CoreCommand):
     def format_examples(ctx: Context, formatter: CommandHelpTextFormatter):
         with formatter.indented_section(name="Examples", extra_indents=1):
             with formatter.indented_section(name="Invoke default Lambda function with no event", extra_indents=1):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path}"),
@@ -36,7 +36,7 @@ class InvokeCommand(CoreCommand):
                     ]
                 )
             with formatter.indented_section(name="Invoke named Lambda function with no event", extra_indents=1):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} HelloWorldFunction"),
@@ -45,7 +45,7 @@ class InvokeCommand(CoreCommand):
                     ]
                 )
             with formatter.indented_section(name="Invoke named Lambda function with an event file", extra_indents=1):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} HelloWorldFunction -e event.json"),
@@ -54,7 +54,7 @@ class InvokeCommand(CoreCommand):
                     ]
                 )
             with formatter.indented_section(name="Invoke Lambda function with stdin input", extra_indents=1):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(
@@ -66,7 +66,7 @@ class InvokeCommand(CoreCommand):
                     ]
                 )
             with formatter.indented_section(name="Invoke Lambda function with durable execution name", extra_indents=1):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(

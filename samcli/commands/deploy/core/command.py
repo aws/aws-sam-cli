@@ -23,7 +23,7 @@ class DeployCommand(CoreCommand):
     def format_examples(ctx: Context, formatter: CommandHelpTextFormatter):
         with formatter.indented_section(name="Examples", extra_indents=1):
             with formatter.indented_section(name="Deploy with guided prompts", extra_indents=1):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} --guided"),
@@ -32,7 +32,7 @@ class DeployCommand(CoreCommand):
                     ]
                 )
             with formatter.indented_section(name="Deploy with specified parameters", extra_indents=1):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(
@@ -46,7 +46,7 @@ class DeployCommand(CoreCommand):
             with formatter.indented_section(
                 name="Deploy with parameter overrides using CloudFormation syntax", extra_indents=1
             ):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(
@@ -60,7 +60,7 @@ class DeployCommand(CoreCommand):
             with formatter.indented_section(
                 name="Deploy with parameter overrides using shorthand syntax", extra_indents=1
             ):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(

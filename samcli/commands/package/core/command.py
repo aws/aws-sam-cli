@@ -36,28 +36,26 @@ class PackageCommand(CoreCommand):
     @staticmethod
     def format_examples(ctx: Context, formatter: CommandHelpTextFormatter):
         with formatter.indented_section(name="Examples", extra_indents=1):
-            with formatter.indented_section(name="Automatic resolution of S3 buckets", extra_indents=1):
-                formatter.write_rd(
+            with formatter.indented_section(name="Automatic resolution of S3 buckets:", extra_indents=1):
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} --resolve-s3"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
                     ],
-                    col_max=COL_SIZE_MODIFIER,
                 )
-            with formatter.indented_section(name="Get packaged template", extra_indents=1):
-                formatter.write_rd(
+            with formatter.indented_section(name="Get packaged template:", extra_indents=1):
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} --resolve-s3 --output-template-file packaged.yaml"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
                     ],
-                    col_max=COL_SIZE_MODIFIER,
                 )
-            with formatter.indented_section(name="Customized location for uploading artifacts", extra_indents=1):
-                formatter.write_rd(
+            with formatter.indented_section(name="Customized location for uploading artifacts:", extra_indents=1):
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(
@@ -66,7 +64,6 @@ class PackageCommand(CoreCommand):
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
                     ],
-                    col_max=COL_SIZE_MODIFIER,
                 )
 
     @staticmethod

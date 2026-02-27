@@ -13,7 +13,7 @@ class TestTracesCommand(TestCase):
         ctx = Mock()
         ctx.command_path = "sam traces"
         formatter = Mock()
-        formatter.write_rd = Mock()
+        formatter.write_text_rows = Mock()
         formatter.indented_section = Mock()
 
         # Set up the mock to track indented_section calls
@@ -36,5 +36,5 @@ class TestTracesCommand(TestCase):
         self.assertIn("Fetch traces by ID", indented_sections)
         self.assertIn("Tail traces as they become available", indented_sections)
 
-        # Verify write_rd was called (once for each example subsection)
-        self.assertEqual(formatter.write_rd.call_count, 2)
+        # Verify write_text_rows was called (once for each example subsection)
+        self.assertEqual(formatter.write_text_rows.call_count, 2)

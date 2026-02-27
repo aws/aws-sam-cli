@@ -25,7 +25,7 @@ class RemoteTestEventGetCommand(CoreCommand):
     def format_examples(ctx: Context, formatter: CommandHelpTextFormatter):
         with formatter.indented_section(name="Examples", extra_indents=1):
             with formatter.indented_section(name="Get a test event from default Lambda function", extra_indents=1):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} --stack-name hello-world --name MyEvent"),
@@ -36,7 +36,7 @@ class RemoteTestEventGetCommand(CoreCommand):
             with formatter.indented_section(
                 name="Get a test event for a named Lambda function in the stack", extra_indents=1
             ):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(
@@ -50,7 +50,7 @@ class RemoteTestEventGetCommand(CoreCommand):
                 name="Get a test event for a named Lambda function in the stack and save the result to a file",
                 extra_indents=1,
             ):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(
@@ -64,7 +64,7 @@ class RemoteTestEventGetCommand(CoreCommand):
             with formatter.indented_section(
                 name="Get a test event for a function using the Lambda ARN", extra_indents=1
             ):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(

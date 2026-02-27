@@ -28,7 +28,7 @@ class LocalCallbackSucceedCommand(LocalCallbackCommand):
         """Format command examples for help text"""
         with formatter.indented_section(name="Examples", extra_indents=1):
             with formatter.indented_section(name="Send success callback with no result", extra_indents=1):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} my-callback-id"),
@@ -38,7 +38,7 @@ class LocalCallbackSucceedCommand(LocalCallbackCommand):
                 )
 
             with formatter.indented_section(name="Send success callback with result", extra_indents=1):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} my-callback-id --result 'Task completed successfully'"),
@@ -48,7 +48,7 @@ class LocalCallbackSucceedCommand(LocalCallbackCommand):
                 )
 
             with formatter.indented_section(name="Send success callback with short option", extra_indents=1):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} my-callback-id -r 'Success result'"),

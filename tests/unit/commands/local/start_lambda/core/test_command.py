@@ -39,14 +39,26 @@ class TestLocalStartLambdaCommand(unittest.TestCase):
         expected_output = {
             "Description": [(cmd.description + cmd.description_addendum, "")],
             "Examples": [],
-            "Setup": [
-                ("Start the local lambda endpoint for multiple functions", ""),
+            "Setup": [],
+            "Start the local lambda endpoint for all functions": [
+                ("$ sam local start-lambda\x1b[0m", ""),
+            ],
+            "Start the local lambda endpoint for one function": [
+                ("$ sam local start-lambda HelloWorldFunction\x1b[0m", ""),
+            ],
+            "Start the local lambda endpoint for multiple functions": [
                 ("$ sam local start-lambda HelloWorldFunctionOne HelloWorldFunctionTwo\x1b[0m", ""),
             ],
-            "Invoke local Lambda endpoint": [
-                ("Use AWS SDK in automated tests.", ""),
+            "Invoke local Lambda endpoint": [],
+            "Use the AWS CLI:": [
                 (
-                    "\n        self.lambda_client = boto3.client('lambda',\n                                          endpoint_url=\"http://127.0.0.1:3001\",\n                                          use_ssl=False,\n                                          verify=False,\n                                          config=Config(signature_version=UNSIGNED,\n                                                        read_timeout=0,\n                                                        retries={'max_attempts': 0}))\n        self.lambda_client.invoke(FunctionName=\"HelloWorldFunction\")\n        ",
+                    "$ aws lambda invoke --function-name HelloWorldFunction --endpoint-url http://127.0.0.1:3001 --no-verify-ssl out.txt\x1b[0m",
+                    "",
+                ),
+            ],
+            "Use AWS SDK in automated tests:": [
+                (
+                    "self.lambda_client = boto3.client('lambda',\n                                          endpoint_url=\"http://127.0.0.1:3001\",\n                                          use_ssl=False,\n                                          verify=False,\n                                          config=Config(signature_version=UNSIGNED,\n                                                        read_timeout=0,\n                                                        retries={'max_attempts': 0}))\n            self.lambda_client.invoke(FunctionName=\"HelloWorldFunction\")\n        ",
                     "",
                 ),
             ],

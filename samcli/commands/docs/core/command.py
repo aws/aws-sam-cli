@@ -46,7 +46,7 @@ class DocsBaseCommand(Command):
             A formatter instance to use for formatting the help text
         """
         with formatter.indented_section(name="Description", extra_indents=1):
-            formatter.write_rd(
+            formatter.write_text_rows(
                 [
                     RowDefinition(
                         text="",

@@ -25,7 +25,7 @@ class LogsCommand(CoreCommand):
             with formatter.indented_section(
                 name="Fetch logs with Lambda Function Logical ID and Cloudformation Stack Name"
             ):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} -n HelloWorldFunction --stack-name mystack"),
@@ -34,7 +34,7 @@ class LogsCommand(CoreCommand):
                     ]
                 )
             with formatter.indented_section(name="View logs for specific time range"):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(
@@ -46,7 +46,7 @@ class LogsCommand(CoreCommand):
                     ]
                 )
             with formatter.indented_section(name="Tail new logs"):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} -n HelloWorldFunction --stack-name " f"mystack --tail"),
@@ -55,7 +55,7 @@ class LogsCommand(CoreCommand):
                     ]
                 )
             with formatter.indented_section(name="Fetch from Cloudwatch log groups"):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(
@@ -68,7 +68,7 @@ class LogsCommand(CoreCommand):
                 )
 
             with formatter.indented_section(name="Fetch logs from supported resources in Cloudformation stack"):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} ---stack-name mystack"),
@@ -78,7 +78,7 @@ class LogsCommand(CoreCommand):
                 )
 
             with formatter.indented_section(name="Fetch logs from resource defined in nested Cloudformation stack"):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(

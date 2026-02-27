@@ -56,6 +56,28 @@ class RootCommandHelpTextFormatter(HelpFormatter):
 
         super().write_dl(modified_rows, col_max=col_max, col_spacing=col_spacing)
 
+    def write_text_rows(
+        self,
+        rows: Sequence[RowDefinition],
+    ) -> None:
+        """Write single-column text rows without two-column layout constraints.
+
+        This is useful for "examples" or other content that should appear as simple
+        indented text without the padding and wrapping behavior of write_dl.
+
+        Parameters
+        ----------
+        rows : Sequence[RowDefinition]
+            Rows to write. Only the 'name' field and 'extra_row_modifiers' are used.
+        """
+        for row in rows:
+            extra_row_modifiers = row.extra_row_modifiers or []
+            modified_row = row
+            for row_modifier in self.modifiers + extra_row_modifiers:
+                modified_row = row_modifier.apply(row=modified_row, justification_length=self.left_justification_length)
+            # Write the content with current indentation, no padding
+            self.write(f"{'':>{self.current_indent}}{modified_row.name.rstrip()}\n")
+
     @contextmanager
     def section(self, name: str) -> Iterator[None]:
         with super().section(style(name, bold=True, underline=True)):
