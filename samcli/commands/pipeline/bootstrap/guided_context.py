@@ -83,14 +83,10 @@ class GuidedContext:
     def _prompt_account_id(self) -> None:
         profiles = list_available_profiles()
         click.echo("The following AWS credential sources are available to use.")
-        click.echo(
-            dedent(
-                f"""\
+        click.echo(dedent(f"""\
                 To know more about configuration AWS credentials, visit the link below:
                 {CONFIG_AWS_CRED_DOC_URL}\
-                """
-            )
-        )
+                """))
         has_env_creds = os.getenv(EnvProvider.ACCESS_KEY) and os.getenv(EnvProvider.SECRET_KEY)
         click.echo(f"\t1 - Environment variables{' (not available)' if not has_env_creds else ''}")
         for i, profile in enumerate(profiles):

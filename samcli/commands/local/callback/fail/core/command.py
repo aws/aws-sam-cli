@@ -16,9 +16,7 @@ class LocalCallbackFailCommand(LocalCallbackCommand):
     Command class for local callback fail command.
     """
 
-    def format_options(
-        self, ctx: Context, formatter: CommandHelpTextFormatter  # type:ignore
-    ) -> None:
+    def format_options(self, ctx: Context, formatter: CommandHelpTextFormatter) -> None:  # type: ignore
         self.format_description(formatter)
         self.format_examples(ctx, formatter)
 
