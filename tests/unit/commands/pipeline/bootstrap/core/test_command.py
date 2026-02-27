@@ -34,25 +34,21 @@ class TestPipelineBootstrapCommand(unittest.TestCase):
         cmd = PipelineBootstrapCommand(name="bootstrap", requires_credentials=True, description="")
         expected_output = {
             "Description": [(cmd.description + cmd.description_addendum, "")],
-            "Bootstrap Options": [("", ""), ("--interactive", ""), ("", ""), ("--stage", "")],
-            "AWS Credential Options": [("", ""), ("--region", ""), ("", ""), ("--profile", "")],
+            "Bootstrap Options": [("--interactive", ""), ("--stage", "")],
+            "AWS Credential Options": [("--region", ""), ("--profile", "")],
             "Configuration Options": [
-                ("", ""),
-                ("Learn more about configuration files at:", ""),
                 (
+                    "Learn more about configuration files at: "
                     "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/"
-                    "serverless-sam-cli-config.html. ",
+                    "serverless-sam-cli-config.html.",
                     "",
                 ),
-                ("", ""),
                 ("--config-env", ""),
-                ("", ""),
                 ("--config-file", ""),
-                ("", ""),
                 ("--save-params", ""),
             ],
-            "Beta Options": [("", ""), ("--beta-features", "")],
-            "Other Options": [("", ""), ("--debug", "")],
+            "Beta Options": [("--beta-features", "")],
+            "Other Options": [("--debug", "")],
         }
 
         cmd.format_options(ctx, formatter)

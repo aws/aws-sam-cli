@@ -39,16 +39,14 @@ class TestRemoteCallbackSucceedCommand(unittest.TestCase):
                 ("Test description\x1b[1m\n  This command may not require access to AWS credentials.\x1b[0m", "")
             ],
             "Examples": [],
-            "AWS Credential Options": [("", ""), ("--region", ""), ("", ""), ("--profile", "")],
-            "Configuration Options": [("", ""), ("--config-file", "")],
-            "Beta Options": [("", ""), ("--beta-features / --no-beta-features", "")],
-            "Other Options": [("", ""), ("--debug", "")],
+            "AWS Credential Options": [("--region", ""), ("--profile", "")],
+            "Configuration Options": [("--config-file", "")],
+            "Beta Options": [("--beta-features / --no-beta-features", "")],
+            "Other Options": [("--debug", "")],
             "Send success callback with no result": [
-                ("", ""),
                 ("$ sam remote callback succeed my-callback-id\x1b[0m", ""),
             ],
             "Send success callback with result": [
-                ("", ""),
                 ("$ sam remote callback succeed my-callback-id --result 'Task completed successfully'\x1b[0m", ""),
             ],
         }

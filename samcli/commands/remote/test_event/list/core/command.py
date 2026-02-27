@@ -30,9 +30,6 @@ class RemoteTestEventListCommand(CoreCommand):
                 formatter.write_rd(
                     [
                         RowDefinition(
-                            text="\n",
-                        ),
-                        RowDefinition(
                             name=style(f"$ {ctx.command_path} --stack-name hello-world"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
@@ -44,9 +41,6 @@ class RemoteTestEventListCommand(CoreCommand):
                 formatter.write_rd(
                     [
                         RowDefinition(
-                            text="\n",
-                        ),
-                        RowDefinition(
                             name=style(f"$ {ctx.command_path} --stack-name hello-world HelloWorldFunction"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
@@ -57,9 +51,6 @@ class RemoteTestEventListCommand(CoreCommand):
             ):
                 formatter.write_rd(
                     [
-                        RowDefinition(
-                            text="\n",
-                        ),
                         RowDefinition(
                             name=style(
                                 f"$ {ctx.command_path} arn:aws:lambda:us-west-2:123456789012:function:my-function"

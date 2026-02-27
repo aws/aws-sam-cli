@@ -21,7 +21,6 @@ class LocalExecutionStopCommand(LocalExecutionBaseCommand):
             with formatter.indented_section(name="Stop execution without error details", extra_indents=1):
                 formatter.write_rd(
                     [
-                        RowDefinition(text="\n"),
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} {execution_id}"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
@@ -33,7 +32,6 @@ class LocalExecutionStopCommand(LocalExecutionBaseCommand):
                 error_options = '--error-message "Execution cancelled" --error-type "UserCancellation"'
                 formatter.write_rd(
                     [
-                        RowDefinition(text="\n"),
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} {execution_id} {error_options}"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
@@ -50,7 +48,6 @@ class LocalExecutionStopCommand(LocalExecutionBaseCommand):
                 )
                 formatter.write_rd(
                     [
-                        RowDefinition(text="\n"),
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} {execution_id} {full_options}"),
                             extra_row_modifiers=[ShowcaseRowModifier()],

@@ -30,24 +30,20 @@ class TestPipelineInitCommand(unittest.TestCase):
 
         cmd = PipelineInitCommand(name="init", requires_credentials=False, description="")
         expected_output = {
-            "Pipeline Init Options": [("", ""), ("--bootstrap", "")],
+            "Pipeline Init Options": [("--bootstrap", "")],
             "Configuration Options": [
-                ("", ""),
-                ("Learn more about configuration files at:", ""),
                 (
+                    "Learn more about configuration files at: "
                     "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/"
-                    "serverless-sam-cli-config.html. ",
+                    "serverless-sam-cli-config.html.",
                     "",
                 ),
-                ("", ""),
                 ("--config-env", ""),
-                ("", ""),
                 ("--config-file", ""),
-                ("", ""),
                 ("--save-params", ""),
             ],
-            "Beta Options": [("", ""), ("--beta-features", "")],
-            "Other Options": [("", ""), ("--debug", "")],
+            "Beta Options": [("--beta-features", "")],
+            "Other Options": [("--debug", "")],
         }
 
         cmd.format_options(ctx, formatter)

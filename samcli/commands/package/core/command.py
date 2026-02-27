@@ -40,9 +40,6 @@ class PackageCommand(CoreCommand):
                 formatter.write_rd(
                     [
                         RowDefinition(
-                            text="\n",
-                        ),
-                        RowDefinition(
                             name=style(f"$ {ctx.command_path} --resolve-s3"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
@@ -53,9 +50,6 @@ class PackageCommand(CoreCommand):
                 formatter.write_rd(
                     [
                         RowDefinition(
-                            text="\n",
-                        ),
-                        RowDefinition(
                             name=style(f"$ {ctx.command_path} --resolve-s3 --output-template-file packaged.yaml"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
@@ -65,9 +59,6 @@ class PackageCommand(CoreCommand):
             with formatter.indented_section(name="Customized location for uploading artifacts", extra_indents=1):
                 formatter.write_rd(
                     [
-                        RowDefinition(
-                            text="\n",
-                        ),
                         RowDefinition(
                             name=style(
                                 f"$ {ctx.command_path} --s3-bucket S3_BUCKET --output-template-file packaged.yaml"
@@ -103,9 +94,6 @@ class PackageCommand(CoreCommand):
         with formatter.indented_section(name="Acronyms", extra_indents=1):
             formatter.write_rd(
                 [
-                    RowDefinition(
-                        text="\n",
-                    ),
                     RowDefinition(
                         name="S3",
                         text="Simple Storage Service",

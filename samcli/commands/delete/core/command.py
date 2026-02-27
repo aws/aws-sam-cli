@@ -28,9 +28,6 @@ class DeleteCommand(CoreCommand):
                 formatter.write_rd(
                     [
                         RowDefinition(
-                            text="\n",
-                        ),
-                        RowDefinition(
                             name=style(f"$ {ctx.command_path} --stack-name my-stack"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
@@ -39,9 +36,6 @@ class DeleteCommand(CoreCommand):
             with formatter.indented_section(name="Delete without prompts", extra_indents=1):
                 formatter.write_rd(
                     [
-                        RowDefinition(
-                            text="\n",
-                        ),
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} --stack-name my-stack --no-prompts"),
                             extra_row_modifiers=[ShowcaseRowModifier()],

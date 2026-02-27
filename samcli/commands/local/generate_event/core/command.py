@@ -23,9 +23,6 @@ class CoreGenerateEventCommand(CoreCommand, GenerateEventCommand):
                 formatter.write_rd(
                     [
                         RowDefinition(
-                            text="\n",
-                        ),
-                        RowDefinition(
                             name=style(f"$ {ctx.command_path} s3 [put/delete]"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
@@ -34,9 +31,6 @@ class CoreGenerateEventCommand(CoreCommand, GenerateEventCommand):
             with formatter.indented_section(name="Customize event by adding parameter flags.", extra_indents=1):
                 formatter.write_rd(
                     [
-                        RowDefinition(
-                            text="\n",
-                        ),
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} s3 [put/delete] --help"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
@@ -53,9 +47,6 @@ class CoreGenerateEventCommand(CoreCommand, GenerateEventCommand):
                 formatter.write_rd(
                     [
                         RowDefinition(
-                            text="\n",
-                        ),
-                        RowDefinition(
                             name=style(
                                 f"$ {ctx.command_path} s3 [put/delete] --bucket <bucket> --key <key> | "
                                 f"{getattr(ctx.parent, 'command_path')} invoke -e -"
@@ -70,7 +61,6 @@ class CoreGenerateEventCommand(CoreCommand, GenerateEventCommand):
         # as the `formatter_class` can be set in subclass of Command. If ignore is not set,
         # mypy raises argument needs to be HelpFormatter as super class defines it.
         with formatter.indented_section(name="Commands", extra_indents=1):
-            formatter.write_rd([RowDefinition(text="\n")])
             formatter.write_rd([RowDefinition(name=command) for command in self.all_cmds.keys()])
 
     def format_options(self, ctx: Context, formatter: RootCommandHelpTextFormatter) -> None:  # type: ignore

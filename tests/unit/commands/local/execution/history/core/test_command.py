@@ -46,16 +46,14 @@ class TestLocalExecutionHistoryCommand(TestCase):
             ],
             "Examples": [],
             "Get execution history": [
-                ("", ""),
                 ("$ sam local execution history c63eec67-3415-4eb4-a495-116aa3a86278\x1b[0m", ""),
             ],
             "Get execution history in JSON format": [
-                ("", ""),
                 ("$ sam local execution history c63eec67-3415-4eb4-a495-116aa3a86278 --format json\x1b[0m", ""),
             ],
-            "Formatting Options": [("", ""), ("--format", "")],
-            "Beta Options": [("", ""), ("--beta-features / --no-beta-features", "")],
-            "Other Options": [("", ""), ("--debug", "")],
+            "Formatting Options": [("--format", "")],
+            "Beta Options": [("--beta-features / --no-beta-features", "")],
+            "Other Options": [("--debug", "")],
         }
 
         # Act

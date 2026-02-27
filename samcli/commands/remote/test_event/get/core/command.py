@@ -28,9 +28,6 @@ class RemoteTestEventGetCommand(CoreCommand):
                 formatter.write_rd(
                     [
                         RowDefinition(
-                            text="\n",
-                        ),
-                        RowDefinition(
                             name=style(f"$ {ctx.command_path} --stack-name hello-world --name MyEvent"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
@@ -41,9 +38,6 @@ class RemoteTestEventGetCommand(CoreCommand):
             ):
                 formatter.write_rd(
                     [
-                        RowDefinition(
-                            text="\n",
-                        ),
                         RowDefinition(
                             name=style(
                                 f"$ {ctx.command_path} --stack-name hello-world HelloWorldFunction --name MyEvent"
@@ -59,9 +53,6 @@ class RemoteTestEventGetCommand(CoreCommand):
                 formatter.write_rd(
                     [
                         RowDefinition(
-                            text="\n",
-                        ),
-                        RowDefinition(
                             name=style(
                                 f"$ {ctx.command_path} --stack-name hello-world HelloWorldFunction --name MyEvent "
                                 f"--output-file my-event.json"
@@ -75,9 +66,6 @@ class RemoteTestEventGetCommand(CoreCommand):
             ):
                 formatter.write_rd(
                     [
-                        RowDefinition(
-                            text="\n",
-                        ),
                         RowDefinition(
                             name=style(
                                 f"$ {ctx.command_path} arn:aws:lambda:us-west-2:123456789012:function:my-function "

@@ -39,9 +39,6 @@ class InvokeLambdaCommand(CoreCommand):
                 formatter.write_rd(
                     [
                         RowDefinition(
-                            text="\n",
-                        ),
-                        RowDefinition(
                             name="Start the local lambda endpoint for all functions",
                         ),
                         RowDefinition(
@@ -52,9 +49,6 @@ class InvokeLambdaCommand(CoreCommand):
                 )
                 formatter.write_rd(
                     [
-                        RowDefinition(
-                            text="\n",
-                        ),
                         RowDefinition(
                             name="Start the local lambda endpoint for one function",
                         ),
@@ -67,9 +61,6 @@ class InvokeLambdaCommand(CoreCommand):
                 formatter.write_rd(
                     [
                         RowDefinition(
-                            text="\n",
-                        ),
-                        RowDefinition(
                             name="Start the local lambda endpoint for multiple functions",
                         ),
                         RowDefinition(
@@ -81,9 +72,6 @@ class InvokeLambdaCommand(CoreCommand):
             with formatter.indented_section(name="Invoke local Lambda endpoint", extra_indents=1):
                 formatter.write_rd(
                     [
-                        RowDefinition(
-                            text="\n",
-                        ),
                         RowDefinition(
                             name="Use the AWS CLI.",
                         ),
@@ -98,9 +86,6 @@ class InvokeLambdaCommand(CoreCommand):
                 )
                 formatter.write_rd(
                     [
-                        RowDefinition(
-                            text="\n",
-                        ),
                         RowDefinition(
                             name="Use AWS SDK in automated tests.",
                         ),

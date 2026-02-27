@@ -29,9 +29,6 @@ class ValidateCommand(CoreCommand):
                 formatter.write_rd(
                     [
                         RowDefinition(
-                            text="\n",
-                        ),
-                        RowDefinition(
                             name=style(f"$ {ctx.command_path} --lint"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),

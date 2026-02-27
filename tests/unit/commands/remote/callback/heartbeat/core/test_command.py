@@ -38,11 +38,11 @@ class TestRemoteCallbackHeartbeatCommand(unittest.TestCase):
                 ("Test description\x1b[1m\n  This command may not require access to AWS credentials.\x1b[0m", "")
             ],
             "Examples": [],
-            "AWS Credential Options": [("", ""), ("--region", ""), ("", ""), ("--profile", "")],
-            "Configuration Options": [("", ""), ("--config-file", "")],
-            "Beta Options": [("", ""), ("--beta-features / --no-beta-features", "")],
-            "Other Options": [("", ""), ("--debug", "")],
-            "Send heartbeat callback": [("", ""), ("$ sam remote callback heartbeat my-callback-id\x1b[0m", "")],
+            "AWS Credential Options": [("--region", ""), ("--profile", "")],
+            "Configuration Options": [("--config-file", "")],
+            "Beta Options": [("--beta-features / --no-beta-features", "")],
+            "Other Options": [("--debug", "")],
+            "Send heartbeat callback": [("$ sam remote callback heartbeat my-callback-id\x1b[0m", "")],
         }
         cmd.format_options(ctx, formatter)
         self.assertEqual(expected_output, formatter.data)

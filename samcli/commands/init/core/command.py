@@ -24,18 +24,12 @@ class InitCommand(CoreCommand):
             with formatter.indented_section(name="Interactive Mode", extra_indents=1):
                 formatter.write_rd(
                     [
-                        RowDefinition(
-                            text="\n",
-                        ),
                         RowDefinition(name=style(f"$ {ctx.command_path}"), extra_row_modifiers=[ShowcaseRowModifier()]),
                     ]
                 )
             with formatter.indented_section(name="Customized Interactive Mode", extra_indents=1):
                 formatter.write_rd(
                     [
-                        RowDefinition(
-                            text="\n",
-                        ),
                         RowDefinition(
                             name=style(
                                 f"$ {ctx.command_path} --name sam-app --runtime nodejs18.x --architecture arm64"
@@ -60,9 +54,6 @@ class InitCommand(CoreCommand):
             with formatter.indented_section(name="Direct Initialization", extra_indents=1):
                 formatter.write_rd(
                     [
-                        RowDefinition(
-                            text="\n",
-                        ),
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} --location gh:aws-samples/cookiecutter-aws-sam-python"),
                             extra_row_modifiers=[ShowcaseRowModifier()],

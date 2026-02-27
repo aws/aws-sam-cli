@@ -17,7 +17,6 @@ class RemoteExecutionBaseCommand(RemoteCommand):
         with formatter.indented_section(name="Acronyms", extra_indents=1):
             formatter.write_rd(
                 [
-                    RowDefinition(text="\n"),
                     RowDefinition(
                         name="ARN",
                         text="Amazon Resource Name",

@@ -32,7 +32,6 @@ class RemoteCallbackSucceedCommand(RemoteCommand):
             with formatter.indented_section(name="Send success callback with no result", extra_indents=1):
                 formatter.write_rd(
                     [
-                        RowDefinition(text="\n"),
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} my-callback-id"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
@@ -43,7 +42,6 @@ class RemoteCallbackSucceedCommand(RemoteCommand):
             with formatter.indented_section(name="Send success callback with result", extra_indents=1):
                 formatter.write_rd(
                     [
-                        RowDefinition(text="\n"),
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} my-callback-id --result 'Task completed successfully'"),
                             extra_row_modifiers=[ShowcaseRowModifier()],

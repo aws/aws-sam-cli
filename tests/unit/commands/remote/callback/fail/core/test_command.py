@@ -39,21 +39,18 @@ class TestRemoteCallbackFailCommand(unittest.TestCase):
                 ("Test description\x1b[1m\n  This command may not require access to AWS credentials.\x1b[0m", "")
             ],
             "Examples": [],
-            "AWS Credential Options": [("", ""), ("--region", ""), ("", ""), ("--profile", "")],
-            "Configuration Options": [("", ""), ("--config-file", "")],
-            "Beta Options": [("", ""), ("--beta-features / --no-beta-features", "")],
-            "Callback Options": [("", ""), ("--error-data", "")],
-            "Other Options": [("", ""), ("--debug", "")],
+            "AWS Credential Options": [("--region", ""), ("--profile", "")],
+            "Configuration Options": [("--config-file", "")],
+            "Beta Options": [("--beta-features / --no-beta-features", "")],
+            "Callback Options": [("--error-data", "")],
+            "Other Options": [("--debug", "")],
             "Send failure callback with no parameters": [
-                ("", ""),
                 ("$ sam remote callback fail my-callback-id\x1b[0m", ""),
             ],
             "Send failure callback with error message": [
-                ("", ""),
                 ("$ sam remote callback fail my-callback-id --error-message 'Task failed'\x1b[0m", ""),
             ],
             "Send failure callback with all parameters": [
-                ("", ""),
                 (
                     "$ sam remote callback fail my-callback-id --error-message 'Task failed' --error-type 'ValidationError' --stack-trace 'at line 42' --error-data '{\"code\": 500}'\x1b[0m",
                     "",

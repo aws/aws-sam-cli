@@ -29,9 +29,6 @@ class BuildCommand(CoreCommand):
                 formatter.write_rd(
                     [
                         RowDefinition(
-                            text="\n",
-                        ),
-                        RowDefinition(
                             name=style(f"$ {ctx.command_path}"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
@@ -41,9 +38,6 @@ class BuildCommand(CoreCommand):
                 formatter.write_rd(
                     [
                         RowDefinition(
-                            text="\n",
-                        ),
-                        RowDefinition(
                             name=style(f"$ {ctx.command_path} FUNCTION_LOGICAL_ID"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
@@ -52,9 +46,6 @@ class BuildCommand(CoreCommand):
             with formatter.indented_section(name="Build sam project using container", extra_indents=1):
                 formatter.write_rd(
                     [
-                        RowDefinition(
-                            text="\n",
-                        ),
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} --use-container"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
@@ -67,9 +58,6 @@ class BuildCommand(CoreCommand):
                 formatter.write_rd(
                     [
                         RowDefinition(
-                            text="\n",
-                        ),
-                        RowDefinition(
                             name=style(f"$ {ctx.command_path} --use-container --container-env-var-file env.json"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
@@ -81,9 +69,6 @@ class BuildCommand(CoreCommand):
                 formatter.write_rd(
                     [
                         RowDefinition(
-                            text="\n",
-                        ),
-                        RowDefinition(
                             name=style(f"$ {ctx.command_path} && {ctx.parent.command_path} local invoke"),  # type: ignore
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
@@ -92,9 +77,6 @@ class BuildCommand(CoreCommand):
             with formatter.indented_section(name="Build sam project and deploy", extra_indents=1):
                 formatter.write_rd(
                     [
-                        RowDefinition(
-                            text="\n",
-                        ),
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} && {ctx.parent.command_path} deploy"),  # type: ignore
                             extra_row_modifiers=[ShowcaseRowModifier()],

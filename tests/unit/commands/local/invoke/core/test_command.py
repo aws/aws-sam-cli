@@ -39,43 +39,35 @@ class TestLocalInvokeCommand(unittest.TestCase):
         expected_output = {
             "Description": [(cmd.description + cmd.description_addendum, "")],
             "Examples": [],
-            "Invoke default Lambda function with no event": [("", ""), ("$ sam local invoke\x1b[0m", "")],
+            "Invoke default Lambda function with no event": [("$ sam local invoke\x1b[0m", "")],
             "Invoke named Lambda function with no event": [
-                ("", ""),
                 ("$ sam local invoke HelloWorldFunction\x1b[0m", ""),
             ],
             "Invoke named Lambda function with an event file": [
-                ("", ""),
                 ("$ sam local invoke HelloWorldFunction -e event.json\x1b[0m", ""),
             ],
             "Invoke Lambda function with stdin input": [
-                ("", ""),
                 ('$ echo {"message": "hello!"} | sam local invoke HelloWorldFunction -e -\x1b[0m', ""),
             ],
             "Invoke Lambda function with durable execution name": [
-                ("", ""),
                 ("$ sam local invoke HelloWorldFunction --durable-execution-name my-execution\x1b[0m", ""),
             ],
-            "Required Options": [("", ""), ("--template-file", "")],
-            "Template Options": [("", ""), ("--parameter-overrides", "")],
-            "AWS Credential Options": [("", ""), ("--region", "")],
-            "Invoke Options": [("", ""), ("--event", "")],
-            "Artifact Location Options": [("", ""), ("--log-file", "")],
-            "Extension Options": [("", ""), ("--hook_name", "")],
+            "Required Options": [("--template-file", "")],
+            "Template Options": [("--parameter-overrides", "")],
+            "AWS Credential Options": [("--region", "")],
+            "Invoke Options": [("--event", "")],
+            "Artifact Location Options": [("--log-file", "")],
+            "Extension Options": [("--hook_name", "")],
             "Configuration Options": [
-                ("", ""),
-                ("Learn more about configuration files at:", ""),
                 (
-                    "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli"
-                    "-config.html. ",
+                    "Learn more about configuration files at: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html.",
                     "",
                 ),
-                ("", ""),
                 ("--config-file", ""),
             ],
-            "Terraform Hook Options": [("", ""), ("--terraform-plan-file", "")],
-            "Beta Options": [("", ""), ("--beta-features", "")],
-            "Other Options": [("", ""), ("--debug", "")],
+            "Terraform Hook Options": [("--terraform-plan-file", "")],
+            "Beta Options": [("--beta-features", "")],
+            "Other Options": [("--debug", "")],
         }
 
         cmd.format_options(ctx, formatter)

@@ -43,41 +43,34 @@ class TestRemoteExecutionStopCommand(unittest.TestCase):
             ],
             "Examples": [],
             "Stop execution without error details": [
-                ("", ""),
                 (
                     "$ sam remote execution stop arn:aws:lambda:us-east-1:123456789012:function:MyFunction:$LATEST/durable-execution/my-execution-name/my-execution-id\x1b[0m",
                     "",
                 ),
             ],
             "Stop execution with error message and type": [
-                ("", ""),
                 (
                     '$ sam remote execution stop arn:aws:lambda:us-east-1:123456789012:function:MyFunction:$LATEST/durable-execution/my-execution-name/my-execution-id --error-message "Execution cancelled" --error-type "UserCancellation"\x1b[0m',
                     "",
                 ),
             ],
             "Stop execution with full error details and stack trace": [
-                ("", ""),
                 (
                     '$ sam remote execution stop arn:aws:lambda:us-east-1:123456789012:function:MyFunction:$LATEST/durable-execution/my-execution-name/my-execution-id --error-message "Task failed" --error-type "TaskFailure" --error-data \'{"reason":"timeout"}\' --stack-trace "at function1()" --stack-trace "at function2()"\x1b[0m',
                     "",
                 ),
             ],
-            "Acronyms": [("", ""), ("ARN", "")],
+            "Acronyms": [("ARN", "")],
             "Stop Options": [
-                ("", ""),
                 ("--error-message", ""),
-                ("", ""),
                 ("--error-type", ""),
-                ("", ""),
                 ("--error-data", ""),
-                ("", ""),
                 ("--stack-trace", ""),
             ],
-            "AWS Credential Options": [("", ""), ("--region", ""), ("", ""), ("--profile", "")],
-            "Configuration Options": [("", ""), ("--config-file", "")],
-            "Beta Options": [("", ""), ("--beta-features / --no-beta-features", "")],
-            "Other Options": [("", ""), ("--debug", "")],
+            "AWS Credential Options": [("--region", ""), ("--profile", "")],
+            "Configuration Options": [("--config-file", "")],
+            "Beta Options": [("--beta-features / --no-beta-features", "")],
+            "Other Options": [("--debug", "")],
         }
         cmd.format_options(ctx, formatter)
         self.assertEqual(expected_output, formatter.data)

@@ -32,7 +32,6 @@ class RemoteCallbackHeartbeatCommand(RemoteCommand):
             with formatter.indented_section(name="Send heartbeat callback", extra_indents=1):
                 formatter.write_rd(
                     [
-                        RowDefinition(text="\n"),
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} my-callback-id"),
                             extra_row_modifiers=[ShowcaseRowModifier()],

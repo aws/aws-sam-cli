@@ -37,15 +37,10 @@ class LazyGroup(click.Group):
 
     @staticmethod
     def _write_rows_with_spacing(formatter: RootCommandHelpTextFormatter, section_name: str, rows: list):
-        """Helper method to write rows with spacing between each row."""
+        """Helper method to write rows."""
         if rows:
             with formatter.indented_section(name=section_name, extra_indents=1):
-                formatter.write_rd([RowDefinition(name="", text="\n")])
-                formatter.write_rd(
-                    [item for pair in zip(rows, [RowDefinition(name="", text="\n")] * len(rows)) for item in pair][
-                        :-1
-                    ]  # Remove trailing blank line
-                )
+                formatter.write_rd(rows)
 
     def format_options(self, ctx: click.Context, formatter: RootCommandHelpTextFormatter):  # type: ignore
         """Format options with spacing between each option."""

@@ -30,9 +30,6 @@ class InvokeCommand(CoreCommand):
                 formatter.write_rd(
                     [
                         RowDefinition(
-                            text="\n",
-                        ),
-                        RowDefinition(
                             name=style(f"$ {ctx.command_path}"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
@@ -41,9 +38,6 @@ class InvokeCommand(CoreCommand):
             with formatter.indented_section(name="Invoke named Lambda function with no event", extra_indents=1):
                 formatter.write_rd(
                     [
-                        RowDefinition(
-                            text="\n",
-                        ),
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} HelloWorldFunction"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
@@ -54,9 +48,6 @@ class InvokeCommand(CoreCommand):
                 formatter.write_rd(
                     [
                         RowDefinition(
-                            text="\n",
-                        ),
-                        RowDefinition(
                             name=style(f"$ {ctx.command_path} HelloWorldFunction -e event.json"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
@@ -65,9 +56,6 @@ class InvokeCommand(CoreCommand):
             with formatter.indented_section(name="Invoke Lambda function with stdin input", extra_indents=1):
                 formatter.write_rd(
                     [
-                        RowDefinition(
-                            text="\n",
-                        ),
                         RowDefinition(
                             name=style(
                                 f"$ echo {json.dumps({'message':'hello!'})} | "
@@ -80,9 +68,6 @@ class InvokeCommand(CoreCommand):
             with formatter.indented_section(name="Invoke Lambda function with durable execution name", extra_indents=1):
                 formatter.write_rd(
                     [
-                        RowDefinition(
-                            text="\n",
-                        ),
                         RowDefinition(
                             name=style(
                                 f"$ {ctx.command_path} HelloWorldFunction --durable-execution-name my-execution"

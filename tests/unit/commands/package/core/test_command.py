@@ -39,24 +39,19 @@ class TestPackageCommand(unittest.TestCase):
 
             cmd = PackageCommand(name="package", requires_credentials=False, description=DESCRIPTION)
             expected_output = {
-                "AWS Credential Options": [("", ""), ("--region", "")],
-                "Acronyms": [("", ""), ("S3", ""), ("ECR", ""), ("KMS", "")],
-                "Additional Options": [("", ""), ("--signing-profiles", "")],
-                "Automatic resolution of S3 buckets": [("", ""), ("$ sam package --resolve-s3\x1b[0m", "")],
-                "Beta Options": [("", ""), ("--beta-features", "")],
+                "AWS Credential Options": [("--region", "")],
+                "Acronyms": [("S3", ""), ("ECR", ""), ("KMS", "")],
+                "Additional Options": [("--signing-profiles", "")],
+                "Automatic resolution of S3 buckets": [("$ sam package --resolve-s3\x1b[0m", "")],
+                "Beta Options": [("--beta-features", "")],
                 "Configuration Options": [
-                    ("", ""),
-                    ("Learn more about configuration files at:", ""),
                     (
-                        "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli"
-                        "-config.html. ",
+                        "Learn more about configuration files at: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html.",
                         "",
                     ),
-                    ("", ""),
                     ("--config-file", ""),
                 ],
                 "Customized location for uploading artifacts": [
-                    ("", ""),
                     ("$ sam package --s3-bucket " "S3_BUCKET " "--output-template-file " "packaged.yaml\x1b[0m", ""),
                 ],
                 "Description": [
@@ -81,13 +76,12 @@ class TestPackageCommand(unittest.TestCase):
                 ],
                 "Examples": [],
                 "Get packaged template": [
-                    ("", ""),
                     ("$ sam package --resolve-s3 --output-template-file " "packaged.yaml\x1b[0m", ""),
                 ],
-                "Infrastructure Options": [("", ""), ("--s3-prefix", "")],
-                "Other Options": [("", ""), ("--debug", "")],
-                "Package Management Options": [("", ""), ("--force-upload", "")],
-                "Required Options": [("", ""), ("--s3-bucket", "")],
+                "Infrastructure Options": [("--s3-prefix", "")],
+                "Other Options": [("--debug", "")],
+                "Package Management Options": [("--force-upload", "")],
+                "Required Options": [("--s3-bucket", "")],
                 "Supported Resources": [("\n", ""), ("mock", "")],
             }
 

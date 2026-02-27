@@ -42,9 +42,9 @@ class TestCallbackHeartbeatCommand(TestCase):
                 ("Send heartbeat callback\x1b[1m\n  This command may not require access to AWS credentials.\x1b[0m", "")
             ],
             "Examples": [],
-            "Send heartbeat callback": [("", ""), ("$ sam local callback heartbeat my-callback-id\x1b[0m", "")],
-            "Beta Options": [("", ""), ("--beta-features / --no-beta-features", "")],
-            "Other Options": [("", ""), ("--debug", "")],
+            "Send heartbeat callback": [("$ sam local callback heartbeat my-callback-id\x1b[0m", "")],
+            "Beta Options": [("--beta-features / --no-beta-features", "")],
+            "Other Options": [("--debug", "")],
         }
 
         # Act

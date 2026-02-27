@@ -44,20 +44,17 @@ class TestLocalCallbackSucceedCommand(TestCase):
             ],
             "Examples": [],
             "Send success callback with no result": [
-                ("", ""),
                 ("$ sam local callback succeed my-callback-id\x1b[0m", ""),
             ],
             "Send success callback with result": [
-                ("", ""),
                 ("$ sam local callback succeed my-callback-id --result 'Task completed successfully'\x1b[0m", ""),
             ],
             "Send success callback with short option": [
-                ("", ""),
                 ("$ sam local callback succeed my-callback-id -r 'Success result'\x1b[0m", ""),
             ],
-            "Callback Options": [("", ""), ("--result", "")],
-            "Beta Options": [("", ""), ("--beta-features / --no-beta-features", "")],
-            "Other Options": [("", ""), ("--debug", "")],
+            "Callback Options": [("--result", "")],
+            "Beta Options": [("--beta-features / --no-beta-features", "")],
+            "Other Options": [("--debug", "")],
         }
 
         # Act

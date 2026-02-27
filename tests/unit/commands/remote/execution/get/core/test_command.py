@@ -40,14 +40,12 @@ class TestRemoteExecutionGetCommand(unittest.TestCase):
             ],
             "Examples": [],
             "Get execution details": [
-                ("", ""),
                 (
                     "$ sam remote execution get 'arn:aws:lambda:us-east-1:123456789012:function:my-function:$LATEST/durable-execution/c63eec67-3415-4eb4-a495-116aa3a86278/1d454231-a3ad-3694-aa03-c917c175db55'\x1b[0m",
                     "",
                 ),
             ],
             "Get execution details in JSON format": [
-                ("", ""),
                 (
                     "$ sam remote execution get 'arn:aws:lambda:us-east-1:123456789012:function:my-function:$LATEST/durable-execution/c63eec67-3415-4eb4-a495-116aa3a86278/1d454231-a3ad-3694-aa03-c917c175db55' --format json\x1b[0m",
                     "",
@@ -59,12 +57,12 @@ class TestRemoteExecutionGetCommand(unittest.TestCase):
                     "",
                 )
             ],
-            "Acronyms": [("", ""), ("ARN", "")],
-            "Formatting Options": [("", ""), ("--format", "")],
-            "Beta Options": [("", ""), ("--beta-features / --no-beta-features", "")],
-            "Other Options": [("", ""), ("--debug", "")],
-            "AWS Credential Options": [("", ""), ("--region", ""), ("", ""), ("--profile", "")],
-            "Configuration Options": [("", ""), ("--config-file", "")],
+            "Acronyms": [("ARN", "")],
+            "Formatting Options": [("--format", "")],
+            "Beta Options": [("--beta-features / --no-beta-features", "")],
+            "Other Options": [("--debug", "")],
+            "AWS Credential Options": [("--region", ""), ("--profile", "")],
+            "Configuration Options": [("--config-file", "")],
         }
         cmd.format_options(ctx, formatter)
         self.assertEqual(expected_output, formatter.data)

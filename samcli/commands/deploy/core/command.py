@@ -26,9 +26,6 @@ class DeployCommand(CoreCommand):
                 formatter.write_rd(
                     [
                         RowDefinition(
-                            text="\n",
-                        ),
-                        RowDefinition(
                             name=style(f"$ {ctx.command_path} --guided"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
@@ -37,9 +34,6 @@ class DeployCommand(CoreCommand):
             with formatter.indented_section(name="Deploy with specified parameters", extra_indents=1):
                 formatter.write_rd(
                     [
-                        RowDefinition(
-                            text="\n",
-                        ),
                         RowDefinition(
                             name=style(
                                 f"$ {ctx.command_path} --template-file packaged.yaml --stack-name "
@@ -55,9 +49,6 @@ class DeployCommand(CoreCommand):
                 formatter.write_rd(
                     [
                         RowDefinition(
-                            text="\n",
-                        ),
-                        RowDefinition(
                             name=style(
                                 f"$ {ctx.command_path} --parameter-overrides "
                                 f"'ParameterKey=InstanceType,ParameterValue=t1.micro'"
@@ -72,9 +63,6 @@ class DeployCommand(CoreCommand):
                 formatter.write_rd(
                     [
                         RowDefinition(
-                            text="\n",
-                        ),
-                        RowDefinition(
                             name=style(
                                 f"$ {ctx.command_path} --parameter-overrides KeyPairName=MyKey InstanceType=t1.micro"
                             ),
@@ -88,9 +76,6 @@ class DeployCommand(CoreCommand):
         with formatter.indented_section(name="Acronyms", extra_indents=1):
             formatter.write_rd(
                 [
-                    RowDefinition(
-                        text="\n",
-                    ),
                     RowDefinition(
                         name="IAM",
                         text="Identity and Access Management",

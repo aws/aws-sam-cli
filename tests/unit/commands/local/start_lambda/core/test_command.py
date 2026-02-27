@@ -40,38 +40,32 @@ class TestLocalStartLambdaCommand(unittest.TestCase):
             "Description": [(cmd.description + cmd.description_addendum, "")],
             "Examples": [],
             "Setup": [
-                ("", ""),
                 ("Start the local lambda endpoint for multiple functions", ""),
                 ("$ sam local start-lambda HelloWorldFunctionOne HelloWorldFunctionTwo\x1b[0m", ""),
             ],
             "Invoke local Lambda endpoint": [
-                ("", ""),
                 ("Use AWS SDK in automated tests.", ""),
                 (
                     "\n        self.lambda_client = boto3.client('lambda',\n                                          endpoint_url=\"http://127.0.0.1:3001\",\n                                          use_ssl=False,\n                                          verify=False,\n                                          config=Config(signature_version=UNSIGNED,\n                                                        read_timeout=0,\n                                                        retries={'max_attempts': 0}))\n        self.lambda_client.invoke(FunctionName=\"HelloWorldFunction\")\n        ",
                     "",
                 ),
             ],
-            "Required Options": [("", ""), ("--template-file", "")],
-            "Template Options": [("", ""), ("--parameter-overrides", "")],
-            "AWS Credential Options": [("", ""), ("--region", "")],
-            "Container Options": [("", ""), ("--port", "")],
-            "Artifact Location Options": [("", ""), ("--log-file", "")],
-            "Extension Options": [("", ""), ("--hook_name", "")],
+            "Required Options": [("--template-file", "")],
+            "Template Options": [("--parameter-overrides", "")],
+            "AWS Credential Options": [("--region", "")],
+            "Container Options": [("--port", "")],
+            "Artifact Location Options": [("--log-file", "")],
+            "Extension Options": [("--hook_name", "")],
             "Configuration Options": [
-                ("", ""),
-                ("Learn more about configuration files at:", ""),
                 (
-                    "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli"
-                    "-config.html. ",
+                    "Learn more about configuration files at: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html.",
                     "",
                 ),
-                ("", ""),
                 ("--config-file", ""),
             ],
-            "Terraform Hook Options": [("", ""), ("--terraform-plan-file", "")],
-            "Beta Options": [("", ""), ("--beta-features / --no-beta-features", "")],
-            "Other Options": [("", ""), ("--debug", "")],
+            "Terraform Hook Options": [("--terraform-plan-file", "")],
+            "Beta Options": [("--beta-features / --no-beta-features", "")],
+            "Other Options": [("--debug", "")],
         }
 
         cmd.format_options(ctx, formatter)

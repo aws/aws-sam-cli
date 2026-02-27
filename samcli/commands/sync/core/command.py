@@ -29,9 +29,6 @@ class SyncCommand(CoreCommand):
                 formatter.write_rd(
                     [
                         RowDefinition(
-                            text="\n",
-                        ),
-                        RowDefinition(
                             name=style(f"$ {ctx.command_path} --watch --stack-name {{stack}}"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
@@ -41,9 +38,6 @@ class SyncCommand(CoreCommand):
                 formatter.write_rd(
                     [
                         RowDefinition(
-                            text="\n",
-                        ),
-                        RowDefinition(
                             name=style(f"$ {ctx.command_path} --code --watch --stack-name {{stack}}"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
@@ -52,9 +46,6 @@ class SyncCommand(CoreCommand):
             with formatter.indented_section(name="Sync code changes for specific resource", extra_indents=1):
                 formatter.write_rd(
                     [
-                        RowDefinition(
-                            text="\n",
-                        ),
                         RowDefinition(
                             name=style(
                                 f"$ {ctx.command_path} "

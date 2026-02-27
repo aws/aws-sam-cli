@@ -28,9 +28,6 @@ class InvokeAPICommand(CoreCommand):
                 formatter.write_rd(
                     [
                         RowDefinition(
-                            text="\n",
-                        ),
-                        RowDefinition(
                             name="Start the local lambda with Amazon API Gateway endpoint",
                         ),
                         RowDefinition(
@@ -42,9 +39,6 @@ class InvokeAPICommand(CoreCommand):
             with formatter.indented_section(name="Invoke local Lambda endpoint", extra_indents=1):
                 formatter.write_rd(
                     [
-                        RowDefinition(
-                            text="\n",
-                        ),
                         RowDefinition(
                             name="Invoke Lambda function locally using curl",
                         ),

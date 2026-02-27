@@ -121,16 +121,12 @@ class BaseCommand(Group):
 
         if opts:
             with formatter.indented_section(name="Options", extra_indents=1):
-                formatter.write_rd([RowDefinition(name="", text="\n")])
-                formatter.write_rd(
-                    [opt for options in zip(opts, [RowDefinition(name="", text="\n")] * len(opts)) for opt in options]
-                )
+                formatter.write_rd(opts)
 
         with formatter.indented_section(name="Examples", extra_indents=1):
             with formatter.indented_section(name="Get Started", extra_indents=1):
                 formatter.write_rd(
                     [
-                        RowDefinition(text="\n"),
                         RowDefinition(
                             name=click.style(f"$ {ctx.command_path} init"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
@@ -146,7 +142,6 @@ class BaseCommand(Group):
             with formatter.section("Learn"):
                 formatter.write_rd(
                     [
-                        RowDefinition(text="\n"),
                         RowDefinition(
                             name="docs",
                             text=SAM_CLI_COMMANDS.get("docs", ""),
@@ -157,7 +152,6 @@ class BaseCommand(Group):
             with formatter.section("Create an App"):
                 formatter.write_rd(
                     [
-                        RowDefinition(text="\n"),
                         RowDefinition(name="init", text=SAM_CLI_COMMANDS.get("init", "")),
                     ],
                 )
@@ -165,27 +159,22 @@ class BaseCommand(Group):
             with formatter.section("Develop your App"):
                 formatter.write_rd(
                     [
-                        RowDefinition(text="\n"),
                         RowDefinition(
                             name="build",
                             text=SAM_CLI_COMMANDS.get("build", ""),
                         ),
-                        RowDefinition(text="\n"),
                         RowDefinition(
                             name="local",
                             text=SAM_CLI_COMMANDS.get("local", ""),
                         ),
-                        RowDefinition(text="\n"),
                         RowDefinition(
                             name="validate",
                             text=SAM_CLI_COMMANDS.get("validate", ""),
                         ),
-                        RowDefinition(text="\n"),
                         RowDefinition(
                             name="sync",
                             text=SAM_CLI_COMMANDS.get("sync", ""),
                         ),
-                        RowDefinition(text="\n"),
                         RowDefinition(
                             name="remote",
                             text=SAM_CLI_COMMANDS.get("remote", ""),
@@ -196,12 +185,10 @@ class BaseCommand(Group):
             with formatter.section("Deploy your App"):
                 formatter.write_rd(
                     [
-                        RowDefinition(text="\n"),
                         RowDefinition(
                             name="package",
                             text=SAM_CLI_COMMANDS.get("package", ""),
                         ),
-                        RowDefinition(text="\n"),
                         RowDefinition(
                             name="deploy",
                             text=SAM_CLI_COMMANDS.get("deploy", ""),
@@ -212,12 +199,10 @@ class BaseCommand(Group):
             with formatter.section("Monitor your App"):
                 formatter.write_rd(
                     [
-                        RowDefinition(text="\n"),
                         RowDefinition(
                             name="logs",
                             text=SAM_CLI_COMMANDS.get("logs", ""),
                         ),
-                        RowDefinition(text="\n"),
                         RowDefinition(
                             name="traces",
                             text=SAM_CLI_COMMANDS.get("traces", ""),
@@ -228,22 +213,18 @@ class BaseCommand(Group):
             with formatter.section("And More"):
                 formatter.write_rd(
                     [
-                        RowDefinition(text="\n"),
                         RowDefinition(
                             name="list",
                             text=SAM_CLI_COMMANDS.get("list", ""),
                         ),
-                        RowDefinition(text="\n"),
                         RowDefinition(
                             name="delete",
                             text=SAM_CLI_COMMANDS.get("delete", ""),
                         ),
-                        RowDefinition(text="\n"),
                         RowDefinition(
                             name="pipeline",
                             text=SAM_CLI_COMMANDS.get("pipeline", ""),
                         ),
-                        RowDefinition(text="\n"),
                         RowDefinition(
                             name="publish",
                             text=SAM_CLI_COMMANDS.get("publish", ""),

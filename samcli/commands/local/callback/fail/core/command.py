@@ -32,7 +32,6 @@ class LocalCallbackFailCommand(LocalCallbackCommand):
             with formatter.indented_section(name="Send failure callback with no parameters", extra_indents=1):
                 formatter.write_rd(
                     [
-                        RowDefinition(text="\n"),
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} my-callback-id"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
@@ -43,7 +42,6 @@ class LocalCallbackFailCommand(LocalCallbackCommand):
             with formatter.indented_section(name="Send failure callback with error message", extra_indents=1):
                 formatter.write_rd(
                     [
-                        RowDefinition(text="\n"),
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} my-callback-id --error-message 'Task failed'"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
@@ -61,7 +59,6 @@ class LocalCallbackFailCommand(LocalCallbackCommand):
                 )
                 formatter.write_rd(
                     [
-                        RowDefinition(text="\n"),
                         RowDefinition(
                             name=style(command_example),
                             extra_row_modifiers=[ShowcaseRowModifier()],

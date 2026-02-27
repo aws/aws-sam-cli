@@ -40,26 +40,21 @@ class TestPublishCommand(unittest.TestCase):
             "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-template-publishing-applications.html\n",
         )
         expected_output = {
-            "AWS Credential Options": [("", ""), ("--region", "")],
+            "AWS Credential Options": [("--region", "")],
             "Configuration Options": [
-                ("", ""),
-                ("Learn more about configuration files at:", ""),
                 (
-                    "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli"
-                    "-config.html. ",
+                    "Learn more about configuration files at: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html.",
                     "",
                 ),
-                ("", ""),
                 ("--config-file", ""),
             ],
             "Description": [(cmd.description + cmd.description_addendum, "")],
             "Examples": [],
             "Publish a packaged application": [
-                ("", ""),
                 ("$ sam publish -t packaged.yaml --region us-east-1\x1b[0m", ""),
             ],
-            "Other Options": [("", ""), ("--debug", "")],
-            "Publish Options": [("", ""), ("--template-file", ""), ("", ""), ("--semantic-version", "")],
+            "Other Options": [("--debug", "")],
+            "Publish Options": [("--template-file", ""), ("--semantic-version", "")],
         }
 
         cmd.format_options(ctx, formatter)

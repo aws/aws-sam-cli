@@ -29,7 +29,6 @@ class CoreCommand(Command):
             formatter.write_rd(
                 [
                     RowDefinition(
-                        text="",
                         name=self.description + self.description_addendum,
                     ),
                 ],
@@ -62,15 +61,12 @@ class CoreCommand(Command):
                 continue
 
             with formatter.indented_section(name=option_heading, extra_indents=1):
-                # Build rows: blank line + extras (if any) + blank line + options with spacing between them
-                rows = [RowDefinition(name="", text="\n")]
+                rows = []
                 if extras:
                     rows.extend(extras)
-                    rows.append(RowDefinition(name="", text="\n"))
 
-                # Add options with blank lines between them (but not after the last one)
                 if opts:
-                    rows.extend([item for opt in opts for item in [opt, RowDefinition(name="", text="\n")]][:-1])
+                    rows.extend(opts)
 
                 formatter.write_rd(rows, **write_rd_overrides)
 

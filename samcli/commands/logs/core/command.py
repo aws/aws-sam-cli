@@ -28,9 +28,6 @@ class LogsCommand(CoreCommand):
                 formatter.write_rd(
                     [
                         RowDefinition(
-                            text="\n",
-                        ),
-                        RowDefinition(
                             name=style(f"$ {ctx.command_path} -n HelloWorldFunction --stack-name mystack"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
@@ -39,9 +36,6 @@ class LogsCommand(CoreCommand):
             with formatter.indented_section(name="View logs for specific time range"):
                 formatter.write_rd(
                     [
-                        RowDefinition(
-                            text="\n",
-                        ),
                         RowDefinition(
                             name=style(
                                 f"$ {ctx.command_path} -n HelloWorldFunction --stack-name mystack -s "
@@ -55,9 +49,6 @@ class LogsCommand(CoreCommand):
                 formatter.write_rd(
                     [
                         RowDefinition(
-                            text="\n",
-                        ),
-                        RowDefinition(
                             name=style(f"$ {ctx.command_path} -n HelloWorldFunction --stack-name " f"mystack --tail"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
@@ -66,9 +57,6 @@ class LogsCommand(CoreCommand):
             with formatter.indented_section(name="Fetch from Cloudwatch log groups"):
                 formatter.write_rd(
                     [
-                        RowDefinition(
-                            text="\n",
-                        ),
                         RowDefinition(
                             name=style(
                                 f"$ {ctx.command_path} --cw-log-group /aws/lambda/myfunction-123 "
@@ -83,9 +71,6 @@ class LogsCommand(CoreCommand):
                 formatter.write_rd(
                     [
                         RowDefinition(
-                            text="\n",
-                        ),
-                        RowDefinition(
                             name=style(f"$ {ctx.command_path} ---stack-name mystack"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
@@ -95,9 +80,6 @@ class LogsCommand(CoreCommand):
             with formatter.indented_section(name="Fetch logs from resource defined in nested Cloudformation stack"):
                 formatter.write_rd(
                     [
-                        RowDefinition(
-                            text="\n",
-                        ),
                         RowDefinition(
                             name=style(
                                 f"$ {ctx.command_path} ---stack-name mystack -n MyNestedStack/HelloWorldFunction"

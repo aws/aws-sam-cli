@@ -28,9 +28,6 @@ class PublishCommand(CoreCommand):
                 formatter.write_rd(
                     [
                         RowDefinition(
-                            text="\n",
-                        ),
-                        RowDefinition(
                             name=style(f"$ {ctx.command_path} -t packaged.yaml --region us-east-1"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),

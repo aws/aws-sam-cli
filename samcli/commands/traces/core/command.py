@@ -28,9 +28,6 @@ class TracesCommand(CoreCommand):
                 formatter.write_rd(
                     [
                         RowDefinition(
-                            text="\n",
-                        ),
-                        RowDefinition(
                             name=style(f"$ {ctx.command_path} --trace-id tracing-id-1 --trace-id tracing-id-2"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
@@ -39,9 +36,6 @@ class TracesCommand(CoreCommand):
             with formatter.indented_section(name="Tail traces as they become available", extra_indents=1):
                 formatter.write_rd(
                     [
-                        RowDefinition(
-                            text="\n",
-                        ),
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} --tail"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
