@@ -2,6 +2,7 @@
 Click Help Formatter Classes that are customized for the root command.
 """
 
+import shutil
 from contextlib import contextmanager
 from typing import Iterator, Optional, Sequence
 
@@ -9,6 +10,21 @@ from click import HelpFormatter, style
 
 from samcli.cli.root.command_list import SAM_CLI_COMMANDS
 from samcli.cli.row_modifiers import BaseLineRowModifier, RowDefinition
+
+
+def get_terminal_width() -> Optional[int]:
+    """
+    Get the current terminal width.
+
+    Returns
+    -------
+    Optional[int]
+        Terminal width in columns, or None if it cannot be determined.
+    """
+    try:
+        return shutil.get_terminal_size().columns
+    except (AttributeError, ValueError, OSError):
+        return None
 
 
 class RootCommandHelpTextFormatter(HelpFormatter):

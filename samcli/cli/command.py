@@ -9,7 +9,7 @@ from collections import OrderedDict
 import click
 from click import Group
 
-from samcli.cli.formatters import RootCommandHelpTextFormatter
+from samcli.cli.formatters import RootCommandHelpTextFormatter, get_terminal_width
 from samcli.cli.root.command_list import SAM_CLI_COMMANDS
 from samcli.cli.row_modifiers import RowDefinition, ShowcaseRowModifier
 
@@ -65,6 +65,13 @@ class BaseCommand(Group):
         def __init__(self, *args, **kwargs):
             if "max_content_width" not in kwargs:
                 kwargs["max_content_width"] = 140
+            # Explicitly set terminal width if not provided to ensure proper text wrapping
+            # Apply right padding to prevent text from wrapping at the terminal edge
+            if "terminal_width" not in kwargs:
+                terminal_width = get_terminal_width()
+                if terminal_width is not None:
+                    # Apply padding but ensure minimum width of 60
+                    kwargs["terminal_width"] = max(terminal_width - 5, 60)
             super().__init__(*args, **kwargs)
 
     context_class = CustomFormatterContext
