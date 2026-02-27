@@ -280,7 +280,8 @@ class InvokeContext:
         self._function_provider = _function_providers_class[self._containers_mode](
             *_function_providers_args[self._containers_mode], **_function_providers_kwargs
         )
-        
+
+        # Validate function logical IDs after provider is initialized
         self._validate_function_logical_ids()
 
         # Load and merge Lambda runtime environment variables
