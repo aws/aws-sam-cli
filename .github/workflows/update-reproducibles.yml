@@ -49,11 +49,11 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v7
       - name: Check reproducible requirements are up to date
+        run: make update-reproducible-reqs-uv
+      - name: Fail if requirements are out of date
         run: |
-          make update-reproducible-reqs-uv
           if ! git diff --quiet requirements/reproducible-*.txt; then
             echo "::error::Reproducible requirements are out of date. Please run 'make update-reproducible-reqs-uv' locally and commit the changes before raising a PR."
-            git diff requirements/reproducible-*.txt
             exit 1
           fi
           echo "Reproducible requirements are up to date."
