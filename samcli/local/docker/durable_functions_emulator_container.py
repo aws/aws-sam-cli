@@ -140,7 +140,7 @@ class DurableFunctionsEmulatorContainer:
 
     def _get_emulator_image(self):
         """Get the full emulator image name with tag."""
-        return f'{self._EMULATOR_IMAGE_PREFIX}:{self._get_emulator_image_tag()}'
+        return f"{self._EMULATOR_IMAGE_PREFIX}:{self._get_emulator_image_tag()}"
 
     def _get_emulator_store_type(self):
         """Get the store type from environment variable or use default."""
@@ -177,16 +177,11 @@ class DurableFunctionsEmulatorContainer:
         Get the environment variables for the emulator container.
         """
         return {
-            "AWS_DEX_HOST": "0.0.0.0",
-            "AWS_DEX_PORT": str(self.port),
-            "LOG_LEVEL": "DEBUG",
             # The emulator needs to have credential variables set, or else it will fail to create boto clients.
             "AWS_ACCESS_KEY_ID": "foo",
             "AWS_SECRET_ACCESS_KEY": "bar",
             "AWS_DEFAULT_REGION": "us-east-1",
-            "AWS_DEX_STORE_TYPE": self._get_emulator_store_type(),
-            "AWS_DEX_STORE_PATH": "/tmp/.durable-executions-local/durable-executions.db",
-            "EXECUTION_TIME_SCALE": self._get_emulator_time_scale(),
+            "DURABLE_EXECUTION_TIME_SCALE": self._get_emulator_time_scale(),
         }
 
     @property
@@ -261,6 +256,8 @@ class DurableFunctionsEmulatorContainer:
                 "http://host.docker.internal:3001",
                 "--store-type",
                 self._get_emulator_store_type(),
+                "--store-path",
+                "/tmp/.durable-executions-local/durable-executions.db",
             ],
             name=self._container_name,
             ports={f"{self.port}/tcp": self.port},

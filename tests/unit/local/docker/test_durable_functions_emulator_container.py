@@ -301,9 +301,7 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
 
             # Verify environment variables
             environment = call_args.kwargs["environment"]
-            self.assertEqual(environment["AWS_DEX_STORE_TYPE"], expected_store)
-            self.assertEqual(environment["EXECUTION_TIME_SCALE"], expected_scale)
-            self.assertEqual(environment["AWS_DEX_PORT"], str(expected_port))
+            self.assertEqual(environment["DURABLE_EXECUTION_TIME_SCALE"], expected_scale)
 
             # Verify volumes
             volumes = call_args.kwargs["volumes"]
