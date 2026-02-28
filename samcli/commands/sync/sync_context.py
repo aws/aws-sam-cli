@@ -95,15 +95,13 @@ def _parse_time_from_toml(time_value: Union[str, int, float, datetime]) -> Optio
             parsed = datetime.fromisoformat(time_value)
             return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
 
-        LOG.warning("Invalid time format in sync.toml: %s. Triggering full CloudFormation deployment.", time_value)
-        return None
     except (ValueError, OSError) as e:
         LOG.warning(
             "Failed to parse timestamp from sync.toml: %s. Triggering full CloudFormation deployment. Error: %s",
             time_value,
             e,
         )
-        return None
+    return None
 
 
 def _sync_state_to_toml_document(sync_state: SyncState) -> TOMLDocument:
