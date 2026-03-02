@@ -21,7 +21,6 @@ from tests.integration.buildcmd.build_integ_base import BuildIntegBase
 from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS, RUN_BY_CANARY, USING_FINCH_RUNTIME
 from tests.testing_utils import run_command as static_run_command
 
-
 LOG = logging.getLogger(__name__)
 S3_SLEEP = 3
 
@@ -254,6 +253,7 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackendWit
             cls.terraform_application = "terraform/zip_based_lambda_functions_local_backend_container_windows"
         super().setUpClass()
 
+    @pytest.mark.tier1
     def test_build_and_invoke_lambda_functions(self):
         self.validate_metadata_file()
         self._verify_invoke_built_function(

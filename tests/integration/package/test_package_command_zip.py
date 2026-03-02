@@ -4,6 +4,7 @@ import re
 from subprocess import Popen, PIPE, TimeoutExpired
 import tempfile
 
+import pytest
 from unittest import skipIf
 from parameterized import parameterized, param
 
@@ -25,8 +26,11 @@ class TestPackageZip(PackageIntegBase):
     def tearDown(self):
         super().tearDown()
 
-    @parameterized.expand(["aws-serverless-function.yaml", "cdk_v1_synthesized_template_zip_functions.json"])
+    @parameterized.expand(["cdk_v1_synthesized_template_zip_functions.json"])
     def test_package_template_flag(self, template_file):
+        self._do_package_template_test(template_file)
+
+    def _do_package_template_test(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
         command_list = PackageIntegBase.get_command_list(
             s3_bucket=self.s3_bucket.name, s3_prefix=self.s3_prefix, template=template_path
@@ -41,6 +45,11 @@ class TestPackageZip(PackageIntegBase):
         process_stdout = stdout.strip()
 
         self.assertIn("{bucket_name}".format(bucket_name=self.s3_bucket.name), process_stdout.decode("utf-8"))
+
+    @pytest.mark.tier1
+    def test_tier1_package(self):
+        """Single package test for cross-platform validation."""
+        self._do_package_template_test("aws-serverless-function.yaml")
 
     @parameterized.expand(
         [

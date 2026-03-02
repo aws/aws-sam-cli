@@ -70,6 +70,17 @@ class TestSyncInfra(SyncIntegBase):
     @parameterized.expand([["ruby", False], ["python", False], ["python", True]])
     @pytest.mark.flaky(reruns=3)
     def test_sync_infra(self, runtime, use_container):
+        self._do_sync_infra(runtime, use_container)
+
+    @pytest.mark.tier1_extra
+    @pytest.mark.flaky(reruns=3)
+    def test_tier1_sync_infra(self):
+        """Single sync infra test for cross-platform validation."""
+        if IS_WINDOWS:
+            self.skipTest("Skip sync tests in windows")
+        self._do_sync_infra("python", True)
+
+    def _do_sync_infra(self, runtime, use_container):
         template_before = f"infra/template-{runtime}-before.yaml"
         template_path = str(self.test_data_path.joinpath(template_before))
         stack_name = self._method_to_stack_name(self.id())
@@ -332,6 +343,7 @@ Requires capabilities : [CAPABILITY_AUTO_EXPAND]",
     def test_sync_infra_s3_bucket_option(self, template_file):
         template_path = str(self.test_data_path.joinpath(template_file))
         stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
 
         sync_command_list = self.get_sync_command_list(
             template_file=template_path,
