@@ -18,6 +18,7 @@ from samcli.lib.providers.provider import Function, Stack
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.sync.exceptions import InvalidRuntimeDefinitionForFunction
 from samcli.lib.utils import osutils
+from samcli.lib.utils.cloudformation import is_intrinsic_function
 from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
 from samcli.lib.utils.packagetype import ZIP
 from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION, AWS_SERVERLESS_FUNCTION
@@ -118,6 +119,21 @@ class NestedStackManager:
         return Path(self._stack.get_output_template_path(self._build_dir)).parent
 
     def _add_layer(self, dependencies_dir: str, function: Function, resources: Dict):
+        # Check if Layers is an intrinsic function before creating the layer
+        function_properties = cast(Dict, resources.get(function.name)).get("Properties", {})
+        function_layers = function_properties.get("Layers", [])
+
+        if is_intrinsic_function(function_layers):
+            LOG.warning(
+                "Function %s has Layers defined as an intrinsic function (%s). "
+                "Auto-dependency layer creation is not supported for functions with dynamic layer configuration. "
+                "Skipping auto-dependency layer for this function.",
+                function.name,
+                list(function_layers.keys())[0],
+            )
+            return
+
+        # Create the layer
         layer_logical_id = NestedStackBuilder.get_layer_logical_id(function.full_path)
         layer_location = self.update_layer_folder(
             str(self._get_template_folder()), dependencies_dir, layer_logical_id, function.full_path, function.runtime
@@ -125,9 +141,7 @@ class NestedStackManager:
 
         layer_output_key = self._nested_stack_builder.add_function(self._stack_name, layer_location, function)
 
-        # add layer reference back to function
-        function_properties = cast(Dict, resources.get(function.name)).get("Properties", {})
-        function_layers = function_properties.get("Layers", [])
+        # Add layer reference back to function
         function_layers.append({"Fn::GetAtt": [NESTED_STACK_NAME, f"Outputs.{layer_output_key}"]})
         function_properties["Layers"] = function_layers
 
