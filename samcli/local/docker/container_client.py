@@ -382,7 +382,7 @@ class DockerContainerClient(ContainerClient):
         Check if error is a dockerfile-related error for Docker.
 
         Docker-specific error patterns for dockerfile-related issues typically
-        contain "Cannot locate specified Dockerfile" in the error message.
+        contain "Cannot locate specified Dockerfile" or "failed to read dockerfile" in the error message.
 
         Args:
             error: Exception or error message to check
@@ -390,14 +390,15 @@ class DockerContainerClient(ContainerClient):
         Returns:
             bool: True if the error indicates a dockerfile-related issue
         """
+        patterns = ["Cannot locate specified Dockerfile", "failed to read dockerfile"]
         if isinstance(error, docker.errors.APIError):
             if not error.is_server_error:
                 return False
             if not hasattr(error, "explanation") or error.explanation is None:
                 return False
-            return "Cannot locate specified Dockerfile" in str(error.explanation)
+            return any(pattern in str(error.explanation) for pattern in patterns)
         elif isinstance(error, str):
-            return "Cannot locate specified Dockerfile" in error
+            return any(pattern in error for pattern in patterns)
         return False
 
     def list_containers_by_image(self, image_name: str, all_containers: bool = True) -> List[Any]:
