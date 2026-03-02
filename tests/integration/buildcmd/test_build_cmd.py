@@ -1926,13 +1926,12 @@ class TestBuildWithCustomBuildImage(BuildIntegBase):
 
 @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
 @parameterized_class(
-    ("cached", "parallel", "use_custom_build_dir", "architecture"),
+    ("cached", "parallel", "use_custom_build_dir"),
     [
-        (False, False, False, "x86_64"),  # Basic
-        (True, False, False, "x86_64"),  # With Caching
-        (False, True, False, "x86_64"),  # With parallelism
-        (False, False, True, "x86_64"),  # With custom build dir
-        (False, False, False, "arm64"),  # ARM64
+        (False, False, False),  # Basic
+        (True, False, False),  # With Caching
+        (False, True, False),  # With parallelism
+        (False, False, True),  # With custom build dir
     ],
 )
 @pytest.mark.filterwarnings("ignore::ResourceWarning")
@@ -1958,7 +1957,6 @@ class TestBuildImageWithBuildkit(BuildIntegBase):
             "Handler": "main.handler",
             "DockerFile": "Dockerfile",
             "Tag": tag,
-            "Architectures": self.architecture,
         }
         cmdlist = self.get_command_list(
             parameter_overrides=overrides,

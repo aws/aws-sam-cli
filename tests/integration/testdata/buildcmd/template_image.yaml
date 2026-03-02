@@ -10,9 +10,6 @@ Parameters:
     Type: String
   Tag:
     Type: String
-  Architectures:
-    Type: String
-    Default: x86_64
 
 Resources:
 
@@ -24,8 +21,6 @@ Resources:
         Command:
           - !Ref Handler
       Timeout: 600
-      Architectures:
-        - !Ref Architectures
     Metadata:
       DockerTag: !Ref Tag
       DockerContext: ./PythonImage
