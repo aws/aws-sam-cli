@@ -453,7 +453,7 @@ class ApplicationBuilder:
             build_args["target"] = cast(str, docker_build_target)
 
         try:
-            (build_image, build_logs) = self._docker_client.images.build(**build_args)
+            build_image, build_logs = self._docker_client.images.build(**build_args)
             LOG.debug("%s image is built for %s function", build_image, function_name)
         except docker.errors.BuildError as ex:
             LOG.error("Failed building function %s", function_name)
@@ -576,7 +576,11 @@ class ApplicationBuilder:
                 manifest_context_path = str(
                     pathlib.Path(self._base_dir, layer_metadata.get("ContextPath", code_dir)).resolve()
                 )
-            manifest_path = self._manifest_path_override or os.path.join(manifest_context_path, config.manifest_name)
+            manifest_path = (
+                self._manifest_path_override
+                if self._manifest_path_override
+                else (os.path.join(manifest_context_path, config.manifest_name) if config.manifest_name else None)
+            )
 
             # By default prefer to build in-process for speed
             scratch_dir_path = (
@@ -731,8 +735,10 @@ class ApplicationBuilder:
                     manifest_context_path = str(
                         pathlib.Path(self._base_dir, metadata.get("ContextPath", code_dir)).resolve()
                     )
-                manifest_path = self._manifest_path_override or os.path.join(
-                    manifest_context_path, config.manifest_name
+                manifest_path = (
+                    self._manifest_path_override
+                    if self._manifest_path_override
+                    else (os.path.join(manifest_context_path, config.manifest_name) if config.manifest_name else None)
                 )
                 scratch_dir_path = (
                     LambdaBuildContainer.get_container_dirs(code_dir, manifest_path)["scratch_dir"]
@@ -916,7 +922,7 @@ class ApplicationBuilder:
         source_dir: str,
         artifacts_dir: str,
         scratch_dir: str,
-        manifest_path: str,
+        manifest_path: Optional[str],
         runtime: str,
         architecture: str,
         options: Optional[Dict],
@@ -962,7 +968,7 @@ class ApplicationBuilder:
         config: CONFIG,
         source_dir: str,
         artifacts_dir: str,
-        manifest_path: str,
+        manifest_path: Optional[str],
         runtime: str,
         architecture: str,
         options: Optional[Dict],

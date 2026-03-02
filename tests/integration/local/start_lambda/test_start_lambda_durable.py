@@ -20,6 +20,7 @@ from tests.testing_utils import (
 )
 
 
+@pytest.mark.xdist_group(name="durable")
 class TestStartLambdaDurable(DurableIntegBase, StartLambdaIntegBaseClass):
     collect_start_lambda_process_output = True
 
