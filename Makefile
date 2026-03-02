@@ -2,7 +2,7 @@
 # environment variable.
 SAM_CLI_TELEMETRY ?= 0
 
-.PHONY: schema
+.PHONY: schema init-nightly init-latest-release setup-pytest
 
 # Initialize environment specifically for Github action tests using uv
 init:
@@ -12,6 +12,21 @@ init:
 	else \
 		SAM_CLI_DEV=1 pip install -e '.[dev]'; \
 	fi
+
+# Set up a pytest venv with test dependencies
+setup-pytest:
+	python3.11 -m venv $(HOME)/pytest
+	uv pip install --python $(HOME)/pytest/bin/python3 -r requirements/dev.txt -r requirements/base.txt
+	sudo ln -sf $(HOME)/pytest/bin/pytest /usr/local/bin/pytest
+	pytest --version
+
+# Install SAM CLI nightly binary
+init-nightly:
+	bash tests/install-sam-cli-binary.sh sam-cli-nightly
+
+# Install SAM CLI latest release binary
+init-latest-release:
+	bash tests/install-sam-cli-binary.sh
 
 test:
 	# Run unit tests and fail if coverage falls below 94%
@@ -52,7 +67,11 @@ black:
 	black setup.py samcli tests schema
 
 black-check:
-	black --check setup.py samcli tests schema
+	@if python -c "import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)" 2>/dev/null; then \
+		black --check setup.py samcli tests schema; \
+	else \
+		echo "Skipping black check on Python < 3.10"; \
+	fi
 
 format: black
 	ruff check samcli --fix

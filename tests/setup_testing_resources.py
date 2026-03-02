@@ -13,7 +13,6 @@ from get_testing_resources import get_testing_credentials, get_managed_test_reso
 
 from boto3.session import Session
 
-
 GITHUB_ENV_FILE = os.environ.get("GITHUB_ENV")
 
 SENSITIVE_CREDENTIAL_KEYS = {
