@@ -22,5 +22,7 @@ jobs:
 
       - name: Push to mirror repo
         run: |
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+          git config user.name "aws-sam-cli-bot"
+          git config user.email "aws-sam-cli-gh-bot@amazon.com"
+          git remote set-url origin https://x-access-token:${{ secrets.SYNC_REPO_PAT }}@github.com/${{ github.repository }}.git
           git push origin develop:develop --force
