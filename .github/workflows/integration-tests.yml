@@ -47,10 +47,11 @@ jobs:
     # Only run scheduled jobs on the main aws/aws-sam-cli repository, not on forks
     if: github.event_name != 'schedule' || github.repository == 'aws/aws-sam-cli'
     name: ${{ matrix.test_suite }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest]
         test_suite:
           # Build jobs (no-container mode — requires language toolchains)
           - build-x86-1
@@ -77,6 +78,10 @@ jobs:
           - cloud-based-tests
           # Tier 1: Cross-platform smoke tests with Finch runtime
           - tier1-finch
+        include:
+          # Tier 1: Cross-platform smoke tests on Windows (Docker via WSL2)
+          - test_suite: tier1-windows
+            os: windows-latest
 
     steps:
       - name: Checkout code
@@ -85,7 +90,54 @@ jobs:
           ref: ${{ github.event_name == 'schedule' && 'develop' || github.ref }}
 
       - name: Free up disk space
+        if: runner.os == 'Linux'
         run: bash tests/free_disk_space.sh
+
+      # ── Windows WSL2 Docker Setup (tier1-windows only) ──
+      - name: Stop Windows Docker Engine
+        if: matrix.test_suite == 'tier1-windows'
+        shell: pwsh
+        run: |
+          Stop-Service docker -Force -ErrorAction SilentlyContinue
+          Get-Process "Docker Desktop" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+          Get-Process "com.docker.backend" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+
+      - name: Install and Configure WSL 2
+        if: matrix.test_suite == 'tier1-windows'
+        uses: Vampire/setup-wsl@v6
+        with:
+          distribution: Ubuntu-24.04
+          set-as-default: 'true'
+          update: 'true'
+          additional-packages:
+            ca-certificates
+            curl
+            net-tools
+          wsl-version: 2
+          wsl-conf: |
+            [automount]
+            root = /
+            options = "metadata"
+
+      - name: WSL - Install Docker and expose on TCP
+        if: matrix.test_suite == 'tier1-windows'
+        shell: wsl-bash {0}
+        run: bash tests/setup_wsl2_docker.sh
+
+      - name: Configure DOCKER_HOST to WSL2
+        if: matrix.test_suite == 'tier1-windows'
+        shell: pwsh
+        run: |
+          $wslIp = (wsl hostname -I).Trim().Split(' ')[0]
+          Write-Host "WSL2 IP: $wslIp"
+          echo "DOCKER_HOST=tcp://${wslIp}:2375" >> $env:GITHUB_ENV
+
+      - name: Set TEMP to D:/Temp (Windows)
+        if: matrix.test_suite == 'tier1-windows'
+        shell: pwsh
+        run: |
+          mkdir "D:\Temp" -Force
+          echo "TEMP=D:\Temp" >> $env:GITHUB_ENV
 
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v6
@@ -193,10 +245,11 @@ jobs:
         run: bash tests/setup_finch.sh
 
       - name: Setup QEMU for ARM64 emulation
-        if: "!contains(fromJSON('[\"build-x86-1\", \"build-x86-2\", \"build-x86-container-1\", \"build-x86-container-2\", \"tier1-finch\"]'), matrix.test_suite)"
+        if: "!contains(fromJSON('[\"build-x86-1\", \"build-x86-2\", \"build-x86-container-1\", \"build-x86-container-2\", \"tier1-finch\", \"tier1-windows\"]'), matrix.test_suite)"
         run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
       - name: Determine test type
+        shell: bash
         run: |
           echo "CONTAINER_RUNTIME=${{ matrix.test_suite == 'tier1-finch' && 'finch' || 'docker' }}" >> $GITHUB_ENV
           if [[ "${{ inputs.install_mode }}" == "nightly-release" ]] || \
@@ -215,9 +268,15 @@ jobs:
 
       - name: Initialize integration test
         if: env.TEST_TYPE == 'develop' || env.TEST_TYPE == 'master' || env.TEST_TYPE == 'other'
+        shell: bash
         run: |
           make init
-          echo "SCRIPT_PY=python3.11" >> $GITHUB_ENV
+          # On Windows, python3.11 symlink doesn't exist; use 'python' (last version in setup-python)
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            echo "SCRIPT_PY=python" >> $GITHUB_ENV
+          else
+            echo "SCRIPT_PY=python3.11" >> $GITHUB_ENV
+          fi
 
       - name: Initialize nightly release test
         if: env.TEST_TYPE == 'nightly-release'
@@ -241,9 +300,11 @@ jobs:
 
       - name: Get testing resources and credentials
         if: "!contains(fromJSON('[\"build-x86-1\", \"build-x86-2\", \"build-arm64\", \"build-x86-container-1\", \"build-x86-container-2\", \"build-arm64-container-1\", \"build-arm64-container-2\", \"local-invoke\", \"local-start-api\", \"local-start-lambda\"]'), matrix.test_suite)"
+        shell: bash
         run: $SCRIPT_PY tests/setup_testing_resources.py
 
       - name: Login to Public ECR
+        shell: bash
         run: |
           if [[ "${{ matrix.test_suite }}" == "tier1-finch" ]]; then
             aws ecr-public get-login-password --region us-east-1 | sudo finch login --username AWS --password-stdin public.ecr.aws || { echo "FATAL: Finch Public ECR login failed"; exit 1; }
@@ -253,6 +314,7 @@ jobs:
 
       - name: Clear credentials and skip account reset for non-credential jobs
         if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "build-x86-container-1", "build-x86-container-2", "build-arm64-container-1", "build-arm64-container-2", "local-invoke", "local-start-api", "local-start-lambda"]'), matrix.test_suite)
+        shell: bash
         run: |
           echo "SKIP_ACCOUNT_RESET=true" >> $GITHUB_ENV
           echo "AWS_ACCESS_KEY_ID=" >> $GITHUB_ENV
@@ -260,6 +322,7 @@ jobs:
           echo "AWS_SESSION_TOKEN=" >> $GITHUB_ENV
 
       - name: Run tests
+        shell: bash
         run: |
           case "${{ matrix.test_suite }}" in
             "build-x86-1")
@@ -407,6 +470,13 @@ jobs:
                 tests/regression \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
+            "tier1-windows")
+              # Same tier1 tests as finch, but using Docker via WSL2 on Windows
+              pytest -vv --reruns 3 -m "tier1 or tier1_extra" -n 2\
+                tests/integration \
+                tests/regression \
+                --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
+              ;;
           esac
 
       - name: Upload test results
@@ -433,6 +503,7 @@ jobs:
 
       - name: Reset test account and upload reports
         if: always()
+        shell: bash
         env:
           TESTREPORTING_S3: ${{ secrets.TESTREPORTING_S3 }}
         run: $SCRIPT_PY tests/reset_testing_resources.py ${{ matrix.test_suite }}
