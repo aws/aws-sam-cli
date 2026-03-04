@@ -4,12 +4,23 @@
 set -euo pipefail
 
 MAVEN_VERSION="3.9.12"
-GRADLE_VERSION="9.3.1"
+GRADLE_VERSION="9.2.0"
+
+# Check if correct versions are already installed
+MAVEN_INSTALLED=$(mvn --version 2>/dev/null | head -1 | grep -o "${MAVEN_VERSION}" || true)
+GRADLE_INSTALLED=$(gradle --version 2>/dev/null | grep "Gradle ${GRADLE_VERSION}" || true)
+
+if [[ -n "$MAVEN_INSTALLED" && -n "$GRADLE_INSTALLED" ]]; then
+  echo "Maven ${MAVEN_VERSION} and Gradle ${GRADLE_VERSION} are already installed, skipping."
+  mvn --version
+  gradle --version
+  exit 0
+fi
 
 if [[ "${RUNNER_OS:-}" == "Windows" ]]; then
   echo "=== Installing Maven ${MAVEN_VERSION} and Gradle ${GRADLE_VERSION} on Windows via choco ==="
-  choco install maven --version="${MAVEN_VERSION}" -y --allow-downgrade
-  choco install gradle --version="${GRADLE_VERSION}" -y --allow-downgrade
+  [[ -z "$MAVEN_INSTALLED" ]] && choco install maven --version="${MAVEN_VERSION}" -y --allow-downgrade
+  [[ -z "$GRADLE_INSTALLED" ]] && choco install gradle --version="${GRADLE_VERSION}" -y --allow-downgrade
 else
   echo "=== Installing Maven ${MAVEN_VERSION} and Gradle ${GRADLE_VERSION} on Linux ==="
   sudo apt-get remove -y maven || true

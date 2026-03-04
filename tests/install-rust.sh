@@ -61,6 +61,8 @@ if [[ "${RUNNER_OS:-}" == "Windows" ]]; then
   mkdir -p "$ZIG_DIR"
   printf '@echo off\r\npython -m ziglang %%*\r\n' > "$ZIG_DIR/zig.cmd"
   echo "$ZIG_DIR" >> "$GITHUB_PATH"
+  # Also add to current PATH so zig version check works in this step
+  export PATH="$ZIG_DIR:$PATH"
 else
   printf '#!/bin/bash\nexec %s -m ziglang "$@"\n' "$PYTHON_CMD" | sudo tee /usr/local/bin/zig > /dev/null
   sudo chmod +x /usr/local/bin/zig
@@ -68,4 +70,9 @@ fi
 
 rustc -V
 cargo -V
-zig version
+# On Windows, zig is a .cmd file; use python -m ziglang directly for version check
+if [[ "${RUNNER_OS:-}" == "Windows" ]]; then
+  python -m ziglang version
+else
+  zig version
+fi
