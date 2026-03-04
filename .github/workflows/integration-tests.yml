@@ -169,13 +169,15 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
+          # Last version listed becomes the default 'python' command.
+          # 3.11 must be last since make init (via UV_PYTHON) installs packages into it.
           python-version: |
-            3.11
             3.9
             3.10
             3.12
             3.13
             3.14
+            3.11
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7
@@ -243,7 +245,8 @@ jobs:
         run: bash tests/setup_finch.sh
 
       - name: Setup QEMU for ARM64 emulation
-        if: "!contains(fromJSON('[\"build-x86-1\", \"build-x86-2\", \"build-x86-container-1\", \"build-x86-container-2\", \"tier1-finch\", \"tier1-windows\"]'), matrix.test_suite)"
+        if: "!contains(fromJSON('[\"build-x86-1\", \"build-x86-2\", \"build-x86-container-1\", \"build-x86-container-2\", \"tier1-finch\"]'), matrix.test_suite)"
+        shell: bash
         run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
       - name: Initialize integration test
