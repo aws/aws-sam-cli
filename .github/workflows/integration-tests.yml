@@ -108,7 +108,7 @@ jobs:
           ref: ${{ env.TEST_TYPE == 'nightly-release' && 'nightly-builds' || (github.event_name == 'schedule' && 'develop' || github.ref) }}
 
       - name: Free up disk space
-        if: runner.os == 'Linux'
+        shell: bash
         run: bash tests/free_disk_space.sh
 
       # ── Windows WSL2 Docker Setup (tier1-windows only) ──
