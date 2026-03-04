@@ -657,7 +657,7 @@ class Container:
             # Seek the handle back to start of file for tarfile to use
             fp.seek(0)
 
-            extract_tarfile(file_obj=fp, unpack_dir=to_host_path)
+            extract_tarfile(file_obj=fp, unpack_dir=to_host_path, mount_symlinks=bool(self._mount_symlinks))
 
     @staticmethod
     def _write_container_output(
