@@ -16,26 +16,28 @@ class TestImageUtils(TestCase):
         local_image = "helloworld"
         self.assertEqual("helloworld-1234-latest", tag_translation(local_image, docker_image_id="sha256:1234"))
 
-    @patch("samcli.lib.package.image_utils.docker")
-    def test_tag_translation_without_image_id(self, mock_docker):
+    @patch("samcli.lib.package.image_utils.get_validated_container_client")
+    def test_tag_translation_without_image_id(self, mock_get_client):
         mock_docker_client = MagicMock()
         mock_docker_id = MagicMock(id="sha256:1234")
         mock_docker_client.images.get.return_value = mock_docker_id
-        mock_docker.from_env = mock_docker_client
+        mock_get_client.return_value = mock_docker_client
         local_image = "helloworld:v1"
-        self.assertEqual("helloworld-1234-v1", tag_translation(local_image, docker_image_id="sha256:1234"))
+        self.assertEqual("helloworld-1234-v1", tag_translation(local_image))
 
-    @patch("samcli.lib.package.image_utils.docker")
-    def test_tag_translation_docker_error_without_image_id(self, mock_docker):
-        mock_docker.from_env = MagicMock(side_effect=APIError("mock error"))
+    @patch("samcli.lib.package.image_utils.get_validated_container_client")
+    def test_tag_translation_docker_error_without_image_id(self, mock_get_client):
+        mock_get_client.side_effect = APIError("mock error")
         local_image = "helloworld:v1"
         with self.assertRaises(DockerGetLocalImageFailedError):
             tag_translation(local_image)
 
-    @patch("samcli.lib.package.image_utils.docker")
-    def test_tag_translation_docker_error_non_existent_image_id(self, mock_docker):
-        mock_docker.from_env = MagicMock(side_effect=NullResource("mock error"))
-        local_image = None
+    @patch("samcli.lib.package.image_utils.get_validated_container_client")
+    def test_tag_translation_docker_error_non_existent_image_id(self, mock_get_client):
+        mock_docker_client = MagicMock()
+        mock_docker_client.images.get.side_effect = NullResource("mock error")
+        mock_get_client.return_value = mock_docker_client
+        local_image = "helloworld:v1"
         with self.assertRaises(NoImageFoundException):
             tag_translation(local_image)
 

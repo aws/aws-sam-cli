@@ -9,6 +9,7 @@ import click
 from samcli.cli.cli_config_file import ConfigProvider, configuration_option, save_params_option
 from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
 from samcli.cli.main import common_options as cli_framework_options
+from samcli.cli.types import TenantIdType
 from samcli.commands._utils.option_value_processor import process_image_options
 from samcli.commands._utils.options import (
     hook_name_click_option,
@@ -74,6 +75,19 @@ STDIN_FILE_NAME = "-"
     help="Lambda runtime used to invoke the function."
     + click.style(f"\n\nRuntimes: {', '.join(get_sorted_runtimes(INIT_RUNTIMES))}", bold=True),
 )
+@click.option(
+    "--tenant-id",
+    type=TenantIdType(),
+    help="Tenant ID for multi-tenant Lambda functions. "
+    "Used to ensure compute isolation between different tenants. "
+    "Must be 1-256 characters, the allowed characters are a-z and A-Z, "
+    "numbers, spaces, and the characters _ . : / = + - @",
+)
+@click.option(
+    "--durable-execution-name",
+    type=str,
+    help="Name for the durable execution (for durable functions only).",
+)
 @mount_symlinks_option
 @invoke_common_options
 @local_common_options
@@ -117,6 +131,8 @@ def cli(
     runtime,
     mount_symlinks,
     no_memory_limit,
+    tenant_id,
+    durable_execution_name,
 ):
     """
     `sam local invoke` command entry point
@@ -150,6 +166,8 @@ def cli(
         runtime,
         mount_symlinks,
         no_memory_limit,
+        tenant_id,
+        durable_execution_name,
     )  # pragma: no cover
 
 
@@ -180,6 +198,8 @@ def do_cli(  # pylint: disable=R0914
     runtime,
     mount_symlinks,
     no_mem_limit,
+    tenant_id,
+    durable_execution_name,
 ):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
@@ -190,6 +210,7 @@ def do_cli(  # pylint: disable=R0914
     from samcli.commands.local.lib.exceptions import NoPrivilegeException, OverridesNotWellDefinedError
     from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
     from samcli.lib.providers.exceptions import InvalidLayerReference
+    from samcli.lib.utils.name_utils import InvalidFunctionNameException
     from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported
     from samcli.local.docker.manager import DockerImagePullFailedException
     from samcli.local.lambdafn.exceptions import FunctionNotFound
@@ -235,9 +256,11 @@ def do_cli(  # pylint: disable=R0914
             context.local_lambda_runner.invoke(
                 context.function_identifier,
                 event=event_data,
+                tenant_id=tenant_id,
                 stdout=context.stdout,
                 stderr=context.stderr,
                 override_runtime=runtime,
+                durable_execution_name=durable_execution_name,
             )
 
     except FunctionNotFound as ex:
@@ -247,6 +270,7 @@ def do_cli(  # pylint: disable=R0914
     except (
         InvalidSamDocumentException,
         OverridesNotWellDefinedError,
+        InvalidFunctionNameException,
         InvalidLayerReference,
         InvalidIntermediateImageError,
         DebuggingNotSupported,

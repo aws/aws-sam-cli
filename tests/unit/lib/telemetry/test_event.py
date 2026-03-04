@@ -166,6 +166,7 @@ class TestEventTracker(TestCase):
             "ci": ANY,
             "pyversion": ANY,
             "samcliVersion": ANY,
+            "osPlatform": ANY,
             "commandName": ANY,
             "metricSpecificAttributes": {
                 "containerEngine": ANY,

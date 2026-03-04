@@ -62,6 +62,7 @@ class TestDoCli(TestCase):
         MOCK_SAM_CONFIG.reset_mock()
 
     @parameterized.expand(
+        # code, watch, auto_dependency_layer, skip_deploy_sync, use_container, infra_sync_result,
         [
             (False, False, True, True, False, InfraSyncResult(False, {ResourceIdentifier("Function")})),
             (False, False, True, True, False, InfraSyncResult(True)),
@@ -239,7 +240,12 @@ class TestDoCli(TestCase):
             execute_code_sync_mock.assert_not_called()
 
     @parameterized.expand(
-        [(False, True, False, True, False), (False, True, False, False, True), (False, False, False, False, True)]
+        # watch, auto_dependency_layer, skip_deploy_sync, use_container,
+        [
+            (False, True, False, True, False),
+            (False, True, False, False, True),
+            (False, False, False, False, True),
+        ]
     )
     @patch("samcli.commands.sync.command.click")
     @patch("samcli.commands.sync.command.execute_watch")

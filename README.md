@@ -71,7 +71,7 @@ We think you'll like the code base. Clone it and run `make pr` or `./Make -pr` o
 ## Contribute to SAM
 
 We love our contributors ❤️ We have over 100 contributors who have built various parts of the product.
-Read this [testimonial from @ndobryanskyy](https://www.lohika.com/aws-sam-my-exciting-first-open-source-experience/) to learn
+Read this [testimonial from @ndobryanskyy](https://www.awsadvent.com/2018/12/10/aws-sam-my-exciting-first-open-source-experience/) to learn
 more about what it was like contributing to SAM.
 
 Depending on your interest and skill, you can help build the different parts of the SAM project;

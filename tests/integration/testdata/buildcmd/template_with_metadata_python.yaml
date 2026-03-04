@@ -1,0 +1,48 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  Runtime:
+    Type: String
+  CodeUriOne:
+    Type: String
+  HandlerOne:
+    Type: String
+  CodeUriTwo:
+    Type: String
+  HandlerTwo:
+    Type: String
+  ParentPackagesOne:
+    Type: String
+    Default: ''
+  ParentPackagesTwo:
+    Type: String
+    Default: ''
+  ParentPackageMode:
+    Type: String
+
+Resources:
+
+  FunctionOne:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: !Ref CodeUriOne
+      Handler: !Ref HandlerOne
+      Runtime: !Ref Runtime
+      Timeout: 600
+    Metadata:
+      BuildProperties:
+        ParentPackageMode: !Ref ParentPackageMode
+        ParentPackages: !Ref ParentPackagesOne
+        
+  FunctionTwo:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: !Ref CodeUriTwo
+      Handler: !Ref HandlerTwo
+      Runtime: !Ref Runtime
+      Timeout: 600
+    Metadata:
+      BuildProperties:
+        ParentPackageMode: !Ref ParentPackageMode
+        ParentPackages: !Ref ParentPackagesTwo

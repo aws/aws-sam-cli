@@ -84,10 +84,10 @@ def default_exception_handler(sync_flow_exception: SyncFlowException) -> None:
         )
     elif (
         isinstance(exception, ClientError)
-        and exception.response.get("Error", dict()).get("Code", "") == "ResourceNotFoundException"
+        and exception.response.get("Error", {}).get("Code", "") == "ResourceNotFoundException"
     ):
         LOG.error("Cannot find resource in remote.%s", HELP_TEXT_FOR_SYNC_INFRA)
-        LOG.error(exception.response.get("Error", dict()).get("Message", ""))
+        LOG.error(exception.response.get("Error", {}).get("Message", ""))
     elif isinstance(exception, NoLayerVersionsFoundError):
         LOG.error("Cannot find any versions for layer %s.%s", exception.layer_name_arn, HELP_TEXT_FOR_SYNC_INFRA)
     elif isinstance(exception, MissingFunctionBuildDefinition):
@@ -351,7 +351,7 @@ class SyncFlowExecutor:
                 EventTracker.track_event("SyncFlowStart", sync_type, thread_id=thread_id)
             dependent_sync_flows = sync_flow.execute()
         except ClientError as e:
-            if e.response.get("Error", dict()).get("Code", "") == "ResourceNotFoundException":
+            if e.response.get("Error", {}).get("Code", "") == "ResourceNotFoundException":
                 raise SyncFlowException(sync_flow, MissingPhysicalResourceError()) from e
             raise SyncFlowException(sync_flow, e) from e
         except Exception as e:

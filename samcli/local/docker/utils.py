@@ -10,12 +10,15 @@ import posixpath
 import random
 import re
 import socket
+from typing import Optional
 
 import docker
-import requests
 
 from samcli.lib.utils.architecture import ARM64, validate_architecture
-from samcli.local.docker.exceptions import NoFreePortsError
+from samcli.local.docker.container_client_factory import ContainerClientFactory
+from samcli.local.docker.exceptions import (
+    NoFreePortsError,
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -69,30 +72,6 @@ def find_free_port(network_interface: str, start: int = 5000, end: int = 9000) -
         except OSError:
             continue
     raise NoFreePortsError(f"No free ports on the host machine from {start} to {end}")
-
-
-def is_docker_reachable(docker_client):
-    """
-    Checks if Docker daemon is running.
-
-    :param docker_client : docker.from_env() - docker client object
-    :returns True, if Docker is available, False otherwise.
-    """
-    errors = (docker.errors.APIError, requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout)
-    if platform.system() == "Windows":
-        import pywintypes  # pylint: disable=import-error
-
-        errors += (pywintypes.error,)
-
-    try:
-        docker_client.ping()
-        return True
-
-    # When Docker is not installed, a request.exceptions.ConnectionError is thrown.
-    # and also windows-specific errors
-    except errors:
-        LOG.debug("Docker is not reachable", exc_info=True)
-        return False
 
 
 def get_rapid_name(architecture: str) -> str:
@@ -151,3 +130,100 @@ def get_docker_platform(architecture: str) -> str:
     validate_architecture(architecture)
 
     return f"linux/{get_image_arch(architecture)}"
+
+
+def get_validated_container_client():
+    """
+    Get validated container client using strategy pattern.
+    """
+    return ContainerClientFactory.create_client()
+
+
+def get_tar_filter_for_windows():
+    """
+    Get tar filter function for Windows compatibility.
+
+    Sets permission for all files in the tarball to 500 (Read and Execute Only).
+    This is needed for systems without unix-like permission bits (Windows) while creating a unix image.
+    Without setting this explicitly, tar will default the permission to 666 which gives no execute permission.
+
+    Returns
+    -------
+    callable or None
+        Filter function for Windows, None for Unix systems
+    """
+
+    def set_item_permission(tar_info):
+        tar_info.mode = 0o500
+        return tar_info
+
+    return set_item_permission if platform.system().lower() == "windows" else None
+
+
+def is_image_current(docker_client: docker.DockerClient, image_name: str) -> bool:
+    """
+    Check if local image is up-to-date with remote by comparing digests.
+
+    Parameters
+    ----------
+    docker_client : docker.DockerClient
+        Docker client instance
+    image_name : str
+        Name of the image to check
+
+    Returns
+    -------
+    bool
+        True if local image digest matches remote image digest
+    """
+    local_digest = get_local_image_digest(docker_client, image_name)
+    remote_digest = get_remote_image_digest(docker_client, image_name)
+    return local_digest is not None and local_digest == remote_digest
+
+
+def get_local_image_digest(docker_client: docker.DockerClient, image_name: str) -> Optional[str]:
+    """
+    Get the digest of the local image.
+
+    Parameters
+    ----------
+    docker_client : docker.DockerClient
+        Docker client instance
+    image_name : str
+        Name of the image to get the digest
+
+    Returns
+    -------
+    Optional[str]
+        Image digest including 'sha256:' prefix, or None if not found
+    """
+    try:
+        image_info = docker_client.images.get(image_name)
+        full_digest = image_info.attrs.get("RepoDigests", [None])[0]
+        return full_digest.split("@")[1] if full_digest else None
+    except (AttributeError, IndexError, docker.errors.ImageNotFound):
+        return None
+
+
+def get_remote_image_digest(docker_client: docker.DockerClient, image_name: str) -> Optional[str]:
+    """
+    Get the digest of the remote image.
+
+    Parameters
+    ----------
+    docker_client : docker.DockerClient
+        Docker client instance
+    image_name : str
+        Name of the image to get the digest
+
+    Returns
+    -------
+    Optional[str]
+        Image digest including 'sha256:' prefix, or None if not found
+    """
+    try:
+        remote_info = docker_client.images.get_registry_data(image_name)
+        digest: Optional[str] = remote_info.attrs.get("Descriptor", {}).get("digest")
+        return digest
+    except Exception:
+        return None

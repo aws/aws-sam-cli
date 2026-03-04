@@ -5,6 +5,7 @@ import os
 
 from samcli.lib.utils import osutils
 from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase
+from tests.testing_utils import get_build_command_list
 
 
 class BuildInSourceInvokeBase(InvokeIntegBase):
@@ -41,7 +42,7 @@ class TestInvokeBuildInSourceSymlinkedModules(BuildInSourceInvokeBase):
         self.assertEqual(os.path.islink(local_dep), False)
 
     def test_successful_invoke(self):
-        build_command = self.get_build_command_list(
+        build_command = get_build_command_list(
             template_path=self.template_path, build_dir=self.build_dir, build_in_source=True
         )
         _, _, exit_code = self.run_command(build_command)
@@ -62,7 +63,7 @@ class TestInvokeBuildInSourceSymlinkedLayers(BuildInSourceInvokeBase):
     project_test_folder = str(Path("build-in-source", "layer_symlink"))
 
     def test_successful_invoke(self):
-        build_command = self.get_build_command_list(
+        build_command = get_build_command_list(
             template_path=self.template_path, build_dir=self.build_dir, build_in_source=True
         )
 

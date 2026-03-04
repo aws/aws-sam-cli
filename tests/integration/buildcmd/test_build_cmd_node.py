@@ -13,8 +13,8 @@ from tests.testing_utils import (
 from tests.integration.buildcmd.build_integ_base import (
     BuildIntegNodeBase,
     BuildIntegEsbuildBase,
+    show_container_in_test_name,
 )
-
 
 LOG = logging.getLogger(__name__)
 
@@ -30,19 +30,11 @@ class TestBuildCommand_NodeFunctions_With_External_Manifest(BuildIntegNodeBase):
 
     @parameterized.expand(
         [
-            ("nodejs16.x",),
-            ("nodejs18.x",),
-        ]
-    )
-    def test_building_default_package_json(self, runtime):
-
-        self._test_with_default_package_json(runtime, False, self.test_data_path)
-
-    @parameterized.expand(
-        [
             ("nodejs20.x",),
             ("nodejs22.x",),
-        ]
+            ("nodejs24.x",),
+        ],
+        name_func=show_container_in_test_name,
     )
     @pytest.mark.al2023
     def test_building_default_package_json_al2023(self, runtime):
@@ -54,27 +46,14 @@ class TestBuildCommand_EsbuildFunctions(BuildIntegEsbuildBase):
 
     @parameterized.expand(
         [
-            ("nodejs18.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", "use_container", "x86_64"),
-            (
-                "nodejs18.x",
-                "Esbuild/TypeScript",
-                {"app.js", "app.js.map"},
-                "app.lambdaHandler",
-                "use_container",
-                "x86_64",
-            ),
-        ]
-    )
-    def test_building_default_package_json(
-        self, runtime, code_uri, expected_files, handler, use_container, architecture
-    ):
-        self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, architecture)
-
-    @parameterized.expand(
-        [
             ("nodejs20.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", False, "x86_64"),
             ("nodejs20.x", "Esbuild/TypeScript", {"app.js", "app.js.map"}, "app.lambdaHandler", False, "x86_64"),
-        ]
+            ("nodejs22.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", False, "x86_64"),
+            ("nodejs22.x", "Esbuild/TypeScript", {"app.js", "app.js.map"}, "app.lambdaHandler", False, "x86_64"),
+            ("nodejs24.x", "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", False, "x86_64"),
+            ("nodejs24.x", "Esbuild/TypeScript", {"app.js", "app.js.map"}, "app.lambdaHandler", False, "x86_64"),
+        ],
+        name_func=show_container_in_test_name,
     )
     @pytest.mark.al2023
     def test_building_default_package_json_al2023(
@@ -82,6 +61,20 @@ class TestBuildCommand_EsbuildFunctions(BuildIntegEsbuildBase):
     ):
 
         self._test_with_default_package_json(runtime, use_container, code_uri, expected_files, handler, architecture)
+
+    @pytest.mark.tier1_extra
+    def test_tier1_node_build(self):
+        """Single Node.js esbuild test for cross-platform validation."""
+        self._test_with_default_package_json(
+            "nodejs22.x", False, "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", "x86_64"
+        )
+
+    @pytest.mark.tier1_extra
+    def test_tier1_node_build_in_container(self):
+        """Single Node.js esbuild container build test for cross-platform validation."""
+        self._test_with_default_package_json(
+            "nodejs22.x", True, "Esbuild/Node", {"main.js", "main.js.map"}, "main.lambdaHandler", "x86_64"
+        )
 
 
 class TestBuildCommand_EsbuildFunctions_With_External_Manifest(BuildIntegEsbuildBase):
@@ -106,7 +99,40 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest(BuildIntegEsbuild
                 False,
                 "x86_64",
             ),
-        ]
+            (
+                "nodejs22.x",
+                "Esbuild/Node_without_manifest",
+                {"main.js", "main.js.map"},
+                "main.lambdaHandler",
+                False,
+                "x86_64",
+            ),
+            (
+                "nodejs22.x",
+                "Esbuild/TypeScript_without_manifest",
+                {"app.js", "app.js.map"},
+                "app.lambdaHandler",
+                False,
+                "x86_64",
+            ),
+            (
+                "nodejs24.x",
+                "Esbuild/Node_without_manifest",
+                {"main.js", "main.js.map"},
+                "main.lambdaHandler",
+                False,
+                "x86_64",
+            ),
+            (
+                "nodejs24.x",
+                "Esbuild/TypeScript_without_manifest",
+                {"app.js", "app.js.map"},
+                "app.lambdaHandler",
+                False,
+                "x86_64",
+            ),
+        ],
+        name_func=show_container_in_test_name,
     )
     @pytest.mark.al2023
     def test_building_default_package_json(
@@ -129,26 +155,14 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest(BuildIntegEsbuild
 class TestBuildCommand_EsbuildFunctionProperties(BuildIntegEsbuildBase):
     @parameterized.expand(
         [
-            ("nodejs16.x", "../Esbuild/TypeScript", "app.lambdaHandler", "x86_64"),
-            ("nodejs18.x", "../Esbuild/TypeScript", "app.lambdaHandler", "x86_64"),
-            ("nodejs16.x", "../Esbuild/TypeScript", "nested/function/app.lambdaHandler", "x86_64"),
-            ("nodejs18.x", "../Esbuild/TypeScript", "nested/function/app.lambdaHandler", "x86_64"),
-        ]
-    )
-    def test_environment_generates_sourcemap(self, runtime, code_uri, handler, architecture):
-        overrides = {
-            "runtime": runtime,
-            "code_uri": code_uri,
-            "handler": handler,
-            "architecture": architecture,
-        }
-        self._test_with_various_properties(overrides, runtime)
-
-    @parameterized.expand(
-        [
             ("nodejs20.x", "../Esbuild/TypeScript", "app.lambdaHandler", "x86_64"),
             ("nodejs20.x", "../Esbuild/TypeScript", "nested/function/app.lambdaHandler", "x86_64"),
-        ]
+            ("nodejs22.x", "../Esbuild/TypeScript", "app.lambdaHandler", "x86_64"),
+            ("nodejs22.x", "../Esbuild/TypeScript", "nested/function/app.lambdaHandler", "x86_64"),
+            ("nodejs24.x", "../Esbuild/TypeScript", "app.lambdaHandler", "x86_64"),
+            ("nodejs24.x", "../Esbuild/TypeScript", "nested/function/app.lambdaHandler", "x86_64"),
+        ],
+        name_func=show_container_in_test_name,
     )
     @pytest.mark.al2023
     def test_environment_generates_sourcemap_al2023(self, runtime, code_uri, handler, architecture):
@@ -166,13 +180,14 @@ class TestBuildCommand_NodeFunctions_With_Specified_Architecture(BuildIntegNodeB
 
     @parameterized.expand(
         [
-            ("nodejs16.x", False, "x86_64"),
-            ("nodejs18.x", False, "x86_64"),
-            ("nodejs16.x", "use_container", "x86_64"),
-            ("nodejs18.x", "use_container", "x86_64"),
             ("nodejs20.x", False, "x86_64"),
+            ("nodejs20.x", "use_container", "x86_64"),
             ("nodejs22.x", False, "x86_64"),
-        ]
+            ("nodejs22.x", "use_container", "x86_64"),
+            ("nodejs24.x", False, "x86_64"),
+            ("nodejs24.x", "use_container", "x86_64"),
+        ],
+        name_func=show_container_in_test_name,
     )
     def test_building_default_package_json(self, runtime, use_container, architecture):
         self._test_with_default_package_json(runtime, use_container, self.test_data_path, architecture)

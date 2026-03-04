@@ -29,3 +29,47 @@ class DebugContext:
 
     def __nonzero__(self):
         return self.__bool__()
+
+    def __eq__(self, other):
+        """
+        Compare two DebugContext instances for equality.
+
+        Parameters
+        ----------
+        other : DebugContext or None
+            Other debug context to compare with
+
+        Returns
+        -------
+        bool
+            True if both debug contexts have the same configuration
+        """
+        if not isinstance(other, DebugContext):
+            return False
+
+        return (
+            self.debug_ports == other.debug_ports
+            and self.debugger_path == other.debugger_path
+            and self.debug_args == other.debug_args
+            and self.debug_function == other.debug_function
+            and self.container_env_vars == other.container_env_vars
+        )
+
+    def __hash__(self):
+        """
+        Make DebugContext hashable so it can be used in sets/dicts.
+
+        Returns
+        -------
+        int
+            Hash value based on debug context attributes
+        """
+        return hash(
+            (
+                self.debug_ports,
+                str(self.debugger_path) if self.debugger_path else None,
+                self.debug_args,
+                self.debug_function,
+                tuple(sorted(self.container_env_vars.items())) if self.container_env_vars else None,
+            )
+        )

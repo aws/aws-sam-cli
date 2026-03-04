@@ -73,7 +73,7 @@ def do_cli(trace_ids, tailing, start_time, end_time, output, region):
     """
     Implementation of the ``cli`` method
     """
-    from datetime import datetime
+    from datetime import datetime, timezone
 
     import boto3
 
@@ -82,7 +82,7 @@ def do_cli(trace_ids, tailing, start_time, end_time, output, region):
     from samcli.lib.utils.boto_utils import get_boto_config_with_user_agent
 
     sanitized_start_time = parse_time(start_time, "start-time")
-    sanitized_end_time = parse_time(end_time, "end-time") or datetime.utcnow()
+    sanitized_end_time = parse_time(end_time, "end-time") or datetime.now(timezone.utc)
 
     boto_config = get_boto_config_with_user_agent(region_name=region)
     xray_client = boto3.client("xray", config=boto_config)

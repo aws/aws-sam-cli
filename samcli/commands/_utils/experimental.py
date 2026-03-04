@@ -55,6 +55,9 @@ class ExperimentalFlag:
         )
     }
     RustCargoLambda = ExperimentalEntry("experimentalCargoLambda", EXPERIMENTAL_ENV_VAR_PREFIX + "RUST_CARGO_LAMBDA")
+    UvPackageManager = ExperimentalEntry(
+        "experimentalUvPackageManager", EXPERIMENTAL_ENV_VAR_PREFIX + "UV_PACKAGE_MANAGER"
+    )
 
 
 def is_experimental_enabled(config_entry: ExperimentalEntry) -> bool:

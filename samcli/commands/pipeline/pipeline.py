@@ -5,17 +5,17 @@ setting up stdin/stdout etc
 
 import click
 
-from .bootstrap.cli import cli as bootstrap_cli
-from .init.cli import cli as init_cli
+from samcli.cli.lazy_group import LazyGroup
 
 
-@click.group()
+@click.group(
+    cls=LazyGroup,
+    lazy_subcommands={
+        "bootstrap": "samcli.commands.pipeline.bootstrap.cli.cli",
+        "init": "samcli.commands.pipeline.init.cli.cli",
+    },
+)
 def cli() -> None:
     """
     Manage the continuous delivery of the application
     """
-
-
-# Add individual commands under this group
-cli.add_command(bootstrap_cli)
-cli.add_command(init_cli)

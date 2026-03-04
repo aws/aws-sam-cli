@@ -127,7 +127,7 @@ def do_cli(
         raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
 
     LOG.debug("Getting remote event '%s' for resource: %s", name, function_resource)
-    event = lambda_test_event.get_event(name, function_resource)
+    event = lambda_test_event.get_event(name, function_resource)["json"]
 
     try:
         output_file.write(event)

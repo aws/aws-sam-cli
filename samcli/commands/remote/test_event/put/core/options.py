@@ -18,7 +18,7 @@ from samcli.commands.remote.test_event.core.base_options import (
 # NOTE: The ordering of the option lists matter, they are the order
 # in which options will be displayed.
 
-EVENT_OPTIONS: List[str] = ["name", "file", "force"]
+EVENT_OPTIONS: List[str] = ["name", "file", "invocation_type", "force"]
 
 ALL_OPTIONS: List[str] = (
     INFRASTRUCTURE_OPTION_NAMES

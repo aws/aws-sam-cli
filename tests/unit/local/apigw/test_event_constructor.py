@@ -1,5 +1,5 @@
 import base64
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 from time import time
 from unittest import TestCase
@@ -206,7 +206,7 @@ class TestService_construct_event_http(TestCase):
         cookies_mock.get.side_effect = ["test", "test"]
         self.request_mock.cookies = cookies_mock
         self.request_time_epoch = int(time())
-        self.request_time = datetime.utcnow().strftime("%d/%b/%Y:%H:%M:%S +0000")
+        self.request_time = datetime.now(timezone.utc).strftime("%d/%b/%Y:%H:%M:%S +0000")
 
         expected = f"""
         {{

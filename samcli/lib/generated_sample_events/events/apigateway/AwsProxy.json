@@ -4,9 +4,7 @@
   "path": "/{{{path}}}",
   "httpMethod": "{{{method}}}",
   "isBase64Encoded": true,
-  "queryStringParameters": {
-    "foo": "bar"
-  },
+  "queryStringParameters": "{{{querystringparameters}}}",
   "multiValueQueryStringParameters": {
     "foo": [
       "bar"

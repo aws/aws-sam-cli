@@ -42,7 +42,7 @@ def to_datetime(timestamp):
     """
 
     timestamp_secs = int(timestamp) / 1000.0
-    return datetime.datetime.utcfromtimestamp(timestamp_secs)
+    return datetime.datetime.fromtimestamp(timestamp_secs, tz=datetime.timezone.utc)
 
 
 def to_timestamp(some_time):
@@ -61,7 +61,8 @@ def to_timestamp(some_time):
     """
 
     # `total_seconds()` returns elaped microseconds as a float. Get just milliseconds and discard the rest.
-    return int((some_time - datetime.datetime(1970, 1, 1)).total_seconds() * 1000.0)
+    epoch = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc if some_time.tzinfo else None)
+    return int((some_time - epoch).total_seconds() * 1000.0)
 
 
 def utc_to_timestamp(utc):
@@ -120,7 +121,7 @@ def parse_date(date_string):
         # will use current local time as the base for subtraction, but falsely assume it is a UTC time. Therefore
         # the time that dateparser returns will be a `datetime` object that did not have any timezone information.
         # So be explicit to set the time to UTC.
-        "RELATIVE_BASE": datetime.datetime.utcnow()
+        "RELATIVE_BASE": datetime.datetime.now(datetime.timezone.utc)
     }
 
     return dateparser.parse(date_string, settings=parser_settings)

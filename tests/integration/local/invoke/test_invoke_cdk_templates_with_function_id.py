@@ -61,7 +61,7 @@ class TestCDKSynthesizedTemplatesNestedFunctionIdentifies(InvokeIntegBase):
     @parameterized.expand(
         [("LambdaWithFunctionName", "StandardZipFunctionWithFunctionNameA", "StandardZipFunctionWithFunctionNameB")]
     )
-    @pytest.mark.flaky(reruns=0)
+    @pytest.mark.flaky(reruns=3)
     def test_invoke_function_with_duplicated_function_id(
         self, duplicated_function_id, expected_logical_id, not_invoked_logical_id
     ):

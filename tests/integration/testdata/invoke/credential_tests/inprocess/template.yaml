@@ -13,10 +13,12 @@ Resources:
     Properties:
       CodeUri: dotnet/STS
       Handler: STS::STS.Function::FunctionHandler
-      Runtime: dotnet6
+      Runtime: dotnet10
   GoStsExample:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: golang
-      Handler: golang
-      Runtime: go1.x
+      Handler: bootstrap
+      Runtime: provided.al2023
+    Metadata:
+      BuildMethod: go1.x

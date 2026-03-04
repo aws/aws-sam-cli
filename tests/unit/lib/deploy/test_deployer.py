@@ -413,7 +413,7 @@ class TestDeployer(CustomTestCase):
             self.deployer.execute_changeset("id", "test", True)
 
     def test_get_last_event_time(self):
-        timestamp = datetime.utcnow()
+        timestamp = datetime.now(timezone.utc)
         self.deployer._client.describe_stack_events = MagicMock(
             return_value={"StackEvents": [{"Timestamp": timestamp}]}
         )

@@ -5,7 +5,7 @@ Context object used by sync command
 import logging
 import threading
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Optional, cast
 
@@ -56,13 +56,13 @@ class SyncState:
         hash_value: str
             The logical ID identifier of the resource
         """
-        self.resource_sync_states[resource_id] = ResourceSyncState(hash_value, datetime.utcnow())
+        self.resource_sync_states[resource_id] = ResourceSyncState(hash_value, datetime.now(timezone.utc))
 
     def update_infra_sync_time(self) -> None:
         """
         Updates the last infra sync time to be stored in the TOML file.
         """
-        self.latest_infra_sync_time = datetime.utcnow()
+        self.latest_infra_sync_time = datetime.now(timezone.utc)
 
 
 def _sync_state_to_toml_document(sync_state: SyncState) -> TOMLDocument:
@@ -158,7 +158,13 @@ class SyncContext:
     _file_path: Path
     skip_deploy_sync: bool
 
-    def __init__(self, dependency_layer: bool, build_dir: str, cache_dir: str, skip_deploy_sync: bool):
+    def __init__(
+        self,
+        dependency_layer: bool,
+        build_dir: str,
+        cache_dir: str,
+        skip_deploy_sync: bool,
+    ):
         self._current_state = SyncState(dependency_layer, dict(), None)
         self._previous_state = None
         self.skip_deploy_sync = skip_deploy_sync
