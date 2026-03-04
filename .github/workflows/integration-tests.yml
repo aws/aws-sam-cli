@@ -5,9 +5,23 @@ on:
     # Run at 7pm PST (3am UTC next day) Monday-Friday
     # This translates to Tuesday-Saturday 3am UTC
     - cron: '0 3 * * 2-6'
+  release:
+    types: [published]
+    # prerelease published → nightly binary test
+    # full release published → latest-release binary test
   workflow_dispatch:  # Allow manual triggering
     # NOTE: This workflow can only be manually triggered from develop or main branches
     # The other branch will not pass the OIDC permission check
+    inputs:
+      install_mode:
+        description: '"code" to install from source (make init), "nightly-release" to install SAM CLI nightly binary, "latest-release" to install latest stable release binary'
+        required: false
+        default: 'code'
+        type: choice
+        options:
+          - code
+          - nightly-release
+          - latest-release
 
 permissions:
   id-token: write   # Required for OIDC
@@ -153,20 +167,9 @@ jobs:
         with:
           ruby-version: '3.4.7'
 
-      - name: Install Rust toolchain
+      - name: Install Rust toolchain and cargo-lambda
         if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch"]'), matrix.test_suite)
-        run: |
-          curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL https://sh.rustup.rs | sh -s -- --default-toolchain none -y
-          source $HOME/.cargo/env
-          rustup toolchain install stable --profile minimal --no-self-update
-          rustup default stable
-          rustup target add x86_64-unknown-linux-gnu --toolchain stable
-          rustup target add aarch64-unknown-linux-gnu --toolchain stable
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-
-      - name: Install cargo-lambda
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch"]'), matrix.test_suite)
-        run: pip install cargo-lambda==${{ env.CARGO_LAMBDA_VERSION }}
+        run: bash tests/install-rust.sh
 
       - name: Install Terraform
         if: contains(fromJSON('["terraform-build", "terraform-start-api", "terraform-invoke-start-lambda", "cloud-based-tests", "tier1-finch"]'), matrix.test_suite)
@@ -193,18 +196,52 @@ jobs:
         if: "!contains(fromJSON('[\"build-x86-1\", \"build-x86-2\", \"build-x86-container-1\", \"build-x86-container-2\", \"tier1-finch\"]'), matrix.test_suite)"
         run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
-      - name: Initialize project
+      - name: Determine test type
         run: |
-          if [[ "${{ matrix.test_suite }}" == "tier1-finch" ]]; then
-            export CONTAINER_RUNTIME=finch
+          echo "CONTAINER_RUNTIME=${{ matrix.test_suite == 'tier1-finch' && 'finch' || 'docker' }}" >> $GITHUB_ENV
+          if [[ "${{ inputs.install_mode }}" == "nightly-release" ]] || \
+             [[ "${{ github.event.action }}" == "published" && "${{ github.event.release.prerelease }}" == "true" ]]; then
+            echo "TEST_TYPE=nightly-release" >> $GITHUB_ENV
+          elif [[ "${{ inputs.install_mode }}" == "latest-release" ]] || \
+               [[ "${{ github.event.action }}" == "published" && "${{ github.event.release.prerelease }}" != "true" ]]; then
+            echo "TEST_TYPE=latest-release" >> $GITHUB_ENV
+          elif [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
+            echo "TEST_TYPE=master" >> $GITHUB_ENV
+          elif [[ "${{ github.event_name }}" == "schedule" ]] || [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
+            echo "TEST_TYPE=develop" >> $GITHUB_ENV
           else
-            export CONTAINER_RUNTIME=docker
+            echo "TEST_TYPE=other" >> $GITHUB_ENV
           fi
+
+      - name: Initialize integration test
+        if: env.TEST_TYPE == 'develop' || env.TEST_TYPE == 'master' || env.TEST_TYPE == 'other'
+        run: |
           make init
+          echo "SCRIPT_PY=python3.11" >> $GITHUB_ENV
+
+      - name: Initialize nightly release test
+        if: env.TEST_TYPE == 'nightly-release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          make setup-pytest
+          make init-nightly
+          echo "SAM_CLI_DEV=" >> $GITHUB_ENV
+          echo "SCRIPT_PY=$HOME/pytest/bin/python3" >> $GITHUB_ENV
+
+      - name: Initialize latest release test
+        if: env.TEST_TYPE == 'latest-release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          make setup-pytest
+          make init-latest-release
+          echo "SAM_CLI_DEV=" >> $GITHUB_ENV
+          echo "SCRIPT_PY=$HOME/pytest/bin/python3" >> $GITHUB_ENV
 
       - name: Get testing resources and credentials
         if: "!contains(fromJSON('[\"build-x86-1\", \"build-x86-2\", \"build-arm64\", \"build-x86-container-1\", \"build-x86-container-2\", \"build-arm64-container-1\", \"build-arm64-container-2\", \"local-invoke\", \"local-start-api\", \"local-start-lambda\"]'), matrix.test_suite)"
-        run: python3.11 tests/setup_testing_resources.py
+        run: $SCRIPT_PY tests/setup_testing_resources.py
 
       - name: Login to Public ECR
         run: |
@@ -374,7 +411,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: test-results-${{ matrix.test_suite }}
           path: TEST_REPORT-*.json
@@ -398,4 +435,4 @@ jobs:
         if: always()
         env:
           TESTREPORTING_S3: ${{ secrets.TESTREPORTING_S3 }}
-        run: python3.11 tests/reset_testing_resources.py ${{ matrix.test_suite }}
+        run: $SCRIPT_PY tests/reset_testing_resources.py ${{ matrix.test_suite }}

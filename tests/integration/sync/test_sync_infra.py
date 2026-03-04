@@ -343,6 +343,7 @@ Requires capabilities : [CAPABILITY_AUTO_EXPAND]",
     def test_sync_infra_s3_bucket_option(self, template_file):
         template_path = str(self.test_data_path.joinpath(template_file))
         stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
 
         sync_command_list = self.get_sync_command_list(
             template_file=template_path,
