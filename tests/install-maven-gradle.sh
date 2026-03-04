@@ -4,7 +4,7 @@
 set -euo pipefail
 
 MAVEN_VERSION="3.9.12"
-GRADLE_VERSION="9.2.0"
+GRADLE_VERSION="9.3.1"
 
 if [[ "${RUNNER_OS:-}" == "Windows" ]]; then
   echo "=== Installing Maven ${MAVEN_VERSION} and Gradle ${GRADLE_VERSION} on Windows via choco ==="
