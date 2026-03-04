@@ -37,11 +37,7 @@ else
 fi
 
 # Install cargo-lambda and ziglang
-if [[ "${RUNNER_OS:-}" == "Windows" ]]; then
-  # On Windows, use 'python' (python3.11 symlink doesn't exist)
-  python -m pip install "cargo-lambda==$CARGO_LAMBDA_VERSION"
-  PYTHON_CMD="python"
-elif [ "$USE_UV" = true ]; then
+if [ "$USE_UV" = true ]; then
   PYTHON311="$(uv python find 3.11)"
   PYTHON311_BIN="$(dirname "$PYTHON311")"
   uv pip install --break-system-packages --python "$PYTHON311" "cargo-lambda==$CARGO_LAMBDA_VERSION"
@@ -56,13 +52,8 @@ fi
 
 # Create a zig wrapper so SAM CLI's cargo-lambda can find it
 if [[ "${RUNNER_OS:-}" == "Windows" ]]; then
-  # On Windows, create a .cmd wrapper in a PATH directory
-  ZIG_DIR="$USERPROFILE/.local/bin"
-  mkdir -p "$ZIG_DIR"
-  printf '@echo off\r\npython -m ziglang %%*\r\n' > "$ZIG_DIR/zig.cmd"
-  echo "$ZIG_DIR" >> "$GITHUB_PATH"
-  # Also add to current PATH so zig version check works in this step
-  export PATH="$ZIG_DIR:$PATH"
+  # Place zig.cmd in C:\Windows which is always in PATH
+  printf '@echo off\r\npython3.11 -m ziglang %%*\r\n' > /c/Windows/zig.cmd
 else
   printf '#!/bin/bash\nexec %s -m ziglang "$@"\n' "$PYTHON_CMD" | sudo tee /usr/local/bin/zig > /dev/null
   sudo chmod +x /usr/local/bin/zig
@@ -70,9 +61,4 @@ fi
 
 rustc -V
 cargo -V
-# On Windows, zig is a .cmd file; use python -m ziglang directly for version check
-if [[ "${RUNNER_OS:-}" == "Windows" ]]; then
-  python -m ziglang version
-else
-  zig version
-fi
+zig version

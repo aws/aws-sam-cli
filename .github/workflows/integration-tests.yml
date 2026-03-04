@@ -166,21 +166,21 @@ jobs:
           role-to-assume: ${{ secrets.OIDC_ROLE_ARN }}
           aws-region: us-east-1
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          # Last version listed becomes the default 'python' command.
-          # 3.11 must be last since make init (via UV_PYTHON) installs packages into it.
-          python-version: |
-            3.9
-            3.10
-            3.12
-            3.13
-            3.14
-            3.11
-
       - name: Install uv
         uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.11"
+          cache-python: false
+
+      - name: Install Python versions
+        shell: bash
+        run: |
+          if [[ "${{ matrix.test_suite }}" == "tier1-finch" || "${{ matrix.test_suite }}" == "tier1-windows" ]]; then
+            # Tier 1 tests only need 3.11 (for SAM CLI) and 3.12-3.14 (for runtime tests)
+            bash tests/setup-python-uv.sh 3.12 3.13 3.14 3.11
+          else
+            bash tests/setup-python-uv.sh 3.9 3.10 3.12 3.13 3.14 3.11
+          fi
 
       - name: Set up Node.js
         if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch", "tier1-windows"]'), matrix.test_suite)
@@ -213,13 +213,13 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Set up Ruby 3.3.7
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "other-and-e2e", "cloud-based-tests", "tier1-finch", "tier1-windows"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "other-and-e2e", "cloud-based-tests"]'), matrix.test_suite)
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.3.7'
 
       - name: Set up Ruby 3.2.7
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "other-and-e2e", "cloud-based-tests", "tier1-finch", "tier1-windows"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "other-and-e2e", "cloud-based-tests"]'), matrix.test_suite)
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.2.7'
@@ -233,7 +233,7 @@ jobs:
       - name: Install Rust toolchain and cargo-lambda
         if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch", "tier1-windows"]'), matrix.test_suite)
         shell: bash
-        run: bash tests/install-rust.sh
+        run: bash tests/install-rust.sh --uv
 
       - name: Install Terraform
         if: contains(fromJSON('["terraform-build", "terraform-start-api", "terraform-invoke-start-lambda", "cloud-based-tests", "tier1-finch", "tier1-windows"]'), matrix.test_suite)
@@ -254,12 +254,7 @@ jobs:
         shell: bash
         run: |
           make init
-          # On Windows, python3.11 symlink doesn't exist; use 'python' (last version in setup-python)
-          if [[ "${{ runner.os }}" == "Windows" ]]; then
-            echo "SCRIPT_PY=python" >> $GITHUB_ENV
-          else
-            echo "SCRIPT_PY=python3.11" >> $GITHUB_ENV
-          fi
+          echo "SCRIPT_PY=python3.11" >> $GITHUB_ENV
 
       - name: Initialize nightly release test
         if: env.TEST_TYPE == 'nightly-release'

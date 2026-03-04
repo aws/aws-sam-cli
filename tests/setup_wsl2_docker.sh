@@ -29,6 +29,11 @@ sudo apt-get update
 # Install Docker packages
 sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
+# Ensure /etc/resolv.conf exists (required for --privileged containers like QEMU)
+if [ ! -f /etc/resolv.conf ]; then
+  echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf > /dev/null
+fi
+
 echo "=== Configuring Docker daemon to listen on TCP port 2375 ==="
 
 # Stop Docker service and socket completely
