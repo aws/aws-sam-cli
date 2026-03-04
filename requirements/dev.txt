@@ -1,7 +1,7 @@
 -r pre-dev.txt
 
-coverage==7.10.7; python_version>="3.9"
-coverage==7.6.1; python_version<"3.9"
+coverage==7.13.4; python_version>="3.10"
+coverage==7.10.7; python_version<"3.10"
 pytest-cov==7.0.0; python_version>="3.9"
 pytest-cov==5.0.0; python_version<"3.9"
 
@@ -15,11 +15,14 @@ types-pywin32==308.0.0.20241221; python_version<"3.9"
 types-PyYAML==6.0.12.20250915
 types-chevron==0.14.2.20250103
 types-psutil==7.2.2.20260130
-types-setuptools==80.10.0.20260124
+types-setuptools==82.0.0.20260210; python_version>="3.10"
+types-setuptools==80.10.0.20260124; python_version<"3.10"
 types-Pygments==2.19.0.20251121 
 types-colorama==0.4.15.20250801
-types-dateparser==1.2.2.20250809
-types-docutils==0.22.3.20251115
+types-dateparser==1.3.0.20260211; python_version>="3.10"
+types-dateparser==1.2.2.20250809; python_version<"3.10"
+types-docutils==0.22.3.20260223; python_version>="3.10"
+types-docutils==0.22.3.20251115; python_version<"3.10"
 types-jsonschema==4.26.0.20260202
 types-pyOpenSSL==24.1.0.20240722
 # lucashuy: pin `types-request` based on the Python version since newer versions of
@@ -30,7 +33,8 @@ types-urllib3==1.26.25.14
 
 # Test requirements
 
-pytest==8.4.1
+pytest==9.0.2; python_version>="3.10"
+pytest==8.4.1; python_version<"3.10"
 
 parameterized==0.9.0
 pytest-xdist==3.8.0
@@ -42,10 +46,13 @@ pytest-rerunfailures==16.0.1;  python_version<"3.10"
 pytest-metadata==3.1.1
 # NOTE (lucashuy): `pytest-json-report` was updated to `pytest-json-report-wip` as the original repository does not seem to be maintained anymore, if `-wip` is updated, validate the changes
 pytest-json-report-wip==1.5.1
-filelock==3.20.3;  python_version>="3.10"
+filelock==3.25.0;  python_version>="3.10"
 filelock==3.19.1;  python_version<"3.10"
 
 # formatter
-black==25.9.0; python_version>="3.9"
-black==24.8.0; python_version<"3.9"
-psutil==7.2.1
+black==26.1.0; python_version>"3.9"
+black==25.9.0; python_version<="3.9"
+psutil==7.2.2
+
+# Pin chardet to avoid requests compatibility assertion failure (requests requires chardet < 6)
+chardet<6

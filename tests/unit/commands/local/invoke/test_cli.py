@@ -20,7 +20,6 @@ from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError, I
 from samcli.local.docker.manager import DockerImagePullFailedException
 from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported
 
-
 STDIN_FILE_NAME = "-"
 
 

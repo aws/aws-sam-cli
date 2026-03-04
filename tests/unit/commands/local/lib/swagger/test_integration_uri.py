@@ -8,7 +8,6 @@ from samcli.commands.local.lib.swagger.integration_uri import LambdaUri
 from unittest import TestCase
 from parameterized import parameterized
 
-
 logging.basicConfig(level=logging.DEBUG)
 
 
