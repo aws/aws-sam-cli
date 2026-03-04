@@ -16,7 +16,10 @@ CARGO_LAMBDA_VERSION="${1:-${CARGO_LAMBDA_VERSION:-v0.17.1}}"
 # Install rustup if not present
 if ! command -v rustup &> /dev/null; then
   curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL https://sh.rustup.rs | sh -s -- --default-toolchain none -y
-  source "$HOME/.cargo/env"
+  # source cargo env (file doesn't exist on Windows where Rust is pre-installed)
+  if [ -f "$HOME/.cargo/env" ]; then
+    source "$HOME/.cargo/env"
+  fi
   if [ -n "${GITHUB_PATH:-}" ]; then
     echo "${CARGO_HOME:-$HOME/.cargo}/bin" >> "$GITHUB_PATH"
   fi
@@ -24,25 +27,44 @@ fi
 
 rustup toolchain install stable --profile minimal --no-self-update
 rustup default stable
-rustup target add x86_64-unknown-linux-gnu --toolchain stable
-rustup target add aarch64-unknown-linux-gnu --toolchain stable
+
+if [[ "${RUNNER_OS:-}" == "Windows" ]]; then
+  # On Windows, add Windows-native targets
+  rustup target add x86_64-pc-windows-msvc --toolchain stable || true
+else
+  rustup target add x86_64-unknown-linux-gnu --toolchain stable
+  rustup target add aarch64-unknown-linux-gnu --toolchain stable
+fi
 
 # Install cargo-lambda and ziglang
-if [ "$USE_UV" = true ]; then
+if [[ "${RUNNER_OS:-}" == "Windows" ]]; then
+  # On Windows, use 'python' (python3.11 symlink doesn't exist)
+  python -m pip install "cargo-lambda==$CARGO_LAMBDA_VERSION"
+  PYTHON_CMD="python"
+elif [ "$USE_UV" = true ]; then
   PYTHON311="$(uv python find 3.11)"
   PYTHON311_BIN="$(dirname "$PYTHON311")"
   uv pip install --break-system-packages --python "$PYTHON311" "cargo-lambda==$CARGO_LAMBDA_VERSION"
+  PYTHON_CMD="$PYTHON311"
   if [ -n "${GITHUB_PATH:-}" ]; then
     echo "$PYTHON311_BIN" >> "$GITHUB_PATH"
   fi
 else
   python3.11 -m pip install "cargo-lambda==$CARGO_LAMBDA_VERSION"
-  PYTHON311="python3.11"
+  PYTHON_CMD="python3.11"
 fi
 
 # Create a zig wrapper so SAM CLI's cargo-lambda can find it
-printf '#!/bin/bash\nexec %s -m ziglang "$@"\n' "$PYTHON311" | sudo tee /usr/local/bin/zig > /dev/null
-sudo chmod +x /usr/local/bin/zig
+if [[ "${RUNNER_OS:-}" == "Windows" ]]; then
+  # On Windows, create a .cmd wrapper in a PATH directory
+  ZIG_DIR="$USERPROFILE/.local/bin"
+  mkdir -p "$ZIG_DIR"
+  printf '@echo off\r\npython -m ziglang %%*\r\n' > "$ZIG_DIR/zig.cmd"
+  echo "$ZIG_DIR" >> "$GITHUB_PATH"
+else
+  printf '#!/bin/bash\nexec %s -m ziglang "$@"\n' "$PYTHON_CMD" | sudo tee /usr/local/bin/zig > /dev/null
+  sudo chmod +x /usr/local/bin/zig
+fi
 
 rustc -V
 cargo -V

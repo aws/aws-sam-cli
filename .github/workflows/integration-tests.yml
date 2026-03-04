@@ -140,7 +140,10 @@ jobs:
       - name: WSL - Install Docker and expose on TCP
         if: matrix.test_suite == 'tier1-windows'
         shell: wsl-bash {0}
-        run: bash tests/setup_wsl2_docker.sh
+        run: |
+          # Convert CRLF to LF (Windows checkout adds \r which breaks bash in WSL)
+          sed -i 's/\r$//' tests/setup_wsl2_docker.sh
+          bash tests/setup_wsl2_docker.sh
 
       - name: Configure DOCKER_HOST to WSL2
         if: matrix.test_suite == 'tier1-windows'
@@ -178,85 +181,62 @@ jobs:
         uses: astral-sh/setup-uv@v7
 
       - name: Set up Node.js
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch", "tier1-windows"]'), matrix.test_suite)
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Set up Java 25
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "sync-code", "sync-watch", "cloud-based-tests", "tier1-finch"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "sync-code", "sync-watch", "cloud-based-tests", "tier1-finch", "tier1-windows"]'), matrix.test_suite)
         uses: actions/setup-java@v5
         with:
           distribution: 'corretto'
           java-version: '25'
 
       - name: Set up Go
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch", "tier1-windows"]'), matrix.test_suite)
         uses: actions/setup-go@v6
         with:
           go-version: '1.25'
 
       - name: Install Maven and Gradle
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "sync-code", "sync-watch", "cloud-based-tests", "tier1-finch"]'), matrix.test_suite)
-        run: |
-          sudo apt-get remove -y maven || true
-          wget https://dlcdn.apache.org/maven/maven-3/3.9.12/binaries/apache-maven-3.9.12-bin.zip -P /tmp
-          sudo unzip -d /opt/mvn /tmp/apache-maven-*.zip
-          wget https://services.gradle.org/distributions/gradle-9.2.0-bin.zip -P /tmp
-          sudo unzip -d /opt/gradle /tmp/gradle-*.zip
-          sudo ln -sf /opt/mvn/apache-maven-3.9.12/bin/mvn /usr/local/bin/mvn
-          sudo ln -sf /opt/gradle/gradle-9.2.0/bin/gradle /usr/local/bin/gradle
-          echo "/opt/mvn/apache-maven-3.9.12/bin" >> $GITHUB_PATH
-          echo "/opt/gradle/gradle-9.2.0/bin" >> $GITHUB_PATH
-          echo "MAVEN_HOME=/opt/mvn/apache-maven-3.9.12" >> $GITHUB_ENV
-          export PATH="/opt/mvn/apache-maven-3.9.12/bin:/opt/gradle/gradle-9.2.0/bin:$PATH"
-          mvn --version
-          gradle --version
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "sync-code", "sync-watch", "cloud-based-tests", "tier1-finch", "tier1-windows"]'), matrix.test_suite)
+        shell: bash
+        run: bash tests/install-maven-gradle.sh
 
       - name: Install .NET 10 SDK
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "other-and-e2e", "cloud-based-tests", "tier1-finch"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "other-and-e2e", "cloud-based-tests", "tier1-finch", "tier1-windows"]'), matrix.test_suite)
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
 
       - name: Set up Ruby 3.3.7
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "other-and-e2e", "cloud-based-tests", "tier1-finch"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "other-and-e2e", "cloud-based-tests", "tier1-finch", "tier1-windows"]'), matrix.test_suite)
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.3.7'
 
       - name: Set up Ruby 3.2.7
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "other-and-e2e", "cloud-based-tests", "tier1-finch"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "other-and-e2e", "cloud-based-tests", "tier1-finch", "tier1-windows"]'), matrix.test_suite)
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.2.7'
 
       - name: Set up Ruby 3.4.7
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "sync-code", "sync-watch", "other-and-e2e", "cloud-based-tests", "tier1-finch"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "sync-code", "sync-watch", "other-and-e2e", "cloud-based-tests", "tier1-finch", "tier1-windows"]'), matrix.test_suite)
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.4.7'
 
       - name: Install Rust toolchain and cargo-lambda
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch", "tier1-windows"]'), matrix.test_suite)
+        shell: bash
         run: bash tests/install-rust.sh
 
       - name: Install Terraform
-        if: contains(fromJSON('["terraform-build", "terraform-start-api", "terraform-invoke-start-lambda", "cloud-based-tests", "tier1-finch"]'), matrix.test_suite)
-        run: |
-          for i in {1..3}; do
-            TER_VER=$(curl -s https://api.github.com/repos/hashicorp/terraform/releases/latest | grep tag_name | cut -d: -f2 | tr -d \"\,\v | awk '{$1=$1};1')
-            if [ -n "$TER_VER" ]; then
-              if wget https://releases.hashicorp.com/terraform/${TER_VER}/terraform_${TER_VER}_linux_amd64.zip -P /tmp; then
-                sudo unzip -d /opt/terraform /tmp/terraform_${TER_VER}_linux_amd64.zip
-                sudo mv /opt/terraform/terraform /usr/local/bin/
-                terraform -version
-                break
-              fi
-            fi
-            echo "Terraform installation attempt $i failed, retrying..."
-            sleep 5
-          done
+        if: contains(fromJSON('["terraform-build", "terraform-start-api", "terraform-invoke-start-lambda", "cloud-based-tests", "tier1-finch", "tier1-windows"]'), matrix.test_suite)
+        shell: bash
+        run: bash tests/install-terraform.sh
 
       - name: Setup Finch runtime
         if: matrix.test_suite == 'tier1-finch'
