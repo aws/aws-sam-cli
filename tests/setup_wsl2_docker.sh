@@ -29,10 +29,11 @@ sudo apt-get update
 # Install Docker packages
 sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
-# Ensure /etc/resolv.conf exists (required for --privileged containers like QEMU)
-if [ ! -f /etc/resolv.conf ]; then
-  echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf > /dev/null
-fi
+# Ensure /etc/resolv.conf exists as a real file (not a broken symlink).
+# WSL2 may create it as a symlink to a non-existent Windows-managed file,
+# which causes Docker's containerd to fail when mounting it into containers.
+sudo rm -f /etc/resolv.conf 2>/dev/null || true
+echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf > /dev/null
 
 echo "=== Configuring Docker daemon to listen on TCP port 2375 ==="
 
