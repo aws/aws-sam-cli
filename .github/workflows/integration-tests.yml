@@ -80,7 +80,9 @@ jobs:
           - tier1-finch
         include:
           # Tier 1: Cross-platform smoke tests on Windows (Docker via WSL2)
-          - test_suite: tier1-windows
+          - test_suite: tier1-windows-build
+            os: windows-latest
+          - test_suite: tier1-windows-other
             os: windows-latest
 
     steps:
@@ -111,9 +113,9 @@ jobs:
         shell: bash
         run: bash tests/free_disk_space.sh
 
-      # ── Windows WSL2 Docker Setup (tier1-windows only) ──
+      # ── Windows WSL2 Docker Setup (tier1-windows-* only) ──
       - name: Stop Windows Docker Engine
-        if: matrix.test_suite == 'tier1-windows'
+        if: startsWith(matrix.test_suite, 'tier1-windows')
         shell: pwsh
         run: |
           # Run all Docker shutdown steps in background to avoid blocking (~20s)
@@ -125,7 +127,7 @@ jobs:
           } | Out-Null
 
       - name: Install and Configure WSL 2
-        if: matrix.test_suite == 'tier1-windows'
+        if: startsWith(matrix.test_suite, 'tier1-windows')
         uses: Vampire/setup-wsl@v6
         with:
           distribution: Ubuntu-24.04
@@ -142,7 +144,7 @@ jobs:
             options = "metadata"
 
       - name: WSL - Install Docker and expose on TCP
-        if: matrix.test_suite == 'tier1-windows'
+        if: startsWith(matrix.test_suite, 'tier1-windows')
         shell: wsl-bash {0}
         run: |
           # Convert CRLF to LF (Windows checkout adds \r which breaks bash in WSL)
@@ -150,7 +152,7 @@ jobs:
           bash tests/setup_wsl2_docker.sh
 
       - name: Configure DOCKER_HOST to WSL2
-        if: matrix.test_suite == 'tier1-windows'
+        if: startsWith(matrix.test_suite, 'tier1-windows')
         shell: pwsh
         run: |
           $wslIp = (wsl hostname -I).Trim().Split(' ')[0]
@@ -158,7 +160,7 @@ jobs:
           echo "DOCKER_HOST=tcp://${wslIp}:2375" >> $env:GITHUB_ENV
 
       - name: Set TEMP to D:/Temp (Windows)
-        if: matrix.test_suite == 'tier1-windows'
+        if: startsWith(matrix.test_suite, 'tier1-windows')
         shell: pwsh
         run: |
           mkdir "D:\Temp" -Force
@@ -452,11 +454,18 @@ jobs:
                 tests/regression \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
-            "tier1-windows")
-              # Same tier1 tests as finch, but using Docker via WSL2 on Windows
-              pytest -vv --reruns 3 -m "tier1 or tier1_extra" -n 2\
+            "tier1-windows-build")
+              # Tier1 build tests only (no parallelization on Windows)
+              pytest -vv --reruns 3 -m "tier1 or tier1_extra" \
+                tests/integration/buildcmd \
+                --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
+              ;;
+            "tier1-windows-other")
+              # Tier1 non-build tests (local, deploy, etc.)
+              pytest -vv --reruns 3 -m "tier1 or tier1_extra" \
                 tests/integration \
                 tests/regression \
+                --ignore=tests/integration/buildcmd \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
           esac
