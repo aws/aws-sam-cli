@@ -52,9 +52,14 @@ fi
 
 # Create a zig wrapper so SAM CLI's cargo-lambda can find it
 if [[ "${RUNNER_OS:-}" == "Windows" ]]; then
-  # Place both zig (for bash/Git Bash) and zig.cmd (for cmd.exe) in C:\Windows
-  printf '#!/bin/bash\nexec python3.11 -m ziglang "$@"\n' > /c/Windows/zig
-  printf '@echo off\r\npython3.11 -m ziglang %%*\r\n' > /c/Windows/zig.cmd
+  # Install zig via chocolatey (most reliable on Windows)
+  choco install zig --no-progress -y 2>/dev/null || true
+  # Fallback: create wrappers using the Python that has ziglang installed
+  if ! command -v zig &>/dev/null; then
+    ZIG_PYTHON="$PYTHON_CMD"
+    printf '#!/bin/bash\nexec "%s" -m ziglang "$@"\n' "$ZIG_PYTHON" > /c/Windows/zig
+    printf '@echo off\r\n"%s" -m ziglang %%*\r\n' "$ZIG_PYTHON" > /c/Windows/zig.cmd
+  fi
 else
   printf '#!/bin/bash\nexec %s -m ziglang "$@"\n' "$PYTHON_CMD" | sudo tee /usr/local/bin/zig > /dev/null
   sudo chmod +x /usr/local/bin/zig

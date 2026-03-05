@@ -463,22 +463,22 @@ jobs:
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "tier1-windows-build-1")
-              # Tier1 build tests - half 1: python, dotnet, node, rust (no parallelization on Windows)
+              # Tier1 build tests - half 1: python, dotnet, node, main build cmd
               pytest -vv --reruns 3 -m "tier1 or tier1_extra" \
                 tests/integration/buildcmd/test_build_cmd_python.py \
                 tests/integration/buildcmd/test_build_cmd_dotnet.py \
                 tests/integration/buildcmd/test_build_cmd_node.py \
-                tests/integration/buildcmd/test_build_cmd_rust.py \
+                tests/integration/buildcmd/test_build_cmd.py \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "tier1-windows-build-2")
-              # Tier1 build tests - half 2: java, go, ruby, provided, and remaining build tests
+              # Tier1 build tests - half 2: java, go, ruby, rust, provided, and remaining
               pytest -vv --reruns 3 -m "tier1 or tier1_extra" \
                 tests/integration/buildcmd \
                 --ignore=tests/integration/buildcmd/test_build_cmd_python.py \
                 --ignore=tests/integration/buildcmd/test_build_cmd_dotnet.py \
                 --ignore=tests/integration/buildcmd/test_build_cmd_node.py \
-                --ignore=tests/integration/buildcmd/test_build_cmd_rust.py \
+                --ignore=tests/integration/buildcmd/test_build_cmd.py \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "tier1-windows-other")
