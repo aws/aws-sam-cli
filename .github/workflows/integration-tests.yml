@@ -251,7 +251,7 @@ jobs:
         run: bash tests/setup_finch.sh
 
       - name: Setup QEMU for ARM64 emulation
-        if: "!contains(fromJSON('[\"build-x86-1\", \"build-x86-2\", \"build-x86-container-1\", \"build-x86-container-2\", \"tier1-finch\", \"tier1-windows\"]'), matrix.test_suite)"
+        if: "!contains(fromJSON('[\"build-x86-1\", \"build-x86-2\", \"build-x86-container-1\", \"build-x86-container-2\", \"tier1-finch\", \"tier1-windows-build\", \"tier1-windows-other\"]'), matrix.test_suite)"
         shell: bash
         run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
