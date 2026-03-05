@@ -80,7 +80,10 @@ jobs:
           - tier1-finch
         include:
           # Tier 1: Cross-platform smoke tests on Windows (Docker via WSL2)
-          - test_suite: tier1-windows-build
+          # Split into 2 to avoid out-of-storage: build-1 covers python/dotnet/node/rust, build-2 covers java/go/ruby/provided
+          - test_suite: tier1-windows-build-1
+            os: windows-latest
+          - test_suite: tier1-windows-build-2
             os: windows-latest
           - test_suite: tier1-windows-other
             os: windows-latest
@@ -111,7 +114,12 @@ jobs:
 
       - name: Free up disk space
         shell: bash
-        run: bash tests/free_disk_space.sh
+        run: |
+          if [[ "${RUNNER_OS}" == "Windows" ]]; then
+            bash tests/free_disk_space_windows.sh
+          else
+            bash tests/free_disk_space.sh
+          fi
 
       # ── Windows WSL2 Docker Setup (tier1-windows-* only) ──
       - name: Stop Windows Docker Engine
@@ -181,7 +189,7 @@ jobs:
       - name: Install Python versions
         shell: bash
         run: |
-          if [[ "${{ matrix.test_suite }}" == "tier1-finch" || "${{ matrix.test_suite }}" == "tier1-windows-build" || "${{ matrix.test_suite }}" == "tier1-windows-other" ]]; then
+          if [[ "${{ matrix.test_suite }}" == "tier1-finch" || "${{ matrix.test_suite }}" == "tier1-windows-build-1" || "${{ matrix.test_suite }}" == "tier1-windows-build-2" || "${{ matrix.test_suite }}" == "tier1-windows-other" ]]; then
             # Tier 1 tests only need 3.11 (for SAM CLI) and 3.12-3.14 (for runtime tests)
             bash tests/setup-python-uv.sh 3.12 3.13 3.14 3.11
           else
@@ -189,31 +197,31 @@ jobs:
           fi
 
       - name: Set up Node.js
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch", "tier1-windows-build", "tier1-windows-other"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch", "tier1-windows-build-1", "tier1-windows-build-2", "tier1-windows-other"]'), matrix.test_suite)
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Set up Java 25
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "sync-code", "sync-watch", "cloud-based-tests", "tier1-finch", "tier1-windows-build", "tier1-windows-other"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "sync-code", "sync-watch", "cloud-based-tests", "tier1-finch", "tier1-windows-build-1", "tier1-windows-build-2", "tier1-windows-other"]'), matrix.test_suite)
         uses: actions/setup-java@v5
         with:
           distribution: 'corretto'
           java-version: '25'
 
       - name: Set up Go
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch", "tier1-windows-build", "tier1-windows-other"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch", "tier1-windows-build-1", "tier1-windows-build-2", "tier1-windows-other"]'), matrix.test_suite)
         uses: actions/setup-go@v6
         with:
           go-version: '1.25'
 
       - name: Install Maven and Gradle
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "sync-code", "sync-watch", "cloud-based-tests", "tier1-finch", "tier1-windows-build", "tier1-windows-other"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "sync-code", "sync-watch", "cloud-based-tests", "tier1-finch", "tier1-windows-build-1", "tier1-windows-build-2", "tier1-windows-other"]'), matrix.test_suite)
         shell: bash
         run: bash tests/install-maven-gradle.sh
 
       - name: Install .NET 10 SDK
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "other-and-e2e", "cloud-based-tests", "tier1-finch", "tier1-windows-build", "tier1-windows-other"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "other-and-e2e", "cloud-based-tests", "tier1-finch", "tier1-windows-build-1", "tier1-windows-build-2", "tier1-windows-other"]'), matrix.test_suite)
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
@@ -231,18 +239,18 @@ jobs:
           ruby-version: '3.2.7'
 
       - name: Set up Ruby 3.4.7
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "sync-code", "sync-watch", "other-and-e2e", "cloud-based-tests", "tier1-finch", "tier1-windows-build", "tier1-windows-other"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "sync-code", "sync-watch", "other-and-e2e", "cloud-based-tests", "tier1-finch", "tier1-windows-build-1", "tier1-windows-build-2", "tier1-windows-other"]'), matrix.test_suite)
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.4.7'
 
       - name: Install Rust toolchain and cargo-lambda
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch", "tier1-windows-build", "tier1-windows-other"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch", "tier1-windows-build-1", "tier1-windows-build-2", "tier1-windows-other"]'), matrix.test_suite)
         shell: bash
         run: bash tests/install-rust.sh --uv
 
       - name: Install Terraform
-        if: contains(fromJSON('["terraform-build", "terraform-start-api", "terraform-invoke-start-lambda", "cloud-based-tests", "tier1-finch", "tier1-windows-build", "tier1-windows-other"]'), matrix.test_suite)
+        if: contains(fromJSON('["terraform-build", "terraform-start-api", "terraform-invoke-start-lambda", "cloud-based-tests", "tier1-finch", "tier1-windows-build-1", "tier1-windows-build-2", "tier1-windows-other"]'), matrix.test_suite)
         shell: bash
         run: bash tests/install-terraform.sh
 
@@ -454,10 +462,23 @@ jobs:
                 tests/regression \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
-            "tier1-windows-build")
-              # Tier1 build tests only (no parallelization on Windows)
+            "tier1-windows-build-1")
+              # Tier1 build tests - half 1: python, dotnet, node, rust (no parallelization on Windows)
+              pytest -vv --reruns 3 -m "tier1 or tier1_extra" \
+                tests/integration/buildcmd/test_build_cmd_python.py \
+                tests/integration/buildcmd/test_build_cmd_dotnet.py \
+                tests/integration/buildcmd/test_build_cmd_node.py \
+                tests/integration/buildcmd/test_build_cmd_rust.py \
+                --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
+              ;;
+            "tier1-windows-build-2")
+              # Tier1 build tests - half 2: java, go, ruby, provided, and remaining build tests
               pytest -vv --reruns 3 -m "tier1 or tier1_extra" \
                 tests/integration/buildcmd \
+                --ignore=tests/integration/buildcmd/test_build_cmd_python.py \
+                --ignore=tests/integration/buildcmd/test_build_cmd_dotnet.py \
+                --ignore=tests/integration/buildcmd/test_build_cmd_node.py \
+                --ignore=tests/integration/buildcmd/test_build_cmd_rust.py \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "tier1-windows-other")

@@ -40,13 +40,13 @@ fi
 if [ "$USE_UV" = true ]; then
   PYTHON311="$(uv python find 3.11)"
   PYTHON311_BIN="$(dirname "$PYTHON311")"
-  uv pip install --break-system-packages --python "$PYTHON311" "cargo-lambda==$CARGO_LAMBDA_VERSION"
+  uv pip install --break-system-packages --python "$PYTHON311" "cargo-lambda==$CARGO_LAMBDA_VERSION" ziglang
   PYTHON_CMD="$PYTHON311"
   if [ -n "${GITHUB_PATH:-}" ]; then
     echo "$PYTHON311_BIN" >> "$GITHUB_PATH"
   fi
 else
-  python3.11 -m pip install "cargo-lambda==$CARGO_LAMBDA_VERSION"
+  python3.11 -m pip install "cargo-lambda==$CARGO_LAMBDA_VERSION" ziglang
   PYTHON_CMD="python3.11"
 fi
 
