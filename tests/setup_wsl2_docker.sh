@@ -75,5 +75,12 @@ for i in $(seq 1 30); do
   sleep 1
 done
 
+# Register QEMU binfmt handlers for ARM64 emulation
+# This must run inside WSL2 (not from Windows) because --privileged containers
+# have issues with devpts/resolv.conf when run via TCP from Windows.
+echo "=== Setting up QEMU for ARM64 emulation ==="
+sudo docker run --rm --privileged multiarch/qemu-user-static --reset -p yes || \
+  echo "WARNING: QEMU setup failed, ARM64 builds may not work"
+
 echo "=== Docker Engine installed and listening on TCP port 2375 ==="
 sudo docker info
