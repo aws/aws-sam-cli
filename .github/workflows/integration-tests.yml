@@ -116,10 +116,13 @@ jobs:
         if: matrix.test_suite == 'tier1-windows'
         shell: pwsh
         run: |
-          # Stop Docker service in background to avoid blocking
-          Start-Job { Stop-Service docker -Force -ErrorAction SilentlyContinue } | Out-Null
-          Get-Process "Docker Desktop" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-          Get-Process "com.docker.backend" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+          # Run all Docker shutdown steps in background to avoid blocking (~20s)
+          Start-Job {
+            Stop-Service docker -Force -ErrorAction SilentlyContinue
+            Get-Process "Docker Desktop" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+            Get-Process "com.docker.backend" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+            Get-Process "com.docker.service" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+          } | Out-Null
 
       - name: Install and Configure WSL 2
         if: matrix.test_suite == 'tier1-windows'
@@ -137,8 +140,6 @@ jobs:
             [automount]
             root = /
             options = "metadata"
-            [network]
-            generateResolvConf = false
 
       - name: WSL - Install Docker and expose on TCP
         if: matrix.test_suite == 'tier1-windows'
