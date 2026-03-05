@@ -49,17 +49,9 @@ sleep 1
 # Remove stale socket file if it exists
 sudo rm -f /var/run/docker.sock
 
-# Use D: drive for Docker storage if available (more disk space on Windows runners)
-DOCKER_DATA_ROOT_ARGS=""
-if [ -d "/d" ]; then
-  sudo mkdir -p /d/docker-data
-  DOCKER_DATA_ROOT_ARGS="--data-root /d/docker-data"
-  echo "Using /d/docker-data for Docker storage (D: drive)"
-fi
-
 # Start dockerd with both unix socket and TCP listeners
 # --tls=false suppresses the deprecation delay for non-TLS TCP binding
-sudo dockerd --tls=false --host unix:///var/run/docker.sock --host tcp://0.0.0.0:2375 $DOCKER_DATA_ROOT_ARGS &
+sudo dockerd --tls=false --host unix:///var/run/docker.sock --host tcp://0.0.0.0:2375 &
 
 # Wait for Docker to be ready (poll up to 30 seconds)
 echo "Waiting for Docker daemon to be ready..."

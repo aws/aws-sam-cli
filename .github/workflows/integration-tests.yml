@@ -181,7 +181,7 @@ jobs:
       - name: Install Python versions
         shell: bash
         run: |
-          if [[ "${{ matrix.test_suite }}" == "tier1-finch" || "${{ matrix.test_suite }}" == "tier1-windows" ]]; then
+          if [[ "${{ matrix.test_suite }}" == "tier1-finch" || "${{ matrix.test_suite }}" == "tier1-windows-build" || "${{ matrix.test_suite }}" == "tier1-windows-other" ]]; then
             # Tier 1 tests only need 3.11 (for SAM CLI) and 3.12-3.14 (for runtime tests)
             bash tests/setup-python-uv.sh 3.12 3.13 3.14 3.11
           else
@@ -189,31 +189,31 @@ jobs:
           fi
 
       - name: Set up Node.js
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch", "tier1-windows"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch", "tier1-windows-build", "tier1-windows-other"]'), matrix.test_suite)
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Set up Java 25
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "sync-code", "sync-watch", "cloud-based-tests", "tier1-finch", "tier1-windows"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "sync-code", "sync-watch", "cloud-based-tests", "tier1-finch", "tier1-windows-build", "tier1-windows-other"]'), matrix.test_suite)
         uses: actions/setup-java@v5
         with:
           distribution: 'corretto'
           java-version: '25'
 
       - name: Set up Go
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch", "tier1-windows"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch", "tier1-windows-build", "tier1-windows-other"]'), matrix.test_suite)
         uses: actions/setup-go@v6
         with:
           go-version: '1.25'
 
       - name: Install Maven and Gradle
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "sync-code", "sync-watch", "cloud-based-tests", "tier1-finch", "tier1-windows"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "sync-code", "sync-watch", "cloud-based-tests", "tier1-finch", "tier1-windows-build", "tier1-windows-other"]'), matrix.test_suite)
         shell: bash
         run: bash tests/install-maven-gradle.sh
 
       - name: Install .NET 10 SDK
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "other-and-e2e", "cloud-based-tests", "tier1-finch", "tier1-windows"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "other-and-e2e", "cloud-based-tests", "tier1-finch", "tier1-windows-build", "tier1-windows-other"]'), matrix.test_suite)
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
@@ -231,18 +231,18 @@ jobs:
           ruby-version: '3.2.7'
 
       - name: Set up Ruby 3.4.7
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "sync-code", "sync-watch", "other-and-e2e", "cloud-based-tests", "tier1-finch", "tier1-windows"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "sync-code", "sync-watch", "other-and-e2e", "cloud-based-tests", "tier1-finch", "tier1-windows-build", "tier1-windows-other"]'), matrix.test_suite)
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.4.7'
 
       - name: Install Rust toolchain and cargo-lambda
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch", "tier1-windows"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch", "tier1-windows-build", "tier1-windows-other"]'), matrix.test_suite)
         shell: bash
         run: bash tests/install-rust.sh --uv
 
       - name: Install Terraform
-        if: contains(fromJSON('["terraform-build", "terraform-start-api", "terraform-invoke-start-lambda", "cloud-based-tests", "tier1-finch", "tier1-windows"]'), matrix.test_suite)
+        if: contains(fromJSON('["terraform-build", "terraform-start-api", "terraform-invoke-start-lambda", "cloud-based-tests", "tier1-finch", "tier1-windows-build", "tier1-windows-other"]'), matrix.test_suite)
         shell: bash
         run: bash tests/install-terraform.sh
 
