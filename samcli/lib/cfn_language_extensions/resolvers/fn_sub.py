@@ -7,11 +7,6 @@ function, which performs string substitution with ${} placeholders.
 Fn::Sub supports two forms:
 - Short form: {"Fn::Sub": "Hello ${Name}"} - substitutes from parameters/pseudo-parameters
 - Long form: {"Fn::Sub": ["Hello ${Name}", {"Name": "World"}]} - uses variable map
-
-Requirements:
-    - 10.2: WHEN Fn::Sub is applied to a string with ${} placeholders, THEN THE
-            Resolver SHALL substitute the placeholders with the corresponding values
-            from parameters, pseudo-parameters, or the variable map
 """
 
 import re
@@ -19,6 +14,7 @@ from typing import Any, Dict, Optional, Tuple
 
 from samcli.lib.cfn_language_extensions.exceptions import InvalidTemplateException, UnresolvableReferenceError
 from samcli.lib.cfn_language_extensions.resolvers.base import IntrinsicFunctionResolver
+from samcli.lib.cfn_language_extensions.utils import PSEUDO_PARAMETERS, derive_partition, derive_url_suffix
 
 # Regex pattern to match ${VarName} or ${VarName.Attribute} placeholders
 # Matches: ${Name}, ${AWS::Region}, ${MyResource.Arn}
@@ -47,17 +43,6 @@ class FnSubResolver(IntrinsicFunctionResolver):
 
     Attributes:
         FUNCTION_NAMES: List containing "Fn::Sub"
-
-    Example:
-        >>> resolver = FnSubResolver(context, parent_resolver)
-        >>> resolver.resolve({"Fn::Sub": "Region is ${AWS::Region}"})
-        "Region is us-east-1"
-        >>> resolver.resolve({"Fn::Sub": ["Hello ${Name}", {"Name": "World"}]})
-        "Hello World"
-
-    Requirements:
-        - 10.2: Substitute placeholders with values from parameters,
-                pseudo-parameters, or variable map
     """
 
     FUNCTION_NAMES = ["Fn::Sub"]
@@ -80,10 +65,6 @@ class FnSubResolver(IntrinsicFunctionResolver):
 
         Raises:
             InvalidTemplateException: If the Fn::Sub layout is incorrect.
-
-        Example:
-            >>> resolver.resolve({"Fn::Sub": "Hello ${Name}"})
-            "Hello World"  # If Name parameter is "World"
         """
         args = self.get_function_args(value)
 
@@ -294,8 +275,8 @@ class FnSubResolver(IntrinsicFunctionResolver):
             "AWS::StackId": pseudo.stack_id,
             "AWS::StackName": pseudo.stack_name,
             "AWS::NotificationARNs": pseudo.notification_arns,
-            "AWS::Partition": pseudo.partition or self._derive_partition(pseudo.region),
-            "AWS::URLSuffix": pseudo.url_suffix or self._derive_url_suffix(pseudo.region),
+            "AWS::Partition": pseudo.partition or derive_partition(pseudo.region),
+            "AWS::URLSuffix": pseudo.url_suffix or derive_url_suffix(pseudo.region),
         }
 
         if var_name in pseudo_map:
@@ -315,49 +296,7 @@ class FnSubResolver(IntrinsicFunctionResolver):
         Returns:
             True if it's a pseudo-parameter name.
         """
-        pseudo_params = {
-            "AWS::AccountId",
-            "AWS::NotificationARNs",
-            "AWS::NoValue",
-            "AWS::Partition",
-            "AWS::Region",
-            "AWS::StackId",
-            "AWS::StackName",
-            "AWS::URLSuffix",
-        }
-        return var_name in pseudo_params
-
-    def _derive_partition(self, region: str) -> str:
-        """
-        Derive the AWS partition from the region.
-
-        Args:
-            region: The AWS region string.
-
-        Returns:
-            The partition string (aws, aws-cn, or aws-us-gov).
-        """
-        if region.startswith("cn-"):
-            return "aws-cn"
-        elif region.startswith("us-gov-"):
-            return "aws-us-gov"
-        else:
-            return "aws"
-
-    def _derive_url_suffix(self, region: str) -> str:
-        """
-        Derive the AWS URL suffix from the region.
-
-        Args:
-            region: The AWS region string.
-
-        Returns:
-            The URL suffix string.
-        """
-        if region.startswith("cn-"):
-            return "amazonaws.com.cn"
-        else:
-            return "amazonaws.com"
+        return var_name in PSEUDO_PARAMETERS
 
     def _value_to_string(self, value: Any) -> str:
         """

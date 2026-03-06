@@ -8,11 +8,6 @@ necessary processors and resolvers.
 The main function `process_template` accepts a template dictionary and optional
 processing options, and returns the processed template with language extensions
 resolved.
-
-Requirements:
-    - 12.1: Provide a process_template function that accepts a template dictionary
-    - 12.4: Support loading templates from JSON and YAML files
-    - 12.5: Return the processed template as a Python dictionary
 """
 
 import copy
@@ -23,10 +18,7 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
-from samcli.lib.cfn_language_extensions.exceptions import (
-    InvalidTemplateException,
-    UnresolvableReferenceError,
-)
+from samcli.lib.cfn_language_extensions.exceptions import InvalidTemplateException, UnresolvableReferenceError
 from samcli.lib.cfn_language_extensions.models import (
     PseudoParameterValues,
     ResolutionMode,
@@ -53,6 +45,7 @@ from samcli.lib.cfn_language_extensions.resolvers import (
     FnToJsonStringResolver,
     IntrinsicResolver,
 )
+from samcli.lib.cfn_language_extensions.utils import PSEUDO_PARAMETERS
 
 LOG = logging.getLogger(__name__)
 
@@ -142,6 +135,7 @@ class IntrinsicResolverProcessor:
         Args:
             context: The template processing context.
         """
+        LOG.debug("Resolving intrinsic functions in template")
         # Process each section separately to handle Conditions specially
         fragment = context.fragment
 
@@ -160,11 +154,11 @@ class IntrinsicResolverProcessor:
 
         # Process Resources section with special handling for false conditions
         if "Resources" in fragment:
-            fragment["Resources"] = self._resolve_resources_section(fragment["Resources"], context)
+            fragment["Resources"] = self._resolve_section_with_conditions(fragment["Resources"], context)
 
         # Process Outputs section with special handling for false conditions
         if "Outputs" in fragment:
-            fragment["Outputs"] = self._resolve_outputs_section(fragment["Outputs"], context)
+            fragment["Outputs"] = self._resolve_section_with_conditions(fragment["Outputs"], context)
 
         # Process other sections normally
         for key in list(fragment.keys()):
@@ -177,82 +171,36 @@ class IntrinsicResolverProcessor:
 
         context.fragment = fragment
 
-    def _resolve_resources_section(self, resources: Any, context: TemplateProcessingContext) -> Any:
+    def _resolve_section_with_conditions(self, section: Any, context: TemplateProcessingContext) -> Any:
         """
-        Resolve intrinsic functions in the Resources section.
+        Resolve intrinsic functions in a section that supports Condition attributes.
 
-        Resources with false conditions use partial resolution where
+        Entries with false conditions use partial resolution where
         unresolvable intrinsics are replaced with AWS::NoValue.
 
         Args:
-            resources: The Resources section dictionary.
+            section: The section dictionary (Resources or Outputs).
             context: The template processing context.
 
         Returns:
-            The Resources section with intrinsics resolved.
+            The section with intrinsics resolved.
         """
-        if not isinstance(resources, dict):
-            return self._resolver.resolve_value(resources)
+        if not isinstance(section, dict):
+            return self._resolver.resolve_value(section)
 
         result = {}
-        for logical_id, resource in resources.items():
-            if isinstance(resource, dict) and "Condition" in resource:
-                condition_name = resource["Condition"]
+        for logical_id, entry in section.items():
+            if isinstance(entry, dict) and "Condition" in entry:
+                condition_name = entry["Condition"]
                 # Check if condition is false
                 if condition_name in context.resolved_conditions:
                     if not context.resolved_conditions[condition_name]:
                         # False condition - use partial resolution
-                        result[logical_id] = self._resolve_with_false_condition(resource)
+                        result[logical_id] = self._partial_resolve(entry)
                         continue
             # Normal resolution
-            result[logical_id] = self._resolver.resolve_value(resource)
+            result[logical_id] = self._resolver.resolve_value(entry)
         return result
-
-    def _resolve_outputs_section(self, outputs: Any, context: TemplateProcessingContext) -> Any:
-        """
-        Resolve intrinsic functions in the Outputs section.
-
-        Outputs with false conditions use partial resolution where
-        unresolvable intrinsics are replaced with AWS::NoValue.
-
-        Args:
-            outputs: The Outputs section dictionary.
-            context: The template processing context.
-
-        Returns:
-            The Outputs section with intrinsics resolved.
-        """
-        if not isinstance(outputs, dict):
-            return self._resolver.resolve_value(outputs)
-
-        result = {}
-        for logical_id, output in outputs.items():
-            if isinstance(output, dict) and "Condition" in output:
-                condition_name = output["Condition"]
-                # Check if condition is false
-                if condition_name in context.resolved_conditions:
-                    if not context.resolved_conditions[condition_name]:
-                        # False condition - use partial resolution
-                        result[logical_id] = self._resolve_with_false_condition(output)
-                        continue
-            # Normal resolution
-            result[logical_id] = self._resolver.resolve_value(output)
-        return result
-
-    def _resolve_with_false_condition(self, value: Any) -> Any:
-        """
-        Resolve a value using partial resolution for false conditions.
-
-        In this mode, unresolvable intrinsics are replaced with AWS::NoValue
-        instead of throwing errors.
-
-        Args:
-            value: The value to resolve.
-
-        Returns:
-            The resolved value with unresolvable intrinsics replaced by AWS::NoValue.
-        """
-        return self._partial_resolve(value)
 
     def _partial_resolve(self, value: Any) -> Any:
         """
@@ -279,16 +227,7 @@ class IntrinsicResolverProcessor:
                 if key == "Ref":
                     # For false-condition resources, replace Refs to parameters with AWS::NoValue
                     # Only keep Refs to pseudo-parameters that are always available
-                    always_available_refs = {
-                        "AWS::NoValue",
-                        "AWS::Region",
-                        "AWS::AccountId",
-                        "AWS::StackName",
-                        "AWS::StackId",
-                        "AWS::Partition",
-                        "AWS::URLSuffix",
-                    }
-                    if isinstance(inner_value, str) and inner_value not in always_available_refs:
+                    if isinstance(inner_value, str) and inner_value not in PSEUDO_PARAMETERS:
                         return {"Ref": "AWS::NoValue"}
                     # Try to resolve pseudo-parameters
                     try:
@@ -336,8 +275,6 @@ class IntrinsicResolverProcessor:
         Returns:
             The partially resolved FindInMap or the resolved value.
         """
-        from samcli.lib.cfn_language_extensions.exceptions import InvalidTemplateException
-
         args = value.get("Fn::FindInMap", [])
         if not isinstance(args, list) or len(args) < 3:
             return value
@@ -391,8 +328,6 @@ class IntrinsicResolverProcessor:
         Raises:
             InvalidTemplateException: If a resource references a non-existent condition.
         """
-        from samcli.lib.cfn_language_extensions.exceptions import InvalidTemplateException
-
         resources = fragment.get("Resources", {})
         conditions = fragment.get("Conditions", {})
 
@@ -423,8 +358,6 @@ class IntrinsicResolverProcessor:
         Raises:
             InvalidTemplateException: If circular condition dependencies are detected.
         """
-        from samcli.lib.cfn_language_extensions.exceptions import InvalidTemplateException
-
         # Update parsed_template conditions to match fragment (for ForEach expansion)
         if context.parsed_template:
             context.parsed_template.conditions = conditions
@@ -463,27 +396,15 @@ class IntrinsicResolverProcessor:
 
         # Check each condition for cycles
         for condition_name in conditions:
-            visited.clear()
-            rec_stack.clear()
             cycle = detect_cycle(condition_name, [])
             if cycle:
-                # Format error message like Kotlin: "Found circular condition dependency between X and Y"
-                if len(cycle) >= 2:
-                    raise InvalidTemplateException(
-                        f"Found circular condition dependency between {cycle[0]} and {cycle[1]}"
-                    )
-                else:
-                    raise InvalidTemplateException(
-                        f"Found circular condition dependency between {cycle[0]} and {cycle[0]}"
-                    )
+                cycle_path = " -> ".join(cycle + [cycle[0]])
+                raise InvalidTemplateException(f"Found circular condition dependency: {cycle_path}")
 
         # Now evaluate all conditions (no cycles, so this is safe)
         for condition_name in conditions:
             if condition_name not in context.resolved_conditions:
-                try:
-                    self._resolver.resolve_value({"Condition": condition_name})
-                except InvalidTemplateException:
-                    raise
+                self._resolver.resolve_value({"Condition": condition_name})
 
     def _extract_condition_dependencies(self, value: Any) -> set:
         """
@@ -541,37 +462,11 @@ class IntrinsicResolverProcessor:
         Returns:
             The value with AWS::NoValue properties removed.
         """
-        # Policy attributes that should not be removed even if AWS::NoValue
-        POLICY_ATTRS = {"DeletionPolicy", "UpdateReplacePolicy"}
-        # Intrinsic functions whose arguments should preserve AWS::NoValue
-        INTRINSIC_FUNCTIONS = {
-            "Fn::FindInMap",
-            "Fn::Join",
-            "Fn::Select",
-            "Fn::Split",
-            "Fn::Sub",
-            "Fn::If",
-            "Fn::And",
-            "Fn::Or",
-            "Fn::Not",
-            "Fn::Equals",
-            "Fn::GetAtt",
-            "Fn::GetAZs",
-            "Fn::ImportValue",
-            "Fn::Length",
-            "Fn::ToJsonString",
-            "Fn::Base64",
-            "Fn::Cidr",
-            "Fn::ForEach",
-            "Ref",
-            "Condition",
-        }
-
         if isinstance(value, dict):
             # Check if this is an intrinsic function - if so, preserve AWS::NoValue in args
             if len(value) == 1:
                 key = next(iter(value.keys()))
-                if key in INTRINSIC_FUNCTIONS:
+                if key in _INTRINSIC_FUNCTIONS:
                     # This is an intrinsic function - preserve AWS::NoValue in arguments
                     inner = value[key]
                     if isinstance(inner, list):
@@ -585,7 +480,7 @@ class IntrinsicResolverProcessor:
             result = {}
             for k, v in value.items():
                 # Preserve policy attributes for validation by policy processors
-                if preserve_policy_attrs and k in POLICY_ATTRS:
+                if preserve_policy_attrs and k in _POLICY_ATTRS:
                     result[k] = self._remove_no_value(v, preserve_policy_attrs=False)
                     continue
                 # Check if value is {"Ref": "AWS::NoValue"} or None
@@ -679,6 +574,34 @@ class IntrinsicResolverProcessor:
             return value
 
 
+# Policy attributes that should not be removed even if AWS::NoValue
+_POLICY_ATTRS = {"DeletionPolicy", "UpdateReplacePolicy"}
+
+# Intrinsic functions whose arguments should preserve AWS::NoValue
+_INTRINSIC_FUNCTIONS = {
+    "Fn::FindInMap",
+    "Fn::Join",
+    "Fn::Select",
+    "Fn::Split",
+    "Fn::Sub",
+    "Fn::If",
+    "Fn::And",
+    "Fn::Or",
+    "Fn::Not",
+    "Fn::Equals",
+    "Fn::GetAtt",
+    "Fn::GetAZs",
+    "Fn::ImportValue",
+    "Fn::Length",
+    "Fn::ToJsonString",
+    "Fn::Base64",
+    "Fn::Cidr",
+    "Fn::ForEach",
+    "Ref",
+    "Condition",
+}
+
+
 def create_default_pipeline(context: TemplateProcessingContext) -> ProcessingPipeline:
     """
     Create a default processing pipeline with all standard processors.
@@ -747,26 +670,6 @@ def process_template(
     Raises:
         InvalidTemplateException: If the template is invalid or processing
                                   fails.
-
-    Example:
-        >>> template = {
-        ...     "Resources": {
-        ...         "Fn::ForEach::Topics": [
-        ...             "TopicName",
-        ...             ["Alerts", "Notifications"],
-        ...             {"Topic${TopicName}": {"Type": "AWS::SNS::Topic"}}
-        ...         ]
-        ...     }
-        ... }
-        >>> result = process_template(template)
-        >>> print(result["Resources"])
-        {'TopicAlerts': {'Type': 'AWS::SNS::Topic'},
-         'TopicNotifications': {'Type': 'AWS::SNS::Topic'}}
-
-    Requirements:
-        - 12.1: Accept a template dictionary and processing options
-        - 12.4: Support both JSON and YAML template input formats
-        - 12.5: Return the processed template as a Python dictionary
     """
     # Create the processing context
     context = TemplateProcessingContext(
@@ -798,13 +701,6 @@ def load_template_from_json(file_path: str) -> Dict[str, Any]:
         FileNotFoundError: If the file does not exist.
         json.JSONDecodeError: If the file contains invalid JSON.
         IsADirectoryError: If the path points to a directory.
-
-    Example:
-        >>> template = load_template_from_json("template.json")
-        >>> result = process_template(template)
-
-    Requirements:
-        - 12.4: Support loading templates from JSON files
     """
     with open(file_path, "r", encoding="utf-8") as f:
         result = json.load(f)
@@ -831,13 +727,6 @@ def load_template_from_yaml(file_path: str) -> Dict[str, Any]:
         FileNotFoundError: If the file does not exist.
         yaml.YAMLError: If the file contains invalid YAML.
         IsADirectoryError: If the path points to a directory.
-
-    Example:
-        >>> template = load_template_from_yaml("template.yaml")
-        >>> result = process_template(template)
-
-    Requirements:
-        - 12.4: Support loading templates from YAML files
     """
     with open(file_path, "r", encoding="utf-8") as f:
         result = yaml.safe_load(f)
@@ -865,18 +754,6 @@ def load_template(file_path: str) -> Dict[str, Any]:
         json.JSONDecodeError: If a JSON file contains invalid JSON.
         yaml.YAMLError: If a YAML file contains invalid YAML.
         IsADirectoryError: If the path points to a directory.
-
-    Example:
-        >>> # Auto-detects JSON format
-        >>> template = load_template("template.json")
-        >>>
-        >>> # Auto-detects YAML format
-        >>> template = load_template("template.yaml")
-        >>>
-        >>> result = process_template(template)
-
-    Requirements:
-        - 12.4: Support loading templates from JSON and YAML files
     """
     # Get the file extension (lowercase for case-insensitive comparison)
     _, ext = os.path.splitext(file_path)

@@ -7,21 +7,6 @@ function, which looks up values in the Mappings section of a template.
 The resolver supports the AWS::LanguageExtensions enhancement that allows
 specifying a DefaultValue to return when the map lookup fails.
 
-Requirements:
-    - 5.1: WHEN Fn::FindInMap is applied with valid map name, top-level key, and
-           second-level key, THEN THE Resolver SHALL return the corresponding
-           value from the Mappings section
-    - 5.2: WHEN Fn::FindInMap includes a DefaultValue option and the top-level key
-           is not found, THEN THE Resolver SHALL return the default value
-    - 5.3: WHEN Fn::FindInMap includes a DefaultValue option and the second-level key
-           is not found, THEN THE Resolver SHALL return the default value
-    - 5.4: WHEN Fn::FindInMap keys contain nested intrinsic functions (Fn::Select,
-           Fn::Split, Fn::If, Fn::Join, Fn::Sub), THEN THE Resolver SHALL resolve
-           those intrinsics before performing the lookup
-    - 5.5: WHEN Fn::FindInMap is applied with an invalid layout, THEN THE Resolver
-           SHALL raise an Invalid_Template_Exception
-    - 5.6: WHEN Fn::FindInMap lookup fails without a DefaultValue, THEN THE Resolver
-           SHALL raise an Invalid_Template_Exception
 """
 
 from typing import Any, Dict
@@ -52,30 +37,9 @@ class FnFindInMapResolver(IntrinsicFunctionResolver):
     Attributes:
         FUNCTION_NAMES: List containing "Fn::FindInMap"
 
-    Example:
-        >>> # Given Mappings: {"RegionMap": {"us-east-1": {"AMI": "ami-12345"}}}
-        >>> resolver = FnFindInMapResolver(context, parent_resolver)
-        >>> resolver.resolve({"Fn::FindInMap": ["RegionMap", "us-east-1", "AMI"]})
-        "ami-12345"
-
-        >>> # With DefaultValue when key not found
-        >>> resolver.resolve({
-        ...     "Fn::FindInMap": ["RegionMap", "invalid-region", "AMI",
-        ...                       {"DefaultValue": "ami-default"}]
-        ... })
-        "ami-default"
-
     Raises:
         InvalidTemplateException: If the layout is incorrect or lookup fails
                                   without a DefaultValue.
-
-    Requirements:
-        - 5.1: Return the corresponding value from the Mappings section
-        - 5.2: Return DefaultValue when top-level key is not found
-        - 5.3: Return DefaultValue when second-level key is not found
-        - 5.4: Resolve nested intrinsics in keys before lookup
-        - 5.5: Raise InvalidTemplateException for invalid layout
-        - 5.6: Raise InvalidTemplateException when lookup fails without DefaultValue
     """
 
     FUNCTION_NAMES = ["Fn::FindInMap"]
@@ -103,12 +67,6 @@ class FnFindInMapResolver(IntrinsicFunctionResolver):
                                       fewer than 3 elements) or if the lookup
                                       fails without a DefaultValue.
 
-        Example:
-            >>> resolver.resolve({"Fn::FindInMap": ["RegionMap", "us-east-1", "AMI"]})
-            "ami-12345"
-            >>> resolver.resolve({"Fn::FindInMap": ["RegionMap", "invalid", "AMI",
-            ...                                     {"DefaultValue": "default"}]})
-            "default"
         """
         # Extract the arguments from the intrinsic function
         args = self.get_function_args(value)
@@ -217,11 +175,11 @@ class FnFindInMapResolver(IntrinsicFunctionResolver):
             dictionary if no parsed template or mappings are available.
         """
         if self.context.parsed_template is not None:
-            return dict(self.context.parsed_template.mappings or {})
+            return self.context.parsed_template.mappings or {}
 
         # Fallback to fragment if parsed_template not available
         mappings = self.context.fragment.get("Mappings", {})
-        return dict(mappings) if isinstance(mappings, dict) else {}
+        return mappings if isinstance(mappings, dict) else {}
 
     def _resolve_default_value(self, default_value: Any) -> Any:
         """

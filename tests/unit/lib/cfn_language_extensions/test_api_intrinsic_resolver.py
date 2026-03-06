@@ -82,17 +82,17 @@ class TestPartialResolve:
         assert result == {"Ref": "AWS::NoValue"}
 
 
-class TestResolveWithFalseCondition:
-    """Tests for _resolve_with_false_condition."""
+class TestPartialResolveDirectCall:
+    """Tests for _partial_resolve (formerly _resolve_with_false_condition)."""
 
-    def test_delegates_to_partial_resolve(self):
+    def test_primitive_value_returned_as_is(self):
         context = TemplateProcessingContext(
             fragment={"Resources": {}},
             parameter_values={},
         )
         resolver = create_default_intrinsic_resolver(context)
         proc = IntrinsicResolverProcessor(resolver)
-        result = proc._resolve_with_false_condition("simple")
+        result = proc._partial_resolve("simple")
         assert result == "simple"
 
 
@@ -202,27 +202,17 @@ class TestProcessTemplateConditions:
         assert "Outputs" in result
 
 
-class TestResolveResourcesSection:
-    """Tests for _resolve_resources_section edge cases."""
+class TestResolveSectionWithConditions:
+    """Tests for _resolve_section_with_conditions edge cases."""
 
-    def test_non_dict_resources_resolved(self):
+    def test_non_dict_section_resolved(self):
         context = TemplateProcessingContext(
             fragment={"Resources": "not a dict"},
             parameter_values={},
         )
         resolver = create_default_intrinsic_resolver(context)
         proc = IntrinsicResolverProcessor(resolver)
-        result = proc._resolve_resources_section("not a dict", context)
-        assert result == "not a dict"
-
-    def test_non_dict_outputs_resolved(self):
-        context = TemplateProcessingContext(
-            fragment={"Resources": {}, "Outputs": "not a dict"},
-            parameter_values={},
-        )
-        resolver = create_default_intrinsic_resolver(context)
-        proc = IntrinsicResolverProcessor(resolver)
-        result = proc._resolve_outputs_section("not a dict", context)
+        result = proc._resolve_section_with_conditions("not a dict", context)
         assert result == "not a dict"
 
 

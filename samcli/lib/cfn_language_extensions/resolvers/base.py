@@ -13,6 +13,8 @@ The resolver pattern uses:
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
+from samcli.lib.cfn_language_extensions.utils import PSEUDO_PARAMETERS
+
 if TYPE_CHECKING:
     from samcli.lib.cfn_language_extensions.models import TemplateProcessingContext
 
@@ -69,27 +71,6 @@ class IntrinsicFunctionResolver(ABC):
                         E.g., ["Fn::Length"] or ["Fn::Join", "Fn::Split"]
         context: The template processing context with parameters, mappings, etc.
         parent: The parent IntrinsicResolver for resolving nested intrinsics.
-
-    Example:
-        >>> class FnLengthResolver(IntrinsicFunctionResolver):
-        ...     FUNCTION_NAMES = ["Fn::Length"]
-        ...
-        ...     def resolve(self, value: Dict[str, Any]) -> int:
-        ...         args = value["Fn::Length"]
-        ...         resolved_args = self.parent.resolve_value(args)
-        ...         if not isinstance(resolved_args, list):
-        ...             raise InvalidTemplateException("Fn::Length layout is incorrect")
-        ...         return len(resolved_args)
-
-    Requirements:
-        - 10.1: Support Fn::Ref for parameter and resource references
-        - 10.2: Support Fn::Sub for string substitution with variables
-        - 10.3: Support Fn::Join for concatenating strings with a delimiter
-        - 10.4: Support Fn::Split for splitting strings into lists
-        - 10.5: Support Fn::Select for selecting items from lists by index
-        - 10.6: Support Fn::If for conditional value selection
-        - 10.7: Support Fn::GetAtt by preserving it unresolved
-        - 10.8: Support Fn::Base64 for base64 encoding strings
     """
 
     # Intrinsic function names this resolver handles.
@@ -108,10 +89,6 @@ class IntrinsicFunctionResolver(ABC):
             parent_resolver: The parent IntrinsicResolver used for resolving
                              nested intrinsic functions. Can be None for
                              testing or standalone use.
-
-        Example:
-            >>> context = TemplateProcessingContext(fragment=template)
-            >>> resolver = FnLengthResolver(context, parent_resolver)
         """
         self.context = context
         self.parent = parent_resolver
@@ -132,17 +109,6 @@ class IntrinsicFunctionResolver(ABC):
             True if this resolver can handle the value (i.e., it's a dict
             with exactly one key matching a function name in FUNCTION_NAMES).
             False otherwise.
-
-        Example:
-            >>> resolver = FnLengthResolver(context, parent)
-            >>> resolver.can_resolve({"Fn::Length": [1, 2, 3]})
-            True
-            >>> resolver.can_resolve({"Fn::Sub": "hello"})
-            False
-            >>> resolver.can_resolve("not a dict")
-            False
-            >>> resolver.can_resolve({"key1": "v1", "key2": "v2"})
-            False
         """
         # Must be a dictionary
         if not isinstance(value, dict):
@@ -183,11 +149,6 @@ class IntrinsicFunctionResolver(ABC):
         Raises:
             InvalidTemplateException: If the function arguments are invalid
                                       or resolution fails.
-
-        Example:
-            >>> # For Fn::Length resolver
-            >>> resolver.resolve({"Fn::Length": [1, 2, 3]})
-            3
         """
         raise NotImplementedError(f"Subclass must implement resolve() for {self.FUNCTION_NAMES}")
 
@@ -204,10 +165,6 @@ class IntrinsicFunctionResolver(ABC):
 
         Returns:
             The function name (the single key in the dictionary).
-
-        Example:
-            >>> resolver.get_function_name({"Fn::Length": [1, 2, 3]})
-            "Fn::Length"
         """
         return next(iter(value.keys()))
 
@@ -223,10 +180,6 @@ class IntrinsicFunctionResolver(ABC):
 
         Returns:
             The function arguments (the single value in the dictionary).
-
-        Example:
-            >>> resolver.get_function_args({"Fn::Length": [1, 2, 3]})
-            [1, 2, 3]
         """
         return next(iter(value.values()))
 
@@ -260,26 +213,6 @@ class IntrinsicResolver:
         context: The template processing context.
         resolvers: List of IntrinsicFunctionResolver instances in the chain.
         preserve_functions: Set of function names to preserve in partial mode.
-
-    Example:
-        >>> context = TemplateProcessingContext(
-        ...     fragment=template,
-        ...     resolution_mode=ResolutionMode.PARTIAL
-        ... )
-        >>> orchestrator = IntrinsicResolver(context)
-        >>> orchestrator.register_resolver(FnLengthResolver)
-        >>> orchestrator.register_resolver(FnSubResolver)
-        >>> result = orchestrator.resolve_value({"Fn::Length": [1, 2, 3]})
-        3
-
-    Requirements:
-        - 16.1: Support partial resolution mode that preserves Fn::Ref to resources
-        - 16.2: Support partial resolution mode that preserves Fn::GetAtt references
-        - 16.3: Support partial resolution mode that preserves Fn::ImportValue references
-        - 16.4: In partial mode, still resolve Fn::ForEach, Fn::Length, Fn::ToJsonString,
-                and Fn::FindInMap with DefaultValue
-        - 16.5: In partial mode, resolve Fn::If conditions where condition value is known
-        - 16.6: Allow configuration of which intrinsic functions to preserve vs resolve
     """
 
     # Default functions to preserve in partial resolution mode.
@@ -302,16 +235,6 @@ class IntrinsicResolver:
                                 in partial resolution mode. If None, uses
                                 DEFAULT_PRESERVE_FUNCTIONS. This allows
                                 configuration of which functions to preserve.
-
-        Example:
-            >>> context = TemplateProcessingContext(fragment=template)
-            >>> # Use default preserve functions
-            >>> orchestrator = IntrinsicResolver(context)
-            >>> # Or customize which functions to preserve
-            >>> orchestrator = IntrinsicResolver(
-            ...     context,
-            ...     preserve_functions={"Fn::GetAtt", "Fn::ImportValue"}
-            ... )
         """
         self.context = context
         self._resolvers: List[IntrinsicFunctionResolver] = []
@@ -341,9 +264,6 @@ class IntrinsicResolver:
 
         Returns:
             Self for method chaining.
-
-        Example:
-            >>> orchestrator.set_preserve_functions({"Fn::GetAtt", "Fn::ImportValue"})
         """
         self._preserve_functions = functions.copy()
         return self
@@ -389,10 +309,6 @@ class IntrinsicResolver:
 
         Returns:
             Self for method chaining.
-
-        Example:
-            >>> orchestrator.register_resolver(FnLengthResolver)
-            ...            .register_resolver(FnSubResolver)
         """
         resolver = resolver_class(self.context, self)
         self._resolvers.append(resolver)
@@ -457,11 +373,6 @@ class IntrinsicResolver:
 
         Returns:
             True if the function should be preserved, False otherwise.
-
-        Requirements:
-            - 16.1: Preserve Fn::Ref to resources in partial mode
-            - 16.2: Preserve Fn::GetAtt references in partial mode
-            - 16.3: Preserve Fn::ImportValue references in partial mode
         """
         # Import here to avoid circular imports
         from samcli.lib.cfn_language_extensions.models import ResolutionMode
@@ -500,18 +411,7 @@ class IntrinsicResolver:
         if not isinstance(ref_target, str):
             return False
 
-        # Check if it's a pseudo-parameter
-        pseudo_params = {
-            "AWS::AccountId",
-            "AWS::NotificationARNs",
-            "AWS::NoValue",
-            "AWS::Partition",
-            "AWS::Region",
-            "AWS::StackId",
-            "AWS::StackName",
-            "AWS::URLSuffix",
-        }
-        if ref_target in pseudo_params:
+        if ref_target in PSEUDO_PARAMETERS:
             return False
 
         # Check if it's a template parameter
@@ -549,23 +449,6 @@ class IntrinsicResolver:
         Returns:
             The resolved value with intrinsic functions evaluated,
             or preserved intrinsic functions in partial mode.
-
-        Requirements:
-            - 16.1: Preserve Fn::Ref to resources in partial mode
-            - 16.2: Preserve Fn::GetAtt references in partial mode
-            - 16.3: Preserve Fn::ImportValue references in partial mode
-            - 16.4: Resolve Fn::ForEach, Fn::Length, Fn::ToJsonString,
-                    Fn::FindInMap with DefaultValue in partial mode
-            - 16.5: Resolve Fn::If conditions where condition value is known
-
-        Example:
-            >>> # In partial mode, Fn::GetAtt is preserved
-            >>> orchestrator.resolve_value({"Fn::GetAtt": ["MyBucket", "Arn"]})
-            {"Fn::GetAtt": ["MyBucket", "Arn"]}
-
-            >>> # But Fn::Length is still resolved
-            >>> orchestrator.resolve_value({"Fn::Length": [1, 2, 3]})
-            3
         """
         # Check if this is an intrinsic function that should be preserved
         if self._is_intrinsic_function(value) and self._should_preserve(value):

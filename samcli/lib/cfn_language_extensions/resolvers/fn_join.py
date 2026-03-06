@@ -5,11 +5,6 @@ This module provides the resolver for the CloudFormation Fn::Join intrinsic
 function, which joins list elements with a delimiter.
 
 Fn::Join format: {"Fn::Join": [delimiter, [list, of, items]]}
-
-Requirements:
-    - 10.3: WHEN Fn::Join is applied to a list with a delimiter, THEN THE
-            Resolver SHALL return a string with all list elements joined by
-            the delimiter
 """
 
 from typing import Any, Dict
@@ -33,19 +28,9 @@ class FnJoinResolver(IntrinsicFunctionResolver):
     Attributes:
         FUNCTION_NAMES: List containing "Fn::Join"
 
-    Example:
-        >>> resolver = FnJoinResolver(context, parent_resolver)
-        >>> resolver.resolve({"Fn::Join": [",", ["a", "b", "c"]]})
-        "a,b,c"
-        >>> resolver.resolve({"Fn::Join": ["-", ["2023", "01", "15"]]})
-        "2023-01-15"
-
     Raises:
         InvalidTemplateException: If the layout is incorrect (not a list of
                                   [delimiter, list] or list items are not strings).
-
-    Requirements:
-        - 10.3: Return a string with all list elements joined by the delimiter
     """
 
     FUNCTION_NAMES = ["Fn::Join"]
@@ -68,12 +53,6 @@ class FnJoinResolver(IntrinsicFunctionResolver):
         Raises:
             InvalidTemplateException: If the layout is incorrect.
                                       Error message: "Fn::Join layout is incorrect"
-
-        Example:
-            >>> resolver.resolve({"Fn::Join": [",", ["a", "b", "c"]]})
-            "a,b,c"
-            >>> resolver.resolve({"Fn::Join": ["", ["Hello", "World"]]})
-            "HelloWorld"
         """
         # Extract the arguments from the intrinsic function
         args = self.get_function_args(value)

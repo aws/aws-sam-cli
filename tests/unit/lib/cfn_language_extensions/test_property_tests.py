@@ -22,7 +22,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from samcli.lib.cfn_language_extensions.exceptions import InvalidTemplateException
-from samcli.lib.cfn_language_extensions.models import TemplateProcessingContext
+from samcli.lib.cfn_language_extensions.models import ParsedTemplate, TemplateProcessingContext
 from samcli.lib.cfn_language_extensions.processors.foreach import ForEachProcessor
 
 # =============================================================================
@@ -452,9 +452,9 @@ class TestProperty6LocallyResolvableCollectionAcceptance:
         For any Fn::ForEach with a parameter reference collection
         and provided parameter value, the processor SHALL successfully expand.
 
-        **Validates: Requirements 5.7**
         """
-        processor = ForEachProcessor()
+        from samcli.lib.cfn_language_extensions.api import create_default_intrinsic_resolver
+
         foreach_key = f"Fn::ForEach::{loop_name}"
         context = TemplateProcessingContext(
             fragment={
@@ -478,6 +478,7 @@ class TestProperty6LocallyResolvableCollectionAcceptance:
             },
             parameter_values={param_name: collection},
         )
+        processor = ForEachProcessor(intrinsic_resolver=create_default_intrinsic_resolver(context))
 
         processor.process_template(context)
 
@@ -503,9 +504,9 @@ class TestProperty6LocallyResolvableCollectionAcceptance:
         For any Fn::ForEach with a parameter reference collection
         and default value, the processor SHALL successfully expand using the default.
 
-        **Validates: Requirements 5.7**
         """
-        processor = ForEachProcessor()
+        from samcli.lib.cfn_language_extensions.api import create_default_intrinsic_resolver
+
         foreach_key = f"Fn::ForEach::{loop_name}"
         default_value = ",".join(collection)
 
@@ -531,6 +532,11 @@ class TestProperty6LocallyResolvableCollectionAcceptance:
             },
             parameter_values={},
         )
+        context.parsed_template = ParsedTemplate(
+            parameters={param_name: {"Type": "CommaDelimitedList", "Default": default_value}},
+            resources={},
+        )
+        processor = ForEachProcessor(intrinsic_resolver=create_default_intrinsic_resolver(context))
 
         processor.process_template(context)
 

@@ -25,12 +25,6 @@ class ResolutionMode(Enum):
         PARTIAL: Preserve unresolvable references in the output.
                  Use this mode for SAM integration where resource references
                  cannot be resolved locally.
-
-    Example:
-        >>> context = TemplateProcessingContext(
-        ...     fragment=template,
-        ...     resolution_mode=ResolutionMode.PARTIAL
-        ... )
     """
 
     FULL = "full"
@@ -55,13 +49,6 @@ class PseudoParameterValues:
                    Derived from region if not provided.
         url_suffix: AWS URL suffix (e.g., "amazonaws.com", "amazonaws.com.cn").
                     Derived from region if not provided.
-
-    Example:
-        >>> pseudo_params = PseudoParameterValues(
-        ...     region="us-west-2",
-        ...     account_id="123456789012",
-        ...     stack_name="my-stack"
-        ... )
 
     Note:
         The partition and url_suffix can be automatically derived from the region
@@ -98,13 +85,6 @@ class ParsedTemplate:
         resources: Template resources section (can be None for validation).
         outputs: Template outputs section.
         transform: Transform declaration (string or list of strings).
-
-    Example:
-        >>> parsed = ParsedTemplate(
-        ...     aws_template_format_version="2010-09-09",
-        ...     description="My template",
-        ...     resources={"MyBucket": {"Type": "AWS::S3::Bucket"}}
-        ... )
     """
 
     aws_template_format_version: Optional[str] = None
@@ -134,17 +114,6 @@ class TemplateProcessingContext:
         parsed_template: Structured template representation (set during processing).
         resolved_conditions: Evaluated condition values (set during processing).
         request_id: Unique identifier for the processing request.
-
-    Example:
-        >>> context = TemplateProcessingContext(
-        ...     fragment={"Resources": {"MyBucket": {"Type": "AWS::S3::Bucket"}}},
-        ...     parameter_values={"Environment": "prod"},
-        ...     pseudo_parameters=PseudoParameterValues(
-        ...         region="us-east-1",
-        ...         account_id="123456789012"
-        ...     ),
-        ...     resolution_mode=ResolutionMode.PARTIAL
-        ... )
 
     Note:
         The parsed_template and resolved_conditions fields are populated

@@ -8,11 +8,6 @@ This module provides resolvers for CloudFormation condition intrinsic functions:
 - Fn::Not: Returns the inverse of a condition
 - Condition: References a named condition from the Conditions section
 
-Requirements:
-    - 8.1: WHEN a Condition section contains language extension functions, THEN THE
-           Resolver SHALL resolve them before evaluating conditions
-    - 8.4: WHEN conditions contain circular references, THEN THE Resolver SHALL
-           raise an Invalid_Template_Exception
 """
 
 from typing import TYPE_CHECKING, Any, Dict, Optional
@@ -44,16 +39,6 @@ class ConditionResolver(IntrinsicFunctionResolver):
         _evaluating_conditions: Set of condition names currently being evaluated
                                 (used for circular reference detection)
 
-    Example:
-        >>> resolver = ConditionResolver(context, parent_resolver)
-        >>> resolver.resolve({"Fn::Equals": ["value1", "value1"]})
-        True
-        >>> resolver.resolve({"Fn::And": [{"Condition": "Cond1"}, {"Condition": "Cond2"}]})
-        # Returns True if both Cond1 and Cond2 are true
-
-    Requirements:
-        - 8.1: Resolve language extension functions before evaluating conditions
-        - 8.4: Detect circular condition references
     """
 
     FUNCTION_NAMES = ["Fn::Equals", "Fn::And", "Fn::Or", "Fn::Not", "Condition"]
@@ -122,11 +107,6 @@ class ConditionResolver(IntrinsicFunctionResolver):
             InvalidTemplateException: If args is not a list of exactly 2 elements,
                                       or if the values are not comparable types.
 
-        Example:
-            >>> self._resolve_equals(["value1", "value1"])
-            True
-            >>> self._resolve_equals(["value1", "value2"])
-            False
         """
         if not isinstance(args, list) or len(args) != 2:
             raise InvalidTemplateException("Fn::Equals layout is incorrect")
@@ -185,11 +165,6 @@ class ConditionResolver(IntrinsicFunctionResolver):
             InvalidTemplateException: If args is not a list of 2-10 elements,
                                       or if any element is not a valid condition.
 
-        Example:
-            >>> self._resolve_and([True, True])
-            True
-            >>> self._resolve_and([True, False])
-            False
         """
         if not isinstance(args, list) or len(args) < 2 or len(args) > 10:
             raise InvalidTemplateException("Fn::And layout is incorrect")
@@ -221,11 +196,6 @@ class ConditionResolver(IntrinsicFunctionResolver):
             InvalidTemplateException: If args is not a list of 2-10 elements,
                                       or if any element is not a valid condition.
 
-        Example:
-            >>> self._resolve_or([False, True])
-            True
-            >>> self._resolve_or([False, False])
-            False
         """
         if not isinstance(args, list) or len(args) < 2 or len(args) > 10:
             raise InvalidTemplateException("Fn::Or layout is incorrect")
@@ -257,11 +227,6 @@ class ConditionResolver(IntrinsicFunctionResolver):
             InvalidTemplateException: If args is not a list of exactly 1 element,
                                       or if the element is not a valid condition.
 
-        Example:
-            >>> self._resolve_not([True])
-            False
-            >>> self._resolve_not([False])
-            True
         """
         if not isinstance(args, list) or len(args) != 1:
             raise InvalidTemplateException("Fn::Not layout is incorrect")
@@ -300,8 +265,7 @@ class ConditionResolver(IntrinsicFunctionResolver):
         if isinstance(element, dict) and len(element) == 1:
             key = next(iter(element.keys()))
             # Valid condition functions
-            valid_condition_functions = {"Fn::Equals", "Fn::And", "Fn::Or", "Fn::Not", "Condition"}
-            if key in valid_condition_functions:
+            if key in self.FUNCTION_NAMES:
                 return
             # Ref is NOT valid inside condition functions like Fn::And/Fn::Or/Fn::Not
             if key == "Ref":
@@ -328,9 +292,6 @@ class ConditionResolver(IntrinsicFunctionResolver):
                                       the condition doesn't exist, or
                                       circular references are detected.
 
-        Example:
-            >>> self._resolve_condition_reference("IsProduction")
-            True  # If IsProduction condition evaluates to true
         """
         if not isinstance(args, str):
             raise InvalidTemplateException("Condition layout is incorrect")
