@@ -317,9 +317,19 @@ jobs:
         shell: bash
         run: |
           if [[ "${{ matrix.test_suite }}" == "tier1-finch" ]]; then
-            aws ecr-public get-login-password --region us-east-1 | sudo finch login --username AWS --password-stdin public.ecr.aws || { echo "FATAL: Finch Public ECR login failed"; exit 1; }
+            for i in 1 2 3; do
+              aws ecr-public get-login-password --region us-east-1 | sudo finch login --username AWS --password-stdin public.ecr.aws && break
+              echo "Finch ECR login attempt $i failed, retrying in 10s..."
+              sleep 10
+              [ $i -eq 3 ] && { echo "FATAL: Finch Public ECR login failed after 3 attempts"; exit 1; }
+            done
           else
-            aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws || { echo "FATAL: Docker Public ECR login failed"; exit 1; }
+            for i in 1 2 3; do
+              aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws && break
+              echo "Docker ECR login attempt $i failed, retrying in 10s..."
+              sleep 10
+              [ $i -eq 3 ] && { echo "FATAL: Docker Public ECR login failed after 3 attempts"; exit 1; }
+            done
           fi
 
       - name: Clear credentials and skip account reset for non-credential jobs
