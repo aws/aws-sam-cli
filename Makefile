@@ -14,11 +14,15 @@ init:
 	fi
 
 # Set up a pytest venv with test dependencies
+# Set up a pytest venv with test dependencies (cross-platform)
 setup-pytest:
-	python3.11 -m venv $(HOME)/pytest
-	uv pip install --python $(HOME)/pytest/bin/python3 -r requirements/dev.txt -r requirements/base.txt
-	sudo ln -sf $(HOME)/pytest/bin/pytest /usr/local/bin/pytest
-	pytest --version
+	python3.11 -m venv $(HOME)/pytest || python3 -m venv $(HOME)/pytest || python -m venv $(HOME)/pytest
+	uv pip install --python $(HOME)/pytest/bin/python3 -r requirements/dev.txt -r requirements/base.txt 2>/dev/null || \
+	  uv pip install --python $(HOME)/pytest/Scripts/python.exe -r requirements/dev.txt -r requirements/base.txt
+	@if [ -f "$(HOME)/pytest/bin/pytest" ]; then \
+	  sudo ln -sf $(HOME)/pytest/bin/pytest /usr/local/bin/pytest 2>/dev/null || true; \
+	fi
+	$(HOME)/pytest/bin/pytest --version 2>/dev/null || $(HOME)/pytest/Scripts/pytest --version
 
 # Install SAM CLI nightly binary
 init-nightly:
