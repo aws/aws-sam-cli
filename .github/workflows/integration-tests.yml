@@ -246,7 +246,7 @@ jobs:
           ruby-version: '3.2.7'
 
       - name: Set up Ruby 3.4.7
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "sync-code", "sync-watch", "other-and-e2e", "cloud-based-tests", "tier1-finch", "tier1-windows-build-2", "tier1-windows-build-3", "tier1-windows-other"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "sync-code", "sync-watch", "other-and-e2e", "cloud-based-tests", "tier1-finch", "tier1-windows-build-1", "tier1-windows-build-2", "tier1-windows-build-3", "tier1-windows-other"]'), matrix.test_suite)
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.4.7'
@@ -482,7 +482,7 @@ jobs:
               ;;
             "tier1-windows-build-1")
               # Tier1 build tests - half 1: python, dotnet, node, main build cmd, java
-              pytest -vv --reruns 3 -m "tier1 or tier1_extra" \
+              pytest -vv --reruns 3 -n 2 -m "tier1 or tier1_extra" \
                 tests/integration/buildcmd/test_build_cmd_python.py \
                 tests/integration/buildcmd/test_build_cmd_java.py \
                 tests/integration/buildcmd/test_build_cmd_dotnet.py \
@@ -492,23 +492,19 @@ jobs:
               ;;
             "tier1-windows-build-2")
               # Tier1 build tests - third 2: rust, provided, arm64
-              pytest -vv --reruns 3 -m "tier1 or tier1_extra" \
-                tests/integration/buildcmd/test_build_cmd_rust.py \
-                tests/integration/buildcmd/test_build_cmd_provided.py \
+              pytest -vv --reruns 3 -n 2 -m "tier1 or tier1_extra" \
                 tests/integration/buildcmd/test_build_cmd_arm64.py \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "tier1-windows-build-3")
               # Tier1 build tests - third 3: go, ruby, terraform, and remaining
-              pytest -vv --reruns 3 -m "tier1 or tier1_extra" \
+              pytest -vv --reruns 3 -n 2 -m "tier1 or tier1_extra" \
                 tests/integration/buildcmd \
                 --ignore=tests/integration/buildcmd/test_build_cmd_python.py \
                 --ignore=tests/integration/buildcmd/test_build_cmd_dotnet.py \
                 --ignore=tests/integration/buildcmd/test_build_cmd_node.py \
                 --ignore=tests/integration/buildcmd/test_build_cmd.py \
                 --ignore=tests/integration/buildcmd/test_build_cmd_java.py \
-                --ignore=tests/integration/buildcmd/test_build_cmd_rust.py \
-                --ignore=tests/integration/buildcmd/test_build_cmd_provided.py \
                 --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
