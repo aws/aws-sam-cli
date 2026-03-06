@@ -24,7 +24,6 @@ class InvokeIntegBase(TestCase):
         cls.event_path = str(cls.test_data_path.joinpath("invoke", "event.json"))
         cls.event_utf8_path = str(cls.test_data_path.joinpath("invoke", "event_utf8.json"))
         cls.env_var_path = str(cls.test_data_path.joinpath("invoke", "vars.json"))
-        cls.dotenv_path = str(cls.test_data_path.joinpath("invoke", ".env"))
 
     @staticmethod
     def get_integ_dir():

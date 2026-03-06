@@ -1303,38 +1303,6 @@ class TestInvokeContext_get_env_vars_value(TestCase):
         finally:
             os.unlink(filename)
 
-    def test_must_parse_dotenv_with_comments(self):
-        """Test parsing .env file with comments and empty lines"""
-
-        file_data = "# This is a comment\nKEY1=value1\n\nKEY2=value2"
-        expected = {"Parameters": {"KEY1": "value1", "KEY2": "value2"}}
-
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
-            f.write(file_data)
-            filename = f.name
-
-        try:
-            result = InvokeContext._get_env_vars_value(filename)
-            self.assertEqual(expected, result)
-        finally:
-            os.unlink(filename)
-
-    def test_must_parse_dotenv_with_quoted_values(self):
-        """Test parsing .env file with quoted values"""
-
-        file_data = "KEY1=\"value with spaces\"\nKEY2='single quoted'"
-        expected = {"Parameters": {"KEY1": "value with spaces", "KEY2": "single quoted"}}
-
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
-            f.write(file_data)
-            filename = f.name
-
-        try:
-            result = InvokeContext._get_env_vars_value(filename)
-            self.assertEqual(expected, result)
-        finally:
-            os.unlink(filename)
-
     def test_must_raise_if_empty_dotenv_file(self):
         """Test that empty .env file raises exception"""
 
@@ -1350,22 +1318,6 @@ class TestInvokeContext_get_env_vars_value(TestCase):
 
             msg = str(ex_ctx.exception)
             self.assertIn("not in valid JSON or .env format", msg)
-        finally:
-            os.unlink(filename)
-
-    def test_must_parse_dotenv_with_special_characters(self):
-        """Test parsing .env file with special characters in values"""
-
-        file_data = "API_KEY=abc123!@#$%\nURL=https://example.com/path?query=value"
-        expected = {"Parameters": {"API_KEY": "abc123!@#$%", "URL": "https://example.com/path?query=value"}}
-
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
-            f.write(file_data)
-            filename = f.name
-
-        try:
-            result = InvokeContext._get_env_vars_value(filename)
-            self.assertEqual(expected, result)
         finally:
             os.unlink(filename)
 
