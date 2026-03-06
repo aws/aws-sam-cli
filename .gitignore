@@ -172,6 +172,7 @@ typings/
 
 # dotenv environment variables file
 .env
+!tests/integration/testdata/invoke/.env
 
 
 ### OSX ###
