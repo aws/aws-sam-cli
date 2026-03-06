@@ -181,12 +181,6 @@ jobs:
           mkdir "D:\Temp" -Force
           echo "TEMP=D:\Temp" >> $env:GITHUB_ENV
 
-      - name: Configure AWS credentials via OIDC
-        uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: ${{ secrets.OIDC_ROLE_ARN }}
-          aws-region: us-east-1
-
       - name: Install uv
         uses: astral-sh/setup-uv@v7
         with:
@@ -308,38 +302,15 @@ jobs:
             echo "SCRIPT_PY=$HOME/pytest/Scripts/python.exe" >> $GITHUB_ENV
           fi
 
-      - name: Get testing resources and credentials
-        if: "!contains(fromJSON('[\"build-x86-1\", \"build-x86-2\", \"build-arm64\", \"build-x86-container-1\", \"build-x86-container-2\", \"build-arm64-container-1\", \"build-arm64-container-2\", \"local-invoke\", \"local-start-api\", \"local-start-lambda\"]'), matrix.test_suite)"
-        shell: bash
-        run: $SCRIPT_PY tests/setup_testing_resources.py
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.OIDC_ROLE_ARN }}
+          aws-region: us-east-1
 
-      - name: Login to Public ECR
+      - name: Setup testing resources, ECR login, and credential management
         shell: bash
-        run: |
-          if [[ "${{ matrix.test_suite }}" == "tier1-finch" ]]; then
-            for i in 1 2 3; do
-              aws ecr-public get-login-password --region us-east-1 | sudo finch login --username AWS --password-stdin public.ecr.aws && break
-              echo "Finch ECR login attempt $i failed, retrying in 10s..."
-              sleep 10
-              [ $i -eq 3 ] && { echo "FATAL: Finch Public ECR login failed after 3 attempts"; exit 1; }
-            done
-          else
-            for i in 1 2 3; do
-              aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws && break
-              echo "Docker ECR login attempt $i failed, retrying in 10s..."
-              sleep 10
-              [ $i -eq 3 ] && { echo "FATAL: Docker Public ECR login failed after 3 attempts"; exit 1; }
-            done
-          fi
-
-      - name: Clear credentials and skip account reset for non-credential jobs
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "build-x86-container-1", "build-x86-container-2", "build-arm64-container-1", "build-arm64-container-2", "local-invoke", "local-start-api", "local-start-lambda"]'), matrix.test_suite)
-        shell: bash
-        run: |
-          echo "SKIP_ACCOUNT_RESET=true" >> $GITHUB_ENV
-          echo "AWS_ACCESS_KEY_ID=" >> $GITHUB_ENV
-          echo "AWS_SECRET_ACCESS_KEY=" >> $GITHUB_ENV
-          echo "AWS_SESSION_TOKEN=" >> $GITHUB_ENV
+        run: $SCRIPT_PY tests/setup_testing_resources.py --test-suite "${{ matrix.test_suite }}" --container-runtime "$CONTAINER_RUNTIME"
 
       - name: Run tests
         shell: bash
