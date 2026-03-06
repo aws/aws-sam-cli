@@ -125,11 +125,7 @@ jobs:
       - name: Free up disk space
         shell: bash
         run: |
-          if [[ "${RUNNER_OS}" == "Windows" ]]; then
-            bash tests/free_disk_space_windows.sh
-          else
-            bash tests/free_disk_space.sh
-          fi
+          bash tests/free_disk_space.sh
 
       # ── Windows WSL2 Docker Setup (tier1-windows-* only) ──
       - name: Stop Windows Docker Engine
@@ -232,7 +228,7 @@ jobs:
         run: bash tests/install-maven-gradle.sh
 
       - name: Install .NET 10 SDK
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "other-and-e2e", "cloud-based-tests", "tier1-finch", "tier1-windows-build-1", "tier1-windows-build-2", "tier1-windows-build-3", "tier1-windows-other"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "other-and-e2e", "cloud-based-tests", "tier1-finch", "tier1-windows-build-1", "tier1-windows-build-3", "tier1-windows-other"]'), matrix.test_suite)
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
@@ -250,13 +246,13 @@ jobs:
           ruby-version: '3.2.7'
 
       - name: Set up Ruby 3.4.7
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "sync-code", "sync-watch", "other-and-e2e", "cloud-based-tests", "tier1-finch", "tier1-windows-build-1", "tier1-windows-build-2", "tier1-windows-build-3", "tier1-windows-other"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "sync-code", "sync-watch", "other-and-e2e", "cloud-based-tests", "tier1-finch", "tier1-windows-build-2", "tier1-windows-build-3", "tier1-windows-other"]'), matrix.test_suite)
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.4.7'
 
       - name: Install Rust toolchain and cargo-lambda
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch", "tier1-windows-build-1", "tier1-windows-build-2", "tier1-windows-build-3", "tier1-windows-other"]'), matrix.test_suite)
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch", "tier1-windows-build-2", "tier1-windows-build-3", "tier1-windows-other"]'), matrix.test_suite)
         shell: bash
         run: bash tests/install-rust.sh --uv
 
@@ -270,7 +266,7 @@ jobs:
         run: bash tests/setup_finch.sh
 
       - name: Setup QEMU for ARM64 emulation
-        if: "!contains(fromJSON('[\"build-x86-1\", \"build-x86-2\", \"build-x86-container-1\", \"build-x86-container-2\", \"tier1-finch\", \"tier1-windows-build\", \"tier1-windows-other\"]'), matrix.test_suite)"
+        if: "!contains(fromJSON('[\"build-x86-1\", \"build-x86-2\", \"build-x86-container-1\", \"build-x86-container-2\", \"tier1-finch\", \"tier1-windows-build-1\", \"tier1-windows-build-2\", \"tier1-windows-build-3\", \"tier1-windows-other\"]'), matrix.test_suite)"
         shell: bash
         run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
@@ -485,18 +481,18 @@ jobs:
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "tier1-windows-build-1")
-              # Tier1 build tests - half 1: python, dotnet, node, main build cmd
+              # Tier1 build tests - half 1: python, dotnet, node, main build cmd, java
               pytest -vv --reruns 3 -m "tier1 or tier1_extra" \
                 tests/integration/buildcmd/test_build_cmd_python.py \
+                tests/integration/buildcmd/test_build_cmd_java.py \
                 tests/integration/buildcmd/test_build_cmd_dotnet.py \
                 tests/integration/buildcmd/test_build_cmd_node.py \
                 tests/integration/buildcmd/test_build_cmd.py \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "tier1-windows-build-2")
-              # Tier1 build tests - third 2: java, rust, provided, arm64
+              # Tier1 build tests - third 2: rust, provided, arm64
               pytest -vv --reruns 3 -m "tier1 or tier1_extra" \
-                tests/integration/buildcmd/test_build_cmd_java.py \
                 tests/integration/buildcmd/test_build_cmd_rust.py \
                 tests/integration/buildcmd/test_build_cmd_provided.py \
                 tests/integration/buildcmd/test_build_cmd_arm64.py \
