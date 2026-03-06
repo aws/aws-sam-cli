@@ -36,7 +36,7 @@ def read_version():
     return re.search(r"__version__ = \"([^']+)\"", content).group(1)
 
 
-cmd_name = "sam"
+cmd_name = "sam-nightly"
 if os.getenv("SAM_CLI_DEV"):
     # We are installing in a dev environment
     cmd_name = "samdev"
