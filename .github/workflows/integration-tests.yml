@@ -163,18 +163,13 @@ jobs:
           sed -i 's/\r$//' tests/setup_wsl2_docker.sh
           bash tests/setup_wsl2_docker.sh
 
-      - name: Configure DOCKER_HOST to WSL2
+      - name: Configure DOCKER_HOST to WSL2 - Set TEMP to D:/Temp
         if: startsWith(matrix.test_suite, 'tier1-windows')
         shell: pwsh
         run: |
           $wslIp = (wsl hostname -I).Trim().Split(' ')[0]
           Write-Host "WSL2 IP: $wslIp"
           echo "DOCKER_HOST=tcp://${wslIp}:2375" >> $env:GITHUB_ENV
-
-      - name: Set TEMP to D:/Temp (Windows)
-        if: startsWith(matrix.test_suite, 'tier1-windows')
-        shell: pwsh
-        run: |
           mkdir "D:\Temp" -Force
           echo "TEMP=D:\Temp" >> $env:GITHUB_ENV
 
