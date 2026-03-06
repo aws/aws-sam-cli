@@ -54,5 +54,5 @@ black==26.1.0; python_version>"3.9"
 black==25.9.0; python_version<="3.9"
 psutil==7.2.2
 
-# Pin chardet to avoid requests compatibility assertion failure (requests requires chardet < 6)
+# Pin chardet to avoid requests compatibility assertion failure (requests requires chardet < 8)
 chardet<6
