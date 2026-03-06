@@ -244,5 +244,13 @@ Resources:
       Layers:
         - !Sub "arn:aws:lambda:us-east-1:553035198032:layer:git-lambda2:${LayerVersion}"
 
+  HelloWorldFunctionMissingImageUri:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      ImageConfig:
+        Command:
+          - main.handler
+      Timeout: 600
 
 # UTF-8 Test 😐

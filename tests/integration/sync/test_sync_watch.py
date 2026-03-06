@@ -301,7 +301,7 @@ class TestSyncInfraNestedStacks(TestSyncWatchBase):
             self.test_data_path.joinpath("infra", "template-python-before.yaml"),
         )
 
-        read_until_string(self.watch_process, "\x1b[32mInfra sync completed.\x1b[0m\n", timeout=600)
+        read_until_string(self.watch_process, "\x1b[32mInfra sync completed.\x1b[0m\n", timeout=900)
 
         # Updated Infra Validation
         self.stack_resources = self._get_stacks(self.stack_name)

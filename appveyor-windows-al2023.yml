@@ -47,6 +47,9 @@ install:
   - 'set PATH=%JAVA_HOME%\bin;%PATH%'
   - java --version
   - javac --version
+  - choco install maven --version=3.9.12
+  - 'set MAVEN_HOME=C:\ProgramData\chocolatey\lib\maven\apache-maven-3.9.12'
+  - 'set PATH=%MAVEN_HOME%\bin;%PATH%'
   - choco upgrade gradle --version=9.0.0
   - choco install ruby --version=3.2.7.1
   - choco install ruby --version=3.3.7.1

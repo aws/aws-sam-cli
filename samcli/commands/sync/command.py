@@ -316,10 +316,8 @@ def do_cli(
 
     # Note: ADL with use-container is not supported yet. Remove this logic once its supported.
     if use_container and dependency_layer:
-        LOG.info(
-            "Note: Automatic Dependency Layer is not yet supported with use-container. \
-            sam sync will be run without Automatic Dependency Layer."
-        )
+        LOG.info("Note: Automatic Dependency Layer is not yet supported with use-container. \
+            sam sync will be run without Automatic Dependency Layer.")
         dependency_layer = False
 
     build_dir = DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER if dependency_layer else DEFAULT_BUILD_DIR

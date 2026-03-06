@@ -37,15 +37,6 @@ class DurableIntegBase(TestCase):
     @classmethod
     def build_durable_functions(cls):
         """Run sam build for durable functions."""
-        # Set environment variable for SDK .whl file location
-        whl_path = Path(
-            cls.test_data_path,
-            "durable",
-            "functions",
-            "aws_durable_execution_sdk_python-1.0.0-py3-none-any.whl",
-        )
-        os.environ["DURABLE_SDK_WHL"] = str(whl_path.absolute())
-
         cls.build_dir = Path(cls.test_data_path, "durable", ".aws-sam", "build")
         cls.built_template_path = cls.build_dir / "template.yaml"
 
