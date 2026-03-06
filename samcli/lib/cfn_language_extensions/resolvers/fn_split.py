@@ -5,10 +5,6 @@ This module provides the resolver for the CloudFormation Fn::Split intrinsic
 function, which splits a string by a delimiter into a list.
 
 Fn::Split format: {"Fn::Split": [delimiter, "string-to-split"]}
-
-Requirements:
-    - 10.4: WHEN Fn::Split is applied to a string with a delimiter, THEN THE
-            Resolver SHALL return a list of strings split by the delimiter
 """
 
 from typing import Any, Dict, List, Union
@@ -32,19 +28,9 @@ class FnSplitResolver(IntrinsicFunctionResolver):
     Attributes:
         FUNCTION_NAMES: List containing "Fn::Split"
 
-    Example:
-        >>> resolver = FnSplitResolver(context, parent_resolver)
-        >>> resolver.resolve({"Fn::Split": [",", "a,b,c"]})
-        ["a", "b", "c"]
-        >>> resolver.resolve({"Fn::Split": ["-", "2023-01-15"]})
-        ["2023", "01", "15"]
-
     Raises:
         InvalidTemplateException: If the layout is incorrect (not a list of
                                   [delimiter, string]).
-
-    Requirements:
-        - 10.4: Return a list of strings split by the delimiter
     """
 
     FUNCTION_NAMES = ["Fn::Split"]
@@ -67,12 +53,6 @@ class FnSplitResolver(IntrinsicFunctionResolver):
         Raises:
             InvalidTemplateException: If the layout is incorrect.
                                       Error message: "Fn::Split layout is incorrect"
-
-        Example:
-            >>> resolver.resolve({"Fn::Split": [",", "a,b,c"]})
-            ["a", "b", "c"]
-            >>> resolver.resolve({"Fn::Split": ["", "abc"]})
-            ["a", "b", "c"]  # Empty delimiter splits into characters
         """
         # Extract the arguments from the intrinsic function
         args = self.get_function_args(value)

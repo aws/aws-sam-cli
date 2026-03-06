@@ -5,12 +5,6 @@ This module provides the resolver for the CloudFormation Fn::Select intrinsic
 function, which selects an item from a list by index.
 
 Fn::Select format: {"Fn::Select": [index, [list, of, items]]}
-
-Requirements:
-    - 10.5: WHEN Fn::Select is applied to a list with an index, THEN THE
-            Resolver SHALL return the element at that index
-    - 10.9: WHEN Fn::Select is applied with an out-of-bounds index, THEN THE
-            Resolver SHALL raise an Invalid_Template_Exception
 """
 
 from typing import Any, Dict
@@ -35,20 +29,9 @@ class FnSelectResolver(IntrinsicFunctionResolver):
     Attributes:
         FUNCTION_NAMES: List containing "Fn::Select"
 
-    Example:
-        >>> resolver = FnSelectResolver(context, parent_resolver)
-        >>> resolver.resolve({"Fn::Select": [0, ["a", "b", "c"]]})
-        "a"
-        >>> resolver.resolve({"Fn::Select": [2, ["a", "b", "c"]]})
-        "c"
-
     Raises:
         InvalidTemplateException: If the layout is incorrect (not a list of
                                   [index, list]) or if the index is out of bounds.
-
-    Requirements:
-        - 10.5: Return the element at the specified index
-        - 10.9: Raise exception for out-of-bounds index
     """
 
     FUNCTION_NAMES = ["Fn::Select"]
@@ -73,12 +56,6 @@ class FnSelectResolver(IntrinsicFunctionResolver):
                                       out of bounds.
                                       Error message: "Fn::Select layout is incorrect"
                                       or "Fn::Select index out of bounds"
-
-        Example:
-            >>> resolver.resolve({"Fn::Select": [0, ["a", "b", "c"]]})
-            "a"
-            >>> resolver.resolve({"Fn::Select": [1, ["x", "y"]]})
-            "y"
         """
         # Extract the arguments from the intrinsic function
         args = self.get_function_args(value)

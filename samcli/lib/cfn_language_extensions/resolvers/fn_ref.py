@@ -4,15 +4,6 @@ Fn::Ref intrinsic function resolver.
 This module provides the resolver for the CloudFormation Ref intrinsic
 function, which returns the value of a parameter, pseudo-parameter, or
 resource reference.
-
-Requirements:
-    - 10.1: WHEN Ref is applied to a template parameter, THEN THE Resolver SHALL
-            return the parameter's value from the context
-    - 9.2: WHEN a pseudo-parameter (AWS::Region, AWS::AccountId, etc.) is referenced,
-           THEN THE Resolver SHALL return the value from the PseudoParameterValues
-           if provided
-    - 9.3: WHEN a pseudo-parameter is referenced but no value is provided, THEN THE
-           Resolver SHALL preserve the reference unresolved
 """
 
 from typing import Any, Dict, Optional
@@ -45,18 +36,6 @@ class FnRefResolver(IntrinsicFunctionResolver):
 
     Attributes:
         FUNCTION_NAMES: List containing "Ref"
-
-    Example:
-        >>> resolver = FnRefResolver(context, parent_resolver)
-        >>> resolver.resolve({"Ref": "MyParameter"})
-        # Returns the value of MyParameter from context.parameter_values
-        >>> resolver.resolve({"Ref": "AWS::Region"})
-        # Returns the region from context.pseudo_parameters
-
-    Requirements:
-        - 10.1: Return parameter value from context for parameter references
-        - 9.2: Return pseudo-parameter value if provided
-        - 9.3: Preserve pseudo-parameter reference if no value provided
     """
 
     FUNCTION_NAMES = ["Ref"]
@@ -82,14 +61,6 @@ class FnRefResolver(IntrinsicFunctionResolver):
 
         Raises:
             InvalidTemplateException: If the Ref target is invalid.
-
-        Example:
-            >>> resolver.resolve({"Ref": "MyParameter"})
-            "parameter-value"
-            >>> resolver.resolve({"Ref": "AWS::Region"})
-            "us-east-1"
-            >>> resolver.resolve({"Ref": "MyResource"})
-            {"Ref": "MyResource"}  # Preserved in partial mode
         """
         # Extract the reference target
         ref_target = self.get_function_args(value)
@@ -134,9 +105,6 @@ class FnRefResolver(IntrinsicFunctionResolver):
 
         Returns:
             The parameter value if found, None otherwise.
-
-        Requirements:
-            - 10.1: Return parameter value from context
         """
         # Check parameter_values in context
         if ref_target in self.context.parameter_values:
@@ -198,9 +166,6 @@ class FnRefResolver(IntrinsicFunctionResolver):
 
         Returns:
             The pseudo-parameter value if found and provided, None otherwise.
-
-        Requirements:
-            - 9.2: Return pseudo-parameter value if provided
         """
         if self.context.pseudo_parameters is None:
             return None

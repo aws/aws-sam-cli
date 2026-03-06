@@ -13,6 +13,7 @@ from unittest import TestCase
 from unittest.mock import patch
 
 from samcli.lib.cfn_language_extensions.sam_integration import (
+    check_using_language_extension,
     contains_loop_variable,
     detect_dynamic_artifact_properties,
     detect_foreach_dynamic_properties,
@@ -408,22 +409,18 @@ class TestCheckUsingLanguageExtension(TestCase):
     """Additional edge case tests for _check_using_language_extension."""
 
     def test_none_template(self):
-        self.assertFalse(SamTranslatorWrapper._check_using_language_extension(None))
+        self.assertFalse(check_using_language_extension(None))
 
     def test_no_transform_key(self):
-        self.assertFalse(SamTranslatorWrapper._check_using_language_extension({"Resources": {}}))
+        self.assertFalse(check_using_language_extension({"Resources": {}}))
 
     def test_empty_transform(self):
-        self.assertFalse(SamTranslatorWrapper._check_using_language_extension({"Transform": ""}))
+        self.assertFalse(check_using_language_extension({"Transform": ""}))
 
     def test_list_with_non_string_entries(self):
-        self.assertFalse(
-            SamTranslatorWrapper._check_using_language_extension({"Transform": [{"Name": "AWS::Include"}, 42]})
-        )
+        self.assertFalse(check_using_language_extension({"Transform": [{"Name": "AWS::Include"}, 42]}))
 
     def test_list_with_language_extensions(self):
         self.assertTrue(
-            SamTranslatorWrapper._check_using_language_extension(
-                {"Transform": ["AWS::LanguageExtensions", "AWS::Serverless-2016-10-31"]}
-            )
+            check_using_language_extension({"Transform": ["AWS::LanguageExtensions", "AWS::Serverless-2016-10-31"]})
         )

@@ -11,6 +11,7 @@ import yaml
 from botocore.utils import set_value_from_jmespath
 
 from samcli.commands.exceptions import UserException
+from samcli.lib.cfn_language_extensions.utils import FOREACH_REQUIRED_ELEMENTS, is_foreach_key
 from samcli.lib.samlib.resource_metadata_normalizer import ASSET_PATH_METADATA_KEY, ResourceMetadataNormalizer
 from samcli.lib.utils import graphql_api
 from samcli.lib.utils.packagetype import IMAGE, ZIP
@@ -23,9 +24,6 @@ from samcli.lib.utils.resources import (
     get_packageable_resource_paths,
 )
 from samcli.yamlhelper import yaml_dump, yaml_parse
-
-# Fn::ForEach structure requires exactly 3 elements: [loop_variable, collection, output_template]
-FOREACH_REQUIRED_ELEMENTS = 3
 
 
 class TemplateNotFoundException(UserException):
@@ -153,61 +151,14 @@ def _update_relative_paths(template_dict, original_root, new_root):
 
     for resource_key, resource in template_dict.get("Resources", {}).items():
         # Handle Fn::ForEach blocks - update paths inside them
-        if resource_key.startswith("Fn::ForEach::"):
+        if is_foreach_key(resource_key):
             _update_foreach_relative_paths(resource, original_root, new_root)
             continue
 
         if not isinstance(resource, dict):
             continue
 
-        resource_type = resource.get("Type")
-
-        if resource_type not in RESOURCES_WITH_LOCAL_PATHS:
-            # Unknown resource. Skipping
-            continue
-
-        for path_prop_name in RESOURCES_WITH_LOCAL_PATHS[resource_type]:
-            properties = resource.get("Properties", {})
-
-            if (
-                resource_type in [AWS_SERVERLESS_FUNCTION, AWS_LAMBDA_FUNCTION]
-                and properties.get("PackageType", ZIP) == IMAGE
-            ):
-                if not properties.get("ImageUri"):
-                    continue
-                resolved_image_archive_path = _resolve_relative_to(properties.get("ImageUri"), original_root, new_root)
-                if not resolved_image_archive_path or not pathlib.Path(resolved_image_archive_path).is_file():
-                    continue
-
-            # SAM GraphQLApi has many instances of CODE_ARTIFACT_PROPERTY and all of them must be updated
-            if resource_type == AWS_SERVERLESS_GRAPHQLAPI and path_prop_name == graphql_api.CODE_ARTIFACT_PROPERTY:
-                # to be able to set different nested properties to S3 uri, paths are necessary
-                # jmespath doesn't provide that functionality, thus custom implementation
-                paths_values = graphql_api.find_all_paths_and_values(path_prop_name, properties)
-                for property_path, property_value in paths_values:
-                    updated_path = _resolve_relative_to(property_value, original_root, new_root)
-                    if not updated_path:
-                        # This path does not need to get updated
-                        continue
-                    set_value_from_jmespath(properties, property_path, updated_path)
-
-            path = jmespath.search(path_prop_name, properties)
-            updated_path = _resolve_relative_to(path, original_root, new_root)
-
-            if not updated_path:
-                # This path does not need to get updated
-                continue
-
-            set_value_from_jmespath(properties, path_prop_name, updated_path)
-
-        metadata = resource.get("Metadata", {})
-        if ASSET_PATH_METADATA_KEY in metadata:
-            path = metadata.get(ASSET_PATH_METADATA_KEY, "")
-            updated_path = _resolve_relative_to(path, original_root, new_root)
-            if not updated_path:
-                # This path does not need to get updated
-                continue
-            metadata[ASSET_PATH_METADATA_KEY] = updated_path
+        _update_resource_relative_paths(resource, original_root, new_root)
 
     # Update relative paths in SAM-generated Mappings sections.
     # When sam build generates Mappings for dynamic artifact properties (e.g., SAMCodeUriFunctions),
@@ -222,14 +173,67 @@ def _update_relative_paths(template_dict, original_root, new_root):
     return template_dict
 
 
+def _update_resource_relative_paths(resource, original_root, new_root):
+    """
+    Update relative paths for a single resource definition.
+
+    Parameters
+    ----------
+    resource : dict
+        The resource definition dictionary
+    original_root : str
+        Path to the directory where all paths were originally set relative to
+    new_root : str
+        Path to the new directory that all paths set relative to after this method completes
+    """
+    resource_type = resource.get("Type")
+    if resource_type not in RESOURCES_WITH_LOCAL_PATHS:
+        return
+
+    for path_prop_name in RESOURCES_WITH_LOCAL_PATHS[resource_type]:
+        properties = resource.get("Properties", {})
+
+        if (
+            resource_type in [AWS_SERVERLESS_FUNCTION, AWS_LAMBDA_FUNCTION]
+            and properties.get("PackageType", ZIP) == IMAGE
+        ):
+            if not properties.get("ImageUri"):
+                continue
+            resolved_image_archive_path = _resolve_relative_to(properties.get("ImageUri"), original_root, new_root)
+            if not resolved_image_archive_path or not pathlib.Path(resolved_image_archive_path).is_file():
+                continue
+
+        # SAM GraphQLApi has many instances of CODE_ARTIFACT_PROPERTY and all of them must be updated
+        if resource_type == AWS_SERVERLESS_GRAPHQLAPI and path_prop_name == graphql_api.CODE_ARTIFACT_PROPERTY:
+            paths_values = graphql_api.find_all_paths_and_values(path_prop_name, properties)
+            for property_path, property_value in paths_values:
+                updated_path = _resolve_relative_to(property_value, original_root, new_root)
+                if not updated_path:
+                    continue
+                set_value_from_jmespath(properties, property_path, updated_path)
+
+        path = jmespath.search(path_prop_name, properties)
+        updated_path = _resolve_relative_to(path, original_root, new_root)
+
+        if not updated_path:
+            continue
+
+        set_value_from_jmespath(properties, path_prop_name, updated_path)
+
+    metadata = resource.get("Metadata", {})
+    if ASSET_PATH_METADATA_KEY in metadata:
+        path = metadata.get(ASSET_PATH_METADATA_KEY, "")
+        updated_path = _resolve_relative_to(path, original_root, new_root)
+        if updated_path:
+            metadata[ASSET_PATH_METADATA_KEY] = updated_path
+
+
 def _update_foreach_relative_paths(foreach_value, original_root, new_root):
     """
     Update relative paths in resources defined inside a Fn::ForEach block.
 
     Fn::ForEach structure: [loop_variable, collection, output_template]
-    The output_template contains resource definitions that may have relative paths.
-
-    This function handles nested Fn::ForEach blocks recursively.
+    Handles nested Fn::ForEach blocks recursively.
 
     Parameters
     ----------
@@ -243,62 +247,19 @@ def _update_foreach_relative_paths(foreach_value, original_root, new_root):
     if not isinstance(foreach_value, list) or len(foreach_value) < FOREACH_REQUIRED_ELEMENTS:
         return
 
-    # The third element is the output template containing resource definitions
     output_template = foreach_value[2]
     if not isinstance(output_template, dict):
         return
 
-    # Check each resource definition in the output template
     for resource_key, resource_def in output_template.items():
-        # Handle nested Fn::ForEach blocks recursively
-        if resource_key.startswith("Fn::ForEach::"):
+        if is_foreach_key(resource_key):
             _update_foreach_relative_paths(resource_def, original_root, new_root)
             continue
 
         if not isinstance(resource_def, dict):
             continue
 
-        resource_type = resource_def.get("Type")
-        if resource_type not in RESOURCES_WITH_LOCAL_PATHS:
-            continue
-
-        for path_prop_name in RESOURCES_WITH_LOCAL_PATHS[resource_type]:
-            properties = resource_def.get("Properties", {})
-
-            if (
-                resource_type in [AWS_SERVERLESS_FUNCTION, AWS_LAMBDA_FUNCTION]
-                and properties.get("PackageType", ZIP) == IMAGE
-            ):
-                if not properties.get("ImageUri"):
-                    continue
-                resolved_image_archive_path = _resolve_relative_to(properties.get("ImageUri"), original_root, new_root)
-                if not resolved_image_archive_path or not pathlib.Path(resolved_image_archive_path).is_file():
-                    continue
-
-            # SAM GraphQLApi has many instances of CODE_ARTIFACT_PROPERTY and all of them must be updated
-            if resource_type == AWS_SERVERLESS_GRAPHQLAPI and path_prop_name == graphql_api.CODE_ARTIFACT_PROPERTY:
-                paths_values = graphql_api.find_all_paths_and_values(path_prop_name, properties)
-                for property_path, property_value in paths_values:
-                    updated_path = _resolve_relative_to(property_value, original_root, new_root)
-                    if not updated_path:
-                        continue
-                    set_value_from_jmespath(properties, property_path, updated_path)
-
-            path = jmespath.search(path_prop_name, properties)
-            updated_path = _resolve_relative_to(path, original_root, new_root)
-
-            if not updated_path:
-                continue
-
-            set_value_from_jmespath(properties, path_prop_name, updated_path)
-
-        metadata = resource_def.get("Metadata", {})
-        if ASSET_PATH_METADATA_KEY in metadata:
-            path = metadata.get(ASSET_PATH_METADATA_KEY, "")
-            updated_path = _resolve_relative_to(path, original_root, new_root)
-            if not updated_path:
-                continue
-            metadata[ASSET_PATH_METADATA_KEY] = updated_path
+        _update_resource_relative_paths(resource_def, original_root, new_root)
 
 
 def _update_sam_mappings_relative_paths(mappings, original_root, new_root):
@@ -471,7 +432,7 @@ def get_template_artifacts_format(template_file):
     artifacts = []
     for resource_key, resource in template_dict.get("Resources", {}).items():
         # Handle Fn::ForEach blocks - look inside them for resources
-        if resource_key.startswith("Fn::ForEach::"):
+        if is_foreach_key(resource_key):
             foreach_artifacts = _get_artifacts_from_foreach(resource, packageable_resources)
             artifacts.extend(foreach_artifacts)
             continue
@@ -479,27 +440,34 @@ def get_template_artifacts_format(template_file):
         if not isinstance(resource, dict):
             continue
 
-        # First check if the resources are part of package-able resource types.
-        if resource.get("Type") in packageable_resources.keys():
-            # Flatten list of locations per resource type.
-            locations = list(itertools.chain(*packageable_resources.get(resource.get("Type"))))
-            for location in locations:
-                properties = resource.get("Properties", {})
-                # Search for package-able location within resource properties.
-                if jmespath.search(location, properties):
-                    artifacts.append(properties.get("PackageType", ZIP))
+        artifacts.extend(_get_resource_artifacts(resource, packageable_resources))
 
+    return artifacts
+
+
+def _get_resource_artifacts(resource, packageable_resources):
+    """
+    Extract artifact formats from a single resource definition.
+
+    :param resource: The resource definition dict
+    :param packageable_resources: Dict of packageable resource types and their paths
+    :return: list of artifact formats found
+    """
+    artifacts = []
+    resource_type = resource.get("Type")
+    if resource_type in packageable_resources.keys():
+        locations = list(itertools.chain(*packageable_resources.get(resource_type)))
+        for location in locations:
+            properties = resource.get("Properties", {})
+            if jmespath.search(location, properties):
+                artifacts.append(properties.get("PackageType", ZIP))
     return artifacts
 
 
 def _get_artifacts_from_foreach(foreach_value, packageable_resources):
     """
     Extract artifact formats from resources defined inside a Fn::ForEach block.
-
-    Fn::ForEach structure: [loop_variable, collection, output_template]
-    The output_template contains resource definitions that will be expanded.
-
-    This function handles nested Fn::ForEach blocks recursively.
+    Handles nested Fn::ForEach blocks recursively.
 
     :param foreach_value: The value of the Fn::ForEach block (should be a list with 3 elements)
     :param packageable_resources: Dict of packageable resource types and their paths
@@ -510,31 +478,19 @@ def _get_artifacts_from_foreach(foreach_value, packageable_resources):
     if not isinstance(foreach_value, list) or len(foreach_value) < FOREACH_REQUIRED_ELEMENTS:
         return artifacts
 
-    # The third element is the output template containing resource definitions
     output_template = foreach_value[2]
     if not isinstance(output_template, dict):
         return artifacts
 
-    # Check each resource definition in the output template
     for resource_key, resource_def in output_template.items():
-        # Handle nested Fn::ForEach blocks recursively
-        if resource_key.startswith("Fn::ForEach::"):
-            nested_artifacts = _get_artifacts_from_foreach(resource_def, packageable_resources)
-            artifacts.extend(nested_artifacts)
+        if is_foreach_key(resource_key):
+            artifacts.extend(_get_artifacts_from_foreach(resource_def, packageable_resources))
             continue
 
         if not isinstance(resource_def, dict):
             continue
 
-        resource_type = resource_def.get("Type")
-        if resource_type in packageable_resources.keys():
-            # Flatten list of locations per resource type
-            locations = list(itertools.chain(*packageable_resources.get(resource_type)))
-            for location in locations:
-                properties = resource_def.get("Properties", {})
-                # Search for package-able location within resource properties
-                if jmespath.search(location, properties):
-                    artifacts.append(properties.get("PackageType", ZIP))
+        artifacts.extend(_get_resource_artifacts(resource_def, packageable_resources))
 
     return artifacts
 
@@ -557,7 +513,7 @@ def get_template_function_resource_ids(template_file, artifact):
         # Note: We can't return the actual expanded resource IDs here since we don't
         # have the collection values resolved. We return a placeholder to indicate
         # that functions exist inside the ForEach block.
-        if resource_id.startswith("Fn::ForEach::"):
+        if is_foreach_key(resource_id):
             foreach_functions = _get_function_ids_from_foreach(resource, artifact)
             if foreach_functions:
                 # Return the ForEach key as a placeholder - the actual function IDs
@@ -598,7 +554,7 @@ def _get_function_ids_from_foreach(foreach_value, artifact):
     # Check each resource definition in the output template
     for resource_key, resource_def in output_template.items():
         # Handle nested Fn::ForEach blocks recursively
-        if resource_key.startswith("Fn::ForEach::"):
+        if is_foreach_key(resource_key):
             nested_functions = _get_function_ids_from_foreach(resource_def, artifact)
             function_keys.extend(nested_functions)
             continue

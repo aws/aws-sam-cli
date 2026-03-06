@@ -17,13 +17,6 @@ class InvalidTemplateException(Exception):
 
     Attributes:
         cause: The original exception that caused this error, if any.
-
-    Example:
-        >>> try:
-        ...     # Some operation that fails
-        ...     raise KeyError("missing_key")
-        ... except KeyError as e:
-        ...     raise InvalidTemplateException("Mapping lookup failed", cause=e)
     """
 
     def __init__(self, message: str, cause: Optional[Exception] = None):
@@ -55,10 +48,6 @@ class UnresolvableReferenceError(Exception):
     Attributes:
         reference_type: The type of reference (e.g., "Ref", "Fn::GetAtt").
         reference_target: The target of the reference (e.g., resource logical ID).
-
-    Example:
-        >>> raise UnresolvableReferenceError("Ref", "MyBucket")
-        UnresolvableReferenceError: Cannot resolve Ref to 'MyBucket'
     """
 
     def __init__(self, reference_type: str, reference_target: str):

@@ -7,11 +7,6 @@ function, which performs string substitution with ${} placeholders.
 Fn::Sub supports two forms:
 - Short form: {"Fn::Sub": "Hello ${Name}"} - substitutes from parameters/pseudo-parameters
 - Long form: {"Fn::Sub": ["Hello ${Name}", {"Name": "World"}]} - uses variable map
-
-Requirements:
-    - 10.2: WHEN Fn::Sub is applied to a string with ${} placeholders, THEN THE
-            Resolver SHALL substitute the placeholders with the corresponding values
-            from parameters, pseudo-parameters, or the variable map
 """
 
 import re
@@ -47,17 +42,6 @@ class FnSubResolver(IntrinsicFunctionResolver):
 
     Attributes:
         FUNCTION_NAMES: List containing "Fn::Sub"
-
-    Example:
-        >>> resolver = FnSubResolver(context, parent_resolver)
-        >>> resolver.resolve({"Fn::Sub": "Region is ${AWS::Region}"})
-        "Region is us-east-1"
-        >>> resolver.resolve({"Fn::Sub": ["Hello ${Name}", {"Name": "World"}]})
-        "Hello World"
-
-    Requirements:
-        - 10.2: Substitute placeholders with values from parameters,
-                pseudo-parameters, or variable map
     """
 
     FUNCTION_NAMES = ["Fn::Sub"]
@@ -80,10 +64,6 @@ class FnSubResolver(IntrinsicFunctionResolver):
 
         Raises:
             InvalidTemplateException: If the Fn::Sub layout is incorrect.
-
-        Example:
-            >>> resolver.resolve({"Fn::Sub": "Hello ${Name}"})
-            "Hello World"  # If Name parameter is "World"
         """
         args = self.get_function_args(value)
 

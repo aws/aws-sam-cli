@@ -22,22 +22,6 @@ class TemplateParsingProcessor:
     - Validating that the Resources section is not null
     - Validating that no resources or outputs are explicitly set to null
 
-    Requirements:
-        - 2.1: Parse valid JSON/YAML template into structured Template object
-        - 2.2: Raise InvalidTemplateException when Resources section is null/missing
-        - 2.3: Raise InvalidTemplateException when an Output is explicitly null
-        - 2.4: Raise InvalidTemplateException when a Resource is explicitly null
-        - 2.5: Raise InvalidTemplateException for invalid JSON/YAML syntax
-        - 2.6: Initialize missing optional sections as empty dictionaries
-
-    Example:
-        >>> processor = TemplateParsingProcessor()
-        >>> context = TemplateProcessingContext(
-        ...     fragment={"Resources": {"MyBucket": {"Type": "AWS::S3::Bucket"}}}
-        ... )
-        >>> processor.process_template(context)
-        >>> print(context.parsed_template.resources)
-        {'MyBucket': {'Type': 'AWS::S3::Bucket'}}
     """
 
     def process_template(self, context: TemplateProcessingContext) -> None:
@@ -66,7 +50,7 @@ class TemplateParsingProcessor:
         This method extracts all standard CloudFormation template sections
         from the raw dictionary and creates a ParsedTemplate object.
         Missing optional sections (Parameters, Conditions, Outputs, Mappings)
-        are initialized as empty dictionaries per Requirement 2.6.
+        are initialized as empty dictionaries.
 
         Note: Resources is NOT optional and is NOT converted to empty dict.
         The validation step will check if Resources is null/missing.
@@ -83,7 +67,7 @@ class TemplateParsingProcessor:
         return ParsedTemplate(
             aws_template_format_version=fragment.get("AWSTemplateFormatVersion"),
             description=fragment.get("Description"),
-            # Optional sections: initialize as empty dict if missing/null (Req 2.6)
+            # Optional sections: initialize as empty dict if missing/null
             parameters=fragment.get("Parameters") or {},
             mappings=fragment.get("Mappings") or {},
             conditions=fragment.get("Conditions") or {},
@@ -100,9 +84,9 @@ class TemplateParsingProcessor:
         Validate template structure.
 
         This method performs structural validation on the parsed template:
-        - Ensures the Resources section is not null or missing (Requirement 2.2)
-        - Ensures no resource definitions are null (Requirement 2.4)
-        - Ensures no output definitions are null (Requirement 2.3)
+        - Ensures the Resources section is not null or missing
+        - Ensures no resource definitions are null
+        - Ensures no output definitions are null
 
         Args:
             template: The parsed template to validate.
@@ -110,11 +94,12 @@ class TemplateParsingProcessor:
         Raises:
             InvalidTemplateException: If validation fails.
         """
-        # Validate Resources section is not null or missing (Requirement 2.2)
         if template.resources is None:
             raise InvalidTemplateException("The Resources section must not be null")
 
-        # Validate no null resource definitions (Requirement 2.4)
+        if not isinstance(template.resources, dict):
+            raise InvalidTemplateException("The Resources section must be a mapping")
+
         for logical_id, resource in template.resources.items():
             if resource is None:
                 raise InvalidTemplateException(f"[/Resources/{logical_id}] resource definition is malformed")
@@ -123,7 +108,7 @@ class TemplateParsingProcessor:
             if not isinstance(resource, (dict, list)):
                 raise InvalidTemplateException(f"[/Resources/{logical_id}] resource definition is malformed")
 
-        # Validate no null output definitions (Requirement 2.3)
+        # Validate no null output definitions
         for logical_id, output in template.outputs.items():
             if output is None:
                 raise InvalidTemplateException(f"[/Outputs/{logical_id}] 'null' values are not allowed")

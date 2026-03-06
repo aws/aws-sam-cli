@@ -3,9 +3,6 @@ Fn::Base64 intrinsic function resolver.
 
 This module provides the resolver for the CloudFormation Fn::Base64 intrinsic
 function, which encodes a string to base64.
-
-Requirements:
-    - 10.8: THE Resolver SHALL support Fn::Base64 for base64 encoding strings
 """
 
 import base64
@@ -29,18 +26,8 @@ class FnBase64Resolver(IntrinsicFunctionResolver):
     Attributes:
         FUNCTION_NAMES: List containing "Fn::Base64"
 
-    Example:
-        >>> resolver = FnBase64Resolver(context, parent_resolver)
-        >>> resolver.resolve({"Fn::Base64": "hello"})
-        'aGVsbG8='
-        >>> resolver.resolve({"Fn::Base64": {"Ref": "MyStringParam"}})
-        # Returns base64-encoded value of the resolved parameter
-
     Raises:
         InvalidTemplateException: If the resolved value is not a string.
-
-    Requirements:
-        - 10.8: Support Fn::Base64 for base64 encoding strings
     """
 
     FUNCTION_NAMES = ["Fn::Base64"]
@@ -64,14 +51,6 @@ class FnBase64Resolver(IntrinsicFunctionResolver):
         Raises:
             InvalidTemplateException: If the resolved value is not a string.
                                       Error message: "Fn::Base64 layout is incorrect"
-
-        Example:
-            >>> resolver.resolve({"Fn::Base64": "hello"})
-            'aGVsbG8='
-            >>> resolver.resolve({"Fn::Base64": ""})
-            ''
-            >>> resolver.resolve({"Fn::Base64": 123})
-            InvalidTemplateException: Fn::Base64 layout is incorrect
         """
         # Extract the arguments from the intrinsic function
         args = self.get_function_args(value)
